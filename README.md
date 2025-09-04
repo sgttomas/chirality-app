@@ -1,14 +1,18 @@
 # Chirality AI App
 
-A Next.js application that transforms complex problems into structured solutions through three-pass semantic document generation, enhanced by RAG chat and matrix-driven orchestration.
+A Next.js application that transforms complex problems into structured solutions through semantic valley traversal, enhanced by RAG chat and matrix-driven orchestration.
 
 ## What It Does
 
-**Chirality AI** generates coherent, cross-referenced documents through a systematic three-pass refinement process:
+**Chirality AI** generates coherent, cross-referenced documents through canonical semantic valley traversal:
 
 1. **Matrix Integration**: Leverages semantic matrices from chirality-framework as "seeds of thought"
-2. **Document Generation**: Creates DS/SP/X/M documents through V1→V2→V3 iterative refinement  
+2. **Valley Traversal**: Follows the ontological path {problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → {resolution} through nine stations (S0-S8)
 3. **RAG Enhancement**: Uses generated documents as evidence for intelligent chat responses
+
+### Pipeline Architecture
+- **NEW**: Nine-station semantic valley traversal (S0-S8) with ontological modalities
+- **Legacy**: Three-pass refinement (V1→V2→V3) - routed through new pipeline when `NEW_PIPELINE_ENABLED=true`
 
 ### Core Document Types
 - **DS** (Data Sheet) - Data specifications, fields, types, validation rules

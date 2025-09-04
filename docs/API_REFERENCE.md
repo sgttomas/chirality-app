@@ -10,7 +10,9 @@ Complete REST API documentation for Chirality AI App endpoints.
 ### Document Generation
 
 #### POST /api/core/orchestrate
-**Three-pass document generation with matrix integration**
+**Three-pass document generation with matrix integration** *(LEGACY - will be deprecated)*
+
+⚠️ **Deprecation Notice**: This endpoint will be deprecated in favor of `/api/pipeline/traverse`. When `NEW_PIPELINE_ENABLED=true`, this endpoint routes through the new pipeline internally.
 
 Generates all four document types (DS/SP/X/M) using V1→V2→V3 iterative refinement with optional matrix-driven scaffolding.
 
@@ -244,10 +246,89 @@ data: {"type": "done"}
 }
 ```
 
+### Semantic Valley Traversal (NEW)
+
+#### POST /api/pipeline/traverse
+**Canonical semantic valley traversal via nine-station pipeline**
+
+*Feature flag: Requires `NEW_PIPELINE_ENABLED=true`*
+
+Implements the canonical semantic valley traversal using stations S0-S8 following the ontological path: {problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → {resolution}.
+
+**Request**:
+```typescript
+{
+  problem: {
+    title: string,
+    statement: string
+  },
+  matrices?: {
+    C?: any[],  // Requirements matrix (injected at S1)
+    D?: any[],  // Objectives matrix (injected at S2)
+    X?: any[],  // Verification matrix (injected at S3)
+    E?: any[]   // Evaluation matrix (injected at S6)
+  },
+  startStation?: 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8',
+  endStation?: 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8'
+}
+```
+
+**Response**:
+```typescript
+{
+  traversalId: string,
+  stations: {
+    S0?: any,  // Problem normalization (systematic)
+    S1?: any,  // Requirements structuring (systematic) 
+    S2?: any,  // Operational pathfinding (process)
+    S3?: any,  // Knowledge claims (epistemic)
+    S4?: any,  // Refined procedures (process)
+    S5?: any,  // Updated knowledge (epistemic)
+    S6?: any,  // Necessity/possibility analysis (alethic)
+    S7?: any,  // Epistemic reconciliation (epistemic)
+    S8?: any   // Final synthesis (alethic)
+  },
+  resolution: Packet<M>,  // Final M-type guidance with { version: 2 } metadata
+  metadata: {
+    durationMs: number,
+    matrixInjections: string[]  // Array of injected matrix types ['C', 'D']
+  }
+}
+```
+
+#### GET /api/pipeline/traverse
+**Get pipeline configuration and status**
+
+**Response**:
+```typescript
+{
+  pipelineEnabled: boolean,
+  version: string,
+  stations: string[],  // ['S0', 'S1', ..., 'S8']
+  modalities: {
+    S0: 'systematic',
+    S1: 'systematic', 
+    S2: 'process',
+    S3: 'epistemic',
+    S4: 'process',
+    S5: 'epistemic',
+    S6: 'alethic',
+    S7: 'epistemic',
+    S8: 'alethic'
+  },
+  matrixInjectionPoints: {
+    C: 'S1',  // Requirements
+    D: 'S2',  // Objectives
+    X: 'S3',  // Verification
+    E: 'S6'   // Evaluation
+  }
+}
+```
+
 ## Data Types
 
-### Triple Structure
-All documents follow the Triple pattern:
+### Triple Structure (Legacy)
+All documents in the legacy API follow the Triple pattern:
 
 ```typescript
 interface Triple<T> {
@@ -256,6 +337,27 @@ interface Triple<T> {
   warnings: string[]          // Generation warnings and notes
 }
 ```
+
+### Packet Structure (NEW)
+New pipeline uses the more flexible Packet pattern:
+
+```typescript
+interface Packet<T> {
+  text: T,                    // Document-specific content structure  
+  context?: {
+    terms?: string[],         // Keywords and terms used in generation
+    notes?: string[]          // Contextual information
+  },
+  flags?: {
+    risk?: boolean            // Risk indicator (only set by alethic stations S6, S8)
+  }
+}
+```
+
+**Version Metadata**: All station outputs include `{ version: 1|2|3 }` metadata indicating the semantic generation pass:
+- Version 1: S1, S2, S3 (V1 equivalent)
+- Version 2: S4, S5, S6 (V2 equivalent) 
+- Version 3: S7, S8 (V3 equivalent)
 
 ### Document Content Types
 

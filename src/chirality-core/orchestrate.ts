@@ -5,6 +5,8 @@ import { retrieveSummary } from './rag/retrieve';
 import { callJSON } from './vendor/llm';
 import { guard } from './validators';
 import { compactDS, compactSP, compactX, compactM } from './compactor';
+import { runCompatibilityMode } from '@/lib/orchestrator/pipeline';
+import { packetToTriple } from '@/lib/utils/packets';
 
 /**
  * Optionally accepts:
@@ -178,6 +180,13 @@ export async function orchestrateProblem(
   problem: { title: string; statement: string; initialVector: string[] },
   options?: { onProgress?: (event: OrchestrationProgress) => void }
 ): Promise<{ finals: Finals; history: Record<Version, Partial<Finals>>; U3: U }> {
+  // Route through new pipeline if enabled
+  if (process.env.NEW_PIPELINE_ENABLED === 'true') {
+    console.log('[Orchestrate] Routing through new pipeline system');
+    return await runNewPipelineCompatibility(problem, options);
+  }
+  
+  // Continue with legacy orchestration
   const history: Record<Version, Partial<Finals>> = { 1: {}, 2: {}, 3: {} };
   let finals: Finals = {};
 
@@ -241,4 +250,111 @@ export async function orchestrateProblem(
 
   const U3 = synthesizeU(3, finals);
   return { finals, history, U3 };
+}
+
+/**
+ * Compatibility wrapper for new pipeline system
+ * Maps new pipeline results back to legacy Finals format
+ */
+async function runNewPipelineCompatibility(
+  problem: { title: string; statement: string; initialVector: string[] },
+  options?: { onProgress?: (event: OrchestrationProgress) => void }
+): Promise<{ finals: Finals; history: Record<Version, Partial<Finals>>; U3: U }> {
+  const history: Record<Version, Partial<Finals>> = { 1: {}, 2: {}, 3: {} };
+  
+  try {
+    // Run V1 through new pipeline (S1, S2, S3)
+    const v1Results = await runCompatibilityMode('V1', problem);
+    
+    // Convert Packets back to Triples for compatibility
+    const v1Finals: Partial<Finals> = {
+      DS: v1Results.DS ? packetToTriple(v1Results.DS) : undefined,
+      SP: v1Results.SP ? packetToTriple(v1Results.SP) : undefined,
+      X: v1Results.X ? packetToTriple(v1Results.X) : undefined
+    };
+    history[1] = v1Finals;
+    
+    // Emit progress events for V1
+    if (options?.onProgress) {
+      ['DS', 'SP', 'X'].forEach(kind => {
+        if (v1Finals[kind as DocKind]) {
+          options.onProgress!({
+            phase: 'success',
+            kind: kind as DocKind,
+            version: 1,
+            deps: [],
+            ms: 100  // Placeholder timing
+          });
+        }
+      });
+    }
+    
+    // Run V2 through new pipeline (S4, S5, S6)
+    const v2Results = await runCompatibilityMode('V2', problem, v1Results);
+    
+    const v2Finals: Partial<Finals> = {
+      SP: v2Results.SP ? packetToTriple(v2Results.SP) : undefined,
+      X: v2Results.X ? packetToTriple(v2Results.X) : undefined,
+      M: v2Results.M ? packetToTriple(v2Results.M) : undefined
+    };
+    history[2] = v2Finals;
+    
+    // Emit progress events for V2
+    if (options?.onProgress) {
+      ['SP', 'X', 'M'].forEach(kind => {
+        if (v2Finals[kind as DocKind]) {
+          options.onProgress!({
+            phase: 'success',
+            kind: kind as DocKind,
+            version: 2,
+            deps: [],
+            ms: 100  // Placeholder timing
+          });
+        }
+      });
+    }
+    
+    // Run V3 through new pipeline (S7, S8)
+    const v3Results = await runCompatibilityMode('V3', problem, v2Results);
+    
+    const v3Finals: Partial<Finals> = {
+      X: v3Results.X ? packetToTriple(v3Results.X) : undefined,
+      M: v3Results.M ? packetToTriple(v3Results.M) : undefined
+    };
+    history[3] = v3Finals;
+    
+    // Emit progress events for V3
+    if (options?.onProgress) {
+      ['X', 'M'].forEach(kind => {
+        if (v3Finals[kind as DocKind]) {
+          options.onProgress!({
+            phase: 'success',
+            kind: kind as DocKind,
+            version: 3,
+            deps: [],
+            ms: 100  // Placeholder timing
+          });
+        }
+      });
+    }
+    
+    // Assemble final finals (latest versions)
+    const finals: Finals = {
+      DS: v1Finals.DS,     // Only from V1
+      SP: v2Finals.SP,     // From V2 (refined)
+      X: v3Finals.X,      // From V3 (final)
+      M: v3Finals.M       // From V3 (final)
+    };
+    
+    // Generate U3 summary
+    const U3 = synthesizeU(3, finals);
+    
+    console.log('[Pipeline Compatibility] Three-pass orchestration complete via new pipeline');
+    
+    return { finals, history, U3 };
+    
+  } catch (error) {
+    console.error('[Pipeline Compatibility] Error:', error);
+    throw error;
+  }
 }

@@ -1,94 +1,36 @@
-# Agents
+# Repository Guidelines
 
-AI workflows for automated project maintenance and documentation quality assurance.
+Concise contributor guide for the Chirality AI App (Next.js + TypeScript) implementing three‑pass DS/SP/X/M generation with RAG chat and optional matrix integration.
 
-## Overview
+## Project Structure & Module Organization
+- `src/app/` Next.js App Router (pages, layout, API routes)
+- `src/components/` UI and chat components; `src/hooks/` React hooks
+- `src/chirality-core/` orchestration/state; `lib/` framework, generator, orchestrator
+- `docs/` product docs; `__tests__/` Jest tests; `public/` assets; `config/`, `types/`
 
-This document defines AI agent workflows that maintain Chirality AI App quality through systematic, automated processes triggered by git commits, user feedback, and scheduled reviews.
+## Build, Test, and Development Commands
+- `npm run dev` local dev (Turbopack). `npm run dev:webpack` to disable Turbopack
+- `npm run build` build for production; `npm start` serve build
+- `npm run lint` ESLint; `npm run type-check` TypeScript strict check
+- `npm test` Jest unit tests; `npm run orchestrate:test` orchestration smoke
+- `npm run env:check` validate required env; `npm run update-docs-index` refresh docs index
 
-## Agent Workflows
+## Coding Style & Naming Conventions
+- TypeScript strict (`tsconfig.json`); 2‑space indent; Prettier config in `.prettierrc`
+- ESLint (`eslint-config-next`) enforced via `npm run lint`
+- Components: `PascalCase` files (e.g., `ChatWindow.tsx`); hooks `useX`
+- Variables/functions `camelCase`; types/interfaces `PascalCase`; constants `SCREAMING_SNAKE_CASE`
+- Use path aliases: `@/*`, `@/lib/*`, `@/config/*`
 
-### Documentation Maintenance Agent
-**Purpose**: Systematic documentation review and improvement
-**Trigger**: Git commits with documentation assessment flags
-**Responsibilities**:
-- Analyze commits for documentation impact
-- Generate improvement plans using structured methodology
-- Execute systematic updates following quality standards
-- Track status and validate improvements
+## Testing Guidelines
+- Framework: Jest + ts-jest. Tests live in `__tests__` or alongside as `*.test.ts(x)`
+- Write tests for core logic, error paths, and matrix ingestion where applicable
+- Run locally with `npm test`; ensure `npm run type-check` and `npm run lint` pass
 
-### Code Quality Agent  
-**Purpose**: Automated code review and enhancement
-**Trigger**: Pull requests and significant code changes
-**Responsibilities**:
-- Review TypeScript strict mode compliance
-- Validate test coverage and documentation
-- Check error handling patterns
-- Ensure production-ready code quality
+## Commit & Pull Request Guidelines
+- Commits: `type(scope): short summary` (Conventional Commits). Include Documentation Assessment flags when updating docs
+- PRs must include: clear description, linked issues, testing evidence (logs/screens), and updated docs when user-facing behavior changes
 
-### Testing Automation Agent
-**Purpose**: Comprehensive test validation and enhancement  
-**Trigger**: Code changes affecting core functionality
-**Responsibilities**:
-- Run complete test suites
-- Validate matrix integration workflows
-- Check E2E three-pass orchestration
-- Generate test reports with coverage metrics
-
-## Agent Configuration
-
-### Environment Setup
-```bash
-# Enable agent workflows
-AGENT_WORKFLOWS_ENABLED=true
-DOCUMENTATION_AGENT_ENABLED=true
-CODE_QUALITY_AGENT_ENABLED=true
-TESTING_AGENT_ENABLED=true
-
-# Agent coordination
-AGENT_PARALLEL_EXECUTION=true
-AGENT_VALIDATION_REQUIRED=true
-AGENT_REASONING_TRACES=true
-```
-
-### Workflow Triggers
-```typescript
-interface AgentTrigger {
-  type: "git_commit" | "pull_request" | "scheduled_review";
-  conditions: string[];
-  agent_sequence: string[];
-  validation_required: boolean;
-}
-```
-
-## Quality Assurance
-
-### Human-in-the-Loop Validation
-- **Critical Changes**: Require human approval before implementation
-- **Quality Checkpoints**: Validation gates throughout workflow execution
-- **Error Recovery**: Graceful degradation with human escalation
-- **Audit Trails**: Complete reasoning traces for all agent decisions
-
-### Success Metrics
-- **Documentation Quality**: Technical accuracy and user experience improvements
-- **Test Coverage**: Comprehensive validation of core functionality  
-- **Code Quality**: TypeScript compliance and production readiness
-- **Performance**: Agent execution efficiency and success rates
-
-## Integration with Development Workflow
-
-### Git Hooks Integration
-- **Pre-commit**: Code quality validation
-- **Post-commit**: Documentation impact analysis
-- **Pre-push**: Comprehensive test validation
-- **Post-merge**: Status tracking updates
-
-### CI/CD Integration
-- **Automated Testing**: Agent-triggered test execution
-- **Documentation Validation**: Systematic review of documentation changes
-- **Quality Gates**: Prevent deployment with failing validations
-- **Performance Monitoring**: Track agent workflow effectiveness
-
----
-
-*AI agent system for maintaining high-quality codebase and documentation through systematic, automated processes with human validation checkpoints.*
+## Security & Configuration Tips
+- Configure via `.env.local` (required: `OPENAI_API_KEY`; optional: Neo4j vars, `RBAC_ENABLED=true`)
+- For protected exports, pass `x-role: approver` header. Avoid committing secrets
