@@ -404,7 +404,7 @@ describe('framework ingestion', () => {
     // Act & Assert
     await expect(loadFrameworkRun(runId, { runsDir }))
       .rejects
-      .toThrow(/Invalid MatrixCell structure/);
+      .toThrow(/must be a string/);
   });
   
   test('prevents path traversal attacks', async () => {
@@ -415,7 +415,7 @@ describe('framework ingestion', () => {
     // Act & Assert
     await expect(loadFrameworkRun(maliciousRunId, { runsDir }))
       .rejects
-      .toThrow(/Path traversal detected|Failed to read or parse manifest/);
+      .toThrow(/Invalid run_id/);
   });
 });
 

@@ -3,7 +3,10 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
-import type { FrameworkRunManifest, MatrixCell, MatrixKind } from '@/types/framework';
+import type { FrameworkRunManifest } from '@/types/framework';
+import { MatrixCell, MatrixCellRaw, MatrixKind, NormalizationResult } from './types';
+import { normalizeMatrixCells, validateRawCell } from './normalizeMatrix';
+import { validateRunId } from '../utils/validation';
 
 export interface FrameworkIngestResult {
   manifest: FrameworkRunManifest;
@@ -30,6 +33,12 @@ export async function loadFrameworkRun(runId: string, opts: IngestOptions = {}):
     verifyChecksums = true,
     allowedMajor = 1
   } = opts;
+  
+  // Step 0: Validate run_id format per INTERFACE.md
+  const runIdValidation = validateRunId(runId);
+  if (!runIdValidation.valid) {
+    throw new Error(`Invalid run_id: ${runIdValidation.error}`);
+  }
   
   try {
     // Step 1: Read and parse manifest
@@ -98,37 +107,46 @@ export async function loadFrameworkRun(runId: string, opts: IngestOptions = {}):
           }
         }
         
-        // Step 6: Parse JSONL lines into MatrixCell[]
-        const cells: MatrixCell[] = [];
+        // Step 6: Parse JSONL lines into MatrixCellRaw[]
+        const rawCells: MatrixCellRaw[] = [];
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           try {
-            const cell = JSON.parse(line) as MatrixCell;
+            const rawCell = JSON.parse(line);
             
-            // Validate cell structure - ensure all required fields are present
-            if (!cell.id || !cell.matrix || !cell.text || !cell.station || !cell.row_label || !cell.col_label) {
-              throw new Error(`Invalid MatrixCell structure at line ${i + 1}: missing required fields`);
-            }
-            
-            // Validate field types
-            if (!Array.isArray(cell.citations) || !Array.isArray(cell.refs)) {
-              throw new Error(`Invalid MatrixCell structure at line ${i + 1}: citations and refs must be arrays`);
-            }
+            // Validate raw cell structure
+            validateRawCell(rawCell, i + 1);
             
             // Ensure matrix field matches expected kind
-            if (cell.matrix !== matrixKind) {
+            if (rawCell.matrix !== matrixKind) {
               throw new Error(
-                `Matrix kind mismatch at line ${i + 1}: expected ${matrixKind}, got ${cell.matrix}`
+                `Matrix kind mismatch at line ${i + 1}: expected ${matrixKind}, got ${rawCell.matrix}`
               );
             }
             
-            cells.push(cell);
+            rawCells.push(rawCell as MatrixCellRaw);
           } catch (parseError) {
             throw new Error(`Failed to parse JSONL line ${i + 1} in ${matrixKind}: ${parseError}`);
           }
         }
         
-        matrices[matrixKind] = cells;
+        // Step 7: Normalize cells (coordinates, whitespace, ordering)
+        const normalizationResult = normalizeMatrixCells(rawCells, matrixKind);
+        
+        // Log normalization metrics
+        if (normalizationResult.metrics.warnings.length > 0) {
+          console.warn(`[Framework] ${matrixKind} normalization warnings:`);
+          normalizationResult.metrics.warnings.forEach(warning => {
+            console.warn(`  ${warning}`);
+          });
+        }
+        
+        console.log(
+          `[Framework] ${matrixKind}: ${normalizationResult.metrics.totalCells} cells, ` +
+          `${normalizationResult.metrics.normalizedCoordinates} coordinates normalized`
+        );
+        
+        matrices[matrixKind] = normalizationResult.cells;
         
       } catch (error) {
         if (error instanceof Error && (error.message.includes('ENOENT') || (error as any).code === 'ENOENT')) {

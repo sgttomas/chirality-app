@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { orchestrateProblem, OrchestrationProgress } from '@/chirality-core/orchestrate';
 import { readState, writeState } from '@/chirality-core/state/store';
 import { mirrorAfterWrite } from '@/lib/graph/integration';
+import { tripleToPacket } from '@/lib/utils/packets';
 
 /**
  * Shared three-pass orchestration logic used by both
@@ -69,10 +70,19 @@ export async function runThreePassOrchestration(request: NextRequest) {
     // Mirror to graph after successful file write (non-blocking)
     mirrorAfterWrite(finals);
 
+    // Convert finals to packets for the new API format
+    const finalsPacket = {
+      DS: finals.DS ? tripleToPacket(finals.DS) : undefined,
+      SP: finals.SP ? tripleToPacket(finals.SP) : undefined,
+      X: finals.X ? tripleToPacket(finals.X) : undefined,
+      M: finals.M ? tripleToPacket(finals.M) : undefined
+    };
+
     return NextResponse.json({ 
       success: true,
       orchestrationMode: 'three_pass',
-      finals,
+      finals,  // Legacy format
+      packet: finalsPacket,  // New format
       history,
       U3,
       logs,

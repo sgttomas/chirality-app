@@ -1,0 +1,17 @@
+feat(arch): Implement semantic valley traversal pipeline
+
+This commit introduces a fundamental architectural refactor, replacing the legacy three-pass (V1/V2/V3) orchestration system with the new canonical "semantic valley traversal" pipeline.
+
+This new architecture is implemented as a nine-station pipeline (S0-S8) that follows the project's core ontological path, ensuring the codebase is a lean and explicit reflection of its purpose.
+
+Key changes include:
+- Implemented the nine-station pipeline orchestrator in `lib/orchestrator/pipeline`.
+- Introduced the `Packet` type system with compatibility adapters to supersede the rigid `Triple` type.
+- Created a normalization layer at the ingestion boundary to handle `MatrixCell` data inconsistencies from the upstream framework.
+- Added a new, feature-flagged API endpoint `/api/pipeline/traverse` for the new system.
+- Rerouted the legacy `/api/core/orchestrate` endpoint through the new pipeline when the `NEW_PIPELINE_ENABLED` flag is active.
+- Centralized core document types (DS, SP, X, M) into `src/types/framework.ts`.
+- Added comprehensive tests for the new types, pipeline, and ingestion logic, bringing total tests to 108.
+- Updated all relevant documentation (README, API_REFERENCE, INTERFACE) to reflect the new architecture.
+
+This work completes Phases 0 through 8 of the comprehensive refactoring plan. All changes are non-breaking for existing users, as the new pipeline is disabled by default via its feature flag.

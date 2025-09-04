@@ -198,6 +198,17 @@ Notes:
 - id format is canonical: "{matrix}:r{row}:c{col}".
 - station must match the exact Matrix.station string produced by the framework (e.g., "Problem Requirements", "Solution Objectives", "Verification", "Evaluation").
 - The producer may include additional fields; the consumer must ignore unknown fields.
+
+### MatrixCell Compatibility
+
+The framework may produce cells with inconsistent coordinate information. The consumer implements a normalization layer that:
+
+- **Derives coordinates from labels**: Uses `row_label` and `col_label` to compute numeric `row` and `col` values (1-based indexing)
+- **Validates producer coordinates**: If `row`/`col` fields are present from the producer, compares them with derived values and logs warnings for mismatches
+- **Uses derived coordinates**: Always uses label-derived coordinates as the authoritative source for placement and indexing
+- **Normalizes whitespace**: Trims whitespace from all label fields during processing
+
+This ensures robust handling of framework output variations while maintaining deterministic matrix placement.
 ```
 
 ## Checksums
