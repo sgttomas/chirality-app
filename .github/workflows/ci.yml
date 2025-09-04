@@ -99,6 +99,8 @@ jobs:
         echo "Workspace: $GITHUB_WORKSPACE"
         ls -la "$GITHUB_WORKSPACE"
         ls -la "$GITHUB_WORKSPACE/.next" || echo ".next not found"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo ".next/standalone not found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo ".next/static not found"
         ls -la "$GITHUB_WORKSPACE/public" || echo "public not found"
         test -f "$GITHUB_WORKSPACE/package.json" && echo "package.json OK"
         
@@ -107,7 +109,8 @@ jobs:
       with:
         name: next-build
         path: |
-          ${{ github.workspace }}/.next
+          ${{ github.workspace }}/.next/standalone
+          ${{ github.workspace }}/.next/static
           ${{ github.workspace }}/public
           ${{ github.workspace }}/package.json
         if-no-files-found: error
@@ -177,17 +180,22 @@ jobs:
       run: |
         echo "Downloaded artifact contents:"
         ls -la "$GITHUB_WORKSPACE"
-        ls -la "$GITHUB_WORKSPACE/.next" || echo "No .next directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo "No .next/standalone directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo "No .next/static directory found"
         ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
         
-    - name: Start application for testing
-      run: |
-        npm start &
-        sleep 30  # Wait for app to start
-        curl -f http://localhost:3000 || (echo "Server failed to start" && exit 1)
+    - name: Start standalone server
       env:
-        NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
-        NEXT_PUBLIC_DEBUG: "0"
+        PORT: 3000
+        HOSTNAME: 0.0.0.0
+        NODE_ENV: production
+      run: |
+        nohup node .next/standalone/server.js >/dev/null 2>&1 &
+        for i in {1..30}; do
+          curl -fsS http://localhost:3000 && echo "Server is ready!" && break
+          echo "Attempt $i: Server not ready yet, waiting..."
+          sleep 1
+        done || (echo "Server did not become ready" && exit 1)
         
     - name: Test health endpoint
       run: npm run health
@@ -254,7 +262,8 @@ jobs:
       run: |
         echo "Downloaded artifact contents:"
         ls -la "$GITHUB_WORKSPACE"
-        ls -la "$GITHUB_WORKSPACE/.next" || echo "No .next directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo "No .next/standalone directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo "No .next/static directory found"
         ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
         
     - name: Deploy to preview environment
