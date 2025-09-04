@@ -1,24 +1,18 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { ErrorBoundary } from '@/components/ui'
+import './globals.css';
 
-export const metadata: Metadata = {
-  title: 'Chirality Chat',
-  description: 'Semantic framework chat interface',
-}
+export const metadata = {
+  title: 'Chirality Framework',
+  description: '11-Station Semantic Valley Traversal'
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-      </body>
+      <body>{children}</body>
     </html>
-  )
+  );
 }

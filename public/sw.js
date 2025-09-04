@@ -1,5 +1,5 @@
-// Service Worker for Chirality Chat PWA
-const CACHE_NAME = 'chirality-chat-v1'
+// Service Worker for Chirality App PWA
+const CACHE_NAME = 'chirality-app-v2'
 const OFFLINE_URL = '/offline.html'
 
 // Resources to cache for offline functionality

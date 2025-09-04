@@ -1,17 +1,17 @@
-# Chirality Framework Philosophy
+# Chirality Framework Philosophy (v2 addendum)
 
 ## Core Principles
 
 The Chirality Framework is built on **systematic semantic operations** - transforming complex problems into structured, actionable solutions through iterative refinement and cross-referential enhancement.
 
-## The Four-Document System
+## The Four-Document System (v2 foundation)
 
 ### Document Types and Their Purpose
 
 1. **DS (Data Sheet)**: Structural foundation - data fields, types, validation rules, source references
 2. **SP (Standard Procedure)**: Procedural framework - step-by-step workflows with clear inputs/outputs
-3. **X (Solution Template)**: Integrated solution - synthesizes data and procedures into cohesive narrative
-4. **M (Guidance)**: Strategic oversight - recommendations, justifications, risk considerations
+3. **GD (Guidance Document)**: Strategic guidance - prerequisites, dependencies, successors, wider context
+4. **EC (Evaluation Checklist)**: Procedural validation - checkpoints and quality gates
 
 ### Document Interdependencies
 
@@ -21,25 +21,15 @@ Each document type serves a specific role while maintaining critical dependencie
 - **X** synthesizes DS and SP into an integrated solution framework
 - **M** offers meta-guidance and strategic direction across all documents
 
-## Three-Pass Orchestration Model
+## Semantic Valley Traversal Model (v2)
 
-### Why Three Passes?
+The canonical S1→S11 model preserves ontological progression from problem to resolution. The default foundation traversal runs S1–S5 and then S11 for a fast, practical path to a resolution. Iterative refinement (S6–S10) is reserved for future implementation.
 
-The V1→V2→V3 approach represents our commitment to **convergent refinement**:
+This ensures documents evolve through proper ontological modalities to reach resolution.
 
-1. **V1 (Matrix-Seeded Generation)**: Deterministic scaffolds from semantic matrices + AI enhancement
-2. **V2 (Cross-Referential Refinement)**: Each document learns from V1 outputs of others
-3. **V3 (Convergence)**: Final refinement with full context integration
+### Seeds of Thought
 
-This ensures documents evolve from isolated components to a cohesive, integrated system.
-
-### Seeds of Thought and Evidence
-
-Our dual-seeding approach leverages:
-- **Seeds of Thought**: External semantic matrices (C/D/X/E) provide structured input
-- **Seeds of Evidence**: Generated documents indexed via RAG provide contextual enhancement
-
-This creates a knowledge feedback loop where each generation improves the corpus.
+External semantic matrices (C/D/X/E) provide structured input for station prompts. RAG/chat are out of scope for v2.
 
 ## Matrix-Driven Philosophy
 
@@ -72,7 +62,7 @@ Every component includes robust error handling:
 - **Timeouts**: Prevent infinite operations
 - **Corpus caps**: Manage resource consumption (4000 chars per document for RAG)
 - **Atomic locking**: Prevent concurrent state corruption
-- **Validation**: Ensure Triple structure integrity
+- **Validation**: Ensure Packet structure integrity
 - **Graceful degradation**: Return minimal valid structures on error
 
 ### Enterprise Readiness
@@ -90,7 +80,7 @@ Production deployment requires:
 Multiple testing layers ensure reliability:
 1. **Unit tests**: Individual component validation (52 tests passing)
 2. **Integration tests**: Matrix ingestion and generation workflows
-3. **E2E tests**: Complete three-pass orchestration validation
+3. **E2E tests**: Complete semantic valley traversal validation
 4. **Dynamic fixtures**: Self-contained test environments
 
 ### Documentation as Code
@@ -121,12 +111,12 @@ Users maintain visibility throughout:
 
 ## Evolution Strategy
 
-### From Single to Multi-Pass
+### From Single to Multi-Station
 
 Our progression demonstrates continuous improvement:
 - **V1.0**: Single document generation
-- **V2.0**: Two-pass cross-referential enhancement  
-- **V3.0**: Three-pass with matrix integration
+- **V2.0**: Multi-document orchestration
+- **V3.0**: Semantic valley traversal with matrix integration  
 - **Future**: Autonomous convergence detection
 
 ### Matrix Integration
@@ -175,7 +165,7 @@ Expanding beyond standalone operation:
 
 The Chirality Framework represents a philosophy of **structured creativity** - combining the rigor of deterministic systems with the flexibility of AI-driven generation. Through matrix-driven scaffolding and iterative refinement, we transform complex problems into well-structured, actionable solutions.
 
-This philosophy guides every technical decision, from file-based persistence to three-pass orchestration, ensuring the system remains transparent, robust, and continuously evolvable.
+This philosophy guides every technical decision, from file-based persistence to semantic valley traversal, ensuring the system remains transparent, robust, and continuously evolvable.
 
 ---
 

@@ -19,6 +19,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced ROADMAP.md with strategic priorities and success metrics
 - Standardized TROUBLESHOOTING.md with complete diagnostic procedures
 
+## [2.0.0] - 2025-09-04
+
+### Added
+- Canonical 11‑station semantic valley pipeline with foundation mode (S1–S5 + S11)
+- Orchestrator with mode selection and per‑mode transition validation
+- LLM service with `OPENAI_MODEL` env as single source of truth; foundation fallbacks
+- Packet JSON Schema (`schemas/packet.json`) and file exporter (`runs/<runId>/`)
+- REST API: `POST /api/pipeline/traverse`, `GET /api/export/run`
+- Minimal UI with problem form, mode toggle, station chips, and resolution
+- CI workflow: typecheck, lint, tests, build, schema validation, artifacts, legacy sweep
+
+### Changed
+- Project renamed to `chirality-app`; version set to 2.0.0
+- Documentation updated (README, ARCHITECTURE, INTERFACE, API_REFERENCE, TROUBLESHOOTING, CONTRIBUTING)
+
+### Removed
+- Legacy chat/RAG endpoints and nine‑station model docs (archived)
+- Agent framework endpoints in favor of direct traversal/export
+
+### Notes
+- Full mode (S1–S11) in place with placeholders for S6–S10; to be implemented next
+
 ## [1.0.0] - 2025-09-01
 
 ### Added

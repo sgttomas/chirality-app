@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 # --- config ---
-MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-nano")  # change if you like
+MODEL = os.getenv("OPENAI_MODEL")  # Must be set in environment
 THREAD_FILE = Path("thread.json")                   # persists previous_response_id + transcript
 LOG_FILE = Path("chat_log.txt")                     # append-only log
 

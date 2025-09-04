@@ -1,28 +1,22 @@
-
 # Gemini Context: Chirality AI App
 
-This document provides a comprehensive overview of the Chirality AI App project to guide future AI-driven development and analysis.
+This document provides a comprehensive overview of the Chirality AI App project, reflecting the new post-refactor architecture. It is intended to guide future AI-driven development and analysis.
 
 ## Project Overview
 
-Chirality AI is a Next.js application designed to transform complex problems into structured, actionable solutions. It implements a unique **three-pass semantic document generation** process (V1→V2→V3), which iteratively refines a set of documents for maximum coherence and utility.
+Chirality AI is a Next.js application that transforms complex problems into structured solutions through a **canonical semantic valley traversal**. This architecture replaces the legacy three-pass (V1/V2/V3) system.
 
-The generation process is initiated by **matrix-driven orchestration**, where semantic matrices from an external `chirality-framework` act as "seeds of thought." This produces four core document types:
-- **DS (Data Sheet):** Technical specifications and data models.
-- **SP (Standard Procedure):** Step-by-step implementation workflows.
-- **X (Solution Template):** Integrated solution frameworks.
-- **M (Guidance):** Strategic recommendations and risk analysis.
+The core of the application is a **eleven-station pipeline (S1-S11)** that follows a specific ontological path: `{problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → {resolution}`. This ensures the codebase is a lean and explicit reflection of its philosophical purpose.
 
-The generated documents then serve as "seeds of evidence" for a **Retrieval-Augmented Generation (RAG)** chat interface, enabling intelligent, context-aware conversations grounded in the project's specific solutions.
+- **Data Structures:** The primary data structure for generated content is the **`Packet`**, an evolution of the legacy `Triple`. It provides a flexible container for document text, contextual metadata, and risk flags.
+- **Orchestration:** All orchestration logic is now centralized in `src/core/orchestrator.ts`.
+- **Data Ingestion:** A normalization layer at the ingestion boundary (`lib/framework/normalizeMatrix.ts`) handles inconsistencies from the upstream `chirality-framework`, ensuring internal data integrity.
 
 **Key Technologies:**
 - **Frontend:** Next.js 15, React 18, TypeScript, Tailwind CSS
 - **Backend:** Next.js API Routes (Node.js)
 - **AI:** OpenAI API
-- **State Management:** File-based JSON persistence and Zustand for UI
-- **Python Integration:** The app interfaces with the Python-based `chirality-framework` for matrix processing.
-
-The project's core philosophy is to be a "systematic thinking" partner that augments human intellect by providing structure and reducing cognitive load, rather than simply being a one-shot answer generator.
+- **State Management:** File-based JSON persistence
 
 ## Building and Running
 
@@ -40,63 +34,37 @@ cp .env.example .env.local
 ```
 
 ### Core Commands
-- **Run in development mode:**
-  ```bash
-  npm run dev
-  ```
-  The application will be available at `http://localhost:3001`.
+- **Run in development mode:** `npm run dev`
+- **Build for production:** `npm run build`
+- **Run unit tests:** `npm test`
+- **Run linter:** `npm run lint`
+- **Check TypeScript types:** `npm run type-check`
 
-- **Build for production:**
-  ```bash
-  npm run build
-  ```
+### Feature Flag Management
+The new pipeline architecture is governed by feature flags defined in `.env.local`.
 
-- **Run unit tests:**
-  ```bash
-  npm test
-  ```
+- **`NEW_PIPELINE_ENABLED`**: (Default: `false`) Set to `true` to enable the eleven-station pipeline. When enabled, legacy endpoints are routed through the new system.
+- **`FEATURE_GRAPH_ENABLED`**: (Default: `false`) Set to `true` to enable Neo4j graph integration features.
 
-- **Run linter:**
-  ```bash
-  npm run lint
-  ```
-
-- **Check TypeScript types:**
-  ```bash
-  npm run type-check
-  ```
+Convenience scripts are available:
+- **Enable new pipeline:** `npm run pipeline:enable`
+- **Disable new pipeline:** `npm run pipeline:disable`
 
 ## Development Conventions
 
 Development practices are strict to ensure high-quality, maintainable code.
 
-### Coding Style
+### Architectural Conventions
+- **Pipeline-First:** All new orchestration logic must be implemented as a station within the `src/core/stations/` directory. The legacy `src/chirality-core/` directory is being deprecated for orchestration logic.
+- **Boundary Normalization:** Inconsistencies from external data sources (like the `chirality-framework`) must be handled at the ingestion boundary. Do not allow "raw" or incomplete data types to leak into the core application logic.
+- **Centralized Types:** Core document types (`DS`, `SP`, `X`, `M`) are maintained in `src/types/framework.ts`.
+
+### Coding Style & Commits
 - **TypeScript Strict Mode:** The entire codebase must be compliant with TypeScript's `strict` mode.
-- **Explicit Typing:** Avoid `any`. Use explicit `interface` or `type` definitions for all data structures.
-- **Error Handling:** All asynchronous operations and API routes must include comprehensive `try...catch` blocks and return appropriate error responses.
+- **Commit Message Format:** Commits must follow the conventional commit format (`type(scope): message`).
+- **Branching Strategy:** Use `feature/`, `fix/`, and `docs/` prefixes for branches.
 
 ### Testing
-- **Automated Tests:** All contributions should be covered by unit tests where applicable. Run `npm test` before submitting changes.
-- **Manual Testing:** A comprehensive manual testing checklist is required for all contributions, covering critical workflows like document generation (single-pass and three-pass), chat integration, and state persistence.
-
-### Commits and Pull Requests
-- **Branching Strategy:**
-  - Features: `feature/add-new-feature`
-  - Bug Fixes: `fix/resolve-bug`
-  - Documentation: `docs/update-documentation`
-- **Commit Message Format:** Commits must follow a specific format, including a scope and a `Documentation Assessment` block.
-  ```
-  type(scope): brief description
-
-  Documentation Assessment: [NONE|STANDARD_UPDATE|SIGNIFICANT_REVISION]
-  Scope: [TECHNICAL_ACCURACY|USER_EXPERIENCE|...]
-  Methodology: [FEATURE_DOCUMENTATION|EXAMPLE_FIX|...]
-
-  Detailed description of changes.
-  ```
-- **Pull Requests:** PRs must include a clear description of the problem and solution, evidence of testing (screenshots or logs), and confirmation that relevant documentation has been updated.
-
-### Core Philosophy
-- **Systematic Thinking:** Development should align with the core philosophy of providing structured, iterative tools.
-- **Human-in-the-Loop:** Features should augment the user's ability to think and solve problems, not replace them.
-- **Auditable & Deterministic:** Processes should be traceable. The V1→V2→V3 hashing and matrix-seeding are key to this.
+- **Test-Driven:** All new functionality (types, stations, utilities) must be accompanied by unit tests.
+- **Parity & Regressions:** Use the "golden parity" test suite to ensure that changes to the pipeline do not alter the semantic output of the legacy system during the transition period.
+- **Feature Flag Tests:** New features behind flags must include integration tests to verify that the code paths behave correctly when the flag is on or off.

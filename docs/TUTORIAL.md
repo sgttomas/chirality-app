@@ -1,13 +1,12 @@
-# Chirality AI App Tutorial
+# chirality‑app Tutorial (v2 foundation)
 
-Complete hands-on guide to generating structured documents and using RAG-enhanced chat for systematic problem-solving.
+Hands-on guide to generating structured documents via the foundation traversal (S1–S5 + S11).
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+
-- OpenAI API key
-- 15 minutes for complete tutorial
+- Optional: OpenAI API key (foundation mode works without it)
 
 ### Quick Setup
 ```bash
@@ -24,20 +23,19 @@ Visit http://localhost:3001 to begin.
 ## Tutorial 1: Basic Document Generation
 
 ### Step 1: Set Your Problem
-1. Navigate to http://localhost:3001/chirality-core
+1. Navigate to http://localhost:3001
 2. Enter a clear problem statement:
    ```
    Implement a user authentication system for a web application
    ```
 3. Click "Update Problem Statement"
 
-### Step 2: Generate Documents
-1. Choose "🔄 Three-Pass with Matrix Integration" (recommended)
-2. Watch the progress indicator as V1→V2→V3 refinement occurs
-3. Generation takes 2-4 minutes for complete three-pass process
+### Step 2: Generate Documents (Foundation Mode)
+1. Keep mode = Foundation (S1–S5 + S11)
+2. Submit and wait for completion (fast path)
 
 ### Step 3: Explore Generated Documents
-You'll receive four structured documents:
+You'll receive four structured documents and a resolution:
 
 **DS (Data Sheet)**
 ```json
@@ -62,63 +60,29 @@ You'll receive four structured documents:
 }
 ```
 
-**X (Solution Template)**
-```json
-{
-  "heading": "Authentication Flow Integration",
-  "narrative": "Comprehensive user authentication implementing secure credential validation with session management",
-  "precedents": ["DS:user_credentials", "SP:validate_user_credentials"],
-  "context_notes": ["Must handle edge cases for account lockout"]
-}
+**GD (Guidance Document)** — Strategic guidance
+
+**EC (Evaluation Checklist)** — Validation procedures
+
+**Final (Resolution)** — Synthesis from all prior documents
+
+### Step 4: Understand the Foundation Traversal
+- S1 (J), S2 (DS), S3 (SP), S4 (GD), S5 (EC), S11 (Final)
+Later stations build on earlier ones to create a coherent resolution.
+
+## Tutorial 2: Export and Validate
+
+### Step 1: Inspect Exported Files
+```bash
+curl -s "http://localhost:3001/api/export/run?runId=<runId>" | jq
+cat runs/<runId>/run.json | jq
+head -3 runs/<runId>/packets.jsonl
 ```
 
-**M (Guidance)**
-```json
-{
-  "statement": "Implement multi-factor authentication for enhanced security",
-  "justification": "Password-only authentication insufficient for sensitive applications",
-  "trace_back": ["X:auth_integration", "SP:credential_validation"],
-  "residual_risk": ["Brute force attacks on weak passwords"]
-}
-```
+Tip: You can download `run.json` and `packets.jsonl` via the UI buttons on the results panel, or access them directly from the `runs/<runId>/` directory.
 
-### Step 4: Understand the Three-Pass Process
-- **V1**: Initial generation with forward dependencies only
-- **V2**: Cross-referential refinement where each document learns from others  
-- **V3**: Final convergence with complete context integration
-
-Notice how V2 documents reference concepts from other documents, and V3 achieves full coherence.
-
-## Tutorial 2: RAG-Enhanced Chat
-
-### Step 1: Start Chatting
-1. After generating documents, navigate to http://localhost:3001
-2. Your generated documents are automatically loaded as context
-3. Ask questions that leverage your documents:
-
-### Step 2: Context-Aware Conversations
-Try these example questions:
-
-**Technical Implementation**:
-```
-"What database schema should I use for the user_credentials data field?"
-```
-
-The AI response will reference your DS document and provide grounded recommendations.
-
-**Procedural Guidance**:
-```
-"Walk me through implementing the validate_user_credentials procedure"
-```
-
-The AI will reference your SP document and provide step-by-step guidance.
-
-**Solution Architecture**:
-```
-"How do all these authentication components fit together?"
-```
-
-The AI will synthesize insights from all your documents (DS/SP/X/M).
+### Step 2: Validate Against Schema
+See `tests/schema.test.ts` for an example using AJV.
 
 ### Step 3: Commands in Chat
 Use special commands to control the system:
@@ -137,65 +101,29 @@ state
 # Shows current system state and available documents
 ```
 
-## Tutorial 3: Matrix Integration (Advanced)
+## Tutorial 3: Matrix Guidance (Advanced)
 
 ### Step 1: Understand Matrix-Driven Generation
 Matrix integration uses external semantic matrices as "seeds of thought":
 
 - **C matrix** → DS documents (requirements → data specifications)
 - **D matrix** → SP documents (objectives → procedures)  
-- **X+E matrices** → X documents (verification + evaluation → solutions)
-- **E matrix** → M documents (evaluation → guidance)
+- **X matrix** → GD documents (guidance)
+- **E matrix** → EC documents (evaluation)
 
-### Step 2: Using Framework Integration
-With external framework runs:
-
-```bash
-# Example API call for matrix integration
-curl -X POST http://localhost:3001/api/agent/run \
-  -H "Content-Type: application/json" \
-  -d '{"framework_run_id": "sample_happy_001", "enable_rag": true}'
-```
+### Step 2: Using Guidance in Prompts
+Provide selected matrix elements via `initialVector` when posting to `/api/pipeline/traverse`.
 
 ### Step 3: Matrix-Enhanced Generation
 When matrices are available:
 1. Deterministic scaffolds are pre-generated from matrix content
-2. AI enhances these scaffolds during V1 generation
-3. V2 and V3 proceed with standard cross-referential refinement
+2. AI enhances these scaffolds during systematic stations (S1)
+3. Process and epistemic stations build systematic refinement
 4. Result combines structured matrix input with AI creativity
 
-## Tutorial 4: System Administration
+## Tutorial 4: Administration
 
-### Step 1: Monitor System Health
-1. Visit http://localhost:3001/chat-admin for admin dashboard
-2. Check system status:
-   ```bash
-   curl http://localhost:3001/api/healthz      # Basic health
-   curl http://localhost:3001/api/readyz       # Dependencies
-   curl http://localhost:3001/api/chat/debug   # Detailed status
-   ```
-
-### Step 2: State Management
-```bash
-# View current state
-curl http://localhost:3001/api/core/state
-
-# Clear state (reset everything)
-curl -X DELETE http://localhost:3001/api/core/state
-
-# Update problem statement via API
-curl -X POST http://localhost:3001/api/core/state \
-  -H "Content-Type: application/json" \
-  -d '{"problem": {"statement": "New problem description"}}'
-```
-
-### Step 3: Export Documents
-```bash
-# Export with RBAC (requires approver role when enabled)
-curl -H "x-role: approver" \
-  http://localhost:3001/api/agent/export/abc123 \
-  --output documents.zip
-```
+There is no admin dashboard in v2. Basic health endpoints may not be present. Focus on traversal and export endpoints noted above.
 
 ## Tutorial 5: Advanced Features
 
@@ -309,51 +237,40 @@ Evaluate document quality using these criteria:
 ### Document Review Process
 1. **DS Review**: Verify data specifications are technically accurate
 2. **SP Review**: Ensure procedures are actually executable  
-3. **X Review**: Check that solution integrates DS and SP coherently
-4. **M Review**: Validate that guidance provides strategic value
+3. **GD Review**: Ensure strategic guidance covers prerequisites/successors and context
+4. **EC Review**: Validate that evaluation procedures and quality gates are actionable
 
 ## Advanced Tutorials
 
-### Tutorial 6: API Integration
-Learn to integrate Chirality AI App into your workflow:
+### Tutorial 6: API Integration (v2)
+Generate documents programmatically via traversal:
 
 ```typescript
-// Example: Automated documentation generation
 import fetch from 'node-fetch';
 
-async function generateProjectDocs(problemStatement: string) {
-  // Set problem
-  await fetch('http://localhost:3001/api/core/state', {
+export async function generateDocs(problemTitle: string, problemStatement: string) {
+  const response = await fetch('http://localhost:3001/api/pipeline/traverse', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ problem: { statement: problemStatement } })
+    body: JSON.stringify({
+      problem: { title: problemTitle, statement: problemStatement },
+      options: { mode: 'foundation' }
+    })
   });
-  
-  // Generate documents
-  const response = await fetch('http://localhost:3001/api/core/orchestrate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
-  });
-  
   return await response.json();
 }
 ```
 
-### Tutorial 7: Custom Workflows
+### Tutorial 7: Custom Workflows (v2)
 Create specialized workflows for your use cases:
 
 **Requirements Analysis Workflow**:
-1. Generate DS for data requirements
-2. Generate SP for validation procedures  
-3. Use chat to explore edge cases
-4. Iterate with refined problem statements
+1. Run foundation traversal to produce DS/SP/GD/EC
+2. Export and review documents; refine problem statement as needed
 
 **Technical Design Workflow**:
-1. Generate complete document set
-2. Use X document as architecture foundation
-3. Use M document for risk assessment
-4. Chat for implementation details
+1. Use SP as implementation backbone with DS constraints
+2. Follow GD for strategic considerations; validate via EC
 
 ## Getting Help
 
@@ -366,15 +283,15 @@ Create specialized workflows for your use cases:
 - **GitHub Issues**: Bug reports and feature requests
 - **GitHub Discussions**: Usage questions and best practices
 
-### Self-Diagnosis
+### Self-Diagnosis (v2)
 ```bash
-# Health check sequence
-curl http://localhost:3001/api/healthz
-curl http://localhost:3001/api/readyz  
-curl http://localhost:3001/api/chat/debug
-curl http://localhost:3001/api/core/state
+# Basic API checks
+curl -s -X POST http://localhost:3001/api/pipeline/traverse \
+  -H 'Content-Type: application/json' \
+  -d '{"problem":{"title":"T","statement":"Test"}}' | jq '.traversalId'
+curl -s "http://localhost:3001/api/export/run?runId=<runId>" | jq
 ```
 
 ---
 
-*Complete tutorial for systematic document generation and RAG-enhanced problem solving with Chirality AI App.*
+*Complete tutorial for systematic document generation with chirality‑app.*

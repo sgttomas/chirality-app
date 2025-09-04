@@ -1,6 +1,6 @@
-# Contributing to Chirality AI App
+# Contributing to chirality‑app
 
-Welcome! This guide covers everything you need to contribute to the Chirality AI App - a Next.js application implementing three-pass semantic document generation with matrix-driven orchestration and RAG-enhanced chat.
+Welcome! This guide covers contributions to the chirality‑app v2.0.0 codebase — an 11‑station semantic valley pipeline with a foundation traversal mode, strict packet schema, exports, API, UI, and CI.
 
 ## Quick Start for Contributors
 
@@ -14,33 +14,23 @@ npm run dev
 ```
 
 ### First Contribution Test
-1. Navigate to `http://localhost:3001/chirality-core`
-2. Enter: "implement a todo list app"
-3. Choose "🔄 Three-Pass with Matrix Integration"
-4. Verify all 4 documents generate correctly
-5. Test chat integration at `/` using generated documents
+1. Navigate to `http://localhost:3001`
+2. Enter a clear problem statement
+3. Keep mode = Foundation and run traversal
+4. Verify S1..S5 + S11 completed and resolution shown
+5. Inspect `runs/<runId>/run.json` and `packets.jsonl`
 
 ## Core System Understanding
 
-### Three-Pass Orchestration
-The heart of this application is the V1→V2→V3 iterative refinement process:
-
-1. **V1**: Matrix-seeded deterministic scaffolds + AI enhancement
-2. **V2**: Cross-referential refinement using insights from other documents  
-3. **V3**: Final convergence with full context integration
-
-### Matrix Integration
-External semantic matrices serve as "seeds of thought":
-- **C matrix** → DS documents (requirements → data specifications)
-- **D matrix** → SP documents (objectives → procedures)
-- **X+E matrices** → X documents (verification + evaluation → solutions) 
-- **E matrix** → M documents (evaluation → guidance)
+### 11‑Station Pipeline with Foundation Mode
+- Foundation (default): S1 (J), S2 (DS), S3 (SP), S4 (GD), S5 (EC), S11 (Final)
+- Full: S1..S11 (S6–S10 currently placeholders)
 
 ### Document Types
-- **DS** (Data Sheet) - Technical specifications, data fields, validation rules
-- **SP** (Standard Procedure) - Step-by-step workflows with inputs/outputs
-- **X** (Solution Template) - Integrated solution frameworks
-- **M** (Guidance) - Strategic recommendations and risk analysis
+- DS (Data Sheet) — from Matrix C
+- SP (Standard Procedure) — from Matrix D
+- GD (Guidance Document) — from Matrix X
+- EC (Evaluation Checklist) — from Matrix E
 
 ## Development Guidelines
 
@@ -121,24 +111,11 @@ export async function POST(request: Request) {
 ### Manual Testing Requirements
 For all contributions, test these critical workflows:
 
-**Document Generation**:
-- [ ] Single-pass generation for all document types (DS/SP/X/M)
-- [ ] Three-pass generation with proper V1→V2→V3 progression
-- [ ] Matrix integration with external framework run IDs
-- [ ] Error handling for malformed inputs
-- [ ] State persistence across browser sessions
-
-**Chat Integration**:
-- [ ] RAG context injection from generated documents
-- [ ] Streaming chat responses work correctly
-- [ ] Command detection (`set problem:`, `generate DS`, etc.)
-- [ ] Conversation continuity across multiple exchanges
-
-**System Integration**:
-- [ ] Admin dashboard shows correct system state
-- [ ] Export functionality generates proper ZIP archives
-- [ ] Error boundaries prevent UI crashes
-- [ ] Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+**Traversal**:
+- [ ] Foundation traversal produces S1..S5 + S11
+- [ ] Packets validate against `schemas/packet.json` (AJV)
+- [ ] Exporter writes `run.json` and `packets.jsonl`
+- [ ] API returns structured errors on invalid input
 
 ### Automated Testing
 ```bash
@@ -183,10 +160,8 @@ Includes any breaking changes or migration requirements.
 
 ### API Layer  
 **Location**: `src/app/api/`
-- RESTful endpoints for document generation
-- Server-sent events for streaming chat
-- State management endpoints
-- External framework integration
+- `/api/pipeline/traverse` — traversal
+- `/api/export/run` — export metadata
 
 ### UI Components
 **Location**: `src/components/` and `src/app/`
@@ -195,12 +170,8 @@ Includes any breaking changes or migration requirements.
 - Admin dashboard for system monitoring
 - Error boundaries and loading states
 
-### Matrix Integration
-**Location**: `src/lib/`
-- External framework ingestion
-- Matrix-driven generation
-- RAG pipeline implementation
-- Graph mirror synchronization
+### Matrices
+- Matrix concepts (C/D/X/E) guide station prompts; ingestion utilities live under `lib/framework/` but are optional in v2.0.0
 
 ## Advanced Topics
 
@@ -219,7 +190,7 @@ Includes any breaking changes or migration requirements.
 
 ### Improving RAG Performance
 1. Optimize document compaction in `src/chirality-core/state/store.ts`
-2. Enhance context injection in `src/app/api/chat/stream/route.ts`
+2. (Legacy) Chat SSE and context injection are not part of v2.0.0; focus on traversal and exports.
 3. Improve semantic chunking for better retrieval
 4. Test with various document sets
 

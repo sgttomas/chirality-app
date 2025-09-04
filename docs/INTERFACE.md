@@ -1,228 +1,120 @@
-# Chirality Framework Interface (CLI + Artifacts)
+# Chirality App Interface (API + Artifacts)
 
-This document defines the contract between `chirality-app` (consumer) and `chirality-framework` (producer).
+This document describes the v2.0.0 application interface for traversal and export, replacing older framework CLI contracts. Framework integration docs are archived; this file is the canonical reference for the app.
 
-## CLI Invocation
+## Endpoints
 
-- Command:
-  ```bash
-  chirality compute-pipeline \
-    --resolver openai \
-    --snapshot-jsonl \
-    --out runs/<run_id> \
-    --problem-file <path> \
-    --max-seconds 900
-  ```
+- POST `/api/pipeline/traverse` — Execute traversal
+- GET `/api/export/run?runId=...` — Inspect export metadata for a run
 
-- Arguments:
-  - `--resolver`: `string`. Resolver backend (e.g., "openai"). For automated testing, "echo" is also accepted.
-  - `--snapshot-jsonl`: `flag`. Produce JSONL snapshots per matrix (C,D,X,E).
-  - `--out`: `string`. Output directory root for the run artifacts, under `runs/<run_id>`. If omitted, the producer may auto-generate a valid run_id and return it in stdout JSON.
-  - `--problem-file`: `string`. Path to a JSON file containing:
-      ```json
-      { "title": "string", "statement": "string" }
-      ```
-  - `--max-seconds`: `integer`. Hard timeout in seconds (recommended 900).
+### POST /api/pipeline/traverse
+- Runs an 11‑station traversal in the selected mode (defaults to foundation).
 
-- Output discipline: In success, the producer prints exactly one JSON line to stdout (see below). All informational logs are written to stderr or gated behind --verbose.
-
-- Output (stdout last line):
-  ```json
-  {"run_id":"<run_id>","manifest":"runs/<run_id>/index.json"}
-  ```
-
-- Exit Codes:
-  - `0`: success
-  - `1`: general error (unexpected)
-  - `2`: invalid arguments
-  - `3`: timeout
-  - `4`: I/O error (filesystem)
-  - `5`: resolver error (e.g., model/API failure)
-  - (Unknown exit codes must be treated as `1` by the consumer)
-
-Producer guarantees:
-- Manifest is written last and only if the run completes successfully. On timeout/error, no manifest is produced.
-- Paths in the manifest are relative to the run directory.
-- The producer may include additional non-breaking fields; the consumer must ignore unknown fields.
-
-## Run Identifier
-
-- Pattern: `^[a-z0-9-_]{1,64}$`
-- Forbidden: path traversal (no `/`, `\`, `..`).
-- `chirality-app` must reject non-conforming run IDs.
-- If --out is omitted, the producer may auto-generate a valid run_id and return it in stdout JSON.
-
-## Output Layout
-
-```
-runs/<run_id>/
-└── index.json            # Manifest
-└── snapshots/
-    ├── C.jsonl
-    ├── D.jsonl
-    ├── X.jsonl
-    └── E.jsonl
-
-Notes:
-- Additional files or matrices may be present; the consumer should rely on the manifest and ignore unreferenced files.
-```
-
-## Manifest Schema (index.json)
-
-- Versioning
-  - `framework_schema_version`: semver string managed by `chirality-framework`.
-  - Compatibility (in `chirality-app`):
-    - Same major: OK.
-    - Higher minor/patch: warn, accept.
-    - Higher major: reject, actionable error.
-
-- Example (types shown by example):
+Request
 ```json
 {
-  "run_id": "sample_happy_001",
-  "created_at": "2025-09-01T12:34:56.789Z",
-  "tool": { "name": "chirality-framework", "version": "1.2.3" },
-  "framework_schema_version": "1.0.0",
-  "problem": { "title": "My Problem", "statement": "Detailed statement..." },
-  "durations": { "total_ms": 123456 },
-  "matrices": {
-    "C": { "path": "snapshots/C.jsonl", "format": "cells-jsonl-v1", "records": 5, "sha256": "hex...", "bytes": 1234 },
-    "D": { "path": "snapshots/D.jsonl", "format": "cells-jsonl-v1", "records": 4, "sha256": "hex...", "bytes": 1111 },
-    "X": { "path": "snapshots/X.jsonl", "format": "cells-jsonl-v1", "records": 3, "sha256": "hex...", "bytes": 1000 },
-    "E": { "path": "snapshots/E.jsonl", "format": "cells-jsonl-v1", "records": 3, "sha256": "hex...", "bytes": 950 }
+  "problem": {
+    "title": "string",
+    "statement": "string",
+    "initialVector": {"...": "..."}
+  },
+  "options": { "mode": "foundation" | "full" }
+}
+```
+
+Response (200)
+```json
+{
+  "traversalId": "run_...",
+  "stations": [
+    {"station":"S1","label":"Problem Statement","modality":"problem","operation":"J"}
+  ],
+  "resolution": "string",
+  "metadata": {
+    "durations": {"S1": 123},
+    "totalDuration": 456,
+    "totalTokens": 789
   }
 }
 ```
 
-- JSON Schema (Draft 2020-12)
+Errors (JSON)
+```json
+{ "code": "ERR_INVALID_JSON" | "ERR_MISSING_FIELDS" | "ERR_ORCHESTRATOR_INIT" | "ERR_TRAVERSAL_FAILED", "message": "...", "details": {"...": "..."} }
+```
+
+Notes
+- Foundation mode does not require an API key; stations use structured fallbacks.
+- Full mode attempts LLM calls per station.
+
+### GET /api/export/run?runId=...
+- Returns metadata for exported run files if present.
+
+Response (200)
 ```json
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://chirality.ai/schemas/framework-manifest-1_0_0.json",
-  "type": "object",
-  "required": ["run_id","created_at","tool","framework_schema_version","problem","durations","matrices"],
-  "properties": {
-    "run_id": { "type": "string", "pattern": "^[a-z0-9-_]{1,64}$" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "tool": {
-      "type": "object",
-      "required": ["name","version"],
-      "properties": {
-        "name": { "type": "string" },
-        "version": { "type": "string" }
-      },
-      "additionalProperties": false
-    },
-    "framework_schema_version": { "type": "string" },
-    "problem": {
-      "type": "object",
-      "required": ["title","statement"],
-      "properties": {
-        "title": { "type": "string" },
-        "statement": { "type": "string" }
-      },
-      "additionalProperties": false
-    },
-    "durations": {
-      "type": "object",
-      "required": ["total_ms"],
-      "properties": { "total_ms": { "type": "number" } },
-      "additionalProperties": true
-    },
-    "matrices": {
-      "type": "object",
-      "required": ["C","D","X","E"],
-      "properties": {
-        "C": { "$ref": "#/$defs/fileMeta" },
-        "D": { "$ref": "#/$defs/fileMeta" },
-        "X": { "$ref": "#/$defs/fileMeta" },
-        "E": { "$ref": "#/$defs/fileMeta" }
-      },
-      "additionalProperties": false
-    }
+  "runId": "run_...",
+  "files": {
+    "runJson": "runs/<runId>/run.json",
+    "packetsJsonl": "runs/<runId>/packets.jsonl"
   },
-  "$defs": {
-    "fileMeta": {
-      "type": "object",
-      "required": ["path","records","sha256"],
-      "properties": {
-        "path": { "type": "string" },
-        "format": { "type": "string" },
-        "records": { "type": "number" },
-        "sha256": { "type": "string" },
-        "bytes": { "type": "number" }
-      },
-      "additionalProperties": false
-    }
-  },
-  "additionalProperties": false
+  "size": { "runJson": 1234, "packetsJsonl": 5678, "total": 6912 }
 }
 ```
 
-## JSONL Snapshot Schema (per line)
-
-- File: `snapshots/C.jsonl` (or D/X/E)
-- Each line is a complete JSON object.
-
-- Example:
+Errors
 ```json
-{"id":"C:normative:completeness:1","matrix":"C","row_label":"Normative","col_label":"Completeness","station":"Requirements","text":"...","citations":["CIT:doc#p3"],"refs":["DS:auth"],"meta":{"order":1}}
+{ "code": "ERR_RUN_NOT_FOUND" | "ERR_EXPORT_FAILED", "message": "...", "details": {"...": "..."} }
 ```
 
-- JSON Schema (Draft 2020-12)
+## Packets and Artifacts
+
+- Packet JSON Schema: `schemas/packet.json` (validated by AJV in CI)
+- Exports directory: `runs/<runId>/`
+  - `run.json`: Run summary, durations, counts, resolution
+  - `packets.jsonl`: One JSON line per station packet
+
+Packet outline
 ```json
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://chirality.ai/schemas/framework-snapshot-1_0_0.json",
-  "type": "object",
-  "required": ["id","matrix","row_label","col_label","station","text","citations","refs"],
-  "properties": {
-    "id": { "type": "string" },
-    "matrix": { "type": "string", "enum": ["C","D","X","E"] },
-    "row_label": { "type": "string" },
-    "col_label": { "type": "string" },
-    "station": { "type": "string" },
-    "text": { "type": "string" },
-    "citations": { "type": "array", "items": { "type": "string" } },
-    "refs": { "type": "array", "items": { "type": "string" } },
-    "meta": {
-      "type": "object",
-      "properties": { "order": { "type": "number" } },
-      "additionalProperties": true
-    }
-  },
-  "additionalProperties": false
+  "id": "S2-<hash>",
+  "createdAt": "2025-09-04T12:34:56.789Z",
+  "station": "S2",
+  "modality": "systematic",
+  "payload": { "DS": "..." },
+  "meta": {
+    "duration": 123,
+    "tokens": { "prompt": 0, "completion": 0, "total": 0 },
+    "label": "Data Sheet"
+  }
 }
-
-Notes:
-- id format is canonical: "{matrix}:r{row}:c{col}".
-- station must match the exact Matrix.station string produced by the framework (e.g., "Problem Requirements", "Solution Objectives", "Verification", "Evaluation").
-- The producer may include additional fields; the consumer must ignore unknown fields.
-
-### MatrixCell Compatibility
-
-The framework may produce cells with inconsistent coordinate information. The consumer implements a normalization layer that:
-
-- **Derives coordinates from labels**: Uses `row_label` and `col_label` to compute numeric `row` and `col` values (1-based indexing)
-- **Validates producer coordinates**: If `row`/`col` fields are present from the producer, compares them with derived values and logs warnings for mismatches
-- **Uses derived coordinates**: Always uses label-derived coordinates as the authoritative source for placement and indexing
-- **Normalizes whitespace**: Trims whitespace from all label fields during processing
-
-This ensures robust handling of framework output variations while maintaining deterministic matrix placement.
 ```
 
-## Checksums
+## Environment
 
-- `sha256` computed over the raw JSONL file bytes (no newline normalization).
-- Manifest includes `sha256` and optional size (`bytes`) for quick sanity checks.
+- `OPENAI_API_KEY`: Required for real LLM calls; optional for foundation mode
+- `OPENAI_MODEL`: Single source of truth for model selection (e.g., `gpt-4.1-nano`)
 
-## Timeouts & Idempotency
+## Compatibility
 
-- Producer (framework): enforce `--max-seconds`.
-- Consumer (app): if `runs/<run_id>` exists with valid manifest, skip re-run unless `force=true`.
+- Older framework CLI and matrix manifest docs are archived. Matrix concepts (C/D/X/E) inform station prompts but are not required inputs to this API.
 
-## Security & Path Safety
+## Error Codes
 
-- `run_id` must match the required pattern and is used verbatim under `runs/`.
-- No path traversal or separators allowed.
+- `ERR_INVALID_JSON`: Request body could not be parsed
+- `ERR_MISSING_FIELDS`: Required fields absent (e.g., problem.title/statement)
+- `ERR_ORCHESTRATOR_INIT`: Orchestrator could not initialize (e.g., missing key in full mode)
+- `ERR_TRAVERSAL_FAILED`: Station processing failed
+- `ERR_RUN_NOT_FOUND`: Export not found for given `runId`
+- `ERR_EXPORT_FAILED`: Unexpected error retrieving export metadata
+
+## Examples
+
+```bash
+curl -s -X POST http://localhost:3001/api/pipeline/traverse \
+  -H 'Content-Type: application/json' \
+  -d '{"problem": {"title":"Auth","statement":"Implement authentication"}, "options": {"mode": "foundation"}}'
+
+curl -s "http://localhost:3001/api/export/run?runId=run_1725450000_abcd12" | jq
+```
 

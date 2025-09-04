@@ -1,24 +1,19 @@
-# Prompt Engineering Guide
+# Prompt Engineering Guide (v2 foundation)
 
-Comprehensive guide to the systematic prompt engineering approach used in Chirality AI App for consistent, high-quality document generation.
+This guide outlines station‑specific prompt strategies for S1–S5 and S11, and the fallback behavior used in foundation mode.
 
 ## Core System Prompt Architecture
 
-### Four-Document Pipeline Structure
-```typescript
-`You are the Chirality Prompt Engine running a four-document pipeline: DS → SP → X → M.`
-`Do two passes: propose (temp=0.7) then finalize (temp=0.5).`
-`STRICT JSON ONLY: {"text":<payload>,"terms_used":string[],"warnings":string[]}. No prose outside JSON.`
-```
+- Each station call includes: modality, operation label, accumulated context (problem + prior documents), and optional matrix guidance.
+- In foundation mode without an API key, LLM calls are allowed to fail; each station returns a structured fallback template.
 
-### Document-Specific Payload Keys
-```typescript
-// Required JSON structure per document type
-- DS: {data_field, units, type, source_refs, notes}
-- SP: {step, purpose, inputs, outputs, preconditions, postconditions, refs}  
-- X: {heading, narrative, precedents, successors, context_notes, refs}
-- M: {statement, justification, trace_back, assumptions, residual_risk}
-```
+### Station Operations (foundation)
+- S1 (J): Problem analysis and categorization
+- S2 (DS): Data requirements and specifications (Matrix C)
+- S3 (SP): Step‑by‑step operational workflow (Matrix D)
+- S4 (GD): Strategic guidance, prerequisites, successors, risks (Matrix X)
+- S5 (EC): Procedural validation and quality gates (Matrix E)
+- S11 (Final): Final resolution synthesis using all prior documents
 
 ### Citation Integration
 ```typescript
@@ -46,23 +41,18 @@ Pinned DS: ${compactDS(scaffoldFinals.DS.text)}
 ---`
 ```
 
-### V2 Refinement (Cross-Referential)
-```typescript
-// Each document sees V1 outputs from others
-if (finals?.DS) pinned.push(`Pinned DS: ${compactDS(finals.DS.text)}`);
-if (finals?.SP) pinned.push(`Pinned SP: ${compactSP(finals.SP.text)}`);
-if (finals?.X)  pinned.push(`Pinned X: ${compactX(finals.X.text)}`);
-if (finals?.M)  pinned.push(`Pinned M: ${compactM(finals.M.text)}`);
+### Context Assembly
+- Problem statement is always included
+- Prior station outputs are appended (DS → SP → GD → EC)
+- Matrix guidance (C/D/X/E) may be provided via `initialVector`
 
-`If new inputs conflict with pinned Finals, explain in "warnings" and prefer the latest Final unless the evidence is stronger.`
-```
-
-### V3 Convergence (Full Context)
-Final refinement with complete cross-document visibility and RAG evidence injection.
+### Fallback Strategy
+- On LLM error, stations return structured placeholders with clear headings and checklists
+- Packets still include durations/tokens (0) and validate against schema
 
 ## Document-Specific Prompt Strategies
 
-### DS (Data Sheet) Prompts
+### DS (Data Sheet) Prompt (S2)
 **Objective**: Create precise technical specifications
 
 ```typescript
@@ -80,7 +70,7 @@ const dsPrompt = [
 - Maintain traceability to source materials
 - Use standardized data type specifications
 
-### SP (Standard Procedure) Prompts  
+### SP (Standard Procedure) Prompt (S3)
 **Objective**: Create actionable step-by-step procedures
 
 ```typescript
@@ -98,41 +88,11 @@ const spPrompt = [
 - Include validation checkpoints
 - Reference supporting materials and tools
 
-### X (Solution Template) Prompts
-**Objective**: Synthesize comprehensive solution framework
+### GD (Guidance Document) Prompt (S4)
+Focus on prerequisites, dependencies, successors, quality standards, risk considerations, and wider context integration.
 
-```typescript
-const xPrompt = [
-  `Generate a Solution Template (X) integrating DS and SP for: ${problem}`,
-  `Create cohesive solution narrative combining data and procedures.`,
-  `Include contextual notes, precedent analysis, and implementation strategy.`,
-  `Focus on integration patterns and architectural coherence.`
-].join('\n');
-```
-
-**Key Instructions**:
-- Integrate insights from DS and SP documents
-- Provide architectural guidance
-- Include precedent analysis and pattern recognition
-- Focus on solution coherence and completeness
-
-### M (Guidance) Prompts
-**Objective**: Provide strategic oversight and risk analysis
-
-```typescript
-const mPrompt = [
-  `Generate strategic Guidance (M) for: ${problem}`,
-  `Provide oversight, recommendations, and risk considerations.`,
-  `Include justification for approach and residual risk assessment.`,
-  `Focus on strategic decision-making and long-term considerations.`
-].join('\n');
-```
-
-**Key Instructions**:
-- Emphasize strategic thinking over tactical details
-- Include risk assessment and mitigation strategies
-- Provide justification for recommended approaches
-- Consider long-term implications and trade-offs
+### EC (Evaluation Checklist) Prompt (S5)
+Define step‑wise validation procedures, measurable criteria, and process control checkpoints mapped to S1–S4 outputs.
 
 ## Context Management Strategies
 
@@ -156,36 +116,29 @@ function compactM(m: MItem[]): string {
 }
 ```
 
-### Matrix Integration Context
-```typescript
-// Matrix cells provide structured context
-`Matrix context from ${matrixType}:
-Station: ${cell.station}
-Content: ${cell.text}
-Citations: ${cell.citations.join(', ')}
-References: ${cell.refs.join(', ')}`
-```
+### Matrix Guidance Snippets
+Add concise bullet‑point excerpts from matrices (C/D/X/E) aligned to each station’s objective.
 
 ## Temperature and Parameter Management
 
 ### Generation Parameters
 ```typescript
-// V1: Higher creativity for initial generation
-const v1Params = {
+// Systematic: Higher creativity for initial generation
+const systematicParams = {
   temperature: 0.7,
   max_tokens: 800,
   top_p: 0.95
 };
 
-// V2: Balanced refinement
-const v2Params = {
+// Process/Epistemic: Balanced refinement
+const processEpistemicParams = {
   temperature: 0.6,
   max_tokens: 800,
   top_p: 0.9
 };
 
-// V3: Conservative convergence  
-const v3Params = {
+// Alethic: Conservative convergence  
+const alethicParams = {
   temperature: 0.5,
   max_tokens: 800,
   top_p: 0.85
@@ -216,13 +169,13 @@ const fallbackPrompt = [
 
 ### Validation Prompts
 ```typescript
-// Prompt validation for Triple structure compliance
+// Prompt validation for Packet structure compliance
 `Validate response format:
 - Must be valid JSON object
-- Must contain: text, terms_used, warnings fields
+- Must contain: text field (required)
 - text field must match document type schema
-- terms_used must be string array
-- warnings must be string array`
+- context field optional: { terms?: string[], notes?: string[] }
+- flags field optional: { risk?: boolean }`
 ```
 
 ## Chat Integration Prompts
@@ -284,13 +237,13 @@ const commandPatterns = {
 
 ### Iterative Refinement Pattern
 ```typescript
-// V2 refinement leverages V1 outputs
+// Station refinement leverages prior station outputs
 `Refinement context:
-Previous generation: ${JSON.stringify(v1Result.text)}
-Cross-document insights: ${extractInsights(allV1Results)}
+Previous station: ${JSON.stringify(priorStation.text)}
+Cross-station insights: ${extractInsights(allPriorStations)}
 Refinement objective: Improve coherence and cross-references
 
-Generate improved version incorporating cross-document insights while maintaining core structure.`
+Generate improved version incorporating cross-station insights while maintaining core structure.`
 ```
 
 ### Matrix-Guided Generation

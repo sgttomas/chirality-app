@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Environment and dependency validation
   validate:
@@ -21,6 +25,8 @@ jobs:
       with:
         node-version-file: '.nvmrc'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+        cache-dependency-path: 'package-lock.json'
         
     - name: Install dependencies
       run: npm ci
@@ -45,6 +51,8 @@ jobs:
       with:
         node-version-file: '.nvmrc'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+        cache-dependency-path: 'package-lock.json'
         
     - name: Install dependencies
       run: npm ci
@@ -84,6 +92,7 @@ jobs:
       with:
         node-version-file: '.nvmrc'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
         
     - name: Install dependencies
       run: npm ci
@@ -93,16 +102,41 @@ jobs:
       env:
         NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
         NEXT_PUBLIC_DEBUG: "0"
+        NEXT_TELEMETRY_DISABLED: "1"
         
-    - name: Debug paths for artifact upload
+    # Debug step removed after path issues resolved
+        
+    - name: Create sample run for artifact testing
       run: |
-        echo "Workspace: $GITHUB_WORKSPACE"
-        ls -la "$GITHUB_WORKSPACE"
-        ls -la "$GITHUB_WORKSPACE/.next" || echo ".next not found"
-        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo ".next/standalone not found"
-        ls -la "$GITHUB_WORKSPACE/.next/static" || echo ".next/static not found"
-        ls -la "$GITHUB_WORKSPACE/public" || echo "public not found"
-        test -f "$GITHUB_WORKSPACE/package.json" && echo "package.json OK"
+        echo "Creating sample run for ZIP artifact..."
+        mkdir -p test-runs/sample-run
+        
+        # Create sample run.json and packets.jsonl
+        cat > test-runs/sample-run/run.json << 'EOF'
+        {
+          "runId": "run_test_ci_sample",
+          "timestamp": "2024-01-01T00:00:00.000Z",
+          "problemStatement": "CI test problem for artifact validation",
+          "totalDuration": 1234,
+          "totalTokens": 567,
+          "mode": "foundation",
+          "status": "completed"
+        }
+        EOF
+        
+        cat > test-runs/sample-run/packets.jsonl << 'EOF'
+        {"id":"packet_s1","createdAt":"2024-01-01T00:00:00.000Z","station":"S1","modality":"problem","payload":{"J":"Sample problem analysis"}}
+        {"id":"packet_s2","createdAt":"2024-01-01T00:00:01.000Z","station":"S2","modality":"systematic","payload":{"DS":"Sample data sheet"}}
+        {"id":"packet_s11","createdAt":"2024-01-01T00:00:05.000Z","station":"S11","modality":"resolution","payload":{"Final":"Sample resolution"}}
+        EOF
+        
+        # Create ZIP of the sample run
+        cd test-runs/sample-run
+        zip -r ../sample-run.zip .
+        cd ../..
+        
+        echo "✓ Sample run ZIP created: test-runs/sample-run.zip"
+        ls -la test-runs/
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -114,17 +148,102 @@ jobs:
           ${{ github.workspace }}/public
           ${{ github.workspace }}/package.json
         if-no-files-found: error
-        retention-days: 1
+        retention-days: 7
+        
+    - name: Upload sample run artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sample-run-zip
+        path: ${{ github.workspace }}/test-runs/sample-run.zip
+        if-no-files-found: error
+        retention-days: 7
         
     - name: Run tests
       run: npm test
+      
+    - name: Validate sample run and packet schema
+      run: |
+        echo "Creating sample traversal run for schema validation..."
+        
+        # Create validation script
+        cat > validate-schema.js << 'EOF'
+        import { createOrchestrator } from './src/core/orchestrator.js';
+        import { promises as fs } from 'fs';
+        import Ajv from 'ajv';
+        import addFormats from 'ajv-formats';
+        
+        async function validateSchema() {
+          // Test with fallback mode - no API key needed for foundation mode
+          console.log('Creating orchestrator in fallback mode...');
+          
+          try {
+            // Use allowFallback to enable foundation mode without valid API key
+            const orchestrator = await createOrchestrator('test-key-for-schema-validation', true);
+            
+            console.log('Running foundation traversal...');
+            const result = await orchestrator.runTraversal({
+              title: 'CI Test Problem',
+              statement: 'Test problem for CI validation'
+            }, { 
+              mode: 'foundation',
+              exportRun: false 
+            });
+            
+            console.log('✓ Sample run generated successfully');
+            console.log(`  - Run ID: ${result.runId}`);
+            console.log(`  - Packets: ${result.packets.length}`);
+            console.log(`  - Resolution length: ${result.resolution.length} chars`);
+            
+            if (result.packets.length === 0) {
+              console.error('❌ No packets generated - cannot validate schema');
+              process.exit(1);
+            }
+            
+            // Validate packets against schema using AJV
+            console.log('Loading packet schema...');
+            const schemaData = await fs.readFile('./schemas/packet.json', 'utf8');
+            const schema = JSON.parse(schemaData);
+            
+            const ajv = new Ajv({ strict: false });
+            addFormats(ajv);
+            
+            const validate = ajv.compile(schema);
+            
+            console.log('Validating packets against schema...');
+            for (const [i, packet] of result.packets.entries()) {
+              if (!validate(packet)) {
+                console.error(`❌ Packet ${i+1} (${packet.station}) validation failed:`, validate.errors);
+                console.error('Packet data:', JSON.stringify(packet, null, 2));
+                process.exit(1);
+              }
+              console.log(`✓ Packet ${i+1} (${packet.station}, ${packet.modality}) validates`);
+            }
+            
+            console.log(`✓ All ${result.packets.length} packets pass schema validation`);
+            console.log('✓ CI schema validation PASSED - real packets validated');
+            
+          } catch (error) {
+            console.error('❌ Schema validation failed with error:', error.message);
+            console.error('Full error:', error);
+            process.exit(1);
+          }
+        }
+        
+        validateSchema().catch(console.error);
+        EOF
+        
+        # Run with tsx for TypeScript support
+        npx tsx validate-schema.js
+        
+        # Clean up
+        rm validate-schema.js
       
     - name: Test orchestration system (if API key available)
       if: env.OPENAI_API_KEY != ''
       run: npm run orchestrate:test
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        OPENAI_MODEL: "gpt-4.1-nano"
+        OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1-nano' }}
         
     - name: Debug build output
       run: |
@@ -176,13 +295,7 @@ jobs:
         name: next-build
         path: ${{ github.workspace }}
         
-    - name: Debug downloaded artifacts
-      run: |
-        echo "Downloaded artifact contents:"
-        ls -la "$GITHUB_WORKSPACE"
-        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo "No .next/standalone directory found"
-        ls -la "$GITHUB_WORKSPACE/.next/static" || echo "No .next/static directory found"
-        ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
+    # Removed debug step after artifact path stabilization
         
     - name: Start standalone server
       env:
@@ -231,6 +344,80 @@ jobs:
       uses: github/codeql-action/analyze@v3
       with:
         languages: javascript
+
+  # Legacy code sweep
+  legacy-sweep:
+    runs-on: ubuntu-latest
+    name: Legacy Code Sweep
+    needs: validate
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Sweep for legacy references
+      run: |
+        echo "🔍 Scanning for legacy code references..."
+        
+        # Define legacy patterns to detect
+        PATTERNS=(
+          "finals"
+          "three-pass" 
+          "runCompatibilityMode"
+          "NEW_PIPELINE_ENABLED"
+          "V1\\b"
+          "V2\\b" 
+          "V3\\b"
+          "four-phase agent"
+        )
+        
+        FOUND_ISSUES=false
+        
+        for pattern in "${PATTERNS[@]}"; do
+          echo "Checking for pattern: $pattern"
+          
+          # Use ripgrep to find patterns, excluding node_modules and archive
+          if command -v rg >/dev/null 2>&1; then
+            RESULTS=$(rg -n "$pattern" -g '!node_modules' -g '!archive' -g '!.git' . || true)
+          else
+            # Fallback to grep if ripgrep not available
+            RESULTS=$(grep -rn "$pattern" --exclude-dir=node_modules --exclude-dir=archive --exclude-dir=.git . || true)
+          fi
+          
+          if [ -n "$RESULTS" ]; then
+            echo "❌ Found legacy pattern '$pattern':"
+            echo "$RESULTS"
+            echo ""
+            FOUND_ISSUES=true
+          else
+            echo "✅ No instances of '$pattern' found"
+          fi
+        done
+        
+        if [ "$FOUND_ISSUES" = true ]; then
+          echo ""
+          echo "❌ Legacy sweep FAILED - found legacy code references"
+          echo "Please remove or update the legacy code patterns listed above."
+          exit 1
+        else
+          echo ""
+          echo "✅ Legacy sweep PASSED - no legacy code references found"
+        fi
+        
+    - name: Check for archived legacy code
+      run: |
+        echo "📦 Checking archived legacy code..."
+        
+        if [ -d "archive/legacy" ]; then
+          ARCHIVE_SIZE=$(du -sh archive/legacy/ | cut -f1)
+          ARCHIVE_FILES=$(find archive/legacy/ -type f | wc -l)
+          echo "✅ Legacy code properly archived:"
+          echo "   - Size: $ARCHIVE_SIZE"
+          echo "   - Files: $ARCHIVE_FILES"
+          echo "   - Location: archive/legacy/"
+        else
+          echo "ℹ️  No archived legacy code found (archive/legacy/ directory does not exist)"
+        fi
 
   # Deployment preview (for pull requests)
   preview:
@@ -286,23 +473,29 @@ jobs:
   status:
     runs-on: ubuntu-latest
     name: Report Status
-    needs: [validate, quality, build-test]
+    needs: [validate, quality, build-test, legacy-sweep]
     if: always()
     
     steps:
     - name: Report success
-      if: needs.validate.result == 'success' && needs.quality.result == 'success' && needs.build-test.result == 'success'
+      if: needs.validate.result == 'success' && needs.quality.result == 'success' && needs.build-test.result == 'success' && needs.legacy-sweep.result == 'success'
       run: |
         echo "✅ All CI checks passed successfully!"
         echo "✅ Environment validation: passed"
         echo "✅ Code quality checks: passed" 
         echo "✅ Build and tests: passed"
+        echo "✅ Legacy code sweep: passed"
+        echo ""
+        echo "🎉 Pipeline ready for deployment!"
         
     - name: Report failure
-      if: needs.validate.result == 'failure' || needs.quality.result == 'failure' || needs.build-test.result == 'failure'
+      if: needs.validate.result == 'failure' || needs.quality.result == 'failure' || needs.build-test.result == 'failure' || needs.legacy-sweep.result == 'failure'
       run: |
         echo "❌ CI checks failed!"
         echo "❌ Environment validation: ${{ needs.validate.result }}"
         echo "❌ Code quality checks: ${{ needs.quality.result }}"
         echo "❌ Build and tests: ${{ needs.build-test.result }}"
+        echo "❌ Legacy code sweep: ${{ needs.legacy-sweep.result }}"
+        echo ""
+        echo "Please fix the failing checks before proceeding."
         exit 1

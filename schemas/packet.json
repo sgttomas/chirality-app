@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chirality-app.com/schemas/packet.json",
+  "title": "Chirality Packet Schema",
+  "description": "Schema for semantic valley traversal packets (S1-S11)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "createdAt", 
+    "station",
+    "modality",
+    "payload"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^S(1[01]|[1-9])-[A-Za-z0-9+/]{12}$",
+      "description": "Unique packet ID in format: {station}-{base64Hash}"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when packet was created"
+    },
+    "station": {
+      "type": "string",
+      "enum": [
+        "S1", "S2", "S3", "S4", "S5", "S6", 
+        "S7", "S8", "S9", "S10", "S11"
+      ],
+      "description": "Station identifier in semantic valley traversal"
+    },
+    "modality": {
+      "type": "string",
+      "enum": [
+        "problem",
+        "systematic", 
+        "process",
+        "epistemic",
+        "alethic",
+        "resolution"
+      ],
+      "description": "Ontological modality for this station"
+    },
+    "payload": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Station output payload with operation-specific content",
+      "oneOf": [
+        {
+          "properties": {
+            "J": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Problem statement analysis output"
+            }
+          },
+          "required": ["J"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "DS": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Data Sheet from Matrix C"
+            }
+          },
+          "required": ["DS"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "SP": { 
+              "type": "string", 
+              "minLength": 1,
+              "description": "Standard Procedure from Matrix D"
+            }
+          },
+          "required": ["SP"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "GD": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Guidance Document from Matrix X"
+            }
+          },
+          "required": ["GD"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "EC": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Evaluation Checklist from Matrix E"
+            }
+          },
+          "required": ["EC"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "P": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Solution Statements (placeholder for future)"
+            }
+          },
+          "required": ["P"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "M": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "First iteration refinement (placeholder for future)"
+            }
+          },
+          "required": ["M"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "W": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Second iteration refinement (placeholder for future)"
+            }
+          },
+          "required": ["W"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "U": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Third iteration refinement (placeholder for future)"
+            }
+          },
+          "required": ["U"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "N": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Integration analysis (placeholder for future)"
+            }
+          },
+          "required": ["N"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "Final": { 
+              "type": "string",
+              "minLength": 1,
+              "description": "Final resolution synthesis"
+            }
+          },
+          "required": ["Final"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "meta": {
+      "type": "object",
+      "description": "Optional metadata about packet generation",
+      "properties": {
+        "duration": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Processing duration in milliseconds"
+        },
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "number", "minimum": 0 },
+            "completion": { "type": "number", "minimum": 0 },
+            "total": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable station label"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
+
