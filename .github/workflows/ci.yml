@@ -133,9 +133,7 @@ jobs:
       if: always()
       with:
         name: build-output
-        path: |
-          .next/
-          !.next/cache/
+        path: .next
         retention-days: 1
         if-no-files-found: error
 
