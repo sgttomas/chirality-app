@@ -115,13 +115,29 @@ jobs:
         echo "Looking for any build output:"
         find . -name "*.next*" -o -name "build" -o -name "dist" -o -name "out" | head -10
         
+    - name: Pre-upload debug
+      run: |
+        echo "=== PRE-UPLOAD DEBUG ==="
+        echo "Current working directory:"
+        pwd
+        echo "Full directory listing:"
+        ls -la
+        echo "Does .next exist?"
+        [ -d .next ] && echo "YES: .next directory exists" || echo "NO: .next directory does not exist"
+        echo "Contents of .next (if exists):"
+        ls -la .next/ 2>/dev/null || echo "Cannot list .next contents"
+        echo "========================="
+        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: build-output
-        path: .next
+        path: |
+          .next/
+          !.next/cache/
         retention-days: 1
+        if-no-files-found: error
 
   # Performance and accessibility checks
   performance:
