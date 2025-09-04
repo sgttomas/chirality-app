@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { validateRunId } from '@/lib/utils/validation';
-import { createReadStream } from 'fs';
 import archiver from 'archiver';
+import { promises as fs } from 'fs';
+import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
 import { PassThrough } from 'stream';
 
 export const runtime = 'nodejs';
@@ -15,10 +14,11 @@ export const runtime = 'nodejs';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { runId: string } }
+  { params }: { params: Promise<{ runId: string }> }
 ) {
   try {
-    const runId = params.runId;
+    const resolvedParams = await params;
+    const runId = resolvedParams.runId;
     
     // Validate run_id format for security
     const validation = validateRunId(runId);

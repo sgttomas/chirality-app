@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Enable standalone output for CI/CD deployments
+  output: 'standalone',
+  
   // Experimental features
   experimental: {
     optimizeCss: true,

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "▶ Starting Neo4j (if not already)..."
-pushd /Users/ryan/Desktop/ai-env/chirality-ai-app >/dev/null
+pushd /Users/ryan/Desktop/ai-env/chirality-app >/dev/null
 docker compose -f docker-compose.neo4j.yml up -d
 until curl -s http://localhost:7474 >/dev/null; do sleep 1; done
 npm install >/dev/null 2>&1 || true
@@ -18,7 +18,7 @@ CYPHER
 echo "Open http://localhost:7474 and run /tmp/cf14-indexes.cypher if needed."
 
 echo "▶ Running CF14 pipeline with Neo4j export..."
-pushd /Users/ryan/Desktop/ai-env/chirality-semantic-framework >/dev/null
+pushd /Users/ryan/Desktop/ai-env/chirality-framework >/dev/null
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m chirality.cli run \
@@ -30,7 +30,7 @@ python -m chirality.cli run \
 popd >/dev/null
 
 echo "✅ Done. Query via the app:"
-echo "   cd /Users/ryan/Desktop/ai-env/chirality-ai-app && npm run dev"
+echo "   cd /Users/ryan/Desktop/ai-env/chirality-app && npm run dev"
 echo "   curl -s -H 'Authorization: Bearer dev-super-secret' -H 'Content-Type: application/json' \\"
 echo "     -d '{\"query\":\"{ cfMatrices(kind:\\\"A\\\"){ id kind nodes(limit:5){ id term } } }\"}' \\"
 echo "     http://localhost:3001/api/v1/graph/graphql | jq ."

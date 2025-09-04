@@ -94,6 +94,28 @@ jobs:
         NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
         NEXT_PUBLIC_DEBUG: "0"
         
+    - name: Debug paths for artifact upload
+      run: |
+        echo "Workspace: $GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next" || echo ".next not found"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo ".next/standalone not found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo ".next/static not found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "public not found"
+        test -f "$GITHUB_WORKSPACE/package.json" && echo "package.json OK"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: next-build
+        path: |
+          ${{ github.workspace }}/.next/standalone
+          ${{ github.workspace }}/.next/static
+          ${{ github.workspace }}/public
+          ${{ github.workspace }}/package.json
+        if-no-files-found: error
+        retention-days: 1
+        
     - name: Run tests
       run: npm test
       
@@ -104,13 +126,29 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         OPENAI_MODEL: "gpt-4.1-nano"
         
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: build-output
-        path: .next
-        retention-days: 1
+    - name: Debug build output
+      run: |
+        echo "Current working directory:"
+        pwd
+        echo "Directory contents:"
+        ls -la
+        echo "Looking for .next directory:"
+        ls -la .next || echo ".next directory not found"
+        echo "Looking for any build output:"
+        find . -name "*.next*" -o -name "build" -o -name "dist" -o -name "out" | head -10
+        
+    - name: Pre-upload debug
+      run: |
+        echo "=== PRE-UPLOAD DEBUG ==="
+        echo "Current working directory:"
+        pwd
+        echo "Full directory listing:"
+        ls -la
+        echo "Does .next exist?"
+        [ -d .next ] && echo "YES: .next directory exists" || echo "NO: .next directory does not exist"
+        echo "Contents of .next (if exists):"
+        ls -la .next/ 2>/dev/null || echo "Cannot list .next contents"
+        echo "========================="
 
   # Performance and accessibility checks
   performance:
@@ -135,16 +173,29 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: build-output
-        path: .next
+        name: next-build
+        path: ${{ github.workspace }}
         
-    - name: Start application for testing
+    - name: Debug downloaded artifacts
       run: |
-        npm start &
-        sleep 30  # Wait for app to start
+        echo "Downloaded artifact contents:"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo "No .next/standalone directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo "No .next/static directory found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
+        
+    - name: Start standalone server
       env:
-        NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
-        NEXT_PUBLIC_DEBUG: "0"
+        PORT: 3000
+        HOSTNAME: 0.0.0.0
+        NODE_ENV: production
+      run: |
+        nohup node .next/standalone/server.js >/dev/null 2>&1 &
+        for i in {1..30}; do
+          curl -fsS http://localhost:3000 && echo "Server is ready!" && break
+          echo "Attempt $i: Server not ready yet, waiting..."
+          sleep 1
+        done || (echo "Server did not become ready" && exit 1)
         
     - name: Test health endpoint
       run: npm run health
@@ -204,8 +255,16 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: build-output
-        path: .next
+        name: next-build
+        path: ${{ github.workspace }}
+        
+    - name: Debug downloaded artifacts
+      run: |
+        echo "Downloaded artifact contents:"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next/standalone" || echo "No .next/standalone directory found"
+        ls -la "$GITHUB_WORKSPACE/.next/static" || echo "No .next/static directory found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
         
     - name: Deploy to preview environment
       if: false  # Enable when preview environment is configured

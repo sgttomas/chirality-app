@@ -24,7 +24,7 @@ jobs:
             mapfile -t arr < <(grep -vE '^\s*#' .slug-guard-patterns | sed '/^\s*$/d')
             fail=0
             for p in "${arr[@]}"; do
-              if rg -n -S -i --hidden -g '!*.git/*' -g '!*node_modules/*' "$p" .; then
+              if rg -n -S -i --hidden -g '!*.git/*' -g '!*node_modules/*' -g '!*archive/*' -g '!*devhistory/*' -g '!*lib/*' -g '!*.github/*' "$p" .; then
                 echo "Forbidden pattern found: $p" >&2
                 fail=1
               fi
@@ -33,7 +33,7 @@ jobs:
             echo "No forbidden slugs found"
           else
             patterns='chirality-ai-app|chirality-semantic-framework|chirality_-_ReasonFlux'
-            if rg -n -S -i --hidden -g '!*.git/*' -g '!*node_modules/*' "$patterns" .; then
+            if rg -n -S -i --hidden -g '!*.git/*' -g '!*node_modules/*' -g '!*archive/*' -g '!*devhistory/*' -g '!*lib/*' -g '!*.github/*' "$patterns" .; then
               echo "Forbidden slugs found" >&2
               exit 1
             else

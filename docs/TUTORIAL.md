@@ -12,7 +12,7 @@ Complete hands-on guide to generating structured documents and using RAG-enhance
 ### Quick Setup
 ```bash
 git clone <repository-url>
-cd chirality-ai-app
+cd chirality-app
 npm install
 cp .env.example .env.local
 # Edit .env.local: Add your OpenAI API key

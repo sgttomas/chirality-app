@@ -7,7 +7,7 @@ Welcome! This guide covers everything you need to contribute to the Chirality AI
 ### Development Setup
 ```bash
 git clone <repository-url>
-cd chirality-ai-app
+cd chirality-app
 npm install
 cp .env.example .env.local  # Add your OpenAI API key
 npm run dev
