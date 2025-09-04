@@ -104,6 +104,17 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         OPENAI_MODEL: "gpt-4.1-nano"
         
+    - name: Debug build output
+      run: |
+        echo "Current working directory:"
+        pwd
+        echo "Directory contents:"
+        ls -la
+        echo "Looking for .next directory:"
+        ls -la .next || echo ".next directory not found"
+        echo "Looking for any build output:"
+        find . -name "*.next*" -o -name "build" -o -name "dist" -o -name "out" | head -10
+        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: success()
