@@ -94,21 +94,24 @@ jobs:
         NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
         NEXT_PUBLIC_DEBUG: "0"
         
-    - name: Verify build output before upload
+    - name: Debug paths for artifact upload
       run: |
-        echo "=== BUILD VERIFICATION ==="
-        ls -la .next/
-        echo "Build files count: $(find .next -type f | wc -l)"
-        echo "========================="
+        echo "Workspace: $GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next" || echo ".next not found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "public not found"
+        test -f "$GITHUB_WORKSPACE/package.json" && echo "package.json OK"
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: build-output
-        path: .next/**/*
+        name: next-build
+        path: |
+          ${{ github.workspace }}/.next
+          ${{ github.workspace }}/public
+          ${{ github.workspace }}/package.json
+        if-no-files-found: error
         retention-days: 1
-        if-no-files-found: warn
         
     - name: Run tests
       run: npm test
@@ -167,13 +170,21 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: build-output
-        path: .next
+        name: next-build
+        path: ${{ github.workspace }}
+        
+    - name: Debug downloaded artifacts
+      run: |
+        echo "Downloaded artifact contents:"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next" || echo "No .next directory found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
         
     - name: Start application for testing
       run: |
         npm start &
         sleep 30  # Wait for app to start
+        curl -f http://localhost:3000 || (echo "Server failed to start" && exit 1)
       env:
         NEXT_PUBLIC_APP_NAME: "Chirality Chat CI"
         NEXT_PUBLIC_DEBUG: "0"
@@ -236,8 +247,15 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: build-output
-        path: .next
+        name: next-build
+        path: ${{ github.workspace }}
+        
+    - name: Debug downloaded artifacts
+      run: |
+        echo "Downloaded artifact contents:"
+        ls -la "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE/.next" || echo "No .next directory found"
+        ls -la "$GITHUB_WORKSPACE/public" || echo "No public directory found"
         
     - name: Deploy to preview environment
       if: false  # Enable when preview environment is configured
