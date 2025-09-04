@@ -4,6 +4,8 @@ import { readState, writeState } from '@/chirality-core/state/store';
 import { DocKind } from '@/chirality-core/contracts';
 import { mirrorAfterWrite } from '@/lib/graph/integration';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { kind } = await request.json() as { kind: DocKind };

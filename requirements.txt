@@ -1,2 +1,17 @@
-python
-openai
+# Python Dependencies for Chirality Framework Integration
+
+# Core chirality-framework integration
+chirality-framework>=1.0.0
+
+# OpenAI API for LLM operations  
+openai>=1.0.0
+
+# Matrix processing and validation
+numpy>=1.24.0
+pandas>=2.0.0
+
+# JSON processing and validation
+jsonschema>=4.17.0
+
+# File operations and utilities
+pathlib2>=2.3.7

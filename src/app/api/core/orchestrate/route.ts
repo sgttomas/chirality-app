@@ -1,10 +1,30 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { runDoc } from '@/chirality-core/orchestrate';
 import { readState, writeState } from '@/chirality-core/state/store';
 import { DocKind, Triple } from '@/chirality-core/contracts';
 import { mirrorAfterWrite } from '@/lib/graph/integration';
+import { runThreePassOrchestration } from '@/lib/orchestrator/threePassOrchestrator';
 
+/**
+ * Orchestration endpoint that can switch between two-pass and three-pass modes
+ * based on CHIRALITY_ORCHESTRATION_MODE environment variable.
+ */
 export async function POST(request: NextRequest) {
+  // Check orchestration mode from environment
+  const orchestrationMode = process.env.CHIRALITY_ORCHESTRATION_MODE || 'three_pass';
+  
+  // If three_pass mode is enabled, delegate to the three-pass orchestrator
+  if (orchestrationMode === 'three_pass') {
+    return runThreePassOrchestration(request);
+  }
+  
+  // Otherwise, run the legacy two-pass orchestration
+  return runTwoPassOrchestration(request);
+}
+
+async function runTwoPassOrchestration(request: NextRequest) {
   try {
     const state = readState();
     
@@ -158,8 +178,9 @@ export async function POST(request: NextRequest) {
 
     addLog(`✅ Two-pass generation with final resolution complete in ${totalTime}s`);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
+      orchestrationMode: 'two_pass',
       pass1,
       pass2,
       logs,
@@ -167,7 +188,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Orchestrate API error:', error);
+    console.error('Two-pass orchestration error:', error);
     return NextResponse.json(
       { 
         error: 'Failed to orchestrate documents',
@@ -176,4 +197,19 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET endpoint to check current orchestration mode
+ */
+export async function GET() {
+  const mode = process.env.CHIRALITY_ORCHESTRATION_MODE || 'three_pass';
+  
+  return NextResponse.json({
+    currentMode: mode,
+    availableModes: ['two_pass', 'three_pass'],
+    description: mode === 'three_pass' 
+      ? 'Three-pass orchestration with V1→V2→V3 generation'
+      : 'Two-pass orchestration with refinement and resolution'
+  });
 }

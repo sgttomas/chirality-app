@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readState } from '@/chirality-core/state/store'
 import { compactDS, compactSP, compactX, compactM } from '@/chirality-core/compactor'
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     // Get current state (same as chat stream does)

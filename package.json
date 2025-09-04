@@ -60,6 +60,8 @@
   },
   "dependencies": {
     "@neo4j/graphql": "^7.2.8",
+    "@types/archiver": "^6.0.3",
+    "archiver": "^7.0.1",
     "critters": "^0.0.23",
     "dotenv": "^17.2.1",
     "graphql": "^16.11.0",

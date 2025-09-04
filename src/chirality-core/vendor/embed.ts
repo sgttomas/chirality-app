@@ -23,7 +23,13 @@ export async function embedAll(texts: string[]): Promise<number[][]> {
     return data.data.map((item: any) => item.embedding);
   } catch (error) {
     console.error('Embedding error:', error);
-    // Return random vectors as fallback for testing
-    return texts.map(() => Array(1536).fill(0).map(() => Math.random()));
+    
+    // Gate random vector fallback for production safety
+    if (process.env.RAG_DEV_FALLBACK === 'true') {
+      console.warn('WARN: Using random vector fallback for embeddings (dev mode only)');
+      return texts.map(() => Array(1536).fill(0).map(() => Math.random()));
+    } else {
+      throw new Error('Embeddings failed and dev fallback is disabled');
+    }
   }
 }

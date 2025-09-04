@@ -1,0 +1,14 @@
+{
+  "run_id": "sample_happy_001",
+  "created_at": "2025-09-01T12:34:56.789Z",
+  "tool": { "name": "chirality-framework", "version": "1.2.3" },
+  "framework_schema_version": "1.0.0",
+  "problem": { "title": "Sample Problem", "statement": "Demonstrate manifest + snapshots layout." },
+  "durations": { "total_ms": 1234 },
+  "matrices": {
+    "C": { "path": "snapshots/C.jsonl", "records": 2, "sha256": "deadbeef", "bytes": 200 },
+    "D": { "path": "snapshots/D.jsonl", "records": 2, "sha256": "deadbeef", "bytes": 200 },
+    "X": { "path": "snapshots/X.jsonl", "records": 1, "sha256": "deadbeef", "bytes": 100 },
+    "E": { "path": "snapshots/E.jsonl", "records": 1, "sha256": "deadbeef", "bytes": 100 }
+  }
+}
