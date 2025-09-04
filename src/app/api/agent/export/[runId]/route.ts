@@ -15,10 +15,11 @@ export const runtime = 'nodejs';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { runId: string } }
+  { params }: { params: Promise<{ runId: string }> }
 ) {
   try {
-    const runId = params.runId;
+    const resolvedParams = await params;
+    const runId = resolvedParams.runId;
     
     // Validate run_id format for security
     const validation = validateRunId(runId);

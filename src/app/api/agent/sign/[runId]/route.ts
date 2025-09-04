@@ -24,10 +24,11 @@ interface RunManifest {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { runId: string } }
+  { params }: { params: Promise<{ runId: string }> }
 ) {
   try {
-    const runId = params.runId;
+    const resolvedParams = await params;
+    const runId = resolvedParams.runId;
     
     // Validate run_id format for security
     const validation = validateRunId(runId);
@@ -158,10 +159,11 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { runId: string } }
+  { params }: { params: Promise<{ runId: string }> }
 ) {
   try {
-    const runId = params.runId;
+    const resolvedParams = await params;
+    const runId = resolvedParams.runId;
     
     // Validate run_id format
     const validation = validateRunId(runId);
