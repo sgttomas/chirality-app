@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readState, writeState } from '@/chirality-core/state/store';
 
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     const state = readState();

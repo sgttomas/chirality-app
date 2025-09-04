@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readState } from '@/chirality-core/state/store'
 import { compactDS, compactSP, compactX, compactM } from '@/chirality-core/compactor'
 
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { testMessage = "Based on the pinned documents, what are the key considerations?" } = await request.json().catch(() => ({}))

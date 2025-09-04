@@ -1,0 +1,2 @@
+{"id":"C:normative:completeness:1","matrix":"C","row_label":"Normative","col_label":"Completeness","station":"Requirements","text":"Define data policy and completeness criteria.","citations":["CIT:doc#p1"],"refs":["DS:sample"],"meta":{"order":1}}
+{"id":"C:operative:sufficiency:1","matrix":"C","row_label":"Operative","col_label":"Sufficiency","station":"Requirements","text":"Ensure sufficient fields for core use cases.","citations":[],"refs":[],"meta":{"order":2}}

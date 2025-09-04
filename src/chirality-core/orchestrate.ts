@@ -154,7 +154,7 @@ export interface OrchestrationProgress {
 }
 
 function stepConstraints(kind: DocKind, v: Version, deps: Partial<Record<DocKind, any>>) {
-  const label = { DS: 'Data Sheet', SP: 'Standard Procedure', X: 'Guidance Document', M: 'Solution Statements' }[kind];
+  const label = { DS: 'Data Sheet', SP: 'Standard Procedure', X: 'Solution Template', M: 'Guidance' }[kind];
   const depList = Object.keys(deps).length
     ? Object.keys(deps).map(k => `${k} V${v === 1 ? 1 : v - 1}`).join(', ')
     : 'none';

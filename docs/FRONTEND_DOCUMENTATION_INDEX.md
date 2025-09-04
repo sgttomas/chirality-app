@@ -2,16 +2,16 @@
 
 Complete reference for frontend development in the Chirality Chat application. This index provides organized access to all frontend documentation, following industry standards and best practices.
 
-*Last updated: 2025-08-20 (automatically generated)*
+*Last updated: 2025-09-04 (automatically generated)*
 
 ## 📋 Documentation Overview
 
 | Category | Status | Files | Description |
 |----------|---------|-------|-------------|
 | **Core Development** | ❌ Missing | 0/3 | Architecture, patterns, and development workflows |
-| **Design System** | ⚠️ Partial (1/2) | 1/2 | Visual design tokens, patterns, and guidelines |
-| **Architecture** | ✅ Complete | 5/5 | Technical decisions and implementation rationale |
-| **Components** | ✅ Complete | 3/3 | Reusable UI components and usage guidelines |
+| **Design System** | ❌ Missing | 0/2 | Visual design tokens, patterns, and guidelines |
+| **Architecture** | ❌ Missing | 0/5 | Technical decisions and implementation rationale |
+| **Components** | ❌ Missing | 0/3 | Reusable UI components and usage guidelines |
 
 ## 📚 Detailed Documentation Status
 
@@ -27,26 +27,26 @@ Complete reference for frontend development in the Chirality Chat application. T
 
 | File | Status | Size | Last Modified | Description |
 |------|---------|------|---------------|-------------|
-| [UI Design System](../docs/UI_DESIGN_SYSTEM.md) | ✅ Complete | 19.4 KB | 2025-08-16 | UI Design System |
+| UI Design System | ❌ Missing | - | - | UI Design System |
 | Accessibility Guidelines | ❌ Missing | - | - | Accessibility Guidelines |
 
 ### Architecture
 
 | File | Status | Size | Last Modified | Description |
 |------|---------|------|---------------|-------------|
-| [React App Router ADR](../docs/adr/frontend/008-react-app-router.md) | ✅ Complete | 5 KB | 2025-08-16 | React App Router ADR |
-| [Zustand State Management ADR](../docs/adr/frontend/009-zustand-state-management.md) | ✅ Complete | 11.9 KB | 2025-08-16 | Zustand State Management ADR |
-| [Tailwind CSS ADR](../docs/adr/frontend/010-tailwind-design-system.md) | ✅ Complete | 19.2 KB | 2025-08-16 | Tailwind CSS ADR |
-| [SSE Streaming ADR](../docs/adr/frontend/011-sse-streaming-pattern.md) | ✅ Complete | 21.2 KB | 2025-08-16 | SSE Streaming ADR |
-| [Component Composition ADR](../docs/adr/frontend/012-component-composition.md) | ✅ Complete | 21.2 KB | 2025-08-16 | Component Composition ADR |
+| React App Router ADR | ❌ Missing | - | - | React App Router ADR |
+| Zustand State Management ADR | ❌ Missing | - | - | Zustand State Management ADR |
+| Tailwind CSS ADR | ❌ Missing | - | - | Tailwind CSS ADR |
+| SSE Streaming ADR | ❌ Missing | - | - | SSE Streaming ADR |
+| Component Composition ADR | ❌ Missing | - | - | Component Composition ADR |
 
 ### Components
 
 | File | Status | Size | Last Modified | Description |
 |------|---------|------|---------------|-------------|
-| [Component Library Overview](../docs/components/README.md) | ✅ Complete | 12.7 KB | 2025-08-16 | Component Library Overview |
-| [Button Component](../docs/components/atoms/Button.md) | ✅ Complete | 10.9 KB | 2025-08-16 | Button Component |
-| [ChatWindow Component](../docs/components/organisms/ChatWindow.md) | ✅ Complete | 16.3 KB | 2025-08-16 | ChatWindow Component |
+| Component Library Overview | ⏳ Planned | - | - | Component Library Overview |
+| Button Component | ⏳ Planned | - | - | Button Component |
+| ChatWindow Component | ⏳ Planned | - | - | ChatWindow Component |
 
 ## 🔗 Quick Navigation
 
@@ -70,10 +70,10 @@ Complete reference for frontend development in the Chirality Chat application. T
 
 ## 📊 Documentation Health
 
-- **Total Files**: 9/13 (69% complete)
-- **Required Files**: 6/9 (67% complete)
-- **Optional Files**: 3/4
-- **Health Status**: 🟠 Needs Attention
+- **Total Files**: 0/13 (0% complete)
+- **Required Files**: 0/9 (0% complete)
+- **Optional Files**: 0/4
+- **Health Status**: 🔴 Critical
 
 ## 🛠️ Maintenance
 
@@ -91,4 +91,4 @@ npm run update-docs-index
 
 ---
 
-*Generated on 2025-08-20T07:27:55.526Z by the documentation index generator.*
+*Generated on 2025-09-04T09:26:19.801Z by the documentation index generator.*
