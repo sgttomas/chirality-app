@@ -1,149 +1,165 @@
-/**
- * POST /api/pipeline/traverse - New semantic valley traversal API
- * 
- * This endpoint implements the canonical semantic valley traversal using
- * the nine-station pipeline (S0-S8) instead of the legacy V1/V2/V3 system.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { runTraversal } from '@/lib/orchestrator/pipeline';
-import { Packet } from '@/lib/utils/packets';
-import { M } from '@/types/framework';
+import { createOrchestrator } from '../../../../core/orchestrator';
 
-interface TraverseRequest {
-  problem: { title: string; statement: string };
-  matrices?: { C?: any[]; D?: any[]; X?: any[]; E?: any[] };
-  startStation?: 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8';
-  endStation?: 'S0' | 'S1' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8';
+export interface TraverseRequest {
+  problem: {
+    title: string;
+    statement: string;
+    initialVector?: Record<string, any>;
+  };
+  options?: {
+    mode?: 'full' | 'foundation'; // Default: 'foundation'
+  };
 }
 
-interface TraverseResponse {
+export interface TraverseResponse {
   traversalId: string;
-  stations: {
-    S0?: any;
-    S1?: any;
-    S2?: any;
-    S3?: any;
-    S4?: any;
-    S5?: any;
-    S6?: any;
-    S7?: any;
-    S8?: any;
-  };
-  resolution: Packet<M>;
+  stations: Array<{
+    station: string;
+    label: string;
+    modality: string;
+    operation: string;
+    duration: number;
+    output: string;
+  }>;
+  resolution: string;
   metadata: {
-    durationMs: number;
-    matrixInjections: string[];
+    durations: Record<string, number>;
+    totalDuration: number;
+    totalTokens: number;
   };
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Check feature flag
-    const pipelineEnabled = process.env.NEW_PIPELINE_ENABLED === 'true';
-    if (!pipelineEnabled) {
+    // Parse and validate request body
+    let body: TraverseRequest;
+    try {
+      body = await request.json();
+    } catch (error) {
       return NextResponse.json(
         { 
-          error: 'New pipeline is not enabled',
-          hint: 'Set NEW_PIPELINE_ENABLED=true in environment'
-        },
-        { status: 503 }
-      );
-    }
-    
-    // Parse request body
-    const body: TraverseRequest = await request.json();
-    
-    // Validate required fields
-    if (!body.problem?.title || !body.problem?.statement) {
-      return NextResponse.json(
-        { error: 'Problem title and statement are required' },
+          code: 'ERR_INVALID_JSON', 
+          message: 'Invalid JSON in request body' 
+        } as ApiError,
         { status: 400 }
       );
     }
-    
-    console.log('[API] Starting semantic valley traversal via new pipeline');
-    console.log(`[API] Problem: ${body.problem.title}`);
-    
+
+    // Validate required fields
+    if (!body.problem?.title || !body.problem?.statement) {
+      return NextResponse.json(
+        {
+          code: 'ERR_MISSING_FIELDS',
+          message: 'Missing required fields: problem.title and problem.statement are required',
+          details: { received: body }
+        } as ApiError,
+        { status: 400 }
+      );
+    }
+
+    // Validate title and statement are strings
+    if (typeof body.problem.title !== 'string' || typeof body.problem.statement !== 'string') {
+      return NextResponse.json(
+        {
+          code: 'ERR_INVALID_TYPES',
+          message: 'problem.title and problem.statement must be strings',
+          details: { 
+            titleType: typeof body.problem.title,
+            statementType: typeof body.problem.statement
+          }
+        } as ApiError,
+        { status: 400 }
+      );
+    }
+
+    // Validate statement is not empty
+    if (body.problem.statement.trim().length === 0) {
+      return NextResponse.json(
+        {
+          code: 'ERR_EMPTY_STATEMENT',
+          message: 'problem.statement cannot be empty',
+        } as ApiError,
+        { status: 400 }
+      );
+    }
+
+    // Create orchestrator
+    let orchestrator;
+    try {
+      // Allow fallback mode for foundation traversals (default)
+      const mode = body.options?.mode || 'foundation';
+      const allowFallback = mode === 'foundation';
+      orchestrator = await createOrchestrator(undefined, allowFallback);
+    } catch (error) {
+      console.error('Failed to create orchestrator:', error);
+      return NextResponse.json(
+        {
+          code: 'ERR_ORCHESTRATOR_INIT',
+          message: 'Failed to initialize orchestrator. Check OpenAI API key configuration.',
+          details: { error: error instanceof Error ? error.message : 'Unknown error' }
+        } as ApiError,
+        { status: 500 }
+      );
+    }
+
+    // Run traversal
     const startTime = Date.now();
-    
-    // Run the traversal
-    const traversalState = await runTraversal(body.problem, {
-      matrices: body.matrices,
-      startStation: body.startStation,
-      endStation: body.endStation,
-      onProgress: (state) => {
-        console.log(`[API] Progress: Currently at station ${state.currentStation}`);
-      }
-    });
-    
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-    
-    // Extract resolution from S8 (final alethic station)
-    const resolution: Packet<M> = traversalState.stations.S8 || {
-      text: [{
-        statement: 'Traversal incomplete - no resolution generated',
-        residual_risk: ['Traversal did not reach S8']
-      }],
-      flags: { risk: true }
-    };
-    
-    // Build response according to specification
+    let result;
+    try {
+      result = await orchestrator.runTraversal(body.problem, {
+        mode: body.options?.mode || 'foundation'
+      });
+    } catch (error) {
+      console.error('Traversal failed:', error);
+      return NextResponse.json(
+        {
+          code: 'ERR_TRAVERSAL_FAILED',
+          message: 'Semantic valley traversal failed',
+          details: { error: error instanceof Error ? error.message : 'Unknown error' }
+        } as ApiError,
+        { status: 500 }
+      );
+    }
+
+    // Format response
     const response: TraverseResponse = {
-      traversalId: traversalState.problemId,
-      stations: traversalState.stations,
-      resolution,
-      metadata: {
-        durationMs,
-        matrixInjections: traversalState.metadata?.matrixInjections || []
-      }
+      traversalId: result.runId,
+      stations: result.packets.map(packet => ({
+        station: packet.station,
+        label: packet.meta?.label || `Station ${packet.station}`,
+        modality: packet.modality,
+        operation: Object.keys(packet.payload)[0] || 'Unknown',
+        duration: packet.meta?.duration || 0,
+        output: packet.payload[Object.keys(packet.payload)[0]] || ''
+      })),
+      resolution: result.resolution,
+      metadata: result.metadata
     };
-    
-    console.log(`[API] Traversal completed in ${durationMs}ms`);
-    console.log(`[API] Matrix injections: ${response.metadata.matrixInjections.join(', ') || 'none'}`);
-    
+
+    console.log(`[API] Traversal completed in ${Date.now() - startTime}ms:`, {
+      traversalId: result.runId,
+      stationCount: result.packets.length,
+      totalTokens: result.metadata.totalTokens
+    });
+
     return NextResponse.json(response);
-    
+
   } catch (error) {
-    console.error('[API] Traversal failed:', error);
-    
+    console.error('Unexpected error in traverse endpoint:', error);
     return NextResponse.json(
-      { 
-        error: 'Traversal failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      {
+        code: 'ERR_INTERNAL',
+        message: 'Internal server error',
+        details: { error: error instanceof Error ? error.message : 'Unknown error' }
+      } as ApiError,
       { status: 500 }
     );
   }
-}
-
-/**
- * GET /api/pipeline/traverse - Get pipeline status and configuration
- */
-export async function GET(): Promise<NextResponse> {
-  const pipelineEnabled = process.env.NEW_PIPELINE_ENABLED === 'true';
-  
-  return NextResponse.json({
-    pipelineEnabled,
-    version: '1.0.0',
-    stations: ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'],
-    modalities: {
-      S0: 'systematic',
-      S1: 'systematic',
-      S2: 'process',
-      S3: 'epistemic',
-      S4: 'process',
-      S5: 'epistemic',
-      S6: 'alethic',
-      S7: 'epistemic',
-      S8: 'alethic'
-    },
-    matrixInjectionPoints: {
-      'C': 'S1',
-      'D': 'S2', 
-      'X': 'S3',
-      'E': 'S6'
-    }
-  });
 }

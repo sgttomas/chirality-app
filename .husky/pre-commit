@@ -28,11 +28,11 @@ if [ $? -ne 0 ]; then
 fi
 
 # 4. Add updated docs to commit if they were modified
-if git diff --cached --quiet docs/FRONTEND_DOCUMENTATION_INDEX.md; then
+if git diff --cached --quiet docs/INDEX.md; then
   echo "📄 Documentation index unchanged"
 else
   echo "📝 Adding updated documentation index to commit"
-  git add docs/FRONTEND_DOCUMENTATION_INDEX.md
+  git add docs/INDEX.md
 fi
 
 echo "✅ Pre-commit checks passed!"

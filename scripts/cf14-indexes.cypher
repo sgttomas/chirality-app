@@ -1,3 +1,0 @@
-CREATE CONSTRAINT cf_matrix_id IF NOT EXISTS FOR (m:CFMatrix) REQUIRE m.id IS UNIQUE;
-CREATE CONSTRAINT cf_node_id   IF NOT EXISTS FOR (n:CFNode)   REQUIRE n.id IS UNIQUE;
-CREATE INDEX     cf_term_idx   IF NOT EXISTS FOR (n:CFNode)   ON (n.term);

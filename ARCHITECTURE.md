@@ -1,74 +1,78 @@
-# Architecture Overview
+# Architecture Overview (v2.0.0)
 
-This document defines a lean, explicit architecture for Chirality AI App that mirrors the canonical semantic valley traversal and removes unnecessary generalization. It aligns PHILOSOPHY (semantic handedness) with INTERFACE (CLI/manifest/JSONL) and focuses the codebase on a scripted pipeline rather than an agentic framework.
+This document describes the canonical 11‑station semantic valley pipeline, the “foundation” traversal mode, and the main components of the chirality‑app v2.0.0 implementation.
 
 ## Design Principles
-- Canonical pipeline: {Problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → {Resolution}
-- Minimal generalization: Abstract only when the code has multiple concrete call-sites that truly share behavior.
-- Separation of concerns: Framework ingestion, orchestration pipeline, generation prompts, and API surfaces stay modular.
-- Compatibility first: Introduce new contracts behind adapters; deprecate gradually.
+- Canonical pipeline: S1→S11, preserving ontological modalities.
+- Foundation‑first: Default to S1–S5 + S11 for fast, practical results.
+- Clarity over abstraction: Separate domain, core, API, and UI.
+- Deterministic exports: Packets validated by JSON Schema; artifacts written to disk.
 
-## Pipeline Model (Nine Stations)
-Each station is explicit, named, and side‑effect free. Orchestration composes stations in order and persists outputs deterministically.
+## Pipeline Model (11 Stations)
+Stations and modalities:
+- S1 Problem (problem) → J
+- S2 Requirements/Data Sheet (systematic) → DS (from C)
+- S3 Objectives/Standard Procedure (process) → SP (from D)
+- S4 Guidance (epistemic) → GD (from X)
+- S5 Evaluation Checklist (process) → EC (from E)
+- S6 Evaluation (process) → reserved
+- S7 Assessment (epistemic) → reserved
+- S8 Implementation (alethic) → reserved
+- S9 Integration (epistemic) → reserved
+- S10 Reflection (alethic) → reserved
+- S11 Resolution (resolution) → Final
 
-- S0 Problem: Problem statement normalization and validation
-- S1 Systematic: Structure the problem (constraints, givens, invariants)
-- S2 Process: Operational pathfinding (procedures, actors, inputs/outputs)
-- S3 Epistemic: Knowledge claims and evidence requirements
-- S4 Process: Refine procedures informed by S3
-- S5 Epistemic: Update knowledge assertions from S4
-- S6 Alethic: Necessity/possibility analysis (must/should/can’t)
-- S7 Epistemic: Reconcile claims with alethic modalities
-- S8 Alethic: Final modal synthesis → Resolution statements
+Execution modes:
+- Foundation (default): S1, S2, S3, S4, S5, S11
+- Full: S1..S11 (S6–S10 to be implemented)
 
-Implementation: `lib/orchestrator/pipeline/` exposes `runStation(name, input)` and `runTraversal(problem)`. Each station owns its prompt template and post‑processing.
+Internal execution groups (scheduler detail):
+- G1:S1, G2:S2, G3:S3, G4:S4+S5, G5:S6, G6:S7, G7:S8, G8:S9+S10, G9:S11
 
-## Documents and Mappings
-- DS (data‑handed), SP (process‑handed), X (solution‑handed), M (strategic‑handed)
-- Matrices → documents (INTERFACE): C→DS, D→SP, X+E→X, E→M
-- Stable ordering: sort by `meta.order` then `id`; preserve `citations`/`refs`
+## Documents and Matrix Alignment
+- DS (Data Sheet) ← Matrix C (S2)
+- SP (Standard Procedure) ← Matrix D (S3)
+- GD (Guidance Document) ← Matrix X (S4)
+- EC (Evaluation Checklist) ← Matrix E (S5)
+- Final Resolution ← synthesis at S11
 
-## Core Data Structure (Triple → Packet)
-Keep runtime compatibility but tighten semantics:
-- Current: `Triple<T> = { text: T; terms_used: string[]; warnings: string[] }`
-- Target: `Packet<T> = { text: T; context?: { terms?: string[]; notes?: string[] }; flags?: { risk?: boolean } }`
-Migration path:
-- Introduce `type Triple<T> = Packet<T>` compatibility typedef
-- Map `terms_used`→`context.terms`, `warnings`→`context.notes` (only where useful)
-- Limit warnings to stations that assess risk (M, alethic/epistemic), not every call
+## Packets and Schema
+- Packet shape: `{ id, createdAt, station, modality, payload, meta? }`
+- One packet per station; lines written to `runs/<runId>/packets.jsonl`
+- Canonical schema: `schemas/packet.json` (validated in CI)
+- Export summary: `runs/<runId>/run.json` with durations, counts, resolution
 
-## Module Layout (Target)
-- `lib/framework/` ingestion + manifest/jsonl validation (INTERFACE compliant)
-- `lib/orchestrator/pipeline/` nine stations with pure transforms
-- `lib/orchestrator/prompts/` one template per station (no generic prompt factory unless duplicated)
-- `src/chirality-core/` state/persistence and RAG compaction only
-- `src/app/api/` routes: `/core/*` (state/orchestrate), `/agent/*` (framework), `/chat/*` (RAG)
-- Optional graph kept behind `FEATURE_GRAPH_ENABLED`; no hard runtime dependency
+## Core Modules
+- `src/domain/`: Station types, metadata, validators
+- `src/core/state.ts`: Run state, selectors, document updates
+- `src/core/stations/`: S1..S11 processors (S6–S10 placeholders)
+- `src/core/orchestrator.ts`: Mode‑aware traversal; progress; dependency checks
+- `src/core/exporter.ts`: Writes run artifacts; list/read helpers
+- `src/core/llm/service.ts`: LLM integration; reads `OPENAI_MODEL`
 
-## API Alignment
-- Preserve existing endpoints and response shapes; add `finals.packet` alongside `finals.triple` for transition
-- Enforce INTERFACE.md rules: run_id pattern, manifest version checks, JSONL schemas, checksums
+## Validators
+- Transition validator: sequential order within the selected execution list
+- Dependency validator (foundation): J@S1 → DS@S2 → SP@S3 → GD@S4 → EC@S5 → Final@S11
+- Currently warn‑only in orchestrator; tighten once S6–S10 are implemented
 
-## Deprecation & Debt Removal
-- Remove unused helpers and generic “agent” abstractions not used by pipeline
-- Isolate feature‑flagged code (Neo4j/GraphQL) to optional modules
-- Collapse one‑off utilities into station‑local helpers
+## API Surface
+- `POST /api/pipeline/traverse` → runs traversal; supports `options.mode: 'foundation'|'full'`
+- `GET /api/export/run?runId=...` → returns file paths and sizes if exported
+- Errors follow `{ code: 'ERR_*', message, details? }`
+
+## UI
+- Minimal page with problem input, mode selector, station list with modality chips, and resolution output
+
+## CI/CD
+- Typecheck, lint, tests, build
+- Foundation traversal sample + AJV validation against `schemas/packet.json`
+- Build artifacts + sample run ZIP upload
+- Legacy sweep blocks deprecated patterns
 
 ## Testing
-- Station tests: prompt IO post‑processing and invariants
-- Pipeline tests: deterministic ordering, matrix→document mapping, traversal integrity
-- Ingestion tests: manifest/schema/version compatibility, checksum verification
+- Unit tests for validators and schema
+- API smoke tests for both endpoints
+- Orchestrator traversal test (skipped without API key)
 
----
-
-# Refactor Strategy (Compatibility First)
-
-1) Types: Introduce `Packet<T>`; create `Triple<T>` alias and adapters. Update only call‑sites that do risk/terms reporting.
-2) Orchestration: Implement `pipeline/` with nine stations and a thin `runTraversal()` that composes them. Keep V1/V2/V3 as a compatibility mode that maps to station groups.
-3) Prompts: Move templates into `prompts/` by station, dropping generic factories unless duplicated.
-4) Framework ingestion: Strict INTERFACE.md validation and stable ordering utilities.
-5) API: Add `packet` fields in responses; mark legacy `triple` as deprecated in docs.
-6) Cleanup: Remove dead code and unused abstractions; gate optional graph under feature flag.
-7) Tests: Add station and mapping tests; keep existing suites green; migrate gradually.
-8) Docs: Ensure PHILOSOPHY ↔ INTERFACE alignment reflected here; update README and API_REFERENCE once `packet` is surfaced.
-
+## Notes on Legacy Materials
+- Older nine‑station and RAG/chat docs are archived and out of scope for v2.0.0. See `archive/legacy/`.

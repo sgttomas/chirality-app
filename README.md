@@ -1,31 +1,29 @@
-# Chirality AI App
+# Chirality App (v2.0.0)
 
-A Next.js application that transforms complex problems into structured solutions through semantic valley traversal, enhanced by RAG chat and matrix-driven orchestration.
+[![CI](https://github.com/sgttomas/chirality-app/actions/workflows/ci.yml/badge.svg)](https://github.com/sgttomas/chirality-app/actions/workflows/ci.yml)
+
+A lean Next.js application that transforms problem statements into structured documents via the canonical 11‑station semantic valley pipeline. v2.0.0 introduces a greenfield implementation with a default “foundation” mode (S1–S5 + S11), strict packet schema, exports, API surface, UI, and CI with a legacy sweep.
 
 ## What It Does
 
-**Chirality AI** generates coherent, cross-referenced documents through canonical semantic valley traversal:
+The app produces four core documents and a final resolution:
 
-1. **Matrix Integration**: Leverages semantic matrices from chirality-framework as "seeds of thought"
-2. **Valley Traversal**: Follows the ontological path {problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → {resolution} through nine stations (S0-S8)
-3. **RAG Enhancement**: Uses generated documents as evidence for intelligent chat responses
+- S1: Problem analysis (J)
+- S2: Data Sheet (DS from Matrix C)
+- S3: Standard Procedure (SP from Matrix D)
+- S4: Guidance Document (GD from Matrix X)
+- S5: Evaluation Checklist (EC from Matrix E)
+- S11: Final Resolution (Final)
 
-### Pipeline Architecture
-- **NEW**: Nine-station semantic valley traversal (S0-S8) with ontological modalities
-- **Legacy**: Three-pass refinement (V1→V2→V3) - routed through new pipeline when `NEW_PIPELINE_ENABLED=true`
-
-### Core Document Types
-- **DS** (Data Sheet) - Data specifications, fields, types, validation rules
-- **SP** (Standard Procedure) - Step-by-step implementation workflows
-- **X** (Solution Template) - Integrated solution frameworks with verification criteria
-- **M** (Guidance) - Strategic recommendations, risk analysis, best practices
+Modes:
+- Foundation (default): S1→S2→S3→S4→S5→S11
+- Full: S1→…→S11 (S6–S10 reserved for iterative refinement; placeholders today)
 
 ## Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- OpenAI API key
-- Optional: Neo4j for graph features
+- Optional: OpenAI API key (foundation mode works without one via LLM fallbacks)
 
 ### Installation
 ```bash
@@ -35,67 +33,92 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Visit http://localhost:3001 to start generating documents and chatting.
+Visit http://localhost:3001. Enter a problem, pick a traversal mode, and run.
+
+Environment variables (configure in `.env.local`):
+```
+# Required only if you want real LLM output; otherwise foundation mode uses fallbacks
+OPENAI_API_KEY=sk-proj-...
+
+# Single source of truth for the model (code reads the env var only)
+OPENAI_MODEL=gpt-4.1-nano
+```
 
 ## How It Works
 
-### Three-Pass Orchestration
-1. **V1**: Matrix-seeded deterministic scaffolds → AI enhancement
-2. **V2**: Cross-referential refinement using insights from other documents  
-3. **V3**: Final convergence with full context integration
+### 11‑Station Pipeline with Foundation Mode
+The canonical stations are S1–S11 across modalities: problem → systematic → process → epistemic → process → epistemic → alethic → epistemic → alethic → resolution. The app defaults to a “foundation” path (S1–S5 + S11) that generates the 4 core documents and a final resolution quickly.
 
-### Matrix-Driven Generation
-External matrices (from chirality-framework) serve as structured "seeds of thought":
-- **C matrix** → DS documents (requirements → data specifications)
-- **D matrix** → SP documents (objectives → procedures) 
-- **X+E matrices** → X documents (verification + evaluation → solutions)
-- **E matrix** → M documents (evaluation → guidance)
+### Matrix‑Guided Generation
+Framework matrices seed generation conceptually:
+- C → Data Sheet (S2)
+- D → Standard Procedure (S3)
+- X → Guidance Document (S4)
+- E → Evaluation Checklist (S5)
 
-### RAG Chat Integration
-Generated documents become "seeds of evidence" for intelligent conversations:
-- Automatic context injection from your generated documents
-- Grounded responses with citation support
-- Maintains conversation coherence across sessions
+### Packets and Exports
+- Every station emits a Packet saved to `runs/<runId>/packets.jsonl` and summarized in `runs/<runId>/run.json`.
+- Canonical schema lives at `schemas/packet.json` and is validated in CI.
 
 ## Project Structure
 
 ```
+schemas/                # JSON Schemas (packet.json)
 src/
-├── app/                    # Next.js App Router
-│   ├── chirality-core/     # Document generation interface  
-│   ├── chat-admin/         # System monitoring dashboard
-│   └── api/
-│       ├── core/           # Document generation endpoints
-│       ├── chat/           # RAG streaming chat
-│       └── agent/          # External framework integration
-├── chirality-core/         # Core orchestration engine
-├── lib/                    # Generator libraries, ingestion, utilities
-└── components/             # React UI components
+  app/
+    api/
+      export/run/       # GET export current run metadata
+      pipeline/traverse/# POST run traversal
+    page.tsx            # UI entry with traversal form
+  components/           # TraversalInterface, Modality chips, etc.
+  core/
+    llm/                # LLM service (reads OPENAI_MODEL)
+    stations/           # S1..S11 processors
+    orchestrator.ts     # Mode-aware traversal execution
+    state.ts            # Run state and document store
+    exporter.ts         # Writes run.json + packets.jsonl
+  domain/               # Station/Packet types, validators
 ```
 
 ## Usage Examples
 
-### Document Generation
+### Run Foundation Traversal (UI)
+1) Start dev server: `npm run dev`
+2) Open `http://localhost:3001`
+3) Enter a problem and keep mode = Foundation
+4) Submit and view S1..S5 + S11 outputs
+
+### Run Foundation Traversal (API)
 ```bash
-# Navigate to /chirality-core
-# Enter: "implement user authentication system"  
-# Choose: "🔄 Three-Pass with Matrix Integration"
-# Result: Structured DS/SP/X/M documents with cross-references
+curl -s -X POST http://localhost:3001/api/pipeline/traverse \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "problem": { "title": "Auth", "statement": "Implement user authentication" },
+        "options": { "mode": "foundation" }
+      }' | jq '.traversalId, .resolution[0:120]'
 ```
 
-### Enhanced Chat
+### Inspect Exported Files
 ```bash
-# After generating documents, use chat:
-# Ask: "How should I handle password reset flows?"
-# AI response: References your generated DS/SP documents automatically
+curl -s "http://localhost:3001/api/export/run?runId=<yourRunId>" | jq
+cat runs/<yourRunId>/run.json | jq
+wc -l runs/<yourRunId>/packets.jsonl
 ```
 
-### Matrix Integration
+### Validate a Run Locally (AJV)
 ```bash
-# External matrix processing:
-POST /api/agent/run
-{ "framework_run_id": "sample_001", "enable_rag": true }
-# Uses chirality-framework matrices as generation seeds
+# Validate all packets against schemas/packet.json using AJV (node one-liner)
+node -e '
+  const fs = require("fs");
+  const Ajv = require("ajv");
+  const addFormats = require("ajv-formats");
+  const schema = JSON.parse(fs.readFileSync("schemas/packet.json","utf8"));
+  const packets = fs.readFileSync("runs/<yourRunId>/packets.jsonl","utf8").trim().split("\n").map(JSON.parse);
+  const ajv = new Ajv({strict:false}); addFormats(ajv);
+  const validate = ajv.compile(schema);
+  for (const [i,p] of packets.entries()) if (!validate(p)) { console.error(`Packet ${i+1} failed`, validate.errors); process.exit(1); }
+  console.log(`All ${packets.length} packets validate ✔`);
+'
 ```
 
 ## Development
@@ -107,11 +130,16 @@ POST /api/agent/run
 - `npm run lint` - Code linting
 - `npm test` - Run test suites
 
+### CI
+- Typecheck, lint, tests, build
+- Generate sample traversal; validate packets via AJV against `schemas/packet.json`
+- Uploads build artifacts and a sample run ZIP
+- Legacy sweep rejects deprecated patterns (see workflow)
+
 ### Key Technologies
-- **Frontend**: Next.js 15, React 18, TypeScript, Tailwind CSS
-- **AI**: OpenAI API with streaming support
-- **State**: File-based JSON persistence + Zustand
-- **Graph**: Optional Neo4j integration for enhanced discovery
+- Next.js 15 + React 18 + TypeScript
+- OpenAI API via centralized LLM service; `OPENAI_MODEL` env var
+- File-based run exports (JSON + JSONL)
 
 ## Contributing
 
@@ -120,9 +148,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines, coding standa
 ## Documentation
 
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
-- **[ROADMAP.md](ROADMAP.md)** - Project direction and planned features  
+- **[ROADMAP.md](ROADMAP.md)** - Project direction and planned features
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
-- **[docs/](docs/)** - Technical specifications and architecture details
+- **[docs/](docs/)** - API reference, tutorial, and architecture details
+
+Migration from v1? See [docs/MIGRATION.md](docs/MIGRATION.md).
 
 ## License
 
@@ -130,4 +160,4 @@ MIT - See LICENSE file for details.
 
 ---
 
-*Transform complex problems into structured solutions with AI-powered three-pass document generation.*
+*Transform complex problems into structured solutions through an 11‑station semantic valley pipeline.*

@@ -24,8 +24,6 @@ npm test
 # Run specific test file
 npx jest tests/generators.test.ts
 
-# Test three-pass orchestration
-npm run orchestrate:test
 
 # Clean install and fresh start
 npm run fresh
@@ -57,74 +55,112 @@ curl -X DELETE http://localhost:3001/api/core/state
 
 # Debug chat system
 curl http://localhost:3001/api/chat/debug | jq
+
+# Check pipeline configuration
+curl http://localhost:3001/api/pipeline/traverse | jq
 ```
 
 ## Core Architecture
 
-### Three-Pass Document Generation System
-The heart of Chirality is V1→V2→V3 iterative refinement that transforms problems into four document types:
+### Semantic Valley Traversal System
+Chirality implements canonical semantic valley traversal through 11 stations (S1-S11) following the ontological path: 
+`{problem} → Systematic → Process → Epistemic → Process → Epistemic → Alethic → Epistemic → Alethic → Epistemic → Alethic → {resolution}`
 
-1. **V1 (Matrix-Seeded Generation)**: Initial generation using external matrices as "seeds of thought" + AI enhancement
-2. **V2 (Cross-Referential Refinement)**: Each document learns from V1 outputs of other documents
-3. **V3 (Final Convergence)**: Complete context integration with full cross-references
+**Station Pipeline** (S1-S11):
+- **S1**: Problem Statement (problem) - J operation
+- **S2**: Data Sheet (systematic) - DS operation from Matrix C
+- **S3**: Standard Procedure (process) - SP operation from Matrix D  
+- **S4**: Guidance Document (epistemic) - GD operation from Matrix X
+- **S5**: Evaluation Checklist (process) - EC operation from Matrix E
+- **S6**: Solution Statements (epistemic) - SS operation
+- **S7**: Requirements Assessment (alethic) - RA operation
+- **S8**: Risk Analysis (epistemic) - Risk operation
+- **S9**: Implementation Plan (alethic) - IP operation
+- **S10**: Quality Assurance (epistemic) - QA operation
+- **S11**: Final Resolution (resolution) - Final operation
 
-Document flow: `Problem → Matrices → V1 Drafts → V2 Refinement → V3 Finals → RAG Indexing`
+**Traversal Modes**:
+- **Foundation Mode**: S1-S5 + S11 (6 stations) - Core document generation
+- **Full Mode**: S1-S11 (11 stations) - Complete traversal with iteration cycles
 
-### Document Types & Matrix Mappings
-- **DS (Data Sheet)**: Data specifications from C matrix (requirements)
-- **SP (Standard Procedure)**: Workflows from D matrix (objectives)  
-- **X (Solution Template)**: Integrated solutions from X+E matrices (verification/evaluation)
-- **M (Guidance)**: Strategic recommendations from E matrix (evaluation)
+**Data Structure**: Packet<T> provides canonical document structure with id, createdAt, station, modality, payload, and meta fields.
+
+
+### Document Types & Operations
+- **J**: Problem Statement Analysis from S1
+- **DS**: Data Sheet generation from S2 using Matrix C
+- **SP**: Standard Procedure creation from S3 using Matrix D  
+- **GD**: Guidance Document generation from S4 using Matrix X
+- **EC**: Evaluation Checklist creation from S5 using Matrix E
+- **SS**: Solution Statements from S6
+- **RA**: Requirements Assessment from S7
+- **Risk**: Risk Analysis from S8
+- **IP**: Implementation Plan from S9
+- **QA**: Quality Assurance from S10
+- **Final**: Resolution synthesis from S11
 
 ### Key System Components
 
-#### Orchestration Engine (`/src/chirality-core/orchestrate.ts`)
-- Manages three-pass generation with dependency tracking
-- Handles matrix integration and deterministic scaffolding
-- Implements Triple structure (text, terms_used, warnings) validation
+#### Orchestration Engine (`/src/core/orchestrator.ts`)
+- Routes all requests to semantic valley traversal pipeline
+- Supports both foundation and full traversal modes
+- Implements fallback mode without API key for foundation traversal
+- Validates station transitions and data dependencies
 
-#### State Management (`/src/chirality-core/state/store.ts`)
-- File-based persistence in `/store/state.json`
-- Atomic operations with lockfile protection
-- Maintains problem statement and all generated documents
+#### State Management (`/src/core/state.ts`)
+- In-memory state management with atomic operations
+- Maintains run state, packets, and metadata
+- Tracks station progression and document accumulation
 
-#### RAG Pipeline (`/src/chirality-core/rag/`)
-- Indexes generated documents as "seeds of evidence"
-- 4000 char limit per document for context injection
-- Powers chat interface with grounded responses
+#### LLM Service (`/src/core/llm/service.ts`)
+- OpenAI integration with configurable models
+- Disabled mode for fallback operations without API calls
+- Deterministic stub content generation for testing/CI
 
-#### Framework Integration (`/lib/framework/ingest.ts`)
-- Ingests JSONL matrix snapshots from chirality-framework
-- Validates against strict schema (v1.0.0)
-- Generates deterministic scaffolds ordered by meta.order then id
+#### Station Processors (`/src/core/stations/S[1-11].ts`)
+- Individual processors for each semantic valley station
+- Context-aware content generation using accumulated documents
+- Matrix integration for stations S2-S5
 
 #### API Layer (`/src/app/api/`)
-- RESTful endpoints for generation, chat, and state
-- Server-sent events for streaming responses
-- RBAC with approver roles for export operations
+- RESTful endpoints for pipeline traversal and exports
+- Foundation mode support without API key requirement
+- Error handling with proper status codes and messages
 
 ## Critical Implementation Details
 
 ### Environment Configuration
 ```bash
-# Required in .env.local
-OPENAI_API_KEY=sk-proj-...
-OPENAI_MODEL=gpt-4.1-nano
+# Required for LLM operations
+OPENAI_API_KEY=sk-proj-...     # Required for full mode, optional for foundation mode
+OPENAI_MODEL=gpt-4.1-nano      # REQUIRED - no hardcoded fallbacks
+
+# Feature flags
+FEATURE_GRAPH_ENABLED=true     # Enable Neo4j graph features (optional)
 
 # Optional for graph features
-FEATURE_GRAPH_ENABLED=true
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=...
 ```
 
+**Foundation Mode Fallback**: The system can run foundation mode (S1-S5+S11) without a valid API key using disabled LLM mode for testing and CI purposes.
+
 ### TypeScript Strict Mode
 Project uses TypeScript strict mode - NO `as any` shortcuts allowed. Always define proper interfaces:
+
+**Packet Structure**:
 ```typescript
-interface Triple<T> {
-  text: T;
-  terms_used: string[];
-  warnings: string[];
+interface Packet {
+  id: string;                    // Unique identifier
+  createdAt: string;            // ISO timestamp
+  station: Station;             // S1-S11
+  modality: Modality;           // problem|systematic|process|epistemic|alethic|resolution
+  payload: Record<string, any>; // Operation results (J, DS, SP, etc.)
+  meta?: {                      // Optional metadata
+    duration?: number;
+    tokens?: TokenUsage;
+  };
 }
 ```
 
@@ -163,24 +199,25 @@ try {
 
 ### File Organization
 - `/src/app/api/` - Next.js API routes (App Router)
-- `/src/chirality-core/` - Core orchestration engine
-- `/lib/` - Generators, framework integration, utilities
+- `/src/core/` - Core orchestration engine and services
+- `/src/domain/` - Station definitions, packets, and validators
 - `/src/components/` - React UI components
-- `/fixtures/runs/` - Test framework run data
-- `/store/` - Persistent state storage
+- `/tests/` - Test suites including fallback mode tests
+- `/runs/` - Generated run exports
+- `/schemas/` - JSON schemas for validation
 
 ## Testing Requirements
 
 Before any commit:
 1. Run `npm run type-check` - Must pass with zero errors
 2. Run `npm run lint` - Fix all linting issues
-3. Run `npm test` - Ensure all tests pass (52 expected)
+3. Run `npm test` - Ensure all tests pass (42 expected including fallback tests)
 4. Test generation manually if core logic changed
 
-For matrix integration changes:
-- Test with `fixtures/runs/sample_happy_001/`
-- Verify deterministic ordering (meta.order then id)
-- Check Triple structure compliance
+For orchestration changes:
+- Verify foundation mode works without API key
+- Test both foundation (6 stations) and full (11 stations) modes
+- Check packet structure compliance and data dependencies
 
 ## Common Development Patterns
 
@@ -189,40 +226,35 @@ For matrix integration changes:
 2. Use NextRequest/NextResponse from 'next/server'
 3. Implement proper error handling and validation
 4. Add corresponding types in `/src/types/`
+5. Add feature flag gating if optional (check FEATURE_GRAPH_ENABLED pattern)
 
-### Modifying Document Generation
-1. Update generator in `/lib/generator/[type].ts`
-2. Maintain Triple structure compliance
-3. Update validators in `/src/chirality-core/validators.ts`
-4. Test with three-pass orchestration
+### Modifying Station Processing
+1. Update station logic in `/src/core/stations/S[1-11].ts`
+2. Maintain Packet structure compliance with correct modality
+3. Update validators in `/src/domain/validators.ts` for data dependencies
+4. Test with both foundation and full traversal modes
 
-### Working with Matrices
-1. Ingest with `/lib/framework/ingest.ts`
-2. Generate scaffolds maintaining order (meta.order → id)
-3. Pass to generators via `initialVector`
-4. Preserve citations and refs from matrix cells
-
-### Implementing RAG Features
-1. Respect corpus limits (4000 chars per doc)
-2. Use compactor functions for document reduction
-3. Index after generation completion
-4. Test chat context injection
+### Adding Fallback Support
+1. Use `createOrchestrator(apiKey, allowFallback)` for foundation mode without API key
+2. LLMService with `disabled: true` generates deterministic stubs
+3. Add comprehensive tests in `/tests/fallback.test.ts`
+4. Ensure CI validation works with disabled mode
 
 ## Performance Considerations
 
-- Three-pass generation: 2-4 minutes (12 LLM calls)
-- Single document: 3-8 seconds
-- Chat first token: <2 seconds target
-- State operations: Must be sub-second
-- Use streaming for long operations via PassThrough
+- **Foundation Mode**: ~30 seconds (6 LLM calls, S1-S5+S11)
+- **Full Mode**: 5-10 minutes (11 LLM calls, S1-S11)
+- **Fallback Mode**: <1 second (no LLM calls, deterministic stubs)
+- State operations: Sub-second in-memory operations
+- API responses: <2 seconds first token target
 
 ## Security & Production
 
-- RBAC enforced for exports (x-role: approver header)
-- SOC2 audit logging for compliance
-- No secrets in code - use environment variables
-- Validate all external inputs
-- Atomic file operations with lockfile protection
+- Environment-based configuration - no hardcoded API keys or models
+- Foundation mode fallback for CI/testing without exposing API keys
+- Proper error handling with sanitized error messages
+- Input validation on all API endpoints
+- TypeScript strict mode enforced throughout
 
 ## Key Philosophical Concepts
 
@@ -233,5 +265,5 @@ Knowledge has "handedness" - same facts create different knowledge based on inte
 - **Seeds of Thought**: External matrices providing structured input
 - **Seeds of Evidence**: Generated documents indexed for RAG enhancement
 
-### Systematic Semantic Operations
-Transform complex problems through controlled semantic stereochemistry - systematic manipulation of interpretive handedness through three-pass refinement.
+### Semantic Valley Traversal
+Transform complex problems through controlled semantic valley traversal across ontological modalities (problem → systematic → process → epistemic → alethic → resolution), with each station building upon the accumulated semantic context from previous stations.

@@ -171,3 +171,47 @@ Transform complex problems into structured, actionable solutions through proven 
 ---
 
 *This roadmap reflects systematic evolution maintaining core three-pass methodology while expanding capabilities and reach. All development guided by evidence-based improvements and user value creation.*
+# Roadmap (v2.0.0 →)
+
+Focused plan to evolve chirality‑app beyond foundation mode while keeping the codebase lean and coherent.
+
+## Recently Shipped (v2.0.0)
+- Canonical 11‑station pipeline with foundation mode (S1–S5 + S11)
+- Mode‑aware orchestrator and dependency validator (warn‑only)
+- Packet schema + exporter (`runs/<runId>/run.json`, `packets.jsonl`)
+- REST API (`/api/pipeline/traverse`, `/api/export/run`) and minimal UI
+- CI with AJV schema validation and legacy sweep
+
+## Near‑Term (next 4–6 weeks)
+- Stations S6–S10: Implement real iteration/refinement logic and payloads
+- Tighten schema: station→operation mapping via JSON Schema `if/then`
+- Dependency validator: move from warn‑only to hard enforcement
+- UI: Export viewer (show `run.json` summary, download button, packet list)
+- Export API (optional): add `/api/export/download?runId=...` to stream a ZIP
+- Fallback hardening: add `LLMService { disabled: true }` in fallback to avoid any network attempt in CI/dev
+- Tests: unit tests for fallback traversal producing valid packets; strict validator tests
+
+## Medium‑Term (2–3 months)
+- Full‑mode semantics: complete S1–S11 with convergence criteria for iterations
+- Matrix ingestion (optional): wire `lib/framework` seeds into S1–S5 prompts
+- Multi‑run management: list/rm endpoints, housekeeping for `runs/`
+- Access control (optional): RBAC guard for export/download endpoints
+- Observability: standardize timings, station token usage, and structured logs
+- DX: CLI script to validate a run (`node scripts/validate-run.js <runId>`) using AJV
+- Config: env‑driven LLM parameters (temperature, tokens) and model flags
+
+## Long‑Term
+- Golden snapshot tests for stations and exports across sample problems
+- Optional graph integration behind a feature flag; keep core graph‑free
+- Plugin surface for domain‑specific station logic and prompts
+
+## Documentation
+- Keep README/INTERFACE/API_REFERENCE canonical and in sync with code
+- Update ARCHITECTURE as S6–S10 semantics land
+- Maintain MIGRATION notes for any breaking API/schema changes
+
+## Success Criteria
+- Foundation and full modes produce schema‑valid packets deterministically
+- UI provides a clear, downloadable export with packet introspection
+- CI blocks on schema/validator failures and legacy regressions
+- Code remains small, explicit, and easy to reason about

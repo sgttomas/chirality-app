@@ -1,4 +1,4 @@
-# Why "Chirality"? The Core Metaphor
+# Why "Chirality"? The Core Metaphor (v2 note)
 
 **Understanding the foundational metaphor that shapes how we work with semantics in the Chirality Framework**
 
@@ -51,13 +51,16 @@ The Chirality Framework recognizes that **knowledge has handedness** - perspecti
 
 ## How Chirality Manifests in Document Generation
 
-### Three-Pass Orchestration as Chiral Synthesis
+### Semantic Valley Traversal as Chiral Synthesis
 
-The V1→V2→V3 refinement process creates **controlled knowledge chirality**:
+Note: Earlier material references S0→S8. In v2.0.0 the canonical model is S1→S11. The principles below still apply conceptually.
 
-**V1 (Matrix-Seeded)**: **Chiral precursor formation** - matrices provide oriented semantic structure
-**V2 (Cross-Referential)**: **Chiral enhancement** - documents gain handedness through cross-referencing
-**V3 (Convergence)**: **Chiral stabilization** - final orientation locked through RAG evidence
+The semantic valley traversal creates **controlled knowledge chirality**:
+
+**Systematic (S1)**: **Chiral precursor formation** - matrices provide oriented semantic structure
+**Process (S2, S4)**: **Chiral pathfinding** - operational procedures gain directional handedness
+**Epistemic (S3, S5, S7)**: **Chiral knowledge formation** - knowledge claims develop semantic orientation
+**Alethic (S6, S8)**: **Chiral stabilization** - final orientation locked through necessity analysis
 
 ### Document Types as Chiral Isomers
 
@@ -122,10 +125,10 @@ An LLM represents concepts as high-dimensional vectors (embeddings) forming comp
 
 ### The Framework as Externalized Geometry Calculator
 
-The three-pass orchestration externalizes the LLM's internal geometric processes:
-1. **V1**: Initial projection into document-specific subspace
-2. **V2**: Cross-referential adjustment using other subspace projections
-3. **V3**: Final convergence within the complete semantic manifold
+The semantic valley traversal externalizes the LLM's internal geometric processes:
+1. **Systematic (S1)**: Initial projection into document-specific subspace
+2. **Process/Epistemic (S2-S5)**: Iterative adjustment using cross-modal projections
+3. **Alethic (S6-S8)**: Final convergence within the complete semantic manifold
 
 This makes the LLM's **implicit geometric operations** **explicit and controllable**.
 

@@ -1,6 +1,6 @@
-# Neo4j Queries Reference
+# Neo4j Queries Reference (Archived for v2)
 
-Complete Cypher query reference for the Chirality AI App graph integration layer.
+Note: Archived for v2.0.0. The current app does not ship graph features. This reference is retained for future work behind an optional feature flag.
 
 ## Schema Overview
 

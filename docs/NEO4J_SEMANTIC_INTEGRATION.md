@@ -1,4 +1,6 @@
-# Neo4j Semantic Integration
+# Neo4j Semantic Integration (Archived for v2)
+
+Note: This document is archived for v2.0.0. The current app does not depend on Neo4j. Graph integration may return in a future release behind a feature flag.
 
 Technical specification for the graph-based metadata mirror system that enhances document discoverability while maintaining files as the source of truth.
 

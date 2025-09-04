@@ -1,21 +1,12 @@
-'use client'
+import { TraversalInterface } from '../components/TraversalInterface';
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-
-export default function Home() {
-  const router = useRouter()
-  
-  useEffect(() => {
-    router.push('/chirality-core')
-  }, [router])
-
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Redirecting to Chirality Core...</h1>
-        <p className="text-gray-600">If you're not redirected, <a href="/chirality-core" className="text-blue-600 hover:underline">click here</a></p>
-      </div>
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-6">Chirality Framework</h1>
+      <p className="text-gray-600 mb-8">11-Station Semantic Valley Traversal</p>
+      
+      <TraversalInterface />
     </div>
-  )
+  );
 }
