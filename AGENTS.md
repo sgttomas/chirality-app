@@ -1,36 +1,71 @@
-# Repository Guidelines
+# Repository Guidelines (v2.0.0)
 
-Concise contributor guide for the Chirality AI App (Next.js + TypeScript) implementing three‑pass DS/SP/X/M generation with RAG chat and optional matrix integration.
+Concise guide for contributors and AI coding agents working on chirality‑app. The app implements an 11‑station semantic valley pipeline with a default “foundation” traversal (S1–S5 + S11), canonical packet schema/exports, a minimal API/UI, and CI schema validation.
 
-## Project Structure & Module Organization
-- `src/app/` Next.js App Router (pages, layout, API routes)
-- `src/components/` UI and chat components; `src/hooks/` React hooks
-- `src/chirality-core/` orchestration/state; `lib/` framework, generator, orchestrator
-- `docs/` product docs; `__tests__/` Jest tests; `public/` assets; `config/`, `types/`
+## Project Structure
+- `src/app/`
+  - `api/pipeline/traverse/route.ts` — POST traversal
+  - `api/export/run/route.ts` — GET export metadata
+  - `api/export/file/route.ts` — GET export file download (run.json, packets.jsonl)
+  - `page.tsx` — UI entry
+- `src/components/` — `TraversalInterface`, `ProblemForm`, `StationDisplay`, `ModalityChip`, `ResultsDisplay`
+- `src/core/` — `orchestrator.ts`, `state.ts`, `exporter.ts`, `llm/service.ts`, `stations/`
+- `src/domain/` — station metadata/types, validators
+- `schemas/packet.json` — canonical Packet schema (validated in CI)
+- `docs/` — see `docs/INDEX.md` for the v2 table of contents
 
-## Build, Test, and Development Commands
-- `npm run dev` local dev (Turbopack). `npm run dev:webpack` to disable Turbopack
-- `npm run build` build for production; `npm start` serve build
-- `npm run lint` ESLint; `npm run type-check` TypeScript strict check
-- `npm test` Jest unit tests; `npm run orchestrate:test` orchestration smoke
-- `npm run env:check` validate required env; `npm run update-docs-index` refresh docs index
+Legacy/optional:
+- `lib/framework/*` matrix utilities (optional); graph/Neo4j docs are archived
 
-## Coding Style & Naming Conventions
-- TypeScript strict (`tsconfig.json`); 2‑space indent; Prettier config in `.prettierrc`
-- ESLint (`eslint-config-next`) enforced via `npm run lint`
-- Components: `PascalCase` files (e.g., `ChatWindow.tsx`); hooks `useX`
-- Variables/functions `camelCase`; types/interfaces `PascalCase`; constants `SCREAMING_SNAKE_CASE`
-- Use path aliases: `@/*`, `@/lib/*`, `@/config/*`
+## Build, Test, Dev
+- `npm run dev` — dev server (Turbopack)
+- `npm run build` — production build; `npm start` — serve
+- `npm run lint` — ESLint; `npm run type-check` — TypeScript
+- `npm test` — Jest unit tests (schema/validators/API)
+
+Tip: legacy scripts in `package.json` that reference chat/graph are not used in v2.
+
+## Environment
+- `OPENAI_MODEL` — single source of truth for model selection (recommended: `gpt-4.1-nano`)
+- `OPENAI_API_KEY` — optional for foundation mode (fallbacks); required for full mode
+
+## API Contracts (canonical)
+- POST `/api/pipeline/traverse` — body `{ problem: { title, statement }, options?: { mode: 'foundation'|'full' } }`
+- GET `/api/export/run?runId=...` — export metadata
+- GET `/api/export/file?runId=...&name=run.json|packets.jsonl` — file download
+- Errors: `{ code: 'ERR_*', message, details? }`
+
+## Packets & Exports
+- Exports written to `runs/<runId>/run.json` and `runs/<runId>/packets.jsonl`
+- Validate with AJV locally (see README/TROUBLESHOOTING) and in CI
+
+## Coding Style
+- TypeScript strict; ESLint enforced
+- Components: `PascalCase`; hooks `useX`
+- Names: variables/functions `camelCase`; types/interfaces `PascalCase`; constants `SCREAMING_SNAKE_CASE`
+- Use path aliases where defined
 
 ## Testing Guidelines
-- Framework: Jest + ts-jest. Tests live in `__tests__` or alongside as `*.test.ts(x)`
-- Write tests for core logic, error paths, and matrix ingestion where applicable
-- Run locally with `npm test`; ensure `npm run type-check` and `npm run lint` pass
+- Prioritize tests for: validators (transition/deps), schema compliance (AJV), API endpoints
+- When adding station logic: keep stations pure/idempotent; expand schema tests if payloads change
 
-## Commit & Pull Request Guidelines
-- Commits: `type(scope): short summary` (Conventional Commits). Include Documentation Assessment flags when updating docs
-- PRs must include: clear description, linked issues, testing evidence (logs/screens), and updated docs when user-facing behavior changes
+## Commit & PR Guidelines
+- Commits: Conventional Commits format `type(scope): short summary`
+- PRs: clear problem/solution, testing evidence (logs/screens), updated docs for user-visible changes
 
-## Security & Configuration Tips
-- Configure via `.env.local` (required: `OPENAI_API_KEY`; optional: Neo4j vars, `RBAC_ENABLED=true`)
-- For protected exports, pass `x-role: approver` header. Avoid committing secrets
+## Do / Don’t (important)
+- Do:
+  - Use foundation mode defaults unless full mode is required
+  - Keep `OPENAI_MODEL` env the only source of model selection
+  - Validate exports against `schemas/packet.json`
+  - Keep dependency validation aligned with implemented stations
+- Don’t:
+  - Reintroduce legacy endpoints (`/api/chat/*`, `/api/agent/*`) or S0–S8 model
+  - Hardcode model names in code; use env vars
+  - Add graph/Neo4j as a runtime dependency
+
+## Roadmap Pointers
+- Near‑term: S6–S10 logic, stricter schema station→operation mapping, dependency validator hard‑fail, UI export viewer
+- Medium‑term: convergence criteria for full mode, optional matrix ingestion seeds, multi‑run management
+
+Refer to `docs/INDEX.md`, `README.md`, and `ARCHITECTURE.md` for current behavior and design decisions. Avoid touching archived or legacy materials unless explicitly asked.

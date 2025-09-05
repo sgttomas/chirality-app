@@ -1,0 +1,46 @@
+{
+  "run_id": "sample_format_unsupported_001",
+  "created_at": "2025-09-05T02:35:35.044Z",
+  "tool": {
+    "name": "chirality-framework",
+    "version": "1.0.0"
+  },
+  "framework_schema_version": "1.0.0",
+  "problem": {
+    "title": "t",
+    "statement": "s"
+  },
+  "durations": {
+    "total_ms": 1
+  },
+  "matrices": {
+    "C": {
+      "path": "snapshots/C.jsonl",
+      "records": 1,
+      "sha256": "placeholder",
+      "bytes": 1,
+      "format": "cells-jsonl-v2"
+    },
+    "D": {
+      "path": "snapshots/D.jsonl",
+      "records": 0,
+      "sha256": "placeholder",
+      "bytes": 0,
+      "format": "cells-jsonl-v1"
+    },
+    "X": {
+      "path": "snapshots/X.jsonl",
+      "records": 0,
+      "sha256": "placeholder",
+      "bytes": 0,
+      "format": "cells-jsonl-v1"
+    },
+    "E": {
+      "path": "snapshots/E.jsonl",
+      "records": 0,
+      "sha256": "placeholder",
+      "bytes": 0,
+      "format": "cells-jsonl-v1"
+    }
+  }
+}

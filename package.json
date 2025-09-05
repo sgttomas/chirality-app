@@ -1,6 +1,6 @@
 {
   "name": "chirality-app",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Semantic valley traversal application for the Chirality Framework with 11-station document generation pipeline",
   "private": false,
   "license": "MIT",
