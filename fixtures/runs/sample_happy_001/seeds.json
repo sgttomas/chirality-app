@@ -1,0 +1,76 @@
+{
+  "seeds": {
+    "initialVector": {
+      "matrixC": [
+        "Define data policy and completeness criteria.",
+        "Ensure sufficient fields for core use cases."
+      ],
+      "matrixD": [
+        "Provide a step-by-step onboarding flow.",
+        "Define measurable acceptance criteria."
+      ],
+      "matrixX": [
+        "Verification strategy covers data validation and process checks."
+      ],
+      "matrixE": [
+        "Overall the approach meets objectives with minor risks."
+      ]
+    },
+    "metadata": {
+      "runId": "sample_happy_001",
+      "extractedAt": "2025-09-05T02:25:19.786Z",
+      "totalCells": 6,
+      "counts": {
+        "C": 2,
+        "D": 2,
+        "X": 1,
+        "E": 1
+      },
+      "preHeuristicsCounts": {
+        "C": 2,
+        "D": 2,
+        "X": 1,
+        "E": 1
+      },
+      "postHeuristicsCounts": {
+        "C": 2,
+        "D": 2,
+        "X": 1,
+        "E": 1
+      },
+      "preHeuristicsTotal": 6,
+      "postHeuristicsTotal": 6,
+      "sourceFiles": [
+        "snapshots/C.jsonl",
+        "snapshots/D.jsonl",
+        "snapshots/X.jsonl",
+        "snapshots/E.jsonl"
+      ],
+      "checksumVerified": false,
+      "checksums": {
+        "C": "mismatch",
+        "D": "mismatch",
+        "X": "mismatch",
+        "E": "mismatch"
+      },
+      "warnings": [
+        "Checksum mismatch for C: expected deadbeef, got 98ab5013324443777880977f88e8aedd076ac6218656109aa6d1bcf05a2f8334",
+        "Checksum mismatch for D: expected deadbeef, got 365ce0eb53e5352f6795bb744eb9044f9233b53072b31ee4c2d6b6c73b922592",
+        "Checksum mismatch for X: expected deadbeef, got b6984dd122e179c5fab33f9aab63607954c2a3a85cac56289ab84f935c6b06e6",
+        "Checksum mismatch for E: expected deadbeef, got e71aff0ea86a6fdeb39d84d2261ccf398789aa7fb14e751d09ba5053ae79e283"
+      ],
+      "sourceMtime": {
+        "snapshots/C.jsonl": 1756978256,
+        "snapshots/D.jsonl": 1756978256,
+        "snapshots/X.jsonl": 1756978256,
+        "snapshots/E.jsonl": 1756978256
+      },
+      "sourceSize": {
+        "snapshots/C.jsonl": 468,
+        "snapshots/D.jsonl": 424,
+        "snapshots/X.jsonl": 237,
+        "snapshots/E.jsonl": 224
+      }
+    }
+  }
+}

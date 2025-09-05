@@ -1,8 +1,0 @@
-{
-  "selection_v": "1.0.0",
-  "threshold": 3,
-  "topKPerDoc": 12,
-  "maxNodesPerRun": 50,
-  "keywords": ["API", "Dependency", "Integration", "Decision", "Risk", "Metric"],
-  "largeSectionCharLimit": 10000
-}

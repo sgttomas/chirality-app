@@ -34,7 +34,13 @@ export function TraversalInterface() {
 
   const handleStartTraversal = async (
     problem: { title: string; statement: string }, 
-    mode: 'full' | 'foundation'
+    mode: 'full' | 'foundation',
+    initialVector?: {
+      matrixC: string[];
+      matrixD: string[];
+      matrixX: string[];
+      matrixE: string[];
+    }
   ) => {
     setTraversalState({
       status: 'running',
@@ -49,7 +55,10 @@ export function TraversalInterface() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          problem,
+          problem: {
+            ...problem,
+            initialVector
+          },
           options: { mode }
         })
       });

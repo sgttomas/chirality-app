@@ -1,0 +1,5 @@
+{"id":"C:1","matrix":"C","row_label":"R","col_label":"C","station":"S","text":"• Alpha beta gamma. With extra text after first sentence.","citations":[],"refs":[],"meta":{"order":1}}
+{"id":"C:2","matrix":"C","row_label":"R","col_label":"C","station":"S","text":"alpha beta gamma! duplicate casing","citations":[],"refs":[],"meta":{"order":2}}
+{"id":"C:3","matrix":"C","row_label":"R","col_label":"C","station":"S","text":"  *   Mixed   whitespace   and   bullets   ","citations":[],"refs":[],"meta":{"order":3}}
+{"id":"C:4","matrix":"C","row_label":"R","col_label":"C","station":"S","text":"Emoji 😄 leading should be stripped.","citations":[],"refs":[],"meta":{"order":4}}
+{"id":"C:5","matrix":"C","row_label":"R","col_label":"C","station":"S","text":"Truncate this sentence because it is very long and should be cut.","citations":[],"refs":[],"meta":{"order":5}}

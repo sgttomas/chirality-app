@@ -7,17 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-09-05
+
 ### Added
-- Documentation consolidation from 25+ files to essential minimal set
-- Comprehensive troubleshooting guide with systematic debugging procedures
-- Enhanced contributing guidelines with testing requirements and code standards
-- Matrix integration test coverage with dynamic fixture generation
+- **Seed Extraction from Framework Runs**: Implemented a system to ingest `cells-jsonl-v1` artifacts from `chirality-framework` runs to be used as "seeds of thought" for the traversal pipeline.
+- **Streaming Ingestion**: The framework loader now uses a streaming parser for memory-efficient handling of large matrix files.
+- **Seed Loading UI**: Added a new UI section, gated by a feature flag (`NEXT_PUBLIC_SEEDS_ENABLE`), to load framework seeds by Run ID.
+- **Enhanced Metadata**: The seed extraction process now provides rich metadata, including per-matrix checksum status and pre/post-heuristic item counts.
 
 ### Changed
-- Updated README.md to focus on three-pass orchestration and matrix integration
-- Improved CONTRIBUTING.md with comprehensive development workflow
-- Enhanced ROADMAP.md with strategic priorities and success metrics
-- Standardized TROUBLESHOOTING.md with complete diagnostic procedures
+- **Extended Export API**: The `GET /api/export/run` endpoint now accepts an optional `include=seeds` query parameter to augment the response with extracted seed data. The change is backward-compatible.
+- **Refactored Ingestion Logic**: Unified the framework run loaders into a single, robust function with configurable `strict` and `safe` modes for error handling.
+
+### Fixed
+- Corrected a bug in the seed extraction cache test to ensure metadata was validated properly.
 
 ## [2.0.0] - 2025-09-04
 
