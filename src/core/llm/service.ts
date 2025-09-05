@@ -210,7 +210,8 @@ Follow the principles of semantic valley traversal - each step should maintain o
     try {
       await this.openai.models.list();
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[LLMService] API key validation failed:', error);
       return false;
     }
   }

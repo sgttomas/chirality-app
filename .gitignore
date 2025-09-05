@@ -58,3 +58,6 @@ Thumbs.db
 # Ignore development history
 **/devhistory/
 **/archive/
+
+# Ignore runtime data and test runs
+runs/

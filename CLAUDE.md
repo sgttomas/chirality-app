@@ -43,21 +43,23 @@ npm run analyze
 
 ### System Health & Debugging
 ```bash
-# Check API health
-curl http://localhost:3001/api/healthz
-curl http://localhost:3001/api/readyz
+# Pipeline traversal (foundation mode)
+curl -s -X POST http://localhost:3000/api/pipeline/traverse \
+  -H 'Content-Type: application/json' \
+  -d '{"problem": {"title":"Test","statement":"Test problem"}}'
 
-# View current state
-curl http://localhost:3001/api/core/state | jq
+# Export run metadata
+curl -s "http://localhost:3000/api/export/run?runId=run_..." | jq
 
-# Clear state
-curl -X DELETE http://localhost:3001/api/core/state
+# Import framework seeds (v2.1.0+)
+curl -s -X POST http://localhost:3000/api/import/seeds \
+  -H 'Content-Type: application/json' \
+  -d '{"runId": "sample_happy_001", "options": {"runsDir": "fixtures/runs"}}' | jq
 
-# Debug chat system
-curl http://localhost:3001/api/chat/debug | jq
-
-# Check pipeline configuration
-curl http://localhost:3001/api/pipeline/traverse | jq
+# Test with production run format
+curl -s -X POST http://localhost:3000/api/import/seeds \
+  -H 'Content-Type: application/json' \
+  -d '{"runId": "run_1234567890_abc123"}' | jq
 ```
 
 ## Core Architecture
@@ -123,9 +125,12 @@ Chirality implements canonical semantic valley traversal through 11 stations (S1
 - Matrix integration for stations S2-S5
 
 #### API Layer (`/src/app/api/`)
-- RESTful endpoints for pipeline traversal and exports
+- **Pipeline**: `POST /api/pipeline/traverse` - Semantic valley traversal
+- **Export**: `GET /api/export/run` - App export metadata (strict run validation)
+- **Seeds**: `POST /api/import/seeds` - Framework seed extraction (v2.1.0+)
 - Foundation mode support without API key requirement
-- Error handling with proper status codes and messages
+- Environment-aware behavior (dev vs production)
+- Comprehensive error handling with structured error codes
 
 ## Critical Implementation Details
 
@@ -135,7 +140,17 @@ Chirality implements canonical semantic valley traversal through 11 stations (S1
 OPENAI_API_KEY=sk-proj-...     # Required for full mode, optional for foundation mode
 OPENAI_MODEL=gpt-4.1-nano      # REQUIRED - no hardcoded fallbacks
 
-# Feature flags
+# Framework Seeds Integration (v2.1.0+)
+CHIRALITY_RUNS_DIR=runs        # Base directory for framework runs (default: runs)
+SEEDS_ENABLE_HEURISTICS=false  # Enable heuristics pipeline (default: false)
+SEEDS_VERIFY_CHECKSUMS=true    # Verify file checksums (default: true)
+SEEDS_PERSIST=true             # Cache extracted seeds (default: true)
+SEEDS_MIN_ITEMS=6              # Minimum items per matrix (default: 6)
+SEEDS_MAX_ITEMS=12             # Maximum items per matrix (default: 12)
+SEEDS_MAX_LEN=120              # Maximum length per item (default: 120)
+
+# UI Feature Flags
+NEXT_PUBLIC_SEEDS_ENABLE=true  # Enable seeds loader UI (feature flag)
 FEATURE_GRAPH_ENABLED=true     # Enable Neo4j graph features (optional)
 
 # Optional for graph features
@@ -145,6 +160,11 @@ NEO4J_PASSWORD=...
 ```
 
 **Foundation Mode Fallback**: The system can run foundation mode (S1-S5+S11) without a valid API key using disabled LLM mode for testing and CI purposes.
+
+**Framework Integration Behavior** (v2.1.0+):
+- **Production**: `strict` mode + `fail` on checksum mismatch (hard failure)
+- **Development**: `safe` mode + `warn` on checksum mismatch (continue with warnings)
+- **RunId Validation**: Production accepts only `run_{timestamp}_{random}`, dev also accepts `sample_{name}` fixtures
 
 ### TypeScript Strict Mode
 Project uses TypeScript strict mode - NO `as any` shortcuts allowed. Always define proper interfaces:
@@ -199,25 +219,37 @@ try {
 
 ### File Organization
 - `/src/app/api/` - Next.js API routes (App Router)
+  - `/pipeline/traverse/` - Main traversal endpoint
+  - `/export/run/` - App export metadata (strict validation)
+  - `/import/seeds/` - Framework seed extraction (v2.1.0+)
 - `/src/core/` - Core orchestration engine and services
 - `/src/domain/` - Station definitions, packets, and validators
 - `/src/components/` - React UI components
-- `/tests/` - Test suites including fallback mode tests
-- `/runs/` - Generated run exports
+- `/lib/seeds/` - Seeds extraction and framework integration (v2.1.0+)
+- `/lib/framework/` - Framework ingestion with unified loadFrameworkRun
+- `/tests/` - Test suites including fallback mode tests and seeds integration
+- `/fixtures/` - Test fixtures for framework runs (dev/test)
+- `/runs/` - Generated run exports and cached seeds
 - `/schemas/` - JSON schemas for validation
 
 ## Testing Requirements
 
 Before any commit:
 1. Run `npm run type-check` - Must pass with zero errors
-2. Run `npm run lint` - Fix all linting issues
-3. Run `npm test` - Ensure all tests pass (42 expected including fallback tests)
+2. Run `npm run lint` - Fix all linting issues (Note: Next.js 15 lint requires ESLint setup)
+3. Run `npm test` - Ensure all tests pass (52+ expected including seeds integration)
 4. Test generation manually if core logic changed
 
 For orchestration changes:
 - Verify foundation mode works without API key
 - Test both foundation (6 stations) and full (11 stations) modes
 - Check packet structure compliance and data dependencies
+
+For framework integration changes (v2.1.0+):
+- Test seeds extraction with fixtures: `curl -X POST http://localhost:3000/api/import/seeds -H 'Content-Type: application/json' -d '{"runId": "sample_happy_001", "options": {"runsDir": "fixtures/runs"}}'`
+- Verify checksum behavior in dev vs prod environments
+- Test cache invalidation and persistence
+- Validate production strict mode with proper run ID format
 
 ## Common Development Patterns
 
@@ -240,13 +272,23 @@ For orchestration changes:
 3. Add comprehensive tests in `/tests/fallback.test.ts`
 4. Ensure CI validation works with disabled mode
 
+### Working with Framework Seeds (v2.1.0+)
+1. Use `POST /api/import/seeds` for dedicated framework seed extraction
+2. Keep export routes strict - no mixing of app exports with framework ingestion
+3. Implement environment-aware behavior: dev accepts fixtures, production is strict
+4. Use `loadFrameworkRun(runId, { mode, checksum })` with proper error handling
+5. Cache extracted seeds with freshness validation using `isCacheValid`
+6. Test with fixtures in dev: `sample_happy_001` in `fixtures/runs/`
+
 ## Performance Considerations
 
 - **Foundation Mode**: ~30 seconds (6 LLM calls, S1-S5+S11)
 - **Full Mode**: 5-10 minutes (11 LLM calls, S1-S11)
 - **Fallback Mode**: <1 second (no LLM calls, deterministic stubs)
+- **Seeds Extraction**: ~1-2 seconds (cached), ~5-10 seconds (fresh extraction)
 - State operations: Sub-second in-memory operations
 - API responses: <2 seconds first token target
+- Framework ingestion: Streaming JSONL parser for memory efficiency
 
 ## Security & Production
 
@@ -261,9 +303,11 @@ For orchestration changes:
 ### Chirality Metaphor
 Knowledge has "handedness" - same facts create different knowledge based on interpretive orientation. Each document type represents different semantic chirality applied to the same problem.
 
-### Seeds of Thought and Evidence
-- **Seeds of Thought**: External matrices providing structured input
-- **Seeds of Evidence**: Generated documents indexed for RAG enhancement
+### Seeds of Thought and Evidence (v2.1.0+)
+- **Seeds of Thought**: Framework matrices (C/D/X/E) extracted via `POST /api/import/seeds`
+- **Seeds of Evidence**: Generated documents from semantic valley traversal
+- **Integration**: Seeds provide initial vectors for traversal prompt enhancement
+- **Caching**: Extracted seeds cached with metadata for performance and consistency
 
 ### Semantic Valley Traversal
 Transform complex problems through controlled semantic valley traversal across ontological modalities (problem → systematic → process → epistemic → alethic → resolution), with each station building upon the accumulated semantic context from previous stations.
