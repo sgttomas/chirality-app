@@ -1,0 +1,54 @@
+
+---
+
+## Matrix C — Lensed through "Problem Statement"
+
+|              | ontology | praxeology | epistemology | axiology |
+|--------------|----------|------------|--------------|----------|
+| **normative** | What foundational structures should exist but may be missing or malformed? | What action-guiding standards should govern practice but are unclear or absent? | What justificatory frameworks for norms are needed but not established? | What value-anchors should orient normative commitment but lack articulation? |
+| **operative** | What operational entities need to exist for work to proceed? | What methods or procedures need specification or refinement? | What warrants for operational choices are missing or inadequate? | What makes this work worth doing, and is that clarity present? |
+| **descriptive** | What states of affairs need to be observed and understood? | What observational practices need to be in place to capture relevant signals? | What evidential standards and provenance requirements are unmet? | What significance should be assigned to observations, and how is this determined? |
+
+---
+
+## Matrix F — Lensed through "Requirements"
+
+|              | ontology | praxeology | epistemology | axiology |
+|--------------|----------|------------|--------------|----------|
+| **normative** | *Requires:* Foundational facts that anchor axioms, categorical data for behavioral classification, structural findings, and coherence-grounding data must be available as input. | *Requires:* Signal-level cues must exist to trigger directives, indicate applicable codes, initiate assessments, and calibrate integrity checks. | *Requires:* Evidence must be present to prove foundations, trace behavioral lineage, substantiate evaluative scaffolds, and demonstrate deep consistency. | *Requires:* Attention-capturing elements must exist—attractors for standards, hooks for salience, anchors for judgment, catalysts for alignment. |
+| **operative** | *Requires:* Information structures must classify procedures, categorize techniques, typologize standards, and taxonomize adaptive options. | *Requires:* Protocols must specify trigger-handling, procedures must encode conventions, rules must instantiate guidance, and routines must enable responsiveness. | *Requires:* Provenance systems must trace procedural lineage, enable method traceability, document standard origins, and record insight sources. | *Requires:* Relevance criteria must specify catalyst pertinence, method relevance, criterial salience, and goal significance. |
+| **descriptive** | *Requires:* Knowledge-level architectures must structure observations, organize records, schema-tize appraisals, and edifice comprehension. | *Requires:* Principles must govern detection, rules must encode conventions, canons must guide measurement, and guidelines must enable sense-making. | *Requires:* Frameworks must scaffold empirical claims, structure documentation, systematize appraisal, and schema-tize comprehension pathways. | *Requires:* Meaning frameworks must specify attention-significance, record-meaning, evaluative import, and purpose-significance. |
+
+---
+
+## Matrix D — Lensed through "Objectives"
+
+|              | ontology | praxeology | epistemology | axiology |
+|--------------|----------|------------|--------------|----------|
+| **normative** | *Objective:* Apply principled inquiry to surface missing normative structures; deliver axiomatic data, categorical facts, structural findings, and coherence-grounding as resolution artifacts. | *Objective:* Apply conduct analysis to surface gaps in normative action-guidance; deliver directive cues, code indicators, assessment signals, and calibration triggers as resolution artifacts. | *Objective:* Apply evaluative scrutiny to surface gaps in normative justification; deliver foundational proofs, lineage evidence, scaffold substantiation, and consistency demonstrations as resolution artifacts. | *Objective:* Apply integrity examination to surface gaps in normative value-anchoring; deliver standard attractors, salience hooks, judgment anchors, and alignment catalysts as resolution artifacts. |
+| **operative** | *Objective:* Apply procedural analysis to surface missing operational structures; deliver procedural classifications, technique categories, standard typologies, and adaptive taxonomies as resolution artifacts. | *Objective:* Apply methodological analysis to surface gaps in operational practice; deliver trigger protocols, convention procedures, guidance rules, and responsiveness routines as resolution artifacts. | *Objective:* Apply criterial scrutiny to surface gaps in operational justification; deliver procedural lineage, method traceability, standard provenance, and insight origin documentation as resolution artifacts. | *Objective:* Apply adaptive inquiry to surface gaps in operational value-orientation; deliver catalyst pertinence, method relevance, criterial salience, and goal significance specifications as resolution artifacts. |
+| **descriptive** | *Objective:* Apply observational framing to surface missing descriptive structures; deliver observation structures, record architectures, appraisal schemas, and comprehension edifices as resolution artifacts. | *Objective:* Apply documentation analysis to surface gaps in descriptive practice; deliver detection principles, convention rules, measurement canons, and sense-making guidelines as resolution artifacts. | *Objective:* Apply assessment scrutiny to surface gaps in descriptive justification; deliver empirical scaffolds, documentation frameworks, appraisal systems, and comprehension schemas as resolution artifacts. | *Objective:* Apply understanding-oriented inquiry to surface gaps in descriptive value; deliver attention-significance, record-meaning, evaluative import, and purpose-significance specifications as resolution artifacts. |
+
+---
+
+## Matrix X — Lensed through "Verification"
+
+|                | ontology | praxeology | epistemology | axiology |
+|----------------|----------|------------|--------------|----------|
+| **ontology** | *Verify:* Do structural objectives cohere structurally? Are facts grounding principles, taxonomies classifying procedures, architectures supporting observation? | *Verify:* Do structural objectives generate actionable outputs? Are signals, protocols, and principles emerging from the structural work? | *Verify:* Do structural objectives have epistemic warrant? Is there evidence, provenance, and framework support for the structures? | *Verify:* Do structural objectives carry value? Do they attract attention, establish relevance, and convey meaning? |
+| **praxeology** | *Verify:* Do action objectives have structural grounding? Are conduct directives factual, protocols taxonomized, documentation architectural? | *Verify:* Do action objectives cohere procedurally? Are signals triggering conduct, conventions becoming protocols, detection guided by principle? | *Verify:* Do action objectives have epistemic warrant? Is there evidence for directives, provenance for methods, framework for documentation? | *Verify:* Do action objectives carry value? Do they hook salience, maintain pertinent relevance, and convey principled meaning? |
+| **epistemology** | *Verify:* Do justificatory objectives have structural grounding? Are proofs factual, criteria taxonomized, assessments architectural? | *Verify:* Do justificatory objectives generate action? Do proofs signal, criteria follow protocol, assessments embody principle? | *Verify:* Do justificatory objectives cohere epistemically? Is evidence proving foundations, provenance traceable, frameworks scaffolding assessment? | *Verify:* Do justificatory objectives carry value? Do judgments hook, criteria show salience, assessments convey meaning? |
+| **axiology** | *Verify:* Do value objectives have structural grounding? Is alignment factual, goal-significance taxonomized, purpose architectural? | *Verify:* Do value objectives generate action? Does alignment trigger signals, responsiveness follow protocol, sense-making embody principle? | *Verify:* Do value objectives have epistemic warrant? Is there evidence for alignment, provenance for significance, framework for purpose? | *Verify:* Do value objectives cohere valuationally? Are catalysts hooking alignment, goals relevantly adaptive, purposes meaningfully understood? |
+
+---
+
+## Matrix E — Lensed through "Evaluation"
+
+|                | data | information | knowledge |
+|----------------|------|-------------|-----------|
+| **ontology** | *Evaluate:* At the raw data level, is structural grounding factually present? Are there observable cues, evidential warrants, and attention-hooks for the structural claims being made? | *Evaluate:* At the information level, are structural elements taxonomized, protocolicized, lineage-traced, and relevance-weighted appropriately? | *Evaluate:* At the knowledge level, does the structural architecture cohere as a whole? Are principles, frameworks, and meanings integrated into a coherent ontological understanding? |
+| **praxeology** | *Evaluate:* At the raw data level, is conduct grounded in observable data? Are there trigger cues, evidential warrants, and salience-hooks for the methods and procedures being employed? | *Evaluate:* At the information level, are practices taxonomized, conventionalized into protocol, traceable through lineage, and demonstrably pertinent? | *Evaluate:* At the knowledge level, does practice cohere architecturally? Are guiding principles present, frameworks scaffolding traceability, and pertinence meaningfully significant? |
+| **epistemology** | *Evaluate:* At the raw data level, are proofs grounded in factual data? Are there assessment cues, evidential warrants, and judgment-hooks for the justificatory claims being made? | *Evaluate:* At the information level, are evaluative categories taxonomized, criteria protocolicized, provenance lineage-traced, and salience relevantly weighted? | *Evaluate:* At the knowledge level, does the evaluative architecture cohere? Are assessment principles present, frameworks scaffolding each other, and evaluative meaning significant? |
+
+---
+

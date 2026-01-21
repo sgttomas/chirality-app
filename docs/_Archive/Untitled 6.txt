@@ -1,0 +1,191 @@
+## Constructing Matrix E
+
+**Prerequisites:** First construct Matrix G (truncated X) and Matrix T (transpose of J), then compute [G] · [T] = [E]
+
+---
+
+### Matrix G (Truncated X — Remove Axiology Row)
+
+**Operation:** Use only the top three rows of unlensed Matrix X.
+
+G is 3×4 with rows [ontology, praxeology, epistemology] and columns [ontology, praxeology, epistemology, axiology].
+
+| | **ontology** | **praxeology** | **epistemology** | **axiology** |
+|---|---|---|---|---|
+| **ontology** | principled-grounding facts + procedural-classification categories + observational-structural architecture | principled-grounding signals + procedural-classification protocols + observational-structural principles | principled-grounding evidence + procedural-classification provenance + observational-structural frameworks | principled-grounding hooks + procedural-classification relevance + observational-structural meaning |
+| **praxeology** | conduct-directive facts + methodological-protocol categories + documentary-principle architecture | conduct-directive signals + methodological-execution protocols + documentary-practice principles | conduct-directive evidence + methodological-protocol provenance + documentary-practice frameworks | conduct-directive hooks + methodological-protocol relevance + documentary-practice meaning |
+| **epistemology** | evaluative-foundation facts + criterial-lineage categories + assessment-framework architecture | evaluative-foundation signals + criterial-lineage protocols + assessment-framework principles | evaluative-foundation evidence + criterial-lineage provenance + assessment-framework structures | evaluative-foundation hooks + criterial-lineage relevance + assessment-framework meaning |
+
+**Purpose of truncation:** By removing the axiology row, evaluation focuses on structural, procedural, and epistemic verification rather than ultimate purpose. Value judgments about "what matters" remain in the human domain.
+
+---
+
+### Matrix T (Transpose of J)
+
+**Operation:** T(i,j) = J(j,i)
+
+T is 4×3 with rows [ontology, praxeology, epistemology, axiology] and columns [data, information, knowledge].
+
+| | **data** | **information** | **knowledge** |
+|---|---|---|---|
+| **ontology** | fact | taxonomy | architecture |
+| **praxeology** | signal | protocol | principle |
+| **epistemology** | evidence | provenance | framework |
+| **axiology** | hook | relevance | meaning |
+
+---
+
+### Computing Matrix E
+
+**Operation:** [G] · [T] = [E]
+
+G is 3×4, T is 4×3, yielding E as 3×3.
+
+```
+E(i,j) = (G(i,ontology) * T(ontology,j)) + (G(i,praxeology) * T(praxeology,j)) + (G(i,epistemology) * T(epistemology,j)) + (G(i,axiology) * T(axiology,j))
+```
+
+Each cell is the sum of four semantic products. The G terms carry verification concerns; the T terms filter these through knowledge-level lenses.
+
+---
+
+### Semantic Multiplication Derivations
+
+**Row: ontology (verification of existence claims)**
+
+| G term (verification concern) | T term (knowledge filter) | Semantic Product |
+|-------------------------------|---------------------------|------------------|
+| G(ontology, ontology): existence-self-verification | fact | grounded-existence data |
+| G(ontology, praxeology): existence-practice-verification | signal | structural-action signals |
+| G(ontology, epistemology): existence-knowledge-verification | evidence | existence-warrant evidence |
+| G(ontology, axiology): existence-value-verification | hook | structural-salience hooks |
+| G(ontology, ontology): existence-self-verification | taxonomy | structural-classification schemas |
+| G(ontology, praxeology): existence-practice-verification | protocol | existence-practice protocols |
+| G(ontology, epistemology): existence-knowledge-verification | provenance | structural-knowledge lineage |
+| G(ontology, axiology): existence-value-verification | relevance | existence-relevance markers |
+| G(ontology, ontology): existence-self-verification | architecture | integrated-structural architecture |
+| G(ontology, praxeology): existence-practice-verification | principle | existence-practice principles |
+| G(ontology, epistemology): existence-knowledge-verification | framework | structural-epistemic frameworks |
+| G(ontology, axiology): existence-value-verification | meaning | structural-significance integration |
+
+**Row: praxeology (verification of practice claims)**
+
+| G term (verification concern) | T term (knowledge filter) | Semantic Product |
+|-------------------------------|---------------------------|------------------|
+| G(praxeology, ontology): practice-existence-verification | fact | practice-grounding data |
+| G(praxeology, praxeology): practice-self-verification | signal | action-execution signals |
+| G(praxeology, epistemology): practice-knowledge-verification | evidence | practice-warrant evidence |
+| G(praxeology, axiology): practice-value-verification | hook | practice-salience hooks |
+| G(praxeology, ontology): practice-existence-verification | taxonomy | practice-classification schemas |
+| G(praxeology, praxeology): practice-self-verification | protocol | action-execution protocols |
+| G(praxeology, epistemology): practice-knowledge-verification | provenance | practice-knowledge lineage |
+| G(praxeology, axiology): practice-value-verification | relevance | practice-relevance markers |
+| G(praxeology, ontology): practice-existence-verification | architecture | practice-structural architecture |
+| G(praxeology, praxeology): practice-self-verification | principle | action-governing principles |
+| G(praxeology, epistemology): practice-knowledge-verification | framework | practice-epistemic frameworks |
+| G(praxeology, axiology): practice-value-verification | meaning | practice-significance integration |
+
+**Row: epistemology (verification of knowledge claims)**
+
+| G term (verification concern) | T term (knowledge filter) | Semantic Product |
+|-------------------------------|---------------------------|------------------|
+| G(epistemology, ontology): knowledge-existence-verification | fact | epistemic-grounding data |
+| G(epistemology, praxeology): knowledge-practice-verification | signal | knowing-action signals |
+| G(epistemology, epistemology): knowledge-self-verification | evidence | epistemic-warrant evidence |
+| G(epistemology, axiology): knowledge-value-verification | hook | epistemic-salience hooks |
+| G(epistemology, ontology): knowledge-existence-verification | taxonomy | epistemic-classification schemas |
+| G(epistemology, praxeology): knowledge-practice-verification | protocol | knowing-action protocols |
+| G(epistemology, epistemology): knowledge-self-verification | provenance | epistemic-warrant lineage |
+| G(epistemology, axiology): knowledge-value-verification | relevance | epistemic-relevance markers |
+| G(epistemology, ontology): knowledge-existence-verification | architecture | epistemic-structural architecture |
+| G(epistemology, praxeology): knowledge-practice-verification | principle | knowing-action principles |
+| G(epistemology, epistemology): knowledge-self-verification | framework | epistemic-warrant frameworks |
+| G(epistemology, axiology): knowledge-value-verification | meaning | epistemic-significance integration |
+
+---
+
+### Matrix E (Unlensed)
+
+| | **data** | **information** | **knowledge** |
+|---|---|---|---|
+| **ontology** | grounded-existence data + structural-action signals + existence-warrant evidence + structural-salience hooks | structural-classification schemas + existence-practice protocols + structural-knowledge lineage + existence-relevance markers | integrated-structural architecture + existence-practice principles + structural-epistemic frameworks + structural-significance integration |
+| **praxeology** | practice-grounding data + action-execution signals + practice-warrant evidence + practice-salience hooks | practice-classification schemas + action-execution protocols + practice-knowledge lineage + practice-relevance markers | practice-structural architecture + action-governing principles + practice-epistemic frameworks + practice-significance integration |
+| **epistemology** | epistemic-grounding data + knowing-action signals + epistemic-warrant evidence + epistemic-salience hooks | epistemic-classification schemas + knowing-action protocols + epistemic-warrant lineage + epistemic-relevance markers | epistemic-structural architecture + knowing-action principles + epistemic-warrant frameworks + epistemic-significance integration |
+
+---
+
+### Interpretation of Matrix E Elements
+
+Matrix E is the 3×3 evaluation surface—a reduced space where verified concerns (rows: knowledge-cycle domains) meet knowledge levels (columns: data, information, knowledge). Each cell seeds actionable assessment criteria.
+
+**E(ontology, data) — Evaluating existence at the data level:**
+This region evaluates *what raw signals confirm structural claims*. It demands: grounded-existence data (facts that anchor structural reality), structural-action signals (indicators that existence manifests in practice), existence-warrant evidence (data supporting justified existence claims), and structural-salience hooks (data points that make existence claims engaging). *What raw observations confirm or disconfirm our existence claims?*
+
+**E(ontology, information) — Evaluating existence at the information level:**
+This region evaluates *what organized knowledge confirms structural claims*. It demands: structural-classification schemas (taxonomies organizing existence claims), existence-practice protocols (procedures connecting existence to action), structural-knowledge lineage (provenance of structural understanding), and existence-relevance markers (what makes existence claims matter in context). *How is our structural knowledge organized and derived?*
+
+**E(ontology, knowledge) — Evaluating existence at the knowledge level:**
+This region evaluates *what integrated understanding confirms structural claims*. It demands: integrated-structural architecture (comprehensive ontological frameworks), existence-practice principles (rules governing how existence manifests in action), structural-epistemic frameworks (knowledge structures about existence), and structural-significance integration (how existence claims cohere with meaning). *Does our understanding of existence form a coherent whole?*
+
+**E(praxeology, data) — Evaluating practice at the data level:**
+This region evaluates *what raw signals confirm practice claims*. It demands: practice-grounding data (facts that anchor action in reality), action-execution signals (indicators that practices are performed), practice-warrant evidence (data supporting justified practice claims), and practice-salience hooks (data points that make practices engaging). *What raw observations confirm or disconfirm our practice claims?*
+
+**E(praxeology, information) — Evaluating practice at the information level:**
+This region evaluates *what organized knowledge confirms practice claims*. It demands: practice-classification schemas (taxonomies organizing action types), action-execution protocols (procedures for carrying out practices), practice-knowledge lineage (provenance of practical understanding), and practice-relevance markers (what makes practices matter in context). *How is our practical knowledge organized and derived?*
+
+**E(praxeology, knowledge) — Evaluating practice at the knowledge level:**
+This region evaluates *what integrated understanding confirms practice claims*. It demands: practice-structural architecture (comprehensive praxeological frameworks), action-governing principles (rules that direct practice), practice-epistemic frameworks (knowledge structures about action), and practice-significance integration (how practice claims cohere with meaning). *Does our understanding of practice form a coherent whole?*
+
+**E(epistemology, data) — Evaluating knowledge at the data level:**
+This region evaluates *what raw signals confirm epistemic claims*. It demands: epistemic-grounding data (facts that anchor knowledge claims), knowing-action signals (indicators that knowledge manifests in practice), epistemic-warrant evidence (data supporting justified belief), and epistemic-salience hooks (data points that make knowledge claims engaging). *What raw observations confirm or disconfirm our knowledge claims?*
+
+**E(epistemology, information) — Evaluating knowledge at the information level:**
+This region evaluates *what organized knowledge confirms epistemic claims*. It demands: epistemic-classification schemas (taxonomies organizing knowledge types), knowing-action protocols (procedures connecting knowledge to action), epistemic-warrant lineage (provenance of justified belief), and epistemic-relevance markers (what makes knowledge claims matter in context). *How is our meta-knowledge organized and derived?*
+
+**E(epistemology, knowledge) — Evaluating knowledge at the knowledge level:**
+This region evaluates *what integrated understanding confirms epistemic claims*. It demands: epistemic-structural architecture (comprehensive frameworks about knowing), knowing-action principles (rules governing how knowledge guides action), epistemic-warrant frameworks (knowledge structures about justification), and epistemic-significance integration (how knowledge claims cohere with meaning). *Does our understanding of knowledge form a coherent whole?*
+
+---
+
+### Lensed Matrix E (Station: Evaluation)
+
+Viewed through the "Evaluation" lens, each cell becomes an actionable judgment criterion:
+
+| | **data** | **information** | **knowledge** |
+|---|---|---|---|
+| **ontology** | **Evaluate structural claims via raw data:** Are the facts present that ground existence claims? Do observable signals confirm structural realities manifest in practice? Is there evidence warranting our ontological commitments? Do the data points engage attention appropriately? *Judgment: Are our existence claims empirically grounded?* | **Evaluate structural claims via organized information:** Are existence claims properly classified? Do protocols connect structure to action? Is structural knowledge traceable to valid sources? Does organizational context confirm relevance? *Judgment: Is our ontological knowledge well-organized and sourced?* | **Evaluate structural claims via integrated knowledge:** Does our structural architecture cohere? Do existence-practice principles hold under scrutiny? Are our frameworks about existence well-justified? Does structural understanding integrate with broader significance? *Judgment: Does our ontological knowledge form a coherent, meaningful whole?* |
+| **praxeology** | **Evaluate practice claims via raw data:** Are the facts present that ground action in reality? Do observable signals confirm practices are being performed? Is there evidence warranting our practical commitments? Do the data points engage attention appropriately? *Judgment: Are our practice claims empirically grounded?* | **Evaluate practice claims via organized information:** Are practices properly classified? Do execution protocols function correctly? Is practical knowledge traceable to valid sources? Does organizational context confirm relevance? *Judgment: Is our practical knowledge well-organized and sourced?* | **Evaluate practice claims via integrated knowledge:** Does our practice architecture cohere? Do action-governing principles hold under scrutiny? Are our frameworks about practice well-justified? Does practical understanding integrate with broader significance? *Judgment: Does our practical knowledge form a coherent, meaningful whole?* |
+| **epistemology** | **Evaluate knowledge claims via raw data:** Are the facts present that ground our beliefs? Do observable signals confirm knowledge manifests in practice? Is there evidence warranting our epistemic commitments? Do the data points engage attention appropriately? *Judgment: Are our knowledge claims empirically grounded?* | **Evaluate knowledge claims via organized information:** Are knowledge types properly classified? Do knowing-action protocols function correctly? Is epistemic warrant traceable to valid sources? Does organizational context confirm relevance? *Judgment: Is our meta-knowledge well-organized and sourced?* | **Evaluate knowledge claims via integrated knowledge:** Does our epistemic architecture cohere? Do knowing-action principles hold under scrutiny? Are our frameworks about justification well-justified? Does epistemic understanding integrate with broader significance? *Judgment: Does our knowledge about knowledge form a coherent, meaningful whole?* |
+
+---
+
+### Summary of Matrix E
+
+Matrix E completes the operational flow by producing a 3×3 evaluation surface. The dimensionality reduction serves focus:
+
+- **Rows reduced from 4 to 3:** Axiology (value) was removed from the verification matrix, leaving ontology, praxeology, and epistemology as evaluation domains. Value judgment—*what ultimately matters*—remains with the human.
+
+- **Columns reduced to DIKW-without-wisdom:** The knowledge levels (data, information, knowledge) provide actionable assessment scales without requiring wisdom-level synthesis.
+
+The result is a compact surface where each cell answers: *How do we evaluate [this domain] at [this knowledge level]?*
+
+This lensed matrix is now a **working surface** for evaluation focusing. It has exited the computational flow.
+
+---
+
+### Complete Operational Flow Achieved
+
+```
+[A] · [B] = [C]           Problem Statement (3×4) ✓
+[C] ⊙ [J] = [F]           Requirements (3×4) ✓
+[A] + phrase + [F] = [D]  Objectives (3×4) ✓
+[D]ᵀ = [K]                Transposed Objectives (4×3) ✓
+[K] · [J] = [X]           Verification (4×4) ✓
+truncate([X]) = [G]       Focused Verification (3×4) ✓
+[J]ᵀ = [T]                Transposed Knowledge (4×3) ✓
+[G] · [T] = [E]           Evaluation (3×3) ✓
+```
+
+The framework has transformed primitive semantic matrices through the full station sequence: Problem Statement → Requirements → Objectives → Verification → Evaluation. 
+
+Wisdom remains outside. The human holds the alethic function.

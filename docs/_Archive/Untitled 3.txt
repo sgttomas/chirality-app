@@ -1,0 +1,75 @@
+
+---
+
+## Lensed Matrix C
+
+**Station Lens: Problem Statement**
+
+Through the lens of "Problem Statement," each cell becomes a coordinate for articulating *what is problematic* in its domain.
+
+|               | ontology | praxeology | epistemology | axiology |
+|---------------|----------|------------|--------------|----------|
+| **normative** | The problem of establishing legitimate foundational structures—what axioms to hold, how to classify behaviors properly, what evaluative architecture to build, what grounds coherence | The problem of right action—what signals should guide, what conduct is proper, what principles govern judgment, what standards measure integrity | The problem of justified belief—what makes evidence principled, how conduct traces to source, what frameworks enable evaluation, what depth coherence requires | The problem of legitimate value—what engages us rightly, what makes action appropriate, what gives assessment meaning, what aligns wholeness with purpose |
+| **operative** | The problem of structural execution—what facts procedures must engage, how methods should classify, what criteria govern structure, how adaptation maintains ground | The problem of practice itself—how procedures signal, what protocols methods follow, what principles criteria embody, how adaptation is measured | The problem of knowledge production—how procedures gather evidence, where methods originate, what frameworks criteria employ, how adaptation achieves depth | The problem of value realization—how procedures engage significance, what makes methods relevant, what meaning criteria carry, how adaptation serves purpose |
+| **descriptive** | The problem of accurate observation—what facts are observed, how taxonomies are recorded, how structure is assessed, how understanding is grounded | The problem of practice documentation—what signals are observed, how protocols are recorded, how principles assess practice, how understanding is measured | The problem of epistemic observation—what evidence is observed, how provenance is recorded, how frameworks are assessed, how comprehension penetrates | The problem of value recognition—what engages attention, what relevance is documented, what significance is assessed, what purpose understanding serves |
+
+---
+
+## Lensed Matrix F
+
+**Station Lens: Requirements**
+
+Through the lens of "Requirements," each cell becomes a specification of *what must be provided or satisfied* for the problem to be addressed.
+
+|               | ontology | praxeology | epistemology | axiology |
+|---------------|----------|------------|--------------|----------|
+| **normative** | **Require:** primitive factual grounding for legitimate structures—the raw data from which axioms and classifications can be built must be identified and secured | **Require:** action-guiding signal specification—the primitive indicators that orient right conduct must be defined and made accessible | **Require:** evidential foundation for justified belief—the raw epistemic material warranting belief must be gathered and validated | **Require:** value-hook identification—the primitive attractors that engage legitimate concern must be surfaced and characterized |
+| **operative** | **Require:** taxonomic organization of structural operations—methods acting on structure must be classified and systematized | **Require:** protocol formalization for practice—methodological sequences must be codified into repeatable, governable procedures | **Require:** provenance tracking for knowledge production—methods must carry traceable origins and generation histories | **Require:** relevance criteria for value operations—contextual pertinence of value-realizing methods must be established and maintained |
+| **descriptive** | **Require:** architectural integration of observation—perceptual systems must be structured to relate observations systematically | **Require:** principled documentation standards—practice records must be governed by explicit principles that shape recording | **Require:** epistemic observation frameworks—structures for perceiving and assessing knowledge itself must be developed | **Require:** meaning structures for value recognition—the significance of perceived value must be articulable and integrated |
+
+---
+
+## Lensed Matrix D
+
+**Station Lens: Objectives**
+
+Through the lens of "Objectives," each cell becomes an *actionable goal*—something to be achieved that combines a framing stance with a resolution target.
+
+|               | ontology | praxeology | epistemology | axiology |
+|---------------|----------|------------|--------------|----------|
+| **normative** | **Objective:** Establish principled factual foundations—use normative principles to guide identification of the raw data that will ground legitimate structures, achieving axiomatic clarity through principled framing | **Objective:** Define conduct-oriented action signals—use proper conduct to frame the specification of primitive indicators, achieving right-action guidance through behavioral framing | **Objective:** Secure evaluation-grounded evidence—use evaluative judgment to frame the gathering and validation of epistemic material, achieving justified belief through evaluative framing | **Objective:** Surface integrity-aligned value hooks—use integrity to frame identification of primitive attractors, achieving legitimate concern through coherent framing |
+| **operative** | **Objective:** Develop procedure-organized taxonomies—use procedural framing to classify and systematize structural operations, achieving operational clarity through procedural organization | **Objective:** Codify method-governed protocols—use methodological framing to formalize practice sequences, achieving practice governance through method codification | **Objective:** Establish criteria-tracked provenance—use criterial framing to track knowledge-production origins, achieving epistemic traceability through criterial governance | **Objective:** Maintain adaptation-relevant value criteria—use adaptive framing to establish contextual pertinence, achieving value realization through adaptive relevance |
+| **descriptive** | **Objective:** Integrate observation-structured architecture—use observational framing to systematize perception, achieving accurate observation through architectural integration | **Objective:** Govern documentation-principled records—use documentation framing to establish recording standards, achieving practice legibility through principled documentation | **Objective:** Develop assessment-oriented epistemic frameworks—use assessment framing to structure knowledge observation, achieving epistemic clarity through framework development | **Objective:** Articulate understanding-meaningful recognition—use understanding to frame value recognition, achieving significance through meaning articulation |
+
+---
+
+## Lensed Matrix X
+
+**Station Lens: Verification**
+
+Through the lens of "Verification," each cell becomes a *validation criterion*—what must be verified and through what lens the verification proceeds.
+
+|                  | ontology | praxeology | epistemology | axiology |
+|------------------|----------|------------|--------------|----------|
+| **ontology**     | **Verify:** structural self-coherence—confirm that foundational facts are factual, taxonomic organization is organized, and architectural integration integrates; the structure must stand examination by its own structural criteria | **Verify:** structural actionability—confirm that foundations emit proper signals, taxonomies yield protocols, and architecture embodies principles; structure must translate into practice | **Verify:** structural knowability—confirm that foundations constitute evidence, taxonomies carry provenance, and architecture supports frameworks; structure must be epistemically accessible | **Verify:** structural significance—confirm that foundations engage concern, taxonomies connect to relevance, and architecture carries meaning; structure must matter |
+| **praxeology**   | **Verify:** action groundedness—confirm that action signals correspond to facts, protocols admit classification, and records have structural integrity; practice must have ontological foundation | **Verify:** practical self-coherence—confirm that action signals signal properly, protocols are formalized, and records are principled; practice must govern its own practice | **Verify:** action traceability—confirm that action signals constitute evidence, protocols have provenance, and records frame knowledge; practice must be knowable | **Verify:** action significance—confirm that action signals engage appropriately, protocols serve purpose, and records carry meaning; practice must matter |
+| **epistemology** | **Verify:** knowledge groundedness—confirm that evidence is factual, provenance is classifiable, and frameworks have structural integrity; knowledge must have ontological foundation | **Verify:** knowledge actionability—confirm that evidence guides action, provenance follows protocol, and frameworks yield principles; knowledge must translate into practice | **Verify:** epistemic self-coherence—confirm that evidence evidences, provenance traces its tracing, and frameworks integrate themselves; knowledge must examine its own grounds | **Verify:** knowledge significance—confirm that evidence engages concern, provenance connects to purpose, and frameworks carry meaning; knowledge must matter |
+| **axiology**     | **Verify:** value groundedness—confirm that value hooks are factual, criteria are classifiable, and recognition has structural integrity; value must have ontological foundation | **Verify:** value actionability—confirm that value hooks signal action, criteria follow protocol, and recognition embodies principles; value must translate into practice | **Verify:** value knowability—confirm that value hooks constitute evidence, criteria have provenance, and recognition integrates into frameworks; value must be epistemically accessible | **Verify:** axiological self-coherence—confirm that value hooks value, criteria are relevant to value, and recognition means meaning; value must examine its own grounds |
+
+---
+
+## Lensed Matrix E
+
+**Station Lens: Evaluation**
+
+Through the lens of "Evaluation," each cell becomes an *assessment criterion*—a judgment surface for determining whether objectives have been adequately verified across knowledge levels.
+
+|                  | data | information | knowledge |
+|------------------|------|-------------|-----------|
+| **ontology**     | **Evaluate:** structural data adequacy—assess whether structural verification rests on sufficient factual primitives, emits proper signals, constitutes valid evidence, and engages legitimate concern at the raw level; judge the factual foundation of structure | **Evaluate:** structural information organization—assess whether structural verification is taxonomically coherent, protocolized, traceable, and relevant at the organized level; judge the informational integrity of structure | **Evaluate:** structural knowledge integration—assess whether structural verification achieves architectural wholeness, principled action, framework coherence, and meaningful significance; judge the knowledge-level completeness of structure |
+| **praxeology**   | **Evaluate:** action data adequacy—assess whether action verification rests on sufficient facts, emits proper signals, constitutes valid evidence, and engages at the primitive level; judge the factual foundation of practice | **Evaluate:** action information organization—assess whether action verification is taxonomically coherent, protocolized, traceable, and relevant at the organized level; judge the informational integrity of practice | **Evaluate:** action knowledge integration—assess whether action verification achieves architectural soundness, principled self-governance, framework support, and meaningful significance; judge the knowledge-level completeness of practice |
+| **epistemology** | **Evaluate:** epistemic data adequacy—assess whether knowledge verification rests on sufficient facts, guides action properly, constitutes self-validating evidence, and engages at the primitive level; judge the factual foundation of knowing | **Evaluate:** epistemic information organization—assess whether knowledge verification is taxonomically coherent, actionably protocolized, self-traceable, and relevant at the organized level; judge the informational integrity of knowing | **Evaluate:** epistemic knowledge integration—assess whether knowledge verification achieves architectural soundness, actionable principles, self-integrating frameworks, and meaningful significance; judge the knowledge-level completeness of knowing itself |
+
+---
+
+
