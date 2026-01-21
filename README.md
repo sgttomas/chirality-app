@@ -6,7 +6,8 @@ Intended for engineers who work with ASME, API, ISA, IEEE, ASHRAE, CSA type of c
 
 ## How does it work?
 
-The docs/ folder contains a "SKILLS.md" compatible file (engineering-protocol.md) for use with Claude Code
+The docs/ folder contains a "SKILLS.md" compatible file (engineering-protocol.md) for use with Claude Code.
+
  It also contains a UNIFIED.md file to be pasted as custom instructions in Claude Cowork.
  Choose which of those two agent work surfaces you prefer and then:
 
