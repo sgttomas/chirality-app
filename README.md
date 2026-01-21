@@ -18,6 +18,12 @@ Respond to the prompts you are given in return.
 
 Follow the Q&A and Claude will generate an answer and a set of instructions to follow so you can verify and evaluate the answer that you were given.
 
+## Add context and references
+
+If you are able, directly provide the reference materials and documents that have all the information that CLaude will need.
+
+Let Claude find the correct information from those files.
+
 ## Take responsibility for your work
 
 Engineers should learn to use AI in their work, but must take responsibility for the output.
