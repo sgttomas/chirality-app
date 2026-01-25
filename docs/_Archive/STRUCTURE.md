@@ -6,9 +6,9 @@ This document defines the schema for project decomposition: the entities, their 
 
 ---
 
-## Domain
+## Domain (Optional)
 
-The operating context that provides focus for decomposition. Emerges through scope alignment. Useful for directing the agent's attention but not a prerequisite.
+The operating context that provides focus for decomposition. Emerges through scope alignment. Useful for directing the agent's attention but not a prerequisite — decomposition can proceed without explicit domain definition.
 
 | Field | Description |
 |-------|-------------|
@@ -37,8 +37,9 @@ A logical grouping of Deliverables. Entirely user-defined — a project can be p
 |-------|-------------|
 | ID | Unique package identifier |
 | Name | Descriptive name |
-| Scope Description | What is included, what is excluded |
+| Scope Description | What is included, what is excluded (distinct from the project's Scope of Work) |
 | Organization Scheme | User-defined (by area, system, phase, discipline, etc.) |
+| Decisions | Major decisions captured during decomposition |
 | Contains | Deliverables (or nested Packages) |
 
 ---
@@ -71,6 +72,14 @@ How a Deliverable is attained. Artifacts are the tangible outputs that fulfill t
 | Type | Must match parent Deliverable's type |
 
 Note: At decomposition time, Artifacts are anticipated rather than fully enumerated. A Deliverable may contain one Artifact (e.g., "3D Model") or many (e.g., hundreds of P&ID drawings).
+
+---
+
+## Type
+
+A classification for Artifacts within a Deliverable. Types are conventional and user-defined. Examples include Drawing, Specification, Model, Report — but vary by domain. The agent should ask the user about artifact types rather than assume.
+
+All Artifacts within a Deliverable must share the same Type. If different types are needed, they belong to different Deliverables.
 
 ---
 

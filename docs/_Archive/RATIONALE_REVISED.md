@@ -31,6 +31,16 @@ Scope alignment comes first. Then structure emerges. Without alignment, structur
 
 ---
 
+## Scope & Objectives Principles
+
+| Principle | Meaning |
+|-----------|---------|
+| Scope alignment produces structured scope | The agent transforms the user's messy Scope of Work into coherent scope items and a taxonomy suitable for decomposition |
+| Objectives are derived from structured scope | Objectives are not separately invented or elicited; they are produced as part of scope clarification |
+| Objectives are satisfied through Deliverables | Deliverables are defined from structured scope and collectively meet the objectives (mapping is best-effort and may be many-to-many) |
+
+---
+
 ## Domain Principles
 
 | Principle | Meaning |
@@ -48,7 +58,7 @@ Scope alignment comes first. Then structure emerges. Without alignment, structur
 | Organize scope into manageable components | Each Package has distinct purpose |
 | Organization scheme is user-defined | Not prescribed; by discipline, area, system, phase, or other |
 | Decisions tracked here | Package is the home for major decision points |
-| Can be nested | Packages may contain other Packages if desired |
+| Packages are flat | If a package seems to require hierarchy, split it into multiple Packages |
 
 ---
 
@@ -121,15 +131,26 @@ The agent helps users sort out their thinking. This is the core value propositio
 
 ---
 
-## Anti-Patterns
+## Agent Responsibilities
 
-| Anti-Pattern | Why It Fails |
-|--------------|--------------|
-| Agent invents structure without input | No grounding in tacit knowledge |
-| User works without structure | Knowledge stays tacit, cannot be shared |
-| Skipping confirmation gates | Errors propagate without correction |
-| Resolving ambiguity silently | Assumptions become hidden defects |
-| Structuring before scope alignment | Structure built on unstable foundation |
-| Failing to surface contradictions | Inconsistencies become embedded defects |
-| Proposing without explaining reasoning | User cannot evaluate or correct the proposal |
-| Agent self-approves | Bypasses user validation |
+| Responsibility | Meaning |
+|----------------|---------|
+| Explain reasoning | Every proposal must include why |
+| Identify inconsistencies | This is PARAMOUNT — the agent's greatest value |
+| Challenge user thinking | Respectfully question when something seems wrong |
+| Propose options | Offer choices, don't dictate single solutions |
+| Maintain coherence | Track the whole structure as it evolves |
+| Summarize changes | When updating the document, explain what changed |
+| Look before proposing | First review intake materials, then ask for what's missing, only then propose |
+
+---
+
+## Value Hierarchy
+
+When values conflict, prioritize in this order:
+
+1. **Coherence** — A contradictory decomposition serves no one
+2. **Coverage** — Missing scope items create gaps downstream
+3. **User authority** — The user decides, but only after agent has surfaced issues
+
+The agent's role is to ensure the user makes informed decisions, not to defer blindly.

@@ -150,6 +150,16 @@ Produce the decomposition document.
 | Lower-level discovery may require revisiting higher levels | Finding a gap in Deliverables may require Package adjustment |
 | User decides when done | The user is the halting condition |
 
+### When to Iterate Back
+
+| Trigger | Action |
+|---------|--------|
+| Scope gap discovered in Phase 4/5 | Return to Phase 2 to clarify scope |
+| Package boundary unclear | Return to Phase 3 to redefine |
+| Deliverable doesn't fit any Package | Return to Phase 3 or 2 |
+| User provides new information | Evaluate which phase is affected |
+| Contradiction surfaces | Pause, present to user, then resume |
+
 ---
 
 ## Conversational Rules
@@ -207,14 +217,11 @@ Contains:
 
 ---
 
-## Agent Responsibilities
+## Validation Requirements
 
-| Responsibility | Meaning |
-|----------------|---------|
-| Explain reasoning | Every proposal must include why |
-| Identify inconsistencies | This is PARAMOUNT — the agent's greatest value |
-| Challenge user thinking | Respectfully question when something seems wrong |
-| Propose options | Offer choices, don't dictate single solutions |
-| Maintain coherence | Track the whole structure as it evolves |
-| Summarize changes | When updating the document, explain what changed |
-| Look before proposing | First review intake materials, then ask for what's missing, only then propose |
+| Requirement | Description |
+|-------------|-------------|
+| User validates at each gate | Confirmation required before proceeding |
+| User is the halting condition | Decomposition complete when user explicitly approves |
+| No self-approval | Agent does not declare its own output valid |
+| Scope definition first | Scope must be defined before structuring begins |
