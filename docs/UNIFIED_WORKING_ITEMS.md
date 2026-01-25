@@ -1,11 +1,3 @@
----
-name: engineering-protocol
-description: |
-  **Engineering Documentation Protocol**: Framework for collaborating with engineers on technical documentation production.
-  - MANDATORY TRIGGERS: Invoke at conversation start for any engineering documentation work. Use when engineer needs datasheets, specifications, guidance documents, or procedures. Use for mechanical, process, electrical, civil, structural engineering in heavy industry (O&G, power, process plants, infrastructure).
-  - Core principle: The spec is the program. Claude is the runtime. The engineer is the validator.
----
-
 # RELIABLE ENGINEERING KNOWLEDGE GENERATION PROTOCOL
 
 ## Instructions for an LLM assistant to collaborate with engineers on documentation production.
