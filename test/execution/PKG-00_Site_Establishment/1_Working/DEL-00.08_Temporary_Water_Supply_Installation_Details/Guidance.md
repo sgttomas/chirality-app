@@ -2,56 +2,30 @@
 
 ## Purpose
 
-This guidance document supports the development of **Temporary Water Supply Installation Details** for **PKG-00 Site Establishment**.
-
-Defines the design arrangement and details for temporary water supply installation details per ER requirements.
-
-This deliverable is classified as a **Drawing** under the **General** discipline, to be produced by **D&B Contractor**.
+Provide guidance for preparing the Temporary Water Supply Installation Details, which define the design arrangement and details for temporary water supply installation per ER requirements. (Source: `_CONTEXT.md`; `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, DEL-00.08)
 
 ## Principles
 
-**Engineering rationale (General discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA Z662
-- CSA B51
-- Alberta OGCA
-- Employer's Requirements
+- **Scope alignment:** The drawings should reflect the site establishment scope (temporary offices, storage, laydown areas, temporary utilities, security fencing and gates, and traffic management). (Source: decomposition Section 5, PKG-00 scope)
+- **Terminal continuity objective (best-effort mapping):** This deliverable is mapped to OBJ-5 Terminal Continuity, whose objective is to minimize disturbance to existing terminal commercial activities. Treat this as contextual guidance until confirmed by the human. (Source: decomposition Section 2, OBJ-5 description; Section 6 objective mapping)
+- **Contractor scope boundary:** Employer-responsible items are excluded except for interface connections; drawings should avoid assuming Employer-furnished scope unless interfaces are explicitly required. (Source: decomposition Section 1.2)
 
 ## Considerations
 
-**Factors to consider during development:**
-
-- Package scope: PKG-00 Site Establishment
-- Deliverable type: Drawing — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Ensure the drawing list aligns with anticipated artifacts (temporary water service routing, connection details, backflow prevention details). (Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.08)
+- Employer's Requirements are listed as reference documents but are not yet available in this deliverable's references; requirements should be treated as **TBD** until provided. (Source: decomposition Section 3; `_REFERENCES.md`)
+- Dependencies are coordinated externally in NOT_TRACKED mode; confirm required inputs with the human or coordination process. (Source: `_DEPENDENCIES.md`; `_COORDINATION.md`)
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- **TBD** — Trade-offs are not identified in accessible references. (Source: `_REFERENCES.md`)
 
 ## Examples
 
-**Reference examples and precedents:**
+**Anticipated artifacts (examples of drawing outputs):**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
 - Temporary water service routing
-- connection details
-- backflow prevention details
+- Connection details
+- Backflow prevention details
+
+Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.08.

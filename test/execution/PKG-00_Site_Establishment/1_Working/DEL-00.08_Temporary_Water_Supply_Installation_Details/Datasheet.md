@@ -10,48 +10,46 @@
 | Discipline | General |
 | Type | Drawing |
 | Responsible | D&B Contractor |
-| Status | INITIALIZED |
+
+Source: `_CONTEXT.md`.
 
 ## Attributes
 
+ASSUMPTION: Typical drawing-set metadata fields are listed below; values are TBD pending project document control and CAD standards inputs. (Source: `_REFERENCES.md` indicates no references are identified yet.)
+
 | Attribute | Value |
 |-----------|-------|
-| Drawing Number | **TBD** |
-| Sheet Size | **TBD** |
+| Drawing number | **TBD** |
+| Sheet size | **TBD** |
 | Scale | **TBD** |
-| CAD Standard | **TBD** |
+| CAD standard | **TBD** |
 | Revision | **TBD** |
 | Classification | **TBD** |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Project and scope context (applicable to temporary water supply drawings):**
 
-Defines the design arrangement and details for temporary water supply installation details per ER requirements.
+- Temporary offices, storage, laydown areas, temporary utilities, security fencing and gates, traffic management. (Source: `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, PKG-00 scope)
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Deliverable intent:**
+
+- Defines the design arrangement and details for temporary water supply installation per ER requirements. (Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.08)
 
 ## Construction
 
-**Materials / Configuration:**
+**Anticipated drawing contents (expected artifacts):**
 
-Anticipated artifacts:
 - Temporary water service routing
-- connection details
-- backflow prevention details
+- Connection details
+- Backflow prevention details
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+Source: `_CONTEXT.md`; `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, DEL-00.08.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA Z662, CSA B51, Alberta OGCA, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- `_CONTEXT.md` (deliverable identity, description, anticipated artifacts)
+- `_REFERENCES.md` (no references identified yet)
+- `_DEPENDENCIES.md` (dependency mode = NOT_TRACKED)
+- `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (Project Context Section 1; Package Details Section 5; Objective mapping Section 6; Reference documents Section 3)
+- **TBD** — Employer's Requirements (Volume 2 Parts 1-3) listed in decomposition but not yet available in this deliverable's references. (Source: decomposition Section 3; `_REFERENCES.md`)
