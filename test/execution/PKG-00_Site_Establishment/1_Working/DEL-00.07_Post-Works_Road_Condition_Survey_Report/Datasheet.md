@@ -10,47 +10,45 @@
 | Discipline | General |
 | Type | Report |
 | Responsible | D&B Contractor (Surveyor) |
-| Status | INITIALIZED |
+
+Source: `_CONTEXT.md`.
 
 ## Attributes
 
+ASSUMPTION: Typical survey report metadata fields are listed below; values are TBD pending project survey requirements. (Source: `_REFERENCES.md` indicates no references are identified yet.)
+
 | Attribute | Value |
 |-----------|-------|
-| Report Number | **TBD** |
-| Report Type | **TBD** |
-| Survey/Study Scope | **TBD** |
+| Survey date | **TBD** |
+| Survey area | **TBD** |
+| Survey method | **TBD** |
+| Report number | **TBD** |
 | Revision | **TBD** |
-| Classification | **TBD** |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Project and scope context (applicable to post-works survey):**
 
-Documents analysis and results for post-works road condition survey report required for design verification and approvals.
+- Temporary offices, storage, laydown areas, temporary utilities, security fencing and gates, traffic management. (Source: `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, PKG-00 scope)
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Deliverable intent:**
+
+- Documents analysis and results for post-works road condition survey report required for design verification and approvals. (Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.07)
 
 ## Construction
 
-**Materials / Configuration:**
+**Anticipated report artifacts:**
 
-Anticipated artifacts:
 - Post-construction road condition survey report
-- photo log
-- deficiency closeout
+- Photo log
+- Deficiency closeout
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+Source: `_CONTEXT.md`; `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, DEL-00.07.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA Z662, CSA B51, Alberta OGCA, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- `_CONTEXT.md` (deliverable identity, description, anticipated artifacts)
+- `_REFERENCES.md` (no references identified yet)
+- `_DEPENDENCIES.md` (dependency mode = NOT_TRACKED)
+- `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (Project Context Section 1; Package Details Section 5; Objective mapping Section 6; Reference documents Section 3)
+- **TBD** — Employer's Requirements (Volume 2 Parts 1-3) listed in decomposition but not yet available in this deliverable's references. (Source: decomposition Section 3; `_REFERENCES.md`)

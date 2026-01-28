@@ -2,63 +2,37 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Post-Works Road Condition Survey Report** within **PKG-00 Site Establishment**.
-
-Documents analysis and results for post-works road condition survey report required for design verification and approvals.
-
-**Deliverable type:** Report
-**Responsible party:** D&B Contractor (Surveyor)
+Describe the process to produce the Post-Works Road Condition Survey Report deliverable for PKG-00 Site Establishment. (Source: `_CONTEXT.md`)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified General discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** NOT_TRACKED. Dependencies are coordinated externally by humans. (Source: `_DEPENDENCIES.md`)
+- **Reference materials:** **TBD** — No references identified for this deliverable yet. Employer's Requirements are listed at project level but not available in this deliverable's references. (Source: `_REFERENCES.md`; decomposition Section 3)
 
 ## Steps
 
-1. **Scope Definition** — Define report scope and objectives. **TBD**
-2. **Data Collection** — Gather field data, survey data, or study inputs. **TBD**
-3. **Analysis** — Perform technical analysis per methodology. **TBD**
-4. **Report Drafting** — Write report with findings and conclusions. **TBD**
-5. **Review** — Technical and quality review. **TBD**
-6. **Approval** — Responsible party approves for issue. **TBD**
+ASSUMPTION: A typical post-works survey workflow will be refined once Employer's Requirements and project QA/QC procedures are available. (Source: `_REFERENCES.md`)
+
+1. **Collect inputs** — Gather available project inputs and constraints for the survey; confirm missing inputs as **TBD**. (ASSUMPTION; Source: `_REFERENCES.md`)
+2. **Plan survey** — Define survey extent and documentation needs for post-works conditions. (ASSUMPTION; Source: `_REFERENCES.md`)
+3. **Execute survey** — Capture post-works conditions and photo log per available procedures. (ASSUMPTION; Source: `_REFERENCES.md`)
+4. **Compile report** — Document findings, photo log, and deficiency closeout in the report format. (ASSUMPTION; Source: `_REFERENCES.md`)
+5. **Internal review** — Perform review and coordination checks. (ASSUMPTION; Source: `_REFERENCES.md`)
 
 ## Verification
 
-**Verification activities for Report deliverables:**
-
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- **TBD** — Verification and review requirements are not specified in accessible references. (Source: `_REFERENCES.md`)
 
 ## Records
 
-**Documentation outputs:**
-- Post-construction road condition survey report
-- photo log
-- deficiency closeout
+**Records / outputs:**
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+- Post-construction road condition survey report
+- Photo log
+- Deficiency closeout
+
+Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.07.
+
+**Record control:**
+
+- **TBD** — Record control and retention requirements are not specified in accessible references. (Source: `_REFERENCES.md`)
