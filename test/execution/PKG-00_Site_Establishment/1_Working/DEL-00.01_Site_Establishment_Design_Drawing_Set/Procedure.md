@@ -2,64 +2,38 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Site Establishment Design Drawing Set** within **PKG-00 Site Establishment**.
-
-Defines the design arrangement and details for site establishment per ER requirements.
-
-**Deliverable type:** Drawing
-**Responsible party:** D&B Contractor
+Describe the process to produce the Site Establishment Design Drawing Set for PKG-00 Site Establishment. (Source: `_CONTEXT.md`)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified General discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** NOT_TRACKED. Dependencies are coordinated externally by humans. (Source: `_DEPENDENCIES.md`)
+- **Reference materials:** **TBD** — No references identified for this deliverable yet. Employer's Requirements are listed at project level but not available in this deliverable's references. (Source: `_REFERENCES.md`; decomposition Section 3)
 
 ## Steps
 
-1. **Design Development** — Develop design concept based on requirements and input data. **TBD**
-2. **Drafting** — Produce drawings in accordance with CAD standards. **TBD**
-3. **Self-Check** — Originator reviews for completeness and accuracy. **TBD**
-4. **Interdisciplinary Check** — Coordinate with affected disciplines. **TBD**
-5. **Independent Check** — Peer review by qualified checker. **TBD**
-6. **Approval** — Discipline lead approves for issue. **TBD**
+ASSUMPTION: A typical drawing-set production workflow will be refined once Employer's Requirements and project QA/QC procedures are available. (Source: `_REFERENCES.md`)
+
+1. **Collect inputs** — Gather available project inputs and constraints for site establishment; confirm missing inputs as **TBD**. (ASSUMPTION; Source: `_REFERENCES.md`)
+2. **Define drawing list** — Align the drawing list with anticipated artifacts (site layout plan, compound layout, temporary facilities location plan, traffic management drawings). (ASSUMPTION; Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.01)
+3. **Draft drawings** — Prepare drawings per project CAD/document control standards. (ASSUMPTION; Source: `_REFERENCES.md`)
+4. **Internal review** — Perform discipline review and coordination checks. (ASSUMPTION; Source: `_REFERENCES.md`)
+5. **Issue for review** — Submit drawings per project document control process. (ASSUMPTION; Source: `_REFERENCES.md`)
 
 ## Verification
 
-**Verification activities for Drawing deliverables:**
-
-- Design review (peer check)
-- Dimensional verification
-- Interdisciplinary check (IDC)
-- CAD standards compliance check
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- **TBD** — Verification requirements are not specified in accessible references. (Source: `_REFERENCES.md`)
 
 ## Records
 
-**Documentation outputs:**
-- Site layout plan
-- compound layout
-- temporary facilities location plan
-- traffic management drawings
+**Records / outputs:**
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+- Site layout plan
+- Compound layout
+- Temporary facilities location plan
+- Traffic management drawings
+
+Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.01.
+
+**Record control:**
+
+- **TBD** — Record control and retention requirements are not specified in accessible references. (Source: `_REFERENCES.md`)
