@@ -1,55 +1,47 @@
-# Datasheet: DEL-01.04 Demolition Installation & Test Records
+# Datasheet: DEL-01.04 Demolition Installation and Test Records
 
 ## Identification
 
 | Field | Value |
 |-------|-------|
 | Deliverable ID | DEL-01.04 |
-| Name | Demolition Installation & Test Records |
+| Name | Demolition Installation and Test Records |
 | Package | PKG-01 Demolition & Removals |
 | Discipline | Civil |
 | Type | Record |
 | Responsible | D&B Contractor (QA/QC) |
-| Status | INITIALIZED |
 
 ## Attributes
 
 | Attribute | Value |
 |-----------|-------|
-| Record Number | **TBD** |
-| Record Category | **TBD** |
-| Retention Period | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Record set identifier | TBD |
+| Revision | TBD |
+| Record format | TBD |
+| Approval status | TBD |
+| Retention requirements | TBD |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Context:**
 
-Provides evidence of completion, inspection, and testing for demolition.
+- Records provide evidence of completion, inspection, and testing for demolition. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
+- Scope includes demolition and removals of existing infrastructure (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
+- Employer-responsible items excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Operational / environmental conditions:** TBD (records depend on applicable requirements not provided).
 
 ## Construction
 
-**Materials / Configuration:**
+**Record content (per anticipated artifacts):**
 
-Anticipated artifacts:
-- Disposal manifests
-- completion certificates
+- Disposal manifests (source: _CONTEXT.md)
+- Completion certificates (source: _CONTEXT.md)
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Additional records:** TBD (inspection and test records not specified in references).
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- _CONTEXT.md (DEL-01.04) for deliverable identity, description, and anticipated artifacts.
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope and DEL-01.04 entry; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes referenced in decomposition are not provided here (TBD).

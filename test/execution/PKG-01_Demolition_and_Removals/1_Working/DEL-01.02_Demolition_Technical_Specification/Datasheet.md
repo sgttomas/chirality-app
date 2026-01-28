@@ -10,46 +10,37 @@
 | Discipline | Civil |
 | Type | Specification |
 | Responsible | D&B Contractor |
-| Status | INITIALIZED |
 
 ## Attributes
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Specification Type | **TBD** |
-| Revision | **TBD** |
-| Applicable Standard | **TBD** |
-| Classification | **TBD** |
+| Document number | TBD |
+| Revision | TBD |
+| Format / template | TBD |
+| Section structure | TBD |
+| Approval status | TBD |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Context:**
 
-Defines performance, materials, and workmanship requirements for demolition per ER requirements.
+- Applies to demolition and removals of existing infrastructure (Track 6, Dolphin 2, fencing, salt tent dismantling). Source: decomposition PKG-01 scope (location TBD).
+- Employer-responsible items excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Operating / environmental conditions:** TBD (depends on ER volumes and project standards).
 
 ## Construction
 
-**Materials / Configuration:**
+**Specification content (per anticipated artifacts):**
 
-Anticipated artifacts:
-- Demolition specification
-- disposal requirements
+- Demolition specification (source: _CONTEXT.md)
+- Disposal requirements (source: _CONTEXT.md)
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Detail level:** TBD (reference standards not provided).
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- _CONTEXT.md (DEL-01.02) for deliverable identity, description, and anticipated artifacts.
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope and DEL-01.02 entry; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes referenced in decomposition are not provided here (TBD).

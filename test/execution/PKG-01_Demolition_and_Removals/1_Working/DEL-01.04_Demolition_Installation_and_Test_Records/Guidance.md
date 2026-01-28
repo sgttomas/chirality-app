@@ -1,56 +1,35 @@
-# Guidance: DEL-01.04 Demolition Installation & Test Records
+# Guidance: DEL-01.04 Demolition Installation and Test Records
 
 ## Purpose
 
-This guidance document supports the development of **Demolition Installation & Test Records** for **PKG-01 Demolition & Removals**.
-
-Provides evidence of completion, inspection, and testing for demolition.
-
-This deliverable is classified as a **Record** under the **Civil** discipline, to be produced by **D&B Contractor (QA/QC)**.
+Provide evidence that demolition works were completed, inspected, and tested as required for PKG-01. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
 
 ## Principles
 
-**Engineering rationale (Civil discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+- Records should be complete, traceable, and aligned with required demolition scope. Source: _CONTEXT.md and decomposition PKG-01 scope (location TBD).
+- Maintain contractor scope boundaries and interface-only connections to Employer-responsible items. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
 ## Considerations
 
-**Factors to consider during development:**
-
-- Package scope: PKG-01 Demolition & Removals
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Regulatory and permit-driven record requirements are not provided; integrate when ER volumes are available. TBD.
+- Evidence types beyond disposal manifests and completion certificates are unknown until references are provided. TBD.
+- Objective mapping does not list PKG-01; alignment to project objectives is TBD pending human confirmation.
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Level of record detail vs. administrative burden. ASSUMPTION; details TBD.
+- Field flexibility vs. documentation completeness. ASSUMPTION; details TBD.
 
 ## Examples
 
-**Reference examples and precedents:**
+- TBD (no example record packages available in references).
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Disposal manifests
-- completion certificates
+## Conflict Table (for human ruling)
+
+- None identified from available sources.
+
+## References
+
+- _CONTEXT.md (DEL-01.04).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.04 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet.

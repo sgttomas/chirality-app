@@ -1,67 +1,38 @@
-# Specification: DEL-01.04 Demolition Installation & Test Records
+# Specification: DEL-01.04 Demolition Installation and Test Records
 
 ## Scope
 
-This specification defines the requirements for **Demolition Installation & Test Records** within **PKG-01 Demolition & Removals**.
+This deliverable provides evidence of completion, inspection, and testing for demolition works within PKG-01. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
 
-Provides evidence of completion, inspection, and testing for demolition.
-
-**Anticipated deliverable artifacts:**
-- Disposal manifests
-- completion certificates
+Exclusions: Employer-responsible items are excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
 ## Requirements
 
-### Functional Requirements
-
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
-
-### Performance Requirements
-
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
-
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+- R1: The records shall provide evidence of completion for demolition works. Source: _CONTEXT.md.
+- R2: The records shall provide evidence of inspection and testing for demolition works. Source: _CONTEXT.md.
+- R3: The record set shall include disposal manifests. Source: _CONTEXT.md.
+- R4: The record set shall include completion certificates. Source: _CONTEXT.md.
+- R5: Records shall align with Employer's Requirements. Source: decomposition DEL-01.04 description; ER volumes not available here (location TBD).
+- R6: Records shall cover PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
 
 ## Standards
 
-**Applicable codes and standards (Civil discipline):**
-
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Applicable QA/QC, record retention, and regulatory requirements: TBD pending reference documents.
+- ASSUMPTION: Project document control standards apply; specifics TBD.
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- V1: Verify required record types are present (disposal manifests, completion certificates). ASSUMPTION based on _CONTEXT.md.
+- V2: Verify evidence of inspection/testing is included. ASSUMPTION; inspection/test criteria TBD.
+- V3: Verify ER alignment once ER volumes are available. TBD.
 
 ## Documentation
 
-**Required documentation outputs:**
-- Disposal manifests
-- completion certificates
+- Issued record package (controlled revisions).
+- Review and acceptance sign-off records. ASSUMPTION: standard QA/QC document control workflow.
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+## References
+
+- _CONTEXT.md (DEL-01.04).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.04 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes listed in decomposition are not provided here (TBD).

@@ -2,66 +2,37 @@
 
 ## Scope
 
-This specification defines the requirements for **Demolition Technical Specification** within **PKG-01 Demolition & Removals**.
+This document defines performance, materials, and workmanship requirements for demolition and removals in PKG-01, including removal and disposal of existing infrastructure (Track 6, Dolphin 2, fencing, salt tent dismantling). Source: _CONTEXT.md and decomposition PKG-01 scope / DEL-01.02 entry (location TBD).
 
-Defines performance, materials, and workmanship requirements for demolition per ER requirements.
-
-**Anticipated deliverable artifacts:**
-- Demolition specification
-- disposal requirements
+Exclusions: Employer-responsible items are excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
 ## Requirements
 
-### Functional Requirements
-
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
-
-### Performance Requirements
-
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
-
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Specification).
+- R1: The specification shall define performance requirements for demolition works. Source: _CONTEXT.md.
+- R2: The specification shall define materials requirements for demolition works. Source: _CONTEXT.md.
+- R3: The specification shall define workmanship requirements for demolition works. Source: _CONTEXT.md.
+- R4: The specification shall include disposal requirements for demolition waste. Source: _CONTEXT.md.
+- R5: The specification shall align with Employer's Requirements. Source: decomposition DEL-01.02 description; ER volumes not available here (location TBD).
+- R6: The specification shall address demolition of Track 6, Dolphin 2, fencing, and salt tent dismantling within PKG-01 scope. Source: decomposition PKG-01 scope (location TBD).
 
 ## Standards
 
-**Applicable codes and standards (Civil discipline):**
-
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Applicable demolition, environmental, and regulatory standards: TBD pending reference documents.
+- ASSUMPTION: Project-wide document control and specification formatting standards apply; specifics TBD.
 
 ## Verification
 
-**Verification methods for Specification deliverables:**
-
-- Technical review against standards
-- Interdisciplinary review
-- Employer review and comment
-- Compliance matrix verification
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- V1: Review for inclusion of performance, materials, and workmanship requirements (R1-R3). ASSUMPTION: document review checklist.
+- V2: Review disposal requirements coverage (R4). ASSUMPTION: document review checklist.
+- V3: Verify ER alignment (R5) once ER volumes are provided. TBD.
 
 ## Documentation
 
-**Required documentation outputs:**
-- Demolition specification
-- disposal requirements
+- Issued demolition technical specification (controlled revisions).
+- Review comments and responses. ASSUMPTION: standard D&B document control workflow.
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+## References
+
+- _CONTEXT.md (DEL-01.02).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.02 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes listed in decomposition are not provided here (TBD).

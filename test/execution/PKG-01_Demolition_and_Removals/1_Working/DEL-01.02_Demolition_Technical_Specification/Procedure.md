@@ -2,61 +2,38 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Demolition Technical Specification** within **PKG-01 Demolition & Removals**.
-
-Defines performance, materials, and workmanship requirements for demolition per ER requirements.
-
-**Deliverable type:** Specification
-**Responsible party:** D&B Contractor
+Produce the demolition technical specification defining performance, materials, workmanship, and disposal requirements. Source: _CONTEXT.md and decomposition DEL-01.02 entry (location TBD).
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Civil discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md).
+- **Reference materials:** Employer's Requirements volumes and any regulatory/permit requirements (not provided in _REFERENCES.md). TBD.
+- **Inputs:** PKG-01 scope description for demolition and removals. Source: decomposition PKG-01 scope (location TBD).
 
 ## Steps
 
-1. **Requirements Gathering** — Compile applicable codes, standards, and Employer's Requirements. **TBD**
-2. **Draft Preparation** — Write specification sections per template. **TBD**
-3. **Technical Review** — Discipline and interdisciplinary review. **TBD**
-4. **Comment Resolution** — Address review comments. **TBD**
-5. **Approval** — Discipline lead approves for issue. **TBD**
+ASSUMPTION: Steps below reflect a typical specification production workflow; adjust to project procedures when available.
+
+1. Collect reference inputs (ER volumes, permits, environmental requirements, existing condition reports). TBD until references are provided.
+2. Define specification structure and sections (performance, materials, workmanship, disposal). Source: _CONTEXT.md.
+3. Draft requirements for demolition performance, materials, and workmanship. Source: _CONTEXT.md; details TBD.
+4. Draft disposal requirements and waste handling provisions. Source: _CONTEXT.md; details TBD.
+5. Review for scope coverage (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
+6. Perform internal QC and issue controlled specification. ASSUMPTION: standard D&B document control workflow.
 
 ## Verification
 
-**Verification activities for Specification deliverables:**
-
-- Technical review against standards
-- Interdisciplinary review
-- Employer review and comment
-- Compliance matrix verification
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- Check that all requirement categories are addressed (performance, materials, workmanship, disposal). ASSUMPTION based on _CONTEXT.md.
+- Verify ER alignment once ER volumes are available. TBD.
 
 ## Records
 
-**Documentation outputs:**
-- Demolition specification
-- disposal requirements
+- Issued demolition technical specification (controlled revisions).
+- Review comments and responses. ASSUMPTION: standard document control practice.
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+## References
+
+- _CONTEXT.md (DEL-01.02).
+- _DEPENDENCIES.md (NOT_TRACKED).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.02 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet.

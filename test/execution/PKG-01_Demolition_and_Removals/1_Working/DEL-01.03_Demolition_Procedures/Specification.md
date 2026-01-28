@@ -2,68 +2,38 @@
 
 ## Scope
 
-This specification defines the requirements for **Demolition Procedures** within **PKG-01 Demolition & Removals**.
+This deliverable defines demolition execution methods and controls to meet safety, quality, and operational requirements for PKG-01 demolition works. Source: _CONTEXT.md and decomposition DEL-01.03 entry (location TBD).
 
-Defines the execution method and controls for demolition to meet safety, quality, and operational requirements.
-
-**Anticipated deliverable artifacts:**
-- Demolition method statements
-- Track 6 removal procedure
-- Dolphin 2 removal procedure
+Exclusions: Employer-responsible items are excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
 ## Requirements
 
-### Functional Requirements
-
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
-
-### Performance Requirements
-
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
-
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Procedure).
+- R1: The procedures shall define execution methods and controls for demolition. Source: _CONTEXT.md.
+- R2: The procedures shall address safety, quality, and operational requirements for demolition. Source: _CONTEXT.md.
+- R3: The deliverable shall include demolition method statements. Source: _CONTEXT.md.
+- R4: The deliverable shall include a Track 6 removal procedure. Source: _CONTEXT.md.
+- R5: The deliverable shall include a Dolphin 2 removal procedure. Source: _CONTEXT.md.
+- R6: Procedures shall align with Employer's Requirements. Source: decomposition DEL-01.03 description; ER volumes not available here (location TBD).
+- R7: Procedures shall cover PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
 
 ## Standards
 
-**Applicable codes and standards (Civil discipline):**
-
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Applicable demolition, HSE, and regulatory standards: TBD pending reference documents.
+- ASSUMPTION: Project HSE procedures and permit-to-work systems apply; specifics TBD.
 
 ## Verification
 
-**Verification methods for Procedure deliverables:**
-
-- Walkthrough / tabletop review
-- Safety review (HAZOP / JSA as applicable)
-- Competency verification of personnel
-- Trial run (where practical)
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- V1: Verify inclusion of method statements and required procedures (R3-R5). ASSUMPTION: document review checklist.
+- V2: Verify coverage of safety, quality, and operational controls (R2). ASSUMPTION.
+- V3: Verify ER alignment once ER volumes are available. TBD.
 
 ## Documentation
 
-**Required documentation outputs:**
-- Demolition method statements
-- Track 6 removal procedure
-- Dolphin 2 removal procedure
+- Issued demolition procedures (controlled revisions).
+- Review and approval records. ASSUMPTION: standard D&B document control workflow.
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+## References
+
+- _CONTEXT.md (DEL-01.03).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.03 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes listed in decomposition are not provided here (TBD).

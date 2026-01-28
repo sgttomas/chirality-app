@@ -2,68 +2,37 @@
 
 ## Scope
 
-This specification defines the requirements for **Demolition Design Drawing Set** within **PKG-01 Demolition & Removals**.
+This deliverable defines the design arrangement and details for demolition in PKG-01 Demolition & Removals, including removal and disposal of existing infrastructure such as Track 6, Dolphin 2, fencing, and the salt tent, and associated decommissioning activities. Source: decomposition PKG-01 scope and DEL-01.01 entry (location TBD).
 
-Defines the design arrangement and details for demolition per ER requirements.
-
-**Anticipated deliverable artifacts:**
-- Demolition plans
-- removal sequence drawings
-- disposal location plans
+Exclusions: Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
 ## Requirements
 
-### Functional Requirements
-
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
-
-### Performance Requirements
-
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
-
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Drawing).
+- R1: The drawing set shall define the design arrangement and details for demolition in accordance with Employer's Requirements (ER). Source: decomposition DEL-01.01 description; ER volumes not available here (location TBD).
+- R2: The drawing set shall include demolition plans. Source: _CONTEXT.md.
+- R3: The drawing set shall include removal sequence drawings. Source: _CONTEXT.md.
+- R4: The drawing set shall include disposal location plans. Source: _CONTEXT.md.
+- R5: The drawing set shall cover demolition of Track 6, Dolphin 2, fencing, and salt tent dismantling within PKG-01 scope. Source: decomposition PKG-01 scope (location TBD).
+- R6: Document control fields (title, revision, dates, approvals) shall be included. ASSUMPTION: standard D&B drawing control; details TBD.
 
 ## Standards
 
-**Applicable codes and standards (Civil discipline):**
-
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Applicable demolition, civil drawing, and regulatory standards: TBD pending reference documents.
+- ASSUMPTION: Project CAD standard applies; specific standard not provided.
 
 ## Verification
 
-**Verification methods for Drawing deliverables:**
-
-- Design review (peer check)
-- Dimensional verification
-- Interdisciplinary check (IDC)
-- CAD standards compliance check
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- V1: Verify inclusion of required drawing types (demolition plans, sequence drawings, disposal location plans). ASSUMPTION: document review against R2-R4.
+- V2: Verify coverage of PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent). ASSUMPTION: scope compliance check against R5.
+- V3: Verify alignment with ER requirements. TBD until ER volumes are available.
 
 ## Documentation
 
-**Required documentation outputs:**
-- Demolition plans
-- removal sequence drawings
-- disposal location plans
+- Issued demolition design drawing set (controlled revisions). Source: deliverable type and anticipated artifacts.
+- Review and comment records. ASSUMPTION: standard D&B document control workflow.
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+## References
+
+- _CONTEXT.md (DEL-01.01).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.01 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet; ER volumes listed in decomposition are not provided here (TBD).

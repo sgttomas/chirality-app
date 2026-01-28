@@ -45,3 +45,7 @@
 | 2026-01-28 | DEL-00.06 Pre-Works Road Condition Survey Report | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-00.07 Post-Works Road Condition Survey Report | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-00.08 Temporary Water Supply Installation Details | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-01.01 Demolition Design Drawing Set | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-01.02 Demolition Technical Specification | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-01.03 Demolition Procedures | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-01.04 Demolition Installation & Test Records | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |

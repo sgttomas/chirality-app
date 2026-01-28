@@ -1,62 +1,39 @@
-# Procedure: DEL-01.04 Demolition Installation & Test Records
+# Procedure: DEL-01.04 Demolition Installation and Test Records
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Demolition Installation & Test Records** within **PKG-01 Demolition & Removals**.
-
-Provides evidence of completion, inspection, and testing for demolition.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+Compile and issue the demolition installation and test records for PKG-01. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Civil discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md).
+- **Reference materials:** Employer's Requirements volumes, inspection and test criteria, disposal requirements (not provided in _REFERENCES.md). TBD.
+- **Inputs:** Completed demolition works and associated inspection/testing outputs. ASSUMPTION: records are generated during execution.
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+ASSUMPTION: Steps below reflect a typical QA/QC record compilation workflow; adjust to project procedures when available.
+
+1. Collect demolition completion evidence (field reports, inspection checklists, test results). TBD until references are provided.
+2. Compile disposal manifests and completion certificates. Source: _CONTEXT.md.
+3. Verify records correspond to PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
+4. Perform QA/QC review and obtain required approvals. ASSUMPTION: standard QA/QC workflow.
+5. Issue controlled record package per document control requirements. ASSUMPTION.
 
 ## Verification
 
-**Verification activities for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- Check presence of disposal manifests and completion certificates. ASSUMPTION based on _CONTEXT.md.
+- Verify inspection/testing evidence is included. ASSUMPTION; criteria TBD.
+- ER compliance check: TBD until ER volumes are available.
 
 ## Records
 
-**Documentation outputs:**
-- Disposal manifests
-- completion certificates
+- Issued demolition installation and test record package (controlled revisions).
+- Review and acceptance sign-off records. ASSUMPTION.
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+## References
+
+- _CONTEXT.md (DEL-01.04).
+- _DEPENDENCIES.md (NOT_TRACKED).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.04 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet.

@@ -17,7 +17,8 @@ Task: Run the 4_DOCUMENTS enrichment process for deliverable working-item folder
 Current status:
 
 - PKG-00 (DEL-00.01 through DEL-00.08) enrichment completed and logged in `_COORDINATION.md`.
-- Next expected package: PKG-01 (DEL-01.01 through DEL-01.04), unless the user specifies otherwise.
+- PKG-01 (DEL-01.01 through DEL-01.04) enrichment completed and logged in `_COORDINATION.md`.
+- Next expected package: PKG-02 (DEL-02.01 through DEL-02.09), unless the user specifies otherwise.
 
 Operating rules:
 

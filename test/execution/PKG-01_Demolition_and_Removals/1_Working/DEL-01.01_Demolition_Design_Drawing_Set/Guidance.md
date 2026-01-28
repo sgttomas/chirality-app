@@ -2,56 +2,35 @@
 
 ## Purpose
 
-This guidance document supports the development of **Demolition Design Drawing Set** for **PKG-01 Demolition & Removals**.
-
-Defines the design arrangement and details for demolition per ER requirements.
-
-This deliverable is classified as a **Drawing** under the **Civil** discipline, to be produced by **D&B Contractor**.
+Provide clear demolition design drawings that define arrangement, sequencing, and disposal planning for PKG-01 demolition works. Source: _CONTEXT.md and decomposition DEL-01.01 entry (location TBD).
 
 ## Principles
 
-**Engineering rationale (Civil discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+- Clarity and completeness of demolition scope communication to support safe execution. ASSUMPTION: aligned with project safety objectives; objective mapping does not list PKG-01.
+- Respect contractor scope boundaries and interface-only connections to Employer-responsible items. Source: decomposition Section 1.2 Scope Focus (location TBD).
+- Capture demolition of existing infrastructure identified in PKG-01 scope (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
 
 ## Considerations
 
-**Factors to consider during development:**
-
-- Package scope: PKG-01 Demolition & Removals
-- Deliverable type: Drawing — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Existing condition information (surveys, as-builts) needed to define limits and interfaces. TBD (references not provided).
+- Environmental and regulatory constraints on demolition and disposal. TBD pending ER volumes and permits.
+- Terminal continuity and operational impacts during demolition. ASSUMPTION: relevant to project objectives; mapping to PKG-01 not specified.
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Level of drawing detail vs. schedule and revision effort. ASSUMPTION; details TBD.
+- Sequencing clarity vs. flexibility for field execution. ASSUMPTION; details TBD.
 
 ## Examples
 
-**Reference examples and precedents:**
+- TBD (no example drawings available in references).
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Demolition plans
-- removal sequence drawings
-- disposal location plans
+## Conflict Table (for human ruling)
+
+- None identified from available sources.
+
+## References
+
+- _CONTEXT.md (DEL-01.01).
+- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.01 entry, Scope Focus; location TBD).
+- _REFERENCES.md indicates no references identified yet.
