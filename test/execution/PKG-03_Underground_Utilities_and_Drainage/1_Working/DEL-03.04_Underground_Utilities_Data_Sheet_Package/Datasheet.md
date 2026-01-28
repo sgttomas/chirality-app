@@ -16,41 +16,38 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Data Sheet Number | **TBD** |
-| Equipment Tag | **TBD** |
-| Service Description | **TBD** |
-| Operating Conditions | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Data Sheet Number | TBD (aligned with Specification documentation control, see Specification.md: Documentation) |
+| Revision | 00 |
+| Subject | OWS and pipe material data aligned with the Guidance rationale for environmental protection |
+| Format | Project data sheet template (TBD) |
+| Classification | Performance & materials |
 
 ## Conditions
 
-**Operating / Environmental Context:**
-
-Defines and substantiates underground utilities in accordance with ER requirements.
-
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+- Establishes the data required to substantiate underground utilities per the Employer's Requirements and PKG-03 scope, including storm drainage, OWS, and duct banks (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:201).
+- Supports environmental protection OBJ-7 through defined containment and materials data (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Designed to interface with the Specification (DEL-03.02) and the Drawing Set (DEL-03.01) by translating requirements into tangible data sheet tables.
+- Guidance.md: Principles clarify why certain materials or coating systems are prioritized, and Procedure.md ensures the data sheets are reviewed with the same QA checkpoints.
 
 ## Construction
 
-**Materials / Configuration:**
-
-Anticipated artifacts:
-- OWS data sheet
-- pipe material data sheets
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+- Anticipated artifacts: OWS data sheet, pipe material data sheets, with tables for capacities, materials, corrosion protection, and testing requirements (Source: `_CONTEXT.md`).
+- Data sheet content references Employer's Requirements Volume 2 Part 2 for validation of performance and testing expectations (Source: test/Volume_2_Part_2_Employers_Requirements.pdf).
+- Format aligns with the project Quality Management Plan and document control procedures (Volume 2 Part 1) and the Procedure inspection steps capture sign-offs.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:201 — deliverable description and artifacts for DEL-03.04.
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786 — OBJ-7 Environmental Protection mapping includes DEL-03.04.
+- test/Volume_2_Part_2_Employers_Requirements.pdf — civil & process requirements (details TBD).
+- test/Volume_2_Part_1_Employers_Requirements.pdf — general requirements and document control guidance.
+- Specification.md — links specification requirements to the data presented in the sheets.
+- Procedure.md — outlines the review checkpoints that ensure the data sheets satisfy QA/QC expectations.
+- Guidance.md — explains the trade-offs that shaped the data coverage and level of detail.
+- Package-level references in `execution/PKG-03_Underground_Utilities_and_Drainage/0_References/_REFERENCE_INDEX.md`.
+
+## Cross-Document Notes
+
+- Specification: Make sure the Datasheet’s subject, format, and verification pointers mirror the Specification’s requirements so the data table validates each clause (Specification.md: Requirements).
+- Guidance: Use the Guidance principles to justify why the Datasheet focuses on certain materials and testing parameters (Guidance.md: Principles, Trade-offs).
+- Procedure: Procedure steps describe how the Datasheet’s verification checkpoints are reviewed, so align the documentation log entries accordingly (Procedure.md: Steps, Verification).

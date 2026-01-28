@@ -1,56 +1,31 @@
 # Guidance: DEL-03.04 Underground Utilities Data Sheet Package
 
 ## Purpose
-
-This guidance document supports the development of **Underground Utilities Data Sheet Package** for **PKG-03 Underground Utilities & Drainage**.
-
-Defines and substantiates underground utilities in accordance with ER requirements.
-
-This deliverable is classified as a **Data Sheet** under the **Civil** discipline, to be produced by **D&B Contractor**.
+- Steer the development of data sheets that substantiate underground utilities performance, materials, and testing for PKG-03 (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:201).
+- Ensure each data sheet ties back to the specification and drawing deliverables so that materials and equipment selections are traceable.
 
 ## Principles
+- Use consistent templates so data sheets across OWS, duct banks, and storm drainage components share the same structure for easy comparison.
+- Align the template with the Specification requirements to illustrate why each material/data point is captured and how it supports the Drawing Set (Specification.md: Functional Requirements).
+- Emphasize environmental protection data (containment volumes, materials resistant to hydrocarbon exposure) because PKG-03 ties to OBJ-7 (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Document testing requirements (pressure, coating inspections) adjacent to material property tables to clarify QA expectations.
+ 
+## Cross-Document Notes
 
-**Engineering rationale (Civil discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+- Datasheet: Ensure the Datasheet includes the attributes and verification details described here so reviewers can see how the Guidance trade-offs shaped the data selection (Datasheet.md: Construction, Conditions).
+- Specification: Guidance principles validate why the Specification needs those functional/performance/interface clauses, giving context for each requirement (Specification.md: Requirements).
+- Procedure: The Procedure verification steps rely on the Guidance’s inspection priorities to know which data sheet entries must be validated (Procedure.md: Steps, Verification).
 
 ## Considerations
-
-**Factors to consider during development:**
-
-- Package scope: PKG-03 Underground Utilities & Drainage
-- Deliverable type: Data Sheet — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Leverage results from the design calculations (DEL-03.03) to populate capacities, flow rates, and sizing values in the data sheets (ASSUMPTION: calculations feed data sheets).
+- Coordinate with the specification (DEL-03.02) to ensure the data sheets include all required materials and workmanship descriptions.
+- Validate QA checkpoints listed in Procedure.md so that data sheet reviewers can confirm compliance before packaging records (Procedure.md: Steps).
+- Confirm data format compliance with the project's document control procedures in Volume 2 Part 1 (Source: test/Volume_2_Part_1_Employers_Requirements.pdf).
 
 ## Trade-offs
-
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Balance the thoroughness of material properties with the need to keep data sheets concise for review; use appendices for supplemental tables if needed.
+- Determine whether to list supplier-specific data versus generic performance ranges; choose the option that best keeps materials flexible for procurement.
 
 ## Examples
-
-**Reference examples and precedents:**
-
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- OWS data sheet
-- pipe material data sheets
+- OWS data sheet should outline retention volume, separation efficiency, instrumentation, and maintenance access as required artifacts (Source: `_CONTEXT.md`).
+- Pipe material data sheets may include coating systems, cathodic protection requirements, and jointing details referenced in the Employer's Requirements (Source: test/Volume_2_Part_2_Employers_Requirements.pdf).

@@ -1,57 +1,31 @@
 # Guidance: DEL-03.06 CCTV Survey Report – Storm Pipes & Culverts
 
 ## Purpose
-
-This guidance document supports the development of **CCTV Survey Report – Storm Pipes & Culverts** for **PKG-03 Underground Utilities & Drainage**.
-
-Documents analysis and results for cctv survey report – storm pipes & culverts required for design verification and approvals.
-
-This deliverable is classified as a **Report** under the **Civil** discipline, to be produced by **D&B Contractor (Specialist Surveyor)**.
+- Steer the execution and reporting of CCTV surveys for storm pipes and culverts to verify their condition and compliance with PKG-03 requirements (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:203).
+- Provide clear remediation recommendations so installation issues affecting OBJ-7 Environmental Protection are resolved promptly (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
 
 ## Principles
-
-**Engineering rationale (Civil discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+- Document each defect with codified severity, location referencing the drawing set, and a recommended next step to maintain traceability.
+- Include notation that references the Specification's defect categories so remediation recommendations align with QA expectations (Specification.md: Functional Requirements).
+- Align CCTV survey reports with QA/QC expectations from the project Quality Management Plan to ensure acceptance during reviews (Source: test/Volume_2_Part_1_Employers_Requirements.pdf).
+- Maintain consistent terminology with the drawings and specifications so that reviewers understand the impacted systems.
 
 ## Considerations
-
-**Factors to consider during development:**
-
-- Package scope: PKG-03 Underground Utilities & Drainage
-- Deliverable type: Report — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Schedule surveys after bulk earthworks are complete to avoid rework but before final paving when access is still possible.
+- When CCTV footage reveals potential contamination risks, flag the issue for environmental control teams and highlight containment actions.
+- Follow Procedure.md steps so the footage capture, coding, and remediation recommendation process is consistent with the recorded metadata (Procedure.md: Steps; Datasheet.md: Attributes).
+- Coordinate defect locations with as-built surveys (DEL-03.05) to confirm the position of the affected pipe or culvert.
 
 ## Trade-offs
-
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Trade between capturing high-resolution footage for accuracy and minimizing data volumes that could slow report delivery.
+- Balance speed of survey completion with thorough documentation to avoid missing subtle defects that could impact hydraulic performance.
 
 ## Examples
+- Include defect coding log entries that specify pipe segment identifiers, defect types, and remediation priority (Source: `_CONTEXT.md`).
+- Provide a remediation recommendation table that links to remedial drawings or procedures when defects exceed acceptance criteria.
 
-**Reference examples and precedents:**
+## Cross-Document Notes
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- CCTV survey report
-- defect coding log
-- remediation recommendations
+- Datasheet: The Guidance trade-offs describe how much footage and severity data the Datasheet should capture, keeping the reported coverage consistent (Datasheet.md: Attributes).
+- Specification: Guidance principles justify the running commentary behind the Specification’s defect categories and remediation statements (Specification.md: Functional Requirements).
+- Procedure: The Procedure steps reference this Guidance so the timing, coding, and reporting are controlled by the same rationale (Procedure.md: Steps, Verification).

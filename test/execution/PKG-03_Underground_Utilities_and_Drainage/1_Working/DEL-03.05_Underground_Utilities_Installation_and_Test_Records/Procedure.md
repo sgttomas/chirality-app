@@ -1,63 +1,33 @@
 # Procedure: DEL-03.05 Underground Utilities Installation & Test Records
 
 ## Purpose
-
-This procedure defines the process for producing and managing **Underground Utilities Installation & Test Records** within **PKG-03 Underground Utilities & Drainage**.
-
-Provides evidence of completion, inspection, and testing for underground utilities.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+- Define how pressure tests, CCTV inspections, and as-built surveys for PKG-03 underground utilities are executed, recorded, and retained (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:202).
 
 ## Prerequisites
-
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Civil discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** Dependencies coordinated externally (see `_DEPENDENCIES.md`). Confirm that installations reflected in DEL-03.01 (Drawings) and DEL-03.02 (Specification) have been completed or are ready for testing.
+- **Reference materials:** Employer's Requirements Volume 2 Part 1 (Quality Management) and Part 2 (Civil & Process Mechanical Works), package reference index (`execution/PKG-03_Underground_Utilities_and_Drainage/0_References/_REFERENCE_INDEX.md`).
+- **Data inputs:** Test procedures, calibration records, CCTV routing plans, and survey control data.
+- **Guidance alignment:** Use Guidance.md trade-offs to decide how much detail to capture in each record and which remediation recommendations require immediate follow-up.
+- **Personnel:** QA/QC inspector, CCTV surveyor, scribe/data recorder.
 
 ## Steps
-
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+1. Prepare test plans for pressure testing, CCTV surveys, and surveys, referencing the design drawings and data sheets to ensure accuracy and consistency with Specification requirements (Specification.md: Interface Requirements).
+2. Execute pressure tests, documenting applied pressures, durations, and acceptance criteria; capture the results in the Datasheet metadata to record the revision history (Datasheet.md: Attributes).
+3. Conduct CCTV surveys on storm pipes and culverts; log defects using the project's defect coding system and note remediation recommendations (Source: `_CONTEXT.md`).
+4. Perform as-built surveys capturing final locations, elevations, and tie-ins for the underground utilities.
+5. Compile records into an installation & test log, review per QA procedures, and archive them in the project document control system while remarking any deviations per Procedure requirements.
 
 ## Verification
-
-**Verification activities for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- QA checks confirm that each test record includes required data fields, reviewer initials, and pass/fail status.
+- CCTV and survey data are cross-referenced with the drawing set to ensure spatial consistency.
+- Inspection log sign-offs are stored per the Quality Management Plan (Source: test/Volume_2_Part_1_Employers_Requirements.pdf) and recorded in the Datasheet metadata to document completion.
 
 ## Records
+- Pressure test reports, CCTV inspection logs, as-built survey drawings, and remediation documentation.
+- QA review checklists and traceability tables linking records to requirements and deliverables.
 
-**Documentation outputs:**
-- Pressure test records
-- CCTV inspection records
-- as-built survey records
+## Cross-Document Notes
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+- Datasheet: The Procedure verification steps ensure Datasheet metadata (coverage, storage location) reflects completed QA tasks (Datasheet.md: Attributes).
+- Specification: Each step draws directly from the Specification’s requirements so reviewers can see how the records satisfy contractual obligations (Specification.md: Verification).
+- Guidance: Guidance trade-offs guide how much detail is captured and whether remediation recommendations proceed immediately, so Procedure references it when prioritizing records (Guidance.md: Trade-offs).

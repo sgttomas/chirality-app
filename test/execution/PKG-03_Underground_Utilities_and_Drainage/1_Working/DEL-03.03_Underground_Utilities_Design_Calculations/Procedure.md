@@ -1,64 +1,33 @@
 # Procedure: DEL-03.03 Underground Utilities Design Calculations
 
 ## Purpose
-
-This procedure defines the process for producing and managing **Underground Utilities Design Calculations** within **PKG-03 Underground Utilities & Drainage**.
-
-Provides the engineering basis and sizing/verification calculations for underground utilities.
-
-**Deliverable type:** Calculation
-**Responsible party:** D&B Contractor
+- Define the process for developing, checking, and documenting the drainage, OWS, and duct bank calculations that underpin PKG-03 underground utilities (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200).
 
 ## Prerequisites
-
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Civil discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+- **Dependencies:** Dependencies are coordinated externally (see `_DEPENDENCIES.md`). Confirm inputs from site grading (DEL-02.x) and the drawing set (DEL-03.01).
+- **Reference materials:** Employer's Requirements Volume 2 Part 2 for civil calculations, project Quality Management Plan in Volume 2 Part 1, and any site data in `0_References/_REFERENCE_INDEX.md`.
+- **Guidance alignment:** Use Guidance.md to confirm the engineering principles that drive the calculation focus (hydraulics, containment, duct banks) before modeling.
+- **Data inputs:** Survey control, rainfall data, load cases, and existing utility records.
+- **Personnel:** Civil calculation engineer, checker/reviewer, and QA coordinator (ASSUMPTION: per Quality Management Plan).
 
 ## Steps
-
-1. **Input Data Collection** — Gather loads, geometry, material properties. **TBD**
-2. **Methodology Selection** — Select analysis approach and software. **TBD**
-3. **Calculation Execution** — Perform analysis per design code. **TBD**
-4. **Results Interpretation** — Evaluate results against acceptance criteria. **TBD**
-5. **Independent Check** — Qualified checker verifies calculation. **TBD**
-6. **Approval** — Discipline lead approves. **TBD**
+1. Review the decomposition entry and `_CONTEXT.md` to confirm the downstream expectations for drainage, OWS, and duct bank sizing (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200).
+2. Assemble hydraulic inputs (rainfall, runoff coefficients, flow paths) and structural inputs (pipe strengths, cover requirements).
+3. Develop calculation models for storm drainage, OWS retention/sizing, and duct bank capacity, documenting assumptions and referencing Employer's Requirements clauses.
+4. Validate results with peer review, ensuring outputs support DEL-03.02 and DEL-03.01 narrative requirements as described in the Specification and Drawing Set (Specification.md: Interface Requirements; DEL-03.01 Specification: Requirements).
+5. Update verification logs, track review comments, and file calculation reports in the document control system so the Datasheet reflects the reviewed revision and verification status (Datasheet.md: Attributes; Documentation).
 
 ## Verification
-
-**Verification activities for Calculation deliverables:**
-
-- Independent check calculation
-- Software output verification
-- Design code compliance check
-- Sensitivity analysis review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+- Peer check of calculation logic and units.
+- Independent review for alignment with Employer's Requirements and project objectives (Source: test/Volume_2_Part_1_Employers_Requirements.pdf).
+- Confirmation that results match drawing annotations and specification requirements.
 
 ## Records
+- Calculation reports, modeling files, input data tables, and review checklists retained per the Quality Management Plan.
+- Traceability matrix linking each load case to the requirement it satisfies.
 
-**Documentation outputs:**
-- Drainage calculations
-- OWS sizing
-- duct bank capacity calculations
+## Cross-Document Notes
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+- Datasheet: The Procedure verification log entry ensures the Datasheet metadata reflects the completed review steps (Datasheet.md: Attributes).
+- Specification: Steps 2-5 map directly to the Specification requirements so readers can trace how calculation outcomes satisfy each clause (Specification.md: Requirements).
+- Guidance: Use the Guidance considerations to frame the assumption handling described in the Procedure and keep language consistent (Guidance.md: Considerations).

@@ -16,41 +16,36 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Report Number | **TBD** |
-| Report Type | **TBD** |
-| Survey/Study Scope | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Report Number | TBD (recorded per Specification documentation rules) |
+| Revision | 00 |
+| Survey Coverage | Storm pipes and culverts on site |
+| Format | Digital/video logs with defect coding |
 
 ## Conditions
 
-**Operating / Environmental Context:**
-
-Documents analysis and results for cctv survey report – storm pipes & culverts required for design verification and approvals.
-
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+- Documents CCTV survey results for storm pipes and culverts required for design verification (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:203).
+- Supports compliance with OBJ-7 Environmental Protection by reporting defects that could impact containment (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Provides remediation recommendations that feed into DEL-03.05 (Installation & Test Records) and may trigger drawing updates; see Guidance.md: Trade-offs for when to issue remediation recommendations.
 
 ## Construction
 
-**Materials / Configuration:**
-
-Anticipated artifacts:
-- CCTV survey report
-- defect coding log
-- remediation recommendations
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+- Anticipated artifacts include a CCTV survey report, defect coding log, and remediation recommendations (Source: `_CONTEXT.md`).
+- Format should include summary pages, key findings, defect tables, and annotated photo/video references that align with the Specification's reporting expectations (Specification.md: Performance Requirements).
+- Aligns with QA/QC recording expectations in Volume 2 Part 1 of the Employer’s Requirements, and the Procedure ensures verification checkpoints (Procedure.md: Verification) are completed before release.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:203 — scope and artifacts for DEL-03.06.
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786 — OBJ-7 mapping includes DEL-03.06.
+- test/Volume_2_Part_1_Employers_Requirements.pdf — quality management and QA expectations.
+- test/Volume_2_Part_2_Employers_Requirements.pdf — civil inspection requirements.
+- Specification.md — defines the defect coding, severity, and reporting requirements that the CCTV report must satisfy.
+- Procedure.md — describes the process for collecting footage, coding defects, and generating remediation recommendations.
+- Guidance.md — explains how to present findings so stakeholders can assess impacts on containment.
+- Package-level references in `execution/PKG-03_Underground_Utilities_and_Drainage/0_References/_REFERENCE_INDEX.md`.
+
+## Cross-Document Notes
+
+- Specification: Ensure CCTV report attributes (coverage, format) align with Specification requirements so QA reviewers have the necessary data (Specification.md: Requirements).
+- Guidance: Use the Guidance principles/trade-offs to justify footage depth and remediation focus captured in the Datasheet (Guidance.md: Trade-offs).
+- Procedure: The Procedure steps explain how footage and logs are reviewed, letting the Datasheet note when those steps are complete (Procedure.md: Steps, Verification).

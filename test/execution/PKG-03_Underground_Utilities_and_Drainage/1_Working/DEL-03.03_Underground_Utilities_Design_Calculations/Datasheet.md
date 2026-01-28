@@ -16,42 +16,35 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Calculation Number | **TBD** |
-| Software Used | **TBD** |
-| Design Code | **TBD** |
-| Load Cases | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Calculation Package | Drainage, OWS sizing, duct bank capacity (aligned with Specification requirements) |
+| Revision | 00 |
+| Software | Owner-specified hydraulic modeling tool (TBD) |
+| Scope | Storm drainage, OWS, trenchless crossings per PKG-03 requirements |
 
 ## Conditions
 
-**Operating / Environmental Context:**
-
-Provides the engineering basis and sizing/verification calculations for underground utilities.
-
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+- Delivers the engineering basis and sizing calculations that substantiate the underground utilities described in PKG-03 (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200).
+- Supports the environmental protection objective (OBJ-7) by demonstrating containment, conveyance, and hydraulic performance (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Assumes design inputs from survey, site grading, and Employer's Requirements Volume 2 Part 2 (Civil & Process Mechanical Works).
+- Guidance.md: Principles outlines the rationale for the calculation focus (hydraulics and containment), ensuring consistent terminology with Specifications and Drawings.
 
 ## Construction
 
-**Materials / Configuration:**
-
-Anticipated artifacts:
-- Drainage calculations
-- OWS sizing
-- duct bank capacity calculations
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+- Outputs include drainage calculations, OWS sizing, and duct bank capacity calculations as referenced in `_CONTEXT.md` anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200).
+- Clearing of design assumptions, calculation logs, and summary tables support the downstream specification and drawing deliverables (see DEL-03.01 Specification and DEL-03.02 Specification for requirement traceability).
+- Format and digitization follow project calculation controls outlined in the Quality Management Plan (Volume 2 Part 1) and Verification steps in Procedure.md.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200 — DEL-03.03 description and artifacts.
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786 — OBJ-7 Environmental Protection mapping.
+- test/Volume_2_Part_2_Employers_Requirements.pdf — civil & process requirements for drainage and utilities.
+- test/Volume_2_Part_1_Employers_Requirements.pdf — project quality, calculation, and documentation expectations.
+- Specification.md — ties calculation outputs to requirements in DEL-03.02 (Technical Specification) and DEL-03.01 (Drawing Set).
+- Procedure.md — describes how calculations are processed, reviewed, and recorded.
+
+## Cross-Document Notes
+
+- Specification: Ensure the Datasheet lists the calculation package and scope items that map directly to the Specification’s functional and performance requirements (Specification.md: Requirements).
+- Guidance: Use the Guidance principles to justify assumptions and rationale stated in the Datasheet’s conditions section, reinforcing consistent terminology (Guidance.md: Principles, Considerations).
+- Procedure: The Datasheet’s Construction statements refer to Procedure steps to show how calculation logs move through QA (Procedure.md: Steps, Verification).

@@ -1,57 +1,32 @@
 # Guidance: DEL-03.03 Underground Utilities Design Calculations
 
 ## Purpose
-
-This guidance document supports the development of **Underground Utilities Design Calculations** for **PKG-03 Underground Utilities & Drainage**.
-
-Provides the engineering basis and sizing/verification calculations for underground utilities.
-
-This deliverable is classified as a **Calculation** under the **Civil** discipline, to be produced by **D&B Contractor**.
+- Guide the development of the underground utilities calculation package for PKG-03, ensuring that drainage, OWS, and duct bank sizing reflect the project objectives (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:200).
+- Provide decision-making context so the calculations feed accurate inputs into subsequent drawing and specification deliverables.
 
 ## Principles
-
-**Engineering rationale (Civil discipline):**
-
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
-
-**Applicable standards context:**
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+- Anchor every calculation assumption to a documented data source (survey, project overview, or Employer's Requirements) to support traceability.
+- Prioritize environmental protection by modeling worst-case runoff and containment volumes that reflect OBJ-7 for PKG-03 (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Maintain consistent units, notation, and terminology with the drawing and specification packages to avoid conversion errors during coordination.
+- Tie the guidance rationale back to the Procedure verification steps so reviewers see how each assumption is checked before the outputs feed DEL-03.01 and DEL-03.02 (Procedure.md: Verification).
 
 ## Considerations
+- Confirm site grades, as-built utility locations, and proposed elevations before finalizing hydraulic profiles.
+- Coordinate with DEL-03.01 (Drawings) to ensure the vertical/horizontal alignments used in calculations match the planned trench corridors.
+- Document any assumptions about flow rates, retention times, or material properties and flag them for verification in DEL-03.01 and DEL-03.02.
+- Capture those assumptions within Procedure.md steps so they also appear in the Datasheet attributes for traceability (Procedure.md: Steps; Datasheet.md: Attributes).
+- Align the calculation format with the Quality Management Plan's calculation control sheets (Source: test/Volume_2_Part_1_Employers_Requirements.pdf).
 
-**Factors to consider during development:**
+## Cross-Document Notes
 
-- Package scope: PKG-03 Underground Utilities & Drainage
-- Deliverable type: Calculation — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Datasheet: The Guidance principles explain why each calculation attribute and scope item is documented, keeping the Datasheet and Guidance language aligned (Datasheet.md: Conditions).
+- Specification: Guidance’s emphasis on containment/hydraulics underpins the Specification’s functional requirements so reviewers can see the rationale for each clause (Specification.md: Functional Requirements).
+- Procedure: Procedure steps reference this Guidance when describing verification, enabling reviewers to trace how the principles are checked before release (Procedure.md: Steps, Verification).
 
 ## Trade-offs
-
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Balance calculation detail with the need to issue results quickly; use conservative assumptions where data is lacking but note them for revision.
+- Sequence drainage vs duct bank priorities when space conflicts arise; use the calculations to justify whichever layout better serves OBJ-7 and throughput objectives.
 
 ## Examples
-
-**Reference examples and precedents:**
-
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Drainage calculations
-- OWS sizing
-- duct bank capacity calculations
+- Provide sample drainage hydrographs or inflow-outflow tables that demonstrate compliance with the Employer's stormwater expectations (Source: test/Volume_2_Part_2_Employers_Requirements.pdf).
+- Use finalized calculation outputs to seed the specification requirements in DEL-03.02 and to annotate control points in the drawing set for DEL-03.01.

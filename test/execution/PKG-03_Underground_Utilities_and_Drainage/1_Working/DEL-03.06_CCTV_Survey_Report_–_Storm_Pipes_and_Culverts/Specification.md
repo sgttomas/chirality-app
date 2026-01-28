@@ -1,69 +1,43 @@
 # Specification: DEL-03.06 CCTV Survey Report – Storm Pipes & Culverts
 
 ## Scope
-
-This specification defines the requirements for **CCTV Survey Report – Storm Pipes & Culverts** within **PKG-03 Underground Utilities & Drainage**.
-
-Documents analysis and results for cctv survey report – storm pipes & culverts required for design verification and approvals.
-
-**Anticipated deliverable artifacts:**
-- CCTV survey report
-- defect coding log
-- remediation recommendations
+Documents the analysis and outcomes of CCTV surveys for storm pipes and culverts within PKG-03, supporting design verification and approvals (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:203).
 
 ## Requirements
 
 ### Functional Requirements
-
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+- Capture CCTV footage and annotated logs for each surveyed storm pipe and culvert, including location, condition, and defect coding details (Source: `_CONTEXT.md`).
+- Provide remediation recommendations and prioritize defects that may impact containment or hydraulic performance, referencing OBJ-7 responsibilities (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:786).
+- Ensure the documented defects and recommendations align with the Datasheet metadata so the report can be cross-referenced by QA reviewers (Datasheet.md: Conditions).
 
 ### Performance Requirements
-
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+- CCTV surveys must be conducted per the Employer's Requirements Volume 2 Part 2 inspection expectations and produce a deliverable that can be reviewed for compliance.
+- Reports should clearly state the acceptance criteria, defect categories, and severity levels used during the survey process.
 
 ### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+- Coordinate CCTV report references with DEL-03.01 drawings and DEL-03.05 records so that defects align with drawing numbers and field test evidence.
+- Feed remediation recommendations into the installation and test records, ensuring follow-up actions are tracked (see DEL-03.05).
+- Refer to Procedure.md steps to confirm the sequencing of surveys and the formality of remediation recommendations, especially where data indicates urgent containment issues.
 
 ### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Report).
+- Report formats must include reviewer initials, dates, and QA/QC checkboxes consistent with Volume 2 Part 1 Quality Management Plan (Source: test/Volume_2_Part_1_Employers_Requirements.pdf).
+- Preserve raw footage and annotated logs as part of the record package.
 
 ## Standards
-
-**Applicable codes and standards (Civil discipline):**
-
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Follow inspection and reporting guidance provided in Employer's Requirements Volume 2 Part 2 for stormwater and culvert systems (Source: test/Volume_2_Part_2_Employers_Requirements.pdf).
+- Document control and QA expectations from Volume 2 Part 1 apply to this report.
 
 ## Verification
-
-**Verification methods for Report deliverables:**
-
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Independent review of CCTV logs verifies defect coding, location accuracy, and clarity of remediation actions.
+- QA sign-off confirms that the report includes referenced footage or still images where defects are noted.
+- Incorporate Guidance.md trade-offs to justify the depth of footage review and to document why certain defects require remediation versus monitoring.
 
 ## Documentation
+- Deliverables include the CCTV survey report, defect coding log, and remediation recommendations listed in `_CONTEXT.md` (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:203).
+- Archive the report and supporting files within the document control system for future gating and compliance reviews.
 
-**Required documentation outputs:**
-- CCTV survey report
-- defect coding log
-- remediation recommendations
+## Cross-Document Notes
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+- Datasheet: The Specification’s requirements dictate the Datasheet’s coverage fields so they capture the same defect/log expectations (Datasheet.md: Attributes).
+- Guidance: The Explanation of remediation recommendations connects the Guidance principles to the Specification’s severity and reporting clauses (Guidance.md: Principles).
+- Procedure: Procedure steps show how these Specification requirements are verified, linking the remediations to actual review actions (Procedure.md: Steps, Verification).

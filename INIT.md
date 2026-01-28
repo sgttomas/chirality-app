@@ -1,47 +1,18 @@
-# INIT — 4_DOCUMENTS Enrichment Prompt
+# INIT — Next Session Orientation
 
-Read these files in order:
+This document is meant to get the following 4_DOCUMENTS agent off to the races without retracing earlier work. Treat the filesystem as authoritative; rely on the lifecycle entries in `test/execution/_Coordination/_COORDINATION.md`.
 
-1. `/Users/ryan/ai-env/projects/chirality-app/README.md` — project context and filesystem paths
-2. `/Users/ryan/ai-env/projects/chirality-app/AGENTS.md` — agent index and runbooks
-3. `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md` — framework boundaries and workflow guidance
+## Immediate tasks
+1. **Confirm context:** Read `/Users/ryan/ai-env/projects/chirality-app/README.md` and `/Users/ryan/ai-env/projects/chirality-app/AGENTS.md` if you are unfamiliar with the framework. Then read `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_COORDINATION.md` to see the most recent lifecycle entries and the 4_DOCUMENTS enrichment log. _Do not re-verify or re-open any deliverables completed before this session; the documentation in this package reflects current status._
+2. **Focus scope:** Begin your work inside `test/execution/PKG-04_Pavement_and_Surfacing/1_Working/`. Each deliverable folder you touch should only have `_CONTEXT.md`, `_REFERENCES.md`, and the decomposition entry read to understand its scope. **Skip scanning deliverables outside PKG-04** unless explicitly directed.
+3. **Produce documents:** Run the 4_DOCUMENTS enrichment cycle (three passes) for each PKG-04 deliverable in order (start with `DEL-04.01`). Overwrite the four documents, label assumptions/TBDs, cite the decomposition or Employer's Requirements PDFs, and keep cross-document consistency in mind.
+4. **Don’t invent states:** `_STATUS.md` files already reflect the correct lifecycle state. Do not change them unless the deliverable is still `OPEN` and you’re generating the initial drafts for the first time.
 
-Then orient to the current workspace:
+## Orientation rules for the next agent
+- **No re-reading past deliverables:** The status entries/traces you read in `_COORDINATION.md` are enough. Do not try to audit PKG-03 content again.
+- **Keep relationships local:** You only need to think about how the PKG-04 deliverable ties to the decomposition’s scope, objectives, and referenced documents. Adjacent deliverables only matter where the current `_CONTEXT.md` explicitly references them.
+- **Focus on design intent:** The decomposition and `_CONTEXT.md` provide the project context you need for this deliverable. Build your four documents from that info plus the Employer’s Requirements volumes (Paths: `test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf`).
 
-- Read `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_COORDINATION.md`
-- Confirm the execution workspace exists at `/Users/ryan/ai-env/projects/chirality-app/test/execution/`
-- (Optional) list deliverable folders under `/Users/ryan/ai-env/projects/chirality-app/test/execution/*/1_Working/`
-
-Task: Run the 4_DOCUMENTS enrichment process for deliverable working-item folders.
-
-Next session orientation:
-
-- Begin directly in PKG-03 (`test/execution/PKG-03_*` folders); read only the `_CONTEXT.md`, `_REFERENCES.md`, and any reference sections needed for that specific package and its deliverables.
-- You do not need to verify or re-read earlier deliverables—the updated drafts and `/_Coordination/_COORDINATION.md` already capture the current state. Trust that the deliverables listed are `INITIALIZED`.
-- Keep relationships between deliverables limited to what is obvious within the current package; stay focused on the package scope, decomposition notes, and the deliverable ID(s) you are assigned. Try to minimize reading outside PKG-03 unless a later instruction explicitly references another package.
-
-Current status:
-
-- PKG-00 (DEL-00.01 through DEL-00.08) enrichment completed and logged in `_COORDINATION.md`.
-- PKG-01 (DEL-01.01 through DEL-01.04) enrichment completed and logged in `_COORDINATION.md`.
-- PKG-02 (DEL-02.01 through DEL-02.09) enrichment finished with three coordinated passes and logged in `_COORDINATION.md`; references remain to be added in each `_REFERENCES.md`.
-- Next expected package: PKG-03 (DEL-03.01 through DEL-03.06), unless the user specifies otherwise.
-
-Operating rules:
-
-- Follow `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_4_DOCUMENTS_REVISED_v3.md`
-- Each invocation performs three enrichment passes and overwrites existing drafts
-- Do not modify metadata files (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`)
-- Log each deliverable completion in `test/execution/_Coordination/_COORDINATION.md` under "4_DOCUMENTS Enrichment Log"
-- Commit changes as directed by the user (typically after each deliverable)
-- Keep working through the deliverables the user specifies for this session; when done, ask for the next batch. Stop only when the user says there are no remaining tasks.
-
-Start prompt to user:
-
-"Which deliverable(s) should I enrich next? Provide DEL-ID(s) or a package range."
-
-Persistent notes (carry these forward):
-
-- The workspace now reflects the current status for PKG-02; a future agent does *not* need to retrace the preceding work to know what happened. Trust the lifecycle entries in `_COORDINATION.md` and the updated deliverable drafts as the authority on where things stand.
-- Keep the focus narrowly on the package and deliverables identified for your session (PKG-03 in this case). Read only their `_CONTEXT.md`, `_REFERENCES.md`, and anything directly needed for the four documents you are enriching; do not revisit earlier packages unless specifically asked.
-- Project context (scope, objectives, decisions captured in the decomposition) is important for each PKG-03 deliverable, so make sure the agent has quick access to the relevant sections but skip re-reading older material. Relationships between deliverables beyond what’s stated in the current package are not part of the task unless explicitly pointed out.
+## Lessons for the next iteration
+- The cross-document alignment pass performed in PKG-03 (Datasheet ↔ Specification ↔ Guidance ↔ Procedure) is repeatable; keep capturing those explicit link points so future agents can trust the status and move forward without rechecking everything.
+- Document references and verification points directly in each file so the next working batch can be confident the draft reflects what came before.
