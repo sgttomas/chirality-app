@@ -1,58 +1,56 @@
 # Datasheet: DEL-02.01 Earthworks Design Drawing Set
 
-## Identification
+    ## Identification
 
-| Field | Value |
-|-------|-------|
-| Deliverable ID | DEL-02.01 |
-| Name | Earthworks Design Drawing Set |
-| Package | PKG-02 Earthworks & Ground Improvement |
-| Discipline | Civil |
-| Type | Drawing |
-| Responsible | D&B Contractor |
-| Status | INITIALIZED |
+    | Field | Value |
+    |-------|-------|
+    | Deliverable ID | DEL-02.01 |
+    | Name | Earthworks Design Drawing Set |
+    | Package | PKG-02 Earthworks & Ground Improvement |
+    | Discipline | Civil |
+    | Type | Drawing |
+    | Responsible | D&B Contractor |
+    | Current state | INITIALIZED |
 
-## Attributes
+    ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Drawing Number | **TBD** |
-| Sheet Size | **TBD** |
-| Scale | **TBD** |
-| CAD Standard | **TBD** |
+    | Attribute | Value |
+    |-----------|-------|
+    | Drawing number(s) | **TBD** |
+| Sheet list | **TBD** |
+| Sheet size(s) | **TBD** |
+| Scale(s) | **TBD** |
+| Coordinate system / datum | **TBD** |
+| CAD standard | **TBD** |
 | Revision | **TBD** |
 | Classification | **TBD** |
 
-## Conditions
+    ## Context & Conditions
 
-**Operating / Environmental Context:**
+    - PKG-02 scope includes Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
+    - This decomposition covers the Contractor's scope of work only. Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
+    - Deliverable intent: Defines the design arrangement and details for earthworks per ER requirements. Source: _CONTEXT.md; decomposition DEL-02 entries (location TBD).
+    - Operating/environmental details: TBD (references not yet provided).
 
-Defines the design arrangement and details for earthworks per ER requirements.
+    ## Construction content
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
-
-## Construction
-
-**Materials / Configuration:**
-
-Anticipated artifacts:
-- Grading plans
+    - Grading plans
 - cut/fill plans
 - ground improvement layout
 - sections
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+    **Configuration notes:**
 
-## References
+    - TBD (details require ER volumes and design inputs).
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+    ## Cross-document notes
+
+    - The Requirements section in `Specification.md` is the primary source of requirements references for this Datasheet.
+    - Guidance principles in `Guidance.md` expand on how the requirements will influence deliverable execution.
+    - Procedure steps in `Procedure.md` capture the verification expectations for the recorded artifacts.
+
+    ## References
+
+    - _CONTEXT.md, `Documentation for deliverable identity and anticipated artifacts`.
+    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
+    - _REFERENCES.md is empty; Employer's Requirements volumes listed in decomposition remain pending (TBD).

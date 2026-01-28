@@ -1,64 +1,40 @@
 # Procedure: DEL-02.08 Earthworks Sampling & Testing Program
 
-## Purpose
+    ## Purpose
 
-This procedure defines the process for producing and managing **Earthworks Sampling & Testing Program** within **PKG-02 Earthworks & Ground Improvement**.
+    Produce the Earthworks Sampling & Testing Program required for PKG-02 Earthworks & Ground Improvement while satisfying Specification requirements and supporting Guidance principles. Source: _CONTEXT.md; decomposition (location TBD).
 
-Defines the planned approach and controls for earthworks sampling & testing program to meet ER requirements.
+    ## Prerequisites
 
-**Deliverable type:** Plan
-**Responsible party:** D&B Contractor (QA/QC)
+    - **Dependencies:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md).
+    - **Reference materials:** Employer's Requirements volumes and relevant site data are required but not provided in _REFERENCES.md (TBD).
+    - **Inputs:** PKG-02 scope for earthworks and ground improvement. Source: decomposition PKG-02 scope (location TBD).
 
-## Prerequisites
+    ## Steps
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+1. Compile inputs (ER volumes, geotechnical reports, surveys, permits) and align them with Datasheet attributes to confirm completeness. TBD until references are provided.
+2. Confirm scope and interface boundaries per PKG-02 scope and Scope Focus, ensuring Specification requirements R1–R7 are covered. Source: decomposition (location TBD); `Specification.md`.
+3. Develop deliverable content aligned with anticipated artifacts and Guidance considerations, using Datasheet attributes to document progress. Source: _CONTEXT.md; `Guidance.md`.
+4. Perform internal checks against Specification verification items (V1–V3), update Datasheet/Guidance as needed, and ensure records support R1–R7.
+5. Issue controlled deliverable per document control requirements and capture review/approval records. ASSUMPTION: standard D&B document control.
 
-**Personnel requirements:**
-- Qualified Civil discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
 
-## Steps
+    ## Verification
 
-1. **Scope Definition** — Define plan scope and objectives. **TBD**
-2. **Content Development** — Develop plan content per requirements. **TBD**
-3. **Resource Identification** — Identify resources and responsibilities. **TBD**
-4. **Review** — Stakeholder and technical review. **TBD**
-5. **Approval** — Responsible party approves for implementation. **TBD**
+    - Check that required artifacts are present and complete, referencing Datasheet and Specification requirements. ASSUMPTION: document review.
+    - Check coverage of PKG-02 scope items and Guidance considerations. ASSUMPTION: scope compliance review.
+    - ER compliance check: TBD pending ER volumes; align with Specification verification notes (V1–V3).
 
-## Verification
+    ## Records
 
-**Verification activities for Plan deliverables:**
+    - Issued Earthworks Sampling & Testing Program (controlled revisions).
+    - Review comments, approvals, and response log. ASSUMPTION: standard document control practice.
 
-- Scope coverage review
-- Resource adequacy check
-- Schedule integration review
-- Stakeholder review and acceptance
+    ## References
 
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
-
-## Records
-
-**Documentation outputs:**
-- Sampling plan
-- frequency matrix
-- lab testing scope
-- field testing scope
-
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+    - _CONTEXT.md (deliverable identity, description, anticipated artifacts).
+    - _DEPENDENCIES.md (NOT_TRACKED).
+    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
+    - `Datasheet.md`, `Specification.md`, `Guidance.md` for verification/context alignment.
+    - _REFERENCES.md indicates no references yet.

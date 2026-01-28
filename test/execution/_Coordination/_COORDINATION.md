@@ -49,3 +49,12 @@
 | 2026-01-28 | DEL-01.02 Demolition Technical Specification | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-01.03 Demolition Procedures | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-01.04 Demolition Installation & Test Records | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.01 Earthworks Design Drawing Set | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.02 Earthworks Technical Specification | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.03 Earthworks Design Calculations | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.04 Geotechnical Reports | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.05 Survey Reports | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.06 Earthworks Installation & Test Records | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.07 Earthworks Excavation & Fill Placement Method Statement | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.08 Earthworks Sampling & Testing Program | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-02.09 In-Situ Compaction Verification Plan & Results | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |

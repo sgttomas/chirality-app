@@ -1,55 +1,51 @@
 # Datasheet: DEL-02.05 Survey Reports
 
-## Identification
+    ## Identification
 
-| Field | Value |
-|-------|-------|
-| Deliverable ID | DEL-02.05 |
-| Name | Survey Reports |
-| Package | PKG-02 Earthworks & Ground Improvement |
-| Discipline | Civil |
-| Type | Report |
-| Responsible | D&B Contractor (Surveyor) |
-| Status | INITIALIZED |
+    | Field | Value |
+    |-------|-------|
+    | Deliverable ID | DEL-02.05 |
+    | Name | Survey Reports |
+    | Package | PKG-02 Earthworks & Ground Improvement |
+    | Discipline | Civil |
+    | Type | Report |
+    | Responsible | D&B Contractor (Surveyor) |
+    | Current state | INITIALIZED |
 
-## Attributes
+    ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Report Number | **TBD** |
-| Report Type | **TBD** |
-| Survey/Study Scope | **TBD** |
+    | Attribute | Value |
+    |-----------|-------|
+    | Report date | **TBD** |
+| Report number | **TBD** |
 | Revision | **TBD** |
-| Classification | **TBD** |
+| Author / organization | **TBD** |
+| Basis of report | **TBD** |
 
-## Conditions
+    ## Context & Conditions
 
-**Operating / Environmental Context:**
+    - PKG-02 scope includes Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
+    - This decomposition covers the Contractor's scope of work only. Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
+    - Deliverable intent: Documents analysis and results for survey reports required for design verification and approvals. Source: _CONTEXT.md; decomposition DEL-02 entries (location TBD).
+    - Operating/environmental details: TBD (references not yet provided).
 
-Documents analysis and results for survey reports required for design verification and approvals.
+    ## Construction content
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
-
-## Construction
-
-**Materials / Configuration:**
-
-Anticipated artifacts:
-- Topographic survey
+    - Topographic survey
 - utility locate report
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+    **Configuration notes:**
 
-## References
+    - TBD (details require ER volumes and design inputs).
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S6, CSA A23.1, Alberta Transportation Standards, TAC Geometric Design Guide
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+    ## Cross-document notes
+
+    - The Requirements section in `Specification.md` is the primary source of requirements references for this Datasheet.
+    - Guidance principles in `Guidance.md` expand on how the requirements will influence deliverable execution.
+    - Procedure steps in `Procedure.md` capture the verification expectations for the recorded artifacts.
+
+    ## References
+
+    - _CONTEXT.md, `Documentation for deliverable identity and anticipated artifacts`.
+    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
+    - _REFERENCES.md is empty; Employer's Requirements volumes listed in decomposition remain pending (TBD).

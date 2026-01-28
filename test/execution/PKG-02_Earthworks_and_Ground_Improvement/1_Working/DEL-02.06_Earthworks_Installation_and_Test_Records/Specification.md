@@ -1,69 +1,51 @@
 # Specification: DEL-02.06 Earthworks Installation & Test Records
 
-## Scope
+    ## Scope
 
-This specification defines the requirements for **Earthworks Installation & Test Records** within **PKG-02 Earthworks & Ground Improvement**.
+    This deliverable defines the requirements for Earthworks Installation & Test Records within PKG-02 Earthworks & Ground Improvement. Source: _CONTEXT.md; decomposition DEL-02 entry (location TBD).
 
-Provides evidence of completion, inspection, and testing for earthworks.
+    Package scope context includes Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
 
-**Anticipated deliverable artifacts:**
-- Compaction test records
-- proof rolling records
-- survey conformance records
+    Exclusions: This decomposition covers the Contractor's scope of work only. Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
-## Requirements
+    ## Requirements
 
-### Functional Requirements
+    - R1: Provides evidence of completion, inspection, and testing for earthworks. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD).
+- R2: Include Compaction test records. Source: _CONTEXT.md.
+- R3: Include proof rolling records. Source: _CONTEXT.md.
+- R4: Include survey conformance records. Source: _CONTEXT.md.
+- R5: Address grading, excavation, fill placement, ground improvement, geotechnical and survey scope for PKG-02. Source: decomposition PKG-02 scope (location TBD).
+- R6: Document control fields (title, revision, dates, approvals) shall be included. Source: ASSUMPTION: standard D&B document control; details TBD.
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+    ## Related Datasheet Attributes
 
-### Performance Requirements
+    - Identification and anticipated artifact data in `Datasheet.md` confirm the output that maps back to these requirements.
+    - Attributes such as the drawing metadata will be filled once actual sheets are produced to ensure requirement coverage.
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+    ## Guidance & Procedure Alignment
 
-### Interface Requirements
+    - Guidance principles (`Guidance.md`) describe how to interpret and prioritize the requirements in practice.
+    - Procedure steps (`Procedure.md`) describe how verification occurs against the requirements above, ensuring traceability across documents.
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+    ## Standards
 
-### Quality Requirements
+    - Applicable earthworks, geotechnical, and civil standards: TBD pending reference documents.
+    - Employer's Requirements volumes are referenced in decomposition but not provided in _REFERENCES.md (TBD).
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+    ## Verification
 
-## Standards
+    - V1: Verify inclusion of required artifacts and content described in the Requirements and Datasheet attributes. ASSUMPTION: document review tied to `Datasheet.md`.
+    - V2: Verify alignment with PKG-02 scope. ASSUMPTION: scope compliance review referencing `Guidance.md`.
+    - V3: Verify alignment with ER requirements once Employer's Requirements volumes are available.
 
-**Applicable codes and standards (Civil discipline):**
+    ## Documentation
 
-- CSA S6
-- CSA A23.1
-- Alberta Transportation Standards
-- TAC Geometric Design Guide
+    - Controlled Earthworks Installation & Test Records deliverable (issued revision).
+    - Review comments and response log. ASSUMPTION: standard D&B document control workflow.
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+    ## References
 
-## Verification
-
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
-
-## Documentation
-
-**Required documentation outputs:**
-- Compaction test records
-- proof rolling records
-- survey conformance records
-
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+    - _CONTEXT.md (deliverable identity, description, anticipated artifacts).
+    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
+    - `Datasheet.md`, `Guidance.md`, `Procedure.md` (cross-document alignment).
+    - _REFERENCES.md indicates no references yet.
