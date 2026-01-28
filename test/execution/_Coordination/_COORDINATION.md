@@ -38,3 +38,4 @@
 | Date | Deliverable | Action | Status Update | Notes |
 |------|-------------|--------|---------------|-------|
 | 2026-01-28 | DEL-00.01 Site Establishment Design Drawing Set | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-00.02 Site Establishment Technical Specification | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
