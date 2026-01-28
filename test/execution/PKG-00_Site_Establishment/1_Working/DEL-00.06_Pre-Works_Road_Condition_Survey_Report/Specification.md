@@ -2,66 +2,53 @@
 
 ## Scope
 
-This specification defines the requirements for **Pre-Works Road Condition Survey Report** within **PKG-00 Site Establishment**.
+This specification defines the requirements for the Pre-Works Road Condition Survey Report deliverable within PKG-00 Site Establishment. (Source: `_CONTEXT.md`; `Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section 5, DEL-00.06)
 
-Documents analysis and results for pre-works road condition survey report required for design verification and approvals.
+Package scope context for site establishment includes temporary offices, storage, laydown areas, temporary utilities, security fencing and gates for construction staging, and traffic management. (Source: decomposition Section 5, PKG-00 scope)
 
-**Anticipated deliverable artifacts:**
-- Baseline road condition survey report
-- photo log
+Project-level scope focus: this decomposition covers Contractor scope only; Employer-responsible items are excluded except for interface connections. (Source: decomposition Section 1.2)
 
 ## Requirements
 
-### Functional Requirements
+### Deliverable Outputs
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+The report deliverable is expected to include the following artifacts:
 
-### Performance Requirements
+- Baseline road condition survey report
+- Photo log
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.06.
+
+### Survey Requirements
+
+- **TBD** — Survey requirements and acceptance criteria are not specified in accessible references. (Source: `_REFERENCES.md`)
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+- **TBD** — Interface requirements are not specified in accessible references. Dependencies are coordinated externally. (Source: `_DEPENDENCIES.md`)
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Report).
+- **TBD** — Quality requirements for survey reporting are not specified in accessible references. (Source: `_REFERENCES.md`)
 
 ## Standards
 
-**Applicable codes and standards (General discipline):**
-
-- CSA Z662
-- CSA B51
-- Alberta OGCA
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- **TBD** — No applicable standards identified in accessible references for this deliverable. (Source: `_REFERENCES.md`)
+- **TBD** — Employer's Requirements (Volume 2 Parts 1-3) listed in decomposition but not yet available in this deliverable's references. (Source: decomposition Section 3; `_REFERENCES.md`)
 
 ## Verification
 
-**Verification methods for Report deliverables:**
-
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- **TBD** — Verification and review requirements are not specified in accessible references. (Source: `_REFERENCES.md`)
 
 ## Documentation
 
-**Required documentation outputs:**
-- Baseline road condition survey report
-- photo log
+**Required documentation outputs (expected artifacts):**
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+- Baseline road condition survey report
+- Photo log
+
+Source: `_CONTEXT.md`; decomposition Section 5, DEL-00.06.
+
+**Documentation control requirements:**
+
+- **TBD** — Document control, numbering, and revision requirements are not specified in accessible references. (Source: `_REFERENCES.md`)

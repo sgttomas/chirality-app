@@ -42,3 +42,4 @@
 | 2026-01-28 | DEL-00.03 Site Establishment Procedures | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-00.04 Contractor’s Equipment Schedule | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
 | 2026-01-28 | DEL-00.05 Road Access Configuration & Security Process Submission | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
+| 2026-01-28 | DEL-00.06 Pre-Works Road Condition Survey Report | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
