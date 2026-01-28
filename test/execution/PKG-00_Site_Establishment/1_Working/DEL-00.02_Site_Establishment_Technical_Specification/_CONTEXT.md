@@ -1,0 +1,21 @@
+# Context: DEL-00.02
+
+**Name:** Site Establishment Technical Specification
+**Package:** PKG-00 Site Establishment
+**Discipline:** General
+**Type:** Specification
+**Responsible:** D&B Contractor
+
+## Description
+
+Defines performance, materials, and workmanship requirements for site establishment per ER requirements.
+
+## Anticipated Artifacts
+
+- Temporary facilities specification
+- temporary utilities specification
+
+## Decomposition Reference
+
+- **Decomposition file:** /Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md
+- **Deliverable ID:** DEL-00.02

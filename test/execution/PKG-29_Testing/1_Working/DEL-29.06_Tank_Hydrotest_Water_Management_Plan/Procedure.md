@@ -1,0 +1,64 @@
+# Procedure: DEL-29.06 Tank Hydrotest Water Management Plan
+
+## Purpose
+
+This procedure defines the process for producing and managing **Tank Hydrotest Water Management Plan** within **PKG-29 Testing**.
+
+Defines the planned approach and controls for tank hydrotest water management plan to meet ER requirements.
+
+**Deliverable type:** Plan
+**Responsible party:** D&B Contractor (QA/QC)
+
+## Prerequisites
+
+**Dependencies:**
+- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
+- Upstream deliverables and input data to be confirmed prior to commencement
+
+**Reference materials:**
+- See `_REFERENCES.md` for applicable reference documents
+- See `0_References/` in package directory for reference materials
+- Employer's Requirements — **TBD**
+- Applicable codes and standards — see Specification.md
+
+**Personnel requirements:**
+- Qualified T&C discipline personnel — **TBD**
+- Checker/reviewer qualifications — **TBD**
+- **ASSUMPTION**: Personnel competency per project quality procedures
+
+## Steps
+
+1. **Scope Definition** — Define plan scope and objectives. **TBD**
+2. **Content Development** — Develop plan content per requirements. **TBD**
+3. **Resource Identification** — Identify resources and responsibilities. **TBD**
+4. **Review** — Stakeholder and technical review. **TBD**
+5. **Approval** — Responsible party approves for implementation. **TBD**
+
+## Verification
+
+**Verification activities for Plan deliverables:**
+
+- Scope coverage review
+- Resource adequacy check
+- Schedule integration review
+- Stakeholder review and acceptance
+
+**Sign-off requirements:**
+- Originator sign-off — **TBD**
+- Checker sign-off — **TBD**
+- Approver sign-off — **TBD**
+- **ASSUMPTION**: Sign-off protocol per project quality procedures
+
+## Records
+
+**Documentation outputs:**
+- Hydrotest fill/hold/drain plan
+- treatment approach
+- sampling/testing plan
+- discharge/hauling plan
+
+**Record management:**
+- Records to be managed per project document control procedures
+- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
+- Retention requirements: **TBD**
+- **ASSUMPTION**: Electronic records in project document management system
