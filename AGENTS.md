@@ -68,7 +68,7 @@ Agents are classified by how they interact, what they write, and whether they ca
 | Agent | CLASS | INTERACTION | WRITE_SCOPE | BLOCKING | PRIMARY_OUTPUTS |
 |-------|-------|-------------|-------------|----------|-----------------|
 | **PROJECT_DECOMP** | PERSONA | chat | project-level | allowed | Decomposition document |
-| **CHIRALITY-APP** | PERSONA | chat | none | allowed | Guidance/coaching (verbal) |
+| **CHIRALITY-APP** | PERSONA | chat | none* | allowed | Guidance/coaching (verbal); optional coaching note |
 | **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
 | **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates |
 | **ESTIMATING** | PERSONA | chat | tool-root-only | never | Estimate snapshots in `_Estimates/` |
@@ -78,6 +78,8 @@ Agents are classified by how they interact, what they write, and whether they ca
 | **DEPENDENCIES** | TASK | INIT.md | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
 | **AGGREGATION** | TASK | INIT.md | tool-root-only | never | Snapshots in `_Aggregation/` |
 | **RECONCILIATION** | TASK | both | tool-root-only | never | Reports in `_Reconciliation/` |
+
+*\* CHIRALITY-APP writes nothing by default; may produce an optional coaching note only on explicit human request.*
 
 ### When to use which class
 
