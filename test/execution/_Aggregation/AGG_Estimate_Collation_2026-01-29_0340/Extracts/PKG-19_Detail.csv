@@ -1,0 +1,31 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-19,DEL-19.01,Control system architecture design,1,LS,30000,30000,CAD,ALLOWANCE,A-015,LOW,System architecture and network design
+L-002,E,PKG-19,DEL-19.01,Control system design drawings,1,LS,30000,30000,CAD,ALLOWANCE,A-015,LOW,Cabinet layouts HMI arrangement drawings
+L-003,E,PKG-19,DEL-19.02,DCS/PLC technical specification,1,LS,20000,20000,CAD,ALLOWANCE,A-016,LOW,Technical specification document
+L-004,E,PKG-19,DEL-19.02,HMI and historian specification,1,LS,20000,20000,CAD,ALLOWANCE,A-016,LOW,HMI and historian technical specs
+L-005,E,PKG-19,DEL-19.03,Data sheet package preparation,1,LS,20000,20000,CAD,ALLOWANCE,A-017,LOW,Vendor submittal review and approval
+L-006,E,PKG-19,DEL-19.04,PLC/DCS application software development,1,LS,80000,80000,CAD,ALLOWANCE,A-018,LOW,Control logic interlocks sequences
+L-007,E,PKG-19,DEL-19.04,HMI graphics development,1,LS,30000,30000,CAD,ALLOWANCE,A-018,LOW,40-60 HMI screens estimated
+L-008,E,PKG-19,DEL-19.04,Historian configuration,1,LS,10000,10000,CAD,ALLOWANCE,A-018,LOW,Tag database trending reporting
+L-009,PM,PKG-19,N/A,Project management - control systems,1,LS,120000,120000,CAD,PARAMETRIC,D-010,LOW,6% of CD+CI+MAT per fallback model
+L-010,P,PKG-19,N/A,Procurement services - control systems,1,LS,18000,18000,CAD,PARAMETRIC,D-010,LOW,2% of MAT per fallback model
+L-011,MAT,PKG-19,N/A,DCS/PLC controllers (redundant pair),2,EA,90000,180000,CAD,ALLOWANCE,A-003,LOW,Primary and standby controllers
+L-012,MAT,PKG-19,N/A,I/O modules and racks,1,LS,120000,120000,CAD,ALLOWANCE,A-007,LOW,40-50 modules for 600-800 I/O points
+L-013,MAT,PKG-19,N/A,HMI workstations (control room),3,EA,25000,75000,CAD,ALLOWANCE,A-004,LOW,2 operator + 1 engineering station
+L-014,MAT,PKG-19,N/A,Remote HMI panels,3,EA,15000,45000,CAD,ALLOWANCE,A-005,LOW,Railcar tankfarm marine areas
+L-015,MAT,PKG-19,N/A,Historian server and software,1,LS,80000,80000,CAD,ALLOWANCE,A-008,LOW,Server hardware + historian license
+L-016,MAT,PKG-19,N/A,Industrial network switches,10,EA,6000,60000,CAD,ALLOWANCE,A-009,LOW,Managed industrial Ethernet switches
+L-017,MAT,PKG-19,N/A,Fiber optic infrastructure,2000,M,40,80000,CAD,ALLOWANCE,A-010,LOW,Fiber backbone tankfarm to control room
+L-018,MAT,PKG-19,N/A,Control cabinets and enclosures,8,EA,15000,120000,CAD,ALLOWANCE,A-011,LOW,Main panel + field junction boxes
+L-019,MAT,PKG-19,N/A,Control system software licenses,1,LS,100000,100000,CAD,ALLOWANCE,A-019,LOW,DCS/PLC HMI historian licenses
+L-020,MAT,PKG-19,N/A,Miscellaneous cables and terminations,1,LS,60000,60000,CAD,ALLOWANCE,A-020,LOW,Control cables patch cables terminations
+L-021,CD,PKG-19,N/A,Control cabinet installation,8,EA,8000,64000,CAD,ALLOWANCE,A-011,LOW,Cabinet setting alignment termination
+L-022,CD,PKG-19,N/A,Control system wiring and termination,1,LS,150000,150000,CAD,ALLOWANCE,A-020,LOW,Field wiring to I/O modules
+L-023,CD,PKG-19,N/A,Network installation (fiber and copper),1,LS,80000,80000,CAD,ALLOWANCE,A-010,LOW,Fiber optic and Ethernet installation
+L-024,CD,PKG-19,N/A,HMI and server installation,1,LS,30000,30000,CAD,ALLOWANCE,A-004,LOW,Control room equipment installation
+L-025,CD,PKG-19,N/A,Remote HMI installation,3,EA,8000,24000,CAD,ALLOWANCE,A-005,LOW,Field HMI panel installation
+L-026,CD,PKG-19,DEL-19.05,Installation quality records,1,LS,32000,32000,CAD,ALLOWANCE,A-021,LOW,QA/QC documentation completion
+L-027,CI,PKG-19,N/A,Construction indirects - control systems,1,LS,68000,68000,CAD,PARAMETRIC,D-010,LOW,18% of CD per fallback model
+L-028,COM,PKG-19,N/A,Factory acceptance test (FAT),1,LS,25000,25000,CAD,ALLOWANCE,A-022,LOW,FAT at vendor facility
+L-029,COM,PKG-19,N/A,Site acceptance test (SAT),1,LS,20000,20000,CAD,ALLOWANCE,A-022,LOW,On-site testing with field devices
+L-030,COM,PKG-19,N/A,Commissioning support,1,LS,10000,10000,CAD,ALLOWANCE,A-022,LOW,Vendor commissioning assistance

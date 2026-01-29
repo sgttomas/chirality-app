@@ -1,12 +1,14 @@
 # INIT — Session Orientation
 
-This document orients the agent to the **Estimate Aggregation Pipeline** for the Canola Oil Transload Facility project.
+This document orients the agent to the **Dependency Discovery Pipeline** for the Canola Oil Transload Facility project.
 
 ---
 
-## Your Role: AGGREGATION Agent (Estimate Collation)
+## Your Role: DEPENDENCY_DISCOVERY Agent
 
-You are running an **incremental package-by-package estimate collation pipeline** that combines estimate artifacts from individual packages into cumulative project-level totals.
+You are running an **incremental deliverable-by-deliverable dependency discovery pipeline** that analyzes each deliverable's content to identify and document dependencies on other deliverables within the project.
+
+**Purpose:** Build a declared dependency graph by examining deliverable content (Datasheet.md, Specification.md, Guidance.md, Procedure.md) and populating `_DEPENDENCIES.md` files with discovered edges.
 
 ---
 
@@ -17,277 +19,287 @@ You are running an **incremental package-by-package estimate collation pipeline*
 Read these files in order:
 1. `/Users/ryan/ai-env/projects/chirality-app/README.md` — Project overview and filesystem paths
 2. `/Users/ryan/ai-env/projects/chirality-app/AGENTS.md` — Agent framework and conventions
-3. `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_AGGREGATION.md` — Your specific instructions and protocol
+3. `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` — Project decomposition (packages, deliverables, interfaces)
 
-**Key Takeaway:** You are collating estimate snapshots (Detail.csv, BOE.md, Assumptions, Risks) from package-level estimates into cumulative project files. The deliverable-level UID rule must avoid collisions for `WBS_DeliverableID = N/A`; prefer package-namespaced UIDs.
+**Key Takeaway:** You are discovering dependencies between deliverables by analyzing their content. Dependencies are directional edges: "DEL-XX.YY depends on DEL-AA.BB for [reason]". You update `_DEPENDENCIES.md` files and maintain a project-wide dependency register.
 
 ### Step 1: Check Pipeline Status
 
-Check which packages have been completed:
-- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/_LATEST.md`
-- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/_Pipelines/EstimateCollation_PhaseByPackage/_LATEST.md`
+Check which deliverables have been analyzed:
+- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_DISCOVERY_STATUS.md`
+- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_REGISTER.csv`
 
 This tells you:
-- Which packages are already collated
-- What the cumulative total is so far
+- Which packages/deliverables have been analyzed
+- Current dependency graph statistics
 - Which package to process next
 
 ---
 
-## Running the Pipeline (Per-Package Workflow)
+## Running the Pipeline (Per-Deliverable Workflow)
 
-The user will tell you which package to process (e.g., "PKG-03"). Follow this workflow:
+The user will tell you which package and deliverable to process (e.g., "PKG-08 DEL-08.01"). Follow this workflow:
 
-### Phase 1: Update the Brief (1 minute)
+### Phase 1: Read Deliverable Content (2-3 minutes)
 
-Update `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/INIT.md` with the current package details:
+For the target deliverable, read these files from the working folder:
 
-```markdown
-# Aggregation Brief — PKG-XX [Package Name]
-
-## Purpose
-`Estimate_Collation`
-
-## Pipeline ID
-`EstimateCollation_PhaseByPackage`
-
-## Scope
-This run collates estimate artifacts for **PKG-XX [Package Name]** only.
-
-## Where to Look
-- Estimate snapshot: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKGXX_DRAFT_2026-01-28_HHMM/`
-
-## Output Labeling Preferences
-- Package tag: `PKG-XX`
-- Estimate label: `EST_PKGXX_DRAFT_2026-01-28_HHMM`
-
-## Notes
-- This is the [Nth] package in the incremental collation pipeline
-- Prior packages completed: [list prior snapshot IDs]
-- Incremental pipeline will incorporate all prior package data into cumulative totals
-- Report back when PKG-XX aggregation is complete
-```
-
-### Phase 2: Read Source Estimate Artifacts (2-3 minutes)
-
-For the target package (e.g., PKG-03), read these files from the estimate snapshot:
-
-**Location Pattern:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKGXX_DRAFT_YYYY-MM-DD_HHMM/`
+**Location Pattern:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
 
 **Required Reads:**
-1. `Detail.csv` — Line items with Qty, Unit, UnitRate (this is the canonical cost data)
-2. `Summary.md` — Package total, CBS breakdown, key drivers
-3. `BOE.md` (first 100 lines) — Basis of estimate overview
-4. `Assumptions_Log.md` — All assumptions
-5. `Risk_Register.md` — All risks
-6. `Decision_Log.md` — All decisions
+1. `_CONTEXT.md` — Deliverable identity and decomposition pointer
+2. `_DEPENDENCIES.md` — Current dependency state (may be NOT_TRACKED or have prior edges)
+3. `_REFERENCES.md` — Reference documents used by this deliverable
+4. `Datasheet.md` — Key parameters, interfaces, inputs/outputs
+5. `Specification.md` — Requirements that may reference other deliverables
+6. `Guidance.md` — Design guidance that may indicate dependencies
+7. `Procedure.md` — Procedures that may require inputs from other deliverables
 
-**Optional (if present):** QA or source index artifacts (e.g., `QA_Report.md`, `Source_Index.md`) are informational and do not affect aggregation.
+**What to look for:**
+- Explicit references to other deliverables (e.g., "per DEL-XX.YY", "refer to PKG-XX")
+- Interface requirements (e.g., "receives input from", "provides output to")
+- Predecessor/successor relationships (e.g., "after [system] is complete")
+- Shared parameters or data that must be consistent across deliverables
+- Equipment/system dependencies (e.g., "requires [equipment] from [package]")
+- Document dependencies (e.g., "based on drawings from", "per specification")
 
-**Common gap:** `Risk_Register.md` may be missing in some packages; log as WARNINGS in QA_Report and Coverage.csv.
+### Phase 2: Identify Dependencies (3-5 minutes)
 
-**What to capture:**
-- Number of line items
-- Base estimate and contingency amounts
-- Total estimate
-- Number of assumptions, risks, decisions
-- Deliverables covered
-- Major cost drivers
+Analyze the content and categorize discovered dependencies:
 
-### Phase 3: Create Aggregation Snapshot (5-10 minutes)
+**Dependency Types:**
+| Type | Code | Description |
+|------|------|-------------|
+| Technical Input | `TI` | Requires technical output/data from another deliverable |
+| Interface | `IF` | Shares an interface boundary with another deliverable |
+| Predecessor | `PR` | Must wait for another deliverable to reach a certain state |
+| Reference | `RF` | Uses another deliverable as reference (soft dependency) |
+| Shared Parameter | `SP` | Shares a parameter value that must be consistent |
+| Equipment/System | `EQ` | Depends on equipment or system defined elsewhere |
 
-**3.1 Create Snapshot Folder**
+**For each discovered dependency, record:**
+- Source deliverable (the one being analyzed)
+- Target deliverable (the one it depends on)
+- Dependency type code
+- Reason/evidence (quote or paraphrase from source content)
+- Criticality (HIGH / MEDIUM / LOW)
+- Status (DECLARED / INFERRED / TBD)
 
-```bash
-# Get timestamp
-date +"%Y-%m-%d_%H%M"  # e.g., 2026-01-29_0128
+### Phase 3: Update _DEPENDENCIES.md (2-3 minutes)
 
-# Create folder structure
-mkdir -p "/path/to/_Aggregation/AGG_Estimate_Collation_YYYY-MM-DD_HHMM/{Extracts,Aggregated/Estimate}"
+Update the deliverable's `_DEPENDENCIES.md` file with discovered edges:
+
+```markdown
+# _DEPENDENCIES.md
+
+## Dependency Tracking Mode
+`DECLARED`
+
+## Inbound Dependencies (this deliverable depends on)
+
+| TargetDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| DEL-XX.YY | TI | Requires tank sizing from DEL-XX.YY | HIGH | DECLARED |
+| DEL-AA.BB | IF | Shares piping interface at TIE-001 | MEDIUM | DECLARED |
+
+## Outbound Dependencies (other deliverables depend on this)
+
+| SourceDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| DEL-CC.DD | TI | Provides pump specifications | HIGH | DECLARED |
+
+## Dependency Discovery Metadata
+- Analyzed: YYYY-MM-DD HH:MM
+- Analyzer: DEPENDENCY_DISCOVERY
+- Content State: [status from _STATUS.md at time of analysis]
+- Confidence: [HIGH/MEDIUM/LOW - based on explicitness of dependencies]
+
+## Notes
+[Any observations about unclear dependencies, potential gaps, or items needing human confirmation]
 ```
 
-**3.2 Copy Raw Extracts (Audit Trail)**
+### Phase 4: Update Project Registers (2 minutes)
 
-```bash
-# Copy current package extracts
-cp /path/to/_Estimates/EST_PKGXX_*/\{Detail.csv,BOE.md,Assumptions_Log.md,Risk_Register.md,Decision_Log.md\} Extracts/
+Update the project-level dependency tracking files:
 
-# Rename with package prefix
-cd Extracts/
-for f in Detail.csv BOE.md Assumptions_Log.md Risk_Register.md Decision_Log.md; do
-  mv "$f" "PKG-XX_$f"
-done
+**4.1 Update Dependency Register**
+Append new edges to: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_REGISTER.csv`
 
-# Copy prior package extracts (for incremental pipeline)
-cp /path/to/prior_snapshot/Extracts/PKG-* ./
+```csv
+SourceDEL,TargetDEL,Type,Reason,Criticality,Status,DiscoveredDate,SourcePackage,TargetPackage
+DEL-08.01,DEL-07.03,TI,"Requires tank design parameters",HIGH,DECLARED,2026-01-29,PKG-08,PKG-07
 ```
 
-**3.3 Create Aggregated Data Files**
+**4.2 Update Discovery Status**
+Update: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_DISCOVERY_STATUS.md`
 
-Create these files in `Aggregated/Estimate/`:
-
-1. **Project_Detail.csv** — Combine all packages' line items with UID namespacing
-   - Format: `LineUID,FromPackageID,FromDeliverableID,LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes`
-   - UID pattern: `PKG-XX::L001` (LineUID must be package-namespaced; do not use DeliverableID-based UIDs)
-
-2. **Project_Assumptions.csv** — Combine all assumptions
-   - UID pattern: `PKG-XX::A-001`
-
-3. **Project_Risks.csv** — Combine all risks
-   - UID pattern: `PKG-XX::R-001`
-
-4. **Project_Summary_CBS.csv** — Cumulative totals by CBS category
-   - Sum across all packages: E, PM, P, MAT, CD, CI, COM
-
-5. **BOE_Index.csv** — One row per package with snapshot ID and totals
-
-6. **Coverage.csv** — Package status (COMPLETE/etc.) and line counts
-
-7. **Conflicts.csv** — Empty (header only) unless conflicts found
-
-8. **Duplicates.csv** — Empty (header only) unless duplicates found
-
-**3.4 Create Summary Documents**
-
-Create these markdown files in the snapshot root:
-
-1. **Brief.md** — Verbatim brief + normalized brief from INIT.md
-
-2. **Plan.md** — What was done, statistics table showing cumulative totals across all packages
-
-3. **RUN_SUMMARY.md** — Run status (OK/WARNINGS/FAILED), cumulative statistics, financial summary
-
-4. **QA_Report.md** — Validation results, schema checks, data quality metrics
-
-5. **Aggregated/Estimate/BOE_Collection.md** — Consolidated basis of estimate from all packages
-
-6. **Decision_Log.md** — Copy from prior snapshot + append current package decisions
-
-7. **Assumptions_Log.md** — Copy from prior snapshot + append current package assumptions
-
-8. **Source_Index.csv** — List all source artifact paths processed
-
-### Phase 4: Update Pointers (1 minute)
-
-Update these pointer files to reference the new snapshot:
-
-1. `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/_LATEST.md`
-   - Update snapshot ID, path, date
-   - Update cumulative totals
-   - Update pipeline progress
-
-2. `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/_Pipelines/EstimateCollation_PhaseByPackage/_LATEST.md`
-   - Update snapshot ID
-   - List completed packages and their totals
-   - Update cumulative total
+- Mark deliverable as analyzed
+- Update package progress
+- Update graph statistics
 
 ### Phase 5: Report Completion (1 minute)
 
 Report to the user with:
-- Snapshot ID and location
-- This package summary (deliverables, line items, estimate total)
-- Cumulative project totals (packages, deliverables, line items, total estimate)
-- Key findings for this package (major cost drivers, confidence, risks)
-- Cumulative CBS breakdown table
-- Pipeline progress (X of ~36 packages complete)
+- Deliverable ID and package
+- Number of inbound dependencies discovered
+- Number of outbound dependencies discovered (if identified from content)
+- Dependency types breakdown
+- High-criticality dependencies (list them)
+- Confidence level for this analysis
+- Any items flagged for human review
+- Package progress (X of Y deliverables in this package)
 - Ready message asking for next assignment
 
 ---
 
 ## Key Patterns and Conventions
 
-### File Naming
-- Snapshot folders: `AGG_Estimate_Collation_YYYY-MM-DD_HHMM`
-- Extract files: `PKG-XX_[ArtifactName]`
-- UID namespacing: `PKG-XX::[ID]` (prevents conflicts in cumulative files)
+### Dependency Edge Format
+```
+SourceDEL → TargetDEL (Type: XX, Criticality: HIGH/MEDIUM/LOW)
+```
+- Source = the deliverable that DEPENDS ON something
+- Target = the deliverable being DEPENDED UPON
+- "DEL-08.01 depends on DEL-07.03" means DEL-08.01 is Source, DEL-07.03 is Target
 
-### Incremental Pipeline Behavior
-- Each snapshot incorporates ALL prior packages (not just the current one)
-- Copy prior extracts to new snapshot for complete audit trail
-- Cumulative CSV files combine data from all packages processed so far
-- No need to re-read prior estimates; use prior snapshot's aggregated files as base
+### Recognizing Dependencies in Content
 
-### Efficiency Tips
-1. **Parallel reads**: Read Detail.csv, Summary.md, BOE.md, Assumptions, Risks, Decisions in parallel when possible
-2. **Bash for file ops**: Use bash for copying extracts, creating CSVs from heredocs
-3. **Template reuse**: Copy/adapt files from prior snapshot rather than recreating from scratch
-4. **Focus on essentials**: Brief, Plan, RUN_SUMMARY, BOE_Collection, and CSV files are critical; others can be streamlined
+**Explicit References (HIGH confidence):**
+- "per DEL-XX.YY", "refer to DEL-XX.YY"
+- "as specified in [Package Name]"
+- "input from [System/Equipment] per PKG-XX"
+- Tables listing interface points with other deliverables
 
-### Data Validation Checklist
-- [ ] All line items have Qty, Unit, UnitRate populated
-- [ ] Financial totals match (package base + contingency = total)
-- [ ] Cumulative totals = sum of all packages
-- [ ] All UIDs are unique (no duplicates across packages; ensure package prefix is applied)
-- [ ] Schema validation passed (Detail.csv has required columns)
-- [ ] No conflicts or duplicates detected
+**Implicit References (MEDIUM confidence):**
+- "pump shall be sized for [flow rate]" → depends on process deliverable defining flow rate
+- "foundation per structural requirements" → depends on structural package
+- "electrical supply from MCC-XX" → depends on electrical package
+
+**Inferred Dependencies (LOW confidence):**
+- Logical predecessors based on construction/design sequence
+- Shared parameters without explicit cross-reference
+- Industry-standard interfaces (e.g., civil before structural)
+
+### Dependency Discovery Rules
+
+1. **Declare what you find:** Only record dependencies with evidence from the content
+2. **Mark confidence:** HIGH (explicit reference), MEDIUM (implicit), LOW (inferred)
+3. **Flag TBD:** If a dependency is likely but evidence is unclear, mark Status = TBD
+4. **No invention:** Don't assume dependencies not supported by deliverable content
+5. **Cross-package focus:** Dependencies within the same package are less critical; prioritize cross-package edges
+6. **Interface boundaries:** Pay special attention to interface-critical dependencies (Type = IF)
+
+### Handling NOT_TRACKED Deliverables
+
+If `_DEPENDENCIES.md` currently shows `NOT_TRACKED`:
+1. Change tracking mode to `DECLARED`
+2. Add discovered dependencies
+3. Note that this was upgraded from NOT_TRACKED
+
+---
+
+## Data Validation Checklist
+
+- [ ] All dependency edges have valid DEL-IDs (exist in decomposition)
+- [ ] No circular dependencies within single deliverable (A→B and B→A needs review)
+- [ ] Criticality assigned to each edge
+- [ ] Evidence/reason provided for each edge
+- [ ] `_DEPENDENCIES.md` format is consistent
+- [ ] Project register updated with new edges
+- [ ] Discovery status updated
 
 ---
 
 ## Common Issues and Solutions
 
-**Issue:** Estimate snapshot not found
-- **Solution:** Check `_CONFIG.md` and `_LATEST.md` in _Estimates/ for correct snapshot ID
+**Issue:** Deliverable content is minimal (INITIALIZED but not developed)
+- **Solution:** Record what's visible, mark confidence as LOW, flag for re-analysis when content matures
 
-**Issue:** Line items missing Qty/Unit/UnitRate
-- **Solution:** Mark as SCHEMA_INVALID in Coverage.csv, exclude from totals, flag in QA_Report
+**Issue:** Reference to package but not specific deliverable
+- **Solution:** Use package-level dependency (e.g., "DEL-08.01 → PKG-07 (general)") and flag for refinement
 
-**Issue:** Prior snapshot not accessible
-- **Solution:** Each snapshot should be self-contained; if prior unavailable, start fresh with current package only
+**Issue:** Circular dependency detected
+- **Solution:** Record both edges, flag in Notes for human review, may indicate interface that needs coordination
 
-**Issue:** UID collision
-- **Solution:** Use package prefix (PKG-XX::) for all UIDs to ensure uniqueness (do not rely on WBS_DeliverableID where it may be `N/A`)
+**Issue:** Cannot determine target deliverable for a dependency
+- **Solution:** Record as TBD with description, flag for human assignment
 
----
-
-## Implementation Notes (Recent Updates)
-
-- Use `python3` for aggregation scripts; `python` may not be available in the environment.
-- Risk registers may be missing in some estimate snapshots; log as WARNINGS in QA_Report and Coverage.csv.
+**Issue:** Content references external documents (not project deliverables)
+- **Solution:** Not a dependency edge; note in `_REFERENCES.md` if not already captured
 
 ---
 
 ## Workflow Orientation Rules
 
-- **No re-reading past deliverables:** Prior packages are already collated. Only read the CURRENT package estimate.
-- **Incremental accumulation:** Copy prior snapshot's aggregated data and ADD current package to it.
-- **Focus on aggregation, not estimation:** You are NOT creating estimates. You are collecting and organizing existing estimate data.
-- **One package at a time:** Complete each package fully before moving to the next.
-- **Report and await:** After each package, report completion and wait for user to assign the next package.
+- **One deliverable at a time:** Complete analysis of each deliverable fully before moving to the next
+- **Package sequence:** Process all deliverables in a package before moving to the next package
+- **Read before writing:** Always read current `_DEPENDENCIES.md` state before updating
+- **Preserve existing edges:** Don't remove prior dependencies; only add or update
+- **Report and await:** After each deliverable, report completion and wait for user to assign the next
 
 ---
 
 ## Success Criteria
 
-A successful aggregation run produces:
-1. ✓ New timestamped snapshot with all required files
-2. ✓ Cumulative data combining all packages processed to date
-3. ✓ RUN_STATUS: OK (no errors or missing artifacts)
-4. ✓ Updated pointer files
-5. ✓ Complete audit trail (raw extracts preserved)
-6. ✓ Clear completion report to user
+A successful dependency discovery run produces:
+1. ✓ Updated `_DEPENDENCIES.md` with discovered edges
+2. ✓ Edges have Type, Reason, Criticality, Status
+3. ✓ Project register updated with new edges
+4. ✓ Discovery status updated for this deliverable
+5. ✓ Clear completion report to user
+6. ✓ TBD/uncertain items flagged for human review
 
 ---
 
-## Next Package Assignment
+## Next Deliverable Assignment
 
-When the user says "PKG-XX", immediately:
-1. Update INIT.md brief (Phase 1)
-2. Read estimate artifacts (Phase 2)
-3. Create aggregation snapshot (Phase 3)
-4. Update pointers (Phase 4)
+When the user specifies a deliverable (e.g., "PKG-08 DEL-08.01"), immediately:
+1. Read deliverable content (Phase 1)
+2. Identify dependencies (Phase 2)
+3. Update `_DEPENDENCIES.md` (Phase 3)
+4. Update project registers (Phase 4)
 5. Report completion (Phase 5)
 
 **Current Pipeline Status:**
-- Check `_LATEST.md` to see which packages are complete
-- Next package will be assigned by the user
-- Progress through packages sequentially (PKG-00 → PKG-01 → PKG-02 → ...)
+- Check `_DEPENDENCY_DISCOVERY_STATUS.md` to see which deliverables are complete
+- Next deliverable will be assigned by the user
+- Process deliverables within each package, then move to next package
 
 ---
 
-**Pipeline Type:** EstimateCollation_PhaseByPackage (Incremental)
-**Output Root:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/`
-**Estimate Source Root:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/`
+## Project Context
+
+**Decomposition File:** `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`
+**Execution Root:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/`
+**Coordination Files:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/`
+**Project Size:** 36 packages / 210 deliverables
 
 ---
 
-*This INIT.md was updated based on efficient workflow patterns learned during PKG-00, PKG-01, and PKG-02 aggregation runs.*
+## Package Reference (for dependency target lookup)
+
+When identifying dependencies, use the decomposition to find valid target deliverables:
+
+| PKG-ID | Package Name | Key Interfaces |
+|--------|--------------|----------------|
+| PKG-00 | Project Management | PM plans, schedules, budgets |
+| PKG-01 | Regulatory & Permitting | Permits, approvals, compliance |
+| PKG-02 | Civil & Sitework | Grading, drainage, roads, paving |
+| PKG-03 | Underground Utilities | Piping, electrical duct banks |
+| PKG-04 | Structural | Foundations, buildings, supports |
+| PKG-05 | Buildings & Enclosures | Enclosures, control rooms |
+| PKG-06 | Rail Infrastructure | Tracks, turnouts, signals |
+| PKG-07 | Storage Tanks | Tank farm, containment |
+| PKG-08 | Process Piping | Piping, valves, manifolds |
+| PKG-09 | Process Equipment | Pumps, heaters, filters |
+| PKG-10+ | [Refer to decomposition] | [Refer to decomposition] |
+
+---
+
+**Pipeline Type:** DependencyDiscovery_DeliverableByDeliverable (Incremental)
+**Output Root:** Individual `_DEPENDENCIES.md` files + `_Coordination/` registers
+**Source Root:** `/Users/ryan/ai-env/projects/chirality-app/test/execution/` (deliverable folders)
+
+---
+
+*This INIT.md establishes the DEPENDENCY_DISCOVERY agent role for building a declared dependency graph across the project's 210 deliverables.*

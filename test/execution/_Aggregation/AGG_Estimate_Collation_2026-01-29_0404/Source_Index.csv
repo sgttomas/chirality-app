@@ -1,0 +1,6 @@
+SourceType,SourcePath,PackageID,ProcessedDate
+Estimate,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG34_DRAFT_2026-01-29_1045/Detail.csv,PKG-34,2026-01-29
+Estimate,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG34_DRAFT_2026-01-29_1045/Assumptions_Log.md,PKG-34,2026-01-29
+Estimate,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG34_DRAFT_2026-01-29_1045/Risk_Register.md,PKG-34,2026-01-29
+Estimate,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG34_DRAFT_2026-01-29_1045/Decision_Log.md,PKG-34,2026-01-29
+PriorSnapshot,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0359/Aggregated/Estimate/Project_Detail.csv,PKG-00 through PKG-33,2026-01-29

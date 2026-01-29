@@ -1,0 +1,38 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-13,DEL-13.01,Storage Tank Design Drawing Set - CAD drafting (3 tank GAs foundations nozzle schedules roof details agitator drawings),1,LS,180000,180000,CAD,ALLOWANCE,A-011,LOW,~60 sheets at $3k/sheet average for mechanical
+L002,E,PKG-13,DEL-13.02,Storage Tank Technical Specification - API 650 specification agitator specification appurtenance specification,1,LS,85000,85000,CAD,ALLOWANCE,A-012,LOW,~400 hours at $210/hr for mechanical/process specialist
+L003,E,PKG-13,DEL-13.03,Storage Tank Design Calculations - API 650 tank design (3 sets) foundation calculations seismic calculations,1,LS,150000,150000,CAD,ALLOWANCE,A-013,LOW,~600 hours at $250/hr for structural/mechanical engineer
+L004,E,PKG-13,DEL-13.04,Storage Tank Data Sheet Package - tank data sheets (3) agitator data sheets (3) overflow protection data sheets,1,LS,45000,45000,CAD,ALLOWANCE,A-014,LOW,~180 hours at $250/hr for equipment engineer
+L005,E,PKG-13,DEL-13.05,Storage Tank Installation & Test Records - test procedures hydrostatic test plans QC record compilation,1,LS,55000,55000,CAD,ALLOWANCE,A-015,LOW,~220 hours at $250/hr QA/QC engineer
+L006,E,PKG-13,DEL-13.06,Storage Tank Fabrication Quality Documentation Package - ITP WPS PQR review MTR compilation weld map prep,1,LS,65000,65000,CAD,ALLOWANCE,A-016,LOW,~260 hours at $250/hr QA specialist
+L007,MAT,PKG-13,N/A,API 650 Storage Tank No. 1 - supply (shell bottom roof structure appurtenances) ~420 tonnes steel 16300 m3,1,LS,3200000,3200000,CAD,ALLOWANCE,A-001,LOW,Typical mid-range API 650 tank supply ~$7600/tonne fabricated
+L008,MAT,PKG-13,N/A,API 650 Storage Tank No. 2 - supply (shell bottom roof structure appurtenances) ~420 tonnes steel 16300 m3,1,LS,3200000,3200000,CAD,ALLOWANCE,A-001,LOW,Typical mid-range API 650 tank supply ~$7600/tonne fabricated
+L009,MAT,PKG-13,N/A,API 650 Storage Tank No. 3 - supply (shell bottom roof structure appurtenances) ~420 tonnes steel 16300 m3,1,LS,3200000,3200000,CAD,ALLOWANCE,A-001,LOW,Typical mid-range API 650 tank supply ~$7600/tonne fabricated
+L010,MAT,PKG-13,N/A,Agitator No. 1 - side-entry agitator 75 HP motor VFD seal assembly mounting,1,LS,125000,125000,CAD,ALLOWANCE,A-006,LOW,Typical side-entry agitator for large oil storage
+L011,MAT,PKG-13,N/A,Agitator No. 2 - side-entry agitator 75 HP motor VFD seal assembly mounting,1,LS,125000,125000,CAD,ALLOWANCE,A-006,LOW,Typical side-entry agitator for large oil storage
+L012,MAT,PKG-13,N/A,Agitator No. 3 - side-entry agitator 75 HP motor VFD seal assembly mounting,1,LS,125000,125000,CAD,ALLOWANCE,A-006,LOW,Typical side-entry agitator for large oil storage
+L013,MAT,PKG-13,N/A,Overflow Protection System - high-level switches alarms piping for 3 tanks,1,LS,85000,85000,CAD,ALLOWANCE,A-017,LOW,Level instrumentation and overflow piping for 3 tanks
+L014,MAT,PKG-13,N/A,Water Draw-off System - drain valves piping sampling for 3 tanks,1,LS,45000,45000,CAD,ALLOWANCE,A-018,LOW,Water draw-off system typical for edible oil tanks
+L015,MAT,PKG-13,N/A,Internal Coating System - food-grade epoxy lining (~11000 m2 total 3 tanks),1,LS,550000,550000,CAD,ALLOWANCE,A-009,LOW,~$50/m2 for food-grade coating supply and application
+L016,MAT,PKG-13,N/A,External Coating System - primer and topcoat (~9000 m2 total 3 tanks),1,LS,180000,180000,CAD,ALLOWANCE,A-010,LOW,~$20/m2 for external coating supply and application
+L017,MAT,PKG-13,N/A,Tank Appurtenances - vents relief valves gauging hatches sampling nozzles for 3 tanks,1,LS,120000,120000,CAD,ALLOWANCE,A-007,LOW,Typical appurtenance package for API 650 tanks
+L018,MAT,PKG-13,N/A,Access Equipment - ladders platforms handrails gauger platforms for 3 tanks,1,LS,180000,180000,CAD,ALLOWANCE,A-019,LOW,Access equipment for 3 large tanks
+L019,MAT,PKG-13,N/A,Phase 2 Connection Provisions - blind flanges stubs reinforcement for future expansion,1,LS,45000,45000,CAD,ALLOWANCE,A-020,LOW,Phase 2 provisions per OBJ-8
+L020,CD,PKG-13,N/A,Tank No. 1 Erection - field assembly welding rigging shell courses roof bottom (~420 tonnes),1,LS,850000,850000,CAD,ALLOWANCE,A-001,LOW,Typical tank erection ~$2000/tonne installed
+L021,CD,PKG-13,N/A,Tank No. 2 Erection - field assembly welding rigging shell courses roof bottom (~420 tonnes),1,LS,850000,850000,CAD,ALLOWANCE,A-001,LOW,Typical tank erection ~$2000/tonne installed
+L022,CD,PKG-13,N/A,Tank No. 3 Erection - field assembly welding rigging shell courses roof bottom (~420 tonnes),1,LS,850000,850000,CAD,ALLOWANCE,A-001,LOW,Typical tank erection ~$2000/tonne installed
+L023,CD,PKG-13,N/A,Tank No. 1 Hydrostatic Test - fill test hold drain including water supply and disposal,1,LS,65000,65000,CAD,ALLOWANCE,A-021,LOW,Hydrostatic test for ~16000 m3 tank
+L024,CD,PKG-13,N/A,Tank No. 2 Hydrostatic Test - fill test hold drain including water supply and disposal,1,LS,65000,65000,CAD,ALLOWANCE,A-021,LOW,Hydrostatic test for ~16000 m3 tank
+L025,CD,PKG-13,N/A,Tank No. 3 Hydrostatic Test - fill test hold drain including water supply and disposal,1,LS,65000,65000,CAD,ALLOWANCE,A-021,LOW,Hydrostatic test for ~16000 m3 tank
+L026,CD,PKG-13,N/A,Agitator Installation (3 units) - rigging setting alignment coupling electrical connection,1,LS,95000,95000,CAD,ALLOWANCE,A-006,LOW,Installation of 3 side-entry agitators
+L027,CD,PKG-13,N/A,NDE and Inspection - radiography UT MT PT weld inspection (3 tanks),1,LS,280000,280000,CAD,ALLOWANCE,A-022,LOW,NDE for API 650 tank welds ~$67k per tank plus mobilization
+L028,CD,PKG-13,N/A,Appurtenance Installation - nozzles manholes vents relief devices gauging for 3 tanks,1,LS,120000,120000,CAD,ALLOWANCE,A-007,LOW,Installation of tank appurtenances
+L029,CD,PKG-13,N/A,Access Equipment Installation - ladders platforms handrails gauger platforms for 3 tanks,1,LS,85000,85000,CAD,ALLOWANCE,A-019,LOW,Installation of access equipment
+L030,CD,PKG-13,N/A,Overflow and Water Draw-off Installation - piping valves instrumentation connections,1,LS,65000,65000,CAD,ALLOWANCE,A-018,LOW,Installation of overflow and drain systems
+L031,CD,PKG-13,N/A,Electrical Installation - power to agitators area lighting junction boxes,1,LS,145000,145000,CAD,ALLOWANCE,A-023,LOW,Electrical installation for 3 agitator motors
+L032,CD,PKG-13,N/A,Instrumentation Installation - level temperature gauging calibration loop testing,1,LS,85000,85000,CAD,ALLOWANCE,A-024,LOW,I&C installation for 3 tanks
+L033,CD,PKG-13,N/A,Crane and Heavy Equipment - crawler crane rental for tank erection (200+ ton class),1,LS,420000,420000,CAD,ALLOWANCE,A-025,LOW,Large crane mobilization and rental for 3 tank erections
+L034,CI,PKG-13,N/A,Construction Indirects - field supervision site overhead QA/QC scaffolding temporary works (factor-based),1,LS,918000,918000,CAD,PARAMETRIC,D-010,LOW,18% of CD base ($5.10M × 0.18)
+L035,PM,PKG-13,N/A,EPCM / Project Management - PKG-13 allocation (factor-based),1,LS,1020000,1020000,CAD,PARAMETRIC,D-010,MED,6% of (CD+CI+MAT) base
+L036,P,PKG-13,N/A,Procurement Services - tank vendor qualification expediting shop inspection (factor-based),1,LS,237000,237000,CAD,PARAMETRIC,D-010,MED,2% of MAT ($11.85M × 0.02)
+L037,COM,PKG-13,N/A,Commissioning - agitator FAT tank cleaning drying acceptance testing pre-operational checks,1,LS,535000,535000,CAD,PARAMETRIC,D-010,LOW,3% of (CD+CI+MAT) base

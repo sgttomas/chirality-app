@@ -1,0 +1,6 @@
+ArtifactType,PackageID,SourcePath,DateProcessed
+Detail,PKG-24,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0306/Extracts/PKG-24_Detail.csv,2026-01-29
+BOE,PKG-24,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0306/Extracts/PKG-24_BOE.md,2026-01-29
+Assumptions,PKG-24,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0306/Extracts/PKG-24_Assumptions_Log.md,2026-01-29
+Risks,PKG-24,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0306/Extracts/PKG-24_Risk_Register.md,2026-01-29
+Decisions,PKG-24,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/AGG_Estimate_Collation_2026-01-29_0306/Extracts/PKG-24_Decision_Log.md,2026-01-29

@@ -1,0 +1,29 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-11,DEL-11.01,Marine Loading Design Drawing Set - CAD drafting (loading arm GA double-walled pipe arrangement leak detection layout operator shelter),1,LS,45000,45000,CAD,ALLOWANCE,A-007,LOW,~12-15 sheets at $3k/sheet average for process/mechanical
+L002,E,PKG-11,DEL-11.02,Marine Loading Technical Specification - specification writing (loading arm double-walled pipe leak detection nitrogen operator shelter),1,LS,25000,25000,CAD,ALLOWANCE,A-008,LOW,~100-120 hours at $200/hr for process specialist
+L003,E,PKG-11,DEL-11.03,Marine Loading Design Calculations - envelope calcs drainage calcs nitrogen purge calcs,1,LS,20000,20000,CAD,ALLOWANCE,A-009,LOW,~80 hours at $250/hr for process engineer
+L004,E,PKG-11,DEL-11.04,Marine Loading Data Sheet Package - equipment datasheets (loading arm leak detection sump pump),1,LS,8000,8000,CAD,ALLOWANCE,A-010,LOW,~40 hours at $200/hr
+L005,E,PKG-11,DEL-11.05,Marine Loading Installation & Test Records - test procedures test record compilation,1,LS,15000,15000,CAD,ALLOWANCE,A-011,LOW,~60 hours at $250/hr QA/QC
+L006,E,PKG-11,DEL-11.06,Marine Loading Arm OEM Qualification Package - vendor qualification review compliance assessment,1,LS,12000,12000,CAD,ALLOWANCE,A-012,LOW,~60 hours at $200/hr
+L007,MAT,PKG-11,N/A,Marine Loading Arm - powered articulated boom with ERC hydraulics controls (OCIMF compliant),1,LS,950000,950000,CAD,ALLOWANCE,A-001,LOW,Typical 12-16 inch arm with ERC for vegetable oil service
+L008,MAT,PKG-11,N/A,Double-Walled Export Pipe Supply - carbon steel inner/outer 12-inch nominal (~150 lm),1,LS,225000,225000,CAD,ALLOWANCE,A-002,LOW,~$1500/lm for double-walled construction with leak detection taps
+L009,MAT,PKG-11,N/A,Leak Detection System - annulus monitoring drip tray sensors sump level switches control panel,1,LS,85000,85000,CAD,ALLOWANCE,A-003,LOW,Complete system with 3-zone coverage
+L010,MAT,PKG-11,N/A,Sump Pump Package - submersible pump stainless steel motor starter,1,LS,25000,25000,CAD,ALLOWANCE,A-004,LOW,5 HP typical for containment sump
+L011,MAT,PKG-11,N/A,Operator Shelter - prefabricated weather shelter with HVAC lighting electrical panels,1,LS,75000,75000,CAD,ALLOWANCE,A-005,LOW,Typical 3m x 4m insulated shelter
+L012,MAT,PKG-11,N/A,Nitrogen Connection Package - valves piping pressure regulation to Employer skid,1,LS,15000,15000,CAD,ALLOWANCE,A-006,LOW,Connection components only (skid by Employer per DEC-07)
+L013,MAT,PKG-11,N/A,Pipe Supports and Expansion - double-walled pipe supports expansion loops/joints,1,LS,45000,45000,CAD,ALLOWANCE,A-013,LOW,~$300/lm for support steelwork
+L014,MAT,PKG-11,N/A,Electrical and Instrumentation Materials - cables trays junction boxes terminations for PKG-11 scope,1,LS,65000,65000,CAD,ALLOWANCE,A-014,LOW,E&I materials for loading arm and leak detection
+L015,CD,PKG-11,N/A,Marine Loading Arm Installation - rigging setting alignment grouting hydraulic connection,1,LS,120000,120000,CAD,ALLOWANCE,A-001,LOW,Heavy lift marine installation; crane barge may be required
+L016,CD,PKG-11,N/A,Double-Walled Pipe Installation - welding testing support installation (~150 lm),1,LS,180000,180000,CAD,ALLOWANCE,A-002,LOW,~$1200/lm for double-wall fabrication and installation
+L017,CD,PKG-11,N/A,Leak Detection System Installation - sensor mounting wiring testing calibration,1,LS,35000,35000,CAD,ALLOWANCE,A-003,LOW,3-zone system with ESD integration
+L018,CD,PKG-11,N/A,Sump Construction - concrete sump liner pumping piping,1,LS,45000,45000,CAD,ALLOWANCE,A-015,LOW,Containment sump with liner
+L019,CD,PKG-11,N/A,Operator Shelter Installation - foundation installation services connection,1,LS,25000,25000,CAD,ALLOWANCE,A-005,LOW,Prefab shelter installation
+L020,CD,PKG-11,N/A,Nitrogen System Installation - piping valves connection to Employer skid,1,LS,15000,15000,CAD,ALLOWANCE,A-006,LOW,Connection scope only
+L021,CD,PKG-11,N/A,Electrical Installation - power to loading arm shelter sump pump,1,LS,55000,55000,CAD,ALLOWANCE,A-014,LOW,Cable pulling termination testing
+L022,CD,PKG-11,N/A,Instrumentation Installation - leak detection loop wiring signal testing ESD integration,1,LS,45000,45000,CAD,ALLOWANCE,A-014,LOW,I&C installation and loop testing
+L023,CD,PKG-11,N/A,Pipe Support Steelwork Installation - fabrication erection painting,1,LS,35000,35000,CAD,ALLOWANCE,A-013,LOW,Support steelwork installation
+L024,CD,PKG-11,N/A,Testing and Inspection - pressure testing leak testing NDE welds,1,LS,40000,40000,CAD,ALLOWANCE,A-016,LOW,QC testing during construction
+L025,CI,PKG-11,N/A,Construction Indirects - field supervision site overhead QA/QC marine coordination (factor-based),1,LS,107000,107000,CAD,PARAMETRIC,D-008,LOW,18% of CD base ($595k × 0.18)
+L026,PM,PKG-11,N/A,EPCM / Project Management - PKG-11 allocation (factor-based),1,LS,119000,119000,CAD,PARAMETRIC,D-008,MED,6% of (CD+CI+MAT) base
+L027,P,PKG-11,N/A,Procurement Services - vendor coordination expediting inspection (factor-based),1,LS,30000,30000,CAD,PARAMETRIC,D-008,MED,2% of MAT ($1.485M × 0.02)
+L028,COM,PKG-11,N/A,Commissioning - FAT witnessing functional testing ESD verification acceptance testing,1,LS,79000,79000,CAD,PARAMETRIC,D-008,LOW,4% of (CD+CI+MAT) base (elevated for marine loading complexity)

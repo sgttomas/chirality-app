@@ -1,14 +1,27 @@
-# Dependencies: DEL-00.05 Road Access Configuration & Security Process Submission
+# _DEPENDENCIES.md
 
 ## Dependency Tracking Mode
+`DECLARED`
 
-- **Mode:** NOT_TRACKED
-- **Notes:** Dependencies coordinated externally by humans (see execution/_Coordination/_COORDINATION.md)
+## Inbound Dependencies (this deliverable depends on)
 
-## Upstream (I need these before I can proceed)
+| TargetDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| DEL-00.01 | TI | Physical gate and road layouts for access planning (Specification.md line 63) | MEDIUM | DECLARED |
+| DEL-00.03 | TI | Traffic management and site access procedures alignment (Specification.md line 63) | MEDIUM | DECLARED |
 
-- Dependencies coordinated externally by humans.
+## Outbound Dependencies (other deliverables depend on this)
 
-## Downstream (These need me)
+| SourceDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| *(To be discovered when analyzing downstream deliverables)* |
 
-- Dependencies coordinated externally by humans.
+## Dependency Discovery Metadata
+- Analyzed: 2026-01-29 06:45
+- Analyzer: DEPENDENCY_DISCOVERY
+- Content State: INITIALIZED
+- Confidence: MEDIUM
+
+## Notes
+- Both dependencies are intra-package (within PKG-00)
+- Access configuration plan requires site layout drawings and procedure alignment

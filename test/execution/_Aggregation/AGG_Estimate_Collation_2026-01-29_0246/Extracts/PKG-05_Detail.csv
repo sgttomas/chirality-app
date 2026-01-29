@@ -1,0 +1,25 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-05,DEL-05.01,Concrete Structures Design Drawing Set - structural CAD drafting (22 sheets),1,LS,85000,85000,CAD,ALLOWANCE,A-001,LOW,Allowance for drawing production without vendor quotes; includes foundations containment walls equipment pads reinforcement
+L002,E,PKG-05,DEL-05.02,Concrete Structures Technical Specification - specification writing (3 specifications),1,LS,45000,45000,CAD,ALLOWANCE,A-002,LOW,Allowance for concrete reinforcement formwork specifications
+L003,E,PKG-05,DEL-05.03,Concrete Structures Design Calculations - structural engineering (foundation containment seismic),1,LS,120000,120000,CAD,ALLOWANCE,A-003,LOW,Allowance for design calculations including tank foundations containment walls seismic analysis
+L004,PM,PKG-05,DEL-05.04,Installation & Test Records - QA/QC documentation and coordination,1,LS,35000,35000,CAD,ALLOWANCE,A-004,LOW,Allowance for concrete pour records cylinder test coordination rebar inspection records
+L005,MAT,PKG-05,N/A,Tank Foundation Concrete - ready-mix supply for 3x15000 MT tank ring walls,450,m3,220,99000,CAD,ALLOWANCE,A-005,LOW,450 m3 derived from 3 tanks x 150 m3 each; ring wall type per D-011
+L006,CD,PKG-05,N/A,Tank Foundation Installation - concrete placement forming curing,450,m3,180,81000,CAD,ALLOWANCE,A-005,LOW,Installation rate for slab/foundation work
+L007,MAT,PKG-05,N/A,Containment Wall Concrete - high-quality ready-mix for secondary containment,600,m3,240,144000,CAD,ALLOWANCE,A-006,LOW,600 m3 for perimeter walls supporting OBJ-7 Environmental Protection; premium mix for low permeability
+L008,CD,PKG-05,N/A,Containment Wall Installation - concrete placement with waterstops complex formwork,600,m3,350,210000,CAD,ALLOWANCE,A-006,LOW,Higher rate for wall construction with waterstops and containment-grade finishing
+L009,MAT,PKG-05,N/A,Equipment Pad Concrete - ready-mix for pump metering railcar unloading pads,200,m3,230,46000,CAD,ALLOWANCE,A-007,LOW,200 m3 for various equipment pads; includes anchor bolt blockouts
+L010,CD,PKG-05,N/A,Equipment Pad Installation - concrete placement with anchor bolts and grout pockets,200,m3,250,50000,CAD,ALLOWANCE,A-007,LOW,Installation includes precision anchor bolt placement
+L011,MAT,PKG-05,N/A,Thrust Block Concrete - ready-mix for underground piping thrust blocks,80,m3,210,16800,CAD,ALLOWANCE,A-008,LOW,80 m3 for approximately 20 thrust block locations
+L012,CD,PKG-05,N/A,Thrust Block Installation - concrete placement in trench locations,80,m3,200,16000,CAD,ALLOWANCE,A-008,LOW,Installation in excavated locations
+L013,MAT,PKG-05,N/A,Reinforcing Steel Supply - fabricated rebar delivered (all structures),180000,kg,2.00,360000,CAD,ALLOWANCE,A-009,LOW,180 tonnes total; 100-150 kg/m3 ratio depending on element type
+L014,CD,PKG-05,N/A,Reinforcing Steel Installation - placement tying inspection,180000,kg,1.00,180000,CAD,ALLOWANCE,A-009,LOW,Installation labor for rebar placement
+L015,MAT,PKG-05,N/A,Wall Formwork Materials - rental/purchase for containment walls,1500,m2,40,60000,CAD,ALLOWANCE,A-010,LOW,1500 m2 contact area for containment wall faces
+L016,CD,PKG-05,N/A,Wall Formwork Installation - form erection stripping and cleaning,1500,m2,50,75000,CAD,ALLOWANCE,A-010,LOW,Formwork labor for wall construction
+L017,MAT,PKG-05,N/A,Waterstops and Joint Materials - PVC waterstops sealants fillers,1,LS,30000,30000,CAD,ALLOWANCE,A-011,LOW,600m of construction joints with waterstops for containment integrity
+L018,CD,PKG-05,N/A,Waterstop Installation - joint preparation waterstop placement sealing,1,LS,15000,15000,CAD,ALLOWANCE,A-011,LOW,Installation labor for waterstops and joint treatment
+L019,MAT,PKG-05,N/A,Ground Liner Interface Materials - anchor curbs penetration details,1,LS,55000,55000,CAD,ALLOWANCE,A-012,LOW,Concrete curbs and penetration sealing for liner system interface
+L020,CD,PKG-05,N/A,Ground Liner Interface Installation - curb construction and penetration work,1,LS,20000,20000,CAD,ALLOWANCE,A-012,LOW,Installation of liner anchor system and penetration details
+L021,CI,PKG-05,N/A,Concrete Testing and Quality Control - cylinder testing field QC third-party inspection,1,LS,65000,65000,CAD,ALLOWANCE,A-013,MED,Testing program for 1330 m3 concrete; includes lab and field testing
+L022,CI,PKG-05,N/A,Construction Indirects - field supervision site overhead QA/QC (factor-based),1,LS,144720,144720,CAD,PARAMETRIC,D-006,LOW,18% of CD base ($803,800 CD x 0.18); factor from fallback model
+L023,PM,PKG-05,N/A,EPCM / Project Management - PKG-05 allocation (factor-based),1,LS,111871,111871,CAD,PARAMETRIC,D-006,MED,6% of (CD+CI+MAT) = 6% x ($803.8k + $209.7k + $850.8k) = $111.9k
+L024,P,PKG-05,N/A,Procurement Services - vendor coordination expediting (factor-based),1,LS,17016,17016,CAD,PARAMETRIC,D-006,MED,2% of MAT = 2% x $850,800

@@ -1,0 +1,26 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-09,DEL-09.01,Marine Outfitting Design Drawing Set,1,LS,38000,38000,CAD,ALLOWANCE,A-006,LOW,Fender arrangement drawings + bollard installation details + ladder details
+L-002,E,PKG-09,DEL-09.02,Marine Outfitting Technical Specification,1,LS,12000,12000,CAD,ALLOWANCE,A-007,LOW,Fender spec + bollard spec + marine hardware spec
+L-003,E,PKG-09,DEL-09.03,Marine Outfitting Design Calculations,1,LS,18000,18000,CAD,ALLOWANCE,A-008,LOW,Fender reaction calculations + bollard load calculations
+L-004,E,PKG-09,DEL-09.04,Marine Outfitting Data Sheet Package,1,LS,8000,8000,CAD,ALLOWANCE,A-009,LOW,Fender data sheets + bollard data sheets
+L-005,E,PKG-09,DEL-09.05,Marine Outfitting Installation & Test Records,1,LS,6000,6000,CAD,ALLOWANCE,A-010,LOW,Installation records + proof load test records
+L-006,MAT,PKG-09,N/A,Marine Fenders - Supply (12 units),12,EA,85000,1020000,CAD,ALLOWANCE,A-001,LOW,Heavy-duty rubber fenders with chains/hardware for Panamax vessels; ~$70k-100k/unit typical
+L-007,MAT,PKG-09,N/A,Mooring Bollards - Supply (8 units),8,EA,45000,360000,CAD,ALLOWANCE,A-002,LOW,300-500 kN SWL bollards (cast or fabricated); ~$40k-50k/unit typical
+L-008,MAT,PKG-09,N/A,Ship-to-Shore Ladders - Supply (4 units),4,EA,18000,72000,CAD,ALLOWANCE,A-003,LOW,Marine-grade aluminum or stainless ladders with safety cages; ~$15k-20k/unit
+L-009,MAT,PKG-09,N/A,Life-Saving Equipment Package,1,LS,25000,25000,CAD,ALLOWANCE,A-004,LOW,Life rings + buoys + rescue equipment + mounting hardware per safety codes
+L-010,MAT,PKG-09,N/A,Berth 10 Repair Materials,1,LS,35000,35000,CAD,ALLOWANCE,A-005,LOW,Replacement hardware + coatings + minor structural repairs
+L-011,CD,PKG-09,N/A,Fender Installation - Marine Labor (12 units),12,EA,12000,144000,CAD,ALLOWANCE,A-011,LOW,Marine installation via barge/crane; ~100-120 hrs/unit @ $120/hr all-in
+L-012,CD,PKG-09,N/A,Bollard Installation - Marine Labor (8 units),8,EA,8000,64000,CAD,ALLOWANCE,A-012,LOW,Marine installation with positioning/grouting; ~60-80 hrs/unit @ $120/hr all-in
+L-013,CD,PKG-09,N/A,Ladder Installation - Marine Labor (4 units),4,EA,3500,14000,CAD,ALLOWANCE,A-013,LOW,Marine installation with mounting/welding; ~25-30 hrs/unit @ $120/hr all-in
+L-014,CD,PKG-09,N/A,Life-Saving Equipment Installation,1,LS,8000,8000,CAD,ALLOWANCE,A-014,LOW,Installation of life rings + buoys + rescue equipment
+L-015,CD,PKG-09,N/A,Berth 10 Repairs - Marine Labor,1,LS,40000,40000,CAD,ALLOWANCE,A-015,LOW,Repair work via barge/access; ~300-350 hrs @ $120/hr all-in
+L-016,CD,PKG-09,N/A,Marine Crane/Barge Mobilization,1,LS,65000,65000,CAD,ALLOWANCE,A-016,LOW,Crane barge mobilization + demobilization + standby for installation sequence
+L-017,CD,PKG-09,N/A,Setting Out and Survey,1,LS,12000,12000,CAD,ALLOWANCE,A-017,LOW,Marine setting-out + as-built survey for fenders/bollards/ladders
+L-018,CD,PKG-09,N/A,Coating Touch-Up and Protection,1,LS,8000,8000,CAD,ALLOWANCE,A-018,LOW,Field coating touch-up post-installation + temporary protection
+L-019,MAT,PKG-09,N/A,Installation Consumables and Fasteners,1,LS,22000,22000,CAD,ALLOWANCE,A-019,LOW,Grout + anchor bolts + welding consumables + sealants + misc hardware
+L-020,CI,PKG-09,N/A,Construction Indirects,1,LS,64000,64000,CAD,PARAMETRIC,D-008 (18% factor on CD),MED,18% of CD base for supervision + temp facilities + HSE + QA/QC
+L-021,P,PKG-09,N/A,Procurement Services,1,LS,31000,31000,CAD,PARAMETRIC,D-008 (2% factor on MAT),MED,2% of MAT for purchasing + expediting + inspection
+L-022,PM,PKG-09,N/A,Project Management / EPCM,1,LS,114000,114000,CAD,PARAMETRIC,D-008 (6% factor),MED,6% of (CD + CI + MAT) for project management + EPCM
+L-023,COM,PKG-09,N/A,Proof Load Testing (Bollards),8,EA,4500,36000,CAD,ALLOWANCE,A-022,LOW,Bollard proof load testing @ 1.5x SWL per codes; ~$4k-5k/test
+L-024,COM,PKG-09,N/A,Fender Inspection and Testing,1,LS,18000,18000,CAD,ALLOWANCE,A-023,LOW,Visual inspection + deflection testing + performance verification
+L-025,COM,PKG-09,N/A,Final Inspection and Commissioning,1,LS,12000,12000,CAD,ALLOWANCE,A-024,LOW,Final inspection + safety checks + handover documentation

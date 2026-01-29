@@ -1,14 +1,28 @@
-# Dependencies: DEL-00.08 Temporary Water Supply Installation Details
+# _DEPENDENCIES.md
 
 ## Dependency Tracking Mode
+`DECLARED`
 
-- **Mode:** NOT_TRACKED
-- **Notes:** Dependencies coordinated externally by humans (see execution/_Coordination/_COORDINATION.md)
+## Inbound Dependencies (this deliverable depends on)
 
-## Upstream (I need these before I can proceed)
+| TargetDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| DEL-00.01 | TI | Temporary facility locations for water routing (Specification.md line 60) | MEDIUM | DECLARED |
+| DEL-00.02 | TI | Materials and installation standards (Specification.md line 60) | MEDIUM | DECLARED |
 
-- Dependencies coordinated externally by humans.
+## Outbound Dependencies (other deliverables depend on this)
 
-## Downstream (These need me)
+| SourceDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| *(To be discovered when analyzing downstream deliverables)* |
 
-- Dependencies coordinated externally by humans.
+## Dependency Discovery Metadata
+- Analyzed: 2026-01-29 06:45
+- Analyzer: DEPENDENCY_DISCOVERY
+- Content State: INITIALIZED
+- Confidence: MEDIUM
+
+## Notes
+- Both dependencies are intra-package (within PKG-00)
+- Water routing depends on knowing facility locations from drawings
+- Installation standards come from technical specification

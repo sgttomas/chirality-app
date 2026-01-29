@@ -1,0 +1,30 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-04,DEL-04.01,Pavement Design Drawing Set - CAD drafting (paving layout plans sections details line marking plans),1,LS,32000,32000,CAD,ALLOWANCE,A-007,LOW,~10-12 sheets at $3k/sheet average
+L002,E,PKG-04,DEL-04.02,Pavement Technical Specification - specification writing (asphalt concrete base line marking QC specs),1,LS,8000,8000,CAD,ALLOWANCE,A-008,LOW,~50 hours at $160/hr
+L003,E,PKG-04,DEL-04.03,Pavement Design Calculations - layer thickness design load analysis structural capacity verification,1,LS,12000,12000,CAD,ALLOWANCE,A-009,LOW,~60 hours at $200/hr
+L004,E,PKG-04,DEL-04.04,Pavement QA/QC Records Compilation - test records documentation acceptance records,1,LS,10000,10000,CAD,ALLOWANCE,A-010,LOW,~80 hours at $125/hr
+L005,MAT,PKG-04,N/A,Asphalt Concrete Supply - dense-graded HMA for wearing/binder/base courses (~35000 m² × 150mm avg),1,LS,700000,700000,CAD,ALLOWANCE,A-001,LOW,~8000 tonnes at $85/tonne
+L006,CD,PKG-04,N/A,Asphalt Paving Installation - place and compact wearing/binder/base courses (~35000 m²),1,LS,525000,525000,CAD,ALLOWANCE,A-001,LOW,$15/m² placement + compaction labor
+L007,MAT,PKG-04,N/A,Concrete Paving Materials - PCC for heavy load areas (~10000 m² × 200mm),1,LS,400000,400000,CAD,ALLOWANCE,A-002,LOW,$40/m² material (concrete reinforcement joints)
+L008,CD,PKG-04,N/A,Concrete Paving Installation - place finish cure joint sawing (~10000 m²),1,LS,700000,700000,CAD,ALLOWANCE,A-002,LOW,$70/m² placement finishing curing
+L009,MAT,PKG-04,N/A,Granular Base Course Material - crushed aggregate base (~45000 m² × 200mm),1,LS,315000,315000,CAD,ALLOWANCE,A-011,LOW,~13500 tonnes at $23/tonne delivered
+L010,CD,PKG-04,N/A,Base Course Placement and Compaction (~45000 m²),1,LS,180000,180000,CAD,ALLOWANCE,A-011,LOW,$4/m² spread and compact
+L011,MAT,PKG-04,N/A,Curb and Gutter Materials - precast or cast-in-place concrete (~2500 lm),1,LS,75000,75000,CAD,ALLOWANCE,A-003,LOW,$30/lm material
+L012,CD,PKG-04,N/A,Curb and Gutter Installation - forming placing finishing (~2500 lm),1,LS,125000,125000,CAD,ALLOWANCE,A-003,LOW,$50/lm labor equipment
+L013,MAT,PKG-04,N/A,Sidewalk Materials - concrete (~600 m² × 100mm),1,LS,18000,18000,CAD,ALLOWANCE,A-004,LOW,$30/m² material
+L014,CD,PKG-04,N/A,Sidewalk Installation - form place finish cure (~600 m²),1,LS,30000,30000,CAD,ALLOWANCE,A-004,LOW,$50/m² labor
+L015,MAT,PKG-04,N/A,Line Marking Materials - thermoplastic and paint (~6000 lm),1,LS,24000,24000,CAD,ALLOWANCE,A-006,LOW,$4/lm material
+L016,CD,PKG-04,N/A,Line Marking Application - traffic control safety markings parking stalls (~6000 lm),1,LS,18000,18000,CAD,ALLOWANCE,A-006,LOW,$3/lm labor equipment
+L017,CD,PKG-04,N/A,Subgrade Fine Grading - final grade preparation before base course (~45000 m²),1,LS,90000,90000,CAD,ALLOWANCE,A-012,LOW,$2/m² fine grading
+L018,MAT,PKG-04,N/A,Tack Coat and Prime Coat Materials (~35000 m²),1,LS,28000,28000,CAD,ALLOWANCE,A-013,LOW,$0.80/m² material
+L019,CD,PKG-04,N/A,Tack Coat and Prime Coat Application (~35000 m²),1,LS,17500,17500,CAD,ALLOWANCE,A-013,LOW,$0.50/m² application
+L020,CD,PKG-04,N/A,Compaction Testing - nuclear density tests during paving (~90 tests),1,LS,27000,27000,CAD,ALLOWANCE,A-014,LOW,$300/test avg
+L021,CD,PKG-04,N/A,Core Sampling and Testing - thickness verification (~25 cores),1,LS,12500,12500,CAD,ALLOWANCE,A-014,LOW,$500/core extraction and lab testing
+L022,CD,PKG-04,N/A,Survey and Grade Control - layout staking grade verification,1,LS,25000,25000,CAD,ALLOWANCE,D-011,LOW,Survey crew during construction
+L023,MAT,PKG-04,N/A,Expansion Joints and Sealants - pavement joints at structures and Phase 2 tie-ins,1,LS,35000,35000,CAD,ALLOWANCE,A-016,LOW,Joint materials and sealant
+L024,CD,PKG-04,N/A,Expansion Joint Installation - sawcutting sealing at structures (~500 lm),1,LS,25000,25000,CAD,ALLOWANCE,A-016,LOW,$50/lm
+L025,CD,PKG-04,N/A,OBJ-8 Phase 2 Tie-in Provisions - enhanced documentation and joint protection,1,LS,15000,15000,CAD,ALLOWANCE,A-017,LOW,Additional work for expansion corridors
+L026,CI,PKG-04,N/A,Construction Indirects - field supervision site overhead QA/QC (factor-based),1,LS,340000,340000,CAD,PARAMETRIC,D-008,LOW,18% of CD base ($1.89M × 0.18)
+L027,PM,PKG-04,N/A,EPCM / Project Management - PKG-04 allocation (factor-based),1,LS,219000,219000,CAD,PARAMETRIC,D-008,MED,6% of (CD+CI+MAT) base
+L028,P,PKG-04,N/A,Procurement Services - vendor coordination expediting (factor-based),1,LS,32000,32000,CAD,PARAMETRIC,D-008,MED,2% of MAT ($1.595M × 0.02)
+L029,COM,PKG-04,N/A,Testing and Verification - final verification testing reporting,1,LS,109000,109000,CAD,PARAMETRIC,D-008,LOW,3% of (CD+CI+MAT) base

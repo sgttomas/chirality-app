@@ -1,0 +1,22 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-06,DEL-06.01,Structural Steel Design Drawing Set - CAD drafting (platform GAs stair drawings gangway drawings pipe rack drawings handrail details),1,LS,45000,45000,CAD,ALLOWANCE,A-001,LOW,~12-15 sheets at $3.5k/sheet average
+L002,E,PKG-06,DEL-06.02,Structural Steel Technical Specification - spec writing (structural steel handrails grating),1,LS,12000,12000,CAD,ALLOWANCE,A-002,LOW,~80 hours at $150/hr for 3 specification sections
+L003,E,PKG-06,DEL-06.03,Structural Steel Design Calculations - platform pipe rack connection stair gangway analysis,1,LS,18000,18000,CAD,ALLOWANCE,A-003,LOW,~100 hours at $175/hr structural engineering
+L004,E,PKG-06,DEL-06.04,Structural Steel Data Sheet Package - gangway and grating data sheets compilation,1,LS,6000,6000,CAD,ALLOWANCE,A-004,LOW,~40 hours at $140/hr
+L005,E,PKG-06,DEL-06.05,Structural Steel QA/QC Records - mill certs weld inspection records galvanizing certs compilation,1,LS,8000,8000,CAD,ALLOWANCE,A-005,LOW,~60 hours at $140/hr documentation
+L006,MAT,PKG-06,N/A,Structural Steel Material Supply - fabricated and galvanized (platforms stairs gangways pipe racks handrails supports),150,tonne,6000,900000,CAD,ALLOWANCE,A-006,LOW,150 tonnes (D-012) at $6k/tonne fabricated/galvanized
+L007,CD,PKG-06,N/A,Structural Steel Erection Labor - field installation welding connections (150 tonnes),3750,hrs,95,356000,CAD,ALLOWANCE,A-007,LOW,25 hrs/tonne × 150 tonnes at $95/hr composite crew rate
+L008,CD,PKG-06,N/A,Crane & Equipment for Steel Erection - mobile crane rigging welding machines access equipment,1,LS,120000,120000,CAD,ALLOWANCE,A-008,LOW,Crane rental weeks + welding/rigging equipment
+L009,MAT,PKG-06,N/A,Handrail Supply - galvanized steel handrail system (3-rail with posts) material,400,m,150,60000,CAD,ALLOWANCE,A-009,LOW,400 m (D-013) at $150/m material
+L010,CD,PKG-06,N/A,Handrail Installation Labor - handrail installation and anchoring,400,m,70,28000,CAD,ALLOWANCE,A-009,LOW,400 m at $70/m installation labor
+L011,MAT,PKG-06,N/A,Grating Supply - galvanized steel grating medium-duty industrial material,800,m2,120,96000,CAD,ALLOWANCE,A-010,LOW,800 m² (D-013) at $120/m²
+L012,CD,PKG-06,N/A,Grating Installation Labor - grating cutting fitting and securing,800,m2,60,48000,CAD,ALLOWANCE,A-010,LOW,800 m² at $60/m² installation
+L013,MAT,PKG-06,N/A,Stairs and Gangways - pre-fabricated galvanized stairs and gangways (8 stairs + 4 gangways),12,EA,15000,180000,CAD,ALLOWANCE,A-011,LOW,12 items at $15k/item avg (fabricated galvanized installed)
+L014,MAT,PKG-06,N/A,Pipe Supports and Racks - structural supports along piping runs,1,LS,65000,65000,CAD,ALLOWANCE,A-012,LOW,Allowance for pipe support steelwork
+L015,CD,PKG-06,N/A,Field Touch-Up Painting - post-erection coating repairs and touch-up,1,LS,12000,12000,CAD,ALLOWANCE,A-013,LOW,Galvanizing damage repair weld zones
+L016,CD,PKG-06,N/A,Site Access & Temporary Works - laydown material handling offloading (PKG-06 allocation),1,LS,25000,25000,CAD,ALLOWANCE,A-014,LOW,Site prep and material handling for steel erection
+L017,CD,PKG-06,N/A,Weld Inspection & NDT - visual UT MT inspection (200 hrs CWB inspector),200,hrs,110,22000,22000,CAD,ALLOWANCE,A-015,LOW,Third-party weld inspection
+L018,CI,PKG-06,N/A,Construction Indirects - field supervision site overhead QA/QC HSE (factor-based),1,LS,115000,115000,CAD,PARAMETRIC,D-009,LOW,18% of CD base ($639k × 0.18)
+L019,PM,PKG-06,N/A,EPCM / Project Management - PKG-06 allocation (factor-based),1,LS,120000,120000,CAD,PARAMETRIC,D-009,MED,6% of (CD+CI+MAT) base
+L020,P,PKG-06,N/A,Procurement Services - vendor coordination expediting inspection (factor-based),1,LS,27000,27000,CAD,PARAMETRIC,D-009,MED,2% of MAT ($1.366M × 0.02)
+L021,COM,PKG-06,N/A,Commissioning & Testing - load testing final inspections punch list verification,1,LS,60000,60000,CAD,PARAMETRIC,D-009,LOW,3% of (CD+CI+MAT) base

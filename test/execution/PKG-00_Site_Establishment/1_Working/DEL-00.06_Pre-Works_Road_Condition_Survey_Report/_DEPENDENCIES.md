@@ -1,14 +1,27 @@
-# Dependencies: DEL-00.06 Pre-Works Road Condition Survey Report
+# _DEPENDENCIES.md
 
 ## Dependency Tracking Mode
+`DECLARED`
 
-- **Mode:** NOT_TRACKED
-- **Notes:** Dependencies coordinated externally by humans (see execution/_Coordination/_COORDINATION.md)
+## Inbound Dependencies (this deliverable depends on)
 
-## Upstream (I need these before I can proceed)
+| TargetDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| *(No intra-project dependencies - standalone baseline survey)* |
 
-- Dependencies coordinated externally by humans.
+## Outbound Dependencies (other deliverables depend on this)
 
-## Downstream (These need me)
+| SourceDEL | Type | Reason | Criticality | Status |
+|-----------|------|--------|-------------|--------|
+| DEL-00.07 | PR | Provides baseline for post-works comparison (Spec.md line 86) | HIGH | DECLARED |
 
-- Dependencies coordinated externally by humans.
+## Dependency Discovery Metadata
+- Analyzed: 2026-01-29 06:45
+- Analyzer: DEPENDENCY_DISCOVERY
+- Content State: INITIALIZED
+- Confidence: HIGH
+
+## Notes
+- This is a standalone baseline survey with no intra-project inbound dependencies
+- DEL-00.07 depends on this for comparison (predecessor relationship)
+- External inputs: survey area definition, road designations (from site planning)

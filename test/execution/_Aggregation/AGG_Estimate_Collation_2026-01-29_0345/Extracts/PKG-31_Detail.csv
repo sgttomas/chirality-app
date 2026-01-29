@@ -1,0 +1,19 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-31,DEL-31.01,Record Drawing Set - Drafting & Coordination,275,sheets,165,45375,CAD,PARAMETRIC,A-001; D-006,MED,Estimated 275 total drawings at 12 hrs/sheet avg; $165/hr blended eng rate
+L002,E,PKG-31,DEL-31.02,As-Built Drawing Set - Field Markup Incorporation,275,sheets,110,30250,CAD,PARAMETRIC,A-001; D-006,MED,As-built updates at +8 hrs/sheet; includes field verification & QA
+L003,E,PKG-31,DEL-31.03,Operation Manuals - System Level,12,systems,13200,158400,CAD,PARAMETRIC,A-002; D-007,MED,12 operational systems at 80 hrs/system; includes procedures and diagrams
+L004,E,PKG-31,DEL-31.04,Maintenance Manuals - Equipment Level,90,equipment,2640,237600,CAD,PARAMETRIC,A-003; D-007,MED,90 major equipment items at 16 hrs/equipment; compilation from vendor docs
+L005,PM,PKG-31,DEL-31.05,Vendor Documentation - Compilation & Organization,90,vendors,1320,118800,CAD,PARAMETRIC,A-003; D-008,MED,Collection organization and indexing of vendor manuals certificates warranties
+L006,PM,PKG-31,DEL-31.06,Asset Hierarchy - Database Development,1,LS,15840,15840,CAD,PARAMETRIC,D-008,MED,120 hours at $132/hr PM rate; database structure and population
+L007,PM,PKG-31,DEL-31.07,Health & Safety File - Compilation,1,LS,5280,5280,CAD,PARAMETRIC,D-008,MED,40 hours at $132/hr PM rate; H&S documentation compilation
+L008,PM,PKG-31,DEL-31.08,Warranties Register - Development,1,LS,5280,5280,CAD,PARAMETRIC,D-008,MED,40 hours at $132/hr PM rate; register development and maintenance
+L009,PM,PKG-31,DEL-31.09,Warranty Certificates - Collection & Verification,1,LS,7920,7920,CAD,PARAMETRIC,D-008,MED,60 hours at $132/hr PM rate; certificate collection and verification
+L010,PM,PKG-31,DEL-31.10,Building Warranty Certificates - Coordination,1,LS,3960,3960,CAD,PARAMETRIC,D-008,LOW,30 hours at $132/hr PM rate; building-specific warranty coordination
+L011,PM,PKG-31,DEL-31.11,Building MEP Warranty Certificates - Coordination,1,LS,3960,3960,CAD,PARAMETRIC,D-008,LOW,30 hours at $132/hr PM rate; MEP-specific warranty coordination
+L012,MAT,PKG-31,N/A,Drawing Printing & Binding - Record Set,3,sets,3850,11550,CAD,ALLOWANCE,A-004,LOW,3 full sets at ~275 sheets/set; large format printing binding indexing
+L013,MAT,PKG-31,N/A,Drawing Printing & Binding - As-Built Set,3,sets,4125,12375,CAD,ALLOWANCE,A-004,LOW,3 full as-built sets; higher quality paper and binding
+L014,MAT,PKG-31,N/A,Manual Printing & Binding - Operations,4,sets,1100,4400,CAD,ALLOWANCE,A-005,LOW,4 bound operation manual sets
+L015,MAT,PKG-31,N/A,Manual Printing & Binding - Maintenance,4,sets,2200,8800,CAD,ALLOWANCE,A-005,LOW,4 bound maintenance manual sets
+L016,MAT,PKG-31,N/A,Document Management Software/Database,1,LS,22000,22000,CAD,ALLOWANCE,A-006,LOW,Asset hierarchy database software/setup; allowance for CMMS-ready format
+L017,PM,PKG-31,N/A,Document Control & QA - Throughout Project,1,LS,52800,52800,CAD,PARAMETRIC,D-009,MED,400 hours at $132/hr PM rate; ongoing doc control QA review distribution
+L018,PM,PKG-31,N/A,Final Submittal Preparation & Delivery,1,LS,10560,10560,CAD,PARAMETRIC,D-009,MED,80 hours at $132/hr PM rate; final assembly indexing submittal to Employer

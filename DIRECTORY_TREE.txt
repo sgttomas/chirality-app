@@ -1,0 +1,41 @@
+chirality-app/
+├── .Archive/                           # Archived documentation and instructions
+│   ├── AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v2/
+│   ├── AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/
+│   ├── project-management/
+│   └── test/
+├── .claude/                            # Claude Code configuration
+├── agents/                             # Agent definitions
+├── docs/                               # Documentation
+├── test/
+│   └── execution/                      # Test execution workspace
+│       ├── _Aggregation/               # Aggregation outputs and pipelines
+│       │   ├── _Archive/
+│       │   ├── _Pipelines/
+│       │   ├── _Templates/
+│       │   └── AGG_Estimate_Collation_*/  # Multiple timestamped runs
+│       ├── _Coordination/              # Coordination records
+│       ├── _Estimates/                 # Estimate drafts by package (PKG-00 to PKG-35)
+│       │   ├── _RateTables/
+│       │   └── EST_PKG*_DRAFT_*/       # 36 package estimate folders
+│       ├── _Reconciliation/            # Reconciliation workspace
+│       └── PKG-*/                      # Work packages (00-35+)
+│           ├── 0_References/           # Reference documents
+│           ├── 1_Working/              # Active deliverables
+│           │   └── DEL-*.*/            # Individual deliverable folders
+│           ├── 2_Checking/             # Quality checking
+│           │   ├── From/
+│           │   └── To/
+│           └── 3_Issued/               # Finalized deliverables
+│
+├── Root-level documentation files:
+│   ├── Agent instructions: AGENT_*.md
+│   ├── Protocols: PROTOCOL*.md, METHOD*.md
+│   ├── Specifications: SPEC*.md, CF-*.md
+│   ├── Task management: TASK*.md, DOMAIN*.md
+│   ├── Project docs: README.md, INIT.md, INTAKE.md
+│   └── Reference PDFs: Volume_2_Part_*.pdf
+│
+└── Configuration & Project Files:
+    ├── LICENSE.md
+    └── Various working/archive documents
