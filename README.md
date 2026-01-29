@@ -56,6 +56,7 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 
 | Agent | Purpose |
 |---|---|
+| **PROJECT_DECOMP** | Transforms messy SOW into structured decomposition (Packages, Deliverables, Artifacts) |
 | **CHIRALITY-APP** | Human guidance / navigator—helps choose the right next step |
 | **ORCHESTRATOR** | Workspace setup, status reporting, spawns sub-agents |
 | **PREPARATION** | Scaffolds package/deliverable folders and metadata files |

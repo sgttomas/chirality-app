@@ -9,8 +9,9 @@ If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGE
 ## 1) The core model (the rules that keep the system coherent)
 
 ### Project Decomposition
-- A project that lacks structure cannot be effectively worked on by agents.  
+- A project that lacks structure cannot be effectively worked on by agents.
 - Project decomposition is what initiates all other agentic workflows.
+- Use **PROJECT_DECOMP** to create a decomposition from a messy Scope of Work (SOW).
 - The project decomposition file is located here:
 
 `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`
@@ -52,6 +53,12 @@ Rules of thumb:
 ## 2) Agent index (what each one is for)
 
 > Filenames may include `_REVISED_..._v3` (or later). Treat the names below as *agent types*.
+
+### PROJECT_DECOMP (Project Decomposition)
+- **What it does:** Transforms a messy, user-supplied Scope of Work (SOW) into a structured scope output (SSOW), then decomposes SSOW into flat Packages, Deliverables, and anticipated Artifacts. Runs a conversational, gate-controlled process with the user.
+- **What it does not do:** Produce engineering content; skip confirmation gates; resolve ambiguities silently; approve its own output.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_DECOMP.md`
 
 ### CHIRALITY-APP (Human Guidance / Navigator)
 - **What it does:** Helps the human choose the correct next step and avoid framework misuse.
@@ -120,6 +127,7 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
 
 | Agent | Writes files? | Allowed writes (high level) |
 |---|---:|---|
+| PROJECT_DECOMP | Yes | Decomposition document (markdown); user validates at each gate |
 | CHIRALITY-APP | No (by default) | Optional coaching note *only if explicitly requested by human* |
 | ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; scans/reports; *spawns other agents for deliverable and tool-root work* |
 | PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md`; may scaffold tool roots like `test/execution/_Aggregation/` (create-if-missing) |
@@ -161,6 +169,14 @@ The decomposition references Employer's Requirements volumes (Vol 2 Part 1–3),
 ---
 
 ## 5) Copy/paste runbooks (prompt templates)
+
+### 0) Create project decomposition (before anything else)
+Use PROJECT_DECOMP to transform a messy Scope of Work into a structured decomposition document. This produces the input required by all other agents.
+
+**Prompt template:**
+- "Run PROJECT_DECOMP. Here is my Scope of Work: [paste or attach SOW]. Help me structure this into Packages, Deliverables, and anticipated Artifacts."
+
+The agent will guide you through six phases (Intake → Define Scope → Define Packages → Define Deliverables → Verify Coverage → Finalize) with confirmation gates at each step.
 
 ### A) Kickoff (initialize workspace)
 Use ORCHESTRATOR with the decomposition file path and explicitly confirm coordination representation + dependency mode.
