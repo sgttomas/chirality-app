@@ -202,12 +202,39 @@ Minimum expected section set:
 
 (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:235; Specification.md: FR-06; Specification.md: FR-09.)
 
-## Local Conflict Table
+## Conflict Table (for human ruling)
 
-No conflicts identified from accessible sources. Employer's Requirements clause extraction pending for final verification. (Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts identified from accessible sources | — | — | — | — | — |
+
+**Note:** Employer's Requirements clause extraction pending for final verification. If conflicts are identified during ER review, they should be added to this table for human ruling. Key areas requiring ER confirmation:
+- Concrete strength requirements by element type — **TBD**
+- Exposure class definitions and durability requirements — **TBD**
+- Testing frequencies and acceptance criteria — **TBD**
+- Referenced codes and standards (CSA A23.1, CSA A23.3 assumed for BC) — **ASSUMPTION**
+
+(Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+
+## Guidance-to-Specification Traceability
+
+| Guidance § | Supporting Specification Requirements |
+|------------|---------------------------------------|
+| P-01 Requirement Clarity | FR-06, FR-09, QR-02 (verification methods, acceptance criteria) |
+| P-02 Durability-First Framing | FR-02, FR-03, PR-01 (exposure classes, durability requirements) |
+| P-03 Containment Sensitivity | FR-05, PR-03 (joints, waterstops, liner interfaces) |
+| P-04 Evidence-Based Standards | Standards section, FR-07 (codes, standards) |
+| P-05 Consistency Across Deliverables | QR-03, IR-01 (terminology, alignment with DEL-05.01/DEL-05.04) |
+| C-01 Scope Boundary | Scope (contractor scope only) |
+| C-02 Interface Coordination | FR-12, IR-02 (embedded items, interdisciplinary interfaces) |
+| C-03 Constructability | FR-04, FR-08, PR-03 (placement, reinforcement congestion) |
+| C-04 Inspection and Testing Documentation | FR-06, FR-09, QR-02 (enables DEL-05.04 records) |
+| C-05 BC Coastal Environment | FR-03, FR-04, PR-01 (freeze-thaw, seasonal conditions) |
+| T-01 through T-04 | Trade-offs inform engineering judgment within requirements |
+| E-01 through E-03 | Examples support FR-01 through QR-02 implementation |
 
 ## Cross-Document Notes
 
-- **Specification:** This guidance informs how `Specification.md` requirements (FR-01 through QR-03) are structured and what is emphasized (durability, containment, verification). Each Principle should support corresponding Specification requirements. Specification language should follow these Principles for clarity and consistency. (Source: Specification.md: Requirements.)
-- **Procedure:** `Procedure.md` operationalizes drafting, review, and issue sequencing so the specification is checked and controlled before use. Considerations noted here (interfaces, constructability, documentation) should be addressed in Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
-- **Datasheet:** Datasheet Construction section lists the specification artifacts (concrete, reinforcement, formwork) that these Principles and Considerations guide. Ensure specification content aligns with Datasheet construction breakdown and conditions. (Source: Datasheet.md: Construction; Datasheet.md: Conditions.)
+- **Specification:** This guidance informs how `Specification.md` requirements (§FR-01 through §QR-03) are structured and what is emphasized (§P-02 durability, §P-03 containment, §P-01 verification). The Guidance-to-Specification Traceability table above maps each Principle and Consideration to corresponding requirements. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix.)
+- **Procedure:** `Procedure.md` operationalizes drafting, review, and issue sequencing so the specification is checked and controlled before use. Considerations §C-01 through §C-05 are addressed in `Procedure.md` Prerequisites and Steps 3-6. (Source: Procedure.md: Prerequisites; Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** `Datasheet.md` §Construction lists the specification artifacts (concrete, reinforcement, formwork) that Principles §P-01 through §P-05 and Considerations §C-01 through §C-05 guide. Ensure specification content aligns with §Construction breakdown and §Conditions. (Source: Datasheet.md: Construction; Datasheet.md: Conditions; Datasheet.md: Cross-Document Traceability.)

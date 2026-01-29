@@ -60,3 +60,6 @@ This guidance document supports the development of **Electrical Power Data Sheet
 - Switchgear: Nameplate (voltage class, bus rating, breaker ratings), one-line diagram, relay settings, test report, certification
 
 **Reference Sources**: Manufacturer catalogs and submittal templates; IEEE/CSA standards for test report requirements
+
+---
+**Cross-Document Alignment Verified (Pass 3):** Principles 1-3 and Considerations 1-3 align with Specification.md requirements (FR-1 through FR-3, QR-1, QR-2). Trade-offs and examples support procurement and review decisions reflected in Datasheet.md and Procedure.md. No conflicts identified.

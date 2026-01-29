@@ -167,13 +167,47 @@ Record index per Specification.md REQ-04 (ASSUMPTION):
 
 No conflicts identified from accessible sources at this stage.
 
-| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
-|-------------|----------|----------|----------|-------------------|-------------------|--------------|
-| — | — | — | — | — | — | — |
+| Conflict ID | Conflict | Source A (File § Section) | Source B (File § Section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | TBD |
 
-**Note:** Conflicts discovered during record compilation should be added here with citations and requested human ruling. Potential conflicts that may arise:
+### Conflict Recording Instructions
 
-- **Specification acceptance criteria vs. actual proving results** — if DEL-12.02 or DEL-12.03 specifies meter factor 0.995-1.005 but actual proving shows meter factor 0.9945 (outside range), document conflict with acceptance criteria and proving results; request ruling on re-calibration, meter replacement, or acceptance criteria relaxation with justification
-- **ER witnessing requirements vs. vendor standard practice** — if ER requires client witness for FAT but vendor standard practice is factory testing without witness, document conflict with ER hold point requirement and vendor practice; request ruling on witness requirement waiver or coordination to provide witness at vendor factory
-- **Calibration traceability vs. vendor capability** — if ER or Measurement Canada requires traceability to Measurement Canada but vendor calibration is traceable to NIST (US standard), document conflict with traceability requirement and vendor certificate; request ruling on acceptance of NIST traceability or requirement for Measurement Canada re-calibration
-- **Proving frequency vs. commissioning schedule** — if DEL-12.02 requires quarterly proving and first periodic proving would be due during commissioning (before handover), document conflict with proving frequency and commissioning schedule; request ruling on proving schedule (prove during commissioning, or defer first periodic proving to operations)
+When conflicts are discovered during record compilation, record them in this table with:
+- **Conflict ID:** Sequential identifier (e.g., DEL-12.05-C01)
+- **Conflict:** Clear statement of the conflicting requirements or test results
+- **Source A/B:** File path and section reference for each conflicting source (e.g., "DEL-12.03 § Acceptance Criteria (meter factor 0.995-1.005)" or "Proving Record [Date] (meter factor 0.9945)")
+- **Impacted Sections:** Which sections of DEL-12.05 documents or record package are affected
+- **Proposed Authority:** Which source should govern or proposed resolution (PROPOSAL label)
+- **Human Ruling:** Resolution decision and date (TBD until ruled)
+
+### Potential Conflicts to Monitor
+
+| Potential Conflict | Trigger Condition | Sources to Compare | Impacted Documents |
+|--------------------|-------------------|--------------------|--------------------|
+| Specification acceptance vs. actual proving results | DEL-12.02 or DEL-12.03 specifies meter factor 0.995-1.005 but actual proving shows meter factor outside range | DEL-12.03 acceptance criteria vs. actual proving record results | Specification.md REQ-05; Procedure.md Step 4.3 |
+| ER witnessing vs. vendor practice | ER requires client witness for FAT but vendor standard practice is factory testing without witness | ER Vol 2 Part 1 hold point requirements vs. vendor standard practice | Specification.md REQ-16; Procedure.md Step 1.7 |
+| Calibration traceability vs. vendor capability | ER or Measurement Canada requires traceability to Measurement Canada but vendor calibration is traceable to NIST | ER/Measurement Canada traceability requirement vs. vendor calibration certificate | Specification.md REQ-06; Procedure.md Step 3.3 |
+| Proving frequency vs. commissioning schedule | DEL-12.02 requires quarterly proving and first periodic proving would be due during commissioning | DEL-12.02 proving frequency vs. commissioning schedule | Specification.md REQ-05; Procedure.md Step 4.1 |
+| Record format vs. vendor certificate format | Project requires specific record format but vendor certificates use different format | ER Vol 2 Part 1 document control vs. vendor certificate format | Specification.md REQ-17; Procedure.md Step 3.2 |
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.05 identity referenced in Guidance § Purpose deliverable definition |
+| Datasheet.md | § Conditions | Design context (service application, record scope, equipment covered) driving Guidance § Considerations; record requirements context (TBD items) informing Guidance § Calibration/Proving Considerations |
+| Datasheet.md | § Construction | Anticipated record content informing Guidance § Examples; record package structure per Guidance § Purpose (audit trail organization); equipment-to-record traceability per Guidance § Principles (traceability) |
+| Specification.md | § Scope | Inclusions that Guidance § Purpose downstream use addresses |
+| Specification.md | § Requirements | REQ-01 through REQ-19 that Guidance § Principles rationale supports; REQ-05/06 objective alignment per Guidance § Objective Alignment |
+| Specification.md | § Standards | Custody transfer standards that Guidance § Principles (calibration traceability, proving documentation) addresses |
+| Specification.md | § Verification | Verification methods that Guidance § Principles (auditability) supports |
+| Procedure.md | § Prerequisites | Inputs that Guidance § Timing Considerations identifies (DEL-12.02, DEL-12.03, DEL-12.04, vendor certificates, proving results) |
+| Procedure.md | § Step 1 | Record set definition that Guidance § Considerations (minimum content, equipment coverage) informs |
+| Procedure.md | § Step 3 | Calibration certificate collection per Guidance § Calibration Certificate Considerations (field guidance) |
+| Procedure.md | § Step 4 | Proving record collection per Guidance § Proving Record Considerations (field guidance) |
+| Procedure.md | § Step 5 | Verification that Guidance § Principles (evidence, traceability, auditability) supports |
+| DEL-12.01 | Drawings | Installation verification records demonstrate installation per drawings per Guidance § Purpose (correct installation) |
+| DEL-12.02 | Specification | Acceptance criteria per Guidance § Purpose (properly specified); records demonstrate specification compliance |
+| DEL-12.03 | Calculations | Proving criteria per Guidance § Proving Record Considerations (acceptance criteria from calculations); records use calculation-derived criteria |
+| DEL-12.04 | Data Sheets | Equipment tags, serial numbers per Guidance § Principles (traceability); records reference data sheet parameters

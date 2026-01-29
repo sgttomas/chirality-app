@@ -347,14 +347,14 @@ This procedure defines the workflow for producing, reviewing, coordinating, and 
 
 ### Verification Checkpoints
 
-| Checkpoint | Verification Method | Acceptance Criteria |
-|------------|-------------------|---------------------|
-| Step 1 complete | Review Assumption Tracking Log and Traceability Matrix template | Logs updated with specification items; matrix template created |
-| Step 2 complete | Review draft specification and Traceability Matrix | All sections per R1.1–R1.5 drafted; matrix populated; inline traceability present |
-| Step 3 complete | Review Guidance Review Checklist and coordination sign-offs | Checklist completed; coordination meetings held; package lead sign-offs obtained |
-| Step 4 complete | Review coordination meeting minutes and updated matrix | Specification aligned with DEL-04.01/04.03/04.04; matrix updated; assumption log reflects resolutions |
-| Step 5 complete | Review approval records and distribution confirmation | Approvals obtained; specification issued; distribution complete |
-| Step 6 (revisions) | Review revision history and updated matrix | Revised specification correct; matrix current; approvals obtained |
+| Checkpoint | Specification § | Guidance Step | Verification Method | Acceptance Criteria |
+|------------|----------------|---------------|-------------------|---------------------|
+| Step 1 complete | §R3.2 | Pre-Review | Review Assumption Tracking Log and Traceability Matrix template | Logs updated with specification items; matrix template created |
+| Step 2 complete | §R1.1–R1.5, §R2.1–R2.2 | Steps 1–5 | Review draft specification and Traceability Matrix | All sections per §R1.1–R1.5 drafted; matrix populated; inline traceability present |
+| Step 3 complete | §R3.1–R3.2, §R1.4 | Steps 1–7 | Review Guidance Review Checklist and coordination sign-offs | Checklist completed; coordination meetings held; package lead sign-offs obtained |
+| Step 4 complete | §R2.1–R2.3 | Step 6 | Review coordination meeting minutes and updated matrix | Specification aligned with DEL-04.01/04.03/04.04; matrix updated; assumption log reflects resolutions |
+| Step 5 complete | §R3.1, §R3.3 | Steps 6–7 | Review approval records and distribution confirmation | Approvals obtained; specification issued; distribution complete |
+| Step 6 (revisions) | §R3.3 | Step 6 | Review revision history and updated matrix | Revised specification correct; matrix current; approvals obtained |
 
 ### Overall Acceptance Criteria
 - Specification conforms to all Requirements R1.1–R3.3

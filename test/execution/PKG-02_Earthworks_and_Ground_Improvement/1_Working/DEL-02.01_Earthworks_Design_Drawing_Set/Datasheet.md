@@ -14,17 +14,17 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Drawing number(s) | **TBD** — to be assigned per project drawing numbering system |
-| Sheet list | **TBD** — grading plans, cut/fill plans, ground improvement layout, sections per R2-R5 |
-| Sheet size(s) | **TBD** — typically ISO A1 or ANSI D for civil drawings; **ASSUMPTION** |
-| Scale(s) | **TBD** — grading/layout plans typically 1:500 or 1:1000, sections typically 1:100 or 1:200; **ASSUMPTION** |
-| Coordinate system / datum | **TBD** — to align with site survey (see DEL-02.05) |
-| CAD standard | **TBD** — per ER requirements or Contractor CAD standard |
-| Revision | **TBD** — to be tracked per document control (R7) |
-| Classification | **TBD** — per project document classification system |
-| Drawing content coverage | Grading, excavation, fill placement, ground improvement per PKG-02 scope (R6) |
+| Attribute | Value | Specification § | Guidance § | Procedure Step |
+|-----------|-------|-----------------|------------|----------------|
+| Drawing number(s) | **TBD** — to be assigned per project drawing numbering system | R7 | P4 | Step 2.4 |
+| Sheet list | **TBD** — grading plans, cut/fill plans, ground improvement layout, sections per R2-R5 | R2-R5 | P1, P3 | Step 2.3 |
+| Sheet size(s) | **TBD** — typically ISO A1 or ANSI D for civil drawings; **ASSUMPTION** | R7 | Trade-offs | Step 2.4 |
+| Scale(s) | **TBD** — grading/layout plans typically 1:500 or 1:1000, sections typically 1:100 or 1:200; **ASSUMPTION** | R2, R5 | P1 | Step 3 |
+| Coordinate system / datum | **TBD** — to align with site survey (see DEL-02.05) | R1 | P3 | Step 1.2 |
+| CAD standard | **TBD** — per ER requirements or Contractor CAD standard | R7 | Trade-offs | Step 2.4 |
+| Revision | **TBD** — to be tracked per document control (R7) | R7 | P4 | Step 5 |
+| Classification | **TBD** — per project document classification system | R7 | P4 | Step 2.4 |
+| Drawing content coverage | Grading, excavation, fill placement, ground improvement per PKG-02 scope (R6) | R6 | P2, P3 | Step 2.1 |
 
 ## Context & Conditions
 
@@ -46,38 +46,33 @@
 
 The following drawing sheets and content are anticipated, mapped to Specification requirements:
 
-1. **Grading plans** (R2): Site grading arrangement, finish grades, drainage slopes
-   - Content: **TBD** — pending design inputs
-   - Sheet count: **TBD**
-
-2. **Cut/fill plans** (R3): Excavation limits, fill placement zones, quantities
-   - Content: **TBD** — pending design calculations (DEL-02.03)
-   - Sheet count: **TBD**
-
-3. **Ground improvement layout** (R4): Ground improvement zones, treatment methods, limits
-   - Content: **TBD** — pending geotechnical design (DEL-02.04)
-   - Sheet count: **TBD**
-
-4. **Sections** (R5): Cross-sections showing existing/proposed grades, ground improvement details, fill layers
-   - Content: **TBD** — pending design inputs
-   - Sheet count: **TBD**
+| Item | Drawing Type | Specification § | Guidance § | Procedure Step | Content Status |
+|------|--------------|-----------------|------------|----------------|----------------|
+| 1 | Grading plans | R2 | P1, P3 | Step 3.1 | **TBD** — pending design inputs |
+| 2 | Cut/fill plans | R3 | P1, P3 | Step 3.2 | **TBD** — pending design calculations (DEL-02.03) |
+| 3 | Ground improvement layout | R4 | P1, P3, P4 | Step 3.3 | **TBD** — pending geotechnical design (DEL-02.04) |
+| 4 | Sections | R5 | P1, P3, P4 | Step 3.4 | **TBD** — pending design inputs |
 
 **Configuration Notes:**
 - All drawing content shall be coordinated with DEL-02.02 (Technical Specification) and DEL-02.03 (Design Calculations).
 - Drawing details to be developed using inputs from DEL-02.04 (Geotechnical Reports) and DEL-02.05 (Survey Reports).
 - Details require ER volumes and design inputs (currently **TBD**).
 
-## Cross-Document Alignment
+## Cross-Document Traceability
 
-- **Specification.md:** Requirements R1-R7 define the mandatory content and coverage for this drawing set.
-- **Guidance.md:** Provides principles for clarity, constructability, and interface management that should inform drawing production.
-- **Procedure.md:** Defines the production workflow and verification steps (Steps 1-5) to ensure drawing set completeness against R1-R7.
+| Document | Key Linkages |
+|----------|--------------|
+| Specification.md | Requirements R1-R7 define mandatory content; V1-V3 define verification criteria |
+| Guidance.md | Principles P1-P4 inform drawing production; Trade-offs guide detail level decisions |
+| Procedure.md | Steps 1-5 define production workflow; Step 4 implements verification V1-V3 |
 
 ## References
 
-- _CONTEXT.md: Deliverable identity, description, and anticipated artifacts.
-- Decomposition file: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` — PKG-02 scope, DEL-02.01 entry (location TBD).
-- Specification.md: Requirements R1-R7 and verification items V1-V3.
-- Guidance.md: Design principles and considerations.
-- Procedure.md: Production workflow and verification steps.
-- _REFERENCES.md: Currently empty; ER volumes and reference materials pending.
+| Reference | Description | Location |
+|-----------|-------------|----------|
+| _CONTEXT.md | Deliverable identity, description, anticipated artifacts | This folder |
+| Decomposition | PKG-02 scope, DEL-02.01 entry | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (location TBD) |
+| Specification.md | Requirements R1-R7, Verification V1-V3 | This folder |
+| Guidance.md | Principles P1-P4, Considerations, Trade-offs | This folder |
+| Procedure.md | Steps 1-5, Verification, Records | This folder |
+| _REFERENCES.md | ER volumes and reference materials | This folder (currently empty; pending) |

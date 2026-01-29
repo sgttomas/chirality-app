@@ -69,13 +69,13 @@ Every **ASSUMPTION** and **TBD** on drawings must have:
 
 ## Review Checklist
 
-### Pre-Review Preparation
+### Pre-Review Preparation (Procedure Step 3.1)
 - [ ] Confirm Datasheet Assumptions & TBDs are current (review Datasheet "Assumptions & TBDs" section)
 - [ ] Obtain latest DEL-04.03 calculation outputs for section thickness verification
 - [ ] Obtain latest DEL-04.02 specification draft for material call-out cross-checking
 - [ ] Review Procedure assumption log to identify open items affecting drawings
 
-### Step 1: Plan Completeness (Specification R1.1)
+### Step 1: Plan Completeness (Specification §R1.1 | Procedure Step 2.2)
 - [ ] **Coverage**: All pavement zones listed in Datasheet "Drawing Scope" are shown on plan sheets (asphalt, concrete, curbs, sidewalks, parking, line marking)
 - [ ] **Extents**: Pavement boundaries are dimensioned with tie-in points to adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - [ ] **Phase 2 provisions**: OBJ-8 expansion corridors are shown with dimensional envelopes and labeled as future tie-in zones
@@ -83,7 +83,7 @@ Every **ASSUMPTION** and **TBD** on drawings must have:
 - [ ] **Scale verification**: Scale bar is present, scale notation is correct, and plan is legible at stated scale
 - [ ] **Missing elements**: Any zones not shown are noted as **TBD** with explanation in Procedure assumption log
 
-### Step 2: Section Verification (Specification R1.2)
+### Step 2: Section Verification (Specification §R1.2 | Procedure Steps 2.3, 4)
 - [ ] **Thickness validation**: Layer thicknesses shown on section drawings match DEL-04.03 calculation outputs (verify by cross-checking calculation sheet references)
 - [ ] **Material call-outs**: Each layer (wearing course, binder, base, subbase) references the corresponding DEL-04.02 specification clause
 - [ ] **Subgrade requirements**: Subgrade preparation (compaction, CBR, proof rolling) is annotated and consistent with DEL-04.02 and DEL-04.03 design assumptions
@@ -92,14 +92,14 @@ Every **ASSUMPTION** and **TBD** on drawings must have:
 - [ ] **Tolerances**: Thickness, grade, and smoothness tolerances are stated and consistent with DEL-04.02 acceptance criteria
 - [ ] **Unresolved items**: Any sections pending DEL-04.03 final calculations are flagged as **TBD** on drawing notes
 
-### Step 3: Line Marking & Notes (Specification R1.3)
+### Step 3: Line Marking & Notes (Specification §R1.3 | Procedure Step 2.4)
 - [ ] **Legend completeness**: Line marking legend includes all striping types (centerline, edge line, parking stalls, pedestrian crossings, directional arrows)
 - [ ] **Material specifications**: Legend references DEL-04.02 for paint vs. thermoplastic material selection, color, and reflectivity
 - [ ] **Dimensions**: Parking stall dimensions, traffic lane widths, and striping widths are stated
 - [ ] **Application notes**: Environmental constraints (temperature, humidity) and surface preparation requirements reference DEL-04.02
 - [ ] **Consistency check**: Line marking shown on plans matches legend descriptions; no unmarked or mislabeled features
 
-### Step 4: Interface & OBJ-8 Callouts (Specification R1.4)
+### Step 4: Interface & OBJ-8 Callouts (Specification §R1.4 | Procedure Step 3.4)
 - [ ] **PKG-03 interfaces**: Surface drainage slopes tie into catch basin locations and invert elevations (coordinate with DEL-03.01 drawings)
 - [ ] **PKG-05 interfaces**: Pavement grades at building perimeters match structure finished floor elevations (coordinate with DEL-05.01 drawings)
 - [ ] **PKG-07 interfaces**: Pavement elevations at rail crossings accommodate track top-of-rail and clearance envelopes (coordinate with DEL-07.01 drawings)
@@ -107,7 +107,7 @@ Every **ASSUMPTION** and **TBD** on drawings must have:
 - [ ] **Phase 2 callouts**: Reserved corridors for OBJ-8 expansion are dimensioned and annotated with assumed tie-in elevations (flagged as **ASSUMPTION** until Phase 2 input received)
 - [ ] **Assumption logging**: All interface assumptions are logged in Procedure assumption log with coordination status and resolution path
 
-### Step 5: Document Control Review (Specification R1.5)
+### Step 5: Document Control Review (Specification §R1.5 | Procedure Step 5.1)
 - [ ] **Title block**: Project name, deliverable ID (DEL-04.01), sheet number, revision number, date are correct
 - [ ] **Drawing list**: Index sheet lists all drawing sheets with current revision status
 - [ ] **Revision history**: Revision history table is complete with revision number, date, description, and approval signatures
@@ -115,7 +115,7 @@ Every **ASSUMPTION** and **TBD** on drawings must have:
 - [ ] **Legend & notes**: General notes sheet includes material symbols, abbreviations, standard details, and safety warnings (if applicable)
 - [ ] **Procedure verification**: Drawing set conforms to Procedure Step 5 QA checklist
 
-### Step 6: Traceability Audit (Specification R2.1, R2.2, R2.3)
+### Step 6: Traceability Audit (Specification §R2.1–R2.3 | Procedure Step 2.6)
 - [ ] **Specification references**: Every material call-out and tolerance on drawings references a DEL-04.02 clause (use Procedure traceability matrix to verify)
 - [ ] **Calculation references**: Layer thicknesses and design parameters reference DEL-04.03 calculation sheets (use Procedure traceability matrix to verify)
 - [ ] **Test record references**: Drawing notes identify elements requiring field verification per DEL-04.04 (e.g., "Compaction testing per DEL-04.04")
@@ -209,13 +209,23 @@ INTERFACE NOTE: PKG-03 DRAINAGE TIE-IN
 
 **Why this works**: Interface elevation is stated, coordination requirement is explicit, reference to adjacent package deliverable (DEL-03.01) is provided, assumption tracking is in place.
 
+## Conflict Table (for human ruling)
+
+No unresolved conflicts identified during Pass 3 cross-document consistency review.
+
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | No conflicts identified | — | — | — | — | — |
+
+**Note**: If conflicts are identified during future reviews or coordination activities, they shall be logged in this table per Specification §R3.2 and Procedure Step 3.3. Cross-deliverable conflicts (e.g., with PKG-03, PKG-05, PKG-07, PKG-08) that cannot be resolved locally shall be escalated to RECONCILIATION agent when humans request cross-package coherence checks.
+
 ## References
 
 ### Source Documents
 - **Decomposition**: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section PKG-04, DEL-04.01, OBJ-8
 - **Datasheet (DEL-04.01)**: Attributes, Conditions, Construction, Assumptions & TBDs, Cross-document Coordination
-- **Specification (DEL-04.01)**: Requirements R1.1–R1.5, R2.1–R2.3, R3.1–R3.3, Verification Methods, Standards
-- **Procedure (DEL-04.01)**: Workflow Steps, Controls, traceability matrix, assumption log
+- **Specification (DEL-04.01)**: Requirements §R1.1–R1.5, §R2.1–R2.3, §R3.1–R3.3, Verification Methods, Standards
+- **Procedure (DEL-04.01)**: Workflow Steps 1–6, Controls, Traceability Matrix, Assumption Log
 - **DEL-04.02**: Pavement Technical Specification (material and workmanship references)
 - **DEL-04.03**: Pavement Design Calculations (section thickness validation)
 - **DEL-04.04**: Pavement Installation & Test Records (field verification basis)

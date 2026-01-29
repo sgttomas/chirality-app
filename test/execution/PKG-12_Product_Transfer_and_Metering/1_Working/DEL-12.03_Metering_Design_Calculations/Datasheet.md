@@ -150,8 +150,27 @@ The following standards may be applicable to custody transfer metering calculati
 
 ## Cross-Document Traceability
 
-| Document | Link Points |
-|----------|-------------|
-| Specification.md | Requirements section (REQ-01 through REQ-12) defines calculation scope and quality requirements: calculation package shall document basis, inputs, assumptions, methods, results (REQ-01); cover both services (REQ-02); include all calculation types (REQ-03); demonstrate throughput support (REQ-04); demonstrate accuracy (REQ-05); state boundary conditions (REQ-08); be independently checked (REQ-10); include revision history and input sources (REQ-11); Standards section identifies governing references and custody transfer standards for methodology; Verification section defines review methods (document review, technical review, independent check, sensitivity analysis) and acceptance criteria; Documentation section defines calculation report structure matching Construction section above |
-| Guidance.md | Purpose section explains calculations provide engineering basis for meter selection, accuracy verification, and proving methodology; Principles section explains calculation development rationale (objective demonstration per OBJ-2/OBJ-10, traceability, auditability) and methodology principles (sizing, uncertainty analysis, proving); Considerations section identifies sizing factors (flow range, product properties, pressure drop, turndown, meter technology), accuracy/uncertainty factors (meter uncertainty, temperature compensation, pressure compensation, density compensation, proving, combined uncertainty), proving factors (method, prover size, frequency, acceptance criteria), and service-specific considerations (rail vs. marine) |
-| Procedure.md | Steps section defines calculation workflow: Step 1 (Define cases for rail and marine services), Step 2 (Collect inputs from ER, DEL-12.02, design basis), Step 3 (Perform flow meter sizing per Guidance methodology), Step 4 (Perform accuracy/uncertainty calculations per applicable standard), Step 5 (Perform proving calculations and define acceptance criteria), Step 6 (Cross-check with DEL-12.02 specification), Step 7 (Perform sensitivity analysis), Step 8 (Assemble calculation report per report structure), Step 9 (Independent check and issue); Verification section aligns to Specification acceptance criteria; Records section identifies calculation outputs matching anticipated artifacts |
+| Document | Section | Link Points |
+|----------|---------|-------------|
+| Specification.md | § Scope | Defines inclusions (flow meter sizing, accuracy/uncertainty calculations, proving calculations) and exclusions (vendor-specific sizing, control logic, piping hydraulics beyond metering) |
+| Specification.md | § Requirements | REQ-01 through REQ-24: functional (REQ-01-05 documentation and coverage), performance (REQ-06-10 throughput and accuracy), methodology (REQ-11-13 standard-based), interface (REQ-14-17 boundary conditions and consistency), quality (REQ-18-22 checking and control), sensitivity (REQ-23-24 analysis) |
+| Specification.md | § Standards | Governing references (ER Vol 2 Part 1/2) and custody transfer standards (API MPMS Chapters 4/5/11/13, OIML R117, ISO GUM, Measurement Canada, ISO 4185) |
+| Specification.md | § Verification | Methods (document review, technical review, cross-document check, independent check, sensitivity review, standard compliance) and acceptance criteria |
+| Specification.md | § Documentation | Calculation report structure matching Construction section (11 sections + appendices); documentation requirements (summary, input documentation, methodology, unit consistency) |
+| Guidance.md | § Purpose | Calculations provide engineering basis for meter selection, accuracy verification, proving methodology; drive DEL-12.01, DEL-12.04, DEL-12.05 |
+| Guidance.md | § Principles | Development rationale (objective demonstration REQ-06/07, traceability REQ-04, auditability REQ-18, no invention REQ-05, standard-based REQ-11/12/13); methodology principles (sizing REQ-06/09/10, uncertainty REQ-07/12, proving REQ-07/13) |
+| Guidance.md | § Considerations | Sizing factors (flow range, product properties, pressure drop, turndown, meter technology per REQ-06/09/10/11); accuracy/uncertainty factors (meter, temperature, pressure, density, proving uncertainty per REQ-07/12); proving factors (method, size, frequency, criteria per REQ-13); service-specific (rail 32 stations, marine high flow per REQ-02) |
+| Guidance.md | § Trade-offs | Competing factors: meter size vs. low-flow accuracy, accuracy vs. pressure drop, proving method vs. cost, conservative vs. realistic assumptions, standardization vs. optimization |
+| Procedure.md | § Step 1 | Define cases for rail and marine services per REQ-02 |
+| Procedure.md | § Step 2 | Collect inputs from ER, DEL-12.02, design basis per REQ-04/05/20 |
+| Procedure.md | § Step 3 | Flow meter sizing per REQ-06/09/10/11 |
+| Procedure.md | § Step 4 | Accuracy/uncertainty calculations per REQ-07/12 |
+| Procedure.md | § Step 5 | Proving calculations per REQ-07/13 |
+| Procedure.md | § Step 6 | Cross-check with DEL-12.02 per REQ-08/15 |
+| Procedure.md | § Step 7 | Sensitivity analysis per REQ-23/24 |
+| Procedure.md | § Step 8 | Assemble calculation report per REQ-01/16/19/20 |
+| Procedure.md | § Step 9 | Independent check and issue per REQ-18/22 |
+| DEL-12.01 | Drawings | Meter sizes, straight-run requirements, proving connections from calculations per Construction section implications |
+| DEL-12.02 | Specification | Performance requirements (accuracy, turndown, flow range) as calculation inputs per Conditions section |
+| DEL-12.04 | Data Sheets | Parameters validated by calculations (sizes, flow ranges, accuracy) per Construction section implications |
+| DEL-12.05 | Test Records | Acceptance criteria from calculations (FAT/SAT accuracy, proving criteria) per Construction section implications

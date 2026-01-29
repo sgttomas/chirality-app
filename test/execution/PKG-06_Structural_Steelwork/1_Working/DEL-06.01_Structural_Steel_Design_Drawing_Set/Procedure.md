@@ -61,3 +61,24 @@ The deliverable defines the design arrangement and details for structural steel 
 - Filing convention: working files remain in `1_Working/`; review/issue copies can be packaged to `2_Checking/` / `3_Issued/` as adopted by the team (Source: README.md; Datasheet.md: References).
 - Revision tracking: per project numbering system and `Datasheet.md` attributes (Datasheet.md: Attributes; Step 5).
 - Retention requirements: **TBD**.
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity verified in Step 1 |
+| Datasheet.md | Attributes | Drawing metadata (number, revision, scale) verified in Steps 5, 6 |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.02/03/04/05) referenced in Steps 3, 4, 6 |
+| Specification.md | Scope | Anticipated artifacts checklist used in Step 1 |
+| Specification.md | Requirements: Drawing Content | Minimum content checklist used in Step 6 |
+| Specification.md | Cross-Reference Matrix | Verification traceability used in Steps 6–8 |
+| Specification.md | Documentation | Document control requirements applied in Step 5 |
+| Guidance.md | Principles | Intent guiding Steps 2, 3, 4 (interfaces, clarity, design basis) |
+| Guidance.md | Considerations | Trade-offs considered in Steps 4, 7 |
+| Guidance.md | Examples | Checklist organization used in Steps 1, 6 |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.02: Referenced in Steps 4, 6 — materials/workmanship/coatings specifications
+- DEL-06.03: Referenced in Steps 3, 4, 6 — design basis, load cases, governing calculations
+- DEL-06.04: Referenced in Steps 4, 6 — gangway/grating data sheets where applicable
+- DEL-06.05: Downstream deliverable — drawings identify elements requiring installation/test traceability

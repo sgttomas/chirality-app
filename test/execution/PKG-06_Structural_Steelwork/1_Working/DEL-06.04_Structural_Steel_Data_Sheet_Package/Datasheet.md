@@ -14,13 +14,13 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Data Sheet Package Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Included Data Sheets | Gangway data sheets; Grating data sheets (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251; Specification.md: Scope; Procedure.md: Step 1) |
-| Item Identification | Tag/ID scheme **TBD** (to align with drawings and BOM) (Specification.md: Interface Requirements; Procedure.md: Step 3; Guidance.md: Principles) |
-| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 5) |
-| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Data Sheet Package Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Documentation | Step 5 |
+| Included Data Sheets | Gangway data sheets; Grating data sheets (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251) | Scope | Step 1 |
+| Item Identification | Tag/ID scheme **TBD** (to align with drawings and BOM) | Interface Requirements | Step 3 |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme | Documentation | Step 5 |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) | Scope | — |
 
 ## Conditions
 
@@ -56,9 +56,22 @@ Each data sheet should capture (at minimum): geometry, material/protective syste
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
 - See `_REFERENCES.md` and `execution/PKG-06_Structural_Steelwork/0_References/` for package reference index (currently empty / TBD).
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- Technical Specification (DEL-06.02): data sheet fields should reflect the material/workmanship/coating clauses (DEL-06.02 Specification.md).
-- Design Calculations (DEL-06.03): data sheets should reference any calculation assumptions or design loads where applicable (DEL-06.03 Specification.md).
-- Drawings (DEL-06.01): item IDs and configurations should match drawings to avoid mismatches at procurement/installation.
-- Specification → Procedure traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Specification.md | Scope | Anticipated data sheet artifacts (gangway, grating) |
+| Specification.md | Suggested Field Sets | Field structure for gangway and grating data sheets |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification-to-evidence traceability |
+| Guidance.md | Principles | Checklistable fields, consistent identifiers, TBD handling |
+| Guidance.md | Considerations | Field coverage, required records alignment with DEL-06.05 |
+| Guidance.md | Examples | Template structure and linked documents block |
+| Procedure.md | Steps 1–5 | Item identification through issue preparation workflow |
+| Procedure.md | Verification | Acceptance criteria for completeness, consistency, alignment |
+| Procedure.md | Records | Documentation outputs matching this Datasheet's scope |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Item IDs and configurations on data sheets match drawings; drawing references included
+- DEL-06.02: Data sheet material/coating fields reflect specification clause requirements
+- DEL-06.03: Data sheets reference calculation assumptions/design loads where applicable
+- DEL-06.05: Required records fields (mill certificates, galvanizing certificates) align with installation/test record compilation

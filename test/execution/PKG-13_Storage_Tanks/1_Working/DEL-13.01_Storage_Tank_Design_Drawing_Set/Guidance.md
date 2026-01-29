@@ -435,6 +435,19 @@ API 650 is a prescriptive standard providing detailed rules for atmospheric stor
 
 ---
 
-**Document Status:** Pass 3 Complete (2026-01-28) — Design philosophy, API 650 intent, product/site considerations, trade-offs, and examples provided with explicit links to requirements (Specification.md), attributes (Datasheet.md), and workflow (Procedure.md). All TBDs specify information source needed. ASSUMPTIONs labeled with basis and references. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.01-01 | Roof type selection (cone vs. dome vs. floating) requires ER clarification | Guidance.md TD-02 | ER Vol 2 Part 2 (TBD) | Datasheet.md Roof Type; Specification.md PR-01 | ER Vol 2 Part 2 specification | **TBD** |
+| CT-13.01-02 | Agitator type (side-entry vs. top-entry) affects tank shell design | Guidance.md Agitator Integration | Vendor selection (TBD) | Datasheet.md Agitator Type; Specification.md PR-05 | Vendor data + process requirements | **TBD** |
+| CT-13.01-03 | Foundation type depends on geotechnical conditions not yet available | Guidance.md TD-03 | DEL-02.04 Geotechnical Reports | Datasheet.md Foundation Type; Specification.md IR-01, PR-04 | DEL-02.04 geotechnical recommendations | **TBD** |
+| CT-13.01-04 | Seismic anchorage decision (anchored vs. unanchored) requires seismic analysis | Guidance.md TD-04 | DEL-13.03 seismic calculations | Datasheet.md Anchor Chairs; Specification.md PR-02 | DEL-13.03 API 650 Appendix E analysis | **TBD** |
+
+**Note:** These conflicts represent design decisions requiring upstream input (ER extraction, geotechnical data, vendor selection). They are not errors but decision points for WORKING_ITEMS resolution.
+
+---
+
+**Document Status:** Pass 3 Complete (2026-01-28) — Design philosophy, API 650 intent, product/site considerations, trade-offs, and examples provided with explicit links to requirements (Specification.md), attributes (Datasheet.md), and workflow (Procedure.md). Conflict Table added for design decisions requiring human ruling. All TBDs specify information source needed. ASSUMPTIONs labeled with basis and references. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

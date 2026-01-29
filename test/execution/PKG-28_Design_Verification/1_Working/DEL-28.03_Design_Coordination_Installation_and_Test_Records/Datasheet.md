@@ -11,58 +11,54 @@
 | Type | Record |
 | Responsible | D&B Contractor (QA/QC) |
 | Status | INITIALIZED |
+| Objective Mapping | OBJ-6: Regulatory Compliance |
+
+**Source:** _CONTEXT.md (DEL-28.03); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 6, Objective-to-Deliverable Mapping)
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Record Category | Design Coordination Records |
-| Record Types | Coordination meeting minutes, clash detection reports, RFI logs, interface agreements, coordination registers |
-| Coordination Frequency | **TBD** — **ASSUMPTION**: Regular coordination meetings (weekly or bi-weekly during active design phases) |
-| BIM/3D Modeling Requirement | **ASSUMPTION**: 3D coordination model required for clash detection — **TBD**: BIM execution plan requirements |
-| Coordination Phases | Aligned with design submission stages: 30%, 60%, 90%, IFC |
-| Retention Period | **TBD** — **ASSUMPTION**: Project lifetime plus 7-10 years per contract and professional liability requirements |
-| Classification | Project Controlled — Quality Records |
+| Attribute | Value | Specification § | Guidance § | Procedure Step |
+|-----------|-------|-----------------|------------|----------------|
+| Record Category | Design Coordination Records | — | P-1 | Step 6, Step 7 |
+| Record Types | Coordination minutes, clash reports, RFI logs, interface registers, issue logs | FR-1, FR-3, FR-5, FR-6, FR-7 | C-3, C-4, C-5, C-6 | Steps 2-6 |
+| Coordination Frequency | **TBD** — Weekly/bi-weekly during active design | FR-2 | C-3 | Step 2.1 |
+| BIM/3D Coordination | **TBD** — If BIM used, per BEP | FR-3, IR-5 | P-4, C-4, T-3 | Step 3 |
+| Coordination Phases | 30%, 60%, 90%, IFC | IR-2 | P-2 | Step 5 |
+| Retention Period | **TBD** — 7-10 years post-project | QR-4 | — | Step 7.3 |
+| Classification | Project Controlled — Quality Records | QR-3 | C-9 | Step 6, Step 7 |
 
-**Source:** _CONTEXT.md (DEL-28.03 description, anticipated artifacts); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (PKG-28 scope: inter-discipline coordination)
+**Source:** _CONTEXT.md (DEL-28.03 description, anticipated artifacts); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (PKG-28 scope)
 
 ## Conditions
 
 **Design Coordination Context:**
 
-Design coordination records provide evidence that inter-discipline design coordination was performed systematically throughout the design process, supporting design quality, constructability, and **OBJ-6: Regulatory Compliance** — "The Works comply with all permits, codes, and authority requirements." Effective design coordination reduces design errors, conflicts, and construction issues.
+Design coordination records provide evidence that inter-discipline design coordination was performed systematically throughout the design process, supporting design quality, constructability, and **OBJ-6: Regulatory Compliance**.
 
-**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 2, OBJ-6; Section 6, Objective-to-Deliverable Mapping: DEL-28.01–DEL-28.03 associated with OBJ-6); **ASSUMPTION**: Design coordination supports quality and compliance
+**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 2, OBJ-6; Section 6, Objective-to-Deliverable Mapping)
 
 **Coordination Scope:**
 
-Design coordination addresses interfaces between discipline packages across the full project scope, including but not limited to:
-- **Civil-Structural interfaces**: Foundation elevations, embedments, underground utilities vs. foundations, site grading vs. structure elevations
-- **Structural-Mechanical interfaces**: Equipment foundations, pipe support attachments, tank support structures, equipment access platforms
-- **Structural-Electrical interfaces**: Cable tray support attachments, electrical equipment foundations, conduit penetrations through structures
-- **Mechanical-Electrical interfaces**: Motor control interfaces, heat tracing power, instrumentation power, hazardous area classification alignment
-- **Process-Civil interfaces**: Underground piping vs. site utilities, drainage connections, containment system integration
-- **Marine-Structural interfaces**: Wharf structure vs. marine loading arms, fender attachment details, mooring hardware
-- **All disciplines-Architectural interfaces** (if buildings included): Building penetrations, equipment rooms, access requirements
+| Interface Type | Disciplines | Specification § | Example Coordination Points |
+|----------------|-------------|-----------------|----------------------------|
+| Civil-Structural | PKG-01, PKG-06, PKG-07 | IR-1 | Foundation elevations, embedments, site utilities |
+| Structural-Mechanical | PKG-06, PKG-10, PKG-12 | IR-1 | Equipment foundations, pipe supports, access platforms |
+| Structural-Electrical | PKG-06, PKG-17 | IR-1 | Cable tray supports, equipment foundations, conduit penetrations |
+| Mechanical-Electrical | PKG-10, PKG-17 | IR-1 | Motor controls, heat tracing, instrumentation power |
+| Process-Civil | PKG-10, PKG-01 | IR-1 | Underground piping, drainage, containment |
+| Marine-Structural | PKG-08, PKG-09 | IR-1 | Wharf vs. loading arms, fender attachments, mooring hardware |
 
-**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 4, Package Summary: multi-discipline project); **ASSUMPTION**: Typical inter-discipline interfaces for industrial facility
+**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 4, Package Summary)
 
-**Coordination Methods:**
+**Coordination Methods** — See Guidance.md Considerations:
 
-- **Coordination meetings**: Regular meetings between discipline design leads to review design progress, identify and resolve interface issues, make coordination decisions
-- **3D model coordination (BIM)**: Use of 3D design models to detect and resolve spatial conflicts (clashes) between disciplines — **TBD**: BIM execution plan, model requirements, clash detection protocol
-- **RFI process**: Formal Request for Information (RFI) process for design questions, clarifications, and issue resolution
-- **Interface registers**: Documented interface agreements between disciplines (elevations, locations, connection details, responsibility assignments)
-- **Design review meetings**: Multi-discipline design reviews at key milestones (30%, 60%, 90%, IFC) to verify coordination
-
-**Source:** _CONTEXT.md (anticipated artifacts: coordination records, clash detection reports, RFI logs); **ASSUMPTION**: Standard D&B multi-discipline coordination methods
-
-**Coordination Timing:**
-
-- Coordination begins at project start and continues throughout design development
-- Intensive coordination occurs before each design submission milestone (30%, 60%, 90%, IFC)
-- Coordination continues during construction as design refinements and field conditions require
-- **Source:** **ASSUMPTION**: Continuous coordination aligned with design schedule; design submission stages from DEL-27.04 and DEL-28.01
+| Method | Purpose | Specification § | Procedure Step |
+|--------|---------|-----------------|----------------|
+| Coordination Meetings | Regular inter-discipline issue resolution | FR-1, FR-2 | Step 2 |
+| 3D/BIM Clash Detection | Spatial conflict identification | FR-3, FR-4 | Step 3 |
+| RFI Process | Design questions and clarifications | FR-5 | Step 4.2 |
+| Interface Registers | Critical interface documentation | FR-6 | Step 4.3 |
+| Issue Tracking | Coordination issue management | FR-7 | Step 4.4 |
 
 ## Construction
 
@@ -77,72 +73,95 @@ Anticipated artifacts:
 
 **Detailed Record Types:**
 
-**1. Inter-Discipline Coordination Meeting Minutes**
-- Meeting frequency, date, attendees
-- Agenda items and discussion topics
-- Interface issues identified and discussed
-- Decisions made and action items assigned
-- Responsible party and due date for action items
-- **ASSUMPTION**: Standard meeting minutes format
+**1. Coordination Meeting Minutes** — See Specification.md FR-1, D-1; Procedure.md Step 2.3:
 
-**2. Clash Detection Reports**
-- Clash detection run date and model revisions analyzed
-- Software used (e.g., Navisworks, Revit, other BIM clash detection tools) — **TBD**: BIM software specification
-- Clash report showing all detected clashes by discipline pair (e.g., Civil-Structural, Mechanical-Electrical)
-- Clash severity classification (Critical, Major, Minor) — **TBD**: Classification criteria
-- Clash resolution status (Open, In Progress, Resolved)
-- Clash resolution description (how clash was resolved, which discipline made changes)
-- **ASSUMPTION**: BIM-based clash detection per standard BIM coordination workflow
+| Element | Content |
+|---------|---------|
+| Meeting ID | Sequential numbering (e.g., COORD-MTG-001) |
+| Date/Time/Location | Meeting details |
+| Attendees | Names, disciplines, companies |
+| Agenda Items | Discussion topics |
+| Interface Issues | Issues identified and discussed |
+| Decisions Made | Coordination decisions |
+| Action Items | Responsible party, due date |
+| Next Meeting | Scheduled date |
 
-**3. RFI (Request for Information) Logs**
-- RFI number (sequential numbering system)
-- Originator (discipline raising question)
-- Addressee (discipline or party expected to respond)
-- RFI question/issue description
-- Date submitted
-- Response/resolution
-- Date responded
-- Status (Open, Responded, Closed)
-- Related drawing/document references
-- **ASSUMPTION**: Standard RFI tracking system
+**2. Clash Detection Reports** (if BIM used) — See Specification.md FR-3, FR-4, D-2; Procedure.md Step 3.4:
 
-**4. Interface Registers/Agreements** — **ASSUMPTION**: Documented interface coordination
-- Discipline pair (e.g., Civil-Structural, Mechanical-Electrical)
-- Interface description (what is being coordinated)
-- Responsible discipline for each interface element
-- Interface criteria (elevations, locations, sizes, connection details)
-- Agreement date
-- Status (TBD, Agreed, Verified)
+| Element | Content |
+|---------|---------|
+| Report Date | Clash run date |
+| Model Revisions | Models analyzed |
+| Software | Clash detection software |
+| Clash Summary | Total, Critical, Major, Minor counts |
+| Clashes by Discipline | Breakdown by discipline pair |
+| Critical Clashes | Details and assignments |
+| Status | Prior clash closure status |
 
-**5. Coordination Registers/Issue Logs** — **ASSUMPTION**: Issue tracking during coordination
-- Issue number
-- Issue description
-- Discipline(s) affected
-- Priority (Critical, High, Medium, Low)
-- Responsible party for resolution
-- Target resolution date
-- Resolution description
-- Status (Open, In Progress, Resolved)
+**3. RFI Logs** — See Specification.md FR-5, D-3; Procedure.md Step 4.2:
 
-**Deliverable Coordination** — **ASSUMPTION**: Design coordination interfaces with multiple deliverables:
-- IDV Reports (DEL-28.01) — IDV may identify coordination issues requiring resolution
-- VFPA IP Review Responses (DEL-28.02) — VFPA may identify coordination requirements
-- Design Submission Packages (DEL-27.04) — Coordinated designs submitted at each stage
-- All discipline design packages (PKG-01 through PKG-36) — Coordination ensures consistency across all discipline deliverables
+| Column | Content |
+|--------|---------|
+| RFI Number | Sequential (RFI-001, etc.) |
+| Originator | Discipline raising question |
+| Addressee | Responding party |
+| Description | RFI question/issue |
+| Date Submitted | Submit date |
+| Response | Resolution text |
+| Date Responded | Response date |
+| Status | Open/Responded/Closed |
 
-**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (PKG-27, PKG-28 deliverables; Section 4, Package Summary: all discipline packages)
+**4. Interface Registers** — See Specification.md FR-6, D-4; Procedure.md Step 4.3:
+
+| Column | Content |
+|--------|---------|
+| Interface ID | Unique identifier |
+| Discipline Pair | Disciplines involved |
+| Interface Description | What is coordinated |
+| Responsible Disciplines | Responsibilities by discipline |
+| Interface Criteria | Elevations, locations, connections |
+| Status | TBD/Agreed/Verified |
+
+**5. Coordination Issue Logs** — See Specification.md FR-7, D-5; Procedure.md Step 4.4:
+
+| Column | Content |
+|--------|---------|
+| Issue Number | Sequential |
+| Description | Issue details |
+| Disciplines Affected | Impacted disciplines |
+| Priority | Critical/High/Medium/Low |
+| Responsible Party | Assigned for resolution |
+| Target Date | Resolution deadline |
+| Resolution | How resolved |
+| Status | Open/In Progress/Resolved |
+
+## Cross-Deliverable Coordination
+
+| Related Deliverable | Relationship | Specification § |
+|--------------------|--------------|-----------------|
+| DEL-27.04 Design Submission Packages | Coordinated designs submitted at each stage | IR-2 |
+| DEL-28.01 Independent Design Verification | IDV may identify coordination issues | IR-3 |
+| DEL-28.02 VFPA IP Review Responses | VFPA may identify coordination requirements | IR-4 |
+| PKG-01 through PKG-36 | Coordination across all discipline packages | IR-1 |
+
+**Source:** Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (PKG-27, PKG-28); Specification.md (Interface Requirements)
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- BIM Execution Plan (BEP) — **TBD**: Project BIM requirements and coordination protocols
-- Project Quality Management Plan — **TBD**: QMP reference for coordination procedures
-- Employer's Requirements — **TBD**: Specific ER sections governing design coordination requirements
-- Applicable standards: ISO 9001 (Quality Management), ISO 19650 (BIM) — **ASSUMPTION**: BIM standards if BIM is used
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
-- Related deliverables:
-  - DEL-27.04 (Design Submission Packages) — Coordination supports design submissions
-  - DEL-28.01 (Independent Design Verification Reports) — IDV coordination
-  - DEL-28.02 (VFPA IP Review Responses) — VFPA coordination
-  - All discipline packages (PKG-01 through PKG-36) — Coordination across all disciplines
+| Reference | Status | Notes |
+|-----------|--------|-------|
+| _REFERENCES.md | See file | Applicable reference documents |
+| 0_References/ | See folder | Package reference materials |
+| BIM Execution Plan | **TBD** | BIM requirements if BIM used |
+| Project Quality Management Plan | **TBD** | QMP reference |
+| Employer's Requirements | **TBD** | Specific ER sections for coordination |
+| ISO 9001 | Applicable | Quality Management — quality records |
+| ISO 19650 | **TBD** | BIM standards if BIM used |
+| _DEPENDENCIES.md | NOT_TRACKED | Dependencies coordinated externally |
+
+**Cross-Document Traceability:**
+- Specification.md — Requirements FR-1 through FR-7, PR-1 through PR-3, IR-1 through IR-6, QR-1 through QR-4
+- Guidance.md — Principles P-1 through P-6, Considerations C-1 through C-9, Trade-offs T-1 through T-6
+- Procedure.md — Steps 1-8, Verification V-1 through V-5
+
+**Source:** Specification.md; Guidance.md; Procedure.md

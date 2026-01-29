@@ -83,8 +83,23 @@ Field sets below are proposed to make the deliverable checkable and to align wit
 - Maintain revision history and approvals per document control requirements (**TBD**) (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes; Procedure.md: Step 5).
 - Data sheet package files (native + PDF), check record, supporting certificates as applicable (**TBD**) (Procedure.md: Records).
 
-## Cross-Document Notes
+## Cross-Document Traceability
 
-- Datasheet: metadata fields should align with project numbering and Procedure’s release workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Technical Specification (DEL-06.02): data sheet fields should match the requirement clauses (DEL-06.02 Specification.md).
-- Installation/Test Records (DEL-06.05): required certificate/inspection record types should be listed on the relevant data sheets (DEL-06.05 Datasheet.md, once drafted).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity fields consistent with Scope |
+| Datasheet.md | Attributes | Package metadata (number, revision) — directly mapped via Specification § column |
+| Datasheet.md | Construction | Suggested data sheet fields, linked deliverables |
+| Guidance.md | Principles | Intent behind Requirements (checklistable fields, consistent identifiers, TBD handling) |
+| Guidance.md | Considerations | Trade-offs for field coverage and required records alignment |
+| Guidance.md | Examples | Template structure and linked documents block formats |
+| Procedure.md | Prerequisites | Confirms reference materials and dependency coordination mode |
+| Procedure.md | Steps 1–5 | Workflow implementing each Requirement area per Cross-Reference Matrix |
+| Procedure.md | Verification | Acceptance criteria matching this Specification's requirements |
+| Procedure.md | Records | Documentation outputs matching this Specification's Documentation section |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01 Structural Steel Design Drawing Set: item IDs and configurations on data sheets match drawing items
+- DEL-06.02 Structural Steel Technical Specification: material/coating fields reflect specification clause requirements
+- DEL-06.03 Structural Steel Design Calculations: design basis references included where applicable
+- DEL-06.05 Structural Steel Installation & Test Records: required records fields align with installation/test record compilation

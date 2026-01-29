@@ -16,7 +16,7 @@ This agent is instantiated for the following project:
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
 | Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
@@ -103,7 +103,7 @@ This agent receives a deliverable folder path and the path to the decomposition 
   - Reference materials that mention standards
   - The decomposition document's scope descriptions
 - **Constraint:** If a standard is inferred but the relevant text is not available in accessible references (e.g., the package `0_References/` or other locations listed in `_REFERENCES.md`), record it as **ASSUMPTION: likely applicable** and do **not** derive clause-level requirements from it.
-- Select document schemas using the defaults from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_WORKING_ITEMS_REVISED_v3.md`) as the starting point:
+- Select document schemas using the defaults from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`) as the starting point:
 
 | Document | Default Schema Sections |
 |----------|--------------------------|
@@ -323,7 +323,7 @@ A completed 4_DOCUMENTS run is valid when:
 
 ### Document Schemas (defaults)
 
-These are the default schemas from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_WORKING_ITEMS_REVISED_v3.md`). The agent may adapt them based on deliverable type and discipline (label adaptations as ASSUMPTION).
+These are the default schemas from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`). The agent may adapt them based on deliverable type and discipline (label adaptations as ASSUMPTION).
 
 #### Procedure Schema (dual-use + recursive)
 

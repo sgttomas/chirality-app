@@ -140,10 +140,12 @@ Dependencies are coordinated externally (NOT_TRACKED per `_DEPENDENCIES.md`). Th
 
 ---
 
-**Pass 2/3 Enrichment Notes:**
-- Added drawing count attribute
-- Added site location to Conditions
-- Updated nitrogen supply package reference with TBD note (decomposition does not show PKG-18 as Utilities)
-- Updated interface package references for consistency with decomposition
-- Enhanced cross-references between Datasheet acceptance criteria and Specification/Procedure sections
-- All TBDs and ASSUMPTIONs preserved from Pass 1
+**Pass 3 Enrichment Notes (Final Quality Check):**
+- Verified cross-document consistency: 4 drawing types, 6 PKG-11 scope items, 6 acceptance criteria aligned across all documents
+- Verified objectives mapping (OBJ-1, OBJ-2, OBJ-4, OBJ-7) consistent with Specification.md §Scope and Guidance.md §Purpose
+- Verified interface table package references align with Specification.md §Interface Requirements and Procedure.md §Step 8 IDC table
+- Verified throughput value (1,000,000 MT/annum) consistent across documents
+- Confirmed terminology consistency: ERC, double-walled pipe, leak detection, operator shelter used consistently
+- All TBDs and ASSUMPTIONs retained with proper labeling
+- Cross-document links verified complete (Specification, Guidance, Procedure, DEL-11.02/03/06)
+- Pass 3 complete — document ready for WORKING_ITEMS session

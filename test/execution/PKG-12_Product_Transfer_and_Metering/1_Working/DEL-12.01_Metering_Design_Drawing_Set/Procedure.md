@@ -340,3 +340,26 @@ Status transitions are managed per `_STATUS.md` in the deliverable folder:
 | As-built revisions | Incorporate field changes | Construction complete; as-built markups received | As-built process per project procedures (TBD) |
 
 **Note:** Revision numbering convention TBD from ER Vol 2 Part 1 project document control procedures.
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.01 identity referenced in Procedure § Purpose deliverable definition |
+| Datasheet.md | § Attributes | Drawing attributes (number series, sheet size, scale, CAD standard) that Procedure § Step 1.5 drawing list and § Step 3.4 standard elements address |
+| Datasheet.md | § Conditions | Design context (service application, throughput, metering points) that Procedure § Step 1.1-1.2 scope confirmation references |
+| Datasheet.md | § Construction | Anticipated artifacts (metering skid GAs, flow meter installation details, proving connection details) that Procedure § Step 3.1-3.3 drafting actions produce |
+| Specification.md | § Scope | Inclusions verified in Procedure § Step 4.1 artifact completeness check |
+| Specification.md | § Requirements | REQ-01 through REQ-18 verified in Procedure § Step 4.2 requirements verification; REQ-04, REQ-07 verified in § Step 4.3 cross-document consistency |
+| Specification.md | § Verification | Verification methods (drawing review, checklist review, cross-document check, IDC review) mapped to Procedure § Steps 4-6 |
+| Specification.md | § Documentation | Required outputs (Metering Skid GAs, Flow Meter Installation Details, Proving Connection Details, Drawing List) matched to Procedure § Records outputs |
+| Guidance.md | § Purpose | Downstream use (fabrication, installation, commissioning, operations) that Procedure § Step 3 drafting intent serves |
+| Guidance.md | § Principles | Custody transfer measurement intent principles verified in Procedure § Step 5.2 IC; drawing content principles (completeness, constructability, maintainability) verified in Procedure § Step 5.3-5.4 |
+| Guidance.md | § Considerations | Design factors (meter technology, straight-run, proving method) that inform Procedure § Step 2 input collection |
+| Guidance.md | § Trade-offs | Competing factors that Procedure § Step 3 drafting must balance per collected inputs |
+| Guidance.md | § Conflict Table | Local conflicts documented per Procedure § Step 4 self-check if detected |
+| DEL-12.02 | Specification | Technical specification collected in Procedure § Step 2.1 for performance requirements, meter technology, proving method |
+| DEL-12.03 | Calculations | Design calculations collected in Procedure § Step 2.2 for sizing basis, straight-run requirements |
+| DEL-12.04 | Data Sheets | Data sheets collected in Procedure § Step 2.3 for instrument parameters, tag numbers, vendor data |
+| PKG-14 | P&IDs | P&IDs collected in Procedure § Step 2.4 for process context, interface points |
+| PKG-06, PKG-17, PKG-19, PKG-20 | Interface packages | Interface coordination per Procedure § Step 6 IDC review

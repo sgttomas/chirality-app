@@ -56,3 +56,23 @@ The deliverable defines and substantiates structural steelwork items via data sh
 - Filing convention: working files remain in `1_Working/`; review/issue copies can be packaged to `2_Checking/` / `3_Issued/` as adopted by the team (Source: README.md; Datasheet.md: References).
 - Revision tracking: per project numbering system and `Datasheet.md` attributes (Datasheet.md: Attributes; Step 5).
 - Retention requirements: **TBD**.
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity verified in Step 1 |
+| Datasheet.md | Attributes | Package metadata (number, revision) verified in Step 5 |
+| Datasheet.md | Construction | Suggested fields used in Steps 2, 3 |
+| Specification.md | Scope | Anticipated artifacts checklist used in Step 1 |
+| Specification.md | Suggested Field Sets | Field structure used in Step 2 |
+| Specification.md | Cross-Reference Matrix | Verification traceability confirmed in Step 4 |
+| Guidance.md | Principles | Intent guiding Steps 2, 3 (checklistable fields, consistent identifiers) |
+| Guidance.md | Considerations | Trade-offs considered in Steps 2, 4 |
+| Guidance.md | Examples | Template formats used in Step 2 |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Item IDs aligned with drawings (Step 3); drawing references included
+- DEL-06.02: Material/coating fields reflect specification clauses (Step 3)
+- DEL-06.03: Calculation references included where applicable (Step 3)
+- DEL-06.05: Required records fields (mill certificates, galvanizing certificates) aligned in Step 4

@@ -82,8 +82,23 @@ The decomposition identifies these record categories for structural steelwork QA
 **Documentation requirements:**
 - Include revision history and approvals per document control requirements (**TBD**) (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes; Procedure.md: Step 6).
 
-## Cross-Document Notes
+## Cross-Document Traceability
 
-- Datasheet: metadata fields (document number, revision) should remain consistent with document control and the Procedure’s release workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Guidance: provides the “why” behind key clauses and the recommended approach to traceability and interfaces (Guidance.md: Principles, Considerations).
-- Procedure: defines how the technical specification is drafted, checked, and issued (Procedure.md: Steps, Verification).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity fields consistent with Scope |
+| Datasheet.md | Attributes | Document metadata (number, revision, standards) — directly mapped via Specification § column |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.01/03/04/05) for traceability |
+| Guidance.md | Principles | Intent behind Requirements (traceability, ER authority, interfaces) |
+| Guidance.md | Considerations | Trade-offs for clause structure and cross-deliverable alignment |
+| Guidance.md | Examples | Records/submittals and drawing/calculation reference guidance |
+| Procedure.md | Prerequisites | Confirms reference materials and dependency coordination mode |
+| Procedure.md | Steps 1–6 | Workflow implementing each Requirement area per Cross-Reference Matrix |
+| Procedure.md | Verification | Acceptance criteria matching this Specification's requirements |
+| Procedure.md | Records | Documentation outputs matching this Specification's Documentation section |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01 Structural Steel Design Drawing Set: references this specification for materials/workmanship/coatings
+- DEL-06.03 Structural Steel Design Calculations: provides design basis for performance requirements
+- DEL-06.04 Structural Steel Data Sheet Package: data sheet fields reflect this specification's requirements
+- DEL-06.05 Structural Steel Installation & Test Records: demonstrates compliance with this specification's clauses

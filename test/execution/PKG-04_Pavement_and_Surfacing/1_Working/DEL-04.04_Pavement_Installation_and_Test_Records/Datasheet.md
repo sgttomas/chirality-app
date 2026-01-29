@@ -192,28 +192,61 @@ All test results shall be evaluated against acceptance criteria specified in DEL
 ## Cross-document Coordination
 
 ### Linkages to Drawings (DEL-04.01)
-- Every test record location references DEL-04.01 drawing sheet number and plan/section detail showing the tested area
-- Survey verification compares as-built elevations to DEL-04.01 design elevations
-- Core sample thicknesses are compared to DEL-04.01 section detail thicknesses
-- OBJ-8 Phase 2 tie-in joint locations documented per DEL-04.01 construction joint details
+
+| Datasheet Section | DEL-04.01 Reference | Coordination Requirement |
+|-------------------|--------------------|-----------------------|
+| Compaction Test Records | Pavement zone plans, section details | Test locations reference drawing sheets |
+| Core Sample Records | Pavement section drawings | Thickness comparison to design sections |
+| Surface Profile Records | Plan and profile drawings | As-built vs design elevation comparison |
+| OBJ-8 Documentation | Phase 2 expansion corridor layout | Tie-in joint location documentation |
 
 ### Linkages to Specification (DEL-04.02)
-- Test methods, frequencies, and acceptance criteria are per DEL-04.02 specification requirements
-- Material certifications demonstrate conformance to DEL-04.02 material specifications
-- Non-conformance reports reference DEL-04.02 specification clauses that were not met
-- Corrective actions are evaluated against DEL-04.02 acceptance criteria
 
-### Linkages to Calculations (DEL-04.03)
-- Compaction test target densities are per DEL-04.03 design assumptions (subgrade CBR, base modulus correlations)
-- Core sample thicknesses are compared to DEL-04.03 calculated design thicknesses
-- Any design changes requiring calculation revision trigger record updates to reflect new target values
+| Datasheet Section | DEL-04.02 Reference | Coordination Requirement |
+|-------------------|--------------------|-----------------------|
+| Compaction Test Records | Testing frequency, acceptance criteria | Test methods and pass/fail criteria |
+| Material Certifications | Material requirements clauses | Conformance to specification materials |
+| Core Sample Records | Thickness tolerances, density requirements | Acceptance criteria application |
+| NCR Records | Non-conformance procedures | Corrective action evaluation |
+
+### Linkages to Specification (DEL-04.04 Specification)
+
+| Datasheet Section | Specification Reference | Alignment Requirement |
+|-------------------|------------------------|----------------------|
+| Record Scope | Specification §Scope | Record content coverage |
+| Compaction Test Records | Specification §R1.1 | Record content requirements |
+| Core Sample Records | Specification §R1.2 | Core record requirements |
+| Surface Profile Records | Specification §R1.3 | Survey record requirements |
+| Material Certifications | Specification §R1.4 | Certification requirements |
+| Daily QC Reports | Specification §R1.5 | Daily report requirements |
+| NCR Records | Specification §R1.6 | NCR process requirements |
+| OBJ-8 Documentation | Specification §R1.7 | Enhanced documentation requirements |
+| Assumptions & TBDs | Specification §R3.3 | Record retention and format |
 
 ### Linkages to Guidance (DEL-04.04 Guidance)
-- Guidance provides review checklist to verify record completeness, traceability, and consistency with DEL-04.01/04.02/04.03
-- Guidance ensures all test results have pass/fail evaluation and any failures have NCRs with corrective actions
-- Guidance validates OBJ-8 enhanced documentation is complete for Phase 2 expansion corridors
+
+| Datasheet Section | Guidance Reference | Verification Method |
+|-------------------|-------------------|-------------------|
+| Compaction Test Records | Guidance Step 1 | Compaction record review checklist |
+| Core Sample Records | Guidance Step 2 | Core sample record review |
+| Surface Profile Records | Guidance Step 3 | Survey verification review |
+| Material Certifications | Guidance Step 4 | Material certification review |
+| Daily QC Reports | Guidance Step 5 | Daily QC report review |
+| NCR Records | Guidance Step 6 | NCR review |
+| OBJ-8 Documentation | Guidance Step 7 | OBJ-8 documentation review |
 
 ### Linkages to Procedure (DEL-04.04 Procedure)
-- Procedure defines workflow for field testing, laboratory testing, record compilation, and final package delivery
-- Procedure maintains record traceability matrix linking each test to drawing, specification, and calculation references
-- Procedure tracks NCR status and closure
+
+| Datasheet Section | Procedure Reference | Workflow Integration |
+|-------------------|-------------------|---------------------|
+| Testing Planning | Procedure Step 1 | Testing plan and traceability matrix creation |
+| Field Testing | Procedure Step 2 | Test execution and documentation |
+| NCR Management | Procedure Step 3 | NCR tracking and closure |
+| OBJ-8 Documentation | Procedure Step 4 | Enhanced record compilation |
+| Record Compilation | Procedure Step 5 | Final package assembly |
+| Acceptance | Procedure Step 6 | Engineer review and acceptance |
+
+### Linkages to Calculations (DEL-04.03)
+- Compaction test target densities are per DEL-04.03 design assumptions (Specification §R2.3)
+- Core sample thicknesses are compared to DEL-04.03 calculated design thicknesses
+- Any design changes requiring calculation revision trigger record updates to reflect new target values

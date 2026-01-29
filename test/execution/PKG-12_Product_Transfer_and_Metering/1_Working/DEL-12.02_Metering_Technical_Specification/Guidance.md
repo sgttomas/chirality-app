@@ -181,13 +181,45 @@ Interfaces requiring coordination (per Specification.md REQ-15, REQ-16):
 
 No conflicts identified from accessible sources at this stage.
 
-| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
-|-------------|----------|----------|----------|-------------------|-------------------|--------------|
-| — | — | — | — | — | — | — |
+| Conflict ID | Conflict | Source A (File § Section) | Source B (File § Section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | TBD |
 
-**Note:** Conflicts discovered during specification development should be added here with citations and requested human ruling. Potential conflicts that may arise:
+### Conflict Recording Instructions
 
-- **Accuracy vs. cost conflict** — if ER specifies accuracy tighter than ±0.15% and achievable meter technology significantly exceeds budget, document conflict with ER clause and budget constraint; request human ruling on accuracy relaxation or budget increase
-- **Proving frequency conflict** — if Measurement Canada requires quarterly proving but operational schedule allows only semi-annual maintenance windows, document conflict with regulation and operational constraint; request human ruling on operational schedule adjustment or regulatory waiver
-- **Meter technology conflict** — if ER specifies specific meter technology (e.g., Coriolis) but process conditions (high flow rate, low pressure drop available) favor different technology (e.g., ultrasonic), document conflict with ER clause and DEL-12.03 hydraulic analysis; request human ruling on technology selection
-- **Space constraint conflict** — if in-line prover is required but space allocation per site layout cannot accommodate prover dimensions, document conflict with proving requirement and DEL-12.01 layout; request human ruling on prover method change (portable) or space allocation increase
+When conflicts are discovered during specification development, record them in this table with:
+- **Conflict ID:** Sequential identifier (e.g., DEL-12.02-C01)
+- **Conflict:** Clear statement of the conflicting requirements or constraints
+- **Source A/B:** File path and section reference for each conflicting source (e.g., "ER Vol 2 Part 2 § 5.3.2" or "DEL-12.03 § Calculations Table Row 5")
+- **Impacted Sections:** Which sections of DEL-12.02 documents are affected (e.g., "Specification.md REQ-06; Procedure.md Step 3.1")
+- **Proposed Authority:** Which source should govern (PROPOSAL label)
+- **Human Ruling:** Resolution decision and date (TBD until ruled)
+
+### Potential Conflicts to Monitor
+
+| Potential Conflict | Trigger Condition | Sources to Compare | Impacted Documents |
+|--------------------|-------------------|--------------------|--------------------|
+| Accuracy vs. cost | ER specifies accuracy tighter than ±0.15% and achievable meter technology significantly exceeds budget | ER Vol 2 Part 2 accuracy clause vs. project budget constraints vs. vendor quotations | Specification.md REQ-06; Procedure.md Step 3.1.1 |
+| Proving frequency vs. operational schedule | Measurement Canada requires quarterly proving but operational schedule allows only semi-annual maintenance windows | Measurement Canada regulations vs. facility operational schedule | Specification.md REQ-18; Procedure.md Step 3.4.2 |
+| Meter technology vs. process conditions | ER specifies specific meter technology (e.g., Coriolis) but process conditions (high flow rate, low pressure drop available) favor different technology (e.g., ultrasonic) | ER Vol 2 Part 2 technology clause vs. DEL-12.03 hydraulic analysis vs. vendor capabilities | Specification.md REQ-05; Guidance.md § Considerations (Meter technology) |
+| In-line prover vs. space allocation | In-line prover required but space allocation per site layout cannot accommodate prover dimensions | Proving requirements (ER or Measurement Canada) vs. DEL-12.01 layout constraints | Specification.md REQ-17; Procedure.md Step 3.4.1 |
+| Materials vs. food-grade requirements | Standard materials specified but CSD canola oil requires food-grade certification | ER Vol 2 Part 2 material clauses vs. product specifications vs. food-grade regulations | Specification.md REQ-11; Guidance.md § Product-Specific Considerations |
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.02 identity referenced in Guidance § Purpose deliverable definition |
+| Datasheet.md | § Conditions | Design context (service application, product CSD canola oil, throughput, metering points) driving Guidance § Considerations |
+| Datasheet.md | § Construction | Key specification topics informing Guidance § Specification Content Considerations |
+| Specification.md | § Scope | System boundaries that Guidance § Purpose downstream use addresses |
+| Specification.md | § Requirements | REQ-01 through REQ-24 that Guidance § Principles rationale supports |
+| Specification.md | § Standards | Custody transfer standards that Guidance § Considerations standard compliance addresses |
+| Procedure.md | § Prerequisites | Inputs that Guidance § Considerations identifies as necessary (ER, standards, design basis, interfaces) |
+| Procedure.md | § Step 1 | Basis gathering that Guidance § Principles contract alignment addresses |
+| Procedure.md | § Step 3 | Requirements drafting that Guidance § Considerations informs for each topic |
+| Procedure.md | § Step 5 | Discipline check that Guidance § Principles (testability, traceability) supports |
+| DEL-12.01 | Drawings | Installation requirements from this specification drive DEL-12.01 content per Guidance § Purpose (engineering basis) |
+| DEL-12.03 | Calculations | Performance requirements from this specification drive DEL-12.03 verification per Guidance § Purpose (engineering basis) |
+| DEL-12.04 | Data Sheets | Equipment parameters per this specification documented in DEL-12.04 per Guidance § Purpose (procurement basis) |
+| DEL-12.05 | Test Records | QA requirements from this specification drive DEL-12.05 compliance demonstration per Guidance § Purpose (compliance basis)

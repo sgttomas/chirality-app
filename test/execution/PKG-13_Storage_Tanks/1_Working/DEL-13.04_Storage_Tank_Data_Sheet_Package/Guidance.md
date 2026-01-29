@@ -277,6 +277,19 @@ Typical agitator data sheet includes:
 
 ---
 
-**Document Status:** Pass 3 (Final) — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.04-01 | Tank tag numbering convention (TK-xxx vs. T-xxx) | Consideration C-06 | Project engineering manual (TBD) | Datasheet.md Data Sheet Scope; all data sheets | Project numbering standard | **TBD** |
+| CT-13.04-02 | Agitator vendor data availability timing vs. data sheet issuance schedule | Consideration C-04 | Project schedule (TBD) | Datasheet.md Timing; Specification.md FR-04 | Project schedule + procurement plan | **TBD** |
+| CT-13.04-03 | Tank-to-tank variations (nozzle orientations, Phase 2 connections) | Consideration C-03 | DEL-13.01 design decisions (TBD) | All tank data sheets | Design freeze / DEL-13.01 drawings | **TBD** |
+| CT-13.04-04 | Overflow protection system configuration (single vs. individual) | Consideration C-05 | Process design / PKG-19 control logic (TBD) | Overflow data sheet(s) | Process engineering + P&IDs | **TBD** |
+
+**Note:** These conflicts represent data sheet coordination decisions requiring design inputs and project standards. Resolution during WORKING_ITEMS will enable data sheet finalization.
+
+---
+
+**Document Status:** Pass 3 Complete — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Conflict Table added for data sheet coordination decisions requiring human ruling. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

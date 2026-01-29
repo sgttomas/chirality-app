@@ -90,8 +90,23 @@ Until Employer's Requirements clauses and project drafting standards are extract
 - Revision control per project numbering system — **TBD**.
 - Ensure drawing metadata aligns with `Datasheet.md` attributes and the document control requirements for issue packaging (Procedure.md: Records).
 
-## Cross-Document Notes
+## Cross-Document Traceability
 
-- Datasheet: defines the core identification and metadata expectations for the drawing set and should stay consistent with this specification (Datasheet.md: Attributes).
-- Guidance: provides intent and trade-offs so the drawing conventions support constructability, safety, and review clarity (Guidance.md: Principles, Considerations).
-- Procedure: defines the workflow and verification checks that demonstrate requirements satisfaction before the drawing set is released (Procedure.md: Steps, Verification).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity fields consistent with Scope |
+| Datasheet.md | Attributes | Drawing metadata (number, sheet size, scale, CAD standard, revision) — directly mapped via Specification § column |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.02/03/04/05) for traceability |
+| Guidance.md | Principles | Intent behind Requirements (clarity, interface explicitness, design basis alignment) |
+| Guidance.md | Considerations | Trade-offs for drawing content decisions |
+| Guidance.md | Examples | Checklist and organization guidance for artifact completeness |
+| Procedure.md | Prerequisites | Confirms reference materials and dependency coordination mode |
+| Procedure.md | Steps 1–8 | Workflow implementing each Requirement area per Cross-Reference Matrix |
+| Procedure.md | Verification | Acceptance criteria matching this Specification's requirements |
+| Procedure.md | Records | Documentation outputs matching this Specification's Documentation section |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.02 Structural Steel Technical Specification: materials, workmanship, coatings referenced in drawing general notes
+- DEL-06.03 Structural Steel Design Calculations: design basis, load cases, governing assumptions referenced in drawing notes
+- DEL-06.04 Structural Steel Data Sheet Package: gangway/grating item data referenced where applicable
+- DEL-06.05 Structural Steel Installation & Test Records: elements requiring QA/QC traceability identified on drawings

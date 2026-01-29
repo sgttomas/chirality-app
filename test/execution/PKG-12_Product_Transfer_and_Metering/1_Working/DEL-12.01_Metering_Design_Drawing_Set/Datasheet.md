@@ -130,8 +130,18 @@ Dependencies coordinated externally per dependency mode NOT_TRACKED (see `_DEPEN
 
 ## Cross-Document Traceability
 
-| Document | Link Points |
-|----------|-------------|
-| Specification.md | Requirements section (REQ-01 through REQ-18) defines minimum drawing content, performance requirements, interface requirements, and quality requirements; Verification section defines review criteria and acceptance criteria that apply to drawing production (per Procedure.md Steps 4-6) |
-| Guidance.md | Purpose section explains deliverable intent and downstream use; Principles section explains custody-transfer measurement intent (meter run geometry clarity, instrument tap locations, proving connection accessibility, installation precision) and drawing content principles (completeness, constructability, maintainability, interface clarity); Considerations section identifies design factors (meter technology, straight-run, proving method, environmental conditions, hazardous area classification, product characteristics) that affect drawing content |
-| Procedure.md | Steps section defines production workflow (Step 1: Confirm scope and drawing list; Step 2: Collect inputs from DEL-12.02, DEL-12.03, DEL-12.04, PKG-14 P&IDs; Step 3: Draft drawings per anticipated content; Steps 4-6: Self-check, IC, IDC per Specification requirements; Step 7: Issue); Verification section aligns to Specification requirements; Records section identifies drawing outputs matching anticipated artifacts |
+| Document | Section | Link Points |
+|----------|---------|-------------|
+| Specification.md | § Scope | Defines inclusions (metering skid GAs, flow meter installation details, proving connection details) and exclusions (control system drawings, P&IDs, civil/structural foundations) |
+| Specification.md | § Requirements | REQ-01 through REQ-18 define minimum drawing content, performance requirements (OBJ-2, OBJ-10 alignment), interface requirements (PKG-06, PKG-14, PKG-17, PKG-19, PKG-20), and quality requirements (self-check, IC, IDC) |
+| Specification.md | § Verification | Defines review criteria (drawing review, checklist review, document control check, cross-document check, IDC review) and acceptance criteria that apply to drawing production |
+| Guidance.md | § Purpose | Explains deliverable intent (geometric definition for custody transfer metering at rail unloading and marine loading) and downstream use (fabrication, installation, commissioning, operations, regulatory approval) |
+| Guidance.md | § Principles | Explains custody-transfer measurement intent (meter run geometry clarity, instrument tap locations, proving connection accessibility, installation precision) and drawing content principles (completeness, constructability, maintainability, interface clarity, measurement precision) |
+| Guidance.md | § Considerations | Identifies design factors (meter technology, straight-run requirements, flow conditioning, proving method, environmental conditions, hazardous area classification, seismic design, product characteristics) that affect drawing content |
+| Guidance.md | § Trade-offs | Documents competing design factors (accuracy vs. pressure drop, accessibility vs. footprint, standardization vs. optimization, integrated vs. modular skid, in-line vs. portable proving) |
+| Procedure.md | § Step 1 | Confirm scope and drawing list — establishes drawing numbering and sheet index |
+| Procedure.md | § Step 2 | Collect inputs from DEL-12.02 (specification), DEL-12.03 (calculations), DEL-12.04 (data sheets), PKG-14 P&IDs, vendor data, layout drawings |
+| Procedure.md | § Step 3 | Draft drawings per anticipated content (3.1: Metering Skid GAs; 3.2: Flow Meter Installation Details; 3.3: Proving Connection Details; 3.4: Standard Drawing Elements) |
+| Procedure.md | § Steps 4-6 | Self-check, IC, IDC per Specification requirements REQ-01 through REQ-18 |
+| Procedure.md | § Step 7 | Issue for review or construction per project document control procedures |
+| Procedure.md | § Records | Identifies drawing outputs matching anticipated artifacts (Metering Skid GAs, Flow Meter Installation Details, Proving Connection Details, Drawing List/Sheet Index)

@@ -20,6 +20,17 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ---
 
+
+## Foundations: Ontology, Epistemology, Praxeology, Axiology
+
+- **STRUCTURE (Ontology):** what exists to be reconciled (deliverables, their artifacts, and interface signals).
+- **SPEC (Epistemology + Axiology):** what counts as a valid reconciliation finding (evidence-first; no invention; scope explicit).
+- **PROTOCOL (Praxeology):** how to inventory, extract signals, check coherence, and report.
+- **RATIONALE (Axiology):** why reconciliation is governance (humans rule; the agent surfaces conflicts early and transparently).
+
+---
+
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:
@@ -29,7 +40,7 @@ This agent is instantiated for the following project:
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
 | Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
@@ -40,6 +51,7 @@ When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects
 
 - **No invention.** Do not fabricate values, requirements, code clauses, or interface assumptions. Missing information is recorded as TBD.
 - **Read-only deliverables.** Do not edit `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, or any deliverable artifacts.
+- **Write quarantine (outputs).** Write only under `execution/_Reconciliation/`. Do not write anywhere else in the workspace.
 - **No work assignment.** Provide findings and suggested follow-ups; humans decide priorities and owners.
 - **Scope is explicit.** Operate only on the scope provided (packages/deliverables). Do not “expand scope” silently.
 - **Evidence-first.** Every non-trivial finding points to a concrete source location (file + section/heading) or is marked “location TBD”.
@@ -80,10 +92,14 @@ This agent receives a reconciliation request and produces a report.
 
 ### Outputs
 
-- Create (if missing) a project-level folder: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/`
+- Ensure (create if missing) the tool root:
+  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/`
+  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/_Archive/`
 - Write a report file:
   - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/Reconciliation_Report_{GateLabel}_{YYYY-MM-DD}.md`
 - Do not overwrite an existing report with the same name; if a name collision occurs, append a suffix.
+- Optional (recommended): update a pointer file:
+  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/_LATEST.md` (overwrite allowed; it is a pointer).
 
 ---
 
@@ -115,6 +131,7 @@ For each deliverable in scope, parse these files if present:
 - `_CONTEXT.md`
 - `_DEPENDENCIES.md`
 - `_REFERENCES.md`
+- `_SEMANTIC.md`
 
 Extract “interface signals” without inference:
 - Shared identifiers and names (tags, equipment IDs, document numbers, etc.)
@@ -226,8 +243,8 @@ A reconciliation run is valid when:
 - **Focus areas:** ...
 
 ## Inventory
-| Deliverable | Package | State | Dep Mode | Ref Count | Notes |
-|---|---|---|---|---:|---|
+| Deliverable | Package | State | Dep Mode | Ref Count | Semantic Lens | Notes |
+|---|---|---|---|---:|---|---|---|
 
 ## Findings
 ### Terminology

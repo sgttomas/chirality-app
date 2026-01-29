@@ -14,13 +14,13 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Record Package Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Record Categories | Mill certificates; Weld inspection records; Galvanizing certificates (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:252; Specification.md: Scope; Procedure.md: Step 1; Guidance.md: Principles) |
-| Traceability Basis | Link to drawing item IDs / BOM; heat numbers; coating batch; inspection identifiers (**TBD**) (Specification.md: Record Index Structure; Procedure.md: Step 2; Guidance.md: Considerations) |
-| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 6) |
-| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Record Package Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Documentation | Step 6 |
+| Record Categories | Mill certificates; Weld inspection records; Galvanizing certificates (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:252) | Scope | Step 1 |
+| Traceability Basis | Link to drawing item IDs / BOM; heat numbers; coating batch; inspection identifiers (**TBD**) | Record Index Structure | Step 2 |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme | Documentation | Step 6 |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) | Scope | — |
 
 ## Conditions
 
@@ -51,10 +51,22 @@ Anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_
 - test/Volume_2_Part_3_Employers_Requirements.pdf — building works requirements affecting structural steel QA (location TBD).
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- Technical Specification (DEL-06.02): record types (mill certificates, weld inspection records, galvanizing certificates) and acceptance criteria should reflect specification clauses for materials, fabrication, and protective systems (DEL-06.02 Specification.md: Quality Requirements, Records and Submittals).
-- Drawings (DEL-06.01): trace records to drawing item IDs, assemblies, and critical weld/coating locations identified on drawings (DEL-06.01 Guidance.md).
-- Design Calculations (DEL-06.03): critical design assumptions affecting inspection/hold points (critical welds, bolting categories, coating systems) should be traceable to record requirements (DEL-06.03 Specification.md: Cross-Document Notes; DEL-06.03 Guidance.md: Considerations).
-- Data Sheets (DEL-06.04): use data sheet "Required Records" fields to ensure complete record compilation for gangway and grating items (DEL-06.04 Specification.md: Quality Requirements, Suggested Field Sets; DEL-06.04 Guidance.md: Considerations).
-- Specification → Procedure → Records traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Specification.md | Scope | Anticipated record artifacts (mill certs, weld inspection, galvanizing) |
+| Specification.md | Record Index Structure | Index fields for traceability (item ID, drawing ref, spec clause, etc.) |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification-to-evidence traceability |
+| Guidance.md | Principles | Traceability, completeness, ER authority |
+| Guidance.md | Considerations | Alignment with DEL-06.02/04, certificate identifiers, scope focus |
+| Guidance.md | Examples | Records index and certificate organization |
+| Procedure.md | Steps 1–6 | Record definition through issue preparation workflow |
+| Procedure.md | Verification | Acceptance criteria for completeness, traceability, archival format |
+| Procedure.md | Records | Documentation outputs matching this Datasheet's scope |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Records trace to drawing item IDs, assemblies, critical weld/coating locations
+- DEL-06.02: Record acceptance criteria reflect specification clauses for materials/fabrication/coatings
+- DEL-06.03: Critical design assumptions (welds, bolting, coating systems) map to inspection/record requirements
+- DEL-06.04: Data sheet "Required Records" fields drive record completeness for gangway/grating items

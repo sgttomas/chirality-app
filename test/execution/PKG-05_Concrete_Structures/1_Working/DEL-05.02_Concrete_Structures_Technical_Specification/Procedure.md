@@ -431,8 +431,21 @@ Project document control requirements (TBD until conventions are established):
 - Updated `_STATUS.md` lifecycle state
 (Source: Specification.md: Documentation; Procedure Step 8.)
 
+## Procedure Steps Traceability
+
+| Procedure Step | Specification Requirements Verified | Guidance Principles/Considerations Applied | Datasheet Sections Addressed |
+|----------------|-------------------------------------|-------------------------------------------|------------------------------|
+| Step 1: Confirm Scope and Objectives | FR-01 Artifact Coverage | — | Construction (all artifacts), Conditions (objectives) |
+| Step 2: Extract Governing Requirements | FR-03, PR-01, Standards | P-02 Durability-First, P-04 Evidence-Based Standards | Conditions (TBD items), Attributes (Standards Framework) |
+| Step 3: Draft Concrete Specification | FR-02 through FR-06 | P-01, P-02, P-03, C-05 | Construction: Concrete Specification |
+| Step 4: Draft Reinforcement Specification | FR-07 through FR-09 | P-01, C-03 Constructability, C-04 Documentation | Construction: Reinforcement Specification |
+| Step 5: Draft Formwork Specification | FR-10 through FR-12, PR-02 | P-01, P-05 Consistency, C-02 Interface Coordination, T-03 | Construction: Formwork Specification |
+| Step 6: Add Quality Control Requirements | FR-06, FR-09, QR-02 | P-01, C-04 Documentation, T-04 Inspection Frequency | Construction (QC sections) |
+| Step 7: Conduct Reviews | QR-01, QR-03, IR-01 | P-05 Consistency | — (verification) |
+| Step 8: Finalize and Issue | Documentation | — | Attributes (Document Number, Revision) |
+
 ## Cross-Document Notes
 
-- **Specification:** This Procedure's steps (Steps 1-8) and verifications demonstrate compliance with all Specification requirements (FR-01 through QR-03). Each Specification requirement is addressed by one or more Procedure steps and verified by corresponding verification checks. (Source: Specification.md: Requirements; Specification.md: Verification.)
-- **Guidance:** Use Guidance Principles (P-01 through P-05), Considerations (C-01 through C-05), Trade-offs (T-01 through T-04), and Examples (E-01 through E-03) to inform how specification requirements are written. Guidance informs how to execute Steps 3, 4, 5, and 6 effectively. (Source: Guidance.md: Principles; Guidance.md: Considerations; Guidance.md: Trade-offs; Guidance.md: Examples.)
-- **Datasheet:** Datasheet Construction section lists the anticipated artifacts that Steps 1, 3, 4, and 5 must produce. Datasheet Attributes define the metadata requirements that Steps 7 and 8 must implement. Datasheet Cross-Document Points identify the linkages this Procedure must maintain. (Source: Datasheet.md: Construction; Datasheet.md: Attributes; Datasheet.md: Cross-Document Points.)
+- **Specification:** This Procedure's steps (Steps 1-8) and verifications demonstrate compliance with all `Specification.md` requirements (§FR-01 through §QR-03). The Procedure Steps Traceability table above maps each step to the Specification requirements it addresses. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix; Specification.md: Verification.)
+- **Guidance:** Use `Guidance.md` Principles (§P-01 through §P-05), Considerations (§C-01 through §C-05), Trade-offs (§T-01 through §T-04), and Examples (§E-01 through §E-03) to inform how specification requirements are written. The Procedure Steps Traceability table above maps each step to the Guidance sections that inform execution. (Source: Guidance.md: Principles; Guidance.md: Considerations; Guidance.md: Trade-offs; Guidance.md: Examples; Guidance.md: Guidance-to-Specification Traceability.)
+- **Datasheet:** `Datasheet.md` §Construction lists the anticipated artifacts that Steps 1, 3, 4, and 5 must produce. §Attributes define the metadata requirements that Steps 7 and 8 must implement. §Cross-Document Traceability identifies the linkages this Procedure must maintain. (Source: Datasheet.md: Construction; Datasheet.md: Attributes; Datasheet.md: Cross-Document Traceability.)

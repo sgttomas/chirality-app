@@ -57,14 +57,14 @@ Phase 2 expansion corridor records must be:
 
 ## Review Checklist
 
-### Pre-Review Preparation
+### Pre-Review Preparation (Procedure Step 5.4)
 - [ ] Obtain complete record package
 - [ ] Obtain DEL-04.01 final drawing set
 - [ ] Obtain DEL-04.02 final specification
 - [ ] Obtain DEL-04.03 final calculations
 - [ ] Review Procedure traceability matrix
 
-### Step 1: Compaction Test Record Review
+### Step 1: Compaction Test Record Review (Specification §R1.1 | Procedure Step 2.2)
 - [ ] Completeness: All required fields populated
 - [ ] Coverage: Testing frequency meets DEL-04.02 requirements
 - [ ] OBJ-8 enhancement: Expansion corridor testing frequency increased
@@ -73,7 +73,7 @@ Phase 2 expansion corridor records must be:
 - [ ] Traceability: Cross-references correct
 - [ ] Equipment calibration: Certificates current
 
-### Step 2: Core Sample Record Review
+### Step 2: Core Sample Record Review (Specification §R1.2 | Procedure Step 2.3)
 - [ ] Completeness: All fields populated
 - [ ] Coverage: Frequency meets requirements
 - [ ] OBJ-8 cores: Expansion corridor cores documented
@@ -84,7 +84,7 @@ Phase 2 expansion corridor records must be:
 - [ ] Laboratory certificates: Accredited lab certificates included
 - [ ] Traceability: Cross-references correct
 
-### Step 3: Surface Profile and Grade Verification Review
+### Step 3: Surface Profile and Grade Verification Review (Specification §R1.3 | Procedure Step 2.4)
 - [ ] Coverage: Survey coverage adequate
 - [ ] Measurement method: Method documented
 - [ ] Deviations: Compared to DEL-04.01 design
@@ -93,7 +93,7 @@ Phase 2 expansion corridor records must be:
 - [ ] Surveyor credentials: Name, company, seal included
 - [ ] Traceability: Cross-references correct
 
-### Step 4: Material Certification Review
+### Step 4: Material Certification Review (Specification §R1.4 | Procedure Step 2.5)
 - [ ] Asphalt certifications: Mix design, binder, aggregates included
 - [ ] Concrete certifications: Mix design, cement, batch tickets included (if applicable)
 - [ ] Base/subbase certifications: Gradation, plasticity, compaction included
@@ -101,14 +101,14 @@ Phase 2 expansion corridor records must be:
 - [ ] Currency: Certifications dated and correspond to construction period
 - [ ] Conformance: All material tests meet DEL-04.02
 
-### Step 5: Daily QC Report Review
+### Step 5: Daily QC Report Review (Specification §R1.5 | Procedure Step 2.6)
 - [ ] Completeness: Daily reports for all construction days
 - [ ] Content: Date, weather, work, quantities, tests, observations included
 - [ ] Consistency: Test summaries match individual records
 - [ ] Issues documented: Construction issues documented with resolutions
 - [ ] NCR initiation: NCRs referenced when identified
 
-### Step 6: Non-Conformance Report Review
+### Step 6: Non-Conformance Report Review (Specification §R1.6 | Procedure Step 3)
 - [ ] All NCRs identified: All failures have NCRs
 - [ ] NCR completeness: All required fields included
 - [ ] Corrective actions approved: Engineer approval documented
@@ -116,7 +116,7 @@ Phase 2 expansion corridor records must be:
 - [ ] NCR closure: All NCRs closed with Engineer signoff
 - [ ] No open NCRs: None remain without action plan
 
-### Step 7: OBJ-8 Phase 2 Expansion Corridor Documentation Review
+### Step 7: OBJ-8 Phase 2 Expansion Corridor Documentation Review (Specification §R1.7 | Procedure Step 4)
 - [ ] Zone identification: Expansion corridors clearly identified
 - [ ] Enhanced testing: Frequency increased per requirements
 - [ ] Test location plans: Detailed plans with coordinates
@@ -125,19 +125,19 @@ Phase 2 expansion corridor records must be:
 - [ ] Construction joint documentation: Tie-in joints surveyed and photographed
 - [ ] Separate indexing: Records indexed separately
 
-### Step 8: Record Legibility and Completeness
+### Step 8: Record Legibility and Completeness (Specification §R3.1 | Procedure Step 5.4)
 - [ ] Legibility: Handwriting/text legible
 - [ ] No blank fields: All fields populated or marked "N/A"
 - [ ] Signatures: All required signatures present
 - [ ] Dates: All records dated, dates consistent
 
-### Step 9: Data Accuracy and Consistency
+### Step 9: Data Accuracy and Consistency (Specification §R3.2 | Procedure Step 5.4)
 - [ ] Arithmetic checks: Calculations spot-checked
 - [ ] Unit consistency: Correct units used
 - [ ] Cross-record consistency: Same location data consistent
 - [ ] Traceability to originals: Sample cross-checked
 
-### Step 10: Overall Record Package Organization
+### Step 10: Overall Record Package Organization (Specification §R3.3, §R4.1 | Procedure Step 5.5–5.6)
 - [ ] Cover page: Project/deliverable identification
 - [ ] Index: Clear organization
 - [ ] Section dividers: Easy navigation
@@ -170,11 +170,28 @@ Use DEL-04.02 frequency as baseline; increase for high-risk areas; do not decrea
 ### Digital vs. Paper Records
 Use format specified in contract; consider hybrid approach with paper originals and digital scans; plan for long-term format compatibility.
 
+## Conflict Table (for human ruling)
+
+No unresolved conflicts identified during Pass 3 cross-document consistency review.
+
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | No conflicts identified | — | — | — | — | — |
+
+**Note**: If conflicts are identified during record review or acceptance activities (e.g., discrepancy between test result and DEL-04.02 acceptance criteria, or between measured thickness and DEL-04.03 calculated thickness), they shall be documented as NCRs per Specification §R1.6 and Procedure Step 3. Cross-deliverable conflicts that cannot be resolved through the NCR process shall be escalated to RECONCILIATION agent when humans request cross-package coherence checks.
+
 ## References
 
-- **Decomposition**: Section PKG-04, DEL-04.04, OBJ-8
-- **Datasheet, Specification, Procedure (DEL-04.04)**
-- **DEL-04.01, DEL-04.02, DEL-04.03**
-- **Employer's Requirements Volume 2 Part 1 & 2**
-- **ASTM D6938, D1556, D698, D2726, D2041, C39**
-- **ISO 17025**
+### Source Documents
+- **Decomposition**: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section PKG-04, DEL-04.04, OBJ-8
+- **Datasheet (DEL-04.04)**: Record Scope, Record Types, Acceptance Criteria, Assumptions & TBDs, Cross-document Coordination
+- **Specification (DEL-04.04)**: Requirements §R1.1–R4.2, Verification Methods, Standards
+- **Procedure (DEL-04.04)**: Workflow Steps 1–6, Verification Checkpoints, Records
+- **DEL-04.01**: Pavement Design Drawing Set (design basis for field verification)
+- **DEL-04.02**: Pavement Technical Specification (acceptance criteria, testing requirements)
+- **DEL-04.03**: Pavement Design Calculations (target values for comparison)
+- **Employer's Requirements Volume 2 Part 1 & 2**: QA/QC requirements (**location TBD**)
+
+### Testing Standards
+- **ASTM D6938, D1556, D698, D2726, D2041, C39**: Testing methods
+- **ISO 17025**: Laboratory accreditation

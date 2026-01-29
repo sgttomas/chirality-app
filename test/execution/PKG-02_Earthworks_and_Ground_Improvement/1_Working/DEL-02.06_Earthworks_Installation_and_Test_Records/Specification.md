@@ -1,64 +1,205 @@
 # Specification: DEL-02.06 Earthworks Installation & Test Records
 
-    ## Scope
+## Scope
 
-    This deliverable defines the requirements for Earthworks Installation & Test Records within PKG-02 Earthworks & Ground Improvement. Source: _CONTEXT.md; decomposition DEL-02 entry (location TBD).
+This deliverable defines the requirements for Earthworks Installation & Test Records within PKG-02 Earthworks & Ground Improvement. Source: _CONTEXT.md; decomposition DEL-02.06 entry (location TBD).
 
-    Package scope context includes Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
+**Included:**
+- Compaction test records documenting field density testing and compliance
+- Proof rolling records documenting subgrade verification
+- Survey conformance records documenting as-built grade verification
+- QA/QC approval documentation and signoffs
 
-    Exclusions: This decomposition covers the Contractor's scope of work only. Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
+**Package Context:**
+Package scope includes Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
 
-    ## Requirements
+**Excluded:**
+This decomposition covers the Contractor's scope of work only. Employer-responsible items excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 
-    - R1: Installation and test records shall provide objective evidence of earthworks completion, inspection, and testing compliance with design requirements and acceptance criteria. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD). Verified by V1, V2, V3.
-    - R2: Compaction test records shall document field density testing (test location, date, method, results, acceptance criteria comparison) for all fill placement and compacted areas. Source: _CONTEXT.md; **ASSUMPTION**: Testing per ASTM standards (e.g., ASTM D1556 sand cone, ASTM D6938 nuclear gauge). Verified by V1, V2.
-    - R3: Compaction test records shall include soil/fill description, field test results (dry density, moisture content), laboratory maximum density reference (standard or modified Proctor per ASTM D698/D1557), percent compaction achieved, and pass/fail determination. Source: **ASSUMPTION**: Standard compaction test documentation per geotechnical practice. Verified by V1.
-    - R4: Proof rolling records shall document proof rolling operations (date, location, equipment, observations, pass/fail, remedial actions) to verify subgrade bearing capacity and identify weak/unstable areas. Source: _CONTEXT.md; **ASSUMPTION**: Proof rolling per industry standard practice. Verified by V1, V2.
-    - R5: Survey conformance records shall document as-built earthworks elevations and grades vs. design requirements from DEL-02.01 (Earthworks Drawings) to verify construction conformance. Source: _CONTEXT.md. Verified by V1, V2.
-    - R6: Survey conformance records shall include survey data (spot elevations, cross-sections), design grade references, conformance analysis (within tolerance or requiring correction), and corrective action documentation. Source: **ASSUMPTION**: Standard as-built survey documentation. Verified by V1.
-    - R7: Records shall address earthworks activities within PKG-02 scope (grading, excavation, fill placement, ground improvement areas, subgrade preparation). Source: decomposition PKG-02 scope (location TBD). Verified by V2.
-    - R8: Records shall include document control elements (record package ID, date range, location/area, testing methods, QA/QC signoffs, revision) per D&B Contractor QA/QC system. Source: **ASSUMPTION**: Standard D&B QA/QC documentation; details **TBD**. Verified by V1.
-    - R9: Records shall be signed/approved by qualified field inspector, QA/QC manager, and geotechnical engineer (as applicable) to certify accuracy and acceptance. Source: **ASSUMPTION**: QA/QC approval workflow; **TBD**: ER may specify approval requirements. Verified by V1, V3.
+## Requirements
 
-    ## Related Datasheet Attributes
+### R1: Evidence of Compliance
+**Requirement:** Records shall provide objective evidence of earthworks completion, inspection, and testing compliance with design requirements and acceptance criteria.
 
-    - Record package ID, date range, location/area, QA/QC signoff, revision in `Datasheet.md` map to R8, R9.
-    - Testing/inspection method, acceptance criteria, record format in `Datasheet.md` map to R1, R2, R3, R4, R5, R6.
-    - Compaction Test Records content in `Datasheet.md` maps to R2, R3.
-    - Proof Rolling Records content in `Datasheet.md` maps to R4.
-    - Survey Conformance Records content in `Datasheet.md` maps to R5, R6.
-    - Configuration notes track **TBDs** requiring ER input for testing frequency, acceptance criteria, record submittal requirements.
+| Attribute | Value |
+|-----------|-------|
+| Source | Decomposition DEL-02.06 entry and _CONTEXT.md (location TBD) |
+| Datasheet mapping | All Record Content sections |
+| Guidance § | Objective Evidence, Real-Time Documentation |
+| Procedure Step | Steps 6-17 |
+| Verification | V1, V2, V3 |
 
-    ## Guidance & Procedure Alignment
+### R2: Compaction Test Records
+**Requirement:** Document field density testing (test location, date, method, results, acceptance criteria comparison) for all fill placement and compacted areas.
 
-    - Guidance principles (`Guidance.md`) describe how record quality, completeness, traceability, and timely documentation influence construction progress, acceptance, and closeout efficiency.
-    - Procedure steps (`Procedure.md`) describe the field testing execution, data recording, QA/QC review, and record compilation process during construction.
-    - Verification approach in Procedure ensures requirements R1–R9 are satisfied through field checks, data validation, and approval workflow.
+| Attribute | Value |
+|-----------|-------|
+| Source | _CONTEXT.md; **ASSUMPTION**: Testing per ASTM standards |
+| Datasheet mapping | Compaction Test Records section |
+| Guidance § | Real-Time Documentation, Test Method Selection |
+| Procedure Step | Steps 5-7 |
+| Verification | V1, V2 |
 
-    ## Standards
+### R3: Compaction Test Content
+**Requirement:** Include soil/fill description, field test results (dry density, moisture content), laboratory maximum density reference (Proctor), percent compaction achieved, and pass/fail determination.
 
-    - **TBD**: Applicable compaction testing standards (e.g., ASTM D1556 sand cone, ASTM D6938 nuclear density, ASTM D2167 rubber balloon, ASTM D698 standard Proctor, ASTM D1557 modified Proctor) pending ER specifications.
-    - **TBD**: Compaction acceptance criteria (e.g., 95% modified Proctor for structural fill, 90% standard Proctor for landscape areas) per ER or DEL-02.02 (Earthworks Specifications).
-    - **TBD**: Testing frequency requirements (e.g., one test per 500 m³ or per lift) per ER or industry standards.
-    - **TBD**: Proof rolling criteria (equipment type, loaded weight, acceptance criteria) per ER or geotechnical recommendations from DEL-02.04.
-    - **TBD**: Survey tolerance requirements (e.g., ±25 mm for structural subgrade, ±50 mm for general grading) per ER or DEL-02.01 drawing notes.
-    - Employer's Requirements volumes are referenced in decomposition but not provided in _REFERENCES.md (**TBD**).
-    - Professional QA/QC practice standards for construction documentation (**ASSUMPTION**: ACI, ASTM, or equivalent standards apply).
+| Attribute | Value |
+|-----------|-------|
+| Source | **ASSUMPTION**: Standard compaction test documentation |
+| Datasheet mapping | Compaction Test Records data elements |
+| Guidance § | Real-Time Documentation |
+| Procedure Step | Steps 3, 6-7 |
+| Verification | V1 |
 
-    ## Verification
+### R4: Proof Rolling Records
+**Requirement:** Document proof rolling operations (date, location, equipment, observations, pass/fail, remedial actions) to verify subgrade bearing capacity.
 
-    - V1 (maps to R1, R2, R3, R4, R5, R6, R8, R9): Verify records include all required content elements per `Datasheet.md` Record Content (compaction tests: location, date, method, results, acceptance comparison; proof rolling: equipment, observations, pass/fail; survey: as-built vs. design, conformance analysis) and document control/approval signatures. Method: QA/QC record review checklist against Specification R1–R9; verify calculations correct (e.g., percent compaction); verify test methods match specifications; verify signoffs complete. Records: QA/QC review checklist, record package approval signatures.
-    - V2 (maps to R1, R2, R4, R5, R7): Verify records cover all PKG-02 earthworks areas (grading zones, fill areas, subgrade preparation) with sufficient testing density to demonstrate compliance; verify test results meet acceptance criteria from DEL-02.02 (Specifications) and DEL-02.04 (Geotechnical Reports); verify deficiencies identified and corrected with follow-up testing. Method: Cross-reference record locations with DEL-02.01 earthworks limits; verify testing frequency meets ER requirements; compare test results to acceptance criteria; track deficiency resolution. Records: Testing location plan, acceptance criteria compliance matrix, deficiency corrective action log.
-    - V3 (maps to R1, R9): Verify alignment with ER quality control requirements (testing methods, frequency, acceptance criteria, record format, approval authority) once Employer's Requirements volumes are available. Method: ER compliance review against specified QA/QC procedures; confirm ER-required approvals obtained (e.g., Employer's representative witnessing). Records: ER compliance matrix, Employer witness/approval documentation, record package acceptance.
+| Attribute | Value |
+|-----------|-------|
+| Source | _CONTEXT.md; **ASSUMPTION**: Industry standard practice |
+| Datasheet mapping | Proof Rolling Records section |
+| Guidance § | Coverage, Deficiency Resolution |
+| Procedure Step | Steps 8-9 |
+| Verification | V1, V2 |
 
-    ## Documentation
+### R5: Survey Conformance Records
+**Requirement:** Document as-built earthworks elevations and grades vs. design requirements from DEL-02.01 to verify construction conformance.
 
-    - Controlled Earthworks Installation & Test Records deliverable (issued revision).
-    - Review comments and response log. ASSUMPTION: standard D&B document control workflow.
+| Attribute | Value |
+|-----------|-------|
+| Source | _CONTEXT.md |
+| Datasheet mapping | Survey Conformance Records section |
+| Guidance § | Completeness |
+| Procedure Step | Steps 10-11 |
+| Verification | V1, V2 |
 
-    ## References
+### R6: Survey Conformance Content
+**Requirement:** Include survey data (spot elevations, cross-sections), design grade references, conformance analysis (within tolerance or requiring correction), and corrective action documentation.
 
-    - _CONTEXT.md (deliverable identity, description, anticipated artifacts).
-    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
-    - `Datasheet.md`, `Guidance.md`, `Procedure.md` (cross-document alignment).
-    - _REFERENCES.md indicates no references yet.
+| Attribute | Value |
+|-----------|-------|
+| Source | **ASSUMPTION**: Standard as-built survey documentation |
+| Datasheet mapping | Survey Conformance Records data elements |
+| Guidance § | Completeness |
+| Procedure Step | Steps 10-11 |
+| Verification | V1 |
+
+### R7: PKG-02 Scope Coverage
+**Requirement:** Records shall address earthworks activities within PKG-02 scope (grading, excavation, fill placement, ground improvement areas, subgrade preparation).
+
+| Attribute | Value |
+|-----------|-------|
+| Source | Decomposition PKG-02 scope (location TBD) |
+| Datasheet mapping | Context & Conditions, Location/area attribute |
+| Guidance § | Coverage |
+| Procedure Step | Steps 2, 16 |
+| Verification | V2 |
+
+### R8: Document Control
+**Requirement:** Include document control elements (record package ID, date range, location/area, testing methods, QA/QC signoffs, revision) per D&B Contractor QA/QC system.
+
+| Attribute | Value |
+|-----------|-------|
+| Source | **ASSUMPTION**: Standard D&B QA/QC documentation |
+| Datasheet mapping | Attributes section |
+| Guidance § | Document Control |
+| Procedure Step | Steps 4, 15, 19 |
+| Verification | V1 |
+
+### R9: QA/QC Approvals
+**Requirement:** Records shall be signed/approved by qualified field inspector, QA/QC manager, and geotechnical engineer (as applicable) to certify accuracy and acceptance.
+
+| Attribute | Value |
+|-----------|-------|
+| Source | **ASSUMPTION**: QA/QC approval workflow; **TBD**: ER approval requirements |
+| Datasheet mapping | QA/QC signoff attribute |
+| Guidance § | Approval Workflow |
+| Procedure Step | Steps 12-14 |
+| Verification | V1, V3 |
+
+## Standards
+
+**Applicable Standards:**
+
+| Standard Type | Examples | Status |
+|---------------|----------|--------|
+| Compaction testing | ASTM D1556 (sand cone), ASTM D6938 (nuclear density) | **TBD** |
+| Proctor testing | ASTM D698 (standard), ASTM D1557 (modified) | **TBD** |
+| Compaction acceptance | 95% modified Proctor (structural), 90% standard (landscape) | **TBD** |
+| Testing frequency | One test per 500 m³ or per lift | **TBD** |
+| Survey tolerance | ±25 mm structural, ±50 mm general | **TBD** |
+| Professional practice | ACI, ASTM, or equivalent | **ASSUMPTION** |
+
+**Note:** Employer's Requirements volumes are referenced in decomposition but not provided. Standards identification is **TBD** until ER volumes are available.
+
+## Verification
+
+### V1: Content Completeness
+**Method:** Verify records include all required content elements per Datasheet and R1-R9.
+
+| Attribute | Value |
+|-----------|-------|
+| Responsible | QA/QC manager |
+| Criteria | All content elements present; calculations correct; signoffs complete |
+| Records | QA/QC review checklist, approval signatures |
+| Guidance § | Objective Evidence, Completeness |
+| Procedure Step | Step 18 |
+
+### V2: Coverage and Acceptance Criteria Compliance
+**Method:** Verify records cover all PKG-02 areas with sufficient testing density; verify results meet acceptance criteria.
+
+| Attribute | Value |
+|-----------|-------|
+| Responsible | QA/QC manager and geotechnical engineer |
+| Criteria | All areas covered; testing frequency met; all tests pass or deficiencies resolved |
+| Records | Testing location plan, compliance matrix, deficiency log |
+| Guidance § | Coverage, Deficiency Resolution |
+| Procedure Step | Steps 16-17, 18 |
+
+### V3: ER Compliance
+**Method:** Verify alignment with ER QA/QC requirements once available.
+
+| Attribute | Value |
+|-----------|-------|
+| Responsible | Quality reviewer |
+| Criteria | **TBD** — testing methods, frequency, acceptance criteria, approvals per ER |
+| Status | Requirements not yet available; verification deferred |
+| Procedure Step | Steps 1, 20 |
+
+## Documentation
+
+**Primary Deliverable:**
+- Controlled Earthworks Installation & Test Records (issued revision per R8).
+
+**Supporting Documentation:**
+- Testing location plan.
+- Acceptance criteria compliance matrix.
+- Deficiency corrective action log.
+- Review comments and response log.
+
+**Assumptions:** Standard D&B document control workflow applies unless ER specifies otherwise.
+
+## Cross-Document Traceability
+
+| Requirement | Datasheet § | Guidance § | Procedure Step | Verification |
+|-------------|-------------|------------|----------------|--------------|
+| R1 | All Record Content | Objective Evidence, Real-Time | Steps 6-17 | V1, V2, V3 |
+| R2 | Compaction Test Records | Real-Time, Test Method | Steps 5-7 | V1, V2 |
+| R3 | Compaction data elements | Real-Time | Steps 3, 6-7 | V1 |
+| R4 | Proof Rolling Records | Coverage, Deficiency | Steps 8-9 | V1, V2 |
+| R5 | Survey Conformance Records | Completeness | Steps 10-11 | V1, V2 |
+| R6 | Survey data elements | Completeness | Steps 10-11 | V1 |
+| R7 | Context, Location/area | Coverage | Steps 2, 16 | V2 |
+| R8 | Attributes | Document Control | Steps 4, 15, 19 | V1 |
+| R9 | QA/QC signoff | Approval Workflow | Steps 12-14 | V1, V3 |
+
+## References
+
+| Reference | Description | Location |
+|-----------|-------------|----------|
+| _CONTEXT.md | Deliverable identity, description, anticipated artifacts | This folder |
+| Decomposition | PKG-02 scope, DEL-02.06 entry, Section 1.2 Scope Focus | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (location TBD) |
+| Datasheet.md | Record content and attributes mapped to R1-R9 | This folder |
+| Guidance.md | Principles, Considerations, Trade-offs | This folder |
+| Procedure.md | Steps 1-22 implementing requirements and V1-V3 | This folder |
+| _REFERENCES.md | ER volumes and reference materials | This folder (currently empty; pending) |

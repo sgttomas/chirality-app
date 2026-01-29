@@ -95,10 +95,22 @@
 - Guidance.md — rationale and considerations that guide what is emphasized in the drawings.
 - Procedure.md — production and verification workflow used before issuing the drawing set.
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- **Specification → Requirements:** Each drawing artifact listed in Construction must be explicitly required and verifiable in `Specification.md` (Scope/Requirements/Documentation sections).
-- **Specification → Standards:** Design codes and concrete exposure classes referenced here must align with Standards section in `Specification.md`.
-- **Procedure → Verification:** `Procedure.md` defines the checks that demonstrate the drawing set implements the `Specification.md` requirements (including QA/QC and IDC steps in Steps 6-7).
-- **Guidance → Environmental/Containment Intent:** Environmental protection and containment intent (OBJ-7) must be expressed via clear detailing and notes consistent with Principles and Considerations in `Guidance.md`.
-- **Guidance → Interface Coordination:** Interface requirements and hold points noted in Construction must be addressed in Considerations section of `Guidance.md` and Prerequisites in `Procedure.md`.
+| Datasheet Section | Specification § | Guidance § | Procedure Step |
+|-------------------|-----------------|------------|----------------|
+| Attributes (Drawing Number, Sheet Size, Scale, CAD Standard, Revision, Issue Format) | QR-01 Document Control | P-03 Traceability, P-04 Evidence-Based Code Reference | Step 5 (Draft to Project Standards) |
+| Conditions (Design Basis Items) | PR-01 Design Basis Alignment | C-03 Durability and Exposure, C-05 Seismic Considerations | Step 2 (Collect Design Inputs) |
+| Construction: Foundation Plans | FR-02 Foundation Details | P-01 Scope Fidelity, C-01 Required Inputs | Step 3 (Develop Structural Arrangements) |
+| Construction: Containment Wall Plans | FR-03 Containment Wall Details | P-02 Containment Clarity | Step 3 (Develop Structural Arrangements) |
+| Construction: Equipment Pad Details | FR-04 Equipment Pad Details | P-05 Interface Visibility, C-04 Interface Identification | Step 4 (Detail Reinforcement and Critical Elements) |
+| Construction: Reinforcement Drawings | FR-05 Reinforcement Presentation | C-02 Constructability | Step 4 (Detail Reinforcement and Critical Elements) |
+| Construction: Typical Details | FR-06 Typical Details | E-01 Sheet Grouping | Step 4 (Detail Reinforcement and Critical Elements) |
+
+## Cross-Document Notes
+
+- **Specification → Requirements:** Each drawing artifact listed in Construction must be explicitly required and verifiable in `Specification.md` §FR-01 through §FR-06 and §Documentation.
+- **Specification → Standards:** Design codes and concrete exposure classes referenced in Conditions must align with `Specification.md` §Standards. Code references are **TBD** pending ER extraction.
+- **Procedure → Verification:** `Procedure.md` Steps 6-7 define the checks that demonstrate the drawing set implements `Specification.md` requirements (QA/QC and IDC verification).
+- **Guidance → Environmental/Containment Intent:** Environmental protection and containment intent (OBJ-7) must be expressed via clear detailing consistent with `Guidance.md` §P-02 Containment Clarity and §C-03 Durability and Exposure.
+- **Guidance → Interface Coordination:** Interface requirements and hold points noted in Construction are addressed in `Guidance.md` §C-01 Required Inputs and §C-04 Interface Identification, and `Procedure.md` §P-01 Prerequisites.

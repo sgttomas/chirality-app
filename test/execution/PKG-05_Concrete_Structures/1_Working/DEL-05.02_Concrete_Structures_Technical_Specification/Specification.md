@@ -283,12 +283,37 @@ The specification shall use consistent terminology so drawings (DEL-05.01) and Q
 - Revision history per project document control (**TBD**)
 (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Procedure.md: Records.)
 
+## Requirements Traceability Matrix
+
+| Requirement ID | Requirement Summary | Datasheet § | Guidance § | Procedure Step | Verification Method |
+|----------------|---------------------|-------------|------------|----------------|---------------------|
+| FR-01 | Specification Artifact Coverage | Construction (all) | E-01 Organization | Step 1 | Completeness verification |
+| FR-02 | Concrete Materials and Mix Design | Construction: Concrete Spec | P-02 Durability-First | Step 3 | Review traceability matrix |
+| FR-03 | Durability and Exposure Requirements | Conditions (TBD items), Construction | P-02 Durability-First, C-05 BC Environment | Step 2, Step 3 | Requirements traceability |
+| FR-04 | Concrete Placement and Consolidation | Construction: Concrete Spec | C-03 Constructability | Step 3 | Technical review |
+| FR-05 | Finishing and Curing Requirements | Construction: Concrete Spec | P-03 Containment Sensitivity | Step 3 | Technical review |
+| FR-06 | Concrete Quality Control and Testing | Construction: Concrete Spec | P-01 Requirement Clarity, C-04 Inspection Documentation | Step 3, Step 6 | Enables DEL-05.04 |
+| FR-07 | Reinforcement Materials and Standards | Construction: Reinforcement Spec | P-04 Evidence-Based Standards | Step 4 | Technical review |
+| FR-08 | Reinforcement Fabrication and Placement | Construction: Reinforcement Spec | C-03 Constructability | Step 4 | Constructability review |
+| FR-09 | Reinforcement Inspection and Hold Points | Construction: Reinforcement Spec | P-01, C-04 | Step 4, Step 6 | Enables DEL-05.04 |
+| FR-10 | Formwork Materials and Design | Construction: Formwork Spec | — | Step 5 | Technical review |
+| FR-11 | Formwork Tolerances and Finishes | Construction: Formwork Spec | P-05 Consistency, T-03 Tolerance Balance | Step 5 | Alignment with DEL-05.01 |
+| FR-12 | Embedded Items and Formwork Removal | Construction: Formwork Spec | C-02 Interface Coordination | Step 5 | IDC verification |
+| PR-01 | Durability Performance | Conditions | P-02 Durability-First | Step 2 | Requirements traceability |
+| PR-02 | Equipment Interface Performance | — | T-03 Tolerance Balance | Step 5 | Alignment with vendors |
+| PR-03 | Containment Integrity | Conditions (OBJ-7) | P-03 Containment Sensitivity | Step 3 | Supports OBJ-7 |
+| IR-01 | Dependency Coordination | — | C-02 Interface Coordination | Steps 3-5, Step 7 IDC | Alignment verification |
+| IR-02 | Interdisciplinary Interface Requirements | — | C-02 Interface Coordination | Step 5, Step 7 IDC | Interface verification |
+| QR-01 | Document Control | Attributes | — | Step 8 | Document control verification |
+| QR-02 | Inspection and Testing Requirements | Construction (QC sections) | P-01, C-04 | Step 6 | Enables DEL-05.04 |
+| QR-03 | Terminology Consistency | — | P-05 Consistency | Step 7 | IDC with DEL-05.01, DEL-05.04 |
+
 ## Cross-Document Notes
 
-- **Datasheet:** Holds specification metadata expectations (document number, revision, classification, governing requirements). Specification requirements must align with Datasheet construction artifacts (concrete, reinforcement, formwork). (Source: Datasheet.md: Attributes; Datasheet.md: Construction.)
-- **Guidance:** Provides intent and trade-offs that should be reflected in specification requirements. Specification language should follow Guidance principles (requirement clarity, durability-first framing, containment sensitivity, evidence-based standards). (Source: Guidance.md: Principles; Guidance.md: Trade-offs.)
-- **Procedure:** Defines drafting, review, and issue workflow to ensure specification completeness and quality. Each specification requirement should be verified through Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** Holds specification metadata expectations (§Attributes: document number, revision, classification, governing requirements). Specification requirements must align with §Construction artifacts (concrete, reinforcement, formwork). (Source: Datasheet.md: Attributes; Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)
+- **Guidance:** Provides intent and trade-offs that should be reflected in specification requirements. Specification language should follow Guidance principles: §P-01 requirement clarity, §P-02 durability-first framing, §P-03 containment sensitivity, §P-04 evidence-based standards, §P-05 consistency. (Source: Guidance.md: Principles; Guidance.md: Trade-offs; Guidance.md: Guidance-to-Specification Traceability.)
+- **Procedure:** Defines drafting, review, and issue workflow (Steps 1-8) to ensure specification completeness and quality. The Requirements Traceability Matrix above maps each requirement to its Procedure step. (Source: Procedure.md: Steps; Procedure.md: Verification; Procedure.md: Procedure Steps Traceability.)
 - **Related Deliverables:** Specification must maintain consistency with:
-  - DEL-05.01 drawing notes and details (IR-01)
-  - DEL-05.03 calculation assumptions (IR-01)
-  - DEL-05.04 inspection/testing records (FR-06, FR-09, QR-02, IR-01)
+  - DEL-05.01 drawing notes and details — §IR-01, §QR-03 (terminology, tolerances, material designations)
+  - DEL-05.03 calculation assumptions — §IR-01 (concrete strength, material properties)
+  - DEL-05.04 inspection/testing records — §FR-06, §FR-09, §QR-02 (enable record generation)

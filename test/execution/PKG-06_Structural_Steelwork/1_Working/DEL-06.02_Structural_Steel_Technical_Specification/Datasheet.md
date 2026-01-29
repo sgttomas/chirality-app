@@ -14,14 +14,14 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Document Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Specification Type | Structural steel / handrail / grating (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:249; Specification.md: Scope; Procedure.md: Steps 2, Records) |
-| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 6) |
-| Applicable Standards | **TBD** until extracted from Employer's Requirements (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD; Specification.md: Standards) |
-| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
-| Specification Coverage | Structural steel specification, handrail specification, grating specification (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:249; Specification.md: Documentation; Procedure.md: Records) |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Document Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Documentation | Step 6 |
+| Specification Type | Structural steel / handrail / grating (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:249) | Scope | Step 2 |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme | Documentation | Step 6 |
+| Applicable Standards | **TBD** until extracted from Employer's Requirements (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD) | Standards | Step 1 |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) | Scope | — |
+| Specification Coverage | Structural steel specification, handrail specification, grating specification (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:249) | Scope, Documentation | Steps 2, 3 |
 
 ## Conditions
 
@@ -56,9 +56,22 @@ Anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
 - See `_REFERENCES.md` and `execution/PKG-06_Structural_Steelwork/0_References/` for package reference index (currently empty / TBD).
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- Specification: `Specification.md` defines the required topics and how they will be verified (Specification.md: Requirements, Verification).
-- Specification → Procedure → Records traceability: see `Specification.md` Cross-Reference Matrix for how clauses map to Procedure steps and DEL-06.05 record types.
-- Guidance: `Guidance.md` provides intent and common pitfalls (traceability, interfaces, QA alignment).
-- Procedure: `Procedure.md` defines the drafting/review/sign-off workflow to get the technical specification ready for CHECKING/ISSUED packaging.
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Specification.md | Scope | Anticipated artifacts (structural steel, handrail, grating specifications) |
+| Specification.md | Requirements | Functional, performance, interface, quality requirements |
+| Specification.md | Records and Submittals | Record categories (mill certificates, weld inspection, galvanizing) |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification-to-records traceability |
+| Guidance.md | Principles | Traceability-first approach, ER authority, interface boundaries |
+| Guidance.md | Considerations | Document structure, cross-deliverable alignment, recordable clauses |
+| Procedure.md | Steps 1–6 | Requirements extraction through issue preparation workflow |
+| Procedure.md | Verification | Acceptance criteria for completeness, traceability, consistency |
+| Procedure.md | Records | Documentation outputs matching this Datasheet's coverage |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Drawings reference this specification for materials/workmanship/coatings
+- DEL-06.03: Design calculations provide load cases and assumptions referenced by performance requirements
+- DEL-06.04: Data sheets reflect material/coating requirements from this specification
+- DEL-06.05: Installation and test records demonstrate compliance with this specification's clauses (mill certificates, weld inspection records, galvanizing certificates)

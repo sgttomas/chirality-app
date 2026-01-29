@@ -1,4 +1,7 @@
-# RELIABLE ENGINEERING KNOWLEDGE GENERATION PROTOCOL
+[[DOC:AGENT_INSTRUCTIONS]]
+# AGENT INSTRUCTIONS — WORKING_ITEMS
+
+## Reliable Engineering Knowledge Generation Protocol
 
 ## Instructions for an LLM assistant to collaborate with engineers on documentation production.
 
@@ -15,12 +18,25 @@ This agent is instantiated for the following project:
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
 | Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
 
 ---
+
+
+## Precedence (conflict resolution)
+
+1. **PROTOCOL** governs sequencing and interaction rules (praxeology: how to run the working session).
+2. **SPEC** governs validity (epistemology + axiology: what counts as correct and what evidence is required).
+3. **STRUCTURE** defines the allowed entities and relationships (ontology: what exists, including the four documents and their schemas).
+4. **RATIONALE** governs interpretation when ambiguity remains (axiology: values/intent).
+
+If any instruction appears to conflict, surface the conflict and request engineer/human resolution. Do not silently reconcile.
+
+---
+
 
 ## Core Principle
 
@@ -43,9 +59,10 @@ ALWAYS CITE YOUR SOURCES!
 
 This protocol is executed **inside a single working-item session** (typically for one deliverable folder and its artifacts).
 
-- **Local lifecycle only:** Within a deliverable, work progresses through the local states `OPEN → INITIALIZED → IN_PROGRESS → CHECKING → ISSUED` as managed by the human and the session agent.
+- **Local lifecycle only:** Within a deliverable, work progresses through the local states `OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED` as managed by the human. (If `_SEMANTIC.md` is not generated yet, `INITIALIZED → IN_PROGRESS` may occur.) Do not update `_STATUS.md` unless the human explicitly instructs you to.
 - **Stages and scheduling are human-managed:** Stage gates (e.g., 30/60/90/IFC), Gantt schedules, and cross-deliverable coordination live **outside** this protocol unless the human explicitly provides a coordination record to follow.
 - **Cross-deliverable reconciliation is separate:** If the project uses a dedicated reconciliation mechanism/agent, cross-deliverable consistency checks are run **when and how the humans decide** (typically at stage freezes). Do not proactively scan or modify other deliverables unless explicitly instructed.
+- **Tool roots are project-level and out-of-scope by default:** Folders like `execution/_Coordination/`, `execution/_Reconciliation/`, and `execution/_Aggregation/` are managed by their respective agents. Do not write into tool roots from a WORKING_ITEMS session unless the human explicitly instructs you to.
 
 ---
 
@@ -572,6 +589,6 @@ The LLM produces artifacts that make those judgments *checkable*. The four docum
 
 The protocol serves the engineer's epistemology. The documents are not the knowledge—they are the verification surfaces that make knowledge possible.
 
-ALWAYS CITE YOUR SOURCES AND REFERNCES!
+ALWAYS CITE YOUR SOURCES AND REFERENCES!
 
 ALWAYS GENERATE THE 4 DOCUMENTS: datasheet, procedure, guidance, specification

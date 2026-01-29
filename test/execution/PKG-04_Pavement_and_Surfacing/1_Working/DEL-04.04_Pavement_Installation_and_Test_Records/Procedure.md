@@ -395,14 +395,14 @@ This procedure defines the workflow for planning, executing, documenting, review
 
 ### Verification Checkpoints
 
-| Checkpoint | Verification Method | Acceptance Criteria |
-|------------|-------------------|---------------------|
-| Step 1 complete | Review Testing Plan and Traceability Matrix | Plan covers all zones; meets DEL-04.02 frequencies; OBJ-8 enhanced; resources confirmed |
-| Step 2 complete | Review daily updated Traceability Matrix and test records | All planned tests performed; results recorded; NCRs initiated for failures; matrix updated daily |
-| Step 3 complete | Review NCR log | All NCRs have approved corrective actions; verification testing complete; all closed or action plans in place |
-| Step 4 complete | Review OBJ-8 record section | Enhanced testing complete; test location plans with coordinates; enhanced material records; photographs; joint documentation; separate indexing |
-| Step 5 complete | Review final record package and QA checklist | All record types included; organized per structure; Guidance checklist passes; Contractor QA/QC signoff |
-| Step 6 complete | Review Engineer acceptance certificate | Engineer acceptance issued; final distribution complete; archival confirmed |
+| Checkpoint | Specification § | Guidance Step | Verification Method | Acceptance Criteria |
+|------------|----------------|---------------|-------------------|---------------------|
+| Step 1 complete | — | Pre-Review | Review Testing Plan and Traceability Matrix | Plan covers all zones; meets DEL-04.02 frequencies; OBJ-8 enhanced; resources confirmed |
+| Step 2 complete | §R1.1–R1.5 | Steps 1–5 | Review daily updated Traceability Matrix and test records | All planned tests performed; results recorded; NCRs initiated for failures; matrix updated daily |
+| Step 3 complete | §R1.6 | Step 6 | Review NCR log | All NCRs have approved corrective actions; verification testing complete; all closed or action plans in place |
+| Step 4 complete | §R1.7 | Step 7 | Review OBJ-8 record section | Enhanced testing complete; test location plans with coordinates; enhanced material records; photographs; joint documentation; separate indexing |
+| Step 5 complete | §R2.1–R3.3, §R4.1 | Steps 8–10 | Review final record package and QA checklist | All record types included; organized per structure; Guidance checklist passes; Contractor QA/QC signoff |
+| Step 6 complete | §R4.2 | — | Review Engineer acceptance certificate | Engineer acceptance issued; final distribution complete; archival confirmed |
 
 ### Overall Acceptance Criteria
 - Testing Plan covered all pavement zones per DEL-04.01

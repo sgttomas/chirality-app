@@ -151,19 +151,19 @@ The drawing set shall document:
 
 ### Verification Methods
 
-| Requirement | Verification Method | Responsible Party | Timing |
-|-------------|-------------------|-------------------|--------|
-| R1.1: Plan content | Guidance checklist (plan completeness) | Civil lead + QA reviewer | Pre-approval review |
-| R1.2: Section details | Cross-check against DEL-04.03 outputs + DEL-04.02 materials | Civil lead + DEL-04.03 author | After calculation completion |
-| R1.3: Line marking | Cross-check legend vs. DEL-04.02 specification | Civil lead + DEL-04.02 author | Coordination review |
-| R1.4: Interface annotations | Coordination meeting with PKG-03/05/07/08 leads | Civil lead + Package leads | Cross-discipline review |
-| R1.5: Document control | Procedure QA checklist (Step 5) | QA reviewer | Final approval gate |
-| R2.1: Specification refs | Procedure traceability matrix audit | QA reviewer | Pre-issuance |
-| R2.2: Calculation refs | Procedure traceability matrix audit | QA reviewer | After DEL-04.03 issued |
-| R2.3: Test record refs | Handoff meeting with DEL-04.04 team | Civil lead + QA/QC lead | Pre-construction |
-| R3.1: Review gates | Procedure Step 3 reviewer sign-off | Discipline/QA reviewers | Per review schedule |
-| R3.2: Assumption tracking | Procedure assumption log audit | QA reviewer | Each review cycle |
-| R3.3: Revision control | Procedure revision checklist | Civil lead + QA reviewer | Each revision issuance |
+| Requirement | Verification Method | Guidance § | Procedure Step | Responsible Party | Timing |
+|-------------|-------------------|------------|----------------|-------------------|--------|
+| R1.1: Plan content | Guidance checklist (plan completeness) | Step 1 | Step 2.2 | Civil lead + QA reviewer | Pre-approval review |
+| R1.2: Section details | Cross-check against DEL-04.03 outputs + DEL-04.02 materials | Step 2 | Step 2.3, Step 4 | Civil lead + DEL-04.03 author | After calculation completion |
+| R1.3: Line marking | Cross-check legend vs. DEL-04.02 specification | Step 3 | Step 2.4 | Civil lead + DEL-04.02 author | Coordination review |
+| R1.4: Interface annotations | Coordination meeting with PKG-03/05/07/08 leads | Step 4 | Step 3.4 | Civil lead + Package leads | Cross-discipline review |
+| R1.5: Document control | Procedure QA checklist | Step 5 | Step 5.1 | QA reviewer | Final approval gate |
+| R2.1: Specification refs | Procedure traceability matrix audit | Step 6 | Step 2.6 | QA reviewer | Pre-issuance |
+| R2.2: Calculation refs | Procedure traceability matrix audit | Step 6 | Step 2.6, Step 4 | QA reviewer | After DEL-04.03 issued |
+| R2.3: Test record refs | Handoff meeting with DEL-04.04 team | Step 6 | Step 5.5 | Civil lead + QA/QC lead | Pre-construction |
+| R3.1: Review gates | Procedure reviewer sign-off | Steps 1-6 | Step 3.5 | Discipline/QA reviewers | Per review schedule |
+| R3.2: Assumption tracking | Procedure assumption log audit | Step 4 (P4) | Steps 1.3-1.5, 3.3 | QA reviewer | Each review cycle |
+| R3.3: Revision control | Procedure revision checklist | Step 5 | Step 6 | Civil lead + QA reviewer | Each revision issuance |
 
 ### Acceptance Criteria
 - All plan sheets show complete coverage per R1.1 with no unlabeled zones

@@ -59,3 +59,23 @@ The deliverable provides the engineering basis and sizing/verification calculati
 - Filing convention: working files remain in `1_Working/`; review/issue copies can be packaged to `2_Checking/` / `3_Issued/` as adopted by the team (Source: README.md; Datasheet.md: References).
 - Revision tracking: per project numbering system and `Datasheet.md` attributes (Datasheet.md: Attributes; Step 7).
 - Retention requirements: **TBD**.
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity verified in Step 1 |
+| Datasheet.md | Attributes | Calculation metadata (number, software, design basis) verified in Steps 3, 7 |
+| Datasheet.md | Construction | Linked deliverables referenced in Steps 2, 5 |
+| Specification.md | Scope | Anticipated artifacts checklist used in Step 1 |
+| Specification.md | Calculation Package Structure | Minimum content requirements checked in Steps 2–6 |
+| Specification.md | Cross-Reference Matrix | Verification traceability confirmed in Step 6 |
+| Guidance.md | Principles | Intent guiding Steps 2, 4, 5 (traceability, ER authority, interface register) |
+| Guidance.md | Considerations | Trade-offs considered in Steps 1, 3, 5 |
+| Guidance.md | Examples | Formats for load case summary, governing member summary, interface register |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Calculation assumptions/results reconciled with drawing notes (Step 5)
+- DEL-06.02: Material/coating assumptions aligned with specification clauses (Steps 2, 5)
+- DEL-06.04: Gangway/grating design justification traceable to calculation package (Step 5)
+- DEL-06.05: Critical items (welds, bolting, coating systems) identified for downstream inspection/records (Step 5)

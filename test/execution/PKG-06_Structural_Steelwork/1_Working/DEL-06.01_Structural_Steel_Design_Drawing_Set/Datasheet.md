@@ -14,15 +14,15 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Drawing Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Sheet Size | Per project drawing standards (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Scale | Per drawing content; legible at issue size (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| CAD Standard | Per project CAD / drafting convention (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 5) |
-| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
-| Drawing Set Scope | Platform GAs, stair drawings, gangway drawings, pipe rack drawings, handrail details (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248; Specification.md: Scope; Procedure.md: Records) |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Drawing Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Documentation | Step 5 |
+| Sheet Size | Per project drawing standards (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Drawing Content | Step 5 |
+| Scale | Per drawing content; legible at issue size (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Drawing Content | Step 4 |
+| CAD Standard | Per project CAD / drafting convention (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Standards | Step 5 |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme | Documentation | Step 5 |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) | Scope | — |
+| Drawing Set Scope | Platform GAs, stair drawings, gangway drawings, pipe rack drawings, handrail details (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248) | Scope | Steps 1, 6 |
 
 ## Conditions
 
@@ -61,9 +61,22 @@ Anticipated artifacts within this drawing set (Source: test/Canola_Oil_Transload
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
 - See `_REFERENCES.md` and `execution/PKG-06_Structural_Steelwork/0_References/` for package reference index (currently empty / TBD).
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- Specification: required content and metadata controls for the drawing set (Specification.md: Requirements, Documentation).
-- Specification → Procedure traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.
-- Guidance: intent and trade-offs that influence drawing conventions (Guidance.md: Principles, Considerations).
-- Procedure: verification/review workflow that governs release readiness (Procedure.md: Steps, Verification).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Specification.md | Scope | Anticipated artifacts (Platform GAs, stair drawings, gangway drawings, pipe rack drawings, handrail details) |
+| Specification.md | Requirements: Drawing Content | Minimum content requirements (title blocks, general notes, interfaces, drawing index) |
+| Specification.md | Documentation | Document control and revision requirements |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification traceability |
+| Guidance.md | Principles | Intent behind drawing conventions and interface explicitness |
+| Guidance.md | Considerations | Trade-offs for constructability, QA/QC support, cross-references |
+| Procedure.md | Steps 1–8 | Production and verification workflow |
+| Procedure.md | Verification | Acceptance criteria for scope completeness, content minimum, interfaces |
+| Procedure.md | Records | Documentation outputs matching this Datasheet's scope |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.02: Materials, workmanship, and coating requirements referenced on drawings
+- DEL-06.03: Design basis, load cases, and governing calculations referenced in drawing notes
+- DEL-06.04: Gangway/grating item data sheets referenced where applicable
+- DEL-06.05: Installation and test records requiring traceability to drawing elements (weld inspection points, coating zones)

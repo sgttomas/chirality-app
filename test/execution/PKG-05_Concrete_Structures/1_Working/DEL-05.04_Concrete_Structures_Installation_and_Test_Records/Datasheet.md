@@ -177,10 +177,21 @@
 - Guidance.md — principles for record detail/coverage and traceability to drawings/specifications.
 - Procedure.md — workflow for generating, checking, and filing records.
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- **Specification → Requirements:** Each record artifact (pour records, cylinder tests, rebar inspections) listed in Construction must be explicitly required in `Specification.md` with field requirements and acceptance criteria.
-- **DEL-05.02 → Inspection/Testing Requirements:** Record content must capture all inspection and testing requirements specified in DEL-05.02 (concrete quality control, reinforcement inspection, formwork inspection).
-- **DEL-05.01 → Drawing References:** Records must reference DEL-05.01 drawings to identify element locations and verify installation per design intent.
-- **Procedure → Record Generation:** `Procedure.md` defines the workflow that generates records (pre-pour inspection, during-pour documentation, post-pour testing).
-- **Guidance → Containment Focus:** Containment wall records (OBJ-7 Environmental Protection) require special emphasis on crack control verification, joint quality, and waterstop installation per `Guidance.md`.
+| Datasheet Section | Specification § | Guidance § | Procedure Step |
+|-------------------|-----------------|------------|----------------|
+| Attributes (Record Type, Storage, Retention, Format) | QR-01 Document Control | C-02 Record Format, C-05 Record Retention | Step 6 (Compile and Archive) |
+| Conditions (QA/QC Requirements TBD) | QR-02, QR-03 | P-02 Real-Time Documentation, P-05 Completeness | Steps 2-5 (Inspection/Testing) |
+| Construction: Concrete Pour Records | FR-02 Pour Record Content | P-01 Traceability, P-02 Real-Time, P-04 Objective Evidence | Step 3 (Document Concrete Placement) |
+| Construction: Cylinder Test Results | FR-03 Cylinder Test Content | P-04 Objective Evidence | Step 4 (Manage Cylinder Testing) |
+| Construction: Rebar Inspection Records | FR-04 Rebar Inspection Content | P-01 Traceability, P-03 Containment Focus | Step 2 (Pre-Pour Inspections) |
+| Construction: Supporting QA Records | FR-01 Coverage, FR-06 NCR Documentation | C-03 Non-Conformance Management, C-04 Interface Documentation | Step 5 (Manage NCRs) |
+
+## Cross-Document Notes
+
+- **Specification → Requirements:** Each record artifact (pour records, cylinder tests, rebar inspections) listed in Construction must be explicitly required in `Specification.md` §FR-01 through §FR-06 with field requirements and acceptance criteria.
+- **DEL-05.02 → Inspection/Testing Requirements:** Record content must capture all inspection and testing requirements specified in DEL-05.02 (§FR-06 concrete quality control, §FR-09 reinforcement inspection, §FR-12 formwork inspection).
+- **DEL-05.01 → Drawing References:** Records must reference DEL-05.01 drawings to identify element locations and verify installation per design intent — tracked via `Specification.md` §FR-05 and §IR-01.
+- **Procedure → Record Generation:** `Procedure.md` Steps 2-5 define the workflow that generates records. Each Construction artifact maps to a Procedure step per the Cross-Document Traceability table above.
+- **Guidance → Containment Focus:** Containment wall records (OBJ-7 Environmental Protection) require special emphasis per `Guidance.md` §P-03 (crack control verification, joint quality, waterstop installation).

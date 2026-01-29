@@ -198,27 +198,54 @@ The calculation package shall include:
 ## Cross-document Coordination
 
 ### Linkages to Drawings (DEL-04.01)
-- Every pavement section thickness calculated herein must match the corresponding section detail in DEL-04.01 drawings
-- Calculation output summary table shall reference DEL-04.01 drawing sheet and section/detail numbers
-- When DEL-04.01 drawings are revised (layout changes, new pavement zones), calculations must be updated to cover revised scope
-- Interface transition designs calculated herein are shown graphically in DEL-04.01 interface details
+
+| Datasheet Section | DEL-04.01 Reference | Coordination Requirement |
+|-------------------|--------------------|-----------------------|
+| Calculation Scope | Pavement zone layout plans | All zones analyzed per drawing scope |
+| Calculation Outputs – Layer thicknesses | Section drawing details | Thickness values match calculated values |
+| Interface Design Validation | Interface detail drawings | Transition designs validated by calculations |
+| OBJ-8 Expansion Analysis | Phase 2 corridor annotations | Ultimate loading case matches OBJ-8 corridors |
 
 ### Linkages to Specification (DEL-04.02)
-- Material properties used as calculation inputs (asphalt modulus, concrete strength, base modulus) must match DEL-04.02 specified materials
-- Calculation design assumptions (reliability, design life, loading) must be consistent with DEL-04.02 performance requirements
-- When DEL-04.02 specification is revised (material changes, different performance criteria), calculations must be re-run to validate new requirements
+
+| Datasheet Section | DEL-04.02 Reference | Coordination Requirement |
+|-------------------|--------------------|-----------------------|
+| Asphalt Material Properties | Material requirements clauses | Properties match specification |
+| Concrete Material Properties | Concrete materials clauses | Strength class consistent |
+| Base/Subbase Properties | Aggregate materials clauses | Modulus values aligned |
+| Design Assumptions | Performance requirements | Design life and reliability consistent |
+
+### Linkages to Specification (DEL-04.03 Specification)
+
+| Datasheet Section | Specification Reference | Alignment Requirement |
+|-------------------|------------------------|----------------------|
+| Design Inputs – Traffic | Specification §R1.1 | Traffic loading input requirements |
+| Design Inputs – Geotechnical | Specification §R1.2 | Geotechnical parameter requirements |
+| Design Inputs – Material Properties | Specification §R1.3 | Material property requirements |
+| Calculation Methodology | Specification §R2.1–R2.3 | Design approach and analysis method |
+| Calculation Outputs | Specification §R3.1–R3.3 | Output summary and traceability requirements |
+| Assumptions & TBDs | Specification §R3.3, §R4.3 | Assumption tracking requirements |
 
 ### Linkages to Guidance (DEL-04.03 Guidance)
-- Guidance provides review checklist to verify calculation completeness, input traceability, and output consistency with DEL-04.01/DEL-04.02
-- Guidance ensures all calculation assumptions are flagged and logged in assumption tracking system
-- Guidance review process validates calculation methodology and results prior to issuance
+
+| Datasheet Section | Guidance Reference | Verification Method |
+|-------------------|-------------------|-------------------|
+| Design Inputs | Guidance Step 1 checklist | Input verification |
+| Calculation Methodology | Guidance Step 2 checklist | Methodology review |
+| Calculation Outputs | Guidance Steps 4-5 checklists | Output and traceability review |
+| Assumptions & TBDs | Guidance Step 6 checklist | Assumption tracking review |
 
 ### Linkages to Procedure (DEL-04.03 Procedure)
-- Procedure defines workflow for obtaining inputs, performing calculations, coordinating with DEL-04.01/DEL-04.02, and issuing results
-- Procedure maintains assumption tracking log and calculation traceability matrix
-- Procedure revision control ensures calculation updates are traced back to input changes or drawing/specification revisions
+
+| Datasheet Section | Procedure Reference | Workflow Integration |
+|-------------------|-------------------|---------------------|
+| Design Inputs | Procedure Step 1 | Input assembly and documentation |
+| Structural Analysis | Procedure Step 2 | Analysis execution |
+| Sensitivity/OBJ-8 Analysis | Procedure Step 3 | Sensitivity and expansion analysis |
+| Calculation Outputs | Procedure Step 4 | Output summary and traceability matrix |
+| Verification & Review | Procedure Step 5 | Self-check, independent check, QA review |
 
 ### Linkages to Test Records (DEL-04.04)
-- Calculation output summary provides target values for DEL-04.04 field testing (pavement layer thicknesses, compaction densities)
+- Calculation output summary provides target values for DEL-04.04 field testing (Procedure Step 6.5)
 - Calculation acceptance criteria define pass/fail limits for DEL-04.04 test results evaluation
-- Calculation sensitivity analysis informs DEL-04.04 testing frequency and critical test locations (e.g., higher frequency in areas sensitive to subgrade variability)
+- Calculation sensitivity analysis informs DEL-04.04 testing frequency and critical test locations

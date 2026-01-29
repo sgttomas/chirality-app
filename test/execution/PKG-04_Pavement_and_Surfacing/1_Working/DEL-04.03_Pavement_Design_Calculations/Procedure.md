@@ -390,15 +390,15 @@ This procedure defines the workflow for producing, reviewing, coordinating, and 
 
 ### Verification Checkpoints
 
-| Checkpoint | Verification Method | Acceptance Criteria |
-|------------|-------------------|---------------------|
-| Step 1 complete | Review Input Summary Tables and Assumption Log | All inputs documented with sources or **ASSUMPTION** flags; assumption log updated |
-| Step 2 complete | Review Analysis Worksheets and Output Summary | Analysis complete for all pavement zones; software and hand calculations consistent; Senior Engineer approval |
-| Step 3 complete | Review Sensitivity and OBJ-8 Analysis Results | Sensitivity analysis complete for critical parameters; OBJ-8 analysis validates expansion corridor capacity |
-| Step 4 complete | Review Output Summary Table and Traceability Matrix | Output summary complete; traceability matrix links to DEL-04.01/04.02/04.04; discrepancies identified |
-| Step 5 complete | Review approval signoffs | Self-check, independent check, coordination review complete with signoffs |
-| Step 6 complete | Review handoff records and distribution confirmation | Handoffs to DEL-04.01/04.02/04.04 complete; distribution complete |
-| Step 7 (revisions) | Review revision history and re-approvals | Revised calculation correct; re-approvals obtained; stakeholders notified |
+| Checkpoint | Specification § | Guidance Step | Verification Method | Acceptance Criteria |
+|------------|----------------|---------------|-------------------|---------------------|
+| Step 1 complete | §R1.1–R1.4 | Step 1 | Review Input Summary Tables and Assumption Log | All inputs documented with sources or **ASSUMPTION** flags; assumption log updated |
+| Step 2 complete | §R2.1–R2.3 | Steps 2–3 | Review Analysis Worksheets and Output Summary | Analysis complete for all pavement zones; software and hand calculations consistent; Senior Engineer approval |
+| Step 3 complete | §R2.4–R2.5 | Step 2 | Review Sensitivity and OBJ-8 Analysis Results | Sensitivity analysis complete for critical parameters; OBJ-8 analysis validates expansion corridor capacity |
+| Step 4 complete | §R3.1–R3.2 | Steps 4–5 | Review Output Summary Table and Traceability Matrix | Output summary complete; traceability matrix links to DEL-04.01/04.02/04.04; discrepancies identified |
+| Step 5 complete | §R4.1–R4.3 | Step 7 | Review approval signoffs | Self-check, independent check, coordination review complete with signoffs |
+| Step 6 complete | §R3.2 | Step 5 | Review handoff records and distribution confirmation | Handoffs to DEL-04.01/04.02/04.04 complete; distribution complete |
+| Step 7 (revisions) | §R5.1–R5.2 | — | Review revision history and re-approvals | Revised calculation correct; re-approvals obtained; stakeholders notified |
 
 ### Overall Acceptance Criteria
 - All calculation inputs documented with sources or **ASSUMPTION** flags with resolution paths

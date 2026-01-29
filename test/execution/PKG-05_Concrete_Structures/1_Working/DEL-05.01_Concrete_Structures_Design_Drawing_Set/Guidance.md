@@ -157,12 +157,39 @@ A containment wall section drawing should show:
 - Liner termination and attachment details
 - General notes (concrete exposure class, cover, joint spacing, curing)
 
-## Local Conflict Table
+## Conflict Table (for human ruling)
 
-No conflicts identified from accessible sources. Employer's Requirements clause extraction pending for final verification. (Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts identified from accessible sources | — | — | — | — | — |
+
+**Note:** Employer's Requirements clause extraction pending for final verification. If conflicts are identified during ER review, they should be added to this table for human ruling. Key areas requiring ER confirmation:
+- Design codes and standards (CSA A23.1/A23.3 assumed for BC location — **ASSUMPTION**)
+- Seismic design parameters (site class, importance factors, R values — **TBD**)
+- Exposure class assignments (freeze-thaw, sulfates, chlorides — **TBD**)
+- Document control and QA/QC requirements (drawing numbering, checking process — **TBD**)
+
+(Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+
+## Guidance-to-Specification Traceability
+
+| Guidance § | Supporting Specification Requirements |
+|------------|---------------------------------------|
+| P-01 Scope Fidelity | FR-01 Artifact Coverage, Scope section |
+| P-02 Containment Clarity | FR-03 Containment Wall Details, PR-02 Containment Performance |
+| P-03 Traceability to Design Basis | QR-03 Technical Consistency, PR-01 Design Basis Alignment |
+| P-04 Evidence-Based Code Reference | Standards section, QR-01 Document Control |
+| P-05 Interface Visibility | IR-02 Interface Identification, FR-04 Equipment Pad Details |
+| C-01 Required Inputs | IR-01 Dependency Coordination, Prerequisites |
+| C-02 Constructability | PR-03 Constructability, FR-05 Reinforcement Presentation |
+| C-03 Durability and Exposure | PR-01 Design Basis Alignment |
+| C-04 Interface Identification | IR-01, IR-02 Interface Requirements |
+| C-05 Seismic Considerations | PR-01 Design Basis Alignment |
+| T-01 through T-04 | Trade-offs inform engineering judgment within requirements |
+| E-01 through E-03 | Examples support FR-01 through FR-06 implementation |
 
 ## Cross-Document Notes
 
-- **Specification:** Use `Specification.md` as the checklist for what must be present and how it will be verified. Each Principle and Consideration should support a corresponding Specification requirement. Specification requirements FR-01 through QR-03 provide the normative requirements that this Guidance supports. (Source: Specification.md: Requirements.)
-- **Procedure:** `Procedure.md` describes how to develop/check/release the drawing set (Steps 1-7) and what evidence is retained (Records). Considerations noted here should be addressed in Procedure Prerequisites and Steps. (Source: Procedure.md: Steps; Procedure.md: Records.)
-- **Datasheet:** Datasheet Construction section lists the anticipated artifacts and details that these Principles and Considerations guide. Ensure drawing content aligns with Datasheet Construction breakdown. (Source: Datasheet.md: Construction.)
+- **Specification:** Use `Specification.md` as the checklist for what must be present and how it will be verified. Each Principle (§P-01 through §P-05) and Consideration (§C-01 through §C-05) supports corresponding Specification requirements per the Guidance-to-Specification Traceability table above. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix.)
+- **Procedure:** `Procedure.md` describes how to develop/check/release the drawing set (Steps 1-7) and what evidence is retained (§Records). Considerations §C-01 through §C-05 are addressed in `Procedure.md` §P-01 Prerequisites and Steps 2-4. (Source: Procedure.md: Prerequisites; Procedure.md: Steps; Procedure.md: Records.)
+- **Datasheet:** `Datasheet.md` §Construction lists the anticipated artifacts that Principles §P-01 through §P-05 and Considerations §C-01 through §C-05 guide. Ensure drawing content aligns with §Construction breakdown. (Source: Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)

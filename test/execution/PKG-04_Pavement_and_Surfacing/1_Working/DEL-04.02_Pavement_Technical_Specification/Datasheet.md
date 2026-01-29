@@ -160,27 +160,50 @@ The specification document will be organized into the following major sections (
 ## Cross-document Coordination
 
 ### Linkages to Drawings (DEL-04.01)
-- Every material and tolerance specified in this specification is annotated on DEL-04.01 drawing sections, details, and notes
-- Drawing material call-outs reference specific clauses of this specification (e.g., "Asphalt Concrete Wearing Course per DEL-04.02 Clause 3.2.1")
-- When drawings are revised with new materials or tolerances, this specification must be updated accordingly (bidirectional coordination)
-- Interface details shown on DEL-04.01 drawings (structure transitions, utility crossings, rail embedments) are supported by specification requirements in this document
+
+| Datasheet Section | DEL-04.01 Reference | Coordination Requirement |
+|-------------------|--------------------|-----------------------|
+| Asphalt Pavement properties | Section drawings, material call-outs | Drawing annotations reference specification clauses |
+| Concrete Pavement properties | Detail sheets, joint details | Material and tolerance alignment |
+| Base/Subbase properties | Pavement section drawings | Layer thickness and compaction consistency |
+| Line Marking specifications | Line marking plans, legend | Material type and reflectivity standards |
+| Interface requirements | Interface notes, PKG-03/05/07/08 tie-ins | Elevation and transition coordination |
+
+### Linkages to Specification (DEL-04.02 Specification)
+
+| Datasheet Section | Specification Reference | Alignment Requirement |
+|-------------------|------------------------|----------------------|
+| Key Performance Requirements – Asphalt | Specification §R1.1 | Material requirements coverage |
+| Key Performance Requirements – Concrete | Specification §R1.1 | Material requirements coverage |
+| Key Performance Requirements – Subgrade/Base | Specification §R1.2 | Workmanship requirements |
+| Conditions – OBJ-8 Expansion | Specification §R1.5 | Future expandability provisions |
+| Assumptions & TBDs | Specification §R3.2 | Tracking requirements |
 
 ### Linkages to Guidance (DEL-04.02 Guidance)
-- Guidance provides a review checklist to verify specification completeness, cross-document consistency, and assumption tracking
-- Guidance ensures every material clause references an approved standard or includes a **TBD**/**ASSUMPTION** notation
-- Guidance review process validates that specification requirements are verifiable by DEL-04.04 testing procedures
+
+| Datasheet Section | Guidance Reference | Verification Method |
+|-------------------|-------------------|-------------------|
+| Asphalt materials | Guidance Step 1 checklist | Material clause review |
+| Concrete materials | Guidance Step 1 checklist | Material clause review |
+| Workmanship standards | Guidance Step 2 checklist | Workmanship clause review |
+| Testing and Acceptance | Guidance Step 3 checklist | QC clause review |
+| Assumptions & TBDs | Guidance Step 7 checklist | Assumption tracking review |
 
 ### Linkages to Procedure (DEL-04.02 Procedure)
-- Procedure defines the workflow for drafting specification clauses, coordinating with DEL-04.01/DEL-04.03, and resolving **TBD**/**ASSUMPTION** items
-- Procedure maintains an assumption tracking log that cross-references specification clause numbers to pending resolutions
-- Procedure revision control ensures specification updates are traced back to drawing or calculation changes
+
+| Datasheet Section | Procedure Reference | Workflow Integration |
+|-------------------|-------------------|---------------------|
+| Specification Scope | Procedure Step 1 | Scope capture and initialization |
+| Key Performance Requirements | Procedure Step 2 | Clause drafting with traceability |
+| Assumptions & TBDs | Procedure Steps 1, 3 | Assumption log creation and maintenance |
+| Interface requirements | Procedure Step 3.4 | Cross-package coordination meetings |
 
 ### Linkages to Calculations (DEL-04.03)
-- Specification material properties (asphalt binder grade, concrete strength, aggregate gradation, subgrade CBR) are inputs to or outputs from DEL-04.03 calculations
+- Specification material properties (asphalt binder grade, concrete strength, aggregate gradation, subgrade CBR) are inputs to or outputs from DEL-04.03 calculations (coordinated via Procedure Step 4)
 - Pavement layer thicknesses specified herein are validated by DEL-04.03 structural analysis
-- When DEL-04.03 calculations are revised (e.g., updated geotechnical data), this specification must be reviewed for material or thickness changes
+- When DEL-04.03 calculations are revised, this specification must be reviewed per Procedure Step 6 revision process
 
 ### Linkages to Test Records (DEL-04.04)
-- Specification testing requirements (frequencies, methods, acceptance criteria) define the scope of DEL-04.04 field documentation
-- DEL-04.04 test results are evaluated against acceptance criteria stated in this specification
-- Non-conformance procedures specified herein govern DEL-04.04 documentation of deficiencies and corrective actions
+- Specification testing requirements (frequencies, methods, acceptance criteria) define the scope of DEL-04.04 field documentation (Specification §R1.3)
+- DEL-04.04 test results are evaluated against acceptance criteria stated in this specification (Specification §R2.3)
+- Non-conformance procedures specified herein govern DEL-04.04 documentation (Procedure Step 4.3 coordination)

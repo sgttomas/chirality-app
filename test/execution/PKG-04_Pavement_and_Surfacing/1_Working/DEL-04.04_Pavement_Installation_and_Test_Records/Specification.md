@@ -257,19 +257,19 @@ The records shall include:
 
 ### Verification Methods
 
-| Requirement | Verification Method | Responsible Party | Timing |
-|-------------|-------------------|-------------------|--------|
-| R1.1: Compaction test records | Guidance review checklist Step 1 | QA reviewer | During construction |
-| R1.2: Core sample records | Guidance review checklist Step 2 | QA reviewer | After laboratory testing |
-| R1.3: Survey records | Guidance review checklist Step 3 | QA reviewer | After survey completion |
-| R1.4: Material certifications | Guidance review checklist Step 4 | QA reviewer | During/after construction |
-| R1.5: Daily QC reports | Guidance review checklist Step 5 | QA reviewer | Daily review |
-| R1.6: NCR records | Guidance review checklist Step 6 | QA reviewer | NCR closure verification |
-| R1.7: OBJ-8 documentation | Guidance review checklist Step 7 | QA reviewer | After expansion corridor work |
-| R2.1–R2.4: Traceability | Traceability matrix audit | QA reviewer | Before final package |
-| R3.1–R3.3: Record quality | QA spot-checks | QA reviewer | Throughout construction |
-| R4.1: Contractor review | QA Manager signoff | Contractor QA Manager | Before submission |
-| R4.2: Engineer acceptance | Engineer review | Engineer | Final acceptance |
+| Requirement | Verification Method | Guidance § | Procedure Step | Responsible Party | Timing |
+|-------------|-------------------|------------|----------------|-------------------|--------|
+| R1.1: Compaction test records | Guidance review checklist | Step 1 | Step 2.2 | QA reviewer | During construction |
+| R1.2: Core sample records | Guidance review checklist | Step 2 | Step 2.3 | QA reviewer | After laboratory testing |
+| R1.3: Survey records | Guidance review checklist | Step 3 | Step 2.4 | QA reviewer | After survey completion |
+| R1.4: Material certifications | Guidance review checklist | Step 4 | Step 2.5 | QA reviewer | During/after construction |
+| R1.5: Daily QC reports | Guidance review checklist | Step 5 | Step 2.6 | QA reviewer | Daily review |
+| R1.6: NCR records | Guidance review checklist | Step 6 | Step 3 | QA reviewer | NCR closure verification |
+| R1.7: OBJ-8 documentation | Guidance review checklist | Step 7 | Step 4 | QA reviewer | After expansion corridor work |
+| R2.1–R2.4: Traceability | Traceability matrix audit | Step 1–7 | Step 1.4, 5.4 | QA reviewer | Before final package |
+| R3.1–R3.3: Record quality | QA spot-checks | Steps 8–9 | Step 5.4 | QA reviewer | Throughout construction |
+| R4.1: Contractor review | QA Manager signoff | Step 10 | Step 5.6 | Contractor QA Manager | Before submission |
+| R4.2: Engineer acceptance | Engineer review | — | Step 6.3–6.5 | Engineer | Final acceptance |
 
 ### Acceptance Criteria
 - All required record types per R1.1–R1.7 are included

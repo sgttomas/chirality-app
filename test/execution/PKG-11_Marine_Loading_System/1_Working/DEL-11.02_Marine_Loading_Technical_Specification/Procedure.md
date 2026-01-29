@@ -284,18 +284,16 @@ This procedure defines the process for producing and verifying **Marine Loading 
 
 ---
 
-**Pass 2/3 Enrichment Notes:**
-- Added "Related Procedure Step" column to Prerequisites §Required Inputs table
-- Added "Datasheet Reference" column to Step 1 table
-- Added "Specification Reference" column to Step 2 table
-- Added "Requirement IDs" column to Steps 3-7 tables showing specific requirement ranges
-- Enhanced each step output with requirement counts (§4: 32, §5: 20, §6: 14, §7: 7, §8: 5, §9: 9 = 58+ total)
-- Added note after Step 7 confirming 58+ total requirements produced across Steps 3-7
-- Enhanced Step 9 table with "Specification Sections" column showing requirement ID ranges
-- Enhanced Step 10 table with "Datasheet Reference" column
-- Enhanced verification activities table with full traceability: "Procedure Step", "Record", "Datasheet Criterion" columns
-- Enhanced acceptance checklist with "Datasheet Ref", "Specification Ref", and "Procedure Step" columns for complete traceability
-- Enhanced Records table with requirement counts and "Related Step" column
-- Added note confirming 58+ requirements alignment across all documents
-- All TBDs and ASSUMPTIONs preserved from Pass 1
-- Full traceability: Decomposition → Datasheet → Specification (58+ reqs) → Guidance → Procedure
+**Pass 3 Enrichment Notes (Final Quality Check):**
+- Verified 11-step workflow completeness: Collect Inputs → Extent of Supply → 5 Requirement Sections → Traceability → Review → Resolve → Approval
+- Verified Required Inputs table (8 inputs) traces to Datasheet §Conditions and §Interfaces
+- Verified Steps 3-7 produce correct requirement counts: §4:32, §5:20, §6:14, §7:7+5, §9:9 = 58+ total
+- Verified Step 8 compliance matrix aligns with Specification.md §Compliance Matrix and Datasheet criterion 3
+- Verified Step 9 IDC review covers all 8 interfaces from Datasheet with correct Specification section references
+- Verified Verification table links all 6 verification activities to requirements, steps, records, and Datasheet criteria
+- Verified Acceptance checklist (6 criteria) fully aligned with Datasheet.md §Deliverable Acceptance (5 criteria + Employer review)
+- Verified Records table (8 records) references appropriate procedure steps and requirement counts
+- Confirmed sign-off requirements trace to project quality procedures
+- Full traceability chain verified: Decomposition → Datasheet → Specification (58+ reqs) → Guidance → Procedure
+- All TBDs and ASSUMPTIONs retained with proper labeling
+- Pass 3 complete — document ready for WORKING_ITEMS session

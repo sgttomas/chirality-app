@@ -197,12 +197,30 @@ Records shall be verified and approved:
 - Retention documentation per project requirements
 (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes.)
 
+## Requirements Traceability Matrix
+
+| Requirement ID | Requirement Summary | Datasheet § | Guidance § | Procedure Step | Verification Method |
+|----------------|---------------------|-------------|------------|----------------|---------------------|
+| FR-01 | Record Artifact Coverage | Construction (all) | E-01 Organization | Step 1, Step 6 | Completeness verification |
+| FR-02 | Pour Record Content | Construction: Pour Records | P-01 Traceability, P-02 Real-Time, P-04 Objective Evidence | Step 3 | Completeness verification |
+| FR-03 | Cylinder Test Result Content | Construction: Cylinder Tests | P-04 Objective Evidence | Step 4 | Compliance verification |
+| FR-04 | Rebar Inspection Record Content | Construction: Rebar Inspections | P-01 Traceability, P-03 Containment Focus | Step 2 | Completeness verification |
+| FR-05 | Traceability | References, Construction (all) | P-01 Traceability | Steps 2-4 | Traceability verification |
+| FR-06 | Non-Conformance Documentation | Construction: Supporting QA | C-03 Non-Conformance Management | Step 5 | NCR closure verification |
+| PR-01 | Compliance Demonstration | Construction (all) | P-04 Objective Evidence | Steps 2-4 | Compliance verification |
+| PR-02 | Containment Quality | Construction (containment elements) | P-03 Containment Focus | Steps 2, 3 | Enhanced inspection verification |
+| IR-01 | Dependency Coordination | — | C-04 Interface Documentation | Steps 2, 3 | Traceability verification |
+| IR-02 | Record Format Coordination | Attributes (Record Format) | C-02 Record Format | Step 1 | Format alignment |
+| QR-01 | Document Control | Attributes (Storage, Retention) | C-05 Record Retention | Step 6 | Quality verification |
+| QR-02 | Completeness and Accuracy | — | P-02 Real-Time, P-05 Completeness | Step 6 | Quality verification |
+| QR-03 | Verification and Approval | — | P-05 Completeness | Steps 2-4, 6 | Quality verification |
+
 ## Cross-Document Notes
 
-- **Datasheet:** Holds record package metadata and coverage expectations. Specification requirements must align with Datasheet construction artifacts (pour records, cylinder tests, rebar inspections). (Source: Datasheet.md: Attributes; Datasheet.md: Construction.)
-- **Guidance:** Provides principles for record development (traceability, containment focus, completeness). Specification requirements should reflect Guidance principles. (Source: Guidance.md: Principles.)
-- **Procedure:** Defines record generation, verification, and archival workflow. Each Specification requirement should be verified through Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** Holds record package metadata (§Attributes) and coverage expectations. Specification requirements must align with §Construction artifacts (pour records, cylinder tests, rebar inspections). (Source: Datasheet.md: Attributes; Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)
+- **Guidance:** Provides principles for record development: §P-01 traceability, §P-02 real-time documentation, §P-03 containment focus, §P-04 objective evidence, §P-05 completeness. The Requirements Traceability Matrix above maps requirements to supporting Guidance sections. (Source: Guidance.md: Principles; Guidance.md: Guidance-to-Specification Traceability.)
+- **Procedure:** Defines record generation, verification, and archival workflow (Steps 1-6). The Requirements Traceability Matrix above maps each requirement to its Procedure step. (Source: Procedure.md: Steps; Procedure.md: Verification; Procedure.md: Procedure Steps Traceability.)
 - **Related Deliverables:** Records must maintain consistency with:
-  - DEL-05.01 drawing references and element locations (FR-05, IR-01)
-  - DEL-05.02 specification requirements and acceptance criteria (FR-02, FR-03, FR-04, PR-01)
-  - DEL-05.03 calculation assumptions and design basis (FR-05, IR-01)
+  - DEL-05.01 drawing references and element locations — §FR-05, §IR-01
+  - DEL-05.02 specification requirements and acceptance criteria — §FR-02, §FR-03, §FR-04, §PR-01
+  - DEL-05.03 calculation assumptions and design basis — §FR-05, §IR-01

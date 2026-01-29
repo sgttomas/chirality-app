@@ -334,6 +334,19 @@ Typical PQR includes test coupon welding parameters and test results:
 
 ---
 
-**Document Status:** Pass 3 (Final) — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.06-01 | Applicable welding standards (API 650/AWS vs. CSA W59) for Canadian project | Trade-off T-02 | ER / DEL-13.02 specification (TBD) | Datasheet.md Standards; Specification.md PR-01 | ER + project specification | **TBD** |
+| CT-13.06-02 | Fabricator pre-qualification approach (shop audit vs. document review) | Trade-off T-01 | Project risk assessment (TBD) | Specification.md FR-02; Procedure.md Step 1 | Project quality plan + risk assessment | **TBD** |
+| CT-13.06-03 | Shop inspection frequency and party (full-time vs. periodic; D&B vs. third-party) | Considerations C-04, C-05 | ER / project quality plan (TBD) | Specification.md FR-04; Procedure.md Step 4 | ER + project quality plan | **TBD** |
+| CT-13.06-04 | Impact testing applicability based on MDMT and seismic design | Consideration C-03 | DEL-13.03 design calculations / ER (TBD) | Datasheet.md MTRs; Specification.md PR-03 | Design calculations + ER | **TBD** |
+
+**Note:** These conflicts represent fabrication quality decisions requiring project specification, ER, and quality plan inputs. Resolution during WORKING_ITEMS will enable fabrication quality planning.
+
+---
+
+**Document Status:** Pass 3 Complete — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Conflict Table added for fabrication quality decisions requiring human ruling. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

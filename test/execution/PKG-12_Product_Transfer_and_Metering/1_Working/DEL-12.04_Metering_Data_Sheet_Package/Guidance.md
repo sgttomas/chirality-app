@@ -167,13 +167,45 @@ Examples of verification basis documentation per Specification.md REQ-10 (ASSUMP
 
 No conflicts identified from accessible sources at this stage.
 
-| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
-|-------------|----------|----------|----------|-------------------|-------------------|--------------|
-| — | — | — | — | — | — | — |
+| Conflict ID | Conflict | Source A (File § Section) | Source B (File § Section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | TBD |
 
-**Note:** Conflicts discovered during data sheet development should be added here with citations and requested human ruling. Potential conflicts that may arise:
+### Conflict Recording Instructions
 
-- **Specification accuracy requirement vs. vendor certified capability** — if DEL-12.02 specifies accuracy ±0.15% but vendor certified data shows achievable accuracy ±0.20%, document conflict with DEL-12.02 specification section and vendor certified data; request ruling on accuracy relaxation or vendor change
-- **Calculation-derived flow range vs. vendor standard range** — if DEL-12.03 calculates required flow range 50-500 m³/h but vendor standard meter has range 100-1000 m³/h (cannot measure down to 50 m³/h), document conflict with calculation and vendor data; request ruling on minimum flow increase or vendor change
-- **ER material requirement vs. vendor standard material** — if ER requires SS316L but vendor standard model uses SS304, document conflict with ER clause and vendor standard; request ruling on material acceptance or vendor upgrade
-- **Tag numbering conflict** — if P&IDs (PKG-14) use different tag numbering convention than data sheets, document conflict with P&ID drawing number and data sheet tag; request ruling on tag number standard to be used
+When conflicts are discovered during data sheet development, record them in this table with:
+- **Conflict ID:** Sequential identifier (e.g., DEL-12.04-C01)
+- **Conflict:** Clear statement of the conflicting requirements or data
+- **Source A/B:** File path and section reference for each conflicting source (e.g., "DEL-12.02 Specification.md REQ-07" or "Vendor Data Sheet [Vendor] [Doc#]")
+- **Impacted Sections:** Which data sheet fields or documents are affected
+- **Proposed Authority:** Which source should govern (PROPOSAL label)
+- **Human Ruling:** Resolution decision and date (TBD until ruled)
+
+### Potential Conflicts to Monitor
+
+| Potential Conflict | Trigger Condition | Sources to Compare | Impacted Documents |
+|--------------------|-------------------|--------------------|--------------------|
+| Specification accuracy vs. vendor capability | DEL-12.02 specifies accuracy ±0.15% but vendor certified data shows achievable accuracy ±0.20% | DEL-12.02 Specification.md § Requirements (accuracy) vs. Vendor certified data sheet | Datasheet.md Construction § Flow Meter Data Sheet Fields (Performance); Specification.md REQ-05 |
+| Calculation flow range vs. vendor range | DEL-12.03 calculates required flow range 50-500 m³/h but vendor standard meter has range 100-1000 m³/h | DEL-12.03 Calculation results vs. Vendor certified data sheet | Datasheet.md Construction § Flow Meter Data Sheet Fields (Process Conditions, Performance); Specification.md REQ-06 |
+| ER material vs. vendor standard | ER requires SS316L but vendor standard model uses SS304 | ER Vol 2 Part 2 material clause vs. Vendor certified data sheet | Datasheet.md Construction § Flow Meter Data Sheet Fields (Materials); Specification.md REQ-05 |
+| Tag numbering convention | P&IDs (PKG-14) use different tag numbering convention than data sheets | PKG-14 P&IDs vs. Project tag numbering system | Datasheet.md Construction § Flow Meter Data Sheet Fields (Identification); Specification.md REQ-04 |
+| Electrical interface mismatch | Data sheet power supply or signal output differs from PKG-17/PKG-19 interface specifications | Data sheet electrical fields vs. PKG-17/19 interface specifications | Datasheet.md Construction § Flow Meter Data Sheet Fields (Electrical/Controls); Specification.md REQ-13 |
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.04 identity referenced in Guidance § Purpose deliverable definition |
+| Datasheet.md | § Conditions | Design context (services, product, throughput) driving Guidance § Considerations |
+| Datasheet.md | § Construction | Data sheet field categories informing Guidance § Flow Meter Data Sheet Considerations and § Transmitter Data Sheet Considerations |
+| Specification.md | § Scope | Inclusions that Guidance § Purpose downstream use addresses |
+| Specification.md | § Requirements | REQ-01 through REQ-17 that Guidance § Principles rationale supports |
+| Specification.md | § Documentation | Field requirements that Guidance § Considerations informs |
+| Procedure.md | § Prerequisites | Inputs that Guidance § Data Sheet Timing Considerations identifies (DEL-12.02, DEL-12.03, ER, P&IDs, vendor data) |
+| Procedure.md | § Step 3 | Design basis population that Guidance § Flow Meter/Transmitter Considerations informs |
+| Procedure.md | § Step 4 | Vendor data incorporation per Guidance § Data Sheet Timing Considerations (inquiry/order/delivery stages) |
+| Procedure.md | § Step 5 | Cross-check that Guidance § Cross-Package Interface Considerations informs |
+| DEL-12.01 | Drawings | Data sheet tag numbers, sizes, orientations shown in drawings per Guidance § Purpose (engineering downstream use) |
+| DEL-12.02 | Specification | Performance requirements per Guidance § Flow Meter Data Sheet Considerations (accuracy, materials, proving) |
+| DEL-12.03 | Calculations | Sizing parameters per Guidance § Flow Meter Data Sheet Considerations (flow range, meter size, pressure drop, uncertainty) |
+| DEL-12.05 | Test Records | Calibration/proving fields per Guidance § Custody Transfer Data Sheet Principles (calibration traceability, proving fields) enable DEL-12.05 compliance

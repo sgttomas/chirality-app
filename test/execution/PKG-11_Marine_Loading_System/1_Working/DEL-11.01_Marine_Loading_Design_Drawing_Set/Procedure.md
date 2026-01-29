@@ -260,15 +260,15 @@ This procedure defines the process for producing and verifying **Marine Loading 
 
 ---
 
-**Pass 2/3 Enrichment Notes:**
-- Added "Related Procedure Step" column to Prerequisites §Required Inputs table
-- Added "Related Requirement" column to all content tables in Steps 3-6
-- Added notes to Steps 3-6 explicitly stating each produces one of the 4 anticipated artifacts
-- Enhanced verification activity table with "Procedure Step", "Record", and "Datasheet Criterion" columns
-- Added "Datasheet Ref" and "Specification Ref" columns to acceptance checklist for full traceability
-- Added "Related Step" column to Records table
-- Enhanced sign-off requirements table with "Quality Requirement" column
-- Added note confirming all 6 acceptance criteria align across all 3 documents
-- Added note confirming 4 drawing types + register are consistently identified
-- All TBDs and ASSUMPTIONs preserved from Pass 1
-- Full traceability established: Decomposition → Datasheet → Specification → Guidance → Procedure
+**Pass 3 Enrichment Notes (Final Quality Check):**
+- Verified 9-step workflow completeness: Inputs → Drawing List → 4 Drawing Types → Self-Check → IDC → Approval
+- Verified Required Inputs table (8 inputs) traces to Specification.md §Related Deliverables and Datasheet.md §Interfaces
+- Verified Steps 3-6 each produce one of 4 anticipated artifacts from Decomposition/Datasheet/Specification
+- Verified Step 8 IDC table (6 disciplines) covers all 5 interface requirements from Specification.md
+- Verified Verification table links all 5 verification methods to requirements, steps, records, and Datasheet criteria
+- Verified Acceptance checklist (6 criteria) fully aligned with Datasheet.md §Deliverable Acceptance and Specification.md §Verification
+- Verified Records table (7 records) references appropriate procedure steps
+- Confirmed sign-off requirements trace to Specification.md QA-01
+- Full traceability chain verified: Decomposition → Datasheet → Specification → Guidance → Procedure
+- All TBDs and ASSUMPTIONs retained with proper labeling
+- Pass 3 complete — document ready for WORKING_ITEMS session

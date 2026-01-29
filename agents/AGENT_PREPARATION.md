@@ -5,17 +5,6 @@ These instructions govern a sub-agent that creates folder hierarchy and populate
 
 ---
 
-## Revision Note (2026-01-28)
-
-This revision aligns PREPARATION with a human-owned coordination model:
-
-- Deliverable lifecycle states remain local: `OPEN → INITIALIZED → IN_PROGRESS → CHECKING → ISSUED`.
-- Stage gates and cross-deliverable coordination are human-managed externally.
-- Dependency data in `_DEPENDENCIES.md` is **optional** and depends on the orchestrator’s confirmed **dependency tracking mode**:
-  - `NOT_TRACKED`, `DECLARED`, or `FULL_GRAPH`.
-
----
-
 ## Project Instance Paths
 
 This agent is instantiated for the following project:
@@ -25,8 +14,9 @@ This agent is instantiated for the following project:
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
 | Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf` |
+| Aggregation output root (setup target) | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
 
@@ -43,6 +33,17 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ---
 
+
+## Foundations: Ontology, Epistemology, Praxeology, Axiology
+
+- **STRUCTURE (Ontology):** defines the workspace entities PREPARATION creates (packages, deliverables, lifecycle subfolders, tool roots, and metadata file schemas).
+- **SPEC (Epistemology + Axiology):** defines what counts as valid scaffolding (idempotent, source-faithful, minimum viable fileset, no invention).
+- **PROTOCOL (Praxeology):** defines task types A–D and the exact actions for each.
+- **RATIONALE (Axiology):** prioritizes traceability, reproducibility, and safe re-runs over cleverness.
+
+---
+
+
 ## Non-negotiable invariants
 
 - **One task per invocation.** Each PREPARATION agent instance receives one specific task and completes it.
@@ -52,7 +53,8 @@ If any instruction appears to conflict, flag the conflict and return it to the O
   - the decomposition document, and
   - the ORCHESTRATOR’s human-confirmed coordination representation / dependency declarations (if applicable).
   Do not invent, infer, or embellish.
-- **Minimum viable fileset always.** Every deliverable folder must contain `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md` (even if dependencies are not tracked).
+- **Minimum viable fileset always.** Every deliverable folder must contain `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (even if dependencies are not tracked).
+- **Tool folder setup is structural only.** When initializing project-level tool folders (e.g., `_Aggregation/`), create only folders and neutral templates; do not populate with project-specific content.
 
 ---
 
@@ -61,7 +63,7 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ### Operational — "How to do?"
 
-This agent receives one of three task types from the ORCHESTRATOR. Execute the assigned task and report completion.
+This agent receives one of four task types from the ORCHESTRATOR. Execute the assigned task and report completion.
 
 ---
 
@@ -124,6 +126,9 @@ This agent receives one of three task types from the ORCHESTRATOR. Execute the a
    - If mode is `DECLARED` or `FULL_GRAPH`, write only the dependency declarations provided by ORCHESTRATOR (do not infer).
 4. Write `_STATUS.md` initialized to `OPEN`
 5. Write `_REFERENCES.md` listing reference materials relevant to this deliverable
+6. Write `_SEMANTIC.md` as a **placeholder stub** (schema in STRUCTURE).
+   - Do not attempt to generate matrices here.
+   - This file will be overwritten by CHIRALITY_FRAMEWORK after 4_DOCUMENTS completes.
 
 **For `_REFERENCES.md`:**
 - Cross-reference the deliverable's discipline and type with available reference materials
@@ -137,13 +142,41 @@ This agent receives one of three task types from the ORCHESTRATOR. Execute the a
 
 ---
 
+### Task Type D: Initialize Project-Level Aggregation Support
+
+**Goal:** Ensure the filesystem contains the **structural prerequisites** for the AGGREGATION agent.
+
+**Input from ORCHESTRATOR:**
+- Execution root path (defaults to `execution/`)
+
+**Action (idempotent):**
+1. Ensure these folders exist (create if missing):
+   - `execution/_Aggregation/`
+   - `execution/_Aggregation/_Archive/`
+   - `execution/_Aggregation/_Templates/`
+2. Ensure these template files exist (create if missing; never overwrite):
+   - `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
+   - `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
+3. Optional: Ensure `_LATEST.md` exists (create stub if missing):
+   - `execution/_Aggregation/_LATEST.md` with a placeholder line: “(latest snapshot id will be written by AGGREGATION)”
+
+**Output:** A report listing:
+- folders created / already existed
+- templates created / already existed
+- any errors (permissions, path issues)
+
+**Notes:**
+- Template files must be neutral and reusable; do not insert project-specific numbers, rates, or content.
+
+---
+
 ### Operating Rules
 
 | Rule | Meaning |
 |------|---------|
 | No modification of existing files | If a file already exists at the target path, skip it and report |
 | No engineering content | Do not write datasheets, specifications, guidance, or procedures |
-| No cross-deliverable coordination | This agent works on one folder; it does not read or modify other deliverable folders |
+| No cross-deliverable coordination | This agent does not interpret other deliverables; it creates structure only |
 | Flag missing inputs | If ORCHESTRATOR’s input is incomplete, report what is missing rather than inventing content |
 | Exact extraction | Content in `_CONTEXT.md` must exactly match the decomposition document — same IDs, names, descriptions, types |
 
@@ -164,9 +197,6 @@ Use `{PKG-ID}_{PkgLabel}` and `{DEL-ID}_{DelLabel}` in folder names, where `PkgL
 
 ---
 
-
----
-
 ### Agent Does / Does Not
 
 | Does | Does Not |
@@ -175,6 +205,7 @@ Use `{PKG-ID}_{PkgLabel}` and `{DEL-ID}_{DelLabel}` in folder names, where `PkgL
 | Write metadata files from decomposition data | Invent content not in the decomposition |
 | Create dependency stubs when deps are NOT_TRACKED | Infer dependencies |
 | Index reference materials | Evaluate or interpret reference materials |
+| Create aggregation support folders/templates | Populate aggregation outputs (that is AGGREGATION’s job) |
 | Flag missing inputs | Guess at missing information |
 | Report completion status | Decide what to do next |
 
@@ -217,12 +248,27 @@ A Task Type C run is valid when:
 | Requirement | Validation |
 |-------------|------------|
 | Deliverable folder exists | `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/` created |
-| Minimum viable fileset present | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md` all exist |
+| Minimum viable fileset present | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` all exist |
 | `_STATUS.md` initialized | Current state is `OPEN` with empty/initial history |
 | `_CONTEXT.md` exact | IDs/names/descriptions match decomposition |
 | `_DEPENDENCIES.md` mode declared | Contains the dependency tracking mode and notes |
 | `_DEPENDENCIES.md` content matches mode | `NOT_TRACKED` → stub; `DECLARED/FULL_GRAPH` → only provided declarations |
 | `_REFERENCES.md` present | References listed or placeholder note present |
+
+---
+
+### Task Type D Validity (Aggregation Support)
+
+A Task Type D run is valid when:
+
+| Requirement | Validation |
+|-------------|------------|
+| Aggregation root exists | `execution/_Aggregation/` present |
+| Archive folder exists | `execution/_Aggregation/_Archive/` present |
+| Templates folder exists | `execution/_Aggregation/_Templates/` present |
+| Brief template exists | `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md` present |
+| Schema template exists | `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv` present |
+| No modifications of existing templates | If templates existed, they were not overwritten |
 
 ---
 
@@ -329,6 +375,81 @@ If `Mode = NOT_TRACKED`, populate Upstream/Downstream with a single line each:
 
 ---
 
+### `_SEMANTIC.md` Placeholder Schema
+
+PREPARATION creates `_SEMANTIC.md` as a **structural placeholder** only. It is overwritten later by **CHIRALITY_FRAMEWORK**.
+
+```markdown
+# Semantic Lens: [DEL-ID] [Deliverable Name]
+
+**Status:** PLACEHOLDER (to be generated by CHIRALITY_FRAMEWORK)
+**Generated:** TBD
+**Perspective:** TBD (see `_CONTEXT.md`)
+
+## Notes
+- This file is intentionally minimal at PREPARATION time.
+- CHIRALITY_FRAMEWORK will overwrite this file after `Datasheet.md`, `Specification.md`, `Guidance.md`, and `Procedure.md` exist.
+- Treat the resulting semantic matrices as a *lens* (question-shaping scaffold), not as an engineering authority.
+```
+
+---
+
+### `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
+
+```markdown
+# Aggregation Brief Template
+
+## PURPOSE
+- (e.g., Project_Estimate, Doc_Index, Register_Summary, CrossFile_QA, General_Aggregation)
+
+## INPUT_ROOTS
+- (paths to folders/files to include)
+
+## INCLUDE
+- (glob patterns, optional)
+
+## EXCLUDE
+- (glob patterns, optional)
+
+## OUTPUTS
+- (requested output files, optional)
+
+## TARGET_SCHEMA
+- (explicit columns or schema name, optional)
+
+## PRIMARY_KEY
+- (optional)
+
+## DEDUP_RULE
+- (list_all | prefer_latest | prefer_non_TBD | prefer_high_confidence)
+
+## CONFLICT_RULE
+- (list_all | prefer_latest | prefer_source=... | prefer_high_confidence)
+
+## UNITS_POLICY
+- (preserve | normalize) — if normalize, specify conversions
+
+## CURRENCY_POLICY
+- (preserve | normalize) — if normalize, specify FX source
+
+## NOTES
+- (any special instructions)
+```
+
+---
+
+### `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
+
+This file is a minimal CSV header-only template. Create with a single header row:
+
+```
+RecordID,SourceID,SourcePath,SectionRef,EntityType,Key,Value,Notes,Confidence,Tags
+```
+
+Do not add data rows.
+
+---
+
 [[END:STRUCTURE]]
 
 [[BEGIN:RATIONALE]]
@@ -338,27 +459,15 @@ If `Mode = NOT_TRACKED`, populate Upstream/Downstream with a single line each:
 
 ---
 
-### Why Bounded Tasks
+### Why Tool Folder Setup Belongs in PREPARATION
 
-PREPARATION is responsible for structural correctness and traceability. Bounding prevents cross-deliverable side effects and enables parallel scaffolding across packages.
-
----
-
-### Why Idempotency
-
-Scaffolding should be safe to re-run. Idempotency ensures humans can iterate without losing work or silently changing sources of truth.
+AGGREGATION outputs must land in a consistent location so the human can find and compare runs. PREPARATION is already responsible for structural correctness and safe re-runs, so it is the right place to create stable, neutral scaffolding (`execution/_Aggregation/`) without entangling deliverable content.
 
 ---
 
-### Why Exact Extraction
+### Why Templates Are Neutral
 
-The decomposition document is the authoritative source for deliverable identity. PREPARATION’s job is to make that authority durable in the filesystem.
-
----
-
-### Why Dependency Stubs
-
-If humans coordinate dependencies externally, `_DEPENDENCIES.md` still exists so every deliverable folder has a consistent shape. The stub prevents tools from assuming a complete graph exists.
+Templates reduce repeated briefing effort and standardize aggregation runs without encoding project-specific assumptions.
 
 ---
 

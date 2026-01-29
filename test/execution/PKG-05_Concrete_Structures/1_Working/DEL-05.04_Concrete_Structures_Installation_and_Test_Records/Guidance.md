@@ -198,15 +198,42 @@ Rebar Inspection Record #095 — Containment Wall W-1
 
 (Source: Guidance.md: P-03; Specification.md: PR-02; DEL-05.02 Specification: PR-03.)
 
-## Local Conflict Table
+## Conflict Table (for human ruling)
 
-No conflicts identified from accessible sources. Acceptance criteria and record templates pending extraction from Employer's Requirements. (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts identified from accessible sources | — | — | — | — | — |
+
+**Note:** Acceptance criteria and record templates pending extraction from Employer's Requirements. If conflicts are identified during ER review, they should be added to this table for human ruling. Key areas requiring confirmation:
+- Record format and templates — **TBD** from project QA/document control
+- Inspection and testing frequencies — **TBD** from ERs and DEL-05.02
+- Retention periods and archival procedures — **TBD** from project requirements
+- Witness and hold point requirements — **TBD** from ERs
+
+(Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+
+## Guidance-to-Specification Traceability
+
+| Guidance § | Supporting Specification Requirements |
+|------------|---------------------------------------|
+| P-01 Traceability | FR-02, FR-04, FR-05, IR-01 |
+| P-02 Real-Time Documentation | FR-02, FR-03, FR-04, QR-02 |
+| P-03 Containment Focus | FR-04 (containment walls), PR-02 |
+| P-04 Objective Evidence | FR-02, FR-03, FR-04, PR-01 |
+| P-05 Completeness Before Archival | QR-02, QR-03 |
+| C-01 Record Coverage vs Schedule | FR-01, PR-02 |
+| C-02 Record Format and Templates | IR-02 |
+| C-03 Non-Conformance Management | FR-06 |
+| C-04 Interface Documentation | IR-01 |
+| C-05 Record Retention and Access | QR-01 |
+| T-01 through T-03 | Trade-offs inform record management approach |
+| E-01 through E-03 | Examples support FR-01 through QR-03 implementation |
 
 ## Cross-Document Notes
 
-- **Specification:** This guidance informs how `Specification.md` requirements (FR-01 through QR-03) are implemented in records. Each Principle and Consideration should support corresponding Specification requirements. (Source: Specification.md: Requirements.)
-- **Procedure:** `Procedure.md` defines how records are generated, verified, and archived (Steps 1-5). Considerations noted here (format, NCR management, retention) should be addressed in Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
-- **Datasheet:** Datasheet Construction section lists the record artifacts (pour records, cylinder tests, rebar inspections) that these Principles and Considerations guide. Ensure record content aligns with Datasheet construction breakdown. (Source: Datasheet.md: Construction.)
+- **Specification:** This guidance informs how `Specification.md` requirements (§FR-01 through §QR-03) are implemented in records. The Guidance-to-Specification Traceability table above maps each Principle and Consideration to corresponding requirements. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix.)
+- **Procedure:** `Procedure.md` defines how records are generated, verified, and archived (Steps 1-6). Considerations §C-01 through §C-05 are addressed in `Procedure.md` §P-01 Prerequisites and Steps 2-6. (Source: Procedure.md: Prerequisites; Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** `Datasheet.md` §Construction lists the record artifacts (pour records, cylinder tests, rebar inspections) that Principles §P-01 through §P-05 and Considerations §C-01 through §C-05 guide. (Source: Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)
 - **Related Deliverables:** Records should reference:
-  - DEL-05.01 drawings for element locations and details (Guidance P-01)
-  - DEL-05.02 specifications for acceptance criteria and requirements (Guidance P-01, P-04)
+  - DEL-05.01 drawings for element locations and details — §P-01 Traceability, `Specification.md` §FR-05, §IR-01
+  - DEL-05.02 specifications for acceptance criteria and requirements — §P-01, §P-04, `Specification.md` §FR-02, §FR-03, §FR-04, §PR-01

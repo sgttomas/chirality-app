@@ -361,3 +361,29 @@ Status transitions are managed per `_STATUS.md` in the deliverable folder:
 | As-built revisions | Incorporate field changes and as-built verification | Construction complete; vendor data finalized; as-built drawings available | As-built process per project procedures (TBD) |
 
 **Note:** Revision numbering convention TBD from ER Vol 2 Part 1 project document control procedures.
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.02 identity referenced in Procedure § Purpose deliverable definition |
+| Datasheet.md | § Attributes | Specification attributes (document number, format) that Procedure § Step 7.1 document control addresses |
+| Datasheet.md | § Conditions | Design context (service application, product, throughput, operating conditions) that Procedure § Step 1 basis gathering collects |
+| Datasheet.md | § Construction | Key specification topics (performance, flow range, materials, installation, proving) that Procedure § Step 3 addresses |
+| Specification.md | § Scope | Scope definition that Procedure § Step 2 establishes |
+| Specification.md | § Requirements | REQ-01 through REQ-24 that Procedure § Step 3 drafts; REQ-21 testability verified in § Step 4; REQ-24 traceability matrix created in § Step 4.4 |
+| Specification.md | § Standards | Governing references and custody transfer standards collected in Procedure § Step 1.2 |
+| Specification.md | § Verification | Verification methods aligned to Procedure § Step 5 (discipline check) and § Step 6 (IDC); acceptance criteria verified in § Verification Activities |
+| Specification.md | § Documentation | Documentation outputs produced by Procedure workflow and recorded in § Records |
+| Guidance.md | § Purpose | Downstream use (engineering basis, procurement basis, testing basis) that Procedure outputs enable |
+| Guidance.md | § Principles | Specification development rationale (contract alignment, objective support, testability, traceability) that Procedure steps implement |
+| Guidance.md | § Considerations | Design factors (technology selection, product properties, service-specific, interfaces) that inform Procedure § Step 3 drafting |
+| Guidance.md | § Trade-offs | Competing factors that Procedure § Step 3 must balance; conflicts documented per Guidance § Conflict Table |
+| DEL-12.01 | Drawings | Specification installation requirements (Procedure § Step 3.3) drive DEL-12.01 drawing content |
+| DEL-12.03 | Calculations | Specification performance requirements (Procedure § Step 3.1) drive DEL-12.03 verification |
+| DEL-12.04 | Data Sheets | Specification equipment requirements (Procedure § Step 3) documented in DEL-12.04 per § Step 3.8.1 |
+| DEL-12.05 | Test Records | Specification QA requirements (Procedure § Step 3.7) enable DEL-12.05 compliance demonstration per § Step 4.2 |
+| PKG-14 | Process Piping | Interface requirements (Procedure § Step 3.6, § Step 6) coordinated with PKG-14 |
+| PKG-17 | Electrical | Interface requirements (Procedure § Step 3.6, § Step 6) coordinated with PKG-17 |
+| PKG-19 | Control Systems | Interface requirements (Procedure § Step 3.6, § Step 6) coordinated with PKG-19 |
+| PKG-20 | Field Instrumentation | Interface requirements (Procedure § Step 3.5, § Step 6) coordinated with PKG-20

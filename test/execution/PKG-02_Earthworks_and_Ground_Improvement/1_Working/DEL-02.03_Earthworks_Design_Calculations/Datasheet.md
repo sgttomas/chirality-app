@@ -14,15 +14,15 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Calculation package ID | **TBD** — to be assigned per project document numbering system |
-| Calculation method | **TBD** — manual calculations, spreadsheet, geotechnical software; **ASSUMPTION**: combination |
-| Design inputs | **TBD** — DEL-02.04 (geotechnical data), DEL-02.05 (survey data), ER design criteria |
-| Software / tools | **TBD** — e.g., AutoCAD Civil 3D (cut/fill), geotechnical analysis software (bearing capacity) |
-| Check status | **TBD** — independent check required per R5 |
-| Revision | **TBD** — to be tracked per document control (R6) |
-| Calculation format | **TBD** — typically structured per standard calculation template; **ASSUMPTION** |
+| Attribute | Value | Specification § | Guidance § | Procedure Step |
+|-----------|-------|-----------------|------------|----------------|
+| Calculation package ID | **TBD** — to be assigned per project document numbering system | R6 | P2 | Step 2.4 |
+| Calculation method | **TBD** — manual calculations, spreadsheet, geotechnical software; **ASSUMPTION**: combination | R5 | P1, Trade-offs | Step 3 |
+| Design inputs | **TBD** — DEL-02.04 (geotechnical), DEL-02.05 (survey), ER design criteria | R2, R3 | P4 | Step 1 |
+| Software / tools | **TBD** — e.g., AutoCAD Civil 3D (cut/fill), geotechnical analysis software (bearing capacity) | R5 | P1, Trade-offs | Step 3 |
+| Check status | **TBD** — independent check required per R6 | R6 | P1 | Step 4.4 |
+| Revision | **TBD** — to be tracked per document control (R6) | R6 | P2 | Step 5 |
+| Calculation format | **TBD** — typically structured per standard calculation template; **ASSUMPTION** | R5 | P2 | Step 2.3 |
 
 ## Context & Conditions
 
@@ -32,7 +32,7 @@
 - Package scope: Site grading, excavation, filling, ground improvements, geotechnical works, surveys. Source: decomposition PKG-02 scope (location TBD).
 
 **Scope Boundaries:**
-- This decomposition covers the Contractor's scope of work only. Employer-responsible items (permits obtained by Employer, nitrogen skid supply) are excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
+- This decomposition covers the Contractor's scope of work only. Employer-responsible items excluded except for interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
 - Deliverable intent: Provides the engineering basis and sizing/verification calculations for earthworks. Source: _CONTEXT.md; decomposition DEL-02.03 entry (location TBD).
 
 **Design Context:**
@@ -43,49 +43,61 @@
 
 ## Calculation Content (Anticipated Artifacts mapped to Requirements)
 
-The following calculation packages are anticipated, mapped to Specification requirements:
+| Section | Purpose | Specification § | Guidance § | Procedure Step | Status |
+|---------|---------|-----------------|------------|----------------|--------|
+| 1. Cut/Fill Quantity Calculations | Determine earthwork volumes for site grading | R2 | P1, P2, P3, P4 | Step 3.1 | **TBD** |
+| 2. Bearing Capacity Calculations | Verify soil bearing capacity for proposed loads | R3 | P1, P2, P3, P4 | Step 3.2 | **TBD** |
 
 ### 1. Cut/Fill Quantity Calculations (R2)
-**Purpose:** Determine earthwork volumes for site grading, excavation, and fill placement.
 
 **Inputs:**
-- Existing topography from DEL-02.05 (Survey Reports)
-- Proposed finish grades from DEL-02.01 (Design Drawing Set)
-- Site limits and grading extents
-- **TBD** — detailed input data pending survey and design
+
+| Input | Source | Status |
+|-------|--------|--------|
+| Existing topography | DEL-02.05 (Survey Reports) | **TBD** |
+| Proposed finish grades | DEL-02.01 (Design Drawing Set) | **TBD** |
+| Site limits and grading extents | DEL-02.01 | **TBD** |
 
 **Method:**
 - **TBD** — typical methods: cross-section method, average end area, digital terrain modeling (DTM)
 - Software: **TBD** — e.g., AutoCAD Civil 3D, or manual calculation
 
 **Outputs:**
-- Total cut volume (m³ or yd³)
-- Total fill volume (m³ or yd³)
-- Net cut/fill balance
-- Haul quantities and distances (if applicable)
-- Volumetric breakdown by zone or phase
+
+| Output | Value | Units |
+|--------|-------|-------|
+| Total cut volume | **TBD** | m³ |
+| Total fill volume | **TBD** | m³ |
+| Net cut/fill balance | **TBD** | m³ |
+| Haul quantities/distances | **TBD** | m³·km |
+| Volumetric breakdown by zone | **TBD** | m³ |
 
 **Coordination:** Quantities support DEL-02.01 (drawings), DEL-02.02 (specification), and field execution planning.
 
 ### 2. Bearing Capacity Calculations (R3)
-**Purpose:** Verify soil bearing capacity to support proposed loads (pavements, structures, equipment).
 
 **Inputs:**
-- Soil parameters from DEL-02.04 (Geotechnical Reports): soil classification, strength parameters (cohesion, friction angle), groundwater level
-- Loading conditions: **TBD** — pavement loads (PKG-04), equipment loads, structural loads (PKG-05, PKG-06)
-- Foundation depths and configurations
-- **TBD** — detailed input data pending geotechnical investigation
+
+| Input | Source | Status |
+|-------|--------|--------|
+| Soil parameters (c, φ, γ) | DEL-02.04 (Geotechnical Reports) | **TBD** |
+| Groundwater level | DEL-02.04 | **TBD** |
+| Loading conditions | PKG-04, PKG-05, PKG-06 | **TBD** |
+| Foundation depths/configurations | Design | **TBD** |
 
 **Method:**
-- **TBD** — typical methods: Terzaghi bearing capacity equations, Meyerhof equations, Canadian Foundation Engineering Manual, or applicable geotechnical codes
-- Software: **TBD** — e.g., geotechnical analysis software, spreadsheet calculations
+- **TBD** — typical methods: Terzaghi, Meyerhof, Canadian Foundation Engineering Manual
+- Software: **TBD** — geotechnical analysis software, spreadsheet calculations
 
 **Outputs:**
-- Ultimate bearing capacity (kPa or psf)
-- Allowable bearing capacity (with factor of safety)
-- Settlement estimates (immediate and consolidation)
-- Bearing capacity verification for proposed design
-- Ground improvement requirements (if bearing capacity is insufficient)
+
+| Output | Value | Units |
+|--------|-------|-------|
+| Ultimate bearing capacity | **TBD** | kPa |
+| Factor of safety | **TBD** | — |
+| Allowable bearing capacity | **TBD** | kPa |
+| Settlement estimates | **TBD** | mm |
+| Ground improvement requirements | **TBD** | — |
 
 **Coordination:** Results inform DEL-02.01 (ground improvement zones), DEL-02.02 (ground improvement specification), DEL-02.04 (geotechnical design).
 
@@ -95,18 +107,25 @@ The following calculation packages are anticipated, mapped to Specification requ
 - Calculations require independent checking per QA/QC requirements.
 - Details require ER volumes, geotechnical data, and design criteria (currently **TBD**).
 
-## Cross-Document Alignment
+## Cross-Document Traceability
 
-- **Specification.md:** Requirements R1-R6 define the mandatory calculation scope (cut/fill, bearing capacity), design basis, and verification requirements.
-- **Guidance.md:** Provides principles for calculation accuracy, traceability, design conservatism, and coordination with design and construction deliverables.
-- **Procedure.md:** Defines the calculation workflow and verification steps (Steps 1-5) to ensure completeness and accuracy against R1-R6.
+| Document | Key Linkages |
+|----------|--------------|
+| Specification.md | Requirements R1-R6 define mandatory calculation scope; V1-V4 define verification criteria |
+| Guidance.md | Principles P1-P4 inform calculation accuracy, traceability, conservatism, coordination |
+| Procedure.md | Steps 1-5 define calculation workflow; Step 4 implements independent checking (V4) |
 
 ## References
 
-- _CONTEXT.md: Deliverable identity, description, and anticipated artifacts.
-- Decomposition file: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` — PKG-02 scope, DEL-02.03 entry (location TBD).
-- Specification.md: Requirements R1-R6 and verification items V1-V4.
-- Guidance.md: Calculation principles and considerations.
-- Procedure.md: Calculation workflow and verification steps.
-- _REFERENCES.md: Currently empty; ER volumes and reference materials pending.
-- Related deliverables: DEL-02.01 (Design Drawing Set), DEL-02.02 (Technical Specification), DEL-02.04 (Geotechnical Reports), DEL-02.05 (Survey Reports).
+| Reference | Description | Location |
+|-----------|-------------|----------|
+| _CONTEXT.md | Deliverable identity, description, anticipated artifacts | This folder |
+| Decomposition | PKG-02 scope, DEL-02.03 entry | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (location TBD) |
+| Specification.md | Requirements R1-R6, Verification V1-V4 | This folder |
+| Guidance.md | Principles P1-P4, Considerations, Trade-offs | This folder |
+| Procedure.md | Steps 1-5, Verification, Records | This folder |
+| _REFERENCES.md | ER volumes and reference materials | This folder (currently empty; pending) |
+| DEL-02.01 | Design Drawing Set | PKG-02 |
+| DEL-02.02 | Technical Specification | PKG-02 |
+| DEL-02.04 | Geotechnical Reports | PKG-02 |
+| DEL-02.05 | Survey Reports | PKG-02 |

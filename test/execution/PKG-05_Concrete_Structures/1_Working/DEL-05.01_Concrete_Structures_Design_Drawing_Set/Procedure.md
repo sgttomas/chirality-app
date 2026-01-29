@@ -436,8 +436,20 @@ Project document control conventions (TBD until requirements are extracted):
 - Updated `_STATUS.md` lifecycle state
 (Source: Specification.md: Documentation; Procedure Step 7.)
 
+## Procedure Steps Traceability
+
+| Procedure Step | Specification Requirements Verified | Guidance Principles/Considerations Applied | Datasheet Sections Addressed |
+|----------------|-------------------------------------|-------------------------------------------|------------------------------|
+| Step 1: Confirm Scope and Create Drawing List | FR-01 Artifact Coverage | P-01 Scope Fidelity, E-01 Sheet Grouping | Construction (all artifacts) |
+| Step 2: Collect Design Inputs | IR-01 Dependency Coordination, PR-01 Design Basis Alignment | C-01 Required Inputs, C-03 Durability, C-05 Seismic | Conditions (TBD inputs) |
+| Step 3: Develop Structural Arrangements | FR-02 Foundation Details, FR-03 Containment Wall Details | P-01, P-02 Containment Clarity, P-05 Interface Visibility | Construction: Foundations, Containment Walls |
+| Step 4: Detail Reinforcement and Critical Elements | FR-04 Equipment Pad Details, FR-05 Reinforcement, FR-06 Typical Details, PR-02 Containment Performance | P-02, P-03, P-05, C-02 Constructability, C-04 Interface ID | Construction: Equipment Pads, Reinforcement, Typical Details |
+| Step 5: Draft to Project Standards | QR-01 Document Control, QR-03 Technical Consistency | P-03 Traceability, P-04 Evidence-Based Code Reference | Attributes (all) |
+| Step 6: Conduct Checks | QR-02 Checking Process, IR-02 Interface Identification | P-05 Interface Visibility, C-04 Interface ID | — (verification) |
+| Step 7: Assemble Issue Package | Documentation requirements | — | Attributes (Issue Format) |
+
 ## Cross-Document Notes
 
-- **Specification:** This Procedure's steps (Steps 1-7) and verifications demonstrate compliance with all Specification requirements (FR-01 through QR-03). Each Specification requirement is addressed by one or more Procedure steps and verified by corresponding verification checks. (Source: Specification.md: Requirements; Specification.md: Verification.)
-- **Guidance:** Use Guidance Principles (P-01 through P-05), Considerations (C-01 through C-05), and Examples (E-01 through E-03) to ensure containment/environmental intent is visible in the details and notes, constructability is considered, and interfaces are clearly identified. Guidance informs how to execute Steps 3, 4, and 5 effectively. (Source: Guidance.md: Principles; Guidance.md: Considerations; Guidance.md: Examples.)
-- **Datasheet:** Datasheet Construction section lists the anticipated artifacts that Steps 1, 3, and 4 must produce. Datasheet Attributes define the metadata requirements that Step 5 must implement. Datasheet Cross-Document Points identify the linkages this Procedure must maintain. (Source: Datasheet.md: Construction; Datasheet.md: Attributes; Datasheet.md: Cross-Document Points.)
+- **Specification:** This Procedure's steps (Steps 1-7) and verifications demonstrate compliance with all `Specification.md` requirements (§FR-01 through §QR-03). The Procedure Steps Traceability table above maps each step to the Specification requirements it addresses. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix; Specification.md: Verification.)
+- **Guidance:** Use `Guidance.md` Principles (§P-01 through §P-05), Considerations (§C-01 through §C-05), and Examples (§E-01 through §E-03) to ensure containment/environmental intent is visible in details and notes, constructability is considered, and interfaces are clearly identified. The Procedure Steps Traceability table above maps each step to the Guidance sections that inform execution. (Source: Guidance.md: Principles; Guidance.md: Considerations; Guidance.md: Examples; Guidance.md: Guidance-to-Specification Traceability.)
+- **Datasheet:** `Datasheet.md` §Construction lists the anticipated artifacts that Steps 1, 3, and 4 must produce. §Attributes define the metadata requirements that Step 5 must implement. §Cross-Document Traceability identifies the linkages this Procedure must maintain. (Source: Datasheet.md: Construction; Datasheet.md: Attributes; Datasheet.md: Cross-Document Traceability.)

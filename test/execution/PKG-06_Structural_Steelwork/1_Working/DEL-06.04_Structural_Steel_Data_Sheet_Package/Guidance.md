@@ -30,15 +30,36 @@ This deliverable is a **Data Sheet** produced by the **D&B Contractor** within t
 - Create separate templates for gangway and grating data sheets to match anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251).
 - Include a “Linked Documents” block: drawing reference(s), calculation reference(s), and specification section reference(s) (ASSUMPTION; format TBD).
 
-## Local Conflict Table (if unresolved)
+## Conflict Table (for human ruling)
 
-| Topic | Issue | Impact | Needed to resolve | Owner |
-|-------|-------|--------|-------------------|-------|
-| Required fields/criteria | ER clauses for gangway/grating requirements not yet extracted | Data sheets cannot be completed beyond placeholders | Identify relevant ER clauses and confirm field list | Human |
+*No conflicts between sources identified at this time.*
 
-## Cross-Document Notes
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|--------------------|--------------|
+| — | — | — | — | — | — | — |
 
-- Technical Specification (DEL-06.02): the data sheet fields should mirror the clause structure and acceptance criteria (DEL-06.02 Specification.md).
-- Design Calculations (DEL-06.03): reference any governing assumptions or loads, where applicable (DEL-06.03 Datasheet.md).
-- Installation/Test Records (DEL-06.05): use “Required Records” fields to ensure all certificates/inspection logs can be compiled (DEL-06.05 Specification.md, once drafted).
-- Specification → Procedure traceability: use the `Specification.md` Cross-Reference Matrix to keep evidence expectations aligned.
+## Pending Inputs (TBD Resolution)
+
+| Item | Missing Input | Impact | Action Required |
+|------|---------------|--------|-----------------|
+| PI-06.04-001 | Employer's Requirements clauses for gangway/grating requirements | Data sheet field list and acceptance criteria remain TBD | Extract relevant clauses from Volume 2 Part 3 |
+| PI-06.04-002 | Item identification/tag scheme | Cannot align data sheet IDs with drawings and BOM | Confirm tagging convention with project team |
+| PI-06.04-003 | Performance criteria (slip resistance, design loads) | Governing criteria remain TBD | Extract performance clauses from ER |
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity consistent with Scope |
+| Datasheet.md | Attributes | Package metadata (number, revision) — keep aligned with issue workflow |
+| Datasheet.md | Construction | Suggested data sheet fields, linked deliverables |
+| Specification.md | Suggested Field Sets | Field structure referenced in Considerations |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification traceability |
+| Procedure.md | Steps 1–5 | Workflow implementing the Principles and Considerations |
+| Procedure.md | Verification | Criteria that validate Considerations are met |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Item IDs and configurations match drawing items
+- DEL-06.02: Material/coating fields reflect specification clause requirements
+- DEL-06.03: Design basis references included where applicable
+- DEL-06.05: Required records fields (mill certificates, galvanizing certificates) align with installation/test record compilation

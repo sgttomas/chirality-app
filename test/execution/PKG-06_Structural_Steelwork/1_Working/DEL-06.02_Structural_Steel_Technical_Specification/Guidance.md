@@ -30,15 +30,37 @@ This deliverable is a **Specification** produced by the **D&B Contractor** withi
 - Add a "Records and Submittals" section that enumerates the record types needed for DEL-06.05 Structural Steel Installation & Test Records (mill certificates, weld inspection records, galvanizing certificates) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:252; Specification.md: Records and Submittals, Cross-Reference Matrix; Procedure.md: Step 4).
 - Include a "Drawing/Calculation References" section indicating how the specification ties to DEL-06.01 (Design Drawing Set), DEL-06.03 (Design Calculations), and DEL-06.04 (Data Sheet Package) for design basis and traceability (ASSUMPTION; cross-document traceability; Specification.md: Interface Requirements; Datasheet.md: Construction).
 
-## Local Conflict Table (if unresolved)
+## Conflict Table (for human ruling)
 
-| Topic | Issue | Impact | Needed to resolve | Owner |
-|-------|-------|--------|-------------------|-------|
-| Governing standards | ER clauses for structural steel/handrail/grating standards not yet extracted | Specification cannot finalize acceptance criteria | Identify relevant ER clauses and confirm code/standard list | Human |
+*No conflicts between sources identified at this time.*
 
-## Cross-Document Notes
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|--------------------|--------------|
+| — | — | — | — | — | — | — |
 
-- Datasheet: document metadata should be consistent with issue workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Specification: keep requirements structured so Procedure can verify each clause (Specification.md: Verification).
-- Specification → Procedure → Records traceability: use the `Specification.md` Cross-Reference Matrix to keep clauses, verification steps, and DEL-06.05 record types aligned.
-- Procedure: use Procedure steps to ensure the specification is checked and issued with traceability artifacts.
+## Pending Inputs (TBD Resolution)
+
+| Item | Missing Input | Impact | Action Required |
+|------|---------------|--------|-----------------|
+| PI-06.02-001 | Employer's Requirements clauses for structural steel/handrail/grating standards | Cannot finalize acceptance criteria; codes remain TBD | Extract relevant clauses from Volume 2 Part 3 |
+| PI-06.02-002 | Coating/protective treatment requirements | Galvanizing/coating specifications remain TBD | Extract coating clauses from ER |
+| PI-06.02-003 | Inspection and hold point requirements | QA/QC hold points and acceptance criteria remain TBD | Extract inspection clauses from ER |
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity consistent with Scope |
+| Datasheet.md | Attributes | Document metadata (number, revision, standards) — keep aligned with issue workflow |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.01/03/04/05) for traceability |
+| Specification.md | Requirements | Clause structure that Procedure verifies |
+| Specification.md | Records and Submittals | Record types aligned to DEL-06.05 |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification-to-records traceability |
+| Procedure.md | Steps 1–6 | Workflow implementing the Principles and Considerations |
+| Procedure.md | Verification | Criteria that validate Considerations are met |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Drawing notes reference this specification; terminology must align
+- DEL-06.03: Design basis assumptions inform performance requirements; values must be consistent
+- DEL-06.04: Data sheet fields reflect this specification's material/coating requirements
+- DEL-06.05: Record types (mill certificates, weld inspection, galvanizing certificates) called up in this specification

@@ -32,15 +32,37 @@ This deliverable is a **Drawing** produced by the **D&B Contractor** within the 
 - Follow the project's drawing metadata and issue conventions (numbering, revisioning, transmittals) when available (**TBD**) (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes; Procedure.md: Step 5).
 - Example sheet organization (ASSUMPTION / TBD): add a drawing index / sheet list grouped by the five artifact categories (platforms, stairs, gangways, pipe racks/pipe supports, handrails) to make review completeness checkable (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248; Specification.md: Drawing Content).
 
-## Local Conflict Table (if unresolved)
+## Conflict Table (for human ruling)
 
-| Topic | Issue | Impact | Needed to resolve | Owner |
-|-------|-------|--------|-------------------|-------|
-| Governing codes/loads | Employer’s Requirements clauses not yet extracted for structural steel | Cannot finalize design basis notes on drawings | Identify relevant ER clauses and confirm design criteria | Human |
+*No conflicts between sources identified at this time.*
 
-## Cross-Document Notes
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|--------------------|--------------|
+| — | — | — | — | — | — | — |
 
-- Specification: requirements and documentation controls should be reflected in drawing notes and sheet metadata (Specification.md: Requirements, Documentation).
-- Specification → Procedure traceability: use the `Specification.md` Cross-Reference Matrix to keep drawing checks and evidence aligned to requirements.
-- Datasheet: keep identification fields and revision assumptions aligned to avoid inconsistent sheet title blocks (Datasheet.md: Identification, Attributes).
-- Procedure: verification steps define when the drawing set is “ready” for CHECKING/ISSUED packaging (Procedure.md: Steps, Verification).
+## Pending Inputs (TBD Resolution)
+
+| Item | Missing Input | Impact | Action Required |
+|------|---------------|--------|-----------------|
+| PI-06.01-001 | Employer's Requirements clauses for structural steel design basis (codes, loads, environmental criteria) | Cannot finalize design basis notes on drawings; design criteria remain TBD | Extract relevant clauses from Volume 2 Part 3 and confirm design criteria |
+| PI-06.01-002 | Project document control procedures (numbering, revisioning, transmittal) | Drawing metadata and title block format remain TBD | Extract clauses from Volume 2 Part 1 |
+| PI-06.01-003 | CAD/drafting standards | CAD layer conventions and sheet formats remain TBD | Confirm project drafting standards |
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable ID, package, discipline, type — must match drawing title blocks |
+| Datasheet.md | Attributes | Drawing metadata (number, revision, scale, CAD standard) — keep aligned with title block conventions |
+| Datasheet.md | Cross-Document Traceability | Full traceability matrix across 4 documents |
+| Specification.md | Requirements: Drawing Content | Minimum content checklist referenced in Considerations |
+| Specification.md | Interface Requirements | Scope exclusions (Employer items) and cross-references to DEL-06.02/03/04 |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification traceability used in Trade-offs |
+| Procedure.md | Steps 1–8 | Workflow that implements the Principles and Considerations |
+| Procedure.md | Verification | Criteria that validate Considerations are met |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.02: Materials/workmanship/coatings — drawings reference this specification for technical requirements
+- DEL-06.03: Design basis/load cases — drawings reference calculation package for governing assumptions
+- DEL-06.04: Data sheets — gangway/grating item specifics referenced where applicable
+- DEL-06.05: Installation and test records — drawings identify elements requiring QA/QC traceability

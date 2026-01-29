@@ -112,26 +112,42 @@
 
 ## Cross-document Coordination
 
-### Linkages to Specification (DEL-04.02)
-- Every material call-out on drawings (asphalt mix, concrete class, aggregate type) must reference a corresponding specification clause in DEL-04.02
-- Tolerances shown on section drawings must align with acceptance criteria in DEL-04.02
-- Installation sequence notes on drawings must be consistent with construction requirements in DEL-04.02
+### Linkages to Specification (DEL-04.01 Specification)
 
-### Linkages to Guidance (DEL-04.02 Guidance)
-- Guidance checklist verifies completeness of plan coverage, section annotations, and interface callouts
-- Guidance ensures OBJ-8 future expansion provisions are clearly marked and dimensioned on plans
-- Guidance review process catches missing references, unlabeled assumptions, and incomplete traceability
+| Datasheet Section | Specification Reference | Alignment Requirement |
+|-------------------|------------------------|----------------------|
+| Attributes – Drawing Scope | Specification §R1.1 | Plan content requirements must cover all scope items |
+| Attributes – Drawing Set Composition | Specification §R1.2, §R1.3, §R1.5 | Section, line marking, and document control requirements |
+| Design Parameters | Specification §R2.2 | Calculation cross-references for layer thicknesses |
+| Conditions – Interface Constraints | Specification §R1.4 | Interface annotation requirements |
+| Construction – Material Requirements | Specification §R2.1 | Specification cross-reference requirements |
+| Assumptions & TBDs | Specification §R3.2 | Assumption and TBD tracking requirements |
+
+### Linkages to Guidance (DEL-04.01 Guidance)
+
+| Datasheet Section | Guidance Reference | Verification Method |
+|-------------------|-------------------|-------------------|
+| Attributes – Drawing Scope | Guidance Step 1 checklist | Plan completeness verification |
+| Attributes – Drawing Set Composition | Guidance Steps 2-3 checklists | Section and line marking verification |
+| Conditions – Interface Constraints | Guidance Step 4 checklist | Interface and OBJ-8 callout verification |
+| Conditions – Phase 2 expansion | Guidance Principle P3 | Future expandability review |
+| Assumptions & TBDs | Guidance Principle P4 | Assumption tracking review |
 
 ### Linkages to Procedure (DEL-04.01 Procedure)
-- Procedure workflow governs drawing production sequence, review loops, and approval gates
-- Procedure traceability matrix links each drawing sheet to specification clauses (DEL-04.02) and calculation references (DEL-04.03)
-- Procedure assumption log tracks **TBD** and **ASSUMPTION** items for resolution prior to final issuance
+
+| Datasheet Section | Procedure Reference | Workflow Integration |
+|-------------------|-------------------|---------------------|
+| Attributes – Drawing Scope | Procedure Step 1 | Scope capture and initialization |
+| Drawing Set Composition | Procedure Step 2 | Drawing drafting with traceability |
+| Design Parameters (TBD) | Procedure Step 4 | DEL-04.03 coordination for resolution |
+| Assumptions & TBDs | Procedure Steps 1, 3 | Assumption log creation and maintenance |
+| Interface Constraints | Procedure Step 3.4 | Cross-package coordination actions |
 
 ### Linkages to Calculations (DEL-04.03)
-- Drawing section thicknesses are outputs from DEL-04.03 pavement design calculations
+- Drawing section thicknesses are outputs from DEL-04.03 pavement design calculations (coordinated via Procedure Step 4)
 - Loading assumptions shown on drawings (vehicle types, axle loads) must match DEL-04.03 input parameters
-- Any design iteration in DEL-04.03 triggers drawing update to maintain consistency
+- Any design iteration in DEL-04.03 triggers drawing update per Procedure Step 6 revision process
 
 ### Linkages to Test Records (DEL-04.04)
-- Final issued drawing set (with revision number) becomes the basis for DEL-04.04 field verification
-- Drawing section details and tolerances establish the acceptance criteria for compaction testing, thickness verification, and material sampling in DEL-04.04
+- Final issued drawing set (with revision number) becomes the basis for DEL-04.04 field verification (handoff per Procedure Step 5.5)
+- Drawing section details and tolerances establish the acceptance criteria for compaction testing, thickness verification, and material sampling in DEL-04.04 (referenced per Specification §R2.3)

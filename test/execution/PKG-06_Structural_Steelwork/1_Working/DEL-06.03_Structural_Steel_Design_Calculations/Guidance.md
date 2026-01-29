@@ -30,17 +30,36 @@ This deliverable is a **Calculation** produced by the **D&B Contractor** within 
 - Include an "Interface Assumptions Register" capturing assumed loads/supports from other disciplines (equipment/piping loads, foundation assumptions) (Dependencies: NOT_TRACKED; format TBD; Specification.md: Calculation Package Structure; Principles).
 - Example section headers (ASSUMPTION / TBD): "Calculation Index", "Assumptions", "Inputs", "Analysis Method", "Load Cases/Combinations", "Results Summary", "Independent Check Record", "Drawing Notes/Implications" (Specification.md: Calculation Package Structure).
 
-## Local Conflict Table (if unresolved)
+## Conflict Table (for human ruling)
 
-| Topic | Issue | Impact | Needed to resolve | Owner |
-|-------|-------|--------|-------------------|-------|
-| Design basis | ER clauses for loads/design criteria not yet extracted for steelwork | Calculations cannot be finalized | Identify relevant ER clauses and confirm design basis | Human |
+*No conflicts between sources identified at this time.*
 
-## Cross-Document Notes
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|--------------------|--------------|
+| — | — | — | — | — | — | — |
 
-- Datasheet: calculation number, software, design basis/code, load cases should remain consistent with document control and the Procedure's release workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Drawings (DEL-06.01): calculation assumptions/results (governing load cases, member sizing, design notes) should be reflected in drawing notes/details where applicable (DEL-06.01 Specification.md: Interface Requirements; Specification.md: Cross-Document Notes).
-- Technical Specification (DEL-06.02): material/coating/workmanship assumptions must align between calculations and specification clauses (DEL-06.02 Specification.md; Specification.md: Cross-Document Notes).
-- Data Sheets (DEL-06.04): gangway/grating standard details requiring design justification should be traceable to this calculation package (Specification.md: Cross-Document Notes).
-- Installation/Test Records (DEL-06.05): calculation-identified critical items (critical welds, bolting categories, coating systems) should map to inspection/record requirements (Specification.md: Cross-Document Notes; Considerations).
-- Specification → Procedure traceability: use the `Specification.md` Cross-Reference Matrix to keep calculation evidence aligned to requirements.
+## Pending Inputs (TBD Resolution)
+
+| Item | Missing Input | Impact | Action Required |
+|------|---------------|--------|-----------------|
+| PI-06.03-001 | Employer's Requirements clauses for loads/design criteria | Calculations cannot be finalized; load cases remain TBD | Extract relevant clauses from Volume 2 Part 3 |
+| PI-06.03-002 | Project calculation/document control standards | Calculation format and numbering remain TBD | Extract clauses from Volume 2 Part 1 |
+| PI-06.03-003 | Design life and environmental criteria | Durability and exposure assumptions remain TBD | Confirm design basis with ER clauses |
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity consistent with Scope |
+| Datasheet.md | Attributes | Calculation metadata (number, software, design basis, load cases) — keep aligned with issue workflow |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.01/02/04/05) for traceability |
+| Specification.md | Calculation Package Structure | Minimum content requirements referenced in Considerations |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification traceability |
+| Procedure.md | Steps 1–7 | Workflow implementing the Principles and Considerations |
+| Procedure.md | Verification | Criteria that validate Considerations are met |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Calculation assumptions/results (governing load cases, member sizing) reflected in drawing notes/details
+- DEL-06.02: Material/coating/workmanship assumptions aligned between calculations and specification clauses
+- DEL-06.04: Gangway/grating design justification traceable to this calculation package
+- DEL-06.05: Critical items (welds, bolting, coating systems) identified in calculations map to inspection/record requirements

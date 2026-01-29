@@ -434,3 +434,29 @@ Status transitions are managed per `_STATUS.md` in the deliverable folder:
 | As-built | Final as-built revision incorporating actual installed equipment | Construction complete; vendor data finalized; as-built verification | As-built process per project procedures (TBD) |
 
 **Note:** Revision numbering convention TBD from ER Vol 2 Part 1 project document control procedures.
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.03 identity referenced in Procedure § Purpose deliverable definition |
+| Datasheet.md | § Attributes | Calculation attributes (software/tools, design code/standard basis) that Procedure § Prerequisites (Tools and Systems) addresses |
+| Datasheet.md | § Conditions | Design context (services, product, throughput, input parameters) that Procedure § Step 1 (Define Cases) and § Step 2 (Collect Inputs) address |
+| Datasheet.md | § Construction | Anticipated calculation content (sizing, accuracy, proving) that Procedure § Steps 3-5 produce; calculation report structure that Procedure § Step 8 assembles |
+| Specification.md | § Scope | Inclusions (sizing, accuracy, proving) addressed in Procedure § Steps 3-5 |
+| Specification.md | § Requirements | REQ-01-05 (documentation) addressed in § Step 2/8; REQ-06-10 (performance) verified in § Steps 3-4; REQ-11-13 (methodology) addressed in § Steps 3-5; REQ-14-17 (interface) addressed in § Steps 2/6; REQ-18-22 (quality) addressed in § Step 9; REQ-23-24 (sensitivity) addressed in § Step 7 |
+| Specification.md | § Standards | Governing references used in Procedure § Step 2.5 (collect standards); custody transfer standards applied in § Steps 3-5 methodology |
+| Specification.md | § Verification | Verification methods aligned to Procedure § Verification Activities; acceptance criteria verified per § Acceptance Criteria |
+| Specification.md | § Documentation | Calculation report structure per Procedure § Step 8; documentation requirements per § Step 8.2-8.5 |
+| Guidance.md | § Purpose | Downstream use (DEL-12.01, DEL-12.04, DEL-12.05) that Procedure § Step 8.3 (implications) addresses |
+| Guidance.md | § Principles | Development rationale (objective demonstration, traceability, auditability) that Procedure steps implement throughout |
+| Guidance.md | § Considerations | Sizing factors per § Step 3; accuracy/uncertainty factors per § Step 4; proving factors per § Step 5; service-specific considerations per § Step 1 |
+| Guidance.md | § Trade-offs | Competing factors that Procedure § Steps 3-5 must balance; documented in calculation report per § Step 8 |
+| Guidance.md | § Conflict Table | Conflicts documented per Procedure § Step 6.3 (identify conflicts) |
+| Guidance.md | § Sensitivity | Sensitivity analysis topics per Procedure § Step 7 |
+| DEL-12.01 | Drawings | Calculation results (meter sizes, straight-runs, proving connections) inform DEL-12.01 per § Step 8.3 implications |
+| DEL-12.02 | Specification | DEL-12.02 provides calculation inputs per § Step 2.4; calculation results cross-checked per § Step 6 |
+| DEL-12.04 | Data Sheets | Calculation-validated parameters documented in DEL-12.04 per § Step 8.3 implications |
+| DEL-12.05 | Test Records | Calculation-derived acceptance criteria used in DEL-12.05 per § Step 8.3 implications |
+| PKG-14 | Piping | Pressure drop coordination per § Step 2.8 boundary conditions and § Step 3.2.3 pressure drop verification; REQ-17 interface |
+| PKG-10/11 | Rail/Marine | Flow rates from PKG-10/11 per § Prerequisites (recommended inputs)

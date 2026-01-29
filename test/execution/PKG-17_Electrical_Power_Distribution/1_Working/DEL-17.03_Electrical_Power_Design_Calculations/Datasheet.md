@@ -273,3 +273,6 @@ Anticipated calculation artifacts (Source: _CONTEXT.md and Decomposition DEL-17.
 - Interface with PKG-15 (Pumps and Rotating Equipment) for motor nameplate data
 - Interface with PKG-18 (Lighting) for lighting load data
 - Interface with PKG-19 (Control & Instrumentation) for control system and UPS load data
+
+---
+**Cross-Document Alignment Verified (Pass 3):** Calculation types and methodologies consistent with Specification.md (FR-1 through FR-6, QR-1 through QR-4), Guidance.md (Principles 1-5, Considerations 1-8), and Procedure.md (Steps 1-11). No conflicts identified.

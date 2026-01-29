@@ -249,25 +249,25 @@ The calculations shall include:
 
 ### Verification Methods
 
-| Requirement | Verification Method | Responsible Party | Timing |
-|-------------|-------------------|-------------------|--------|
-| R1.1: Traffic loading | Review traffic data sources; approve assumptions | Engineer + Owner | Before analysis |
-| R1.2: Geotechnical | Review geotechnical report; approve assumptions | Geotechnical engineer | Before analysis |
-| R1.3: Material properties | Cross-check vs. DEL-04.02 specifications | DEL-04.02 author | During analysis |
-| R1.4: Environmental data | Review climate data sources | Engineer | Before analysis |
-| R2.1: Design approach | Review and approve methodology | Engineer | Before analysis |
-| R2.2: Structural analysis | Review software validation; peer review | Senior engineer | During analysis |
-| R2.3: Load distribution | Review load configurations and positions | Checker | During analysis |
-| R2.4: Sensitivity analysis | Review parameter variations and results | Checker | During analysis |
-| R2.5: OBJ-8 analysis | Review Phase 2 loading assumptions | Engineer + Owner | During analysis |
-| R3.1: Output summary | Review summary table completeness | QA reviewer | After analysis |
-| R3.2: Traceability | Audit cross-references via traceability matrix | QA reviewer | After analysis |
-| R3.3: Assumptions | Review assumption log and resolution paths | QA reviewer | Each review cycle |
-| R4.1: Self-check | Signoff by calculation author | Calculation author | After analysis |
-| R4.2: Independent check | Signoff by checker | Senior engineer | After analysis |
-| R4.3: Coordination review | Signoff by QA reviewer | QA reviewer | Before issuance |
-| R5.1: Revision triggers | Document trigger in revision history | Calculation author | Each revision |
-| R5.2: Revision documentation | Review revision history completeness | Checker | Each revision |
+| Requirement | Verification Method | Guidance § | Procedure Step | Responsible Party | Timing |
+|-------------|-------------------|------------|----------------|-------------------|--------|
+| R1.1: Traffic loading | Review traffic data sources; approve assumptions | Step 1 | Step 1.2 | Engineer + Owner | Before analysis |
+| R1.2: Geotechnical | Review geotechnical report; approve assumptions | Step 1 | Step 1.3 | Geotechnical engineer | Before analysis |
+| R1.3: Material properties | Cross-check vs. DEL-04.02 specifications | Step 1 | Step 1.4 | DEL-04.02 author | During analysis |
+| R1.4: Environmental data | Review climate data sources | Step 1 | Step 1.5 | Engineer | Before analysis |
+| R2.1: Design approach | Review and approve methodology | Step 2 | Step 2.1 | Engineer | Before analysis |
+| R2.2: Structural analysis | Review software validation; peer review | Step 2 | Step 2.2–2.3 | Senior engineer | During analysis |
+| R2.3: Load distribution | Review load configurations and positions | Step 2 | Step 2.3 | Checker | During analysis |
+| R2.4: Sensitivity analysis | Review parameter variations and results | Step 2 | Step 3.1–3.3 | Checker | During analysis |
+| R2.5: OBJ-8 analysis | Review Phase 2 loading assumptions | Step 2 | Step 3.4 | Engineer + Owner | During analysis |
+| R3.1: Output summary | Review summary table completeness | Step 4 | Step 4.1 | QA reviewer | After analysis |
+| R3.2: Traceability | Audit cross-references via traceability matrix | Step 5 | Step 4.2 | QA reviewer | After analysis |
+| R3.3: Assumptions | Review assumption log and resolution paths | Step 6 | Step 1.6, 5.3 | QA reviewer | Each review cycle |
+| R4.1: Self-check | Signoff by calculation author | Step 7 | Step 5.1 | Calculation author | After analysis |
+| R4.2: Independent check | Signoff by checker | Step 7 | Step 5.2 | Senior engineer | After analysis |
+| R4.3: Coordination review | Signoff by QA reviewer | Step 7 | Step 5.3 | QA reviewer | Before issuance |
+| R5.1: Revision triggers | Document trigger in revision history | — | Step 7.1 | Calculation author | Each revision |
+| R5.2: Revision documentation | Review revision history completeness | — | Step 7.2 | Checker | Each revision |
 
 ### Acceptance Criteria
 - All calculation inputs (traffic, geotechnical, material properties, environmental) are documented with sources or flagged as **ASSUMPTION** with resolution paths

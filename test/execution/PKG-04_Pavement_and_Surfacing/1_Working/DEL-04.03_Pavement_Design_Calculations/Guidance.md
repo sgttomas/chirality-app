@@ -65,13 +65,13 @@ Every **ASSUMPTION** or **TBD** must have:
 
 ## Review Checklist
 
-### Pre-Review Preparation
+### Pre-Review Preparation (Procedure Step 5.3)
 - [ ] Obtain calculation report, input summary, analysis worksheets, output summary, sensitivity analysis, OBJ-8 analysis
 - [ ] Obtain DEL-04.01 latest drawing set for cross-referencing pavement sections
 - [ ] Obtain DEL-04.02 latest specification for cross-referencing material properties
 - [ ] Review Procedure assumption tracking log to identify open items affecting calculations
 
-### Step 1: Input Verification (Specification R1.1–R1.4)
+### Step 1: Input Verification (Specification §R1.1–R1.4 | Procedure Step 1)
 - [ ] **Traffic loading**: Verify traffic data sources documented; if Owner data not provided, verify assumptions are reasonable and flagged
 - [ ] **Geotechnical parameters**: Verify geotechnical report referenced; if not available, verify assumed values are conservative and flagged
 - [ ] **Material properties**: Cross-check asphalt, concrete, base/subbase properties vs. DEL-04.02 specifications; verify consistency
@@ -79,7 +79,7 @@ Every **ASSUMPTION** or **TBD** must have:
 - [ ] **Input units**: Verify all inputs have correct units (kN, MPa, mm, etc.) and unit conversions are correct
 - [ ] **Input reasonableness**: Verify inputs are within reasonable ranges (e.g., subgrade CBR 2-10% typical for fine-grained soils, 10-80% for granular soils)
 
-### Step 2: Methodology Review (Specification R2.1–R2.5)
+### Step 2: Methodology Review (Specification §R2.1–R2.5 | Procedure Steps 2, 3)
 - [ ] **Design standard**: Verify design methodology (TAC, AASHTO, PCA) is appropriate and approved by Engineer
 - [ ] **Design life**: Verify design life (25 years **ASSUMPTION**) is stated and appropriate
 - [ ] **Reliability**: Verify reliability level (90% **ASSUMPTION**) is stated and appropriate for industrial pavement
@@ -89,14 +89,14 @@ Every **ASSUMPTION** or **TBD** must have:
 - [ ] **Sensitivity analysis**: Verify sensitivity parameters (±20% subgrade, ±20% traffic, ±10% modulus) are analyzed and results documented
 - [ ] **OBJ-8 analysis**: Verify Phase 2 ultimate loading case is analyzed for expansion corridors; verify comparison to Phase 1 loading is provided
 
-### Step 3: Calculation Execution Review
+### Step 3: Calculation Execution Review (Procedure Steps 2.3–2.5)
 - [ ] **Calculation logic**: Verify calculation steps are logical and correct (formulas, layer arrangement, load application)
 - [ ] **Software inputs**: If software is used, verify software input files match documented inputs (layer thicknesses, moduli, loading, tire pressure)
 - [ ] **Software outputs**: Verify software output files are provided and interpreted correctly (stress, strain, deflection values and units)
 - [ ] **Hand calculation check**: Verify at least one critical case is checked by hand calculation or simplified method to validate software results
 - [ ] **Arithmetic verification**: Spot-check arithmetic in hand calculations or spreadsheet formulas
 
-### Step 4: Output Review (Specification R3.1–R3.3)
+### Step 4: Output Review (Specification §R3.1–R3.3 | Procedure Step 4)
 - [ ] **Output summary table**: Verify summary table includes pavement zone description, traffic, subgrade, layer thicknesses, critical stresses/strains, safety factors
 - [ ] **Thickness results**: Verify calculated thicknesses are reasonable (compare to similar projects, design manual charts)
 - [ ] **Safety factors**: Verify safety factors or reliability indices meet acceptance criteria (typically ≥1.0 for limit state design, or per design methodology)
@@ -104,14 +104,14 @@ Every **ASSUMPTION** or **TBD** must have:
 - [ ] **Sensitivity results**: Verify sensitivity analysis shows design is robust to parameter variations (thickness changes are reasonable, not excessive)
 - [ ] **OBJ-8 results**: Verify Phase 2 expansion corridor pavement thickness is adequate for ultimate loading; verify any capacity reserve during Phase 1 is documented
 
-### Step 5: Traceability Audit (Specification R3.2)
+### Step 5: Traceability Audit (Specification §R3.2 | Procedure Step 4.2–4.4)
 - [ ] **Drawing cross-references**: Verify each calculated thickness references corresponding DEL-04.01 drawing sheet and section number (use Procedure traceability matrix)
 - [ ] **Specification cross-references**: Verify each material property used references corresponding DEL-04.02 specification clause
 - [ ] **Test record cross-references**: Verify output summary identifies target values for DEL-04.04 field testing (thicknesses, densities)
 - [ ] **Bidirectional consistency**: Verify DEL-04.01 drawing sections match calculated thicknesses; if discrepancies exist, identify for resolution
 - [ ] **Terminology consistency**: Verify same terms used across Datasheet, Specification, Guidance, Procedure, DEL-04.01, DEL-04.02, DEL-04.04
 
-### Step 6: Assumption and TBD Tracking (Specification R3.3)
+### Step 6: Assumption and TBD Tracking (Specification §R3.3 | Procedure Step 1.6, 5.3)
 - [ ] **All assumptions flagged**: Verify every **ASSUMPTION** in calculation is flagged inline and logged in Procedure assumption tracking log
 - [ ] **All TBDs flagged**: Verify every **TBD** in calculation is flagged inline and logged in Procedure assumption tracking log
 - [ ] **Coordination with DEL-04.01/04.02**: Verify assumption log cross-references DEL-04.01 and DEL-04.02 assumption logs for consistency
@@ -119,7 +119,7 @@ Every **ASSUMPTION** or **TBD** must have:
 - [ ] **Impact assessment**: Verify each assumption/TBD has impact assessment (which outputs are affected, sensitivity to assumption)
 - [ ] **Critical path items**: Verify assumptions/TBDs that block construction or affect safety are identified and prioritized
 
-### Step 7: Verification and Approval (Specification R4.1–R4.3)
+### Step 7: Verification and Approval (Specification §R4.1–R4.3 | Procedure Step 5)
 - [ ] **Self-check**: Verify calculation author performed and documented self-check (arithmetic, units, reasonableness, traceability)
 - [ ] **Independent check**: Verify senior engineer or checker performed and documented independent check (methodology, inputs, execution, outputs)
 - [ ] **Cross-document coordination**: Verify QA reviewer performed coordination review (consistency with DEL-04.01/04.02, traceability, assumption logging)
@@ -171,13 +171,23 @@ Every **ASSUMPTION** or **TBD** must have:
 - Optionally analyze sensitivity to material properties (asphalt modulus) if material properties are uncertain or non-standard
 - Document sensitivity analysis scope and justify any parameters not analyzed
 
+## Conflict Table (for human ruling)
+
+No unresolved conflicts identified during Pass 3 cross-document consistency review.
+
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | No conflicts identified | — | — | — | — | — |
+
+**Note**: If conflicts are identified during calculation review or coordination activities (e.g., discrepancy between calculated thickness and DEL-04.01 drawing, or between material property assumption and DEL-04.02 specification), they shall be logged in this table per Specification §R3.3 and Procedure Step 4.3–4.4. Cross-deliverable conflicts that cannot be resolved locally shall be escalated to RECONCILIATION agent when humans request cross-package coherence checks.
+
 ## References
 
 ### Source Documents
 - **Decomposition**: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section PKG-04, DEL-04.03, OBJ-8
 - **Datasheet (DEL-04.03)**: Calculation Scope, Design Inputs, Calculation Outputs, Assumptions & TBDs, Cross-document Coordination
-- **Specification (DEL-04.03)**: Requirements R1.1–R5.2, Verification Methods, Standards
-- **Procedure (DEL-04.03)**: Workflow Steps, Controls, traceability matrix, assumption log
+- **Specification (DEL-04.03)**: Requirements §R1.1–R5.2, Verification Methods, Standards
+- **Procedure (DEL-04.03)**: Workflow Steps 1–7, Controls, Traceability Matrix, Assumption Log
 - **DEL-04.01**: Pavement Design Drawing Set (pavement sections to validate)
 - **DEL-04.02**: Pavement Technical Specification (material properties to use as inputs)
 - **DEL-04.04**: Pavement Installation & Test Records (target values to provide)

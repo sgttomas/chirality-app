@@ -126,8 +126,24 @@ The following custody transfer metering standards may be applicable; specific ap
 
 ## Cross-Document Traceability
 
-| Document | Link Points |
-|----------|-------------|
-| Specification.md | Requirements section (REQ-01 through REQ-14) defines what this specification deliverable must contain: custody transfer metering requirements for both services (REQ-01), both specification artifacts (REQ-02), instrumentation requirements (REQ-03), proving requirements (REQ-04), performance requirements (REQ-05 through REQ-09), interface requirements (REQ-10, REQ-11), QA requirements (REQ-12, REQ-13, REQ-14); Standards section identifies governing references and custody transfer standards; Verification section defines review methods and acceptance criteria |
-| Guidance.md | Purpose section explains that this specification drives DEL-12.01 drawings, DEL-12.03 calculations, DEL-12.04 data sheets, and DEL-12.05 QA records; Principles section explains specification development rationale (contract alignment, objective support, testability, traceability) and custody transfer metering principles (accuracy/uncertainty, repeatability, proving, compensation); Considerations section identifies technology selection factors (meter technology, product properties, flow range, proving method), service-specific considerations (rail unloading vs. marine loading), and interface considerations with PKG-14, PKG-17, PKG-19, PKG-20 |
-| Procedure.md | Steps section defines authoring workflow: Step 1 (Gather basis from ER and standards), Step 2 (Define scope for rail and marine services), Step 3 (Draft requirements per Specification.md REQ-01 through REQ-14), Step 4 (Add verification methods for DEL-12.05 traceability), Step 5 (Discipline check), Step 6 (IDC with interfacing packages), Step 7 (Issue); Verification section aligns to Specification acceptance criteria; Records section identifies specification outputs matching anticipated artifacts |
+| Document | Section | Link Points |
+|----------|---------|-------------|
+| Specification.md | § Scope | Defines inclusions (custody transfer flow meter specification, metering system specification) and exclusions (control system architecture PKG-19, field instrumentation PKG-20, process piping PKG-14, electrical distribution PKG-17) |
+| Specification.md | § Requirements | REQ-01 through REQ-24 define what this specification deliverable must contain: functional requirements (REQ-01 through REQ-05), performance requirements (REQ-06 through REQ-10), material requirements (REQ-11, REQ-12), installation requirements (REQ-13, REQ-14), interface requirements (REQ-15, REQ-16), proving requirements (REQ-17, REQ-18, REQ-19), quality requirements (REQ-20, REQ-21, REQ-22), documentation requirements (REQ-23, REQ-24) |
+| Specification.md | § Standards | Identifies governing references (ER Vol 2 Part 1/2) and custody transfer standards (API MPMS, OIML R117, Measurement Canada, ISO 5024, IEC 60079) |
+| Specification.md | § Verification | Defines review methods (document review, technical review, cross-document check, IDC review, traceability matrix review) and acceptance criteria (artifact completeness, service coverage, traceability, testability, interface coverage) |
+| Guidance.md | § Purpose | Explains that this specification drives DEL-12.01 drawings, DEL-12.03 calculations, DEL-12.04 data sheets, procurement, and DEL-12.05 QA records |
+| Guidance.md | § Principles | Explains specification development rationale (contract alignment per REQ-24, objective support per REQ-09/REQ-10, testability per REQ-21, traceability, technology neutrality) and custody transfer metering principles (accuracy/uncertainty per REQ-06, repeatability per REQ-08, proving per REQ-04/REQ-17-19, compensation per REQ-03) |
+| Guidance.md | § Considerations | Technology selection factors (Coriolis, ultrasonic, turbine, positive displacement per REQ-05), product properties (CSD canola oil viscosity, density, temperature per REQ-11), flow range (rail vs. marine per REQ-07/REQ-09), proving method (in-line, portable, master meter per REQ-17); service-specific (rail unloading 32 stations, marine loading high flow per REQ-01); interface (PKG-14/17/19/20 per REQ-15/REQ-16) |
+| Guidance.md | § Trade-offs | Competing factors: accuracy vs. cost, accuracy vs. pressure drop, standardization vs. optimization, robustness vs. sensitivity, proving frequency vs. operational impact, in-line vs. portable prover |
+| Procedure.md | § Step 1 | Gather basis from ER Vol 2 Part 2, applicable standards (API MPMS, OIML R117, Measurement Canada), design basis, objectives |
+| Procedure.md | § Step 2 | Define scope for rail unloading and marine loading services; system boundaries |
+| Procedure.md | § Step 3 | Draft requirements: 3.1 Performance (REQ-05 through REQ-10), 3.2 Materials (REQ-11, REQ-12), 3.3 Installation (REQ-13, REQ-14), 3.4 Proving (REQ-04, REQ-17-19), 3.5 Instrumentation (REQ-03), 3.6 Electrical/Controls (REQ-15), 3.7 QA (REQ-20-22), 3.8 Documentation (REQ-23, REQ-24) |
+| Procedure.md | § Step 4 | Add verification hooks per REQ-21; traceability matrix per REQ-24 |
+| Procedure.md | § Step 5 | Discipline check for completeness, consistency, testability, objective alignment, standard compliance |
+| Procedure.md | § Step 6 | IDC with PKG-14, PKG-17, PKG-19, PKG-20 per REQ-16 |
+| Procedure.md | § Step 7 | Issue per document control procedures |
+| DEL-12.01 | Drawings | Drawings implement installation requirements per § Specification Structure Section 5; tag numbers, straight-run dimensions per this specification |
+| DEL-12.03 | Calculations | Calculations verify meter sizing, flow rates per § Specification Structure Section 4 and REQ-09 |
+| DEL-12.04 | Data Sheets | Data sheets document equipment parameters per § Specification Structure Section 9 and REQ-23 |
+| DEL-12.05 | Test Records | Test records demonstrate compliance per § Specification Structure Section 8 and REQ-20, REQ-21

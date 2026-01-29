@@ -150,10 +150,21 @@
 - Guidance.md — principles for calculation development, assumption handling, and containment sensitivity.
 - Procedure.md — calculation development, checking, and issue workflow.
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- **Specification → Requirements:** Each calculation artifact (foundations, containment walls, seismic) listed in Construction must be explicitly required in `Specification.md` with acceptance criteria and verification methods.
-- **DEL-05.01 → Drawing Alignment:** Calculation results (element sizing, reinforcement quantities) must align with DEL-05.01 drawing dimensions and details.
-- **DEL-05.02 → Material Properties:** Material properties assumed in calculations (concrete strength, modulus) must align with DEL-05.02 specification values.
-- **Procedure → Verification:** `Procedure.md` defines the checking and verification workflow to ensure calculation quality and traceability.
-- **Guidance → Containment Sensitivity:** Containment wall serviceability analysis (crack control, joint design) must reflect OBJ-7 Environmental Protection intent as described in `Guidance.md`.
+| Datasheet Section | Specification § | Guidance § | Procedure Step |
+|-------------------|-----------------|------------|----------------|
+| Attributes (Software/Tools, Design Codes, Load Cases) | Standards, QR-01 | P-03 Evidence-Based Code, C-04 Methodology | Step 3 (Select Methodology) |
+| Conditions (Design Basis Items) | FR-02 Design Basis, PR-01 Strength/Serviceability | P-01 Traceability, C-01 Input Data, C-05 Assumptions | Step 2 (Assemble Design Basis) |
+| Construction: Foundation Calculations | FR-03 Foundation Calculations | P-04 Design Optimization, P-05 Consistency, C-02 Serviceability | Step 4 (Execute Calculations) |
+| Construction: Containment Wall Calculations | FR-04 Containment Walls | P-02 Containment Sensitivity, C-02 Serviceability | Step 4 (Execute Calculations) |
+| Construction: Seismic Analysis | FR-05 Seismic Analysis, PR-02 Seismic Performance | C-03 Seismic Importance | Step 4 (Execute Calculations) |
+| Construction: Supporting Documentation | FR-06 Results, QR-03 Traceability | P-01 Traceability, E-01 Organization | Step 5 (Prepare Documentation) |
+
+## Cross-Document Notes
+
+- **Specification → Requirements:** Each calculation artifact (foundations, containment walls, seismic) listed in Construction must be explicitly required in `Specification.md` §FR-01 through §FR-06 with acceptance criteria per §QR-02 Independent Check.
+- **DEL-05.01 → Drawing Alignment:** Calculation results (element sizing, reinforcement quantities) must align with DEL-05.01 drawing dimensions and details per `Specification.md` §IR-01.
+- **DEL-05.02 → Material Properties:** Material properties assumed in calculations (concrete strength, modulus) must align with DEL-05.02 specification values per `Specification.md` §IR-01.
+- **Procedure → Verification:** `Procedure.md` Steps 4-6 define the calculation, checking, and verification workflow. §QR-02 is verified in Step 6 Independent Check.
+- **Guidance → Containment Sensitivity:** Containment wall serviceability analysis (§P-02 crack control, joint design) must reflect OBJ-7 Environmental Protection intent.

@@ -272,12 +272,31 @@ Calculations shall be traceable and reproducible:
 - Revision history per project document control (**TBD**)
 (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Procedure.md: Records.)
 
+## Requirements Traceability Matrix
+
+| Requirement ID | Requirement Summary | Datasheet § | Guidance § | Procedure Step | Verification Method |
+|----------------|---------------------|-------------|------------|----------------|---------------------|
+| FR-01 | Calculation Artifact Coverage | Construction (all) | E-01 Organization | Step 1 | Completeness verification |
+| FR-02 | Design Basis and Assumptions | Conditions (TBD items), Construction: Supporting Docs | P-01 Traceability, P-03 Evidence-Based, C-05 Assumptions | Step 2 | Traceability review |
+| FR-03 | Foundation Calculations | Construction: Foundation Calcs | P-04 Optimization, P-05 Consistency, C-01 Input Data | Step 4 | Independent check |
+| FR-04 | Containment Wall Calculations | Construction: Containment Wall Calcs | P-02 Containment Sensitivity, C-02 Serviceability | Step 4 | Independent check |
+| FR-05 | Seismic Analysis | Construction: Seismic Analysis | C-03 Seismic Importance | Step 4 | Independent check |
+| FR-06 | Calculation Results and Verification | Construction: Supporting Docs | P-01 Traceability, E-02 Good Practice | Step 5 | Results review |
+| PR-01 | Strength and Serviceability | Conditions | P-02 Containment, C-02 Serviceability | Step 4 | Performance verification |
+| PR-02 | Seismic Performance | Attributes (Design Codes), Conditions | C-03 Seismic Importance | Step 4 | Performance verification |
+| PR-03 | Alignment with Objectives | Conditions (OBJ-3, OBJ-7) | P-02 Containment Sensitivity | Steps 4, 5 | Supports objectives |
+| IR-01 | Dependency Coordination | — | P-05 Consistency, C-01 Input Data | Steps 2, 4, 7 | Alignment verification |
+| IR-02 | Assumption Identification | Conditions (TBD items) | C-05 Assumption Management | Step 2 | Assumptions register |
+| QR-01 | Document Control | Attributes | — | Step 7 | Document control verification |
+| QR-02 | Independent Check | — | P-01 Traceability | Step 6 | Quality verification |
+| QR-03 | Traceability | Construction: Supporting Docs | P-01 Traceability, E-02 Good Practice | Steps 2, 4, 6 | Quality verification |
+
 ## Cross-Document Notes
 
-- **Datasheet:** Holds calculation package metadata and scope expectations. Specification requirements must align with Datasheet construction artifacts (foundations, containment walls, seismic). (Source: Datasheet.md: Attributes; Datasheet.md: Construction.)
-- **Guidance:** Provides principles for calculation development (traceability, containment sensitivity, assumption handling). Specification requirements should reflect Guidance principles. (Source: Guidance.md: Principles.)
-- **Procedure:** Defines calculation development, checking, and issue workflow. Each Specification requirement should be verified through Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** Holds calculation package metadata (§Attributes) and scope expectations. Specification requirements must align with §Construction artifacts (foundations, containment walls, seismic). (Source: Datasheet.md: Attributes; Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)
+- **Guidance:** Provides principles for calculation development: §P-01 traceability, §P-02 containment sensitivity, §P-03 evidence-based code, §P-04 design optimization, §P-05 consistency. The Requirements Traceability Matrix above maps requirements to supporting Guidance sections. (Source: Guidance.md: Principles; Guidance.md: Guidance-to-Specification Traceability.)
+- **Procedure:** Defines calculation development, checking, and issue workflow (Steps 1-7). The Requirements Traceability Matrix above maps each requirement to its Procedure step. (Source: Procedure.md: Steps; Procedure.md: Verification; Procedure.md: Procedure Steps Traceability.)
 - **Related Deliverables:** Calculations must maintain consistency with:
-  - DEL-05.01 drawing dimensions and details (IR-01)
-  - DEL-05.02 material properties and specification values (IR-01)
-  - DEL-02.04 geotechnical parameters (IR-01)
+  - DEL-05.01 drawing dimensions and details — §IR-01 (element sizing, reinforcement)
+  - DEL-05.02 material properties and specification values — §IR-01 (concrete strength, modulus)
+  - DEL-02.04 geotechnical parameters — §IR-01 (bearing capacity, settlement, soil properties)

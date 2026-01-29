@@ -337,3 +337,28 @@ Status transitions are managed per `_STATUS.md` in the deliverable folder:
 | Operational updates | Periodic proving records added during operations | Ongoing operation; periodic proving records per DEL-12.02 proving frequency (quarterly, semi-annually, annually); records may be appended to package or filed separately in operational records | Operations Manager |
 
 **Note:** Revision numbering convention TBD from ER Vol 2 Part 1 project document control procedures. Record packages typically have multiple revisions as records are collected progressively from procurement through commissioning.
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.05 identity referenced in Procedure § Purpose deliverable definition |
+| Datasheet.md | § Conditions | Design context (service application, equipment covered) that Procedure § Step 1.6 (equipment list) addresses; record requirements context (TBD items) that Procedure § Step 1.2-1.5 (ER/specification/Quality Plan requirements) identifies |
+| Datasheet.md | § Construction | Anticipated record content (calibration certificates, proving records) that Procedure § Steps 3-4 collects; record package structure that Procedure § Step 6 compiles; equipment-to-record traceability that Procedure § Step 2 establishes |
+| Specification.md | § Scope | Inclusions/exclusions that Procedure § Step 1 scope definition respects |
+| Specification.md | § Requirements | REQ-01 addressed in § Step 1/3/4; REQ-02/03/10/11 in § Step 2/5.2; REQ-04 in § Step 2; REQ-05/09 in § Step 4.3/5.4; REQ-06/07 in § Step 3.2/3.3/5.3; REQ-08 in § Step 4.2; REQ-12 in § Step 6.5; REQ-13 in § Step 6.6/7.5; REQ-14 in § Step 6; REQ-16 in § Step 5.5/7.3; REQ-17 in § Step 5.6; REQ-18 in § Step 5.7 |
+| Specification.md | § Standards | Governing references that Procedure § Step 1.2-1.4 consults; custody transfer standards that Procedure § Step 3.3 (traceability) and § Step 4.2 (proving per API MPMS) references |
+| Specification.md | § Verification | Verification methods mapped to Procedure § Verification Activities; acceptance criteria verified per § Acceptance Criteria |
+| Specification.md | § Documentation | Record package structure that Procedure § Step 6 compiles; documentation requirements per § Steps 6.1-6.6 |
+| Guidance.md | § Purpose | Downstream use (closeout, regulatory, commercial, operational, audit, warranty) that Procedure outputs enable |
+| Guidance.md | § Principles | Development rationale (evidence, traceability, auditability, regulatory, no fabrication) that Procedure steps implement |
+| Guidance.md | § Considerations | Record content considerations informing Procedure § Step 1 (scope); calibration certificate considerations per § Step 3.2; proving record considerations per § Step 4.2; timing considerations per § Prerequisites (milestones) |
+| Guidance.md | § Trade-offs | Trade-off decisions addressed in Procedure (witnessing coordination § Step 1.7, vendor certificates § Step 3.2, proving schedule § Step 4.1) |
+| Guidance.md | § Conflict Table | Conflicts documented per Procedure § Step 4.3 (acceptance failures), § Step 3.3 (traceability issues) |
+| DEL-12.01 | Drawings | Installation verification records (Procedure § Step 3 optional) demonstrate installation per drawings |
+| DEL-12.02 | Specification | Acceptance criteria from DEL-12.02 per Procedure § Step 1.4, § Step 4.1; test requirements (FAT, SAT) per § Step 1.4 |
+| DEL-12.03 | Calculations | Proving acceptance criteria from DEL-12.03 per Procedure § Step 4.1, § Step 4.3; meter factor limits, repeatability, drift limits |
+| DEL-12.04 | Data Sheets | Equipment list (tags, serials) from DEL-12.04 per Procedure § Step 1.6, § Step 2.1; cross-reference per § Step 3.4, § Step 4.4 |
+| PKG-14 | P&IDs | Tag numbers per Procedure § Step 2.1 (tag numbers from P&IDs) |
+| PKG-17 | Electrical | Electrical testing coordination per Procedure § Prerequisites (Recommended Inputs) if electrical test records interface |
+| PKG-19 | Controls | Control system integration testing per Specification.md REQ-15 (interface records)

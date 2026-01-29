@@ -307,3 +307,6 @@ SECTION 26 28 00 — LV POWER CABLES
 - **Manufacturer Catalogs**: ABB, Schneider Electric, Eaton, Siemens — provide performance data, construction details, testing capabilities
 - **Similar Facilities**: Other bulk liquid transload terminals (vegetable oil, petroleum products) — **TBD** — lessons learned and precedent specifications
 - **Industry Specifications**: EJCDC, CSI MasterFormat — provide specification organization and language templates
+
+---
+**Cross-Document Alignment Verified (Pass 3):** Principles 1-6 and Considerations 1-10 align with Specification.md functional and specification requirements (FR-1 through FR-5, SR-1 through SR-5). Trade-offs and examples support engineering decisions reflected in Datasheet.md and Procedure.md. No conflicts identified.

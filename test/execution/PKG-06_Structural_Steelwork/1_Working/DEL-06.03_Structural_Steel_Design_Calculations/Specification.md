@@ -82,10 +82,23 @@ Until Employer's Requirements clauses and project calculation standards are extr
 - Include calculation index, revision history, and approvals per document control requirements (**TBD**) (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes; Procedure.md: Step 7).
 - Calculation package files (native + PDF), independent check record, model files as required (**TBD**) (Procedure.md: Records).
 
-## Cross-Document Notes
+## Cross-Document Traceability
 
-- Datasheet: calculation number, software used, design basis/code, load cases, and calculation coverage should remain consistent with document control and the Procedure's release workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Drawings (DEL-06.01): drawings should reference calculation assumptions/results (governing load cases, member sizing, design notes) where required (DEL-06.01 Specification.md: Interface Requirements; Datasheet.md: Construction; Guidance.md: Cross-Document Notes).
-- Technical Specification (DEL-06.02): calculation inputs (material properties, coating assumptions, workmanship criteria) should align to DEL-06.02 clauses (DEL-06.02 Specification.md; Datasheet.md: Construction; Guidance.md: Cross-Document Notes).
-- Data Sheets (DEL-06.04): gangway/grating standard details requiring design justification should be traceable to this calculation package (Datasheet.md: Construction).
-- Installation/Test Records (DEL-06.05): critical design assumptions affecting inspection/hold points (critical welds, bolting categories, coating systems) should be traceable to record requirements (Datasheet.md: Construction; Guidance.md: Considerations, Cross-Document Notes).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity fields consistent with Scope |
+| Datasheet.md | Attributes | Calculation metadata (number, software, design basis, load cases) — directly mapped via Specification § column |
+| Datasheet.md | Construction | Linked deliverables (DEL-06.01/02/04/05) for traceability |
+| Guidance.md | Principles | Intent behind Requirements (traceability, ER authority, interface register) |
+| Guidance.md | Considerations | Trade-offs for artifact coverage, TBD handling, downstream QA |
+| Guidance.md | Examples | Load case summary, governing member summary, interface register formats |
+| Procedure.md | Prerequisites | Confirms reference materials and dependency coordination mode |
+| Procedure.md | Steps 1–7 | Workflow implementing each Requirement area per Cross-Reference Matrix |
+| Procedure.md | Verification | Acceptance criteria matching this Specification's requirements |
+| Procedure.md | Records | Documentation outputs matching this Specification's Documentation section |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01 Structural Steel Design Drawing Set: drawing notes reference calculation assumptions/results (governing load cases, member sizing, design notes)
+- DEL-06.02 Structural Steel Technical Specification: material/coating/workmanship assumptions align between calculations and specification clauses
+- DEL-06.04 Structural Steel Data Sheet Package: gangway/grating design justification traceable to this calculation package
+- DEL-06.05 Structural Steel Installation & Test Records: critical items (welds, bolting, coating systems) identified in calculations map to inspection/record requirements

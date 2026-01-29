@@ -11,11 +11,16 @@ This procedure defines the process for producing and managing **Design Coordinat
 **Deliverable type:** Record
 **Responsible party:** D&B Contractor (QA/QC)
 
-**Source:** _CONTEXT.md (deliverable type, responsible party)
-
 **Dual-Use Nature:** This procedure describes both:
-1. How to **produce** design coordination records (the documentation process)
-2. How to **conduct** design coordination (the coordination activity itself)
+1. How to **produce** design coordination records (documentation process)
+2. How to **conduct** design coordination (coordination activity itself)
+
+**Cross-Document References:**
+- Datasheet.md — Identification, Attributes, Conditions, Construction, References
+- Specification.md — Requirements FR-1 through FR-7, PR-1 through PR-3, IR-1 through IR-6, QR-1 through QR-4
+- Guidance.md — Principles P-1 through P-6, Considerations C-1 through C-9, Trade-offs T-1 through T-6
+
+**Source:** _CONTEXT.md (deliverable type, responsible party)
 
 ## Prerequisites
 
@@ -27,422 +32,391 @@ This procedure defines the process for producing and managing **Design Coordinat
 
 **Upstream deliverables and input data:**
 
-Design coordination occurs throughout design development and requires ongoing input from all discipline design packages (PKG-01 through PKG-36).
+| Input | Source | Specification Req | Status |
+|-------|--------|-------------------|--------|
+| Design documents from all disciplines | PKG-01 through PKG-36 | IR-1 | Required (ongoing) |
+| Coordination procedures and tools | Project setup | IR-5, IR-6 | Required |
+| BIM Execution Plan (if BIM used) | Project setup | IR-5 | Required if BIM |
+| Quality Management Plan | Project setup | IR-6 | Required |
 
 **Coordination Prerequisites:**
 - Project initiated and design teams mobilized
 - Discipline design work underway or planned
-- Coordination procedures and tools established (coordination meeting protocols, BIM coordination plan if applicable, RFI system)
+- Coordination procedures and tools established
 
-**Source:** Specification.md (IR-1: coordination interfaces with all discipline packages); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 4, Package Summary)
-
-**TBD:** Specific coordination start timing and prerequisites per project schedule
+**Source:** Specification.md (IR-1, IR-5, IR-6); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 4)
 
 ### Reference Materials
 
-**Required references:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- BIM Execution Plan (BEP) — **TBD**: Project BIM requirements and coordination protocols (if BIM is used)
-- Project Quality Management Plan (QMP) — **TBD**: QMP reference for coordination procedures
-- Employer's Requirements — **TBD**: Specific ER sections governing design coordination requirements
-- Design basis documents and design criteria per discipline
-- Applicable codes and standards per discipline
+| Reference | Location | Status |
+|-----------|----------|--------|
+| Applicable reference documents | _REFERENCES.md | See file |
+| Package reference materials | 0_References/ | See folder |
+| BIM Execution Plan | — | **TBD**: If BIM used |
+| Project Quality Management Plan | — | **TBD** |
+| Employer's Requirements | — | **TBD**: Specific ER sections |
 
 **Source:** Specification.md (Standards section, IR-5, IR-6); Datasheet.md (References section)
 
 ### Personnel Requirements
 
-**D&B Contractor Personnel:**
+| Role | Responsibility | Qualifications | Specification Req |
+|------|----------------|----------------|-------------------|
+| Design Coordination Lead | Overall coordination, facilitates meetings, manages records | — | FR-1, FR-2 |
+| BIM Coordinator (if BIM) | Manages models, performs clash detection | BIM software expertise | FR-3, FR-4 |
+| RFI Coordinator | Manages RFI process and tracking | — | FR-5 |
+| QA/QC Manager | Oversees coordination as quality management | — | QR-1, QR-2 |
+| Discipline Design Leads | Represent disciplines, resolve coordination issues | P.Eng. (BC) — **TBD** | IR-1 |
 
-**Coordination Management Roles:**
-- Design Coordination Lead — overall responsibility for coordination process, facilitates coordination meetings, manages coordination records
-- BIM Coordinator (if BIM is used) — manages 3D models, performs clash detection, facilitates BIM coordination meetings
-- RFI Coordinator — manages RFI process and tracking system
-- QA/QC Manager — oversees coordination as part of quality management, ensures coordination records are maintained
-- **ASSUMPTION**: Coordination management roles; **TBD**: Specific role assignments
-
-**Discipline Design Lead Roles:**
-- Discipline Design Leads (Civil, Structural, Marine, Mechanical, Process, Electrical, I&C, Fire Protection, Environmental, etc.) — represent their disciplines in coordination, participate in coordination meetings, resolve coordination issues, update designs to address coordination requirements
-- Qualified professional engineers (P.Eng. in BC or equivalent) — **TBD**: Specific licensing requirements per discipline
-- **Source:** Datasheet.md (coordination scope across disciplines); Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md (Section 4, Package Summary: multi-discipline project); **ASSUMPTION**: P.Eng. qualifications per professional practice standards
-
-**TBD:** Specific personnel assignments, qualifications, and time allocation for coordination activities
-
-### Tools and Systems
-
-**Required Tools:**
-- Meeting platform (in-person meeting rooms or virtual meeting software like Teams, Zoom) — **TBD**: Meeting platform specification
-- BIM software (if BIM is used) — **TBD**: Specific BIM software (e.g., Revit, Navisworks for clash detection, etc.)
-- RFI tracking system (spreadsheet, database, or project management software) — **TBD**: RFI tracking system specification
-- Issue tracking system for coordination issues — **TBD**: Issue tracking system (may be same as RFI system or separate)
-- Project document management system for filing coordination records
-- Collaboration tools (shared file systems, cloud storage) for model sharing and document exchange
-- **ASSUMPTION**: Electronic tools for efficiency and accessibility
-
-**TBD:** Specific tool selections and configurations
+**Source:** Datasheet.md (Conditions: Coordination Scope); Guidance.md (C-2)
 
 ## Steps
 
+### Step Summary
+
+| Step | Activity | Specification Req | Guidance § | Verification |
+|------|----------|-------------------|------------|--------------|
+| 1 | Establish Coordination Framework | FR-2, FR-3, FR-5, IR-5, IR-6, QR-1 | C-1, C-2, C-4, C-5 | — |
+| 2 | Conduct Regular Coordination Meetings | FR-1, FR-2, PR-1, PR-3 | P-2, C-3, E-1 | V-1 |
+| 3 | Perform BIM Clash Detection (if BIM) | FR-3, FR-4, PR-1, IR-5 | P-4, C-4, T-3, E-2 | V-1 |
+| 4 | Resolve Coordination Issues | FR-4, FR-5, FR-6, FR-7, PR-2, IR-1 | P-6, C-5, C-6, C-7, E-3, E-4 | V-3 |
+| 5 | Pre-Submission Coordination Verification | IR-2, PR-2 | P-2, C-8 | V-3 |
+| 6 | Maintain Coordination Records | QR-3, D-1 through D-7 | C-9 | V-1 |
+| 7 | Final Coordination Records Compilation | QR-3, QR-4, D-7 | C-9 | V-1, V-2, V-4, V-5 |
+| 8 | Submittal to Employer (if required) | D-8 | — | — |
+
 ### Step 1: Establish Coordination Framework
 
-**1.1 Develop Coordination Plan**
+**1.1 Develop Coordination Plan** — Specification.md FR-2, FR-3, FR-5, IR-5, IR-6, QR-1; Guidance.md C-1
 - Define coordination approach:
-  - Coordination meeting frequency and schedule — **TBD**: Meeting schedule
-  - BIM coordination requirements (if applicable) — **TBD**: BIM coordination plan
+  - Coordination meeting frequency and schedule — **TBD**
+  - BIM coordination requirements (if applicable) — **TBD**: Per BEP
   - RFI process and protocols
   - Interface management approach
   - Issue tracking and escalation procedures
-- Document coordination plan in project Quality Management Plan or separate coordination plan document
+- Document coordination plan in QMP or separate document
 
-**Source:** Specification.md (FR-2, FR-3, FR-5, IR-5, IR-6); Guidance.md (C-1: Coordination Approach and Tools)
-
-**1.2 Assign Coordination Roles**
-- Assign coordination roles and responsibilities per Personnel Requirements above
-- Communicate roles and responsibilities to project team
+**1.2 Assign Coordination Roles** — Guidance.md C-2
+- Assign roles per Personnel Requirements above
+- Communicate roles to project team
 - Establish authority levels for coordination decisions
 
-**Source:** Guidance.md (C-2: Coordination Roles and Responsibilities)
-
-**1.3 Set Up Coordination Tools**
-- Set up BIM coordination environment (if BIM is used): model repository, clash detection software, model standards
-- Set up RFI tracking system with RFI log template
+**1.3 Set Up Coordination Tools** — Specification.md FR-3, FR-5, FR-7; Guidance.md C-1, C-4, C-5
+- Set up BIM coordination environment (if BIM): model repository, clash software, standards
+- Set up RFI tracking system with log template
 - Set up coordination issue tracking system
-- Set up coordination meeting schedule and calendar invites
-- Provide training to project team on coordination tools and processes
+- Set up meeting schedule
+- Train project team on tools and processes
 
-**Source:** Specification.md (FR-3, FR-5, FR-7); Guidance.md (C-1: Coordination Approach and Tools, C-4: BIM Coordination Strategy, C-5: RFI Process)
-
-**Verification:** Coordination framework established; roles assigned; tools set up and operational; team trained
+**Verification:** Framework established; roles assigned; tools operational; team trained
 
 ### Step 2: Conduct Regular Coordination Meetings
 
-**2.1 Schedule and Convene Coordination Meetings**
-- Hold regular inter-discipline coordination meetings per established schedule (e.g., weekly or bi-weekly during active design)
-- Distribute meeting agenda in advance (1-2 days prior) — **TBD**: Agenda distribution timing
-- Ensure discipline design leads attend or send qualified delegates
+**2.1 Schedule and Convene Meetings** — Specification.md FR-1, FR-2; Guidance.md P-2, C-3
+- Hold regular meetings per schedule (e.g., weekly/bi-weekly during active design)
+- Distribute agenda in advance (1-2 days prior) — **TBD**
+- Ensure discipline leads attend or send qualified delegates
 
-**Source:** Specification.md (FR-1, FR-2); Guidance.md (C-3: Coordination Meeting Structure)
+**2.2 Facilitate Coordination Discussion** — Guidance.md E-1
 
-**2.2 Facilitate Coordination Discussion**
-Typical coordination meeting agenda per Guidance.md (E-1):
+Typical agenda:
 1. Review action items from previous meeting
 2. Design status update by discipline
 3. Interface issues and coordination topics
 4. Clash detection results review (if available)
 5. RFI status and escalations
-6. Assign new action items with responsible party and due date
+6. Assign new action items with responsibility and due date
 7. Schedule next meeting
 
-**Source:** Specification.md (FR-1); Guidance.md (C-3: Coordination Meeting Structure, E-1: Sample agenda)
+**2.3 Document Meeting Minutes** — Specification.md FR-1, PR-3, D-1; Datasheet.md Construction; Guidance.md E-1
 
-**2.3 Document Meeting Minutes**
-- Document coordination meeting minutes including:
-  - Meeting date, time, location/format
-  - Attendees list
-  - Discussion topics and interface issues
-  - Decisions made
-  - Action items with responsible party and due date
-  - Next meeting date
-- Issue meeting minutes within **TBD** days of meeting (e.g., 2-5 days)
-- Distribute meeting minutes to attendees and file in project document management system
+Document minutes including:
 
-**Source:** Specification.md (FR-1, PR-3, D-1); Datasheet.md (coordination meeting minutes format); Guidance.md (E-1: Sample minutes)
+| Element | Content |
+|---------|---------|
+| Meeting ID | Sequential (COORD-MTG-001, etc.) |
+| Date/Time/Location | Meeting details |
+| Attendees | Names, disciplines |
+| Discussion Topics | Interface issues discussed |
+| Decisions Made | Coordination decisions |
+| Action Items | Responsible party, due date |
+| Next Meeting | Scheduled date |
 
-**Verification:** Coordination meetings held per schedule; meeting minutes documented and distributed; action items tracked
+- Issue minutes within **TBD** days (e.g., 2-5 days)
+- Distribute to attendees and file in document management system
+
+**Verification:** Meetings held per schedule (V-1); minutes documented and distributed; action items tracked
 
 ### Step 3: Perform BIM Clash Detection (if BIM is used)
 
-**3.1 Federate Discipline Models**
-- Collect current design models from all disciplines
-- Federate (combine) discipline models in clash detection software (e.g., Navisworks)
+**3.1 Federate Discipline Models** — Specification.md FR-3; Guidance.md C-4
+- Collect current models from all disciplines
+- Federate in clash detection software (e.g., Navisworks)
 - Verify models are current revisions and properly georeferenced
 
-**Source:** Specification.md (FR-3); Guidance.md (C-4: BIM Coordination Strategy)
+**3.2 Run Clash Detection** — Specification.md FR-3; Guidance.md T-3
+- Perform clash detection per defined frequency:
+  - **Minimum**: Prior to each design submission (30%, 60%, 90%, IFC)
+  - **TBD**: Additional interim frequency (e.g., weekly/bi-weekly during active design)
+- Use clash detection rules and filters appropriate to design stage
 
-**3.2 Run Clash Detection**
-- Perform clash detection analysis using BIM software
-- Run clash detection per defined frequency:
-  - **Minimum**: Prior to each major design submission (30%, 60%, 90%, IFC)
-  - **TBD**: Additional interim clash detection frequency (e.g., weekly or bi-weekly during active design)
-- Use clash detection rules and filters appropriate to design stage (filter out known acceptable "clashes" like bolt clearances, etc.)
+**3.3 Review and Classify Clashes** — Specification.md FR-4; Datasheet.md Construction; Guidance.md C-7
 
-**Source:** Specification.md (FR-3); **ASSUMPTION**: Clash detection frequency and rules
+Classify by severity:
 
-**3.3 Review and Classify Clashes**
-- Review all detected clashes
-- Classify clashes by severity:
-  - **Critical**: Clashes affecting primary structure, safety systems, code compliance — must resolve before submission
-  - **Major**: Clashes affecting functionality or constructability — should resolve before submission
-  - **Minor**: Clashes with minimal impact — resolve during design development or construction
-- Assign clashes to responsible disciplines for resolution
+| Severity | Definition | Action |
+|----------|------------|--------|
+| Critical | Affects structure, safety, code compliance | Must resolve before submission |
+| Major | Affects functionality or constructability | Should resolve before submission |
+| Minor | Minimal impact | Resolve during design or construction |
 
-**Source:** Specification.md (FR-4); Datasheet.md (clash severity classification); Guidance.md (C-7: Coordination Issue Prioritization)
+Assign clashes to responsible disciplines for resolution
 
-**3.4 Generate Clash Detection Report**
-- Generate clash detection report from BIM software showing:
-  - Clash detection run date and model revisions
-  - Total clashes detected and breakdown by severity
-  - Clashes by discipline pair
-  - Individual clash details (location, disciplines involved, classification, responsible party, status)
-- Export clash report to PDF and distribute to discipline design leads
-- File clash report in project document management system
+**3.4 Generate Clash Detection Report** — Specification.md FR-3, FR-4, D-2; Guidance.md E-2
 
-**Source:** Specification.md (FR-3, FR-4, D-2); Datasheet.md (clash detection report format); Guidance.md (E-2: Sample clash report)
+Generate report showing:
+- Clash detection run date and model revisions
+- Total clashes and breakdown by severity
+- Clashes by discipline pair
+- Individual clash details (location, disciplines, classification, responsible, status)
 
-**Verification:** Clash detection performed per schedule; clashes classified and assigned; clash report generated and distributed
+Export to PDF and distribute to discipline leads; file in document management system
+
+**Verification:** Clash detection performed per schedule (V-1); clashes classified and assigned; report generated and distributed
 
 ### Step 4: Resolve Coordination Issues (Clashes, RFIs, Interface Questions)
 
-**4.1 Clash Resolution**
-For each clash assigned:
-- Responsible discipline reviews clash and determines resolution approach (reroute pipe, adjust elevation, relocate equipment, etc.)
-- Discipline updates design documents (drawings, models) to resolve clash
-- Discipline updates clash status in clash tracking system or reports closure to BIM Coordinator
-- BIM Coordinator verifies clash resolution in updated models
+**4.1 Clash Resolution** — Specification.md FR-4; Guidance.md P-6
+- Responsible discipline reviews clash and determines resolution approach
+- Discipline updates design documents to resolve clash
+- Discipline updates clash status in tracking system
+- BIM Coordinator verifies resolution in updated models
 
-**Source:** Specification.md (FR-4); **ASSUMPTION**: Clash resolution workflow
+**4.2 RFI Processing** — Specification.md FR-5, PR-2; Datasheet.md Construction; Guidance.md C-5, E-3
 
-**4.2 RFI Processing**
-When design question or clarification is needed:
-- Originating discipline submits RFI using RFI system
-- RFI Coordinator logs RFI in RFI tracking system with unique RFI number
-- RFI Coordinator routes RFI to addressee (discipline or party responsible for response)
-- Addressee reviews RFI and prepares response
-- Addressee submits response via RFI system
-- RFI Coordinator updates RFI log with response and date
-- Originating discipline confirms response resolves question and closes RFI
-- **TBD**: RFI response timeframe requirement (e.g., respond within 5-10 business days)
+When design question/clarification needed:
 
-**Source:** Specification.md (FR-5, PR-2); Datasheet.md (RFI log format); Guidance.md (C-5: RFI Process, E-3: Sample RFI log)
+| Step | Activity |
+|------|----------|
+| 1 | Originating discipline submits RFI |
+| 2 | RFI Coordinator logs with unique number |
+| 3 | RFI routed to addressee |
+| 4 | Addressee prepares and submits response |
+| 5 | RFI Coordinator updates log with response |
+| 6 | Originating discipline confirms resolution and closes RFI |
 
-**4.3: Interface Coordination** (for critical interfaces)
-For complex or critical interfaces:
-- Affected disciplines coordinate interface requirements (elevations, locations, loads, connection details, responsibilities)
-- Document interface agreement in interface register or coordination meeting minutes
-- Verify interface agreement is reflected in design documents
-- Update interface register status to "Agreed" and later "Verified"
+**TBD**: RFI response timeframe (e.g., 5-10 business days)
 
-**Source:** Specification.md (FR-6); Datasheet.md (interface registers); Guidance.md (C-6: Interface Documentation, E-4: Sample interface register)
+**4.3 Interface Coordination** — Specification.md FR-6; Datasheet.md Construction; Guidance.md C-6, E-4
 
-**4.4 Escalation of Critical Issues**
-For critical or high-priority coordination issues that are not being resolved:
-- Design Coordination Lead escalates to project management
-- Project management intervenes to facilitate resolution (additional meetings, resource allocation, decision authority)
+For complex/critical interfaces:
+- Affected disciplines coordinate interface requirements
+- Document agreement in interface register or meeting minutes
+- Verify agreement reflected in design documents
+- Update register status: TBD → Agreed → Verified
+
+**4.4 Escalation of Critical Issues** — Specification.md FR-7, PR-2; Guidance.md P-6, C-7
+
+For critical/high-priority issues not being resolved:
+- Coordination Lead escalates to project management
+- Project management intervenes to facilitate resolution
 - Critical issues tracked until resolved
 
-**Source:** Specification.md (FR-7, PR-2); Guidance.md (P-6: Issue Tracking to Closure, C-7: Prioritization)
-
-**Verification:** Coordination issues (clashes, RFIs, interface questions) tracked and resolved; critical issues escalated and resolved before design submissions
+**Verification:** Issues tracked and resolved (V-3); critical issues escalated; RFIs responded
 
 ### Step 5: Pre-Submission Coordination Verification
 
 Prior to each major design submission (30%, 60%, 90%, IFC):
 
-**5.1 Coordination Status Review**
-- Review coordination status:
-  - All coordination meetings held and documented
-  - Clash detection performed on current models
-  - All critical and major clashes resolved (per specification PR-2)
-  - All critical and high-priority coordination issues resolved
-  - All overdue RFIs escalated and resolved or have approved action plans
-  - Interface agreements documented and reflected in design
-- Prepare coordination status summary
+**5.1 Coordination Status Review** — Specification.md IR-2, PR-2; Guidance.md P-2, C-8
 
-**Source:** Specification.md (IR-2, PR-2); Guidance.md (C-8: Coordination Status Tracking and Reporting)
+Review status:
+- All coordination meetings held and documented
+- Clash detection performed on current models
+- All critical and major clashes resolved
+- All critical and high-priority issues resolved
+- All overdue RFIs resolved or have approved action plans
+- Interface agreements documented and reflected in design
 
-**5.2 Final Clash Detection Run**
-- Perform final clash detection run on design submission models
+Prepare coordination status summary
+
+**5.2 Final Clash Detection Run** — Specification.md FR-3, FR-4, PR-2
+- Perform final clash detection on submission models
 - Verify all critical and major clashes resolved
-- Document any remaining minor clashes with justification for deferral (if applicable)
-- Issue final clash detection report for design submission
-
-**Source:** Specification.md (FR-3, FR-4, PR-2); **ASSUMPTION**: Final clash check before submission
+- Document any remaining minor clashes with justification for deferral
+- Issue final clash detection report for submission
 
 **5.3 Coordination Sign-Off** (if required)
-- Obtain coordination sign-off from discipline design leads confirming their designs are coordinated
-- **TBD**: Coordination sign-off requirements and format
-- **ASSUMPTION**: Sign-off may be informal (email confirmation) or formal (signed coordination certificate)
+- Obtain coordination sign-off from discipline leads confirming designs are coordinated
+- **TBD**: Sign-off requirements and format
 
-**Verification:** Coordination status verified; critical and major issues resolved; coordination readiness confirmed for design submission
+**Verification:** Status verified (V-3); critical and major issues resolved; coordination readiness confirmed
 
 ### Step 6: Maintain Coordination Records
 
 Throughout design development:
 
-**6.1 File Coordination Meeting Minutes**
-- File meeting minutes in project document management system within **TBD** days of meeting
-- File in `1_Working/DEL-28.03_Design_Coordination_Installation_and_Test_Records/` folder or designated coordination records folder
+**6.1 File Coordination Meeting Minutes** — Specification.md FR-1, PR-3, D-1, D-7; Guidance.md C-9
+- File minutes in document management system within **TBD** days
+- File in `1_Working/DEL-28.03.../` or designated folder
 - Maintain sequential filing (COORD-MTG-001, COORD-MTG-002, etc.)
 
-**Source:** Specification.md (FR-1, PR-3, D-1, D-7); **ASSUMPTION**: Systematic filing
+**6.2 Maintain RFI Log** — Specification.md FR-5, D-3, D-7
+- Maintain log in real-time as RFIs submitted and responded
+- Keep log accessible to project team
+- Export snapshots at milestones (30%, 60%, 90%, IFC)
+- File snapshots in coordination records folder
 
-**6.2 Maintain RFI Log**
-- Maintain RFI log in real-time as RFIs are submitted and responded to
-- Keep RFI log accessible to project team (shared file location, project management system)
-- Export RFI log snapshots to PDF at design milestones (30%, 60%, 90%, IFC) for archival
-- File RFI log snapshots in coordination records folder
+**6.3 File Clash Detection Reports** — Specification.md D-2, D-7
+- File reports after each clash run
+- Sequential filing by date and stage (CLASH-REPORT-2026-02-15-60PCT, etc.)
 
-**Source:** Specification.md (FR-5, D-3, D-7); Guidance.md (C-9: Record Management)
-
-**6.3 File Clash Detection Reports**
-- File clash detection reports in coordination records folder after each clash detection run
-- Maintain sequential filing by date and stage (CLASH-REPORT-2026-02-15-60PCT, etc.)
-
-**Source:** Specification.md (D-2, D-7); **ASSUMPTION**: Systematic filing
-
-**6.4 Maintain Coordination Issue Logs** (if used)
-- Maintain coordination issue logs (if used) in real-time
-- Export snapshots at design milestones for archival
+**6.4 Maintain Coordination Issue Logs** (if used) — Specification.md FR-7, D-5, D-7
+- Maintain logs in real-time
+- Export snapshots at milestones
 - File in coordination records folder
 
-**Source:** Specification.md (FR-7, D-5, D-7); **ASSUMPTION**: Living documents with milestone snapshots
-
-**Verification:** Coordination records filed systematically and accessible; living documents (RFI logs, issue logs) current and accessible
+**Verification:** Records filed systematically (V-1); living documents current and accessible
 
 ### Step 7: Final Coordination Records Compilation
 
 At project completion or final design submission (IFC):
 
-**7.1 Compile Final Coordination Record Package**
-- Compile final coordination record package including:
-  - All coordination meeting minutes (full set from project start to completion)
-  - All clash detection reports (full set from all design stages)
-  - Final RFI log export (complete log showing all RFIs and resolutions)
-  - Final interface registers (if used)
-  - Final coordination issue logs (if used)
-  - Coordination status summary for final submission
-- Organize records in logical structure (by record type, by date, or by design stage)
+**7.1 Compile Final Coordination Record Package** — Specification.md D-1 through D-5, D-7
+Compile final package including:
+- All coordination meeting minutes
+- All clash detection reports
+- Final RFI log export
+- Final interface registers (if used)
+- Final coordination issue logs (if used)
+- Coordination status summary
 
-**Source:** Specification.md (D-1 through D-5, D-7); **ASSUMPTION**: Final compilation at project completion
+Organize in logical structure
 
-**7.2 Final QA/QC Review**
-- Perform completeness check of coordination records per Specification.md (V-1)
-- Verify all required records present
-- Verify records accurately reflect coordination activities (data accuracy per Specification.md V-2)
-- Obtain QA/QC approval
+**7.2 Final QA/QC Review** — Specification.md V-1, V-2, V-4; Guidance.md C-9
+- Perform completeness check (V-1)
+- Verify data accuracy (V-2)
+- Obtain QA/QC approval (V-4)
 
-**Source:** Specification.md (V-1, V-2, V-4)
+**7.3 File Final Coordination Records** — Specification.md QR-3, QR-4, D-6, D-7
+- File in `3_Issued/`
+- Assign final document number and date — **TBD**
+- File in document management system with proper metadata
+- Retain per record retention requirements (V-5)
 
-**7.3 File Final Coordination Records**
-- File final coordination record package in `3_Issued/` folder
-- Assign final document number and date — **TBD**: Document numbering for final record package
-- File in project document management system with proper metadata for long-term retention
-- Retain per record retention requirements (Specification.md QR-4)
-
-**Source:** Specification.md (QR-3, QR-4, D-6, D-7); Datasheet.md (retention period TBD)
-
-**Verification:** Final coordination records compiled, reviewed, and filed; records complete and accurate; retention requirements met
+**Verification:** Records compiled, reviewed, filed; complete and accurate (V-1, V-2, V-4, V-5)
 
 ### Step 8: Submittal to Employer (if required)
 
-**8.1 Prepare Coordination Records Submittal** (if required by Employer)
-- Prepare coordination records for submittal to Employer per contract requirements
-- **TBD**: Employer submittal requirements for coordination records (summary only, full records, or records upon request)
-- Typical approach: Include coordination status summary in design submission packages; provide detailed records upon request
-
-**Source:** Specification.md (D-8: Submittal to Employer); **ASSUMPTION**: Coordination summaries with submissions, detailed records available
+**8.1 Prepare Coordination Records Submittal** — Specification.md D-8
+- Prepare records per contract requirements — **TBD**
+- Typical: Status summaries with submissions; detailed records upon request
 
 **8.2 Submit to Employer**
-- Submit coordination records to Employer per submittal protocol
-- Log submittal in project correspondence system
+- Submit per submittal protocol
+- Log submittal in correspondence system
 
-**Verification:** Coordination records submitted to Employer per requirements (if required); submittal logged
+**Verification:** Records submitted per requirements (if required); logged
 
 ## Verification
 
 **Verification activities for Design Coordination Record deliverables:**
 
-**V-1: Completeness Check**
-- Verify all required coordination records present
-- **Verification method:** Records checklist per Specification.md (V-1)
-- **Acceptance criteria:** All coordination meetings documented; all clash detection runs documented; RFI log complete
-- **Source:** Specification.md (V-1)
+| Verification ID | Method | Acceptance Criteria | Procedure Step |
+|-----------------|--------|---------------------|----------------|
+| V-1 | Records completeness check | All meetings documented; all clash runs documented; RFI log complete | Step 6, Step 7.2 |
+| V-2 | Data accuracy verification | Records accurate and consistent with source data | Step 7.2 |
+| V-3 | Coordination issue closure | Critical clashes/issues resolved; major items resolved or action plans in place | Step 5 |
+| V-4 | Record approval verification | Required approvals obtained | Step 7.2 |
+| V-5 | Archival format compliance | Records properly filed and retrievable | Step 7.3 |
 
-**V-2: Data Accuracy Verification**
-- Verify coordination records accurately reflect coordination activities
-- **Verification method:** Spot-check per Specification.md (V-2)
-- **Acceptance criteria:** Records accurate and consistent with source data
-- **Source:** Specification.md (V-2)
+**Sign-off Requirements:**
 
-**V-3: Coordination Issue Closure Verification**
-- Verify critical clashes and critical coordination issues resolved before design submissions
-- **Verification method:** Issue status review per Specification.md (V-3)
-- **Acceptance criteria:** Critical items resolved; major items substantially resolved or action plans in place
-- **Source:** Specification.md (V-3)
+| Role | Sign-off Requirement | Document Location | Specification Req |
+|------|---------------------|-------------------|-------------------|
+| Meeting Chair / Coordination Lead | Meeting minutes approval | Minutes (signature or approval record) | FR-1, QR-2 |
+| BIM Coordinator (if BIM) | Clash detection report approval | Report (signature or approval record) | FR-3 |
+| RFI Coordinator | RFI log compilation approval | Log export (cover sheet or approval record) | FR-5 |
+| D&B Contractor QA/QC Manager | Final record package approval | Final package (cover sheet or approval record) | QR-1, QR-2 |
 
-**V-4: Record Approval Verification**
-- Verify coordination records approved by responsible QA/QC personnel
-- **Verification method:** Approval check per Specification.md (V-4)
-- **Acceptance criteria:** Required approvals obtained
-- **Source:** Specification.md (V-4)
-
-**V-5: Archival Format Compliance**
-- Verify records filed in proper format and document management system
-- **Verification method:** Filing compliance check per Specification.md (V-5)
-- **Acceptance criteria:** Records properly filed and retrievable
-- **Source:** Specification.md (V-5)
-
-**Sign-off requirements:**
-
-| Role | Sign-off Requirement | Document Location |
-|------|---------------------|-------------------|
-| Meeting Chair / Design Coordination Lead | Approval of coordination meeting minutes | Meeting minutes (signature or approval record) |
-| BIM Coordinator (if applicable) | Approval of clash detection reports | Clash detection report (signature or approval record) |
-| RFI Coordinator | Approval of RFI log compilations | RFI log export (cover sheet or approval record) |
-| D&B Contractor QA/QC Manager | Final approval of coordination record package | Final coordination record package (cover sheet or approval record) — **TBD**: Specific approval format |
-
-**Source:** Specification.md (V-4, Acceptance criteria); **ASSUMPTION**: Sign-off roles and requirements for quality records
+**Source:** Specification.md (Verification section); Guidance.md (P-5)
 
 ## Records
 
 **Documentation outputs:**
 
 **Primary Deliverables:**
-- Inter-discipline coordination records (coordination meeting minutes from all coordination meetings throughout design)
-- Clash detection reports (reports from all clash detection runs throughout design, if BIM is used)
-- RFI logs (complete RFI log showing all RFIs and resolutions throughout design)
 
-**Source:** _CONTEXT.md (anticipated artifacts); Specification.md (D-1, D-2, D-3)
+| Document Type | Naming Convention | Frequency | Source |
+|---------------|-------------------|-----------|--------|
+| Coordination Meeting Minutes | COORD-MTG-[###] | Per meeting | Specification.md D-1 |
+| Clash Detection Reports | CLASH-REPORT-[Date]-[Stage] | Per clash run | Specification.md D-2 |
+| RFI Logs | RFI-LOG-[Date/Rev] | Ongoing; snapshots at milestones | Specification.md D-3 |
 
-**Supporting Records:** — **ASSUMPTION**: Additional coordination documentation
-- Interface registers or interface agreements (if used)
-- Coordination issue logs (if used)
-- Coordination status summaries (at design milestones)
-- BIM Execution Plan (if BIM is used)
-- Coordination procedures and protocols
+**Source:** _CONTEXT.md (anticipated artifacts); Datasheet.md (Attributes: Record Types)
 
-**Source:** Specification.md (D-4, D-5); Guidance.md (supporting coordination documentation)
+**Supporting Records:**
 
-**Record management:**
+| Record Type | Purpose |
+|-------------|---------|
+| Interface registers | Interface agreement documentation |
+| Coordination issue logs | Issue tracking |
+| Coordination status summaries | Milestone status |
+| BIM Execution Plan (if BIM) | BIM coordination requirements |
+| Coordination procedures | Process documentation |
 
-**Filing and Storage:**
-- **Working documents**: Stored in `1_Working/DEL-28.03_Design_Coordination_Installation_and_Test_Records/` folder throughout design
-- **Living documents** (RFI logs, issue logs): Maintained in working folder; snapshots exported to issued folder at milestones
-- **Issued records**: Final coordination record package filed in `3_Issued/` at project completion or final design submission
-- **Electronic records**: Stored in project document management system with appropriate metadata and access controls
+**Source:** Specification.md (D-4, D-5); Guidance.md
 
-**Source:** Specification.md (D-7: Record Management); **ASSUMPTION**: Living documents in working folder, final package in issued folder
+**Record Management:**
 
-**Retention requirements:**
-- **TBD**: Project records retention per contract requirements (typically 7-10 years post-project completion for quality records and professional liability)
-- **ASSUMPTION**: Long-term retention for quality management and professional liability
+| Location | Purpose | Documents |
+|----------|---------|-----------|
+| `1_Working/DEL-28.03.../` | Working documents | Drafts, living documents |
+| `1_Working/...` | Living documents | RFI logs, issue logs (with milestone exports) |
+| `3_Issued/` | Final package | Complete coordination records at project completion |
+| Project DMS | Electronic records | All records with metadata |
 
-**Source:** Specification.md (QR-4: Record Retention); Datasheet.md (retention period TBD)
+**Source:** Specification.md (D-7)
 
 **Document Control:**
-- Meeting minutes numbering: **TBD** — **ASSUMPTION**: Sequential (COORD-MTG-001, COORD-MTG-002, etc.)
-- Clash report numbering: **TBD** — **ASSUMPTION**: By date and stage (CLASH-REPORT-YYYY-MM-DD-STAGE)
-- RFI log numbering: **TBD** — **ASSUMPTION**: Log filename with date/revision; individual RFIs numbered sequentially (RFI-001, RFI-002, etc.)
-- Final record package numbering: **TBD** — **ASSUMPTION**: Package number assigned at final compilation
-- Format: **TBD** — **ASSUMPTION**: PDF for issued records and reports, spreadsheet/database format for living logs, editable format (Word, etc.) for draft minutes
+- Meeting minutes numbering: Sequential (COORD-MTG-001, etc.)
+- Clash report numbering: By date and stage (CLASH-REPORT-YYYY-MM-DD-STAGE)
+- RFI log numbering: Log filename with date/revision; RFIs numbered sequentially (RFI-001, etc.)
+- Final package numbering: **TBD**
+- Format: PDF for issued; spreadsheet/database for living logs; editable for drafts
+- Retention: **TBD** — 7-10 years per contract requirements
 
-**Source:** Specification.md (D-6: Document Control); Datasheet.md (record numbering TBD)
+**Source:** Specification.md (D-6); Datasheet.md (Attributes: Retention Period)
 
 **Interface with Other Deliverables:**
-- Coordination records support design submissions (DEL-27.04) — coordination status included in submission readiness
-- Coordination records interface with IDV reports (DEL-28.01) — coordination provides evidence to IDV reviewers
-- Coordination records interface with VFPA IP Review responses (DEL-28.02) — coordination ensures consistent approach to VFPA requirements
-- Coordination records support all discipline design packages (PKG-01 through PKG-36) — coordination ensures cross-discipline consistency
 
-**Source:** Specification.md (IR-1, IR-2, IR-3, IR-4); Datasheet.md (related deliverables)
+| Deliverable | Relationship | Specification § |
+|-------------|--------------|-----------------|
+| DEL-27.04 Design Submission Packages | Coordination status supports submission readiness | IR-2 |
+| DEL-28.01 Independent Design Verification | Coordination provides evidence to IDV reviewers | IR-3 |
+| DEL-28.02 VFPA IP Review Responses | Coordination ensures consistent approach to VFPA requirements | IR-4 |
+| PKG-01 through PKG-36 | Coordination ensures cross-discipline consistency | IR-1 |
+
+**Source:** Specification.md (IR-1 through IR-4); Datasheet.md (Cross-Deliverable Coordination)
+
+## Cross-Document Consistency Notes
+
+This procedure has been verified for consistency with:
+- **Datasheet.md**: All procedure steps reference appropriate Datasheet sections
+- **Specification.md**: All steps implement specific requirements (FR, PR, IR, QR)
+- **Guidance.md**: Steps informed by principles (P) and considerations (C)
+
+**Step-to-Requirement Traceability:**
+
+| Procedure Step | Specification Requirements | Guidance Sections |
+|----------------|---------------------------|-------------------|
+| Step 1 | FR-2, FR-3, FR-5, IR-5, IR-6, QR-1 | C-1, C-2, C-4, C-5 |
+| Step 2 | FR-1, FR-2, PR-1, PR-3, D-1 | P-2, C-3, E-1 |
+| Step 3 | FR-3, FR-4, PR-1, IR-5, D-2 | P-4, C-4, C-7, T-3, E-2 |
+| Step 4 | FR-4, FR-5, FR-6, FR-7, PR-2, IR-1, D-3, D-4, D-5 | P-6, C-5, C-6, C-7, E-3, E-4 |
+| Step 5 | IR-2, PR-2 | P-2, C-8 |
+| Step 6 | QR-3, D-1, D-2, D-3, D-5, D-7 | C-9 |
+| Step 7 | QR-3, QR-4, D-6, D-7, V-1, V-2, V-4, V-5 | C-9 |
+| Step 8 | D-8 | — |
+
+**Verification performed per:** AGENT_4_DOCUMENTS_REVISED_v3.md (Step 5, Cross-Reference and Iterate)

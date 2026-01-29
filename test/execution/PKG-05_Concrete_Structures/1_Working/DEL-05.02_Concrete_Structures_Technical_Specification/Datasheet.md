@@ -120,13 +120,23 @@
 - Guidance.md — principles and trade-offs to incorporate into the technical specification language.
 - Procedure.md — drafting/review/issue workflow and verification approach for the specification.
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- **Specification → Requirements:** Each specification artifact (concrete, reinforcement, formwork) listed in Construction must be explicitly required in `Specification.md` with acceptance criteria and verification methods.
-- **Specification → Standards:** Material standards and codes referenced in Conditions must align with Standards section in `Specification.md`.
-- **Procedure → Verification:** `Procedure.md` defines the review and verification workflow to ensure completeness, consistency, and traceability to Employer's Requirements.
-- **Guidance → Durability/Containment Intent:** Durability and containment requirements (OBJ-7) must be emphasized in specification language as described in Principles in `Guidance.md`.
+| Datasheet Section | Specification § | Guidance § | Procedure Step |
+|-------------------|-----------------|------------|----------------|
+| Attributes (Document Number, Revision, Standards Framework) | QR-01 Document Control, Standards | P-04 Evidence-Based Standards | Step 8 (Finalize and Issue) |
+| Conditions (Design Basis Items) | FR-03 Durability Requirements, PR-01 Durability Performance | P-02 Durability-First Framing, C-05 BC Coastal Environment | Step 2 (Extract Requirements) |
+| Construction: Concrete Specification | FR-02 through FR-06 | P-01 Requirement Clarity, P-02 Durability-First, P-03 Containment Sensitivity | Step 3 (Draft Concrete Section) |
+| Construction: Reinforcement Specification | FR-07 through FR-09 | P-01 Requirement Clarity, C-03 Constructability | Step 4 (Draft Reinforcement Section) |
+| Construction: Formwork Specification | FR-10 through FR-12 | P-01 Requirement Clarity, C-02 Interface Coordination | Step 5 (Draft Formwork Section) |
+
+## Cross-Document Notes
+
+- **Specification → Requirements:** Each specification artifact (concrete, reinforcement, formwork) listed in Construction must be explicitly required in `Specification.md` §FR-01 through §FR-12 with acceptance criteria and verification methods per §QR-02.
+- **Specification → Standards:** Material standards and codes referenced in Conditions must align with `Specification.md` §Standards. Code references are **TBD** pending ER extraction.
+- **Procedure → Verification:** `Procedure.md` Steps 2-8 define the drafting, review, and verification workflow. Each Construction artifact maps to a Procedure step per the Cross-Document Traceability table above.
+- **Guidance → Durability/Containment Intent:** Durability (§P-02) and containment requirements (§P-03) supporting OBJ-7 must be emphasized in specification language.
 - **Related Deliverables:** This specification must align with:
-  - DEL-05.01 drawing notes and details (material properties, cover, tolerances)
-  - DEL-05.03 calculation assumptions (concrete strength, material properties)
-  - DEL-05.04 inspection/testing requirements (enable record generation)
+  - DEL-05.01 drawing notes and details (material properties, cover, tolerances) — `Specification.md` §IR-01, §QR-03
+  - DEL-05.03 calculation assumptions (concrete strength, material properties) — `Specification.md` §IR-01
+  - DEL-05.04 inspection/testing requirements (enable record generation) — `Specification.md` §FR-06, §FR-09, §QR-02

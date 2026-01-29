@@ -14,27 +14,36 @@ Source: _CONTEXT.md; decomposition DEL-02.01 entry (location TBD).
 **Coordination status:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md).
 
 **Key coordination interfaces:**
-- DEL-02.02 (Earthworks Technical Specification): Defines materials, methods, and acceptance criteria to be referenced in drawing notes.
-- DEL-02.03 (Earthworks Design Calculations): Provides cut/fill quantities and design basis for grading and sections (R3, R5).
-- DEL-02.04 (Geotechnical Reports): Provides ground conditions, bearing capacity, and ground improvement recommendations (R4).
-- DEL-02.05 (Survey Reports): Provides topographic survey, benchmarks, and coordinate system (R2, R5).
-- PKG-03 deliverables: Drainage design affects grading and finish grades.
-- PKG-04 deliverables: Pavement subgrade requirements affect earthworks finish grades.
+
+| Interface | Deliverable | Relevance | Specification § |
+|-----------|-------------|-----------|-----------------|
+| Materials and methods | DEL-02.02 (Earthworks Technical Specification) | Drawing notes reference | R1, R4 |
+| Cut/fill quantities | DEL-02.03 (Earthworks Design Calculations) | Design basis | R3, R5 |
+| Ground conditions | DEL-02.04 (Geotechnical Reports) | Ground improvement design | R4 |
+| Survey data | DEL-02.05 (Survey Reports) | Coordinate system, topography | R2, R5 |
+| Drainage design | PKG-03 deliverables | Grade coordination | R2 |
+| Pavement subgrade | PKG-04 deliverables | Finish grade requirements | R2 |
 
 **Note:** Maturity of upstream deliverables to be managed per project schedule and coordination plan.
 
 ### Reference Materials Required
 
 **Primary References:**
-- Employer's Requirements volumes (Vol 2 Parts 1-3): **TBD** — not yet provided in _REFERENCES.md.
-- Project CAD standards and drawing templates: **TBD** — per ER or Contractor standards.
-- Project drawing numbering system: **TBD**.
+
+| Reference | Status | Specification § |
+|-----------|--------|-----------------|
+| Employer's Requirements volumes (Vol 2 Parts 1-3) | **TBD** — not yet provided | R1, V3 |
+| Project CAD standards and drawing templates | **TBD** — per ER or Contractor standards | R7 |
+| Project drawing numbering system | **TBD** | R7 |
 
 **Design Inputs:**
-- Topographic survey from DEL-02.05.
-- Geotechnical investigation and ground improvement design from DEL-02.04.
-- Design calculations (cut/fill quantities, bearing capacity) from DEL-02.03.
-- Permit constraints and regulatory requirements: **TBD** pending ER.
+
+| Input | Source | Specification § |
+|-------|--------|-----------------|
+| Topographic survey | DEL-02.05 | R2, R5 |
+| Geotechnical investigation and ground improvement design | DEL-02.04 | R4 |
+| Design calculations (cut/fill quantities, bearing capacity) | DEL-02.03 | R3 |
+| Permit constraints and regulatory requirements | **TBD** pending ER | R1 |
 
 **Supporting References:**
 - Applicable civil and geotechnical design standards: **TBD** pending ER.
@@ -51,232 +60,229 @@ Source: _CONTEXT.md; decomposition DEL-02.01 entry (location TBD).
 ### Step 1: Compile and Validate Inputs
 **Objective:** Gather all required reference materials and design inputs; confirm completeness and quality.
 
+| Attribute | Value |
+|-----------|-------|
+| Specification § | R1, R3, R4 |
+| Guidance § | P3, P4, Considerations (Input Data Quality) |
+| Datasheet § | Attributes, Context & Conditions |
+
 **Actions:**
-1. Obtain and review ER volumes and extract earthworks design criteria, performance requirements, and drawing standards.
-   - **Status:** **TBD** — ER volumes not yet provided.
-   - **Verification:** Confirm ER requirements are applicable to DEL-02.01 scope.
 
-2. Obtain topographic survey (DEL-02.05) and verify coverage, accuracy, datum, and coordinate system.
-   - **Datasheet reference:** Coordinate system/datum attribute.
-   - **Verification:** Survey meets design accuracy requirements.
-
-3. Obtain geotechnical reports (DEL-02.04) and extract ground conditions, bearing capacity, and ground improvement recommendations.
-   - **Specification reference:** R4 (ground improvement layout).
-   - **Verification:** Geotechnical data coverage is adequate for earthworks design.
-
-4. Obtain design calculations (DEL-02.03) and extract cut/fill quantities, grading parameters, and design assumptions.
-   - **Specification reference:** R3 (cut/fill plans).
-   - **Verification:** Calculations are complete and approved.
-
-5. Identify coordination requirements with adjacent packages (PKG-03 drainage, PKG-04 pavements).
-   - **Guidance reference:** Principle P3 (Multi-Deliverable Coordination).
+| Step | Action | Verification | Status |
+|------|--------|--------------|--------|
+| 1.1 | Obtain and review ER volumes; extract earthworks design criteria, performance requirements, and drawing standards | Confirm ER requirements applicable to DEL-02.01 scope | **TBD** — ER volumes not yet provided |
+| 1.2 | Obtain topographic survey (DEL-02.05); verify coverage, accuracy, datum, and coordinate system | Survey meets design accuracy requirements | Pending DEL-02.05 |
+| 1.3 | Obtain geotechnical reports (DEL-02.04); extract ground conditions, bearing capacity, and ground improvement recommendations | Geotechnical data coverage adequate for earthworks design | Pending DEL-02.04 |
+| 1.4 | Obtain design calculations (DEL-02.03); extract cut/fill quantities, grading parameters, and design assumptions | Calculations complete and approved | Pending DEL-02.03 |
+| 1.5 | Identify coordination requirements with adjacent packages (PKG-03 drainage, PKG-04 pavements) | Coordination interfaces documented | Pending |
 
 **Outputs:**
 - Validated input data package.
 - Input data gaps documented as **TBD** or flagged for resolution.
 
-**Datasheet alignment:** Input validation confirms data availability for Attributes and Drawing Content sections.
-
 ### Step 2: Confirm Scope and Interface Boundaries
 **Objective:** Define drawing set scope, content coverage, and interface boundaries per PKG-02 scope and Specification R1, R6.
 
+| Attribute | Value |
+|-----------|-------|
+| Specification § | R1, R6, R7 |
+| Guidance § | P2 (Interface Management), P3 (Coordination) |
+| Datasheet § | Context & Conditions, Drawing content coverage |
+| Verification | V2 |
+
 **Actions:**
-1. Review PKG-02 scope (grading, excavation, fill placement, ground improvement, geotechnical, survey) and confirm coverage in drawing set.
-   - **Specification reference:** R6 (scope coverage).
-   - **Guidance reference:** Principle P2 (Interface Management).
 
-2. Identify Contractor vs. Employer scope boundaries per decomposition Section 1.2 Scope Focus.
-   - **Source:** Decomposition Section 1.2 Scope Focus (location TBD).
-   - **Action:** Annotate scope limits and interface connections clearly on drawings.
-
-3. Confirm anticipated artifacts (grading plans, cut/fill plans, ground improvement layout, sections) and sheet organization.
-   - **Specification reference:** R2-R5.
-   - **Datasheet reference:** Sheet list attribute, Drawing Content section.
-
-4. Establish drawing numbering, revision scheme, and document control requirements.
-   - **Specification reference:** R7 (document control).
-   - **Datasheet reference:** Drawing number(s), Revision, Classification attributes.
+| Step | Action | Reference | Output |
+|------|--------|-----------|--------|
+| 2.1 | Review PKG-02 scope and confirm coverage in drawing set | Decomposition PKG-02 scope | Scope coverage confirmation |
+| 2.2 | Identify Contractor vs. Employer scope boundaries per decomposition Section 1.2 | Decomposition Section 1.2 Scope Focus | Interface boundary documentation |
+| 2.3 | Confirm anticipated artifacts and sheet organization | _CONTEXT.md, R2-R5 | Drawing list and sheet organization plan |
+| 2.4 | Establish drawing numbering, revision scheme, and document control requirements | R7 | Document control plan |
 
 **Outputs:**
 - Scope definition and interface boundary documentation.
 - Drawing list and sheet organization plan.
 - Document control plan (numbering, revision, classification).
 
-**Verification reference:** Specification V2 (scope alignment).
-
 ### Step 3: Develop Drawing Content
 **Objective:** Produce drawing sheets per Specification R2-R5 and Guidance principles P1-P4.
 
+| Attribute | Value |
+|-----------|-------|
+| Specification § | R2, R3, R4, R5, R7 |
+| Guidance § | P1 (Clarity), P3 (Coordination), P4 (Design Basis), Trade-offs |
+| Datasheet § | Drawing Content items 1-4 |
+| Verification | V1 |
+
 **Actions:**
-1. Develop grading plans (R2):
-   - Show existing and proposed contours, finish grade elevations, drainage slopes, grading limits.
-   - Coordinate with PKG-03 drainage design and DEL-02.05 survey benchmarks.
-   - **Guidance reference:** Principle P1 (Clarity and Constructability), Principle P3 (Coordination).
-   - **Datasheet reference:** Drawing Content item 1.
 
-2. Develop cut/fill plans (R3):
-   - Show excavation and fill placement zones, cut/fill limits, quantities (from DEL-02.03).
-   - Annotate material types and compaction requirements (reference DEL-02.02).
-   - **Guidance reference:** Principle P1 (Clarity and Constructability), Principle P3 (Coordination).
-   - **Datasheet reference:** Drawing Content item 2.
-
-3. Develop ground improvement layout (R4):
-   - Show ground improvement zones, treatment methods, limits, and grid spacing.
-   - Reference geotechnical recommendations from DEL-02.04 and specifications from DEL-02.02.
-   - **Guidance reference:** Principle P1 (Clarity and Constructability), Principle P3 (Coordination), Principle P4 (Design Basis).
-   - **Datasheet reference:** Drawing Content item 3.
-
-4. Develop sections (R5):
-   - Show existing and proposed grades, cut/fill depths, ground improvement extents, fill layer thicknesses.
-   - Coordinate section locations with plan views for ease of reference.
-   - **Guidance reference:** Principle P1 (Clarity and Constructability).
-   - **Datasheet reference:** Drawing Content item 4.
-
-5. Prepare general notes and details:
-   - Include design assumptions, applicable standards, ER references, survey datum/coordinate system.
-   - Reference related deliverables (DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05).
-   - **Guidance reference:** Principle P4 (Design Basis Documentation).
-   - **Specification reference:** R1 (design definition).
-
-6. Populate title blocks and document control fields:
-   - Drawing number, title, revision, dates, approvals per R7.
-   - **Datasheet reference:** Identification section, document control attributes.
+| Step | Drawing Type | Key Content | Coordination | Guidance § |
+|------|--------------|-------------|--------------|------------|
+| 3.1 | Grading plans (R2) | Existing/proposed contours, finish grade elevations, drainage slopes, grading limits | PKG-03, DEL-02.05 | P1, P3 |
+| 3.2 | Cut/fill plans (R3) | Excavation and fill placement zones, cut/fill limits, quantities | DEL-02.03, DEL-02.02 | P1, P3 |
+| 3.3 | Ground improvement layout (R4) | Ground improvement zones, treatment methods, limits, grid spacing | DEL-02.04, DEL-02.02 | P1, P3, P4 |
+| 3.4 | Sections (R5) | Existing/proposed grades, cut/fill depths, ground improvement extents, fill layer thicknesses | DEL-02.03, DEL-02.04 | P1, P3, P4 |
+| 3.5 | General notes and details | Design assumptions, applicable standards, ER references, survey datum | R1, P4 | P4 |
+| 3.6 | Title blocks and document control | Drawing number, title, revision, dates, approvals | R7 | P4 |
 
 **Outputs:**
 - Complete drawing set with all required sheets (R2-R5).
 - General notes and detail sheets.
 - Title blocks with document control fields (R7).
 
-**Guidance alignment:** Content development applies Principles P1-P4 and addresses Trade-offs (detail level, prescriptive vs. performance).
-
 ### Step 4: Perform Internal Verification
 **Objective:** Verify drawing set completeness, accuracy, and compliance with Specification requirements R1-R7 and verification items V1-V3.
 
+| Attribute | Value |
+|-----------|-------|
+| Specification § | R1-R7, V1-V3 |
+| Guidance § | QA/QC Considerations |
+| Datasheet § | Drawing Content, Attributes |
+
 **Actions:**
-1. **Content Completeness Check (V1):**
-   - Verify all required artifacts (grading plans, cut/fill plans, ground improvement layout, sections) are present.
-   - Verify document control fields (title, revision, dates, approvals) are complete.
-   - **Specification reference:** Verification V1.
-   - **Datasheet reference:** Compare delivered content to Drawing Content section and Attributes.
-   - **Checklist:** **TBD** — standard design review checklist.
 
-2. **Scope Alignment Check (V2):**
-   - Verify drawing content addresses all PKG-02 scope items (grading, excavation, fill placement, ground improvement).
-   - Verify interface boundaries with Employer scope and adjacent packages are clearly shown.
-   - **Specification reference:** Verification V2.
-   - **Guidance reference:** Principle P2 (Interface Management), Principle P3 (Coordination).
-
-3. **Cross-Document Consistency Check:**
-   - Verify drawing content is consistent with DEL-02.02 (specification references), DEL-02.03 (quantities), DEL-02.04 (geotechnical design), DEL-02.05 (survey data).
-   - Verify terminology is consistent across Datasheet, Specification, Guidance, and Procedure.
-   - **Guidance reference:** QA/QC Considerations (Cross-Document Verification).
-
-4. **ER Compliance Check (V3):**
-   - Verify drawing set aligns with ER requirements (design criteria, performance requirements, drawing standards).
-   - **Status:** **TBD** — pending ER volumes.
-   - **Specification reference:** Verification V3.
-
-5. **Constructability Review:**
-   - Review drawings for field usability, clarity of limits, sequencing feasibility.
-   - **Guidance reference:** Principle P1 (Clarity and Constructability), Considerations (Constructability and Sequencing).
+| Step | Check | Method | Criteria | Specification § |
+|------|-------|--------|----------|-----------------|
+| 4.1 | Content Completeness (V1) | Verify all required artifacts and document control fields present | 100% of R2-R5 content present; drawing list matches Datasheet | V1 |
+| 4.2 | Scope Alignment (V2) | Verify drawing content addresses all PKG-02 scope items | All scope items represented; interface boundaries clear | V2, R6 |
+| 4.3 | Cross-Document Consistency | Verify consistency with DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05 | No contradictions; terminology consistent | P3 |
+| 4.4 | ER Compliance (V3) | Verify alignment with ER requirements | **TBD** — pending ER volumes | V3, R1 |
+| 4.5 | Constructability Review | Review for field usability, clarity, sequencing feasibility | Drawings provide sufficient detail for field execution | P1 |
 
 **Outputs:**
 - Verification checklist and review comments.
 - Nonconformances documented and resolved.
 - Drawing set ready for issuance or flagged for revision.
 
-**Records:** Review records per Documentation section in Specification.md.
-
 ### Step 5: Issue Controlled Deliverable
 **Objective:** Issue drawing set per document control requirements (R7) and capture approval records.
 
+| Attribute | Value |
+|-----------|-------|
+| Specification § | R7, Documentation |
+| Guidance § | P4, QA/QC Considerations (Revision Management) |
+| Datasheet § | Attributes (Drawing number, Revision, Classification) |
+
 **Actions:**
-1. Finalize drawing set with all review comments addressed.
-   - Update revision and date fields in title blocks.
-   - **Specification reference:** R7 (document control).
 
-2. Obtain required approvals (internal design lead, quality reviewer, Employer if applicable).
-   - **ASSUMPTION:** Approval workflow per standard D&B document control.
-   - **Records:** Approval signatures or electronic approval records.
-
-3. Issue controlled drawing set through document management system.
-   - Assign final drawing numbers and revision per project numbering system.
-   - Distribute to relevant stakeholders (construction team, QA/QC, Employer).
-   - **Datasheet reference:** Drawing number(s), Revision, Classification attributes.
-
-4. Capture issuance records and maintain revision history.
-   - **Specification reference:** Documentation section (review comments and response log).
-   - **Records:** Transmittal, distribution list, revision log.
+| Step | Action | Records |
+|------|--------|---------|
+| 5.1 | Finalize drawing set with all review comments addressed; update revision and date fields | Updated drawings |
+| 5.2 | Obtain required approvals (internal design lead, quality reviewer, Employer if applicable) | Approval signatures or electronic records |
+| 5.3 | Issue controlled drawing set through document management system; assign final drawing numbers | Transmittal, distribution list |
+| 5.4 | Capture issuance records and maintain revision history | Revision log |
 
 **Outputs:**
 - Issued Earthworks Design Drawing Set (controlled revision).
 - Approval records.
 - Distribution records and transmittal.
 
-**Guidance reference:** QA/QC Considerations (Revision Management).
-
 ## Verification
 
 ### Drawing Set Completeness
-**Check:** All required drawings (R2-R5) and document control fields (R7) are present and complete.
-- **Method:** Compare delivered sheets against Datasheet sheet list and Specification R2-R7.
-- **Criteria:** 100% of required content present; no placeholders or "TBD" in issued drawings (design TBDs resolved or flagged for future revision).
-- **Reference:** Specification V1; Datasheet Drawing Content section.
+
+| Attribute | Value |
+|-----------|-------|
+| Check | All required drawings (R2-R5) and document control fields (R7) present and complete |
+| Method | Compare delivered sheets against Datasheet sheet list and Specification R2-R7 |
+| Criteria | 100% of required content present; no placeholders or "TBD" in issued drawings |
+| Reference | Specification V1; Datasheet Drawing Content section |
+| Procedure Step | Step 4.1 |
 
 ### Scope Coverage
-**Check:** Drawing content addresses all PKG-02 scope items and interface boundaries.
-- **Method:** Review drawing content against PKG-02 scope and decomposition Section 1.2 Scope Focus.
-- **Criteria:** All scope items represented; interface boundaries clearly annotated.
-- **Reference:** Specification V2; Guidance Principle P2.
+
+| Attribute | Value |
+|-----------|-------|
+| Check | Drawing content addresses all PKG-02 scope items and interface boundaries |
+| Method | Review drawing content against PKG-02 scope and decomposition Section 1.2 |
+| Criteria | All scope items represented; interface boundaries clearly annotated |
+| Reference | Specification V2; Guidance P2 |
+| Procedure Step | Step 4.2 |
 
 ### Cross-Deliverable Coordination
-**Check:** Drawing set is consistent with related deliverables (DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05).
-- **Method:** Cross-reference quantities, dimensions, notes, and details with specifications, calculations, geotechnical reports, and survey data.
-- **Criteria:** No contradictions or inconsistencies between drawing set and referenced deliverables.
-- **Reference:** Guidance Principle P3, QA/QC Considerations.
+
+| Attribute | Value |
+|-----------|-------|
+| Check | Drawing set consistent with related deliverables |
+| Method | Cross-reference quantities, dimensions, notes with DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05 |
+| Criteria | No contradictions or inconsistencies |
+| Reference | Guidance P3, QA/QC Considerations |
+| Procedure Step | Step 4.3 |
 
 ### ER Compliance
-**Check:** Drawing set aligns with ER requirements (design criteria, performance, standards, drawing format).
-- **Method:** Review against ER requirements when available.
-- **Criteria:** **TBD** — pending ER volumes.
-- **Reference:** Specification V3.
-- **Status:** Requirements not yet available; compliance check deferred.
+
+| Attribute | Value |
+|-----------|-------|
+| Check | Drawing set aligns with ER requirements |
+| Method | Review against ER requirements when available |
+| Criteria | **TBD** — pending ER volumes |
+| Reference | Specification V3 |
+| Status | Deferred pending ER volumes |
+| Procedure Step | Step 4.4 |
 
 ### Constructability and Clarity
-**Check:** Drawings are clear, complete, and suitable for field use.
-- **Method:** Constructability review by experienced civil or construction personnel.
-- **Criteria:** Drawings provide sufficient detail for field execution; no ambiguities or missing information.
-- **Reference:** Guidance Principle P1.
+
+| Attribute | Value |
+|-----------|-------|
+| Check | Drawings clear, complete, and suitable for field use |
+| Method | Constructability review by experienced civil or construction personnel |
+| Criteria | Sufficient detail for field execution; no ambiguities |
+| Reference | Guidance P1 |
+| Procedure Step | Step 4.5 |
 
 ## Records
 
 ### Primary Deliverable Records
-- **Issued Earthworks Design Drawing Set:** Controlled revision with drawing numbers, title blocks, revisions per R7.
-- **Drawing List / Sheet Index:** Complete list of sheets in drawing set.
+
+| Record | Description | Specification § |
+|--------|-------------|-----------------|
+| Issued Earthworks Design Drawing Set | Controlled revision with drawing numbers, title blocks, revisions | R7 |
+| Drawing List / Sheet Index | Complete list of sheets in drawing set | R2-R5 |
 
 ### Production Records
-- **Input Data Package:** Documentation of reference materials used (ER, survey, geotechnical, calculations).
-- **Design Review Checklist:** Record of internal verification (Step 4) against V1-V3.
-- **Review Comments and Responses:** Log of review comments and resolutions.
+
+| Record | Description | Procedure Step |
+|--------|-------------|----------------|
+| Input Data Package | Documentation of reference materials used | Step 1 |
+| Design Review Checklist | Record of internal verification against V1-V3 | Step 4 |
+| Review Comments and Responses | Log of review comments and resolutions | Step 4 |
 
 ### Approval and Distribution Records
-- **Approval Records:** Signatures or electronic approvals per document control requirements.
-- **Transmittal Records:** Distribution list, transmittal letter, issuance date.
-- **Revision History:** Log of revisions, dates, and reasons for revision.
+
+| Record | Description | Procedure Step |
+|--------|-------------|----------------|
+| Approval Records | Signatures or electronic approvals | Step 5.2 |
+| Transmittal Records | Distribution list, transmittal letter, issuance date | Step 5.3 |
+| Revision History | Log of revisions, dates, and reasons | Step 5.4 |
 
 ### Coordination Records
-- **Coordination Notes:** Documentation of coordination with DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05, and adjacent packages (PKG-03, PKG-04).
-- **Conflict Resolutions:** Documentation of any conflicts identified and resolved during production.
+
+| Record | Description | Guidance § |
+|--------|-------------|------------|
+| Coordination Notes | Documentation of coordination with related deliverables | P3 |
+| Conflict Resolutions | Documentation of conflicts identified and resolved | Conflict Table |
 
 **Assumption:** Records management per standard D&B document control and QA/QC procedures.
 
+## Cross-Document Traceability
+
+| Procedure Step | Specification § | Guidance § | Datasheet § | Verification |
+|----------------|-----------------|------------|-------------|--------------|
+| Step 1 | R1, R3, R4 | P3, P4, Considerations | Attributes, Context | — |
+| Step 2 | R1, R6, R7 | P2, P3 | Context, Drawing content | V2 |
+| Step 3 | R2-R5, R7 | P1, P3, P4, Trade-offs | Drawing Content items 1-4 | V1 |
+| Step 4 | R1-R7 | QA/QC Considerations | All sections | V1, V2, V3 |
+| Step 5 | R7, Documentation | P4, Revision Management | Attributes | — |
+
 ## References
 
-- _CONTEXT.md: Deliverable identity, description, and anticipated artifacts.
-- _DEPENDENCIES.md: Dependency coordination mode (NOT_TRACKED); coordination managed externally.
-- Decomposition file: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` — PKG-02 scope, DEL-02.01 entry, Section 1.2 Scope Focus (location TBD).
-- Datasheet.md: Drawing attributes, content, and context; steps validate against Datasheet.
-- Specification.md: Requirements R1-R7 and verification items V1-V3; steps implement requirements.
-- Guidance.md: Principles P1-P4 and considerations; steps apply principles.
-- _REFERENCES.md: Currently empty; ER volumes and reference materials pending.
-- Related deliverables: DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05 (coordination interfaces).
+| Reference | Description | Location |
+|-----------|-------------|----------|
+| _CONTEXT.md | Deliverable identity, description, anticipated artifacts | This folder |
+| _DEPENDENCIES.md | Dependency coordination mode (NOT_TRACKED) | This folder |
+| Decomposition | PKG-02 scope, DEL-02.01 entry, Section 1.2 Scope Focus | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (location TBD) |
+| Datasheet.md | Drawing attributes, content, and context | This folder |
+| Specification.md | Requirements R1-R7, Verification V1-V3 | This folder |
+| Guidance.md | Principles P1-P4, Considerations, Trade-offs | This folder |
+| _REFERENCES.md | ER volumes and reference materials | This folder (currently empty; pending) |
+| Related deliverables | DEL-02.02, DEL-02.03, DEL-02.04, DEL-02.05, DEL-02.07 | PKG-02 |

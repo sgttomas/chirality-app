@@ -243,3 +243,6 @@ Utility Service (BC Hydro 25 kV or 13.8 kV)
 - **IEEE Std 141 (Red Book)**: Comprehensive guidance with examples of industrial power distribution SLDs, equipment sizing, protection coordination
 - **Similar facilities**: Other bulk liquid transload terminals (vegetable oil, petroleum products) — **TBD** — lessons learned and precedent designs
 - Anticipated artifacts listed in _CONTEXT.md provide drawing set structure
+
+---
+**Cross-Document Alignment Verified (Pass 3):** Principles 1-6 align with Specification.md functional requirements (FR-1 through FR-6). Considerations and trade-offs support engineering decisions reflected in Datasheet.md and Procedure.md. No conflicts identified.

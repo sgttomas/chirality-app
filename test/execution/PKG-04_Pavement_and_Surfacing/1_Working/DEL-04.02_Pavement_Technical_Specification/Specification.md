@@ -271,19 +271,19 @@ The specification shall cover:
 
 ### Verification Methods
 
-| Requirement | Verification Method | Responsible Party | Timing |
-|-------------|-------------------|-------------------|--------|
-| R1.1: Material requirements | Guidance material clause review checklist; cross-check vs. DEL-04.03 design inputs | Civil lead + DEL-04.03 engineer | Specification drafting |
-| R1.2: Workmanship requirements | Guidance workmanship clause review checklist; verify consistency with DEL-04.01 drawings | Civil lead + DEL-04.01 drafter | Specification drafting |
-| R1.3: QC requirements | Guidance testing clause review checklist; verify testing feasibility and sufficiency | Civil lead + QA/QC lead | Specification drafting |
-| R1.4: Interface coordination | Coordination meetings with PKG-03/05/07/08 leads; Guidance interface review checklist | Civil lead + Package leads | Cross-discipline review |
-| R1.5: OBJ-8 requirements | Guidance OBJ-8 callout review checklist; verify enforceability | Civil lead + OBJ-8 reviewer | Specification drafting |
-| R2.1: Drawing cross-refs | Procedure traceability matrix audit; Guidance cross-reference review | QA reviewer | Pre-issuance |
-| R2.2: Calculation cross-refs | Coordination with DEL-04.03 engineer; Procedure traceability matrix audit | QA reviewer | After DEL-04.03 issued |
-| R2.3: Test record cross-refs | Coordination with DEL-04.04 QA/QC lead; verify test templates exist | QA reviewer | Pre-construction |
-| R3.1: Review gates | Procedure Step 3 reviewer sign-off | Discipline/QA reviewers | Per review schedule |
-| R3.2: Assumption tracking | Procedure assumption log audit; cross-check vs. DEL-04.01/04.03 logs | QA reviewer | Each review cycle |
-| R3.3: Submittal requirements | Verify consistency with project quality plan and ER requirements | QA reviewer + Civil lead | Specification drafting |
+| Requirement | Verification Method | Guidance § | Procedure Step | Responsible Party | Timing |
+|-------------|-------------------|------------|----------------|-------------------|--------|
+| R1.1: Material requirements | Guidance material clause review checklist; cross-check vs. DEL-04.03 design inputs | Step 1 | Step 2.3 | Civil lead + DEL-04.03 engineer | Specification drafting |
+| R1.2: Workmanship requirements | Guidance workmanship clause review checklist; verify consistency with DEL-04.01 drawings | Step 2 | Step 2.4 | Civil lead + DEL-04.01 drafter | Specification drafting |
+| R1.3: QC requirements | Guidance testing clause review checklist; verify testing feasibility and sufficiency | Step 3 | Step 2.5 | Civil lead + QA/QC lead | Specification drafting |
+| R1.4: Interface coordination | Coordination meetings with PKG-03/05/07/08 leads; Guidance interface review checklist | Step 4 | Step 3.4 | Civil lead + Package leads | Cross-discipline review |
+| R1.5: OBJ-8 requirements | Guidance OBJ-8 callout review checklist; verify enforceability | Step 5 | Step 2.6 | Civil lead + OBJ-8 reviewer | Specification drafting |
+| R2.1: Drawing cross-refs | Procedure traceability matrix audit; Guidance cross-reference review | Step 6 | Step 2.7, Step 4.1 | QA reviewer | Pre-issuance |
+| R2.2: Calculation cross-refs | Coordination with DEL-04.03 engineer; Procedure traceability matrix audit | Step 6 | Step 2.7, Step 4.2 | QA reviewer | After DEL-04.03 issued |
+| R2.3: Test record cross-refs | Coordination with DEL-04.04 QA/QC lead; verify test templates exist | Step 6 | Step 4.3 | QA reviewer | Pre-construction |
+| R3.1: Review gates | Procedure reviewer sign-off | Steps 1-7 | Step 3.5 | Discipline/QA reviewers | Per review schedule |
+| R3.2: Assumption tracking | Procedure assumption log audit; cross-check vs. DEL-04.01/04.03 logs | Step 7 | Steps 1.3-1.5, 3.3 | QA reviewer | Each review cycle |
+| R3.3: Submittal requirements | Verify consistency with project quality plan and ER requirements | Step 1 | Step 2.2 | QA reviewer + Civil lead | Specification drafting |
 
 ### Acceptance Criteria
 - All specification sections per R1.1–R1.5 are complete with no unlabeled gaps

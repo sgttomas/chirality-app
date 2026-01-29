@@ -327,6 +327,19 @@ Typical hydrotest record includes:
 
 ---
 
-**Document Status:** Pass 3 (Final) — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.05-01 | NDE extent (spot vs. full examination) for shell welds | Trade-off T-01 | DEL-13.02 specification / ER (TBD) | Datasheet.md NDE Reports; Specification.md PR-02 | Project specification + ER | **TBD** |
+| CT-13.05-02 | Record format (electronic vs. hard copy archival) | Trade-off T-02 | ER document management requirements (TBD) | Datasheet.md Documentation Context; Specification.md DR-03 | ER + project document procedures | **TBD** |
+| CT-13.05-03 | Client witness hold points for hydrostatic testing | Consideration C-06 | ITP (DEL-29.02) / ER (TBD) | Specification.md PR-05; Procedure.md Step 6 | ITP + ER | **TBD** |
+| CT-13.05-04 | Weld map development responsibility (D&B Contractor vs. fabricator) | Consideration C-03 | Contract scope split (TBD) | Datasheet.md Weld Maps; Procedure.md Step 3 | Contract documents | **TBD** |
+
+**Note:** These conflicts represent quality documentation decisions requiring project specification and ER inputs. Resolution during WORKING_ITEMS will enable record collection planning.
+
+---
+
+**Document Status:** Pass 3 Complete — Enrichment complete. Design principles, considerations, trade-offs, and examples developed. Conflict Table added for quality documentation decisions requiring human ruling. Cross-document references verified. All TBDs marked. ASSUMPTIONs labeled. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

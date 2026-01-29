@@ -59,3 +59,23 @@ The deliverable provides evidence of completion, inspection, and testing for str
 - Filing convention: working files remain in `1_Working/`; review/issue copies can be packaged to `2_Checking/` / `3_Issued/` as adopted by the team (Source: README.md; Datasheet.md: References).
 - Revision tracking: per project numbering system and `Datasheet.md` attributes (Datasheet.md: Attributes; Step 6).
 - Retention requirements: **TBD**.
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity verified in Step 1 |
+| Datasheet.md | Attributes | Package metadata (number, categories) verified in Step 6 |
+| Datasheet.md | Construction | Index structure used in Step 5 |
+| Specification.md | Scope | Required record categories used in Step 1 |
+| Specification.md | Record Index Structure | Index fields used in Steps 2, 5 |
+| Specification.md | Cross-Reference Matrix | Verification traceability confirmed in Step 6 |
+| Guidance.md | Principles | Intent guiding Steps 1, 2, 4 (traceability, completeness, ER authority) |
+| Guidance.md | Considerations | Trade-offs considered in Steps 3, 4, 5 |
+| Guidance.md | Examples | Index format used in Step 5 |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Drawing item IDs and references used in traceability scheme (Step 2)
+- DEL-06.02: Specification clause references drive record acceptance criteria (Steps 2, 4)
+- DEL-06.03: Critical design assumptions inform inspection/record requirements (Step 2)
+- DEL-06.04: Data sheet "Required Records" fields used for record completeness (Steps 2, 5)

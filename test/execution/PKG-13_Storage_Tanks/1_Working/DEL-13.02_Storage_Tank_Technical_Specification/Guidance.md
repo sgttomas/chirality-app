@@ -179,6 +179,19 @@ This guidance supports development of **Storage Tank Technical Specification** f
 
 ---
 
-**Document Status:** Pass 3 (Final) — Enrichment complete. Principles, API 650/agitator/appurtenance considerations, trade-offs, and examples provided. Cross-document consistency verified. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.02-01 | Internal coating requirement (with vs. without) for canola oil service | Guidance.md TD-03 | ER Vol 2 Part 2 (TBD) | Specification.md CR-01 §10; Datasheet.md Coating Materials | ER + product specification | **TBD** |
+| CT-13.02-02 | Agitator type and mixing duty specification requires process input | Guidance.md Agitator Considerations | Process design (TBD) | Specification.md CR-02; Datasheet.md Agitator Specification Scope | Process engineering or vendor | **TBD** |
+| CT-13.02-03 | API 650 edition and addenda to reference in specification | Specification.md PR-01 | ER Vol 2 Part 2 (TBD) | All API 650 references | ER specification | **TBD** |
+| CT-13.02-04 | Fabricator qualification standard (CSA W47.1 vs. alternative) | Guidance.md DP-04 | Project QA/QC plan (TBD) | Specification.md PR-03 | Project quality management plan | **TBD** |
+
+**Note:** These conflicts represent specification decisions requiring upstream input (ER extraction, process design, project quality plan). Resolution during WORKING_ITEMS will finalize specification content.
+
+---
+
+**Document Status:** Pass 3 Complete — Enrichment complete. Principles, API 650/agitator/appurtenance considerations, trade-offs, and examples provided. Conflict Table added for specification decisions requiring human ruling. Cross-document consistency verified. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

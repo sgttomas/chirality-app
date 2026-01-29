@@ -285,3 +285,29 @@ Status transitions are managed per `_STATUS.md` in the deliverable folder:
 | As-built | Final as-built revision | Equipment installed; installation verified; final serial numbers, final calibration certificates, any field modifications documented | As-built process per project procedures (TBD) |
 
 **Note:** Revision numbering convention TBD from ER Vol 2 Part 1 project document control procedures. Data sheets typically have multiple revisions as vendor data is progressively incorporated from RFQ through delivery.
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.04 identity referenced in Procedure § Purpose deliverable definition |
+| Datasheet.md | § Attributes | Data sheet attributes (numbers, tags, format) that Procedure § Step 1 (tag numbers, document numbers) addresses |
+| Datasheet.md | § Conditions | Design context (services, product, throughput, design basis parameters) that Procedure § Step 3 (populate design basis) addresses |
+| Datasheet.md | § Construction | Data sheet field categories that Procedure § Step 2 (template) and § Step 3 (populate fields) address |
+| Specification.md | § Scope | Inclusions addressed in Procedure § Step 1 (identify data sheets); exclusions establish scope boundaries |
+| Specification.md | § Requirements | REQ-01 addressed in § Step 1; REQ-02/03 in § Step 3; REQ-04/05/06 in § Step 5; REQ-09/10 in § Steps 3-4; REQ-11 in § Step 3.6; REQ-12 in § Step 3; REQ-13/14 in § Step 5.4; REQ-15/16/17 in § Step 6 |
+| Specification.md | § Documentation | Field requirements implemented in Procedure § Step 2 (template) and verified in § Step 6 |
+| Specification.md | § Verification | Verification methods mapped to Procedure § Verification Activities; acceptance criteria verified per § Acceptance Criteria |
+| Guidance.md | § Purpose | Downstream use that Procedure § Purpose (lifecycle) describes; data sheet lifecycle phases per Procedure steps |
+| Guidance.md | § Principles | Development rationale (single source of truth, traceability, consistency, no invention) that Procedure steps implement |
+| Guidance.md | § Considerations | Content considerations informing Procedure § Step 3 (field population); timing considerations per Procedure workflow |
+| Guidance.md | § Trade-offs | Trade-off decisions documented in Procedure § Step 3 verification basis |
+| Guidance.md | § Conflict Table | Conflicts documented per Procedure § Step 5.7 (unresolved conflicts) |
+| DEL-12.01 | Drawings | Tag numbers, sizes, orientations cross-checked in Procedure § Step 5.3 |
+| DEL-12.02 | Specification | Performance requirements used in Procedure § Step 3.3/3.4; consistency checked in § Step 5.1 |
+| DEL-12.03 | Calculations | Sizing parameters used in Procedure § Step 3.2/3.3; consistency checked in § Step 5.2 |
+| DEL-12.05 | Test Records | Calibration fields per Procedure § Step 3.6 enable DEL-12.05 compliance verification |
+| PKG-14 | P&IDs | Tag numbers per Procedure § Step 1.2; P&ID references per § Step 3.1; consistency checked in § Step 5.3 |
+| PKG-17 | Electrical | Power supply, area classification per Procedure § Step 3.5; interface checked in § Step 5.4 |
+| PKG-19 | Controls | Signal outputs, communication protocols per Procedure § Step 3.5; interface checked in § Step 5.4 |
+| PKG-20 | Instrumentation | Transmitter specifications coordination per Procedure § Step 5.4

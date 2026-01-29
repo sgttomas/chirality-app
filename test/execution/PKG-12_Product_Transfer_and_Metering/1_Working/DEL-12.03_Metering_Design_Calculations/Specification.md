@@ -190,8 +190,25 @@ The calculation report(s) should include the following sections to satisfy requi
 
 ## Cross-Document Traceability
 
-| Document | Traceability Points |
-|----------|---------------------|
-| Datasheet.md | Identification section defines calculation attributes (number, software/tools, design code/standard basis, revision); Conditions section lists design context (service application, product, throughput, metering points) and all calculation input parameters with TBD sources matching REQ-04; Construction section lists anticipated calculation content (sizing, accuracy, proving) matching REQ-03 and defines calculation methodology and report structure matching Documentation section above |
-| Guidance.md | Purpose section explains calculations provide engineering basis for meter selection, accuracy verification, and proving methodology, driving DEL-12.01, DEL-12.04, DEL-12.05 per REQ-16; Principles section explains calculation development rationale (objective demonstration per REQ-06/REQ-07, traceability per REQ-04, auditability per REQ-18) and methodology principles (sizing per REQ-11, uncertainty per REQ-12, proving per REQ-13); Considerations section identifies factors affecting sizing (flow range, product properties, pressure drop, turndown, meter technology), accuracy/uncertainty (uncertainty components, propagation), proving (method, size, frequency, criteria), and service-specific considerations (rail vs. marine per REQ-02) |
-| Procedure.md | Steps section defines calculation workflow aligned to requirements: Step 1 (Define cases per REQ-02), Step 2 (Collect inputs per REQ-04 and document assumptions per REQ-05), Step 3 (Perform sizing per REQ-06, REQ-09, REQ-10, REQ-11), Step 4 (Perform accuracy/uncertainty per REQ-07, REQ-12), Step 5 (Perform proving per REQ-07, REQ-13), Step 6 (Cross-check with DEL-12.02 per REQ-15), Step 7 (Perform sensitivity per REQ-23, REQ-24), Step 8 (Assemble report per REQ-01, REQ-16, REQ-19, REQ-20), Step 9 (Independent check per REQ-18, REQ-22); Verification section confirms requirement satisfaction per Acceptance Criteria; Records section identifies calculation outputs matching Documentation section |
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.03 identity, discipline (Process), type (Calculation), responsible party (D&B Contractor) |
+| Datasheet.md | § Attributes | Calculation attributes (number TBD, software/tools TBD, design code/standard basis TBD per Standards section, revision, classification, estimated length) |
+| Datasheet.md | § Conditions | Design context (service application, product CSD canola oil, throughput 1M MT/a, metering points, operating conditions per REQ-14); calculation input parameters table (all TBD items per REQ-04/05) with objective alignment (OBJ-2 per REQ-06, OBJ-10 per REQ-07) |
+| Datasheet.md | § Construction | Anticipated calculation content (flow meter sizing per REQ-03/06, accuracy/uncertainty per REQ-03/07, proving per REQ-03/07); calculation methodology (sizing, uncertainty, proving per REQ-11/12/13); calculation report structure (11 sections + appendices per Documentation section) |
+| Guidance.md | § Purpose | Deliverable intent (engineering basis for meter selection, accuracy verification, proving methodology); downstream use (DEL-12.01, DEL-12.04, DEL-12.05 per REQ-16) |
+| Guidance.md | § Principles | Development rationale: objective demonstration (REQ-06/07 for OBJ-2/OBJ-10), traceability (REQ-04), auditability (REQ-18), no invention (REQ-05), standard-based (REQ-11/12/13); methodology principles: sizing (flow range, turndown, pressure drop per REQ-06/09/10), uncertainty (budget, propagation per REQ-07/12), proving (method, acceptance per REQ-13) |
+| Guidance.md | § Considerations | Sizing factors (flow range per REQ-06/09, product properties per REQ-14, pressure drop per REQ-10/17, turndown per REQ-09, meter technology per REQ-11); uncertainty factors (components, propagation, combined uncertainty per REQ-07/12); proving factors (method, size, frequency, criteria per REQ-13); service-specific (rail vs. marine per REQ-02) |
+| Guidance.md | § Trade-offs | Competing factors affecting calculation decisions: meter size vs. low-flow accuracy, accuracy vs. pressure drop, proving method vs. cost, conservative vs. realistic assumptions |
+| Guidance.md | § Sensitivity | Sensitivity analysis topics (flow rate, temperature, viscosity, prover, density per REQ-23/24) |
+| Procedure.md | § Step 1 | Define cases per REQ-02 (rail and marine services) |
+| Procedure.md | § Step 2 | Collect inputs per REQ-04/05/20; document assumptions per REQ-05; document boundary conditions per REQ-14 |
+| Procedure.md | § Step 3 | Flow meter sizing per REQ-06/09/10/11: technology selection (3.1), rail sizing (3.2), marine sizing (3.3), comparison (3.4) |
+| Procedure.md | § Step 4 | Accuracy/uncertainty calculations per REQ-07/12: identify components (4.1), quantify (4.2), propagate (4.3), verify compliance (4.4) |
+| Procedure.md | § Step 5 | Proving calculations per REQ-07/13: select method (5.1), size prover (5.2), define frequency (5.3), define acceptance criteria (5.4), document prover uncertainty (5.5) |
+| Procedure.md | § Step 6 | Cross-check with DEL-12.02 per REQ-08/15 |
+| Procedure.md | § Step 7 | Sensitivity analysis per REQ-23/24 |
+| Procedure.md | § Step 8 | Assemble report per REQ-01/16/19/20; document implications (8.3) per REQ-16 |
+| Procedure.md | § Step 9 | Independent check per REQ-18; unit check per REQ-22; issue per REQ-19 |
+| Procedure.md | § Verification | Verification activities mapped to requirements; acceptance criteria per Acceptance Criteria section |
+| Procedure.md | § Records | Calculation outputs (sizing, accuracy, proving, sensitivity, check record) matching Documentation section

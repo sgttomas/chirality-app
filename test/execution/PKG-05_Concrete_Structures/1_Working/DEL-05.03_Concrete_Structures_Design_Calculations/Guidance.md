@@ -239,15 +239,42 @@ Expected calculation set organization:
 
 (Source: Guidance.md: P-02; Specification.md: FR-04; Specification.md: PR-01.)
 
-## Local Conflict Table
+## Conflict Table (for human ruling)
 
-No conflicts identified from accessible sources. Governing design criteria and code clauses pending extraction from Employer's Requirements. (Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts identified from accessible sources | — | — | — | — | — |
+
+**Note:** Governing design criteria and code clauses pending extraction from Employer's Requirements. If conflicts are identified during ER review or design development, they should be added to this table for human ruling. Key areas requiring confirmation:
+- Seismic design parameters (site class, spectral accelerations, importance factors) — **TBD**
+- Serviceability criteria (crack width limits, settlement tolerances) — **TBD**
+- Design codes (CSA A23.3, NBCC assumed for BC location) — **ASSUMPTION**
+- Geotechnical parameters (from DEL-02.04 when available) — **TBD**
+
+(Source: test/Volume_2_Part_2_Employers_Requirements.pdf, location TBD.)
+
+## Guidance-to-Specification Traceability
+
+| Guidance § | Supporting Specification Requirements |
+|------------|---------------------------------------|
+| P-01 Traceability and Reproducibility | FR-02, FR-06, QR-02, QR-03 |
+| P-02 Containment Sensitivity | FR-04 Containment Walls, PR-01, PR-03 |
+| P-03 Evidence-Based Code Application | FR-02, Standards |
+| P-04 Design Optimization Balance | FR-03 Foundations, PR-03 |
+| P-05 Consistency Across Deliverables | IR-01 |
+| C-01 Input Data Requirements | FR-02, FR-03, IR-01 |
+| C-02 Serviceability Criteria | FR-04, PR-01 |
+| C-03 Seismic Design Importance | FR-05, PR-02 |
+| C-04 Methodology Selection | FR-06, Standards |
+| C-05 Assumption Management | FR-02, IR-02 |
+| T-01 through T-04 | Trade-offs inform engineering judgment within requirements |
+| E-01 through E-03 | Examples support FR-01 through QR-03 implementation |
 
 ## Cross-Document Notes
 
-- **Specification:** This guidance informs how `Specification.md` requirements (FR-01 through QR-03) are implemented in calculations. Each Principle and Consideration should support corresponding Specification requirements. (Source: Specification.md: Requirements.)
-- **Procedure:** `Procedure.md` defines how calculations are developed, checked, and controlled (Steps 1-6). Considerations noted here (input coordination, methodology selection, assumption management) should be addressed in Procedure steps. (Source: Procedure.md: Steps; Procedure.md: Verification.)
-- **Datasheet:** Datasheet Construction section lists the calculation artifacts (foundations, containment walls, seismic) that these Principles and Considerations guide. Ensure calculation content aligns with Datasheet construction breakdown. (Source: Datasheet.md: Construction.)
+- **Specification:** This guidance informs how `Specification.md` requirements (§FR-01 through §QR-03) are implemented in calculations. The Guidance-to-Specification Traceability table above maps each Principle and Consideration to corresponding requirements. (Source: Specification.md: Requirements; Specification.md: Requirements Traceability Matrix.)
+- **Procedure:** `Procedure.md` defines how calculations are developed, checked, and controlled (Steps 1-7). Considerations §C-01 through §C-05 are addressed in `Procedure.md` §P-01 Prerequisites and Steps 2-6. (Source: Procedure.md: Prerequisites; Procedure.md: Steps; Procedure.md: Verification.)
+- **Datasheet:** `Datasheet.md` §Construction lists the calculation artifacts (foundations, containment walls, seismic) that Principles §P-01 through §P-05 and Considerations §C-01 through §C-05 guide. (Source: Datasheet.md: Construction; Datasheet.md: Cross-Document Traceability.)
 - **Related Deliverables:** Calculations should maintain consistency with:
-  - DEL-05.01 element dimensions and reinforcement details (Guidance P-05)
-  - DEL-05.02 material properties and specification values (Guidance P-05)
+  - DEL-05.01 element dimensions and reinforcement details — §P-05 Consistency, `Specification.md` §IR-01
+  - DEL-05.02 material properties and specification values — §P-05 Consistency, `Specification.md` §IR-01

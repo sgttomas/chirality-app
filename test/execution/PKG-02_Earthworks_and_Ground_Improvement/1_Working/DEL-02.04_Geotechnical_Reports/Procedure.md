@@ -1,60 +1,159 @@
 # Procedure: DEL-02.04 Geotechnical Reports
 
-    ## Purpose
+## Purpose
 
-    Produce Geotechnical Reports (Investigation Report and Ground Improvement Design Report if required) for PKG-02 Earthworks & Ground Improvement while satisfying Specification requirements (R1–R8) and supporting Guidance principles. Source: _CONTEXT.md; decomposition (location TBD).
+Produce Geotechnical Reports (Investigation Report and Ground Improvement Design Report if required) for PKG-02 Earthworks & Ground Improvement while satisfying Specification requirements R1-R8 and supporting Guidance principles.
 
-    ## Prerequisites
+**Dual-Use Note:** This procedure describes how to **produce** the geotechnical reports deliverable through investigation and engineering analysis. Field execution procedures for ground improvement construction are addressed in DEL-02.06 and DEL-02.07.
 
-    - **Dependencies:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md). Key interfaces: survey data for investigation locations; design loads from structural packages for foundation design.
-    - **Reference materials:** Employer's Requirements volumes (geotechnical criteria, site data, regulatory requirements) are required but not provided in _REFERENCES.md (**TBD**).
-    - **Inputs:** PKG-02 scope for earthworks and ground improvement; site access permissions; previous site investigations (if available); design criteria from ER. Source: decomposition PKG-02 scope (location TBD).
-    - **Qualifications:** Qualified, licensed geotechnical engineer to lead investigation and report preparation (R6). **TBD**: ER will specify licensing jurisdiction requirements.
+Source: _CONTEXT.md; decomposition DEL-02.04 entry (location TBD).
 
-    ## Steps
+## Prerequisites
+
+### Dependencies
+**Coordination status:** Dependencies coordinated externally by humans (see _DEPENDENCIES.md).
+
+**Key coordination interfaces:**
+
+| Interface | Deliverable/Package | Relevance | Specification § |
+|-----------|---------------------|-----------|-----------------|
+| Survey data | DEL-02.05 | Investigation locations | R2 |
+| Design loads | PKG-05, PKG-06 | Foundation design parameters | R7 |
+| Earthworks drawings | DEL-02.01 | Uses geotechnical recommendations | R4 |
+| Specifications | DEL-02.02 | Uses geotechnical criteria | R4 |
+| Calculations | DEL-02.03 | Uses geotechnical parameters | R4 |
+
+### Reference Materials Required
+
+| Reference | Status | Specification § |
+|-----------|--------|-----------------|
+| Employer's Requirements volumes (Vol 2 Parts 1-3) | **TBD** — not yet provided | R1, V3 |
+| Previous site investigations (if available) | **TBD** | R1, R2 |
+| Design criteria from ER | **TBD** | R1, R7 |
+
+### Inputs
+- PKG-02 scope for earthworks and ground improvement.
+- Site access permissions.
+- Design criteria from ER.
+- **Qualifications:** Licensed geotechnical engineer to lead investigation and report preparation (R6).
+
+## Steps
 
 ### Phase 1: Investigation Planning
 
-1. Review ER geotechnical requirements, site conditions, design criteria, and coordinate with DEL-02.01 (Earthworks Drawings), DEL-02.02 (Specifications), DEL-02.03 (Calculations) to understand investigation needs. **TBD** until ER references are provided. Maps to R1, R4, R7.
-2. Develop investigation program (borehole/test pit locations, depths, sampling methods, laboratory testing scope) aligned with `Datasheet.md` Investigation Scope attribute and Specification R2, R8. Coordinate with survey team for accurate borehole positioning. Reference `Guidance.md` Investigation Program Adequacy considerations.
-3. Obtain site access permissions, utility clearances, and environmental/safety approvals for field investigation work. **ASSUMPTION**: Contractor safety and permitting procedures apply.
+| Step | Action | Specification § | Guidance § | Status |
+|------|--------|-----------------|------------|--------|
+| 1 | Review ER geotechnical requirements, site conditions, design criteria; coordinate with DEL-02.01, DEL-02.02, DEL-02.03 to understand investigation needs | R1, R4, R7 | Coordination | **TBD** until ER provided |
+| 2 | Develop investigation program (borehole/test pit locations, depths, sampling methods, laboratory testing scope) | R2, R8 | Investigation Adequacy | — |
+| 3 | Obtain site access permissions, utility clearances, and environmental/safety approvals | — | Regulatory | **ASSUMPTION**: Contractor procedures apply |
 
 ### Phase 2: Field Investigation and Laboratory Testing
 
-4. Execute field investigation (drilling, sampling, in-situ testing) per approved program under supervision of qualified geotechnical engineer. Document field conditions, groundwater levels, soil/rock descriptions per standard classification systems (e.g., ASTM D2487, D2488). Maps to R1, R2.
-5. Conduct laboratory testing (classification, moisture-density, strength, consolidation as required) per investigation program and applicable standards. **TBD**: Standards reference from ER. Maps to R2, R8.
-6. Compile field and laboratory data; perform quality control checks for data consistency and completeness. Reference `Guidance.md` considerations on investigation adequacy and testing scope.
+| Step | Action | Specification § | Guidance § | Records |
+|------|--------|-----------------|------------|---------|
+| 4 | Execute field investigation (drilling, sampling, in-situ testing) under qualified geotechnical engineer supervision | R1, R2, R6 | Technical Rigor | Field logs, boring records |
+| 5 | Conduct laboratory testing (classification, moisture-density, strength, consolidation) per investigation program | R2, R8 | Technical Rigor | Lab test reports |
+| 6 | Compile field and laboratory data; perform QC checks for data consistency and completeness | R1, R2 | Technical Rigor | Data compilation |
 
 ### Phase 3: Engineering Analysis and Report Preparation
 
-7. Perform engineering analysis: interpret subsurface conditions, determine soil/rock design parameters (bearing capacity, friction angle, cohesion, settlement characteristics), evaluate excavation stability, groundwater impacts, and earthworks compaction criteria. Maps to R1, R2, R8. Reference `Guidance.md` Design Parameter Conservatism.
-8. If ground improvement is required (per ER or based on investigation findings), develop Ground Improvement Design Report content: treatment objectives, method selection (e.g., preloading, stone columns, soil mixing), design calculations, performance criteria, construction methodology, and quality control requirements. Maps to R3. Reference `Guidance.md` Ground Improvement Feasibility considerations. **TBD**: ER will specify if ground improvement is required.
-9. Prepare Geotechnical Investigation Report per `Datasheet.md` Report Content structure: executive summary, site description, investigation program, subsurface conditions, laboratory results, engineering analysis, design recommendations (foundations, earthworks, pavements, excavation). Ensure clarity and completeness per `Guidance.md` Completeness and Clarity principle. Maps to R1, R2, R4, R7, R8.
-10. Include document control elements (title, report number, revision, date, author/organization, professional seal/stamp) per R5, R6. Use `Datasheet.md` Attributes as template for required metadata.
-11. Coordinate geotechnical design parameters with structural packages (PKG-05 Concrete Structures, PKG-06 Structural Steelwork, PKG-04 Pavements) to support their design schedules. Maps to R7. Reference `Guidance.md` Coordination and Consistency principle.
+| Step | Action | Specification § | Guidance § | Datasheet § |
+|------|--------|-----------------|------------|-------------|
+| 7 | Perform engineering analysis: interpret subsurface conditions, determine design parameters (bearing capacity, settlement, excavation stability, compaction criteria) | R1, R2, R8 | Technical Rigor, Conservatism | Engineering analysis section |
+| 8 | If ground improvement required: develop Ground Improvement Design Report (objectives, method selection, calculations, construction methodology, performance criteria) | R3 | Ground Improvement Feasibility | Ground Improvement Report sections |
+| 9 | Prepare Geotechnical Investigation Report per Datasheet Report Content structure; ensure clarity and completeness | R1, R2, R4, R7, R8 | Completeness | All Investigation Report sections |
+| 10 | Include document control elements (title, report number, revision, date, author, professional seal/stamp) | R5, R6 | Document Control | Attributes |
+| 11 | Coordinate geotechnical parameters with structural packages (PKG-04, PKG-05, PKG-06) | R7 | Coordination | Foundation parameters, Pavement |
 
 ### Phase 4: Review and Approval
 
-12. Perform internal technical review against Specification verification items (V1: content completeness per R1–R8; V2: PKG-02 scope coverage and cross-package coordination; V3: ER compliance). Reference `Guidance.md` Trade-offs for balancing detail vs. schedule. Update `Datasheet.md` Configuration Notes to document any **TBDs** or **ASSUMPTIONs** requiring resolution.
-13. Address review comments; revise report as necessary. Update revision attribute in `Datasheet.md`.
-14. Obtain professional engineer seal/stamp and approvals per regulatory requirements (R6). **TBD**: ER will specify approval authority and regulatory jurisdiction.
-15. Issue controlled report per D&B Contractor document control procedures (R5). Capture issue date in `Datasheet.md` Report Date attribute. Distribute to design team, coordinating packages, and Employer as required. **ASSUMPTION**: Standard D&B document control workflow.
+| Step | Action | Specification § | Verification | Records |
+|------|--------|-----------------|--------------|---------|
+| 12 | Perform internal technical review against V1-V3; update Datasheet for any TBDs/ASSUMPTIONs requiring resolution | R1-R8 | V1, V2, V3 | Review checklist |
+| 13 | Address review comments; revise report as necessary; update revision | R5 | — | Comment log |
+| 14 | Obtain professional engineer seal/stamp and approvals per regulatory requirements | R6 | V3 | Seal documentation |
+| 15 | Issue controlled report per D&B document control procedures; distribute to design team and coordinating packages | R5 | — | Transmittal, distribution |
 
-    ## Verification
+## Verification
 
-    - **V1 Check (R1, R2, R3, R5, R6, R8 compliance)**: Verify geotechnical reports include all required content sections per `Datasheet.md` Report Content (executive summary, site description, investigation program, subsurface conditions, laboratory results, analysis, recommendations for foundations/earthworks/pavements/excavation/dewatering/compaction). Verify document control elements and professional seal/stamp are present. Method: Technical review checklist by qualified geotechnical engineer; compare report sections to Specification R1–R8. Records: Review checklist, approval signatures, professional seal documentation.
-    - **V2 Check (R4, R7, R8 compliance)**: Verify reports address all geotechnical aspects of PKG-02 earthworks scope (grading, excavation, fill placement, ground improvement) and provide design parameters required by coordinating packages (PKG-04, PKG-05, PKG-06). Method: Cross-reference report recommendations with `Guidance.md` coordination notes and DEL-02.01, DEL-02.02, DEL-02.03 design requirements; confirm parameter transmittal to structural packages. Records: Coordination meeting minutes, parameter transmittal logs, interdisciplinary review comments.
-    - **V3 Check (R1, R3, R6 compliance)**: Verify alignment with ER geotechnical requirements (investigation scope, design criteria, regulatory standards, approval authority) once Employer's Requirements volumes are available. Method: ER compliance matrix comparing report content to ER specifications; confirm regulatory approval/acceptance. Records: ER compliance matrix, regulatory approval letters/stamps, Employer review comments and acceptance documentation. **TBD**: Pending ER volumes.
+### V1: Content Completeness
 
-    ## Records
+| Attribute | Value |
+|-----------|-------|
+| Check | Verify reports include all required content sections per Datasheet and R1-R8 |
+| Method | Technical review checklist by qualified geotechnical engineer |
+| Criteria | All sections present; document control elements complete; professional seal present |
+| Reference | Specification V1; Datasheet Report Content |
+| Procedure Step | Step 12 |
 
-    - Issued Geotechnical Reports (controlled revisions).
-    - Review comments, approvals, and response log. ASSUMPTION: standard document control practice.
+### V2: Scope Alignment and Cross-Package Coordination
 
-    ## References
+| Attribute | Value |
+|-----------|-------|
+| Check | Verify reports address PKG-02 scope and provide parameters for coordinating packages |
+| Method | Cross-reference with DEL-02.01, DEL-02.02, DEL-02.03; confirm transmittal to PKG-04, PKG-05, PKG-06 |
+| Criteria | All PKG-02 geotechnical aspects covered; parameters provided for coordinating packages |
+| Reference | Specification V2; Guidance Coordination |
+| Procedure Step | Steps 11, 12 |
 
-    - _CONTEXT.md (deliverable identity, description, anticipated artifacts).
-    - _DEPENDENCIES.md (NOT_TRACKED).
-    - Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-02 scope, DEL-02 entries; location TBD).
-    - `Datasheet.md`, `Specification.md`, `Guidance.md` for verification/context alignment.
-    - _REFERENCES.md indicates no references yet.
+### V3: ER Compliance
+
+| Attribute | Value |
+|-----------|-------|
+| Check | Verify alignment with ER geotechnical requirements |
+| Method | ER compliance matrix; regulatory approval confirmation |
+| Criteria | **TBD** — pending ER volumes |
+| Reference | Specification V3 |
+| Status | Deferred pending ER volumes |
+| Procedure Step | Steps 1, 14 |
+
+## Records
+
+### Primary Deliverable Records
+
+| Record | Description | Specification § |
+|--------|-------------|-----------------|
+| Issued Geotechnical Investigation Report | Controlled revision with professional seal | R1, R5, R6 |
+| Issued Ground Improvement Design Report | Controlled revision if required | R3, R5 |
+
+### Production Records
+
+| Record | Description | Procedure Step |
+|--------|-------------|----------------|
+| Field investigation logs | Boring records, soil descriptions, sampling logs | Step 4 |
+| Laboratory test reports | Classification, strength, compaction test results | Step 5 |
+| Technical review checklist | Record of internal verification against V1-V3 | Step 12 |
+| Review comments and responses | Log of comments and resolutions | Step 13 |
+
+### Approval and Distribution Records
+
+| Record | Description | Procedure Step |
+|--------|-------------|----------------|
+| Professional seal documentation | Engineer seal/stamp and license verification | Step 14 |
+| Transmittal records | Distribution list, issuance date | Step 15 |
+| Coordination transmittals | Parameter transmittals to PKG-04, PKG-05, PKG-06 | Step 11 |
+
+**Assumption:** Records management per standard D&B document control and QA/QC procedures.
+
+## Cross-Document Traceability
+
+| Procedure Phase | Specification § | Guidance § | Datasheet § | Verification |
+|-----------------|-----------------|------------|-------------|--------------|
+| Phase 1 (Planning) | R1, R2, R4, R7, R8 | Coordination, Investigation Adequacy | Investigation scope | — |
+| Phase 2 (Investigation) | R1, R2, R6, R8 | Technical Rigor | Basis of report | — |
+| Phase 3 (Analysis/Report) | R1-R8 | All principles | Report Content sections | — |
+| Phase 4 (Review/Approval) | R5, R6 | All principles | Attributes | V1, V2, V3 |
+
+## References
+
+| Reference | Description | Location |
+|-----------|-------------|----------|
+| _CONTEXT.md | Deliverable identity, description, anticipated artifacts | This folder |
+| _DEPENDENCIES.md | Dependency coordination mode (NOT_TRACKED) | This folder |
+| Decomposition | PKG-02 scope, DEL-02.04 entry, Section 1.2 Scope Focus | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (location TBD) |
+| Datasheet.md | Report content and attributes | This folder |
+| Specification.md | Requirements R1-R8, Verification V1-V3 | This folder |
+| Guidance.md | Principles, Considerations, Trade-offs | This folder |
+| _REFERENCES.md | ER volumes and reference materials | This folder (currently empty; pending) |
+| Related deliverables | DEL-02.01, DEL-02.02, DEL-02.03, DEL-02.05 | PKG-02 |
+| Coordinating packages | PKG-04, PKG-05, PKG-06 | — |

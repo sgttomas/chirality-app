@@ -30,15 +30,36 @@ This deliverable is a **Record** produced by **D&B Contractor (QA/QC)** (Source:
 - Create a records index (spreadsheet/table) listing each item ID and required record types with status (ASSUMPTION; format TBD).
 - For galvanizing/coating, attach both certificates and inspection hold-point sign-offs where required (**TBD** until ER/spec clauses extracted).
 
-## Local Conflict Table (if unresolved)
+## Conflict Table (for human ruling)
 
-| Topic | Issue | Impact | Needed to resolve | Owner |
-|-------|-------|--------|-------------------|-------|
-| Record format/retention | ER clauses not yet extracted for QA record requirements | Record templates and acceptance cannot be finalized | Identify relevant ER clauses and confirm record expectations | Human |
+*No conflicts between sources identified at this time.*
 
-## Cross-Document Notes
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|--------------------|--------------|
+| — | — | — | — | — | — | — |
 
-- Technical Specification (DEL-06.02): record requirements should match the inspection/acceptance clauses (DEL-06.02 Specification.md).
-- Data Sheets (DEL-06.04): use “Required Records” fields to drive record completeness (DEL-06.04 Guidance.md).
-- Procedure: provides the step-by-step workflow for collecting and compiling records (Procedure.md: Steps).
-- Specification → Procedure → Records traceability: use the `Specification.md` Cross-Reference Matrix to keep required records, workflow, and evidence aligned.
+## Pending Inputs (TBD Resolution)
+
+| Item | Missing Input | Impact | Action Required |
+|------|---------------|--------|-----------------|
+| PI-06.05-001 | Employer's Requirements clauses for QA record requirements | Record templates and acceptance criteria remain TBD | Extract relevant clauses from Volume 2 Part 1 |
+| PI-06.05-002 | Document control retention requirements | Archival and retention standards remain TBD | Confirm retention requirements with ER |
+| PI-06.05-003 | Inspection/testing standards for structural steel | Specific inspection procedures remain TBD | Extract clauses from Volume 2 Part 3 |
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity consistent with Scope |
+| Datasheet.md | Attributes | Package metadata (number, categories, traceability basis) — keep aligned with issue workflow |
+| Datasheet.md | Construction | Suggested package contents, index structure |
+| Specification.md | Record Index Structure | Index field requirements referenced in Considerations |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification traceability |
+| Procedure.md | Steps 1–6 | Workflow implementing the Principles and Considerations |
+| Procedure.md | Verification | Criteria that validate Considerations are met |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Records trace to drawing item IDs and critical weld/coating locations
+- DEL-06.02: Record requirements match specification inspection/acceptance clauses
+- DEL-06.03: Critical design assumptions map to inspection/record requirements
+- DEL-06.04: Data sheet "Required Records" fields drive record completeness

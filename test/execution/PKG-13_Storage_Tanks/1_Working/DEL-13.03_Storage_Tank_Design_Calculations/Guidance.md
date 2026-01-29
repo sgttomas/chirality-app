@@ -108,6 +108,19 @@ This guidance supports development of **Storage Tank Design Calculations** for *
 
 ---
 
-**Document Status:** Pass 3 (Final) — Enrichment complete. API 650 principles, seismic methodology, optimization trade-offs provided. Cross-document consistency verified. Ready for WORKING_ITEMS refinement.
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| CT-13.03-01 | Product specific gravity for canola oil capacity calculation | Guidance.md Considerations | Product specification (TBD) | Datasheet.md Calculation Inputs; Specification.md CR-01 | Product data sheet | **TBD** |
+| CT-13.03-02 | Site seismic parameters (PGA, Sa, site class) for Appendix E analysis | Guidance.md CP-04 | NBC 2020 / Site study (TBD) | Datasheet.md Load Cases; Specification.md PR-02 | ER or site-specific seismic study | **TBD** |
+| CT-13.03-03 | Site constraints affecting D/H optimization (footprint, height limits) | Guidance.md TD-01 | Site survey / ER (TBD) | Datasheet.md Calculation Scope; Specification.md PR-01 | Site survey + ER requirements | **TBD** |
+| CT-13.03-04 | Corrosion allowance value for shell thickness calculations | Guidance.md Considerations | ER / coating decision (TBD) | Specification.md CR-02; related to CT-13.02-01 (coating) | DEL-13.02 specification + ER | **TBD** |
+
+**Note:** These conflicts represent calculation input uncertainties requiring upstream data (product specs, seismic study, site survey). Resolution during WORKING_ITEMS will enable design finalization.
+
+---
+
+**Document Status:** Pass 3 Complete — Enrichment complete. API 650 principles, seismic methodology, optimization trade-offs provided. Conflict Table added for calculation input decisions requiring human ruling. Cross-document consistency verified. Ready for WORKING_ITEMS refinement.
 
 **Last Updated:** 2026-01-28

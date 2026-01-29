@@ -146,8 +146,28 @@ Dependencies coordinated externally per dependency mode NOT_TRACKED (see `_DEPEN
 
 ## Cross-Document Traceability
 
-| Document | Link Points |
-|----------|-------------|
-| Specification.md | Requirements section (REQ-01 through REQ-11) defines data sheet package scope and content requirements: all data sheets present (REQ-01), service/tag/conditions documented (REQ-02), interface requirements captured (REQ-03), consistency with DEL-12.02 specification (REQ-04), consistency with DEL-12.03 calculations (REQ-05), verification basis documented (REQ-09), calibration requirements enable DEL-12.05 compliance (REQ-10); Standards section identifies governing references; Verification section defines review methods and acceptance criteria; Documentation section defines data sheet field categories matching Construction section above |
-| Guidance.md | Purpose section explains data sheets serve as structured source of truth for equipment parameters linking specification to procurement, drawings, calculations, and QA records; Principles section explains data sheet development rationale (single source of truth, traceability per REQ-09, consistency per REQ-04/REQ-05) and custody transfer principles (accuracy capture, calibration traceability, proving fields); Considerations section identifies data sheet content considerations (service differentiation per REQ-02, vendor data timing, interface fields per REQ-03/REQ-07, calibration fields per REQ-10), flow meter field considerations, transmitter field considerations, and service-specific considerations (rail vs. marine) |
-| Procedure.md | Steps section defines data sheet development workflow: Step 1 (Identify required data sheets per REQ-01; assign tag numbers per REQ-02), Step 2 (Establish data sheet template with field categories per Documentation section), Step 3 (Populate design basis from ER, DEL-12.02, DEL-12.03 per REQ-04, REQ-05), Step 4 (Obtain and incorporate vendor data; mark vendor-certified fields per REQ-09), Step 5 (Cross-check consistency per REQ-04, REQ-05), Step 6 (Independent check and issue); Verification section confirms requirement satisfaction per Acceptance Criteria; Records section identifies data sheet outputs matching anticipated artifacts |
+| Document | Section | Link Points |
+|----------|---------|-------------|
+| Specification.md | § Scope | Defines inclusions (flow meter data sheets ×2, temperature/pressure transmitter data sheets) and exclusions (general field instrumentation, control system I/O, valves, pumps) |
+| Specification.md | § Requirements | REQ-01 through REQ-17: functional (REQ-01-04 artifact presence and identification), performance (REQ-05-09 specification/calculation consistency), data quality (REQ-10-12 verification basis), interface (REQ-13-14 electrical/controls coordination), quality (REQ-15-17 independent check) |
+| Specification.md | § Standards | Governing references (ER Vol 2 Part 1/2); custody transfer standards (API MPMS, OIML R117, Measurement Canada) defining data sheet field requirements |
+| Specification.md | § Verification | Verification methods (checklist, document review, cross-reference, vendor data, IDC, independent check, OBJ alignment) and acceptance criteria |
+| Specification.md | § Documentation | Data sheet field requirements matching Construction section field categories |
+| Guidance.md | § Purpose | Data sheets as structured source of truth for equipment parameters; downstream use (engineering, procurement, vendors, installation, testing, operations) |
+| Guidance.md | § Principles | Development rationale (single source of truth, traceability REQ-10, consistency REQ-04/05/06, no invention REQ-12); custody transfer principles (accuracy capture REQ-07, calibration traceability REQ-11, proving fields REQ-11) |
+| Guidance.md | § Considerations | Content considerations (service differentiation REQ-02, vendor data timing, interface fields REQ-13, calibration fields REQ-11); flow meter field guidance; transmitter field guidance; service-specific (rail batch vs. marine continuous); data sheet timing (inquiry/order/delivery stages) |
+| Guidance.md | § Trade-offs | Standardization vs. optimization; accuracy vs. cost; vendor lock-in vs. flexibility; detail level based on available information |
+| Procedure.md | § Step 1 | Identify required data sheets per REQ-01; assign tag numbers per REQ-02/04; create data sheet index |
+| Procedure.md | § Step 2 | Establish data sheet template with field categories per Construction section |
+| Procedure.md | § Step 3 | Populate design basis from ER, DEL-12.02, DEL-12.03 per REQ-05/06; document verification basis per REQ-10 |
+| Procedure.md | § Step 4 | Obtain and incorporate vendor data per REQ-09; mark vendor-certified fields per REQ-10 |
+| Procedure.md | § Step 5 | Cross-check consistency with DEL-12.01/02/03 per REQ-04/05/06; verify interfaces per REQ-13 |
+| Procedure.md | § Step 6 | Independent check and issue per REQ-15/16/17 |
+| DEL-12.01 | Drawings | Tag numbers, meter sizes, orientations, straight-run dimensions from data sheets per Conditions section |
+| DEL-12.02 | Specification | Performance requirements (accuracy, repeatability, materials, proving) as data sheet inputs per Construction section Performance/Materials/Calibration fields |
+| DEL-12.03 | Calculations | Sizing parameters (flow ranges, meter sizes, pressure drop, uncertainty) as data sheet inputs per Construction section Performance/Physical fields |
+| DEL-12.05 | Test Records | Data sheet calibration and proving fields enable DEL-12.05 compliance verification per Construction section Calibration/Proving fields |
+| PKG-14 | P&IDs | Tag numbers, P&ID references, line sizes, process connections per Construction section Identification/Physical fields |
+| PKG-17 | Electrical | Power supply, area classification per Construction section Electrical/Controls fields |
+| PKG-19 | Controls | Signal outputs, communication protocols per Construction section Electrical/Controls fields |
+| PKG-20 | Instrumentation | Transmitter specifications coordination per Construction section transmitter fields

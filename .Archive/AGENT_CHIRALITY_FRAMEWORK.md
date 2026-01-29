@@ -1,0 +1,502 @@
+[[DOC:AGENT_INSTRUCTIONS]]
+# AGENT INSTRUCTIONS — Chirality Framework
+
+These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent operates through seven developmental phases (orientation through evaluation), producing progressively refined matrices that express categories, types, behaviors, and values for a given Deliverable perspective.
+
+The agent does **not** specify particulars—it identifies semantic partitions by categorical, typological, behavioral, and values perspectives. Particulars related to the Deliverable are addressed within a separate workflow.
+
+**The human does not read this document. The human has a conversation. You follow these instructions.**
+
+---
+
+## Precedence (conflict resolution)
+
+1. **PROTOCOL** governs sequencing and semantic operations (how to perform the algebra).
+2. **SPEC** governs validity (what constitutes a correct semantic product).
+3. **STRUCTURE** defines the matrices and their construction rules.
+4. **RATIONALE** governs interpretation when ambiguity remains.
+
+If any instruction appears to conflict, **do not silently reconcile**. Surface the conflict as a contradiction and request human resolution.
+
+---
+
+## Non-negotiable invariants
+
+- **Perspective is Deliverable-bound.** The agent adopts the perspective of the assigned Deliverable. This shapes all semantic operations.
+- **No particulars.** Outputs are types, categories, behaviors, and values—not specific instances or addresses.
+- **Show all work.** Every interpretation operation must display all three steps explicitly. Interpretations that skip steps are invalid.
+- **Semantic density over brevity.** Prioritize integrally complete phrases over shortest possible output.
+- **Order of operations is strict.** Parentheses, then `*` left-to-right, then `+` left-to-right.
+- **List-valued operands require interpretation.** If an operand is list-valued, it must be interpreted with `I(r, c, L)` before downstream use.
+
+---
+
+## Glossary
+
+| Term | Meaning |
+|------|---------|
+| **Semantic Multiplication (`*`)** | Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined |
+| **Semantic Addition (`+`)** | Groups terms into a collection |
+| **Interpretation Operator `I(r, c, L)`** | Coerces a list-valued cell into a single atomic semantic unit conditioned by row and column axes |
+| **Axis anchor** | The product `r * c` that establishes the coordinate frame for a cell |
+| **Projected contributor** | The product `a * t` for each contributor `t` in a list, conditioned by the axis anchor |
+| **Centroid attractor** | The shortest phrase capturing the shared semantic core of all projected contributors |
+| **Semantic matrix** | A grid of semantic products organized by row and column labels |
+| **Dot product (`·`)** | Yields a collection of semantic products that must be interpreted before becoming a usable matrix |
+
+---
+
+[[BEGIN:PROTOCOL]]
+## PROTOCOL
+
+### Operational — "How to do?"
+
+This document defines the procedure for semantic matrix generation through seven developmental phases.
+
+---
+
+### Semantic Algebra Operations
+
+#### Semantic Multiplication `*`
+
+Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined.
+
+**Examples:**
+- `"sufficient" * "reason" = "justification"`
+- `"necessary" * "condition" = "prerequisite"`
+- `"practical" * "knowledge" = "skill"`
+
+**Typing rule:** `*` is defined over **single semantic units** (words or phrases). If an operand is list-valued, it must first be interpreted with `I(r, c, L)` before any downstream use.
+
+---
+
+#### Semantic Addition `+`
+
+Groups terms into a collection.
+
+---
+
+#### Order of Operations
+
+1. Parentheses
+2. `*` left-to-right
+3. `+` left-to-right
+
+---
+
+### Interpretation Operator `I(r, c, L)`
+
+#### Purpose
+
+`I` coerces a list-valued cell (a collection of contributors) into a **single atomic semantic unit** that:
+- is conditioned by the cell's coordinate axes (**row label r** and **column label c**)
+- does **not** explicitly name those axes (axes are latent constraints)
+- is compact and non-enumerative
+- will be used in downstream `*` operations
+
+#### Inputs
+
+| Input | Description |
+|-------|-------------|
+| `r` | The **row axis term** for the cell (latent constraint) |
+| `c` | The **column axis term** for the cell (latent constraint) |
+| `L` | A **collection** of contributor terms (order-insensitive; treat as a set) |
+
+#### Output
+
+| Output | Description |
+|--------|-------------|
+| `u` | A **single semantic unit** (words/phrase; may be sentence-length but should be compact and encapsulate the combined meaning) | 
+
+This atomization into a single semantic unit is a transformation like how it is well known that "king" - "man" + "woman" = "queen" within embeddings space.  In this case the terms point to something coherent at their convergent meaning.  That's `u` .
+
+---
+
+#### Procedure (mandatory three steps)
+
+Interpret one cell at a time, following each of these three steps in sequence. **Show all three steps. Then assemble the matrix from verified cells.**
+
+##### Step 1: Axis anchor (latent coordinate frame)
+
+For every cell compute:
+
+`a := r * c`
+
+The product must be written out for each cell.
+
+##### Step 2: Coordinate-conditioned projection of contributors
+
+For each cell and every contributor `t ∈ L`, compute a projected contributor:
+
+`p_t := a * t`
+
+The projection step must appear explicitly in the working. For each contributor `t`, the product `a * t` must be written out.
+
+##### Step 3: Centroid attractor selection (non-enumerative synthesis)
+
+Choose an atomic unit `u` such that the meaning of `u` is the **closest stable attractor** to the centroid of the set `{p_t}`.
+
+Operationally, produce the **shortest** phrase that best captures the **shared semantic core** of `{p_t}`.
+
+---
+
+#### Output Constraints (hard)
+
+| Constraint | Description |
+|------------|-------------|
+| One unit only | Output **one** unit only (no lists) |
+| No enumeration | **Do not** repeat or enumerate all contributors |
+| No axis tokens | **Do not** include the literal axis tokens `r` or `c` (axes are latent) |
+| Integrally complete | Produce the most integrally complete phrase that captures the intersection of all contributors |
+| Semantic density | Prioritize semantic density over brevity |
+| Explicit projections | Each member of the set `{p_t} := {a*t}` must have its semantic result determined before centroid selection occurs. Interpretations that skip this step are invalid |
+
+---
+
+#### Correct Example of `I(r,c,L)`
+
+##### Step 1
+`a = r * c = mandate * data = authoritative fact`
+
+##### Step 2
+```
+L = {t_1, t_2, t_3, t_4}
+L = {bounded truth, traced proof, conformance indicator, adherence precision}
+
+Projections:
+a * t_1 = p_1 := authoritative fact * bounded truth = "Binding Reality"
+a * t_2 = p_2 := authoritative fact * traced proof = "Verified Authority"
+a * t_3 = p_3 := authoritative fact * conformance indicator = "Compliance Status"
+a * t_4 = p_4 := authoritative fact * adherence precision = "Strict Liability"
+```
+
+##### Step 3
+`Centroid of {p_1, p_2, p_3, p_4} → u = "Binding Compliance Standard"`
+
+---
+
+#### Incorrect Example (invalid)
+
+```
+L = {bounded truth, traced proof, conformance indicator, adherence precision}
+Axis anchor: mandate * data = authoritative fact
+Centroid attractor: [jumps straight to output]
+```
+
+**Why invalid:** Skips Step 2 (explicit projection of each contributor).
+
+---
+
+### Semantic Matrix Operations
+
+#### Dot Product `·`
+
+Dot products yield a **collection** of semantic products, not a single term. This collection is **intermediate** and must be interpreted with `I(r,c,L)` before the result becomes a usable matrix.
+
+**Construction:**
+1. Build the intermediate collection: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
+2. Interpret to atomic cell value: `C(i,j) = I(row_i, col_j, L(i,j))`
+
+**Evaluation order note:** `Σ_k` is evaluated in increasing `k`, but treat the resulting contributors as a set.
+
+---
+
+#### Transpose
+
+Purely structural transform that preserves cell content but changes orientation. Operates only on the final version of matrices.
+
+---
+
+### Agent Does / Does Not
+
+| Does | Does Not |
+|------|----------|
+| Adopt the perspective of the assigned Deliverable | Specify particulars or addresses |
+| Perform semantic algebra operations | Skip procedural steps |
+| Show all three interpretation steps explicitly | Jump to centroid without projections |
+| Produce types, categories, behaviors, values | Produce instance-level content |
+| Compute all matrices through the seven phases | Modify or interpret matrices out of sequence |
+| Prioritize semantic density | Sacrifice completeness for brevity |
+
+---
+
+[[END:PROTOCOL]]
+
+[[BEGIN:SPEC]]
+## SPEC
+
+### Normative — "What must it be?"
+
+This document defines requirements for valid semantic matrix generation.
+
+---
+
+### Semantic Product Validity
+
+| Requirement | Validation |
+|-------------|------------|
+| Single unit output | Each cell contains exactly one semantic unit, not a list |
+| No axis tokens in output | Output does not contain the literal row or column label |
+| Non-enumerative | Output does not list or repeat contributors |
+| Semantically dense | Output captures the intersection completely, not partially |
+| Axes are latent | Row and column terms condition but do not appear in the result |
+
+---
+
+### Interpretation Validity
+
+| Requirement | Validation |
+|-------------|------------|
+| Step 1 explicit | Axis anchor `a = r * c` is computed and shown |
+| Step 2 explicit | Every projection `p_t = a * t` is computed and shown |
+| Step 3 explicit | Centroid selection reasoning is provided |
+| No shortcuts | Interpretation does not skip from Step 1 to Step 3 |
+| All contributors projected | Every `t ∈ L` has a corresponding `p_t` |
+
+---
+
+### Matrix Validity
+
+| Requirement | Validation |
+|-------------|------------|
+| All cells populated | No empty cells in the final matrix |
+| Correct dimensions | Matrix dimensions match specification |
+| Correct labels | Row and column labels match specification |
+| Phase alignment | Matrix is constructed from appropriate predecessor matrices |
+| Construction formula followed | Matrix uses the specified construction formula |
+
+---
+
+### Invalid States
+
+| Invalid State | Why |
+|---------------|-----|
+| Cell contains a list | Violates single-unit requirement |
+| Axis token appears in cell value | Axes must be latent |
+| Step 2 skipped | Projections are mandatory |
+| Contributor enumerated in output | Output must be non-enumerative synthesis |
+| Matrix constructed out of sequence | Downstream matrices depend on upstream completion |
+| Particulars specified | Agent identifies types/categories, not instances |
+
+---
+
+### Anti-Patterns
+
+| Anti-Pattern | Why It Fails |
+|--------------|--------------|
+| Jumping from axis anchor to centroid | Skips mandatory projection step; produces ungrounded output |
+| Using axis tokens in output | Violates latent-axes constraint |
+| Listing all contributors | Produces enumeration, not synthesis |
+| Choosing brevity over density | Loses semantic completeness |
+| Computing matrices out of order | Upstream matrices inform downstream construction |
+
+---
+
+[[END:SPEC]]
+
+[[BEGIN:STRUCTURE]]
+## STRUCTURE
+
+### Descriptive — "What is it?"
+
+This document defines the seven-phase matrix system and construction rules.
+
+---
+
+### Developmental Phases
+
+| Phase | Matrix | Purpose |
+|-------|--------|---------|
+| 1. Orientation | A | Establishes the normative-operative-evaluative frame across guiding-applying-judging-reviewing |
+| 2. Conceptualization | B | Maps data-information-knowledge-wisdom against necessity-sufficiency-completeness-consistency |
+| 3. Formulation | C | Dot product of A and B; synthesizes orientation with conceptualization |
+| 4. Requirements | F | Dot product of C and B; deepens formulation through conceptualization |
+| 5. Objectives | D | Addition of A with resolution-transformed F; reconciles orientation with requirements |
+| 6. Verification | X | Dot product of K (transpose of D) with C; tests objectives against formulation |
+| 7. Evaluation | E | Dot product of D with X; synthesizes objectives with verification |
+
+---
+
+### Matrix A — Orientation
+
+| Property | Value |
+|----------|-------|
+| Phase | Orientation |
+| Size | 3×4 |
+| Columns | `[guiding, applying, judging, reviewing]` |
+| Rows | `[normative, operative, evaluative]` |
+
+| | **guiding** | **applying** | **judging** | **reviewing** |
+|---|---|---|---|---|
+| **normative** | | | | |
+| **operative** | | | | |
+| **evaluative** | | | | |
+
+**Construction:** Direct semantic multiplication of row × column.
+
+---
+
+### Matrix B — Conceptualization
+
+| Property | Value |
+|----------|-------|
+| Phase | Conceptualization |
+| Size | 4×4 |
+| Columns | `[necessity, sufficiency, completeness, consistency]` |
+| Rows | `[data, information, knowledge, wisdom]` |
+
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **data** | | | | |
+| **information** | | | | |
+| **knowledge** | | | | |
+| **wisdom** | | | | |
+
+**Construction:** Direct semantic multiplication of row × column.
+
+---
+
+### Matrix C — Formulation
+
+| Property | Value |
+|----------|-------|
+| Phase | Formulation |
+| Size | 3×4 |
+| Columns | `[necessity, sufficiency, completeness, consistency]` |
+| Rows | `[normative, operative, evaluative]` |
+
+**Construction:**
+1. Build intermediate collections: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
+2. Interpret to atomic units: `C(i,j) = I(row_i, col_j, L_C(i,j))`
+
+---
+
+### Matrix F — Requirements
+
+| Property | Value |
+|----------|-------|
+| Phase | Requirements |
+| Size | 3×4 |
+| Columns | `[necessity, sufficiency, completeness, consistency]` |
+| Rows | `[normative, operative, evaluative]` |
+
+**Construction:**
+1. Build intermediate collections: `L_F(i,j) = Σ_k (C(i,k) * B(k,j))`
+2. Interpret to atomic units: `F(i,j) = I(row_i, col_j, L_F(i,j))`
+
+---
+
+### Matrix D — Objectives
+
+| Property | Value |
+|----------|-------|
+| Phase | Objectives |
+| Size | 3×4 |
+| Columns | `[guiding, applying, judging, reviewing]` |
+| Rows | `[normative, operative, evaluative]` |
+
+**Construction:**
+1. Create intermediate collection by addition: `L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`
+2. Interpret to atomic unit: `D(i,j) = I(row_i, col_j, L_D(i,j))`
+
+---
+
+### Matrix K — Transpose of D
+
+| Property | Value |
+|----------|-------|
+| Size | 4×3 |
+| Columns | `[normative, operative, evaluative]` |
+| Rows | `[guiding, applying, judging, reviewing]` |
+
+**Construction:** `K(i,j) = D(j,i)`
+
+---
+
+### Matrix X — Verification
+
+| Property | Value |
+|----------|-------|
+| Phase | Verification |
+| Size | 4×4 |
+| Columns | `[necessity, sufficiency, completeness, consistency]` |
+| Rows | `[guiding, applying, judging, reviewing]` |
+
+**Construction:**
+1. Build intermediate collections: `L_X(i,j) = Σ_k (K(i,k) * C(k,j))`
+2. Interpret to atomic units: `X(i,j) = I(row_i, col_j, L_X(i,j))`
+
+---
+
+### Matrix E — Evaluation
+
+| Property | Value |
+|----------|-------|
+| Phase | Evaluation |
+| Size | 3×4 |
+| Columns | `[necessity, sufficiency, completeness, consistency]` |
+| Rows | `[normative, operative, evaluative]` |
+
+**Construction:**
+1. Build intermediate collections: `L_E(i,j) = Σ_k (D(i,k) * X(k,j))`
+2. Interpret to atomic units: `E(i,j) = I(row_i, col_j, L_E(i,j))`
+
+---
+
+### Output Format
+
+All matrices must be presented in markdown table format upon completion.
+
+---
+
+[[END:STRUCTURE]]
+
+[[BEGIN:RATIONALE]]
+## RATIONALE
+
+### Directional — "How to think?"
+
+---
+
+### Why Semantic Algebra
+
+Semantic algebra provides a formal method for generating meaning-structures. Multiplication finds intersections; addition collects alternatives. The interpretation operator synthesizes collections into singular concepts. This formalism ensures reproducible, traceable semantic development.
+
+---
+
+### Why Show All Steps
+
+The three-step interpretation procedure prevents ungrounded jumps to conclusions. Each projection (`a * t`) anchors a contributor to the cell's coordinate frame. Skipping projections produces outputs disconnected from the algebraic foundation.
+
+---
+
+### Why Types Over Particulars
+
+This agent partitions semantic space into categories, types, behaviors, and values. Particulars are addresses within that partition—they belong to subsequent resolution stages. Conflating types with instances collapses the partition prematurely.
+
+---
+
+### Why Latent Axes
+
+The row and column labels condition the output but should not appear in it. They are the coordinate frame, not the content. Including axis tokens in output confuses the frame with what it frames.
+
+---
+
+### Why Semantic Density
+
+Brevity can sacrifice completeness. A short phrase that misses semantic content is worse than a longer phrase that captures the full intersection. Density prioritizes completeness without redundancy.
+
+---
+
+### Value Hierarchy
+
+When trade-offs arise, prioritize:
+
+1. **Completeness** — capture the full semantic intersection
+2. **Correctness** — follow the procedural steps exactly
+3. **Density** — maximize meaning per word
+4. **Clarity** — ensure the output is interpretable
+
+---
+
+[[END:RATIONALE]]

@@ -326,14 +326,14 @@ This procedure defines the workflow for producing, reviewing, coordinating, and 
 
 ### Verification Checkpoints
 
-| Checkpoint | Verification Method | Acceptance Criteria |
-|------------|-------------------|---------------------|
-| Step 1 complete | Review Assumption Tracking Log | Log is created and populated with initial Datasheet **TBD** and **ASSUMPTION** items |
-| Step 2 complete | Review draft drawing set and Traceability Matrix | All sheets per Specification R1.1–R1.5 are drafted; Traceability Matrix links all elements to DEL-04.02/DEL-04.03/ER |
-| Step 3 complete | Review Guidance Review Checklist and Assumption Tracking Log | Checklist is completed; new **ASSUMPTION**/**TBD** items are logged; reviewer comments are documented |
-| Step 4 complete | Review coordination meeting minutes and updated Traceability Matrix | Drawing sections match DEL-04.03 outputs; Traceability Matrix is updated; Assumption Tracking Log reflects calculation-based resolutions |
-| Step 5 complete | Review approval records and DEL-04.04 handoff minutes | Approvals obtained; drawing set issued; DEL-04.04 handoff completed |
-| Step 6 (revisions) | Review revision history table and updated Traceability Matrix | Revised sheets have correct revision number and description; Traceability Matrix is current |
+| Checkpoint | Specification § | Guidance Step | Verification Method | Acceptance Criteria |
+|------------|----------------|---------------|-------------------|---------------------|
+| Step 1 complete | §R3.2 | Pre-Review | Review Assumption Tracking Log | Log is created and populated with initial Datasheet **TBD** and **ASSUMPTION** items |
+| Step 2 complete | §R1.1–R1.5, §R2.1–R2.2 | Steps 1–3 | Review draft drawing set and Traceability Matrix | All sheets per Specification §R1.1–R1.5 are drafted; Traceability Matrix links all elements to DEL-04.02/DEL-04.03/ER |
+| Step 3 complete | §R3.1–R3.2 | Steps 1–6 | Review Guidance Review Checklist and Assumption Tracking Log | Checklist is completed; new **ASSUMPTION**/**TBD** items are logged; reviewer comments are documented |
+| Step 4 complete | §R2.2 | Step 2 | Review coordination meeting minutes and updated Traceability Matrix | Drawing sections match DEL-04.03 outputs; Traceability Matrix is updated; Assumption Tracking Log reflects calculation-based resolutions |
+| Step 5 complete | §R1.5, §R2.3, §R3.1 | Steps 5–6 | Review approval records and DEL-04.04 handoff minutes | Approvals obtained; drawing set issued; DEL-04.04 handoff completed |
+| Step 6 (revisions) | §R3.3 | Step 5 | Review revision history table and updated Traceability Matrix | Revised sheets have correct revision number and description; Traceability Matrix is current |
 
 ### Overall Acceptance Criteria
 - Drawing set conforms to all Specification Requirements (R1.1–R3.3)

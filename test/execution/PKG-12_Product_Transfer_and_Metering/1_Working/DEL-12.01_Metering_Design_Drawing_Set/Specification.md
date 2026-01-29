@@ -151,8 +151,21 @@ Applicable custody transfer metering standards are TBD pending ER clause extract
 
 ## Cross-Document Traceability
 
-| Document | Traceability Points |
-|----------|---------------------|
-| Datasheet.md | Attributes section defines drawing attributes (number series, sheet size, scale, CAD standard, revision); Conditions section defines design context (service application, product, throughput, metering points, design conditions); Construction section lists anticipated drawing content (metering skid GAs, flow meter installation details, proving connection details) |
-| Guidance.md | Purpose section explains deliverable intent; Principles section explains custody-transfer measurement intent and objective alignment (OBJ-2, OBJ-10); Considerations section identifies design factors (meter technology, straight-run, proving method, environmental conditions, hazardous area classification) that affect drawing content |
-| Procedure.md | Steps section defines production sequence (Step 1: Confirm scope and drawing list; Step 2: Collect inputs; Step 3: Draft drawings; Step 4-6: Self-check, IC, IDC; Step 7: Issue); Verification section confirms requirement satisfaction and defines acceptance criteria; Records section identifies drawing outputs and check records |
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | Deliverable ID (DEL-12.01), name, package (PKG-12), discipline (Process), type (Drawing), responsible party (D&B Contractor) |
+| Datasheet.md | § Attributes | Drawing attributes (number series, sheet size, scale, CAD standard, revision, classification, drawing count) |
+| Datasheet.md | § Conditions | Design context (service application, product, throughput, metering points, design conditions, objective alignment) |
+| Datasheet.md | § Construction | Anticipated drawing content (metering skid GAs, flow meter installation details, proving connection details), expected features and callouts |
+| Guidance.md | § Purpose | Deliverable intent (geometric definition for custody transfer), downstream use (fabrication, installation, commissioning, operations, regulatory) |
+| Guidance.md | § Principles | Custody-transfer measurement intent (meter run geometry clarity, instrument tap locations, proving connection accessibility, installation precision); drawing content principles (completeness, constructability, maintainability, interface clarity, measurement precision); objective alignment (OBJ-2 throughput, OBJ-10 accuracy, OBJ-6 regulatory) |
+| Guidance.md | § Considerations | Design factors affecting drawing content: meter technology, straight-run requirements, flow conditioning, proving method, environmental conditions, hazardous area classification, seismic design, product characteristics; service-specific considerations (rail unloading, marine loading); interface considerations (PKG-06, PKG-14, PKG-17, PKG-19, PKG-20) |
+| Guidance.md | § Trade-offs | Competing factors: accuracy vs. pressure drop, accessibility vs. footprint, standardization vs. optimization, integrated vs. modular skid, in-line vs. portable proving |
+| Procedure.md | § Step 1 | Confirm scope and drawing list (1.1-1.7) — establishes artifact checklist and drawing numbers |
+| Procedure.md | § Step 2 | Collect inputs (2.1-2.8) — gathers DEL-12.02, DEL-12.03, DEL-12.04, PKG-14 P&IDs, vendor data, drafting standards, layout drawings |
+| Procedure.md | § Step 3 | Draft drawings (3.1-3.4) — produces metering skid GAs, flow meter installation details, proving connection details, standard drawing elements |
+| Procedure.md | § Step 4 | Self-check (4.1-4.9) — verifies REQ-01 through REQ-18, cross-document consistency, interface coverage, document control compliance |
+| Procedure.md | § Step 5 | Independent check (5.1-5.9) — technical correctness, constructability, maintainability, objective compliance |
+| Procedure.md | § Step 6 | Interdisciplinary check (6.1-6.6) — interface coordination with PKG-06, PKG-14, PKG-17, PKG-19, PKG-20 |
+| Procedure.md | § Step 7 | Issue (7.1-7.6) — document control metadata, approvals, issue package, status update |
+| Procedure.md | § Records | Drawing outputs (Metering Skid GAs, Flow Meter Installation Details, Proving Connection Details, Drawing List), check records (self-check, IC, IDC, issue)

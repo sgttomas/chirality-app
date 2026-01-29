@@ -80,12 +80,23 @@ Minimum index fields (ASSUMPTION):
 - Maintain revision history and approvals per document control requirements (**TBD**) (Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD; Datasheet.md: Attributes; Procedure.md: Step 6).
 - Record package files (index + supporting PDFs), checklists, approval/sign-off evidence (**TBD**) (Procedure.md: Records).
 
-## Cross-Document Notes
+## Cross-Document Traceability
 
-- Datasheet: record package number, record categories, traceability basis should remain consistent with document control and the Procedure's release workflow (Datasheet.md: Attributes; Procedure.md: Steps).
-- Technical Specification (DEL-06.02): record package should align to inspection/hold points, acceptance criteria, and certificate requirements in the specification clauses for materials, fabrication, and protective systems (DEL-06.02 Specification.md: Quality Requirements, Records and Submittals; Datasheet.md: Cross-Document Points).
-- Drawings (DEL-06.01): trace records to drawing item IDs, assemblies, and critical weld/coating locations (Datasheet.md: Cross-Document Points).
-- Design Calculations (DEL-06.03): critical design assumptions affecting inspection/hold points should be traceable to record requirements (DEL-06.03 Specification.md: Cross-Document Notes; Datasheet.md: Cross-Document Points).
-- Data Sheets (DEL-06.04): use "Required Records" fields to drive record completeness for gangway and grating items (DEL-06.04 Specification.md: Quality Requirements, Suggested Field Sets; Datasheet.md: Cross-Document Points).
-- Guidance: provides principles and considerations for traceability, completeness, and record organization (Guidance.md: Principles, Considerations).
-- Procedure: defines how records are collected, verified, indexed, and compiled (Procedure.md: Steps, Verification).
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity fields consistent with Scope |
+| Datasheet.md | Attributes | Package metadata (number, categories, traceability basis) — directly mapped via Specification § column |
+| Datasheet.md | Construction | Suggested package contents, index structure |
+| Guidance.md | Principles | Intent behind Requirements (traceability, completeness, ER authority) |
+| Guidance.md | Considerations | Trade-offs for alignment with DEL-06.02/04, certificate identifiers |
+| Guidance.md | Examples | Records index and certificate organization formats |
+| Procedure.md | Prerequisites | Confirms reference materials and dependency coordination mode |
+| Procedure.md | Steps 1–6 | Workflow implementing each Requirement area per Cross-Reference Matrix |
+| Procedure.md | Verification | Acceptance criteria matching this Specification's requirements |
+| Procedure.md | Records | Documentation outputs matching this Specification's Documentation section |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01 Structural Steel Design Drawing Set: records trace to drawing item IDs, assemblies, critical weld/coating locations
+- DEL-06.02 Structural Steel Technical Specification: record acceptance criteria align to specification clauses for materials/fabrication/coatings
+- DEL-06.03 Structural Steel Design Calculations: critical design assumptions affecting inspection/hold points traceable to record requirements
+- DEL-06.04 Structural Steel Data Sheet Package: "Required Records" fields drive record completeness for gangway/grating items

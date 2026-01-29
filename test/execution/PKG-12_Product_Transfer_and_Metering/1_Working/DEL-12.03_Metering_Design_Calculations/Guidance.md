@@ -168,13 +168,50 @@ Recommended calculation workflow (per Procedure.md Steps):
 
 No conflicts identified from accessible sources at this stage.
 
-| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
-|-------------|----------|----------|----------|-------------------|-------------------|--------------|
-| — | — | — | — | — | — | — |
+| Conflict ID | Conflict | Source A (File § Section) | Source B (File § Section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | TBD |
 
-**Note:** Conflicts discovered during calculation development should be added here with citations and requested human ruling. Potential conflicts that may arise:
+### Conflict Recording Instructions
 
-- **Accuracy requirement vs. achievable uncertainty** — if ER or DEL-12.02 specifies accuracy tighter than achievable uncertainty with selected meter technology and proving method, document conflict with ER/specification clause and uncertainty budget calculation; request human ruling on accuracy relaxation, meter technology change, or proving method upgrade
-- **Flow rate vs. meter capacity** — if design flow rate from ER exceeds selected meter's maximum capacity, document conflict with ER flow rate clause and meter capacity from manufacturer data; request ruling on flow rate revision, larger meter, or parallel meters
-- **Pressure drop vs. available pressure** — if calculated meter pressure drop exceeds available system pressure from PKG-14 piping hydraulics, document conflict with calculated pressure drop and PKG-14 available pressure; request ruling on meter technology change (lower pressure drop), larger meter size, or pump upgrade
-- **Proving frequency vs. operational schedule** — if Measurement Canada or ER requires quarterly proving but operational schedule allows only semi-annual maintenance windows, document conflict with regulation/ER and operational constraint; request ruling on operational schedule adjustment, online proving during operations, or regulatory waiver discussion
+When conflicts are discovered during calculation development, record them in this table with:
+- **Conflict ID:** Sequential identifier (e.g., DEL-12.03-C01)
+- **Conflict:** Clear statement of the conflicting requirements or constraints
+- **Source A/B:** File path and section reference for each conflicting source (e.g., "ER Vol 2 Part 2 § 5.3.2" or "DEL-12.02 Specification.md REQ-06")
+- **Impacted Sections:** Which sections of DEL-12.03 documents or calculation report are affected
+- **Proposed Authority:** Which source should govern (PROPOSAL label)
+- **Human Ruling:** Resolution decision and date (TBD until ruled)
+
+### Potential Conflicts to Monitor
+
+| Potential Conflict | Trigger Condition | Sources to Compare | Impacted Documents |
+|--------------------|-------------------|--------------------|--------------------|
+| Accuracy requirement vs. achievable uncertainty | ER or DEL-12.02 specifies accuracy tighter than achievable uncertainty with selected meter technology and proving method | DEL-12.02 Specification.md § Requirements (accuracy) vs. DEL-12.03 uncertainty budget calculation results | Specification.md REQ-07; Procedure.md Step 4.4 |
+| Flow rate vs. meter capacity | Design flow rate from ER exceeds selected meter's maximum capacity | ER Vol 2 Part 2 flow rate requirements vs. manufacturer meter capacity data | Specification.md REQ-06; Procedure.md Step 3.2 |
+| Pressure drop vs. available pressure | Calculated meter pressure drop exceeds available system pressure from PKG-14 piping hydraulics | DEL-12.03 calculated pressure drop vs. PKG-14 available pressure allocation | Specification.md REQ-10/17; Procedure.md Step 3.2.3 |
+| Proving frequency vs. operational schedule | Measurement Canada or ER requires quarterly proving but operational schedule allows only semi-annual maintenance windows | Measurement Canada regulations or ER Vol 2 Part 2 vs. facility operational schedule | Specification.md REQ-13; Procedure.md Step 5.3 |
+| Meter technology vs. product compatibility | Selected or specified meter technology has limitations with canola oil properties | DEL-12.02 meter technology requirement vs. manufacturer compatibility statements vs. product property data | Guidance.md § Considerations (Meter Technology); Procedure.md Step 3.1 |
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.03 identity referenced in Guidance § Purpose deliverable definition |
+| Datasheet.md | § Conditions | Design context (services, product, throughput) driving Guidance § Considerations; calculation input parameters matching Guidance § Sizing/Accuracy/Proving Calculation Factors |
+| Datasheet.md | § Construction | Anticipated calculation content informing Guidance § Examples; calculation methodology matching Guidance § Methodology Principles |
+| Specification.md | § Scope | Inclusions/exclusions that Guidance § Purpose downstream use addresses |
+| Specification.md | § Requirements | REQ-01 through REQ-24 that Guidance § Principles rationale supports; REQ-06/07 objective alignment per Guidance § Objective Alignment |
+| Specification.md | § Standards | Custody transfer standards informing Guidance § Methodology Principles (API MPMS, OIML R117, ISO GUM) |
+| Specification.md | § Verification | Verification methods aligned with Guidance § Principles (auditability) |
+| Procedure.md | § Prerequisites | Inputs that Guidance § Considerations identifies (DEL-12.02, ER, standards, vendor data) |
+| Procedure.md | § Step 1 | Case definition per Guidance § Service-Specific Considerations |
+| Procedure.md | § Step 2 | Input collection per Guidance § Considerations (product properties, operating conditions) |
+| Procedure.md | § Step 3 | Sizing per Guidance § Sizing Calculation Factors and § Methodology Principles |
+| Procedure.md | § Step 4 | Uncertainty analysis per Guidance § Accuracy/Uncertainty Calculation Factors and § Methodology Principles |
+| Procedure.md | § Step 5 | Proving per Guidance § Proving Calculation Factors and § Methodology Principles |
+| Procedure.md | § Step 7 | Sensitivity analysis per Guidance § Sensitivity Analysis Topics |
+| Procedure.md | § Step 9 | Independent check per Guidance § Principles (auditability) |
+| DEL-12.01 | Drawings | Drawings implement calculation results per Guidance § Purpose (downstream use) — meter sizes, straight-runs, proving connections |
+| DEL-12.02 | Specification | Specification provides performance requirements per Guidance § Considerations — accuracy, turndown, flow range as calculation inputs |
+| DEL-12.04 | Data Sheets | Data sheets document calculation-validated parameters per Guidance § Purpose (downstream use) — sizes, flow ranges, accuracy class |
+| DEL-12.05 | Test Records | Test records use calculation-derived acceptance criteria per Guidance § Purpose (downstream use) — FAT/SAT accuracy, proving criteria

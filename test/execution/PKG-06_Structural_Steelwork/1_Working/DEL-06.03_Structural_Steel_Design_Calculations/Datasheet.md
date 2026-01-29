@@ -14,15 +14,15 @@
 
 ## Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| Calculation Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
-| Software Used | **TBD** (to be recorded when analysis method is selected) (Procedure.md: Step 3) |
-| Design Basis / Code | **TBD** until extracted from Employer's Requirements (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD; Specification.md: Standards; Guidance.md: Principles) |
-| Load Cases | **TBD** (to be listed explicitly in the calculation index) (Specification.md: Calculation Package Structure; Procedure.md: Step 4) |
-| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 7) |
-| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
-| Calculation Coverage | Platform structural calculations, Pipe rack calculations, Connection design calculations (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:250; Specification.md: Scope; Procedure.md: Step 1) |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Calculation Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) | Documentation | Step 7 |
+| Software Used | **TBD** (to be recorded when analysis method is selected) | Cross-Reference Matrix | Step 3 |
+| Design Basis / Code | **TBD** until extracted from Employer's Requirements (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD) | Standards | Steps 2, 4 |
+| Load Cases | **TBD** (to be listed explicitly in the calculation index) | Calculation Package Structure | Step 4 |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme | Documentation | Step 7 |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) | Scope | — |
+| Calculation Coverage | Platform structural calculations, Pipe rack calculations, Connection design calculations (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:250) | Scope | Step 1 |
 
 ## Conditions
 
@@ -58,9 +58,22 @@ Anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_
 - test/Volume_2_Part_3_Employers_Requirements.pdf — building works requirements affecting structural steel design basis (location TBD).
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
 
-## Cross-Document Points
+## Cross-Document Traceability
 
-- Specification (DEL-06.02): calculation assumptions and governing criteria should align to the technical specification clauses (DEL-06.02 Specification.md).
-- Drawings (DEL-06.01): drawing notes and details should be consistent with calculation assumptions and results (DEL-06.01 Guidance.md; DEL-06.01 Specification.md).
-- Data sheets (DEL-06.04): any standard details (gangway/grating) requiring design justification should be traceable to this calculation package (DEL-06.04 Guidance.md).
-- Specification → Procedure traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Specification.md | Scope | Anticipated calculation artifacts (platform, pipe rack, connection) |
+| Specification.md | Calculation Package Structure | Minimum content (index, inputs, load cases, results, check record) |
+| Specification.md | Cross-Reference Matrix | Requirement-to-verification-to-output traceability |
+| Guidance.md | Principles | Traceability, ER authority, interface assumptions register |
+| Guidance.md | Considerations | Coverage of anticipated artifacts, TBD handling, downstream QA |
+| Guidance.md | Examples | Load case summary, governing member summary, interface register |
+| Procedure.md | Steps 1–7 | Definition through issue preparation workflow |
+| Procedure.md | Verification | Acceptance criteria for completeness, inputs, results, check record |
+| Procedure.md | Records | Documentation outputs matching this Datasheet's coverage |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Drawing notes reference calculation assumptions, governing load cases, and member sizing
+- DEL-06.02: Technical specification performance requirements reference design basis from these calculations
+- DEL-06.04: Gangway/grating data sheets reference design justification from this calculation package
+- DEL-06.05: Critical items (welds, bolting categories, coating systems) identified in calculations map to inspection/record requirements

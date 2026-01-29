@@ -66,13 +66,13 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 
 ## Review Checklist
 
-### Pre-Review Preparation
+### Pre-Review Preparation (Procedure Step 3.1)
 - [ ] Confirm Datasheet Assumptions & TBDs are current
 - [ ] Obtain latest DEL-04.01 drawing set for cross-referencing material call-outs and tolerances
 - [ ] Obtain latest DEL-04.03 calculation results for material properties and design parameters
 - [ ] Review Procedure assumption log to identify open items affecting specification clauses
 
-### Step 1: Material Clause Review (Specification R1.1)
+### Step 1: Material Clause Review (Specification §R1.1 | Procedure Step 2.3)
 - [ ] **Asphalt materials**: Binder grade, aggregate gradation, filler, RAP content limits, tack coat specified
 - [ ] **Concrete materials**: Cement type, strength class, aggregate requirements, admixtures, reinforcement, joint materials, curing compounds specified
 - [ ] **Base/subbase materials**: Aggregate gradation, plasticity limits, compaction properties specified
@@ -83,7 +83,7 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - [ ] **Cross-references**: Material specifications match DEL-04.01 drawing material call-outs (use Procedure traceability matrix to verify)
 - [ ] **Calculation consistency**: Material properties (strength, density, gradation) match DEL-04.03 design inputs
 
-### Step 2: Workmanship Clause Review (Specification R1.2)
+### Step 2: Workmanship Clause Review (Specification §R1.2 | Procedure Step 2.4)
 - [ ] **Subgrade preparation**: Clearing, grading, moisture conditioning, compaction, proof rolling procedures specified
 - [ ] **Base/subbase placement**: Lift thickness, moisture control, compaction, surface preparation specified
 - [ ] **Asphalt paving**: Mix temperature, weather limitations, placement procedures, compaction equipment and pattern, joint construction specified
@@ -94,7 +94,7 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - [ ] **Construction sequence**: Sequence of operations specified where order matters (e.g., subgrade compaction before base placement)
 - [ ] **Environmental controls**: Dust control, erosion control, stormwater management during construction specified (coordinate with PKG-03 or site establishment PKG-00)
 
-### Step 3: Quality Control Clause Review (Specification R1.3)
+### Step 3: Quality Control Clause Review (Specification §R1.3 | Procedure Step 2.5)
 - [ ] **Material testing**: Aggregate gradation, asphalt mix verification, concrete strength, concrete air content testing specified with frequencies
 - [ ] **In-place testing**: Subgrade compaction, base compaction, asphalt compaction, thickness verification (cores), smoothness testing specified with frequencies
 - [ ] **Testing methods**: Specific test methods referenced (ASTM D698, D1556, D6938, etc.)
@@ -106,7 +106,7 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - [ ] **Documentation requirements**: Daily QC reports, material certifications, mix design submittals, test location plans, core sample results, NCR procedures specified (supporting DEL-04.04)
 - [ ] **OBJ-8 enhanced testing**: Higher testing frequency or additional testing specified for Phase 2 expansion corridor areas (e.g., double standard frequency)
 
-### Step 4: Interface Coordination Review (Specification R1.4)
+### Step 4: Interface Coordination Review (Specification §R1.4 | Procedure Step 3.4)
 - [ ] **PKG-03 interfaces**: Utility trench backfill compaction, pavement restoration, catch basin rim adjustments, schedule coordination specified
 - [ ] **PKG-05 interfaces**: Structure-to-pavement transitions, grade matching, joint construction, drainage, foundation protection specified
 - [ ] **PKG-07 interfaces**: Rail crossing embedment, track elevation coordination, compaction restrictions, drainage at crossings specified
@@ -114,21 +114,21 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - [ ] **Coordination meetings**: Verify interface clauses have been reviewed with PKG-03, PKG-05, PKG-07, PKG-08 package leads
 - [ ] **Interface assumptions**: Any assumptions regarding adjacent package work are flagged and logged in assumption tracking log
 
-### Step 5: OBJ-8 Future Expandability Review (Specification R1.5)
+### Step 5: OBJ-8 Future Expandability Review (Specification §R1.5 | Procedure Step 2.6)
 - [ ] **Design for ultimate loading**: Specification states Phase 2 expansion corridor pavement designed for ultimate loading (reference DEL-04.03 Phase 2 design case)
 - [ ] **Construction joint details**: Sawcut or formed joints at Phase 2 tie-in locations specified; joint protection measures specified
 - [ ] **Utility penetration documentation**: Requirement to document utility penetrations through pavement specified (coordinate with PKG-03)
 - [ ] **Enhanced as-built documentation**: Survey verification, material records, compaction test location plans with enhanced detail for expansion corridors specified
 - [ ] **Enforceability**: Verify OBJ-8 provisions are clear, measurable, and enforceable (not vague or aspirational)
 
-### Step 6: Traceability Audit (Specification R2.1–R2.3)
+### Step 6: Traceability Audit (Specification §R2.1–R2.3 | Procedure Step 2.7)
 - [ ] **Drawing cross-references**: Every material and tolerance in specification references corresponding DEL-04.01 drawing section/detail (use Procedure traceability matrix)
 - [ ] **Calculation cross-references**: Material properties and thicknesses reference corresponding DEL-04.03 calculation sheets (use Procedure traceability matrix)
 - [ ] **Test record cross-references**: Quality control requirements reference DEL-04.04 test record templates
 - [ ] **Bidirectional consistency**: Drawing material call-outs reference specification clause numbers; specification clauses reference drawing sheet/detail numbers
 - [ ] **Terminology consistency**: Same terms used across Datasheet, Specification, Guidance, Procedure, DEL-04.01, DEL-04.03, DEL-04.04
 
-### Step 7: Assumption and TBD Tracking (Specification R3.2)
+### Step 7: Assumption and TBD Tracking (Specification §R3.2 | Procedure Steps 1.3–1.5, 3.3)
 - [ ] **All assumptions flagged**: Every **ASSUMPTION** in specification is flagged inline and logged in Procedure assumption tracking log
 - [ ] **All TBDs flagged**: Every **TBD** in specification is flagged inline and logged in Procedure assumption tracking log
 - [ ] **Coordination with DEL-04.01/04.03**: Assumption log cross-references DEL-04.01 and DEL-04.03 assumption logs for consistency
@@ -181,13 +181,23 @@ Interfaces between PKG-04 and adjacent packages (PKG-03, PKG-05, PKG-07, PKG-08)
 - Do not repeat standard text verbatim; summarize key points if needed for clarity
 - Provide standard references list in specification for contractor convenience
 
+## Conflict Table (for human ruling)
+
+No unresolved conflicts identified during Pass 3 cross-document consistency review.
+
+| Conflict ID | Conflict | Source A (file + section) | Source B (file + section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | No conflicts identified | — | — | — | — | — |
+
+**Note**: If conflicts are identified during future reviews or coordination activities, they shall be logged in this table per Specification §R3.2 and Procedure Step 3.3. Cross-deliverable conflicts (e.g., with DEL-04.01, DEL-04.03, DEL-04.04, or PKG-03/05/07/08) that cannot be resolved locally shall be escalated to RECONCILIATION agent when humans request cross-package coherence checks.
+
 ## References
 
 ### Source Documents
 - **Decomposition**: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`, Section PKG-04, DEL-04.02, OBJ-8
 - **Datasheet (DEL-04.02)**: Attributes, Key Performance Requirements, Conditions, Construction, Assumptions & TBDs, Cross-document Coordination
-- **Specification (DEL-04.02)**: Requirements R1.1–R3.3, Verification Methods, Standards
-- **Procedure (DEL-04.02)**: Workflow Steps, Controls, traceability matrix, assumption log
+- **Specification (DEL-04.02)**: Requirements §R1.1–R3.3, Verification Methods, Standards
+- **Procedure (DEL-04.02)**: Workflow Steps 1–6, Controls, Traceability Matrix, Assumption Log
 - **DEL-04.01**: Pavement Design Drawing Set (material call-outs and tolerances to match)
 - **DEL-04.03**: Pavement Design Calculations (material properties and design parameters to validate)
 - **DEL-04.04**: Pavement Installation & Test Records (testing procedures and acceptance criteria to support)

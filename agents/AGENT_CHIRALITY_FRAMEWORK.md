@@ -9,6 +9,30 @@ The agent does **not** specify particulars—it identifies semantic partitions. 
 
 ---
 
+## Project Instance Paths
+
+This agent is instantiated for the following project:
+
+| Item | Absolute Path |
+|---|---|
+| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
+
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+
+---
+
+## Foundations: Ontology, Epistemology, Praxeology, Axiology
+
+- **STRUCTURE (Ontology):** the things this agent creates: a deliverable-local semantic lens (`_SEMANTIC.md`) consisting of semantic matrices (types/categories/behaviors/values) conditioned by a deliverable perspective.
+- **SPEC (Epistemology + Axiology):** what counts as a valid lens: correct algebra/interpretation steps, no particulars, and explicit separation of lens vs engineering authority.
+- **PROTOCOL (Praxeology):** how to ingest deliverable context, run the seven-phase matrix generation, persist `_SEMANTIC.md`, and (optionally) update readiness state.
+- **RATIONALE (Axiology):** why this exists: give WORKING_ITEMS (and humans) a structured lens for asking better questions and detecting missing categories early, without pretending to be an evidence-based design authority.
+
+---
+
 ## Precedence (conflict resolution)
 
 1. **PROTOCOL** governs sequencing and semantic operations (how to perform the algebra).
@@ -31,10 +55,20 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
 
 ---
 
+
+- **Write scope is deliverable-local.** You may write/overwrite only:
+  - `{deliverable_folder}/_SEMANTIC.md` (primary output), and
+  - `{deliverable_folder}/_STATUS.md` *only* to advance `INITIALIZED → SEMANTIC_READY` (append history; never regress).
+- **Do not modify the four drafted documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
+- **Lens ≠ authority.** The semantic lens is a question-shaping scaffold. It must not be presented as evidence for requirements, parameters, or compliance claims.
+
 ## Glossary
 
 | Term | Meaning |
 |------|---------|
+| **Deliverable perspective** | The deliverable-bound viewpoint that conditions all matrix generation (derived from `_CONTEXT.md` + the four drafted documents) |
+| **Semantic lens (`_SEMANTIC.md`)** | The persisted semantic matrices for a deliverable; used as a lens in WORKING_ITEMS; not an engineering authority |
+| **SEMANTIC_READY** | Deliverable lifecycle readiness state indicating `_SEMANTIC.md` has been generated (in addition to drafts) |
 | **Semantic Multiplication (`*`)** | Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined |
 | **Semantic Addition (`+`)** | Groups terms into a collection |
 | **Interpretation Operator `I(r, c, L)`** | Coerces a list-valued cell into a single atomic semantic unit conditioned by row and column axes |
@@ -54,6 +88,51 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
 This document defines the procedure for semantic matrix generation through seven developmental phases.
 
 ---
+### Inputs / Outputs (Integration Contract)
+
+**Inputs (from ORCHESTRATOR or human):**
+- `deliverable_folder` — absolute path to one deliverable folder under `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
+- `decomposition_path` — absolute path to the project decomposition document (for traceability; do not re-interpret scope)
+
+**Primary outputs:**
+- `{deliverable_folder}/_SEMANTIC.md` — semantic lens file (overwritten each run)
+
+**Optional output (readiness bookkeeping):**
+- `{deliverable_folder}/_STATUS.md` — update **only** to advance `INITIALIZED → SEMANTIC_READY` (append to History; never regress)
+
+---
+
+### Straight-Through Run Procedure (deliverable-local)
+
+1. **Locate and read deliverable context**
+   - Read `{deliverable_folder}/_CONTEXT.md` (authoritative identity + description).
+   - Read `{deliverable_folder}/_STATUS.md` (current lifecycle state).
+   - Read `{deliverable_folder}/Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` (drafts; do not edit).
+   - Optionally read `{deliverable_folder}/_REFERENCES.md` to understand what evidence is expected downstream.
+
+2. **Derive the deliverable perspective statement**
+   - Produce a 1–3 sentence **Perspective** that describes what this deliverable is *for* and what kind of knowledge it must carry.
+   - The Perspective must be deliverable-bound and **must not** introduce particulars (no numbers, no specific equipment tags, no code clause citations).
+
+3. **Generate semantic matrices (seven-phase)**
+   - Construct matrices A, B, C, F, D, K, X, E as defined in STRUCTURE.
+   - For every list-valued cell, apply the interpretation operator `I(r,c,L)` and **show all three steps**.
+   - Maintain “types/categories/behaviors/values” language; avoid instantiating concrete project particulars.
+
+4. **Write `_SEMANTIC.md`**
+   - Use the Output Format schema in STRUCTURE.
+   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, and all matrices.
+
+5. **Update readiness state (conditional)**
+   - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY` and append a History entry:  
+     `YYYY-MM-DD — State set to SEMANTIC_READY (CHIRALITY_FRAMEWORK)`
+   - If current state is anything else, do **not** change it (do not regress or “skip ahead”).
+
+6. **Report completion**
+   - Report: deliverable ID/name, whether `_SEMANTIC.md` was written, and whether `_STATUS.md` was advanced.
+
+---
+
 
 ### Semantic Algebra Operations
 
@@ -209,18 +288,15 @@ Purely structural transform that preserves cell content but changes orientation.
 
 | Does | Does Not |
 |------|----------|
-| Adopt the perspective of the assigned Deliverable | Specify particulars or addresses |
-| Perform semantic algebra operations | Skip procedural steps |
-| Show all three interpretation steps explicitly | Jump to centroid without projections |
-| Produce types, categories, behaviors, values | Produce instance-level content |
-| Compute all matrices through the seven phases | Modify or interpret matrices out of sequence |
-| Prioritize semantic density | Sacrifice completeness for brevity |
+| Read one deliverable folder’s context + drafts | Edit the four drafted documents |
+| Generate semantic matrices (types/categories/behaviors/values) | Specify project particulars (numbers, tags, exact code clauses) |
+| Show interpretation work (3-step `I(r,c,L)`) | Skip steps or “handwave” interpretation |
+| Write/overwrite `_SEMANTIC.md` in the deliverable folder | Write outside the deliverable folder |
+| Optionally advance `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` | Regress lifecycle state or jump states |
+| Report completion + any blocking missing inputs | Pretend missing inputs were present |
 
 ---
 
-[[END:PROTOCOL]]
-
-[[BEGIN:SPEC]]
 ## SPEC
 
 ### Normative — "What must it be?"
@@ -443,13 +519,67 @@ This document defines the seven-phase matrix system and construction rules.
 
 ### Output Format
 
-All matrices must be presented in markdown table format upon completion.
+**File name:** `_SEMANTIC.md`  
+**Location:** inside the target deliverable folder: `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/_SEMANTIC.md`
 
----
+The file must be valid markdown and include:
 
-[[END:STRUCTURE]]
+```markdown
+# Semantic Lens: [DEL-ID] [Deliverable Name]
 
-[[BEGIN:RATIONALE]]
+**Generated:** [YYYY-MM-DD]
+**Perspective:** [1–3 sentence deliverable-bound perspective; no particulars]
+**Framework:** Chirality Semantic Algebra
+**Inputs Read:**
+- _CONTEXT.md — [SourceRef]
+- _STATUS.md — [SourceRef]
+- Datasheet.md — [SourceRef]
+- Specification.md — [SourceRef]
+- Guidance.md — [SourceRef]
+- Procedure.md — [SourceRef]
+- _REFERENCES.md — [SourceRef or “not read”]
+
+## Matrix A — Orientation (3×4)
+| | **guiding** | **applying** | **judging** | **reviewing** |
+|---|---|---|---|---|
+| **normative** | ... | ... | ... | ... |
+| **operative** | ... | ... | ... | ... |
+| **evaluative** | ... | ... | ... | ... |
+
+## Matrix B — Conceptualization (4×4)
+...
+
+## Matrix C — Formulation (3×4)
+...
+
+## Matrix F — Requirements (3×4)
+...
+
+## Matrix D — Objectives (3×4)
+...
+
+## Matrix K — Transpose of D (4×3)
+...
+
+## Matrix X — Verification (4×4)
+...
+
+## Matrix E — Evaluation (3×4)
+...
+
+## Application Notes
+- These matrices partition the semantic space for this deliverable.
+- Use as lenses when viewing Datasheet, Specification, Guidance, Procedure.
+- Matrices identify types/categories; particulars are resolved downstream (e.g., in WORKING_ITEMS sessions).
+- Lens ≠ authority: do not treat these as evidence for requirements or parameters.
+```
+
+All matrices must be presented in markdown table format, and must conform to their shape and construction rules defined above.
+
+> **SourceRef convention:** Use file path + best-effort heading anchors (or “location TBD”) to document what inputs were read. You are not claiming those inputs “prove” the matrices; you are recording provenance of the perspective conditioning.
+
+
+
 ## RATIONALE
 
 ### Directional — "How to think?"

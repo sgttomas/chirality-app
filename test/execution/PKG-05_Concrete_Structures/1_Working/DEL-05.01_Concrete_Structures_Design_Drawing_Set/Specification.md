@@ -214,9 +214,28 @@ Maintain consistency with related deliverables:
 - Issue evidence per project QA/QC and document control process (**TBD**)
 (Source: Procedure.md: Records; test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD.)
 
+## Requirements Traceability Matrix
+
+| Requirement ID | Requirement Summary | Datasheet § | Guidance § | Procedure Step | Verification Method |
+|----------------|---------------------|-------------|------------|----------------|---------------------|
+| FR-01 | Artifact Coverage | Construction (all) | P-01 Scope Fidelity | Step 1 | Drawing list review |
+| FR-02 | Foundation Details | Construction: Foundation Plans | P-01, C-01 Required Inputs | Step 3 | Completeness verification |
+| FR-03 | Containment Wall Details | Construction: Containment Wall Plans | P-02 Containment Clarity | Step 3 | Completeness verification |
+| FR-04 | Equipment Pad Details | Construction: Equipment Pad Details | P-05 Interface Visibility, C-04 | Step 4 | Interface verification |
+| FR-05 | Reinforcement Presentation | Construction: Reinforcement Drawings | C-02 Constructability | Step 4 | Technical review |
+| FR-06 | Typical Details | Construction: Typical Details | E-01 Sheet Grouping | Step 4 | Completeness verification |
+| PR-01 | Design Basis Alignment | Conditions | P-03 Traceability, P-04, C-03, C-05 | Step 2 | Design basis verification |
+| PR-02 | Containment Performance | Construction: Containment Wall Plans | P-02 Containment Clarity | Step 4 | Design basis verification |
+| PR-03 | Constructability | Conditions (ASSUMPTION) | C-02 Constructability | Steps 3-4 | Independent check |
+| IR-01 | Dependency Coordination | Conditions (TBD inputs) | C-01 Required Inputs | Step 2 | Input register review |
+| IR-02 | Interface Identification | Construction (embedments, hold points) | P-05 Interface Visibility, C-04 | Step 6 (IDC) | Interface verification |
+| QR-01 | Document Control | Attributes | P-03 Traceability, P-04 | Step 5 | Document control verification |
+| QR-02 | Checking Process | — | — | Step 6 | QA/QC evidence verification |
+| QR-03 | Technical Consistency | References | P-03 Traceability | Step 6 | Consistency verification |
+
 ## Cross-Document Notes
 
-- **Datasheet:** Holds the metadata expectations for the drawing set (document number/revision/status/classification). Specification requirements must align with Datasheet attributes and construction details. (Source: Datasheet.md: Attributes; Datasheet.md: Construction.)
-- **Guidance:** Captures the intent and priorities (containment/environmental focus OBJ-7, interfaces, constructability) that should be reflected in drawing details and annotations. Specification requirements must reflect Guidance principles. (Source: Guidance.md: Principles; Guidance.md: Considerations.)
-- **Procedure:** Defines the production workflow (Steps 1-7) and verifications that demonstrate compliance with this Specification. Each Specification requirement should have a corresponding Procedure step and verification check. (Source: Procedure.md: Steps; Procedure.md: Verification.)
-- **Related Deliverables:** DEL-05.02 (Technical Specification) and DEL-05.03 (Design Calculations) provide design basis and material requirements that must be reflected in drawings. (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:233; test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:234.)
+- **Datasheet:** Holds the metadata expectations for the drawing set (§Attributes: document number/revision/status/classification). Specification requirements must align with §Attributes and §Construction details. (Source: Datasheet.md: Attributes; Datasheet.md: Construction.)
+- **Guidance:** Captures the intent and priorities (§P-02 containment/environmental focus OBJ-7, §P-05/C-04 interfaces, §C-02 constructability) that should be reflected in drawing details and annotations. Specification requirements reflect Guidance principles §P-01 through §P-05. (Source: Guidance.md: Principles; Guidance.md: Considerations.)
+- **Procedure:** Defines the production workflow (Steps 1-7) and verifications that demonstrate compliance with this Specification. Each Specification requirement is traced to Procedure steps in the Requirements Traceability Matrix above. (Source: Procedure.md: Steps; Procedure.md: Verification.)
+- **Related Deliverables:** DEL-05.02 (Technical Specification) and DEL-05.03 (Design Calculations) provide design basis and material requirements that must be reflected in drawings — tracked via §QR-03 Technical Consistency. (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:233; test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:234.)

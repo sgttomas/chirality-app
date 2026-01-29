@@ -55,3 +55,23 @@ The deliverable defines performance, materials, and workmanship requirements for
 - Filing convention: working files remain in `1_Working/`; review/issue copies can be packaged to `2_Checking/` / `3_Issued/` as adopted by the team (Source: README.md; Datasheet.md: References).
 - Revision tracking: per project numbering system and `Datasheet.md` attributes (Datasheet.md: Attributes; Step 6).
 - Retention requirements: **TBD**.
+
+## Cross-Document Traceability
+
+| Document | Section | Linked Content |
+|----------|---------|----------------|
+| Datasheet.md | Identification | Deliverable identity verified in Step 2 |
+| Datasheet.md | Attributes | Document metadata (number, revision) verified in Step 6 |
+| Datasheet.md | Construction | Linked deliverables referenced in Steps 3, 4, 5 |
+| Specification.md | Scope | Anticipated artifacts checklist used in Step 2 |
+| Specification.md | Requirements | Clause content drafted in Step 3 |
+| Specification.md | Records and Submittals | Record types defined in Step 4 |
+| Specification.md | Cross-Reference Matrix | Verification traceability confirmed in Step 6 |
+| Guidance.md | Principles | Intent guiding Steps 1, 3, 4 (ER authority, traceability, interfaces) |
+| Guidance.md | Considerations | Trade-offs considered in Steps 2, 3, 5 |
+
+**Cross-Deliverable Consistency (PKG-06):**
+- DEL-06.01: Terminology alignment verified in Step 5; drawing notes will reference this specification
+- DEL-06.03: Design basis assumptions inform performance requirements (Step 3)
+- DEL-06.04: Data sheet fields reflect specification requirements (Step 3)
+- DEL-06.05: Record types (mill certificates, weld inspection, galvanizing) defined in Step 4 for downstream compliance evidence

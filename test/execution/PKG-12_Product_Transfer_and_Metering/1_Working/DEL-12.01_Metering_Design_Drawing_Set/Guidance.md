@@ -156,13 +156,45 @@ A typical metering skid GA for custody transfer service would show:
 
 No conflicts identified from accessible sources at this stage.
 
-| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
-|-------------|----------|----------|----------|-------------------|-------------------|--------------|
-| — | — | — | — | — | — | — |
+| Conflict ID | Conflict | Source A (File § Section) | Source B (File § Section) | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|---------------------------|---------------------------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | TBD |
 
-**Note:** Conflicts discovered during detailed design should be added here with citations and requested human ruling. Potential conflicts that may arise:
+### Conflict Recording Instructions
 
-- **Accuracy vs. pressure drop conflicts** — if ER specifies both high accuracy and low pressure drop, and these cannot be simultaneously achieved with available meter technology, document conflict with citations from ER Vol 2 Part 2 and vendor data
-- **Straight-run conflicts with layout constraints** — if required straight runs per manufacturer exceed available space in facility layout, document conflict with layout drawings and manufacturer requirements
-- **Proving method conflicts** — if ER requires in-line prover but space or budget constraints favor portable prover, document conflict with ER clause and project constraints
-- **Hazardous area classification conflicts** — if area classification requires expensive explosion-proof equipment but metering budget assumes non-classified area, document conflict with area classification drawings and budget assumptions
+When conflicts are discovered during detailed design, record them in this table with:
+- **Conflict ID:** Sequential identifier (e.g., DEL-12.01-C01)
+- **Conflict:** Clear statement of the conflicting requirements or constraints
+- **Source A/B:** File path and section reference for each conflicting source (e.g., "ER Vol 2 Part 2 § 5.3.2" or "DEL-12.03 § Calculations Table Row 5")
+- **Impacted Sections:** Which sections of DEL-12.01 documents are affected (e.g., "Datasheet.md § Conditions; Specification.md REQ-07")
+- **Proposed Authority:** Which source should govern (PROPOSAL label)
+- **Human Ruling:** Resolution decision and date (TBD until ruled)
+
+### Potential Conflicts to Monitor
+
+| Potential Conflict | Trigger Condition | Sources to Compare | Impacted Documents |
+|--------------------|-------------------|--------------------|--------------------|
+| Accuracy vs. pressure drop | ER specifies both high accuracy and low pressure drop that cannot be simultaneously achieved | ER Vol 2 Part 2 accuracy requirements vs. hydraulic constraints from DEL-12.03 vs. vendor performance data | Specification.md REQ-05, REQ-06, REQ-07 |
+| Straight-run vs. layout constraints | Required straight runs per manufacturer exceed available space | Vendor installation requirements vs. PKG-14 layout drawings vs. DEL-12.03 straight-run calculations | Datasheet.md § Construction; Specification.md REQ-07 |
+| Proving method vs. space/budget | ER requires in-line prover but space or budget constraints favor portable prover | ER Vol 2 Part 2 proving requirements vs. project constraints vs. DEL-12.02 proving method selection | Datasheet.md § Construction (Proving Connection Details); Specification.md REQ-11, REQ-18 |
+| Hazardous area classification vs. equipment cost | Area classification requires explosion-proof equipment but budget assumes non-classified area | PKG-17 area classification drawings vs. project budget assumptions vs. ER Vol 2 Part 2 | Specification.md REQ-09; Guidance.md § Considerations (Hazardous area classification) |
+| Meter technology vs. product compatibility | Selected meter technology has limitations with canola oil properties | DEL-12.02 meter technology selection vs. canola oil property data vs. vendor compatibility statements | Datasheet.md § Conditions (Fluid Properties); Guidance.md § Considerations (Product characteristics) |
+
+## Cross-Document Traceability
+
+| Document | Section | Traceability Points |
+|----------|---------|---------------------|
+| Datasheet.md | § Identification | DEL-12.01 identity, classification, responsible party |
+| Datasheet.md | § Attributes | Drawing attributes that Guidance principles must accommodate (scale, CAD standard, drawing count) |
+| Datasheet.md | § Conditions | Design context driving Guidance considerations (service application, throughput, metering points, environmental conditions) |
+| Datasheet.md | § Construction | Anticipated artifacts that Guidance downstream use describes (metering skid GAs, flow meter installation details, proving connection details) |
+| Specification.md | § Requirements | REQ-01 through REQ-18 that Guidance principles support (especially REQ-05/OBJ-2, REQ-06/OBJ-10 alignment) |
+| Specification.md | § Standards | Custody transfer standards that Guidance regulatory compliance principle addresses |
+| Specification.md | § Verification | Review methods that Guidance constructability/maintainability principles facilitate |
+| Procedure.md | § Prerequisites | Inputs that Guidance considerations identify as necessary (DEL-12.02, DEL-12.03, DEL-12.04, vendor data) |
+| Procedure.md | § Step 2 | Input collection that Guidance considerations inform |
+| Procedure.md | § Step 3 | Drawing drafting that Guidance principles guide (custody transfer intent, constructability, maintainability) |
+| Procedure.md | § Step 5 | IC review criteria aligned with Guidance principles (technical correctness, constructability, maintainability per § 5.2-5.4) |
+| DEL-12.02 | Specification | Meter technology, proving method, accuracy requirements that drive Guidance considerations |
+| DEL-12.03 | Calculations | Sizing, straight-run, pressure drop calculations that Guidance trade-offs reference |
+| DEL-12.04 | Data Sheets | Instrument parameters that Guidance interface clarity principle requires
