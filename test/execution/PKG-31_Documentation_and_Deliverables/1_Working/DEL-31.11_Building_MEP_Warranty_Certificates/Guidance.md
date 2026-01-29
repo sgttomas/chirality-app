@@ -2,57 +2,47 @@
 
 ## Purpose
 
-This guidance document supports the development of **Building MEP Warranty Certificates** for **PKG-31 Documentation & Deliverables**.
+Collect and organize building MEP warranty certificates, enabling effective warranty management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates building mep warranty certificates in accordance with ER requirements.
-
-This deliverable is classified as a **Document Package** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.11 (line 697); OBJ-9 (line 67, line 788)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Comprehensive MEP Coverage
+Obtain warranties for all building MEP systems (HVAC, plumbing, fire suppression, electrical).
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Equipment-Specific Warranties
+MEP systems often include multiple equipment warranties (e.g., HVAC: rooftop units, air handlers, controls)—ensure all obtained.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: System vs. Equipment Warranties
+Distinguish between system warranties (installation workmanship) and equipment warranties (manufacturer defects).
 
 ## Considerations
 
-**Factors to consider during development:**
+### HVAC System Warranties
+- Equipment warranties from HVAC equipment manufacturers (compressors, fans, controls)
+- Installation warranty from HVAC contractor
+- Extended warranties for critical equipment (consider for lifecycle cost management)
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document Package — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Fire Suppression System Warranties
+- Equipment warranties (sprinkler heads, valves, panels)
+- Installation warranty from fire protection contractor
+- May require annual inspections to maintain warranty
 
-## Trade-offs
+### Plumbing System Warranties
+- Fixture warranties (sinks, toilets, water heaters)
+- Installation warranty from plumbing contractor
 
-**Competing concerns to evaluate:**
+### Electrical System Warranties
+- Electrical equipment warranties (panels, transformers)
+- Installation warranty from electrical contractor
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Warranty Conditions
+Building MEP warranties often require periodic maintenance (e.g., HVAC filter changes, fire suppression inspections)—document requirements.
 
 ## Examples
 
-**Reference examples and precedents:**
+**HVAC Warranty Example:**
+"XYZ HVAC Company warrants HVAC system installation for Building B-01 against defects in workmanship for two (2) years from date of substantial completion. Rooftop unit equipment warranty per manufacturer (separate certificate): five (5) years parts, one (1) year labor."
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- HVAC warranty
-- plumbing warranty
-- fire suppression warranty
-- electrical warranties (as applicable)
+**Source:** _CONTEXT.md; Decomposition line 697

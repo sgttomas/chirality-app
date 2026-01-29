@@ -2,61 +2,123 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **CEMP Compliance Installation & Test Records** within **PKG-33 HSE Management**.
+This procedure defines how to **collect**, **manage**, and **report** CEMP Compliance Records during construction.
 
-Provides evidence of completion, inspection, and testing for cemp compliance.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Deliverable Type:** Record
+**Responsible Party:** D&B Contractor (QA/QC)
+**Source:** `_CONTEXT.md`, Decomposition line 732
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Upstream Dependencies:**
+- DEL-33.01 (OHS Plan) — environmental integration requirements (Section 10, FR-10, Procedure Step 4.8)
+- CEMP — project Construction Environmental Management Plan (**TBD: separate deliverable or embedded in DEL-33.01?**)
+- PKG-32 — Environmental permits with monitoring conditions
+- Environmental Coordinator appointed (per DEL-33.01 organizational structure)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Reference Materials:**
+- CEMP (project plan)
+- Environmental permits (monitoring parameters, frequencies, limits)
+- Contractor's environmental procedures
+- Regulatory reporting forms
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Source:** Specification Prerequisites; DEL-33.01 Guidance Organizational Considerations (Environmental Coordinator)
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Establish Environmental Monitoring Program
+
+**Actions:**
+1. Review CEMP, permits, and ER for required monitoring and inspections
+2. Develop monitoring schedule (daily, weekly, monthly inspections; sampling events)
+3. Identify monitoring personnel (Environmental Coordinator, QA/QC inspectors, qualified samplers)
+4. Procure monitoring equipment (dust meters, noise meters, water sampling kits)
+5. Engage qualified environmental laboratory (for water/soil sampling analysis)
+6. Prepare record templates (inspection checklists, monitoring logs, data sheets)
+
+**Output:** Environmental monitoring program established
+
+**Source:** Datasheet Inspection & Monitoring Frequency; Specification FR-1 through FR-5
+
+### Step 2: Conduct Routine Monitoring and Inspections
+
+**Actions:**
+
+**Daily/Weekly Inspections:**
+- ESC inspections (daily during rain, weekly during dry periods)
+- Dust control visual inspections (daily)
+- Spill kit inspections (monthly)
+- Document on inspection forms (date, inspector, findings, corrective actions)
+
+**Event-Driven Monitoring:**
+- Water quality sampling (per permit schedule or after significant rain events)
+- Spill response and cleanup verification (when spills occur)
+
+**Corrective Actions:**
+- Identify deficiencies during inspections
+- Implement corrective actions immediately (repair ESC, enhance dust control)
+- Verify effectiveness
+- Document corrective actions and closure
+
+**Output:** Inspection records, monitoring data, corrective action logs
+
+**Source:** Specification FR-1 through FR-4; Datasheet Record Types; Guidance Examples
+
+### Step 3: Compile and Report
+
+**Actions:**
+1. Compile records per ER and permit schedules (monthly, quarterly, annually)
+2. Prepare compliance reports:
+   - Summary of monitoring activities
+   - Results and comparison to permit limits
+   - Exceedances and corrective actions
+   - Non-compliances and resolutions
+3. Submit to Employer and regulatory agencies (as required by permits)
+4. Archive records in project document management system
+
+**Output:** CEMP compliance reports, archived records
+
+**Source:** Specification PR-3 (Timely Reporting); Specification Documentation
+
+### Step 4: Audit and Continuous Improvement
+
+**Actions:**
+1. Conduct CEMP compliance audits (quarterly or per ER)
+2. Identify non-compliances and opportunities for improvement
+3. Implement corrective actions
+4. Update CEMP or procedures if systemic issues identified
+
+**Output:** CEMP audit reports, updated procedures
+
+**Source:** Datasheet CEMP Elements (CEMP Audit); Specification FR-5
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+- Record completeness (all required monitoring/inspections conducted and documented)
+- Data accuracy (sampling methodology, laboratory QA/QC)
+- Permit compliance (monitoring meets permit schedules and parameters)
+- Corrective action closure (deficiencies resolved)
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Source:** Specification Verification
 
 ## Records
 
-**Documentation outputs:**
-- Environmental monitoring records
-- CEMP compliance documentation
+**Records:**
+- ESC inspection records
+- Dust control records
+- Environmental monitoring data (water quality, air quality, noise)
+- Spill incident reports and cleanup records
+- CEMP audit reports
+- Regulatory inspection records
+- Compliance reports (monthly/quarterly/annual)
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Location:** Environmental database / `3_Issued/`
+
+**Retention:** Project duration + regulatory retention period (TBD)
+
+**Source:** Specification Documentation; Datasheet Record Types
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

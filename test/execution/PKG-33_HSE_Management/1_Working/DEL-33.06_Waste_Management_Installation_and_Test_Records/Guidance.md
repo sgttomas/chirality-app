@@ -2,55 +2,50 @@
 
 ## Purpose
 
-This guidance document supports the development of **Waste Management Installation & Test Records** for **PKG-33 HSE Management**.
+Waste management records demonstrate regulatory compliance for construction waste disposal and support waste diversion objectives.
 
-Provides evidence of completion, inspection, and testing for waste management.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Source:** `_CONTEXT.md`; OBJ-6, OBJ-7
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Waste Hierarchy
+Reduce > Reuse > Recycle > Dispose. Prioritize waste reduction and recycling over landfill disposal.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Source:** ASSUMPTION: Waste management best practice
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 2: Cradle-to-Grave Tracking
+Generator (Contractor) is responsible for waste from generation to final disposal. Manifests provide proof of proper disposal.
+
+**Source:** ASSUMPTION: Hazardous waste regulatory principle
 
 ## Considerations
 
-**Factors to consider during development:**
+### Hazardous Waste Regulatory Requirements
+BC Hazardous Waste Regulation requires manifests for hazardous waste transport and disposal. Non-compliance = regulatory penalties.
 
-- Package scope: PKG-33 HSE Management
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Source:** ASSUMPTION: BC regulatory framework; OBJ-6 Regulatory Compliance
 
-## Trade-offs
+### Waste Segregation
+Proper segregation at source (separate bins for hazardous, recyclable, general) reduces disposal costs and supports recycling.
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Source:** ASSUMPTION: Waste management efficiency
 
 ## Examples
 
-**Reference examples and precedents:**
+### Example: Hazardous Waste Manifest
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Waste disposal manifests
-- waste tracking records
+**Generator:** ABC Contractors Ltd. (Canola Oil Transload Project)
+**Waste:** Used hydraulic oil, 200 L
+**Transporter:** XYZ Hazardous Waste Services (BC License #12345)
+**Receiving Facility:** Provincial Hazardous Waste Treatment Centre
+**Manifest #:** HW-2026-0432
+**Date:** 2026-05-12
+
+**Signatures:** Generator (Site Supervisor), Transporter (Driver), Receiver (Facility Manager)
+
+**Source:** ASSUMPTION: Example manifest format
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

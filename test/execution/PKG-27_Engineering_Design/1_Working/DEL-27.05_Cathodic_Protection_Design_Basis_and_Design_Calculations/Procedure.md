@@ -2,64 +2,103 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Cathodic Protection Design Basis & Design Calculations** within **PKG-27 Engineering Design**.
+Defines process for producing **Cathodic Protection Design Basis & Design Calculations** within **PKG-27 Engineering Design**. Establishes CP system design to prevent corrosion of buried and submerged steel structures.
 
-Provides the engineering basis and sizing/verification calculations for cathodic protection design basis &.
-
-**Deliverable type:** Calculation
-**Responsible party:** D&B Contractor (CP Specialist)
+**Source:** _CONTEXT.md; Specification.md
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependencies:** Structural drawings (surface areas), piping drawings (routes, materials), coating specs, site data (resistivity)
+**References:** NACE SP0169, CSA Z662, site geotechnical/environmental reports — **TBD**
+**Personnel:** Qualified CP Specialist (NACE-certified or equivalent), Senior CP Specialist (checker), P.Eng. (approver)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Design discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Source:** Specification.md; **ASSUMPTION**: CP specialist certification required for corrosion protection design
 
 ## Steps
 
-1. **Input Data Collection** — Gather loads, geometry, material properties. **TBD**
-2. **Methodology Selection** — Select analysis approach and software. **TBD**
-3. **Calculation Execution** — Perform analysis per design code. **TBD**
-4. **Results Interpretation** — Evaluate results against acceptance criteria. **TBD**
-5. **Independent Check** — Qualified checker verifies calculation. **TBD**
-6. **Approval** — Discipline lead approves. **TBD**
+### Step 1: Collect Input Data
+- Structure inventory (tanks, piping, marine structures) from drawings
+- Surface areas and embedment details
+- Coating specifications and efficiency assumptions
+- Soil/water resistivity data from site investigation
+- Stray current survey results (if applicable)
+
+**Outputs:** Input data package for CP calculations
+
+### Step 2: Develop CP Design Basis
+- Assess corrosion environment (soil/water conductivity, aggressiveness)
+- Establish protection criteria per NACE SP0169 or CSA Z662
+- Select CP system type (ICCP vs. sacrificial) with rationale
+- Define design life, current density assumptions, design margins
+- Document methodology and standards
+
+**Outputs:** CP Design Basis document
+
+### Step 3: Calculate Current Demand
+- For each structure: Surface Area × Current Density × (1 - Coating Efficiency)
+- Sum total demand for all structures
+- Apply design margin (typical 20-50%)
+- **TBD** — Structure-specific current densities from NACE standards
+
+**Outputs:** Current demand calculation with summary table
+
+### Step 4: Design Anode System
+
+**If ICCP:**
+- Size rectifier for total current demand + margin + future expansion (**TBD**)
+- Select anode type (mixed metal oxide, high silicon cast iron, etc.)
+- Design anode bed (deep well vs. distributed)
+- Calculate anode-to-earth resistance
+- Verify voltage output adequate
+
+**If Sacrificial Anodes:**
+- Select anode material (zinc for brackish water, magnesium for soil)
+- Calculate anode current output capacity
+- Size anodes for design life
+- Determine number and spacing for uniform distribution
+- Verify anode output meets demand
+
+**Outputs:** Anode layout calculations; anode data sheets
+
+### Step 5: Prepare Design Drawings
+- Site plan showing anode locations, rectifier locations (ICCP), test stations
+- Connection details (anode-to-structure bonds, cable routing)
+- Typical installation details
+- **TBD** — Drawing format per project CAD standards
+
+**Outputs:** CP design drawings
+
+### Step 6: Independent Check
+- Qualified CP Specialist (independent of originator) checks all calculations
+- Verify methodology per NACE/CSA standards
+- Check arithmetic, units, assumptions
+- Sensitivity analysis for key parameters
+- Checker signs off
+
+**Outputs:** Checked and approved calculations
+
+### Step 7: Finalize and Issue
+- Address checker comments
+- Obtain P.Eng. approval
+- Issue to `3_Issued/` with document control
+- Distribute to structural/piping/electrical teams for implementation
+
+**Outputs:** Issued CP design basis and calculations ready for construction
+
+**Source:** Specification.md; **ASSUMPTION**: Standard calculation procedure per project QMS
 
 ## Verification
 
-**Verification activities for Calculation deliverables:**
+- Independent check by qualified CP specialist
+- Design code compliance (NACE/CSA)
+- Sensitivity analysis
+- Post-installation field testing to verify design
 
-- Independent check calculation
-- Software output verification
-- Design code compliance check
-- Sensitivity analysis review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Source:** Specification.md
 
 ## Records
 
-**Documentation outputs:**
-- CP design basis
-- anode layout calculations
-- current demand calculations
-- design drawings where applicable
+**Outputs:** CP design basis, current demand calculations, anode layout calculations, design drawings
+**Filing:** Working `1_Working/`; checking `2_Checking/`; issued `3_Issued/`
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Source:** Specification.md; **ASSUMPTION**: Standard deliverable lifecycle per AGENTS.md

@@ -4,69 +4,67 @@
 
 This specification defines the requirements for **Electrical Power Data Sheet Package** within **PKG-17 Electrical Power Distribution**.
 
-Defines and substantiates electrical power in accordance with ER requirements.
+**Purpose** (Source: Decomposition DEL-17.04 entry): Defines and substantiates electrical power in accordance with ER requirements.
 
-**Anticipated deliverable artifacts:**
-- Transformer data sheet
-- MCC data sheets
-- switchgear data sheets
-- UPS data sheet
+**Anticipated deliverable artifacts** (Source: _CONTEXT.md): Transformer data sheets, MCC data sheets, switchgear data sheets, UPS data sheet
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-1: Equipment Data Sheet Completeness**
+- Data sheets shall include: Nameplate ratings, construction details, performance data, accessories, test results, compliance certifications
+- **Source**: Equipment procurement and verification requirements
+- **Rationale**: Complete data sheets enable specification compliance verification and support installation/commissioning
+
+**FR-2: Specification Compliance Verification**
+- Data sheets shall demonstrate equipment compliance with DEL-17.02 (Technical Specification) requirements
+- Deviations from specifications shall be identified and flagged for review/approval
+- **Source**: Quality assurance and procurement requirements
+
+**FR-3: Calculation Verification**
+- Equipment ratings on data sheets shall match or exceed ratings in DEL-17.03 (Design Calculations)
+- Transformer kVA, switchgear/MCC bus ratings, circuit breaker interrupting capacity shall be verified
+- **Source**: Design verification requirements
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-1: Data Sheet Format and Organization**
+- Data sheets shall follow manufacturer standard format supplemented with project-specific data requirements
+- Equipment shall be identified by project tag number (per DEL-17.01 equipment list)
+- **Format**: PDF format for distribution; native manufacturer format for record
 
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**PR-2: Test Report Inclusion**
+- Factory acceptance test (FAT) reports shall be included with data sheets
+- Test results shall demonstrate compliance with applicable standards (CSA, IEEE, UL)
+- **Source**: Quality assurance requirements
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Data Sheet).
+**QR-1: Data Sheet Review and Approval**
+- All data sheets shall undergo technical review (verify compliance with specifications and calculations)
+- Approved data sheets required before equipment shipment
+- **Source**: Procurement quality procedures
+
+**QR-2: As-Installed Data Sheet Updates**
+- Data sheets shall be updated post-installation to reflect actual installed conditions (relay settings as-left, serial numbers, installation date)
+- **Source**: Commissioning and record documentation requirements
 
 ## Standards
 
-**Applicable codes and standards (Electrical discipline):**
-
-- CSA C22.1 (CEC)
-- CSA C22.2
-- IEEE C2
-- CSA Z462
-- NFPA 70E
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Primary Standards**: CSA C88, C802, C22.2 No. 31, C22.2 No. 254; IEEE C57 series, IEEE C37 series
 
 ## Verification
 
-**Verification methods for Data Sheet deliverables:**
-
-- Parameter range verification
-- Vendor data cross-check
-- Process simulation confirmation
-- Units and nomenclature check
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Verification Methods**: Technical review (spec compliance check), calculation cross-check, test report review
 
 ## Documentation
 
-**Required documentation outputs:**
-- Transformer data sheet
-- MCC data sheets
-- switchgear data sheets
-- UPS data sheet
+**Required Outputs**: Transformer data sheets, switchgear data sheets, MCC data sheets (including bucket schedules), UPS data sheet
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Cross-References**:
+- **Datasheet.md**: Equipment types and data sheet content requirements
+- **Guidance.md**: Data sheet review criteria and compliance verification approach
+- **Procedure.md**: Data sheet submittal, review, and approval process
+- **DEL-17.02**: Specifications that data sheets must demonstrate compliance with
+- **DEL-17.03**: Calculations that data sheets must verify

@@ -16,40 +16,57 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Package Type | Vendor Documentation Package |
+| Scope | All major equipment and systems (pumps, valves, instruments, control systems, electrical equipment, fire protection, marine equipment, buildings, MEP systems) |
+| Content | Vendor operation manuals, maintenance manuals, certificates (materials, testing, performance), warranties, spare parts lists, shop drawings |
+| Format | **TBD** — **ASSUMPTION**: Electronic (PDF) and/or hard copy per Employer's Requirements |
+| Organization | **ASSUMPTION**: Organized by equipment/system or vendor |
+| Document Numbering | Per project document numbering system |
+| Classification | **ASSUMPTION**: For Official Use |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.05 (line 690)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Vendor Documentation provides equipment-specific technical information from manufacturers/suppliers, supporting operations (DEL-31.03), maintenance (DEL-31.04), warranty management (DEL-31.08, DEL-31.09), and lifecycle asset management (OBJ-9).
 
-Defines and substantiates vendor documentation in accordance with ER requirements.
+**Content includes:**
+- Vendor operation and maintenance manuals
+- Equipment certifications (material certifications, test certificates, performance certifications)
+- Equipment warranties
+- Spare parts catalogs and part numbers
+- Shop drawings and installation drawings
+- Technical data sheets
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 690; **ASSUMPTION** per typical vendor documentation scope
 
 ## Construction
 
-**Materials / Configuration:**
+**Vendor Documentation Package Composition:**
 
-Anticipated artifacts:
-- Vendor manuals
-- certificates
-- warranties
+1. **Major Equipment Vendor Packages** (pumps, valves, instruments, control systems, electrical, fire protection, marine loading arms, storage tank equipment)
+2. **Building Systems Vendor Packages** (modular buildings, HVAC, fire suppression, electrical)
+3. **Specialty Systems Vendor Packages** (metering systems, control systems, safety systems)
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Content Structure per Vendor Package:**
+- Equipment identification and specifications
+- Operation and maintenance manuals
+- Certifications and test certificates
+- Warranty documentation
+- Spare parts catalogs
+- Shop drawings (as applicable)
+
+**Source:** **ASSUMPTION** per vendor documentation organization
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 690
+- DEL-31.03 Operation Manuals — references vendor operation manuals
+- DEL-31.04 Maintenance Manuals — references vendor maintenance manuals
+- DEL-31.08 Guarantees & Warranties Register — warranty cross-reference
+- DEL-31.09 Guarantee & Warranty Certificates — vendor warranty documents
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-1: Safe & Reliable Operation (line 780)
+- OBJ-9: Lifecycle Cost Optimization (line 788)

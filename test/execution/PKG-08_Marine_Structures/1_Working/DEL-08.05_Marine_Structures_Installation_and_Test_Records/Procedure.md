@@ -2,62 +2,115 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Marine Structures Installation & Test Records** within **PKG-08 Marine Structures**.
+Define **repeatable workflow** for collecting, reviewing, and packaging installation and test records during marine structures construction and at project close-out.
 
-Provides evidence of completion, inspection, and testing for marine structures.
+**Deliverable intent (source-anchored):** Provides evidence of completion, inspection, and testing for marine structures. *(Source: Decomposition line 285 + `_CONTEXT.md`)*
 
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+---
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependency tracking mode:** NOT_TRACKED
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Required Inputs (TBD):**
+- DEL-08.02 specification (inspection/test requirements)
+- Approved ITP
+- Record templates/forms
+- ER QA/QC requirements
 
-**Personnel requirements:**
-- Qualified Marine discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+---
 
-## Steps
+## Procedure Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Pre-Construction Setup
+**Actions:**
+1. Develop ITP per DEL-08.02 requirements
+2. Obtain Employer approval of ITP
+3. Prepare record templates/forms
+4. Establish record filing system (physical and electronic)
+5. Brief construction and QA/QC teams on ITP and record requirements
 
-## Verification
+**Outputs:** Approved ITP, record templates, filing system
 
-**Verification activities for Record deliverables:**
+---
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
+### Step 2: Real-Time Record Collection During Construction
+**Actions:**
+1. **Pile Driving:** Collect pile driving logs, material certificates, equipment records for each pile
+2. **Pile Integrity Testing:** Collect test reports (PDA, sonic echo, load testing)
+3. **Welding:** Collect WPS, WPQ, visual inspection reports, NDT reports, repair records
+4. **Steel Erection:** Collect erection survey, bolt installation records
+5. **Coating:** Collect surface prep inspection, coating application records, DFT measurements
+6. **Dimensional Inspection:** Collect as-built survey
+7. Enforce hold points (work stops for critical inspections)
+8. Coordinate witness points (notify Employer/regulatory authority)
+9. Review records for completeness daily
+10. Photograph critical work
 
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Outputs:** Inspection/test records collected in real-time
 
-## Records
+---
 
-**Documentation outputs:**
-- Pile driving records
-- pile integrity test records
-- weld inspection records
+### Step 3: Record Review and Non-Conformance Management
+**Actions:**
+1. QA/QC personnel review records for completeness, accuracy, traceability
+2. Identify non-conformances (failed inspections/tests, missing records)
+3. Document non-conformances (Non-Conformance Reports - NCRs)
+4. Disposition NCRs (engineering review: accept-as-is, repair, reject)
+5. Implement corrective actions (repairs, re-inspection, additional testing)
+6. Close NCRs with verification
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Outputs:** Reviewed records, NCRs with dispositions
+
+---
+
+### Step 4: Record Organization and Indexing
+**Actions:**
+1. Organize records (by pile number, by structure element, by record type)
+2. Create record register/index with document numbers, descriptions, dates
+3. File records in organized system (physical binders and/or electronic folders)
+4. Ensure backup of electronic records
+
+**Outputs:** Organized records, record register
+
+---
+
+### Step 5: Close-Out Package Preparation
+**Actions:**
+1. Verify record completeness (all ITP activities have records)
+2. Prepare summary report (scope of work, inspection/test results, NCRs and dispositions)
+3. Compile close-out package (record register, organized records, summary report)
+4. Prepare transmittal letter
+5. Senior QA/QC manager reviews close-out package
+
+**Outputs:** Close-out package, transmittal
+
+---
+
+### Step 6: Issue and Handover
+**Actions:**
+1. Submit close-out package to Employer
+2. Obtain Employer acceptance
+3. Update `_STATUS.md` to ISSUED
+4. Archive records per retention requirements
+
+**Outputs:** Issued records package, Employer acceptance, archived records
+
+---
+
+## Requirement Coverage Map
+
+| Spec ID | Covered by Step(s) | Expected Output |
+|---|---|---|
+| R-001 | Step 2 (collection), Step 4 (organization) | All required record types collected |
+| R-002 | Step 2 (collection), Step 3 (review) | Records complete with required information |
+| R-003 | Step 1 (ITP), Step 2 (hold/witness points) | ITP compliance verified |
+| R-004 | Step 2 (acceptance criteria), Step 3 (NCRs) | Code/ER compliance demonstrated |
+| R-005 | Step 4 (organization), Step 5 (close-out), Step 6 (handover) | Records stored, close-out package complete |
+
+---
+
+## Sources
+
+- Decomposition line 285
+- Standard construction QA/QC practice

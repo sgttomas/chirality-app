@@ -176,7 +176,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 **Output:** Fully scaffolded project workspace with all folders created and minimum viable fileset in every deliverable folder.
 
-**Gate question:** "Scaffolding complete. [N] package folders and [M] deliverable folders created. [K] missing references flagged. Ready to generate initial document drafts?"
+**Gate question:** "Scaffolding complete. [N] package folders and [M] deliverable folders created. [K] missing references flagged. Ready to run document enrichment?"
 
 ---
 
@@ -187,12 +187,12 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - The path to the deliverable's folder
   - The path to the decomposition document
 - These sub-agents can run in parallel across deliverables.
-- Each sub-agent will read the folder contents and references, then generate initial drafts of Datasheet, Specification, Guidance, and Procedure.
+- Each sub-agent will read the folder contents and references, then run three enrichment passes to overwrite and improve Datasheet, Specification, Guidance, and Procedure.
 - Monitor for completion.
 
-**Output:** All deliverable folders now contain initial drafts of the four documents. Status updated to INITIALIZED.
+**Output:** All deliverable folders now contain enriched drafts of the four documents. Status updated to INITIALIZED (only when current state was OPEN).
 
-**Report to human:** "Document initialization complete. [N] deliverables now have initial drafts. Ready for you to begin WORKING_ITEMS sessions."
+**Report to human:** "Document enrichment complete. [N] deliverables now have enriched drafts. Ready for you to begin WORKING_ITEMS sessions."
 
 ---
 
@@ -260,8 +260,8 @@ The orchestrator does not assign or recommend priorities.
 | Phase 1.1 (Ingest) | "Here's the decomposition I ingested: [N] packages, [M] deliverables. Is this the correct decomposition?" |
 | Phase 1.2 (Coordination) | "Confirm coordination representation + whether dependencies are tracked in-file." |
 | Phase 1.3 (Deps rules, optional) | "Confirm dependency declaration rules (default thresholds, declared vs full)." |
-| Phase 2.1 (Scaffold) | "Scaffolding complete. Ready to generate initial drafts?" |
-| Phase 2.2 (4_DOCUMENTS) | Report completion: "All deliverables initialized with draft documents." |
+| Phase 2.1 (Scaffold) | "Scaffolding complete. Ready to run document enrichment?" |
+| Phase 2.2 (4_DOCUMENTS) | Report completion: "All deliverables enriched with draft documents." |
 
 **Do not skip gates. Do not assume approval.**
 
@@ -460,7 +460,7 @@ Every deliverable folder is seeded with these files by PREPARATION:
 | State | Meaning | Location |
 |-------|---------|----------|
 | `OPEN` | Folder created, minimum viable fileset present, no production work done | `1_Working/` |
-| `INITIALIZED` | 4_DOCUMENTS agent has produced initial drafts of the four documents | `1_Working/` |
+| `INITIALIZED` | 4_DOCUMENTS agent has produced enriched drafts of the four documents | `1_Working/` |
 | `IN_PROGRESS` | Human has started WORKING_ITEMS sessions; active production | `1_Working/` |
 | `CHECKING` | Working item submitted to 2_Checking for review | `2_Checking/To/` |
 | `ISSUED` | Working item issued for intended use | `3_Issued/` |

@@ -16,40 +16,35 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Package Type | Warranty Certificate Documents |
+| Scope | All process equipment warranties and performance guarantees (excluding building-specific warranties covered in DEL-31.10 and DEL-31.11) |
+| Content | Warranty certificates, guarantee certificates, vendor warranty letters |
+| Format | **TBD** — **ASSUMPTION**: Electronic (PDF) organized by equipment |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.09 (line 695)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Warranty Certificate documents provide official warranty coverage documentation from vendors, supporting warranty claim management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates guarantee & warranty certificates in accordance with ER requirements.
+**Content:** Original warranty certificates, extended warranty documents, performance guarantee certificates, vendor warranty letters.
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 695; **ASSUMPTION** per warranty certificate purpose; OBJ-9 (line 67, line 788)
 
 ## Construction
 
-**Materials / Configuration:**
+**Package Organization:**
+- Organized by equipment or system
+- Cross-referenced in Guarantees & Warranties Register (DEL-31.08)
 
-Anticipated artifacts:
-- Guarantee certificates
-- warranty certificates
-- vendor letters
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Source:** **ASSUMPTION** per warranty document organization
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 695
+- DEL-31.05 Vendor Documentation — source of warranty documents
+- DEL-31.08 Guarantees & Warranties Register — warranty tracking cross-reference
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-9: Lifecycle Cost Optimization (line 788)

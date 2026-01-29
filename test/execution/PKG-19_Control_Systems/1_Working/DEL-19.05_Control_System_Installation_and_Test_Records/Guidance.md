@@ -2,57 +2,74 @@
 
 ## Purpose
 
-This guidance document supports the development of **Control System Installation & Test Records** for **PKG-19 Control Systems**.
+Supports creation and management of installation and test records for PKG-19 Control Systems.
 
-Provides evidence of completion, inspection, and testing for control system.
+**Deliverable purpose:** Provides evidence of completion, inspection, and testing for control system. **Source:** `_CONTEXT.md`
 
-This deliverable is classified as a **Record** under the **I&C** discipline, to be produced by **D&B Contractor (QA/QC)**.
+Records demonstrate that control system was installed, tested, and commissioned correctly per project requirements, providing evidence for Owner acceptance and regulatory compliance (OBJ-6).
 
 ## Principles
 
-**Engineering rationale (I&C discipline):**
+### Record Management Philosophy
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Purpose of Records:**
+- **Evidence of Quality:** Demonstrate work performed per project quality standards
+- **Traceability:** Link requirements → design → installation → testing → acceptance
+- **Regulatory Compliance (OBJ-6):** Support inspections, audits, certifications
+- **Warranty Support:** Document as-built condition for warranty claims
+- **Operational Reference:** Provide baseline for operations and maintenance
 
-**Applicable standards context:**
-- ISA 5.1
-- ISA 84
-- IEC 61511
-- CSA C22.1
-- API 554
+**Key Principles:**
+- **Complete:** All required tests documented, all punch lists resolved
+- **Accurate:** Records reflect actual work performed (not theoretical)
+- **Traceable:** Cross-referenced to drawings (DEL-19.01), specifications (DEL-19.02), software (DEL-19.04)
+- **Retained:** Per project retention schedule (life of facility typical)
 
 ## Considerations
 
-**Factors to consider during development:**
+**1. FAT vs. SAT Scope:**
+- **FAT:** Test with simulated I/O or limited field devices, verify equipment functions correctly
+- **SAT:** Test with actual field devices, verify system integration, verify performance
 
-- Package scope: PKG-19 Control Systems
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**2. Record Completeness:**
+- Ensure all tests documented (no verbal approvals)
+- Ensure all punch list items resolved before final acceptance
+- Ensure all sign-offs obtained (Owner, Contractor, QA/QC, Third-Party if applicable)
+
+**3. Software Version Control:**
+- Maintain multiple generations of software backups (pre-FAT, post-FAT, post-SAT, as-commissioned)
+- Document all software changes with change logs
+
+**4. As-Built Documentation:**
+- Update drawings (DEL-19.01) to reflect as-built conditions
+- Update software documentation (DEL-19.04) to reflect final tuning and configuration
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**TO-01: Detail vs. Practicality in Record Keeping**
+- **Excessive Detail:** Time-consuming, difficult to manage, diminishing returns
+- **Insufficient Detail:** Cannot demonstrate compliance, gaps in traceability
+- **PROPOSAL:** Focus on critical tests and inspections; use standard checklists for routine items
 
 ## Examples
 
-**Reference examples and precedents:**
+**Typical FAT Test Record Format:**
+- Test ID, Test Description
+- Test Procedure Reference
+- Expected Result, Actual Result
+- Pass/Fail Status
+- Comments, Witness Signature, Date
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- FAT records
-- SAT records
-- software version records
+**Typical SAT Loop Checkout Sheet Format:**
+- Loop Tag, Description
+- I/O Verified (Y/N)
+- Control Action Verified (Y/N)
+- Alarms Verified (Y/N)
+- Tuning Parameters (PID: P, I, D)
+- Sign-off: Technician, Date
+
+**Typical Software Backup Record Format:**
+- Software Name (PLC Program, HMI Project, Historian Config)
+- Version, Date
+- Backup Location (file path or media label)
+- Backup Verified (Y/N), Verified By, Date

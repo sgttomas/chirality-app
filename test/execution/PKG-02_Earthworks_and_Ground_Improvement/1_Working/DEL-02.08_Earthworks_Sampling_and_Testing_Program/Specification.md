@@ -10,13 +10,16 @@
 
     ## Requirements
 
-    - R1: Defines the planned approach and controls for earthworks sampling & testing program to meet ER requirements. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD).
-- R2: Include Sampling plan. Source: _CONTEXT.md.
-- R3: Include frequency matrix. Source: _CONTEXT.md.
-- R4: Include lab testing scope. Source: _CONTEXT.md.
-- R5: Include field testing scope. Source: _CONTEXT.md.
-- R6: Address grading, excavation, fill placement, ground improvement, geotechnical and survey scope for PKG-02. Source: decomposition PKG-02 scope (location TBD).
-- R7: Document control fields (title, revision, dates, approvals) shall be included. Source: ASSUMPTION: standard D&B document control; details TBD.
+    - R1: Testing program shall define planned approach and controls for earthworks sampling and testing to ensure quality compliance with ER requirements and design specifications. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD). Verified by V1, V2, V3.
+    - R2: Sampling plan shall address sampling objectives/scope, sample locations/selection criteria, collection procedures, chain of custody, and sample types per applicable standards. Source: _CONTEXT.md; **ASSUMPTION**: Sampling per ASTM standards. Verified by V1.
+    - R3: Frequency matrix shall define test types, minimum testing frequencies, phase-specific frequencies, and additional testing triggers to ensure adequate quality verification. Source: _CONTEXT.md; **TBD**: ER will specify minimum frequencies. Verified by V1, V2, V3.
+    - R4: Laboratory testing scope shall address soil classification, moisture-density relationship, strength tests (if required), chemical tests (if required), laboratory qualifications, test methods/standards, and turnaround times. Source: _CONTEXT.md; **ASSUMPTION**: Testing per ASTM/AASHTO standards. Verified by V1, V3.
+    - R5: Field testing scope shall address in-situ density tests, field moisture tests, proof rolling, visual inspections, personnel qualifications, and equipment calibration requirements. Source: _CONTEXT.md; **ASSUMPTION**: Field testing per ASTM standards. Verified by V1.
+    - R6: Testing program shall address earthworks activities within PKG-02 scope (fill material acceptance, compaction verification for grading/fill placement, subgrade preparation verification). Source: decomposition PKG-02 scope (location TBD). Verified by V2.
+    - R7: Testing program shall include document control fields (plan number, revision, coverage area, approval status, effective date) per D&B Contractor QA/QC standards. Source: **ASSUMPTION**: Standard D&B document control; details **TBD**. Verified by V1.
+    - R8: Testing frequencies shall meet or exceed ER minimum requirements and be statistically adequate to demonstrate consistent quality across earthworks areas. Source: **TBD**: ER will specify minimum frequencies; **ASSUMPTION**: Statistical adequacy per quality management principles. Verified by V2, V3.
+    - R9: Laboratory shall be qualified/accredited and approved by Employer (if ER requires approval); testing shall be performed per specified standards (ASTM, AASHTO, or equivalent). Source: **TBD**: ER will specify laboratory qualification/approval requirements. Verified by V1, V3.
+    - R10: Testing program shall be coordinated with DEL-02.06 (Installation & Test Records – record documentation), DEL-02.07 (Method Statement – testing integration with execution), and DEL-02.09 (Compaction Verification Plan – compaction testing approach). Source: **ASSUMPTION**: Cross-deliverable coordination requirement. Verified by V2.
 
     ## Related Datasheet Attributes
 

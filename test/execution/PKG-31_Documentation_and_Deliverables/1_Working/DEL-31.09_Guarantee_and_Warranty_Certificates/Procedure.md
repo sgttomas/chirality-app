@@ -2,62 +2,83 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Guarantee & Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
+To collect and deliver Guarantee & Warranty Certificates for the Canola Oil Transload Facility Phase 1.
 
-Defines and substantiates guarantee & warranty certificates in accordance with ER requirements.
+**Source:** Decomposition DEL-31.09 (line 695)
 
 **Deliverable type:** Document Package
 **Responsible party:** D&B Contractor
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+### Dependencies
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Dependency Tracking:** See \`_DEPENDENCIES.md\` — **NOT_TRACKED**
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Upstream Dependencies:**
+- Equipment procurement (warranties obtained)
+- Vendor Documentation (DEL-31.05)
+
+**Source:** **ASSUMPTION**
 
 ## Steps
 
-1. **Content Scoping** — Define document purpose and scope. **TBD**
-2. **Drafting** — Prepare document content. **TBD**
-3. **Review** — Technical and quality review. **TBD**
-4. **Comment Resolution** — Address review comments. **TBD**
-5. **Approval** — Responsible party approves for issue. **TBD**
+### Step 1: Planning
+
+**Activities:**
+1.1. Identify all equipment requiring warranty certificates
+1.2. Define certificate package organization
+
+**Deliverables:** Certificate package structure defined
+
+### Step 2: Certificate Collection
+
+**Activities:**
+2.1. Coordinate with vendors to obtain warranty certificates
+2.2. Receive and log warranty certificates
+2.3. Verify certificates are vendor-issued originals
+
+**Deliverables:** Warranty certificates collected
+
+### Step 3: Package Organization
+
+**Activities:**
+3.1. Organize certificates by equipment
+3.2. Cross-reference to Guarantees & Warranties Register (DEL-31.08)
+3.3. File electronic copies in document management system
+
+**Deliverables:** Organized Warranty Certificate Package
+
+### Step 4: Review and Approval
+
+**Activities:**
+4.1. Completeness review
+4.2. Authenticity check
+4.3. Employer review and acceptance
+4.4. Final approval
+
+**Deliverables:** Approved Warranty Certificate Package
+
+### Step 5: Issuance and Handover
+
+**Activities:**
+5.1. Issue Warranty Certificate Package
+5.2. Handover to Employer
+
+**Deliverables:** Issued Package; handover complete
 
 ## Verification
 
-**Verification activities for Document Package deliverables:**
+1. **Completeness Review** (Step 4.1) — All certificates obtained
+2. **Authenticity Check** (Step 4.2) — Certificates are vendor-issued originals
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Acceptance Criteria:** All certificates obtained; authentic; organized; Employer acceptance obtained
 
 ## Records
 
-**Documentation outputs:**
-- Guarantee certificates
-- warranty certificates
-- vendor letters
+**Outputs:**
+1. Warranty Certificate Package
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Management:** \`3_Issued/\` or warranty-specific folders
+
+**Retention:** For facility operational life

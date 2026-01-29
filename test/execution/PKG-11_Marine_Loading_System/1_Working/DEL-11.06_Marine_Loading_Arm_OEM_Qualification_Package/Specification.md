@@ -4,69 +4,152 @@
 
 This specification defines the requirements for **Marine Loading Arm OEM Qualification Package** within **PKG-11 Marine Loading System**.
 
-Defines and substantiates marine loading arm oem qualification package in accordance with ER requirements.
+**Purpose:** Defines and substantiates marine loading arm OEM qualification in accordance with Employer's Requirements (ER), demonstrating OEM capability, product compliance, and suitability for the project prior to procurement commitment.
+
+**Package scope (PKG-11):**
+- Powered loading arm (articulated boom with powered slew/luff)
+- Emergency release coupling (ERC)
+- Associated controls and instrumentation
 
 **Anticipated deliverable artifacts:**
 - OEM qualification submission
-- comparable project references
-- compliance statements
-- supporting documentation
+- Comparable project references
+- Compliance statements
+- Supporting documentation
+
+**Objectives served (per decomposition Section 6):**
+- OBJ-1 Safe & Reliable Operation
+- OBJ-2 Throughput Capacity (1,000,000 MT/annum)
+- OBJ-4 Operational Flexibility
+- OBJ-7 Environmental Protection
+
+## Related Deliverables (PKG-11)
+
+| Deliverable | Relationship |
+|-------------|--------------|
+| DEL-11.01 Marine Loading Design Drawing Set | Receives OEM envelope data for layout |
+| DEL-11.02 Marine Loading Technical Specification | Defines requirements for OEM compliance |
+| DEL-11.03 Marine Loading Design Calculations | Uses OEM envelope data for verification |
+| DEL-11.04 Marine Loading Data Sheet Package | Receives OEM-offered values |
+| DEL-11.05 Marine Loading Installation & Test Records | FAT based on OEM procedures |
 
 ## Requirements
 
-### Functional Requirements
+### General Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| OEM-001 | Provide a controlled OEM qualification submission package | Document review |
+| OEM-002 | Package shall include contents index with document list and revisions | Document review |
+| OEM-003 | All included documents shall be revision controlled and dated | Document review |
+| OEM-004 | Package shall demonstrate OEM capability and product compliance | Technical review |
+| OEM-005 | Package shall comply with project QA/QC procedures | QA review |
 
-### Performance Requirements
+### OEM Qualification Submission Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| QUAL-001 | Provide company profile (history, ownership, organizational structure) | Completeness check |
+| QUAL-002 | Provide manufacturing capability information (facilities, capacity, staff) | Completeness check |
+| QUAL-003 | Provide quality management system evidence (ISO 9001 or equivalent) | Certificate review |
+| QUAL-004 | Provide design capability information (engineering resources, tools) | Completeness check |
+| QUAL-005 | Provide after-sales support information (spare parts, service, warranty) | Completeness check |
+| QUAL-006 | Identify proposed product line/model for this application | Technical review |
+
+### Comparable Project References Requirements
+
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| REF-001 | Provide minimum 3 comparable project references | Reference count |
+| REF-002 | References shall include project name, location, client, dates | Completeness check |
+| REF-003 | References shall include scope (arm type, size, ERC, product) | Relevance review |
+| REF-004 | References shall include operational history where available | Reference review |
+| REF-005 | References shall be relevant to marine loading arm application | Relevance review |
+| REF-006 | Client contact information provided where authorized | Completeness check |
+
+### Compliance Statement Requirements
+
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| COMP-001 | Provide ER compliance matrix (clause-by-clause if clauses available) | Compliance review |
+| COMP-002 | Provide code/standards compliance statements (OCIMF, ASME, API, IEC) | Compliance review |
+| COMP-003 | Provide deviation register listing all exceptions to requirements | Deviation review |
+| COMP-004 | Each deviation shall include proposed disposition path | Deviation review |
+| COMP-005 | Provide hazardous area certification evidence | Certificate review |
+| COMP-006 | Provide type testing evidence where applicable | Technical review |
+
+### Supporting Documentation Requirements
+
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| DOC-001 | Provide product brochure/catalog for proposed product line | Document review |
+| DOC-002 | Provide GA drawings showing envelope and connection details | Technical review |
+| DOC-003 | Provide standard product datasheets | Technical review |
+| DOC-004 | Provide quality certificates (ISO, third-party) | Certificate review |
+| DOC-005 | Provide FAT procedures (or outline) | Technical review |
+| DOC-006 | Provide material certificates / welding qualifications as applicable | Technical review |
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| INT-001 | OEM envelope data sufficient for DEL-11.01 layout drawings | Technical review |
+| INT-002 | OEM connection details sufficient for piping coordination | Technical review |
+| INT-003 | OEM control philosophy compatible with project I&C requirements | Interface review |
+| INT-004 | OEM ERC performance data sufficient for DEL-11.02 requirements | Technical review |
+
+**Note:** Dependency tracking is NOT_TRACKED; interfaces are coordinated externally per `_DEPENDENCIES.md`.
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document Package).
+| Req ID | Requirement | Verification |
+|--------|-------------|--------------|
+| QA-001 | Package shall be reviewed and approved per project QA/QC procedures | QA records |
+| QA-002 | All included vendor documents clearly revision controlled and dated | Document review |
+| QA-003 | Deviations shall be logged in project deviation register | Deviation tracking |
+| QA-004 | Approval path for deviations shall be documented | Approval records |
 
 ## Standards
 
-**Applicable codes and standards (Process discipline):**
-
-- CSA Z662
-- API 650
-- API 610
-- ASME B31.3
-- NFPA 30
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+| Standard | Applicability | Status |
+|----------|---------------|--------|
+| Employer's Requirements (ER) | OEM qualification criteria | Clause references **TBD** |
+| OCIMF Guidelines | Marine loading arm design | **TBD** |
+| ISO 9001 | OEM quality management system | Required |
+| IEC 60079 series | Hazardous area certification | **TBD** |
+| API / ASME standards | Equipment design codes | **TBD** |
 
 ## Verification
 
 **Verification methods for Document Package deliverables:**
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
+| Method | Description | Applies To |
+|--------|-------------|------------|
+| Document review | Package completeness and revision control | OEM-001 to OEM-005 |
+| Completeness check | All required sections present | QUAL, REF, DOC requirements |
+| Technical review | OEM capability and product suitability | QUAL-006, DOC-002, INT requirements |
+| Compliance review | ER and code compliance demonstrated | COMP-001 to COMP-006 |
+| Reference review | Comparable references relevant and adequate | REF-001 to REF-006 |
+| Deviation review | Exceptions documented with disposition | COMP-003, COMP-004 |
+| Certificate review | Valid certifications provided | QUAL-003, COMP-005, DOC-004 |
 
 **Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Package complete with all required sections
+- Compliance statements with ER traceability (or TBD where clauses not available)
+- Minimum 3 comparable project references provided
+- Deviations explicitly documented with proposed disposition
+- OEM capability demonstrated through certifications and references
 
 ## Documentation
 
 **Required documentation outputs:**
 - OEM qualification submission
-- comparable project references
-- compliance statements
-- supporting documentation
+- Comparable project references list
+- Compliance statements and matrix
+- Deviation register
+- Supporting documentation package
 
 **Documentation requirements:**
 - All documents shall comply with project document control procedures
 - Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+- Format: **TBD** (project document management requirements)

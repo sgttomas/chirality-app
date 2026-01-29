@@ -2,57 +2,121 @@
 
 ## Purpose
 
-This guidance document supports the development of **Control System Software** for **PKG-19 Control Systems**.
+Supports development of control system software for PKG-19 Control Systems.
 
-Defines and substantiates control system software in accordance with ER requirements.
+**Deliverable purpose:** Defines and substantiates control system software in accordance with ER requirements. **Source:** `_CONTEXT.md`
 
-This deliverable is classified as a **Software** under the **I&C** discipline, to be produced by **D&B Contractor**.
+Software implements process control strategies, safety interlocks, operator interface, and data management per DEL-19.02 functional requirements and process design (PKG-10-16).
 
 ## Principles
 
-**Engineering rationale (I&C discipline):**
+### Software Development Philosophy
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Reliability (OBJ-1):**
+- Fail-safe logic: safe state on faults (power loss, communication loss, sensor failure)
+- Robust error handling: exception handling, watchdog timers, fault detection
+- Redundancy management: if redundant controllers (per DEL-19.02 FR-06), software shall manage fail-over
+- **Source:** OBJ-1; typical industrial control system reliability practices
 
-**Applicable standards context:**
-- ISA 5.1
-- ISA 84
-- IEC 61511
-- CSA C22.1
-- API 554
+**Maintainability:**
+- Modular design: reusable function blocks for common equipment (pumps, valves, tanks, PID loops)
+- Clear structure: organized programs (main, process control, interlocks, alarms, communications)
+- Comprehensive commenting: all functions and complex logic documented inline
+- Consistent naming: tag naming per ISA 5.1 conventions, variable naming per project standards
+- Version control: all changes tracked, change logs maintained
+- **Source:** IEC 61131-3 best practices; software maintainability principles
+
+**Operational Flexibility (OBJ-4):**
+- Configurable parameters: setpoints stored in data blocks (not hard-coded), adjustable by operators or engineers
+- Mode selection: tank storage mode vs. direct rail-to-ship transfer mode selectable without software changes
+- Online tuning: PID loop tuning parameters adjustable during operation
+- **Source:** OBJ-4; operational flexibility requirement
 
 ## Considerations
 
-**Factors to consider during development:**
+### Factors to Consider During Development
 
-- Package scope: PKG-19 Control Systems
-- Deliverable type: Software — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**1. Control Strategy Implementation:**
+- Review P&IDs (PKG-14 process piping) for control loops, valve sequencing, interlocks
+- Coordinate with process engineers for control philosophy (PID vs. on-off, cascade control, ratio control)
+- Implement PID tuning: initial tuning parameters from process simulation or empirical rules; final tuning during commissioning
+- **Source:** Process design coordination; typical control strategy implementation
+
+**2. Alarm Rationalization (ISA 18.2):**
+- Minimize nuisance alarms: alarm setpoints rationalized to avoid frequent alarms during normal operation
+- Prioritize alarms by consequence: Critical (immediate action required), High (prompt action), Medium (awareness), Low (information)
+- Alarm suppression: suppress alarms during startup/shutdown sequences when expected
+- Target: ≤6 alarms per operator per 10 minutes steady-state (per ISA 18.2)
+- **Source:** ISA 18.2 alarm management principles
+
+**3. HMI Design (ISA 101 principles if applicable):**
+- Operator-centric: design from operator's perspective (what do they need to see/do?)
+- Minimize clicks: critical information accessible in ≤3 clicks
+- Consistent graphics: same symbols for pumps, valves, tanks across all screens
+- Situational awareness: overview screens show facility status at a glance
+- **Source:** ISA 101 HMI design principles (if applicable); typical HMI design best practices
+
+**4. Safety Interlocks:**
+- Fail-safe: interlocks designed to failsafe on loss of signal or power
+- Testable: interlock logic testable during commissioning without endangering equipment/personnel
+- Documented: interlock matrices document all interlock conditions and actions
+- **Source:** Process safety requirements; typical safety interlock design
+
+**5. Cybersecurity (ISA/IEC 62443):**
+- Access control: password-protected programming, role-based access (operator, engineer, administrator)
+- Audit trails: log all software changes, operator actions, alarm events
+- Secure communications: encrypted communication for remote access (if required per DEL-19.02 FR-08)
+- **Source:** ISA/IEC 62443 cybersecurity principles; DEL-19.02 FR-08, MR-05
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**TO-01: Custom Function Blocks vs. Standard Library Blocks**
+- **Custom:** Optimized for specific process, flexible, more development and testing time
+- **Standard:** Vendor-provided, proven, faster development, less optimization
+- **PROPOSAL:** Use standard library blocks for common functions (PID, timers, counters); develop custom blocks for unique sequences or complex control strategies
+- **Source:** Typical software development trade-off
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**TO-02: Alarm Quantity (Information vs. Overload)**
+- **Too Many Alarms:** Operator overload, alarm flooding, critical alarms missed
+- **Too Few Alarms:** Inadequate information, abnormal conditions not detected
+- **PROPOSAL:** Alarm rationalization per ISA 18.2 (consequence-based prioritization, target ≤6/operator/10 min)
+- **Source:** ISA 18.2
+
+**TO-03: HMI Complexity (Detail vs. Simplicity)**
+- **Detailed HMI:** All information visible, many screens, complex navigation
+- **Simple HMI:** Minimal information, fewer screens, risk of missing critical data
+- **PROPOSAL:** Layered approach (overview → area → detail), show most critical information on overview
+- **Source:** ISA 101 (if applicable)
 
 ## Examples
 
-**Reference examples and precedents:**
+**Typical PLC/DCS Program Structure:**
+```
+Main Program
+├── Scan Management (initialization, sequencing)
+├── Process Control
+│   ├── Railcar Unloading (32 positions)
+│   ├── Storage Tanks (3 tanks)
+│   ├── Marine Loading
+│   └── Metering (custody transfer)
+├── Regulatory Control (PID loops)
+├── Sequential Control (startup, shutdown, batch sequences)
+├── Safety Interlocks
+├── Alarm Management
+└── Communications (HMI, historian, field devices)
+```
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- PLC/DCS application software
-- HMI graphics
-- historian configuration
+**Typical HMI Screen Hierarchy:**
+- Level 1: Facility Overview (PFD showing all major areas)
+- Level 2: Area Screens (Unloading, Storage, Loading)
+- Level 3: Equipment Detail (Pump detail, Valve detail, Tank detail)
+- Supporting Screens: Trends, Alarms, Reports
+
+**Typical Function Block Library:**
+- Pump control block (start/stop, run status, fault detection)
+- Valve control block (open/close, position feedback)
+- Tank monitoring block (level, temperature, high/low alarms)
+- PID controller block (setpoint, process variable, output)
+- Interlock block (permissives, trip logic, reset)
+
+**Source:** **ASSUMPTION**: Typical industrial control software structure; specific implementation TBD per vendor platform and project requirements

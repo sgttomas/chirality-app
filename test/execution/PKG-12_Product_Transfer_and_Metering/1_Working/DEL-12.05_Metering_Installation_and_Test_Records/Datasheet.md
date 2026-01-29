@@ -16,40 +16,125 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Record Number | **TBD** |
-| Record Category | **TBD** |
-| Retention Period | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Record Package Number | To be issued per project numbering system (TBD; Source: ER Vol 2 Part 1, location TBD) |
+| Record Category | QA/QC — Custody Transfer Metering Installation and Test Records |
+| Retention Period | TBD — per project records retention requirements and regulatory requirements (Source: ER Vol 2 Part 1, location TBD); custody transfer records typically retained for life of facility or per regulatory requirement (Measurement Canada may specify retention period) |
+| Revision | 00 (initial issue) |
+| Classification | Process — Metering Installation and Test Records |
+| Record Count (Anticipated) | Minimum record set per Decomposition:360 plus supporting records: calibration certificates (flow meters ×2, temperature transmitters ×2 or more, pressure transmitters if applicable), accuracy verification/proving records (flow meters ×2), installation verification records (optional but recommended), FAT records (factory acceptance test if applicable), SAT records (site acceptance test if applicable), material certificates (MTRs for critical components), nonconformance reports (NCRs if any issues during installation/testing); total count TBD based on equipment quantity and test scope |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+### Design Context
 
-Provides evidence of completion, inspection, and testing for metering.
+| Condition | Value / Description | Source |
+|-----------|---------------------|--------|
+| Service Application | Custody transfer metering for CSD canola oil at rail unloading and marine loading transfer points | Decomposition:350 |
+| Record Scope | Evidence of completion, inspection, and testing for metering; demonstrates that installed custody transfer metering meets specification requirements and is suitable for commercial custody transfer service | Decomposition:360 |
+| Equipment Covered | Custody transfer flow meters (2): rail unloading and marine loading; temperature transmitters (2 or more): rail and marine services; pressure transmitters (if applicable): rail and marine services | Decomposition:350, 359; DEL-12.04 data sheets |
+| Services | Rail unloading custody transfer metering (product receipt from rail tank cars); marine loading custody transfer metering (product export to liquid bulk carriers) | Decomposition:350 |
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+### Record Requirements Context
+
+Record requirements TBD from ER Vol 2 Part 1 (QA requirements), ER Vol 2 Part 2 (metering testing requirements), DEL-12.02 specification (acceptance criteria), and applicable custody transfer standards (API MPMS, OIML R117, Measurement Canada):
+
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| Calibration Standard | TBD — traceability requirements per applicable standard (Measurement Canada for custody transfer in Canada, or NIST, or equivalent national metrology institute) | ER Vol 2 Part 2, location TBD; DEL-12.02 specification; Measurement Canada regulations |
+| Accuracy Verification Method | TBD — proving method per DEL-12.02 specification and DEL-12.03 calculations (in-line prover, portable prover, or master meter) | DEL-12.02 specification; DEL-12.03 calculations |
+| Proving Frequency | TBD — per DEL-12.02 specification and Measurement Canada regulations (quarterly, semi-annually, annually) | DEL-12.02 specification; Measurement Canada regulations |
+| Proving Acceptance Criteria | TBD — meter factor limits and drift limits per DEL-12.03 calculations (e.g., meter factor 0.995-1.005, drift <±0.05%) | DEL-12.03 calculations; applicable standard (API MPMS Chapter 4, OIML R117) |
+| Witnessing Requirements | TBD — client witness required for calibration or proving, or third-party inspection required (per ER Vol 2 Part 1 or Measurement Canada) | ER Vol 2 Part 1, location TBD; Measurement Canada if applicable |
+| Archive Format | TBD — electronic and/or hardcopy requirements, archive location, retention period (per ER Vol 2 Part 1 document control procedures) | ER Vol 2 Part 1, location TBD |
+| FAT Requirements | TBD — factory acceptance test witnessing and documentation requirements (per ER or DEL-12.02 specification) | ER Vol 2 Part 2, location TBD; DEL-12.02 specification |
+| SAT Requirements | TBD — site acceptance test procedures and acceptance criteria (per ER or DEL-12.02 specification) | ER Vol 2 Part 2, location TBD; DEL-12.02 specification |
+
+### Objective Alignment
+
+| Objective | Relevance to This Deliverable |
+|-----------|-------------------------------|
+| OBJ-10 Custody Transfer Accuracy | Records provide auditable evidence of calibration and accuracy verification supporting custody transfer compliance; calibration certificates demonstrate measurement traceability to national standards (Measurement Canada, NIST); proving/accuracy verification records demonstrate meters meet accuracy requirements per DEL-12.02 and DEL-12.03; records enable commercial confidence and regulatory compliance for custody transfer transactions (Source: Decomposition:789; Specification.md REQ-04, REQ-05) |
+| OBJ-6 Regulatory Compliance | Records may be required for Measurement Canada approval or other regulatory compliance for custody transfer in Canada; calibration traceability, proving records, and accuracy verification demonstrate compliance with regulatory requirements (ASSUMPTION based on Canadian location and custody transfer application) |
 
 ## Construction
 
-**Materials / Configuration:**
+### Anticipated Record Content
 
-Anticipated artifacts:
-- Calibration certificates
-- accuracy verification records
+| Record Type | Description | Source |
+|-------------|-------------|--------|
+| Calibration Certificates | Factory and/or field calibration certificates for custody transfer flow meters and transmitters; certificates demonstrate calibration traceability to national measurement standards (Measurement Canada, NIST, or equivalent); certificates document calibration date, calibration range, as-found and as-left values, calibration uncertainty, calibrator identification, and next calibration due date | Decomposition:360; Specification.md REQ-01, REQ-05 |
+| Accuracy Verification / Proving Records | Proving results or accuracy verification records demonstrating meter performance meets specification requirements; proving records document proving method (in-line prover, portable prover, master meter per DEL-12.02), proving conditions (flow rate, temperature, pressure during proving), proving runs (individual run data), meter factor calculation, proving repeatability, acceptance criteria (from DEL-12.03), acceptance verification (pass/fail with signature), witness signatures if required | Decomposition:360; Specification.md REQ-01, REQ-04 |
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+### Record Package Structure
+
+Expected record package structure per Specification.md Documentation section (ASSUMPTION based on typical QA/QC record packages; specific structure may vary per project standards):
+
+| Component | Description | Purpose |
+|-----------|-------------|---------|
+| **Cover Sheet** | Project identification (project name, project number), deliverable identification (DEL-12.05, Metering Installation & Test Records), package revision (00, A, B, or 01, 02; per project convention), issue date, QA/QC lead signature, approver signature | Identifies record package; provides approval documentation |
+| **Record Index / Traceability Map** | Table listing all included records with columns: Equipment Tag Number, Equipment Serial Number, Service (Rail Unloading or Marine Loading), Equipment Description, Record Type (Calibration Certificate, Proving Record, FAT Record, SAT Record, MTR, NCR), Record Date, Record Reference (file name or document number), Witness (if applicable), Status (Complete, Pending, N/A) | Enables quick location of records; demonstrates completeness; provides traceability from equipment to records |
+| **Section 1: Calibration Certificates** | **1.1 Flow Meter Calibration Certificates**: Factory calibration certificates for rail unloading and marine loading flow meters; **1.2 Temperature Transmitter Calibration Certificates**: Calibration certificates for temperature transmitters (rail and marine); **1.3 Pressure Transmitter Calibration Certificates**: Calibration certificates for pressure transmitters if applicable; **1.4 Density Transmitter Calibration Certificates**: If separate density transmitters (vs. Coriolis integral density); **Field Calibration Records**: Site calibration verification if performed | Demonstrates calibration traceability per Specification.md REQ-05 |
+| **Section 2: Factory Acceptance Test (FAT) Records** (if applicable) | FAT protocols and results for flow meters; FAT witness reports; FAT nonconformance reports (NCRs) and resolutions if any issues identified during FAT; FAT may include flow testing at multiple flow rates, accuracy verification, functional testing of signals and communications, visual inspection | Demonstrates factory testing per DEL-12.02 specification FAT requirements; optional depending on ER and specification requirements |
+| **Section 3: Installation Verification Records** (optional but recommended) | Installation checklists verifying installation per DEL-12.01 drawings; installation inspection reports; dimensional verification (straight-run compliance, orientation, elevations); piping connection verification (flange torques, gaskets, alignment); electrical connection verification (power supply, signal wiring, grounding); as-built verification (verify installed configuration matches design) | Demonstrates installation per drawings and specification; provides confidence that installation quality supports measurement accuracy |
+| **Section 4: Site Acceptance Test (SAT) Records** (if applicable) | SAT protocols and results; functional testing of installed system (flow measurement, temperature compensation, pressure compensation, signal transmission to control system, totalizing function); proving upon installation (initial proving to establish baseline meter factor); SAT acceptance verification with signatures | Demonstrates site testing per DEL-12.02 specification SAT requirements; verifies integrated system functionality |
+| **Section 5: Accuracy Verification / Proving Records** | **5.1 Initial Proving (Commissioning)**: Proving performed upon installation to establish baseline meter factor; proving method per DEL-12.02 (in-line prover, portable prover, master meter); proving run data (multiple runs for repeatability verification), meter factor calculation, proving repeatability, acceptance verification per DEL-12.03 criteria (meter factor within acceptable range, repeatability acceptable, witness signature); **5.2 Periodic Proving** (if applicable): Subsequent proving records per DEL-12.02 proving frequency (quarterly, semi-annually, annually); demonstrates ongoing accuracy maintenance | Demonstrates meter accuracy per Specification.md REQ-04; satisfies Decomposition:360 accuracy verification requirement |
+| **Section 6: Material Certificates** (if required) | Material test reports (MTRs) for critical wetted components (flow meter body, internals if required); chemical composition and mechanical properties; heat lot traceability; may be required for food-grade service or high-integrity applications (TBD from ER or DEL-12.02) | Demonstrates material compliance if required by specification |
+| **Section 7: Nonconformance Reports (NCRs)** (if any) | NCRs documenting any issues identified during installation or testing; corrective actions taken; verification of corrective action effectiveness; client acceptance of NCR disposition if significant issues | Documents quality issues and resolutions; demonstrates all issues were resolved before acceptance |
+| **Section 8: Witness Signatures** | Third-party or client witness signatures for witnessed hold points: FAT witness (if required), installation inspection witness (if required), proving witness (if required per ER or Measurement Canada), final acceptance witness; witness signatures demonstrate client or regulatory approval of critical activities | Demonstrates witnessed verification per ER requirements or Measurement Canada |
+| **Appendices** | Vendor data sheet references (cross-reference to DEL-12.04), specification references (cross-reference to DEL-12.02), calculation references (cross-reference to DEL-12.03 for acceptance criteria), applicable standard excerpts (if referenced in proving procedures or acceptance criteria) | Provides supporting documentation and references |
+
+### Equipment-to-Record Traceability
+
+Each equipment item requires specific records per Specification.md REQ-02, REQ-03:
+
+| Equipment | Tag Number | Required Records | Source |
+|-----------|------------|------------------|--------|
+| Flow Meter — Rail Unloading | TBD (e.g., FT-1201; from DEL-12.04 and PKG-14 P&IDs) | Calibration certificate (factory), FAT record (if applicable), installation verification, SAT record (if applicable), initial proving record (commissioning), periodic proving records (ongoing operation per proving frequency) | Decomposition:360; Specification.md REQ-01 |
+| Flow Meter — Marine Loading | TBD (e.g., FT-1202; from DEL-12.04 and PKG-14 P&IDs) | Calibration certificate, FAT record, installation verification, SAT record, initial proving record, periodic proving records | Decomposition:360; Specification.md REQ-01 |
+| Temperature Transmitter(s) — Rail | TBD (e.g., TT-1201, TT-1201A if multiple; from DEL-12.04) | Calibration certificate (factory or field) | Decomposition:360 implied; temperature transmitters are part of metering system |
+| Temperature Transmitter(s) — Marine | TBD (e.g., TT-1202; from DEL-12.04) | Calibration certificate | Decomposition:360 implied |
+| Pressure Transmitter(s) — Rail (if applicable) | TBD (e.g., PT-1201; from DEL-12.04) | Calibration certificate | Decomposition:360 implied if pressure transmitters are part of system |
+| Pressure Transmitter(s) — Marine (if applicable) | TBD (e.g., PT-1202; from DEL-12.04) | Calibration certificate | Decomposition:360 implied |
+
+**Note:** Record requirements for each equipment item depend on equipment type, service criticality, and ER/specification requirements. Flow meters (custody transfer critical) require comprehensive records including calibration and proving. Transmitters (custody transfer compensation) require calibration certificates at minimum.
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA Z662, API 650, API 610, ASME B31.3, NFPA 30
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+### Primary Sources
+
+| Reference | Content | Location |
+|-----------|---------|----------|
+| Decomposition | PKG-12 scope definition, DEL-12.05 definition, objective mapping, facility parameters | Lines 350, 360, 789 |
+| ER Vol 2 Part 1 | General requirements, document control, QA requirements, witnessing requirements, records retention | TBD |
+| ER Vol 2 Part 2 | Process mechanical requirements, metering testing requirements, accuracy verification requirements, regulatory compliance (Measurement Canada) | TBD |
+
+### Related Deliverables (PKG-12)
+
+| Deliverable | Relationship |
+|-------------|--------------|
+| DEL-12.01 Metering Design Drawing Set | Drawings define installation arrangement; installation verification records demonstrate installation per drawings (orientation, straight-runs, elevations, connections per drawings) |
+| DEL-12.02 Metering Technical Specification | Specification defines acceptance criteria for testing and verification; test records demonstrate compliance with specification requirements (accuracy per spec, calibration traceability per spec, proving per spec, FAT/SAT criteria per spec) |
+| DEL-12.03 Metering Design Calculations | Calculations define proving methodology and acceptance criteria; proving records use acceptance criteria from calculations (meter factor limits, proving repeatability, drift limits from DEL-12.03) |
+| DEL-12.04 Metering Data Sheet Package | Data sheets provide equipment tags, serial numbers, and parameters for record traceability; records reference data sheet parameters and verify equipment per data sheets (tag numbers, serial numbers, performance specifications) |
+
+### Applicable Standards (TBD — ASSUMPTION)
+
+The following standards may define record requirements for custody transfer metering:
+
+| Standard | Potential Applicability |
+|----------|------------------------|
+| API MPMS Chapter 4 (Proving Systems) | Proving record requirements: proving run data format, meter factor calculation, acceptance criteria, required documentation | Applicable if API MPMS is governing standard for proving |
+| OIML R117 (Dynamic Measuring Systems for Liquids Other Than Water) | Calibration and verification requirements; record format for legal metrology | Likely applicable for vegetable oil custody transfer; may specify required calibration documentation |
+| Measurement Canada (Weights and Measures Act and Regulations) | Regulatory record requirements for custody transfer in Canada: calibration traceability, proving records, periodic verification records, approval certificates | Applicable for custody transfer in Canada; meters may require Measurement Canada approval; specific record requirements TBD |
+| ISO 9001 (Quality Management Systems) | General QA record requirements: document control, traceability, retention, records management | Applicable to project QA system; general framework for record management |
+| Project Quality Management Plan | Project-specific QA/QC procedures: inspection and test plan (ITP), hold points, witness points, record formats, retention | TBD; project quality procedures |
+
+**Note:** Standard applicability and specific record requirements to be confirmed from ER Vol 2 Part 2, DEL-12.02 specification, and project Quality Management Plan.
+
+## Cross-Document Traceability
+
+| Document | Link Points |
+|----------|-------------|
+| Specification.md | Requirements section (REQ-01 through REQ-11) defines record package scope and content requirements: calibration certificates and accuracy verification records (REQ-01), equipment traceability (REQ-02), data sheet traceability (REQ-03), compliance with DEL-12.02 acceptance criteria (REQ-04), calibration traceability to national standards (REQ-05), witnessing requirements (REQ-09), record completeness and format (REQ-10); Standards section identifies governing references and custody transfer standards for record requirements; Verification section defines review methods and acceptance criteria for record package; Documentation section defines record package structure matching Construction section above |
+| Guidance.md | Purpose section explains records serve as auditable evidence that custody transfer metering was properly installed, calibrated, and accuracy-verified; demonstrates compliance with specification and regulatory requirements; Principles section explains record development rationale (evidence of compliance per REQ-04, traceability per REQ-02/REQ-03/REQ-05, auditability per REQ-10, regulatory support for Measurement Canada) and custody transfer record principles (calibration traceability, proving documentation, witnessing); Considerations section identifies record content considerations (minimum content per Decomposition:360, equipment coverage, acceptance criteria documentation, witnessing), calibration certificate considerations (equipment ID, calibration date, traceability, results, uncertainty), proving record considerations (method, date, conditions, runs, meter factor, acceptance, witness) |
+| Procedure.md | Steps section defines record collection and compilation workflow: Step 1 (Define required record set per REQ-01; identify equipment per DEL-12.04), Step 2 (Establish traceability map per REQ-02), Step 3 (Collect calibration certificates per REQ-05; verify traceability), Step 4 (Collect proving records per REQ-04; verify acceptance), Step 5 (Verify completeness per REQ-10 and validity per REQ-04/REQ-05), Step 6 (Compile record package per Construction section structure), Step 7 (Issue with approvals per REQ-09); Verification section confirms requirement satisfaction per Acceptance Criteria; Records section identifies record outputs matching anticipated artifacts |

@@ -2,61 +2,73 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Site Reinstatement Installation & Test Records** within **PKG-35 Training & Handover**.
+Process for documenting site reinstatement — removal of temporary construction facilities and site restoration prior to handover.
 
-Provides evidence of completion, inspection, and testing for site reinstatement.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+*Source: _CONTEXT.md*
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependencies**: Construction substantially complete (can remove facilities only when no longer needed)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Reference Materials**: Employer's Requirements (site condition requirements), Design & Build Contract (site reinstatement clauses), PKG-00 deliverables (temporary facilities to be removed)
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Personnel**: Construction manager, QA/QC inspector, environmental specialist (if remediation required), Employer representative (for acceptance inspection)
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+**Phase 1: Planning (Late Construction)**
+1. Review contract requirements for site reinstatement
+2. Develop site clearance checklist (temporary facilities to be removed)
+3. Take baseline "before construction" photographs (if not already done during mobilization)
+4. Identify any environmental remediation needs
+5. Plan reinstatement schedule (coordinate with construction completion)
+
+**Phase 2: Progressive Reinstatement (During Construction Completion)**
+1. Remove temporary facilities as soon as no longer needed (progressive approach)
+2. Photograph facilities before removal and area after removal
+3. Document disposal (waste manifests for debris, return records for rental equipment)
+4. Backfill temporary excavations, restore temporary access roads (if not permanent)
+5. Maintain site clearance checklist (mark items complete as removed)
+
+**Phase 3: Final Site Cleanup (Pre-Handover)**
+1. Remove all remaining temporary facilities (site offices, fencing, signage)
+2. Final site cleanup (sweep, wash, remove all construction debris)
+3. Restore disturbed landscaping (topsoil, seeding, planting)
+4. Restore disturbed paving/drainage (if any)
+5. Remove erosion controls (after permanent controls in place and site stabilized)
+6. Take "after reinstatement" photographs (comprehensive site coverage)
+
+**Phase 4: Environmental Compliance (Pre-Handover)**
+1. Conduct environmental assessment if contamination suspected
+2. Remediate contaminated soil/groundwater if required (document remediation)
+3. Final stormwater system inspection
+4. Compile waste manifests and disposal records
+5. Document environmental compliance
+
+**Phase 5: Inspection and Acceptance (Pre-Handover)**
+1. Contractor QA/QC inspection (verify site clearance checklist 100% complete)
+2. Compile site reinstatement records package (checklists, photographs, waste records)
+3. Request Employer inspection
+4. Employer representative inspects site (walk-through with checklist)
+5. Address any deficiencies identified by Employer
+6. Obtain Employer acceptance sign-off on site clearance checklist
+7. Include site reinstatement records in handover package (DEL-35.03)
+
+*Cross-reference DEL-35.03 for handover integration*
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+**VM-01**: All temporary facilities removed (checklist 100% complete)
+**VM-02**: Photographic evidence (before/after comparison demonstrates reinstatement)
+**VM-03**: Employer inspection and acceptance (sign-off on checklist)
+**VM-04**: Environmental compliance (waste manifests, remediation records if applicable)
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+*Source: Specification.md verification methods*
 
 ## Records
 
-**Documentation outputs:**
-- Site clearance records
-- reinstatement photographs
+**Outputs**: Site clearance checklists, reinstatement photographs (organized by area/date), inspection reports, waste disposal manifests, environmental records (if applicable), Employer acceptance sign-off
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Management**: Records included in handover package (DEL-35.03), retention per project requirements, Contractor archive copies retained for warranty period
+
+*Cross-reference DEL-35.03 Handover Documentation for record integration*

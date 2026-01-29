@@ -35,32 +35,6 @@
 
 ## 4_DOCUMENTS Enrichment Log
 
-| Date | Deliverable | Action | Status Update | Notes |
-|------|-------------|--------|---------------|-------|
-| 2026-01-28 | DEL-00.01 Site Establishment Design Drawing Set | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.02 Site Establishment Technical Specification | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.03 Site Establishment Procedures | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.04 Contractor’s Equipment Schedule | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.05 Road Access Configuration & Security Process Submission | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.06 Pre-Works Road Condition Survey Report | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.07 Post-Works Road Condition Survey Report | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-00.08 Temporary Water Supply Installation Details | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-01.01 Demolition Design Drawing Set | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-01.02 Demolition Technical Specification | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-01.03 Demolition Procedures | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-01.04 Demolition Installation & Test Records | 4_DOCUMENTS enrichment completed | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.01 Earthworks Design Drawing Set | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.02 Earthworks Technical Specification | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.03 Earthworks Design Calculations | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.04 Geotechnical Reports | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.05 Survey Reports | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.06 Earthworks Installation & Test Records | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.07 Earthworks Excavation & Fill Placement Method Statement | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.08 Earthworks Sampling & Testing Program | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-02.09 In-Situ Compaction Verification Plan & Results | 4_DOCUMENTS enrichment final coordinated pass complete | No change (current state = INITIALIZED) | References not identified in `_REFERENCES.md` |
-| 2026-01-28 | DEL-03.01 Underground Utilities Design Drawing Set | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
-| 2026-01-28 | DEL-03.02 Underground Utilities Technical Specification | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
-| 2026-01-28 | DEL-03.03 Underground Utilities Design Calculations | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
-| 2026-01-28 | DEL-03.04 Underground Utilities Data Sheet Package | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
-| 2026-01-28 | DEL-03.05 Underground Utilities Installation & Test Records | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
-| 2026-01-28 | DEL-03.06 CCTV Survey Report – Storm Pipes & Culverts | 4_DOCUMENTS enrichment completed and cross-document alignment verified | No change (current state = INITIALIZED) | Cross-document alignment pass complete; references anchored to decomposition entry and Employer's Requirements volumes |
+| Date | Package/Deliverable | Action | Status Update | Notes |
+|------|---------------------|--------|---------------|-------|
+| 2026-01-28 | PKG-08 (DEL-08.06–DEL-08.11) | 4_DOCUMENTS enrichment Pass 3 complete | No change (all states = INITIALIZED) | Final refinement pass for marine-specific technical content; cross-document consistency verified |

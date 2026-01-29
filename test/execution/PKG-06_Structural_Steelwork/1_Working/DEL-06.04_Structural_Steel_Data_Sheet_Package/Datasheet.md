@@ -16,41 +16,49 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Data Sheet Number | **TBD** |
-| Equipment Tag | **TBD** |
-| Service Description | **TBD** |
-| Operating Conditions | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Data Sheet Package Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
+| Included Data Sheets | Gangway data sheets; Grating data sheets (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251; Specification.md: Scope; Procedure.md: Step 1) |
+| Item Identification | Tag/ID scheme **TBD** (to align with drawings and BOM) (Specification.md: Interface Requirements; Procedure.md: Step 3; Guidance.md: Principles) |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 5) |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Context & intended use:**
+- This deliverable defines and substantiates structural steelwork items via data sheets in accordance with Employer’s Requirements (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251).
+- Package scope includes steel platforms, stairs, gangways, access structures, handrails, and pipe supports; this data sheet package focuses on gangways and grating as listed in the anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:242; test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251).
 
-Defines and substantiates structural steel in accordance with ER requirements.
-
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Design/environmental criteria referenced by these data sheets:** **TBD** (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD).
 
 ## Construction
 
-**Materials / Configuration:**
+**Data sheet content focus:**
 
-Anticipated artifacts:
+Anticipated artifacts (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:251; `_CONTEXT.md`):
 - Gangway data sheets
-- grating data sheets
+- Grating data sheets
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+Each data sheet should capture (at minimum): geometry, material/protective system, design basis references, and any inspection/acceptance requirements (**TBD** until ER clauses extracted).
+
+**Suggested data sheet fields (ASSUMPTION / TBD):**
+- Item ID / Tag (aligned to drawings DEL-06.01) (Specification.md: Interface Requirements; Guidance.md: Principles)
+- Drawing reference(s) (DEL-06.01 Structural Steel Design Drawing Set) (Specification.md: Suggested Field Sets)
+- Specification clause reference(s) (DEL-06.02 Structural Steel Technical Specification) (Specification.md: Suggested Field Sets; Guidance.md: Cross-Document Notes)
+- Calculation reference(s), where applicable (DEL-06.03 Structural Steel Design Calculations) (Specification.md: Suggested Field Sets; Guidance.md: Cross-Document Notes)
+- Material / protective system identifier (TBD; references DEL-06.02)
+- Required records / certificates (DEL-06.05 Structural Steel Installation & Test Records: mill certificates, weld inspection records, galvanizing certificates) (Specification.md: Quality Requirements, Suggested Field Sets; Guidance.md: Considerations)
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S16, CSA A23.3, CSA S136, NBC 2020
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252 — PKG-06 scope and DEL-06.04 definition.
+- test/Volume_2_Part_1_Employers_Requirements.pdf — general requirements: document control / QA expectations (location TBD).
+- test/Volume_2_Part_3_Employers_Requirements.pdf — building works requirements affecting gangways/grating (location TBD).
+- See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
+- See `_REFERENCES.md` and `execution/PKG-06_Structural_Steelwork/0_References/` for package reference index (currently empty / TBD).
+
+## Cross-Document Points
+
+- Technical Specification (DEL-06.02): data sheet fields should reflect the material/workmanship/coating clauses (DEL-06.02 Specification.md).
+- Design Calculations (DEL-06.03): data sheets should reference any calculation assumptions or design loads where applicable (DEL-06.03 Specification.md).
+- Drawings (DEL-06.01): item IDs and configurations should match drawings to avoid mismatches at procurement/installation.
+- Specification → Procedure traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.

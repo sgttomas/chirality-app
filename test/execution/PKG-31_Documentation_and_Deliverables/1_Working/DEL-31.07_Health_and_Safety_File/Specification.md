@@ -2,64 +2,64 @@
 
 ## Scope
 
-This specification defines the requirements for **Health & Safety File** within **PKG-31 Documentation & Deliverables**.
+Defines requirements for **Health & Safety File** within **PKG-31 Documentation & Deliverables**.
 
-Provides project management/control documentation for health & safety file required by the ERs.
+**Purpose:** Provides comprehensive HSE information per Employer's Requirements, supporting safe facility lifecycle.
 
-**Anticipated deliverable artifacts:**
-- Project health and safety file
+**Source:** Decomposition DEL-31.07 (line 693)
+
+**Anticipated artifacts:** Project health and safety file
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Completeness** — Health & Safety File shall include all HSE information relevant to facility construction, operation, maintenance, and future modifications.
+
+**FR-02: Hazard Documentation** — Hazard identifications, risk assessments, and risk mitigation measures documented.
+
+**FR-03: Emergency Preparedness** — Emergency response plans and procedures included.
+
+**FR-04: Regulatory Compliance** — Documentation demonstrating regulatory compliance per OBJ-6.
+- **Source:** OBJ-6 (line 64)
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Accessibility** — Health & Safety File readily accessible to relevant personnel (operations, maintenance, HSE, emergency responders).
+
+**PR-02: Currency** — Health & Safety File kept current throughout facility lifecycle (updated for modifications, incidents, lessons learned).
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: O&M Manuals Interface** — HSE information cross-referenced in Operation Manuals (DEL-31.03) and Maintenance Manuals (DEL-31.04).
 
-### Quality Requirements
+**IR-02: HSE Management Interface** — Coordinated with PKG-33 HSE Management deliverables.
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document).
+### Safety and Regulatory Requirements
+
+**SR-01: Safe & Reliable Operation Support** — Health & Safety File supports OBJ-1 by providing HSE information for safe facility operations.
+- **Source:** OBJ-1 (line 59, line 780)
+
+**SR-02: Regulatory Compliance** — Health & Safety File supports regulatory compliance (OBJ-6) and environmental protection (OBJ-7).
+- **Source:** OBJ-6 (line 64), OBJ-7 (line 65)
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- ISO 45001 (Occupational Health and Safety Management)
+- Applicable health, safety, and environmental regulations
+- Employer's Requirements — **TBD**
 
 ## Verification
 
-**Verification methods for Document deliverables:**
+1. **Completeness Review** — All HSE information included
+2. **HSE Review** — Content reviewed by HSE personnel
+3. **Regulatory Compliance Check** — Documentation adequate for regulatory requirements
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:** Complete; HSE-approved; regulatory compliant; Employer acceptance obtained
 
 ## Documentation
 
-**Required documentation outputs:**
-- Project health and safety file
+**Outputs:**
+1. Project Health and Safety File (document or database)
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Filing:** \`3_Issued/\`

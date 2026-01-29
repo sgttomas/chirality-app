@@ -2,57 +2,90 @@
 
 ## Purpose
 
-This guidance document supports the development of **Instrumentation Data Sheet Package** for **PKG-20 Field Instrumentation**.
+Supports development of **Instrumentation Data Sheet Package** for **PKG-20 Field Instrumentation**.
 
-Defines and substantiates instrumentation in accordance with ER requirements.
+**Deliverable Objective:** Defines and substantiates instrumentation in accordance with ER requirements.
 
-This deliverable is classified as a **Data Sheet** under the **I&C** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition document, DEL-20.04 (line 499)
+
+**Cross-Document Context:** Data sheets implement DEL-20.02 specifications, incorporate DEL-20.03 calculated parameters, and support DEL-20.05 testing. See Procedure.md for data sheet development workflow.
 
 ## Principles
 
-**Engineering rationale (I&C discipline):**
+**Principle 1: Data Sheets Bridge Design and Procurement**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+Data sheets translate engineering requirements (specifications, calculations) into equipment procurement documents that vendors can quote and supply against.
 
-**Applicable standards context:**
-- ISA 5.1
-- ISA 84
-- IEC 61511
-- CSA C22.1
-- API 554
+**Principle 2: Three-Phase Lifecycle**
+
+- **Design phase:** Engineer-completed data sheets issued to vendors (RFQ basis)
+- **Procurement phase:** Vendor-completed data sheets demonstrate compliance (bid evaluation, approval)
+- **As-built phase:** Updated with actual equipment data (serial numbers, test results)
+
+**Principle 3: Traceability**
+
+Each data sheet traces to: P&ID (tag number), specification (requirements), calculations (verified parameters), drawings (installation location).
+
+**Source:** **ASSUMPTION** based on typical EPC data sheet philosophy
 
 ## Considerations
 
-**Factors to consider during development:**
+**Project-Specific:**
 
-- Package scope: PKG-20 Field Instrumentation
-- Deliverable type: Data Sheet — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Large instrument population (32 railcar stations, 3 storage tanks) requires efficient template-based approach
+- Standardization preferred where possible (reduce spare parts inventory, simplify training)
+- Marine environment (corrosion) and hazardous area requirements drive material and certification specifications
+
+**Technical:**
+
+**Level Instruments:**
+- Storage tanks: High-accuracy radar for inventory (±3 mm typical)
+- Process vessels: Guided wave or float for reliability
+- Overfill protection: Independent level switches per API 2350
+
+**Pressure Instruments:**
+- Pump monitoring: Standard ranges (0-2 bar suction, 0-10 bar discharge typical)
+- Marine loading: Pressure control for loading rate
+
+**Temperature:**
+- Product temperature: RTDs for accuracy (viscosity-temperature correlation)
+- Equipment protection: Thermocouples cost-effective for alarms
+
+**Source:** **ASSUMPTION** based on typical bulk liquid terminal instrumentation; **TBD**: Specific applications from P&IDs
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Trade-off: Standardization vs. Optimization**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- **Standardized instruments:** Fewer models/vendors, simplified procurement, reduced spare parts — may not be optimal for all applications
+- **Optimized instruments:** Best-fit for each application — increased complexity, spare parts inventory
+
+**Recommendation:** Standardize within instrument types (e.g., single manufacturer for all radar level transmitters); optimize for specialized applications (custody transfer, safety-critical).
+
+**Source:** **ASSUMPTION** based on typical EPC instrumentation procurement strategy; supports OBJ-9 (Lifecycle Cost Optimization)
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example Data Sheet Content:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Level transmitter data sheets
-- pressure transmitter data sheets
-- flow instrument data sheets
+```
+Tag: LT-001
+Service: Storage Tank #1 Level
+P&ID: P-001
+Range: 0-15 m
+Accuracy: ±3 mm
+Technology: Radar (26 GHz)
+Output: 4-20 mA + HART
+Enclosure: NEMA 4X, 316 SS
+Hazardous Area: CSA Class I, Div 2, T3
+Power: 24 VDC
+Manufacturer: [Vendor to complete]
+Model: [Vendor to complete]
+Serial No: [As-built]
+```
+
+**Source:** **ASSUMPTION** — Example data sheet format
+
+**Project Objective Alignment:** Supports **OBJ-1: Safe & Reliable Operation** and **OBJ-9: Lifecycle Cost Optimization**.
+
+**Source:** Decomposition Section 6 (lines 780, 788)

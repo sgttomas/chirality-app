@@ -2,64 +2,63 @@
 
 ## Scope
 
-This specification defines the requirements for **Transport Canada Compliance Installation & Test Records** within **PKG-32 Regulatory & Permits**.
+Defines requirements for **Transport Canada Compliance Installation & Test Records** within **PKG-32**.
 
-Provides evidence of completion, inspection, and testing for transport canada compliance.
-
-**Anticipated deliverable artifacts:**
-- TC compliance documentation
+**Purpose:** Provides evidence of Transport Canada compliance. (Source: _CONTEXT.md; Decomposition Section 5)
+**Coverage:** Compliance with Transport Canada approval conditions (rail and marine safety)
+**Artifacts:** TC compliance documentation (Source: Decomposition Section 5)
+**Objective:** OBJ-6: Regulatory Compliance
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Transport Canada Approval and Condition Identification** — Transport Canada approvals obtained (DEL-32.02); conditions extracted | **Verification:** Procedure Step 1
+
+**FR-02: Compliance Tracking System** — Tracking system for Transport Canada conditions established | **Verification:** Procedure Step 2
+
+**FR-03: Compliance Evidence Collection** — Evidence collected per condition requirements (rail inspections, marine safety compliance, notifications) | **Verification:** Procedure Steps 3, 4
+
+**FR-04: Transport Canada Submittals** — Submittals to Transport Canada per approval conditions | **Verification:** Procedure Step 4
+
+**FR-05: Compliance Register Maintenance** — Register maintained and updated | **Verification:** Procedure Step 5
+
+**FR-06: Compliance Record Compilation** — Records compiled and filed for Transport Canada inspections | **Verification:** Procedure Step 6
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Compliance Completeness** — 100% of Transport Canada conditions demonstrated compliant | **Acceptance:** All conditions satisfied
+**PR-02: Timeliness** — Per Transport Canada condition schedules (notification deadlines, inspection schedules) | **Acceptance:** **TBD**
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: DEL-32.02 (Permits)** — Transport Canada approvals (DEL-32.02) contain conditions requiring demonstration (DEL-32.05) | **Coordination:** Extract and assign conditions
+**IR-02: DEL-32.07, DEL-32.08** — Transport Canada submittals logged and filed | **Coordination:** Log all Transport Canada interactions
+**IR-03: Construction Packages (PKG-10, 11)** — Rail and marine works generate compliance evidence | **Coordination:** **TBD**
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+**QR-01: Record Quality** — Records accurate, complete, legible | **Verification:** QA/QC review
+**QR-02: Record Retention** — Filed per document control; accessible for Transport Canada inspections | **Verification:** Document control procedures
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Regulatory:** Transport Canada approvals and conditions — **TBD**; Transport Canada rail safety regulations — **TBD**; Transport Canada marine safety regulations — **TBD**
+**Project:** Employer's Requirements — **location TBD**
+**Quality:** ISO 9001:2015 — **ASSUMPTION**; Project QMP — **TBD**
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+| Activity | Method | Responsible | Acceptance | Procedure Ref |
+|----------|--------|-------------|------------|---------------|
+| Conditions extracted | Extract from Transport Canada approvals | QA/QC Manager | All conditions identified | Step 1 |
+| Tracking established | Create compliance register | QA/QC Manager | All conditions tracked | Step 2 |
+| Evidence collected | Rail/marine inspections, notifications | QA/QC team | Evidence per conditions | Steps 3, 4 |
+| Register updated | Update as activities complete | QA/QC Manager | Register current | Step 5 |
+| Records filed | File per document control | QA/QC Manager | Records accessible | Step 6 |
 
 ## Documentation
 
-**Required documentation outputs:**
-- TC compliance documentation
-
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Outputs:** TC compliance documentation
+**Format:** **TBD** — Per Transport Canada conditions (inspection reports, certifications, notification records)
+**Retention:** **TBD** — Per Transport Canada and contract requirements

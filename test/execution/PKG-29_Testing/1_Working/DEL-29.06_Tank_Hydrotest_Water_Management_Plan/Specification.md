@@ -2,70 +2,105 @@
 
 ## Scope
 
-This specification defines the requirements for **Tank Hydrotest Water Management Plan** within **PKG-29 Testing**.
+Requirements for **Tank Hydrotest Water Management Plan** within **PKG-29 Testing**.
 
-Defines the planned approach and controls for tank hydrotest water management plan to meet ER requirements.
+**Purpose:** Defines planned approach and controls for tank hydrotest water management to meet ER requirements. **Source:** Decomposition line 651
 
-**Anticipated deliverable artifacts:**
-- Hydrotest fill/hold/drain plan
-- treatment approach
-- sampling/testing plan
-- discharge/hauling plan
+**Type:** Plan | **Responsible:** D&B Contractor (QA/QC)
+
+### Inclusions
+- Water sourcing and fill plan
+- Treatment approach for hydrotest water
+- Sampling and testing plan
+- Discharge or hauling plan
+- Environmental compliance
+
+### Exclusions
+- Actual test records (DEL-29.07, 29.08)
+- Tank hydrotest procedure (covered in DEL-29.01)
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-1: Water Source and Fill**
+- Identify water source (municipal, river intake, trucked-in)
+- Obtain required permits/approvals for water taking
+- Plan fill rate and duration to avoid supply disruption
+- Plan fill sequence to manage water demand
+
+**FR-2: Treatment System**
+- Design or specify treatment system adequate for water volume and contamination
+- Treatment shall achieve discharge water quality standards
+- Backup disposal option if treatment inadequate (haul-away)
+
+**FR-3: Sampling and Testing**
+- Sampling plan covering pre-fill, post-fill, pre-discharge, post-treatment
+- Test parameters per discharge permit requirements
+- Laboratory accredited for required tests **ASSUMPTION**
+
+**FR-4: Discharge/Disposal**
+- Obtain discharge permit (river or municipal sewer) or arrange licensed hauler
+- Discharge/disposal method shall comply with environmental regulations
+- Document disposal per DEL-29.08
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-1: Water Quality**
+- Treated water shall meet discharge permit limits before release
+- If permit limits cannot be met, water shall be hauled to approved treatment facility
+
+**PR-2: Timing**
+- Plan shall account for seasonal restrictions (fish spawning, water temperature limits) **ASSUMPTION**
+- Plan shall support hydrotest schedule without causing project delays
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-1: Regulatory Compliance**
+- Coordinate with environmental authorities (BC MOE, Metro Vancouver, DFO) for permits
+- Coordinate with municipal water utility for water supply
+
+**IR-2: Coordination with Hydrotest**
+- Water management plan integrated with hydrotest procedures (DEL-29.01)
+- Treatment/disposal capacity matches hydrotest drain schedule
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Plan).
+**QR-1: Plan Approval**
+- Plan reviewed by HSE and environmental specialist
+- Plan submitted to Employer and regulatory authorities as required
+- Plan approved before commencing hydrotest
+
+**QR-2: Environmental Compliance**
+- All activities comply with permits and regulations
+- Non-compliance incidents reported and resolved
 
 ## Standards
 
-**Applicable codes and standards (T&C discipline):**
-
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- API 650: Hydrotest requirements
+- BC Environmental Management Act: Discharge permits
+- Fisheries Act: Protection of fish habitat
+- Metro Vancouver Sewer Use Bylaw (if applicable)
+- Municipal bylaws (water taking, discharge)
+- Employer's Requirements **location TBD**
 
 ## Verification
 
-**Verification methods for Plan deliverables:**
+**VM-1:** Plan covers all required elements (sourcing, treatment, testing, disposal)
+**VM-2:** Permits obtained or permit applications in progress
+**VM-3:** Treatment system capacity adequate for water volume
+**VM-4:** Plan approved by Employer and authorities
 
-- Scope coverage review
-- Resource adequacy check
-- Schedule integration review
-- Stakeholder review and acceptance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+### Acceptance Criteria
+**AC-1:** Plan complete and technically adequate
+**AC-2:** Environmental permits obtained or confirmable
+**AC-3:** Plan approved by Employer
 
 ## Documentation
 
-**Required documentation outputs:**
+**Required Outputs:**
 - Hydrotest fill/hold/drain plan
-- treatment approach
-- sampling/testing plan
-- discharge/hauling plan
-
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+- Treatment approach (system design or specification)
+- Sampling/testing plan
+- Discharge/hauling plan
+- Permit copies or applications

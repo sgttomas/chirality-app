@@ -2,55 +2,59 @@
 
 ## Purpose
 
-This guidance document supports the development of **Code Compliance Installation & Test Records** for **PKG-32 Regulatory & Permits**.
+Supports **Code Compliance Installation & Test Records** for **PKG-32**.
 
-Provides evidence of completion, inspection, and testing for code compliance.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Purpose:** Evidence of code compliance (Source: _CONTEXT.md)
+**Type:** Record | **Discipline:** Project Delivery | **Responsible:** QA/QC
+**Objective:** OBJ-6: Regulatory Compliance
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### 1. Multi-Code Compliance
+Code compliance spans multiple codes (building, fire, electrical, plumbing, gas) and multiple authorities. Coordination across all codes required.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### 2. Progressive Inspection Requirement
+Building authorities typically require progressive inspections at key construction stages (foundations, framing, fire protection, final). Missing an inspection can delay project.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### 3. Occupancy Permit as Final Gate
+Occupancy permit is final authority approval to use facility. All code conditions must be satisfied before occupancy permit issued.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Code Compliance Condition Categories (Typical)
+- **Building code:** Structural compliance, building envelope, accessibility, seismic design verification
+- **Fire code:** Fire protection systems (sprinklers, alarms, detection), exits/egress, fire separations, flammable liquid storage compliance
+- **Electrical code:** Electrical installations, hazardous area classifications (canola oil facility), emergency power
+- **Plumbing code:** Plumbing systems, drainage
+- **Gas code:** Gas systems (if applicable)
 
-- Package scope: PKG-32 Regulatory & Permits
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Inspection Types
+- **Foundation inspections:** Before concrete pour
+- **Framing inspections:** At framing stage
+- **Rough-in inspections:** Electrical/plumbing/HVAC rough-in before concealment
+- **Fire protection inspections:** Fire system installation and testing
+- **Final inspections:** Pre-occupancy final inspection
+- **Occupancy permit:** Final authority approval
+
+### Interface with DEL-32.02
+Building/fire/code permits (DEL-32.02) → Extract conditions → Assign to DEL-32.06 → Track compliance → Pass inspections → Obtain occupancy permit
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Progressive Inspection Coordination vs Construction Schedule
+**Trade-off:** Coordinate inspections proactively (schedule confidence, inspector availability) vs reactively call inspections (faster execution, risk of inspector unavailability).
+**Recommendation:** Proactive coordination; building inspector availability can be limited, and missed inspections delay project.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example Building Permit Condition:**
+"The following inspections are required: (1) Foundation inspection before concrete pour; (2) Framing inspection; (3) Rough-in inspection (electrical, plumbing); (4) Fire protection system inspection after installation; (5) Final inspection before occupancy. Occupancy permit will be issued upon satisfactory completion of all inspections and compliance with building, fire, and electrical codes."
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Code compliance certificates
-- inspection records
+**Compliance demonstration:**
+- Schedule foundation inspection; pass inspection; file inspection report in DEL-32.06
+- Schedule framing inspection; pass inspection; file report
+- Schedule rough-in inspection; pass inspection; file report
+- Schedule fire protection inspection; pass fire system tests; pass inspection; file test reports and inspection report
+- Schedule final inspection; pass inspection; file report
+- Apply for occupancy permit; receive occupancy permit; file permit in DEL-32.02 and DEL-32.06
+- Log all inspections in DEL-32.07; file all records in DEL-32.08

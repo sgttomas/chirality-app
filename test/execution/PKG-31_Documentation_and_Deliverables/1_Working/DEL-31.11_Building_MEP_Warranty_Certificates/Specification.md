@@ -2,70 +2,45 @@
 
 ## Scope
 
-This specification defines the requirements for **Building MEP Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
+Defines requirements for **Building MEP Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
 
-Defines and substantiates building mep warranty certificates in accordance with ER requirements.
+**Purpose:** Collect and organize building MEP warranty certificates per Employer's Requirements.
 
-**Anticipated deliverable artifacts:**
-- HVAC warranty
-- plumbing warranty
-- fire suppression warranty
-- electrical warranties (as applicable)
+**Source:** Decomposition DEL-31.11 (line 697)
+
+**Anticipated artifacts:** HVAC warranty, plumbing warranty, fire suppression warranty, electrical warranties (as applicable)
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Completeness** — Warranties obtained for all applicable building MEP systems.
 
-### Performance Requirements
+**FR-02: Authenticity** — Certificates are original vendor/contractor-issued documents.
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**FR-03: Organization** — Certificates organized; cross-referenced in Register (DEL-31.08).
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: Warranty Register Interface** — Cross-referenced in DEL-31.08.
 
-### Quality Requirements
+**IR-02: Building MEP Documentation Interface** — Cross-reference DEL-26.01, DEL-24.01.
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document Package).
+### Lifecycle Requirements
 
-## Standards
-
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**LR-01: Lifecycle Cost Optimization** — Certificates support warranty management (OBJ-9).
+- **Source:** OBJ-9 (line 67, line 788)
 
 ## Verification
 
-**Verification methods for Document Package deliverables:**
+1. **Completeness Review** — All building MEP warranties obtained
+2. **Authenticity Check** — Certificates are originals
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:** All certificates obtained; authentic; Employer acceptance obtained
 
 ## Documentation
 
-**Required documentation outputs:**
-- HVAC warranty
-- plumbing warranty
-- fire suppression warranty
-- electrical warranties (as applicable)
+**Outputs:**
+1. Building MEP Warranty Certificate Package
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Filing:** \`3_Issued/\`

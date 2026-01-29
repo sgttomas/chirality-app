@@ -2,56 +2,101 @@
 
 ## Purpose
 
-This guidance document supports the development of **Pre-commissioning Installation & Test Records** for **PKG-30 Commissioning**.
+Supports development of **Pre-commissioning Installation & Test Records** for PKG-30 Commissioning.
 
-Provides evidence of completion, inspection, and testing for pre-commissioning.
+**Context:** Provides evidence of completion, inspection, and testing for pre-commissioning. Critical for food-grade CSD canola oil quality, equipment warranty compliance, and operational readiness.
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor (Commissioning Team)**.
+**Source:** Decomposition §5 PKG-30, DEL-30.03
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+**P-1: Pre-commissioning is Foundation for Quality**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+Pre-commissioning ensures systems are clean, tight, and ready before commissioning. Poor pre-commissioning leads to:
+- Product contamination (food-grade canola oil purity compromised)
+- Equipment damage and warranty voidance
+- Custody transfer metering inaccuracy
+- Commissioning delays and rework
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+Quality pre-commissioning records provide:
+- Objective evidence of system readiness
+- Warranty compliance documentation
+- Regulatory compliance evidence
+- Operational baseline for maintenance
+
+**Source:** **ASSUMPTION** — Pre-commissioning criticality; Decomposition §2 OBJ-1, OBJ-10
+
+**P-2: Record Quality Ensures Traceability**
+
+Complete, accurate records provide traceability:
+- What was done (activity description, procedure reference)
+- When it was done (date/time stamps)
+- How it was done (methods, parameters, acceptance criteria)
+- Who did it (technician signatures)
+- Who verified it (QC inspector, commissioning engineer sign-offs)
+- What was the result (data, photos, pass/fail)
+
+**Source:** **ASSUMPTION** — Quality record principles
 
 ## Considerations
 
-**Factors to consider during development:**
+**C-1: System-Specific Requirements**
 
-- Package scope: PKG-30 Commissioning
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+Different systems have different pre-commissioning needs:
+- **Piping:** Flushing, cleaning, drying, hydrostatic/leak testing
+- **Tanks:** Cleaning, drying, leak testing, internal inspection
+- **Pumps:** Flushing, alignment check, run-in test
+- **Metering:** Cleaning (critical for accuracy), proving preparation
+- **Loading Arms:** Flushing, leak testing, swing test
+
+Tailor records to system-specific requirements.
+
+**Source:** **ASSUMPTION** — System-specific pre-commissioning
+
+**C-2: Food-Grade Cleanliness Standards**
+
+CSD canola oil is food-grade product. Pre-commissioning cleaning must meet food industry standards:
+- Product-contact surfaces free of contamination
+- No residual oils, greases, welding flux, rust
+- Verification by visual inspection and/or laboratory testing
+- Documentation of cleanliness standard met
+
+**Source:** Decomposition §1.1 (Product: CSD canola oil); **ASSUMPTION** — Food-grade requirements
+
+**C-3: Photographic Evidence**
+
+Photos provide objective evidence:
+- Pre-condition (before flushing/cleaning)
+- During activity (flushing medium discharge color/clarity)
+- Post-completion (clean surfaces, dry conditions)
+- Filter conditions (debris captured)
+
+Photos supplement written records and support acceptance decisions.
+
+**Source:** **ASSUMPTION** — Best practice for record quality
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**T-1: Record Detail vs. Efficiency**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off:** Comprehensive records provide better traceability but take more time; streamlined records enable faster execution but may lack detail for future reference.
+
+**Recommendation:** Balance detail with efficiency; comprehensive records for critical systems (tanks, metering), streamlined for routine systems (utility piping).
+
+**Source:** **ASSUMPTION**
 
 ## Examples
 
-**Reference examples and precedents:**
+**Anticipated Artifacts:**
+- Flushing records: System ID, flushing procedure ref, medium/flow/duration, acceptance criteria, photos, sign-offs
+- Cleaning records: System ID, cleaning procedure ref, agents/methods, cleanliness verification, photos, sign-offs
+- Drying records: System ID, drying procedure ref, method/duration, dewpoint measurements, sign-offs
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Flushing records
-- cleaning records
-- drying records
+**Source:** Decomposition §5 DEL-30.03; Datasheet.md
+
+---
+
+## Document Cross-References
+
+- **← Datasheet.md / Specification.md:** Rationale for record requirements
+- **→ Procedure.md:** Considerations inform record generation process

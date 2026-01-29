@@ -2,67 +2,77 @@
 
 ## Scope
 
-This specification defines the requirements for **Building Data Sheet Package** within **PKG-21 Building Structures & Envelope**.
+**Purpose:** Defines and substantiates building in accordance with ER requirements.
+**Source:** Decomposition line 516
 
-Defines and substantiates building in accordance with ER requirements.
-
-**Anticipated deliverable artifacts:**
-- Building system data sheet
-- door/window schedules
+**Anticipated Artifacts:**
+1. Building system data sheet — Overall building parameters
+2. Door/window schedules — Complete door and window schedules
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Building System Data Sheet**
+- Document building parameters (dimensions, occupancy, systems)
+- Summarize structural/envelope systems
+- List design criteria (loads, codes)
+- **TBD** — Format and content per ER requirements
+
+**FR-02: Door Schedule**
+- List all doors with mark numbers, types, sizes, materials, fire ratings, hardware
+- Coordinate with drawings (DEL-21.01) and specifications (DEL-21.02)
+
+**FR-03: Window Schedule**
+- List all windows with mark numbers, types, sizes, glazing, frames
+- Coordinate with drawings and specifications
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Accuracy and Completeness**
+- All building data accurate and current
+- All doors/windows from drawings included in schedules
+- Data coordinated with calculations (DEL-21.03) and specifications (DEL-21.02)
+
+**PR-02: ER Compliance**
+- Data sheet format and content comply with ER requirements — **TBD**
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: Coordination**
+- Coordinate with DEL-21.01 (drawings), DEL-21.02 (specifications), DEL-21.03 (calculations)
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Data Sheet).
+**QR-01: Review and Approval**
+- Data sheets reviewed for accuracy
+- Schedules checked against drawings
 
 ## Standards
 
-**Applicable codes and standards (Buildings discipline):**
-
-- NBC 2020
-- ABC 2019
-- ASHRAE 90.1
-- CSA A23.3
-- CSA S16
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- NBC 2020 (for design parameters)
+- **TBD** — ER Volume 2 Part 3 (data sheet format requirements)
 
 ## Verification
 
-**Verification methods for Data Sheet deliverables:**
+**VM-01: Coordination Check**
+- Verify data matches drawings, specifications, calculations
 
-- Parameter range verification
-- Vendor data cross-check
-- Process simulation confirmation
-- Units and nomenclature check
+**VM-02: Completeness Check**
+- Verify all doors/windows from drawings are in schedules
 
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:**
+- Data sheets complete and accurate
+- Schedules complete and coordinated
+- **TBD** — Employer approval
 
 ## Documentation
 
-**Required documentation outputs:**
-- Building system data sheet
-- door/window schedules
+**Required Outputs:**
+1. Building System Data Sheet
+2. Door Schedule
+3. Window Schedule
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Format:** **TBD** — Tabular format, PDF
+
+**Lifecycle Management:** `1_Working/` → `2_Checking/` → `3_Issued/` per `_STATUS.md`

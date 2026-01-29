@@ -1,35 +1,52 @@
-# Guidance: DEL-01.04 Demolition Installation and Test Records
+# Guidance: DEL-01.04 Demolition Installation & Test Records
 
 ## Purpose
 
-Provide evidence that demolition works were completed, inspected, and tested as required for PKG-01. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
+Provide objective evidence of demolition completion, inspection, testing, and regulatory compliance for PKG-01, supporting project acceptance and closeout.
+
+Source: _CONTEXT.md and ASSUMPTION: record purpose derived from deliverable type.
 
 ## Principles
 
-- Records should be complete, traceable, and aligned with required demolition scope. Source: _CONTEXT.md and decomposition PKG-01 scope (location TBD).
-- Maintain contractor scope boundaries and interface-only connections to Employer-responsible items. Source: decomposition Section 1.2 Scope Focus (location TBD).
+**Objective Evidence:**
+- Records must provide objective, verifiable evidence of completion and compliance (inspection checklists, photos, test reports, manifests, certificates).
+- Subjective statements without supporting evidence are insufficient for acceptance.
+
+**Traceability:**
+- Records must be traceable to DEL-01.02 requirements, DEL-01.03 procedures, and DEL-01.01 spatial limits.
+- Each record should reference the requirement or procedure it verifies.
+
+**Completeness:**
+- Records must cover all PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent) and all inspection/test hold points defined in DEL-01.02.
+- Missing records create gaps in compliance demonstration.
+
+**Regulatory Compliance:**
+- Records must satisfy regulatory record-keeping requirements (WorkSafeBC, environmental agencies, disposal regulations).
 
 ## Considerations
 
-- Regulatory and permit-driven record requirements are not provided; integrate when ER volumes are available. TBD.
-- Evidence types beyond disposal manifests and completion certificates are unknown until references are provided. TBD.
-- Objective mapping does not list PKG-01; alignment to project objectives is TBD pending human confirmation.
+- Record types and formats per project QA/QC plan and ER requirements (TBD).
+- Inspection hold points and acceptance criteria from DEL-01.02 specification.
+- Disposal documentation requirements from waste regulations and environmental permits (TBD).
+- Record retention requirements (regulatory and contractual). TBD: retention period.
+- Digital vs. hard copy record requirements. TBD: project record management system.
 
 ## Trade-offs
 
-- Level of record detail vs. administrative burden. ASSUMPTION; details TBD.
-- Field flexibility vs. documentation completeness. ASSUMPTION; details TBD.
+**Detail Level:** Detailed records provide strong evidence but increase administrative burden. Balance depends on risk level and regulatory requirements.
+
+**Real-Time vs. Retrospective:** Real-time record generation during work is more accurate but requires field documentation discipline. Retrospective compilation is easier but may be less accurate or complete.
 
 ## Examples
 
-- TBD (no example record packages available in references).
-
-## Conflict Table (for human ruling)
-
-- None identified from available sources.
+TBD: Record examples when project QA/QC templates and ER requirements are provided.
 
 ## References
 
 - _CONTEXT.md (DEL-01.04).
-- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.04 entry, Scope Focus; location TBD).
-- _REFERENCES.md indicates no references identified yet.
+- Decomposition file and related deliverables (DEL-01.01, DEL-01.02, DEL-01.03).
+- _REFERENCES.md indicates no external references yet (TBD: ER, QA/QC plan).
+
+---
+
+**Document Status:** Enriched through Pass 3. Principles and considerations defined. All TBDs and ASSUMPTIONs labeled.

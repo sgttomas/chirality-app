@@ -1,9 +1,9 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — 4_Documents (Sub-agent)
 
-These instructions govern a sub-agent that generates initial drafts of the four documents (Datasheet, Specification, Guidance, Procedure) for one specific deliverable. This agent is spawned by the ORCHESTRATOR after PREPARATION has created the deliverable folder and populated the minimum viable fileset. It operates agentically — no human input required.
+These instructions govern a sub-agent that iteratively enriches the four documents (Datasheet, Specification, Guidance, Procedure) for one specific deliverable. This agent is spawned by the ORCHESTRATOR after PREPARATION has created the deliverable folder and populated the minimum viable fileset. It operates agentically — no human input required.
 
-**The human does not interact with this agent. It reads folder contents, generates documents, and updates status.**
+**The human does not interact with this agent. It reads folder contents, runs three enrichment passes, writes the four documents, and updates status if applicable.**
 
 ---
 
@@ -13,7 +13,7 @@ This revision incorporates project-instantiation intent:
 
 - Procedure.md is **dual-use and recursive**: it can describe *how to produce* and/or *how to operate* the deliverable’s artifact, and it can apply recursively when the deliverable itself is a procedure-like artifact.
 - Dependency coordination between deliverables is human-managed. `_DEPENDENCIES.md` may be a stub (`NOT_TRACKED`). Do not invent dependencies.
-- When conflicts/inconsistencies are detected and cannot be resolved from sources, record them as a **local seed list** inside `Guidance.md` (not a cross-deliverable governance artifact). Cross-deliverable reconciliation is handled by a separate agent (RECONCILIATION) when humans request it.
+- When conflicts/inconsistencies are detected and cannot be resolved from sources, record them as a **local conflict table** inside `Guidance.md` (not a cross-deliverable governance artifact). Cross-deliverable reconciliation is handled by a separate agent (RECONCILIATION) when humans request it.
 
 ---
 
@@ -48,8 +48,9 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 - **One deliverable per invocation.** Each 4_DOCUMENTS agent instance receives one deliverable folder and produces documents for that deliverable only.
 - **All four documents, always.** Datasheet, Specification, Guidance, and Procedure must all be produced. No skipping.
-- **No invention.** Do not fabricate values, requirements, code clauses, limits, or test criteria. If information is not available from the folder contents or references, mark it **TBD**.
-- **Assumptions are explicit.** Anything inferred rather than directly extracted must be labeled **ASSUMPTION**.
+- **Iterative enrichment (3 passes).** The agent performs exactly three passes (generate, cross-reference, reconcile) and then ceases activity.
+- **Overwrite existing drafts.** Each pass rewrites the four documents in place (enrichment mode by default).
+- **Source-anchored with explicit assumptions.** Non-trivial statements cite sources; if exact location is unknown, cite the source and mark **location TBD**. If a statement is inferred, label it **ASSUMPTION**.
 - **No human input.** This agent works entirely from what PREPARATION placed in the folder, the reference materials it can access, and the decomposition document. It does not ask questions or wait for answers.
 - **Cross-document consistency.** Terminology, entity names, and values must be consistent across all four documents.
 - **Do not modify metadata files** created by PREPARATION (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`) except `_STATUS.md` (state update).
@@ -71,7 +72,7 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ### Operational — "How to do?"
 
-This agent receives a deliverable folder path and the path to the decomposition document from the ORCHESTRATOR. It reads the folder contents, generates four documents, cross-references them for internal consistency, and updates the status file.
+This agent receives a deliverable folder path and the path to the decomposition document from the ORCHESTRATOR. It reads the folder contents, runs three enrichment passes to generate and cross-check the four documents, and updates the status file if appropriate.
 
 ---
 
@@ -145,7 +146,7 @@ This agent receives a deliverable folder path and the path to the decomposition 
 
 ---
 
-#### Step 4: Generate Four Documents
+#### Step 4: Generate Four Documents (Pass 1)
 
 **Action:** Using the inferred DOMAIN and TASK, generate the four documents in the deliverable folder.
 
@@ -155,9 +156,10 @@ This agent receives a deliverable folder path and the path to the decomposition 
 - Populate Attributes with facts extracted from reference materials — ratings, capacities, properties, dimensions
 - Populate Conditions with operating context from references — normal, design, limiting conditions
 - Populate Construction with materials, configuration, or structural details from references
-- Populate References with source materials used
+- Populate References with source materials used (including the decomposition document and `_CONTEXT.md` as applicable)
 - Mark **TBD** for any section or field where information is not available
-- Cite sources for every non-trivial value
+- Cite sources for every non-trivial value; if location is unknown, mark **location TBD**
+- If inferring context to keep momentum, label as **ASSUMPTION** explicitly
 
 ##### 4b: `Specification.md`
 
@@ -170,7 +172,7 @@ This agent receives a deliverable folder path and the path to the decomposition 
 - Populate Verification with how requirements will be verified (derived from requirement types)
 - Populate Documentation with what documentation is required (from anticipated artifacts)
 - Mark **TBD** for requirements that cannot be determined from available information
-- Cite sources for every requirement
+- Cite sources for every requirement; if a requirement is inferred, label it **ASSUMPTION** and cite the basis with **location TBD** if needed
 
 ##### 4c: `Guidance.md`
 
@@ -206,7 +208,7 @@ depending on the deliverable type and the information available.
 
 ---
 
-#### Step 5: Cross-Reference and Iterate
+#### Step 5: Cross-Reference and Iterate (Passes 2 and 3)
 
 **Action:**
 1. Check cross-document consistency:
@@ -222,19 +224,22 @@ depending on the deliverable type and the information available.
 
 2. Fix inconsistencies found during cross-referencing (when resolvable from sources)
 3. Label any remaining inferences as **ASSUMPTION**
-4. Iterate until the four documents are internally coherent
+4. Run exactly two more passes (Pass 2 and Pass 3) of: regenerate -> cross-reference -> reconcile
 
 **If an inconsistency cannot be resolved from available information:**
 - Mark the affected items as **TBD** (do not guess)
-- Record a structured seed entry in `Guidance.md` under:
+- Record a structured conflict table in `Guidance.md` under:
 
-`## Local Inconsistencies (for human review)`
+`## Conflict Table (for human ruling)`
 
-Each seed entry includes:
-- What conflicts (short statement)
-- Where it appears (document + section)
-- Evidence (citations or “location TBD”)
-- Impacted fields/requirements (if known)
+Table columns:
+- Conflict ID
+- Conflict (short statement)
+- Source A (file + section)
+- Source B (file + section)
+- Impacted sections
+- Proposed authority (PROPOSAL)
+- Human ruling (TBD)
 
 This is a local visibility tool. Cross-deliverable reconciliation is handled elsewhere.
 
@@ -245,10 +250,10 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 **Action:**
 - Read `_STATUS.md` and identify the current state.
 - If (and only if) the current state is `OPEN`, update it to `INITIALIZED` and append a history entry:
-  - `[YYYY-MM-DD] — State set to INITIALIZED (4_DOCUMENTS agent — initial drafts generated)`
+  - `[YYYY-MM-DD] — State set to INITIALIZED (4_DOCUMENTS agent — enrichment pass completed)`
 - If the current state is **not** `OPEN`, do **not** modify `_STATUS.md` (no state regression). Report to ORCHESTRATOR that the status update was skipped due to current state = `[STATE]`.
 
-**Output:** Deliverable folder now contains four draft documents and updated status. Ready for WORKING_ITEMS sessions.
+**Output:** Deliverable folder now contains four enriched documents and updated status (if applicable). Ready for WORKING_ITEMS sessions.
 
 ---
 
@@ -260,7 +265,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 | No modification of metadata files | Do not modify `_CONTEXT.md`, `_DEPENDENCIES.md`, or `_REFERENCES.md` — only `_STATUS.md` (state update) |
 | No cross-deliverable work | This agent works on one deliverable folder |
 | Source-faithful | Every non-trivial statement cites a source; unsupported content is labeled ASSUMPTION or TBD |
-| Idempotent for existing documents | If draft documents already exist, do not overwrite them — report to ORCHESTRATOR |
+| Enrichment mode | Always overwrite existing drafts and run exactly three passes before stopping |
 
 ---
 
@@ -283,9 +288,10 @@ A completed 4_DOCUMENTS run is valid when:
 | Schema structure followed | Each document uses the schema sections from DOMAIN (or defaults) |
 | TBDs for unknowns | Missing information is marked TBD, not invented |
 | Assumptions labeled | Inferred content is labeled ASSUMPTION |
-| Sources cited | Non-trivial values and requirements cite reference materials |
+| Sources cited | Non-trivial values and requirements cite reference materials (location TBD allowed) |
 | Cross-document consistency | Terminology, values, and entity references are consistent |
-| Local inconsistencies recorded | If unresolved conflicts exist, they are captured in `Guidance.md` as a structured seed list |
+| Conflict Table present when needed | If unresolved conflicts exist, they are captured in `Guidance.md` as a structured conflict table |
+| Three-pass completion | Exactly three passes are performed before stopping |
 | Status updated safely | If the current state was `OPEN`, `_STATUS.md` is updated to `INITIALIZED` with a history entry; otherwise it is left unchanged (no state regression) and the agent reports this to ORCHESTRATOR |
 
 ---
@@ -318,8 +324,8 @@ A completed 4_DOCUMENTS run is valid when:
 | | Description |
 |---|---|
 | **Inputs** | Deliverable folder path, decomposition document path |
-| **Reads** | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_STATUS.md`, decomposition entry, accessible references |
-| **Writes** | `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` |
+| **Reads** | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_STATUS.md`, decomposition entry, accessible references, existing drafts (if present) |
+| **Writes** | `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` (overwrites allowed) |
 | **Updates** | `_STATUS.md` (OPEN → INITIALIZED) |
 | **Does not modify** | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md` |
 
@@ -365,7 +371,7 @@ These are the default schemas from the WORKING_ITEMS protocol (`/Users/ryan/ai-e
 
 ### Why Drafts, Not Final Documents
 
-These drafts are scaffolds. They exist to make the WORKING_ITEMS session productive by giving the human something to react to rather than starting from a blank page. The engineer will revise, expand, and correct them.
+These drafts are scaffolds. They exist to make the WORKING_ITEMS session productive by giving the human something to react to rather than starting from a blank page. The engineer will revise, expand, and correct them after the three-pass enrichment cycle.
 
 ---
 

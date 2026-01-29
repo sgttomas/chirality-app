@@ -2,69 +2,134 @@
 
 ## Scope
 
-This specification defines the requirements for **Instrumentation Installation & Test Records** within **PKG-20 Field Instrumentation**.
+Defines requirements for **Instrumentation Installation & Test Records** within **PKG-20 Field Instrumentation** for the Canola Oil Transload Facility Phase 1.
 
-Provides evidence of completion, inspection, and testing for instrumentation.
+**Deliverable Purpose:** Provides evidence of completion, inspection, and testing for instrumentation.
 
-**Anticipated deliverable artifacts:**
-- Calibration certificates
-- loop check records
-- FAT records
+**Source:** Decomposition document, DEL-20.05 (line 500)
+
+**Record Scope:** Quality assurance and commissioning test records for field instrumentation (level, pressure, temperature, flow instruments).
+
+**Anticipated Artifacts:** Calibration certificates, loop check records, FAT records, installation inspection records, functional test records.
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-1: Record Completeness**
+
+Test records shall be provided for all field instruments requiring: factory calibration, field calibration, loop verification, installation inspection, or functional testing. Records demonstrate compliance with DEL-20.02 specifications and installation per DEL-20.01 drawings.
+
+**FR-2: Calibration Records**
+
+Calibration certificates (factory and field) shall include: instrument identification, calibration date, calibration equipment (traceable standards), calibration data (input/output, error), accuracy verification, technician sign-off.
+
+**FR-3: Loop Check Records**
+
+Loop check records shall verify end-to-end functionality: sensor to control system. Include: loop identification, component verification, signal integrity, alarm/trip verification, sign-offs (instrument technician, control systems, commissioning engineer).
+
+**FR-4: Installation Inspection Records**
+
+Installation inspection records shall verify: mounting, wiring, hazardous area compliance (CSA C22.1), material verification (nameplate vs. data sheets), inspector sign-off.
+
+**FR-5: Functional Test Records**
+
+Functional test records shall verify operational performance: alarm/interlock verification, control loop tuning, safety system verification (API 2350 overfill, ISA 84 SIS if applicable).
+
+**Source:** **ASSUMPTION** based on typical commissioning test record requirements
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-1: Calibration Accuracy**
+
+Calibration equipment shall have accuracy superior to instrument being calibrated (typically 4:1 ratio minimum). Calibration equipment traceable to national standards (NIST, NRC Canada).
+
+**PR-2: Test Completion Before Startup**
+
+All required test records complete and approved before instrument or system placed in operational service. No deviations or punch list items outstanding that affect safety or operability.
+
+**PR-3: Record Quality**
+
+Test records legible, complete (no blank fields unless marked N/A), signed by qualified personnel, dated. Non-conformances documented with corrective actions.
+
+**Source:** **ASSUMPTION** based on typical commissioning quality requirements
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**INT-1: Construction Interface**
+
+Test records verify construction work (installation inspections). Deficiencies identified on punch lists for correction before final acceptance.
+
+**INT-2: Operations Interface**
+
+Test records establish operational baseline (as-commissioned calibration data, alarm setpoints, control loop tuning). Records provided to operations for maintenance planning (recalibration schedules).
+
+**INT-3: Regulatory Interface**
+
+Test records may be required for permitting and safety approvals (overfill protection verification per API 2350, SIS verification per ISA 84, hazardous area compliance per CSA C22.1).
+
+**Source:** **ASSUMPTION** based on typical commissioning and regulatory interfaces
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+**QR-1: Qualified Personnel**
+
+Testing and inspection performed by qualified personnel: certified calibration technicians, experienced commissioning engineers, QA/QC inspectors.
+
+**QR-2: Independent Verification**
+
+Critical tests (safety systems, custody transfer) may require independent verification or witness by Owner/regulatory authority. **TBD**: Hold points and witness points per project QA plan.
+
+**QR-3: Record Retention**
+
+Test records retained as permanent facility records per contract requirements and regulatory obligations. **TBD**: Retention period and archival format.
+
+**Source:** **ASSUMPTION** based on typical EPC quality and record retention requirements
 
 ## Standards
 
-**Applicable codes and standards (I&C discipline):**
+**Applicable Standards:**
 
-- ISA 5.1
-- ISA 84
-- IEC 61511
-- CSA C22.1
-- API 554
+- ISA 84 / IEC 61511 (SIS verification and testing)
+- API 2350 (overfill protection testing)
+- CSA C22.1 (hazardous area installation inspection)
+- ISO/IEC 17025 (calibration laboratory accreditation)
+- Project QA plan and commissioning procedures
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Note:** Specific standards **TBD** based on project QA/commissioning requirements.
 
 ## Verification
 
-**Verification methods for Record deliverables:**
+**Verification Methods:**
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
+Test records reviewed and approved by: commissioning lead (technical review), QA/QC manager (compliance review), Owner representative (acceptance review if required).
 
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:**
+
+Records complete, accurate, signed by qualified personnel. All tests passed (or non-conformances resolved with corrective actions). Equipment calibrated within specification tolerances. Loops functional and alarm/interlock setpoints verified.
+
+**Source:** **ASSUMPTION** based on typical commissioning acceptance criteria
 
 ## Documentation
 
-**Required documentation outputs:**
-- Calibration certificates
-- loop check records
-- FAT records
+**Required Outputs:**
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+- Calibration certificates (factory and field)
+- Loop check records
+- FAT records (if applicable)
+- Installation inspection records
+- Functional test records
+
+**Organization:** **TBD** — By instrument tag, by system, by test type, or by date
+
+**Format:** **TBD** — Paper forms, electronic records, or database format per project commissioning system
+
+**Management:**
+
+Test records compiled during commissioning. Final record package provided to Owner at facility turnover. Retained as permanent facility records.
+
+**Project Objective Alignment:**
+
+Supports **OBJ-1: Safe & Reliable Operation** — Test records demonstrate instrumentation is correctly installed, calibrated, and functional for safe operations.
+
+**Source:** Decomposition Section 6 (line 780)

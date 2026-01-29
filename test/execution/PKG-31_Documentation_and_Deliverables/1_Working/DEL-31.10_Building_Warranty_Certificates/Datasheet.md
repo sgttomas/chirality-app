@@ -16,40 +16,36 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Package Type | Building Warranty Certificates |
+| Scope | Modular buildings and building envelope systems |
+| Content | Modular building warranty, envelope warranty, roofing warranty (as applicable) |
+| Format | **TBD** — **ASSUMPTION**: Electronic (PDF) |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.10 (line 696)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Building Warranty Certificates provide warranty coverage documentation for building structures and envelopes, supporting warranty claim management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates building warranty certificates in accordance with ER requirements.
+**Content:** Modular building manufacturer warranties, building envelope warranties, roofing warranties, structural warranties (as applicable).
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 696; OBJ-9 (line 67, line 788)
 
 ## Construction
 
-**Materials / Configuration:**
+**Typical Warranties:**
+- Modular building manufacturer warranty (structural integrity, weather-tightness)
+- Roofing warranty (materials and labor, typically 10-20 years)
+- Building envelope warranty (water infiltration, air barriers)
 
-Anticipated artifacts:
-- Modular building warranty
-- envelope warranty
-- roofing warranty (as applicable)
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Source:** **ASSUMPTION** per typical building warranties
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 696
+- DEL-31.08 Guarantees & Warranties Register
+- DEL-25.01 Modular Buildings Design Drawing Set
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-9: Lifecycle Cost Optimization (line 788)

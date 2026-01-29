@@ -21,7 +21,9 @@ This bundle updates the agent instruction set to align with the clarified operat
 
 - `AGENT_4_DOCUMENTS_REVISED_v3.md`
   - Treats `Procedure.md` as dual-use and recursive (produce/operate)
-  - Records unresolved local inconsistencies as a seed list in `Guidance.md` (recording does not require a ruling; resolution still requires human decision later)
+  - Runs three-pass enrichment by default and overwrites existing drafts
+  - Records unresolved conflicts in a local Conflict Table in `Guidance.md` (rulings remain human-owned)
+  - Allows citations with "location TBD" and labels explicit ASSUMPTIONs
 
 - `AGENT_RECONCILIATION.md` (new)
   - Read-only cross-deliverable coherence checks
@@ -45,4 +47,3 @@ These changes were prompted by a real project decomposition (Canola Oil Transloa
 
 Additional improvement:
 - ORCHESTRATOR ingestion now also extracts the decomposition’s **Reference Documents** list and high-level **Decisions Captured** when present.
-

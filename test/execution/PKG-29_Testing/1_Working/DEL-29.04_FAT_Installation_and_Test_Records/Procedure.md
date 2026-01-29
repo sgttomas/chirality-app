@@ -2,60 +2,137 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **FAT Installation & Test Records** within **PKG-29 Testing**.
+Process for managing **FAT Installation & Test Records** within **PKG-29 Testing**.
 
-Provides evidence of completion, inspection, and testing for fat.
+**Deliverable Purpose:** Provides evidence of completion, inspection, and testing for FAT. **Source:** Decomposition line 649
 
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Type:** Record | **Responsible:** D&B Contractor (QA/QC)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+### Dependencies
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 
-**Personnel requirements:**
-- Qualified T&C discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Required Inputs:**
+- DEL-29.02: ITP (identifies equipment requiring FAT and witness requirements)
+- Purchase orders with FAT requirements
+- Vendor FAT procedures
+
+### Personnel
+
+- Procurement Manager (coordinates FAT scheduling with vendors)
+- QC Inspector or Engineer (witnesses FATs)
+- Employer representative (witnesses per ITP)
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Identify Equipment Requiring FAT
+
+**Objective:** Determine which equipment needs FAT.
+
+**Activities:**
+1.1. Review ITP (DEL-29.02) for equipment designated for FAT
+1.2. Review purchase orders for FAT requirements
+1.3. Create FAT schedule/tracker listing equipment, vendor, planned FAT date
+
+**Outputs:** FAT schedule
+
+### Step 2: Coordinate FAT Scheduling
+
+**Objective:** Schedule FATs with adequate notice.
+
+**Activities:**
+2.1. Procurement requests FAT schedule from vendor (typically 4-6 weeks before equipment ready)
+2.2. Vendor proposes FAT date and provides draft FAT procedure
+2.3. Review vendor FAT procedure for adequacy (covers specification requirements)
+2.4. Approve FAT procedure or request revisions
+2.5. Coordinate witness travel (Contractor QC, Employer, third parties)
+2.6. Confirm FAT attendance 1-2 weeks prior
+
+**Outputs:** Scheduled FATs with confirmed witnesses, approved FAT procedures
+
+### Step 3: Conduct FAT
+
+**Objective:** Witness equipment testing at vendor facility.
+
+**Activities:**
+3.1. Witness travels to vendor facility
+3.2. Pre-FAT meeting: Review test procedure, acceptance criteria, schedule
+3.3. Pre-test inspection: Verify equipment configuration, dimensions, materials, workmanship
+3.4. Witness performance testing per approved procedure
+3.5. Document test data, observations, photographs
+3.6. Review test results against acceptance criteria
+3.7. Identify any deficiencies
+3.8. Conduct post-test meeting: Discuss results, deficiencies, resolution plan
+3.9. Sign FAT report (acceptance, acceptance with punch list, or rejection)
+
+**Outputs:** Completed FAT report signed by vendor, Contractor, Employer
+
+### Step 4: Manage Deficiencies
+
+**Objective:** Ensure deficiencies are resolved.
+
+**Activities:**
+4.1. Document deficiencies in FAT report or separate punch list
+4.2. Classify deficiency severity (critical, major, minor)
+4.3. Agree on resolution plan:
+   - Critical: Correct before shipment, re-test
+   - Major: Correct before shipment or documented punch list
+   - Minor: Punch list for site completion
+4.4. If re-test required: Re-schedule and re-witness
+4.5. Verify deficiencies closed before final acceptance
+
+**Outputs:** Deficiency resolution documentation
+
+### Step 5: Accept Equipment and Authorize Shipment
+
+**Objective:** Provide formal acceptance for shipment.
+
+**Activities:**
+5.1. Verify FAT passed and deficiencies resolved (or on acceptable punch list)
+5.2. Contractor QC/Procurement issues acceptance to vendor
+5.3. Authorize shipment
+5.4. Obtain final vendor documentation package (manuals, certificates, FAT report)
+
+**Outputs:** Equipment acceptance letter, shipment authorization
+
+### Step 6: Compile FAT Records
+
+**Objective:** File FAT reports in project records.
+
+**Activities:**
+6.1. Collect FAT reports from all equipment
+6.2. Verify reports are complete and signed
+6.3. Organize by equipment tag or system
+6.4. Create index
+6.5. File in project document management system
+6.6. Provide copies to commissioning team
+
+**Outputs:** Compiled FAT record package (this deliverable)
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+**V-1:** All equipment requiring FAT has FAT report
+**V-2:** All FAT reports complete with required signatures
+**V-3:** All deficiencies resolved or on documented punch list
+**V-4:** FAT records filed and accessible
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
+### Acceptance Criteria
 
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**AC-1:** FAT conducted for all specified equipment
+**AC-2:** All FAT reports complete
+**AC-3:** All equipment accepted (passed FAT)
+**AC-4:** FAT records compiled and archived
 
 ## Records
 
-**Documentation outputs:**
-- Factory acceptance test reports (by equipment)
+**Primary Deliverables:**
+- **Factory Acceptance Test Reports (by equipment)** — Individual FAT reports from vendors
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Filing:**
+- Working: `1_Working/DEL-29.04_FAT_Installation_and_Test_Records/`
+- Issued: `3_Issued/` (upon compilation)
+- Archive: Project document management system (permanent)
+
+**Status:** See `_STATUS.md`

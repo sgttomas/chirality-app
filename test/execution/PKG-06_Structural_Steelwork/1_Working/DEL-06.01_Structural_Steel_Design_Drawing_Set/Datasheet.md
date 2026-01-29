@@ -16,44 +16,54 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Drawing Number | **TBD** |
-| Sheet Size | **TBD** |
-| Scale | **TBD** |
-| CAD Standard | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Drawing Number | Per project numbering / document control system (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
+| Sheet Size | Per project drawing standards (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
+| Scale | Per drawing content; legible at issue size (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
+| CAD Standard | Per project CAD / drafting convention (**TBD**, Source: test/Volume_2_Part_1_Employers_Requirements.pdf, location TBD) |
+| Revision | 00 (initial draft) — **ASSUMPTION** pending project revision scheme (Procedure.md: Step 5) |
+| Classification | Structural – Steelwork (PKG-06) (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252) |
+| Drawing Set Scope | Platform GAs, stair drawings, gangway drawings, pipe rack drawings, handrail details (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248; Specification.md: Scope; Procedure.md: Records) |
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Context & intended use:**
+- This deliverable defines the design arrangement and detailing for structural steelwork within the Contractor’s scope (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248; test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:49).
+- Package scope includes steel platforms, stairs, gangways, access structures, handrails, and pipe supports (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:242).
+- Intended users: engineering/design reviewers, fabricators (shop drawing development), construction/QA teams (ASSUMPTION; to be confirmed in ER clauses).
 
-Defines the design arrangement and details for structural steel per ER requirements.
-
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Design/environmental criteria:** **TBD** (Source: test/Volume_2_Part_3_Employers_Requirements.pdf, location TBD). See DEL-06.03 Structural Steel Design Calculations for governing design basis, load cases, and code requirements (Specification.md: Interface Requirements; Guidance.md: Considerations).
 
 ## Construction
 
-**Materials / Configuration:**
+**Configuration focus (drawing content):**
 
-Anticipated artifacts:
-- Platform GAs
-- stair drawings
-- gangway drawings
-- pipe rack drawings
-- handrail details
+Anticipated artifacts within this drawing set (Source: test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:248; `_CONTEXT.md`):
+- Platform general arrangements (GAs)
+- Stair drawings
+- Gangway drawings
+- Pipe rack / pipe support drawings
+- Handrail details
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Material definition approach:** steel member sizes, material grades, protective coatings, and connection detailing are shown and/or referenced on drawings; materials/workmanship/coating requirements cross-reference DEL-06.02 Structural Steel Technical Specification (details **TBD** until Employer's Requirements clauses and design basis are extracted) (Specification.md: Requirements; Guidance.md: Considerations).
+
+**Linked deliverables (for traceability):**
+- DEL-06.02 Structural Steel Technical Specification (materials/workmanship/coatings)
+- DEL-06.03 Structural Steel Design Calculations (assumptions, load cases, governing results)
+- DEL-06.04 Structural Steel Data Sheet Package (gangway/grating item sheets, where applicable)
+- DEL-06.05 Structural Steel Installation & Test Records (inspection/records evidence)
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S16, CSA A23.3, CSA S136, NBC 2020
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:238-252 — PKG-06 scope and DEL-06.01 definition.
+- test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md:49 — scope focus (Contractor scope only; Employer-responsible items excluded except interfaces).
+- test/Volume_2_Part_1_Employers_Requirements.pdf — general requirements: document control / QA expectations (location TBD).
+- test/Volume_2_Part_3_Employers_Requirements.pdf — building works requirements affecting structural steel (location TBD).
+- See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally).
+- See `_REFERENCES.md` and `execution/PKG-06_Structural_Steelwork/0_References/` for package reference index (currently empty / TBD).
+
+## Cross-Document Points
+
+- Specification: required content and metadata controls for the drawing set (Specification.md: Requirements, Documentation).
+- Specification → Procedure traceability: see `Specification.md` Cross-Reference Matrix for how requirements map to Procedure steps and evidence.
+- Guidance: intent and trade-offs that influence drawing conventions (Guidance.md: Principles, Considerations).
+- Procedure: verification/review workflow that governs release readiness (Procedure.md: Steps, Verification).

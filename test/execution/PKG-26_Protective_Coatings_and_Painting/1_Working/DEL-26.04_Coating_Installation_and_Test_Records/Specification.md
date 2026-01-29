@@ -2,68 +2,89 @@
 
 ## Scope
 
-This specification defines the requirements for **Coating Installation & Test Records** within **PKG-26 Protective Coatings & Painting**.
+This specification defines requirements for coating installation and test records that provide evidence of coating quality and compliance with DEL-26.01 requirements.
 
-Provides evidence of completion, inspection, and testing for coating.
+**Source:** Decomposition DEL-26.04
 
-**Anticipated deliverable artifacts:**
-- Surface preparation records
-- DFT records
-- adhesion test records
+### Inclusions
+
+- Record templates (forms) for coating activities and inspections
+- Completed records demonstrating coating compliance
+- Record organization and filing per project requirements
 
 ## Requirements
 
-### Functional Requirements
+**FR-1: Complete Record Coverage**
+- Records shall be provided for all coating activities specified in DEL-26.02 Procedures:
+  - Surface preparation (all areas coated)
+  - Coating application (all coating systems applied)
+  - DFT measurement (per inspection frequency in DEL-26.01)
+  - Adhesion testing (per inspection frequency in DEL-26.01)
+  - Holiday detection (for immersion service coatings)
+  - Final acceptance (all areas accepted)
+- **Source:** DEL-26.01 (QR-1, QR-2); DEL-26.02 (Documentation sections)
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-2: Traceability**
+- Records shall provide traceability:
+  - Date and time of work
+  - Location/area
+  - Personnel (applicator, inspector)
+  - Materials (coating batch/lot numbers, abrasive type)
+  - Environmental conditions
+  - Measurements and test results
+  - Acceptance (yes/no) with inspector signature
+- **Source:** DEL-26.01 (QR-2); **ASSUMPTION** — Quality traceability requirements
 
-### Performance Requirements
+**FR-3: Acceptance Criteria Documentation**
+- Records shall document acceptance criteria and results:
+  - Surface prep: SSPC standard achieved, profile measurement
+  - DFT: Minimum DFT per DEL-26.01, readings vs. acceptance criteria
+  - Adhesion: Test rating vs. acceptance criteria (typically 4B or 5B)
+  - Holiday detection: Holidays detected, repaired, re-inspected
+- **Source:** DEL-26.01 (PR-3, PR-4, PR-5, QR-1)
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**QR-1: Legibility and Completeness**
+- All records shall be legible, complete (all fields filled), and signed by responsible personnel (applicator, inspector)
+- **Source:** **ASSUMPTION** — Standard record quality requirements
 
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+**QR-2: Archival and Retention**
+- Records shall be managed per project record retention requirements
+- Records shall be in archival format (paper or electronic per project standards)
+- **Source:** **ASSUMPTION** — Project record management requirements
 
 ## Standards
 
-**Applicable codes and standards (Coatings discipline):**
+- SSPC-PA 2: DFT measurement
+- SSPC-VIS 1: Surface preparation visual acceptance
+- ASTM D3359: Adhesion testing
+- ASTM D4417: Surface profile measurement
+- Project Quality Management Plan: Record requirements and retention
 
-- SSPC Standards
-- NACE Standards
-- CSA S6 Annex
-- ISO 12944
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Source:** DEL-26.01 (Standards section)
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Verify records provided for all coating activities (complete coverage per FR-1)
+- Verify records provide traceability (all required fields complete per FR-2)
+- Verify acceptance criteria documented and results recorded (per FR-3)
+- Verify records legible, complete, and signed (per QR-1)
 
 ## Documentation
 
-**Required documentation outputs:**
-- Surface preparation records
-- DFT records
-- adhesion test records
+**Required outputs:**
+- Record templates (forms) for each record type (Datasheet.md — 6 record types)
+- Completed records compiled and filed per project record management procedures
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Organization:**
+- By coating application (tank internal, tank external, structural steel, marine)
+- By record type (surface prep, application, DFT, adhesion, holiday detection, final acceptance)
+- **Source:** **ASSUMPTION** — Logical record organization
+
+**Filing location:** Per project record management system — `3_Issued/DEL-26.04_Coating_Installation_and_Test_Records/` or project DMS
+
+**Distribution:**
+- QA/QC for review and acceptance
+- Commissioning team (PKG-30 for tank internal coating records)
+- Project closeout documentation package
+
+**Source:** Decomposition DEL-26.04 anticipated artifacts

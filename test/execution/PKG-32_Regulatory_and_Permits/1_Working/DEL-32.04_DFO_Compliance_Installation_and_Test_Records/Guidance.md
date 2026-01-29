@@ -2,54 +2,55 @@
 
 ## Purpose
 
-This guidance document supports the development of **DFO Compliance Installation & Test Records** for **PKG-32 Regulatory & Permits**.
+Supports **DFO Compliance Installation & Test Records** for **PKG-32**.
 
-Provides evidence of completion, inspection, and testing for dfo compliance.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Purpose:** Evidence of DFO compliance (Source: _CONTEXT.md)
+**Type:** Record | **Discipline:** Project Delivery | **Responsible:** QA/QC
+**Objective:** OBJ-6: Regulatory Compliance
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### 1. Condition-Driven Compliance
+DFO Fisheries Act authorization conditions define specific requirements for habitat protection and fish welfare during marine works.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### 2. Timing Window Compliance
+DFO conditions typically include timing windows (restricted work periods during fish migration/spawning). Non-compliance can result in work stoppage.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### 3. Marine Mammal Protection
+DFO conditions typically require marine mammal observation protocols and work cessation if marine mammals observed within specified radius.
 
 ## Considerations
 
-**Factors to consider during development:**
+### DFO Condition Categories (Typical)
+- **Fish habitat protection:** Sediment containment, turbidity monitoring, erosion control
+- **Timing windows:** In-water work restrictions during fish migration/spawning periods
+- **Marine mammal observation:** Trained observers, work cessation protocols
+- **Offset/compensation:** Habitat restoration or offsetting measures (if impacts authorized)
+- **Reporting:** Work commencement, completion, monitoring results, incident reporting
 
-- Package scope: PKG-32 Regulatory & Permits
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Compliance Phases
+- **Pre-construction:** Submit required plans; confirm timing window compliance; train observers
+- **During-construction:** Habitat protection measures; marine mammal observations; monitoring; work window compliance
+- **Post-construction:** Habitat restoration (if required); final reports
+
+### Interface with DEL-32.02
+DFO authorization (DEL-32.02) → Extract conditions → Assign to DEL-32.04 → Track compliance → Demonstrate compliance
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Timing Window Flexibility vs Compliance Risk
+**Trade-off:** Attempt to work outside timing windows (faster schedule) vs strict compliance with timing windows (reduced risk).
+**Recommendation:** Strict timing window compliance; DFO enforcement is rigorous.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example DFO Condition:**
+"No in-water works shall occur between April 1 and August 31 (fish spawning window). If in-water works occur at other times, a qualified marine mammal observer shall be on-site during pile driving. If marine mammals observed within 100m, work shall cease until mammals leave area."
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- DFO permit compliance documentation
+**Compliance demonstration:**
+- Schedule in-water works outside April 1–Aug 31 window
+- Engage qualified marine mammal observer
+- Observer logs maintained for all pile driving days
+- If marine mammals observed, record work cessation and resumption
+- Submit observer logs and work dates to DFO per reporting conditions
+- File all records in DEL-32.04

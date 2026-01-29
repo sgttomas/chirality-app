@@ -2,55 +2,132 @@
 
 ## Purpose
 
-This guidance document supports the development of **Punch Lists** for **PKG-30 Commissioning**.
+Supports development of **Punch Lists** for PKG-30 Commissioning.
 
-Provides evidence of completion, inspection, and testing for punch lists.
+**Context:** Provides evidence of completion, inspection, and testing for punch lists. Systematic defect tracking ensures all issues resolved before operational handover and project closeout.
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition §5 PKG-30, DEL-30.07
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+**P-1: Systematic Defect Tracking**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+Punch lists provide systematic tracking of deficiencies from identification through closure:
+- **Identification:** Defects discovered during commissioning activities
+- **Documentation:** Clear description, location, responsible party
+- **Prioritization:** Risk-based categorization (Category A/B/C)
+- **Tracking:** Status monitoring and periodic reporting
+- **Resolution:** Corrective work and closure verification
+- **Acceptance:** QC verification and Employer acceptance
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+Systematic approach prevents defects from being forgotten or unresolved.
+
+**Source:** **ASSUMPTION** — Punch list management principles
+
+**P-2: Risk-Based Prioritization**
+
+Not all deficiencies have equal impact. Prioritization focuses resources on critical items:
+- **Category A (Critical):** Safety, operations, regulatory compliance — Zero tolerance, must close before handover
+- **Category B (Important):** Performance, quality, warranty — Close before acceptance or defer with mitigation
+- **Category C (Minor):** Cosmetic, documentation — May defer to post-acceptance with approval
+
+Prioritization enables risk-based decision making for operational handover.
+
+**Source:** Datasheet.md §Conditions (Punch list categories); **ASSUMPTION**
+
+**P-3: Transparency and Accountability**
+
+Punch lists provide transparency:
+- All deficiencies visible to Contractor, Employer, QA/QC
+- Responsible parties assigned and accountable
+- Status tracking shows progress
+- Overdue items visible for escalation
+
+Transparency builds confidence and enables effective defect resolution.
+
+**Source:** **ASSUMPTION** — Punch list transparency principles
 
 ## Considerations
 
-**Factors to consider during development:**
+**C-1: Punch List Sources**
 
-- Package scope: PKG-30 Commissioning
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+Punch items identified from multiple sources:
+- Pre-commissioning activities (DEL-30.03): Cleaning failures, test failures
+- Individual system commissioning (DEL-30.04): Equipment defects, performance issues
+- Integrated systems test (DEL-30.05): Integration issues, control problems
+- Performance test (DEL-30.06): Capacity shortfalls, reliability issues
+- Inspections: Regulatory authority, Employer, QC, operations walk-downs
+
+Comprehensive defect identification from all sources.
+
+**Source:** DEL-30.03 through DEL-30.06; **ASSUMPTION**
+
+**C-2: Deferral Decision Criteria**
+
+Some deficiencies may be deferred to post-acceptance:
+- Does not affect safety (OBJ-1)
+- Does not affect capacity (OBJ-2, OBJ-3)
+- Does not affect operational flexibility (OBJ-4)
+- Does not affect custody transfer accuracy (OBJ-10)
+- Does not violate regulatory requirements (OBJ-6)
+- Operability assessment confirms no impact
+- Employer approves deferral
+
+Deferral requires documented justification and approval.
+
+**Source:** Decomposition §2 (Project Objectives); **ASSUMPTION** — Deferral criteria
+
+**C-3: Punch List Closeout Timeline**
+
+Punch list closure critical path for project completion:
+- Category A closure before operational handover
+- Category B closure before final acceptance payment (typically)
+- Category C may extend beyond acceptance with deferral plan
+- Contractor resources allocated to punch list closure
+- Schedule risk if extensive punch items discovered late
+
+Proactive punch list management throughout commissioning reduces closeout risk.
+
+**Source:** **ASSUMPTION** — Closeout considerations
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**T-1: Punch List Rigor vs. Operational Start**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off:** Complete punch list closure before handover provides clean transition but delays operations; operational handover with deferred items enables earlier revenue but creates post-handover work scope.
+
+**Recommendation:** Zero tolerance for Category A (safety, regulatory, operational). Risk-based deferral for Category B/C with Employer approval and clear accountability.
+
+**Source:** **ASSUMPTION**
+
+**T-2: Documentation Completeness vs. Efficiency**
+
+**Trade-off:** Comprehensive punch list documentation provides traceability but increases administrative burden; streamlined documentation enables faster resolution but reduces evidence quality.
+
+**Recommendation:** Balanced approach — detailed documentation for Category A items, streamlined for Category C items.
+
+**Source:** **ASSUMPTION**
 
 ## Examples
 
-**Reference examples and precedents:**
+**Anticipated Artifacts:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Commissioning punch lists
-- defect registers
+1. **Commissioning Punch Lists:**
+   - Master punch list register (all items with tracking fields)
+   - Open items report (active management tool)
+   - Closed items report (verification evidence)
+   - Category A items list (critical tracking)
+   - Deferred items register (with approvals)
+
+2. **Defect Registers:**
+   - Defect statistics by phase, system, discipline
+   - Trend analysis for quality management
+
+**Source:** Decomposition §5 DEL-30.07; Datasheet.md
+
+---
+
+## Document Cross-References
+
+- **← Datasheet.md / Specification.md:** Rationale for punch list requirements
+- **→ Procedure.md:** Considerations inform punch list management process

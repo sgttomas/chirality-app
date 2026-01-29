@@ -16,41 +16,38 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Package Type | Building MEP Warranty Certificates |
+| Scope | Building mechanical, electrical, plumbing, and fire suppression systems |
+| Content | HVAC warranty, plumbing warranty, fire suppression warranty, electrical warranties (as applicable) |
+| Format | **TBD** — **ASSUMPTION**: Electronic (PDF) |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.11 (line 697)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Building MEP Warranty Certificates provide warranty coverage documentation for building MEP systems, supporting warranty claim management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates building mep warranty certificates in accordance with ER requirements.
+**Content:** HVAC system warranties, plumbing system warranties, fire suppression system warranties, electrical system warranties for building services.
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 697; OBJ-9 (line 67, line 788)
 
 ## Construction
 
-**Materials / Configuration:**
+**Typical MEP Warranties:**
+- HVAC equipment warranty (compressors, air handlers, chillers, controls)
+- Plumbing fixtures and systems warranty
+- Fire suppression system warranty (sprinklers, detection, panels)
+- Electrical equipment warranty (panels, transformers, generators if applicable)
 
-Anticipated artifacts:
-- HVAC warranty
-- plumbing warranty
-- fire suppression warranty
-- electrical warranties (as applicable)
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Source:** **ASSUMPTION** per typical building MEP warranties
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 697
+- DEL-31.08 Guarantees & Warranties Register
+- DEL-26.01 Building MEP Design Drawing Set
+- DEL-24.01 Fire Suppression Design Drawing Set
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-9: Lifecycle Cost Optimization (line 788)

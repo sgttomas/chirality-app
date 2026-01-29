@@ -2,54 +2,55 @@
 
 ## Purpose
 
-This guidance document supports the development of **VFPA PER Compliance Installation & Test Records** for **PKG-32 Regulatory & Permits**.
+Supports **VFPA PER Compliance Installation & Test Records** for **PKG-32 Regulatory & Permits**.
 
-Provides evidence of completion, inspection, and testing for vfpa per compliance.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Purpose:** Provides evidence of VFPA PER compliance. (Source: _CONTEXT.md; Datasheet.md)
+**Type:** Record | **Discipline:** Project Delivery | **Responsible:** D&B Contractor (QA/QC)
+**Objective:** Supports OBJ-6: Regulatory Compliance
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### 1. Condition-Driven Compliance (supports Specification.md FR-01, FR-02)
+Each VFPA PER condition defines specific compliance requirements. Compliance demonstration is condition-specific.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### 2. Proactive Tracking (supports Specification.md FR-02, FR-05)
+Establish tracking system early; monitor compliance throughout project phases.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### 3. Evidence-Based Demonstration (supports Specification.md FR-03)
+Compliance must be objectively verifiable through inspection reports, test results, monitoring data, or submittals.
 
 ## Considerations
 
-**Factors to consider during development:**
+### VFPA PER Condition Categories (Typical)
+- **Environmental management:** Environmental Management Plans, spill prevention, erosion control, marine environmental monitoring
+- **Marine protection:** Water quality monitoring, marine mammal observation, debris management
+- **Construction management:** Work windows, noise monitoring, traffic management, notifications
+- **Stakeholder engagement:** Communication protocols, complaint management
+- **Submittals to VFPA:** Progress reports, monitoring reports, as-built drawings
 
-- Package scope: PKG-32 Regulatory & Permits
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Compliance Phases
+- **Pre-construction:** Conditions satisfied before work starts (e.g., submit management plans, provide insurance)
+- **During-construction:** Ongoing compliance (e.g., environmental monitoring, work restrictions)
+- **Post-construction:** Conditions after completion (e.g., as-builts, site restoration, final reports)
+
+### Interface with DEL-32.02
+PER approval (DEL-32.02) → Extract conditions → Assign to DEL-32.03 → Track compliance → Demonstrate compliance
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Centralized vs Distributed Compliance Management
+- **Centralized (QA/QC):** Consistent tracking; clear accountability; potential bottleneck
+- **Distributed (discipline leads):** Discipline expertise; faster response; coordination challenges
+- **Recommendation:** Centralized tracking with distributed execution
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example PER Condition:**
+"Environmental monitoring shall be conducted weekly during marine works. Monitoring results shall be submitted to VFPA monthly."
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- PER condition compliance documentation
+**Compliance demonstration:**
+- Establish monitoring protocol
+- Conduct weekly monitoring
+- Compile monthly reports
+- Submit to VFPA
+- File VFPA acknowledgment and monitoring data in DEL-32.03

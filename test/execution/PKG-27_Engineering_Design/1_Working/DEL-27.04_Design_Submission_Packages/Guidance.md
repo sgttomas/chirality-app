@@ -2,56 +2,71 @@
 
 ## Purpose
 
-This guidance document supports the development of **Design Submission Packages** for **PKG-27 Engineering Design**.
+Supports development of **Design Submission Packages** for **PKG-27 Engineering Design**. Defines submission framework for staged design submissions (30%, 60%, 90%, IFC) per Design & Build contract.
 
-Defines and substantiates design submission packages in accordance with ER requirements.
-
-This deliverable is classified as a **Document Package** under the **Design** discipline, to be produced by **D&B Contractor**.
+**Source:** _CONTEXT.md; Datasheet.md
 
 ## Principles
 
-**Engineering rationale (Design discipline):**
+**Principle 1: Staged Submissions Enable Employer Oversight**
+Design & Build projects use staged submissions (30%, 60%, 90%, IFC) to allow Employer review and approval as design matures. Early submissions (30%) establish direction; later submissions (90%, IFC) confirm final design before construction.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Principle 2: Submission Quality Reflects Project Professionalism**
+Complete, accurate, organized submissions build Employer confidence; poor submissions cause delays and disputes.
 
-**Applicable standards context:**
-- ISO 9001
-- Employer's Requirements
-- CSA Standards (discipline-specific)
+**Principle 3: Comment Management is Closed-Loop Process**
+All Employer comments must be captured, addressed, and closed with implementation evidence; no comments lost or deferred without agreement.
+
+**Source:** **ASSUMPTION**: Design & Build submission best practices
 
 ## Considerations
 
-**Factors to consider during development:**
+**Project-Specific:**
+- 210 deliverables across 36 packages require coordination
+- Multi-discipline submissions (civil, structural, mechanical, electrical, controls, safety)
+- Employer review capacity and priorities drive deliverable selection at each stage
+- **TBD** — Employer-specific submission requirements from contract/ER
 
-- Package scope: PKG-27 Engineering Design
-- Deliverable type: Document Package — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Submission Timing Trade-offs:**
+- Early submissions (30%) inform design direction but design immature
+- Late submissions (90%) provide complete picture but limit flexibility for changes
+- Balance: Submit when mature enough to be meaningful but early enough for feedback to be useful
+
+**Comment Management:**
+- Triage comments: Editorial (quick fix), Technical (engineering analysis), Contractual (escalate to PM)
+- Prioritize: Design-impacting comments need quick resolution
+- Track: Comment response matrix prevents comments from being lost
+
+**Source:** Datasheet.md; **ASSUMPTION**: Typical Design & Build submission considerations
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Trade-off 1: Submission Scope (Comprehensive vs. Targeted)**
+- Comprehensive: Submit all deliverables at each stage → Heavy Employer review burden, slower approvals
+- Targeted: Submit priority deliverables only → Faster reviews, but gaps may emerge
+- **Recommendation:** Targeted at 30-60%; comprehensive at 90-IFC
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off 2: Submission Frequency (More Stages vs. Fewer Stages)**
+- More stages (e.g., add 45% submission) → More Employer touchpoints, better alignment
+- Fewer stages (standard 30/60/90/IFC) → Lower overhead, faster design progress
+- **Recommendation:** Standard 4-stage approach unless project complexity or Employer preference dictates otherwise
+
+**Source:** **ASSUMPTION**: Submission strategy trade-offs common to Design & Build
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example 1: 30% Submission Content (Typical)**
+- Design Basis Documents (DEL-27.01)
+- HAZOP Study Reports (Preliminary, DEL-27.02)
+- Key system P&IDs (preliminary)
+- Major equipment lists and selection criteria
+- Site plans and general arrangements
+- Not included: Detailed calculations, final specs, procurement documents
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- 30% design package
-- 60% design package
-- 90% design package
-- IFC package
+**Example 2: Comment Response Matrix (Format)**
+| ID | Comment | Source | Category | Response | Status | Implemented In | Closed |
+|----|---------|--------|----------|----------|--------|----------------|--------|
+| C-001 | Clarify tank heating requirements | Employer | Technical | Tank heating not required per product properties; added note to P&IDs | Closed | P&ID Rev B | Yes |
+| C-002 | Add seismic design basis | Employer | Technical | Seismic criteria added to Design Basis (DEL-27.01 Rev B) | Closed | DEL-27.01 Rev B | Yes |
+
+**Source:** **ASSUMPTION**: Typical submission content and comment management examples

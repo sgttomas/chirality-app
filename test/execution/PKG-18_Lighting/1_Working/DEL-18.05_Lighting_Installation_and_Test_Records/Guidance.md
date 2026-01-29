@@ -2,55 +2,83 @@
 
 ## Purpose
 
-This guidance document supports the development of **Lighting Installation & Test Records** for **PKG-18 Lighting**.
+**Deliverable Purpose:** Provides evidence of completion, inspection, and testing for lighting. *(Source: _CONTEXT.md)*
 
-Provides evidence of completion, inspection, and testing for lighting.
+**Role in Project:** These installation and test records demonstrate that the lighting system is properly installed, performs as designed, and meets all requirements. Essential for:
+- Project closeout and final acceptance
+- Warranty activation
+- Operations and maintenance baseline
+- Regulatory compliance documentation
 
-This deliverable is classified as a **Record** under the **Electrical** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Deliverable Classification:** Type: Record | Discipline: Electrical | Responsible: D&B Contractor (QA/QC)
 
 ## Principles
 
-**Engineering rationale (Electrical discipline):**
+**P-1: Testing Verifies Design**
+- Field illuminance testing verifies calculations (DEL-18.03) are accurate
+- Deviations from calculated values may indicate installation issues (fixture aiming, dirt, lamp output) or calculation assumptions (reflectances, obstructions)
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**P-2: Emergency Lighting is Safety-Critical**
+- NFPA 101 emergency lighting testing is code-required and life-safety-critical
+- Duration testing (90 minutes) must be conducted to ensure battery backup meets code requirements
+- Test annually thereafter per code
 
-**Applicable standards context:**
-- CSA C22.1 (CEC)
-- CSA C22.2
-- IEEE C2
-- CSA Z462
-- NFPA 70E
+**P-3: Documentation Quality**
+- Complete, accurate records essential for acceptance and closeout
+- Signatures and witness verification provide accountability
+- Photographs and as-built markups document actual installed conditions
 
 ## Considerations
 
-**Factors to consider during development:**
+**C-1: Testing Timing**
+- Exterior illuminance testing conducted at night when dark
+- Interior testing can be conducted anytime (close doors/windows to block daylight if needed)
+- Schedule testing when installation is substantially complete to avoid rework
 
-- Package scope: PKG-18 Lighting
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**C-2: Test Equipment**
+- Illuminance meters (lux meters) must be calibrated within 12 months
+- Cosine-corrected sensors provide accurate readings
+- Multiple measurements per location and averaging reduces error
+
+**C-3: Acceptance Criteria**
+- Measured illuminance typically 80-100% of calculated values (some tolerance for real-world conditions)
+- If measured values significantly low, investigate causes (fixture aiming, dirt, lamp output, reflectances different than assumed)
+
+**C-4: Punch List Management**
+- Document all deficiencies found during testing
+- Track corrective actions and re-testing
+- Obtain Employer acceptance of resolutions
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**T-1: Test Grid Density vs. Time**
+- Fine test grid (many points) provides detailed data but takes more time
+- Coarser grid or spot checks faster but may miss variations
+- **Resolution:** Focus detail on critical areas; use representative sampling for routine areas
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**T-2: Testing Rigor vs. Schedule**
+- Comprehensive testing ensures quality but takes time
+- Minimal testing speeds closeout but may miss deficiencies
+- **Resolution:** Test per specification requirements; prioritize safety-critical items (emergency lighting)
 
 ## Examples
 
-**Reference examples and precedents:**
+**E-1: Illumination Test Record Example**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Illumination test records
+| Location | Grid Point | Measured (lux) | Calculated (lux) | % of Calc | Status |
+|----------|------------|----------------|------------------|-----------|--------|
+| Process Area East | P1 | 68 | 75 | 91% | PASS |
+| Process Area East | P2 | 52 | 75 | 69% | FAIL - Investigate |
+| Roadway A | R1 | 18 | 15 | 120% | PASS |
+
+**E-2: Emergency Lighting Duration Test Example**
+- Test Date: [Date]
+- Fixture: Emergency fixture EL-01
+- Normal power disconnected: 20:00
+- Emergency light activated: 20:00
+- Test terminated: 21:35 (95 minutes) - PASS (>90 min required)
+
+**E-3: Anticipated Artifacts**
+1. **Illumination test records** — Field measurements for exterior and interior areas
+
+*(Source: _CONTEXT.md, Decomposition)*

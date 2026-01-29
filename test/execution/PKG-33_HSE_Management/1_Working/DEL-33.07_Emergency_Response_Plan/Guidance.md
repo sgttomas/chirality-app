@@ -2,54 +2,99 @@
 
 ## Purpose
 
-This guidance document supports the development of **Emergency Response Plan** for **PKG-33 HSE Management**.
+Emergency Response Plan establishes the framework for responding to emergencies during construction to protect life, property, and environment.
 
-Defines the planned approach and controls for emergency response plan to meet ER requirements.
-
-This deliverable is classified as a **Plan** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** `_CONTEXT.md`; DEL-33.01 Specification FR-6
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Life Safety First
+Emergency response prioritizes life safety over property or environmental protection. However, spill response must balance life safety with preventing waterway contamination.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Source:** ASSUMPTION: Emergency response priority hierarchy
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 2: Pre-Planning Reduces Response Time
+Emergencies require immediate action. Pre-planned procedures, trained responders, and positioned equipment enable faster, more effective response.
+
+**Source:** ASSUMPTION: Emergency preparedness principle
+
+### Principle 3: Coordination with External Services
+Most serious emergencies (fire, serious injury, major spill) require external emergency services (fire department, ambulance, Coast Guard). Plan must facilitate their rapid access and effective response.
+
+**Source:** ASSUMPTION: External emergency services coordination
 
 ## Considerations
 
-**Factors to consider during development:**
+### Terminal Interface Emergency Coordination
 
-- Package scope: PKG-33 HSE Management
-- Deliverable type: Plan — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Shared Emergency Services:**
+- DP World Terminal may have on-site fire brigade, medical responders
+- Contractor emergency plan must interface with Terminal's plan
+- Joint drills required (test communication, command, mutual aid)
 
-## Trade-offs
+**Emergency Access:**
+- Ensure fire department can access all areas (gates unlocked or key box, access roads clear)
+- Provide site map and emergency contact list to Terminal and emergency services
 
-**Competing concerns to evaluate:**
+**Source:** OBJ-5 Terminal Continuity; DEL-33.01 Guidance Example 2 (Terminal interface protocol)
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Fraser River Marine Emergency Interface
+
+**Marine Emergencies:**
+- Person overboard during barge operations (PKG-08, PKG-09)
+- Vessel collision with marine structures
+- Marine spill (fuel, canola oil)
+
+**Coordination:**
+- Coast Guard notification for marine emergencies
+- Marine rescue equipment (throw bags, life rings, rescue boat)
+- Marine VHF radio communication
+
+**Source:** DEL-33.01 Guidance Marine Hazards; Decomposition location (Fraser River)
+
+### Project-Specific Emergency Scenarios
+
+**Confined Space Rescue:**
+- Non-entry rescue preferred (retrieval using winch/tripod)
+- Entry rescue only if safe and rescue team trained/equipped
+- Rescue plan required before confined space entry
+- Drill quarterly (or before first entry)
+
+**Source:** DEL-33.01 Guidance Confined Space; DEL-33.02 Example 2 (confined space JHA — rescue plan)
+
+**Canola Oil Spill:**
+- Large-volume spill potential (tank overfill, pipeline rupture, loading arm failure)
+- Containment (dikes, drainage isolation, absorbents)
+- Waterway protection (prevent discharge to Fraser River)
+- Cleanup and disposal (used absorbents as hazardous waste)
+- Regulatory notification (provincial environmental agency for reportable spill)
+
+**Source:** Product: CSD canola oil; OBJ-7 Environmental Protection; DEL-33.08 Waterway Pollution Control
 
 ## Examples
 
-**Reference examples and precedents:**
+### Example: Medical Emergency Response Procedure
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Site emergency response plan
+**Emergency:** Worker injury requiring medical treatment
+
+**Response Procedure:**
+1. **Immediate:** Secure scene (stop work, isolate hazard). Do not move injured person unless immediate danger (fire, structural collapse).
+2. **Call First Aid:** Radio "Code Red" on emergency channel. State location and nature of injury.
+3. **First Aid Response:** First Aid Attendant responds with first aid kit, assesses injury, provides treatment.
+4. **Ambulance:** If serious injury (unconscious, major bleeding, suspected fracture/spinal injury, chest pain), call 911 immediately. Provide address: 11060 Elevator Road, Surrey, BC; specific location on site; nature of injury.
+5. **Notify:** First Aid Attendant notifies HSE Manager and Project Manager. HSE Manager notifies Employer and WorkSafeBC (if serious injury).
+6. **Investigation:** HSE Manager initiates incident investigation (DEL-33.01 Procedure Step 4.6).
+7. **Stand-Down:** Emergency Coordinator authorizes return to work after scene secured and investigation commenced.
+
+**Emergency Contacts:**
+- Site First Aid Attendants: [Names, mobile numbers] — **TBD**
+- Emergency Coordinator (HSE Manager): [Name, mobile] — **TBD**
+- 911: Ambulance (provide address, location, injury details)
+- WorkSafeBC: 1-888-621-7233 (serious injury/fatality — immediate notification)
+
+**Source:** ASSUMPTION: Example medical emergency procedure; DEL-33.01 Specification FR-6, FR-8
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

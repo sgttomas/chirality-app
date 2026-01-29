@@ -2,55 +2,67 @@
 
 ## Purpose
 
-This guidance document supports the development of **Site Reinstatement Installation & Test Records** for **PKG-35 Training & Handover**.
+Site reinstatement records document removal of temporary construction facilities and site restoration, demonstrating site is ready for handover in acceptable condition (cross-reference DEL-35.03).
 
-Provides evidence of completion, inspection, and testing for site reinstatement.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+*Source: _CONTEXT.md; cross-reference DEL-35.03*
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+**Principle 1: Terminal Continuity (OBJ-5)**
+Site reinstatement supports **OBJ-5: Terminal Continuity** by coordinating removal of construction facilities to minimize disruption to existing Fraser Surrey Terminal operations.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+*Source: Decomposition Section 2 (OBJ-5)*
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+**Principle 2: Environmental Protection (OBJ-7)**
+Site reinstatement demonstrates **OBJ-7: Environmental Protection** through proper waste disposal, contamination remediation (if required), and site restoration.
+
+*Source: Decomposition Section 2 (OBJ-7)*
+
+**Principle 3: Handover Acceptance Criterion**
+Site reinstatement completion is typically a handover acceptance criterion — site must be clean, safe, and restored before Employer accepts facility.
+
+*Source: **ASSUMPTION** — typical handover requirement; cross-reference DEL-35.03*
 
 ## Considerations
 
-**Factors to consider during development:**
+**Consideration 1: Progressive vs. Final Reinstatement**
+Reinstatement can occur progressively (remove facilities as soon as no longer needed) or as final cleanup before handover. Progressive approach reduces final cleanup intensity but requires coordination with ongoing construction.
 
-- Package scope: PKG-35 Training & Handover
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Consideration 2: Temporary vs. Permanent Facilities**
+Some "temporary" facilities may become permanent (e.g., access roads incorporated into facility). Clarify with Employer what becomes permanent vs. what must be removed.
+
+**Consideration 3: Environmental Contamination Risk**
+Construction activities may cause soil/groundwater contamination (fuel spills, hazardous materials). Conduct environmental assessment if contamination suspected; remediate before handover.
+
+**Consideration 4: Waste Disposal Documentation**
+Maintain waste manifests for all waste disposal (especially hazardous waste) — regulatory requirement and demonstrates environmental compliance.
+
+**Consideration 5: Photographic Evidence Value**
+Before/after photographs are powerful evidence for reinstatement acceptance and protect against future claims about site condition.
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Trade-off 1: Reinstatement Timing vs. Construction Flexibility**
+Early reinstatement reduces final cleanup burden but may eliminate access/staging areas still useful for late construction activities. Balance cleanup timing with construction needs.
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off 2: Restoration Quality vs. Cost**
+Site can be restored to "better than before" (upgrade landscaping, paving) or "same as before" (minimum restoration). Balance enhancement opportunities vs. cost and schedule.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example: Site Clearance Checklist**
+- [ ] Site offices removed - Date: _____ Inspected by: _____
+- [ ] Laydown areas cleared - Date: _____ Inspected by: _____
+- [ ] Temporary fencing removed - Date: _____ Inspected by: _____
+- [ ] Construction debris removed - Waste manifest #: _____
+- [ ] Site cleaned (swept/washed) - Date: _____ Inspected by: _____
+- [ ] Employer inspection - Accepted by: _____ Date: _____
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Site clearance records
-- reinstatement photographs
+**Example: Photographic Evidence Organization**
+- /Site_Reinstatement_Photos/
+  - /Baseline_Before_Construction/ (date-stamped)
+  - /During_Construction/ (showing temporary facilities)
+  - /During_Reinstatement/ (removal in progress)
+  - /Final_After_Reinstatement/ (handover condition)
+
+*See Procedure.md for detailed site reinstatement process.*

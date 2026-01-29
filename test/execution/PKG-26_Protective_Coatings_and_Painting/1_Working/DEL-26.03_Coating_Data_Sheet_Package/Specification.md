@@ -2,64 +2,61 @@
 
 ## Scope
 
-This specification defines the requirements for **Coating Data Sheet Package** within **PKG-26 Protective Coatings & Painting**.
+This specification defines requirements for the coating data sheet package that provides manufacturer technical data for coating materials specified in DEL-26.01.
 
-Defines and substantiates coating in accordance with ER requirements.
+**Source:** Decomposition DEL-26.03
 
-**Anticipated deliverable artifacts:**
-- Coating system data sheets (by application)
+### Inclusions
+
+- Manufacturer product data sheets for all coating systems specified in DEL-26.01
+- FDA/NSF compliance certificates for food-contact coatings (tank internals)
+- Application guides with environmental limits, cure times, recoat windows
+- Safety Data Sheets (SDS) for all coating materials
+- Performance data (adhesion, DFT, durability, corrosion resistance)
+- Abrasive technical data sheets
 
 ## Requirements
 
-### Functional Requirements
+**FR-1: Complete Coverage**
+- Data sheets shall be provided for all coating systems specified in DEL-26.01 (tank internal, tank external, structural steel, marine, field touch-up)
+- **Source:** DEL-26.01 (all coating types); Datasheet.md
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-2: Food-Grade Compliance Documentation**
+- Tank internal coating data sheets shall include FDA/NSF compliance certificates demonstrating food-contact suitability
+- **Source:** DEL-26.01 (PR-1 Food Contact Compliance)
 
-### Performance Requirements
+**FR-3: Application Parameters**
+- Data sheets shall provide application parameters required by DEL-26.02 Procedures: pot life, mixing ratios, environmental limits (temperature, humidity, dew point), recoat windows, cure times
+- **Source:** DEL-26.01 (PR-6); DEL-26.02 (application procedures)
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**FR-4: Acceptance Criteria Data**
+- Data sheets shall provide acceptance criteria data: recommended DFT, adhesion test methods and acceptance values, surface preparation requirements
+- **Source:** DEL-26.01 (PR-3, PR-4, PR-5); DEL-26.04 (inspection)
 
-### Interface Requirements
-
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
-
-### Quality Requirements
-
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Data Sheet).
+**QR-1: Current and Accurate**
+- All data sheets shall be current manufacturer-issued versions (not outdated)
+- Data sheets shall be legible and complete
+- **Source:** **ASSUMPTION** — Quality requirement for data sheet package
 
 ## Standards
 
-**Applicable codes and standards (Coatings discipline):**
-
-- SSPC Standards
-- NACE Standards
-- CSA S6 Annex
-- ISO 12944
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- FDA 21 CFR 175.300 (food-contact coatings) — compliance certificates required
+- NSF/ANSI 61 (or equivalent) — compliance certificates required
+- ISO 12944 (durability classification data)
+- SSPC, NACE, ASTM standards (referenced in manufacturer data sheets)
+- **Source:** DEL-26.01 (Standards section)
 
 ## Verification
 
-**Verification methods for Data Sheet deliverables:**
-
-- Parameter range verification
-- Vendor data cross-check
-- Process simulation confirmation
-- Units and nomenclature check
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Verify data sheets provided for all coating systems specified in DEL-26.01
+- Verify FDA/NSF certificates included for tank internal coatings
+- Verify data sheets contain required application parameters and acceptance criteria
+- Verify data sheets are current and legible
 
 ## Documentation
 
-**Required documentation outputs:**
-- Coating system data sheets (by application)
-
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Required outputs:**
+- Coating system data sheets (by application per Datasheet.md)
+- Organized package (folders or binders by coating application)
+- Index or table of contents
+- **Source:** Decomposition DEL-26.03 anticipated artifacts

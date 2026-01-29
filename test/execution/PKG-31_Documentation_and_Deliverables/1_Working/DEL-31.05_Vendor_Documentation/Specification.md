@@ -2,68 +2,71 @@
 
 ## Scope
 
-This specification defines the requirements for **Vendor Documentation** within **PKG-31 Documentation & Deliverables**.
+Defines requirements for **Vendor Documentation** within **PKG-31 Documentation & Deliverables**.
 
-Defines and substantiates vendor documentation in accordance with ER requirements.
+**Purpose:** Collect, organize, and deliver vendor-supplied technical documentation per Employer's Requirements.
 
-**Anticipated deliverable artifacts:**
-- Vendor manuals
-- certificates
-- warranties
+**Source:** Decomposition DEL-31.05 (line 690)
+
+**Anticipated artifacts:** Vendor manuals, certificates, warranties
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Completeness** — Vendor documentation shall be obtained for all major equipment and systems.
+
+**FR-02: Content Adequacy** — Each vendor package shall include operation manuals, maintenance manuals, certificates, warranties, and spare parts catalogs.
+
+**FR-03: Quality and Accuracy** — Vendor documentation shall be complete, legible, and accurate; reject incomplete or poor-quality submittals.
+
+**FR-04: As-Supplied Documentation** — Documentation shall reflect equipment as-supplied (correct model numbers, configurations, options).
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Timeliness** — Vendor documentation obtained per contract schedule (typically before or at equipment delivery).
+
+**PR-02: Format Standards** — Electronic format (PDF preferred); organize per project standards; index provided.
+
+**PR-03: Language** — English (primary); **TBD** additional languages per Employer's Requirements.
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: Operation Manuals Interface** — Vendor operation manuals referenced in Operation Manuals (DEL-31.03).
+
+**IR-02: Maintenance Manuals Interface** — Vendor maintenance manuals referenced in Maintenance Manuals (DEL-31.04).
+
+**IR-03: Warranty Interface** — Vendor warranties cross-referenced in Warranties Register (DEL-31.08) and Warranty Certificates (DEL-31.09).
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document Package).
+**QR-01: Vendor Submittal Review** — Review vendor documentation submittals for completeness and compliance before acceptance.
+
+**QR-02: Document Control** — Manage vendor documentation per project document control procedures.
+
+### Lifecycle Requirements
+
+**LR-01: Lifecycle Support** — Vendor documentation supports OBJ-9 (Lifecycle Cost Optimization) by enabling effective operations and maintenance.
+- **Source:** OBJ-9 (line 67, line 788)
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- ISO 9001, ISO 14001, ISO 45001
+- Employer's Requirements — **TBD**
 
 ## Verification
 
-**Verification methods for Document Package deliverables:**
+1. **Completeness Review** — All major equipment vendor packages obtained
+2. **Content Review** — Manuals, certificates, warranties, spare parts lists included
+3. **Quality Review** — Documentation legible and accurate
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:** All vendor packages complete; content adequate; Employer acceptance obtained (if required)
 
 ## Documentation
 
-**Required documentation outputs:**
-- Vendor manuals
-- certificates
-- warranties
+**Outputs:**
+1. Vendor Documentation Packages (by equipment/vendor)
+2. Vendor Documentation Index/Register
+3. Vendor Submittal Log
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Filing:** Organized in `3_Issued/` or package-specific folders per project structure

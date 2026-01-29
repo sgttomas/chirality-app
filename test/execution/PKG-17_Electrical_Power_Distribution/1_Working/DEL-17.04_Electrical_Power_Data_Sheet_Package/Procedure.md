@@ -4,61 +4,67 @@
 
 This procedure defines the process for producing and managing **Electrical Power Data Sheet Package** within **PKG-17 Electrical Power Distribution**.
 
-Defines and substantiates electrical power in accordance with ER requirements.
+**Deliverable Purpose**: Defines and substantiates electrical power in accordance with ER requirements.
 
-**Deliverable type:** Data Sheet
-**Responsible party:** D&B Contractor
+**Deliverable Type**: Data Sheet
+**Responsible Party**: D&B Contractor
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependencies** (NOT_TRACKED): Equipment procurement in progress; specifications (DEL-17.02) and calculations (DEL-17.03) approved
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Reference Materials**: Equipment specifications (DEL-17.02), design calculations (DEL-17.03), equipment list (DEL-17.01)
 
-**Personnel requirements:**
-- Qualified Electrical discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Personnel**: Electrical engineer/designer (data sheet review), procurement team (submittal coordination), P.Eng. (approval)
 
 ## Steps
 
-1. **Parameter Identification** — Identify required parameters from process data. **TBD**
-2. **Data Population** — Fill in known values from design basis. **TBD**
-3. **Vendor Coordination** — Obtain vendor-specific data where applicable. **TBD**
-4. **Verification** — Cross-check against process simulation and design. **TBD**
-5. **Approval** — Discipline lead approves. **TBD**
+### Step 1: Equipment Procurement and Data Sheet Request
+- Issue equipment purchase orders (POs) to manufacturers
+- Request manufacturer data sheets per specification requirements
+- Specify submittal requirements (nameplate data, test reports, certifications)
+
+### Step 2: Data Sheet Submittal Receipt
+- Receive manufacturer data sheet submittals
+- Log submittals in submittal register (submittal number, date received, equipment, manufacturer)
+- Distribute to electrical engineer for technical review
+
+### Step 3: Data Sheet Technical Review
+- **Review Scope**: Verify equipment ratings match specifications (DEL-17.02), verify ratings meet or exceed calculation requirements (DEL-17.03), verify test results acceptable, verify compliance certifications present (CSA/UL marks)
+- **Review Criteria**: Ratings ≥ specified; test results within acceptable limits; certifications valid
+- **Flag Deviations**: Identify any non-compliance issues for resolution with manufacturer
+
+### Step 4: Data Sheet Approval or Rejection
+- **Approved**: Equipment meets requirements; manufacturer may proceed with fabrication/shipment
+- **Approved as Noted**: Minor deviations acceptable with noted conditions
+- **Revise and Resubmit**: Non-compliance requires correction and resubmittal
+- **Rejected**: Equipment does not meet requirements; not acceptable
+
+### Step 5: Data Sheet Package Compilation
+- Compile approved data sheets into organized package (by equipment type)
+- Include: Table of contents, equipment index (tag numbers), data sheets with test reports, certifications
+- Issue data sheet package for construction and commissioning use
+
+### Step 6: As-Installed Data Sheet Updates (Post-Commissioning)
+- Update data sheets with as-installed information: Relay settings as-left, serial numbers verified, installation/commissioning dates
+- Issue final as-installed data sheet package for Owner operations and maintenance
 
 ## Verification
 
-**Verification activities for Data Sheet deliverables:**
+**Verification Activities**:
+- Technical review (spec compliance, calculation verification)
+- Test report review (results acceptable, standards compliance)
+- Certification verification (CSA/UL marks present and valid)
 
-- Parameter range verification
-- Vendor data cross-check
-- Process simulation confirmation
-- Units and nomenclature check
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Sign-Off**: Electrical engineer (technical review), P.Eng. (approval), Procurement (submittal coordination)
 
 ## Records
 
-**Documentation outputs:**
-- Transformer data sheet
-- MCC data sheets
-- switchgear data sheets
-- UPS data sheet
+**Documentation Outputs**: Transformer data sheets, switchgear data sheets, MCC data sheets, UPS data sheet
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Record Management**:
+- Submittals filed in 2_Checking/ during review
+- Approved data sheets filed in 3_Issued/
+- As-installed data sheets filed in 3_Issued/ (as-built designation)
+
+**Interfaces**: DEL-17.02 (specifications verified), DEL-17.03 (calculations verified), DEL-17.05 (commissioning baseline)

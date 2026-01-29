@@ -2,54 +2,116 @@
 
 ## Purpose
 
-This guidance document supports the development of **SAT Installation & Test Records** for **PKG-29 Testing**.
+Guidance for **SAT Installation & Test Records** for **PKG-29 Testing**.
 
-Provides evidence of completion, inspection, and testing for sat.
+**Deliverable Purpose:** Provides evidence of completion, inspection, and testing for SAT. **Source:** Decomposition line 650
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Type:** Record | **Discipline:** T&C | **Responsible:** D&B Contractor (QA/QC)
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+### SAT Philosophy
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**System Integration Focus:** While FAT proves individual equipment, SAT proves the integrated system. SAT verifies:
+- Equipment works together as a system
+- Control logic coordinates multiple devices correctly
+- Operator interfaces provide complete system control
+- Safety systems protect across system boundaries
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+**"Fail-safe" Testing:** SAT emphasizes abnormal and emergency conditions:
+- What happens when a sensor fails?
+- Does the system shut down safely?
+- Do alarms annunciate correctly?
+- Can operators respond effectively?
+
+**Source:** General SAT philosophy **ASSUMPTION**
+
+### SAT vs. Commissioning
+
+**SAT:** Proves system functionality in steady-state or controlled transient conditions
+**Commissioning:** Proves system performance under actual operating conditions (with product)
+
+SAT is prerequisite for commissioning but not a substitute.
 
 ## Considerations
 
-**Factors to consider during development:**
+**1. SAT Timing**
+- After installation and individual component tests complete
+- Before introducing product (commissioning)
+- Adequate time for deficiency correction before commissioning schedule
+- Coordinate with operations personnel availability (for training)
 
-- Package scope: PKG-29 Testing
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**2. SAT Procedure Development**
+- May be Contractor-developed or vendor-supplied (for packaged systems)
+- Should cover normal, abnormal, and emergency scenarios
+- Should test from operator perspective (HMI, local panels)
+- Should include acceptance criteria for each test
+
+**3. Simulation and Actual Operation**
+- Some SATs use simulation (jumpers, test signals) to avoid process upsets
+- Some SATs require actual operation (pumps running, valves stroking)
+- Balance between proving functionality and avoiding equipment damage
+
+**4. Operations Training Integration**
+- SAT is excellent opportunity for operations training
+- Operations staff observe system response to various scenarios
+- Operations staff practice using HMI and controls
+- Document training attendance as part of SAT record
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Comprehensive SAT vs. Schedule:**
+- Thorough SAT takes time; schedule pressure may encourage shortcuts
+- **Recommendation:** Don't skip safety system testing or integration scenarios; finding problems during commissioning is more disruptive
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Simulation vs. Live Testing:**
+- Simulation is safer but may not reveal all issues
+- Live testing is more realistic but riskier
+- **Recommendation:** Simulate abnormal/emergency conditions; use live operation for normal conditions where practical
 
 ## Examples
 
-**Reference examples and precedents:**
+**SAT Report Example (Marine Loading System):**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Site acceptance test reports (by system)
+```
+SITE ACCEPTANCE TEST REPORT
+
+System: Marine Loading System
+SAT Procedure: SAT-PKG11-001 Rev A
+SAT Date: 2024-10-15
+
+Prerequisites Verified:
+✓ Loading arms FAT complete
+✓ Metering system FAT complete
+✓ Installation complete (punch list items minor only)
+✓ Hydrostatic tests passed
+✓ Electrical and I&C loop checks complete
+
+Functional Tests Performed:
+1. Loading arm positioning: Manual and automatic modes → Pass
+2. Flow control: Setpoint tracking within ±2% → Pass
+3. Metering accuracy: Verified against proving tank, within ±0.15% → Pass
+4. Emergency Release System (ERS): Actuated in <10 sec → Pass
+5. High-level alarm: Alarm annunciated at setpoint → Pass
+6. ESD shutdown: All equipment stopped on ESD signal → Pass
+7. Communications: Shore-to-ship intercom functional → Pass
+
+Integration Tests:
+✓ Loading sequence: Arm deploy → valve open → pump start → flow control → Pass
+✓ Shutdown sequence: Flow ramp down → pump stop → arm retract → Pass
+
+Deficiencies: None critical; 2 minor punch list items (HMI label corrections)
+
+Tested by: M. Engineer, Commissioning Lead (Sign/Date)
+Witnessed by: R. Employer, Operations Manager (Sign/Date)
+
+Photographs: SAT-PKG11-001 through 025
+```
+
+**Source:** Typical SAT report format **ASSUMPTION**
+
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | **TBD** |

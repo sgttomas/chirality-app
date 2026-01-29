@@ -2,70 +2,65 @@
 
 ## Scope
 
-This specification defines the requirements for **Authority & Stakeholder Correspondence Copies** within **PKG-32 Regulatory & Permits**.
+Defines requirements for **Authority & Stakeholder Correspondence Copies** within **PKG-32**.
 
-Defines and substantiates authority & stakeholder correspondence copies in accordance with ER requirements.
-
-**Anticipated deliverable artifacts:**
-- Email/letter copies
-- submissions
-- approvals
-- meeting minutes
+**Purpose:** File repository of authority/stakeholder correspondence. (Source: _CONTEXT.md; Decomposition Section 5)
+**Coverage:** Organized file repository of correspondence documents
+**Artifacts:** Email/letter copies, submissions, approvals, meeting minutes (Source: Decomposition Section 5)
+**Objective:** OBJ-6: Regulatory Compliance (record retention, audit trail)
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Filing Structure Establishment** — Filing structure established (folders by authority/stakeholder) | **Verification:** Procedure Step 1
+
+**FR-02: Correspondence Filing** — All authority/stakeholder correspondence filed | **Source:** **ASSUMPTION**; referenced throughout DEL-32.01-32.06 | **Verification:** Procedure Step 2
+
+**FR-03: File Naming Convention** — Consistent naming (`YYYY-MM-DD_Description_Reference.pdf`); file names include DEL-32.07 register reference | **Verification:** Procedure Step 2
+
+**FR-04: Cross-Reference to DEL-32.07** — Each filed copy referenced in DEL-32.07 register; cross-linked | **Coordination:** Interface with DEL-32.07 | **Verification:** Procedure Step 2
+
+**FR-05: File Accessibility** — Files readily accessible for project team, authority inspections, audits | **Verification:** Procedure Step 3
+
+**FR-06: Archive and Retention** — Files archived and retained per contract/regulatory requirements | **Retention:** **TBD** | **Verification:** Procedure Step 4
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Filing Timeliness** — Filed within [X] business days | **Acceptance:** **TBD** — target: 2 business days
+
+**PR-02: Filing Completeness** — 100% of authority correspondence filed | **Acceptance:** All DEL-32.07 register entries have filed copies | **Verification:** Cross-check with DEL-32.07
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: DEL-32.07 (Correspondence Register)** — Paired deliverables; register is index, copies are documents; two-way cross-referencing | **Coordination:** Maintain register-to-copy linkage | **Verification:** Cross-check completeness
+
+**IR-02: DEL-32.01 through DEL-32.06** — These deliverables generate correspondence filed in DEL-32.08 | **Coordination:** File all correspondence | **Verification:** Cross-check procedures
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document Package).
+**QR-01: File Quality** — Copies complete, legible, appropriate format (PDF) | **Verification:** File quality checks
+**QR-02: File Organization** — Organized and easily retrievable | **Verification:** Retrieval tests
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Project:** Employer's Requirements — **location TBD**
+**Quality:** ISO 9001:2015 — **ASSUMPTION**; Project Document Control — **TBD**
 
 ## Verification
 
-**Verification methods for Document Package deliverables:**
-
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+| Activity | Responsible | Acceptance | Procedure Ref |
+|----------|-------------|------------|---------------|
+| Filing structure established | Project Delivery Lead | Folders operational | Step 1 |
+| Correspondence filed | Project Delivery Lead | All correspondence filed | Step 2 |
+| File naming consistent | Project Delivery Lead | Consistent naming | Step 2 |
+| Cross-references maintained | Project Delivery Lead | All copies linked to DEL-32.07 | Step 2 |
+| Files accessible | Project Delivery Lead | Team can access | Step 3 |
+| Files archived/retained | Project Delivery Lead | Retention compliant | Step 4 |
 
 ## Documentation
 
-**Required documentation outputs:**
-- Email/letter copies
-- submissions
-- approvals
-- meeting minutes
-
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Outputs:** Email/letter copies, submissions, approvals, meeting minutes
+**Format:** **TBD** — Electronic files (PDFs) in folders; or DMS
+**Organization:** By authority/stakeholder; chronological
+**Retention:** **TBD**

@@ -2,62 +2,81 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Building Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
+To collect and deliver Building Warranty Certificates for the Canola Oil Transload Facility Phase 1.
 
-Defines and substantiates building warranty certificates in accordance with ER requirements.
+**Source:** Decomposition DEL-31.10 (line 696)
 
 **Deliverable type:** Document Package
 **Responsible party:** D&B Contractor
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+### Dependencies
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Dependency Tracking:** See \`_DEPENDENCIES.md\` — **NOT_TRACKED**
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Upstream Dependencies:**
+- Building construction completion
+- Building contractor/supplier warranties
+
+**Source:** **ASSUMPTION**
 
 ## Steps
 
-1. **Content Scoping** — Define document purpose and scope. **TBD**
-2. **Drafting** — Prepare document content. **TBD**
-3. **Review** — Technical and quality review. **TBD**
-4. **Comment Resolution** — Address review comments. **TBD**
-5. **Approval** — Responsible party approves for issue. **TBD**
+### Step 1: Planning
+
+**Activities:**
+1.1. Identify all applicable building warranties (modular building, envelope, roofing, structural)
+
+**Deliverables:** Building warranty list
+
+### Step 2: Certificate Collection
+
+**Activities:**
+2.1. Coordinate with building contractors/suppliers to obtain warranty certificates
+2.2. Ensure warranty registration completed (if required)
+2.3. Verify certificates are originals
+
+**Deliverables:** Building warranty certificates collected
+
+### Step 3: Package Organization
+
+**Activities:**
+3.1. Organize certificates by building system
+3.2. Cross-reference to Guarantees & Warranties Register (DEL-31.08)
+
+**Deliverables:** Organized Package
+
+### Step 4: Review and Approval
+
+**Activities:**
+4.1. Completeness review
+4.2. Authenticity check
+4.3. Employer acceptance
+4.4. Final approval
+
+**Deliverables:** Approved Package
+
+### Step 5: Issuance and Handover
+
+**Activities:**
+5.1. Issue Package
+5.2. Handover to Employer
+
+**Deliverables:** Issued Package; handover complete
 
 ## Verification
 
-**Verification activities for Document Package deliverables:**
+1. **Completeness Review** — All building warranties obtained
+2. **Authenticity Check** — Certificates are originals
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Acceptance Criteria:** All certificates obtained; authentic; Employer acceptance obtained
 
 ## Records
 
-**Documentation outputs:**
-- Modular building warranty
-- envelope warranty
-- roofing warranty (as applicable)
+**Outputs:**
+1. Building Warranty Certificate Package
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Management:** \`3_Issued/\`
+
+**Retention:** For facility operational life (long-term for building warranties)

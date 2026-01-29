@@ -2,66 +2,96 @@
 
 ## Scope
 
-This specification defines the requirements for **Site Reinstatement Installation & Test Records** within **PKG-35 Training & Handover**.
+Provides evidence of completion, inspection, and testing for site reinstatement — documenting removal of temporary construction facilities and site restoration prior to handover (cross-reference DEL-35.03).
 
-Provides evidence of completion, inspection, and testing for site reinstatement.
+*Source: _CONTEXT.md; cross-reference DEL-35.03*
 
-**Anticipated deliverable artifacts:**
-- Site clearance records
-- reinstatement photographs
+**Anticipated artifacts**: Site clearance records, reinstatement photographs
+
+*Source: _CONTEXT.md*
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Temporary Facilities Removal Records**
+Document removal of site offices, laydown areas, temporary access roads, temporary utilities, construction fencing, signage. Include disposal/return records.
+
+**FR-02: Site Cleanup Records**
+Document construction debris removal (waste manifests), scrap/surplus disposition, hazardous waste removal (if any), site cleaning inspection.
+
+**FR-03: Ground Surface Restoration Records**
+Document temporary excavation backfill/compaction, disturbed paving reinstatement, landscaping restoration, drainage restoration, erosion control removal.
+
+**FR-04: Environmental Compliance Records**
+Document contaminated soil remediation (if required), stormwater system final inspection, spill remediation (if any), environmental site assessment (if required).
+
+**FR-05: Safety Hazard Elimination Records**
+Document excavations backfilled, temporary barriers removed, underground obstructions marked/removed, access controls transitioned.
+
+**FR-06: Photographic Evidence**
+Before/during/after photographs organized by area and date, demonstrating site condition progression and final reinstatement.
+
+*Source: **ASSUMPTION** based on typical site reinstatement scope; see Datasheet.md for detailed content*
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Completeness**
+100% of temporary facilities removed, site cleaned to operational standard, disturbed areas restored to agreed condition.
+
+**PR-02: Terminal Continuity (OBJ-5)**
+Site reinstatement minimizes disruption to existing Fraser Surrey Terminal operations per **OBJ-5: Terminal Continuity**.
+
+*Source: Decomposition Section 2 (OBJ-5)*
+
+**PR-03: Environmental Protection (OBJ-7)**
+Site reinstatement demonstrates compliance with environmental requirements per **OBJ-7: Environmental Protection**.
+
+*Source: Decomposition Section 2 (OBJ-7)*
+
+**PR-04: Handover Acceptance Criterion**
+Site reinstatement complete and accepted by Employer as handover acceptance criterion (cross-reference DEL-35.03).
+
+*Source: Cross-reference DEL-35.03; **ASSUMPTION** that site reinstatement is handover criterion*
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IF-01: Handover Integration (DEL-35.03)**
+Site reinstatement records included in handover package; reinstatement completion is handover acceptance criterion.
+
+**IF-02: Site Establishment Interface (PKG-00)**
+Temporary facilities removal corresponds to facilities established per PKG-00 Site Establishment deliverables.
+
+**IF-03: Environmental Interface (PKG-33)**
+Environmental remediation procedures reference PKG-33 if contamination discovered during reinstatement.
+
+*Cross-references: DEL-35.03, PKG-00, PKG-33*
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+**QR-01**: Comply with project Quality Management Plan
+**QR-02**: Contractor QA/QC inspection of reinstatement completion
+**QR-03**: Employer (or representative) inspection and acceptance of final site condition
+**QR-04**: Photographic evidence date-stamped and organized
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- ISO 14001:2015 (Environmental Management — site restoration, waste management)
+- ISO 9001:2015 (Quality Management — project closeout)
+- **TBD**: Canadian/BC environmental regulations for site closure
+- **TBD**: Waste disposal regulations and manifesting requirements
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**VM-01**: Completeness check (all temporary facilities removed, all areas restored)
+**VM-02**: Photographic evidence review (before/after comparison)
+**VM-03**: Employer inspection and acceptance
+**VM-04**: Environmental compliance verification (waste manifests, remediation records if applicable)
 
 ## Documentation
 
-**Required documentation outputs:**
-- Site clearance records
-- reinstatement photographs
+**Outputs**: Site clearance checklists/records, reinstatement photographs (before/during/after), inspection reports, waste disposal records
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Management**: Records included in handover package (DEL-35.03), retention per project requirements
+
+*See Procedure.md for detailed reinstatement and documentation process.*

@@ -2,61 +2,73 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Waste Management Installation & Test Records** within **PKG-33 HSE Management**.
+Defines how to collect, manage, and report waste management records during construction.
 
-Provides evidence of completion, inspection, and testing for waste management.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Source:** `_CONTEXT.md`, Decomposition line 734
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Upstream Dependencies:**
+- DEL-33.01 (OHS Plan Section 10, FR-10 — waste management interface)
+- Waste Management Plan (if separate from CEMP) — **TBD**
+- Waste disposal contracts (hazardous waste transporter, recycling vendors, landfill)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Source:** DEL-33.01; Specification
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Establish Waste Management Program
+1. Identify waste types (hazardous, recyclable, general)
+2. Engage disposal vendors (licensed hazardous waste transporter, recycling, landfill)
+3. Procure waste bins (segregated, labeled)
+4. Train personnel (waste segregation, hazardous waste handling)
+5. Prepare record templates (manifests, tracking logs)
+
+**Output:** Waste management program established
+
+**Source:** Specification FR-1 through FR-4; Datasheet Waste Types
+
+### Step 2: Manage Waste During Construction
+1. **Segregation:** Separate waste at source (hazardous, recyclable, general bins)
+2. **Storage:** Store waste properly (covered, contained, labeled)
+3. **Hazardous Waste:** Complete manifest for each shipment (generator, transporter, receiver signatures)
+4. **Non-Hazardous Waste:** Track type, quantity, disposal location, date
+5. **Recycling:** Track materials diverted, obtain recycling receipts
+6. **Inspect:** Monthly waste bin inspections (segregation, containment, labeling)
+
+**Output:** Waste disposal manifests, tracking logs, bin inspection records
+
+**Source:** Specification FR-1 through FR-4; Datasheet Record Types
+
+### Step 3: Compile and Report
+1. Compile waste records monthly/quarterly
+2. Calculate waste diversion rate (if required)
+3. Report to Employer (if required by ER)
+4. Archive manifests and tracking records
+
+**Output:** Waste management reports, archived records
+
+**Source:** Specification Documentation
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+- Manifests complete (all hazardous waste shipments have signed manifests)
+- Tracking logs maintained (all waste documented)
+- Regulatory compliance (hazardous waste managed per BC regulations)
+- Waste diversion targets met (if applicable)
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Source:** Specification Verification
 
 ## Records
 
-**Documentation outputs:**
-- Waste disposal manifests
-- waste tracking records
+- Hazardous waste manifests
+- Non-hazardous waste tracking logs
+- Recycling receipts and diversion records
+- Waste bin inspection records
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Location:** Environmental database / `3_Issued/`
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

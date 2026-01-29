@@ -2,56 +2,60 @@
 
 ## Purpose
 
-This guidance document supports the development of **Process Equipment Guarantees & Warranties Register** for **PKG-31 Documentation & Deliverables**.
+Centralized tracking of equipment warranties and performance guarantees, enabling effective warranty management and lifecycle cost optimization (OBJ-9).
 
-Provides project management/control documentation for process equipment guarantees & warranties register required by the ERs.
-
-This deliverable is classified as a **Document** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.08 (line 694); OBJ-9 (line 67, line 788)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Centralized Warranty Tracking
+Single register for all equipment warranties prevents warranty information from being scattered across vendor files.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Proactive Warranty Management
+Register enables proactive warranty expiration monitoring and timely warranty claim initiation.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: Warranty Compliance
+Register documents warranty conditions (maintenance requirements, exclusions) ensuring compliance and avoiding warranty voidance.
+
+### Principle 4: Lifecycle Cost Reduction
+Effective warranty management reduces lifecycle costs through warranty claims and compliant maintenance.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Warranty vs. Guarantee
+- **Warranty:** Manufacturer's commitment to repair/replace defective equipment within warranty period (typically 1-2 years).
+- **Performance Guarantee:** Manufacturer's commitment that equipment meets specified performance parameters (e.g., pump flow rate, efficiency).
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+Both should be tracked in register.
+
+### Warranty Start Date
+Confirm warranty start date (equipment shipment, delivery, installation, commissioning, or substantial completion—varies by vendor).
+
+### Warranty Conditions
+Document warranty conditions that could void warranty (e.g., improper maintenance, unauthorized modifications, misuse). Cross-reference to Maintenance Manuals (DEL-31.04) to ensure warranty-compliant maintenance.
+
+### Warranty Claim Process
+Establish warranty claim process (identify defect, notify vendor, coordinate repair/replacement, document claim).
+
+### Warranty Expiration Monitoring
+Implement warranty expiration monitoring (periodic review, automated reminders) to identify opportunities for pre-expiration repairs or warranty extensions.
+
+### Extended Warranties
+Consider procuring extended warranties for critical equipment (cost-benefit analysis).
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+### Register Detail vs. Simplicity
+Comprehensive register (all warranty details) vs. simple register (basic info with reference to full warranty documents). Balance based on management needs.
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Maintenance: Internal vs. Vendor
+During warranty period, balance internal maintenance (may void warranty) vs. vendor-provided maintenance (maintains warranty, may be costlier).
 
 ## Examples
 
-**Reference examples and precedents:**
+**Register Entry Example:**
+| Equipment Tag | Description | Manufacturer | Warranty Type | Coverage | Start Date | End Date | Period | Conditions | Vendor Contact | Certificate Ref |
+|---------------|-------------|--------------|---------------|----------|------------|----------|--------|------------|----------------|-----------------|
+| P-101A | Unloading Pump A | XYZ Pumps | Manufacturer Warranty | Parts & Labor | 2026-06-01 | 2028-06-01 | 2 years | Routine maintenance per manual required | John Smith, 555-1234 | DEL-31.09-P101A |
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Guarantees and warranties register
-- coverage periods
-- responsible vendor contacts
+**Source:** _CONTEXT.md; Decomposition line 694

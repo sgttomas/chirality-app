@@ -10,12 +10,16 @@
 
     ## Requirements
 
-    - R1: Provides evidence of completion, inspection, and testing for in-situ compaction verification plan & results. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD).
-- R2: Include Compaction verification plan. Source: _CONTEXT.md.
-- R3: Include test results. Source: _CONTEXT.md.
-- R4: Include nonconformance reports and closeout. Source: _CONTEXT.md.
-- R5: Address grading, excavation, fill placement, ground improvement, geotechnical and survey scope for PKG-02. Source: decomposition PKG-02 scope (location TBD).
-- R6: Document control fields (title, revision, dates, approvals) shall be included. Source: ASSUMPTION: standard D&B document control; details TBD.
+    - R1: Compaction verification deliverable shall provide plan defining methodology and acceptance criteria, plus test results providing objective evidence of fill compaction compliance with design requirements. Source: decomposition DEL-02 entry and _CONTEXT.md (location TBD). Verified by V1, V2, V3.
+    - R2: Compaction verification plan shall address plan objectives/scope, acceptance criteria (% Proctor), laboratory reference values (Proctor test results), field testing methods, testing frequency/locations, trial compaction (if required), equipment calibration, nonconformance procedure, and approval workflow. Source: _CONTEXT.md; **ASSUMPTION**: Systematic compaction verification per geotechnical practice. Verified by V1, V2.
+    - R3: Test results shall document compiled field density tests (location, date, method, results, acceptance comparison), trial compaction results (if performed), test location plan, statistical summary, and proof rolling results (if applicable). Source: _CONTEXT.md. Verified by V1, V2.
+    - R4: Nonconformance reports shall document failed tests, root cause, corrective action, retest results, closure approval, and final acceptance summary demonstrating all fill areas meet acceptance criteria. Source: _CONTEXT.md; **ASSUMPTION**: Systematic deficiency resolution tracking. Verified by V1, V2.
+    - R5: Compaction verification shall address fill placement activities within PKG-02 scope (grading fill, structural fill, subgrade preparation areas). Source: decomposition PKG-02 scope (location TBD). Verified by V2.
+    - R6: Deliverable shall include document control elements (record package ID, date range, location/area, testing methods, acceptance criteria, QA/QC signoffs, revision) per D&B Contractor QA/QC system. Source: **ASSUMPTION**: Standard D&B QA/QC documentation; details **TBD**. Verified by V1.
+    - R7: Acceptance criteria shall be consistent with DEL-02.02 (Specifications) compaction requirements and DEL-02.04 (Geotechnical Reports) recommendations; laboratory reference values from Proctor tests per DEL-02.08 (Testing Program). Source: **ASSUMPTION**: Design-construction integration requirement. Verified by V2.
+    - R8: Field testing methods and frequency shall comply with DEL-02.08 (Sampling & Testing Program) and ER requirements; testing performed by qualified technicians using calibrated equipment. Source: **ASSUMPTION**: QA/QC standards; **TBD**: ER testing requirements. Verified by V1, V3.
+    - R9: Trial compaction (if required by ER or geotechnical engineer) shall be performed to demonstrate equipment and methodology can achieve acceptance criteria before mass production. Source: **ASSUMPTION**: Risk reduction for challenging compaction; **TBD**: ER may specify trial compaction requirements. Verified by V2, V3.
+    - R10: Nonconformances (failed tests) shall be resolved through documented corrective action and retesting; all nonconformances closed before final fill acceptance. Source: **ASSUMPTION**: QA/QC closure requirement; no open deficiencies at acceptance. Verified by V1, V2.
 
     ## Related Datasheet Attributes
 

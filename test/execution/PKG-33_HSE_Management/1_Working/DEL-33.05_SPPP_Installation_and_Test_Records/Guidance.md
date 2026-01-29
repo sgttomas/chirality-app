@@ -2,55 +2,49 @@
 
 ## Purpose
 
-This guidance document supports the development of **SPPP Installation & Test Records** for **PKG-33 HSE Management**.
+SPPP (Stormwater Pollution Prevention Plan) records provide evidence that stormwater BMPs (Best Management Practices) are installed, inspected, maintained, and effective.
 
-Provides evidence of completion, inspection, and testing for sppp.
-
-This deliverable is classified as a **Record** under the **Project Delivery** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Source:** `_CONTEXT.md`; DEL-33.01 Specification FR-10
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Stormwater is a Pathway for Pollutants
+Stormwater runoff can carry sediment, chemicals, concrete washwater, and debris to waterways. BMPs interrupt this pathway.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Source:** ASSUMPTION: Stormwater pollution prevention principle; OBJ-7 Environmental Protection
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 2: Maintenance is Critical
+BMPs are only effective if maintained. A silt fence full of sediment no longer filters runoff. Regular inspection and maintenance are essential.
+
+**Source:** ASSUMPTION: BMP maintenance best practice
 
 ## Considerations
 
-**Factors to consider during development:**
+### Fraser River Sensitivity
+Project adjacent to Fraser River requires robust stormwater controls and monitoring to prevent waterway contamination.
 
-- Package scope: PKG-33 HSE Management
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Source:** Decomposition Section 1 (location); OBJ-7 Environmental Protection
 
-## Trade-offs
+### SPPP vs. CEMP Relationship
+SPPP (stormwater-focused) is typically a component of broader CEMP (all environmental aspects). Records may overlap with DEL-33.04.
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Source:** Interface with DEL-33.04; ASSUMPTION: SPPP as subset of CEMP
 
 ## Examples
 
-**Reference examples and precedents:**
+### Example: BMP Inspection Record
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Stormwater monitoring records
-- BMP inspection records
+**Date:** 2026-04-10 | **Rain Event:** 18mm overnight | **Inspector:** Environmental Coordinator
+
+| BMP | Location | Condition | Corrective Action |
+|-----|----------|-----------|-------------------|
+| Silt Fence | Perimeter | Fair — 50% capacity | Clean out sediment |
+| Inlet Protection | Storm drain #3 | Good | None |
+| Concrete Washout | Tank farm | Full — 90% capacity | Pump out, dispose waste |
+
+**Source:** ASSUMPTION: Example BMP inspection record
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

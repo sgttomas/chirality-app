@@ -4,55 +4,118 @@
 
 This guidance document supports the development of **Marine Loading Data Sheet Package** for **PKG-11 Marine Loading System**.
 
-Defines and substantiates marine loading in accordance with ER requirements.
+**Deliverable purpose:** Defines and substantiates marine loading equipment in accordance with Employer's Requirements (ER), providing the procurement basis and technical evaluation criteria for equipment selection and vendor qualification.
 
-This deliverable is classified as a **Data Sheet** under the **Process** discipline, to be produced by **D&B Contractor**.
+**Classification:** Data Sheet deliverable under the Process discipline, produced by the D&B Contractor.
+
+**Objectives context (per decomposition Section 6):**
+- **OBJ-1 Safe & Reliable Operation** — datasheets specify safety-critical parameters (ERC performance, leak detection sensitivity, hazardous area certification)
+- **OBJ-2 Throughput Capacity** — datasheets define equipment capacity to support 1,000,000 MT/annum throughput
+- **OBJ-4 Operational Flexibility** — datasheets specify operating ranges for diverse operating conditions
+- **OBJ-7 Environmental Protection** — datasheets specify leak detection and containment equipment performance
 
 ## Principles
 
-**Engineering rationale (Process discipline):**
+**Engineering rationale (Process discipline — equipment datasheets):**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+1. **Procurement bridge:** Datasheets translate design requirements into procurement specifications that vendors can respond to. They must be unambiguous and based on controlled inputs.
+
+2. **Design basis vs. vendor offered:** Datasheets should clearly distinguish between "required" values (from DEL-11.02/11.03) and "offered" values (from vendor data). This enables technical evaluation and compliance verification.
+
+3. **Traceability:** Every design basis value should trace to DEL-11.02 (specification) or DEL-11.03 (calculations). Every vendor-offered value should reference the vendor document revision.
+
+4. **Interface completeness:** Datasheets must capture all interface requirements (electrical, I&C, ESD, utilities) to enable coordination with adjacent packages.
+
+**ASSUMPTION:** Applicable codes/standards and minimum requirements are defined by ER and project code register (to be referenced explicitly once available).
 
 **Applicable standards context:**
-- CSA Z662
-- API 650
-- API 610
-- ASME B31.3
-- NFPA 30
+- IEC 60079 series — hazardous area equipment certification — **TBD**
+- API 610/682 — pump specifications (if applicable) — **TBD**
+- Project datasheet templates — format and content — **TBD**
+
+## Cross-Document Alignment Notes
+
+| Alignment Check | Datasheet.md | Specification.md | Procedure.md |
+|-----------------|--------------|------------------|--------------|
+| Field structure | §Construction (field tables) | §Requirements (by item) | §Steps |
+| Design basis source | §Conditions | §Related Deliverables | §Prerequisites |
+| Interface requirements | §Interfaces | §Interface Requirements | §Steps (consistency) |
+| Acceptance criteria | §Deliverable Acceptance | §Verification | §Verification |
+
+**Cross-deliverable consistency:**
+- Datasheet values must be consistent with DEL-11.02 Technical Specification
+- Datasheet duty points must match DEL-11.03 Calculations
+- Datasheet tags must match DEL-11.01 Drawing Set
+- Datasheet revisions must be referenced by DEL-11.05 Test Records
+
+Where required fields cannot be substantiated from controlled inputs or vendor data, mark them **TBD** (do not fill in "typical" values).
 
 ## Considerations
 
-**Factors to consider during development:**
+**Factors to consider during datasheet development:**
 
-- Package scope: PKG-11 Marine Loading System
-- Deliverable type: Data Sheet — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Loading Arm Datasheet Considerations
+- OEM data from DEL-11.06 may constrain available configurations
+- ERC performance (release force, spillage) is safety-critical — verify against DEL-11.02 requirements
+- Connection interface must accommodate design vessel range — verify against DEL-11.03 envelope
+- Hazardous area certification requirements — coordinate with PKG-27
+
+### Leak Detection Datasheet Considerations
+- Detection philosophy must cover all potential leak paths (annulus, drip trays, sumps)
+- Sensor technology affects maintenance requirements and reliability
+- Alarm/trip setpoints balance early detection against nuisance alarms
+- ESD integration requires coordination with PKG-19/PKG-29
+
+### Sump Pump Datasheet Considerations
+- Duty point (flow, head) must match DEL-11.03 drainage calculations
+- Fluid properties may include canola oil contamination — verify material compatibility
+- Hazardous area rating required for Zone 2 location (**ASSUMPTION**)
+- Level control interface with leak detection system
+
+### General Datasheet Quality
+- Use consistent units (SI or project-specified)
+- Use consistent terminology per project standards
+- Cross-reference P&ID tag numbers from DEL-11.01
+- Include clear revision control for both datasheet and referenced vendor data
 
 ## Trade-offs
 
 **Competing concerns to evaluate:**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+| Trade-off | Option A | Option B | Guidance |
+|-----------|----------|----------|----------|
+| Prescriptive vs. performance | Specify exact OEM model | Specify performance requirements | Performance-based preferred unless ER mandates specific OEM |
+| Overdesign vs. optimization | Conservative ratings for margin | Optimize to design duty | Balance reliability against cost; document margin philosophy |
+| Standardization vs. site-specific | Use project-standard equipment | Allow site-optimized selection | Prefer standardization where it meets ER; reduces spares complexity |
+| Vendor flexibility vs. tight control | Allow vendor alternatives | Lock to specific model | Allow alternatives that meet performance; evaluate during procurement |
 
 ## Examples
 
 **Reference examples and precedents:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Marine loading arm data sheet
-- leak detection system data sheet
-- sump pump data sheet
+Anticipated datasheets (from decomposition):
+
+| Datasheet | Key Content | Source Reference |
+|-----------|-------------|------------------|
+| Marine loading arm | Type, reach, ERC, materials, controls, electrical | DEL-11.06 OEM data, DEL-11.02 spec |
+| Leak detection system | Sensor type, zones, alarm outputs, hazardous area | DEL-11.02 §6, PKG-19 interface |
+| Sump pump | Duty point, materials, motor, hazardous area | DEL-11.03 drainage calc, PKG-20 interface |
+
+**Datasheet structure (typical):**
+1. Identification block (tag, service, location)
+2. Design conditions block (pressure, temperature, product)
+3. Equipment-specific blocks (by equipment type)
+4. Interface block (electrical, I&C, ESD)
+5. Hazardous area block (classification, certification)
+6. Vendor data block (OEM, model, compliance)
+7. Notes and attachments
+
+**Employer's Requirements expectations:** **TBD** until clause references are provided.
+
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts identified at this stage | — | — | — | — | — |
+
+*Note: Conflicts will be logged here when specific design basis values and vendor data become available and any discrepancies are identified.*

@@ -2,62 +2,105 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Hydrotest Water Treatment & Discharge Testing Results** within **PKG-29 Testing**.
+Process for collecting and managing **Hydrotest Water Treatment & Discharge Testing Results**.
 
-Provides evidence of completion, inspection, and testing for hydrotest water treatment & discharge testing results.
+**Purpose:** Provides evidence of completion, inspection, and testing for hydrotest water treatment & discharge testing results. **Source:** Decomposition line 652
 
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Type:** Record | **Responsible:** D&B Contractor (QA/QC)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+### Dependencies
+See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Required Inputs:**
+- DEL-29.06: Water Management Plan (sampling/testing plan)
+- Discharge permit with limits
+- Accredited laboratory contracted
 
-**Personnel requirements:**
-- Qualified T&C discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+### Personnel
+- Environmental specialist or technician
+- Test Engineer
+- Laboratory personnel
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Collect Samples Per Plan
+**Activities:**
+1.1. Follow sampling plan from DEL-29.06
+1.2. Collect pre-treatment samples (from tanks)
+1.3. Collect post-treatment samples (from treatment system)
+1.4. Document sample ID, location, date/time
+1.5. Preserve and deliver to laboratory
+
+**Outputs:** Samples delivered to lab with chain of custody
+
+### Step 2: Operate Treatment System
+**Activities:**
+2.1. Operate treatment system per design
+2.2. Log daily operations (flow rates, chemical dosing, maintenance)
+2.3. Monitor performance (visual, flow, pressure)
+2.4. Adjust as needed
+
+**Outputs:** Treatment system logs
+
+### Step 3: Receive and Review Test Results
+**Activities:**
+3.1. Receive laboratory reports
+3.2. Review results against permit limits
+3.3. Calculate treatment efficiency
+3.4. Determine compliance (pass/fail)
+
+**Outputs:** Test results reviewed and assessed
+
+### Step 4: Authorize or Halt Discharge
+**Activities:**
+4.1. If compliant: Authorize discharge
+4.2. If non-compliant: Halt discharge, continue treatment, re-sample, or switch to haul-away
+4.3. Document decision
+
+**Outputs:** Discharge authorization or corrective action
+
+### Step 5: Monitor Discharge
+**Activities:**
+5.1. Monitor discharge (flow rate, visual observations)
+5.2. Document discharge event (date, time, volume, location)
+5.3. Photograph discharge point
+
+**Outputs:** Discharge monitoring records
+
+### Step 6: Compile Records
+**Activities:**
+6.1. Collect all laboratory reports
+6.2. Collect treatment logs
+6.3. Collect discharge records
+6.4. Organize into environmental compliance package
+6.5. File in document management system
+
+**Outputs:** Compiled testing and discharge records (this deliverable)
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+**V-1:** All samples collected per plan
+**V-2:** Test results received and reviewed
+**V-3:** Discharges complied with permits
+**V-4:** Records complete
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+### Acceptance Criteria
+**AC-1:** Testing complete
+**AC-2:** Discharge compliant
+**AC-3:** Records filed
 
 ## Records
 
-**Documentation outputs:**
+**Primary Deliverables:**
 - Water quality test results
-- treatment logs
-- discharge testing records
+- Treatment logs
+- Discharge testing records
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Filing:**
+- Working: `1_Working/DEL-29.07_Hydrotest_Water_Treatment_and_Discharge_Testing_Results/`
+- Issued: `3_Issued/`
+- Archive: Project document management system (permanent environmental records)
+
+**Status:** See `_STATUS.md`

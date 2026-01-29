@@ -2,60 +2,99 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Emergency Response Plan** within **PKG-33 HSE Management**.
+Defines how to develop and implement the Site Emergency Response Plan during construction.
 
-Defines the planned approach and controls for emergency response plan to meet ER requirements.
-
-**Deliverable type:** Plan
-**Responsible party:** D&B Contractor
+**Source:** `_CONTEXT.md`, Decomposition line 735
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Upstream Dependencies:**
+- DEL-33.01 (OHS Plan) — emergency preparedness requirements (Section 6, FR-6, Procedure Step 4.5)
+- DEL-33.02 (Risk Assessments) — emergency scenarios based on credible risks
+- Site layout and access (DEL-00.01) — muster points, evacuation routes, emergency access
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Source:** DEL-33.01; Specification
 
 ## Steps
 
-1. **Scope Definition** — Define plan scope and objectives. **TBD**
-2. **Content Development** — Develop plan content per requirements. **TBD**
-3. **Resource Identification** — Identify resources and responsibilities. **TBD**
-4. **Review** — Stakeholder and technical review. **TBD**
-5. **Approval** — Responsible party approves for implementation. **TBD**
+### Step 1: Develop Emergency Response Plan
+
+**Actions:**
+1. Identify emergency scenarios (from risk assessments DEL-33.02, project hazards DEL-33.01)
+2. Define emergency response organization (roles, 24/7 contacts)
+3. Develop scenario-specific response procedures (medical, fire, spill, rescue, evacuation)
+4. Identify emergency equipment and facilities (first aid, fire, spill, rescue)
+5. Define communication protocols (internal alarms/radio, external 911/Employer/regulatory)
+6. Prepare site emergency maps (muster points, evacuation routes, emergency equipment locations)
+7. Coordinate with DP World Terminal emergency organization (interface protocols)
+8. Coordinate with external emergency services (fire department site familiarization, ambulance access)
+
+**Output:** Draft Emergency Response Plan
+
+**Source:** Specification FR-1 through FR-8; Datasheet Plan Structure
+
+### Step 2: Review, Approve, and Issue
+
+**Actions:**
+1. Review with emergency response team
+2. Review with Employer (DP World) for Terminal interface
+3. Coordinate with external emergency services (fire department walkthrough)
+4. Approve (Project Manager or designate)
+5. Issue controlled copies (site offices, first aid stations, gate, Employer, emergency services)
+
+**Output:** Approved Emergency Response Plan
+
+**Source:** ASSUMPTION: Emergency plan approval process
+
+### Step 3: Implement Emergency Preparedness
+
+**Actions:**
+1. **Emergency Equipment:** Procure and install first aid kits, fire extinguishers, spill kits, rescue equipment. Inspect monthly (DEL-33.01 Procedure Step 4.5).
+2. **Training:** Train emergency response personnel (First Aid Attendants, Fire Wardens, Spill Response Team, Rescue Team). Cross-reference PKG-35.
+3. **Communication:** Establish emergency communication system (alarm, radios, phones). Post emergency contact list at visible locations.
+4. **Signage:** Install muster point signs, evacuation route signs, emergency equipment location signs.
+5. **Drills:** Conduct emergency drills per schedule (evacuation quarterly, fire quarterly, spill semi-annually, confined space rescue quarterly). Debrief and improve plan based on drill findings.
+
+**Output:** Emergency response capability operational
+
+**Source:** DEL-33.01 Procedure Step 4.5; Specification FR-3, FR-7
+
+### Step 4: Respond to Emergencies (When They Occur)
+
+**Actions:**
+1. Recognize emergency and activate response
+2. Follow scenario-specific response procedure
+3. Notify per communication protocols
+4. Implement emergency actions (first aid, evacuation, spill containment, rescue)
+5. Stand down when emergency resolved (Emergency Coordinator authorization)
+6. Investigate incident (DEL-33.01 Procedure Step 4.6)
+7. Implement CAPA and update Emergency Response Plan if needed
+
+**Output:** Emergency managed; incident investigation; plan updated if required
+
+**Source:** Specification FR-2, FR-8; DEL-33.01 Incident Management
 
 ## Verification
 
-**Verification activities for Plan deliverables:**
+- Emergency procedures complete (all scenarios)
+- Equipment inspected and current
+- Personnel trained (emergency response roles)
+- Drills conducted per schedule
+- Terminal coordination confirmed
 
-- Scope coverage review
-- Resource adequacy check
-- Schedule integration review
-- Stakeholder review and acceptance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Source:** Specification Verification
 
 ## Records
 
-**Documentation outputs:**
-- Site emergency response plan
+- Emergency Response Plan (approved)
+- Emergency contact list (current)
+- Emergency equipment inspection records
+- Emergency drill reports
+- Emergency incident reports (when emergencies occur)
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Location:** `3_Issued/`; site offices; first aid stations
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

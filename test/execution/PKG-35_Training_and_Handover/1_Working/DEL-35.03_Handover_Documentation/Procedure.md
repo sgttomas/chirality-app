@@ -2,61 +2,102 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Handover Documentation** within **PKG-35 Training & Handover**.
+This procedure defines the process for producing and managing **Handover Documentation**, formalizing facility transfer from D&B Contractor to Employer.
 
-Provides project management/control documentation for handover documentation required by the ERs.
-
-**Deliverable type:** Document
-**Responsible party:** D&B Contractor
+*Source: _CONTEXT.md*
 
 ## Prerequisites
 
 **Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies coordinated externally
+- **Upstream deliverables**: Essentially all project deliverables (all packages) must be complete or near-complete for handover
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Critical Prerequisites:**
+- Commissioning complete (all systems)
+- Performance tests passed
+- Training complete (DEL-35.01, DEL-35.02)
+- Safety systems verified
+- Documentation delivered (all packages)
+- Regulatory approvals obtained
+- Site reinstatement complete (DEL-35.04)
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+*Cross-references: DEL-35.01, DEL-35.02, DEL-35.04*
+
+**Reference Materials:**
+- Design & Build Contract — handover clauses, acceptance criteria
+- Employer's Requirements — handover requirements
+- Project Quality Management Plan
+- All project deliverables (for documentation index)
+
+**Personnel:**
+- Project Manager (Contractor and Employer)
+- Discipline leads (all disciplines)
+- Quality manager
+- HSE manager
+- Operations manager (Employer)
 
 ## Steps
 
-1. **Content Scoping** — Define document purpose and scope. **TBD**
-2. **Drafting** — Prepare document content. **TBD**
-3. **Review** — Technical and quality review. **TBD**
-4. **Comment Resolution** — Address review comments. **TBD**
-5. **Approval** — Responsible party approves for issue. **TBD**
+**Phase 1: Handover Planning (Early Project)**
+1. Review contract handover requirements and acceptance criteria
+2. Develop handover checklist templates (master, system, documentation, training, safety)
+3. Establish handover acceptance criteria with Employer
+4. Plan handover schedule (coordinate with commissioning and training)
+
+**Phase 2: Pre-Handover Preparation (Late Commissioning)**
+1. Complete system commissioning and testing
+2. Complete operations team training (DEL-35.01, DEL-35.02)
+3. Compile documentation package (all deliverables, document index)
+4. Complete site reinstatement (DEL-35.04)
+5. Prepare handover checklists (populate with completion evidence)
+
+**Phase 3: Handover Readiness Review (Pre-Handover)**
+1. Internal Contractor review of handover readiness
+2. Complete all handover checklists with supporting evidence
+3. Prepare outstanding defects list (punch list) if applicable
+4. Submit handover package to Employer for review
+5. Resolve Employer comments or document as punch list items
+
+**Phase 4: Handover Execution (Handover Event)**
+1. Conduct handover briefing with Employer (facility status, systems review, operations team intro)
+2. Walk through handover checklists with Employer (obtain sign-offs)
+3. Review and agree outstanding defects list (establish defects liability process per DEL-35.05)
+4. Execute Taking Over Certificate (authorized representatives sign)
+5. Transfer documentation package to Employer
+6. Conduct handover ceremony (optional — stakeholder recognition)
+
+**Phase 5: Post-Handover Transition (Immediate Post-Handover)**
+1. Transfer facility keys, access controls, system passwords to Employer
+2. Brief Employer operations team on facility status and outstanding items
+3. Establish defects liability communication protocol (DEL-35.05)
+4. Archive Contractor copies of handover documentation
+5. Celebrate project completion with team
+
+*See Specification.md for requirements; Guidance.md for considerations.*
 
 ## Verification
 
-**Verification activities for Document deliverables:**
+**Verification:**
+- All checklists 100% complete with required sign-offs (VM-01)
+- All required deliverables delivered (VM-02)
+- Training complete per DEL-35.02 (VM-03)
+- Safety readiness certified (VM-04)
+- Employer accepts via Taking Over Certificate execution (VM-05)
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+*Source: Specification.md verification methods*
 
 ## Records
 
-**Documentation outputs:**
-- Taking Over certificates
-- handover checklists
+**Outputs:**
+- Taking Over Certificate (original wet-signed, PDF copy)
+- Handover checklists (all types, signed)
+- Handover package (document index, briefing materials, meeting minutes)
+- Outstanding defects list (punch list) if applicable
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Management:**
+- Central handover file
+- Permanent retention for Taking Over Certificate
+- Employer receives original certificate + complete handover package
+- Contractor retains copies for records and defects liability period (DEL-35.05)
+
+*Cross-reference DEL-35.05 for defects liability period support*

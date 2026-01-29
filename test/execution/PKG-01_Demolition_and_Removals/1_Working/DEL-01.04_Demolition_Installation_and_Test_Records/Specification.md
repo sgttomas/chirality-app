@@ -1,38 +1,52 @@
-# Specification: DEL-01.04 Demolition Installation and Test Records
+# Specification: DEL-01.04 Demolition Installation & Test Records
 
 ## Scope
 
-This deliverable provides evidence of completion, inspection, and testing for demolition works within PKG-01. Source: _CONTEXT.md and decomposition DEL-01.04 entry (location TBD).
+This deliverable provides objective evidence of completion, inspection, testing, and regulatory compliance for PKG-01 demolition works (Track 6, Dolphin 2, fencing, salt tent).
 
-Exclusions: Employer-responsible items are excluded except interface connections. Source: decomposition Section 1.2 Scope Focus (location TBD).
+Source: _CONTEXT.md and decomposition PKG-01 scope.
 
 ## Requirements
 
-- R1: The records shall provide evidence of completion for demolition works. Source: _CONTEXT.md.
-- R2: The records shall provide evidence of inspection and testing for demolition works. Source: _CONTEXT.md.
-- R3: The record set shall include disposal manifests. Source: _CONTEXT.md.
-- R4: The record set shall include completion certificates. Source: _CONTEXT.md.
-- R5: Records shall align with Employer's Requirements. Source: decomposition DEL-01.04 description; ER volumes not available here (location TBD).
-- R6: Records shall cover PKG-01 scope items (Track 6, Dolphin 2, fencing, salt tent). Source: decomposition PKG-01 scope (location TBD).
+**General Record Requirements:**
+- **R1:** Records shall provide evidence of completion for all PKG-01 demolition works. Source: _CONTEXT.md.
+- **R2:** Records shall provide evidence of inspection and verification per DEL-01.02 specification requirements and DEL-01.03 procedure quality controls. Source: _CONTEXT.md.
+- **R3:** Records shall include disposal manifests for all demolition waste. Source: _CONTEXT.md anticipated artifacts.
+- **R4:** Records shall include completion certificates. Source: _CONTEXT.md anticipated artifacts.
+- **R5:** Records shall align with Employer's Requirements (ER). Source: decomposition DEL-01.04 description; ER TBD.
+- **R6:** Records shall cover all PKG-01 scope items. Source: decomposition PKG-01 scope.
 
-## Standards
+**Inspection Record Requirements:**
+- **R7:** Records shall document pre-demolition inspections, phase completion inspections, and final completion inspections per DEL-01.02 inspection hold points.
+- **R8:** Records shall include photo documentation of pre-demolition conditions, work in progress, and final conditions.
+- **R9:** Records shall document non-conformances (if any) and corrective actions.
 
-- Applicable QA/QC, record retention, and regulatory requirements: TBD pending reference documents.
-- ASSUMPTION: Project document control standards apply; specifics TBD.
+**Disposal Record Requirements:**
+- **R10:** Disposal manifests shall document waste type, quantity, origin, destination, and disposal method for all demolition waste per regulatory requirements.
+- **R11:** Records shall include disposal receipts and recycling certificates demonstrating compliance with DEL-01.02 disposal requirements.
+
+**Approval and Retention:**
+- **R12:** Records shall be reviewed and approved by QA/QC manager and accepted by Engineer/Owner per project approval process.
+- **R13:** Records shall be retained per project record retention schedule and regulatory requirements. TBD: retention period.
 
 ## Verification
 
-- V1: Verify required record types are present (disposal manifests, completion certificates). ASSUMPTION based on _CONTEXT.md.
-- V2: Verify evidence of inspection/testing is included. ASSUMPTION; inspection/test criteria TBD.
-- V3: Verify ER alignment once ER volumes are available. TBD.
+- **V1-V3:** Verify record completeness (disposal manifests, completion certificates, inspection evidence per requirements, ER alignment).
+- **V4:** Verify records document compliance with DEL-01.02 specification requirements and acceptance criteria.
+- **V5:** Verify records document execution of DEL-01.03 procedures.
+- **V6:** Verify approvals and acceptance obtained per R12.
 
 ## Documentation
 
-- Issued record package (controlled revisions).
-- Review and acceptance sign-off records. ASSUMPTION: standard QA/QC document control workflow.
+- Issued record package (inspection records, disposal manifests, completion certificates).
+- Master record index and approval tracking.
 
 ## References
 
 - _CONTEXT.md (DEL-01.04).
-- Decomposition file: `test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` (PKG-01 scope, DEL-01.04 entry, Scope Focus; location TBD).
-- _REFERENCES.md indicates no references identified yet; ER volumes listed in decomposition are not provided here (TBD).
+- Decomposition file and related deliverables (DEL-01.01, DEL-01.02, DEL-01.03).
+- _REFERENCES.md indicates no external references yet (TBD: ER, QA/QC plan, record templates).
+
+---
+
+**Document Status:** Enriched through Pass 3. Requirements R1-R13 defined. Verification methods established. All TBDs and ASSUMPTIONs labeled.

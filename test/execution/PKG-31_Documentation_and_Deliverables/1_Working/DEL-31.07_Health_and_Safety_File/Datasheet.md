@@ -16,38 +16,52 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Document Type | Project Health and Safety File |
+| Scope | All health, safety, and environmental (HSE) information relevant to facility construction and operation |
+| Content | Hazard identifications, risk assessments, safety procedures, emergency response plans, HSE documentation |
+| Format | **TBD** — **ASSUMPTION**: Document (PDF) and/or database per Employer's Requirements |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.07 (line 693)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Health & Safety File provides comprehensive HSE information for safe construction, operation, maintenance, and future modifications, supporting OBJ-1 (Safe & Reliable Operation) and regulatory compliance (OBJ-6).
 
-Provides project management/control documentation for health & safety file required by the ERs.
+**Key Content:**
+- Hazard identifications and risk assessments
+- Safety design features and safety systems
+- Emergency response plans and procedures
+- HSE procedures and safe work practices
+- Material safety data sheets (MSDS/SDS)
+- HSE training records
+- Incident reports and lessons learned
+- Regulatory compliance documentation
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 693; **ASSUMPTION** per HSE file purpose; OBJ-1 (line 59), OBJ-6 (line 64)
 
 ## Construction
 
-**Materials / Configuration:**
+**Health & Safety File Structure:**
+1. **Hazard Identification and Risk Assessment**
+2. **Safety Design Features**
+3. **Emergency Response Plans**
+4. **HSE Procedures and Safe Work Practices**
+5. **Material Safety Data**
+6. **HSE Training and Competency**
+7. **Regulatory Compliance Documentation**
+8. **Incident Reports and Lessons Learned**
 
-Anticipated artifacts:
-- Project health and safety file
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Source:** **ASSUMPTION** per typical HSE file structure
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 693
+- Operation Manuals (DEL-31.03) — emergency procedures
+- Maintenance Manuals (DEL-31.04) — safety precautions
+- PKG-33 HSE Management — HSE plans and procedures
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-1: Safe & Reliable Operation (line 780)
+- OBJ-6: Regulatory Compliance (line 784)
+- OBJ-7: Environmental Protection (line 786)

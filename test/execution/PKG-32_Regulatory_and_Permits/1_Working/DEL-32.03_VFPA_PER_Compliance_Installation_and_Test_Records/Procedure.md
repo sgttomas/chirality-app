@@ -2,60 +2,77 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **VFPA PER Compliance Installation & Test Records** within **PKG-32 Regulatory & Permits**.
+Defines process for **producing VFPA PER Compliance Installation & Test Records** within **PKG-32 Regulatory & Permits**.
 
-Provides evidence of completion, inspection, and testing for vfpa per compliance.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Purpose:** Demonstrates VFPA PER condition compliance. (Source: _CONTEXT.md; Datasheet.md; Specification.md)
+**Type:** Record | **Responsible:** D&B Contractor (QA/QC)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependencies:** NOT_TRACKED (Source: _DEPENDENCIES.md)
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Upstream deliverables:**
+- DEL-32.02 (Permits) — VFPA PER approval and conditions
+- DEL-32.02 Procedure Step 4 — PER conditions assigned to DEL-32.03
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Personnel:** QA/QC Manager, QA/QC inspectors, discipline leads (for technical compliance)
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Extract PER Conditions from PER Approval
+(Implements Specification.md FR-01)
+- Obtain VFPA PER approval from DEL-32.02
+- Extract all PER conditions
+- Review condition requirements and deadlines
+- **Output:** List of all VFPA PER conditions
+
+### Step 2: Establish Compliance Tracking System
+(Implements Specification.md FR-02)
+- Create compliance register for PER conditions
+- For each condition: assign ID, responsible party, compliance method, target date
+- Classify by phase (pre-construction, during-construction, post-construction)
+- **Output:** PER compliance register
+
+### Step 3: Execute Compliance Activities (During Project)
+(Implements Specification.md FR-03)
+- Conduct inspections, tests, monitoring per condition requirements
+- Collect compliance evidence (reports, data, photos, certifications)
+- Coordinate with construction team and discipline leads for evidence collection
+- **Output:** Compliance evidence for each condition
+
+### Step 4: Prepare and Submit VFPA Submittals (As Required)
+(Implements Specification.md FR-04)
+- Where conditions require VFPA submittals, prepare submittals per condition requirements
+- Submit to VFPA per specified schedule
+- Obtain VFPA acknowledgment/approval
+- Log submittals in DEL-32.07; file copies in DEL-32.08
+- **Output:** VFPA submittals and acknowledgments
+
+### Step 5: Update Compliance Register
+(Implements Specification.md FR-05)
+- Update register as compliance activities complete
+- Record completion dates, evidence references, VFPA acknowledgments
+- **Output:** Current compliance register
+
+### Step 6: Compile and File Compliance Records
+(Implements Specification.md FR-06)
+- Organize compliance evidence by condition
+- File per document control procedures
+- Ensure accessibility for VFPA inspections/audits
+- **Output:** Organized compliance record set
 
 ## Verification
 
-**Verification activities for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+| Activity | Acceptance Criteria | Procedure Ref |
+|----------|---------------------|---------------|
+| Conditions extracted | All PER conditions identified | Step 1 |
+| Tracking established | Compliance register complete | Step 2 |
+| Evidence collected | Evidence per condition requirements | Steps 3, 4 |
+| Register updated | Register current | Step 5 |
+| Records filed | Records organized and accessible | Step 6 |
 
 ## Records
 
-**Documentation outputs:**
-- PER condition compliance documentation
-
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Outputs:** PER condition compliance documentation (Source: Decomposition Section 5)
+**Storage:** Filed per document control; linked to compliance register
+**Retention:** Per VFPA and contract requirements — **TBD**

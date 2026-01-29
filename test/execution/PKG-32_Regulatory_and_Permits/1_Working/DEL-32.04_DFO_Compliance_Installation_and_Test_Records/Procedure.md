@@ -2,60 +2,74 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **DFO Compliance Installation & Test Records** within **PKG-32 Regulatory & Permits**.
+Defines process for **DFO Compliance Installation & Test Records** within **PKG-32**.
 
-Provides evidence of completion, inspection, and testing for dfo compliance.
-
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Purpose:** Demonstrates DFO condition compliance (Source: _CONTEXT.md; Specification.md)
+**Type:** Record | **Responsible:** D&B Contractor (QA/QC)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
-
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
-
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Dependencies:** NOT_TRACKED
+**Upstream:** DEL-32.02 (Permits) — DFO Fisheries Act authorization and conditions
+**Personnel:** QA/QC Manager, marine mammal observers (if required), construction team
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Extract DFO Conditions from Authorization
+(Implements Specification.md FR-01)
+- Obtain DFO authorization from DEL-32.02
+- Extract all authorization conditions
+- Review condition requirements (habitat measures, timing windows, observations, reporting)
+- **Output:** List of DFO authorization conditions
+
+### Step 2: Establish Compliance Tracking System
+(Implements Specification.md FR-02)
+- Create compliance register for DFO conditions
+- Assign ID, responsible party, compliance method, target date for each condition
+- Classify by phase and type (habitat protection, timing window, observations, reporting)
+- **Output:** DFO compliance register
+
+### Step 3: Execute Compliance Activities
+(Implements Specification.md FR-03)
+- Implement habitat protection measures (sediment control, erosion control, turbidity monitoring)
+- Comply with timing windows (schedule in-water works per DFO windows)
+- Conduct marine mammal observations (if required)
+- Collect compliance evidence (inspection reports, monitoring data, observer logs, photos)
+- **Output:** Compliance evidence
+
+### Step 4: Prepare and Submit DFO Submittals
+(Implements Specification.md FR-04)
+- Prepare submittals per DFO conditions (work notifications, monitoring reports, completion reports)
+- Submit to DFO per schedule
+- Obtain DFO acknowledgment
+- Log in DEL-32.07; file in DEL-32.08
+- **Output:** DFO submittals and acknowledgments
+
+### Step 5: Update Compliance Register
+(Implements Specification.md FR-05)
+- Update register as activities complete
+- Record completion dates, evidence references, DFO acknowledgments
+- **Output:** Current compliance register
+
+### Step 6: Compile and File Compliance Records
+(Implements Specification.md FR-06)
+- Organize evidence by condition
+- File per document control
+- Ensure accessibility for DFO inspections
+- **Output:** Organized compliance record set
 
 ## Verification
 
-**Verification activities for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+| Activity | Acceptance Criteria | Procedure Ref |
+|----------|---------------------|---------------|
+| Conditions extracted | All DFO conditions identified | Step 1 |
+| Tracking established | Register complete | Step 2 |
+| Evidence collected | Evidence per condition requirements | Steps 3, 4 |
+| Register updated | Register current | Step 5 |
+| Records filed | Records accessible | Step 6 |
 
 ## Records
 
-**Documentation outputs:**
-- DFO permit compliance documentation
-
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Outputs:** DFO permit compliance documentation (Source: Decomposition Section 5)
+**Storage:** Filed per document control
+**Retention:** Per DFO and contract requirements — **TBD**

@@ -2,54 +2,69 @@
 
 ## Purpose
 
-This guidance document supports the development of **Asset Hierarchy** for **PKG-31 Documentation & Deliverables**.
+Provides structured asset information enabling effective operations, maintenance, and lifecycle asset management (OBJ-9).
 
-Provides project management/control documentation for asset hierarchy required by the ERs.
-
-This deliverable is classified as a **Document** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.06 (line 692); OBJ-9 (line 67, line 788)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Hierarchical Organization
+Assets organized hierarchically to reflect physical and functional relationships.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Unique Asset Identification
+Each asset has unique tag enabling unambiguous identification across all documentation and systems.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: Consistency Across Documentation
+Asset tags consistent across drawings (DEL-31.02), manuals (DEL-31.03, DEL-31.04), vendor documentation (DEL-31.05), warranties (DEL-31.08).
+
+### Principle 4: CMMS Foundation
+Asset Hierarchy is foundation for CMMS implementation—structure and data quality are critical.
+
+### Principle 5: Criticality-Based Management
+Asset criticality classification enables risk-based maintenance and resource prioritization.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Asset Tagging Standard
+Develop and apply consistent asset tagging standard (e.g., system-based tags, sequential numbering, intelligent vs. non-intelligent tags). Coordinate with Employer's existing standards if applicable.
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Hierarchical Depth
+Balance detail (more levels, granular) vs. simplicity (fewer levels, manageable). Typical: Facility → Systems → Equipment; add Subsystems and Components only where beneficial.
+
+### Asset Criticality Classification
+Classify assets by criticality (critical, important, routine) based on consequence of failure. Supports risk-based maintenance prioritization.
+
+### CMMS Integration
+Coordinate with Employer's CMMS requirements early. Understand data format, required fields, import procedures.
+
+### As-Built Baseline
+Use As-Built Drawings (DEL-31.02) as baseline for asset identification and tagging.
+
+### Lifecycle Updates
+Asset Hierarchy is living document—establish process for updates (new assets, retirements, modifications).
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+### Intelligent vs. Non-Intelligent Asset Tags
+Intelligent tags (encode information, e.g., P-101 = Pump in System 1, Item 01) vs. non-intelligent tags (sequential, e.g., ASSET-001). Intelligent tags are more descriptive but harder to manage long-term.
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Detail vs. Simplicity
+More detailed hierarchy (many levels, many assets) provides granular data but increases management complexity. Balance based on facility complexity and Employer's needs.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Asset Hierarchy Example:**
+- Level 1: COTF-PHASE1 (Facility)
+  - Level 2: RCU-SYSTEM (Railcar Unloading System)
+    - Level 3: RCU-PUMP-SYSTEM (Unloading Pump Subsystem)
+      - Level 4: P-101A (Unloading Pump A)
+      - Level 4: P-101B (Unloading Pump B)
+    - Level 3: RCU-ARM-SYSTEM (Unloading Arm Subsystem)
+      - Level 4: UA-01 through UA-32 (Unloading Arms)
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Asset hierarchy database/document
+**Asset Attributes Example:**
+| Asset Tag | Description | Parent | Location | Criticality | Manufacturer | Model | Install Date | Warranty Exp |
+|-----------|-------------|--------|----------|-------------|--------------|-------|--------------|--------------|
+| P-101A | Unloading Pump A | RCU-PUMP-SYSTEM | Pump House | Critical | XYZ Pumps | Model 500 | 2026-06-01 | 2028-06-01 |
+
+**Source:** _CONTEXT.md; Decomposition line 692

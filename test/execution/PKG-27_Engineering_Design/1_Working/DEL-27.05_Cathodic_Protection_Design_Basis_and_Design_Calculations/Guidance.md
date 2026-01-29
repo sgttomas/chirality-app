@@ -2,56 +2,73 @@
 
 ## Purpose
 
-This guidance document supports the development of **Cathodic Protection Design Basis & Design Calculations** for **PKG-27 Engineering Design**.
+Supports development of **Cathodic Protection Design Basis & Design Calculations** for **PKG-27 Engineering Design**. CP prevents corrosion of buried and submerged steel structures at Fraser Surrey Terminal waterfront facility.
 
-Provides the engineering basis and sizing/verification calculations for cathodic protection design basis &.
-
-This deliverable is classified as a **Calculation** under the **Design** discipline, to be produced by **D&B Contractor (CP Specialist)**.
+**Source:** _CONTEXT.md; Datasheet.md
 
 ## Principles
 
-**Engineering rationale (Design discipline):**
+**Principle 1: Cathodic Protection Fundamentals**
+CP works by making steel structure the cathode in electrochemical cell. Current flows from anodes through soil/water to structure, preventing corrosion. Two methods: (1) Sacrificial anodes (galvanic) — more active metal (zinc/magnesium) corrodes preferentially; (2) ICCP — external power source drives current from inert anodes.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Principle 2: Site-Specific Design**
+CP design depends critically on site conditions (soil/water resistivity, coatings, stray currents). Generic designs often fail; must use actual site data.
 
-**Applicable standards context:**
-- ISO 9001
-- Employer's Requirements
-- CSA Standards (discipline-specific)
+**Principle 3: Lifecycle Considerations**
+CP is long-term corrosion management strategy. Design must account for coating degradation over time, anode consumption, maintenance access. Marine environment is particularly aggressive; design margins essential.
+
+**Source:** **ASSUMPTION**: CP engineering principles per NACE standards and industry practice
 
 ## Considerations
 
-**Factors to consider during development:**
+**Fraser River Marine Environment:**
+- Brackish water (salt + fresh mix) = highly corrosive, conductive
+- Tidal variations = splash zone corrosion (most aggressive)
+- Marine organisms = potential for biological corrosion
+- Waterfront soils likely conductive, corrosive
+- **TBD** — Specific resistivity and corrosion rate data from site testing
 
-- Package scope: PKG-27 Engineering Design
-- Deliverable type: Calculation — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**Structure-Specific:**
+- **Storage tanks:** Tank bottoms on grade most vulnerable if no liner/barrier
+- **Buried piping:** All underground piping requires CP unless non-metallic or fully encased in non-conductive material
+- **Marine structures:** Steel piles, sheet piles in water/mud highly vulnerable; critical for marine loading safety
+
+**CP System Selection:**
+- **ICCP:** Better for large current demands, long life, easier to adjust; requires power, maintenance, more complex
+- **Sacrificial anodes:** Simpler, no power, lower maintenance; limited current capacity, finite life, less flexible
+- **Recommendation:** ICCP for marine structures (large submerged area, high current demand); Sacrificial for buried piping (moderate demand, distributed); **TBD** — based on detailed analysis
+
+**Source:** Datasheet.md; **ASSUMPTION**: Typical marine facility CP considerations
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Trade-off 1: ICCP vs. Sacrificial Anodes**
+- ICCP: Higher capital cost, requires power/maintenance → Lower lifecycle cost (long life, adjustable), better for large demands
+- Sacrificial: Lower capital cost, no power → Higher lifecycle cost (anode replacement), limited to moderate demands
+- **Recommendation:** Lifecycle cost analysis; consider hybrid approach (ICCP for marine, sacrificial for buried utilities)
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off 2: Design Margins**
+- Conservative (high margins): Oversized anodes/rectifiers → Higher cost, but protects against uncertainties (coating degradation, resistivity variations)
+- Optimized (low margins): Right-sized for calculated demand → Lower cost, risk of under-protection if assumptions wrong
+- **Recommendation:** Marine environment warrants conservatism (20-50% margin typical); monitor performance post-installation
+
+**Source:** **ASSUMPTION**: Standard CP design trade-offs
 
 ## Examples
 
-**Reference examples and precedents:**
+**Example: Current Demand Calculation**
+For buried piping: 100 m of 12" steel pipe, external coating 95% efficient
+- Surface area = π × D × L = 3.14 × 0.3 m × 100 m = 94 m²
+- Current density (coated steel in soil) = 10 mA/m² per NACE SP0169
+- Bare area = 94 m² × (1 - 0.95) = 4.7 m²
+- Current demand = 4.7 m² × 10 mA/m² = 47 mA
+- Design margin 30% → Total demand = 47 × 1.3 = 61 mA
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- CP design basis
-- anode layout calculations
-- current demand calculations
-- design drawings where applicable
+**Example: Sacrificial Anode Sizing**
+For 61 mA demand over 25-year life:
+- Magnesium anode capacity = 1100 Ah/kg (utilization factor 0.85)
+- Total charge required = 61 mA × 25 years × 8760 hr/year = 13,359 Ah
+- Anode mass required = 13,359 / (1100 × 0.85) = 14.3 kg
+- Use (2) 10 kg magnesium anodes (20 kg total) for redundancy and distribution
+
+**Source:** **ASSUMPTION**: Typical CP calculation example; actual values **TBD**

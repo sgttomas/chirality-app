@@ -2,60 +2,123 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Lighting Installation & Test Records** within **PKG-18 Lighting**.
+This procedure defines the process for inspection, testing, and documentation of the lighting system.
 
-Provides evidence of completion, inspection, and testing for lighting.
+**Deliverable Purpose:** Provides evidence of completion, inspection, and testing for lighting. *(Source: _CONTEXT.md)*
 
-**Deliverable type:** Record
-**Responsible party:** D&B Contractor (QA/QC)
+**Deliverable Type:** Record | **Responsible Party:** D&B Contractor (QA/QC)
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+**Dependencies (NOT_TRACKED - coordinated externally):**
+- Lighting installation substantially complete
+- Electrical power available and energized (PKG-17)
+- Control systems commissioned (PKG-19) for integrated controls testing
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Reference Materials:**
+- Lighting Design Drawings (DEL-18.01) — for verification
+- Lighting Technical Specification (DEL-18.02) — for requirements
+- Lighting Design Calculations (DEL-18.03) — for comparison
+- Lighting Data Sheet Package (DEL-18.04) — for equipment verification
 
-**Personnel requirements:**
-- Qualified Electrical discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Test Equipment:**
+- Illuminance meters (lux meters) with current calibration
+- Multimeters for electrical verification
+- Stopwatches for emergency duration testing
+- Camera for installation photographs
+
+**Personnel:**
+- Contractor QA/QC personnel to conduct tests
+- Electrical Engineer to witness and verify
+- Employer representative or commissioning agent to witness (if required)
 
 ## Steps
 
-1. **Record Identification** — Identify required records per deliverable scope. **TBD**
-2. **Data Collection** — Collect inspection, test, or verification data. **TBD**
-3. **Verification** — Verify data completeness and accuracy. **TBD**
-4. **Compilation** — Compile records into deliverable format. **TBD**
-5. **Submission** — Submit records package for acceptance. **TBD**
+### Step 1: Installation Inspection
+- Verify all fixtures installed per drawings (DEL-18.01)
+- Check mounting, alignment, security, wiring, grounding
+- Document on installation checklists
+- Photograph installed conditions
+- Mark up as-built deviations
+
+### Step 2: Illumination Testing - Exterior
+- Conduct testing at night in dry conditions
+- Set up test grid matching calculation grid (DEL-18.03) where practical
+- Measure illuminance at each grid point using calibrated lux meter
+- Record measurements on test forms with location plan
+- Compare to calculated values; identify pass/fail per acceptance criteria
+
+### Step 3: Illumination Testing - Interior
+- Conduct testing with windows/doors closed to block daylight (if needed)
+- Measure illuminance per test grid
+- Record measurements
+- Compare to calculated values
+
+### Step 4: Emergency Lighting Testing
+**Illuminance Testing:**
+- Disconnect normal power to activate emergency lighting
+- Measure illuminance along egress paths
+- Verify ≥10 lux avg, ≥1 lux min per NFPA 101
+
+**Duration Testing:**
+- Disconnect normal power
+- Monitor emergency lights for 90+ minutes
+- Record time to failure or confirm 90-minute duration achieved
+
+### Step 5: Control System Functional Testing
+- Test occupancy sensors (on/off, time delays)
+- Test photocells and daylight sensors
+- Test manual controls (switches, contactors)
+- Test integration with facility controls (PKG-19)
+- Verify control zones operate correctly
+
+### Step 6: Document Deficiencies (Punch List)
+- Document all deficiencies found
+- Classify by severity
+- Assign responsibility for corrective actions
+
+### Step 7: Corrective Actions and Re-Testing
+- Implement corrective actions (re-aim fixtures, replace lamps, adjust controls, etc.)
+- Re-test affected areas
+- Document resolutions
+
+### Step 8: Final Acceptance
+- Compile test records package
+- Obtain witness signatures
+- Submit to Employer for acceptance
+- Obtain final acceptance certificate
+- File records in `3_Issued/` and project DMS
+
+### Step 9: Training and Closeout
+- Conduct owner/operator training on operation and maintenance
+- Deliver O&M manuals
+- Update as-built drawings with field markups
+- Archive all records
 
 ## Verification
 
-**Verification activities for Record deliverables:**
+**V-1: Installation Complete** — All fixtures installed and functional
+**V-2: Illuminance Verified** — Measured levels meet requirements
+**V-3: Emergency Lighting Verified** — Duration and illuminance per NFPA 101
+**V-4: Controls Functional** — All controls tested and operational
+**V-5: Documentation Complete** — All test records signed and filed
 
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Sign-Off:** Employer final acceptance certificate — **TBD**
 
 ## Records
 
-**Documentation outputs:**
-- Illumination test records
+**Documentation Outputs:**
+1. **Illumination test records** — Field measurements for exterior and interior areas
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+*(Source: _CONTEXT.md, Decomposition)*
+
+**Record Organization:**
+- Installation inspection checklists
+- Illumination test forms with measurements
+- Emergency lighting test results
+- Control functional test results
+- Punch list and resolutions
+- Final acceptance certificate
+- Training records and O&M manual delivery confirmation
+
+**Retention:** Permanent retention as project closeout documentation

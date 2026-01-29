@@ -2,54 +2,77 @@
 
 ## Purpose
 
-This guidance document supports the development of **Coating Data Sheet Package** for **PKG-26 Protective Coatings & Painting**.
+This deliverable compiles manufacturer technical data sheets for coating materials specified in DEL-26.01, supporting coating selection, procurement, application, and inspection.
 
-Defines and substantiates coating in accordance with ER requirements.
+**Deliverable classification:** Data Sheet, Coatings discipline, D&B Contractor
 
-This deliverable is classified as a **Data Sheet** under the **Coatings** discipline, to be produced by **D&B Contractor**.
+**Project objectives:** OBJ-3 (Storage Capacity — food-grade compliance), OBJ-9 (Lifecycle Cost Optimization — performance data for lifecycle analysis)
 
 ## Principles
 
-**Engineering rationale (Coatings discipline):**
+**Data Sheet Role in Coating Quality:**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+Manufacturer data sheets are the authoritative source for product-specific application requirements. Coating performance depends on following manufacturer recommendations for:
+- Surface preparation (SSPC standard, profile depth)
+- Mixing (ratios, pot life, induction time)
+- Application (spray parameters, WFT for target DFT)
+- Environmental limits (temperature, humidity, dew point)
+- Recoat windows (minimum/maximum time between coats)
+- Cure (time to handle, time to service)
 
-**Applicable standards context:**
-- SSPC Standards
-- NACE Standards
-- CSA S6 Annex
-- ISO 12944
+**Source:** DEL-26.02 (Guidance — Application Quality Control); **ASSUMPTION**
+
+**FDA/NSF Compliance for Food-Contact Coatings:**
+
+Tank internal coatings contacting canola oil (food product) require compliance certificates:
+- **FDA 21 CFR 175.300:** U.S. regulation for food-contact coatings
+- **NSF/ANSI 61:** Potable water/food-contact standard (or equivalent)
+- Manufacturer must provide current certificates with coating data sheets
+
+**Source:** DEL-26.01 (PR-1, Guidance — Food Contact Regulations)
 
 ## Considerations
 
-**Factors to consider during development:**
+**Data Sheet Sourcing:**
 
-- Package scope: PKG-26 Protective Coatings & Painting
-- Deliverable type: Data Sheet — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+- Obtain data sheets during coating system selection (design phase) or procurement (bidding phase)
+- Verify data sheets are current versions from manufacturer
+- Organize data sheets by application for ease of use during construction
+
+**Coordination:**
+
+- **DEL-26.01:** Data sheets must correspond to coating systems specified
+- **DEL-26.02:** Procedures will reference data sheets for application parameters
+- **DEL-26.04:** Inspection will reference data sheets for acceptance criteria
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**Brand-Specific vs. Generic Data Sheets:**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+- Brand-specific data sheets: Obtained after coating product selection or during procurement
+- Generic data sheets: Industry-typical products for reference during specification phase
+
+**Recommendation:** Include both generic/reference data sheets during specification phase (DEL-26.01 development) and brand-specific data sheets after product selection/procurement.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Typical Data Sheet Package Organization:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Coating system data sheets (by application)
+1. Index / Table of Contents
+2. Tank Internal Coatings (Food-Grade)
+   - Product data sheet
+   - Application guide
+   - FDA/NSF compliance certificates
+   - SDS
+3. Tank External Coatings
+   - Primer (data sheet, application guide, SDS)
+   - Intermediate (data sheet, application guide, SDS)
+   - Topcoat (data sheet, application guide, SDS)
+4. Structural Steel Coatings (same as tank external if same system)
+5. Marine Coatings
+   - Product data sheet, application guide, SDS
+6. Field Touch-Up Coatings
+7. Abrasives
+   - Technical data, SDS
+
+**Source:** **ASSUMPTION** — Standard data sheet package organization

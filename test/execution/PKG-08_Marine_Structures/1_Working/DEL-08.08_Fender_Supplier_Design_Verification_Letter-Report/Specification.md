@@ -2,66 +2,143 @@
 
 ## Scope
 
-This specification defines the requirements for **Fender Supplier Design Verification Letter/Report** within **PKG-08 Marine Structures**.
+Defines requirements for **Fender Supplier Design Verification Letter/Report**: minimum content, verification basis, engineering sign-off, and documentation control.
 
-Documents analysis and results for fender supplier design verification letter/report required for design verification and approvals.
+**Deliverable intent:** Documents analysis and results for fender supplier design verification letter/report required for design verification and approvals. *(Source: Decomposition line 288)*
 
-**Anticipated deliverable artifacts:**
-- Supplier verification letter/report
-- stamped calculations where applicable
+### Inclusions
+- Supplier verification letter/report confirming fender suitability
+- Stamped calculations (where applicable)
+- Supporting documentation as required
+
+### Exclusions
+- Berthing energy calculation (DEL-08.06)
+- Fender performance data (DEL-08.07)
+- Installation records (DEL-08.05)
+
+---
 
 ## Requirements
 
-### Functional Requirements
+### R-001 — Minimum Deliverable Content
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+*(Source: Decomposition line 288)*
 
-### Performance Requirements
+| Component | Required Content |
+|---|---|
+| Supplier verification letter/report | Formal confirmation of design adequacy |
+| Stamped calculations (where applicable) | Professional-signed calculations if required |
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-001
 
-### Interface Requirements
+---
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+### R-002 — Verification Statement Requirements
 
-### Quality Requirements
+**Letter/report shall include:**
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Report).
+| Element | Description |
+|---|---|
+| Fender identification | Model, type, size, configuration |
+| Design basis | Load cases, energy, conditions |
+| Compliance statement | Explicit confirmation fender meets requirements |
+| Standards reference | Applicable standards/codes |
+| Limitations | Any conditions on verification |
+| Sign-off | Name, title, date, signature |
 
-## Standards
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-002
 
-**Applicable codes and standards (Marine discipline):**
+---
 
-- CSA S472
-- PIANC Guidelines
-- Transport Canada Marine Standards
-- NFPA 30
+### R-003 — Design Input Traceability
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Verification shall identify:**
 
-## Verification
+| Input | Requirement |
+|---|---|
+| Design berthing energy | Value and source (DEL-08.06) |
+| Performance data | Reference to DEL-08.07 |
+| Operating conditions | Temperature, velocity, angle factors |
+| Safety factors | Factors and basis |
 
-**Verification methods for Report deliverables:**
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-003
 
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
+---
 
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+### R-004 — Engineering Certification (Where Required)
 
-## Documentation
+| Requirement | Description |
+|---|---|
+| P.Eng. sign-off | P.Eng. stamp/seal if required by jurisdiction/ER |
+| Certification statement | Professional responsibility statement |
+| Qualifications | Engineer's credentials |
 
-**Required documentation outputs:**
-- Supplier verification letter/report
-- stamped calculations where applicable
+*ASSUMPTION: BC jurisdiction may require P.Eng. — confirm from ER and provincial requirements.*
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-004
+
+---
+
+### R-005 — ER Alignment
+
+**Requirement:** Content and acceptance per ER.
+
+**Applicable ER clauses:** **TBD**
+**Referenced standards:** **TBD**
+**Acceptance criteria:** **TBD**
+
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-005
+
+---
+
+### R-006 — Document Control
+
+| Requirement | Description |
+|---|---|
+| Document ID | Unique letter/report number |
+| Controlled issue | Per project procedures |
+| Transmittal | Formal transmittal supplier → D&B Contractor |
+
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-006
+
+---
+
+## Standards and References
+
+**Standards (TBD):**
+- PIANC WG 33 (2002)
+- BS 6349-4
+- EGBC/APEGBC professional practice
+
+**References:**
+- ER Vol 2 Parts 1-2
+- DEL-08.06, DEL-08.07, DEL-08.03
+
+---
+
+## Verification Matrix
+
+| Req ID | Method | Evidence | Status |
+|---|---|---|---|
+| R-001 | Completeness | Letter/report + calculations | **TBD** |
+| R-002 | Content review | All elements present | **TBD** |
+| R-003 | Traceability | Inputs with sources | **TBD** |
+| R-004 | Certification | P.Eng. stamp if required | **TBD** |
+| R-005 | ER compliance | ER clauses addressed | **TBD** |
+| R-006 | Documentation | Controlled issue | **TBD** |
+
+---
+
+## Documentation Outputs
+
+- Supplier Verification Letter/Report
+- Stamped calculations (if required)
+- Supplier transmittal
+- D&B Contractor acceptance record
+
+---
+
+## Sources
+
+- Decomposition line 288
+- ER Vol 2 Parts 1-2 *(TBD)*

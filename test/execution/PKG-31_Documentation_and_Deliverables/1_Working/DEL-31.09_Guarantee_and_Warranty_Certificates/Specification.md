@@ -2,68 +2,59 @@
 
 ## Scope
 
-This specification defines the requirements for **Guarantee & Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
+Defines requirements for **Guarantee & Warranty Certificates** within **PKG-31 Documentation & Deliverables**.
 
-Defines and substantiates guarantee & warranty certificates in accordance with ER requirements.
+**Purpose:** Collect and organize warranty certificate documents per Employer's Requirements.
 
-**Anticipated deliverable artifacts:**
-- Guarantee certificates
-- warranty certificates
-- vendor letters
+**Source:** Decomposition DEL-31.09 (line 695)
+
+**Anticipated artifacts:** Guarantee certificates, warranty certificates, vendor letters
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**FR-01: Completeness** — Warranty certificates obtained for all warranted process equipment.
+
+**FR-02: Authenticity** — Certificates are original vendor-issued documents (not draft or pro forma).
+
+**FR-03: Organization** — Certificates organized by equipment; cross-referenced in Register (DEL-31.08).
 
 ### Performance Requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**PR-01: Timeliness** — Certificates obtained before equipment installation or commissioning.
+
+**PR-02: Format** — Electronic format (PDF); organized per project standards.
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**IR-01: Vendor Documentation Interface** — Certificates sourced from DEL-31.05.
+
+**IR-02: Warranty Register Interface** — Cross-referenced in DEL-31.08.
 
 ### Quality Requirements
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Document Package).
+**QR-01: Document Control** — Certificates managed per project document control procedures.
+
+### Lifecycle Requirements
+
+**LR-01: Lifecycle Cost Optimization** — Certificates support warranty claim management (OBJ-9).
+- **Source:** OBJ-9 (line 67, line 788)
 
 ## Standards
 
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+- Employer's Requirements — **TBD**
 
 ## Verification
 
-**Verification methods for Document Package deliverables:**
+1. **Completeness Review** — All warranted equipment certificates obtained
+2. **Authenticity Check** — Certificates are vendor-issued originals
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Acceptance Criteria:** All certificates obtained; authentic; organized; Employer acceptance obtained
 
 ## Documentation
 
-**Required documentation outputs:**
-- Guarantee certificates
-- warranty certificates
-- vendor letters
+**Outputs:**
+1. Warranty Certificate Package (organized by equipment)
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Filing:** \`3_Issued/\` or warranty-specific folders

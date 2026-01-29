@@ -2,56 +2,38 @@
 
 ## Purpose
 
-This guidance document supports the development of **Building Warranty Certificates** for **PKG-31 Documentation & Deliverables**.
+Collect and organize building warranty certificates, enabling effective warranty management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates building warranty certificates in accordance with ER requirements.
-
-This deliverable is classified as a **Document Package** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.10 (line 696); OBJ-9 (line 67, line 788)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Comprehensive Building Coverage
+Obtain warranties for all building systems (structure, envelope, roofing).
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Long-Term Warranties
+Building warranties often cover extended periods (10-20 years for roofing, structural warranties for building life)—critical for lifecycle cost management.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: Warranty Compliance
+Building warranties often require periodic inspections and maintenance—document requirements to ensure warranty compliance.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Modular Building Warranties
+Modular buildings typically include manufacturer warranty covering structural integrity, weather-tightness, and workmanship.
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document Package — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Roofing Warranties
+Roofing warranties may be material-only or material-and-labor; may be from manufacturer and/or installer. Verify coverage and duration.
 
-## Trade-offs
+### Building Envelope Warranties
+Water infiltration warranties for building envelope, windows, doors.
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Warranty Registration
+Some building warranties require registration with manufacturer—ensure registration completed.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Roofing Warranty Example:**
+"ABC Roofing Company warrants that roofing system installed on Building B-01 is free from defects in materials and workmanship for twenty (20) years from date of substantial completion (June 1, 2026). Warranty covers materials and labor for leak repairs."
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Modular building warranty
-- envelope warranty
-- roofing warranty (as applicable)
+**Source:** _CONTEXT.md; Decomposition line 696

@@ -2,70 +2,147 @@
 
 ## Scope
 
-This specification defines the requirements for **Berthing Energy Calculation Report** within **PKG-08 Marine Structures**.
+Defines requirements for the **Berthing Energy Calculation Report**: minimum content, methodology, traceability, review, and documentation control for design verification and approvals.
 
-Documents analysis and results for berthing energy calculation report required for design verification and approvals.
+**Deliverable intent:** Documents analysis and results for berthing energy calculation report required for design verification and approvals. *(Source: Decomposition line 286)*
 
-**Anticipated deliverable artifacts:**
-- Berthing energy calculations
-- design basis
-- assumptions
-- summary report
+### Inclusions
+- Berthing energy calculations for design vessel(s) and scenarios
+- Design basis (vessel particulars, approach conditions, coefficients)
+- Assumptions register
+- Summary report with governing case
+
+### Exclusions
+- Fender selection/sizing (DEL-08.07)
+- Supplier verification (DEL-08.08)
+- Structural design of fender supports (DEL-08.03)
+
+---
 
 ## Requirements
 
-### Functional Requirements
+### R-001 — Minimum Report Content
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+The deliverable shall include *(Source: Decomposition line 286)*:
 
-### Performance Requirements
+| Component | Required Content |
+|---|---|
+| Berthing energy calculations | Kinetic energy for each design case |
+| Design basis | Vessel particulars, velocities, coefficients |
+| Assumptions | Explicit list with rationale |
+| Summary report | Governing case, energy demand, recommendations |
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-001
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-001
 
-### Interface Requirements
+---
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+### R-002 — Design Vessel and Scenario Definition
 
-### Quality Requirements
+**Requirement:** Document:
+- Design vessel(s): type, displacement, dimensions
+- Berthing scenarios: approach angle, velocity, frequency
+- Source of vessel/scenario data
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Report).
+**Source:** **TBD** *(from ER or project basis)*
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-002
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-002
 
-## Standards
+---
 
-**Applicable codes and standards (Marine discipline):**
+### R-003 — Calculation Methodology
 
-- CSA S472
-- PIANC Guidelines
-- Transport Canada Marine Standards
-- NFPA 30
+**Requirement:** Document methodology including:
+- Energy formula (e.g., E = 0.5 × M × V² × Cm × Ce × Cc × Cs)
+- Coefficient definitions and values with justification
+- Applicable standards/codes (e.g., PIANC, BS 6349-4)
+- Safety factor application
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**ASSUMPTION:** Kinetic energy method per PIANC or BS 6349-4; confirm from ER
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-003
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-003
 
-## Verification
+---
 
-**Verification methods for Report deliverables:**
+### R-004 — ER Alignment
 
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
+**Requirement:** Method, criteria, acceptance per ER.
 
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+**Applicable ER clauses:** **TBD**
+**Referenced standards:** **TBD**
+**Acceptance criteria:** **TBD**
 
-## Documentation
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-004
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-004
 
-**Required documentation outputs:**
-- Berthing energy calculations
-- design basis
-- assumptions
-- summary report
+---
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+### R-005 — Traceability and Assumptions
+
+**Requirement:** Provide:
+- Input data register with sources and revisions
+- Assumptions table (ID, statement, basis, impact if changed)
+
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-005
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-005
+
+---
+
+### R-006 — QA/QC Review and Document Control
+
+**Requirement:**
+- Independent check of calculations and methodology
+- Document control per project procedures
+
+**ASSUMPTION:** QA/QC review required; confirm from ER/QA plan
+**Rationale:** See `Guidance.md` § Requirement Rationale Map, R-006
+**Verification:** See `Procedure.md` § Requirement Coverage Matrix, R-006
+
+---
+
+## Standards and References
+
+**Standards (TBD, confirm from ER):**
+- PIANC WG 33 (2002) — Guidelines for Design of Fenders
+- BS 6349-4 — Code of Practice for Fendering and Mooring
+- OCIMF MEG4 — Mooring Equipment Guidelines
+
+**References:**
+- ER Vol 2 Parts 1-2
+- DEL-08.07, DEL-08.08 (fender system deliverables)
+- DEL-08.03 (structural calculations)
+- DEL-08.09 (mooring analysis - shared vessel basis)
+
+---
+
+## Verification and Acceptance
+
+**Verification Matrix:**
+
+| Req ID | Method | Evidence | Status |
+|---|---|---|---|
+| R-001 | Completeness check | All four components present | **TBD** |
+| R-002 | Design basis review | Vessels/scenarios defined with sources | **TBD** |
+| R-003 | Methodology review | Method consistent with standards | **TBD** |
+| R-004 | ER compliance | ER clauses addressed | **TBD** |
+| R-005 | Traceability audit | Input/assumptions registers complete | **TBD** |
+| R-006 | QA review | Review sign-off, comments closed | **TBD** |
+
+**Acceptance Criteria (TBD):** All reviews complete, ER requirements met, suitable for approval submission
+
+---
+
+## Documentation Outputs
+
+- Berthing Energy Calculation Report
+- Input register
+- Assumptions register
+- QA/QC review record
+- Transmittal
+
+---
+
+## Sources
+
+- Decomposition line 286
+- ER Vol 2 Parts 1-2 *(clause locations TBD)*

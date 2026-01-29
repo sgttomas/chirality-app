@@ -2,64 +2,92 @@
 
 ## Scope
 
-This specification defines the requirements for **Emergency Response Plan** within **PKG-33 HSE Management**.
+Defines the planned approach and controls for emergency response to meet ER requirements during construction.
 
-Defines the planned approach and controls for emergency response plan to meet ER requirements.
+**Anticipated Artifact:** Site emergency response plan
 
-**Anticipated deliverable artifacts:**
-- Site emergency response plan
+**Source:** `_CONTEXT.md`, Decomposition line 735; DEL-33.01 Specification FR-6
 
 ## Requirements
 
-### Functional Requirements
+### FR-1: Emergency Response Organization
+Define roles, responsibilities, command structure, 24/7 contact list.
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**Source:** DEL-33.01 Specification FR-6; Datasheet Emergency Response Organization
 
-### Performance Requirements
+### FR-2: Emergency Scenarios and Procedures
+Provide response procedures for:
+- Medical emergencies
+- Fire
+- Spill (canola oil, fuel, chemicals)
+- Confined space rescue
+- Marine emergencies (person overboard, vessel collision)
+- Structural collapse
+- Evacuation
+- Natural disasters
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Source:** Datasheet Emergency Scenarios; DEL-33.01 Specification FR-6
 
-### Interface Requirements
+### FR-3: Emergency Equipment and Facilities
+Specify emergency equipment, inspection, and maintenance:
+- First aid rooms/kits (WorkSafeBC Part 3 compliant)
+- Fire extinguishers and fire hoses
+- Spill kits (general, marine)
+- Rescue equipment (confined space retrieval, marine rescue boat/throw bags)
+- Communication equipment (radios, emergency phones, alarms)
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**Source:** DEL-33.01 Procedure Step 4.1, Step 4.5; Datasheet Plan Structure
 
-### Quality Requirements
+### FR-4: Communication Protocols
+Define internal and external emergency notification:
+- Internal: alarm system, radio protocol, assembly procedure
+- External: 911, Employer (DP World), WorkSafeBC (serious injury/fatality), environmental agencies (major spill)
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Plan).
+**Source:** Datasheet Plan Structure; ASSUMPTION: Emergency communication protocols
 
-## Standards
+### FR-5: Muster Points and Evacuation
+Define muster points, evacuation routes, assembly areas (site map).
 
-**Applicable codes and standards (Project Delivery discipline):**
+**Source:** Datasheet Plan Structure; DEL-33.01 Procedure Step 4.5 (evacuation drills)
 
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### FR-6: Terminal Interface
+Coordinate with DP World Fraser Surrey Terminal emergency response:
+- Shared emergency services (fire brigade, medical)
+- Mutual aid agreements
+- Joint emergency drills
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Source:** OBJ-5 Terminal Continuity; DEL-33.01 Guidance Terminal Interface Example 2; Datasheet Plan Structure
+
+### FR-7: Training and Drills
+Specify emergency response training and drill schedule:
+- Evacuation drills (quarterly)
+- Fire drills (quarterly)
+- Spill response drills (semi-annually)
+- Confined space rescue drills (quarterly)
+- Marine rescue drills (quarterly, during marine operations)
+
+**Source:** DEL-33.01 Specification FR-6; Procedure Step 4.5; Datasheet Plan Structure
+
+### FR-8: Post-Emergency Procedures
+Define incident investigation, CAPA, lessons learned, stand-down procedures.
+
+**Source:** DEL-33.01 Specification FR-8; Datasheet Plan Structure
 
 ## Verification
 
-**Verification methods for Plan deliverables:**
-
-- Scope coverage review
-- Resource adequacy check
-- Schedule integration review
-- Stakeholder review and acceptance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Emergency procedures complete (all scenarios addressed)
+- Contact list current (24/7 contacts, emergency services)
+- Equipment inspected (first aid, fire, spill, rescue equipment current)
+- Drills conducted (per schedule)
+- Terminal coordination confirmed
 
 ## Documentation
 
-**Required documentation outputs:**
-- Site emergency response plan
+**Required Output:** Site Emergency Response Plan
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Location:** `3_Issued/`; controlled copies at site offices, first aid stations
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

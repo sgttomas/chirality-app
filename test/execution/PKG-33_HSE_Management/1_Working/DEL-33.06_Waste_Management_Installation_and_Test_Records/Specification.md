@@ -2,66 +2,66 @@
 
 ## Scope
 
-This specification defines the requirements for **Waste Management Installation & Test Records** within **PKG-33 HSE Management**.
+Provides evidence of completion, inspection, and testing for waste management during construction.
 
-Provides evidence of completion, inspection, and testing for waste management.
+**Anticipated Artifacts:** Waste disposal manifests, waste tracking records
 
-**Anticipated deliverable artifacts:**
-- Waste disposal manifests
-- waste tracking records
+**Source:** `_CONTEXT.md`, Decomposition line 734
 
 ## Requirements
 
-### Functional Requirements
+### FR-1: Hazardous Waste Manifests
+Hazardous waste disposal shall be documented with:
+- Waste classification (BC Hazardous Waste Regulation)
+- Waste quantity (kg or L)
+- Generator information (Contractor)
+- Transporter (licensed hazardous waste transporter)
+- Disposal facility (licensed receiving facility)
+- Manifest signatures (generator, transporter, receiver)
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**Source:** Datasheet Waste Types (Hazardous); ASSUMPTION: BC manifest requirements; OBJ-6, OBJ-7
 
-### Performance Requirements
+### FR-2: Non-Hazardous Waste Tracking
+Non-hazardous construction waste shall be tracked:
+- Waste type (concrete, steel, wood, general construction debris)
+- Quantity (tonnes or cubic meters)
+- Disposal method (landfill, recycling)
+- Disposal location/vendor
+- Date and disposal receipt
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Source:** Datasheet Waste Types (Non-Hazardous); ASSUMPTION: Waste tracking for diversion
 
-### Interface Requirements
+### FR-3: Waste Bin Management
+Waste bins shall be inspected and managed:
+- Segregation (hazardous, recyclable, general waste)
+- Labeling and signage
+- Containment (lids, secondary containment for liquids)
+- Timely removal (prevent overflow)
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**Source:** Datasheet Record Types; ASSUMPTION: On-site waste management
 
-### Quality Requirements
+### FR-4: Waste Diversion Tracking
+Recycling and waste diversion shall be tracked (if required by ER or Contractor targets):
+- Materials recycled (steel, concrete, wood, cardboard)
+- Waste diversion rate (% of total waste)
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
-
-## Standards
-
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Source:** Datasheet Waste Types (Recyclable); ASSUMPTION: Sustainability objectives
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Manifests complete (all required fields, signatures)
+- Tracking logs maintained (all waste documented)
+- Regulatory compliance (hazardous waste managed per BC regulations)
 
 ## Documentation
 
-**Required documentation outputs:**
+**Required Outputs:**
 - Waste disposal manifests
-- waste tracking records
+- Waste tracking records
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Location:** Environmental database / `3_Issued/`
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

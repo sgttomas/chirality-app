@@ -2,56 +2,41 @@
 
 ## Purpose
 
-This guidance document supports the development of **Guarantee & Warranty Certificates** for **PKG-31 Documentation & Deliverables**.
+Collect and organize warranty certificate documents, enabling effective warranty claim management and lifecycle cost optimization (OBJ-9).
 
-Defines and substantiates guarantee & warranty certificates in accordance with ER requirements.
-
-This deliverable is classified as a **Document Package** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.09 (line 695); OBJ-9 (line 67, line 788)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Original Documents
+Obtain original vendor-issued warranty certificates—not draft or pro forma documents.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Timely Collection
+Obtain warranty certificates early (before installation/commissioning) to ensure warranty coverage from start.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: Organized and Accessible
+Organize certificates for easy retrieval during warranty claim situations.
+
+### Principle 4: Cross-Referenced to Register
+Cross-reference certificates to Guarantees & Warranties Register (DEL-31.08) for integrated warranty management.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Procurement Contract Requirements
+Specify warranty certificate delivery requirements in equipment purchase orders.
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document Package — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Certificate Authenticity
+Verify certificates are vendor-issued originals (signed, dated, on vendor letterhead).
 
-## Trade-offs
+### Organization
+Organize by equipment or system for easy retrieval.
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Electronic vs. Hard Copy
+Electronic format (PDF) preferred for long-term accessibility; hard copy per Employer's requirements.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Warranty Certificate Example:**
+"XYZ Pump Company hereby certifies that Pump Model 500, Serial Number 12345, is warranted against defects in materials and workmanship for a period of two (2) years from date of commissioning (June 1, 2026). Warranty Start: June 1, 2026. Warranty End: June 1, 2028. [Vendor Signature, Date]"
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Guarantee certificates
-- warranty certificates
-- vendor letters
+**Source:** _CONTEXT.md; Decomposition line 695

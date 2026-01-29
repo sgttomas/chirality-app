@@ -2,55 +2,110 @@
 
 ## Purpose
 
-This guidance document supports the development of **Integrated Systems Test Installation & Test Records** for **PKG-30 Commissioning**.
+Supports development of **Integrated Systems Test Installation & Test Records** for PKG-30 Commissioning.
 
-Provides evidence of completion, inspection, and testing for integrated systems test.
+**Context:** Provides evidence of completion, inspection, and testing for integrated systems test. IST verifies systems work together before product introduction and operational handover.
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Source:** Decomposition §5 PKG-30, DEL-30.05
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+**P-1: Integration Reveals Interface Issues**
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+Individual system commissioning (DEL-30.04) verifies systems work independently. Integrated systems testing reveals:
+- Interface mismatches and communication issues
+- Control logic errors across system boundaries
+- Sequencing and timing issues
+- Interlock conflicts
+- Operational workflows and transitions
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+IST is essential for identifying and resolving integration issues before start-up.
+
+**Source:** **ASSUMPTION** — IST rationale
+
+**P-2: End-to-End Verification**
+
+IST demonstrates complete operational scenarios:
+- Product can flow from source (railcar) through entire path to destination (tank or ship)
+- Control systems manage the entire transfer process
+- Safety systems protect across all systems
+- Operators can execute complete operations from HMI
+
+This end-to-end verification builds confidence for operational readiness.
+
+**Source:** **ASSUMPTION** — End-to-end testing rationale
+
+**P-3: Operational Flexibility Demonstration**
+
+IST specifically verifies OBJ-4 (Operational Flexibility):
+- Tank storage mode: Railcar → Tank, Tank → Ship (two-step)
+- Direct rail-to-ship mode: Railcar → Ship (one-step, bypassing tank storage)
+- Valve lineup changes and routing verification
+
+Operational flexibility is critical business requirement that must be demonstrated.
+
+**Source:** Decomposition §2 OBJ-4 (Operational Flexibility)
 
 ## Considerations
 
-**Factors to consider during development:**
+**C-1: Test Scenarios**
 
-- Package scope: PKG-30 Commissioning
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+Define comprehensive IST scenarios covering:
+- **Normal operations:** All standard transfer paths
+- **Abnormal operations:** Alarm responses, interlock trips, emergency shutdowns
+- **Operational transitions:** Mode changes, routing changes
+- **Material balance:** Product accountability through metering systems
+
+Scenarios should represent actual operational use cases.
+
+**Source:** **ASSUMPTION** — IST scenario coverage
+
+**C-2: Operations Involvement**
+
+Operations personnel should:
+- Participate in IST execution (training opportunity)
+- Verify operational workflows are practical
+- Provide acceptance sign-off
+
+IST is transition point from commissioning to operations.
+
+**Source:** **ASSUMPTION** — Operations transition
+
+**C-3: IST Without Product**
+
+IST typically performed with water or air (not actual CSD canola oil product):
+- Water testing for liquid systems (flow paths, metering, pumps)
+- Air testing for vapor spaces and instruments
+- Simulated product introduction scenarios
+
+Actual product introduction occurs during start-up phase after IST complete.
+
+**Source:** **ASSUMPTION** — IST test medium
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+**T-1: IST Comprehensiveness vs. Schedule**
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Trade-off:** Comprehensive IST scenarios provide high confidence but extend schedule; streamlined IST enables faster start-up but may miss integration issues.
+
+**Recommendation:** Risk-based IST scope; comprehensive scenarios for safety-critical and revenue-critical paths; streamlined for less critical scenarios.
+
+**Source:** **ASSUMPTION**
 
 ## Examples
 
-**Reference examples and precedents:**
+**Anticipated Artifacts:**
+- IST test protocols with acceptance criteria
+- End-to-end scenario test records (railcar → tank, tank → ship, direct rail → ship)
+- Control system integration test results
+- Safety interlock integration test results
+- Emergency shutdown verification records
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- IST records
-- end-to-end test records
+**Source:** Decomposition §5 DEL-30.05; Datasheet.md
+
+---
+
+## Document Cross-References
+
+- **← Datasheet.md / Specification.md:** Rationale for IST requirements
+- **→ Procedure.md:** Considerations inform IST execution

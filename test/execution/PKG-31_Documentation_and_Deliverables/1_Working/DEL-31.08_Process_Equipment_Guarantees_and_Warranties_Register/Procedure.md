@@ -2,62 +2,112 @@
 
 ## Purpose
 
-This procedure defines the process for producing and managing **Process Equipment Guarantees & Warranties Register** within **PKG-31 Documentation & Deliverables**.
+To develop and deliver Process Equipment Guarantees & Warranties Register for the Canola Oil Transload Facility Phase 1.
 
-Provides project management/control documentation for process equipment guarantees & warranties register required by the ERs.
+**Source:** Decomposition DEL-31.08 (line 694)
 
 **Deliverable type:** Document
 **Responsible party:** D&B Contractor
 
 ## Prerequisites
 
-**Dependencies:**
-- See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies are coordinated externally by humans (see `execution/_Coordination/_COORDINATION.md`)
-- Upstream deliverables and input data to be confirmed prior to commencement
+### Dependencies
 
-**Reference materials:**
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Employer's Requirements — **TBD**
-- Applicable codes and standards — see Specification.md
+**Dependency Tracking:** See \`_DEPENDENCIES.md\` — **NOT_TRACKED**
 
-**Personnel requirements:**
-- Qualified Project Delivery discipline personnel — **TBD**
-- Checker/reviewer qualifications — **TBD**
-- **ASSUMPTION**: Personnel competency per project quality procedures
+**Upstream Dependencies:**
+- Equipment procurement (warranties obtained)
+- Vendor Documentation (DEL-31.05) — warranty documents
+- Warranty Certificates (DEL-31.09) — warranty certificate documents
+
+**Source:** **ASSUMPTION**
+
+### Reference Materials
+
+- Equipment warranty documents from vendors
+- Equipment purchase orders
+- Vendor Documentation (DEL-31.05)
+- Warranty Certificates (DEL-31.09, DEL-31.10, DEL-31.11)
+- Asset Hierarchy (DEL-31.06)
+
+### Personnel Requirements
+
+**Roles:**
+- Warranty Coordinator
+- Contracts/Procurement personnel
+- Technical reviewers
+
+**Source:** **ASSUMPTION**
 
 ## Steps
 
-1. **Content Scoping** — Define document purpose and scope. **TBD**
-2. **Drafting** — Prepare document content. **TBD**
-3. **Review** — Technical and quality review. **TBD**
-4. **Comment Resolution** — Address review comments. **TBD**
-5. **Approval** — Responsible party approves for issue. **TBD**
+### Step 1: Planning
+
+**Activities:**
+1.1. Define register structure and content
+1.2. Select format (spreadsheet, database)
+
+**Deliverables:** Register structure defined
+
+### Step 2: Warranty Information Collection
+
+**Activities:**
+2.1. Identify all equipment with warranties or performance guarantees
+2.2. Collect warranty documents from vendors (via Vendor Documentation DEL-31.05)
+2.3. Extract warranty information (type, coverage, dates, conditions, vendor contacts)
+
+**Deliverables:** Warranty information collected
+
+### Step 3: Register Development
+
+**Activities:**
+3.1. Populate register with warranty information
+3.2. Cross-reference warranty certificates (DEL-31.09, DEL-31.10, DEL-31.11)
+3.3. Cross-reference vendor documentation (DEL-31.05)
+3.4. Align equipment tags with Asset Hierarchy (DEL-31.06)
+
+**Deliverables:** Draft Register
+
+### Step 4: Data Quality Review
+
+**Activities:**
+4.1. Review register for completeness and accuracy
+4.2. Verify warranty information against warranty documents
+4.3. Correct errors
+
+**Deliverables:** Quality-reviewed Register
+
+### Step 5: Review and Approval
+
+**Activities:**
+5.1. Technical review
+5.2. Employer review and acceptance
+5.3. Final approval
+
+**Deliverables:** Approved Register
+
+### Step 6: Issuance and Handover
+
+**Activities:**
+6.1. Issue Register
+6.2. Handover to Employer with guidance on warranty management and updates
+6.3. Establish process for lifecycle updates (new equipment, warranty renewals)
+
+**Deliverables:** Issued Register; handover complete
 
 ## Verification
 
-**Verification activities for Document deliverables:**
+1. **Completeness Review** (Step 4.1) — All warranted equipment included
+2. **Data Quality Review** (Step 4.1) — Warranty information accurate
+3. **Cross-Reference Check** (Step 4.1) — Cross-references accurate
 
-- Technical accuracy review
-- Completeness check
-- Format and standards compliance
-- Stakeholder review
-
-**Sign-off requirements:**
-- Originator sign-off — **TBD**
-- Checker sign-off — **TBD**
-- Approver sign-off — **TBD**
-- **ASSUMPTION**: Sign-off protocol per project quality procedures
+**Acceptance Criteria:** All warranted equipment included; data accurate; Employer acceptance obtained
 
 ## Records
 
-**Documentation outputs:**
-- Guarantees and warranties register
-- coverage periods
-- responsible vendor contacts
+**Outputs:**
+1. Process Equipment Guarantees & Warranties Register
 
-**Record management:**
-- Records to be managed per project document control procedures
-- Filing location: `2_Checking/` (during review) → `3_Issued/` (upon approval)
-- Retention requirements: **TBD**
-- **ASSUMPTION**: Electronic records in project document management system
+**Management:** \`3_Issued/\`
+
+**Retention:** For facility operational life (beyond warranty periods for records)

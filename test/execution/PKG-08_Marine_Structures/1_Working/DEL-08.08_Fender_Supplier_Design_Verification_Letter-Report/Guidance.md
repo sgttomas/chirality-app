@@ -2,55 +2,132 @@
 
 ## Purpose
 
-This guidance document supports the development of **Fender Supplier Design Verification Letter/Report** for **PKG-08 Marine Structures**.
+Provide engineering guidance for obtaining and reviewing **Fender Supplier Design Verification Letter/Report** to ensure adequate confirmation of fender suitability.
 
-Documents analysis and results for fender supplier design verification letter/report required for design verification and approvals.
+**Deliverable intent:** Documents analysis and results for fender supplier design verification letter/report required for design verification and approvals. *(Source: Decomposition line 288)*
 
-This deliverable is classified as a **Report** under the **Marine** discipline, to be produced by **D&B Contractor (with OEM/Supplier)**.
+---
 
 ## Principles
 
-**Engineering rationale (Marine discipline):**
+### Third-Party Verification Value
+- Supplier verification provides independent confirmation
+- Transfers design responsibility to supplier/OEM for product performance
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Traceability
+- Verification must state what was verified and against which inputs
+- Enables audit trail: energy → selection → confirmation
 
-**Applicable standards context:**
-- CSA S472
-- PIANC Guidelines
-- Transport Canada Marine Standards
-- NFPA 30
+### Professional Accountability
+- P.Eng. stamps provide professional accountability
+- Required in some jurisdictions for structural adequacy
 
-## Considerations
+---
 
-**Factors to consider during development:**
+## Requirement Rationale Map
 
-- Package scope: PKG-08 Marine Structures
-- Deliverable type: Report — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+| Req ID | Requirement | Rationale |
+|---|---|---|
+| R-001 | Minimum content | Decomposition artifacts |
+| R-002 | Verification statement | Clear verification required |
+| R-003 | Input traceability | Correct inputs essential |
+| R-004 | Engineering certification | Professional accountability |
+| R-005 | ER alignment | ER-driven acceptance |
+| R-006 | Document control | Controlled documentation |
+
+---
+
+## Good Verification Letter Elements
+
+*ASSUMPTION:*
+
+1. **Specific** — Exact fender model/size/configuration
+2. **Design Basis Clear** — Energy demand and conditions stated
+3. **Unconditional** (or conditions stated clearly)
+4. **Supporting Analysis** — Calculations included or referenced
+5. **Professionally Signed** — Engineer credentials and accountability
+
+---
+
+## Example Verification Structure
+
+```
+[Supplier Letterhead]
+
+Subject: Design Verification for [Fender Model] — [Project]
+
+We confirm that [Fender Model, Size], when installed per [Drawing],
+is suitable for:
+
+- Design berthing energy: [X] kN·m (from DEL-08.06)
+- Temperature: [X]°C to [Y]°C
+- Approach velocity: [X] m/s
+
+The fender provides:
+- Energy absorption: [Y] kN·m at [Z]% deflection
+- Maximum reaction: [W] kN
+
+Capacity exceeds demand with factor of safety [N] per [Standard].
+
+[Limitations if any]
+
+Verified by: [Name], [P.Eng. #], [Date]
+[Stamp if required]
+```
+
+---
+
+## Professional Engineering Requirements
+
+*ASSUMPTION for BC:*
+- Structural adequacy statements may require P.Eng. under EGBC
+- Verifying engineer takes professional responsibility
+- Confirm from ER and provincial regulations
+
+---
+
+## Review Checklist
+
+| Item | Check | Spec Link |
+|---|---|---|
+| Fender model/config identified | ☐ | R-002 |
+| Design energy stated with source | ☐ | R-002, R-003 |
+| Operating conditions specified | ☐ | R-002, R-003 |
+| Explicit compliance statement | ☐ | R-002 |
+| Safety factor/margin stated | ☐ | R-002 |
+| Standard(s) referenced | ☐ | R-002 |
+| Limitations clearly stated | ☐ | R-002 |
+| Engineer signature and date | ☐ | R-002 |
+| P.Eng. stamp (if required) | ☐ | R-004 |
+| Inputs traceable | ☐ | R-003 |
+| Calculations attached (if required) | ☐ | R-001 |
+
+---
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+| Trade-off | Considerations |
+|---|---|
+| Detailed calcs vs summary | Full calcs provide assurance but may be proprietary |
+| Single vs multiple load cases | Multiple cases more complete but add effort |
+| Supplier P.Eng. vs D&B P.Eng. review | Both may be required depending on ER/jurisdiction |
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+---
 
-## Examples
+## Common Issues
 
-**Reference examples and precedents:**
+| Issue | Prevention |
+|---|---|
+| Generic verification | Require project-specific inputs |
+| Missing/unclear design basis | Require explicit energy/conditions |
+| No professional sign-off | Confirm P.Eng. requirement first |
+| Outdated fender data | Verify letter references current DEL-08.07 |
+| Vague compliance | Require explicit "meets requirements" statement |
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Supplier verification letter/report
-- stamped calculations where applicable
+---
+
+## Sources
+
+- Decomposition line 288
+- ER Vol 2 Parts 1-2 *(TBD)*
+- EGBC practice (ASSUMPTION)

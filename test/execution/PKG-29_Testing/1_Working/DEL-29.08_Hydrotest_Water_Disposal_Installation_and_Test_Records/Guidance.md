@@ -2,56 +2,79 @@
 
 ## Purpose
 
-This guidance document supports the development of **Hydrotest Water Disposal Installation & Test Records** for **PKG-29 Testing**.
+Guidance for **Hydrotest Water Disposal Installation & Test Records** for **PKG-29 Testing**.
 
-Provides evidence of completion, inspection, and testing for hydrotest water disposal.
+**Purpose:** Provides evidence of completion, inspection, and testing for hydrotest water disposal. **Source:** Decomposition line 653
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Type:** Record | **Discipline:** T&C | **Responsible:** D&B Contractor (QA/QC)
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+### "Cradle to Grave" Waste Tracking
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Environmental Responsibility:** Generator (Contractor) responsible for waste from generation through final disposal, even if hauled by third party.
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+**Key Principle:** Document every step. Manifests and receipts prove proper disposal.
 
 ## Considerations
 
-**Factors to consider during development:**
+**1. Licensed Hauler Selection**
+- Verify hauler has valid permits/licenses
+- Check insurance and safety record
+- Get references from hauler
 
-- Package scope: PKG-29 Testing
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**2. Approved Disposal Facility**
+- Verify facility authorized to accept liquid waste
+- Confirm facility has capacity for volume
+- Get disposal cost estimate before committing
+
+**3. Manifest Management**
+- Pre-print manifests with project info
+- Driver carries manifest, gets signatures at each step
+- Generator keeps copy, receives final copy with receiver signature
+- Track manifest numbers (no gaps or duplicates)
+
+**4. Volume Tracking**
+- Truck volumes may be estimated (not precise measurement)
+- Accept reasonable variance (±5-10%)
+- Investigate large discrepancies
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Direct Discharge vs. Haul-Away:**
+- Discharge: Faster, cheaper (~$0/m³ if permit), but requires compliance testing
+- Haul-Away: Slower, expensive (~$5-10/m³), but guaranteed disposal, no testing needed
+- **Typical:** Pursue discharge; use haul-away if non-compliant or permit delayed
 
 ## Examples
 
-**Reference examples and precedents:**
+**Hauling Manifest Example:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Hauling manifests
-- disposal receipts
-- disposal tracking log
+```
+LIQUID WASTE MANIFEST #2024-08-015
+
+Generator: ABC Contractor, Canola Oil Transload Project, Surrey BC
+Date: August 6, 2024
+Source: Tank TK-101 Hydrotest Water
+Volume: 95 m³ (estimated)
+Waste Description: Non-hazardous hydrotest water from new storage tank
+
+Hauler: XYZ Liquid Waste Services Ltd.
+Driver: John Driver, License #12345
+Truck: Unit 42, Plate ABC-123
+
+Destination: Metro Vancouver Annacis WWTP, Annacis Island, Delta BC
+
+Signatures:
+Generator: ________________ Date: _______
+Driver (pickup): ________________ Date: _______
+Receiver: ________________ Date: _______ (upon delivery)
+```
+
+**Source:** Typical liquid waste manifest **ASSUMPTION**
+
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | **TBD** |

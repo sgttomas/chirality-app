@@ -3,54 +3,87 @@
 ## Identification
 
 | Field | Value |
-|-------|-------|
+|---|---|
 | Deliverable ID | DEL-08.10 |
 | Name | Current Assessment Basis Report |
 | Package | PKG-08 Marine Structures |
 | Discipline | Marine |
 | Type | Report |
 | Responsible | D&B Contractor |
-| Status | INITIALIZED |
+| Lifecycle State | INITIALIZED |
 
-## Attributes
+## Description
+
+**Purpose:** Documents analysis and results for current assessment basis report required for design verification and approvals. *(Source: Decomposition line 290)*
+
+**Report objective:** Establishes design basis for water current conditions at berth location, providing input for mooring analysis (DEL-08.09), structural loading (DEL-08.03), and debris loading assessment (DEL-08.11).
+
+## Site Context
+
+| Parameter | Value |
+|---|---|
+| Location | Fraser Surrey Terminal, Fraser River, BC *(Decomposition)* |
+| River system | Fraser River — tidally influenced, significant freshet flows |
+| Current drivers | Tidal + river flow + freshet — combined hydrodynamic regime |
+
+## Minimum Artifact Content
+
+*(Source: Decomposition line 290)*
+
+| Artifact | Status |
+|---|---|
+| Current assessment methodology | Required |
+| Inputs | Required |
+| Results summary | Required |
+
+## Report Metadata (TBD)
 
 | Attribute | Value |
-|-----------|-------|
-| Report Number | **TBD** |
-| Report Type | **TBD** |
-| Survey/Study Scope | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+|---|---|
+| Report number | **TBD** |
+| Data source type | **TBD** *(measurements / model / literature)* |
+| Analysis period | **TBD** *(tidal cycle / seasonal / multi-year)* |
 
-## Conditions
+## Current Parameters (TBD)
 
-**Operating / Environmental Context:**
+| Parameter | Value | Source | Status |
+|---|---|---|---|
+| Design surface current | **TBD** m/s | Analysis | Required |
+| Current direction(s) | **TBD** | Analysis | Required |
+| Depth profile | **TBD** | Analysis | If applicable |
+| Flood current | **TBD** m/s | Analysis | Required |
+| Ebb current | **TBD** m/s | Analysis | Required |
+| Freshet conditions | **TBD** m/s | Analysis | Required |
+| Return period basis | **TBD** years | ER | Required |
 
-Documents analysis and results for current assessment basis report required for design verification and approvals.
+## Data Sources (TBD)
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+| Source Type | Status |
+|---|---|
+| Site ADCP measurements | **TBD** |
+| CHS published data | **TBD** |
+| Numerical model | **TBD** |
+| Literature/studies | **TBD** |
 
-## Construction
+## Interfaces (Advisory)
 
-**Materials / Configuration:**
+*Dependencies NOT_TRACKED:*
 
-Anticipated artifacts:
-- Current assessment methodology
-- inputs
-- results summary
+| Related Deliverable | Interface |
+|---|---|
+| DEL-08.09 Mooring Analysis | Output: design current for mooring loads |
+| DEL-08.03 Structures Calculations | Output: current loads on piles/structures |
+| DEL-08.11 Debris Loading | Output: current for debris transport |
+| DEL-08.06 Berthing Energy | Interface: environmental context |
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+## Key TBDs
 
-## References
+1. ER clauses for current assessment
+2. Available data sources (measurements, models, literature)
+3. Design return period
+4. Depth profile requirement
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: CSA S472, PIANC Guidelines, Transport Canada Marine Standards, NFPA 30
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+## Sources
+
+- Decomposition line 290
+- ER Vol 2 Parts 1-2 *(TBD)*

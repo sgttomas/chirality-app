@@ -2,66 +2,74 @@
 
 ## Scope
 
-This specification defines the requirements for **SPPP Installation & Test Records** within **PKG-33 HSE Management**.
+Provides evidence of completion, inspection, and testing for SPPP (Stormwater Pollution Prevention Plan) compliance.
 
-Provides evidence of completion, inspection, and testing for sppp.
+**Anticipated Artifacts:** Stormwater monitoring records, BMP inspection records
 
-**Anticipated deliverable artifacts:**
-- Stormwater monitoring records
-- BMP inspection records
+**Source:** `_CONTEXT.md`, Decomposition line 733
 
 ## Requirements
 
 ### Functional Requirements
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+#### FR-1: BMP Inspection Records
+Document inspection of Best Management Practices (BMPs):
+- Sediment controls, stabilized entrance, material storage, concrete washout
+- Inspection frequency: weekly or within 24 hours of rain event >10mm
+- Condition assessment, deficiencies, corrective actions
 
-### Performance Requirements
+**Source:** Datasheet BMP Elements; ASSUMPTION: SPPP inspection requirements
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+#### FR-2: Stormwater Outfall Monitoring
+Document stormwater discharge quality per permit:
+- Sampling date/time, outfall location, flow estimate
+- Parameters: TSS, pH, hydrocarbons (per permit)
+- Results vs. limits, exceedances, corrective actions
+
+**Source:** Datasheet Monitoring Parameters; TBD: Discharge permit conditions
+
+#### FR-3: Dewatering Discharge Records
+Document excavation dewatering discharge (if applicable):
+- Discharge volume, treatment (if required), discharge location
+- Discharge quality monitoring (if required by permit)
+
+**Source:** Datasheet BMP Elements; Cross-reference PKG-03 (excavation/dewatering)
+
+#### FR-4: Non-Stormwater Discharge Controls
+Document controls for non-stormwater discharges:
+- Concrete washout containment and waste disposal
+- Vehicle/equipment washing (if permitted)
+- Prohibition of unauthorized discharges
+
+**Source:** Datasheet BMP Elements; ASSUMPTION: SPPP non-stormwater discharge controls
 
 ### Interface Requirements
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+#### IR-1: CEMP Interface
+SPPP records coordinate with CEMP records (DEL-33.04) for integrated water quality management.
 
-### Quality Requirements
+**Source:** Cross-reference DEL-33.04; DEL-33.01 Procedure Step 4.8
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Record).
+#### IR-2: Waterway Pollution Control Interface
+SPPP records interface with waterway pollution control (DEL-33.08) for spill prevention/response.
 
-## Standards
-
-**Applicable codes and standards (Project Delivery discipline):**
-
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
-
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Source:** Cross-reference DEL-33.08
 
 ## Verification
 
-**Verification methods for Record deliverables:**
-
-- Completeness check against required records list
-- Data accuracy verification
-- Witness signature verification
-- Archival format compliance
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- BMP inspection records complete (per schedule)
+- Monitoring data accurate (lab QA/QC)
+- Permit compliance (monitoring meets permit requirements)
 
 ## Documentation
 
-**Required documentation outputs:**
+**Required Outputs:**
 - Stormwater monitoring records
 - BMP inspection records
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Location:** Environmental database / `3_Issued/`
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28

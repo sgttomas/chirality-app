@@ -2,54 +2,60 @@
 
 ## Purpose
 
-This guidance document supports the development of **Health & Safety File** for **PKG-31 Documentation & Deliverables**.
+Provides comprehensive HSE information supporting safe facility lifecycle (construction, operations, maintenance, modifications), regulatory compliance, and continuous HSE improvement.
 
-Provides project management/control documentation for health & safety file required by the ERs.
-
-This deliverable is classified as a **Document** under the **Project Delivery** discipline, to be produced by **D&B Contractor**.
+**Source:** Decomposition DEL-31.07 (line 693); OBJ-1 (line 59), OBJ-6 (line 64), OBJ-7 (line 65)
 
 ## Principles
 
-**Engineering rationale (Project Delivery discipline):**
+### Principle 1: Comprehensive HSE Documentation
+Health & Safety File is repository of all HSE-relevant information for facility lifecycle.
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Principle 2: Hazard-Based Approach
+Focus on hazard identification, risk assessment, and risk mitigation documentation.
 
-**Applicable standards context:**
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### Principle 3: Accessibility and Usability
+Health & Safety File must be accessible and usable by operations, maintenance, HSE, and emergency response personnel.
+
+### Principle 4: Living Document
+Health & Safety File is living document—updated throughout facility lifecycle for modifications, incidents, lessons learned.
+
+### Principle 5: Regulatory Compliance Foundation
+Health & Safety File provides documentation demonstrating regulatory compliance.
 
 ## Considerations
 
-**Factors to consider during development:**
+### Content Development
+Compile HSE information from design documentation, HSE plans (PKG-33), operations/maintenance manuals (DEL-31.03, DEL-31.04), commissioning reports, and regulatory submittals.
 
-- Package scope: PKG-31 Documentation & Deliverables
-- Deliverable type: Document — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### Hazard Identification and Risk Assessment
+Document facility hazards (process, physical, environmental) and risk assessments conducted during design, construction, and commissioning.
+
+### Emergency Response Integration
+Include emergency response plans cross-referenced in Operation Manuals (DEL-31.03).
+
+### Material Safety Data
+Include MSDS/SDS for all hazardous materials present at facility (canola oil, cleaning chemicals, lubricants, etc.).
+
+### Regulatory Compliance Documentation
+Include permits, approvals, inspection reports, and compliance records.
+
+### Lifecycle Updates
+Establish process for updating Health & Safety File for modifications, incidents, near-misses, and continuous improvement.
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+### Comprehensiveness vs. Usability
+Very comprehensive file (all HSE information) vs. concise, focused file (essential information). Balance based on Employer's requirements and regulatory expectations.
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+### Format: Document vs. Database
+Document format (PDF) is simpler but harder to update and search. Database format enables updates and searching but requires more setup. Employer preference dictates.
 
 ## Examples
 
-**Reference examples and precedents:**
+**Hazard Documentation Example:**
+- Hazard: High-pressure piping rupture
+- Risk Assessment: Consequence (major spill, injury); Likelihood (low with proper maintenance)
+- Mitigation: Pressure relief valves, rupture disc, pressure monitoring, emergency shutdown system, operator training
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Project health and safety file
+**Source:** _CONTEXT.md; Decomposition line 693

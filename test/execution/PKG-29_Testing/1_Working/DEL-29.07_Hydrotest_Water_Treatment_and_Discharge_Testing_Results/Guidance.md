@@ -2,56 +2,75 @@
 
 ## Purpose
 
-This guidance document supports the development of **Hydrotest Water Treatment & Discharge Testing Results** for **PKG-29 Testing**.
+Guidance for **Hydrotest Water Treatment & Discharge Testing Results** for **PKG-29 Testing**.
 
-Provides evidence of completion, inspection, and testing for hydrotest water treatment & discharge testing results.
+**Purpose:** Provides evidence of completion, inspection, and testing for hydrotest water treatment & discharge testing results. **Source:** Decomposition line 652
 
-This deliverable is classified as a **Record** under the **T&C** discipline, to be produced by **D&B Contractor (QA/QC)**.
+**Type:** Record | **Discipline:** T&C | **Responsible:** D&B Contractor (QA/QC)
 
 ## Principles
 
-**Engineering rationale (T&C discipline):**
+### "Test Before You Discharge"
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+**Never discharge without testing.** Unauthorized or non-compliant discharge creates environmental violations, regulatory penalties, and potential ecosystem harm.
 
-**Applicable standards context:**
-- CSA Z662
-- IEC 62382
-- Employer's Requirements
-- ASME PCC-1
+**Key Principle:** Measure, verify compliance, then discharge. Stop immediately if non-compliant.
 
 ## Considerations
 
-**Factors to consider during development:**
+**1. Sample Representativeness**
+- Sample from well-mixed location (not stagnant corners)
+- Composite samples may be required (multiple grabs mixed)
+- Preserve samples per laboratory requirements (cool, acidify, etc.)
 
-- Package scope: PKG-29 Testing
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+**2. Laboratory Selection**
+- Use accredited lab (ISO 17025)
+- Verify lab can test all required parameters
+- Coordinate turnaround time (results before discharge)
+
+**3. Treatment System Monitoring**
+- Check treatment daily, not just at start/end
+- Filter pressure indicates when filters need changing
+- Settling tanks need periodic sludge removal
+
+**4. Contingency Planning**
+- If water fails discharge limits: Continue treatment, re-test, or switch to haul-away
+- Have hauler on standby if discharge uncertain
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
-
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Speed vs. Thoroughness:**
+- Rushing treatment risks non-compliance
+- Extra treatment time is cheaper than penalties or haul-away
+- **Recommendation:** Allow adequate treatment time, don't rush discharge
 
 ## Examples
 
-**Reference examples and precedents:**
+**Water Quality Test Report Format:**
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Water quality test results
-- treatment logs
-- discharge testing records
+```
+LABORATORY REPORT
+Sample ID: TK-101-Post-Treatment
+Sample Date: 2024-08-06 10:30
+Lab: ABC Environmental Labs (ISO 17025 Accredited)
+
+Parameter | Result | Unit | Permit Limit | Compliant?
+----------|--------|------|--------------|------------
+pH | 7.2 | - | 6.0-9.0 | Yes
+TSS | 45 | mg/L | <100 | Yes
+Oil & Grease | 8 | mg/L | <15 | Yes
+COD | 120 | mg/L | <200 | Yes
+Zinc | 0.08 | mg/L | <0.5 | Yes
+
+Overall Compliance: PASS
+
+Approved for discharge: J. Smith, Environmental Specialist
+```
+
+**Source:** Typical water quality report **ASSUMPTION**
+
+## Conflict Table (for human ruling)
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | — | — | — | — | — | **TBD** |

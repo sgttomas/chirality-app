@@ -16,40 +16,50 @@
 
 | Attribute | Value |
 |-----------|-------|
-| Document Number | **TBD** |
-| Document Type | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Document Type | Guarantees and Warranties Register |
+| Scope | All process equipment with warranties or performance guarantees (pumps, valves, instruments, control systems, storage tanks, loading systems, metering, electrical, fire protection) |
+| Content | Equipment list, warranty/guarantee descriptions, coverage periods, start/end dates, responsible vendors, contact information, warranty conditions |
+| Format | **TBD** — **ASSUMPTION**: Spreadsheet (Excel) or database |
+
+**Source:** _CONTEXT.md; Decomposition DEL-31.08 (line 694)
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Purpose:** Guarantees & Warranties Register provides centralized tracking of equipment warranties and performance guarantees, enabling warranty compliance, claim management, and lifecycle cost optimization (OBJ-9).
 
-Provides project management/control documentation for process equipment guarantees & warranties register required by the ERs.
+**Key Functions:**
+- Centralized warranty/guarantee tracking
+- Warranty expiration monitoring
+- Warranty claim facilitation
+- Warranty compliance management (ensure maintenance activities comply with warranty terms)
+- Cross-reference to warranty certificates (DEL-31.09) and vendor documentation (DEL-31.05)
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Source:** Decomposition line 694; **ASSUMPTION** per warranty management purpose; OBJ-9 (line 67, line 788)
 
 ## Construction
 
-**Materials / Configuration:**
+**Register Content:**
+- Equipment Tag
+- Equipment Description
+- Manufacturer/Vendor
+- Warranty/Guarantee Type (manufacturer's warranty, extended warranty, performance guarantee)
+- Coverage Description (parts, labor, performance parameters)
+- Warranty Start Date
+- Warranty End Date
+- Warranty Period (duration)
+- Warranty Conditions (maintenance requirements, exclusions)
+- Responsible Vendor Contact (name, phone, email)
+- Warranty Certificate Reference (cross-reference to DEL-31.09)
 
-Anticipated artifacts:
-- Guarantees and warranties register
-- coverage periods
-- responsible vendor contacts
-
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Source:** **ASSUMPTION** per typical warranty register structure; Decomposition line 694
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+- Decomposition line 694
+- DEL-31.05 Vendor Documentation — vendor warranty documents
+- DEL-31.06 Asset Hierarchy — equipment identification
+- DEL-31.09 Guarantee & Warranty Certificates — warranty certificate documents
+- Employer's Requirements — **TBD**
+
+**Supporting Project Objectives:**
+- OBJ-9: Lifecycle Cost Optimization (line 788) — Warranty management reduces lifecycle costs

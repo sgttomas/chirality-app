@@ -2,70 +2,162 @@
 
 ## Scope
 
-This specification defines the requirements for **Mooring Analysis Report** within **PKG-08 Marine Structures**.
+Defines requirements for **Mooring Analysis Report**: minimum content, methodology, acceptance criteria, traceability, and documentation control.
 
-Documents analysis and results for mooring analysis report required for design verification and approvals.
+**Deliverable intent:** Documents analysis and results for mooring analysis report required for design verification and approvals. *(Source: Decomposition line 289)*
 
-**Anticipated deliverable artifacts:**
-- Mooring analysis report
-- vessel assumptions
-- line loads
-- acceptance criteria
+### Inclusions
+- Mooring analysis for design vessel(s) under environmental conditions
+- Line load calculations
+- Acceptance criteria assessment
+- Vessel and environmental assumptions
+
+### Exclusions
+- Current assessment methodology (DEL-08.10)
+- Mooring equipment detailed design (PKG-09)
+- Structural design of bollards/hooks (DEL-08.03)
+
+---
 
 ## Requirements
 
-### Functional Requirements
+### R-001 — Minimum Report Content
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+*(Source: Decomposition line 289)*
 
-### Performance Requirements
+| Component | Required Content |
+|---|---|
+| Mooring analysis report | Analysis with methodology, results, conclusions |
+| Vessel assumptions | Vessel particulars, windage areas, loading conditions |
+| Line loads | Calculated forces in mooring lines under design conditions |
+| Acceptance criteria | Limits for line loads, safety factors, pass/fail |
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-001
 
-### Interface Requirements
+---
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+### R-002 — Vessel Definition
 
-### Quality Requirements
+**Document design vessel(s):**
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Report).
+| Parameter | Requirement |
+|---|---|
+| Type and size | DWT, displacement, dimensions |
+| Loading conditions | Laden and/or ballast analyzed |
+| Windage areas | Longitudinal and transverse, with source |
+| Freeboard | For each loading condition |
+| Source | ER, project basis, or assumed with rationale |
 
-## Standards
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-002
 
-**Applicable codes and standards (Marine discipline):**
+---
 
-- CSA S472
-- PIANC Guidelines
-- Transport Canada Marine Standards
-- NFPA 30
+### R-003 — Environmental Conditions
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Document environmental conditions:**
 
-## Verification
+| Parameter | Requirement |
+|---|---|
+| Wind | Speed, duration, direction(s), reference height |
+| Current | Velocity, direction(s), depth profile if applicable |
+| Waves | Hs, Tp, direction (if applicable) |
+| Water level | Tide range, design levels |
+| Return period | Design condition return period basis |
+| Source | Metocean study, ER, or DEL-08.10 for current |
 
-**Verification methods for Report deliverables:**
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-003
 
-- Technical review of methodology
-- Data validation and QA/QC
-- Conclusions review
-- Peer review
+---
 
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+### R-004 — Analysis Methodology
 
-## Documentation
+**Document:**
 
-**Required documentation outputs:**
-- Mooring analysis report
-- vessel assumptions
-- line loads
-- acceptance criteria
+| Element | Requirement |
+|---|---|
+| Analysis method | Static equilibrium, dynamic simulation, or other |
+| Software/tools | If used, identify and version |
+| Load cases | All vessel × environment combinations |
+| Coordinate system | Axes and sign conventions |
+| Assumptions | Explicitly listed with rationale |
+| Limitations | Known limitations of analysis |
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-004
+
+---
+
+### R-005 — Acceptance Criteria and Results
+
+**Include:**
+
+| Element | Requirement |
+|---|---|
+| Line load criteria | Max allowable (% MBL or absolute) |
+| Safety factor | Required factor on mooring lines |
+| Results summary | Max line loads for each case |
+| Pass/fail assessment | Explicit compliance statement |
+| Governing case | Worst-case identification |
+
+*ASSUMPTION: Typical criteria limit to 50-60% MBL; confirm from ER/OCIMF.*
+
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-005
+
+---
+
+### R-006 — ER Alignment and Document Control
+
+| Requirement | Description |
+|---|---|
+| ER clauses | All applicable ER addressed |
+| Standards | Referenced standards identified |
+| QA/QC review | Independent check prior to issue |
+| Document control | Numbering, revision, approval per procedures |
+
+**Rationale:** `Guidance.md` § Requirement Rationale Map, R-006
+
+---
+
+## Standards and References
+
+**Standards (TBD):**
+- OCIMF MEG4 (Mooring Equipment Guidelines)
+- PIANC WG 153 (if applicable)
+- BS 6349-4
+- SIGTTO (if LNG/LPG applicable)
+
+**References:**
+- ER Vol 2 Parts 1-2
+- DEL-08.10 (current data)
+- DEL-08.06 (shared vessel basis)
+- DEL-08.03 (bollard structural design)
+- PKG-09 (mooring equipment)
+
+---
+
+## Verification Matrix
+
+| Req ID | Method | Evidence | Status |
+|---|---|---|---|
+| R-001 | Completeness | All four components | **TBD** |
+| R-002 | Design basis | Vessels defined with sources | **TBD** |
+| R-003 | Environmental review | Conditions documented | **TBD** |
+| R-004 | Methodology review | Method appropriate | **TBD** |
+| R-005 | Results review | All cases pass criteria | **TBD** |
+| R-006 | ER compliance + QA | Requirements met, review complete | **TBD** |
+
+---
+
+## Documentation Outputs
+
+- Mooring Analysis Report
+- Input data register
+- Calculation appendix
+- QA/QC review record
+- Transmittal
+
+---
+
+## Sources
+
+- Decomposition line 289
+- ER Vol 2 Parts 1-2 *(TBD)*

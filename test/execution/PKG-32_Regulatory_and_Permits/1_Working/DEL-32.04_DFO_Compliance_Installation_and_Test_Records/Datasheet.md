@@ -12,43 +12,65 @@
 | Responsible | D&B Contractor (QA/QC) |
 | Status | INITIALIZED |
 
+**Source:** _CONTEXT.md; Decomposition Section 5
+
 ## Attributes
 
 | Attribute | Value |
 |-----------|-------|
-| Record Number | **TBD** |
-| Record Category | **TBD** |
-| Retention Period | **TBD** |
-| Revision | **TBD** |
-| Classification | **TBD** |
+| Purpose | Provides evidence of DFO compliance for marine works |
+| Scope | Documentation demonstrating compliance with DFO Fisheries Act authorization conditions |
+| Related Deliverable (Upstream) | DEL-32.02 (Permits — DFO authorization contains conditions) |
+| Record Type | Compliance records (marine mammal observations, habitat protection measures, monitoring data, submittals) |
+| Regulatory Authority | Department of Fisheries and Oceans (DFO) Canada |
+| Format | **TBD** — Per DFO authorization conditions |
+
+**Source:** _CONTEXT.md; Decomposition Section 5; **ASSUMPTION** labels as noted
+
+**Key entities:** DFO Fisheries Act Authorization (DEL-32.02), DFO Authorization Conditions, Compliance Records, Compliance Register, DFO Submissions
 
 ## Conditions
 
-**Operating / Environmental Context:**
+**Regulatory Context:**
+- **Authority:** Department of Fisheries and Oceans (DFO) Canada — Fisheries Act jurisdiction over fish habitat
+- **Process:** Fisheries Act authorization for works affecting fish habitat
+- **Project scope triggering DFO:** Marine works (wharf modifications, marine loading arm installation, in-water construction) — **ASSUMPTION**: Based on PKG-08, PKG-09, PKG-11
+- **Authorization application:** Submitted per DEL-32.01 — **TBD**
+- **Authorization issued:** Recorded in DEL-32.02 — **TBD**
 
-Provides evidence of completion, inspection, and testing for dfo compliance.
+**Typical DFO condition categories (anticipated):**
+- Fish habitat protection measures (sediment control, turbidity monitoring)
+- Timing windows for in-water work (fish migration/spawning windows)
+- Marine mammal observation and work cessation protocols
+- Offset or compensation measures (if habitat impacts authorized)
+- Reporting to DFO (work commencement, completion, monitoring results)
 
-- Operating temperature range: **TBD**
-- Environmental classification: **TBD**
-- Hazardous area classification: **TBD** — **ASSUMPTION**: To be confirmed per facility hazardous area study
-- Seismic requirements: **TBD**
-- Design life: **TBD**
+**Scope boundary:** DFO Fisheries Act authorization conditions only; other permits in DEL-32.03, 32.05, 32.06
 
 ## Construction
 
-**Materials / Configuration:**
+**Production:** Similar to DEL-32.03 but for DFO conditions:
+1. Extract DFO authorization conditions from DEL-32.02
+2. Establish compliance tracking
+3. Execute compliance activities (monitoring, observations, habitat protection measures)
+4. Collect evidence (inspection reports, monitoring data, photos, marine mammal observations)
+5. Submit reports to DFO per conditions
+6. Compile and file compliance records
 
-Anticipated artifacts:
-- DFO permit compliance documentation
+(See Procedure.md)
 
-- Primary materials: **TBD**
-- Construction method: **TBD**
-- Installation requirements: **TBD**
-- Commissioning requirements: **TBD**
+**Anticipated artifacts:** DFO permit compliance documentation (Source: Decomposition Section 5)
 
 ## References
 
-- See `_REFERENCES.md` for applicable reference documents
-- See `0_References/` in package directory for reference materials
-- Applicable standards: ISO 9001, ISO 14001, ISO 45001, Employer's Requirements
-- Cross-references: See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+**Primary sources:** _CONTEXT.md, Decomposition Section 5, Specification.md, Guidance.md, Procedure.md
+
+**Related deliverables:**
+- DEL-32.01 (Permit Applications) — DFO authorization application
+- DEL-32.02 (Permits) — upstream: DFO authorization, conditions extracted
+- DEL-32.07, DEL-32.08 (Correspondence) — DFO submittals and correspondence
+- Construction packages (PKG-08, PKG-09, PKG-11) — marine works generate compliance evidence
+
+**Standards:** DFO Fisheries Act authorization and conditions — **TBD**; Employer's Requirements — **location TBD**; ISO 9001:2015 — **ASSUMPTION**
+
+**Dependencies:** NOT_TRACKED

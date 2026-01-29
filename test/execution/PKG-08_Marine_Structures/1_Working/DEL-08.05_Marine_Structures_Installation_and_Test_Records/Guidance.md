@@ -2,56 +2,84 @@
 
 ## Purpose
 
-This guidance document supports the development of **Marine Structures Installation & Test Records** for **PKG-08 Marine Structures**.
+Provide **engineering rationale and QA/QC guidance** to support systematic collection, review, and packaging of installation and test records that demonstrate marine structures construction quality and compliance.
 
-Provides evidence of completion, inspection, and testing for marine structures.
+**Deliverable intent (source-anchored):** Provides evidence of completion, inspection, and testing for marine structures. *(Source: Decomposition line 285 + `_CONTEXT.md`)*
 
-This deliverable is classified as a **Record** under the **Marine** discipline, to be produced by **D&B Contractor (QA/QC)**.
+---
 
 ## Principles
 
-**Engineering rationale (Marine discipline):**
+### Records as Evidence, Not Just Paper
+- **Intent:** Records prove work was done correctly and meets acceptance criteria
+- **Rationale:** Records support Employer acceptance, regulatory approval, warranty claims, future maintenance
+- **Practice:** Ensure records capture actual results, not just checkmarks; photograph critical work
 
-- **TBD** — Governing engineering principles to be articulated during design development
-- **ASSUMPTION**: Design shall follow good engineering practice per applicable codes and Employer's Requirements
-- **TBD** — Discipline-specific design philosophy to be confirmed
+### Real-Time Collection and Review
+- **Intent:** Collect records during construction, not after; review and resolve issues immediately
+- **Rationale:** Retroactive records are unreliable; real-time review catches problems when corrective action still possible
+- **Practice:** Establish hold points for critical inspections; QA personnel on-site during construction
 
-**Applicable standards context:**
-- CSA S472
-- PIANC Guidelines
-- Transport Canada Marine Standards
-- NFPA 30
+### Traceability to Work and Specifications
+- **Intent:** Each record must trace to specific work item and specification requirement
+- **Rationale:** Enables verification that all work inspected; supports audit and close-out
+- **Practice:** Use consistent identification (pile numbers, weld IDs); cross-reference records to ITP and DEL-08.02 specification
 
-## Considerations
+---
 
-**Factors to consider during development:**
+## Requirement Rationale Map
 
-- Package scope: PKG-08 Marine Structures
-- Deliverable type: Record — consider type-specific requirements and conventions
-- Coordination with adjacent packages — see `_DEPENDENCIES.md` (NOT_TRACKED)
-- Employer's Requirements — review for project-specific constraints
-- Regulatory requirements — **TBD**
-- Constructability — **TBD** — **ASSUMPTION**: To be considered during design development
-- Operability and maintainability — **TBD**
+### R-001: Record Package Coverage
+**Rationale:** Decomposition specifies minimum records; DEL-08.02 specification defines full scope of inspections/tests requiring records
+
+**Key Considerations:**
+- Cross-check record package against ITP to ensure no gaps
+- Structural steel erection, coating, dimensional inspection likely required in addition to decomposition minimum
+
+### R-002: Format, Traceability, Completeness
+**Rationale:** Standardized formats improve consistency; traceability enables verification and audit
+
+**Key Considerations:**
+- Use templates/forms to ensure completeness
+- Photograph critical work (before/during/after)
+- Calibration certificates must be valid on inspection date
+
+### R-003: ITP Alignment
+**Rationale:** ITP is roadmap for QA/QC; hold points prevent defective work from progressing
+
+**Key Considerations:**
+- ITP approved by Employer before construction
+- Hold points enforced (work stops until inspection performed and accepted)
+- Witness points coordinated (Employer notified in advance)
+
+### R-004: ER and Code Compliance
+**Rationale:** Records demonstrate contractual and regulatory compliance
+
+**Key Considerations:**
+- Acceptance criteria from codes, DEL-08.02, ER
+- Non-conformances require engineering disposition (accept-as-is, repair, reject)
+- Regulatory witness may be required (Transport Canada, Coast Guard)
+
+### R-005: Storage, Retention, Close-Out
+**Rationale:** Records must be preserved and retrievable for project life and beyond
+
+**Key Considerations:**
+- Electronic backup for critical records
+- Organized for close-out (by pile number, by date, by record type)
+- Retention period typically 25+ years for structures
+
+---
 
 ## Trade-offs
 
-**Competing concerns to evaluate:**
+### Inspection Extent vs Cost/Schedule
+**Trade-off:** 100% inspection provides highest confidence but increases cost/time; sampling inspection reduces cost but increases risk
 
-- **TBD** — Cost vs. performance trade-offs
-- **TBD** — Schedule vs. quality considerations
-- **TBD** — Standardization vs. optimization
-- **TBD** — Design conservatism vs. material efficiency
-- **ASSUMPTION**: Trade-off decisions to be documented in design rationale records
+**Decision:** **TBD** *(Follow DEL-08.02 specification and code requirements; critical welds may require 100% NDT; non-critical may allow sampling)*
 
-## Examples
+---
 
-**Reference examples and precedents:**
+## Sources
 
-- Refer to Employer's Requirements for project-specific expectations
-- **TBD** — Industry precedent and best practice examples
-- **TBD** — Lessons learned from similar facilities
-- Anticipated artifacts for reference:
-- Pile driving records
-- pile integrity test records
-- weld inspection records
+- Decomposition line 285
+- Standard QA/QC practice

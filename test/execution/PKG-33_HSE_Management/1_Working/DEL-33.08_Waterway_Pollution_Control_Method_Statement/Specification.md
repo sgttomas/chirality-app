@@ -2,68 +2,96 @@
 
 ## Scope
 
-This specification defines the requirements for **Waterway Pollution Control Method Statement** within **PKG-33 HSE Management**.
+Defines the execution method and controls for waterway pollution control to meet safety, quality, and operational requirements during construction adjacent to Fraser River.
 
-Defines the execution method and controls for waterway pollution control method statement to meet safety, quality, and operational requirements.
-
-**Anticipated deliverable artifacts:**
+**Anticipated Artifacts:**
 - Waterway protection method statement
-- spill prevention measures
-- monitoring approach
+- Spill prevention measures
+- Monitoring approach
+
+**Source:** `_CONTEXT.md`, Decomposition line 736
 
 ## Requirements
 
-### Functional Requirements
+### FR-1: Spill Prevention Measures
+Method statement shall define spill prevention controls:
+- Secondary containment for fuel tanks, chemical storage, canola oil transfer areas
+- Loading/unloading controls (drip trays, overfill protection, spill kits at transfer points)
+- Equipment maintenance (inspect hoses, valves, pumps for leaks)
+- Work area drainage controls (prevent contaminated runoff to waterway)
 
-- **TBD** — Functional requirements to be developed based on Employer's Requirements and design development.
+**Source:** Datasheet Waterway Protection Measures; OBJ-7 Environmental Protection; DEL-33.01 FR-10
 
-### Performance Requirements
+### FR-2: Spill Response Procedures
+Method statement shall provide procedures for:
+- **Minor spill (<100 L, on land, no waterway impact):** Isolate source, deploy absorbents, contain, cleanup, dispose waste, investigate
+- **Major spill (>100 L or any spill reaching waterway):** Activate emergency response, deploy containment (booms), notify agencies (Coast Guard, provincial spill reporting), coordinate cleanup
+- **Marine spill:** Deploy marine spill booms, coordinate with Coast Guard, marine spill response contractor, wildlife protection
 
-- **TBD** — Performance criteria to be defined per applicable codes and standards.
+**Source:** Datasheet Spill Response Procedures; DEL-33.07 Emergency Response Plan
 
-### Interface Requirements
+### FR-3: Marine Work Controls
+Method statement shall define controls for in-water and over-water work:
+- Silt curtains or turbidity barriers for pile driving, dredging, in-water construction
+- Work windows (avoid fish spawning periods if restricted by Fisheries Act authorization)
+- Vessel operations protocol (fuel transfer, bilge discharge prohibition, waste management)
+- Marine debris management (prevent construction debris from entering water)
 
-- **TBD** — Interface requirements to be coordinated with adjacent packages and disciplines.
-- See `_DEPENDENCIES.md` for dependency tracking (NOT_TRACKED — dependencies coordinated externally).
+**Source:** Datasheet Method Statement Structure; PKG-08 Marine Structures; ASSUMPTION: In-water work controls
 
-### Quality Requirements
+### FR-4: Spill Response Equipment
+Method statement shall specify equipment and materials:
+- **Land spill kits:** Absorbent pads, socks, granular absorbent, drain covers, disposal bags
+- **Marine spill kits:** Absorbent booms, skimmers, temporary storage, containment equipment
+- Location: spill kits positioned at high-risk areas (fuel storage, canola oil transfer, marine loading, tank farm)
+- Inspection: monthly inspection, restock after use
 
-- All work shall comply with the project Quality Management Plan.
-- **TBD** — Specific quality requirements per deliverable type (Procedure).
+**Source:** Datasheet Waterway Protection Measures; DEL-33.07 Specification FR-3
 
-## Standards
+### FR-5: Training
+Method statement shall specify training for:
+- Spill prevention awareness (all site personnel — site induction)
+- Spill response (spill response team — spill kit deployment, containment, notification)
+- Marine spill response (marine operations personnel — marine boom deployment, Coast Guard coordination)
 
-**Applicable codes and standards (Project Delivery discipline):**
+**Source:** DEL-33.01 Specification FR-7; Datasheet Method Statement Structure
 
-- ISO 9001
-- ISO 14001
-- ISO 45001
-- Employer's Requirements
+### FR-6: Monitoring
+Method statement shall define monitoring approach:
+- Daily visual monitoring (watch for sheens, discoloration, debris in waterway)
+- Incident-driven monitoring (water quality sampling after spill or near-miss)
+- Permit-required monitoring (if environmental permits require waterway monitoring)
 
-**Additional standards:**
-- Employer's Requirements (project-specific)
-- **TBD** — Additional applicable standards to be identified during design development
+**Source:** Datasheet Waterway Protection Measures; DEL-33.04 CEMP monitoring
+
+### FR-7: Regulatory Notification
+Method statement shall define notification requirements for waterway pollution:
+- **Immediate notification:** Coast Guard (1-800-889-8852), provincial spill reporting (1-800-663-3456), Employer
+- **Follow-up notification:** Federal/provincial environmental agencies (written spill report within 24-48 hours)
+- **Threshold:** Any spill or unauthorized discharge to waterway (regardless of quantity)
+
+**Source:** Datasheet Method Statement Structure; ASSUMPTION: BC/federal spill reporting requirements; OBJ-6 Regulatory Compliance
 
 ## Verification
 
-**Verification methods for Procedure deliverables:**
-
-- Walkthrough / tabletop review
-- Safety review (HAZOP / JSA as applicable)
-- Competency verification of personnel
-- Trial run (where practical)
-
-**Acceptance criteria:**
-- **TBD** — To be defined per project quality procedures
+- Spill prevention controls specified and implemented
+- Spill response procedures complete (minor, major, marine)
+- Marine work controls defined
+- Spill equipment positioned and inspected
+- Personnel trained
+- Monitoring program established
+- Regulatory notification protocols defined
 
 ## Documentation
 
-**Required documentation outputs:**
+**Required Outputs:**
 - Waterway protection method statement
-- spill prevention measures
-- monitoring approach
+- Spill prevention measures
+- Monitoring approach
 
-**Documentation requirements:**
-- All documents shall comply with project document control procedures
-- Revision control per project numbering system — **TBD**
-- Format: **TBD** — **ASSUMPTION**: Per project document management requirements
+**Location:** `3_Issued/`
+
+---
+
+**Document Status:** Pass 3/3 — Final reconciliation complete
+**Generated:** 2026-01-28
