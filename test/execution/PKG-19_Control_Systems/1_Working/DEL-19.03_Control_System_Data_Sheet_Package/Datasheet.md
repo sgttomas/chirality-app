@@ -30,24 +30,24 @@
 
 ### Equipment Coverage
 
-| Equipment Category | Data Sheets Required |
-|--------------------|----------------------|
-| DCS/PLC Controllers | Controller modules (CPU, memory), I/O modules (AI, AO, DI, DO), Communication modules, Power supplies, Racks/chassis |
-| HMI Workstations | Computers/workstations, Monitors, Keyboards/mice/peripherals, HMI software platform, Licenses |
-| Historian System | Server hardware, Database software, Historian application software, Licenses, Storage subsystems |
-| Network Equipment | Industrial Ethernet switches, Routers, Firewalls (if applicable), Fiber optic equipment |
-| Field Enclosures | Junction boxes, I/O cabinets (if pre-packaged by vendor), Environmental enclosures |
+| Equipment Category | Data Sheets Required | Specification § | Procedure Step |
+|--------------------|----------------------|-----------------|----------------|
+| DCS/PLC Controllers | Controller modules (CPU, memory), I/O modules (AI, AO, DI, DO), Communication modules, Power supplies, Racks/chassis | RAC-01, RAC-03 | Step 3 |
+| HMI Workstations | Computers/workstations, Monitors, Keyboards/mice/peripherals, HMI software platform, Licenses | RAC-01, RAC-03 | Step 3 |
+| Historian System | Server hardware, Database software, Historian application software, Licenses, Storage subsystems | RAC-01, RAC-03 | Step 3 |
+| Network Equipment | Industrial Ethernet switches, Routers, Firewalls (if applicable), Fiber optic equipment | RAC-02, RAC-04 | Steps 3, 4 |
+| Field Enclosures | Junction boxes, I/O cabinets (if pre-packaged by vendor), Environmental enclosures | RAC-03, RAC-04 | Step 3 |
 
 **Source:** Decomposition PKG-19 scope; typical control system equipment per DEL-19.01 architecture and DEL-19.02 specification
 
 ### System Context
 
-| Parameter | Value |
-|-----------|-------|
-| Facility Capacity | 1,000,000 MT/annum canola oil throughput (OBJ-2) |
-| Control Scope | 32 railcar unloading positions, 3 × 15,000 MT storage tanks, marine loading operations, custody transfer metering |
-| Reliability Objective | Safe, efficient, reliable, continuous operation (OBJ-1) |
-| Flexibility Objective | Support tank storage and direct rail-to-ship transfer modes (OBJ-4) |
+| Parameter | Value | DEL-19.02 § | Related Objective |
+|-----------|-------|-------------|-------------------|
+| Facility Capacity | 1,000,000 MT/annum canola oil throughput (OBJ-2) | FR-01 | OBJ-2 |
+| Control Scope | 32 railcar unloading positions, 3 × 15,000 MT storage tanks, marine loading operations, custody transfer metering | FR-01, IR-04 | OBJ-2, OBJ-3 |
+| Reliability Objective | Safe, efficient, reliable, continuous operation (OBJ-1) | FR-03, FR-05 | OBJ-1 |
+| Flexibility Objective | Support tank storage and direct rail-to-ship transfer modes (OBJ-4) | FR-02 | OBJ-4 |
 
 **Source:** OBJ-1, OBJ-2, OBJ-4 per Decomposition Section 2
 

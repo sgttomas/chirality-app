@@ -89,3 +89,23 @@ Serial No: [As-built]
 **Project Objective Alignment:** Supports **OBJ-1: Safe & Reliable Operation** and **OBJ-9: Lifecycle Cost Optimization**.
 
 **Source:** Decomposition Section 6 (lines 780, 788)
+
+## Cross-Document Traceability
+
+This Guidance document provides engineering rationale for DEL-20.04. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § explains data sheet purpose; Construction § provides instrument type examples |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-4 implement Principles; QR-1 to QR-3 implement quality approach |
+| Procedure.md | Production workflow and verification steps | Steps 1-5 implement three-phase lifecycle per Principle 2 |
+
+**Guidance-to-Specification Mapping:**
+
+| Guidance Section | Specification Section | Rationale Provided |
+|------------------|----------------------|-------------------|
+| Principle 1 | INT-1 | Data sheets bridge design and procurement |
+| Principle 2 | FR-1 to FR-4 | Three-phase lifecycle (design, procurement, as-built) |
+| Principle 3 | PR-2 | Traceability requirements |
+| Trade-off | Documentation | Standardization vs. optimization |
+| Technical Considerations | FR-2 | Instrument-specific requirements |

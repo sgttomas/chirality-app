@@ -165,3 +165,29 @@ Each test record shall include:
 - Permanent facility records
 - Electronic archive in project document management system
 - Hardcopy archive per project records management plan **location TBD**
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures record types, content structure, and cross-references |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for implementing requirements |
+| Procedure.md | §Steps 1-7, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Completeness) → Guidance §Principles (Objective Evidence Philosophy)
+- FR-2 (Content) → Guidance §Considerations Item 2 (Data Recording Best Practices)
+- FR-3 (Traceability) → Guidance §Considerations Item 5 (Calibration Traceability)
+- PR-1 (Accuracy) → Guidance §Principles (Record Quality Attributes)
+- QR-1 (Review) → Guidance §Considerations Items 4 (Failed Test Documentation)
+- QR-2 (Retention) → Guidance §Trade-offs Item 1 (Paper vs. Electronic)
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Completeness) → Procedure Steps 2, 5 (Conduct Tests, Compile Records)
+- FR-2 (Content) → Procedure Step 2 (Record Data)
+- FR-3 (Traceability) → Procedure Step 3 (Review and Verify)
+- PR-2 (Timeliness) → Procedure Steps 6-7 (Submit, Archive)
+- QR-1 (Review) → Procedure Steps 3-4 (Review, Manage NCRs)
+- QR-2 (Retention) → Procedure Step 7 (Archive)

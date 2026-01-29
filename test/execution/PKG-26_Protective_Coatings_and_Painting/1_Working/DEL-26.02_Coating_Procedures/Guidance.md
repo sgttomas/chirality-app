@@ -469,4 +469,37 @@ Per Decomposition DEL-26.02, this deliverable shall produce:
 
 **Source:** Decomposition DEL-26.02 anticipated artifacts; Specification.md (Documentation section)
 
-These procedures shall be formatted per project procedure template and reviewed/approved per project quality procedures (Procedure.md).
+These procedures shall be formatted per project procedure template and reviewed/approved per project quality procedures (Procedure.md §Step 7).
+
+---
+
+## Conflict Table (for human ruling)
+
+**Status:** No unresolved conflicts identified during Pass 3 enrichment.
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts detected | — | — | — | — | — |
+
+**Note:** If conflicts arise during procedure development (e.g., conflicts between DEL-26.01 requirements and manufacturer data sheets, or between HSE requirements and production efficiency), record them here for human resolution.
+
+---
+
+## Cross-Document Verification Summary
+
+| Guidance Section | Specification § | Datasheet § | Procedure § |
+|------------------|-----------------|-------------|-------------|
+| Purpose (Objectives) | Scope | Project Objectives | Purpose |
+| Principles (Three Pillars) | FR-1, FR-2, PR-4 | Surface Prep, Coating Application | Steps 2, 3 |
+| Principles (Surface Prep Quality) | FR-1, PR-1 | Surface Preparation Procedures | Step 2 |
+| Principles (Application QC) | FR-2, PR-4, PR-1 | Coating Application Procedures | Step 3 |
+| Principles (Environmental Sensitivity) | FR-3 | Conditions (Environmental) | Part B §Prerequisites |
+| Principles (Worker Safety) | FR-4, IR-4, IR-5 | Conditions (Safety) | Step 5, Part B §Safety |
+| Considerations (Application-Specific) | QR-1 | Attributes (Coverage Scope) | Step 1.2 |
+| Considerations (Shop vs. Field) | — | — | Step 4.2 |
+| Considerations (Hold Points) | PR-1 | Inspection and Acceptance | Steps 2, 3 |
+| Considerations (Training) | QR-2 | — | Step 8 |
+| Trade-offs (All) | — | — | Steps 1, 4, 5, 6 |
+| Examples (Procedure Structure) | QR-1 | — | Step 2, Step 3 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified and consistent.

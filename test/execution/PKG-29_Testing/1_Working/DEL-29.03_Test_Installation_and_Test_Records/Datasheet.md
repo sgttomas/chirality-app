@@ -144,3 +144,21 @@ Records are collected, reviewed, and compiled into deliverable packages per this
 **ASSUMPTION:** Cross-deliverable relationships based on typical EPC project flow
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-2, IR-1 to IR-2, QR-1 to QR-2) | Defines requirements for record completeness, content, and retention |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for record collection and management |
+| Procedure.md | §Steps 1-7 | Defines process for preparing, collecting, reviewing, and archiving records |
+
+**Cross-Deliverable Consistency Notes:**
+- Test records implement and document results of DEL-29.01 (Test Procedures)
+- Test records document completion of ITP activities from DEL-29.02
+- Test records parallel FAT records (DEL-29.04) and SAT records (DEL-29.05)
+- Hydrostatic test records cross-reference water management records (DEL-29.06 through DEL-29.08)
+- Record package is prerequisite for commissioning (PKG-30)
+- Objectives OBJ-1 (Safe & Reliable Operation) and OBJ-6 (Regulatory Compliance) are supported through documented evidence

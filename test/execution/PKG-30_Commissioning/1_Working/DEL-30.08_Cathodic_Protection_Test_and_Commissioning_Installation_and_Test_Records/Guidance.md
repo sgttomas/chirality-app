@@ -128,6 +128,16 @@ Verify regulatory requirements and witness/acceptance needs.
 
 **Source:** Decomposition §5 DEL-30.08; Datasheet.md
 
+## Conflict Table (for human ruling)
+
+No conflicts identified during document enrichment. If conflicts arise during CP commissioning, they will be documented here:
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| (none) | | | | | | |
+
+**Note:** Cross-deliverable conflicts are handled by RECONCILIATION agent when requested; this table captures only local conflicts within DEL-30.08 scope.
+
 ---
 
 ## Document Cross-References

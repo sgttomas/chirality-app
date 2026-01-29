@@ -97,3 +97,23 @@ Test Date: [Date]
 Supports **OBJ-1: Safe & Reliable Operation** — Test records provide evidence that instrumentation is fit for safe operations before facility startup.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Guidance document provides engineering rationale for DEL-20.05. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § defines record lifecycle; Construction § defines record content |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 implement Principles; QR-1 to QR-3 implement quality approach |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 implement Principles 1-3 through commissioning lifecycle |
+
+**Guidance-to-Specification Mapping:**
+
+| Guidance Section | Specification Section | Rationale Provided |
+|------------------|----------------------|-------------------|
+| Principle 1 | FR-1 to FR-5 | Test records provide acceptance evidence |
+| Principle 2 | PR-2 | Quality gates before operations |
+| Principle 3 | INT-2 | Calibration baseline for lifecycle maintenance |
+| Trade-off | FR-2 | Dry vs. wet calibration methods |
+| Technical Considerations | FR-2, FR-3 | Calibration methods and loop check strategy |

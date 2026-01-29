@@ -177,3 +177,20 @@ The ITP covers inspection and testing activities during:
 - Classification society requirements (if applicable for marine structures): **TBD**
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-5, PR-1 to PR-3, IR-1 to IR-3, QR-1 to QR-3) | Defines requirements for ITP coverage, hold/witness designations, and quality |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale for hold/witness point selection and ITP structure |
+| Procedure.md | §Steps 1-9 | Defines process for developing, reviewing, approving, and maintaining ITP |
+
+**Cross-Deliverable Consistency Notes:**
+- ITP serves as master document governing hold/witness requirements for DEL-29.01 (Test Procedures) through DEL-29.08
+- ITP activity numbers provide traceability for all test records (DEL-29.03 through DEL-29.08)
+- ITP defines FAT requirements referenced by DEL-29.04 and SAT requirements referenced by DEL-29.05
+- ITP integrates with commissioning activities in PKG-30
+- Objectives OBJ-1 (Safe & Reliable Operation), OBJ-6 (Regulatory Compliance), and OBJ-9 (Lifecycle Cost) align with PKG-29 quality mission

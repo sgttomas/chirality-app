@@ -479,3 +479,26 @@ Each specification section (level, pressure, temperature) may be organized as:
 This deliverable supports **OBJ-1: Safe & Reliable Operation** — Proper specification of instrument performance, materials, and workmanship ensures field instruments are fit for purpose and support safe, reliable facility operations.
 
 **Source:** Decomposition Section 6 Objective-to-Deliverable Mapping (line 780)
+
+## Cross-Document Traceability
+
+This Specification defines the requirements for DEL-20.02. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § provides operating context for FR-2 to FR-5; Construction § defines instrument types and technologies |
+| Guidance.md | Engineering rationale and decision context | Principles explain "why" behind requirements; Trade-offs address design options; Examples illustrate application |
+| Procedure.md | Production workflow and verification steps | Steps 1-5 implement requirements; Verification section implements QR-1 to QR-4 |
+
+**Requirement-to-Guidance Mapping:**
+
+| Requirement | Guidance Section | Rationale Summary |
+|-------------|------------------|-------------------|
+| FR-1 Measurement Performance | Principle 2 | Right instrument for application ensures measurement integrity |
+| FR-2 Level Measurement | Level Instruments, Trade-off 1 | Technology selection and accuracy considerations |
+| FR-3 Pressure Measurement | Pressure Instruments | Technology selection and range considerations |
+| FR-4 Temperature Measurement | Temperature Instruments | Technology selection and thermowell considerations |
+| FR-5 Accessories | Coordination Considerations | Complete installations require accessories |
+| PR-2 Environmental Ratings | Principle 3 | Marine environment drives material and protection requirements |
+| PR-3 Hazardous Area | Principle 4 | Canola oil combustibility requires electrical safety |
+| PR-5 Design Life | Principle 5 | Lifecycle cost vs. capital cost balance |

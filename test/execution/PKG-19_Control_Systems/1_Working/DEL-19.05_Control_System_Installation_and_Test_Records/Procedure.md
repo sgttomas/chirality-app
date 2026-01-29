@@ -116,12 +116,15 @@ Defines process for creating, managing, and archiving installation and test reco
 
 ## Verification
 
-| Step | Verification Activity | Verifier |
-|------|----------------------|----------|
-| 1-2 | FAT procedures approval, FAT test results review | I&C lead, QA/QC, Owner |
-| 4 | Installation inspection | QA/QC inspector, I&C engineer |
-| 5-6 | SAT procedures approval, SAT test results review | I&C lead, QA/QC, Owner |
-| 9 | Final record package completeness | QA/QC manager |
+| Step | Verification Activity | Verifier | Requirements Verified |
+|------|----------------------|----------|----------------------|
+| 1–2 | FAT procedures approval, FAT test results review | I&C lead, QA/QC, Owner | RR-01 |
+| 3 | Software version documentation | I&C engineer | RR-03 |
+| 4 | Installation inspection | QA/QC inspector, I&C engineer | RR-04 |
+| 5–6 | SAT procedures approval, SAT test results review | I&C lead, QA/QC, Owner | RR-02 |
+| 7 | As-commissioned software documentation | I&C engineer | RR-03 |
+| 8 | Training and commissioning records | QA/QC, I&C lead | RR-05 |
+| 9 | Final record package completeness | QA/QC manager | QR-01, QR-02, QR-03 |
 
 **Acceptance Criteria:** All tests passed, all punch lists resolved, all sign-offs obtained, all records complete
 

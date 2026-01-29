@@ -14,19 +14,19 @@ This deliverable consists of vendor-supplied equipment data sheets that demonstr
 
 ### Submittal Review Philosophy
 
-**Purpose of Data Sheet Review:**
+**Purpose of Data Sheet Review:** *(Supports Specification.md DSR-01 through DSR-04, RAC-01 through RAC-05)*
 The data sheet review is a critical control gate that verifies vendor-proposed equipment meets project requirements before significant procurement expenditures and fabrication lead times are committed. It prevents:
-- Procurement of equipment that does not meet performance requirements
-- Interface incompatibilities discovered late in construction
-- Non-compliant equipment requiring replacement or rework
-- Schedule delays due to unsuitable equipment
+- Procurement of equipment that does not meet performance requirements — *Specification.md RAC-01*
+- Interface incompatibilities discovered late in construction — *Specification.md RAC-02*
+- Non-compliant equipment requiring replacement or rework — *Specification.md RAC-03, RAC-04*
+- Schedule delays due to unsuitable equipment — *Specification.md DSR-02*
 
-**Key Review Principles:**
-- **Compliance-Based:** Equipment must demonstrate compliance with DEL-19.02 specification requirements
-- **Performance-Focused:** Review performance data, not just feature lists
-- **Interface-Critical:** Verify compatibility with field instrumentation (PKG-20), electrical (PKG-17), and other interfaces
-- **Risk-Based:** Prioritize review of critical and long-lead equipment (controllers, servers)
-- **Documented:** All review comments and approvals documented for traceability
+**Key Review Principles:** *(Supports Procedure.md Steps 3–4)*
+- **Compliance-Based:** Equipment must demonstrate compliance with DEL-19.02 specification requirements — *Specification.md RAC-01*
+- **Performance-Focused:** Review performance data, not just feature lists — *Specification.md RAC-01 (PR-01 through PR-04)*
+- **Interface-Critical:** Verify compatibility with field instrumentation (PKG-20), electrical (PKG-17), and other interfaces — *Specification.md RAC-02*
+- **Risk-Based:** Prioritize review of critical and long-lead equipment (controllers, servers) — *Trade-offs TO-02*
+- **Documented:** All review comments and approvals documented for traceability — *Procedure.md Steps 6, 9*
 
 **Source:** Standard EPC submittal review practice
 

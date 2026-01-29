@@ -149,3 +149,21 @@ FATs are typically conducted:
 - O&M documentation (FAT reports provide baseline performance data)
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-2, IR-1 to IR-3, QR-1 to QR-3) | Defines requirements for FAT scope, content, and quality |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for FAT execution |
+| Procedure.md | §Steps 1-6 | Defines process for coordinating, witnessing, and documenting FATs |
+
+**Cross-Deliverable Consistency Notes:**
+- FAT requirements derived from ITP (DEL-29.02) hold/witness designations
+- FAT records parallel field test records (DEL-29.03) in structure and retention
+- FAT completion is prerequisite for SAT (DEL-29.05)
+- FAT records integrate with equipment packages (PKG-10 through PKG-20)
+- Custody transfer metering FATs (OBJ-10) may require Measurement Canada witness
+- Objectives OBJ-1 (Safe & Reliable Operation) and OBJ-9 (Lifecycle Cost) supported through early defect detection

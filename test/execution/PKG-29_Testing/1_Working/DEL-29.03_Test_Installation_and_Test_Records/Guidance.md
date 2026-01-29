@@ -157,3 +157,28 @@ Calibration sticker affixed: Due 2025-05-10
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for record types and content structure |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-7 | Implements this Guidance through specific record management steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Objective Evidence Philosophy) → Supports Specification FR-1, FR-3
+- §Principles (Record Quality Attributes) → Supports Specification PR-1 (Accuracy)
+- §Considerations → Supports Specification FR-2 (Content), QR-1 (Review)
+- §Trade-offs → Informs engineering decisions for Specification QR-2 (Retention)
+- §Examples → Provides implementation patterns for Specification §Documentation
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Format Selection) → Procedure Step 1 (Prepare Forms)
+- §Considerations Item 2 (Data Recording) → Procedure Step 2 (Conduct Tests)
+- §Considerations Item 3 (Hold/Witness Documentation) → Procedure Step 2
+- §Considerations Item 4 (Failed Test Documentation) → Procedure Step 4 (Manage NCRs)
+- §Considerations Item 5 (Calibration Traceability) → Procedure Step 3 (Verify)
+- §Trade-offs (Paper vs. Electronic) → Procedure Step 7 (Archive)

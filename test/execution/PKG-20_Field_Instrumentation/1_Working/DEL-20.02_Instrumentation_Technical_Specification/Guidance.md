@@ -482,3 +482,30 @@ Proper specification of instrument performance, materials, and workmanship ensur
 - **OBJ-10: Custody Transfer Accuracy** — Specifications support accurate product metering (coordinate with PKG-12 metering systems)
 
 **Source:** **ASSUMPTION** based on instrumentation specification's role in facility safety, compliance, cost optimization, and commercial accountability
+
+## Cross-Document Traceability
+
+This Guidance document provides engineering rationale and decision context for DEL-20.02. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § provides project context for Principles; Construction § details instrument types for Technical Considerations |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 implement Principles; PR-1 to PR-5 implement Performance Considerations; Standards § implements Standards Context |
+| Procedure.md | Production workflow and verification steps | Steps 1-5 implement Principles and Considerations; Verification implements Quality Considerations |
+
+**Guidance-to-Specification Mapping:**
+
+| Guidance Section | Specification Section | Rationale Provided |
+|------------------|----------------------|-------------------|
+| Principle 1 | Scope | Specifications define "what" not "how" |
+| Principle 2 | FR-1 | Right instrument for application |
+| Principle 3 | PR-2 | Environmental durability for marine terminal |
+| Principle 4 | PR-3 | Hazardous area safety requirements |
+| Principle 5 | PR-5 | Lifecycle cost vs. capital cost |
+| Trade-off 1 | FR-2 | Contact vs. non-contact level measurement |
+| Trade-off 2 | PR-3 | Intrinsically safe vs. explosion-proof |
+| Trade-off 3-4 | PR-1 | Accuracy vs. cost and redundancy decisions |
+| Trade-off 5-6 | Scope | Prescriptive vs. performance-based specifications |
+| Level Instruments | FR-2 | Level technology selection factors |
+| Pressure Instruments | FR-3 | Pressure technology selection factors |
+| Temperature Instruments | FR-4 | Temperature technology selection factors |

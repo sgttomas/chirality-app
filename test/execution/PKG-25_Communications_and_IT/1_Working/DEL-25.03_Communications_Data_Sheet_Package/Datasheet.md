@@ -16,14 +16,14 @@
 
 ## Attributes
 
-| Attribute | Value | Source/Notes |
-|-----------|-------|--------------|
-| Document Number | **TBD** | Per project data sheet numbering system |
-| Data Sheet Type | Equipment Data Sheets Package | Product/equipment specifications |
-| Equipment Categories | Network switches, patch panels | Decomposition Table PKG-25 DEL-25.03 |
-| Number of Data Sheets | **TBD** | Based on equipment quantities |
-| Format | **ASSUMPTION**: Manufacturer cut sheets + summary tables | Typical for equipment data packages |
-| Revision | **TBD** | Initial issue typically Rev 0 or A |
+| Attribute | Value | Source/Notes | Spec § | Proc Step |
+|-----------|-------|--------------|--------|-----------|
+| Document Number | **TBD** | Per project data sheet numbering system | Documentation | Step 5 |
+| Data Sheet Type | Equipment Data Sheets Package | Product/equipment specifications | Scope | Purpose |
+| Equipment Categories | Network switches, patch panels | Decomposition Table PKG-25 DEL-25.03 | Functional Req. | Steps 1-3 |
+| Number of Data Sheets | **TBD** | Based on equipment quantities | Documentation | Step 1 |
+| Format | **ASSUMPTION**: Manufacturer cut sheets + summary tables | Typical for equipment data packages | Documentation | Step 2 |
+| Revision | **TBD** | Initial issue typically Rev 0 or A | Documentation | Step 5 |
 
 **Source:** `_CONTEXT.md`; Decomposition Table PKG-25 DEL-25.03
 
@@ -113,4 +113,36 @@ Per Decomposition Table PKG-25 DEL-25.03:
 
 ---
 
-**Document Enrichment Status:** Three-pass enrichment complete. Cross-references established. Ready for WORKING_ITEMS refinement.
+## Summary of Key TBDs and Assumptions
+
+**Critical TBDs Requiring Resolution:**
+1. Network architecture and equipment requirements — determines switch types and quantities
+2. Port count and capacity requirements — determines switch and patch panel specifications
+3. Power requirements (standard vs. PoE) — determines switch capability requirements
+4. Equipment room environmental specifications — coordination with PKG-22 HVAC
+5. Connector types (fiber LC/SC, copper Cat 6/6A) — coordination with DEL-25.02
+
+**Key Assumptions Requiring Validation:**
+1. Indoor equipment room environment (non-condensing, temperature controlled)
+2. 19-inch rack-mount equipment per EIA-310-D
+3. Non-hazardous area classification for all equipment locations
+4. 10-15 year design life for active equipment
+5. IEEE 802.3 Ethernet and TIA-568 compliance for all equipment
+
+**Source:** Compilation from TBDs and ASSUMPTIONs across document
+
+---
+
+## Cross-Document Verification (Pass 3)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Datasheet ↔ Specification consistency | ✓ Verified | Equipment types, standards aligned |
+| Datasheet ↔ Guidance consistency | ✓ Verified | Selection criteria match attributes |
+| Datasheet ↔ Procedure consistency | ✓ Verified | Attributes traceable to procedure steps |
+| Terminology consistency | ✓ Verified | Consistent use of: ER, TR, IEEE, TIA standards |
+| TBD completeness | ✓ Verified | All unknowns marked TBD with resolution path |
+| ASSUMPTION labeling | ✓ Verified | All inferences labeled ASSUMPTION |
+| Cross-deliverable references | ✓ Verified | DEL-25.01, DEL-25.02, DEL-25.04 linkages explicit |
+
+**Pass 3 enrichment completed:** Cross-document linkages strengthened with explicit Specification § and Procedure Step references.

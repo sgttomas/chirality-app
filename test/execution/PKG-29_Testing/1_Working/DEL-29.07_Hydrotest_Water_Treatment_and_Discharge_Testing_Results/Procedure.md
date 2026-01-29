@@ -104,3 +104,32 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 - Archive: Project document management system (permanent environmental records)
 
 **Status:** See `_STATUS.md`
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides record types and test parameters for Steps 1, 6 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Collect Samples) | FR-1 (Sampling) | V-1 |
+| Step 2 (Operate Treatment) | FR-2 (Treatment Logging) | V-2 |
+| Step 3 (Review Results) | FR-1, QR-1 | V-2 |
+| Step 4 (Authorize/Halt) | FR-3, PR-1 | V-3 |
+| Step 5 (Monitor Discharge) | FR-3 | V-3 |
+| Step 6 (Compile Records) | QR-3, IR-2 | V-4, AC-3 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Items 1-2 (Sample, Laboratory) |
+| Step 2 | §Considerations Item 3 (Treatment Monitoring) |
+| Step 3 | §Considerations Item 2 (Laboratory Turnaround) |
+| Step 4 | §Principles (Test Before Discharge), §Considerations Item 4 (Contingency) |
+| Step 6 | §Examples (Report Format)

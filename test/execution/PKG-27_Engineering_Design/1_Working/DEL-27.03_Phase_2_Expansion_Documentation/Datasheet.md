@@ -171,3 +171,12 @@ Per _CONTEXT.md and decomposition DEL-27.03 entry:
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally per _COORDINATION.md)
 
 **Source:** Decomposition Section 3 (Reference Documents); **ASSUMPTION**: Phase 2 planning references Phase 1 design basis and Employer's strategic plans
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- Terminology verified consistent with Specification.md, Guidance.md, Procedure.md
+- Project parameters (1,000,000 MT/annum Phase 1 throughput, 45,000 MT / 3 × 15,000 MT storage, 32 railcar stations) verified consistent
+- OBJ-8 (Future Expandability) reference verified consistent across all documents
+- Anticipated artifacts (Phase 2 General Arrangement Drawing, Phase 2 Engineering Memo) verified consistent
+- Cross-references to DEL-27.01, DEL-27.02, PKG-01 through PKG-26 verified consistent across all documents

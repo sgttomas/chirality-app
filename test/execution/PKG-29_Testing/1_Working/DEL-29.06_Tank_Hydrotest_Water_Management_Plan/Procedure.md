@@ -123,3 +123,36 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 - Issued: `3_Issued/` (upon approval)
 
 **Status:** See `_STATUS.md`
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides plan components and disposal options for Steps 2-6 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Volume/Schedule) | FR-1 (Water Source) | V-1 |
+| Step 2 (Water Source) | FR-1 | V-1 |
+| Step 3 (Contamination) | FR-2 (Treatment) | V-3 |
+| Step 4 (Treatment) | FR-2 | V-3 |
+| Step 5 (Sampling Plan) | FR-3 | V-1 |
+| Step 6 (Discharge Options) | FR-4 | V-1 |
+| Step 7 (Permits) | IR-1, QR-2 | V-2 |
+| Step 8 (Compile/Submit) | QR-1 | V-4, AC-3 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Trade-offs (Sequential vs. Simultaneous) |
+| Step 2 | §Considerations Item 2 (Water Source Selection) |
+| Step 3 | §Considerations Item 4 (Coating Considerations) |
+| Step 4 | §Considerations Item 3 (Treatment Sizing) |
+| Step 6 | §Principles (Hierarchy of Disposal), §Trade-offs (Discharge vs. Haul-Away) |
+| Step 7 | §Considerations Item 1 (Timing and Permits) |
+| Step 8 | §Examples (Plan Outline)

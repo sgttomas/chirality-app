@@ -26,6 +26,7 @@ Defines requirements for PLC/DCS application software, HMI graphics, and histori
 - Support facility throughput 1,000,000 MT/a (OBJ-2): railcar unloading (32 positions), storage (3 tanks), marine loading
 - Support operational flexibility (OBJ-4): tank storage mode AND direct rail-to-ship transfer mode without reconfiguration
 - **Source:** DEL-19.02 FR-01, FR-02, FR-04; OBJ-2, OBJ-4
+- **Rationale:** Guidance.md §Principles (Operational Flexibility); **Verification:** Procedure.md Steps 1–3, 6–7
 
 **FR-02: Safety Interlocks and Protection**
 - Implement all safety interlocks per process safety requirements
@@ -33,6 +34,7 @@ Defines requirements for PLC/DCS application software, HMI graphics, and histori
 - Emergency shutdown (ESD) logic coordinated with PKG-23 fire protection/safety systems
 - If SIS (Safety Instrumented System) in scope: BPCS/SIS separation per IEC 61511
 - **Source:** DEL-19.02 FR-05, FR-06; IEC 61511 (if SIS applicable)
+- **Rationale:** Guidance.md §Principles (Reliability), §Considerations (Safety Interlocks); **Verification:** Procedure.md Steps 3, 6–7, 9
 
 **FR-03: Alarm Management**
 - Alarm management per ISA 18.2 alarm management principles
@@ -40,6 +42,7 @@ Defines requirements for PLC/DCS application software, HMI graphics, and histori
 - Alarm load target: ≤6 alarms per operator per 10 minutes (steady-state)
 - **TBD** — Peak alarm load during upset conditions
 - **Source:** DEL-19.02 FR-07; ISA 18.2
+- **Rationale:** Guidance.md §Considerations (Alarm Rationalization), §Trade-offs TO-02; **Verification:** Procedure.md Steps 3, 6–7
 
 **FR-04: Data Collection and Historian**
 - Historian shall collect all process tags at defined sampling rates (fast ≤1 sec, normal 5-10 sec, slow 1 min)
@@ -47,6 +50,7 @@ Defines requirements for PLC/DCS application software, HMI graphics, and histori
 - Custody transfer metering data: integrity, audit trails, tamper-proof totalization (OBJ-10)
 - Reporting: shift reports, daily production, monthly summary, custody transfer reports
 - **Source:** DEL-19.02 FR-04, FR-06; OBJ-10
+- **Verification:** Procedure.md Step 5, 6–7
 
 **FR-05: HMI Operator Interface**
 - Intuitive operator interface with consistent graphics, navigation, and symbology
@@ -54,6 +58,7 @@ Defines requirements for PLC/DCS application software, HMI graphics, and histori
 - Real-time trends, historical trends, alarm displays
 - Operator control: start/stop equipment, setpoint adjustment, mode selection
 - **Source:** DEL-19.02 FR-04; ISA 101 HMI design principles (if applicable)
+- **Rationale:** Guidance.md §Considerations (HMI Design), §Trade-offs TO-03; **Verification:** Procedure.md Steps 4, 6–7, 9
 
 ### Performance Requirements (PR)
 

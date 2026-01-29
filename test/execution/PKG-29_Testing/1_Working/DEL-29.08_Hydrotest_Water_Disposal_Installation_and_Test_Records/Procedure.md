@@ -113,3 +113,31 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 ---
 
 **COMPLETION NOTE:** This is the final deliverable in PKG-29 Testing. All 8 deliverables in this package now have enriched documentation.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides record types and manifest content for Steps 1, 3, 6 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Prepare) | QR-1, QR-2 | — |
+| Step 2 (Discharge) | FR-1, IR-2 | V-1 |
+| Step 3 (Haul-Away) | FR-2 | V-2 |
+| Step 4 (Confirmation) | FR-3 | V-2 |
+| Step 5 (Volume Balance) | PR-1 | V-1, V-3, AC-3 |
+| Step 6 (Compile) | QR-3 | V-4, AC-2 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Items 1-2 (Hauler, Facility) |
+| Step 3 | §Considerations Item 3 (Manifest Management), §Examples |
+| Step 5 | §Considerations Item 4 (Volume Tracking) |
+| All Steps | §Principles (Cradle to Grave)

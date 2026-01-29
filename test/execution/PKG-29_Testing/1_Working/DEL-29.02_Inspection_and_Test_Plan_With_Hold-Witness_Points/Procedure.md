@@ -483,3 +483,37 @@ ITP development requires input from:
 - This Procedure.md document describes the process for developing the ITP.
 - The ITP deliverable itself (matrix and summary) will be developed following this process.
 - For questions on ITP development, consult D&B Contractor QA/QC Manager.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Provides ITP structure and column definitions used in Steps 1, 4 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Define Scope/Structure) | §Scope, FR-2 (Designations) | V-1 |
+| Step 2 (Identify Activities) | FR-1 (Comprehensive Coverage) | V-1 |
+| Step 3 (Assign Designations) | FR-2 (Hold/Witness Designations) | V-2 |
+| Step 4 (Define Criteria) | FR-3 (Acceptance Criteria), FR-4/FR-5 | V-2 |
+| Step 5 (Inspection Matrix) | §Documentation (Secondary Deliverable) | V-1 |
+| Step 6 (Internal Review) | QR-1, VM-2 | V-2 |
+| Step 7 (Employer Review) | QR-1, VM-3 | V-3 |
+| Step 8 (Issue/Distribute) | QR-2, AC-3 | AC-6 |
+| Step 9 (Maintain/Update) | QR-2, PR-1 | V-4 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Trade-offs (Single vs. Multiple ITPs), §Examples (Structure) |
+| Step 2 | §Considerations Item 1 (Scope), Item 2 (Code Requirements) |
+| Step 3 | §Principles (Hold vs. Witness Philosophy), §Examples (Selection) |
+| Step 4 | §Examples (ITP Matrix Entry), §Considerations Item 6 (Subcontractors) |
+| Step 5 | §Examples (Inspection Matrix Summary) |
+| Step 7 | §Considerations Item 3 (Employer Preferences) |
+| Step 9 | §Trade-offs (Progressive Development) |

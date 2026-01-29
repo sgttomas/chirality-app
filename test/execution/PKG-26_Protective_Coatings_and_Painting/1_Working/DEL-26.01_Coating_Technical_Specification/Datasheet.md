@@ -16,15 +16,15 @@
 
 ## Attributes
 
-| Attribute | Value | Source |
-|-----------|-------|--------|
-| Document Number | **TBD** | Project document control system |
-| Specification Type | Technical (Performance, Materials, Workmanship) | Decomposition DEL-26.01 description |
-| Specification Approach | Performance-based with reference products | Guidance.md (Trade-offs — Generic vs. Proprietary) |
-| Revision | 0 (Initial Draft) | **ASSUMPTION** — Initial working draft |
-| Applicable Standards | SSPC, NACE/AMPP, CSA S6 Annex, ISO 12944, FDA 21 CFR 175.300, NSF/ANSI 61 | Specification.md (Standards section) |
-| Classification | D&B Contractor Specification | Decomposition DEL-26.01 |
-| Coverage Scope | Tank coatings (internal/external), structural steel coatings, marine coatings, field painting | Decomposition PKG-26 scope |
+| Attribute | Value | Source | Specification § | Procedure § |
+|-----------|-------|--------|-----------------|-------------|
+| Document Number | **TBD** | Project document control system | — | Step 6.1 |
+| Specification Type | Technical (Performance, Materials, Workmanship) | Decomposition DEL-26.01 description | Scope | Step 2.1 |
+| Specification Approach | Performance-based with reference products | Guidance.md §Trade-offs (Generic vs. Proprietary) | — | Step 2.5 |
+| Revision | 0 (Initial Draft) | **ASSUMPTION** — Initial working draft | — | Step 6.3 |
+| Applicable Standards | SSPC, NACE/AMPP, CSA S6 Annex, ISO 12944, FDA 21 CFR 175.300, NSF/ANSI 61 | Specification.md §Standards | Standards | Step 1.3 |
+| Classification | D&B Contractor Specification | Decomposition DEL-26.01 | — | — |
+| Coverage Scope | Tank coatings (internal/external), structural steel coatings, marine coatings, field painting | Decomposition PKG-26 scope | Scope (Inclusions) | Step 2.2–2.4 |
 
 ## Conditions
 
@@ -60,33 +60,36 @@ This deliverable defines materials and workmanship for protective coatings appli
 ### Tank Coatings (Internal)
 - **Application:** Storage tank interiors (3 × 15,000 MT canola oil tanks) — **Source:** Decomposition Section 1, PKG-13
 - **Product contact:** Canola oil (food-grade edible oil product) — **Source:** Project description
-- **Functional requirement:** Product compatibility (FR-1) and food contact compliance (PR-1) — **Source:** Specification.md
-- **Food-grade compliance:** FDA 21 CFR 175.300, NSF/ANSI 61 (or equivalent) — **Source:** Specification.md (Standards)
-- **System type:** **TBD** — Likely epoxy phenolic or FDA-compliant epoxy lining — **ASSUMPTION** — **Source:** Guidance.md (Engineering Rationale)
-- **DFT (Dry Film Thickness):** **TBD** — Typical range 10-16 mils per industry practice — **Source:** Guidance.md (Examples)
-- **Surface preparation:** **TBD** — Likely SSPC-SP 10 (near-white blast) or SP-5 (white metal blast) — **Source:** Specification.md (PR-5)
-- **Performance requirement:** No taste/odor imparted to product; resistance to canola oil and cleaning agents — **Source:** Specification.md (FR-1)
-- **Project objective:** OBJ-3 (Storage Capacity 45,000 MT) — coating must not compromise storage volume — **Source:** Guidance.md (Purpose)
+- **Functional requirement:** Product compatibility (FR-1) and food contact compliance (PR-1) — **Source:** Specification.md §FR-1, §PR-1
+- **Food-grade compliance:** FDA 21 CFR 175.300, NSF/ANSI 61 (or equivalent) — **Source:** Specification.md §Standards (Food Contact Standards)
+- **System type:** **TBD** — Likely epoxy phenolic or FDA-compliant epoxy lining — **ASSUMPTION** — **Source:** Guidance.md §Examples (Tank Internals)
+- **DFT (Dry Film Thickness):** **TBD** — Typical range 10-16 mils per industry practice — **Source:** Specification.md §PR-4; Guidance.md §Examples
+- **Surface preparation:** **TBD** — Likely SSPC-SP 10 (near-white blast) or SP-5 (white metal blast) — **Source:** Specification.md §PR-5
+- **Performance requirement:** No taste/odor imparted to product; resistance to canola oil and cleaning agents — **Source:** Specification.md §FR-1
+- **Project objective:** OBJ-3 (Storage Capacity 45,000 MT) — coating must not compromise storage volume — **Source:** Decomposition Section 6; Guidance.md §Purpose
+- **Verification:** DEL-26.02 §Surface Preparation; DEL-26.04 §Holiday Detection Records — **Source:** Specification.md §QR-1; Procedure.md §Step 2.2
 
 ### Tank Coatings (External)
 - **Application:** Storage tank exteriors and appurtenances
 - **Exposure:** Atmospheric weathering, coastal marine/industrial environment
-- **Functional requirement:** Corrosion protection (FR-2) per environmental classification — **Source:** Specification.md
-- **System type:** **TBD** — Multi-coat epoxy or epoxy/polyurethane system (zinc-rich primer + epoxy intermediate + polyurethane topcoat) — **Source:** Guidance.md (Examples)
-- **DFT (Dry Film Thickness):** **TBD** — Typical total 9-14 mils per industry practice — **Source:** Guidance.md (Examples)
-- **Surface preparation:** **TBD** — SSPC-SP 6 (commercial blast) or SP-10 (near-white blast) per corrosivity category — **Source:** Specification.md (PR-5)
-- **Durability:** High (H) to Very High (VH) per ISO 12944-1 — **TBD** — **Source:** Guidance.md (Examples)
-- **Project objective:** OBJ-9 (Lifecycle Cost Optimization) — balance initial cost vs. long-term durability — **Source:** Guidance.md (Purpose)
+- **Functional requirement:** Corrosion protection (FR-2) per environmental classification — **Source:** Specification.md §FR-2
+- **System type:** **TBD** — Multi-coat epoxy or epoxy/polyurethane system (zinc-rich primer + epoxy intermediate + polyurethane topcoat) — **Source:** Guidance.md §Examples (Tank Externals)
+- **DFT (Dry Film Thickness):** **TBD** — Typical total 9-14 mils per industry practice — **Source:** Specification.md §PR-4; Guidance.md §Examples
+- **Surface preparation:** **TBD** — SSPC-SP 6 (commercial blast) or SP-10 (near-white blast) per corrosivity category — **Source:** Specification.md §PR-5
+- **Durability:** High (H) to Very High (VH) per ISO 12944-1 — **TBD** — **Source:** Specification.md §FR-3; Guidance.md §Examples
+- **Project objective:** OBJ-9 (Lifecycle Cost Optimization) — balance initial cost vs. long-term durability — **Source:** Decomposition Section 6; Guidance.md §Purpose
+- **Verification:** DEL-26.02 §Application Procedures; DEL-26.04 §DFT Measurement Records — **Source:** Specification.md §QR-1; Procedure.md §Step 2.2
 
 ### Structural Steel Coatings
 - **Application:** Structural steel framing, platforms, supports (PKG-06)
 - **Exposure:** Atmospheric weathering, marine/industrial environment
-- **Functional requirement:** Corrosion protection (FR-2) and interface coordination (IR-2) — **Source:** Specification.md
-- **System type:** **TBD** — Similar to tank external (zinc-rich epoxy primer + epoxy intermediate + polyurethane topcoat) or galvanizing with compatible topcoat — **Source:** Guidance.md (Examples)
-- **DFT (Dry Film Thickness):** **TBD** — Per coating system selected
-- **Surface preparation:** **TBD** — SSPC-SP 6 or SP-10 per corrosivity category — **Source:** Specification.md (PR-5)
-- **Shop vs. Field:** **TBD** — Responsibility split to be defined in coordination with PKG-06 — **Source:** Specification.md (IR-2); Guidance.md (Trade-offs — Shop vs. Field)
-- **Corrosivity category:** **TBD** — Likely C4 or C5 per ISO 12944-2 — **ASSUMPTION**
+- **Functional requirement:** Corrosion protection (FR-2) and interface coordination (IR-2) — **Source:** Specification.md §FR-2, §IR-2
+- **System type:** **TBD** — Similar to tank external (zinc-rich epoxy primer + epoxy intermediate + polyurethane topcoat) or galvanizing with compatible topcoat — **Source:** Guidance.md §Examples (Structural Steel)
+- **DFT (Dry Film Thickness):** **TBD** — Per coating system selected — **Source:** Specification.md §PR-4
+- **Surface preparation:** **TBD** — SSPC-SP 6 or SP-10 per corrosivity category — **Source:** Specification.md §PR-5
+- **Shop vs. Field:** **TBD** — Responsibility split to be defined in coordination with PKG-06 — **Source:** Specification.md §IR-2; Guidance.md §Trade-offs (Shop vs. Field)
+- **Corrosivity category:** **TBD** — Likely C4 or C5 per ISO 12944-2 — **ASSUMPTION** — **Source:** Guidance.md §Principles (Multi-Environment Design)
+- **Verification:** DEL-26.02 §Shop/Field Procedures; DEL-26.04 §Inspection Records — **Source:** Procedure.md §Step 2.3
 
 ### Marine Coatings
 - **Application:** Marine structures (berth, fenders, loading arms, marine equipment)
@@ -95,16 +98,18 @@ This deliverable defines materials and workmanship for protective coatings appli
   - Immersion zone: Continuous water immersion
   - Splash zone: Intermittent wetting, accelerated corrosion
   - Atmospheric zone: Above splash zone, atmospheric exposure
-- **Functional requirement:** Corrosion protection (FR-2) and interface coordination (IR-3) — **Source:** Specification.md
-- **System type:** **TBD** — High-build epoxy or specialized marine coating per NACE/SSPC marine guidance — **Source:** Guidance.md (Examples)
-- **DFT (Dry Film Thickness):** **TBD** — Per NACE/SSPC marine coating guidance
-- **Surface preparation:** **TBD** — Likely SSPC-SP 10 (near-white blast) for critical marine applications — **Source:** Specification.md (PR-5)
+- **Functional requirement:** Corrosion protection (FR-2) and interface coordination (IR-3) — **Source:** Specification.md §FR-2, §IR-3
+- **System type:** **TBD** — High-build epoxy or specialized marine coating per NACE/SSPC marine guidance — **Source:** Guidance.md §Examples (Marine Structures)
+- **DFT (Dry Film Thickness):** **TBD** — Per NACE/SSPC marine coating guidance — **Source:** Specification.md §PR-4
+- **Surface preparation:** **TBD** — Likely SSPC-SP 10 (near-white blast) for critical marine applications — **Source:** Specification.md §PR-5
+- **Verification:** DEL-26.02 §Marine Application Procedures; DEL-26.04 §Marine Inspection Records — **Source:** Procedure.md §Step 2.4
 
 ### Field Painting
 - **Application:** Touch-up, field welds, field joints, field-installed components
-- **Functional requirement:** Compatibility with shop-applied coatings — **Source:** Specification.md
+- **Functional requirement:** Compatibility with shop-applied coatings — **Source:** Specification.md §Scope (Inclusions)
 - **System type:** **TBD** — Compatible with base coating system — **ASSUMPTION**
-- **Requirements:** Material compatibility, surface preparation for field conditions, application within environmental limits (PR-6) — **Source:** Specification.md
+- **Requirements:** Material compatibility, surface preparation for field conditions, application within environmental limits (PR-6) — **Source:** Specification.md §PR-6
+- **Verification:** DEL-26.02 §Field Application Procedures; DEL-26.04 §Field Inspection Records — **Source:** Procedure.md §Step 2.3
 
 ## References
 
@@ -156,3 +161,19 @@ This deliverable defines materials and workmanship for protective coatings appli
 - **OBJ-9:** Lifecycle Cost Optimization — Coating selection must balance initial cost with long-term durability and maintenance requirements
 
 **Source:** Decomposition Section 6
+
+---
+
+## Cross-Document Verification Summary
+
+| Datasheet Section | Specification § | Guidance § | Procedure § |
+|-------------------|-----------------|------------|-------------|
+| Attributes (Standards) | Standards | Principles (Standards Context) | Step 1.3 |
+| Conditions (Environmental) | FR-2, PR-2 | Considerations (Corrosivity) | Step 1.2 |
+| Tank Internal Coatings | FR-1, PR-1, PR-4, PR-5 | Principles (Tank Internals) | Step 2.2 |
+| Tank External Coatings | FR-2, FR-3, PR-2, PR-4, PR-5 | Examples (Tank Externals) | Step 2.2 |
+| Structural Steel Coatings | FR-2, IR-2, PR-4, PR-5 | Trade-offs (Shop vs. Field) | Step 2.3 |
+| Marine Coatings | FR-2, IR-3, PR-4, PR-5 | Examples (Marine Structures) | Step 2.4 |
+| Field Painting | PR-6 | Considerations (Application) | Step 2.3 |
+
+**Verification status:** Pass 3 complete — Cross-document section references added and verified.

@@ -143,3 +143,23 @@ Design phase: Complete, compliant with specification and calculations, approved 
 Supports **OBJ-1: Safe & Reliable Operation** and **OBJ-9: Lifecycle Cost Optimization** (data sheets enable proper procurement, installation, and lifecycle maintenance).
 
 **Source:** Decomposition Section 6 (lines 780, 788)
+
+## Cross-Document Traceability
+
+This Procedure defines the production workflow for DEL-20.04. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § defines data sheet purpose; Construction § defines three-phase workflow |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-4 define what to produce; QR-1 to QR-3 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles explain three-phase lifecycle; Trade-off informs standardization decisions |
+
+**Procedure-to-Specification Mapping:**
+
+| Procedure Step | Specification Requirement | What Is Implemented |
+|----------------|--------------------------|---------------------|
+| Step 1 | FR-1, PR-1 | Template development |
+| Step 2 | FR-2, FR-3, PR-2 | Design data sheet population |
+| Step 3 | FR-4, INT-1, QR-2 | Vendor solicitation and evaluation |
+| Step 4 | INT-2, QR-3 | As-built update |
+| Step 5 | INT-3, Documentation | Handover to operations |

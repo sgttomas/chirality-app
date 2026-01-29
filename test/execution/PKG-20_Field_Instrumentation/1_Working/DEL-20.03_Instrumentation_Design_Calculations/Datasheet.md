@@ -244,3 +244,20 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED**: Dependencies coordinated externally 
 This deliverable supports **OBJ-1: Safe & Reliable Operation** — Proper sizing and verification calculations ensure instruments are correctly specified for safe and reliable facility operations.
 
 **Source:** Decomposition document, Section 6 Objective-to-Deliverable Mapping (line 780)
+
+## Cross-Document Traceability
+
+This Datasheet provides factual identification, attributes, conditions, and references for DEL-20.03. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 define functional requirements; PR-1 to PR-3 define performance requirements; QR-1 to QR-4 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles 1-3 explain design rationale; Trade-offs 1-2 address tool/approach decisions; Examples illustrate application |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 define calculation process; Verification section defines acceptance criteria; Records section defines outputs |
+
+**Document Consistency Verification:**
+
+- All calculation types in Datasheet Construction § appear in Specification FR-2 to FR-5 and Guidance Technical Considerations
+- All related deliverables in Datasheet References § appear in Specification INT-2 and Procedure Records
+- All standards in Datasheet References § appear in Specification Standards and Guidance Examples
+- Design basis conditions in Datasheet § align with Procedure Prerequisites

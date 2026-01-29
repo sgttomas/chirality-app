@@ -19,23 +19,23 @@ This deliverable provides the technical requirements that define WHAT the contro
 
 ### Engineering Rationale (I&C Discipline)
 
-**Purpose of Technical Specification:**
+**Purpose of Technical Specification:** *(Supports Specification.md Scope, all FR/PR/IR/MR requirements)*
 The technical specification translates project objectives and process requirements into actionable equipment requirements. It ensures:
-- Equipment is fit for purpose (throughput, reliability, flexibility)
-- Equipment meets applicable codes and standards
-- Equipment is compatible with existing terminal infrastructure (where applicable)
-- Equipment can be maintained and supported over design life
-- Vendor proposals are comparable and can be objectively evaluated
+- Equipment is fit for purpose (throughput, reliability, flexibility) — *Specification.md FR-01, FR-02, FR-03*
+- Equipment meets applicable codes and standards — *Specification.md Standards section*
+- Equipment is compatible with existing terminal infrastructure (where applicable) — *Considerations §4*
+- Equipment can be maintained and supported over design life — *Specification.md QR-02*
+- Vendor proposals are comparable and can be objectively evaluated — *Specification.md AC-03*
 
 **Source:** Standard specification engineering practice
 
-**Design Philosophy:**
-- **Performance-Based:** Specify performance outcomes rather than prescribing specific products (unless pre-qualified by Employer)
-- **Reliability (OBJ-1):** Specify redundancy, MTBF, fail-over time based on criticality assessment
-- **Flexibility (OBJ-4):** Specify operational modes explicitly; avoid hard-coded limitations
-- **Accuracy (OBJ-10):** Specify data integrity, audit trails, and custody transfer interfaces
-- **Future Expansion (OBJ-8):** Specify spare capacity (I/O, controller memory, network bandwidth) for Phase 2
-- **Lifecycle Cost (OBJ-9):** Balance capital cost with maintenance cost, spare parts availability, and support longevity
+**Design Philosophy:** *(Supports Specification.md FR-01 through FR-08)*
+- **Performance-Based:** Specify performance outcomes rather than prescribing specific products (unless pre-qualified by Employer) — *Trade-offs TO-04*
+- **Reliability (OBJ-1):** Specify redundancy, MTBF, fail-over time based on criticality assessment — *Specification.md FR-03; Trade-offs TO-02*
+- **Flexibility (OBJ-4):** Specify operational modes explicitly; avoid hard-coded limitations — *Specification.md FR-02*
+- **Accuracy (OBJ-10):** Specify data integrity, audit trails, and custody transfer interfaces — *Specification.md FR-04*
+- **Future Expansion (OBJ-8):** Specify spare capacity (I/O, controller memory, network bandwidth) for Phase 2 — *Considerations §3*
+- **Lifecycle Cost (OBJ-9):** Balance capital cost with maintenance cost, spare parts availability, and support longevity — *Trade-offs TO-03*
 
 **Source:** Project objectives OBJ-1, OBJ-4, OBJ-8, OBJ-9, OBJ-10 per Decomposition Section 2
 
@@ -70,47 +70,47 @@ The technical specification translates project objectives and process requiremen
 
 ### Factors to Consider During Development
 
-**1. Vendor Selection Strategy:**
-- **Open Specification vs. Sole Source:** Balance standardization (Employer's existing systems) with competition
+**1. Vendor Selection Strategy:** *(Supports Specification.md MR-01, MR-02, QR-01)*
+- **Open Specification vs. Sole Source:** Balance standardization (Employer's existing systems) with competition — *see Trade-offs TO-04*
 - **Pre-Qualified Vendors:** Determine if Employer has pre-qualified control system vendors
-- **Local Support:** Consider vendor's local presence and support capabilities in BC/Canada
+- **Local Support:** Consider vendor's local presence and support capabilities in BC/Canada — *Specification.md QR-02*
 
-**2. System Architecture Trade-offs (see Trade-offs section):**
-- DCS vs. PLC
-- Redundancy level
-- Network architecture
+**2. System Architecture Trade-offs:** *(Supports Specification.md FR-01, FR-03; Procedure.md Step 2)*
+- DCS vs. PLC — *see Trade-offs TO-01*
+- Redundancy level — *see Trade-offs TO-02*
+- Network architecture — *Specification.md FR-08*
 
-**3. Expansion and Scalability (OBJ-8):**
-- Specify spare I/O capacity: **ASSUMPTION**: 25-30% spare typical
-- Specify controller memory and processing margin
-- Specify network bandwidth margin
+**3. Expansion and Scalability (OBJ-8):** *(Supports Specification.md PR-01, PR-03, PR-04; Procedure.md Step 2)*
+- Specify spare I/O capacity: **ASSUMPTION**: 25-30% spare typical — *Specification.md IR-01*
+- Specify controller memory and processing margin — *Specification.md PR-01*
+- Specify network bandwidth margin — *Specification.md PR-04*
 - Consider Phase 2 expansion requirements per Employer's Requirements **TBD**
 
-**4. Integration with Existing Terminal:**
+**4. Integration with Existing Terminal:** *(Supports Specification.md IR-04, IR-05; Procedure.md Step 3)*
 - **Terminal Continuity (OBJ-5):** Minimize disruption during installation and commissioning
 - Determine if control system must interface with existing terminal systems (SCADA, historian, network infrastructure)
 - **TBD** — Employer's existing control system infrastructure per Employer's Requirements **location TBD**
 
-**5. Operator Manning and Philosophy:**
+**5. Operator Manning and Philosophy:** *(Supports Specification.md FR-02, FR-07, PR-02; Procedure.md Step 2)*
 - Determine operational manning (24/7 vs. daytime only, number of operators)
 - Determine control philosophy (centralized vs. distributed, automatic vs. manual)
 - HMI workstation count and locations driven by operational philosophy
 - **TBD** — Operational philosophy per Employer's Requirements **location TBD**
 
-**6. Data Management and Historian:**
-- Retention period (regulatory, commercial, operational requirements)
-- Reporting requirements (daily, weekly, monthly reports)
+**6. Data Management and Historian:** *(Supports Specification.md FR-06, PR-03; Procedure.md Step 2)*
+- Retention period (regulatory, commercial, operational requirements) — *Specification.md FR-06*
+- Reporting requirements (daily, weekly, monthly reports) — *Specification.md FR-06*
 - Integration with Employer's enterprise systems (if applicable)
 
-**7. Cybersecurity Posture:**
+**7. Cybersecurity Posture:** *(Supports Specification.md FR-08, MR-05; Procedure.md Step 2)*
 - Determine cybersecurity requirements based on threat assessment and Employer's IT/OT policies
-- Network segmentation, firewall rules, remote access policies
+- Network segmentation, firewall rules, remote access policies — *Specification.md FR-08*
 - **TBD** — Cybersecurity requirements per Employer's Requirements **location TBD**
 
-**8. Testing and Commissioning Strategy:**
-- FAT location, scope, and attendance
-- SAT sequencing and acceptance criteria
-- Integration testing with existing terminal operations
+**8. Testing and Commissioning Strategy:** *(Supports Specification.md TC-01, TC-02, TC-03; Procedure.md Steps 4–5)*
+- FAT location, scope, and attendance — *Specification.md TC-01*
+- SAT sequencing and acceptance criteria — *Specification.md TC-02*
+- Integration testing with existing terminal operations — *Specification.md TC-03*
 
 **Source:** Typical I&C specification development considerations; project-specific context from Decomposition objectives
 

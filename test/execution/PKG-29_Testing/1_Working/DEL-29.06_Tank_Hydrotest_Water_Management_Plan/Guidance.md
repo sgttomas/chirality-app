@@ -132,3 +132,28 @@ TANK HYDROTEST WATER MANAGEMENT PLAN
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for plan components and disposal options |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-8 | Implements this Guidance through specific plan development steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Environmental Stewardship) → Supports Specification QR-2, OBJ-7
+- §Principles (Hierarchy of Disposal) → Supports Specification FR-4
+- §Considerations Item 1 (Timing/Permits) → Supports Specification PR-2, IR-1
+- §Considerations Item 2 (Water Source) → Supports Specification FR-1
+- §Considerations Items 3-4 (Treatment, Coatings) → Supports Specification FR-2
+- §Trade-offs → Informs engineering decisions for Specification requirements
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Timing) → Procedure Step 7 (Permits)
+- §Considerations Item 2 (Water Source) → Procedure Step 2
+- §Considerations Items 3-4 → Procedure Steps 3-4 (Treatment)
+- §Trade-offs (Sequential vs. Simultaneous) → Procedure Step 1
+- §Examples (Plan Outline) → Procedure Step 8 (Compile)

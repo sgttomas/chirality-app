@@ -70,3 +70,15 @@ Defines requirements for **Cathodic Protection Design Basis & Design Calculation
 **Approvals:** CP Specialist (originator), Senior CP Specialist or P.Eng. (checker), Discipline Lead (approver)
 
 **Source:** Datasheet.md; **ASSUMPTION**: Standard calculation documentation per project QMS
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All requirements linked to Guidance § for rationale and Procedure Step for implementation
+- Datasheet.md: Structure types, CP system attributes, calculation methodology, references
+- Guidance.md: Principles §1-3, Considerations, Trade-offs, Examples
+- Procedure.md: Steps 1-7 for CP design development
+- Terminology verified consistent with Datasheet.md, Guidance.md, Procedure.md
+- Structures requiring CP (storage tanks, buried piping, marine structures) verified consistent
+- CP criteria (-850 mV vs. Cu/CuSO₄) verified consistent with NACE SP0169
+- Cross-references to PKG-05, PKG-06, PKG-08, PKG-14, PKG-17 verified consistent

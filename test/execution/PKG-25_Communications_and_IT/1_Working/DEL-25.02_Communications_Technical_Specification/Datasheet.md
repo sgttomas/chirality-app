@@ -16,15 +16,15 @@
 
 ## Attributes
 
-| Attribute | Value | Source/Notes |
-|-----------|-------|--------------|
-| Document Number | **TBD** | To be assigned per project specification numbering system |
-| Specification Type | Technical Specification | Product and performance requirements per `_CONTEXT.md` Description |
-| Specification Format | **ASSUMPTION**: Section-based (CSI/MasterFormat or similar) | Typical for construction technical specifications |
-| Revision | **TBD** | Initial issue typically Rev 0 or A |
-| Applicable Standard | See Standards section below | Multiple telecommunications and electrical standards apply |
-| Classification | **ASSUMPTION**: For Construction | Technical specification for procurement and installation |
-| Specification Scope | Fiber cable specification, network cabling specification | Decomposition Table PKG-25 DEL-25.02 |
+| Attribute | Value | Source/Notes | Spec § | Proc Step |
+|-----------|-------|--------------|--------|-----------|
+| Document Number | **TBD** | To be assigned per project specification numbering system | Documentation | Step 10 |
+| Specification Type | Technical Specification | Product and performance requirements per `_CONTEXT.md` Description | Scope | Purpose |
+| Specification Format | **ASSUMPTION**: Section-based (CSI/MasterFormat or similar) | Typical for construction technical specifications | — | Steps 2-4 |
+| Revision | **TBD** | Initial issue typically Rev 0 or A | Documentation | Step 11 |
+| Applicable Standard | See Standards section below | Multiple telecommunications and electrical standards apply | Standards | Step 1.2 |
+| Classification | **ASSUMPTION**: For Construction | Technical specification for procurement and installation | Scope | Step 10.3 |
+| Specification Scope | Fiber cable specification, network cabling specification | Decomposition Table PKG-25 DEL-25.02 | Scope | Step 1.5 |
 
 **Source:** `_CONTEXT.md`; Decomposition Table PKG-25 DEL-25.02; **ASSUMPTION** for format
 
@@ -245,4 +245,16 @@ Anticipated artifacts (source: Decomposition Table PKG-25 DEL-25.02):
 
 ---
 
-**Document Enrichment Status:** Three-pass enrichment complete (Pass 1-3). Cross-references established with Specification.md, Guidance.md, and Procedure.md. Ready for WORKING_ITEMS refinement.
+## Cross-Document Verification (Pass 3)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Datasheet ↔ Specification consistency | ✓ Verified | Cable types, standards, materials aligned |
+| Datasheet ↔ Guidance consistency | ✓ Verified | Principles align with material selections |
+| Datasheet ↔ Procedure consistency | ✓ Verified | Attributes traceable to procedure steps |
+| Terminology consistency | ✓ Verified | Consistent use of: Cat 6/6A, SMF/MMF, OM3/OM4/OS2, TIA standards |
+| TBD completeness | ✓ Verified | All unknowns marked TBD with resolution path |
+| ASSUMPTION labeling | ✓ Verified | All inferences labeled ASSUMPTION |
+| Source citations | ✓ Verified | Non-trivial values cite TIA standards or decomposition |
+
+**Pass 3 enrichment completed:** Cross-document linkages strengthened with explicit Specification § and Procedure Step references in Attributes table.

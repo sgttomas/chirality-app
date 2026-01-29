@@ -19,22 +19,22 @@ This deliverable provides the graphical design documentation that defines how th
 
 ### Engineering Rationale (I&C Discipline)
 
-**Control System Role:**
+**Control System Role:** *(Supports Specification.md FR-01, FR-02)*
 The control system is the central nervous system of the canola oil transload facility, coordinating:
-- Railcar unloading operations (32 positions)
-- Storage tank operations (3 × 15,000 MT tanks)
-- Marine loading operations
-- Custody transfer metering
-- Safety interlocks and alarms
+- Railcar unloading operations (32 positions) — *per Datasheet.md System Capacity Parameters*
+- Storage tank operations (3 × 15,000 MT tanks) — *per Datasheet.md System Capacity Parameters*
+- Marine loading operations — *interface per Specification.md IR-05*
+- Custody transfer metering — *per Specification.md FR-05*
+- Safety interlocks and alarms — *per Specification.md FR-02*
 - Process optimization
 
 **Source:** Decomposition Project Overview and PKG-19 scope; facility capacity parameters from OBJ-2, OBJ-3
 
-**Design Philosophy:**
-- **Reliability (OBJ-1):** Control system architecture shall minimize single points of failure affecting safe and continuous operation. Redundancy strategy for critical functions.
-- **Operational Flexibility (OBJ-4):** System shall support multiple operating modes (tank storage, direct rail-to-ship) without reconfiguration.
-- **Accuracy (OBJ-10):** Integration with custody transfer metering systems to ensure measurement integrity.
-- **Maintainability:** Modular design facilitating maintenance and future expansion (OBJ-8).
+**Design Philosophy:** *(Supports Specification.md FR-04, FR-05, FR-06)*
+- **Reliability (OBJ-1):** Control system architecture shall minimize single points of failure affecting safe and continuous operation. Redundancy strategy for critical functions. *(Specification.md FR-06; Trade-offs TO-02)*
+- **Operational Flexibility (OBJ-4):** System shall support multiple operating modes (tank storage, direct rail-to-ship) without reconfiguration. *(Specification.md FR-04; Trade-offs TO-04)*
+- **Accuracy (OBJ-10):** Integration with custody transfer metering systems to ensure measurement integrity. *(Specification.md FR-05)*
+- **Maintainability:** Modular design facilitating maintenance and future expansion (OBJ-8). *(Considerations §1 Scalability)*
 
 **Source:** Project objectives OBJ-1, OBJ-4, OBJ-8, OBJ-10 per Decomposition Section 2
 
@@ -69,30 +69,30 @@ The control system is the central nervous system of the canola oil transload fac
 
 ### Factors to Consider During Development
 
-**1. System Architecture:**
-- **Centralized vs. Distributed Control:** Evaluate control system topology (single DCS vs. distributed PLCs) based on facility geography, reliability requirements, and operational preferences
-- **Redundancy Strategy:** Determine level of redundancy (controller, power supplies, communications) required for OBJ-1 reliability
+**1. System Architecture:** *(Supports Specification.md FR-01, FR-02, FR-06; Procedure.md Step 2)*
+- **Centralized vs. Distributed Control:** Evaluate control system topology (single DCS vs. distributed PLCs) based on facility geography, reliability requirements, and operational preferences — *see Trade-offs TO-01*
+- **Redundancy Strategy:** Determine level of redundancy (controller, power supplies, communications) required for OBJ-1 reliability — *see Trade-offs TO-02*
 - **Scalability:** Consider future expansion to support Phase 2 (OBJ-8)
 
-**2. Network Design:**
+**2. Network Design:** *(Supports Specification.md FR-03; Procedure.md Step 3)*
 - **Network Segmentation:** Separate process control, safety (if SIS), and business networks to meet cybersecurity and reliability requirements
-- **Communication Protocols:** Select industrial protocols (e.g., EtherNet/IP, Modbus TCP, PROFINET) compatible with field devices (PKG-20) and compatible with Employer's existing terminal infrastructure
+- **Communication Protocols:** Select industrial protocols (e.g., EtherNet/IP, Modbus TCP, PROFINET) compatible with field devices (PKG-20) and compatible with Employer's existing terminal infrastructure — *see Trade-offs TO-03 for wired vs. wireless*
 - **Bandwidth and Latency:** Size network to support real-time control, historian data collection, and HMI responsiveness
 
-**3. Physical Arrangement:**
+**3. Physical Arrangement:** *(Supports Specification.md IR-03, IR-04; Procedure.md Step 4)*
 - **Control Room Location:** Coordinate with building design (PKG-21/PKG-22) for optimal visibility, access, and environmental conditions
 - **Cabinet Locations:** Balance accessibility for maintenance, proximity to field devices (cable length), and environmental protection (indoor vs. outdoor)
 - **Hazardous Area Classification:** Equipment in or near hazardous areas (PKG-30) must meet area classification requirements
 
-**4. Operator Interface:**
-- **HMI Configuration:** Determine number and location of HMI workstations based on operational manning and operational modes (tank storage vs. direct transfer)
+**4. Operator Interface:** *(Supports Specification.md FR-04; Procedure.md Step 5)*
+- **HMI Configuration:** Determine number and location of HMI workstations based on operational manning and operational modes (tank storage vs. direct transfer) — *see Trade-offs TO-04*
 - **Remote Access:** Consider need for remote HMIs or mobile operator interfaces for field operations
 - **Ergonomics and Human Factors:** HMI arrangement should support effective monitoring and control by operators
 
-**5. Interfaces and Coordination:**
-- **Field Instrumentation (PKG-20):** I/O count, signal types, and communication protocols must be coordinated
-- **Electrical Power (PKG-17):** Power requirements, UPS backup, and emergency shutdown power must be defined
-- **Process Systems (PKG-10 through PKG-16):** Control strategies and interlocks depend on process equipment design
+**5. Interfaces and Coordination:** *(Supports Specification.md IR-01 through IR-05; Procedure.md Step 6)*
+- **Field Instrumentation (PKG-20):** I/O count, signal types, and communication protocols must be coordinated — *Specification.md IR-01*
+- **Electrical Power (PKG-17):** Power requirements, UPS backup, and emergency shutdown power must be defined — *Specification.md IR-02*
+- **Process Systems (PKG-10 through PKG-16):** Control strategies and interlocks depend on process equipment design — *Specification.md IR-05*
 - **Safety Systems (PKG-23):** Fire protection and emergency shutdown systems must interface with control system
 
 **6. Regulatory and Environmental:**

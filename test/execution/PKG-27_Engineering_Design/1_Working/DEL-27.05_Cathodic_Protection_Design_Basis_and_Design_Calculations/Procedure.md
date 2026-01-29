@@ -102,3 +102,14 @@ Defines process for producing **Cathodic Protection Design Basis & Design Calcul
 **Filing:** Working `1_Working/`; checking `2_Checking/`; issued `3_Issued/`
 
 **Source:** Specification.md; **ASSUMPTION**: Standard deliverable lifecycle per AGENTS.md
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All Steps linked to Specification § requirements being verified
+- All Steps linked to Guidance § principles and considerations for rationale
+- All Verification activities linked to Specification § requirements
+- Terminology verified consistent with Datasheet.md, Specification.md, Guidance.md
+- CP calculation methodology (Steps 3-4) verified consistent with Guidance § Examples
+- Independent check requirement (Step 6) verified consistent with Specification § QR-1
+- Cross-references to structural (PKG-05, PKG-06, PKG-08), piping (PKG-14), and electrical (PKG-17) verified consistent

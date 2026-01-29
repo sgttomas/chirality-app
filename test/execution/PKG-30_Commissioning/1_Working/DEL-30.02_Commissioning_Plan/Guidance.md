@@ -266,6 +266,16 @@ This deliverable produces:
 
 **Source:** **ASSUMPTION** — Typical commissioning plan structure
 
+## Conflict Table (for human ruling)
+
+No conflicts identified during document enrichment. If conflicts arise during plan development, they will be documented here using this format:
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| (none) | | | | | | |
+
+**Note:** Cross-deliverable conflicts are handled by RECONCILIATION agent when requested; this table captures only local conflicts within DEL-30.02 scope.
+
 ---
 
 ## Document Cross-References

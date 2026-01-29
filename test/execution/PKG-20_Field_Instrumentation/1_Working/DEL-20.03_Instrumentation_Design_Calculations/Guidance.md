@@ -113,3 +113,24 @@ Total loop uncertainty (TLU): ±10 mm including installation effects ✓ (meets 
 Supports **OBJ-1: Safe & Reliable Operation** — Calculations verify instruments are correctly sized for safe and reliable measurement.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Guidance document provides engineering rationale for DEL-20.03. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § provides design basis for calculations; Construction § defines calculation types |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 implement Principles; QR-1 to QR-4 implement quality approach |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 implement Principles and Considerations |
+
+**Guidance-to-Specification Mapping:**
+
+| Guidance Section | Specification Section | Rationale Provided |
+|------------------|----------------------|-------------------|
+| Principle 1 | FR-1 to FR-5 | Calculations verify specification compliance |
+| Principle 2 | FR-3 | Fit-for-purpose accuracy requirements |
+| Principle 3 | PR-2 | Design margin approach |
+| Trade-off 1 | FR-1, PR-1 | Calculation detail vs. efficiency |
+| Trade-off 2 | PR-3 | Software tool selection |
+| Technical Considerations | FR-2 to FR-4 | Level, pressure, temperature calculation methods |

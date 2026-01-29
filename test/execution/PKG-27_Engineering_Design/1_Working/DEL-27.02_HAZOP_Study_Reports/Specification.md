@@ -355,3 +355,15 @@ Per Datasheet.md, HAZOP Report typically includes:
 - Issued versions: `3_Issued/` with revision and date in filename
 
 **Source:** _CONTEXT.md; Datasheet.md; **ASSUMPTION**: Standard HAZOP documentation per IEC 61882 and project document lifecycle per AGENTS.md
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All requirements linked to Guidance § for rationale and Procedure Step for implementation
+- Datasheet.md: HAZOP scope systems (PKG-10 through PKG-24), hazardous area classification, report structure
+- Guidance.md: Principles §1-11, Considerations, Trade-offs, Examples §1-4
+- Procedure.md: Steps 1-6 for conducting HAZOP studies
+- Terminology verified consistent with Datasheet.md, Guidance.md, Procedure.md
+- Project parameters verified consistent: 1,000,000 MT/annum (OBJ-2), 45,000 MT storage (OBJ-3), 32 railcar stations
+- Cross-references to DEL-27.01, DEL-27.04, DEL-28.01, PKG-10 through PKG-26 verified consistent across all documents
+- HAZOP methodology (IEC 61882) and hazardous area standards (CEC, API RP 505, IEC 60079) verified consistent

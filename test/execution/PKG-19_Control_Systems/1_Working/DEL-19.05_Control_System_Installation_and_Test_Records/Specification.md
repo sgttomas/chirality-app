@@ -29,6 +29,7 @@ Defines requirements for installation and test records for PKG-19 Control System
 - Functional and performance test results
 - Punch list and resolutions
 - FAT approval and witness sign-off
+- **Rationale:** Guidance.md §Principles (Evidence of Quality); **Verification:** Procedure.md Steps 1–2
 
 **RR-02: SAT Records** (per DEL-19.02 TC-02)
 - SAT test procedures (approved)
@@ -36,23 +37,27 @@ Defines requirements for installation and test records for PKG-19 Control System
 - Performance verification (scan time, response time per DEL-19.02 PR-01, PR-02)
 - Integration testing with process systems
 - SAT approval and witness sign-off
+- **Rationale:** Guidance.md §Considerations (FAT vs. SAT Scope); **Verification:** Procedure.md Steps 5–6
 
 **RR-03: Software Version Records** (per DEL-19.04)
 - Software backups (PLC/DCS, HMI, historian)
 - Version documentation (software name, version, date)
 - Change logs (all software changes documented)
 - As-built software documentation
+- **Rationale:** Guidance.md §Considerations (Software Version Control); **Verification:** Procedure.md Steps 3, 7
 
 **RR-04: Installation Records**
 - Equipment installation inspection (per DEL-19.01 drawings)
 - Cable installation and termination inspection
 - Grounding verification (per CSA C22.1)
 - Power-on checkout
+- **Verification:** Procedure.md Step 4
 
 **RR-05: Training Records** (per DEL-19.02 DR-02)
 - Training attendance
 - Training completion certificates
 - Operator acceptance sign-off
+- **Verification:** Procedure.md Step 8
 
 ### Quality Requirements
 

@@ -70,7 +70,23 @@ This deliverable compiles manufacturer data sheets for all coating materials spe
 
 ## References
 
-- **DEL-26.01** (Coating Technical Specification) — Specifies coating systems
-- **DEL-26.02** (Coating Procedures) — Procedures reference data sheets for application parameters
+- **DEL-26.01** (Coating Technical Specification) — Specifies coating systems; §PR-1 (food contact), §PR-4 (DFT), §PR-5 (surface prep), §PR-6 (application conditions)
+- **DEL-26.02** (Coating Procedures) — Procedures reference data sheets for application parameters; §IR-2, §Step 3.1
 - **DEL-26.04** (Coating Installation & Test Records) — Inspection references data sheets for acceptance criteria
 - **Source:** Decomposition Section 5; package relationships
+
+---
+
+## Cross-Document Verification Summary
+
+| Datasheet Section | Specification § | Guidance § | Procedure § |
+|-------------------|-----------------|------------|-------------|
+| Attributes | FR-1, QR-1 | Principles | Step 1 |
+| Conditions | — | Purpose | — |
+| Tank Internal Data Sheets | FR-2, FR-3, FR-4 | FDA/NSF Compliance | Steps 1.2, 2.3 |
+| Tank External/Structural Data Sheets | FR-1, FR-3, FR-4 | Principles (Data Sheet Role) | Steps 1.2, 2.1 |
+| Marine Coating Data Sheets | FR-1, FR-3, FR-4 | — | Step 1.2 |
+| Abrasive Data Sheets | FR-1 | — | Step 1.1 |
+| References (PKG-26 cross-refs) | — | Coordination | Steps 5.1 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified; DEL-26.01 traceability confirmed.

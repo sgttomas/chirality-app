@@ -438,3 +438,28 @@ This deliverable shall produce the following procedure documents:
 - Related discipline leads (PKG-13, PKG-06, PKG-33)
 
 **Source:** **ASSUMPTION** — Typical procedure distribution
+
+---
+
+## Cross-Document Verification Summary
+
+| Specification Requirement | Datasheet § | Guidance § | Procedure § | Upstream DEL-26.01 § |
+|---------------------------|-------------|------------|-------------|----------------------|
+| FR-1 (Surface Prep Compliance) | Surface Preparation Procedures | Surface Preparation Quality | Step 2 | PR-5 |
+| FR-2 (Coating Application Compliance) | Coating Application Procedures | Application Quality Control | Step 3 | PR-4, PR-6 |
+| FR-3 (Environmental Controls) | Conditions (Environmental) | Environmental Sensitivity | Part B §Prerequisites | PR-6 |
+| FR-4 (Safety/HSE Compliance) | Conditions (Safety) | Worker Safety | Step 5, Part B §Safety | — |
+| PR-1 (Hold Points) | Inspection and Acceptance | Hold Points and Inspection | Steps 2–3 | QR-1 |
+| PR-2 (Documentation) | Documentation and Records | — | Step 3.1 (Documentation) | QR-2 |
+| PR-3 (Material Handling) | Material Handling | — | Step 3.1 | — |
+| PR-4 (Quality Control Steps) | Quality Control | Application Quality Control | Steps 2–3 | QR-1 |
+| IR-1 (DEL-26.01 Compliance) | References (Primary upstream) | Coordination Points | Prerequisites | All |
+| IR-2 (DEL-26.03 Data Sheets) | References (Manufacturer data) | Coordination Points | Prerequisites | — |
+| IR-3 (DEL-26.04 Records) | Cross-references | Coordination Points | Step 3.1 | QR-2 |
+| IR-4 (PKG-33 HSE) | Cross-references | Worker Safety | Steps 5, Part B §Safety | — |
+| IR-5 (Confined Space) | Conditions (Safety) | Worker Safety (Confined Space) | Step 2, Step 3 | — |
+| QR-1 (Procedure Content) | Attributes (Procedure Format) | Procedure Structure Example | Step 1.3 | — |
+| QR-2 (Competency/Training) | — | Training and Competency | Step 8 | QR-3 |
+| QR-3 (Procedure Verification) | — | Trade-offs (Verification) | Steps 4–6 | — |
+
+**Verification status:** Pass 3 complete — All requirements traceable to Datasheet, Guidance, Procedure, and upstream DEL-26.01.

@@ -328,4 +328,26 @@ The actual production of this drawing set follows the workflow defined in **Proc
 
 The considerations and trade-offs discussed in this guidance document inform the design decisions made during the procedure steps.
 
-**Source:** Cross-reference to Procedure.md; Pass 2 enrichment
+**Source:** Cross-reference to Procedure.md
+
+---
+
+## Cross-Document Traceability (Pass 3)
+
+| Guidance Section | Datasheet § | Specification § | Procedure Step |
+|------------------|-------------|-----------------|----------------|
+| Purpose | Identification | Scope | Purpose |
+| Principles §1 Structured Cabling | References §Standards | Standards §TIA-568 | Prerequisites |
+| Principles §2 Redundancy | Conditions §Design | Performance Req. | Step 2.1 |
+| Principles §3 Scalability | References §OBJ-8 | Performance Req. §OBJ-8 | Steps 1.2, 3.2 |
+| Principles §4 Physical Layer | Construction | Performance Req. | Steps 2, 3 |
+| Principles §5 Separation | Conditions §Hazardous | Standards §Electrical | Step 3.2 |
+| Considerations §1-9 | Conditions, Construction | Interface Req., Quality Req. | Steps 1-4 |
+| Trade-offs §1 Fiber vs Copper | Construction §Materials | Performance Req. | Steps 2, 3 |
+| Trade-offs §2 Centralized vs Distributed | Conditions §Interface | Interface Req. | Steps 1.2, 3.3 |
+| Trade-offs §3 Redundancy vs Cost | References §OBJ-1 | Performance Req. | Step 2.1 |
+| Trade-offs §4 Pathway Capacity | Construction | Performance Req. §Pathway | Step 3.2 |
+| Trade-offs §5 Detail vs Schedule | Attributes | Quality Req. | Steps 5, 10 |
+| Examples §Drawing Types | Construction §Artifacts | Functional Req. | Steps 2-5 |
+
+**Pass 3 Verification:** All guidance principles and considerations traceable to requirements (Specification.md) and implementation steps (Procedure.md).

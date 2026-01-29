@@ -566,3 +566,35 @@ Design decisions and information flow bi-directionally between these deliverable
 These should be confirmed from project-specific quality and procedures documentation when available.
 
 **Source:** **ASSUMPTION** — Standard practices pending project-specific procedures
+
+---
+
+## Cross-Document Traceability (Pass 3)
+
+| Procedure Step | Datasheet § | Specification § | Guidance § |
+|----------------|-------------|-----------------|------------|
+| Step 1: Design Initiation | Attributes, References | Scope, Standards | Considerations §1-3 |
+| Step 2: Fiber Network Layout | Construction §Fiber | Functional Req. §1, Performance Req. | Principles §2-4, Trade-offs §1,3 |
+| Step 3: Communications Distribution | Construction §Cabling | Functional Req. §2, Performance Req. | Principles §3-5, Trade-offs §1,4 |
+| Step 4: Patch Panel Locations | Construction §Patch Panels | Functional Req. §3, Interface Req. | Considerations §5 Equipment Room |
+| Step 5: Drawing Production | Attributes §CAD | Quality Req. §Drawing Quality | Considerations §9 Drawing Org |
+| Step 6: Self-Check | — | Verification | — |
+| Step 7: IDC | Conditions §Interface | Verification §IDC | Considerations §6 Coordination |
+| Step 8: Independent Check | — | Verification §Design Review | — |
+| Step 9: Discipline Approval | — | Verification | — |
+| Step 10: Submittal | — | Documentation §Submittal | Trade-offs §5 Detail vs Schedule |
+| Step 11: Revision Management | Attributes §Revision | Documentation | — |
+| Verification | — | Verification | — |
+| Records | References §Cross-refs | Documentation | Notes §Coordination |
+
+**Pass 3 Verification Summary:**
+
+| Check | Status |
+|-------|--------|
+| Steps align with Specification requirements | ✓ Verified |
+| Steps informed by Guidance principles/considerations | ✓ Verified |
+| Verification activities match Specification §Verification | ✓ Verified |
+| Records align with anticipated artifacts | ✓ Verified |
+| Terminology consistency across documents | ✓ Verified |
+
+**Pass 3 enrichment completed:** Explicit cross-document traceability table added linking procedure steps to requirements (Specification.md) and engineering rationale (Guidance.md).

@@ -277,3 +277,27 @@ No conflicts identified during document development. If conflicts arise during t
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Identification, §Attributes, §Construction | Captures factual data on test types, systems, and procedure format |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports with rationale |
+| Procedure.md | §Steps 1-8 | Implements this Guidance through specific process steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Testing Philosophy) → Supports Specification FR-1, FR-2
+- §Discipline-Specific Principles → Supports Specification PR-1 (Hydrostatic), PR-2 (Electrical), PR-3 (I&C)
+- §Project-Specific Context → Supports Specification FR-2 (Objectives OBJ-1, OBJ-10)
+- §Considerations → Supports Specification IR-1, IR-2, IR-3 (Interfaces), QR-1, QR-2 (Quality/Safety)
+- §Trade-offs → Informs engineering judgment during Specification implementation
+- §Examples → Provides practical implementation patterns for Specification requirements
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Timing/Sequencing) → Procedure Step 1
+- §Considerations Item 4 (Hold/Witness Points) → Procedure Step 3
+- §Considerations Item 3 (Safety/Environmental Hazards) → Procedure Step 4
+- §Best Practices → Procedure Steps 6, 8

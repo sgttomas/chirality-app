@@ -30,24 +30,24 @@
 
 ### Specification Scope Components
 
-| Component | Description |
-|-----------|-------------|
-| DCS/PLC Specification | Performance, functional, and technical requirements for distributed control system or programmable logic controller |
-| HMI Specification | Performance, functional, and technical requirements for human-machine interface workstations and software |
-| Historian Specification | Performance, functional, and technical requirements for data historian system |
+| Component | Description | Specification § | Guidance § |
+|-----------|-------------|-----------------|------------|
+| DCS/PLC Specification | Performance, functional, and technical requirements for distributed control system or programmable logic controller | FR-01 to FR-08, PR-01, MR-02, MR-03 | Trade-offs TO-01, TO-02 |
+| HMI Specification | Performance, functional, and technical requirements for human-machine interface workstations and software | FR-02, FR-07, PR-02 | Considerations §4, §5 |
+| Historian Specification | Performance, functional, and technical requirements for data historian system | FR-06, PR-03 | Considerations §6 |
 
 **Source:** `_CONTEXT.md` anticipated artifacts; Decomposition PKG-19 scope
 
 ### System Context
 
-| Parameter | Value |
-|-----------|-------|
-| Facility Throughput | 1,000,000 MT/annum canola oil |
-| Storage Capacity | 45,000 MT (3 × 15,000 MT tanks) |
-| Unloading Capacity | 32 railcar positions |
-| Loading Operations | Marine loading via loading arms |
-| Metering | Custody transfer metering (accuracy per OBJ-10) |
-| Operational Modes | Tank storage operations AND direct rail-to-ship transfer (OBJ-4 flexibility) |
+| Parameter | Value | Specification § | Related Objective |
+|-----------|-------|-----------------|-------------------|
+| Facility Throughput | 1,000,000 MT/annum canola oil | FR-01 | OBJ-2 |
+| Storage Capacity | 45,000 MT (3 × 15,000 MT tanks) | FR-01 | OBJ-3 |
+| Unloading Capacity | 32 railcar positions | FR-01, IR-04 | OBJ-2 |
+| Loading Operations | Marine loading via loading arms | FR-01, IR-04 | OBJ-2, OBJ-4 |
+| Metering | Custody transfer metering (accuracy per OBJ-10) | FR-04, IR-04 | OBJ-10 |
+| Operational Modes | Tank storage operations AND direct rail-to-ship transfer (OBJ-4 flexibility) | FR-02 | OBJ-4 |
 
 **Source:** Decomposition Section 1 (Project Overview); OBJ-2, OBJ-3, OBJ-4, OBJ-10
 
@@ -55,12 +55,12 @@
 
 ### Operational Requirements
 
-| Requirement | Specification Basis |
-|-------------|---------------------|
-| Reliability | Safe, efficient, reliable, and continuous operation (OBJ-1) |
-| Operational Flexibility | Support both tank storage and direct rail-to-ship transfer modes without reconfiguration (OBJ-4) |
-| Custody Transfer Integration | Interface with custody transfer metering systems per OBJ-10 |
-| Throughput Support | Control system capacity to support 1,000,000 MT/annum facility throughput (OBJ-2) |
+| Requirement | Specification Basis | Specification § | Guidance § |
+|-------------|---------------------|-----------------|------------|
+| Reliability | Safe, efficient, reliable, and continuous operation (OBJ-1) | FR-03, FR-05 | Principles, Trade-offs TO-02 |
+| Operational Flexibility | Support both tank storage and direct rail-to-ship transfer modes without reconfiguration (OBJ-4) | FR-02 | Principles, Trade-offs TO-04 |
+| Custody Transfer Integration | Interface with custody transfer metering systems per OBJ-10 | FR-04 | Principles |
+| Throughput Support | Control system capacity to support 1,000,000 MT/annum facility throughput (OBJ-2) | FR-01 | Principles |
 
 **Source:** Decomposition Section 2 (Project Objectives); OBJ-1, OBJ-2, OBJ-4, OBJ-10
 

@@ -218,3 +218,28 @@ No conflicts identified during document development. If conflicts arise during I
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for ITP structure and column definitions |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-9 | Implements this Guidance through specific development steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Quality Assurance Philosophy) → Supports Specification FR-1, FR-2, QR-1
+- §Principles (Hold Point vs. Witness Point Philosophy) → Supports Specification FR-2 (Designations)
+- §Project-Specific Context → Supports Specification §Scope (Objectives alignment)
+- §Considerations → Supports Specification IR-1 to IR-3 (Interfaces), QR-3 (Competency)
+- §Trade-offs → Informs engineering judgment in balancing Specification requirements
+- §Examples → Provides implementation patterns for Specification FR-1 to FR-5
+
+**Guidance-to-Procedure Traceability:**
+- §Principles (Hold/Witness Selection) → Procedure Step 3 (Assign Designations)
+- §Considerations Item 3 (Employer Preferences) → Procedure Steps 3, 7
+- §Considerations Item 5 (Schedule) → Procedure Step 9 (Maintenance)
+- §Trade-offs (Detailed vs. Flexible ITP) → Procedure Steps 1, 9
+- §Examples (ITP Matrix) → Procedure Step 4 (Define Criteria)

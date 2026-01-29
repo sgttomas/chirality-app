@@ -472,3 +472,31 @@ Rigorous specification development process ensures:
 - **OBJ-10: Custody Transfer Accuracy** — Specifications support accurate product metering (coordinate with PKG-12)
 
 **Source:** **ASSUMPTION** based on procedure's role in quality assurance, compliance, and efficient project execution
+
+## Cross-Document Traceability
+
+This Procedure defines the production workflow for DEL-20.02. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Identification § provides deliverable identity; Conditions § provides project context; Construction § defines instrument types |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 define what to specify; QR-1 to QR-4 define quality requirements; INT-1 to INT-4 define interfaces |
+| Guidance.md | Engineering rationale and decision context | Principles explain design approach; Trade-offs inform technology selection; Technical Considerations guide requirements definition |
+
+**Procedure-to-Specification Mapping:**
+
+| Procedure Step | Specification Requirement | What Is Implemented |
+|----------------|--------------------------|---------------------|
+| Step 1.1 | Scope, Standards | Requirements from Employer's Requirements |
+| Step 1.2 | FR-1 to FR-5 | Process design basis requirements |
+| Step 1.3 | PR-2 to PR-4 | Environmental and site conditions |
+| Step 2.1 | FR-2 | Level measurement functional requirements |
+| Step 2.2 | FR-3 | Pressure measurement functional requirements |
+| Step 2.3 | FR-4 | Temperature measurement functional requirements |
+| Step 2.4 | FR-5 | Instrument accessories functional requirements |
+| Step 3.1 | PR-1 to PR-5 | Performance requirements |
+| Step 3.2 | PR-2 | Material requirements |
+| Step 3.3 | QR-4 | Workmanship requirements |
+| Step 4.1 | INT-1 to INT-4 | Interdisciplinary coordination |
+| Step 4.2-4.4 | QR-1 | Review and finalization |
+| Step 5.1-5.6 | Documentation | Approval, issuance, maintenance |

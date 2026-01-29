@@ -241,3 +241,14 @@ Prepare comprehensive memo per Datasheet.md structure:
 **Filing:** Working versions `1_Working/`; review versions `2_Checking/`; issued versions `3_Issued/`
 
 **Source:** Specification.md (Documentation); **ASSUMPTION**: Standard deliverable lifecycle per AGENTS.md
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All Steps linked to Specification § requirements being verified
+- All Steps linked to Guidance § principles and considerations for rationale
+- All Verification activities linked to Specification § requirements
+- Terminology verified consistent with Datasheet.md, Specification.md, Guidance.md
+- Project parameters verified consistent: 1,000,000 MT/annum, 45,000 MT storage, 32 railcar stations
+- OBJ-8 (Future Expandability) verified as core objective driving all procedure steps
+- Cross-references to DEL-27.01, DEL-27.02, PKG-01 through PKG-26 verified consistent

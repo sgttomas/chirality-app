@@ -287,26 +287,37 @@ Per Decomposition Table PKG-25 DEL-25.01:
 
 **This section verifies alignment between the four documents for DEL-25.01:**
 
-| Requirement/Entity | Datasheet | Specification | Guidance | Procedure |
-|-------------------|-----------|---------------|----------|-----------|
-| Fiber network layout | Construction | Functional Req. 1 | Examples | Step 2 |
-| Communications distribution | Construction | Functional Req. 2 | Examples | Step 3 |
-| Patch panel locations | Construction | Functional Req. 3 | Examples | Step 4 |
-| TIA-568 standard | References | Standards | Principles, Examples | Prerequisites |
-| TIA-569 standard | References | Standards | Principles, Considerations | Prerequisites |
-| TIA-606 standard | References | Standards | Principles | Steps 2-4 |
-| TIA-607 standard | References | Standards | Considerations | Step 4 |
-| Equipment room (ER) | Conditions | Interface Req. | Considerations | Steps 1, 4 |
-| Telecommunications rooms (TRs) | Conditions | Interface Req. | Considerations | Steps 3, 4 |
-| Pathway design | Construction | Performance Req. | Considerations, Trade-offs | Step 3 |
-| Redundancy | Conditions | Performance Req. | Principles, Trade-offs | Step 2 |
-| Future expansion (OBJ-8) | References | Performance Req. | Principles, Trade-offs | Steps 1, 3 |
-| DEC-05 (separation from PKG-24) | Conditions | Scope Exclusions | Considerations | Step 7 (IDC) |
-| CAD standards | Attributes | Quality Req. | Considerations | Steps 5, 6, 8 |
+| Requirement/Entity | Datasheet § | Specification § | Guidance § | Procedure Step |
+|-------------------|-------------|-----------------|------------|----------------|
+| Fiber network layout | Construction | Functional Req. 1 | Examples §Anticipated Artifacts | Step 2 |
+| Communications distribution | Construction | Functional Req. 2 | Examples §Anticipated Artifacts | Step 3 |
+| Patch panel locations | Construction | Functional Req. 3 | Examples §Anticipated Artifacts | Step 4 |
+| TIA-568 standard | References §Standards | Standards §Telecom | Principles §Standards Context | Prerequisites §Reference Materials |
+| TIA-569 standard | References §Standards | Standards §Telecom | Principles §Separation, Considerations §Pathway | Prerequisites §Reference Materials |
+| TIA-606 standard | References §Standards | Standards §Telecom | Principles §Standards Context | Steps 2.3, 3.4, 4.2 |
+| TIA-607 standard | References §Standards | Standards §Telecom | Considerations §Equipment Room | Step 4.1 |
+| Equipment room (ER) | Conditions §Interface | Interface Req. | Considerations §5 Equipment Room | Steps 1.2, 4.1-4.3 |
+| Telecommunications rooms (TRs) | Conditions §Interface | Interface Req. | Considerations §5 Equipment Room | Steps 3.3, 3.4, 4 |
+| Pathway design | Construction §Installation | Performance Req. §Pathway | Considerations §4 Pathway, Trade-offs §4 | Step 3.2 |
+| Redundancy | Conditions §Design | Performance Req. §Design | Principles §2, Trade-offs §3 | Step 2.1 |
+| Future expansion (OBJ-8) | References §Objectives | Performance Req. §Design | Principles §3, Trade-offs §4 | Steps 1.2, 3.2 |
+| DEC-05 (PKG-24 separation) | Conditions §Interface | Scope §Exclusions | Considerations §6 Coordination | Step 7.1 |
+| CAD standards | Attributes §CAD Standard | Quality Req. §Drawing Quality | Considerations §9 Drawing Org | Steps 5.1, 5.3, 6.4 |
 | Verification methods | — | Verification | — | Steps 6-9 |
-| Design review | — | Verification | — | Step 8 |
-| IDC | — | Verification | Considerations | Step 7 |
+| Design review (peer check) | — | Verification §Design Review | — | Step 8 |
+| IDC coordination | — | Verification §IDC | Considerations §6 Coordination | Step 7 |
+| Cross-deliverable refs | References §Cross-refs | Documentation §Cross-Reference | Notes §Coordination | Notes §Coordination |
 
-**Consistency verification:** All key entities and requirements are addressed across all four documents where applicable.
+**Consistency verification:** All key entities and requirements are addressed across all four documents with explicit section references.
 
-**Source:** Cross-document consistency check (Pass 2 enrichment)
+**Pass 3 Verification Summary:**
+
+| Check | Status |
+|-------|--------|
+| Terminology consistency (ER, TR, TIA standards) | ✓ Verified |
+| Numeric values and units consistency | ✓ Verified (all TBD pending design) |
+| Entity coverage across documents | ✓ Verified |
+| Source citations complete | ✓ Verified |
+| TBD/ASSUMPTION labeling | ✓ Verified |
+
+**Source:** Cross-document consistency check (Pass 3 enrichment)

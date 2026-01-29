@@ -41,11 +41,13 @@ This specification defines the requirements for **Control System Technical Speci
 - System shall monitor and control 3 × 15,000 MT storage tanks (45,000 MT total per OBJ-3)
 - System shall control marine loading operations
 - **Source:** OBJ-2, OBJ-3; Decomposition Section 1 (Project Overview)
+- **Rationale:** Guidance.md §Principles; **Verification:** Procedure.md Steps 1–2, TC-01, TC-02
 
 **FR-02: Operational Flexibility**
 - Control system shall support both tank storage operations and direct rail-to-ship transfer modes (OBJ-4)
 - Mode changes shall not require system reconfiguration or downtime
 - **Source:** OBJ-4 Operational Flexibility
+- **Rationale:** Guidance.md §Principles (Flexibility); **Verification:** Procedure.md Step 2, TC-02
 
 **FR-03: Reliability and Availability**
 - Control system shall support safe, efficient, reliable, and continuous operation (OBJ-1)
@@ -53,36 +55,42 @@ This specification defines the requirements for **Control System Technical Speci
 - Redundancy shall be provided for critical control functions
 - Fail-over time for redundant components: **TBD** — **ASSUMPTION**: ≤1 second bumpless transfer
 - **Source:** OBJ-1 Safe & Reliable Operation
+- **Rationale:** Guidance.md §Trade-offs TO-02; **Verification:** Procedure.md Step 2, TC-01, TC-02
 
 **FR-04: Custody Transfer Integration**
 - Control system shall interface with custody transfer metering systems (PKG-12) to support accuracy requirements (OBJ-10)
 - System shall collect, record, and report custody transfer data
 - Data integrity and audit trail requirements per **TBD** — Employer's Requirements **location TBD**
 - **Source:** OBJ-10 Custody Transfer Accuracy
+- **Rationale:** Guidance.md §Principles (Accuracy); **Verification:** Procedure.md Step 3, TC-03
 
 **FR-05: Safety Integration**
 - Control system shall interface with safety systems (PKG-23: Fire Protection)
 - If Safety Instrumented System (SIS) is required, separation between BPCS (Basic Process Control System) and SIS per ISA 84 / IEC 61511
 - **TBD** — Confirm SIS scope and Safety Integrity Level (SIL) requirements per Employer's Requirements **location TBD**
 - **Source:** OBJ-1; ISA 84 / IEC 61511 standard
+- **Rationale:** Guidance.md §Applicable Standards Context; **Verification:** Procedure.md Step 3, TC-03
 
 **FR-06: Data Collection and Historian**
 - Historian shall collect process data from DCS/PLC at defined sampling rates
 - Data retention: Short-term (high-resolution) **TBD** duration; Long-term (compressed) **TBD** duration
 - Historian shall support reporting, trending, and analytics functions
 - **Source:** Typical control system historian requirements; specific requirements TBD
+- **Rationale:** Guidance.md §Considerations (Data Management); **Verification:** Procedure.md Step 2, TC-02
 
 **FR-07: Alarm Management**
 - HMI shall provide alarm management per ISA 18.2 principles (if applicable)
 - Alarm priorities, acknowledgment, and escalation procedures **TBD**
 - Alarm load target: **TBD** — **ASSUMPTION**: ≤6 alarms per operator per 10 minutes (steady-state)
 - **Source:** **ASSUMPTION**: ISA 18.2 alarm management best practices; specific requirements TBD
+- **Rationale:** Guidance.md §Applicable Standards Context (ISA 18.2); **Verification:** Procedure.md Step 2, TC-02
 
 **FR-08: Cybersecurity**
 - Control system shall implement cybersecurity per **TBD** — Employer's Requirements **location TBD**
 - **ASSUMPTION**: Network segmentation per ISA/IEC 62443 (Level 3 business, Level 2 supervisory, Level 1 control, Level 0 field)
 - Firewall, access control, and authentication requirements **TBD**
 - **Source:** **ASSUMPTION**: ISA/IEC 62443 concepts; specific requirements TBD
+- **Rationale:** Guidance.md §Considerations (Cybersecurity Posture); **Verification:** Procedure.md Step 2, TC-01
 
 ### Performance Requirements
 

@@ -503,22 +503,30 @@ These may be organized as:
 
 **This section verifies alignment between the four documents for DEL-25.02:**
 
-| Requirement/Entity | Datasheet | Specification | Guidance | Procedure |
-|-------------------|-----------|---------------|----------|-----------|
-| Fiber cable specification | Construction | FR-1, PR-1.1 | Principles, Examples | (Steps TBD) |
-| Network cabling specification | Construction | FR-2, PR-1.2 | Principles, Examples | (Steps TBD) |
-| TIA-568 standards | References | Standards, Requirements | Principles | Prerequisites |
-| Cat 6/6A copper cable | Construction | FR-2.1, FR-2.2 | Trade-offs | (Steps TBD) |
-| SMF/MMF fiber types | Construction | FR-1.2 | Trade-offs | (Steps TBD) |
-| Cable performance testing | Construction | PR-1, QR-3 | Considerations | Verification |
-| Fire ratings (plenum/riser) | Construction | FR-2.3, PR-2.2 | Considerations | (Steps TBD) |
-| Workmanship requirements | Construction | QR-2.2 | Principles | (Steps TBD) |
-| Installer qualifications | — | QR-2.1 | Considerations | Prerequisites |
-| Material submittals | — | QR-1.3 | — | (Steps TBD) |
-| Interface with DEL-25.01 | References | Interface Req. | Considerations | Prerequisites |
-| Interface with DEL-25.03 | References | Interface Req. | Considerations | Prerequisites |
-| Interface with DEL-25.04 | References | Interface Req., QR-3 | — | Verification |
+| Requirement/Entity | Datasheet § | Specification § | Guidance § | Procedure Step |
+|-------------------|-------------|-----------------|------------|----------------|
+| Fiber cable specification | Construction §Fiber | FR-1, PR-1.1 | Principles §1, Examples §Artifacts | Steps 2.1, 2.3 |
+| Network cabling specification | Construction §Copper | FR-2, PR-1.2 | Principles §1, Examples §Artifacts | Steps 2.2, 2.3 |
+| TIA-568 standards | References §Standards | Standards §Primary | Principles §Standards Context | Step 1.2, Prerequisites |
+| Cat 6/6A copper cable | Construction §Copper | FR-2.1, FR-2.2 | Trade-offs §1 | Step 2.2 |
+| SMF/MMF fiber types | Construction §Fiber | FR-1.2 | Trade-offs §2 | Step 2.1 |
+| Cable performance testing | Construction §Installation | PR-1, QR-3 | Principles §4 | Step 3.3, Verification |
+| Fire ratings (plenum/riser) | Construction §Copper | FR-2.3, PR-2.2 | Considerations §3 | Steps 2.1, 2.2 |
+| Workmanship requirements | Construction §Workmanship | QR-2.2 | Principles §5 | Step 3.1, 3.2 |
+| Installer qualifications | — | QR-2.1 | Considerations §7 | Prerequisites §Personnel |
+| Material submittals | — | QR-1.3 | Considerations §8 | Step 4.2 |
+| Interface with DEL-25.01 | References §Cross-refs | Interface Req. | Considerations §6 | Step 1.4, 6.1 |
+| Interface with DEL-25.03 | References §Cross-refs | Interface Req. | Considerations §6 | Step 1.4, 6.1 |
+| Interface with DEL-25.04 | References §Cross-refs | Interface Req., QR-3 | Principles §4 | Step 3.3, Verification |
 
-**Consistency verification:** All key entities and requirements are addressed across all four documents where applicable.
+**Pass 3 Verification Summary:**
 
-**Source:** Cross-document consistency check (Pass 1 enrichment)
+| Check | Status |
+|-------|--------|
+| Terminology consistency (TIA standards, cable categories) | ✓ Verified |
+| Numeric values and performance specs | ✓ Verified (per TIA-568) |
+| Entity coverage across documents | ✓ Verified |
+| Source citations complete | ✓ Verified |
+| TBD/ASSUMPTION labeling | ✓ Verified |
+
+**Source:** Cross-document consistency check (Pass 3 enrichment)

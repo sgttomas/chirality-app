@@ -74,3 +74,28 @@ Approved for discharge: J. Smith, Environmental Specialist
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for record types and test parameters |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-6 | Implements this Guidance through specific testing and documentation steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Test Before Discharge) → Supports Specification FR-3, PR-1
+- §Considerations Item 1 (Representativeness) → Supports Specification FR-1
+- §Considerations Item 2 (Laboratory) → Supports Specification QR-1
+- §Considerations Item 3 (Treatment Monitoring) → Supports Specification FR-2
+- §Considerations Item 4 (Contingency) → Supports Specification PR-1
+- §Trade-offs → Informs engineering decisions for Specification PR-1
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Sample) → Procedure Step 1
+- §Considerations Item 2 (Laboratory) → Procedure Step 3
+- §Considerations Item 3 (Treatment) → Procedure Step 2
+- §Considerations Item 4 (Contingency) → Procedure Step 4
+- §Examples (Report Format) → Procedure Step 6

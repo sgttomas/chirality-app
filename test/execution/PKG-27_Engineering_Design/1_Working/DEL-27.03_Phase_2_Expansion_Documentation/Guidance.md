@@ -143,3 +143,15 @@ Phase 1 site layout provisions for Phase 2 expansion:
 **Phase 2 benefit:** Eliminates need to demolish/relocate Phase 1 facilities to make room for Phase 2; efficient Phase 2 construction logistics
 
 **Source for Examples:** **ASSUMPTION**: Typical Phase 2 provisions for transload facility expansion; cost impacts are order-of-magnitude estimates
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All Principles linked to Specification § requirements and Procedure Steps
+- All Considerations linked to Specification § requirements and Procedure Steps
+- All Trade-offs linked to relevant Principles and Specification §
+- All Examples linked to Specification § and Procedure Steps
+- Terminology verified consistent with Datasheet.md, Specification.md, Procedure.md
+- Project parameters verified consistent: 1,000,000 MT/annum, 45,000 MT storage / 3 × 15,000 MT tanks, 32 railcar stations
+- OBJ-8 (Future Expandability) and OBJ-9 (Lifecycle Cost) trade-offs verified consistent
+- Cross-references to DEL-27.01, DEL-27.02, PKG-01 through PKG-26 verified consistent

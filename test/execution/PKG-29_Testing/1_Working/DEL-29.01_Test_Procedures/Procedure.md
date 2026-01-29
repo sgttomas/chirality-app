@@ -509,3 +509,35 @@ From `_REFERENCES.md` and package `0_References/` folder:
 - This Procedure.md document is part of the deliverable scaffolding and describes the process for producing test procedures.
 - The test procedures themselves (Hydrostatic, Electrical, I&C) will be developed following this process and stored per the filing locations above.
 - For questions on test procedure development process, consult D&B Contractor QA/QC Manager.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Provides factual context for test types and applicable standards |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification, §Documentation | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides engineering rationale for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Identify Requirements) | FR-2 (Test Coverage), IR-1 (Upstream Interfaces) | V-2 |
+| Step 2 (Develop Content) | FR-1 (Procedure Content), §Documentation | V-1, V-2 |
+| Step 3 (Hold/Witness Points) | FR-3 (Integration with DEL-29.02) | V-1 |
+| Step 4 (Safety Review) | QR-2 (Safety Review Requirements) | V-3 |
+| Step 5 (Technical Review) | QR-1 (Development/Approval), VM-1 | V-2 |
+| Step 6 (Walkthrough) | VM-2 (Procedure Walkthrough) | V-4 |
+| Step 7 (Approval) | QR-1, AC-3 (Approval Status) | AC-5 |
+| Step 8 (Maintenance) | QR-3 (Revision Control) | — |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Item 1 (Timing/Sequencing) |
+| Step 2 | §Examples (Reference Examples), §Principles |
+| Step 3 | §Considerations Item 4 (Hold/Witness Coordination) |
+| Step 4 | §Considerations Item 3 (Safety/Environmental Hazards) |
+| Step 6 | §Best Practice 4 (Dry runs/walkthroughs) |
+| Step 8 | §Best Practice 5 (Document deviations in real-time)

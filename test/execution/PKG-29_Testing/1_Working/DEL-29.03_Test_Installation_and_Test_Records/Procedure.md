@@ -200,3 +200,34 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 ---
 
 **Note:** This Procedure describes the process for managing test records. The actual test records are generated during test execution per DEL-29.01 procedures.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides record types and content structure for Steps 1, 5 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Prepare Forms) | §Documentation, FR-2 | V-1 |
+| Step 2 (Conduct/Record) | FR-1 (Completeness), FR-2 (Content), PR-1 | V-1, V-2 |
+| Step 3 (Review/Verify) | FR-3 (Traceability), QR-1 | V-3, V-4 |
+| Step 4 (Manage NCRs) | QR-1 (Review) | AC-3 |
+| Step 5 (Compile) | §Documentation | AC-1, AC-2 |
+| Step 6 (Submit) | IR-2 (Downstream) | AC-4 |
+| Step 7 (Archive) | QR-2 (Retention) | AC-5 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Item 1 (Format Selection) |
+| Step 2 | §Considerations Item 2 (Data Recording), Item 3 (Hold/Witness) |
+| Step 3 | §Principles (Record Quality), §Considerations Item 5 (Traceability) |
+| Step 4 | §Considerations Item 4 (Failed Test Documentation) |
+| Step 5 | §Trade-offs Item 2 (Detailed vs. Summary) |
+| Step 7 | §Trade-offs Item 1 (Paper vs. Electronic)

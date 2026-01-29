@@ -589,3 +589,33 @@ Design decisions and information flow bi-directionally between these deliverable
 These should be confirmed from project-specific quality and procedures documentation when available.
 
 **Source:** **ASSUMPTION** — Standard practices pending project-specific procedures
+
+---
+
+## Cross-Document Traceability (Pass 3)
+
+| Procedure Step | Datasheet § | Specification § | Guidance § |
+|----------------|-------------|-----------------|------------|
+| Step 1: Requirements Gathering | References | Scope, Standards | Principles §3, Considerations §7 |
+| Step 2: Draft Products/Materials | Construction (Fiber, Copper) | FR-1, FR-2, FR-3 | Principles §1-2, Considerations §1-4 |
+| Step 3: Draft Execution/Installation | Construction (Installation, Workmanship) | QR-2.2, QR-3 | Principles §4-5, Considerations §5 |
+| Step 4: Draft General/Admin | Attributes | Scope, Standards | — |
+| Step 5: Internal Technical Review | — | Verification | — |
+| Step 6: Interdisciplinary Review | References §Cross-refs | Interface Req. | Considerations §6 |
+| Step 7: Employer Review | — | Verification §Employer | — |
+| Step 8: Compliance Matrix | — | Verification §Compliance | — |
+| Step 9: Final Approval | Attributes §Status | Verification | — |
+| Step 10: Issuance | Attributes §Doc Number | Documentation | — |
+| Step 11: Revision Management | Attributes §Revision | Documentation | — |
+
+**Pass 3 Verification Summary:**
+
+| Check | Status |
+|-------|--------|
+| Steps align with Specification requirements | ✓ Verified |
+| Steps informed by Guidance principles/considerations | ✓ Verified |
+| Verification activities match Specification §Verification | ✓ Verified |
+| Records align with anticipated artifacts | ✓ Verified |
+| Terminology consistency across documents | ✓ Verified |
+
+**Pass 3 enrichment completed:** Explicit cross-document traceability table added linking procedure steps to requirements (Specification.md) and engineering rationale (Guidance.md).

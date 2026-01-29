@@ -34,29 +34,35 @@ This specification defines the requirements for **Control System Design Drawing 
 **FR-01: System Topology**
 - Drawings shall define the overall control system topology including DCS/PLC controllers, HMI workstations, I/O racks, historian, and network infrastructure
 - **Source:** Decomposition PKG-19 scope; **ASSUMPTION**: Typical control system drawing content
+- **Rationale:** Guidance.md §Principles (Control System Role); **Verification:** Procedure.md Step 2
 
 **FR-02: Control Architecture**
 - Drawings shall show control system hierarchy and functional zones (process control, safety systems if applicable, monitoring systems)
 - System shall support facility throughput of 1,000,000 MT/annum (OBJ-2)
 - **Source:** OBJ-2 Throughput Capacity; **ASSUMPTION**: Control system sizing requirements TBD
+- **Rationale:** Guidance.md §Principles (Design Philosophy); **Verification:** Procedure.md Step 2
 
 **FR-03: Network Architecture**
 - Drawings shall define industrial network architecture including control network, safety network (if applicable), and field device networks
 - Network segmentation shall separate process control, safety, and business networks
 - **Source:** **ASSUMPTION**: Typical industrial control system practice per ISA/IEC 62443 concepts; specific requirements TBD per Employer's Requirements **location TBD**
+- **Rationale:** Guidance.md §Considerations (Network Design); **Verification:** Procedure.md Step 3
 
 **FR-04: Operational Flexibility**
 - Control system design shall support both tank storage operations and direct rail-to-ship transfer (OBJ-4)
 - **Source:** OBJ-4 Operational Flexibility
+- **Rationale:** Guidance.md §Principles (Operational Flexibility); **Verification:** Procedure.md Steps 2, 5
 
 **FR-05: Custody Transfer Support**
 - Control system shall integrate with custody transfer metering systems (PKG-12) to support accuracy requirements (OBJ-10)
 - **Source:** OBJ-10 Custody Transfer Accuracy; interface with DEL-12.xx
+- **Rationale:** Guidance.md §Principles (Accuracy); **Verification:** Procedure.md Step 6
 
 **FR-06: Reliability and Redundancy**
 - Control system architecture shall support safe, efficient, reliable, and continuous operation (OBJ-1)
 - Redundancy strategy and fail-over architecture to be shown where required
 - **Source:** OBJ-1 Safe & Reliable Operation; redundancy details **TBD** per Employer's Requirements **location TBD**
+- **Rationale:** Guidance.md §Trade-offs TO-02; **Verification:** Procedure.md Step 2
 
 ### Performance Requirements
 
@@ -81,22 +87,27 @@ This specification defines the requirements for **Control System Design Drawing 
 **IR-01: Field Instrumentation (PKG-20)**
 - Control system I/O requirements shall be coordinated with field instrumentation deliverables (DEL-20.xx)
 - **Source:** Deliverable structure per Decomposition; dependency mode NOT_TRACKED (coordinated externally)
+- **Verification:** Procedure.md Step 6 (Interdisciplinary Coordination)
 
 **IR-02: Electrical Power (PKG-17)**
 - Control system power requirements shall be coordinated with electrical power distribution deliverables (DEL-17.xx)
 - **Source:** Deliverable structure per Decomposition
+- **Verification:** Procedure.md Step 6 (Interdisciplinary Coordination)
 
 **IR-03: Hazardous Area Classification (PKG-30)**
 - Equipment locations and ratings shall be coordinated with area classification deliverables (DEL-30.xx)
 - **Source:** Deliverable structure per Decomposition
+- **Rationale:** Guidance.md §Considerations (Physical Arrangement); **Verification:** Procedure.md Step 6
 
 **IR-04: Building Design (PKG-21/PKG-22)**
 - Control room layout and equipment locations shall be coordinated with building structure and MEP deliverables
 - **Source:** Deliverable structure per Decomposition
+- **Rationale:** Guidance.md §Considerations (Physical Arrangement); **Verification:** Procedure.md Step 6
 
 **IR-05: Process Systems (PKG-10, PKG-11, PKG-12, PKG-13, PKG-14, PKG-15)**
 - Control system shall interface with railcar unloading (PKG-10), marine loading (PKG-11), metering (PKG-12), storage tanks (PKG-13), process piping (PKG-14), and pumps (PKG-15)
 - **Source:** Facility functional scope per Decomposition
+- **Rationale:** Guidance.md §Considerations (Interfaces and Coordination); **Verification:** Procedure.md Step 6
 
 ### Quality Requirements
 

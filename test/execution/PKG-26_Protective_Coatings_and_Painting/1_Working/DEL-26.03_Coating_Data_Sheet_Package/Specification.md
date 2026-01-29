@@ -56,7 +56,22 @@ This specification defines requirements for the coating data sheet package that 
 ## Documentation
 
 **Required outputs:**
-- Coating system data sheets (by application per Datasheet.md)
+- Coating system data sheets (by application per Datasheet.md §Construction)
 - Organized package (folders or binders by coating application)
 - Index or table of contents
 - **Source:** Decomposition DEL-26.03 anticipated artifacts
+
+---
+
+## Cross-Document Verification Summary
+
+| Specification Requirement | Datasheet § | Guidance § | Procedure § | Upstream DEL-26.01 § |
+|---------------------------|-------------|------------|-------------|----------------------|
+| FR-1 (Complete Coverage) | All sections | Principles | Step 1 | Scope (Inclusions) |
+| FR-2 (Food-Grade Compliance) | Tank Internal Data Sheets | FDA/NSF Compliance | Steps 1.2, 2.3 | PR-1 |
+| FR-3 (Application Parameters) | Construction (data sheet content) | Principles (Data Sheet Role) | Step 1.2 | PR-6 |
+| FR-4 (Acceptance Criteria Data) | Construction (performance data) | — | Step 1.2 | PR-3, PR-4, PR-5, QR-1 |
+| QR-1 (Current and Accurate) | Attributes | Data Sheet Sourcing | Steps 2.2, 4.2 | — |
+| Standards | References | FDA/NSF Compliance | — | Standards |
+
+**Verification status:** Pass 3 complete — All requirements traceable to Datasheet, Guidance, Procedure, and upstream DEL-26.01.

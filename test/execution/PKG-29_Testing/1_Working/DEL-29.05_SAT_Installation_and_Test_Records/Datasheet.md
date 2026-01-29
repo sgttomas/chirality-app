@@ -172,3 +172,21 @@ Site Acceptance Tests verify:
 - O&M documentation (SAT reports provide operational baselines)
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-2, IR-1 to IR-2, QR-1 to QR-3) | Defines requirements for SAT scope, content, and quality |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for SAT execution |
+| Procedure.md | §Steps 1-6 | Defines process for preparing, conducting, and documenting SATs |
+
+**Cross-Deliverable Consistency Notes:**
+- SAT prerequisites include FAT completion (DEL-29.04) and field test completion (DEL-29.03)
+- SAT witness requirements derive from ITP (DEL-29.02)
+- SAT tests are executed per procedures from DEL-29.01 (or SAT-specific procedures)
+- SAT completion is prerequisite for commissioning (PKG-30)
+- System scope covers all major packages (PKG-10 through PKG-23)
+- Objectives OBJ-1 (Safe & Reliable Operation) and OBJ-4 (Operational Flexibility) supported through integrated system verification

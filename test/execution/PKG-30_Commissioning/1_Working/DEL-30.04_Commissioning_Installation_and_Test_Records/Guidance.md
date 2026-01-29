@@ -107,6 +107,16 @@ Use IEC 62382 methodology for structured, repeatable I&C commissioning.
 
 **Source:** Decomposition §5 DEL-30.04; Datasheet.md
 
+## Conflict Table (for human ruling)
+
+No conflicts identified during document enrichment. If conflicts arise during commissioning records compilation, they will be documented here:
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| (none) | | | | | | |
+
+**Note:** Cross-deliverable conflicts are handled by RECONCILIATION agent when requested; this table captures only local conflicts within DEL-30.04 scope.
+
 ---
 
 ## Document Cross-References

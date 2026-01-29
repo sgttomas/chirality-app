@@ -16,15 +16,15 @@
 
 ## Attributes
 
-| Attribute | Value | Source |
-|-----------|-------|--------|
-| Procedure Number(s) | **TBD** | Project document control system |
-| Procedure Type | Execution Procedures (Surface Preparation and Coating Application) | Decomposition DEL-26.02 description; anticipated artifacts |
-| Applicable Phase | Construction / Fabrication | **ASSUMPTION** — Procedures used during coating application phase |
-| Procedure Format | Step-by-step work instructions with safety, quality, and environmental controls | **ASSUMPTION** — Standard procedure format |
-| Revision | 0 (Initial Draft) | **ASSUMPTION** — Initial working draft |
-| Classification | D&B Contractor Controlled Procedure | Decomposition DEL-26.02 |
-| Coverage Scope | Surface preparation and coating application for all coating types per DEL-26.01 | Cross-reference to DEL-26.01 Coating Technical Specification |
+| Attribute | Value | Source | Specification § | Procedure § |
+|-----------|-------|--------|-----------------|-------------|
+| Procedure Number(s) | **TBD** | Project document control system | — | Step 7.4 |
+| Procedure Type | Execution Procedures (Surface Preparation and Coating Application) | Decomposition DEL-26.02; anticipated artifacts | Scope | Step 1.2 |
+| Applicable Phase | Construction / Fabrication | **ASSUMPTION** — Used during coating application phase | — | Part B |
+| Procedure Format | Step-by-step work instructions with safety, quality, and environmental controls | **ASSUMPTION** — Standard procedure format | QR-1 | Step 1.3 |
+| Revision | 0 (Initial Draft) | **ASSUMPTION** — Initial working draft | — | Step 7.5 |
+| Classification | D&B Contractor Controlled Procedure | Decomposition DEL-26.02 | — | — |
+| Coverage Scope | Surface preparation and coating application for all coating types per DEL-26.01 | Cross-reference to DEL-26.01 | Scope (Inclusions) | Steps 2–3 |
 
 ## Conditions
 
@@ -239,3 +239,20 @@ This deliverable produces execution procedures for the following coating operati
 - **OBJ-9:** Lifecycle Cost Optimization — Proper application procedures ensure coating durability and lifecycle performance
 
 **Source:** Decomposition Section 6
+
+---
+
+## Cross-Document Verification Summary
+
+| Datasheet Section | Specification § | Guidance § | Procedure § |
+|-------------------|-----------------|------------|-------------|
+| Attributes | QR-1 | — | Step 1.3 |
+| Conditions (Environmental) | FR-3 | Environmental Sensitivity | Part B §Prerequisites |
+| Conditions (Safety) | FR-4, IR-4, IR-5 | Worker Safety | Part B §Safety |
+| Surface Preparation Procedures | FR-1, PR-1, IR-1 | Surface Preparation Quality | Step 2 |
+| Coating Application Procedures | FR-2, FR-3, PR-2, PR-3, PR-4 | Application Quality Control | Step 3 |
+| Standards | Standards | Principles (SSPC Standards) | Step 2, Step 3 |
+| Cross-references (PKG-26) | IR-1, IR-2, IR-3 | Coordination Points | Prerequisites |
+| Cross-references (HSE) | IR-4, IR-5 | Worker Safety | Step 5 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified; DEL-26.01 traceability confirmed.

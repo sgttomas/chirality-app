@@ -329,3 +329,29 @@ ITP shall accommodate:
 - Non-conformance reports: NCRs reference ITP activity number if inspection fails
 
 **ASSUMPTION:** Integration methods based on typical EPC project document coordination practices
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures ITP structure, column definitions, and cross-references |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale for requirements and practical implementation examples |
+| Procedure.md | §Steps 1-9, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Comprehensive Coverage) → Guidance §Considerations Items 1-2 (Scope, Code Requirements)
+- FR-2 (Hold/Witness Designations) → Guidance §Principles (Hold Point vs. Witness Point Philosophy)
+- FR-3 (Acceptance Criteria) → Guidance §Examples (ITP Matrix Entry examples)
+- FR-4 (Notification/Scheduling) → Guidance §Examples (Notification Procedure)
+- FR-5 (Status Tracking) → Guidance §Examples (ITP Structure)
+- PR-3 (Test Procedure Integration) → Cross-reference DEL-29.01 Specification FR-3
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Coverage) → Procedure Step 2 (Identify Inspection Activities)
+- FR-2 (Designations) → Procedure Step 3 (Assign Hold/Witness Designations)
+- FR-3 (Criteria) → Procedure Step 4 (Define Acceptance Criteria)
+- FR-4, FR-5 (Notification, Tracking) → Procedure Steps 4, 9
+- QR-1 (Development/Approval) → Procedure Steps 6-8
+- QR-2 (Maintenance) → Procedure Step 9

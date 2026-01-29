@@ -78,3 +78,28 @@ Receiver: ________________ Date: _______ (upon delivery)
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for record types and manifest content |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-6 | Implements this Guidance through specific disposal documentation steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Cradle to Grave) → Supports Specification FR-1, PR-1
+- §Considerations Item 1 (Hauler Selection) → Supports Specification QR-1
+- §Considerations Item 2 (Facility) → Supports Specification QR-2, FR-3
+- §Considerations Item 3 (Manifest Management) → Supports Specification FR-2
+- §Considerations Item 4 (Volume Tracking) → Supports Specification PR-1
+- §Trade-offs → Informs disposal method selection
+
+**Guidance-to-Procedure Traceability:**
+- §Principles (Documentation) → Procedure Steps 2-4
+- §Considerations Item 1 (Hauler) → Procedure Step 1
+- §Considerations Item 3 (Manifests) → Procedure Step 3
+- §Considerations Item 4 (Volume Tracking) → Procedure Step 5
+- §Examples (Manifest) → Procedure Step 3

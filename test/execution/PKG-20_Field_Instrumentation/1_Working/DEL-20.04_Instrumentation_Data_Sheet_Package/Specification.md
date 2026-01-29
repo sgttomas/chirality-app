@@ -103,3 +103,23 @@ Design data sheets: independent check. Vendor data sheets: compliance review aga
 **Project Objective Alignment:** Supports **OBJ-1: Safe & Reliable Operation** and **OBJ-9: Lifecycle Cost Optimization** (asset records support maintenance planning).
 
 **Source:** Decomposition Section 6 (lines 780, 788)
+
+## Cross-Document Traceability
+
+This Specification defines requirements for DEL-20.04. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Attributes § defines data sheet types; Conditions § defines content; Construction § provides examples |
+| Guidance.md | Engineering rationale and decision context | Principles explain three-phase lifecycle; Trade-off addresses standardization vs. optimization |
+| Procedure.md | Production workflow and verification steps | Steps 1-5 implement FR-1 to FR-4; Verification implements QR-1 to QR-3 |
+
+**Requirement-to-Procedure Mapping:**
+
+| Requirement | Procedure Step | What Is Implemented |
+|-------------|----------------|---------------------|
+| FR-1 Completeness | Step 1, 2 | Template development and population |
+| FR-2 Specification Compliance | Step 2 | Requirements from DEL-20.02 |
+| FR-3 Calculation Alignment | Step 2 | Parameters from DEL-20.03 |
+| FR-4 Vendor Data | Step 3 | Vendor solicitation and evaluation |
+| QR-1 to QR-3 | Steps 2, 3, 4 | Design, vendor, and as-built verification |

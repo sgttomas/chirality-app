@@ -122,3 +122,32 @@ Inspector Name: J. Smith          Signature: ____________  Date: ____________
     - (same structure)
 
 **Source:** **ASSUMPTION** — Logical record filing structure
+
+---
+
+## Conflict Table (for human ruling)
+
+**Status:** No unresolved conflicts identified during Pass 3 enrichment.
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts detected | — | — | — | — | — |
+
+**Note:** Potential conflicts may arise between DEL-26.01 inspection frequency requirements and practical record generation during construction. If discrepancies are identified, record them here for human resolution.
+
+---
+
+## Cross-Document Verification Summary
+
+| Guidance Section | Specification § | Datasheet § | Procedure § |
+|------------------|-----------------|-------------|-------------|
+| Purpose | — | Conditions | — |
+| Principles (Records as Evidence) | FR-1, FR-2 | All record types | Step 2 |
+| Principles (Inspector Independence) | QR-1 | — | Step 2.2 |
+| Considerations (Record Timing) | FR-1 | Record content | Step 2 |
+| Considerations (Coordination) | — | Cross-references | Steps 1.4, 5.2 |
+| Trade-offs (Paper vs. Electronic) | QR-2 | Attributes (Format) | Step 1.2 |
+| Trade-offs (100% vs. Sampling) | FR-1 | — | Step 3.3 |
+| Examples (Templates/Organization) | Documentation | Construction | Steps 1, 4 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified and consistent.

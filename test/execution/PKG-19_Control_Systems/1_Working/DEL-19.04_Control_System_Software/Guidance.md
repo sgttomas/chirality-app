@@ -12,24 +12,24 @@ Software implements process control strategies, safety interlocks, operator inte
 
 ### Software Development Philosophy
 
-**Reliability (OBJ-1):**
-- Fail-safe logic: safe state on faults (power loss, communication loss, sensor failure)
-- Robust error handling: exception handling, watchdog timers, fault detection
-- Redundancy management: if redundant controllers (per DEL-19.02 FR-06), software shall manage fail-over
+**Reliability (OBJ-1):** *(Supports Specification.md FR-02, QR-01)*
+- Fail-safe logic: safe state on faults (power loss, communication loss, sensor failure) — *Procedure.md Step 3 (Interlock Logic)*
+- Robust error handling: exception handling, watchdog timers, fault detection — *Procedure.md Step 3*
+- Redundancy management: if redundant controllers (per DEL-19.02 FR-06), software shall manage fail-over — *Procedure.md Step 3*
 - **Source:** OBJ-1; typical industrial control system reliability practices
 
-**Maintainability:**
-- Modular design: reusable function blocks for common equipment (pumps, valves, tanks, PID loops)
-- Clear structure: organized programs (main, process control, interlocks, alarms, communications)
-- Comprehensive commenting: all functions and complex logic documented inline
-- Consistent naming: tag naming per ISA 5.1 conventions, variable naming per project standards
-- Version control: all changes tracked, change logs maintained
+**Maintainability:** *(Supports Specification.md QR-01)*
+- Modular design: reusable function blocks for common equipment (pumps, valves, tanks, PID loops) — *Trade-offs TO-01*
+- Clear structure: organized programs (main, process control, interlocks, alarms, communications) — *Procedure.md Step 2*
+- Comprehensive commenting: all functions and complex logic documented inline — *Procedure.md Step 3*
+- Consistent naming: tag naming per ISA 5.1 conventions, variable naming per project standards — *Procedure.md Step 2*
+- Version control: all changes tracked, change logs maintained — *Procedure.md Step 3*
 - **Source:** IEC 61131-3 best practices; software maintainability principles
 
-**Operational Flexibility (OBJ-4):**
+**Operational Flexibility (OBJ-4):** *(Supports Specification.md FR-01)*
 - Configurable parameters: setpoints stored in data blocks (not hard-coded), adjustable by operators or engineers
 - Mode selection: tank storage mode vs. direct rail-to-ship transfer mode selectable without software changes
-- Online tuning: PID loop tuning parameters adjustable during operation
+- Online tuning: PID loop tuning parameters adjustable during operation — *Procedure.md Step 9 (Loop Tuning)*
 - **Source:** OBJ-4; operational flexibility requirement
 
 ## Considerations

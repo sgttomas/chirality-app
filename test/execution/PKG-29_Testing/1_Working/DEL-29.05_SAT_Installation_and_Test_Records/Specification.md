@@ -82,3 +82,27 @@ Each SAT report shall include: System ID, prerequisites verified, test procedure
 - Organized by system or package
 - Index provided
 - Permanent records in document management system
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures SAT system types, content structure, and cross-references |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for implementing requirements |
+| Procedure.md | §Steps 1-6, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Prerequisites) → Guidance §Principles (SAT vs. Commissioning), §Considerations Item 1 (Timing)
+- FR-2 (SAT Scope) → Guidance §Principles (System Integration, Fail-safe Testing)
+- FR-3 (Documentation) → Guidance §Examples (SAT Report)
+- PR-1 (Acceptance) → Guidance §Trade-offs Item 1 (Comprehensive vs. Schedule)
+- PR-2 (Witness) → Guidance §Considerations Item 4 (Operations Training)
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Prerequisites) → Procedure Step 1 (Verify Prerequisites)
+- FR-2 (Scope) → Procedure Step 2 (Develop Procedures), Step 4 (Conduct SATs)
+- FR-3 (Documentation) → Procedure Steps 4, 6 (Document, Compile)
+- PR-2 (Witness) → Procedure Step 3 (Schedule/Coordinate)
+- QR-2 (Deficiencies) → Procedure Step 5

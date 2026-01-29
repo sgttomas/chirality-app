@@ -177,3 +177,21 @@ Defines the planned approach and controls for tank hydrotest water management pl
 - DEL-29.08: Water Disposal Records (implements disposal from this plan)
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-4, PR-1 to PR-2, IR-1 to IR-2, QR-1 to QR-2) | Defines requirements for water management components |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for plan development |
+| Procedure.md | §Steps 1-8 | Defines process for developing and approving the plan |
+
+**Cross-Deliverable Consistency Notes:**
+- Plan supports hydrotest procedures in DEL-29.01
+- Testing results documented in DEL-29.07 (Water Treatment & Discharge Testing Results)
+- Disposal records documented in DEL-29.08 (Water Disposal Records)
+- Tank specifications from PKG-13 (3 × 15,000 MT tanks) drive water volume calculations
+- Environmental objectives OBJ-7 (Environmental Protection) and OBJ-6 (Regulatory Compliance) are primary drivers
+- Water volume (~45,000 m³) and Fraser River location are key constraints

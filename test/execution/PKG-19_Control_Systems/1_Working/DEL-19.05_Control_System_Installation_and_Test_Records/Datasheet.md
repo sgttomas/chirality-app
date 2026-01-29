@@ -29,14 +29,14 @@
 
 ### Record Scope
 
-| Record Category | Description |
-|-----------------|-------------|
-| FAT Records | Factory Acceptance Test documentation at vendor facility |
-| SAT Records | Site Acceptance Test documentation after installation |
-| Software Version Records | Software backup records, version documentation, change logs |
-| Installation Records | Equipment installation inspection, cable termination records, grounding verification |
-| Commissioning Records | Loop checkout, calibration, tuning records |
-| Training Records | Operator and maintenance training attendance, completion certificates |
+| Record Category | Description | Specification § | Procedure Steps |
+|-----------------|-------------|-----------------|-----------------|
+| FAT Records | Factory Acceptance Test documentation at vendor facility | RR-01 | Steps 1–2 |
+| SAT Records | Site Acceptance Test documentation after installation | RR-02 | Steps 5–6 |
+| Software Version Records | Software backup records, version documentation, change logs | RR-03 | Steps 3, 7 |
+| Installation Records | Equipment installation inspection, cable termination records, grounding verification | RR-04 | Step 4 |
+| Commissioning Records | Loop checkout, calibration, tuning records | RR-02 | Steps 6, 8 |
+| Training Records | Operator and maintenance training attendance, completion certificates | RR-05 | Step 8 |
 
 **Source:** DEL-19.02 TC-01 (FAT), TC-02 (SAT), DR-02 (training); typical QA/QC records for control systems
 
@@ -44,12 +44,12 @@
 
 ### Quality Requirements
 
-| Requirement | Details |
-|-------------|---------|
-| Quality Management | Per project Quality Management Plan |
-| Record Retention | Per project records retention schedule — **TBD** |
-| Regulatory Compliance | OBJ-6 (Regulatory Compliance) — records shall support regulatory inspections and audits |
-| Traceability | Records shall demonstrate traceability from requirements (DEL-19.02) through design (DEL-19.01) to as-built (DEL-19.05) |
+| Requirement | Details | Specification § | Guidance § |
+|-------------|---------|-----------------|------------|
+| Quality Management | Per project Quality Management Plan | QR-02 | Principles |
+| Record Retention | Per project records retention schedule — **TBD** | QR-03 | Principles |
+| Regulatory Compliance | OBJ-6 (Regulatory Compliance) — records shall support regulatory inspections and audits | QR-01 | Principles (Regulatory Compliance) |
+| Traceability | Records shall demonstrate traceability from requirements (DEL-19.02) through design (DEL-19.01) to as-built (DEL-19.05) | QR-01 | Principles (Traceability) |
 
 **Source:** OBJ-6; typical QA/QC record requirements
 

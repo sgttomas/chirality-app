@@ -185,3 +185,27 @@ This procedure defines the process for **producing** Instrumentation Design Calc
 Supports **OBJ-1: Safe & Reliable Operation** — Rigorous calculation process ensures instruments are correctly sized for safe and reliable operations.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Procedure defines the production workflow for DEL-20.03. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § provides design basis; Construction § defines calculation types and format |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 define what to calculate; QR-1 to QR-4 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles explain calculation approach; Trade-offs inform methodology selection |
+
+**Procedure-to-Specification Mapping:**
+
+| Procedure Step | Specification Requirement | What Is Implemented |
+|----------------|--------------------------|---------------------|
+| Step 1 | INT-1 | Design input collection |
+| Step 2 | PR-1 to PR-3 | Methodology selection |
+| Step 3.1 | FR-2 | Range selection calculations |
+| Step 3.2 | FR-3 | Accuracy verification calculations |
+| Step 3.3 | FR-4 | Sizing calculations |
+| Step 3.4 | FR-5 | Installation calculations |
+| Step 4 | Verification | Results interpretation |
+| Step 5 | QR-1 | Independent check |
+| Step 6 | QR-2 to QR-4, Documentation | Approval and issuance |

@@ -18,12 +18,12 @@
 
 ### Software Package Components
 
-| Component | Description |
-|-----------|-------------|
-| PLC/DCS Application Software | Control logic, interlocks, sequencing, regulatory control, alarm logic |
-| HMI Graphics | Operator screens, faceplates, trends, alarms, reports |
-| Historian Configuration | Tag database, data collection configuration, archiving rules, reporting |
-| Software Development Basis | DEL-19.01 (architecture), DEL-19.02 (functional requirements), process design (PKG-10-16) |
+| Component | Description | Specification § | Procedure Steps |
+|-----------|-------------|-----------------|-----------------|
+| PLC/DCS Application Software | Control logic, interlocks, sequencing, regulatory control, alarm logic | FR-01, FR-02, FR-03, PR-01, QR-01 | Steps 1–3, 6–7 |
+| HMI Graphics | Operator screens, faceplates, trends, alarms, reports | FR-03, FR-05, PR-02 | Steps 4, 6–7 |
+| Historian Configuration | Tag database, data collection configuration, archiving rules, reporting | FR-04, PR-03 | Step 5, 6–7 |
+| Software Development Basis | DEL-19.01 (architecture), DEL-19.02 (functional requirements), process design (PKG-10-16) | All FRs, QRs | Step 1 |
 
 **Source:** `_CONTEXT.md` anticipated artifacts; control system software typical scope
 
@@ -57,12 +57,12 @@
 
 ### Operational Requirements
 
-| Requirement | Software Implementation |
-|-------------|-------------------------|
-| Reliability (OBJ-1) | Robust error handling, watchdog timers, fail-safe logic, redundancy management (if applicable) |
-| Operational Flexibility (OBJ-4) | Mode selection (tank storage vs. direct rail-to-ship), no hard-coded limitations, configurable setpoints |
-| Throughput Capacity (OBJ-2) | Control logic supports 1,000,000 MT/a facility capacity |
-| Custody Transfer Accuracy (OBJ-10) | Metering data integrity, audit trails, tamper-proof totalization |
+| Requirement | Software Implementation | Specification § | Guidance § |
+|-------------|-------------------------|-----------------|------------|
+| Reliability (OBJ-1) | Robust error handling, watchdog timers, fail-safe logic, redundancy management (if applicable) | FR-02, QR-01 | Principles (Reliability) |
+| Operational Flexibility (OBJ-4) | Mode selection (tank storage vs. direct rail-to-ship), no hard-coded limitations, configurable setpoints | FR-01 | Principles (Operational Flexibility) |
+| Throughput Capacity (OBJ-2) | Control logic supports 1,000,000 MT/a facility capacity | FR-01 | Considerations §1 |
+| Custody Transfer Accuracy (OBJ-10) | Metering data integrity, audit trails, tamper-proof totalization | FR-04 | Considerations §4 |
 
 **Source:** OBJ-1, OBJ-2, OBJ-4, OBJ-10 per Decomposition Section 2
 

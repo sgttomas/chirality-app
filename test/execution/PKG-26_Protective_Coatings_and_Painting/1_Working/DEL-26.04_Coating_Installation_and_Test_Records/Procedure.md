@@ -132,4 +132,26 @@ This procedure defines the process for creating record templates and managing co
 - Project closeout package
 - Owner (as-built records)
 
-**Source:** Specification.md (Documentation section)
+**Source:** Specification.md §Documentation
+
+---
+
+## Cross-Document Verification Summary
+
+| Procedure Step | Specification § | Datasheet § | Guidance § | Input/Output |
+|----------------|-----------------|-------------|------------|--------------|
+| Step 1 (Create Templates) | FR-2, FR-3, QR-1 | Construction (all record types) | Examples | Record templates |
+| Step 2 (Generate Records) | FR-1, FR-2, FR-3 | — | Record Timing | Completed records |
+| Step 3 (Collect/Verify) | FR-1, QR-1 | — | — | Verified records |
+| Step 4 (Organize/File) | Documentation | — | Examples (Organization) | Filed records |
+| Step 5 (Submit for Closeout) | Documentation | Cross-references | Coordination | Submitted package |
+
+**Upstream deliverable inputs:**
+- DEL-26.01 §QR-1, §QR-2 — Inspection requirements and acceptance criteria
+- DEL-26.02 §Documentation — Procedures reference record templates
+
+**Verification status:** Pass 3 complete — Procedure steps traceable to Specification requirements and Guidance principles.
+
+**Downstream distribution checklist:**
+- [ ] PKG-30 (Commissioning) — Tank internal coating records for food-grade acceptance
+- [ ] Project closeout documentation package — All coating quality records

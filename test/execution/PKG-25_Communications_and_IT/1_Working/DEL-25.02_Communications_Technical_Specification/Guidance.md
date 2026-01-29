@@ -535,3 +535,25 @@ Technical specifications for communications cabling often organized as:
 The actual production of this specification follows the workflow defined in **Procedure.md**, which includes requirements gathering, drafting, technical review, interdisciplinary coordination, comment resolution, and approval. The considerations and trade-offs discussed in this guidance document inform the technical content and decisions made during the specification writing process.
 
 **Source:** **ASSUMPTION** — Standard specification development process; Cross-reference to Procedure.md
+
+---
+
+## Cross-Document Traceability (Pass 3)
+
+| Guidance Section | Datasheet § | Specification § | Procedure Step |
+|------------------|-------------|-----------------|----------------|
+| Purpose | Identification | Scope | Purpose |
+| Principles §1 Structured Cabling | References §Standards | FR-1, FR-2, Standards | Steps 1-4 |
+| Principles §2 Performance-Based | — | Requirements (all) | Steps 2-4 |
+| Principles §3 Code Compliance | References §Standards | Standards, QR-1 | Step 1.2 |
+| Principles §4 Testing/Verification | Construction §Testing | PR-1, QR-3 | Step 3.3 |
+| Principles §5 Lifecycle | Conditions §Design Life | QR-1, QR-2 | Notes §Key Assumptions |
+| Considerations §1 Category Selection | Construction §Copper | FR-2.1, PR-1.2 | Step 2.2 |
+| Considerations §2 Shielding | Construction §Copper | FR-2.2 | Step 2.2 |
+| Considerations §3 Fire Ratings | Construction §Jacket | FR-2.3, PR-2.2 | Steps 2.1, 2.2 |
+| Considerations §4 Fiber Connectors | Construction §Connectors | FR-3.1 | Steps 2.1, 2.3 |
+| Considerations §5 Installation Environment | Conditions §Environmental | FR-1.4, FR-2.4 | Step 3.1 |
+| Considerations §6 Coordination | References §Cross-refs | Interface Req. | Steps 1.4, 6 |
+| Trade-offs §1-5 | Construction, Conditions | FR-1, FR-2, QR | Notes §Key Assumptions |
+
+**Pass 3 Verification:** All guidance principles and considerations traceable to requirements (Specification.md) and implementation steps (Procedure.md).

@@ -10,6 +10,11 @@ This procedure defines the process for **producing** the **Coating Technical Spe
 
 **Source:** `_CONTEXT.md`; Decomposition DEL-26.01
 
+**Cross-document linkages:**
+- **Datasheet.md:** Coating attributes and construction details — See §Attributes, §Construction
+- **Specification.md:** Requirements to be developed per this procedure — See §FR-1 through §QR-3
+- **Guidance.md:** Engineering rationale supporting this procedure — See §Principles, §Trade-offs
+
 ## Prerequisites
 
 ### Dependencies
@@ -120,7 +125,12 @@ This procedure defines the process for **producing** the **Coating Technical Spe
 
 **Deliverable from Step 1:** Requirements compilation (may be informal working document or formal requirements register per project practice)
 
-**Source:** Specification.md (Requirements section); Guidance.md (Considerations)
+**Source:** Specification.md §Requirements; Guidance.md §Considerations
+
+**Cross-document outputs:**
+- Corrosivity classification → Specification.md §FR-2, §PR-2; Datasheet.md §Conditions
+- Food-grade certifications → Specification.md §PR-1; Datasheet.md §Tank Coatings (Internal)
+- Interface requirements → Specification.md §IR-1 through §IR-5
 
 ### Step 2: Draft Preparation
 
@@ -181,7 +191,12 @@ This procedure defines the process for **producing** the **Coating Technical Spe
 
 **Deliverable from Step 2:** Draft specification documents ready for internal review
 
-**Source:** Datasheet.md (Construction section for coating types); Specification.md (Requirements and Standards sections); Guidance.md (Examples)
+**Source:** Datasheet.md §Construction; Specification.md §Requirements, §Standards; Guidance.md §Examples
+
+**Cross-document outputs:**
+- Tank coating requirements → Specification.md §FR-1, §PR-1, §PR-4, §PR-5; Datasheet.md §Tank Coatings
+- Structural steel requirements → Specification.md §IR-2, §PR-4, §PR-5; Datasheet.md §Structural Steel
+- Marine coating requirements → Specification.md §IR-3, §PR-4, §PR-5; Datasheet.md §Marine Coatings
 
 ### Step 3: Internal Technical Review
 
@@ -449,3 +464,29 @@ Maintain traceability from specification requirements to:
 - **Downstream implementation:** DEL-26.02 (Procedures), DEL-26.04 (Records)
 
 **Source:** Project document control and quality management procedures
+
+---
+
+## Cross-Document Verification Summary
+
+| Procedure Step | Specification § | Datasheet § | Guidance § | Output to DEL-26.0x |
+|----------------|-----------------|-------------|------------|---------------------|
+| Step 1.1 (ER Review) | All requirements | — | — | — |
+| Step 1.2 (Design Basis) | FR-2, FR-3, PR-2 | Conditions | Considerations (Corrosivity) | — |
+| Step 1.3 (Standards) | Standards | References | Principles (Standards) | — |
+| Step 1.4 (Coordination) | IR-1 through IR-5 | Cross-references | Coordination Points | — |
+| Step 1.5 (Coating Options) | PR-1 | Tank Internal | Examples | DEL-26.03 |
+| Step 2.2 (Tank Spec) | FR-1, PR-1, PR-4, PR-5, QR-1 | Tank Coatings | Examples (Tank) | DEL-26.02, DEL-26.04 |
+| Step 2.3 (Steel Spec) | IR-2, PR-4, PR-5, QR-1 | Structural Steel | Trade-offs (Shop/Field) | DEL-26.02, DEL-26.04 |
+| Step 2.4 (Marine Spec) | IR-3, PR-4, PR-5 | Marine Coatings | Examples (Marine) | DEL-26.02, DEL-26.04 |
+| Step 3 (Review) | Verification | — | — | — |
+| Step 4 (Resolution) | All updated | All updated | All updated | — |
+| Step 5 (Employer) | — | — | — | — |
+| Step 6 (Issue) | — | — | — | DEL-26.02, DEL-26.03, DEL-26.04 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified and consistent.
+
+**Downstream deliverable notification checklist:**
+- [ ] DEL-26.02 (Coating Procedures) — Receives specification for procedure development
+- [ ] DEL-26.03 (Coating Data Sheet Package) — Receives specification for material data compilation
+- [ ] DEL-26.04 (Coating Installation & Test Records) — Receives specification for inspection/test planning

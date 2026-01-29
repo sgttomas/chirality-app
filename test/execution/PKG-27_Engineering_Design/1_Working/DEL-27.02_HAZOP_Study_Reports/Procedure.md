@@ -811,3 +811,12 @@ Prepare comprehensive HAZOP Study Report per structure in Datasheet.md:
 **Document Status:** This Procedure document is part of the DEL-27.02 deliverable working set. See `_STATUS.md` for current deliverable lifecycle state. This procedure will be updated as HAZOP studies are conducted and project-specific details (TBDs) are resolved.
 
 **Source:** **ASSUMPTION**: Procedure document is living document aligned with deliverable lifecycle per AGENTS.md
+
+**Cross-Document Verification (Pass 3):**
+- All Steps linked to Specification § requirements being verified
+- All Steps linked to Guidance § principles and considerations for rationale
+- All Verification activities linked to Specification § requirements
+- Terminology verified consistent with Datasheet.md, Specification.md, Guidance.md
+- Project parameters verified consistent: 1,000,000 MT/annum, 45,000 MT storage, 32 railcar stations
+- Cross-references to DEL-27.01, DEL-27.04, DEL-28.01, PKG-10 through PKG-26 verified consistent across all documents
+- HAZOP methodology (IEC 61882) and multi-stage approach (Preliminary/Detailed/Pre-commissioning) verified consistent

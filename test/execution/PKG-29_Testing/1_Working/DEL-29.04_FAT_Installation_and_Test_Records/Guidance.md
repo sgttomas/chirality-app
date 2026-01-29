@@ -157,3 +157,28 @@ Photographs: FAT-P201A-001 through 015 (attached)
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for equipment types and FAT content |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-6 | Implements this Guidance through specific FAT management steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (Value of FAT) → Supports Specification FR-1, PR-1, QR-1
+- §Principles (FAT vs. SAT Philosophy) → Supports Specification §Scope (relationship to DEL-29.05)
+- §Considerations Item 1 (Equipment Selection) → Supports Specification FR-1
+- §Considerations Item 2-3 (Timing, Procedure Adequacy) → Supports Specification PR-2, QR-1
+- §Considerations Item 4 (Deficiency Management) → Supports Specification QR-2
+- §Trade-offs → Informs engineering decisions for Specification requirements
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Equipment Selection) → Procedure Step 1
+- §Considerations Item 2 (Timing/Logistics) → Procedure Step 2
+- §Considerations Item 3 (Procedure Adequacy) → Procedure Step 2
+- §Considerations Item 4 (Deficiency Management) → Procedure Step 4
+- §Examples (FAT Report Structure) → Procedure Step 3

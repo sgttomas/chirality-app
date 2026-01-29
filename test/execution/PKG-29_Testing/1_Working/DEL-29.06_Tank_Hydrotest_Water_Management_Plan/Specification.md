@@ -104,3 +104,29 @@ Requirements for **Tank Hydrotest Water Management Plan** within **PKG-29 Testin
 - Sampling/testing plan
 - Discharge/hauling plan
 - Permit copies or applications
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures plan components, water volumes, and disposal options |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for implementing requirements |
+| Procedure.md | §Steps 1-8, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Water Source) → Guidance §Considerations Item 2 (Water Source Selection)
+- FR-2 (Treatment) → Guidance §Considerations Items 3-4 (Treatment Sizing, Coatings)
+- FR-3 (Sampling) → Guidance §Examples (Testing plan in outline)
+- FR-4 (Discharge) → Guidance §Principles (Hierarchy of Disposal), §Trade-offs
+- PR-2 (Timing) → Guidance §Considerations Item 1 (Timing and Permits)
+- QR-2 (Compliance) → Guidance §Principles (Environmental Stewardship)
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Water Source) → Procedure Steps 1-2
+- FR-2 (Treatment) → Procedure Steps 3-4
+- FR-3 (Sampling) → Procedure Step 5
+- FR-4 (Discharge) → Procedure Step 6
+- IR-1 (Permits) → Procedure Step 7
+- QR-1 (Approval) → Procedure Step 8

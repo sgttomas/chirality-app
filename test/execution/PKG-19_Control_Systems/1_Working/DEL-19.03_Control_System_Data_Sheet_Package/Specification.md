@@ -40,22 +40,26 @@ This specification defines the requirements for **Control System Data Sheet Pack
 - Vendor shall provide compliance matrix cross-referencing DEL-19.02 specification requirements to proposed equipment specifications
 - Deviations from DEL-19.02 specification shall be clearly identified and technically justified
 - **Source:** Standard vendor submittal requirements; DEL-19.02 specification
+- **Rationale:** Guidance.md §Principles (Role of Compliance Matrix); **Verification:** Procedure.md Steps 2–3
 
 **DSR-02: Submittal Schedule**
 - Vendor shall submit data sheets per project submittal schedule
 - Long-lead items (controllers, servers) shall be submitted early to avoid schedule delays
 - **TBD** — Specific submittal schedule and lead times per project procedures
+- **Verification:** Procedure.md Step 1
 
 **DSR-03: Documentation Quality**
 - Data sheets shall be legible, complete, and in English
 - Data sheets shall be current (from current manufacturer catalogs or custom equipment specifications)
 - Data sheets shall include revision/date to ensure currency
 - **Source:** Standard documentation quality requirements
+- **Verification:** Procedure.md Step 2 (Completeness Check)
 
 **DSR-04: Certifications and Approvals**
 - Vendor shall provide copies of applicable certifications (UL, CSA, CE, ISO 9001, ATEX/IECEx for hazardous areas)
 - Certifications shall be current and valid
 - **Source:** DEL-19.02 quality requirements (MR-01, QR-01)
+- **Rationale:** Guidance.md §Considerations (Certifications and Standards); **Verification:** Procedure.md Step 3 (RAC-04)
 
 ### Review and Approval Criteria
 

@@ -767,3 +767,25 @@ Before starting any coating work:
 - **DEL-26.04 (Coating Installation & Test Records):** Procedures use DEL-26.04 record templates
 
 **Source:** 4_DOCUMENTS agent instructions (cross-document consistency requirement)
+
+---
+
+## Cross-Document Verification Summary
+
+| Procedure Step | Specification § | Datasheet § | Guidance § | Output/Reference |
+|----------------|-----------------|-------------|------------|------------------|
+| Step 1 (Scope/Structure) | QR-1, Scope | Attributes, Coverage Scope | Trade-offs (Generic vs. Specific) | Procedure outline |
+| Step 2 (Surface Prep) | FR-1, PR-1, IR-1 | Surface Preparation Procedures | Surface Preparation Quality | Draft procedures |
+| Step 3 (Coating Application) | FR-2, FR-3, PR-2, PR-3, PR-4 | Coating Application Procedures | Application Quality Control | Draft procedures |
+| Step 4 (Technical Review) | Verification (Document Review) | Cross-references | Coordination Points | Comment register |
+| Step 5 (Safety Review) | FR-4, IR-4, IR-5 | Conditions (Safety) | Worker Safety | JSA/HAZOP |
+| Step 6 (Walkthrough) | Verification (Walkthrough) | — | Trade-offs (Verification) | Review findings |
+| Step 7 (Finalize/Approve) | Documentation | Attributes | — | Issued procedures |
+| Step 8 (Training) | QR-2 | — | Training and Competency | Training records |
+| Step 9 (Maintenance) | — | — | — | Revised procedures |
+| Part B (General Execution) | PR-1, PR-2, PR-4 | Inspection and Acceptance | Application Quality Control | Work records → DEL-26.04 |
+
+**Verification status:** Pass 3 complete — Procedure steps traceable to Specification requirements and Guidance principles.
+
+**Downstream deliverable notification checklist:**
+- [ ] DEL-26.04 (Coating Installation & Test Records) — Receives record templates and documentation requirements

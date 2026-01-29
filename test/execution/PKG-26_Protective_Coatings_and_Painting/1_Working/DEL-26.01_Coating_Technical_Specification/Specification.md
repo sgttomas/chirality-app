@@ -43,24 +43,27 @@ This specification covers:
 - Tank internal coatings shall be compatible with canola oil (food-grade edible oil product)
 - Coatings shall not impart taste, odor, or contamination to stored product
 - Coatings shall resist canola oil and cleaning agents used for tank maintenance
-- **Source:** Project description (canola oil transload facility); Datasheet.md (Tank Coatings Internal); **ASSUMPTION** — food-grade requirement pending ER confirmation
-- **Rationale:** See Guidance.md (Engineering Rationale — Tank Internals)
-- **Verification:** See Procedure.md (Steps 2.2 — Draft Tank Internal Coatings); DEL-26.03 (material certificates); DEL-26.04 (acceptance testing)
+- **Source:** Project description (canola oil transload facility); Datasheet.md §Tank Coatings (Internal); **ASSUMPTION** — food-grade requirement pending ER confirmation
+- **Rationale:** See Guidance.md §Principles (Tank Internals)
+- **Verification:** Procedure.md §Step 2.2; DEL-26.03 §Material Certificates; DEL-26.04 §Acceptance Testing Records
+- **Traceability:** OBJ-3 (Storage Capacity) — Decomposition Section 6
 
 **FR-2: Corrosion Protection**
 - Coatings shall provide corrosion protection appropriate to the atmospheric corrosivity category of the installation environment
 - Corrosivity category shall be determined per ISO 12944-2 based on site assessment or conservative assumption (C4 or C5 for coastal marine/industrial environment)
-- **Source:** ISO 12944-2; Datasheet.md (Environmental Conditions); **ASSUMPTION** — Marine/industrial environment classification pending site corrosivity assessment
-- **Rationale:** See Guidance.md (Engineering Rationale — Atmospheric Exposure)
-- **Verification:** See Procedure.md (Step 1.2 — Review Design Basis); DEL-27.01 (site corrosivity assessment)
+- **Source:** ISO 12944-2; Datasheet.md §Conditions (Environmental); **ASSUMPTION** — Marine/industrial environment classification pending site corrosivity assessment
+- **Rationale:** See Guidance.md §Principles (Multi-Environment Design)
+- **Verification:** Procedure.md §Step 1.2; DEL-27.01 §Site Corrosivity Assessment
+- **Traceability:** OBJ-9 (Lifecycle Cost Optimization) — Decomposition Section 6
 
 **FR-3: Service Life**
 - Coating systems shall be designed to achieve the specified service life with defined maintenance intervals
 - Service life requirement: **TBD** — to be confirmed per ER or design basis (DEL-27.01)
 - Durability classification per ISO 12944-1: **TBD** — Low (L), Medium (M), High (H), or Very High (VH)
-- **Source:** ISO 12944-1; Datasheet.md (Design Requirements); Guidance.md (Trade-offs — Durability vs. Maintenance)
-- **Rationale:** Service life and maintenance strategy trade-off per Guidance.md
-- **Verification:** See Procedure.md (Step 1.2 — Review Design Basis)
+- **Source:** ISO 12944-1; Datasheet.md §Conditions (Design Requirements); Guidance.md §Trade-offs (Durability vs. Maintenance)
+- **Rationale:** Service life and maintenance strategy trade-off per Guidance.md §Trade-offs
+- **Verification:** Procedure.md §Step 1.2
+- **Traceability:** OBJ-9 (Lifecycle Cost Optimization) — Decomposition Section 6
 
 ### Performance Requirements
 
@@ -69,36 +72,40 @@ This specification covers:
   - **FDA 21 CFR 175.300** (Resinous and polymeric coatings) or equivalent — **location TBD**
   - **NSF/ANSI 61** (Drinking water system components – Health effects) or equivalent — **location TBD**
 - Certificate of compliance shall be provided by coating manufacturer
-- **Source:** **ASSUMPTION** based on food-grade product storage requirement; Datasheet.md (Tank Coatings Internal)
-- **Rationale:** See Guidance.md (Engineering Rationale — Tank Internals; Food Contact Regulations)
-- **Verification:** See Procedure.md (Step 1.5 — Verify food-grade certifications); DEL-26.03 (manufacturer certificates)
+- **Source:** **ASSUMPTION** based on food-grade product storage requirement; Datasheet.md §Tank Coatings (Internal)
+- **Rationale:** Guidance.md §Principles (Food Contact Regulations)
+- **Verification:** Procedure.md §Step 1.5; DEL-26.03 §Manufacturer Certificates
+- **Traceability:** FR-1 (Product Compatibility)
 
 **PR-2: Corrosion Protection Performance**
 - Coating systems shall be selected to provide corrosion protection per ISO 12944-1 durability classification appropriate to the corrosivity category and required service life:
   - Immersion zones: **TBD** — Durability classification per marine exposure
   - Splash zones: **TBD** — Durability classification per marine exposure
   - Atmospheric zones: **TBD** — Likely High (H) or Very High (VH) durability for C4/C5 environment
-- **Source:** ISO 12944-1 (durability classification); Datasheet.md (Design Requirements)
-- **Rationale:** See Guidance.md (Engineering Rationale — Multi-Environment Design)
-- **Verification:** See Procedure.md (Step 1.2 — Review environmental conditions and corrosivity); DEL-27.01 (design basis)
+- **Source:** ISO 12944-1 (durability classification); Datasheet.md §Conditions (Design Requirements)
+- **Rationale:** Guidance.md §Principles (Multi-Environment Design)
+- **Verification:** Procedure.md §Step 1.2; DEL-27.01 §Design Basis
+- **Traceability:** FR-2 (Corrosion Protection); FR-3 (Service Life)
 
 **PR-3: Adhesion**
 - Coatings shall meet minimum adhesion requirements per ASTM D3359 (cross-hatch adhesion test) or equivalent
 - Minimum rating: **TBD** — typically 4B or 5B per industry practice
 - **Source:** ASTM D3359; **ASSUMPTION** — industry standard practice — **location TBD**
-- **Rationale:** Adhesion is critical to coating performance and longevity
-- **Verification:** See Procedure.md (Step 2 — Specify inspection and testing); DEL-26.04 (adhesion test records per QR-1)
+- **Rationale:** Adhesion is critical to coating performance and longevity per Guidance.md §Considerations
+- **Verification:** Procedure.md §Step 2; DEL-26.04 §Adhesion Test Records
+- **Traceability:** QR-1 (Inspection and Testing)
 
 **PR-4: Dry Film Thickness (DFT)**
 - Minimum DFT shall be specified per coating system and application:
-  - **Tank internal coatings:** **TBD** — typical 10-16 mils per Guidance.md (Examples)
-  - **Tank external coatings:** **TBD** — typical 9-14 mils total per Guidance.md (Examples)
+  - **Tank internal coatings:** **TBD** — typical 10-16 mils per Guidance.md §Examples
+  - **Tank external coatings:** **TBD** — typical 9-14 mils total per Guidance.md §Examples
   - **Structural steel coatings:** **TBD** — per coating system selected
   - **Marine coatings:** **TBD** — per NACE/SSPC marine coating guidance
 - DFT shall be verified per SSPC-PA 2 (Measurement of Dry Coating Thickness with Magnetic Gages)
-- **Source:** SSPC-PA 2; Datasheet.md (Construction — DFT values); Guidance.md (Examples)
-- **Rationale:** DFT directly affects corrosion protection and service life
-- **Verification:** See Procedure.md (Step 2 — Specify DFT requirements); DEL-26.04 (DFT measurement records per QR-1)
+- **Source:** SSPC-PA 2; Datasheet.md §Construction (DFT values); Guidance.md §Examples
+- **Rationale:** DFT directly affects corrosion protection and service life per Guidance.md §Principles
+- **Verification:** Procedure.md §Step 2; DEL-26.04 §DFT Measurement Records
+- **Traceability:** QR-1 (Inspection and Testing); FR-2 (Corrosion Protection)
 
 **PR-5: Surface Preparation**
 - Surface preparation shall meet minimum standards per SSPC specifications appropriate to the coating system and service environment:
@@ -107,9 +114,10 @@ This specification covers:
   - **Structural steel:** **TBD** — per corrosivity category and coating system
   - **Marine structures:** **TBD** — likely SSPC-SP 10 for critical marine applications
 - Surface cleanliness and profile shall be verified prior to coating application
-- **Source:** SSPC surface preparation standards (SP series); Datasheet.md (Construction — Surface preparation)
-- **Rationale:** See Guidance.md (Considerations — Surface Preparation Feasibility)
-- **Verification:** See Procedure.md (Step 2 — Specify surface preparation); DEL-26.02 (surface preparation procedures); DEL-26.04 (surface preparation inspection records per QR-1)
+- **Source:** SSPC surface preparation standards (SP series); Datasheet.md §Construction (Surface Preparation)
+- **Rationale:** Guidance.md §Considerations (Surface Preparation Feasibility)
+- **Verification:** Procedure.md §Step 2; DEL-26.02 §Surface Preparation Procedures; DEL-26.04 §Surface Preparation Records
+- **Traceability:** QR-1 (Inspection and Testing); FR-2 (Corrosion Protection)
 
 **PR-6: Application Conditions**
 - Coating application shall be performed within environmental limits specified by manufacturer's product data sheet:
@@ -117,9 +125,10 @@ This specification covers:
   - **Relative humidity:** **TBD** — typically ≤ 85% RH or per manufacturer
   - **Surface temperature:** Minimum 3°C above dew point — **ASSUMPTION** — **location TBD**
   - **Wind conditions:** **TBD** — per coating type (spray application limits)
-- **Source:** **ASSUMPTION** — typical coating application requirements; Datasheet.md (Field Painting — application within environmental limits)
-- **Rationale:** See Guidance.md (Considerations — Application Environment)
-- **Verification:** See Procedure.md (Step 2 — Specify application requirements); DEL-26.02 (application procedures and environmental monitoring); DEL-26.04 (application records per QR-2)
+- **Source:** **ASSUMPTION** — typical coating application requirements; Datasheet.md §Field Painting
+- **Rationale:** Guidance.md §Considerations (Application Environment)
+- **Verification:** Procedure.md §Step 2; DEL-26.02 §Application Procedures; DEL-26.04 §Application Records
+- **Traceability:** QR-2 (Documentation)
 
 ### Interface Requirements
 
@@ -491,4 +500,30 @@ Marine coating requirements (PKG-08, PKG-09, PKG-11) may be:
 - Related discipline leads (PKG-05, PKG-06, PKG-08, PKG-09, PKG-11, PKG-13)
 - Construction/fabrication teams (when issued for construction)
 - Employer (per project requirements)
-- **Source:** Procedure.md (Access and distribution)
+- **Source:** Procedure.md §Records (Access and Distribution)
+
+---
+
+## Cross-Document Verification Summary
+
+| Specification Requirement | Datasheet § | Guidance § | Procedure § | DEL-26.0x |
+|---------------------------|-------------|------------|-------------|-----------|
+| FR-1 (Product Compatibility) | Tank Internal | Principles (Tank Internals) | Step 2.2 | DEL-26.03, DEL-26.04 |
+| FR-2 (Corrosion Protection) | Conditions | Principles (Multi-Environment) | Step 1.2 | DEL-26.04 |
+| FR-3 (Service Life) | Design Requirements | Trade-offs (Durability) | Step 1.2 | — |
+| PR-1 (Food Contact) | Tank Internal | Principles (Food Contact) | Step 1.5 | DEL-26.03 |
+| PR-2 (Corrosion Performance) | Design Requirements | Principles | Step 1.2 | DEL-26.04 |
+| PR-3 (Adhesion) | — | Considerations | Step 2 | DEL-26.04 |
+| PR-4 (DFT) | Construction | Examples | Step 2 | DEL-26.04 |
+| PR-5 (Surface Preparation) | Construction | Considerations | Step 2 | DEL-26.02, DEL-26.04 |
+| PR-6 (Application Conditions) | Field Painting | Considerations | Step 2 | DEL-26.02, DEL-26.04 |
+| IR-1 (Tank Interface) | Cross-references | Coordination Points | Step 1.4, 3.2 | — |
+| IR-2 (Structural Steel) | Cross-references | Coordination Points | Step 1.4, 3.2 | — |
+| IR-3 (Marine Interface) | Cross-references | Coordination Points | Step 1.4, 3.2 | — |
+| IR-4 (Procedure Coordination) | Cross-references | — | Step 6.2 | DEL-26.02 |
+| IR-5 (Commissioning) | Cross-references | Considerations | Step 1.4 | — |
+| QR-1 (Inspection/Testing) | — | Considerations | Step 2 | DEL-26.04 |
+| QR-2 (Documentation) | Cross-references | — | Records | DEL-26.03, DEL-26.04 |
+| QR-3 (Workmanship) | — | — | Prerequisites | — |
+
+**Verification status:** Pass 3 complete — All requirements traceable to Datasheet, Guidance, Procedure, and downstream deliverables.

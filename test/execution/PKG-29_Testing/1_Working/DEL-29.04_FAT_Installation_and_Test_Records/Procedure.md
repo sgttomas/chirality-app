@@ -136,3 +136,32 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 - Archive: Project document management system (permanent)
 
 **Status:** See `_STATUS.md`
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides FAT content structure and equipment types for Steps 1, 6 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Identify Equipment) | FR-1 (Scope Definition) | V-1 |
+| Step 2 (Coordinate Scheduling) | PR-2 (Witness), QR-1 (Procedure Approval) | V-2 |
+| Step 3 (Conduct FAT) | FR-2 (Content), FR-3 (Traceability) | V-2, V-3 |
+| Step 4 (Manage Deficiencies) | QR-2 (Deficiency Management) | V-3 |
+| Step 5 (Accept/Authorize) | PR-1 (Acceptance) | AC-3 |
+| Step 6 (Compile Records) | IR-3 (Documentation Flow) | V-4, AC-4 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Item 1 (Equipment Selection) |
+| Step 2 | §Considerations Items 2-3 (Timing, Procedure Adequacy) |
+| Step 3 | §Examples (FAT Report Structure), §Principles |
+| Step 4 | §Considerations Item 4, §Trade-offs Item 3 |
+| Step 5 | §Trade-offs Items 1-2 |

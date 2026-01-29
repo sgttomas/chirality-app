@@ -18,39 +18,39 @@
 
 ### Drawing Set Characteristics
 
-| Attribute | Value |
-|-----------|-------|
-| Drawing Types | Control system architecture, network drawings, cabinet layouts, HMI arrangement |
-| Sheet Size | **TBD** — **ASSUMPTION**: Per project CAD standards (typically ISO A1 or ANSI D) |
-| Scale | **TBD** — **ASSUMPTION**: As appropriate (NTS for schematics, to-scale for physical layouts) |
-| CAD Standard | **TBD** — Employer's Requirements **location TBD** |
-| Drawing Numbering | **TBD** — Per project document numbering system |
-| Revision Control | **TBD** — Per project revision procedure |
-| File Format | **TBD** — **ASSUMPTION**: Native CAD + PDF |
+| Attribute | Value | Specification § | Procedure Step |
+|-----------|-------|-----------------|----------------|
+| Drawing Types | Control system architecture, network drawings, cabinet layouts, HMI arrangement | FR-01, Documentation | Steps 2–5 |
+| Sheet Size | **TBD** — **ASSUMPTION**: Per project CAD standards (typically ISO A1 or ANSI D) | PR-02 | Step 8 |
+| Scale | **TBD** — **ASSUMPTION**: As appropriate (NTS for schematics, to-scale for physical layouts) | PR-01 | Steps 2–5 |
+| CAD Standard | **TBD** — Employer's Requirements **location TBD** | PR-02 | Step 8 |
+| Drawing Numbering | **TBD** — Per project document numbering system | QR-02 | Step 9 |
+| Revision Control | **TBD** — Per project revision procedure | QR-02 | Step 9 |
+| File Format | **TBD** — **ASSUMPTION**: Native CAD + PDF | Documentation | Step 9 |
 
 **Source:** Standard I&C drawing practice; project-specific requirements TBD pending Employer's Requirements
 
 ### Control System Scope
 
-| Attribute | Value |
-|-----------|-------|
-| Primary System Type | DCS/PLC system |
-| HMI Configuration | HMI workstations, remote HMIs |
-| I/O Infrastructure | I/O racks |
-| Data Management | Historian |
-| Operator Interface | Operator graphics |
+| Attribute | Value | Specification § | Guidance § |
+|-----------|-------|-----------------|------------|
+| Primary System Type | DCS/PLC system | FR-01, FR-02 | Trade-offs TO-01 |
+| HMI Configuration | HMI workstations, remote HMIs | FR-01, Documentation | Trade-offs TO-04 |
+| I/O Infrastructure | I/O racks | FR-01 | Considerations §5 |
+| Data Management | Historian | FR-01 | Principles |
+| Operator Interface | Operator graphics | FR-04 | Considerations §4 |
 
 **Source:** Decomposition PKG-19 Scope
 
 ### System Capacity Parameters
 
-| Parameter | Value |
-|-----------|-------|
-| Throughput Support | 1,000,000 MT/annum canola oil (facility capacity) |
-| Storage Support | 45,000 MT (3 × 15,000 MT tanks) |
-| Unloading Stations | 32 railcar positions |
-| Loading Points | Marine loading arms **TBD** — count per DEL-11.xx |
-| Metering Points | Custody transfer metering stations **TBD** — count per DEL-12.xx |
+| Parameter | Value | Specification § | Related Objective |
+|-----------|-------|-----------------|-------------------|
+| Throughput Support | 1,000,000 MT/annum canola oil (facility capacity) | FR-02 | OBJ-2 |
+| Storage Support | 45,000 MT (3 × 15,000 MT tanks) | FR-04 | OBJ-3 |
+| Unloading Stations | 32 railcar positions | FR-04, IR-05 | OBJ-2 |
+| Loading Points | Marine loading arms **TBD** — count per DEL-11.xx | IR-05 | OBJ-2, OBJ-4 |
+| Metering Points | Custody transfer metering stations **TBD** — count per DEL-12.xx | FR-05 | OBJ-10 |
 
 **Source:** Decomposition Section 1 (Project Overview); OBJ-2 (Throughput Capacity), OBJ-3 (Storage Capacity)
 
@@ -58,13 +58,13 @@
 
 ### Operational Context
 
-| Condition | Requirement |
-|-----------|-------------|
-| Facility Type | Canola oil transload terminal (rail-to-storage-to-ship) |
-| Operating Mode | Both tank storage operations and direct rail-to-ship transfer |
-| Operational Objective | Safe, efficient, reliable, and continuous use (OBJ-1) |
-| Flexibility Objective | Operational flexibility per OBJ-4 |
-| Custody Transfer | Accuracy per OBJ-10 |
+| Condition | Requirement | Specification § | Guidance § |
+|-----------|-------------|-----------------|------------|
+| Facility Type | Canola oil transload terminal (rail-to-storage-to-ship) | Scope | Purpose |
+| Operating Mode | Both tank storage operations and direct rail-to-ship transfer | FR-04 | Considerations §1 |
+| Operational Objective | Safe, efficient, reliable, and continuous use (OBJ-1) | FR-06 | Principles |
+| Flexibility Objective | Operational flexibility per OBJ-4 | FR-04 | Trade-offs TO-04 |
+| Custody Transfer | Accuracy per OBJ-10 | FR-05 | Principles |
 
 **Source:** Decomposition Section 2 (Project Objectives); OBJ-1, OBJ-4, OBJ-10
 

@@ -12,18 +12,18 @@ Records demonstrate that control system was installed, tested, and commissioned 
 
 ### Record Management Philosophy
 
-**Purpose of Records:**
-- **Evidence of Quality:** Demonstrate work performed per project quality standards
-- **Traceability:** Link requirements → design → installation → testing → acceptance
-- **Regulatory Compliance (OBJ-6):** Support inspections, audits, certifications
-- **Warranty Support:** Document as-built condition for warranty claims
-- **Operational Reference:** Provide baseline for operations and maintenance
+**Purpose of Records:** *(Supports Specification.md QR-01, QR-02, QR-03)*
+- **Evidence of Quality:** Demonstrate work performed per project quality standards — *Specification.md QR-02*
+- **Traceability:** Link requirements → design → installation → testing → acceptance — *Specification.md QR-01*
+- **Regulatory Compliance (OBJ-6):** Support inspections, audits, certifications — *Datasheet.md Quality Requirements*
+- **Warranty Support:** Document as-built condition for warranty claims — *Specification.md RR-03*
+- **Operational Reference:** Provide baseline for operations and maintenance — *Specification.md RR-03*
 
-**Key Principles:**
-- **Complete:** All required tests documented, all punch lists resolved
-- **Accurate:** Records reflect actual work performed (not theoretical)
-- **Traceable:** Cross-referenced to drawings (DEL-19.01), specifications (DEL-19.02), software (DEL-19.04)
-- **Retained:** Per project retention schedule (life of facility typical)
+**Key Principles:** *(Supports Procedure.md Steps 1–9)*
+- **Complete:** All required tests documented, all punch lists resolved — *Specification.md QR-02; Procedure.md Step 9*
+- **Accurate:** Records reflect actual work performed (not theoretical) — *Procedure.md Steps 2, 6*
+- **Traceable:** Cross-referenced to drawings (DEL-19.01), specifications (DEL-19.02), software (DEL-19.04) — *Specification.md QR-01*
+- **Retained:** Per project retention schedule (life of facility typical) — *Specification.md QR-03*
 
 ## Considerations
 

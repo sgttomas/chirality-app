@@ -138,3 +138,20 @@ These records demonstrate:
 - Environmental compliance reporting to authorities
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-2, IR-1 to IR-2, QR-1 to QR-3) | Defines requirements for testing and record content |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for testing and documentation |
+| Procedure.md | §Steps 1-6 | Defines process for collecting samples, testing, and documenting results |
+
+**Cross-Deliverable Consistency Notes:**
+- Testing implements the sampling/testing plan from DEL-29.06
+- Testing results inform discharge authorization (or trigger haul-away per DEL-29.08)
+- Records support environmental compliance reporting to regulatory authorities
+- Records prove compliance with objectives OBJ-7 (Environmental Protection) and OBJ-6 (Regulatory Compliance)
+- Record format parallels test records in DEL-29.03 (completeness, traceability, signatures)

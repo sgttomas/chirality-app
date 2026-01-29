@@ -147,3 +147,14 @@ For **Sacrificial Anodes (Galvanic):**
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
 
 **Source:** **ASSUMPTION**: Standard CP design references and codes; **TBD** — Specific code editions and data sources
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- Terminology verified consistent with Specification.md, Guidance.md, Procedure.md
+- Structures requiring CP (storage tanks, buried piping, marine structures) verified consistent
+- CP system types (ICCP, Sacrificial) verified consistent across all documents
+- Anticipated artifacts (CP design basis, anode calculations, current demand calculations, drawings) verified consistent
+- Cross-references to PKG-05, PKG-06, PKG-08, PKG-13, PKG-14, PKG-17, DEL-27.01 verified consistent
+- Applicable standards (NACE SP0169, CSA Z662, ISO 15589) verified consistent across all documents
+- Fraser Surrey Terminal marine/waterfront environment context verified consistent

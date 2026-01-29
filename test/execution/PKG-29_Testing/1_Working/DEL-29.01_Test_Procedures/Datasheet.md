@@ -121,3 +121,19 @@ Defines the execution method and controls for test to meet safety, quality, and 
 - See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
 
 **ASSUMPTION:** Specific clause references from standards will be identified during procedure development when design details are available.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-3, IR-1 to IR-3, QR-1 to QR-3) | Defines requirements for test procedure content, performance criteria, interfaces, and quality |
+| Guidance.md | §Principles, §Considerations, §Trade-offs | Provides engineering rationale for testing approach and factors to consider |
+| Procedure.md | §Steps 1-8 | Defines process for developing, reviewing, approving, and managing test procedures |
+
+**Cross-Deliverable Consistency Notes:**
+- Tank capacity (3 × 15,000 MT) and throughput (1,000,000 MT/a) values align with Decomposition Section 1
+- Test pressure ratios (1.5× design) align with ASME B31.3 and API 650 requirements
+- Hold/witness point integration references DEL-29.02 per Decomposition line 647
+- Water management references DEL-29.06 through DEL-29.08 per Decomposition lines 651-653

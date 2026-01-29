@@ -194,3 +194,20 @@ All previous PKG-20 deliverables (DEL-20.01 through DEL-20.04) are inputs to tes
 Supports **OBJ-1: Safe & Reliable Operation** — Installation and test records provide evidence that instrumentation is correctly installed, calibrated, and functional for safe and reliable facility operations.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Datasheet provides factual identification, attributes, conditions, and references for DEL-20.05. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 define test record requirements; QR-1 to QR-3 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles 1-3 explain commissioning philosophy; Trade-off addresses calibration methods |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 define commissioning lifecycle (inspection → testing → turnover) |
+
+**Document Consistency Verification:**
+
+- All record types in Datasheet Attributes § appear in Specification Documentation and Procedure Records
+- All related deliverables in Datasheet References § are verified per Specification FR-1 and Procedure Prerequisites
+- Test lifecycle in Datasheet Conditions § aligns with Procedure Steps 1-6
+- Applicable standards in Datasheet References § appear in Specification Standards

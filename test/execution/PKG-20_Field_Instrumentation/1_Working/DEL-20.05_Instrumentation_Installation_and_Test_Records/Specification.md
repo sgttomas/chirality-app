@@ -133,3 +133,24 @@ Test records compiled during commissioning. Final record package provided to Own
 Supports **OBJ-1: Safe & Reliable Operation** — Test records demonstrate instrumentation is correctly installed, calibrated, and functional for safe operations.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Specification defines requirements for DEL-20.05. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Attributes § defines record types; Construction § provides record content details |
+| Guidance.md | Engineering rationale and decision context | Principles explain quality gate approach; Trade-off addresses calibration methods |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 implement FR-1 to FR-5; Verification implements QR-1 to QR-3 |
+
+**Requirement-to-Procedure Mapping:**
+
+| Requirement | Procedure Step | What Is Implemented |
+|-------------|----------------|---------------------|
+| FR-1 Completeness | Steps 1-5 | All instruments tested through commissioning lifecycle |
+| FR-2 Calibration | Step 3 | Pre-commissioning calibration and certificates |
+| FR-3 Loop Checks | Step 3 | Loop check verification |
+| FR-4 Installation Inspection | Step 1 | Installation inspection records |
+| FR-5 Functional Tests | Steps 4, 5 | Wet calibration, functional and performance testing |
+| QR-1 to QR-3 | Step 6 | Record compilation and quality verification |

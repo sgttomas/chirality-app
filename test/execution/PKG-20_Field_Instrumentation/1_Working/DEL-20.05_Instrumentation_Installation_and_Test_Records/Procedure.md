@@ -201,3 +201,24 @@ Supports **OBJ-1: Safe & Reliable Operation** — Test records provide evidence 
 Supports **OBJ-9: Lifecycle Cost Optimization** — As-commissioned baseline supports efficient maintenance planning and calibration scheduling.
 
 **Source:** Decomposition Section 6 (lines 780, 788)
+
+## Cross-Document Traceability
+
+This Procedure defines the production workflow for DEL-20.05. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § defines record lifecycle; Construction § defines record types and content |
+| Specification.md | Requirements and verification criteria | FR-1 to FR-5 define what records to produce; QR-1 to QR-3 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles explain commissioning philosophy; Trade-off informs calibration method selection |
+
+**Procedure-to-Specification Mapping:**
+
+| Procedure Step | Specification Requirement | What Is Implemented |
+|----------------|--------------------------|---------------------|
+| Step 1 | FR-4, INT-1 | Installation inspection |
+| Step 2 | FR-5 | Factory acceptance testing (if applicable) |
+| Step 3 | FR-2, FR-3, PR-1 | Pre-commissioning calibration and loop checks |
+| Step 4 | FR-5, PR-2 | Wet calibration with product |
+| Step 5 | FR-5 | Functional and performance testing |
+| Step 6 | QR-3, INT-2, INT-3 | Record compilation and turnover |

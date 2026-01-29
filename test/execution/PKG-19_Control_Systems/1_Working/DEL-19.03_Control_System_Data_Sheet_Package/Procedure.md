@@ -290,17 +290,17 @@ This procedure guides the I&C team through the vendor data sheet review and appr
 
 ### Verification Activities Summary
 
-| Step | Verification Activity | Verifier |
-|------|----------------------|----------|
-| 1 | Submittal logged and distributed | Document control |
-| 2 | Completeness check | I&C reviewer |
-| 3 | Technical review against DEL-19.02 | I&C reviewer |
-| 4 | Interdisciplinary check | PKG-17, PKG-20, PKG-23 reviewers |
-| 5 | Employer review (if required) | Employer |
-| 6 | Review comments finalization | I&C discipline lead |
-| 7 | Resubmittal review (if applicable) | I&C reviewer |
-| 8 | Final approval | I&C discipline lead |
-| 9 | Records filing | Document control |
+| Step | Verification Activity | Verifier | Requirements Verified |
+|------|----------------------|----------|----------------------|
+| 1 | Submittal logged and distributed | Document control | DSR-02 |
+| 2 | Completeness check | I&C reviewer | DSR-01, DSR-03, DSR-04, AC-01 |
+| 3 | Technical review against DEL-19.02 | I&C reviewer | RAC-01, RAC-03, RAC-04, RAC-05 |
+| 4 | Interdisciplinary check | PKG-17, PKG-20, PKG-23 reviewers | RAC-02 |
+| 5 | Employer review (if required) | Employer | AC-03 |
+| 6 | Review comments finalization | I&C discipline lead | DH-01, DH-02, DH-03 |
+| 7 | Resubmittal review (if applicable) | I&C reviewer | All RACs |
+| 8 | Final approval | I&C discipline lead | AC-02, AC-03 |
+| 9 | Records filing | Document control | Documentation §Records and Filing |
 
 **Source:** Specification.md verification methods
 

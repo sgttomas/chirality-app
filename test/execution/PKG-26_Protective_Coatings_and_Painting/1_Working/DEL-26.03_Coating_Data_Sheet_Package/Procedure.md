@@ -100,4 +100,23 @@ This procedure defines the process for compiling and organizing the coating data
 
 **Distribution:** DEL-26.02 authors, DEL-26.04 QA/QC, coating applicators, procurement, related disciplines
 
-**Source:** Specification.md (Documentation section)
+**Source:** Specification.md §Documentation
+
+---
+
+## Cross-Document Verification Summary
+
+| Procedure Step | Specification § | Datasheet § | Guidance § | Output/Reference |
+|----------------|-----------------|-------------|------------|------------------|
+| Step 1 (Identify Required) | FR-1 | Construction | Principles | Data sheet list |
+| Step 2.1-2.2 (Obtain Data Sheets) | QR-1 | — | Data Sheet Sourcing | Data sheet files |
+| Step 2.3 (FDA/NSF Certificates) | FR-2 | Tank Internal | FDA/NSF Compliance | Certificates |
+| Step 3 (Organize Package) | Documentation | Attributes (Organization) | Examples | Package structure |
+| Step 4 (Verification) | Verification | — | — | Verification checklist |
+| Step 5 (Issue) | — | References | Coordination | Issued package |
+
+**Verification status:** Pass 3 complete — Procedure steps traceable to Specification requirements and Guidance principles.
+
+**Downstream deliverable notification checklist:**
+- [ ] DEL-26.02 (Coating Procedures) — Receives data sheets for procedure application parameters
+- [ ] DEL-26.04 (Coating Installation & Test Records) — Receives data sheets for inspection acceptance criteria

@@ -266,15 +266,15 @@ This procedure guides the I&C team through the development, review, and approval
 
 ### Verification Activities Summary
 
-| Step | Verification Activity | Verifier |
-|------|----------------------|----------|
-| 1 | Requirements review | Discipline lead |
-| 2 | Self-check during drafting | Author |
-| 3 | Interdisciplinary check (IDC) | Affected disciplines |
-| 4 | Technical review | I&C discipline team |
-| 5 | Employer review (if required) | Employer |
-| 6 | Approval review | Discipline lead / Approver |
-| 7 | Distribution confirmation | Document control |
+| Step | Verification Activity | Verifier | Requirements Verified |
+|------|----------------------|----------|----------------------|
+| 1 | Requirements review | Discipline lead | All FRs, PRs, IRs, MRs, TCs, DRs, QRs |
+| 2 | Self-check during drafting | Author | FR-01 to FR-08, PR-01 to PR-04, MR-01 to MR-05 |
+| 3 | Interdisciplinary check (IDC) | Affected disciplines | IR-01 to IR-05 |
+| 4 | Technical review | I&C discipline team | All FRs, PRs, MRs, TCs, DRs |
+| 5 | Employer review (if required) | Employer | AC-01, AC-02, AC-03 |
+| 6 | Approval review | Discipline lead / Approver | QR-01, AC-01, AC-02 |
+| 7 | Distribution confirmation | Document control | QR-01, DR-01 |
 
 **Source:** Specification.md verification methods
 

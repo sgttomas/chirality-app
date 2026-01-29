@@ -149,3 +149,29 @@ Each FAT report shall include:
 - Organized by equipment tag or system
 - Index provided
 - Filed in project document management system (permanent records)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures FAT record types, content structure, and cross-references |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for implementing requirements |
+| Procedure.md | §Steps 1-6, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Scope Definition) → Guidance §Considerations Item 1 (Equipment Selection)
+- FR-2 (Content) → Guidance §Examples (FAT Report Structure)
+- FR-3 (Traceability) → Guidance §Considerations Item 5 (Metering Special Requirements)
+- PR-1 (Acceptance) → Guidance §Considerations Item 4 (Deficiency Management)
+- PR-2 (Witness) → Guidance §Considerations Item 2 (Timing/Logistics)
+- QR-2 (Deficiency) → Guidance §Trade-offs Item 3 (Correct All vs. Punch List)
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Scope) → Procedure Step 1 (Identify Equipment)
+- FR-2, FR-3 → Procedure Step 3 (Conduct FAT)
+- PR-1 (Acceptance) → Procedure Step 5 (Accept Equipment)
+- PR-2 (Witness) → Procedure Step 2 (Coordinate Scheduling)
+- QR-1 (Procedure Approval) → Procedure Step 2
+- QR-2 (Deficiencies) → Procedure Step 4

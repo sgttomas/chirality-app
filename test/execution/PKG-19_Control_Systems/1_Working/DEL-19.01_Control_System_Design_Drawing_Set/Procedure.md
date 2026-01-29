@@ -293,14 +293,17 @@ This procedure guides the I&C design team through the development, review, and a
 
 The following verification activities are performed during the procedure:
 
-| Step | Verification Activity | Verifier |
-|------|----------------------|----------|
-| 1 | Design basis review | Discipline lead |
-| 2-5 | Self-check during drafting | Originator |
-| 6 | Interdisciplinary check (IDC) | Affected disciplines |
-| 7 | Independent check | Independent checker |
-| 8 | Approval review | Discipline lead / Approver |
-| 9 | Distribution confirmation | Document control |
+| Step | Verification Activity | Verifier | Requirements Verified |
+|------|----------------------|----------|----------------------|
+| 1 | Design basis review | Discipline lead | All FRs, PRs, IRs, QRs |
+| 2 | Architecture self-check | Originator | FR-01, FR-02, FR-06 |
+| 3 | Network self-check | Originator | FR-03 |
+| 4 | Cabinet layout self-check | Originator | PR-04, IR-03 |
+| 5 | HMI arrangement self-check | Originator | FR-04, IR-04 |
+| 6 | Interdisciplinary check (IDC) | Affected disciplines | IR-01, IR-02, IR-03, IR-04, IR-05 |
+| 7 | Independent check | Independent checker | All FRs, PRs, QRs |
+| 8 | Approval review | Discipline lead / Approver | QR-01, AC-01, AC-02, AC-03 |
+| 9 | Distribution confirmation | Document control | QR-02, QR-03 |
 
 **Source:** Specification.md verification methods
 

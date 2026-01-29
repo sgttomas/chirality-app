@@ -83,3 +83,27 @@ Requirements for **Hydrotest Water Treatment & Discharge Testing Results** withi
 - Treatment logs
 - Discharge testing records
 - Compiled into environmental compliance package
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction, §References | Captures record types, test parameters, and cross-references |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for implementing requirements |
+| Procedure.md | §Steps 1-6, §Verification | Defines process for implementing these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Sampling) → Guidance §Considerations Items 1-2 (Representativeness, Laboratory)
+- FR-2 (Treatment Logging) → Guidance §Considerations Item 3 (Treatment Monitoring)
+- FR-3 (Discharge Monitoring) → Guidance §Principles (Test Before Discharge)
+- PR-1 (Compliance) → Guidance §Trade-offs (Speed vs. Thoroughness)
+- QR-1 (Accredited Lab) → Guidance §Considerations Item 2
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 (Sampling) → Procedure Steps 1, 3
+- FR-2 (Treatment Logging) → Procedure Step 2
+- FR-3 (Discharge Monitoring) → Procedure Steps 4-5
+- PR-1 (Compliance) → Procedure Step 4 (Authorize/Halt)
+- QR-3 (Records) → Procedure Step 6

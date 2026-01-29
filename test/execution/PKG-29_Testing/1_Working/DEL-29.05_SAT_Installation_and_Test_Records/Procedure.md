@@ -125,3 +125,32 @@ See `_DEPENDENCIES.md` — **NOT_TRACKED** (coordinated externally)
 - Archive: Project document management system (permanent)
 
 **Status:** See `_STATUS.md`
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Construction, §References | Provides system types and SAT content structure for Steps 2, 6 |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Verification | Defines requirements this Procedure implements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for procedure steps |
+
+**Procedure Step-to-Specification Traceability:**
+| Procedure Step | Specification Section(s) | Verification |
+|---------------|-------------------------|--------------|
+| Step 1 (Verify Prerequisites) | FR-1 (Prerequisites) | V-1 |
+| Step 2 (Develop Procedures) | QR-1 (Procedure Approval) | — |
+| Step 3 (Schedule/Coordinate) | PR-2 (Witness Requirements) | V-3 |
+| Step 4 (Conduct SATs) | FR-2 (Scope), FR-3 (Documentation) | V-1, V-2 |
+| Step 5 (Manage Deficiencies) | QR-2 (Deficiency Management) | V-3 |
+| Step 6 (Compile Records) | QR-3 (Permanent Records) | V-4, AC-1 |
+
+**Procedure Step-to-Guidance Traceability:**
+| Procedure Step | Guidance Section(s) |
+|---------------|---------------------|
+| Step 1 | §Considerations Item 1 (Timing), §Principles (SAT vs. Commissioning) |
+| Step 2 | §Considerations Item 2 (Procedure Development) |
+| Step 3 | §Considerations Item 4 (Operations Training) |
+| Step 4 | §Principles (System Integration, Fail-safe), §Considerations Item 3 (Simulation), §Examples |
+| Step 5 | §Trade-offs Item 1 (Comprehensive vs. Schedule)

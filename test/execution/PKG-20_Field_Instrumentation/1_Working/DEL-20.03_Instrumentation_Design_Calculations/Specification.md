@@ -143,3 +143,24 @@ Calculations acceptable when: methodology appropriate, inputs documented and tra
 Supports **OBJ-1: Safe & Reliable Operation** — Proper sizing and verification calculations ensure instruments are correctly specified for safe and reliable facility operations.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Specification defines requirements for DEL-20.03. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Datasheet.md | Factual identification, attributes, conditions, references | Conditions § provides design basis; Construction § defines calculation types and format |
+| Guidance.md | Engineering rationale and decision context | Principles explain calculation approach; Trade-offs address methodology decisions |
+| Procedure.md | Production workflow and verification steps | Steps 1-6 implement FR-1 to FR-5; Verification implements QR-1 to QR-4 |
+
+**Requirement-to-Procedure Mapping:**
+
+| Requirement | Procedure Step | What Is Implemented |
+|-------------|----------------|---------------------|
+| FR-1 Completeness | Step 1 | Calculation scope identification |
+| FR-2 Range Selection | Step 3.1 | Range selection methodology |
+| FR-3 Accuracy Verification | Step 3.2 | TLU calculations |
+| FR-4 Sizing | Step 3.3 | Flow element, thermowell sizing |
+| FR-5 Installation | Step 3.4 | Impulse piping, seismic calculations |
+| QR-1 Verification | Step 5 | Independent check process |

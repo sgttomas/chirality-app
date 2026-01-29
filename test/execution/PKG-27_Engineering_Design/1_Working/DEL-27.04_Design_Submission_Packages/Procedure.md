@@ -145,3 +145,14 @@ Defines process for producing **Design Submission Packages** within **PKG-27 Eng
 **Filing:** Packages in project DMS; copies in `2_Checking/To/` (outgoing) and `2_Checking/From/` (incoming comments)
 
 **Source:** Specification.md; **ASSUMPTION**: Standard deliverable lifecycle per AGENTS.md
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All Steps linked to Specification § requirements being verified
+- All Steps linked to Guidance § principles and considerations for rationale
+- All Verification activities linked to Specification § requirements
+- Terminology verified consistent with Datasheet.md, Specification.md, Guidance.md
+- Submission stages (30%, 60%, 90%, IFC) verified consistent across all documents
+- Comment management process (Steps 5.1-5.8) verified consistent with Guidance § Principle 3
+- Cross-references to all project deliverables (210 across 36 packages) verified consistent

@@ -88,3 +88,18 @@ This specification defines requirements for coating installation and test record
 - Project closeout documentation package
 
 **Source:** Decomposition DEL-26.04 anticipated artifacts
+
+---
+
+## Cross-Document Verification Summary
+
+| Specification Requirement | Datasheet § | Guidance § | Procedure § | Upstream DEL-26.01 § |
+|---------------------------|-------------|------------|-------------|----------------------|
+| FR-1 (Complete Coverage) | All record types | Record Timing | Steps 2–3 | QR-1, QR-2 |
+| FR-2 (Traceability) | Record content (each type) | Records as Quality Evidence | Steps 1.2, 2.2 | QR-2 |
+| FR-3 (Acceptance Criteria) | Record content (DFT, adhesion, holiday) | — | Step 2.2 | PR-3, PR-4, PR-5, QR-1 |
+| QR-1 (Legibility/Completeness) | Attributes | Inspector Independence | Steps 2.2, 3.2 | — |
+| QR-2 (Archival/Retention) | Attributes (Retention) | Trade-offs (Paper vs. Electronic) | Step 4 | — |
+| Standards | References (Standards) | — | — | Standards |
+
+**Verification status:** Pass 3 complete — All requirements traceable to Datasheet, Guidance, Procedure, and upstream DEL-26.01.

@@ -139,3 +139,21 @@ For **Haul-Away:**
 - Project closeout documentation
 
 See `_DEPENDENCIES.md` (NOT_TRACKED — dependencies coordinated externally)
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Specification.md | §Requirements (FR-1 to FR-3, PR-1 to PR-2, IR-1 to IR-2, QR-1 to QR-3) | Defines requirements for disposal documentation and tracking |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides rationale and examples for disposal documentation |
+| Procedure.md | §Steps 1-6 | Defines process for executing and documenting disposal |
+
+**Cross-Deliverable Consistency Notes:**
+- Disposal records implement the disposal plan from DEL-29.06
+- Disposal decision (discharge vs. haul-away) depends on test results from DEL-29.07
+- Records complete the hydrotest water management cycle (DEL-29.06 → DEL-29.07 → DEL-29.08)
+- Water volume (~45,000 m³) from PKG-13 tanks drives disposal magnitude
+- Objectives OBJ-7 (Environmental Protection) and OBJ-6 (Regulatory Compliance) are primary drivers
+- This is the final deliverable in PKG-29, completing the Testing package

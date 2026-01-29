@@ -197,15 +197,16 @@ Defines process for developing, testing, and commissioning control system softwa
 
 ## Verification
 
-| Step | Verification Activity | Verifier |
-|------|----------------------|----------|
-| 2 | Software architecture review | I&C discipline lead |
-| 3 | Code peer review | Senior programmer |
-| 4 | HMI graphics review | I&C discipline lead, operator input |
-| 6 | Simulation testing | Test engineer |
-| 7 | FAT | Owner, Contractor, Third-Party (if required) |
-| 9 | SAT | Owner, Contractor |
-| 9 | Operator acceptance | Operations team |
+| Step | Verification Activity | Verifier | Requirements Verified |
+|------|----------------------|----------|----------------------|
+| 2 | Software architecture review | I&C discipline lead | All FRs, QR-01 |
+| 3 | Code peer review | Senior programmer | FR-01, FR-02, FR-03, QR-01 |
+| 4 | HMI graphics review | I&C discipline lead, operator input | FR-05, PR-02 |
+| 5 | Historian configuration review | I&C engineer | FR-04, PR-03 |
+| 6 | Simulation testing | Test engineer | FR-01, FR-02, FR-03, PR-01, PR-02 |
+| 7 | FAT | Owner, Contractor, Third-Party (if required) | All FRs, All PRs, QR-02 |
+| 9 | SAT | Owner, Contractor | All FRs, All PRs, QR-02 |
+| 9 | Operator acceptance | Operations team | FR-05, QR-02 |
 
 **Acceptance Criteria (from Specification.md):**
 - All simulation tests pass

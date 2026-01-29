@@ -255,3 +255,27 @@ Each test procedure shall reference or include:
 - Inspection and Test Plan hold/witness points (cross-reference DEL-29.02)
 
 **ASSUMPTION:** Supporting documentation requirements based on typical EPC project practice.
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Captures test types, applicable systems, and procedure format requirements |
+| Guidance.md | §Principles, §Considerations, §Trade-offs, §Examples | Provides engineering rationale and practical examples for implementing requirements |
+| Procedure.md | §Steps 1-8, §Verification | Defines process for developing procedures that satisfy these requirements |
+
+**Requirement-to-Guidance Traceability:**
+- FR-1 (Procedure Content) → Guidance §Principles (Testing Philosophy), Procedure Step 2
+- FR-2 (Test Coverage) → Guidance §Project-Specific Context (Objectives Alignment)
+- FR-3 (Hold/Witness Points) → Guidance §Considerations Item 4, Procedure Step 3
+- PR-1 to PR-3 → Guidance §Discipline-Specific Principles, §Examples
+- IR-1 to IR-3 → Guidance §Considerations Items 1, 5
+- QR-1 to QR-3 → Procedure Steps 4-7, §Verification
+
+**Requirement-to-Procedure Traceability:**
+- FR-1 verification → Procedure V-1 (Completeness Check)
+- PR-1 to PR-3 verification → Procedure V-2 (Technical Accuracy Check)
+- QR-2 verification → Procedure V-3 (Safety Adequacy Check)
+- QR-1 verification → Procedure Steps 5-7 (Review/Approval)

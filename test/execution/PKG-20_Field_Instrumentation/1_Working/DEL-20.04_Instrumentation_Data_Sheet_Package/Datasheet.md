@@ -157,3 +157,19 @@ Each instrument data sheet contains:
 Supports **OBJ-1: Safe & Reliable Operation** — Data sheets ensure specified and procured instruments are suitable for safe and reliable facility operations.
 
 **Source:** Decomposition Section 6 (line 780)
+
+## Cross-Document Traceability
+
+This Datasheet provides factual identification, attributes, conditions, and references for DEL-20.04. The following documents provide complementary information:
+
+| Document | Purpose | Key Linkages |
+|----------|---------|--------------|
+| Specification.md | Requirements and verification criteria | FR-1 to FR-4 define functional requirements; QR-1 to QR-3 define quality requirements |
+| Guidance.md | Engineering rationale and decision context | Principles 1-3 explain data sheet lifecycle; Trade-off addresses standardization |
+| Procedure.md | Production workflow and verification steps | Steps 1-5 define three-phase lifecycle (design, procurement, as-built) |
+
+**Document Consistency Verification:**
+
+- All data sheet types in Datasheet Attributes § appear in Specification Documentation and Procedure Records
+- Related deliverables in Datasheet References § appear in Specification INT requirements and Procedure Prerequisites
+- Data sheet purpose and usage in Datasheet Conditions § align with Guidance Principles and Procedure Steps

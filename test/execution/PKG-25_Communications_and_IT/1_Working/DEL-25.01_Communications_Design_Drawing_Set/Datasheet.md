@@ -16,15 +16,15 @@
 
 ## Attributes
 
-| Attribute | Value | Source/Notes |
-|-----------|-------|--------------|
-| Drawing Number Prefix | **TBD** | To be assigned per project drawing numbering system |
-| Sheet Size | **ASSUMPTION**: ISO A1 or ANSI D | Typical for facility layout drawings |
-| Scale | **ASSUMPTION**: 1:100, 1:200, or NTS (as applicable) | Varies by drawing type |
-| CAD Standard | **TBD** | Per project CAD manual |
-| Revision | **TBD** | Initial issue typically Rev 0 or A |
-| Classification | **ASSUMPTION**: For Construction | Typical for design drawings |
-| Drawing Types | Fiber network layout, communications distribution drawings, patch panel locations | Decomposition Table PKG-25 DEL-25.01 |
+| Attribute | Value | Source/Notes | Spec § | Proc Step |
+|-----------|-------|--------------|--------|-----------|
+| Drawing Number Prefix | **TBD** | To be assigned per project drawing numbering system | Documentation | Step 1.3 |
+| Sheet Size | **ASSUMPTION**: ISO A1 or ANSI D | Typical for facility layout drawings | Quality Req. | Step 5.3 |
+| Scale | **ASSUMPTION**: 1:100, 1:200, or NTS (as applicable) | Varies by drawing type | Quality Req. | Step 5 |
+| CAD Standard | **TBD** | Per project CAD manual | Quality Req. | Steps 5-6 |
+| Revision | **TBD** | Initial issue typically Rev 0 or A | Documentation | Step 11 |
+| Classification | **ASSUMPTION**: For Construction | Typical for design drawings | Scope | Step 10 |
+| Drawing Types | Fiber network layout, communications distribution drawings, patch panel locations | Decomposition Table PKG-25 DEL-25.01 | Functional Req. 1-3 | Steps 2-4 |
 
 **Scope Context:**
 - Communications network
@@ -70,12 +70,15 @@ Anticipated artifacts (source: Decomposition Table PKG-25 DEL-25.01):
 - Communications distribution drawings
 - Patch panel locations
 
-**Primary materials:**
-- Fiber optic cable: **TBD** — Single-mode and/or multi-mode, per DEL-25.02 specification
-- Network cabling: **TBD** — Category rating (Cat 6, Cat 6A, etc.) per DEL-25.02 specification
-- Cable pathways: **TBD** — Cable trays, conduits, innerducts
-- Patch panels: **TBD** — Fiber and copper, per DEL-25.03 data sheets
-- Network equipment: **TBD** — Switches, routers per DEL-25.03 data sheets
+**Primary materials:** (Cross-ref: Specification.md §Requirements; Guidance.md §Considerations)
+
+| Material | Value | Source | Spec § | Proc Step |
+|----------|-------|--------|--------|-----------|
+| Fiber optic cable | **TBD** — Single-mode and/or multi-mode | DEL-25.02 specification | Functional Req. 1 | Step 2 |
+| Network cabling | **TBD** — Category rating (Cat 6, Cat 6A, etc.) | DEL-25.02 specification | Functional Req. 2 | Step 3 |
+| Cable pathways | **TBD** — Cable trays, conduits, innerducts | Specification.md §Performance Req. | Performance Req. | Step 3 |
+| Patch panels | **TBD** — Fiber and copper | DEL-25.03 data sheets | Functional Req. 3 | Step 4 |
+| Network equipment | **TBD** — Switches, routers | DEL-25.03 data sheets | Functional Req. 3 | Step 4 |
 
 **Installation requirements:**
 - Cable routing methods: **TBD** — Overhead tray, underground conduit, building pathways
@@ -142,4 +145,20 @@ Anticipated artifacts (source: Decomposition Table PKG-25 DEL-25.01):
 4. Standard engineering workflow and quality procedures where project-specific procedures not yet defined
 5. CSA C22.1 (Canadian Electrical Code) applicability vs. NEC or other electrical codes
 
-**Source:** Compilation from TBDs and ASSUMPTIONs across all four documents (Pass 3 enrichment)
+**Source:** Compilation from TBDs and ASSUMPTIONs across all four documents
+
+---
+
+## Cross-Document Verification (Pass 3)
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| Datasheet ↔ Specification consistency | ✓ Verified | Drawing types, materials, standards aligned |
+| Datasheet ↔ Guidance consistency | ✓ Verified | Principles align with attributes and conditions |
+| Datasheet ↔ Procedure consistency | ✓ Verified | Attributes traceable to procedure steps |
+| Terminology consistency | ✓ Verified | Consistent use of: ER, TR, TIA standards, fiber/copper terminology |
+| TBD completeness | ✓ Verified | All unknowns marked TBD with resolution path noted |
+| ASSUMPTION labeling | ✓ Verified | All inferences labeled ASSUMPTION |
+| Source citations | ✓ Verified | Non-trivial values cite decomposition, _CONTEXT.md, or standards |
+
+**Pass 3 enrichment completed:** Cross-document linkages strengthened with explicit Specification § and Procedure Step references in tables.

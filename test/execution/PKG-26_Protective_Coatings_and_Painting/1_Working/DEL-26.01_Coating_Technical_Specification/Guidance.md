@@ -19,6 +19,11 @@ This guidance document supports the development and implementation of the **Coat
 - **OBJ-9:** Lifecycle Cost Optimization — Coating selection must balance initial material/application costs with long-term durability, maintenance frequency, and service life
 - **Source:** Decomposition Section 6 (Objective-to-Deliverable Mapping)
 
+**Cross-document linkages:**
+- **Datasheet.md:** Coating attributes and construction details — See §Attributes, §Construction
+- **Specification.md:** Requirements derived from this guidance — See §FR-1 through §QR-3
+- **Procedure.md:** Production steps implementing this guidance — See §Steps
+
 ## Principles
 
 ### Engineering Rationale
@@ -39,6 +44,8 @@ The facility presents multiple corrosive environments requiring different coatin
    - Tertiary concern: Durability under thermal cycling (if applicable)
    - **Typical solution:** Epoxy phenolic or FDA-compliant epoxy linings
    - **Source:** **ASSUMPTION** — Industry practice for food-grade storage — **location TBD**
+   - **Specification linkage:** FR-1 (Product Compatibility), PR-1 (Food Contact Compliance)
+   - **Datasheet linkage:** §Tank Coatings (Internal)
 
 2. **Atmospheric Exposure (Marine/Industrial):**
    - Primary concern: Atmospheric corrosion in coastal marine environment
@@ -46,12 +53,16 @@ The facility presents multiple corrosive environments requiring different coatin
    - ISO 12944 corrosivity category likely C4 (High) or C5 (Very High)
    - **Typical solution:** Multi-coat systems (zinc-rich primer + epoxy intermediate + polyurethane topcoat)
    - **Source:** ISO 12944-2 (classification of environments); **ASSUMPTION** on site corrosivity
+   - **Specification linkage:** FR-2 (Corrosion Protection), PR-2 (Corrosion Performance)
+   - **Datasheet linkage:** §Conditions (Environmental), §Tank Coatings (External), §Structural Steel Coatings
 
 3. **Marine Immersion/Splash:**
    - Primary concern: Accelerated corrosion in immersion and splash zones
    - Requires high-build, abrasion-resistant systems
    - **Typical solution:** Specialized marine coatings per NACE/SSPC standards
    - **Source:** **ASSUMPTION** — Marine coating practice
+   - **Specification linkage:** FR-2 (Corrosion Protection), IR-3 (Marine Interface)
+   - **Datasheet linkage:** §Marine Coatings
 
 ### Applicable Standards Context
 
@@ -320,4 +331,42 @@ Per Decomposition DEL-26.01, this deliverable shall produce:
 
 **Source:** Decomposition DEL-26.01 anticipated artifacts
 
-These specifications shall be formatted per project document standards and reviewed/approved per project quality procedures (DEL-26.02 Procedure document).
+These specifications shall be formatted per project document standards and reviewed/approved per project quality procedures (Procedure.md §Step 6).
+
+---
+
+## Conflict Table (for human ruling)
+
+**Status:** No unresolved conflicts identified during Pass 3 enrichment.
+
+| Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
+|-------------|----------|----------|----------|-------------------|-------------------|--------------|
+| — | No conflicts detected | — | — | — | — | — |
+
+**Note:** If conflicts are identified during future design development or review cycles, record them in this table for human resolution before proceeding. Conflicts may arise from:
+- Inconsistencies between ER requirements and industry standards
+- Interface coordination gaps between PKG-26 and other packages
+- Competing performance vs. cost requirements per OBJ-9
+
+---
+
+## Cross-Document Verification Summary
+
+| Guidance Section | Specification § | Datasheet § | Procedure § |
+|------------------|-----------------|-------------|-------------|
+| Purpose (Objectives) | Scope (Objectives) | Attributes, Project Objectives | — |
+| Principles (Tank Internals) | FR-1, PR-1 | Tank Coatings (Internal) | Step 2.2 |
+| Principles (Atmospheric) | FR-2, PR-2 | Conditions, Tank External, Structural | Step 1.2 |
+| Principles (Marine) | FR-2, IR-3 | Marine Coatings | Step 2.4 |
+| Principles (ISO 12944) | Standards | References | Step 1.3 |
+| Principles (Food Contact) | PR-1, Standards | Tank Internal | Step 1.5 |
+| Considerations (Corrosivity) | FR-2, PR-2 | Conditions | Step 1.2 |
+| Considerations (Surface Prep) | PR-5 | Construction | Step 2 |
+| Considerations (Application) | PR-6 | Field Painting | Step 2 |
+| Considerations (Inspection) | QR-1 | — | Step 2 |
+| Considerations (Food-Grade) | PR-1 | Tank Internal | Step 1.5 |
+| Considerations (Shop vs. Field) | IR-2 | Structural Steel | Step 2.3 |
+| Trade-offs (All) | FR-3, IR-2 | Design Requirements | Steps 2–4 |
+| Examples (All) | PR-4 | Construction | Step 2 |
+
+**Verification status:** Pass 3 complete — Cross-document section references verified and consistent.

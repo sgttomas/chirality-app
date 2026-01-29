@@ -115,3 +115,28 @@ Photographs: SAT-PKG11-001 through 025
 | Conflict ID | Conflict | Source A | Source B | Impacted Sections | Proposed Authority | Human Ruling |
 |-------------|----------|----------|----------|-------------------|-------------------|--------------|
 | — | — | — | — | — | — | **TBD** |
+
+---
+
+## Cross-Document Linkage
+
+| Document | Key Sections | Relationship |
+|----------|--------------|--------------|
+| Datasheet.md | §Attributes, §Construction | Provides factual context for system types and SAT content |
+| Specification.md | §Requirements (FR, PR, IR, QR), §Standards, §Verification | Defines normative requirements that this Guidance supports |
+| Procedure.md | §Steps 1-6 | Implements this Guidance through specific SAT management steps |
+
+**Guidance-to-Specification Traceability:**
+- §Principles (SAT Philosophy) → Supports Specification FR-2 (Scope)
+- §Principles (SAT vs. Commissioning) → Supports Specification IR-2 (PKG-30 interface)
+- §Considerations Item 1 (Timing) → Supports Specification FR-1 (Prerequisites)
+- §Considerations Item 2 (Procedure Development) → Supports Specification QR-1
+- §Considerations Item 4 (Operations Training) → Supports Specification PR-2 (Witness)
+- §Trade-offs → Informs engineering decisions for Specification requirements
+
+**Guidance-to-Procedure Traceability:**
+- §Considerations Item 1 (Timing) → Procedure Step 1 (Prerequisites)
+- §Considerations Item 2 (Procedure Development) → Procedure Step 2
+- §Considerations Item 3 (Simulation vs. Actual) → Procedure Step 4
+- §Considerations Item 4 (Operations Training) → Procedure Step 3
+- §Examples (SAT Report) → Procedure Steps 4, 6

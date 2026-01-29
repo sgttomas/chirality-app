@@ -511,3 +511,15 @@ This guidance document supports the development of **HAZOP Study Reports** for *
 - **Source:** Specification.md (QR-2); **ASSUMPTION**: Documentation best practice per ISO 9001
 
 **Source for Examples section:** **ASSUMPTION**: Typical HAZOP node analysis, hazardous area classification, and action item register examples for canola oil transload facility; illustrative of methodology and structure
+
+---
+
+**Cross-Document Verification (Pass 3):**
+- All Principles linked to Specification § requirements and Procedure Steps
+- All Considerations linked to Specification § requirements and Procedure Steps
+- All Trade-offs linked to relevant Principles and Specification §
+- All Examples linked to Specification § and Procedure Steps
+- Terminology verified consistent with Datasheet.md, Specification.md, Procedure.md
+- Project parameters verified consistent: 1,000,000 MT/annum, 45,000 MT storage / 3 × 15,000 MT tanks, 32 railcar stations
+- Cross-references to DEL-27.01, DEL-27.04, DEL-28.01, PKG-10 through PKG-26 verified consistent across all documents
+- HAZOP methodology (IEC 61882), risk ranking (ISO 31000), hazardous area classification (CEC, API RP 505, IEC 60079) verified consistent
