@@ -1,0 +1,12 @@
+WBS_PackageID,WBS_DeliverableID,Deliverable_Name,CBS_E,CBS_PM,CBS_P,CBS_MAT,CBS_CD,CBS_CI,CBS_COM,Total_Base,Notes
+PKG-22,DEL-22.01,Building MEP Design Drawing Set,48000,,,295000,195000,,,538000,HVAC layout; plumbing layout; electrical layout; fire suppression layout
+PKG-22,DEL-22.02,Building MEP Technical Specification,28000,,,90000,125000,,,243000,HVAC spec; plumbing spec; fire suppression spec
+PKG-22,DEL-22.03,Building MEP Design Calculations,22000,,,110000,115000,,,247000,HVAC loads; plumbing sizing; fire sprinkler hydraulics
+PKG-22,DEL-22.04,Building MEP Data Sheet Package,10000,,,95000,105000,,,210000,HVAC data sheet; fire suppression data sheet
+PKG-22,DEL-22.05,Building MEP Installation and Test Records,,,,,,Included in CI/COM,,Included,QA/QC records; testing records (captured in CI and COM buckets)
+PKG-22,DEL-22.06,Building MEP Shop Design Drawing Set review,16000,,,85000,92000,,,193000,Shop drawing review; finishes installation
+PKG-22,N/A,Construction Indirects,,,,,,114000,,114000,Site supervision; QA/QC; HSE; temp facilities; CM
+PKG-22,N/A,Procurement Services,,,14000,,,,14000,Vendor coordination; expediting; receiving
+PKG-22,N/A,EPCM/Project Management,,85000,,,,,85000,PM; engineering management; schedule/cost control
+PKG-22,N/A,Commissioning,,,,,,,43000,43000,HVAC TAB; plumbing/fire testing; functional performance testing
+PKG-22,TOTAL,Package Total,124000,85000,14000,675000,632000,114000,43000,1687000,Total base estimate before contingency

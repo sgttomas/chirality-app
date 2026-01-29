@@ -1,0 +1,28 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-02,DEL-02.01,Earthworks Design Drawing Set - CAD drafting (grading plans cut/fill plans ground improvement sections),1,LS,25000,25000,CAD,ALLOWANCE,A-001,LOW,~8-10 sheets at $3k/sheet average
+L002,E,PKG-02,DEL-02.02,Earthworks Technical Specification - specification writing (earthworks ground improvement geotextile specs),1,LS,8000,8000,CAD,ALLOWANCE,A-002,LOW,~50 hours at $150/hr
+L003,E,PKG-02,DEL-02.03,Earthworks Design Calculations - cut/fill calculations bearing capacity settlement analysis,1,LS,12000,12000,CAD,ALLOWANCE,A-003,LOW,~70 hours at $175/hr
+L004,E,PKG-02,DEL-02.04,Geotechnical Investigation - field drilling program (15-20 boreholes 15-25m deep),1,LS,100000,100000,CAD,ALLOWANCE,A-004,LOW,Drilling mobilization boreholes sampling monitoring wells
+L005,E,PKG-02,DEL-02.04,Geotechnical Laboratory Testing - soil classification strength compaction tests,1,LS,25000,25000,CAD,ALLOWANCE,A-005,LOW,Full lab program for design parameters
+L006,E,PKG-02,DEL-02.04,Geotechnical Reporting - investigation report and ground improvement design,1,LS,18000,18000,CAD,ALLOWANCE,A-006,LOW,~100 hours engineering time
+L007,E,PKG-02,DEL-02.05,Topographic Survey - site survey including utility locates (~7 ha),1,LS,55000,55000,CAD,ALLOWANCE,A-007,LOW,Survey and CAD deliverables
+L008,E,PKG-02,DEL-02.06,Earthworks QA/QC Records Compilation - test records documentation,1,LS,12000,12000,CAD,ALLOWANCE,A-009,LOW,~120 hours record compilation
+L009,E,PKG-02,DEL-02.07,Excavation & Fill Placement Method Statement - procedure development,1,LS,6000,6000,CAD,ALLOWANCE,A-010,LOW,~40 hours at $140/hr
+L010,E,PKG-02,DEL-02.08,Sampling & Testing Program Development,1,LS,4000,4000,CAD,ALLOWANCE,A-011,LOW,~30 hours
+L011,E,PKG-02,DEL-02.09,Compaction Verification Plan Development,1,LS,3500,3500,CAD,ALLOWANCE,A-012,LOW,~25 hours
+L012,CD,PKG-02,N/A,Site Stripping & Grubbing - topsoil removal vegetation clearing (~5 ha),1,LS,75000,75000,CAD,ALLOWANCE,A-013,LOW,$15k/ha × 5 ha
+L013,CD,PKG-02,N/A,Excavation - cut to design grades (~15000 m³),1,LS,180000,180000,CAD,ALLOWANCE,A-014,LOW,$12/m³ × 15000 m³
+L014,MAT,PKG-02,N/A,Imported Structural Fill Material - supply of engineered fill (~25000 m³),1,LS,375000,375000,CAD,ALLOWANCE,A-015,LOW,$15/m³ × 25000 m³ material only
+L015,CD,PKG-02,N/A,Fill Placement & Compaction - place and compact in lifts (~25000 m³),1,LS,250000,250000,CAD,ALLOWANCE,A-015,LOW,$10/m³ placement and compaction labor
+L016,MAT,PKG-02,N/A,Ground Improvement Materials - stone columns/aggregate (~30000 m²),1,LS,600000,600000,CAD,ALLOWANCE,A-016,LOW,$20/m² material component
+L017,CD,PKG-02,N/A,Ground Improvement Installation - vibro-compaction/stone columns (~30000 m²),1,LS,900000,900000,CAD,ALLOWANCE,A-017,LOW,$30/m² installation
+L018,CD,PKG-02,N/A,Compaction Testing - nuclear density/sand cone tests (~50 tests),1,LS,25000,25000,CAD,ALLOWANCE,A-018,LOW,Testing during fill placement
+L019,CD,PKG-02,N/A,Proof Rolling - verification of structural areas,1,LS,15000,15000,CAD,ALLOWANCE,A-019,LOW,Proof roll with loaded truck
+L020,CD,PKG-02,N/A,Dewatering - temporary dewatering for excavations,1,LS,50000,50000,CAD,ALLOWANCE,A-021,LOW,Pumping and disposal allowance
+L021,MAT,PKG-02,N/A,Geotextile Separation Layer - fabric under fill areas (~20000 m²),1,LS,160000,160000,CAD,ALLOWANCE,A-022,LOW,$8/m² installed
+L022,CD,PKG-02,N/A,Fine Grading - final grade preparation for pavements/structures,1,LS,45000,45000,CAD,ALLOWANCE,D-012,LOW,~5 ha at $9k/ha
+L023,CD,PKG-02,N/A,Erosion & Sediment Control - temporary measures during construction,1,LS,35000,35000,CAD,ALLOWANCE,D-012,LOW,Silt fence sediment traps
+L024,CI,PKG-02,N/A,Construction Indirects - field supervision site overhead QA/QC (factor-based),1,LS,279000,279000,CAD,PARAMETRIC,D-009,LOW,18% of CD base ($1.55M × 0.18)
+L025,PM,PKG-02,N/A,EPCM / Project Management - PKG-02 allocation (factor-based),1,LS,176000,176000,CAD,PARAMETRIC,D-009,MED,6% of (CD+CI+MAT) base
+L026,P,PKG-02,N/A,Procurement Services - vendor coordination expediting (factor-based),1,LS,23000,23000,CAD,PARAMETRIC,D-009,MED,2% of MAT ($1.135M × 0.02)
+L027,COM,PKG-02,N/A,Testing & Verification - final verification testing reporting,1,LS,88000,88000,CAD,PARAMETRIC,D-009,LOW,3% of (CD+CI+MAT) base

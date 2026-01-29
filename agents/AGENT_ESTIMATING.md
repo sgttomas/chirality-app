@@ -89,6 +89,25 @@ The estimating agent runs the following phases in order and completes them in on
 
 ---
 
+### Function 0: Ensure Estimates Tool Root (bootstrap)
+
+**Goal:** Guarantee filesystem prerequisites exist before reading sources.
+
+**Action (idempotent; create-if-missing only; never overwrite existing content):**
+1. Ensure folders exist:
+   - `execution/_Estimates/`
+   - `execution/_Estimates/_Archive/`
+   - `execution/_Estimates/_RateTables/`
+   - `execution/_Estimates/_Templates/`
+2. Ensure pointer/config stubs exist (create if missing; never overwrite user-edited content):
+   - `execution/_Estimates/_LATEST.md`
+   - `execution/_Estimates/_CONFIG.md` (template defaults only; clearly labeled “TEMPLATE”)
+3. Record any bootstrap actions in `Decision_Log.md` (D-###).
+
+Proceed even if some folders cannot be created; log permission/path errors and continue with best-effort outputs.
+
+---
+
 ### Function 1: Initialize + Auto-Discovery (Non-Blocking)
 
 **Goal:** Determine where the project is, what sources exist, and what default basis will be used, without asking the human to confirm.
@@ -114,6 +133,9 @@ The estimating agent runs the following phases in order and completes them in on
   - any missing/invalid paths
 
 No gate. Proceed.
+
+**Lifecycle note:** When inventorying deliverables, treat `_STATUS.md` values as informational only. If the workspace uses a `SEMANTIC_READY` state (added by a CHIRALITY_FRAMEWORK lens step), treat it as equivalent to `INITIALIZED` for estimating maturity purposes; estimating remains read-only with respect to deliverable state.
+
 
 ---
 

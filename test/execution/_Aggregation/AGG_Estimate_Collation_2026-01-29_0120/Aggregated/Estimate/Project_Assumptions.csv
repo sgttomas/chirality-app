@@ -1,0 +1,25 @@
+AssumptionUID,FromPackageID,FromDeliverableID,AssumptionID,Description,ImpactedCBS,CostImpact_CAD,RangeLow_CAD,RangeHigh_CAD,Confidence,ResolutionPath
+PKG-00::A-001,PKG-00,DEL-00.01,A-001,Site Establishment Design Drawing Set allowance $12000 CAD,E,12000,8000,16000,LOW,Obtain budgetary quote from CAD drafting service or establish engineering rate
+PKG-00::A-002,PKG-00,DEL-00.02,A-002,Site Establishment Technical Specification allowance $10000 CAD,E,10000,6000,14000,LOW,Obtain budgetary quote from specification writing service or establish engineering rate
+PKG-00::A-003,PKG-00,DEL-00.03,A-003,Site Establishment Procedures allowance $9000 CAD,PM,9000,6000,12000,LOW,Establish PM labor rates and hours for procedure development
+PKG-00::A-004,PKG-00,DEL-00.04,A-004,Equipment Schedule allowance $5000 CAD,PM,5000,3000,7000,LOW,Establish project controls labor rates and hours
+PKG-00::A-005,PKG-00,DEL-00.05,A-005,Road Access & Security Planning allowance $8000 CAD,PM,8000,5000,11000,LOW,Obtain quote from security consultant or establish labor rates
+PKG-00::A-006,PKG-00,DEL-00.06,A-006,Pre-Works Road Survey allowance $15000 CAD,E,15000,10000,20000,LOW,Obtain budgetary quote from surveying firm
+PKG-00::A-007,PKG-00,DEL-00.07,A-007,Post-Works Road Survey allowance $18000 CAD,E,18000,12000,24000,LOW,Obtain budgetary quote from surveying firm
+PKG-00::A-008,PKG-00,DEL-00.07,A-008,Road Restoration allowance $25000 CAD,CD,25000,10000,50000,LOW,Conduct pre-works survey to establish baseline
+PKG-00::A-009,PKG-00,DEL-00.08,A-009,Temporary Water Supply Design allowance $10000 CAD,E,10000,7000,13000,LOW,Establish engineering labor rates for utility design
+PKG-00::A-010,PKG-00,DEL-00.08,A-010,Temporary Water Supply Installation allowance $45000 CAD,MAT+CD,45000,30000,65000,LOW,Obtain site layout and vendor quotes for materials
+PKG-00::A-011,PKG-00,DEL-00.05,A-011,Security Gate Installation allowance $75000 CAD,CD,75000,50000,100000,LOW,Obtain vendor quotes for access control systems
+PKG-00::A-012,PKG-00,N/A,A-012,Temporary Site Facilities & Infrastructure allowance $850000 CAD,MAT+CD,850000,600000,1200000,LOW,Obtain Employer Requirements and vendor quotes
+PKG-00::A-013,PKG-00,N/A,A-013,Security Gate Staffing allowance $180000 CAD,CI,180000,120000,240000,LOW,Clarify gate operating hours and construction duration
+PKG-01::A-101,PKG-01,DEL-01.01,A-101,Demolition Design Drawing Set allowance $18000 CAD,E,18000,12000,25000,LOW,Obtain CAD drafting services quote or rate table
+PKG-01::A-102,PKG-01,DEL-01.02,A-102,Demolition Technical Specification allowance $15000 CAD,E,15000,10000,20000,LOW,Obtain engineering services quote or rate table
+PKG-01::A-103,PKG-01,DEL-01.03,A-103,Demolition Procedures allowance $25000 CAD (5 procedures),PM,25000,15000,35000,LOW,Obtain HSE services quote or rate table
+PKG-01::A-104,PKG-01,DEL-01.04,A-104,Demolition Records QA/QC allowance $8000 CAD,E,8000,5000,12000,LOW,Obtain QA/QC services quote or rate table
+PKG-01::A-105,PKG-01,N/A,A-105,Track 6 Rail Demolition allowance $175000 CAD,CD,175000,100000,300000,LOW,Obtain Track 6 as-built drawings and contractor quote
+PKG-01::A-106,PKG-01,N/A,A-106,Dolphin 2 Marine Demolition allowance $450000 CAD,CD,450000,250000,750000,LOW,Obtain Dolphin 2 as-built drawings and marine contractor quote
+PKG-01::A-107,PKG-01,N/A,A-107,Fencing Removal allowance $35000 CAD,CD,35000,15000,50000,LOW,Obtain site survey and removal quote
+PKG-01::A-108,PKG-01,N/A,A-108,Salt Tent Dismantling allowance $125000 CAD,CD,125000,50000,200000,LOW,Obtain building survey and demolition contractor quote
+PKG-01::A-109,PKG-01,N/A,A-109,Demolition Materials and Temporary Works allowance $40000 CAD,MAT,40000,20000,60000,LOW,Develop demolition plan and obtain material quotes
+PKG-01::A-110,PKG-01,N/A,A-110,Hazardous Materials Contingency Placeholder $75000 CAD,CD,75000,0,250000,LOW,Complete hazmat survey and obtain abatement quote if needed
+PKG-01::A-111,PKG-01,N/A,A-111,Waste Disposal and Hauling allowance $95000 CAD,CD,95000,50000,150000,LOW,Estimate material volumes and obtain disposal facility quotes

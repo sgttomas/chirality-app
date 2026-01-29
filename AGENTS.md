@@ -2,11 +2,18 @@
 
 This file is the operator-facing index and “rules of the road” for using the agents shipped with this repository.
 
-If you’re new, start with **CHIRALITY-APP** (the human guidance agent). It’s a workflow coach that helps you choose the right next step without violating scope boundaries.
+If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md (the human guidance agent). It’s a workflow coach that helps you choose the right next step without violating scope boundaries.
 
 ---
 
 ## 1) The core model (the rules that keep the system coherent)
+
+### Project Decomposition
+- A project that lacks structure cannot be effectively worked on by agents.  
+- Project decomposition is what initiates all other agentic workflows.
+- The project decomposition file is located here:
+
+`/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`
 
 ### Filesystem is the state
 - Project “truth” is what is on disk: folders + `_STATUS.md` + the four documents.
@@ -19,9 +26,10 @@ If you’re new, start with **CHIRALITY-APP** (the human guidance agent). It’s
 ### Local lifecycle (not stage gates)
 Deliverables progress through a local lifecycle:
 
-`OPEN → INITIALIZED → IN_PROGRESS → CHECKING → ISSUED`
+`OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED`
 
 - **Stage gates** (30/60/90/IFC, etc.) are *human-managed* milestones and are **not** lifecycle states.
+- **SEMANTIC_READY** indicates `_SEMANTIC.md` exists (semantic lens). If the lens step is skipped, deliverables may move from `INITIALIZED → IN_PROGRESS` directly.
 - `_STATUS.md` is the authoritative lifecycle indicator.
 
 ### Coordination representation vs dependency tracking mode
@@ -34,9 +42,10 @@ Rules of thumb:
 - If `DECLARED`, only declared interface-critical edges may be used for advisory blocker reporting.
 - If `FULL_GRAPH`, the graph is intended to be complete and acyclic (DAG).
 
-### Cross-deliverable coherence is optional and human-triggered
-- The only sanctioned cross-deliverable coherence mechanism is **RECONCILIATION**.
-- RECONCILIATION is invoked by humans with explicit scope and a gate label; it is read-only.
+### Cross-deliverable operations are opt-in and human-triggered
+- **RECONCILIATION**: coherence checks across a human-defined scope (read-only deliverables) → writes under `execution/_Reconciliation/`.
+- **AGGREGATION**: synthesis/collection across a human-defined scope (read-only inputs by default) → writes under `execution/_Aggregation/`.
+- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only deliverables) → writes under `execution/_Estimates/`.
 
 ---
 
@@ -54,33 +63,51 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md`
 - **What it does:** Ingests the decomposition; records coordination representation + dependency mode; spawns bounded sub-agents; scans/reports status.
 - **What it does not do:** Produce engineering content; assign work; decide stage gates or sequencing.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_ORCHESTRATOR_REVISED_v3.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ORCHESTRATOR.md`
 
 ### PREPARATION (Scaffolding)
 - **What it does:** Creates package/deliverable folders and writes the minimum viable fileset (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`) idempotently.
 - **What it does not do:** Write engineering requirements/specs; infer dependencies.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_PREPARATION_REVISED_v3.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PREPARATION.md`
 
 ### 4_DOCUMENTS (Initialize drafts)
 - **What it does:** Generates initial drafts of `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` for one deliverable.
 - **Status rule:** May set `_STATUS.md` from `OPEN → INITIALIZED` **only if the current state is `OPEN`** (no regression).
 - **Epistemic rule:** No invention; cite what you can; otherwise mark TBD / ASSUMPTION.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_4_DOCUMENTS_REVISED_v3.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_4_DOCUMENTS.md`
+
+### CHIRALITY_FRAMEWORK (Semantic Lens / Matrices)
+- **What it does:** Generates deliverable-specific semantic matrices after drafts exist; writes/overwrites `_SEMANTIC.md`; may advance `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only when current state is `INITIALIZED`).
+- **What it does not do:** Invent requirements/parameters; modify the four documents; enforce the matrices as constraints (they are a lens, not authority).
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY_FRAMEWORK.md`
 
 ### WORKING_ITEMS (Human-in-the-loop production)
 - **What it does:** Runs a working session for **one** deliverable folder to iteratively produce a coherent set of all four documents.
 - **Core rule:** The human engineer is the validator / halting condition.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_WORKING_ITEMS_REVISED_v3.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`
 
 ### RECONCILIATION (Cross-deliverable coherence checks)
 - **What it does:** Read-only scan across a human-defined scope to find terminology/parameter/assumption/interface mismatches; outputs a reconciliation report + conflict table.
 - **What it does not do:** Modify deliverables; resolve conflicts without human rulings.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/AGENT_RECONCILIATION.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_RECONCILIATION.md`
 
+
+### AGGREGATION (Project-level synthesis across files)
+- **What it does:** Aggregates across any human-defined scope (deliverables, packages, tool roots) and writes a timestamped snapshot under `execution/_Aggregation/` (does not edit inputs).
+- **What it does not do:** Modify source files; silently expand scope; overwrite prior snapshots (except `_LATEST.md` pointer).
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_AGGREGATION.md`
+
+### ESTIMATING (Project cost estimate snapshots)
+- **What it does:** Produces an estimate snapshot under `execution/_Estimates/` including `Detail.csv` line items with **Qty, Unit, UnitRate**, plus Summary and `BOE.md` (Basis of Estimate).
+- **What it does not do:** Edit deliverable folders; produce binding quotes; require mid-run human decisions (it can log decisions and proceed).
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
 ---
 
 ## 3) Who is allowed to write what (important)
@@ -88,11 +115,14 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDL
 | Agent | Writes files? | Allowed writes (high level) |
 |---|---:|---|
 | CHIRALITY-APP | No (by default) | Optional coaching note *only if explicitly requested by human* |
-| ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; reconciliation outputs folder; *spawns other agents for deliverable work* |
-| PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md` |
+| ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; scans/reports; *spawns other agents for deliverable and tool-root work* |
+| PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md`; may scaffold tool roots like `test/execution/_Aggregation/` (create-if-missing) |
 | 4_DOCUMENTS | Yes | Four docs; `_STATUS.md` update `OPEN→INITIALIZED` only if currently `OPEN` |
+| CHIRALITY_FRAMEWORK | Yes | Writes/overwrites `_SEMANTIC.md`; may update `_STATUS.md` `INITIALIZED→SEMANTIC_READY` only if currently `INITIALIZED` |
 | WORKING_ITEMS | Yes (human-directed) | Updates four docs; may update `_STATUS.md` when the human decides |
 | RECONCILIATION | Yes | Writes a report under `test/execution/_Reconciliation/` only (read-only deliverables) |
+| AGGREGATION | Yes | Writes snapshots under `test/execution/_Aggregation/` only (read-only inputs by default) |
+| ESTIMATING | Yes | Writes snapshots under `test/execution/_Estimates/` only (read-only deliverables) |
 
 ---
 
@@ -131,15 +161,15 @@ Use ORCHESTRATOR with the decomposition file path and explicitly confirm coordin
 **Prompt template:**
 - "Run ORCHESTRATOR Function 1 (Initialize) using `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`. I want coordination representation = Schedule-first, dependency mode = NOT_TRACKED. Summarize what you ingest and show the gate question."
 
-### B) Scaffold + initialize drafts
+### B) Scaffold + initialize drafts (+ semantic lens)
 After initialization is confirmed:
 
 **Prompt template:**
-- “Run ORCHESTRATOR Function 2 (Scaffold), then initialize drafts with 4_DOCUMENTS for all deliverables. Report missing references.”
+- “Run ORCHESTRATOR Function 2 (Scaffold). It should scaffold folders (PREPARATION), initialize drafts (4_DOCUMENTS), and then generate semantic lenses (CHIRALITY_FRAMEWORK). Report missing references and how many deliverables reached `SEMANTIC_READY`.”
 
 ### C) Start work on one deliverable (WORKING_ITEMS)
 **Prompt template:**
-- “Start a WORKING_ITEMS session for DEL-XX.XX. Read `_CONTEXT.md`, `_REFERENCES.md`, and the deliverable entry in the decomposition. Then propose updated Datasheet/Specification/Guidance/Procedure with citations, marking TBD/ASSUMPTION as needed.”
+- “Start a WORKING_ITEMS session for DEL-XX.XX. Read `_CONTEXT.md`, `_REFERENCES.md`, `_SEMANTIC.md` (if present), and the deliverable entry in the decomposition. Then propose updated Datasheet/Specification/Guidance/Procedure with citations, marking TBD/ASSUMPTION as needed.”
 
 ### D) Scan & report status (what’s going on?)
 **Prompt template:**
@@ -149,6 +179,18 @@ After initialization is confirmed:
 **Prompt template:**
 - “Run RECONCILIATION for scope = PKG-08 and PKG-11 at gate label ‘30% Freeze’. Focus areas: interfaces, parameters, terminology, assumptions.”
 
+
+### F) Project-level aggregation (AGGREGATION)
+Use AGGREGATION when you want to synthesize across many files without editing them (reports, registers, rollups, “basis” documents, etc.).
+
+**Prompt template:**
+- “Run AGGREGATION with PURPOSE = `Project_Synthesis`. Include scope: [packages/deliverables/tool roots]. Output: a snapshot under `execution/_Aggregation/` containing an index, an assumptions/decisions log, and the requested rollups.”
+
+### G) Cost estimate snapshot (ESTIMATING)
+Use ESTIMATING when you want a budgeting estimate across a defined scope (no deliverable edits).
+
+**Prompt template:**
+- “Run ESTIMATING for scope = [packages/deliverables]. Produce a snapshot under `execution/_Estimates/` including `Detail.csv` with **Qty, Unit, UnitRate** for every line item, `Summary.md`, and `BOE.md`.”
 ---
 
 ## 6) Non-negotiable quality rules (how to avoid bad output)
@@ -156,7 +198,7 @@ After initialization is confirmed:
 - **No invention:** if it isn’t in a source, mark **TBD** or label **ASSUMPTION/PROPOSAL**.
 - **Cite sources:** every non-trivial claim, requirement, or value should be traceable to a reference.
 - **Conflict handling:** contradictions produce a **Conflict Table** and a request for a human ruling.
-- **Keep scope clean:** WORKING_ITEMS stays inside one deliverable folder. Use RECONCILIATION for cross-deliverable checks.
+- **Keep scope clean:** WORKING_ITEMS stays inside one deliverable folder. Use CHIRALITY_FRAMEWORK for semantic lens generation (`_SEMANTIC.md`), RECONCILIATION for coherence checks, and AGGREGATION/ESTIMATING for cross-scope synthesis/costing.
 - **Don’t confuse stage gates with lifecycle:** stage gates can be recorded in coordination notes, but `_STATUS.md` uses only the lifecycle states.
 
 EOF

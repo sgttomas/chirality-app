@@ -1,0 +1,18 @@
+RiskUID,FromPackageID,RiskID,RiskDriver,Probability,Impact,AffectedCBS,PotentialCostImpact_CAD,MitigationPriority
+PKG-00::R-001,PKG-00,R-001,Price,HIGH,HIGH,All,Swing ±39% on $1.26M base,HIGH
+PKG-00::R-002,PKG-00,R-002,Quantity+Scope,HIGH,HIGH,MAT/CD,Swing ±41% on $850k allowance,HIGH
+PKG-00::R-003,PKG-00,R-003,Schedule,MED,MED,CI,~$480k exposed to duration variance,MED
+PKG-00::R-004,PKG-00,R-004,Interface+Productivity,MED-HIGH,MED,CD/CI/PM,$74k-$148k productivity impact,MED
+PKG-00::R-005,PKG-00,R-005,Schedule+Interface,MED,LOW-MED,CI/PM,Potential +10% = $36k,LOW
+PKG-00::R-006,PKG-00,R-006,Scope+Quantity,HIGH,LOW-MED,CD,±100% on $25k allowance,LOW
+PKG-00::R-007,PKG-00,R-007,Scope,MED,MED-HIGH,MAT/CD/CI,$274k-$548k potential addition,HIGH
+PKG-00::R-008,PKG-00,R-008,Price,HIGH,MED,All,$86k-$215k escalation potential,MED
+PKG-01::R-101,PKG-01,R-101,Scope,HIGH,HIGH,CD,$0-$175k+ hazmat,HIGH
+PKG-01::R-102,PKG-01,R-102,Quantity,HIGH,HIGH,CD,Dolphin $250k-$750k range,HIGH
+PKG-01::R-103,PKG-01,R-103,Scope,HIGH,HIGH,CD,Ballast contamination premium,HIGH
+PKG-01::R-104,PKG-01,R-104,Execution,MED,MED,CD/CI,Weather delay costs,MED
+PKG-01::R-105,PKG-01,R-105,Interface,MED,MED,CD/CI,Terminal interference,MED
+PKG-01::R-106,PKG-01,R-106,Pricing,MED,HIGH,All,±50% variance possible,MED
+PKG-01::R-107,PKG-01,R-107,Market,MED,MED,CD,Disposal cost changes,MED
+PKG-01::R-108,PKG-01,R-108,Scope,LOW,MED,CD,Salt tent -$75k to +$75k,LOW
+PKG-01::R-109,PKG-01,R-109,Scope,LOW,LOW,E/PM,$0-$30k engineering,LOW

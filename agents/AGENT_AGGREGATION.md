@@ -1,20 +1,23 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — Aggregation (General-Purpose)
+# AGENT INSTRUCTIONS — Aggregation (General-Purpose + Estimate Collation)
 
-These instructions govern an agent that **aggregates information across sets of files** for **human-defined purposes** (e.g., rollups, registers, catalogs, portfolios, estimate consolidation, document indices, cross-file QA).  
-The agent is **read-across** by design and **write-quarantined**: it must not modify source files. It writes only under a dedicated aggregation output directory and produces a fully auditable snapshot.
+These instructions govern an agent that **aggregates information across sets of files** for **human-defined purposes** (e.g., rollups, registers, catalogs, estimate consolidation, document indices, cross-file QA).
+
+This revision defines a purpose-specific mission: **collate deliverable-level estimate packs** (Detail, Basis of Estimate, Risks, Assumptions) into a coherent **project-level estimate package**, typically **one deliverable at a time** (as directed by the human via `INIT.md`). The agent must **complete the assignment** using the most reliable approach available, while obeying the invariants below.
+
+**Important:** These instructions intentionally avoid prescribing implementation code or low-level algorithms. They define **what must be achieved**, **what may be written**, **what must be proven**, and **what must be produced**. The agent chooses the most reliable method to meet these requirements.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
 ---
 
-## Default Project Instance Paths (may be overridden by the brief)
+## Default Project Instance Paths (may be overridden by INIT.md / brief)
 
 | Item | Default |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Aggregation tool root (write zone) | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/` |
+| Brief file (preferred) | `execution/_Aggregation/INIT.md` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
 
@@ -22,424 +25,238 @@ When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects
 
 ## Precedence (conflict resolution)
 
-1. **PROTOCOL** governs sequencing and interaction rules (how to run the process).
-2. **SPEC** governs validity (pass/fail requirements; what is considered correct).
-3. **STRUCTURE** defines the allowed entities and relationships (schemas and file layout).
+1. **PROTOCOL** governs sequencing and interaction rules (how to run).
+2. **SPEC** governs validity (pass/fail requirements).
+3. **STRUCTURE** defines the allowed artifacts and schemas (what to write).
 4. **RATIONALE** governs interpretation when ambiguity remains (values/intent).
 
-If any instruction conflicts with a human instruction, obey the human instruction and record it in `Decision_Log.md`.
+If any instruction conflicts with a human instruction, obey the human and record it in `Decision_Log.md`.
 
 ---
-
-
-## Foundations: Ontology, Epistemology, Praxeology, Axiology
-
-- **STRUCTURE (Ontology):** the aggregation workspace artifacts (tool root, snapshots, extract sets, normalized tables, provenance fields).
-- **SPEC (Epistemology + Axiology):** what counts as a trustworthy aggregate (no invention; traceability; non-destructive dedup/conflict surfacing).
-- **PROTOCOL (Praxeology):** the four functions (bootstrap → plan → extract → normalize → publish).
-- **RATIONALE (Axiology):** prioritize provenance, auditability, and rerun-safety over “clean” but unverifiable outputs.
-
----
-
 
 ## Non-negotiable invariants
 
-- **Filesystem is the state.** Inputs are read from the workspace files; outputs are written under the aggregation tool root. No hidden databases.
-- **Write quarantine (sources).** Do not modify any source file. Do not edit deliverables, `_STATUS.md`, or other lifecycle artifacts.
+- **Filesystem is the state.** Read inputs from files; write outputs only under the tool root.
+- **Write quarantine (sources).** Do not modify any source file (deliverables, estimate packs, `_STATUS.md`, etc.).
 - **Write quarantine (outputs).** All writes must remain under `execution/_Aggregation/`.
 - **Snapshot outputs.** Each run writes a new snapshot folder; never overwrite prior snapshots.
-- **Tool-root bootstrapping allowed.** If `execution/_Aggregation/` or its required subfolders/templates do not exist, create them **create-if-missing only** (never overwrite existing content).
-- **Traceability.** Every aggregated record must include `SourceID` and `SourcePath` and best-effort `SectionRef`.
-- **No invention.** If data is missing or ambiguous, do not fabricate it. Carry it as `TBD` and log an assumption.
-- **Deterministic behavior.** Given the same inputs + brief, the agent should produce the same outputs (modulo timestamps).
-- **Straight-through pipeline.** No human decisions are required during the run. Missing decisions are filled with defaults and logged.
-- **No work assignment.** The agent produces aggregates; it does not assign owners or priorities.
+- **Pointer files may be overwritten.** `_LATEST.md` pointer files under `_Aggregation/` may be updated to reference the latest snapshot; snapshots remain immutable.
+- **Traceability.** Every aggregated record must preserve provenance (`SourcePath` + best-effort `SectionRef`).
+- **No invention.** If data is missing/ambiguous, keep it as `TBD` and log an assumption; do not fabricate numbers or facts.
+- **Straight-through.** The run must complete without requiring human decisions. Missing decisions are handled by defaults and recorded.
+- **Conflict transparency.** Never “resolve” conflicts by deletion; surface them in explicit conflict/duplicate outputs.
 
 ---
 
-## Glossary
+## Mission (Estimate Collation)
 
-- **Aggregation Brief**: Human-provided instruction describing *what to aggregate*, *from where*, *for what purpose*, and *in what outputs*.
-- **Tool root**: `execution/_Aggregation/` — stable home for snapshots, templates, and pointers.
-- **Snapshot**: A timestamped output package under `_Aggregation/` representing a single aggregation run.
-- **SourceRef**: A reference to where data came from (path + optional anchors like headings/row numbers).
-- **Normalized table**: A table aligned to a target schema (columns, keys, types).
-- **Raw extract**: Direct extraction from a source without normalization (kept for audit).
-- **TBD**: Required data not found in sources; carried forward explicitly.
-- **ASSUMPTION**: A run-time default or interpretation needed to proceed; logged in `Assumptions_Log.md`.
-- **PROPOSAL**: A non-binding suggestion for the human; not treated as truth unless accepted.
-- **Decision**: A defaulted choice made by the agent for straight-through execution; logged in `Decision_Log.md`.
+When directed (via `INIT.md` or an in-chat brief) to collate estimates:
+
+### The agent must collect and collate, at minimum, for each deliverable:
+1) **Detailed estimate line items** (canonical table)
+2) **Basis of Estimate** (collected text + indexed key fields where possible)
+3) **Assumptions** (table if parseable; otherwise raw collection with provenance)
+4) **Risks** (table if parseable; otherwise raw collection with provenance)
+
+There are ~210 deliverables; the human may instruct “one deliverable at a time until packages are completed.”
 
 ---
 
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
-### Operational — "How to do?"
+### Function 0 — Ensure tool root exists (bootstrap)
 
-The Aggregation agent runs in four functions. All functions are straight-through.
-
----
-
-### Function 0: Ensure Tool Root (bootstrap)
-
-**Goal:** Guarantee the filesystem prerequisites exist before reading sources.
-
-**Action (idempotent):**
-1. Ensure folders exist (create if missing):
-   - `execution/_Aggregation/`
-   - `execution/_Aggregation/_Archive/`
-   - `execution/_Aggregation/_Templates/`
-2. Ensure templates exist (create if missing; never overwrite):
-   - `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
-   - `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
-3. Ensure `_LATEST.md` exists (create stub if missing):
-   - `execution/_Aggregation/_LATEST.md`
-
-Record any bootstrap actions in `Decision_Log.md` during the run (D-###).
+Ensure these exist (create if missing, never overwrite user content):
+- `execution/_Aggregation/`
+- `execution/_Aggregation/_Archive/`
+- `execution/_Aggregation/_Templates/`
+- `execution/_Aggregation/_Pipelines/`
+- `execution/_Aggregation/_LATEST.md` (stub pointer if missing)
 
 ---
 
-### Function 1: Intake + Plan (no gates)
+### Function 1 — Read the brief (INIT.md) and interpret it
 
-**Goal:** Convert the human’s brief into an executable plan; discover sources; choose defaults where unspecified.
+**Preferred control surface:** `execution/_Aggregation/INIT.md`
 
-#### 1.1 Accept an Aggregation Brief
+The brief should describe:
+- `PURPOSE` (for this assignment: `Estimate_Collation`)
+- `PIPELINE_ID` (name for the incremental pipeline)
+- `SCOPE` (deliverables and/or packages for this run; commonly one deliverable)
+- `WHERE_TO_LOOK` (roots or patterns if the estimate packs are not co-located with deliverables)
+- Any output labeling preferences (e.g., package tag, estimate label)
 
-The human may provide any subset of the fields below. Missing fields must be defaulted and logged.
-
-**Aggregation Brief (preferred fields):**
-- `PURPOSE`: short label (e.g., `Project_Estimate`, `Register_Summary`, `Doc_Index`, `CrossFile_QA`)
-- `INPUT_ROOTS`: list of folders and/or specific files to include
-- `INCLUDE`: optional glob patterns (e.g., `**/*.csv`, `**/Detail.csv`, `**/*BOE*.md`)
-- `EXCLUDE`: optional patterns (e.g., `**/_Archive/**`, `**/.git/**`)
-- `OUTPUTS`: requested outputs (e.g., `Summary.md`, `Aggregated.csv`, `Index.csv`, `Matrix.csv`, `Report.md`)
-- `TARGET_SCHEMA`: optional schema name or explicit column list for normalized outputs
-- `PRIMARY_KEY`: optional (single or composite)
-- `DEDUP_RULE`: optional (e.g., `prefer_latest`, `prefer_high_confidence`, `prefer_non_TBD`)
-- `CONFLICT_RULE`: optional (e.g., `prefer_source=A`, `prefer_latest`, `list_all`)
-- `UNITS_POLICY`: optional (`preserve` vs `normalize`)
-- `CURRENCY_POLICY`: optional (`preserve` vs `normalize`)
-- `NOTES`: any special instructions
-
-**Defaults (if missing):**
-- `PURPOSE = General_Aggregation`
-- `INPUT_ROOTS = [execution/]`
-- `INCLUDE = ["**/*.csv", "**/*.md", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.txt"]`
-- `EXCLUDE = ["**/_Archive/**", "**/.git/**", "**/node_modules/**", "execution/_*/**"]`
-- `OUTPUTS = ["Source_Index.csv", "Extracts/", "Aggregated/"]`
-- `DEDUP_RULE = list_all` (no deletion; mark duplicates)
-- `CONFLICT_RULE = list_all` (no forced resolution; surface conflicts)
-- `UNITS_POLICY = preserve`
-- `CURRENCY_POLICY = preserve`
-
-**Action:**
-- Capture the human brief verbatim (if provided).
-- Create a **Normalized Brief** by filling defaults.
-- Record all defaults and interpretations in `Decision_Log.md` (D-###).
-
-**Output:** A `Brief.md` file written into the snapshot (see Function 4) containing:
-- verbatim brief
-- normalized brief (the executable form)
-
-#### 1.2 Discover and Index Sources
-
-Explore `INPUT_ROOTS` using `INCLUDE`/`EXCLUDE`.
-
-For each source file:
-- assign a stable `SourceID`
-- capture `Path`, `Type`, `ModifiedAt` (if available), and a content hash/fingerprint (if possible)
-- classify file type: `CSV`, `MD`, `JSON`, `YAML`, `TXT`, `XLSX` (if supported), `PDF` (extractable text only)
-
-Write `Source_Index.csv`.
-
-#### 1.3 Build an Aggregation Plan
-
-Create a plan describing:
-- which sources are included/excluded and why
-- which extractors will be used per source type
-- which normalized outputs will be produced
-- any risks/gaps (e.g., “schema not provided; using inferred schema”)
-
-Write `Plan.md`.
+If the brief omits details, choose conservative defaults, proceed, and record defaults in `Decision_Log.md`.
 
 ---
 
-### Function 2: Extract (raw first, always auditable)
+### Function 2 — Locate the deliverable estimate pack(s)
 
-**Goal:** Extract structured content from each source, preserving provenance.
+For each deliverable in scope, the agent must locate the deliverable’s estimate artifacts.
 
-#### 2.1 Extraction adapters (by type)
+**Required artifact:** `Detail.csv` (or the canonical detail file used in your format).  
+**Strongly preferred:** `BOE.md`, `Assumptions_Log.*`, `Risk_Register.*`
 
-- **CSV/XLSX**: read tables as-is; preserve headers and row order.
-- **Markdown (MD)**:
-  - Extract headings (document outline)
-  - Extract fenced code blocks (optional)
-  - Extract markdown tables into structured rows (if present)
-  - If no tables, retain a raw text extract with anchors (heading paths)
-- **JSON/YAML**: parse to objects; flatten to row sets if feasible; otherwise store raw object.
-- **TXT**: retain as raw with line anchors.
-- **PDF** (if present):
-  - Extract available text; keep page/line anchors if possible
-  - Do not attempt OCR unless explicitly directed in the brief
+The agent must select the most reliable candidates using evidence available in the filesystem (paths, filenames, internal IDs in content, timestamps, etc.) and record any non-trivial tie-breaks in `Decision_Log.md`.
 
-Write raw extracts under `Extracts/`:
-- `Extracts/{SourceID}_raw.(csv|json|md|txt)`
-- `Extracts/{SourceID}_meta.json` (source metadata + extraction notes)
-
-If an extractor fails, record:
-- `RUN_STATUS = WARNINGS` (or `FAILED_INPUTS` if most sources fail)
-- a failure entry in `QA_Report.md`
-Continue with remaining sources.
+If an artifact is missing:
+- continue the run (do not halt)
+- record coverage gaps in `Coverage.csv` and `QA_Report.md`
 
 ---
 
-### Function 3: Normalize + Aggregate (purpose-driven)
+### Function 3 — Validate format and preserve provenance
 
-**Goal:** Produce purpose-specific aggregated artifacts.
+**Objective:** Ensure the pipeline remains trustworthy as it scales to 210 deliverables.
 
-#### 3.1 Determine the aggregation mode
+The agent must check that each deliverable’s `Detail.csv` conforms to the established format, at minimum including:
+- `LineID`, `CBS`, `Description`, `Qty`, `Unit`, `UnitRate`, `Amount`, `Currency`, `Method`, `SourceRef`, `Confidence`
 
-Select one or more modes based on `PURPOSE`, `TARGET_SCHEMA`, and discovered source types:
-
-- **Index mode**: produce catalog/registry outputs (document index, inventory, mapping tables).
-- **Table aggregation mode**: concatenate compatible tables; normalize columns.
-- **Field extraction mode**: pull key-value facts from documents; compile into a register.
-- **Matrix mode**: build crosswalk/matrix (e.g., WBS×CBS, files×tags, deliverables×status).
-
-If `PURPOSE` does not map cleanly, default to:
-- Index mode + Table aggregation mode (best-effort), and log this choice (D-###).
-
-#### 3.2 Schema handling
-
-Normalization order of precedence:
-1. `TARGET_SCHEMA` provided explicitly by the human (highest)
-2. infer schema from the most frequent compatible table shape
-3. fallback generic schema:
-   - `RecordID,SourceID,SourcePath,SectionRef,EntityType,Key,Value,Notes,Confidence,Tags`
-
-All schema decisions must be recorded in `Decision_Log.md`.
-
-#### 3.3 Dedup + conflict handling (never destructive)
-
-- Apply `DEDUP_RULE` non-destructively:
-  - duplicates are **flagged** (e.g., `IsDuplicate=TRUE`, `DuplicateGroupID=...`)
-- Apply `CONFLICT_RULE` non-destructively:
-  - conflicts are **listed** in `Conflicts.csv` with references to all contenders
-- Never delete data to “resolve” conflicts unless explicitly instructed in the brief. Default is to surface.
-
-#### 3.4 Produce aggregated outputs
-
-Always produce:
-- `Aggregated/Aggregated_Records.csv` (canonical; generic schema if no target schema)
-- `Aggregated/Conflicts.csv` (may be empty but must exist)
-- `Aggregated/Duplicates.csv` (may be empty but must exist)
-
-If the brief requests specific outputs, produce them as well, e.g.:
-- `Aggregated/Summary.md`
-- `Aggregated/Matrix.csv`
-- `Aggregated/Register.csv`
-
-All aggregated rows must include:
-- `SourceID`
-- `SourcePath`
-- `SectionRef` (best-effort anchors: heading path, row number, or line range)
+If the schema is invalid:
+- do not fabricate columns
+- mark the deliverable as `SCHEMA_INVALID` in `Coverage.csv`
+- exclude its detail rows from totals
+- preserve raw extracts for audit
 
 ---
 
-### Function 4: QA + Publish Snapshot (always writes)
+### Function 4 — Collate into project-level artifacts (incremental, deliverable-by-deliverable)
 
-**Goal:** Publish a snapshot and an audit trail even when imperfect.
+The agent must produce a collated “project fact set” for the estimate and associated basis.
 
-#### 4.1 QA checks
+**Namespacing rule (required):**
+- Create stable unique keys so rows from many deliverables can merge safely:
+  - `LineUID = {DeliverableID}::{LineID}`
+  - `AssumptionUID = {DeliverableID}::{AssumptionID}` (if assumptions have IDs)
+  - `RiskUID = {DeliverableID}::{RiskID}` (if risks have IDs)
 
-Perform and record:
-- coverage: # sources found, # extracted, # failed
-- schema completeness: required columns present (if target schema known)
-- provenance: % rows with provenance populated
-- duplication/conflict counts
-- whether requested outputs were produced
+**Incremental pipeline behavior (required):**
+- The agent must support incremental accumulation:
+  - If a prior pipeline snapshot exists (referenced by a pipeline `_LATEST.md` pointer), the agent must incorporate prior collated results and add/merge this run’s deliverables.
+  - Conflicts/duplicates must be surfaced (not silently eliminated) unless the brief explicitly requests a deterministic preference rule.
 
-Write `QA_Report.md`.
+---
 
-#### 4.2 Publish
+### Function 5 — Publish outputs (always)
 
-Create snapshot ID:
-- `AGG_{PURPOSE}_{YYYY-MM-DD}_{HHMM}`
+Each run must publish a new snapshot under:
+- `execution/_Aggregation/AGG_{PURPOSE}_{YYYY-MM-DD}_{HHMM}/`
 
-Write to:
-- `execution/_Aggregation/{SnapshotID}/`
-
-Snapshot must include:
-- `Brief.md`
-- `Plan.md`
-- `RUN_SUMMARY.md`
+For estimate collation, the snapshot must include:
+- `Brief.md` (verbatim brief + normalized brief)
+- `Plan.md` (what was done, in human-readable terms)
+- `RUN_SUMMARY.md` (`RUN_STATUS = OK|WARNINGS|FAILED_INPUTS`)
+- `QA_Report.md`
 - `Source_Index.csv`
 - `Decision_Log.md`
-- `Assumptions_Log.md` (may be empty but must exist)
-- `QA_Report.md`
-- `Extracts/` (raw extracts + meta)
-- `Aggregated/` (aggregations + conflicts + duplicates)
+- `Assumptions_Log.md`
+- `Extracts/` (raw extracts for audit)
+- `Aggregated/Conflicts.csv`
+- `Aggregated/Duplicates.csv`
 
-Write `RUN_SUMMARY.md` including:
-- `RUN_STATUS = OK | WARNINGS | FAILED_INPUTS`
-- top findings
-- what to fix for a cleaner rerun (missing schema, missing files, etc.)
+And under `Aggregated/Estimate/`:
+- `Project_Detail.csv` (canonical)
+- `Project_Assumptions.csv` (may be empty but must exist)
+- `Project_Risks.csv` (may be empty but must exist)
+- `BOE_Index.csv`
+- `BOE_Collection.md`
+- `Project_Summary_CBS.csv`
+- `Project_Summary_WBS.csv`
+- `Project_WBS_CBS_Matrix.csv`
+- `Coverage.csv`
 
-Update:
-- `execution/_Aggregation/_LATEST.md` with the latest snapshot ID (overwrite is allowed; it is a pointer file).
-
-Do not overwrite prior snapshot folders.
-
----
-
-### Conversational Rules
-
-- If the human gives a purpose and a set, run the pipeline immediately.
-- If the brief is underspecified, choose defaults, log decisions, and proceed.
-- Never ask permission to publish the snapshot; publishing is mandatory for auditability.
+Update pointer files (overwrite allowed):
+- `execution/_Aggregation/_LATEST.md` → snapshot ID
+- `execution/_Aggregation/_Pipelines/{PIPELINE_ID}/_LATEST.md` → snapshot ID
 
 [[END:PROTOCOL]]
 
 [[BEGIN:SPEC]]
 ## SPEC
 
-### Normative — "What must it be?"
+### Snapshot validity (always)
 
-A snapshot is valid when it satisfies all of the following.
+A snapshot is valid when:
+- it is written under `execution/_Aggregation/`
+- it contains the required audit artifacts (`Brief.md`, `Plan.md`, `RUN_SUMMARY.md`, `QA_Report.md`, `Source_Index.csv`, logs, extracts)
+- it does not modify any source file
 
-### Valid Snapshot Requirements
+### Additional validity for Estimate Collation
 
-| Requirement | Validation |
-|---|---|
-| Tool root exists | `execution/_Aggregation/` exists |
-| Snapshot folder created | `execution/_Aggregation/{SnapshotID}/` exists |
-| Brief exists | `Brief.md` exists |
-| Plan exists | `Plan.md` exists |
-| Source index exists | `Source_Index.csv` exists |
-| Decisions logged | `Decision_Log.md` exists (may include defaults) |
-| Assumptions logged | `Assumptions_Log.md` exists (may be empty) |
-| QA exists | `QA_Report.md` exists |
-| Raw extracts preserved | `Extracts/` exists with per-source raw + meta |
-| Aggregations produced | `Aggregated/` exists with `Aggregated_Records.csv`, `Conflicts.csv`, `Duplicates.csv` |
-| Traceability preserved | aggregated records include provenance + `SectionRef` best-effort |
-| No source edits | agent does not modify any input file |
+Estimate-collation snapshots are valid when:
+- `Aggregated/Estimate/` contains all required output files listed in PROTOCOL
+- `Project_Detail.csv` contains `Qty`, `Unit`, and `UnitRate` for every included row
+- `Coverage.csv` exists and accurately reports missing/invalid artifacts
 
-### Decision and Assumption Logging
+### Non-negotiable epistemic rules
 
-- **Decision_Log.md**: records defaults, rule choices, schema inference, unit/currency handling, bootstrap actions.
-  - IDs: `D-001`, `D-002`, ...
-- **Assumptions_Log.md**: records any assumption required to proceed without data.
-  - IDs: `A-001`, `A-002`, ...
-
-### Data Integrity
-
-- Never alter numeric values unless the brief explicitly requests transformation.
-- If transformations occur (e.g., unit conversion), record:
-  - method, factor, and before/after examples in `Decision_Log.md`.
-
-### Invalid States
-
-| Invalid State | Why |
-|---|---|
-| No snapshot written | no audit trail |
-| Missing Source_Index.csv | cannot reproduce or audit |
-| Aggregated records lack provenance | cannot trust aggregation |
-| Overwriting prior snapshots | destroys history |
-| Silent conflict resolution | hides reality; breaks trust |
+- Never fabricate missing rates/quantities/BoE content.
+- Never silently resolve conflicts.
+- Always preserve provenance.
 
 [[END:SPEC]]
 
 [[BEGIN:STRUCTURE]]
 ## STRUCTURE
 
-### Descriptive — "What is it?"
-
-### Tool Root Hierarchy
-
-The agent writes only to:
+### Tool-root layout
 
 ```
 execution/_Aggregation/
   _Archive/
   _Templates/
-    AGGREGATION_BRIEF_TEMPLATE.md
-    TARGET_SCHEMA_TEMPLATE.csv
+  _Pipelines/
+    {PIPELINE_ID}/
+      _LATEST.md
   _LATEST.md
   AGG_{PURPOSE}_{DATE}_{TIME}/
     Brief.md
     Plan.md
     RUN_SUMMARY.md
+    QA_Report.md
     Source_Index.csv
     Decision_Log.md
     Assumptions_Log.md
-    QA_Report.md
     Extracts/
-      {SourceID}_raw.*
-      {SourceID}_meta.json
     Aggregated/
-      Aggregated_Records.csv
       Conflicts.csv
       Duplicates.csv
-      Summary.md           # optional
-      Matrix.csv           # optional
-      Register.csv         # optional
+      Estimate/
+        Project_Detail.csv
+        Project_Assumptions.csv
+        Project_Risks.csv
+        BOE_Index.csv
+        BOE_Collection.md
+        Project_Summary_CBS.csv
+        Project_Summary_WBS.csv
+        Project_WBS_CBS_Matrix.csv
+        Coverage.csv
 ```
 
-### Source_Index.csv schema (minimum)
+### Coverage.csv minimum schema
 
-- `SourceID`
-- `Path`
-- `Type`
-- `ModifiedAt` (if available)
-- `Fingerprint` (hash or best-effort signature)
-- `Included` (TRUE/FALSE)
-- `Reason` (why included/excluded)
-
-### Aggregated_Records.csv schema (minimum fallback)
-
-If no target schema is provided and inference is not stable, use:
-
-- `RecordID`
-- `SourceID`
-- `SourcePath`
-- `SectionRef`
-- `EntityType` (e.g., `TableRow`, `KeyValue`, `DocSection`)
-- `Key`
-- `Value`
+- `FromPackageID`
+- `FromDeliverableID`
+- `FromDeliverableName`
+- `DetailPath`
+- `BOEPath`
+- `AssumptionsPath`
+- `RisksPath`
+- `SchemaStatus` (`OK|SCHEMA_INVALID|MISSING_DETAIL`)
 - `Notes`
-- `Confidence` (`LOW|MED|HIGH`)
-- `Tags` (comma-separated)
 
-If a target schema is provided, prepend provenance fields:
-- `SourceID`, `SourcePath`, `SectionRef`
+### Project_Detail.csv key
 
-### Conflicts.csv schema (minimum)
-
-- `ConflictID`
-- `Key` (or primary key)
-- `Description`
-- `ContenderCount`
-- `SourceRefs` (list)
-- `SuggestedRule` (non-binding)
-
-### Duplicates.csv schema (minimum)
-
-- `DuplicateGroupID`
-- `RecordID`
-- `SourceRef`
-- `Reason`
+- `LineUID = {FromDeliverableID}::{LineID}`
 
 [[END:STRUCTURE]]
 
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-### Directional — "How to think?"
-
-- Aggregation is a **truth-preserving activity**: prioritize provenance and auditability over neatness.
-- The agent must be safe to rerun: snapshot outputs + non-destructive dedup/conflict handling support iterative refinement.
-- Straight-through execution enables fast cycles: the human inspects outputs and reruns with a tighter brief or additional sources.
-- When in doubt, **surface** ambiguity (conflicts, duplicates, missing schema) rather than masking it.
+- Your intent is a scalable pipeline: 210 deliverables require repeatable, auditable collation.
+- The agent must therefore preserve provenance, surface drift, and support incremental accumulation.
+- Minimizing prescription of implementation details encourages the agent to choose the most reliable approach available while staying within strict epistemic and write-boundary constraints.
 
 [[END:RATIONALE]]

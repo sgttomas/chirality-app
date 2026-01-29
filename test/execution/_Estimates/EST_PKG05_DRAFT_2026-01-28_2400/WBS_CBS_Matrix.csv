@@ -1,0 +1,17 @@
+WBS_PackageID,WBS_DeliverableID,Deliverable_Name,E,PM,P,MAT,CD,CI,Mapping_Notes
+PKG-05,DEL-05.01,Concrete Structures Design Drawing Set,X,,,,,Drawing deliverable maps to Engineering
+PKG-05,DEL-05.02,Concrete Structures Technical Specification,X,,,,,Specification deliverable maps to Engineering
+PKG-05,DEL-05.03,Concrete Structures Design Calculations,X,,,,,Calculation deliverable maps to Engineering
+PKG-05,DEL-05.04,Concrete Structures Installation & Test Records,,X,,,,QA/QC records map to Project Management
+PKG-05,N/A,Tank Foundations (physical work),,,,X,X,,Materials + Construction for tank ring wall foundations
+PKG-05,N/A,Containment Walls (physical work),,,,X,X,,Materials + Construction for secondary containment
+PKG-05,N/A,Equipment Pads (physical work),,,,X,X,,Materials + Construction for pump/metering pads
+PKG-05,N/A,Thrust Blocks (physical work),,,,X,X,,Materials + Construction for piping thrust blocks
+PKG-05,N/A,Reinforcing Steel (all structures),,,,X,X,,Materials + Construction for rebar supply and installation
+PKG-05,N/A,Formwork (containment walls),,,,X,X,,Materials + Construction for wall formwork
+PKG-05,N/A,Waterstops and Joints,,,,X,X,,Materials + Construction for containment joints
+PKG-05,N/A,Liner Interface,,,,X,X,,Materials + Construction for ground liner interface work
+PKG-05,N/A,Concrete Testing/QC,,,,,X,Indirect - quality control and testing program
+PKG-05,N/A,Construction Indirects (calculated),,,,,,X,Factor-based CI = 18% of CD
+PKG-05,N/A,EPCM/PM Allocation (calculated),,X,,,,Factor-based PM = 6% of (CD+CI+MAT)
+PKG-05,N/A,Procurement Services (calculated),,,X,,,Factor-based P = 2% of MAT

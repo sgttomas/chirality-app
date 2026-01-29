@@ -1,0 +1,12 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS_Primary,CBS_Secondary,CBS_Tertiary,Rationale
+PKG-00,DEL-00.01,Site Establishment Design Drawing Set,E,,,Engineering design drawings (CAD drafting)
+PKG-00,DEL-00.02,Site Establishment Technical Specification,E,,,Engineering specifications (technical writing)
+PKG-00,DEL-00.03,Site Establishment Procedures,PM,,,Project management procedures and plans
+PKG-00,DEL-00.04,Contractor's Equipment Schedule,PM,,,Project control documentation
+PKG-00,DEL-00.05,Road Access Configuration & Security Process,PM,CD,,PM for procedures; CD for physical security installation
+PKG-00,DEL-00.06,Pre-Works Road Condition Survey Report,E,,,Engineering survey and analysis
+PKG-00,DEL-00.07,Post-Works Road Condition Survey Report,E,CD,,Engineering survey; CD for remediation work
+PKG-00,DEL-00.08,Temporary Water Supply Installation Details,E,MAT,CD,E for design; MAT for materials; CD for installation
+PKG-00,N/A,Site Establishment Physical Works,CD,MAT,CI,"Temporary facilities, laydown areas, utilities, fencing, security"
+PKG-00,N/A,Construction Indirects (calculated),CI,,,Field supervision and site overhead
+PKG-00,N/A,Project Management (calculated),PM,,,EPCM project management allocation

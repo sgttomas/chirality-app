@@ -1,0 +1,34 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS,LineItems,BaseAmount,Currency
+PKG-17,DEL-17.01,Electrical Power Design Drawing Set,E,1,72000,CAD
+PKG-17,DEL-17.02,Electrical Power Technical Specification,E,1,38000,CAD
+PKG-17,DEL-17.03,Electrical Power Design Calculations,E,1,95000,CAD
+PKG-17,DEL-17.04,Electrical Power Data Sheet Package,E,1,22000,CAD
+PKG-17,DEL-17.05,Electrical Power Installation & Test Records,E,1,18000,CAD
+PKG-17,N/A,MV/LV Transformers,MAT,1,290000,CAD
+PKG-17,N/A,MV Switchgear,MAT,1,385000,CAD
+PKG-17,N/A,LV Switchgear,MAT,1,165000,CAD
+PKG-17,N/A,Motor Control Centers,MAT,1,375000,CAD
+PKG-17,N/A,Distribution Panels,MAT,1,68000,CAD
+PKG-17,N/A,UPS System,MAT,1,22000,CAD
+PKG-17,N/A,Grounding Materials,MAT,1,95000,CAD
+PKG-17,N/A,MV Power Cable,MAT,1,148000,CAD
+PKG-17,N/A,LV Power Cable,MAT,1,147000,CAD
+PKG-17,N/A,Control Cable,MAT,1,70000,CAD
+PKG-17,N/A,Cable Tray and Ladder Rack,MAT,1,130500,CAD
+PKG-17,N/A,Conduit and Fittings,MAT,1,39000,CAD
+PKG-17,N/A,Electrical Installation Materials,MAT,1,55000,CAD
+PKG-17,N/A,Freight and Logistics,FRT,1,58000,CAD
+PKG-17,N/A,Transformer Installation,CD,1,56000,CAD
+PKG-17,N/A,MV Switchgear Installation,CD,1,85000,CAD
+PKG-17,N/A,LV Switchgear Installation,CD,1,48000,CAD
+PKG-17,N/A,MCC Installation and Terminations,CD,1,126000,CAD
+PKG-17,N/A,Distribution Panel Installation,CD,1,36000,CAD
+PKG-17,N/A,UPS Installation and Testing,CD,1,8500,CAD
+PKG-17,N/A,Grounding System Installation,CD,1,135000,CAD
+PKG-17,N/A,Cable Tray and Conduit Installation,CD,1,185000,CAD
+PKG-17,N/A,Cable Pulling and Termination,CD,1,295000,CAD
+PKG-17,N/A,Electrical Testing and Commissioning Support,CD,1,75000,CAD
+PKG-17,N/A,Construction Indirects,CI,1,188910,CAD
+PKG-17,N/A,EPCM / Project Management,PM,1,197155,CAD
+PKG-17,N/A,Procurement Services,P,1,40950,CAD
+PKG-17,N/A,Electrical Systems Commissioning,COM,1,96837,CAD

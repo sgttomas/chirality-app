@@ -1,0 +1,24 @@
+WBS_ID,WBS_Description,E,PM,P,MAT,CD,CI,COM,TOTAL
+DEL-14.01,Process Piping Design Drawing Set,185000,0,0,0,0,0,0,185000
+DEL-14.02,Process Piping Technical Specification,45000,0,0,0,0,0,0,45000
+DEL-14.03,Process Piping Design Calculations,85000,0,0,0,0,0,0,85000
+DEL-14.04,Process Piping Data Sheet Package,25000,0,0,0,0,0,0,25000
+DEL-14.05,Process Piping Installation & Test Records,35000,0,0,0,0,0,0,35000
+DEL-14.06,Transient Analysis - Railcar Unloading Line,65000,0,0,0,0,0,0,65000
+DEL-14.07,Transient Analysis - Marine Loading Line,55000,0,0,0,0,0,0,55000
+DEL-14.08,Valve Closing Time Verification,20000,0,0,0,0,0,0,20000
+N/A-HDR,Rail Unloading Header System (supply + install),0,0,0,455000,360000,0,0,815000
+N/A-TFP,Tank Farm Piping (supply + install),0,0,0,375000,275000,0,0,650000
+N/A-EXP,Export Piping (supply + install),0,0,0,420000,350000,0,0,770000
+N/A-RCY,Recycle Piping (supply + install),0,0,0,120000,120000,0,0,240000
+N/A-N2,Nitrogen Distribution (supply + install),0,0,0,120000,160000,0,0,280000
+N/A-UTL,Small Bore Utility (supply + install),0,0,0,60000,80000,0,0,140000
+N/A-SUP,Pipe Supports (supply + install),0,0,0,180000,180000,0,0,360000
+N/A-INS,Insulation & Heat Trace (supply + install),0,0,0,245000,185000,0,0,430000
+N/A-GBE,Gaskets Bolting Expansion,0,0,0,150000,0,0,0,150000
+N/A-TST,Testing NDE Specialty,0,0,0,0,265000,0,0,265000
+N/A-CI,Construction Indirects,0,0,0,0,0,359000,0,359000
+N/A-PM,Project Management,0,298000,0,0,0,0,0,298000
+N/A-P,Procurement Services,0,0,42000,0,0,0,0,42000
+N/A-COM,Commissioning,0,0,0,0,0,0,136000,136000
+TOTAL,,515000,298000,42000,2125000,1975000,359000,136000,5450000

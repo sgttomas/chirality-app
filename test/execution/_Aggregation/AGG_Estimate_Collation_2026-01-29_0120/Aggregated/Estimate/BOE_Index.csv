@@ -1,0 +1,3 @@
+FromPackageID,PackageName,EstimateSnapshotID,EstimateDate,BaseEstimate_CAD,Contingency_CAD,TotalEstimate_CAD,Currency,Confidence,Maturity
+PKG-00,Site Establishment,EST_PKG00_DRAFT_2026-01-28_2315,2026-01-28,1434000,293000,1727000,CAD,LOW,Class 5
+PKG-01,Demolition & Removals,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-28,1303000,326000,1629000,CAD,LOW,Class 5

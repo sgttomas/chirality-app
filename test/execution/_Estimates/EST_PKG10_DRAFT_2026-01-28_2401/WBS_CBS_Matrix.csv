@@ -1,0 +1,13 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Base_Amount,Contingency_Amount,Total_Amount,Line_Count,Notes
+PKG-10,DEL-10.01,E,55000,11000,66000,1,Railcar Unloading Design Drawing Set
+PKG-10,DEL-10.02,E,18000,4000,22000,1,Railcar Unloading Technical Specification
+PKG-10,DEL-10.03,E,28000,6000,34000,1,Railcar Unloading Design Calculations
+PKG-10,DEL-10.04,E,22000,4000,26000,1,Railcar Unloading Data Sheet Package
+PKG-10,DEL-10.05,E,12000,2000,14000,1,Railcar Unloading Installation & Test Records
+PKG-10,N/A,MAT,2555000,639000,3194000,9,Equipment & Materials (arms + header + containment + pumps + instrumentation)
+PKG-10,N/A,CD,717000,215000,932000,9,Construction Directs (installation labor for all equipment)
+PKG-10,N/A,CI,129000,39000,168000,1,Construction Indirects (18% factor on CD)
+PKG-10,N/A,P,51000,8000,59000,1,Procurement Services (2% factor on MAT)
+PKG-10,N/A,PM,204000,31000,235000,1,Project Management / EPCM (6% factor)
+PKG-10,N/A,COM,122000,37000,159000,4,Commissioning / Testing (FAT + integration + performance + final)
+PKG-10,ALL,ALL,3913000,996000,4909000,30,Total PKG-10 Railcar Unloading System

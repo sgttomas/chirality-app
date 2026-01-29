@@ -1,0 +1,32 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS,Amount,Percentage
+PKG-26,DEL-26.01,Coating Technical Specification,E,25000,1.0%
+PKG-26,DEL-26.02,Coating Procedures,E,20000,0.8%
+PKG-26,DEL-26.03,Coating Data Sheet Package,E,10000,0.4%
+PKG-26,DEL-26.04,Coating Installation & Test Records,E,15000,0.6%
+PKG-26,N/A,Engineering Coordination,E,22000,0.9%
+PKG-26,N/A,Tank Internal Coating System,MAT,550000,22.8%
+PKG-26,N/A,Tank External Coating System,MAT,180000,7.5%
+PKG-26,N/A,Structural Steel Field Painting,MAT,56250,2.3%
+PKG-26,N/A,Marine Coatings,MAT,267750,11.1%
+PKG-26,N/A,Field Touch-Up Materials,MAT,85000,3.5%
+PKG-26,N/A,Surface Preparation Abrasives,MAT,95000,3.9%
+PKG-26,N/A,Coating Application Consumables,MAT,65000,2.7%
+PKG-26,N/A,Testing and Inspection Equipment,MAT,35000,1.5%
+PKG-26,N/A,Tank Internal Surface Preparation,CD,88000,3.7%
+PKG-26,N/A,Tank Internal Coating Application,CD,132000,5.5%
+PKG-26,N/A,Tank External Surface Preparation,CD,45000,1.9%
+PKG-26,N/A,Tank External Coating Application,CD,63000,2.6%
+PKG-26,N/A,Structural Steel Surface Preparation,CD,11250,0.5%
+PKG-26,N/A,Structural Steel Field Painting Labor,CD,18750,0.8%
+PKG-26,N/A,Marine Structure Surface Preparation,CD,53550,2.2%
+PKG-26,N/A,Marine Coating Application,CD,76500,3.2%
+PKG-26,N/A,Field Touch-Up Labor,CD,95000,3.9%
+PKG-26,N/A,Coating Inspection and Testing,CD,75000,3.1%
+PKG-26,N/A,Confined Space Entry Support,CD,55000,2.3%
+PKG-26,N/A,Access Equipment and Scaffolding,CD,65000,2.7%
+PKG-26,N/A,Construction Indirects,CI,137133,5.7%
+PKG-26,N/A,Procurement Services,P,27780,1.2%
+PKG-26,N/A,EPCM / Project Management,PM,137280,5.7%
+PKG-26,N/A,Commissioning and Acceptance Testing,COM,68640,2.9%
+PKG-26,ALL,Package Total (before rounding),ALL,2613383,108.5%
+PKG-26,ALL,Package Total (rounded),ALL,2408000,100.0%

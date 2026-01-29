@@ -1,0 +1,20 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Base_Amount_CAD,Notes
+PKG-15,DEL-15.01,E,39936,Pump arrangement drawings and installation design
+PKG-15,DEL-15.02,E,24960,Pump technical specifications
+PKG-15,DEL-15.03,E,19968,Pump sizing calculations and NPSH analysis
+PKG-15,DEL-15.04,E,9984,Vendor data review and approval
+PKG-15,DEL-15.05,E,4992,Commissioning documentation
+PKG-15,DEL-15.01,CD,48720,Pump installation labor (rigging setting alignment grouting pre-comm)
+PKG-15,DEL-15.05,CD,5320,Mechanical completion and inspection
+PKG-15,N/A,MAT,712000,Pump equipment (14 pumps: 2 marine 4 railcar 2 transfer 6 sump)
+PKG-15,N/A,MAT,203000,Electric motors (406 kW total NEMA Premium)
+PKG-15,N/A,MAT,60900,Variable frequency drives (7 units)
+PKG-15,N/A,MAT,127500,Mechanical seal systems API 682
+PKG-15,N/A,MAT,102000,Couplings and baseplates
+PKG-15,N/A,MAT,68000,Initial spare parts
+PKG-15,N/A,CI,9730,Construction indirects
+PKG-15,N/A,P,22000,Procurement services
+PKG-15,N/A,PM,70620,EPCM and project management
+PKG-15,DEL-15.05,COM,15960,Performance testing
+PKG-15,DEL-15.05,COM,5320,Vibration analysis
+PKG-15,DEL-15.05,COM,8000,FAT witness travel

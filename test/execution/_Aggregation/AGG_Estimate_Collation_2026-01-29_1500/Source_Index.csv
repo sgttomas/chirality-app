@@ -1,0 +1,6 @@
+SourceID,SourceType,SourcePath,PackageID,SnapshotID,DateAccessed,Status,Notes
+S-001,Detail,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG01_DRAFT_2026-01-28_2330/Detail.csv,PKG-01,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-29,OK,14 line items extracted
+S-002,BOE,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG01_DRAFT_2026-01-28_2330/BOE.md,PKG-01,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-29,OK,Full BOE extracted
+S-003,Assumptions,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG01_DRAFT_2026-01-28_2330/Assumptions_Log.md,PKG-01,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-29,OK,11 assumptions extracted
+S-004,Risks,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG01_DRAFT_2026-01-28_2330/Risk_Register.md,PKG-01,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-29,OK,9 risks extracted
+S-005,Summary,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG01_DRAFT_2026-01-28_2330/Summary.md,PKG-01,EST_PKG01_DRAFT_2026-01-28_2330,2026-01-29,OK,Summary totals verified

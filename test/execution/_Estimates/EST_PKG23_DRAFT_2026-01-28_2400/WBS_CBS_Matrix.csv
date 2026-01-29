@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS_E,CBS_MAT,CBS_CD,CBS_CI,CBS_P,CBS_PM,CBS_COM,MappingBasis,DecisionRef
+PKG-23,DEL-23.01,Fire Protection Design Drawing Set,X,X,X,,,,,Design deliverable drives engineering; drawings specify materials; layout drives installation scope,D-010
+PKG-23,DEL-23.02,Fire Protection Technical Specification,X,,,,,,,Design deliverable - specification development,D-010
+PKG-23,DEL-23.03,Fire Protection Design Calculations,X,,,,,,,Design deliverable - hydraulic and demand calculations,D-010
+PKG-23,DEL-23.04,Fire Protection Data Sheet Package,X,X,X,,,,,Design deliverable; data sheets support material procurement and installation,D-010
+PKG-23,DEL-23.05,Fire Protection Installation & Test Records,,,,X,,,,X,QA/QC records (CI) and testing/commissioning (COM),D-010
+PKG-23,N/A,Package-Level Indirects and Services,,,,X,X,X,X,Factor-based services supporting all deliverables,D-009

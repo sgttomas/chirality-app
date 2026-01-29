@@ -1,0 +1,9 @@
+CBS,CBSCategory,BaseEstimate_CAD,TotalEstimate_CAD,PercentOfTotal
+E,Engineering & Design,606500,737250,7.0
+PM,Project Management,471290,545935,5.2
+P,Procurement Services,45200,52960,0.5
+MAT,Materials,2265000,2806000,26.6
+CD,Construction Directs,3855000,4901750,46.5
+CI,Construction Indirects,891500,1137875,10.8
+COM,Commissioning,140000,182000,1.7
+TOTAL,Total All CBS,8401490,10538010,100.0

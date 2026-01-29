@@ -1,0 +1,10 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS_Primary,CBS_Secondary,CBS_Tertiary,Rationale
+PKG-34,DEL-34.01,Coordination Meeting Installation & Test Records,PM,,,Project management administrative coordination for weekly Terminal meetings
+PKG-34,DEL-34.02,Interface Agreements,PM,,,Project management for interface negotiation documentation and coordination with third parties
+PKG-34,DEL-34.03,Marine Coordination Installation & Test Records,PM,,,Project management for port authority and marine coordination activities
+PKG-34,DEL-34.04,Security Compliance Installation & Test Records,PM,,,Project management for CBSA/TC security compliance documentation
+PKG-34,DEL-34.05,Trenchless Crossing Monitoring Reports,E,PM,,E for technical survey/monitoring/analysis; PM for stakeholder coordination and reporting
+PKG-34,N/A,Engineering Oversight Allocation,E,,,Additional engineering oversight for technical coordination activities
+PKG-34,N/A,Project Management (factor-based),PM,,,EPCM project management overhead allocation
+PKG-34,N/A,QA/QC Coordination Oversight,CI,,,Construction indirects allocation for quality oversight of coordination activities
+PKG-34,N/A,Procurement Services (factor-based),P,,,Third-party monitoring procurement coordination

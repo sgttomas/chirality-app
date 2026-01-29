@@ -1,0 +1,12 @@
+WBS_PackageID,WBS_DeliverableID,Deliverable_Name,Deliverable_Type,CBS_Primary,CBS_Secondary,CBS_Tertiary,Mapping_Rationale,Ambiguity_Flag
+PKG-33,DEL-33.01,Occupational Health & Safety Plan,Plan,E,PM,,Planning and coordination effort; engineering judgment + project management,No
+PKG-33,DEL-33.02,Risk Assessments,Assessment,E,,,Technical assessment and analysis effort,No
+PKG-33,DEL-33.03,Method Statements,Procedure,E,,,Engineering procedure development,No
+PKG-33,DEL-33.04,CEMP Compliance Installation & Test Records,Record,CI,COM,,Environmental monitoring during construction (CI) and commissioning (COM),Partial - split allocation
+PKG-33,DEL-33.05,SPPP Installation & Test Records,Record,CI,COM,,Stormwater monitoring during construction (CI) and commissioning (COM),Partial - split allocation
+PKG-33,DEL-33.06,Waste Management Installation & Test Records,Record,CI,COM,,Waste management spans construction (CI) and commissioning (COM),Partial - split allocation
+PKG-33,DEL-33.07,Emergency Response Plan,Plan,E,PM,,Planning effort; engineering content + coordination,No
+PKG-33,DEL-33.08,Waterway Pollution Control Method Statement,Procedure,E,,,Engineering method statement development,No
+PKG-33,N/A,Procurement Services (Factor),Indirect,P,,,Procurement of HSE services (2% factor),No
+PKG-33,N/A,Project Management Allocation (Factor),Indirect,PM,,,PM allocation for HSE coordination (6% factor),No
+PKG-33,N/A,Construction Indirects Allocation (Factor),Indirect,CI,,,CI allocation for HSE oversight (18% factor),No

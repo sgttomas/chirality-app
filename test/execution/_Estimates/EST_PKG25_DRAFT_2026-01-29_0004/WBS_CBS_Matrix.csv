@@ -1,0 +1,20 @@
+WBS_PackageID,WBS_DeliverableID,Deliverable_Name,Primary_CBS,Secondary_CBS,Tertiary_CBS,Rationale,Decision_Reference
+PKG-25,DEL-25.01,Communications Design Drawing Set,E,MAT,CD,"Primary: Engineering design deliverable (drawings); Secondary: Materials specified in drawings; Tertiary: Construction directs for installation per drawings",D-2510
+PKG-25,DEL-25.02,Communications Technical Specification,E,MAT,N/A,"Primary: Engineering design deliverable (specifications); Secondary: Materials specified in technical spec",D-2510
+PKG-25,DEL-25.03,Communications Data Sheet Package,E,MAT,N/A,"Primary: Engineering design deliverable (data sheets); Secondary: Materials (equipment) documented in data sheets",D-2510
+PKG-25,DEL-25.04,Communications Installation & Test Records,CI,COM,N/A,"Primary: Construction indirects (QA/QC records); Secondary: Commissioning (test records and acceptance)",D-2510
+PKG-25,N/A,Fiber Optic Cabling Materials,MAT,N/A,N/A,"Fiber cables, connectors, splice closures, termination hardware",D-2510
+PKG-25,N/A,Fiber Optic Cable Installation,CD,N/A,N/A,"Cable pulling, termination, splicing, testing labor",D-2510
+PKG-25,N/A,Structured Copper Cabling Materials,MAT,N/A,N/A,"Copper cables (Cat 6/6A), jacks, patch cords, connectors",D-2510
+PKG-25,N/A,Structured Copper Cable Installation,CD,N/A,N/A,"Cable pulling, termination, certification testing labor",D-2510
+PKG-25,N/A,Network Equipment (Switches),MAT,N/A,N/A,"Network switches, SFP transceivers, active equipment",D-2510
+PKG-25,N/A,Network Equipment Installation,CD,N/A,N/A,"Equipment mounting, rack installation, configuration labor",D-2510
+PKG-25,N/A,Patch Panels,MAT,N/A,N/A,"Fiber and copper patch panels, connectors, patch cords",D-2510
+PKG-25,N/A,Cable Management Infrastructure,MAT,CD,N/A,"Primary: Materials (J-hooks, labels, grounding); Secondary: Installation labor",D-2510
+PKG-25,N/A,Equipment Room/TR Infrastructure,CD,N/A,N/A,"Rack setup, grounding, cable management labor",D-2510
+PKG-25,N/A,Fiber Splicing and Termination,CD,N/A,N/A,"Specialized fiber splicing labor, connector termination",D-2510
+PKG-25,N/A,Spare Capacity Allowance,MAT,N/A,N/A,"Future expansion capacity (spare fibers, spare ports)",D-2510
+PKG-25,N/A,Construction Indirects,CI,N/A,N/A,"Field supervision, QA/QC, HSE, site coordination (18% of CD)",D-2506
+PKG-25,N/A,Procurement Services,P,N/A,N/A,"Vendor coordination, expediting, inspection (2% of MAT)",D-2506
+PKG-25,N/A,Project Management,PM,N/A,N/A,"EPCM allocation, design coordination, document control (6% of CD+CI+MAT)",D-2506
+PKG-25,N/A,Commissioning,COM,N/A,N/A,"System integration testing, network commissioning, PKG-19 integration (3% of CD+CI+MAT)",D-2506

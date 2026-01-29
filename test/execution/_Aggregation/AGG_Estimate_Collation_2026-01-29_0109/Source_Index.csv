@@ -1,0 +1,8 @@
+FromPackageID,FromDeliverableID,ArtifactType,ArtifactPath,DateProcessed,SchemaStatus,RecordCount
+PKG-00,ALL,Detail.csv,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/Detail.csv,2026-01-29,OK,18
+PKG-00,ALL,BOE.md,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/BOE.md,2026-01-29,OK,1
+PKG-00,ALL,Assumptions_Log.md,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/Assumptions_Log.md,2026-01-29,OK,13
+PKG-00,ALL,Risk_Register.md,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/Risk_Register.md,2026-01-29,OK,8
+PKG-00,ALL,Decision_Log.md,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/Decision_Log.md,2026-01-29,OK,9
+PKG-00,ALL,Summary.md,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/Summary.md,2026-01-29,OK,1
+PKG-00,ALL,WBS_CBS_Matrix.csv,/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/EST_PKG00_DRAFT_2026-01-28_2315/WBS_CBS_Matrix.csv,2026-01-29,OK,1

@@ -1,0 +1,9 @@
+PackageID,DeliverableID,DeliverableName,CBS_E,CBS_MAT,CBS_CD,CBS_CI,CBS_P,CBS_PM,CBS_COM,Rationale
+PKG-24,DEL-24.01,Security System Design Drawing Set,Y,Y,Y,N,N,N,N,"Engineering design (E); equipment materials shown on drawings (MAT); installation of equipment shown on drawings (CD)"
+PKG-24,DEL-24.02,Security System Technical Specification,Y,Y,Y,N,N,N,N,"Engineering specification development (E); equipment specifications (MAT); installation specifications (CD)"
+PKG-24,DEL-24.03,Security System Data Sheet Package,Y,Y,N,N,N,N,N,"Engineering submittal review (E); equipment and materials datasheets (MAT)"
+PKG-24,DEL-24.04,Security System Installation & Test Records,Y,N,Y,Y,N,N,Y,"Engineering test support (E); installation verification and testing (CD); QA/QC field inspection (CI); commissioning and handover (COM)"
+PKG-24,N/A,Construction Indirects,N,N,N,Y,N,N,N,"Field supervision; QA/QC; HSE; site overhead supporting all construction activities"
+PKG-24,N/A,Procurement Services,N,N,N,N,Y,N,N,"Vendor coordination; expediting; submittal management for equipment and materials"
+PKG-24,N/A,Project Management,N,N,N,N,N,Y,N,"EPCM allocation; Terminal coordination; schedule/cost control supporting all deliverables"
+PKG-24,N/A,Commissioning Services,N,N,N,N,N,N,Y,"Commissioning planning; integrated system testing; Terminal integration per DEC-05; performance verification; handover"

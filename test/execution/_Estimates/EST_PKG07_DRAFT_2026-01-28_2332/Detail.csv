@@ -1,0 +1,24 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-07,DEL-07.01,Rail Works Design Drawing Set - CAD drafting (track layouts rail profiles ballast sections end stop details),1,LS,20000,20000,CAD,ALLOWANCE,A-001,LOW,~6-8 sheets at $3k/sheet average
+L002,E,PKG-07,DEL-07.02,Rail Works Technical Specification - specification writing (rail ballast track construction specs),1,LS,7000,7000,CAD,ALLOWANCE,A-002,LOW,~45 hours at $150/hr
+L003,E,PKG-07,DEL-07.03,Rail Works Design Calculations - track geometry and ballast depth calculations,1,LS,10000,10000,CAD,ALLOWANCE,A-003,LOW,~55 hours at $175/hr
+L004,E,PKG-07,DEL-07.04,Rail Works ITR Compilation - installation and test record documentation,1,LS,8000,8000,CAD,ALLOWANCE,A-004,LOW,~80 hours at $100/hr
+L005,MAT,PKG-07,N/A,Rail Supply - New Tracks 6 & 7 (1000 linear meters heavy rail 115 RE or equiv),1,LS,350000,350000,CAD,ALLOWANCE,A-005,LOW,1000m at $350/m includes rail delivery
+L006,MAT,PKG-07,N/A,Rail Supply - Track 5 Restoration (300 linear meters),1,LS,105000,105000,CAD,ALLOWANCE,A-007,LOW,300m at $350/m
+L007,MAT,PKG-07,N/A,Track Ties/Sleepers - concrete or timber ties (1300m total track),1,LS,195000,195000,CAD,ALLOWANCE,A-011,LOW,1300m at $150/m avg installed spacing
+L008,MAT,PKG-07,N/A,Track Fasteners & Hardware - clips spikes plates anchors,1,LS,91000,91000,CAD,ALLOWANCE,A-012,LOW,~20% of rail cost
+L009,MAT,PKG-07,N/A,Ballast Material Supply - crushed aggregate (1950 m³),1,LS,117000,117000,CAD,ALLOWANCE,A-009,LOW,1950 m³ at $60/m³
+L010,MAT,PKG-07,N/A,End Stops - hydraulic or mechanical car stops (4 units),1,LS,40000,40000,CAD,ALLOWANCE,A-013,LOW,4 units at $10k/unit material
+L011,CD,PKG-07,N/A,Track Installation - New Tracks 6 & 7 (1000m rail placement alignment fastening),1,LS,200000,200000,CAD,ALLOWANCE,A-006,LOW,1000m at $200/m labor
+L012,CD,PKG-07,N/A,Track Restoration - Track 5 (300m remove relay align),1,LS,75000,75000,CAD,ALLOWANCE,A-008,LOW,300m at $250/m (higher complexity)
+L013,CD,PKG-07,N/A,Ballast Placement & Compaction - spread level compact test (1950 m³),1,LS,78000,78000,CAD,ALLOWANCE,A-010,LOW,1950 m³ at $40/m³
+L014,CD,PKG-07,N/A,End Stop Installation - anchor position test (4 units),1,LS,20000,20000,CAD,ALLOWANCE,A-013,LOW,4 units at $5k/unit labor
+L015,CD,PKG-07,N/A,Track Alignment Survey - pre and post installation surveys,1,LS,25000,25000,CAD,ALLOWANCE,A-014,LOW,Survey and verification
+L016,CD,PKG-07,N/A,Track Geometry Testing - alignment gauge elevation testing,1,LS,15000,15000,CAD,ALLOWANCE,A-016,LOW,~65 test locations
+L017,CD,PKG-07,N/A,Ballast Material Testing - gradation and compaction verification,1,LS,8000,8000,CAD,ALLOWANCE,A-017,LOW,Testing during placement
+L018,CD,PKG-07,N/A,Rail Weld Inspection - visual and UT inspection of rail joints,1,LS,12000,12000,CAD,ALLOWANCE,A-018,LOW,Inspection per welding plan
+L019,CD,PKG-07,N/A,Track Access Coordination - flagging protection during terminal operations,1,LS,35000,35000,CAD,ALLOWANCE,A-019,LOW,Safety and coordination allowance
+L020,CI,PKG-07,N/A,Construction Indirects - field supervision site overhead QA/QC (factor-based),1,LS,84000,84000,CAD,PARAMETRIC,D-009,LOW,18% of CD base ($468k × 0.18)
+L021,PM,PKG-07,N/A,EPCM / Project Management - PKG-07 allocation (factor-based),1,LS,87000,87000,CAD,PARAMETRIC,D-009,MED,6% of (CD+CI+MAT) base
+L022,P,PKG-07,N/A,Procurement Services - vendor coordination expediting (factor-based),1,LS,18000,18000,CAD,PARAMETRIC,D-009,MED,2% of MAT ($898k × 0.02)
+L023,COM,PKG-07,N/A,Track Commissioning - load testing final verification acceptance,1,LS,44000,44000,CAD,PARAMETRIC,D-009,LOW,3% of (CD+CI+MAT) base
