@@ -37,6 +37,10 @@ This file contains configuration overrides for the estimating pipeline.
 
 ## Estimate Scope
 
-This estimate covers **PKG-00 Site Establishment only** (8 deliverables: DEL-00.01 through DEL-00.08).
-
 This is a phased estimating approach where each package is estimated separately.
+
+**Completed Packages:**
+- PKG-00 Site Establishment (EST_PKG00_DRAFT_2026-01-28_2315)
+- PKG-01 Demolition & Removals (EST_PKG01_DRAFT_2026-01-28_2330)
+
+**Next Package:** PKG-02 Earthworks & Ground Improvement
