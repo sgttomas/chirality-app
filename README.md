@@ -1,6 +1,6 @@
 # Chirality App
 
-A multi-agent documentation framework for EPC (Engineering, Procurement, Construction) and design-build projects.
+A multi-agent framework for EPC (Engineering, Procurement, Construction) and design-build projects.
 
 Chirality App provides a structured, deliverable-centric approach to producing engineering and project documentation using coordinated AI agents. Work is organized around **deliverables** that progress through a defined lifecycle, with clear boundaries between local (single-deliverable) and cross-project operations.
 
