@@ -16,17 +16,22 @@ This specification defines the requirements for **Electrical Power Installation 
 - Test records shall document all factory and field tests performed on electrical power distribution equipment
 - Record types: FAT records (transformers, switchgear, MCCs), insulation resistance tests (Megger), Hi-Pot tests (MV cables/equipment), protection relay tests, circuit breaker operation tests, ground resistance tests, load/energization tests
 - **Source**: CEC, IEEE testing standards; project commissioning requirements
-- **Rationale**: Complete test records provide evidence of code compliance, support warranty claims, enable future troubleshooting
+- **Rationale**: Complete test records provide evidence of code compliance, support warranty claims, enable future troubleshooting. See Guidance.md — Principle 4 (Document Everything).
+- **Procedure**: See Procedure.md — Steps 1-4 (Testing Steps), Step 5 (Test Record Compilation).
 
 **FR-2: Test Results and Acceptance Criteria**
 - All test records shall include: Equipment identification, test method/standard, acceptance criteria, actual test results, pass/fail determination
 - Failed tests shall be documented with corrective action and retest results
 - **Source**: Quality assurance and regulatory compliance requirements
+- **Rationale**: See Guidance.md — Principle 1 (Testing as Verification), Consideration 4 (Test Failures and Retesting).
+- **Procedure**: See Procedure.md — Steps 2-4 (Testing Steps with acceptance criteria).
 
 **FR-3: Test Equipment Calibration**
 - Test records shall identify test equipment used (make, model, serial number, calibration date)
 - Test equipment shall have valid calibration (within calibration interval)
 - **Source**: Quality assurance requirements; ISO 17025 (testing laboratory standards)
+- **Rationale**: See Guidance.md — Principle 3 (Test Equipment Calibration).
+- **Procedure**: See Procedure.md — Step 5b (Test Record Review — verify calibration valid).
 
 ### Performance Requirements
 

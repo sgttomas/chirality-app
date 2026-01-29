@@ -28,26 +28,35 @@ This specification defines the requirements for **Electrical Power Technical Spe
 - **Source**: Decomposition DEL-17.02 description (defines performance, materials, and workmanship requirements).
 - Equipment categories: Transformers, Switchgear (MV and LV), Motor Control Centers (MCCs), Power Cables (MV and LV).
 - **Rationale**: See Guidance.md — Principle 1 (Equipment Specification Completeness).
+- **Procedure**: See Procedure.md — Step 4 (Draft Equipment-Specific Specification Sections).
 
 **FR-2: Design-Build Procurement Suitability**
 - Specifications shall be suitable for design-build procurement, allowing contractors to propose equipment that meets performance requirements from multiple manufacturers.
 - **Source**: Project delivery model (Design & Build contract — Decomposition Section 1).
 - **ASSUMPTION**: Performance-based specifications preferred over prescriptive (brand-specific) specifications to encourage competition and value engineering.
+- **Rationale**: See Guidance.md — Principle 2 (Performance-Based vs. Prescriptive Specifications).
+- **Procedure**: See Procedure.md — Step 2 (Select Specification Template and Organization).
 
 **FR-3: Code and Standards Compliance**
 - All equipment specifications shall reference and require compliance with applicable Canadian codes and international standards.
 - **Source**: OBJ-6 (Regulatory Compliance — Decomposition Section 2); CEC, CSA, IEEE standards.
 - Mandatory standards: CSA C22.1 (CEC), CSA equipment standards (C88, C802, C22.2 series), IEEE standards (C37, C57, 80, 693).
+- **Rationale**: See Guidance.md — Principle 3 (Standards-Based Equipment Requirements).
+- **Procedure**: See Procedure.md — Step 3 (Draft General Requirements Section), Step 4b (Define Materials and Construction Requirements).
 
 **FR-4: Environmental and Seismic Requirements**
 - Specifications shall address environmental conditions (coastal BC climate, corrosion protection) and seismic qualification requirements.
 - **Source**: Project location (Fraser Surrey Terminal — marine/industrial environment); BC high seismic zone.
 - **ASSUMPTION**: NEMA 3R or 4X enclosures for outdoor equipment; IEEE 693 seismic qualification or CSA C22.3 No. 7 anchorage requirements.
+- **Rationale**: See Guidance.md — Principle 4 (Environmental and Application-Specific Requirements), Consideration 9 (Seismic Qualification).
+- **Procedure**: See Procedure.md — Step 4b (Apply project-specific requirements).
 
 **FR-5: Submittal and Quality Requirements**
 - Specifications shall define submittal requirements (shop drawings, product data, test reports, certifications) and quality assurance/quality control (QA/QC) procedures.
 - **Source**: Project quality management plan (standard design-build practice).
 - Submittals required: Equipment data sheets (pre-purchase), shop drawings, factory acceptance test (FAT) reports, installation test records.
+- **Rationale**: See Guidance.md — Principle 5 (Submittal and Quality Assurance Requirements).
+- **Procedure**: See Procedure.md — Step 3 (Draft General Requirements Section — Submittals and QA), Step 4c (Define Testing and Documentation Requirements).
 
 ### Specification Requirements by Equipment Category
 

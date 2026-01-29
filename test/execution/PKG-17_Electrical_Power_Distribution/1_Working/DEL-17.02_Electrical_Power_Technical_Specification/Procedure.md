@@ -146,6 +146,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Write general requirements applicable to all electrical equipment.
 
+**Implements**: FR-5 (Submittal and Quality Requirements) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 5 (Submittal and Quality Assurance Requirements).
+
 **Activities**:
 3.1. **Scope and Related Sections**:
      - Define overall scope of electrical power distribution work
@@ -178,6 +181,9 @@ This procedure defines the process for producing and managing **Electrical Power
 ### Step 4: Draft Equipment-Specific Specification Sections
 
 **Objective**: Write detailed specifications for each equipment category.
+
+**Implements**: FR-1 (Comprehensive Equipment Specifications), SR-1 through SR-5 — See Specification.md.
+**Rationale**: See Guidance.md — Principles 1-6, Considerations 1-10.
 
 **For each equipment category (Transformers, Switchgear, MCCs, Cables), perform the following**:
 

@@ -15,17 +15,22 @@ This specification defines the requirements for **Electrical Power Data Sheet Pa
 **FR-1: Equipment Data Sheet Completeness**
 - Data sheets shall include: Nameplate ratings, construction details, performance data, accessories, test results, compliance certifications
 - **Source**: Equipment procurement and verification requirements
-- **Rationale**: Complete data sheets enable specification compliance verification and support installation/commissioning
+- **Rationale**: Complete data sheets enable specification compliance verification and support installation/commissioning. See Guidance.md — Principle 1 (Data Sheet as Compliance Verification Tool).
+- **Procedure**: See Procedure.md — Step 3 (Data Sheet Technical Review).
 
 **FR-2: Specification Compliance Verification**
 - Data sheets shall demonstrate equipment compliance with DEL-17.02 (Technical Specification) requirements
 - Deviations from specifications shall be identified and flagged for review/approval
 - **Source**: Quality assurance and procurement requirements
+- **Rationale**: See Guidance.md — Consideration 1 (Data Sheet Review Focus).
+- **Procedure**: See Procedure.md — Step 3 (Data Sheet Technical Review), Step 4 (Approval or Rejection).
 
 **FR-3: Calculation Verification**
 - Equipment ratings on data sheets shall match or exceed ratings in DEL-17.03 (Design Calculations)
 - Transformer kVA, switchgear/MCC bus ratings, circuit breaker interrupting capacity shall be verified
 - **Source**: Design verification requirements
+- **Rationale**: See Guidance.md — Principle 1 (Data Sheet as Compliance Verification Tool).
+- **Procedure**: See Procedure.md — Step 3 (Data Sheet Technical Review).
 
 ### Performance Requirements
 

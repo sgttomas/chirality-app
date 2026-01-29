@@ -28,13 +28,13 @@
 
 **ASSUMPTION**: Typical drawing set for canola oil transload facility with 1,000,000 MT/a capacity includes:
 
-| Drawing Type | Estimated Quantity | Purpose | Specification Reference |
-|--------------|-------------------|---------|------------------------|
-| Single Line Diagrams (SLDs) | 3-5 sheets | Overall electrical distribution architecture, primary and secondary distribution | FR-1 (Specification.md) |
-| MV Distribution Drawings | 2-4 sheets | Medium voltage (25 kV or 13.8 kV class) incoming service and distribution | FR-2 (Specification.md) |
-| LV Distribution Drawings | 8-12 sheets | Low voltage (600V/480V/208V-120V) distribution, panel locations, load assignments | FR-3 (Specification.md) |
-| Cable Schedules | 4-8 sheets | Power cable routing, sizing, terminations for MV and LV circuits | FR-4 (Specification.md) |
-| Grounding Drawings | 2-4 sheets | Grounding grid, equipment grounding, lightning protection, bonding details | FR-5 (Specification.md) |
+| Drawing Type | Estimated Quantity | Purpose | Specification Reference | Guidance Reference | Procedure Step |
+|--------------|-------------------|---------|------------------------|-------------------|----------------|
+| Single Line Diagrams (SLDs) | 3-5 sheets | Overall electrical distribution architecture, primary and secondary distribution | FR-1 (Specification.md) | Principle 1 (Guidance.md) | Step 3 (Procedure.md) |
+| MV Distribution Drawings | 2-4 sheets | Medium voltage (25 kV or 13.8 kV class) incoming service and distribution | FR-2 (Specification.md) | Principle 2 (Guidance.md) | Step 4 (Procedure.md) |
+| LV Distribution Drawings | 8-12 sheets | Low voltage (600V/480V/208V-120V) distribution, panel locations, load assignments | FR-3 (Specification.md) | Principle 2 (Guidance.md) | Step 4 (Procedure.md) |
+| Cable Schedules | 4-8 sheets | Power cable routing, sizing, terminations for MV and LV circuits | FR-4 (Specification.md) | Consideration 4 (Guidance.md) | Step 5 (Procedure.md) |
+| Grounding Drawings | 2-4 sheets | Grounding grid, equipment grounding, lightning protection, bonding details | FR-5 (Specification.md) | Principle 4 (Guidance.md) | Step 6 (Procedure.md) |
 
 **Source**: _CONTEXT.md (anticipated artifacts); quantities are ASSUMPTION based on facility scope (Decomposition Section 4 — PKG-17).
 **Cross-Reference**: See Specification.md for functional requirements (FR-1 through FR-6) and Procedure.md Steps 3-6 for drawing production procedures.

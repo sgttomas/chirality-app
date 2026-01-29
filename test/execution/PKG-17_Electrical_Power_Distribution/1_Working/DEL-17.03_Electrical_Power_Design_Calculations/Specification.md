@@ -24,6 +24,7 @@ This specification defines the requirements for **Electrical Power Design Calcul
 - Size transformers, switchgear, and MCCs based on demand load plus spare capacity (20-25% for Phase 2 expansion per OBJ-8)
 - Organize loads by voltage level and distribution point
 - **Rationale**: See Guidance.md — Principle 1 (Load Diversity and Demand Factors)
+- **Procedure**: See Procedure.md — Step 2 (Load Calculations)
 
 **FR-2: Short Circuit Analysis**
 - Calculate three-phase and line-to-ground fault currents at each bus
@@ -31,6 +32,7 @@ This specification defines the requirements for **Electrical Power Design Calcul
 - Determine X/R ratios
 - Verify equipment ratings (interrupting capacity, withstand ratings) exceed calculated fault currents
 - **Rationale**: See Guidance.md — Principle 2 (Fault Current Determination)
+- **Procedure**: See Procedure.md — Step 3 (Short Circuit Analysis)
 
 **FR-3: Protection Coordination Study**
 - Coordinate all protective devices (relays, breakers, fuses) for selective operation
@@ -39,12 +41,14 @@ This specification defines the requirements for **Electrical Power Design Calcul
 - Verify coordination intervals meet minimum requirements (0.2-0.3 sec for breakers)
 - Verify devices do not trip on motor starting inrush
 - **Rationale**: See Guidance.md — Principle 3 (Selective Coordination)
+- **Procedure**: See Procedure.md — Step 4 (Protection Coordination Study)
 
 **FR-4: Voltage Drop Analysis**
 - Calculate voltage drop for all feeders and branch circuits
 - Verify voltage drop ≤ 3% for feeders, ≤ 5% total per IEEE Std 141
 - Verify cable sizing meets both ampacity (CEC) and voltage drop requirements
 - **Rationale**: See Guidance.md — Principle 4 (Voltage Regulation)
+- **Procedure**: See Procedure.md — Step 5 (Voltage Drop Analysis)
 
 **FR-5: Grounding Grid Design** (if included)
 - Design grounding grid per IEEE Std 80

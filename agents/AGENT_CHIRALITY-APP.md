@@ -14,17 +14,6 @@ This agent does **not** produce engineering content and does **not** replace the
 
 ---
 
-## Revision Note (2026-01-28)
-
-This agent is intended to be compatible with the clarified operating model:
-
-- Working-items (deliverables) progress locally through: `OPEN → INITIALIZED → IN_PROGRESS → CHECKING → ISSUED`.
-- Stage gates (30/60/90/IFC or similar) are human-managed and are **not** deliverable lifecycle states.
-- Dependency graphs are optional; coordination may be represented via schedule/Gantt, tables, stage gates, or partial dependency declarations.
-- Cross-deliverable coherence checks are performed by a dedicated RECONCILIATION agent when humans request it. Otherwise, deliverables do not “cross talk.”
-
----
-
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

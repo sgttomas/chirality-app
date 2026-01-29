@@ -28,34 +28,43 @@ This specification defines the requirements for **Electrical Power Design Drawin
 - **Source**: Decomposition PKG-17 scope (MV/LV distribution, transformers, switchgear, MCC, panels).
 - **ASSUMPTION**: Single line diagrams (SLDs) shall show all major electrical equipment, protection devices, and distribution paths.
 - **Rationale**: See Guidance.md — Principle 1 (Hierarchical Distribution Architecture).
+- **Procedure**: See Procedure.md — Step 3 (Develop Single Line Diagrams).
 
 **FR-2: Medium Voltage Distribution Documentation**
 - Drawings shall document MV service incoming from utility (BC Hydro), MV switchgear lineup, sectionalizing and protection scheme, transformer primary connections.
 - **Source**: PKG-17 scope (MV/LV distribution, transformers).
 - **TBD**: Utility service voltage level (anticipated: 25 kV or 13.8 kV class) — confirm with BC Hydro coordination.
+- **Rationale**: See Guidance.md — Principle 2 (Voltage Level Selection).
+- **Procedure**: See Procedure.md — Step 4 (Develop MV/LV Distribution Drawings).
 
 **FR-3: Low Voltage Distribution Documentation**
 - Drawings shall document LV distribution from transformer secondary through switchgear/MCCs to load centers, motor control centers, and distribution panels.
 - **Source**: PKG-17 scope (LV distribution, MCC, panels).
 - **ASSUMPTION**: Typical voltage levels: 600V for large motors, 480V for process loads, 208V-120V for lighting and small loads.
-- **Rationale**: See Guidance.md — Principle 2 (Voltage Level Selection).
+- **Rationale**: See Guidance.md — Principle 2 (Voltage Level Selection), Principle 3 (Protection and Coordination).
+- **Procedure**: See Procedure.md — Step 4 (Develop MV/LV Distribution Drawings).
 
 **FR-4: Cable Routing and Sizing Documentation**
 - Cable schedules shall identify all power cables with circuit designation, conductor size, insulation type, length, routing path, and termination points.
 - **Source**: _CONTEXT.md anticipated artifacts (cable schedules); PKG-17 scope (cable installation).
 - Cables shall be sized per CEC Section 4 (conductor ampacity) and voltage drop requirements (max 3% for feeders, 5% total per IEEE recommendations).
 - **Reference**: See DEL-17.03 (Design Calculations) for cable sizing calculations.
+- **Rationale**: See Guidance.md — Consideration 2 (Voltage Drop and Power Quality), Consideration 4 (Cable Routing and Installation Methods).
+- **Procedure**: See Procedure.md — Step 5 (Develop Cable Schedules).
 
 **FR-5: Grounding System Documentation**
 - Grounding drawings shall document the facility grounding grid, equipment grounding connections, lightning protection system, and bonding of all metallic structures.
 - **Source**: _CONTEXT.md anticipated artifacts (grounding drawings); CEC Section 10 (grounding and bonding).
 - Grounding system shall comply with IEEE Std 80 (grounding grid design) and CEC requirements.
 - **Rationale**: See Guidance.md — Principle 4 (Grounding and Bonding).
+- **Procedure**: See Procedure.md — Step 6 (Develop Grounding Drawings).
 
 **FR-6: Load Assignment and Circuit Identification**
 - Drawings shall clearly identify all loads, their assigned circuits, protection devices, and power sources.
 - Load data shall be consistent with DEL-17.03 (Design Calculations — load analysis).
 - Circuit identification shall follow a consistent numbering scheme — **TBD** (per project standards).
+- **Rationale**: See Guidance.md — Consideration 1 (Load Characterization and Demand Factors).
+- **Procedure**: See Procedure.md — Step 2 (Electrical Load Analysis), Step 3 (Develop SLDs).
 
 ### Performance Requirements
 

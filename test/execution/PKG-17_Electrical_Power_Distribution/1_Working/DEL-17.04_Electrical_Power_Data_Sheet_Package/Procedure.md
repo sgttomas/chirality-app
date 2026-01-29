@@ -30,6 +30,10 @@ This procedure defines the process for producing and managing **Electrical Power
 - Distribute to electrical engineer for technical review
 
 ### Step 3: Data Sheet Technical Review
+
+**Implements**: FR-1 (Data Sheet Completeness), FR-2 (Specification Compliance), FR-3 (Calculation Verification) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 1 (Data Sheet as Compliance Verification Tool), Consideration 1 (Data Sheet Review Focus).
+
 - **Review Scope**: Verify equipment ratings match specifications (DEL-17.02), verify ratings meet or exceed calculation requirements (DEL-17.03), verify test results acceptable, verify compliance certifications present (CSA/UL marks)
 - **Review Criteria**: Ratings ≥ specified; test results within acceptable limits; certifications valid
 - **Flag Deviations**: Identify any non-compliance issues for resolution with manufacturer

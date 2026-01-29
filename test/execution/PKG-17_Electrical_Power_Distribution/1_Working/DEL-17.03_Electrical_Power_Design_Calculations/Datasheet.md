@@ -27,14 +27,14 @@
 
 **Source**: _CONTEXT.md anticipated artifacts; typical electrical design calculation requirements.
 
-| Calculation Type | Purpose | Methodology/Standard | Software Tool |
-|------------------|---------|----------------------|---------------|
-| **Load Calculations** | Size transformers, switchgear, MCCs, feeders; determine demand load | IEEE Std 141 Chapter 4, CEC demand factors | Spreadsheet or ETAP/SKM |
-| **Short Circuit Analysis** | Determine available fault current at each bus; size circuit breakers and equipment | IEEE Std 141 Chapter 4, ANSI/IEEE C37 series | ETAP/SKM PowerTools |
-| **Protection Coordination Study** | Coordinate protective device settings for selective operation | IEEE Std 242, IEEE Std 141 Chapter 5 | ETAP/SKM PowerTools |
-| **Voltage Drop Analysis** | Verify cable sizing meets voltage drop limits (3% feeders, 5% total) | CEC Section 8, IEEE Std 141 Chapter 4 | Spreadsheet or ETAP/SKM |
-| **Grounding Grid Design** | Design grounding grid to limit step/touch potentials | IEEE Std 80 | ETAP/SKM or specialized grounding software |
-| **Arc Flash Hazard Analysis** (Optional) | Determine incident energy and arc flash boundaries | CSA Z462, IEEE Std 1584 | ETAP/SKM PowerTools |
+| Calculation Type | Purpose | Methodology/Standard | Software Tool | Specification Reference | Guidance Reference | Procedure Step |
+|------------------|---------|----------------------|---------------|------------------------|-------------------|----------------|
+| **Load Calculations** | Size transformers, switchgear, MCCs, feeders; determine demand load | IEEE Std 141 Chapter 4, CEC demand factors | Spreadsheet or ETAP/SKM | FR-1 (Specification.md) | Principle 1 (Guidance.md) | Step 2 (Procedure.md) |
+| **Short Circuit Analysis** | Determine available fault current at each bus; size circuit breakers and equipment | IEEE Std 141 Chapter 4, ANSI/IEEE C37 series | ETAP/SKM PowerTools | FR-2 (Specification.md) | Principle 2 (Guidance.md) | Step 3 (Procedure.md) |
+| **Protection Coordination Study** | Coordinate protective device settings for selective operation | IEEE Std 242, IEEE Std 141 Chapter 5 | ETAP/SKM PowerTools | FR-3 (Specification.md) | Principle 3 (Guidance.md) | Step 4 (Procedure.md) |
+| **Voltage Drop Analysis** | Verify cable sizing meets voltage drop limits (3% feeders, 5% total) | CEC Section 8, IEEE Std 141 Chapter 4 | Spreadsheet or ETAP/SKM | FR-4 (Specification.md) | Principle 4 (Guidance.md) | Step 5 (Procedure.md) |
+| **Grounding Grid Design** | Design grounding grid to limit step/touch potentials | IEEE Std 80 | ETAP/SKM or specialized grounding software | FR-5 (Specification.md) | Consideration 7 (Guidance.md) | Step 6 (Procedure.md) |
+| **Arc Flash Hazard Analysis** (Optional) | Determine incident energy and arc flash boundaries | CSA Z462, IEEE Std 1584 | ETAP/SKM PowerTools | FR-6 (Specification.md) | Consideration 8 (Guidance.md) | Step 7 (Procedure.md) |
 
 **Note**: Arc flash hazard analysis may be included in this deliverable or performed as a separate study — **TBD** (per Employer's Requirements and project scope).
 

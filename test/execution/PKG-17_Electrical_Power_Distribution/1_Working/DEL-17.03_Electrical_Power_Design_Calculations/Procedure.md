@@ -76,6 +76,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Calculate connected load, demand load, and transformer/switchgear sizing.
 
+**Implements**: FR-1 (Load Calculations) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 1 (Load Diversity and Demand Factors).
+
 **Activities**:
 2.1. **Organize Loads**:
      - Group loads by voltage level (600V, 480V, 208V-120V)
@@ -105,6 +108,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Calculate fault currents to verify equipment ratings.
 
+**Implements**: FR-2 (Short Circuit Analysis) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 2 (Fault Current Determination).
+
 **Activities**:
 3.1. **Build System Model** (in ETAP or SKM):
      - Model utility source (voltage, fault current from Step 1.2)
@@ -132,6 +138,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Coordinate protective devices for selective operation.
 
+**Implements**: FR-3 (Protection Coordination Study) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 3 (Selective Coordination).
+
 **Activities**:
 4.1. **Compile Protective Device Data**:
      - Circuit breaker time-current curves (from manufacturer data)
@@ -155,6 +164,9 @@ This procedure defines the process for producing and managing **Electrical Power
 ### Step 5: Voltage Drop Analysis
 
 **Objective**: Verify cable sizing meets voltage drop limits.
+
+**Implements**: FR-4 (Voltage Drop Analysis) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 4 (Voltage Regulation).
 
 **Activities**:
 5.1. **List All Feeders and Branch Circuits**:

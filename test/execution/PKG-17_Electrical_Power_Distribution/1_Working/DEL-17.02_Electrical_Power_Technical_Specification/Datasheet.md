@@ -27,14 +27,14 @@
 
 **ASSUMPTION**: Technical specification organized by equipment/material category:
 
-| Section | Content | Specification Reference |
-|---------|---------|------------------------|
-| **Section 1: General** | Scope, references, definitions, submittals, quality assurance | Specification.md — General Requirements |
-| **Section 2: Transformer Specification** | Performance, construction, materials, testing, documentation for transformers | Specification.md — SR-1 |
-| **Section 3: Switchgear Specification** | Performance, construction, materials, testing, documentation for switchgear | Specification.md — SR-2 |
-| **Section 4: MCC Specification** | Performance, construction, materials, testing, documentation for motor control centers | Specification.md — SR-3 |
-| **Section 5: Cable Specification** | Performance, construction, materials, testing, documentation for power cables | Specification.md — SR-4 |
-| **Section 6: Accessories** | Cable terminations, supports, grounding materials, labels | Specification.md — SR-5 |
+| Section | Content | Specification Reference | Guidance Reference | Procedure Step |
+|---------|---------|------------------------|-------------------|----------------|
+| **Section 1: General** | Scope, references, definitions, submittals, quality assurance | Specification.md — General Requirements | Principle 5 (Guidance.md) | Step 3 (Procedure.md) |
+| **Section 2: Transformer Specification** | Performance, construction, materials, testing, documentation for transformers | Specification.md — SR-1 | Consideration 3 (Guidance.md) | Step 4a (Procedure.md) |
+| **Section 3: Switchgear Specification** | Performance, construction, materials, testing, documentation for switchgear | Specification.md — SR-2 | Consideration 2 (Guidance.md) | Step 4a (Procedure.md) |
+| **Section 4: MCC Specification** | Performance, construction, materials, testing, documentation for motor control centers | Specification.md — SR-3 | Consideration 4 (Guidance.md) | Step 4a (Procedure.md) |
+| **Section 5: Cable Specification** | Performance, construction, materials, testing, documentation for power cables | Specification.md — SR-4 | Consideration 5 (Guidance.md) | Step 4a (Procedure.md) |
+| **Section 6: Accessories** | Cable terminations, supports, grounding materials, labels | Specification.md — SR-5 | Consideration 6 (Guidance.md) | Step 4a (Procedure.md) |
 
 **Source**: _CONTEXT.md (anticipated artifacts); typical electrical specification organization per CSI MasterFormat Division 26.
 

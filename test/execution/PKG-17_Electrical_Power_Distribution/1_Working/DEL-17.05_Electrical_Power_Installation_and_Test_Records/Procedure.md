@@ -21,12 +21,19 @@ This procedure defines the process for producing and managing **Electrical Power
 ## Steps
 
 ### Step 1: Factory Acceptance Test (FAT) Coordination
+
+**Implements**: FR-1 (Comprehensive Test Record Documentation) — See Specification.md.
+**Rationale**: See Guidance.md — Consideration 1 (Factory Acceptance Test Witness).
+
 - Schedule FAT at manufacturer facilities (transformers, switchgear, MCCs)
 - Determine if Owner or engineer will witness FAT (optional)
 - Receive FAT reports from manufacturers (part of equipment submittal — DEL-17.04)
 - Review FAT reports for compliance with specifications; flag any test failures or deviations
 
 ### Step 2: Pre-Energization Field Testing
+
+**Implements**: FR-2 (Test Results and Acceptance Criteria), FR-3 (Test Equipment Calibration) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 2 (Test Before Energize), Consideration 2 (Insulation Test Voltage Selection).
 
 **Step 2a: Visual Inspection**
 - Inspect installed equipment: Verify equipment installed per drawings, verify proper clearances (CEC Section 2), verify grounding connections, verify labels/nameplates
@@ -53,6 +60,9 @@ This procedure defines the process for producing and managing **Electrical Power
 - Document test results (test form with resistance measured, pass/fail)
 
 ### Step 3: Protection Relay and Circuit Breaker Testing
+
+**Implements**: FR-2 (Test Results and Acceptance Criteria) — See Specification.md.
+**Rationale**: See Guidance.md — Consideration 3 (Protection Relay Testing Scope), Principle 1 (Testing as Verification).
 
 **Step 3a: Protection Relay Testing**
 - Perform relay tests on MV switchgear protective relays and LV trip units
@@ -85,6 +95,9 @@ This procedure defines the process for producing and managing **Electrical Power
 - Document load test results (load test forms with voltages/currents measured, load applied)
 
 ### Step 5: Test Record Compilation and Review
+
+**Implements**: FR-1 (Comprehensive Test Record Documentation), FR-3 (Test Equipment Calibration), QR-2 (Test Record Sign-Off and Approval) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 4 (Document Everything), Principle 5 (Witness Testing).
 
 **Step 5a: Compile Test Records**
 - Collect all test records (FAT, Megger, Hi-Pot, relay tests, breaker tests, ground resistance, load tests)

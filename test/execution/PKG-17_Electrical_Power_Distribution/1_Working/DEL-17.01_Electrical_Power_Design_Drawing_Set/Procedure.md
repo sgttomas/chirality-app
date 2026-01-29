@@ -130,6 +130,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Create one-line representation of electrical distribution architecture.
 
+**Implements**: FR-1 (System Architecture Representation) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 1 (Hierarchical Distribution Architecture).
+
 **Activities**:
 3.1. Develop overall facility SLD showing:
      - Utility service entrance and metering
@@ -158,6 +161,9 @@ This procedure defines the process for producing and managing **Electrical Power
 ### Step 4: Develop MV/LV Distribution Drawings (Site Plans and Layouts)
 
 **Objective**: Document physical locations and arrangements of electrical equipment.
+
+**Implements**: FR-2 (MV Distribution), FR-3 (LV Distribution) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 2 (Voltage Level Selection), Consideration 4 (Cable Routing and Installation Methods).
 
 **Activities**:
 4.1. Develop site electrical plan showing:
@@ -194,6 +200,9 @@ This procedure defines the process for producing and managing **Electrical Power
 
 **Objective**: Document all power cables with circuit identification, sizing, routing, and terminations.
 
+**Implements**: FR-4 (Cable Routing and Sizing Documentation) — See Specification.md.
+**Rationale**: See Guidance.md — Consideration 2 (Voltage Drop and Power Quality), Consideration 4 (Cable Routing and Installation Methods).
+
 **Activities**:
 5.1. Develop cable schedule tables with columns:
      - Circuit ID (circuit number or tag)
@@ -224,6 +233,9 @@ This procedure defines the process for producing and managing **Electrical Power
 ### Step 6: Develop Grounding Drawings
 
 **Objective**: Document facility grounding system for personnel safety and equipment protection.
+
+**Implements**: FR-5 (Grounding System Documentation) — See Specification.md.
+**Rationale**: See Guidance.md — Principle 4 (Grounding and Bonding).
 
 **Activities**:
 6.1. Develop site grounding grid layout:

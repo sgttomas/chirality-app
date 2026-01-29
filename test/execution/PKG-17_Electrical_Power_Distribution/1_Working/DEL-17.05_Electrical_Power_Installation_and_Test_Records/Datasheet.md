@@ -24,16 +24,16 @@
 
 ### Test Record Types and Purposes
 
-| Test Record Type | Equipment/System Tested | Purpose | Test Standard |
-|------------------|-------------------------|---------|---------------|
-| **Factory Acceptance Test (FAT) Records** | Transformers, switchgear, MCCs (major equipment) | Verify equipment performance at factory before shipment | CSA C88/C802, C22.2 No. 31/254, IEEE C57/C37 |
-| **Insulation Resistance (Megger) Test Records** | All electrical equipment and cables | Verify insulation integrity before energization | CEC, IEEE Std 43 |
-| **High-Potential (Hi-Pot) Test Records** | MV cables, MV equipment | Verify dielectric strength of insulation | CEC, IEEE Std 400 |
-| **Protection Relay Test Records** | MV switchgear protective relays, LV trip units | Verify relay operation and settings per coordination study | IEEE C37.90, manufacturer procedures |
-| **Circuit Breaker Operation Test Records** | MV and LV circuit breakers | Verify mechanical and electrical operation | IEEE C37.09, C37.50 |
-| **Ground Resistance Test Records** | Grounding grid, ground rods | Verify grounding system resistance meets design (< 5 ohms typical) | IEEE Std 81 |
-| **Load Test/Energization Records** | Distribution system (transformers, feeders, MCCs) | Verify system operates under load, voltage regulation acceptable | Project commissioning procedures |
-| **Commissioning Test Summary** | Complete electrical distribution system | Overall system acceptance and turnover | Project commissioning plan |
+| Test Record Type | Equipment/System Tested | Purpose | Test Standard | Specification Reference | Guidance Reference | Procedure Step |
+|------------------|-------------------------|---------|---------------|------------------------|-------------------|----------------|
+| **Factory Acceptance Test (FAT) Records** | Transformers, switchgear, MCCs (major equipment) | Verify equipment performance at factory before shipment | CSA C88/C802, C22.2 No. 31/254, IEEE C57/C37 | FR-1 (Specification.md) | Consideration 1 (Guidance.md) | Step 1 (Procedure.md) |
+| **Insulation Resistance (Megger) Test Records** | All electrical equipment and cables | Verify insulation integrity before energization | CEC, IEEE Std 43 | FR-2 (Specification.md) | Principle 2 (Guidance.md) | Step 2b (Procedure.md) |
+| **High-Potential (Hi-Pot) Test Records** | MV cables, MV equipment | Verify dielectric strength of insulation | CEC, IEEE Std 400 | FR-2 (Specification.md) | Consideration 2 (Guidance.md) | Step 2c (Procedure.md) |
+| **Protection Relay Test Records** | MV switchgear protective relays, LV trip units | Verify relay operation and settings per coordination study | IEEE C37.90, manufacturer procedures | FR-2 (Specification.md) | Consideration 3 (Guidance.md) | Step 3a (Procedure.md) |
+| **Circuit Breaker Operation Test Records** | MV and LV circuit breakers | Verify mechanical and electrical operation | IEEE C37.09, C37.50 | FR-2 (Specification.md) | Principle 1 (Guidance.md) | Step 3b (Procedure.md) |
+| **Ground Resistance Test Records** | Grounding grid, ground rods | Verify grounding system resistance meets design (< 5 ohms typical) | IEEE Std 81 | FR-2 (Specification.md) | Principle 2 (Guidance.md) | Step 2d (Procedure.md) |
+| **Load Test/Energization Records** | Distribution system (transformers, feeders, MCCs) | Verify system operates under load, voltage regulation acceptable | Project commissioning procedures | FR-2 (Specification.md) | Principle 2 (Guidance.md) | Step 4 (Procedure.md) |
+| **Commissioning Test Summary** | Complete electrical distribution system | Overall system acceptance and turnover | Project commissioning plan | QR-2 (Specification.md) | Principle 5 (Guidance.md) | Step 5 (Procedure.md) |
 
 **Source**: _CONTEXT.md (anticipated artifacts); typical electrical commissioning test requirements per CEC, IEEE, CSA standards.
 

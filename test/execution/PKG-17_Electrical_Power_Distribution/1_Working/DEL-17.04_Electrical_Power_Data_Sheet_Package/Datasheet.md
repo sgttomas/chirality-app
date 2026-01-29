@@ -24,12 +24,12 @@
 
 ### Data Sheet Types and Purposes
 
-| Data Sheet Type | Equipment Covered | Purpose | Source |
-|-----------------|-------------------|---------|--------|
-| **Transformer Data Sheets** | Unit substations (liquid-filled), dry-type transformers | Nameplate ratings, construction details, test results, compliance certifications | Manufacturer submittal |
-| **Switchgear Data Sheets** | MV switchgear, LV switchgear | Bus ratings, breaker ratings, protection relay data, test results | Manufacturer submittal |
-| **MCC Data Sheets** | Motor control centers (600V or 480V) | Bus rating, bucket schedule, motor starter data, test results | Manufacturer submittal |
-| **UPS Data Sheet** | Uninterruptible power supply for control systems | Capacity (kVA), battery backup time, input/output characteristics | Manufacturer submittal |
+| Data Sheet Type | Equipment Covered | Purpose | Source | Specification Reference | Guidance Reference | Procedure Step |
+|-----------------|-------------------|---------|--------|------------------------|-------------------|----------------|
+| **Transformer Data Sheets** | Unit substations (liquid-filled), dry-type transformers | Nameplate ratings, construction details, test results, compliance certifications | Manufacturer submittal | FR-1 (Specification.md) | Principle 1, 2 (Guidance.md) | Step 3 (Procedure.md) |
+| **Switchgear Data Sheets** | MV switchgear, LV switchgear | Bus ratings, breaker ratings, protection relay data, test results | Manufacturer submittal | FR-2 (Specification.md) | Principle 1, 2 (Guidance.md) | Step 3 (Procedure.md) |
+| **MCC Data Sheets** | Motor control centers (600V or 480V) | Bus rating, bucket schedule, motor starter data, test results | Manufacturer submittal | FR-2 (Specification.md) | Principle 1, 2 (Guidance.md) | Step 3 (Procedure.md) |
+| **UPS Data Sheet** | Uninterruptible power supply for control systems | Capacity (kVA), battery backup time, input/output characteristics | Manufacturer submittal | FR-1 (Specification.md) | Principle 1 (Guidance.md) | Step 3 (Procedure.md) |
 
 **Source**: _CONTEXT.md (anticipated artifacts); Decomposition DEL-17.04 entry.
 
