@@ -1,8 +1,0 @@
-CBS,CBSCategory,BaseEstimate_CAD,ContingencyPercent,Contingency_CAD,TotalEstimate_CAD,PercentOfTotal
-E,Engineering & Design,106000,15-20,15750,121750,3.6
-PM,Project Management,192290,15,28645,220935,6.6
-P,Procurement Services,11200,15,1760,12960,0.4
-MAT,Materials,560000,20-25,114000,674000,20.1
-CD,Construction Directs,1430000,25-30,405750,1835750,54.7
-CI,Construction Indirects,436500,25,109375,545875,16.3
-TOTAL,Total All CBS,2736990,22.6,619020,3356010,100.0

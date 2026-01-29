@@ -1,7 +1,0 @@
-WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS_Primary,CBS_Secondary,CBS_Tertiary,Rationale
-PKG-28,DEL-28.01,Independent Design Verification Reports,E,,,Engineering technical review and analysis by independent reviewers
-PKG-28,DEL-28.02,VFPA IP Review Responses,E,PM,,E for technical response preparation; PM for authority coordination and scheduling
-PKG-28,DEL-28.03,Design Coordination Records,PM,,,Project management coordination activities including clash detection and RFI management
-PKG-28,N/A,QA/QC Engineering Review Allocation,CI,,,Construction indirects allocation for quality oversight of design verification process
-PKG-28,N/A,Project Management (calculated),PM,,,EPCM project management allocation (factor-based)
-PKG-28,N/A,Procurement Services (calculated),P,,,Third-party engineering procurement coordination (factor-based)
