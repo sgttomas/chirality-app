@@ -21,3 +21,7 @@ This run collates estimate artifacts for **PKG-35 Training & Handover** only.
 - Prior packages completed: PKG-00 through PKG-34 (35 packages, $115.2M cumulative)
 - Incremental pipeline will incorporate all prior package data into cumulative totals
 - Report back when PKG-35 aggregation is complete
+
+---
+
+**Pipeline Type:** EstimateCollation_PhaseByPackage (Incremental)

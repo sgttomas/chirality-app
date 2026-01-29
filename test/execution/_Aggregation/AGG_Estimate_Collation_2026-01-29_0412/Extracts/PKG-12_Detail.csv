@@ -1,0 +1,26 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-12,DEL-12.01,Metering Design Drawing Set,1,LS,28000,28000,CAD,ALLOWANCE,A-011,LOW,Metering skid GAs + flow meter installation details + proving connection details (6-12 sheets estimated)
+L-002,E,PKG-12,DEL-12.02,Metering Technical Specification,1,LS,38000,38000,CAD,ALLOWANCE,A-012,LOW,Custody transfer flow meter spec + metering system spec (30-50 pages estimated)
+L-003,E,PKG-12,DEL-12.03,Metering Design Calculations,1,LS,42000,42000,CAD,ALLOWANCE,A-013,LOW,Flow meter sizing + accuracy/uncertainty analysis + proving calculations
+L-004,E,PKG-12,DEL-12.04,Metering Data Sheet Package,1,LS,18000,18000,CAD,ALLOWANCE,A-014,LOW,Flow meter data sheets (x2) + transmitter data sheets (4+ sheets)
+L-005,E,PKG-12,DEL-12.05,Metering Installation & Test Records,1,LS,12000,12000,CAD,ALLOWANCE,A-015,LOW,Calibration certificates + proving records + FAT/SAT records
+L-006,MAT,PKG-12,N/A,Custody Transfer Flow Meter - Rail Unloading (6 inch Coriolis),1,EA,180000,180000,CAD,ALLOWANCE,A-016,LOW,6 inch Coriolis mass flowmeter with integral density; custody transfer accuracy; HART/Modbus; Measurement Canada approval
+L-007,MAT,PKG-12,N/A,Custody Transfer Flow Meter - Marine Loading (10 inch Coriolis),1,EA,230000,230000,CAD,ALLOWANCE,A-017,LOW,10 inch Coriolis mass flowmeter with integral density; custody transfer accuracy; HART/Modbus; range $200k-250k
+L-008,MAT,PKG-12,N/A,Temperature Transmitters (RTD Pt100),4,EA,6000,24000,CAD,ALLOWANCE,A-018,MED,RTD Pt100 Class A with 4-20mA + HART; ±0.1°C accuracy for custody transfer compensation
+L-009,MAT,PKG-12,N/A,Pressure Transmitters,2,EA,5000,10000,CAD,ALLOWANCE,A-019,MED,Process pressure transmitters 0-10 bar; ±0.1% accuracy; 4-20mA + HART
+L-010,MAT,PKG-12,N/A,Portable Prover System,1,LS,120000,120000,CAD,ALLOWANCE,A-020,LOW,Portable prover with traceability and Measurement Canada certification; suitable for 6 inch and 10 inch meters
+L-011,MAT,PKG-12,N/A,Metering Skid Structural Steel,1,LS,55000,55000,CAD,ALLOWANCE,A-021,LOW,Structural steel for metering skids (rail and marine) with access platforms; 8-12 tonnes estimated; coordinate with PKG-06
+L-012,MAT,PKG-12,N/A,Meter Run Piping (Stainless Steel),1,LS,35000,35000,CAD,ALLOWANCE,A-022,MED,SS316L piping for meter runs with straight-run sections (10D upstream 5D downstream typical); includes flanges and supports
+L-013,MAT,PKG-12,N/A,Metering System Installation Consumables,1,LS,15000,15000,CAD,ALLOWANCE,A-023,MED,Gaskets + fasteners + welding materials + sealants + calibration fluids
+L-014,MAT,PKG-12,N/A,Flow Computers / Totalizers,2,EA,18000,36000,CAD,ALLOWANCE,A-031,LOW,Flow computers for custody transfer totalizing (1 for rail 1 for marine); or integrated in control system (PKG-19); TBD
+L-015,MAT,PKG-12,N/A,Junction Boxes and Marshalling,1,LS,12000,12000,CAD,ALLOWANCE,A-032,MED,Junction boxes + instrument marshalling panels for metering system; coordinate with PKG-20
+L-016,CD,PKG-12,N/A,Metering System Installation Labor,2400,MH,120,288000,CAD,ALLOWANCE,A-024,LOW,Meter installation + piping + electrical/instrument connections; 2000-2800 hrs estimated at $120/hr all-in
+L-017,CD,PKG-12,N/A,Survey and Setting Out,40,MH,120,5000,CAD,ALLOWANCE,A-025,MED,Survey and setting out for metering skid installation
+L-018,CD,PKG-12,N/A,Specialist Installation Equipment,1,LS,18000,18000,CAD,ALLOWANCE,A-026,MED,Crane/hoist + alignment tools + torque tools + welding equipment for precision meter installation
+L-019,CI,PKG-12,N/A,Construction Indirects,1,LS,56000,56000,CAD,PARAMETRIC,D-007 (18% factor on CD),MED,18% of CD base for supervision + temp facilities + HSE + QA/QC
+L-020,P,PKG-12,N/A,Procurement Services,1,LS,13000,13000,CAD,PARAMETRIC,D-007 (2% factor on MAT),MED,2% of MAT for purchasing + expediting + inspection of custody transfer equipment
+L-021,PM,PKG-12,N/A,Project Management / EPCM,1,LS,71000,71000,CAD,PARAMETRIC,D-007 (6% factor),MED,6% of (CD + CI + MAT) for project management + EPCM
+L-022,COM,PKG-12,N/A,Factory Acceptance Test (FAT) - Flow Meters,1,LS,32000,32000,CAD,ALLOWANCE,A-027,LOW,FAT for 2 custody transfer flow meters at vendor facility; includes witness travel
+L-023,COM,PKG-12,N/A,Site Acceptance Test (SAT) - Metering System,1,LS,28000,28000,CAD,ALLOWANCE,A-028,LOW,Functional testing of installed metering system (2 services); integration testing with control system
+L-024,COM,PKG-12,N/A,Initial Proving (Commissioning),1,LS,48000,48000,CAD,ALLOWANCE,A-029,LOW,Initial proving for 2 meters to establish baseline meter factors; proving specialist + equipment mobilization
+L-025,COM,PKG-12,N/A,Calibration Verification and Record Compilation,1,LS,12000,12000,CAD,ALLOWANCE,A-030,MED,Final calibration verification + QA record package compilation per DEL-12.05
