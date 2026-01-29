@@ -102,7 +102,7 @@ This instruction set is organized as:
 - **WORKING_ITEMS:** Human-in-the-loop working sessions to iterate the four documents; "engineer is the validator."
 - **RECONCILIATION:** Read-only cross-deliverable coherence checks (human-triggered), producing a reconciliation report and conflict table.
 - **AGGREGATION:** Read-across, write-quarantined cross-file aggregation (human-defined purposes), producing auditable snapshots under `execution/_Aggregation/`.
-- **ESTIMATING:** Produces cost estimate snapshots (straight-through, no blocking) under `execution/_Estimates/`.
+- **ESTIMATING:** Task agent that produces cost estimate snapshots (straight-through, no blocking) under `execution/_Estimates/`. Typically invoked by WORKING_ITEMS; also via INIT.md or direct.
 - **DEPENDENCIES:** Discovers emergent dependencies from deliverable content and records them in `_DEPENDENCIES.md` and `Dependencies.csv`.
 
 

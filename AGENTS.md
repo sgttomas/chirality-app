@@ -70,14 +70,14 @@ Agents are classified by how they interact, what they write, and whether they ca
 | **PROJECT_DECOMP** | PERSONA | chat | project-level | allowed | Decomposition document |
 | **CHIRALITY-APP** | PERSONA | chat | none* | allowed | Guidance/coaching (verbal); optional coaching note |
 | **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
-| **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates |
-| **ESTIMATING** | PERSONA | chat | tool-root-only | never | Estimate snapshots in `_Estimates/` |
+| **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates; may invoke ESTIMATING |
 | **PREPARATION** | TASK | spawned | deliverable-local | never | Folders, metadata files |
 | **4_DOCUMENTS** | TASK | spawned | deliverable-local | never | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
 | **CHIRALITY_FRAMEWORK** | TASK | both | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
 | **DEPENDENCIES** | TASK | INIT.md | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
 | **AGGREGATION** | TASK | INIT.md | tool-root-only | never | Snapshots in `_Aggregation/` |
 | **RECONCILIATION** | TASK | both | tool-root-only | never | Reports in `_Reconciliation/` |
+| **ESTIMATING** | TASK | both | tool-root-only | never | Estimate snapshots in `_Estimates/` |
 
 *\* CHIRALITY-APP writes nothing by default; may produce an optional coaching note only on explicit human request.*
 
@@ -88,7 +88,6 @@ Agents are classified by how they interact, what they write, and whether they ca
 - `CHIRALITY-APP`: Need help choosing the right next step
 - `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
 - `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
-- `ESTIMATING`: Generating cost estimates (straight-through, no blocking)
 
 **Task agents** — Use for pipeline work (spawned by persona agents or assigned via `INIT.md`):
 - `PREPARATION`: Scaffolding folders and metadata (spawned by ORCHESTRATOR)
@@ -97,6 +96,7 @@ Agents are classified by how they interact, what they write, and whether they ca
 - `DEPENDENCIES`: Discovering dependencies from content (INIT.md)
 - `AGGREGATION`: Cross-file rollups and synthesis (INIT.md)
 - `RECONCILIATION`: Cross-deliverable coherence checks (spawned or INIT.md)
+- `ESTIMATING`: Cost estimate snapshots (typically invoked by WORKING_ITEMS; also INIT.md or direct)
 
 ---
 

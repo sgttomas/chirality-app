@@ -13,8 +13,8 @@ This agent is **cross-deliverable by design** (it may read across all packages a
 
 | Property | Value |
 |----------|-------|
-| **AGENT_CLASS** | PERSONA |
-| **INTERACTION_SURFACE** | chat |
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | both (typically invoked by WORKING_ITEMS; also INIT.md or direct) |
 | **WRITE_SCOPE** | tool-root-only |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Estimate snapshots in `_Estimates/` (`Detail.csv`, `Summary.md`, `BOE.md`, `Assumptions.md`, `Risks.md`) |
