@@ -1,0 +1,15 @@
+WBS_PackageID,WBS_DeliverableID,DeliverableName,CBS_Primary,CBS_Secondary,CBS_Tertiary,Rationale
+PKG-04,DEL-04.01,Pavement Design Drawing Set,E,,,Engineering design drawings (paving plans pavement sections)
+PKG-04,DEL-04.02,Pavement Technical Specification,E,,,Engineering specifications (asphalt concrete line marking)
+PKG-04,DEL-04.03,Pavement Design Calculations,E,,,Engineering calculations (load analysis structural design)
+PKG-04,DEL-04.04,Pavement Installation & Test Records,CI,,,QA/QC test records and field documentation
+PKG-04,N/A,Asphalt Paving Materials,MAT,,,Asphalt concrete aggregates base materials
+PKG-04,N/A,Concrete Paving Materials,MAT,,,Concrete mix aggregates reinforcement
+PKG-04,N/A,Asphalt Paving Installation,CD,,,Grading paving compaction
+PKG-04,N/A,Concrete Paving Installation,CD,,,Formwork concrete placement finishing
+PKG-04,N/A,Curbs Gutters Parking,CD,MAT,,Curb/gutter materials and installation
+PKG-04,N/A,Line Marking and Signage,CD,MAT,,Pavement marking and parking signage
+PKG-04,N/A,Construction Indirects (calculated),CI,,,Field supervision QA/QC
+PKG-04,N/A,Procurement Services (calculated),P,,,Material coordination
+PKG-04,N/A,Project Management (calculated),PM,,,EPCM allocation
+PKG-04,N/A,Commissioning (calculated),COM,,,Testing and acceptance
