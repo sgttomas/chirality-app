@@ -108,6 +108,12 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_AGGREGATION.md`
 - **What it does not do:** Edit deliverable folders; produce binding quotes; require mid-run human decisions (it can log decisions and proceed).
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
+
+### DEPENDENCIES (Emergent dependency discovery)
+- **What it does:** Identifies emergent dependencies stated or implied within the four deliverable documents and records them in a machine-trackable register (`Dependencies.csv`) for project-level synthesis by AGGREGATION.
+- **What it does not do:** Create engineering content; modify the four documents; invent target IDs without evidence.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
 ---
 
 ## 3) Who is allowed to write what (important)
@@ -123,6 +129,7 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
 | RECONCILIATION | Yes | Writes a report under `test/execution/_Reconciliation/` only (read-only deliverables) |
 | AGGREGATION | Yes | Writes snapshots under `test/execution/_Aggregation/` only (read-only inputs by default) |
 | ESTIMATING | Yes | Writes snapshots under `test/execution/_Estimates/` only (read-only deliverables) |
+| DEPENDENCIES | Yes | Updates `_DEPENDENCIES.md` and `Dependencies.csv` per deliverable only (read-only four documents) |
 
 ---
 

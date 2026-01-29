@@ -65,6 +65,7 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 | **RECONCILIATION** | Cross-deliverable coherence checks (read-only) |
 | **AGGREGATION** | Project-level synthesis across files (reports, registers, rollups) |
 | **ESTIMATING** | Cost estimate snapshots with Qty/Unit/UnitRate line items |
+| **DEPENDENCIES** | Emergent dependency discovery from deliverable content |
 
 Agent instruction files are located in `agents/`.
 

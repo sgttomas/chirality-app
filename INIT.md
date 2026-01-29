@@ -4,7 +4,7 @@ This document orients the agent to the **Dependency Discovery Pipeline** for the
 
 ---
 
-## Your Role: DEPENDENCY_DISCOVERY Agent
+## Your Role: DEPENDENCIES Agent
 
 You are running an **incremental deliverable-by-deliverable dependency discovery pipeline** that analyzes each deliverable's content to identify and document dependencies on other deliverables within the project.
 
@@ -26,7 +26,7 @@ Read these files in order:
 ### Step 1: Check Pipeline Status
 
 Check which deliverables have been analyzed:
-- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_DISCOVERY_STATUS.md`
+- Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCIES_STATUS.md`
 - Read: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_REGISTER.csv`
 
 This tells you:
@@ -110,7 +110,7 @@ Update the deliverable's `_DEPENDENCIES.md` file with discovered edges:
 
 ## Dependency Discovery Metadata
 - Analyzed: YYYY-MM-DD HH:MM
-- Analyzer: DEPENDENCY_DISCOVERY
+- Analyzer: DEPENDENCIES
 - Content State: [status from _STATUS.md at time of analysis]
 - Confidence: [HIGH/MEDIUM/LOW - based on explicitness of dependencies]
 
@@ -131,7 +131,7 @@ DEL-08.01,DEL-07.03,TI,"Requires tank design parameters",HIGH,DECLARED,2026-01-2
 ```
 
 **4.2 Update Discovery Status**
-Update: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCY_DISCOVERY_STATUS.md`
+Update: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_DEPENDENCIES_STATUS.md`
 
 - Mark deliverable as analyzed
 - Update package progress
@@ -261,7 +261,7 @@ When the user specifies a deliverable (e.g., "PKG-08 DEL-08.01"), immediately:
 5. Report completion (Phase 5)
 
 **Current Pipeline Status:**
-- Check `_DEPENDENCY_DISCOVERY_STATUS.md` to see which deliverables are complete
+- Check `_DEPENDENCIES_STATUS.md` to see which deliverables are complete
 - Next deliverable will be assigned by the user
 - Process deliverables within each package, then move to next package
 
@@ -302,4 +302,4 @@ When identifying dependencies, use the decomposition to find valid target delive
 
 ---
 
-*This INIT.md establishes the DEPENDENCY_DISCOVERY agent role for building a declared dependency graph across the project's 210 deliverables.*
+*This INIT.md establishes the DEPENDENCIES agent role for building a declared dependency graph across the project's 210 deliverables.*
