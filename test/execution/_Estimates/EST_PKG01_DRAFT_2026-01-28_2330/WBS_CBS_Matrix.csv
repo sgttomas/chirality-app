@@ -1,0 +1,15 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Mapping_Basis,Notes
+PKG-01,DEL-01.01,E,Deliverable Type: Drawing,CAD drafting and design services for demolition drawings
+PKG-01,DEL-01.02,E,Deliverable Type: Specification,Engineering specification writing services
+PKG-01,DEL-01.03,PM,Deliverable Type: Procedure,HSE procedure development (project management activity)
+PKG-01,DEL-01.04,E,Deliverable Type: Record,QA/QC documentation services (engineering support)
+PKG-01,N/A,CD,Scope: Track 6 Demolition,Construction direct - rail infrastructure removal
+PKG-01,N/A,CD,Scope: Dolphin 2 Demolition,Construction direct - marine structure removal
+PKG-01,N/A,CD,Scope: Fencing Removal,Construction direct - fencing demolition
+PKG-01,N/A,CD,Scope: Salt Tent Demolition,Construction direct - building structure removal
+PKG-01,N/A,CD,Scope: Hazmat Contingency,Construction direct - potential abatement work
+PKG-01,N/A,CD,Scope: Waste Disposal,Construction direct - hauling and disposal
+PKG-01,N/A,MAT,Support: Temporary Works,Materials for protection barriers dust control containers
+PKG-01,N/A,CI,Factor: 18% of CD,Construction indirects - supervision safety QA/QC
+PKG-01,N/A,PM,Factor: 6% of CD+CI+MAT,EPCM project management allocation
+PKG-01,N/A,P,Factor: 2% of MAT,Procurement services for material purchasing
