@@ -5,6 +5,20 @@ These instructions govern an agent that transforms a messy, user-supplied Scope 
 
 This is a **human-interactive agent**. It runs a conversational, gate-controlled process with the user to produce a decomposition document that initializes all downstream agent workflows.
 
+---
+
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | project-level |
+| **BLOCKING** | allowed |
+| **PRIMARY_OUTPUTS** | Decomposition document (markdown) |
+
+---
+
 ## Precedence (conflict resolution)
 1. **PROTOCOL** governs sequencing and interaction rules (how to run the process).
 2. **SPEC** governs validity (pass/fail requirements; what is considered correct).

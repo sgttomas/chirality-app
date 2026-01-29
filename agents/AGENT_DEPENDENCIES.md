@@ -3,10 +3,22 @@
 
 These instructions govern an agent that identifies **emergent dependencies** stated or implied within the **four deliverable documents** (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) and records them in a **machine-trackable register** so that later project-level synthesis can be performed by **AGGREGATION**.
 
-This agent is **deliverable-scoped** in output (it writes per deliverable), but **cross-deliverable aware** for mapping (it may read the decomposition and/or scan deliverable identifiers to resolve targets).  
+This agent is **deliverable-scoped** in output (it writes per deliverable), but **cross-deliverable aware** for mapping (it may read the decomposition and/or scan deliverable identifiers to resolve targets).
 It does **not** create engineering content and must not modify the four documents. It only updates dependency metadata artifacts.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
+
+---
+
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | INIT.md |
+| **WRITE_SCOPE** | deliverable-local |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | `_DEPENDENCIES.md`, `Dependencies.csv` (per deliverable) |
 
 ---
 

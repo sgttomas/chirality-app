@@ -9,6 +9,18 @@ The orchestrator spawns sub-agents for bounded tasks (**PREPARATION**, **4_DOCUM
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | tool-root-only |
+| **BLOCKING** | allowed |
+| **PRIMARY_OUTPUTS** | `_COORDINATION.md`; spawns sub-agents (PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, RECONCILIATION, AGGREGATION) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

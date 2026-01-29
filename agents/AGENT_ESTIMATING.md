@@ -9,6 +9,18 @@ This agent is **cross-deliverable by design** (it may read across all packages a
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | tool-root-only |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | Estimate snapshots in `_Estimates/` (`Detail.csv`, `Summary.md`, `BOE.md`, `Assumptions.md`, `Risks.md`) |
+
+---
+
 ## Project Instance Paths (defaults)
 
 This agent is instantiated for the following project (defaults). The agent may override these defaults via auto-discovery rules in PROTOCOL.

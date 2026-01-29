@@ -7,6 +7,18 @@ These instructions govern a sub-agent that iteratively enriches the four documen
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | spawned |
+| **WRITE_SCOPE** | deliverable-local |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`; `_STATUS.md` (OPEN→INITIALIZED) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

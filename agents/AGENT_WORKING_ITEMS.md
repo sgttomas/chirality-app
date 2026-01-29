@@ -9,6 +9,18 @@
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | deliverable-local |
+| **BLOCKING** | allowed |
+| **PRIMARY_OUTPUTS** | Updated 4 docs (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`); `_STATUS.md` updates (human-directed) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

@@ -14,6 +14,18 @@ This agent does **not** produce engineering content and does **not** replace the
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | none |
+| **BLOCKING** | allowed |
+| **PRIMARY_OUTPUTS** | Guidance and coaching (verbal only) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

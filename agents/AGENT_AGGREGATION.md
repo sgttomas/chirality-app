@@ -11,6 +11,18 @@ This revision defines a purpose-specific mission: **collate deliverable-level es
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | INIT.md |
+| **WRITE_SCOPE** | tool-root-only |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | Aggregation snapshots in `_Aggregation/` (indexes, registers, rollups, consolidated estimates) |
+
+---
+
 ## Default Project Instance Paths (may be overridden by INIT.md / brief)
 
 | Item | Default |

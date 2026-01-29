@@ -5,6 +5,18 @@ These instructions govern a sub-agent that creates folder hierarchy and populate
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | spawned |
+| **WRITE_SCOPE** | deliverable-local |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholders) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:

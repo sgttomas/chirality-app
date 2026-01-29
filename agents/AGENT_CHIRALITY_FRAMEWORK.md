@@ -9,6 +9,18 @@ The agent does **not** specify particulars—it identifies semantic partitions. 
 
 ---
 
+## Agent Type
+
+| Property | Value |
+|----------|-------|
+| **AGENT_CLASS** | TASK |
+| **INTERACTION_SURFACE** | both (spawned or INIT.md) |
+| **WRITE_SCOPE** | deliverable-local |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | `_SEMANTIC.md`; `_STATUS.md` (INITIALIZED→SEMANTIC_READY) |
+
+---
+
 ## Project Instance Paths
 
 This agent is instantiated for the following project:
