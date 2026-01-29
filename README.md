@@ -7,14 +7,17 @@ Chirality App provides a structured, deliverable-centric approach to producing e
 ## Core Concepts
 
 ### Project Decomposition
-Every project starts with a **decomposition file** that defines:
-- Packages (work breakdown structure)
-- Deliverables within each package
-- Objectives and scope boundaries
-- Reference documents
-- Key decisions and constraints
+Every project starts with a **decomposition document** produced by PROJECT_DECOMP through a gate-controlled conversation. The decomposition includes:
 
-The decomposition is the source of truth that initializes all agent workflows.
+- **Structured Scope of Work (SSOW)** — Normalized, atomic scope items with stable IDs
+- **Scope Ledger** — Machine-checkable table mapping every scope item to exactly one Package and (best-effort) to Deliverables
+- **Packages** — Flat partitions of scope (no nesting; no overlaps; no gaps)
+- **Deliverables** — Units of production within each Package, with types, responsibilities, and anticipated Artifacts
+- **Objectives** — Success criteria derived from scope, mapped to supporting Deliverables
+- **Vocabulary Map** — Canonical terms and synonyms to prevent semantic drift
+- **Coverage & Telemetry** — Metrics summary (counts, gaps, open issues) that makes decomposition quality measurable across revisions
+
+The decomposition is the source of truth that initializes all downstream agent workflows. Its stable IDs enable longitudinal tracking and cross-deliverable reconciliation.
 
 ### Filesystem as State
 Project truth lives on disk. Agents read and write files directly—there is no hidden database or divergent state. The folder structure itself encodes project status.
@@ -56,7 +59,7 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 
 | Agent | Purpose |
 |---|---|
-| **PROJECT_DECOMP** | Transforms messy SOW into structured decomposition (Packages, Deliverables, Artifacts) |
+| **PROJECT_DECOMP** | Transforms messy SOW into structured decomposition with Scope Ledger, Coverage Telemetry, and Vocabulary Map |
 | **CHIRALITY-APP** | Human guidance / navigator—helps choose the right next step |
 | **ORCHESTRATOR** | Workspace setup, status reporting, spawns sub-agents |
 | **PREPARATION** | Scaffolds package/deliverable folders and metadata files |
@@ -97,7 +100,16 @@ Project-level outputs live in separate tool roots:
 ## Getting Started
 
 ### 1. Create a Project Decomposition
-Write a decomposition file defining your packages, deliverables, objectives, and reference documents. Use the framework's decomposition format.
+Run **PROJECT_DECOMP** with your messy Scope of Work. The agent guides you through seven phases:
+1. **Intake** — Capture inputs and context
+2. **Define Scope** — Normalize into atomic scope items (SSOW)
+3. **Define Objectives** — Derive success criteria from scope
+4. **Define Packages** — Partition scope into flat packages (no overlaps, no gaps)
+5. **Define Deliverables** — Create production units within each package
+6. **Verify Coverage** — Machine-check that all scope is assigned and mapped
+7. **Publish** — Finalize the decomposition document
+
+Each phase has a confirmation gate. The output includes a Scope Ledger, Coverage Telemetry, and Vocabulary Map.
 
 ### 2. Initialize the Workspace
 Run ORCHESTRATOR to ingest your decomposition and choose your coordination representation and dependency tracking mode.
