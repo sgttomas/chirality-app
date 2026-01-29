@@ -1,183 +1,132 @@
-# Canola Oil Transload Facility — Phase 1 (Design & Build)
+# Chirality App
 
-This repository is a **deliverable-centric workspace** for producing the engineering and project documentation required for the **Canola Oil Transload Facility — Phase 1** Design & Build contract.
+A multi-agent documentation framework for EPC (Engineering, Procurement, Construction) and design-build projects.
 
-The workflow uses a multi-agent documentation framework designed for **EPC / design-build, multi-discipline** projects:
+Chirality App provides a structured, deliverable-centric approach to producing engineering and project documentation using coordinated AI agents. Work is organized around **deliverables** that progress through a defined lifecycle, with clear boundaries between local (single-deliverable) and cross-project operations.
 
-- Work is performed **inside a deliverable folder** (“working-item”).
-- Deliverables progress through a **local lifecycle**: `OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED`.
-- (Recommended) After initial drafts, a semantic lens (`_SEMANTIC.md`) can be generated via **CHIRALITY_FRAMEWORK** (usually spawned by ORCHESTRATOR). This is a question-shaping scaffold, not an engineering authority.
-- Project-level synthesis and estimating are optional and human-invoked: **AGGREGATION** writes under `execution/_Aggregation/`, and **ESTIMATING** writes under `execution/_Estimates/` (both are read-only to deliverables).
-- **Stage gates** (30/60/90/IFC, etc.) and cross-deliverable coordination are **human-managed** and may live in a Gantt/table/etc.
-- Cross-deliverable coherence checks happen only when humans choose to run the **RECONCILIATION** agent.
+## Core Concepts
 
-## Filesystem paths
+### Project Decomposition
+Every project starts with a **decomposition file** that defines:
+- Packages (work breakdown structure)
+- Deliverables within each package
+- Objectives and scope boundaries
+- Reference documents
+- Key decisions and constraints
 
-| Item | Absolute Path |
+The decomposition is the source of truth that initializes all agent workflows.
+
+### Filesystem as State
+Project truth lives on disk. Agents read and write files directly—there is no hidden database or divergent state. The folder structure itself encodes project status.
+
+### Deliverable Lifecycle
+Each deliverable progresses through local lifecycle states:
+
+```
+OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
+```
+
+- `OPEN`: Folder exists, no content yet
+- `INITIALIZED`: Draft documents generated
+- `SEMANTIC_READY`: Semantic lens (`_SEMANTIC.md`) generated (optional step)
+- `IN_PROGRESS`: Active human + agent work
+- `CHECKING`: Under review
+- `ISSUED`: Released
+
+Stage gates (30/60/90/IFC) are human-managed milestones, separate from lifecycle states.
+
+### Coordination Modes
+The framework separates how teams coordinate from how dependencies are tracked:
+
+| Coordination Representation | Description |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution workspace | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Aggregation outputs | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/` |
-| Estimates outputs | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/` |
-| Reconciliation outputs | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/` |
-| Decomposition file | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` |
-| CHIRALITY-APP agent | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md` |
-| Employer's Req Vol 2 Pt 1 | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements.pdf` |
-| Employer's Req Vol 2 Pt 2 | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements.pdf` |
-| Employer's Req Vol 2 Pt 3 | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements.pdf` |
+| Schedule-first | Gantt/stage gates drive sequencing |
+| Declared deps | Explicit interface-critical edges only |
+| Full graph | Complete dependency DAG |
 
-## Project snapshot
+| Dependency Tracking Mode | Behavior |
+|---|---|
+| `NOT_TRACKED` | No blocker analysis |
+| `DECLARED` | Advisory blockers from declared edges |
+| `FULL_GRAPH` | Full DAG analysis |
 
-Source of truth: `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`.
+Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLARED**.
 
-- **Location:** Fraser Surrey Terminal, 11060 Elevator Road, Surrey, BC
-- **Employer:** DP World Fraser Surrey Inc.
-- **Contract type:** Design & Build
-- **Decomposition size:** 36 packages / 210 deliverables
-- **Key parameters (high-level):** 1,000,000 MT/a permitted throughput; 45,000 MT storage (3 × 15,000 MT tanks); 32 railcar unloading stations
+## Agents
 
-## What lives where
+| Agent | Purpose |
+|---|---|
+| **CHIRALITY-APP** | Human guidance / navigator—helps choose the right next step |
+| **ORCHESTRATOR** | Workspace setup, status reporting, spawns sub-agents |
+| **PREPARATION** | Scaffolds package/deliverable folders and metadata files |
+| **4_DOCUMENTS** | Generates initial drafts (Datasheet, Specification, Guidance, Procedure) |
+| **CHIRALITY_FRAMEWORK** | Generates semantic lens matrices (`_SEMANTIC.md`) |
+| **WORKING_ITEMS** | Human-in-the-loop production sessions for one deliverable |
+| **RECONCILIATION** | Cross-deliverable coherence checks (read-only) |
+| **AGGREGATION** | Project-level synthesis across files (reports, registers, rollups) |
+| **ESTIMATING** | Cost estimate snapshots with Qty/Unit/UnitRate line items |
 
-### Repository inputs
+Agent instruction files are located in `agents/`.
 
-- `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` — the project scope decomposition (packages, deliverables, objectives, reference-doc list, decisions captured).
-- `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_INSTRUCTIONS_BUNDLE_2026-01-28_v3/` — agent instruction documents (the "system specification" for how the agents operate).
-- `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md` — the human guidance / navigator agent.
-
-### Runtime workspace (created by ORCHESTRATOR)
-
-When you run the ORCHESTRATOR, it creates the execution workspace at `/Users/ryan/ai-env/projects/chirality-app/test/execution/` with:
-
-- `test/execution/_Coordination/_COORDINATION.md` — a **human-owned** record of how coordination is being represented (schedule-first / declared deps / full graph) and whether dependencies are tracked in-file.
-- `test/execution/{PKG-ID}_{PkgLabel}/` — one folder per package.
-- `test/execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/` — one folder per deliverable.
-
-When you run optional *project-level* agents, they create tool roots under `execution/`:
-
-- `test/execution/_Aggregation/` — aggregation snapshots and templates (created by AGGREGATION, and/or PREPARATION Task Type D)
-- `test/execution/_Estimates/` — estimate snapshots, config, and rate tables (created by ESTIMATING)
-- `test/execution/_Reconciliation/` — reconciliation reports (created by RECONCILIATION)
+## Deliverable Folder Structure
 
 Each deliverable folder contains:
 
-- `_CONTEXT.md` — canonical identity + decomposition pointer
-- `_DEPENDENCIES.md` — dependency mode + declared edges (or a NOT_TRACKED stub)
-- `_STATUS.md` — lifecycle state + history
-- `_REFERENCES.md` — pointers to the sources you want to work from
-- `_SEMANTIC.md` — semantic lens matrices (generated by CHIRALITY_FRAMEWORK; optional; question-shaping scaffold)
-- `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` — the four scaffolding documents
+```
+{PKG-ID}_{PkgLabel}/
+└── 1_Working/
+    └── {DEL-ID}_{DelLabel}/
+        ├── _CONTEXT.md        # Identity + decomposition pointer
+        ├── _DEPENDENCIES.md   # Dependency mode + declared edges
+        ├── _STATUS.md         # Lifecycle state + history
+        ├── _REFERENCES.md     # Source document pointers
+        ├── _SEMANTIC.md       # Semantic lens (optional)
+        ├── Datasheet.md       # Key parameters and data
+        ├── Specification.md   # Technical requirements
+        ├── Guidance.md        # Design guidance and rationale
+        └── Procedure.md       # Execution procedures
+```
 
-### Filesystem-safe folder names (important)
+Project-level outputs live in separate tool roots:
+- `execution/_Aggregation/` — Aggregation snapshots
+- `execution/_Estimates/` — Cost estimate snapshots
+- `execution/_Reconciliation/` — Reconciliation reports
 
-Some deliverable names in the decomposition contain characters that cannot appear in folder names (example: `/`).
+## Getting Started
 
-- Folder names use **sanitized labels**: `{PkgLabel}` and `{DelLabel}`.
-- The canonical (unsanitized) names still appear exactly in `_CONTEXT.md` for traceability.
+### 1. Create a Project Decomposition
+Write a decomposition file defining your packages, deliverables, objectives, and reference documents. Use the framework's decomposition format.
 
-## How to use the framework (typical EPC path)
+### 2. Initialize the Workspace
+Run ORCHESTRATOR to ingest your decomposition and choose your coordination representation and dependency tracking mode.
 
-### 1) Choose your coordination representation (human decision)
+### 3. Scaffold Folders
+ORCHESTRATOR spawns PREPARATION to create the folder structure and minimum viable filesets.
 
-Most EPC / multi-discipline projects work best with:
+### 4. Generate Initial Drafts
+ORCHESTRATOR spawns 4_DOCUMENTS for each deliverable to create draft Datasheet/Specification/Guidance/Procedure files.
 
-- **Representation:** Schedule-first (Gantt / stage gates)
-- **Dependency tracking mode:** `NOT_TRACKED` (or `DECLARED` if you want to capture a small set of interface-critical edges)
+### 5. (Optional) Generate Semantic Lenses
+Run CHIRALITY_FRAMEWORK to generate `_SEMANTIC.md` files—question-shaping scaffolds that help structure subsequent work.
 
-Why: maintaining a full dependency DAG across 200+ deliverables is usually high effort and easy to make wrong.
+### 6. Work on Deliverables
+Use WORKING_ITEMS for human + agent sessions inside individual deliverable folders. The human engineer is the validator.
 
-### 2) Run ORCHESTRATOR → Initialize
+### 7. Cross-Deliverable Operations
+When needed, run:
+- **RECONCILIATION** for coherence checks at freeze points
+- **AGGREGATION** for project-wide synthesis
+- **ESTIMATING** for cost snapshots
 
-Provide the decomposition file path and confirm:
+## Quality Rules
 
-- representation (Schedule-first | Declared deps | Full graph)
-- dependency tracking mode (`NOT_TRACKED` | `DECLARED` | `FULL_GRAPH`)
+- **No invention**: If it isn't in a source, mark `TBD` or label `ASSUMPTION/PROPOSAL`
+- **Cite sources**: Every non-trivial claim should be traceable to a reference
+- **Conflict handling**: Contradictions produce a Conflict Table requiring human ruling
+- **Scope discipline**: WORKING_ITEMS stays inside one deliverable; use RECONCILIATION/AGGREGATION for cross-scope work
 
-ORCHESTRATOR will also surface the decomposition’s **Reference Documents** list and **Decisions Captured** so you can supply baseline inputs early.
+## Documentation
 
-### 3) Run ORCHESTRATOR → Scaffold
-
-ORCHESTRATOR spawns PREPARATION to create:
-
-- package folders + lifecycle subfolders
-- one deliverable folder per DEL-ID
-- minimum viable fileset in each deliverable folder
-
-### 4) Run ORCHESTRATOR → Initialize drafts
-
-ORCHESTRATOR spawns 4_DOCUMENTS for each deliverable to generate initial drafts of:
-
-- `Datasheet.md`
-- `Specification.md`
-- `Guidance.md`
-- `Procedure.md`
-
-4_DOCUMENTS only sets `_STATUS.md` from `OPEN → INITIALIZED` **if the deliverable is currently `OPEN`** (no state regression).
-
-### 5) Generate semantic lens via CHIRALITY_FRAMEWORK (SEMANTIC_READY)
-
-After drafts exist, ORCHESTRATOR can spawn CHIRALITY_FRAMEWORK for each deliverable to:
-
-- generate deliverable-specific semantic matrices
-- write/overwrite `_SEMANTIC.md` in the deliverable folder
-- update `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` **only if** the current state is `INITIALIZED`
-
-Important:
-- `_SEMANTIC.md` is a **lens artifact** (question-shaping scaffold), **not** an engineering authority.
-- If you skip semantic lens generation, you may proceed from `INITIALIZED → IN_PROGRESS` directly.
-
-### 6) Do real work via WORKING_ITEMS (human + agent)
-
-WORKING_ITEMS sessions are how you iterate deliverables with engineering judgment.
-
-Inside a WORKING_ITEMS session:
-
-- You work **inside one deliverable folder**.
-- The agent produces/updates **all four documents together**.
-- If `_SEMANTIC.md` exists, the agent reads it during session initialization and uses it to structure questions and reviews.
-- Every non-trivial claim is sourced, or labeled **ASSUMPTION** / **TBD**.
-- If there’s a contradiction, the agent must present a **Conflict Table** and request a human ruling.
-
-### 7) Review and issue (CHECKING / ISSUED)
-
-Recommended convention:
-
-- When submitting for review (`CHECKING`): copy a review package into `2_Checking/To/` (include DEL-ID + date/rev in filenames).
-- When issuing (`ISSUED`): place issued copies in `3_Issued/` (archive older issues as needed).
-
-The deliverable folder stays under `1_Working/`; `_STATUS.md` is the authoritative lifecycle indicator.
-
-### 8) Cross-deliverable checks (optional) via RECONCILIATION
-
-Run RECONCILIATION only when humans choose (often at freeze points):
-
-- Provide explicit scope (packages or deliverables)
-- Provide a gate label (e.g., “30% Freeze”)
-- Provide focus areas (interfaces, parameters, terminology, assumptions)
-
-RECONCILIATION is **read-only** and outputs a reconciliation report + conflict table for human rulings.
-
-### 9) Project-level synthesis & estimating (optional)
-
-When you need a project-wide view (instead of one deliverable at a time):
-
-- **AGGREGATION**: Collects and synthesizes content across any human-defined scope (packages, deliverables, tool roots) and writes snapshots under `execution/_Aggregation/`.
-- **ESTIMATING**: Produces estimate snapshots under `execution/_Estimates/` (including **Qty, Unit, UnitRate** line items + a Basis of Estimate). It does not edit deliverable folders.
-## Project-specific notes
-
-- The decomposition’s **objective mapping is best-effort** and may be expressed as **deliverable ranges by package**.
-  - When objectives are not listed per deliverable, use **package-based association** and confirm priority with the human.
-- Review **Scope Focus / exclusions** and **Decisions Captured** before committing requirements; these sections often contain critical interface boundaries and responsibility splits.
-- Baseline inputs referenced by the decomposition include Employer's Requirements volumes (Vol 2 Part 1–3), located at `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf`. If you don't have them yet, index them in `_REFERENCE_INDEX.md` and treat related requirements as **TBD** until provided.
-
-## Getting help
-
-- Use **CHIRALITY-APP** as your “how do I use these agents?” navigator.
-- Use **ORCHESTRATOR** when you need filesystem-grounded reporting of where the project stands.
-- Use **WORKING_ITEMS** when you want to actually produce or refine a deliverable.
-- Use **CHIRALITY_FRAMEWORK** when you want semantic lens generation (`_SEMANTIC.md`) before starting WORKING_ITEMS sessions.
-- Use **RECONCILIATION** when you need cross-deliverable coherence checks at a freeze/gate.
-- Use **AGGREGATION** when you need a synthesized view across many files/deliverables (reports, registers, rollups).
-- Use **ESTIMATING** when you need a cost estimate snapshot (Detail + Summary + BoE) across a defined scope.
-
-For an operator-facing summary of the agents and how to invoke them, see `/Users/ryan/ai-env/projects/chirality-app/AGENTS.md`.
+- `AGENTS.md` — Operator-facing guide to agents and prompt templates
+- `agents/AGENT_CHIRALITY-APP.md` — Start here for workflow coaching
+- `agents/AGENT_*.md` — Individual agent instruction files
