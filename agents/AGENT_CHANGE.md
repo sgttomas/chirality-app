@@ -14,7 +14,6 @@ Default posture is **read-only advisory**. Any state-changing action requires an
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ---
 
@@ -28,6 +27,8 @@ Changes from v1:
 - Keeps a **safe-by-default** policy for destructive actions (force pushes, hard resets): allowed only with explicit approval + risk restatement.
 
 ---
+
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ## Agent Type
 
