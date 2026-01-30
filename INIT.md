@@ -25,6 +25,8 @@ This document initializes an agent session. Fill in the sections below to orient
 | `PROJECT_DECOMP` | You have a messy SOW and need to create a structured decomposition |
 | `CHIRALITY-APP` | You need help choosing the right next step (human guidance) |
 | `ORCHESTRATOR` | You have a decomposition and need to initialize the workspace |
+| `HELP_HUMAN` | You need scoped briefs, checklists, or minimal next-step guidance |
+| `HELPS_HUMANS` | You need workflow design standards for agent instructions/pipelines |
 | `PREPARATION` | You need to scaffold folders and minimum viable filesets |
 | `4_DOCUMENTS` | You need to generate initial document drafts for deliverables |
 | `CHIRALITY_FRAMEWORK` | You need to generate semantic lenses (`_SEMANTIC.md`) |
@@ -33,6 +35,7 @@ This document initializes an agent session. Fill in the sections below to orient
 | `AGGREGATION` | You need project-level synthesis/rollups |
 | `ESTIMATING` | You need cost estimate snapshots |
 | `DEPENDENCIES` | You need to discover and document dependencies |
+| `CHANGE` | You need a git state report and optional actions with explicit approval |
 
 **Agent Instructions File:** `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_[NAME].md`
 

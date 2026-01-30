@@ -57,11 +57,15 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 
 ## Agents
 
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+
 | Agent | Purpose |
 |---|---|
 | **PROJECT_DECOMP** | Transforms messy SOW into structured decomposition with Scope Ledger, Coverage Telemetry, and Vocabulary Map |
 | **CHIRALITY-APP** | Human guidance / navigator—helps choose the right next step |
 | **ORCHESTRATOR** | Workspace setup, status reporting, spawns sub-agents |
+| **HELP_HUMAN** | Human support persona for briefs, checklists, and next-step recommendations |
+| **HELPS_HUMANS** | Workflow design standard for agent instruction sets and pipelines |
 | **PREPARATION** | Scaffolds package/deliverable folders and metadata files |
 | **4_DOCUMENTS** | Generates initial drafts (Datasheet, Specification, Guidance, Procedure) |
 | **CHIRALITY_FRAMEWORK** | Generates semantic lens matrices (`_SEMANTIC.md`) |
@@ -70,6 +74,7 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 | **AGGREGATION** | Project-level synthesis across files (reports, registers, rollups) |
 | **ESTIMATING** | Cost estimate snapshots with Qty/Unit/UnitRate line items |
 | **DEPENDENCIES** | Emergent dependency discovery from deliverable content |
+| **CHANGE** | Git state review, interpretation, and optional actions with explicit approval |
 
 Agent instruction files are located in `agents/`.
 

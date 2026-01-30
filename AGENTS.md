@@ -4,6 +4,8 @@ This file is the operator-facing index and “rules of the road” for using the
 
 If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md (the human guidance agent). It’s a workflow coach that helps you choose the right next step without violating scope boundaries.
 
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+
 ---
 
 ## 1) The core model (the rules that keep the system coherent)
@@ -71,6 +73,8 @@ Agents are classified by how they interact, what they write, and whether they ca
 | **CHIRALITY-APP** | PERSONA | chat | none* | allowed | Guidance/coaching (verbal); optional coaching note |
 | **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
 | **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates; may invoke ESTIMATING |
+| **HELP_HUMAN** | PERSONA | chat | none | never | Briefs, checklists, interpretations, next-step recommendations |
+| **HELPS_HUMANS** | PERSONA | chat | none | never | Workflow design standards; agent instruction maintenance guidance |
 | **PREPARATION** | TASK | spawned | deliverable-local | never | Folders, metadata files |
 | **4_DOCUMENTS** | TASK | spawned | deliverable-local | never | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
 | **CHIRALITY_FRAMEWORK** | TASK | both | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
@@ -78,6 +82,7 @@ Agents are classified by how they interact, what they write, and whether they ca
 | **AGGREGATION** | TASK | INIT.md | tool-root-only | never | Snapshots in `_Aggregation/` |
 | **RECONCILIATION** | TASK | both | tool-root-only | never | Reports in `_Reconciliation/` |
 | **ESTIMATING** | TASK | both | tool-root-only | never | Estimate snapshots in `_Estimates/` |
+| **CHANGE** | TASK | chat | none | allowed | Git state report; optional git actions after explicit approval |
 
 *\* CHIRALITY-APP writes nothing by default; may produce an optional coaching note only on explicit human request.*
 
@@ -88,6 +93,8 @@ Agents are classified by how they interact, what they write, and whether they ca
 - `CHIRALITY-APP`: Need help choosing the right next step
 - `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
 - `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
+- `HELP_HUMAN`: Human support persona for briefs, checklists, and minimal next actions
+- `HELPS_HUMANS`: Workflow design standard for writing/maintaining agent instructions
 
 **Task agents** — Use for pipeline work (spawned by persona agents or assigned via `INIT.md`):
 - `PREPARATION`: Scaffolding folders and metadata (spawned by ORCHESTRATOR)
@@ -97,6 +104,7 @@ Agents are classified by how they interact, what they write, and whether they ca
 - `AGGREGATION`: Cross-file rollups and synthesis (INIT.md)
 - `RECONCILIATION`: Cross-deliverable coherence checks (spawned or INIT.md)
 - `ESTIMATING`: Cost estimate snapshots (typically invoked by WORKING_ITEMS; also INIT.md or direct)
+- `CHANGE`: Git state review and optional actions with explicit approval
 
 ---
 
@@ -121,6 +129,18 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md`
 - **What it does not do:** Produce engineering content; assign work; decide stage gates or sequencing.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ORCHESTRATOR.md`
+
+### HELP_HUMAN (Human Support Persona)
+- **What it does:** Helps the human operator act effectively within the framework by clarifying intent, scoping, and producing briefs/checklists and next-step recommendations.
+- **What it does not do:** Do project work directly; write files by default; bypass human decision rights.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELP_HUMAN.md`
+
+### HELPS_HUMANS (Workflow Design Standard)
+- **What it does:** Defines standards for designing agentic workflows and writing/maintaining agent instruction sets.
+- **What it does not do:** Produce engineering deliverable content; execute project work.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELPS_HUMANS.md`
 
 ### PREPARATION (Scaffolding)
 - **What it does:** Creates package/deliverable folders and writes the minimum viable fileset (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`) idempotently.
@@ -171,6 +191,12 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
 - **What it does not do:** Create engineering content; modify the four documents; invent target IDs without evidence.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
+
+### CHANGE (Diff • Interpret • Recommend • Execute with Approval)
+- **What it does:** Inspects git state, summarizes changes, and optionally executes git actions after explicit approval.
+- **What it does not do:** Change repo state without approval; perform destructive actions without heightened approval.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHANGE.md`
 ---
 
 ## 4) Who is allowed to write what (important)
@@ -180,6 +206,8 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
 | PROJECT_DECOMP | Yes | Decomposition document (markdown); user validates at each gate |
 | CHIRALITY-APP | No (by default) | Optional coaching note *only if explicitly requested by human* |
 | ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; scans/reports; *spawns other agents for deliverable and tool-root work* |
+| HELP_HUMAN | No (by default) | Chat outputs only; may draft text for human to paste |
+| HELPS_HUMANS | No (by default) | Standards/guidance; no direct writes |
 | PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md`; may scaffold tool roots like `test/execution/_Aggregation/` (create-if-missing) |
 | 4_DOCUMENTS | Yes | Four docs; `_STATUS.md` update `OPEN→INITIALIZED` only if currently `OPEN` |
 | CHIRALITY_FRAMEWORK | Yes | Writes/overwrites `_SEMANTIC.md`; may update `_STATUS.md` `INITIALIZED→SEMANTIC_READY` only if currently `INITIALIZED` |
@@ -188,6 +216,7 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
 | AGGREGATION | Yes | Writes snapshots under `test/execution/_Aggregation/` only (read-only inputs by default) |
 | ESTIMATING | Yes | Writes snapshots under `test/execution/_Estimates/` only (read-only deliverables) |
 | DEPENDENCIES | Yes | Updates `_DEPENDENCIES.md` and `Dependencies.csv` per deliverable only (read-only four documents) |
+| CHANGE | No (by default) | Read-only git state reporting; may execute git actions only with explicit approval |
 
 ---
 

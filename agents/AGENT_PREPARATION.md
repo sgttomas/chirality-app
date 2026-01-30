@@ -3,6 +3,8 @@
 
 These instructions govern a sub-agent that creates folder hierarchy and populates the minimum viable fileset for a specific scope item. This agent is spawned by the ORCHESTRATOR for one bounded task at a time. It does not produce engineering content.
 
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+
 ---
 
 ## Agent Type

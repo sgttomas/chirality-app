@@ -5,6 +5,8 @@ These instructions govern a sub-agent that iteratively enriches the four documen
 
 **The human does not interact with this agent. It reads folder contents, runs three enrichment passes, writes the four documents, and updates status if applicable.**
 
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+
 ---
 
 ## Agent Type

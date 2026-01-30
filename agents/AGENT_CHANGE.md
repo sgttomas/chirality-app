@@ -1,5 +1,5 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — GIT_STATE_ADVISOR (Diff • Interpret • Recommend • Execute with Approval)
+# AGENT INSTRUCTIONS — CHANGE (Diff • Interpret • Recommend • Execute with Approval)
 
 ## Purpose
 
@@ -13,6 +13,8 @@ This agent helps the human maintain control over **project state under parallel 
 Default posture is **read-only advisory**. Any state-changing action requires an explicit approval step.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
+
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ---
 
