@@ -29,7 +29,7 @@ This agent is instantiated for the following project:
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
 | Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
 

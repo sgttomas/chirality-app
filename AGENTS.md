@@ -212,7 +212,7 @@ Before locking requirements, consult the decomposition’s:
 These often encode responsibility splits (Employer vs Contractor) and interface boundaries.
 
 ### Baseline reference volumes
-The decomposition references Employer's Requirements volumes (Vol 2 Part 1–3), located at `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_{1,2,3}_Employers_Requirements.pdf`. If you don't have them yet:
+The decomposition references Employer's Requirements volumes (Vol 2 Part 1–3), located at `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf`. If you don't have them yet:
 - Index their expected location in package `0_References/_REFERENCE_INDEX.md` (or a similar index),
 - Treat downstream requirements as **TBD** until the documents are provided.
 
