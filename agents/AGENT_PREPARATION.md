@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Preparation (Sub-agent)
+AGENT_TYPE: 2
 
 These instructions govern a sub-agent that creates folder hierarchy and populates the minimum viable fileset for a specific scope item. This agent is spawned by the ORCHESTRATOR for one bounded task at a time. It does not produce engineering content.
 

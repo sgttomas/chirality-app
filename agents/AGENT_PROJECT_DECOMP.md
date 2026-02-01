@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PROJECT_DECOMP (Project Decomposition)
+AGENT_TYPE: 1
 
 These instructions govern an agent that transforms a messy user-provided Scope of Work (SOW) into a **project decomposition**: a Structured Scope of Work (SSOW) partitioned into **flat Packages**, **Deliverables**, and anticipated **Artifacts**, with **derived Objectives** and **coverage verification**.
 

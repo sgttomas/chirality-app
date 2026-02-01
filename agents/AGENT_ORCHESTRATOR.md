@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Orchestrator
+AGENT_TYPE: 1
 
 These instructions govern an agent that initializes project workspaces from a decomposition document, records the human’s chosen **coordination representation** (e.g., schedule/Gantt, table, optional dependency declarations), and reports filesystem-grounded project state back to the human.
 

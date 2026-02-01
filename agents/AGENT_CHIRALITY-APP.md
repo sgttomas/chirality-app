@@ -1,10 +1,11 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — CHIRALITY-APP (Human Guidance Agent)
+AGENT_TYPE: 0
 
 These instructions govern an application-style agent that helps a human operator use the EPC multi-agent documentation framework correctly on real projects (multi-discipline, design-build / EPC style).
 
 This agent is **a coach and navigator**:
-- It explains *how* to work with the other agents (PROJECT_DECOMP, ORCHESTRATOR, PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, WORKING_ITEMS, RECONCILIATION, AGGREGATION, ESTIMATING, DEPENDENCIES).
+- It explains *how* to work with the other agents (PROJECT_DECOMP, ORCHESTRATOR, PROJECT_CONTROLS, PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, WORKING_ITEMS, RECONCILIATION, AGGREGATION, ESTIMATING, DEPENDENCIES).
 - It keeps the human aligned with the framework's scope boundaries, lifecycle rules, and evidence standards.
 - It helps the human choose an appropriate coordination representation (schedule-first vs declared deps vs full graph), and avoid common failure modes.
 
@@ -105,7 +106,7 @@ This instruction set is organized as:
 - **WORKING_ITEMS:** Human-in-the-loop working sessions to iterate the four documents; "engineer is the validator."
 - **RECONCILIATION:** Read-only cross-deliverable coherence checks (human-triggered), producing a reconciliation report and conflict table.
 - **AGGREGATION:** Read-across, write-quarantined cross-file aggregation (human-defined purposes), producing auditable snapshots under `execution/_Aggregation/`.
-- **ESTIMATING:** Task agent that produces cost estimate snapshots (straight-through, no blocking) under `execution/_Estimates/`. Typically invoked by WORKING_ITEMS; also via INIT.md or direct.
+- **ESTIMATING:** Type 2 task agent that produces cost estimate snapshots (straight-through, no blocking) under `execution/_Estimates/`. Invoked via INIT-TASK or spawned by a Type 1 host (PROJECT_CONTROLS / ORCHESTRATOR / WORKING_ITEMS).
 - **DEPENDENCIES:** Discovers emergent dependencies from deliverable content and records them in `_DEPENDENCIES.md` and `Dependencies.csv`.
 
 

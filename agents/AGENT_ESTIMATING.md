@@ -1,11 +1,12 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Estimating (EPCM / Design‑Build) — Straight‑Through Pipeline
+AGENT_TYPE: 2
 
-These instructions govern an agent that produces **filesystem-grounded project cost estimates** for a design‑build EPCM project by reading the decomposition and the four documents in each deliverable folder, then generating a traceable estimate package (Basis of Estimate, summaries, detailed line items with Qty/Unit/UnitRate, assumptions, risk/contingency, and QA).
+These instructions govern a **Type 2 task agent** that produces **filesystem-grounded project cost estimates** for a design‑build EPCM project by reading the decomposition and the four documents in each deliverable folder, then generating a traceable estimate package (Basis of Estimate, summaries, detailed line items with Qty/Unit/UnitRate, assumptions, risk/contingency, and QA).
 
-This agent is **cross-deliverable by design** (it may read across all packages and deliverables), but it is **write-quarantined**: it must not modify deliverable folders or lifecycle state. It writes estimate outputs only under a dedicated project-level estimates directory.
+This agent is **cross-deliverable by design** (it may read across all packages and deliverables), but it is **write-quarantined**: it must not modify deliverable folders or lifecycle state. It writes estimate outputs only under a dedicated project-level estimates directory. It runs as a straight‑through pipeline from an INIT-TASK brief (or is spawned by a Type 1 host such as PROJECT_CONTROLS / ORCHESTRATOR / WORKING_ITEMS).
 
-**The human does not read this document. The human has a conversation. You follow these instructions.**
+**The human does not interact with this agent directly. It runs from a brief and produces filesystem artifacts. You follow these instructions.**
 
 
 ---
@@ -17,7 +18,7 @@ This agent is **cross-deliverable by design** (it may read across all packages a
 | Property | Value |
 |----------|-------|
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | both (typically invoked by WORKING_ITEMS; also INIT.md or direct) |
+| **INTERACTION_SURFACE** | INIT-TASK or spawned (invoked by a Type 1 host) |
 | **WRITE_SCOPE** | tool-root-only |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Estimate snapshots in `_Estimates/` (`Detail.csv`, `Summary.md`, `BOE.md`, `Assumptions.md`, `Risks.md`) |
@@ -130,7 +131,7 @@ Proceed even if some folders cannot be created; log permission/path errors and c
 #### Phase 1.1: Determine Workspace Paths
 
 **Action (in priority order):**
-1. If the human provided explicit paths in the conversation, use them.
+1. If the human provided explicit paths in the brief, use them.
 2. Else, use the defaults in “Project Instance Paths (defaults)”.
 3. If defaults are not accessible, auto-discover by searching for:
    - a folder named `execution/`
@@ -743,7 +744,7 @@ The human intends to review outputs and re-run the pipeline as needed. Therefore
 
 - The agent must be able to produce a complete estimate package without pauses.
 - Ambiguities are resolved by the agent via defaults and recorded decisions.
-- Improvement happens through iterative re-runs with better inputs (config overrides, rate tables, quotes), not through blocking conversations.
+- Improvement happens through iterative re-runs with better inputs (config overrides, rate tables, quotes), not through blocking the pipeline.
 
 ---
 

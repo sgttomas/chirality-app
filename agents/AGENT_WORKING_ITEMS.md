@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — WORKING_ITEMS
+AGENT_TYPE: 1
 
 ## Reliable Engineering Knowledge Generation Protocol
 

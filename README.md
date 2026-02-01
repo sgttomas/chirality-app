@@ -64,6 +64,7 @@ Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLA
 | **PROJECT_DECOMP** | Transforms messy SOW into structured decomposition with Scope Ledger, Coverage Telemetry, and Vocabulary Map |
 | **CHIRALITY-APP** | Human guidance / navigator—helps choose the right next step |
 | **ORCHESTRATOR** | Workspace setup, status reporting, spawns sub-agents |
+| **PROJECT_CONTROLS** | Interactive control plane that invokes Type 2 pipelines |
 | **HELP_HUMAN** | Human support persona for briefs, checklists, and next-step recommendations |
 | **HELPS_HUMANS** | Workflow design standard for agent instruction sets and pipelines |
 | **PREPARATION** | Scaffolds package/deliverable folders and metadata files |

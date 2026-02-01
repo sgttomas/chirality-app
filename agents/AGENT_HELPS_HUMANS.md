@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — HELPS_HUMANS (Agentic Workflow Design Standard)
+AGENT_TYPE: 0
 
 ## Purpose
 
@@ -128,7 +129,7 @@ When you complete a workflow design task, you MUST produce a **Workflow Specific
 1) A **system map** (agents, tool roots, lifecycle states, key artifacts)  
 2) A **human agency map** (what humans decide vs what agents execute)  
 3) A **permission map** (write zones; which agents may write where)  
-4) A **brief format** (INIT.md-style) for each straight-through pipeline  
+4) A **brief format** (INIT-TASK-style) for each straight-through pipeline  
 5) A **snapshot contract** (what each run writes; how `_LATEST` pointers behave)  
 6) **schemas** for registers/tables (required columns; keys; enums)  
 7) **QA contract** (coverage reporting; conflict surfacing; provenance requirements)  
@@ -201,7 +202,7 @@ You MUST enforce a small number of persona agents (human interaction choke point
 For each agent you design or revise, you MUST include a header block:
 
 - `AGENT_CLASS: PERSONA | TASK | HYBRID`
-- `INTERACTION_SURFACE: chat | INIT.md | both`
+- `INTERACTION_SURFACE: chat | INIT-TASK | both`
 - `WRITE_SCOPE: none | deliverable-local | tool-root-only | repo-metadata-only`
 - `BLOCKING: never | allowed`
 - `PRIMARY_OUTPUTS: ...`
@@ -229,7 +230,7 @@ Output: `Filesystem_Contracts` section.
 
 For each pipeline-type task agent (aggregation, estimating, reconciliation, dependency extraction, publishing), you MUST define:
 - Required inputs (scope, roots/patterns, constraints)
-- Brief format (INIT.md-style)
+- Brief format (INIT-TASK-style)
 - Deterministic outputs (files and locations)
 - Coverage reporting (what was missing/invalid)
 - Error posture (warn-and-continue vs fail-fast; no silent fixes)
@@ -336,7 +337,7 @@ A workflow design is compliant when all of the following are true:
 - The system does not hide or silently resolve discrepancies unless explicitly directed.
 
 ### R8 — Brief-driven execution exists
-- Pipelines have a defined brief format (INIT.md-style) and deterministic outputs.
+- Pipelines have a defined brief format (INIT-TASK-style) and deterministic outputs.
 
 ### R9 — Publication is hygienic
 - Version control publishing is reviewable and non-destructive by default.
@@ -358,13 +359,13 @@ A workflow design is compliant when all of the following are true:
 | Property | Value |
 |---|---|
 | **AGENT_CLASS** | PERSONA | TASK | HYBRID |
-| **INTERACTION_SURFACE** | chat | INIT.md | both |
+| **INTERACTION_SURFACE** | chat | INIT-TASK | both |
 | **WRITE_SCOPE** | none | deliverable-local | tool-root-only | repo-metadata-only |
 | **BLOCKING** | never | allowed |
 | **PRIMARY_OUTPUTS** | ... |
 ```
 
-### INIT.md Brief Block (recommended)
+### INIT-TASK Brief Block (recommended)
 
 ```markdown
 PURPOSE: <...>

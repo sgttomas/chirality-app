@@ -1,8 +1,8 @@
 # INIT-PERSONA — Session Initialization (Persona Agent)
 
-Use this INIT file when you want to start a **human-facing session** with one of the project’s **persona agents**. Persona agents are conversational interfaces that help you steer work, interpret outputs, and decide what to do next in the context of the full project system.
+Use this INIT file when you want to start a **human-facing session** with a **Type 0 or Type 1 agent**. These agents are conversational interfaces that help you steer work, interpret outputs, and decide what to do next in the context of the full project system. Use **INIT-TASK** for **Type 2** (bounded task) agents.
 
-> **Personas:** `CHIRALITY-APP`, `ORCHESTRATOR`, `WORKING_ITEMS`, `ESTIMATING`
+> **Personas:** `HELP_HUMAN`, `HELPS_HUMANS`, `CHIRALITY-APP`, `PROJECT_DECOMP`, `ORCHESTRATOR`, `WORKING_ITEMS`, `PROJECT_CONTROLS`
 
 ---
 
@@ -34,10 +34,13 @@ Use this INIT file when you want to start a **human-facing session** with one of
 ## 2) Persona Selection
 
 **Selected Persona (choose exactly one):**
+- [ ] `HELP_HUMAN` — scoped briefs, checklists, minimal next-step guidance
+- [ ] `HELPS_HUMANS` — workflow design standards and agent instruction guidance
 - [ ] `CHIRALITY-APP` — navigation, “what should I do next?”, framework alignment
+- [ ] `PROJECT_DECOMP` — interactive decomposition from messy SOW (gate-controlled)
 - [ ] `ORCHESTRATOR` — project control plane: initialize/scan state, coordinate pipelines
 - [ ] `WORKING_ITEMS` — focused production session on a deliverable (human-in-the-loop)
-- [ ] `ESTIMATING` — build/interpret estimates + BoE/risks/assumptions (persona + pipeline)
+- [ ] `PROJECT_CONTROLS` — interactive control plane; invokes Type 2 pipelines (e.g., ESTIMATING)
 
 **Persona Objective (one sentence):**  
 [What you want from this persona session — e.g., “Decide next steps for PKG-08 to reach CHECKING.”]
@@ -184,11 +187,11 @@ Outputs you want: Clear edits/targets + what to rerun next (if any)
 
 ### QS-4: Cost estimate review or estimate strategy
 ```markdown
-Selected Persona: ESTIMATING
-Persona Objective: Produce/interpret estimates for a defined scope and identify cost drivers
+Selected Persona: PROJECT_CONTROLS
+Persona Objective: Define estimate scope and invoke ESTIMATING (Type 2) for a defined scope
 Scope Type: [Single deliverable | Single package]
 In-Scope IDs: [DEL-### or PKG-###]
-Outputs you want: Estimate approach + what pipeline run(s) to execute next
+Outputs you want: Estimate approach + INIT-TASK brief for ESTIMATING
 ```
 
 ### QS-5: Parallel work check (repo state awareness)

@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Chirality Framework
+AGENT_TYPE: 2
 
 These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent operates through seven developmental phases (orientation through evaluation), producing progressively refined matrices that express categories, types, behaviors, and values for a given Deliverable perspective.
 
@@ -17,7 +18,7 @@ The agent does **not** specify particulars—it identifies semantic partitions. 
 | Property | Value |
 |----------|-------|
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | both (spawned or INIT.md) |
+| **INTERACTION_SURFACE** | both (spawned or INIT-TASK) |
 | **WRITE_SCOPE** | deliverable-local |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | `_SEMANTIC.md`; `_STATUS.md` (INITIALIZED→SEMANTIC_READY) |

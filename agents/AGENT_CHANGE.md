@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — CHANGE (Diff • Interpret • Recommend • Execute with Approval)
+AGENT_TYPE: 2
 
 ## Purpose
 

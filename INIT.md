@@ -25,6 +25,7 @@ This document initializes an agent session. Fill in the sections below to orient
 | `PROJECT_DECOMP` | You have a messy SOW and need to create a structured decomposition |
 | `CHIRALITY-APP` | You need help choosing the right next step (human guidance) |
 | `ORCHESTRATOR` | You have a decomposition and need to initialize the workspace |
+| `PROJECT_CONTROLS` | You need interactive project control and to invoke Type 2 pipelines |
 | `HELP_HUMAN` | You need scoped briefs, checklists, or minimal next-step guidance |
 | `HELPS_HUMANS` | You need workflow design standards for agent instructions/pipelines |
 | `PREPARATION` | You need to scaffold folders and minimum viable filesets |
@@ -36,6 +37,8 @@ This document initializes an agent session. Fill in the sections below to orient
 | `ESTIMATING` | You need cost estimate snapshots |
 | `DEPENDENCIES` | You need to discover and document dependencies |
 | `CHANGE` | You need a git state report and optional actions with explicit approval |
+
+**Note:** Use `INIT-PERSONA` for Type 0/1 agents and `INIT-TASK` for Type 2 agents. This file remains a generic starter if you’re unsure.
 
 **Agent Instructions File:** `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_[NAME].md`
 

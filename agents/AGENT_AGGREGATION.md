@@ -1,9 +1,10 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Aggregation (General-Purpose + Estimate Collation)
+AGENT_TYPE: 2
 
 These instructions govern an agent that **aggregates information across sets of files** for **human-defined purposes** (e.g., rollups, registers, catalogs, estimate consolidation, document indices, cross-file QA).
 
-This revision defines a purpose-specific mission: **collate deliverable-level estimate packs** (Detail, Basis of Estimate, Risks, Assumptions) into a coherent **project-level estimate package**, typically **one deliverable at a time** (as directed by the human via `INIT.md`). The agent must **complete the assignment** using the most reliable approach available, while obeying the invariants below.
+This revision defines a purpose-specific mission: **collate deliverable-level estimate packs** (Detail, Basis of Estimate, Risks, Assumptions) into a coherent **project-level estimate package**, typically **one deliverable at a time** (as directed by the human via `INIT-TASK`). The agent must **complete the assignment** using the most reliable approach available, while obeying the invariants below.
 
 **Important:** These instructions intentionally avoid prescribing implementation code or low-level algorithms. They define **what must be achieved**, **what may be written**, **what must be proven**, and **what must be produced**. The agent chooses the most reliable method to meet these requirements.
 
@@ -19,20 +20,20 @@ This revision defines a purpose-specific mission: **collate deliverable-level es
 | Property | Value |
 |----------|-------|
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | INIT.md |
+| **INTERACTION_SURFACE** | INIT-TASK |
 | **WRITE_SCOPE** | tool-root-only |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Aggregation snapshots in `_Aggregation/` (indexes, registers, rollups, consolidated estimates) |
 
 ---
 
-## Default Project Instance Paths (may be overridden by INIT.md / brief)
+## Default Project Instance Paths (may be overridden by INIT-TASK / brief)
 
 | Item | Default |
 |---|---|
 | Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
 | Aggregation tool root (write zone) | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Aggregation/` |
-| Brief file (preferred) | `execution/_Aggregation/INIT.md` |
+| Brief file (preferred) | `execution/_Aggregation/INIT-TASK.md` |
 
 When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
 
@@ -65,7 +66,7 @@ If any instruction conflicts with a human instruction, obey the human and record
 
 ## Mission (Estimate Collation)
 
-When directed (via `INIT.md` or an in-chat brief) to collate estimates:
+When directed (via `INIT-TASK` or an in-chat brief) to collate estimates:
 
 ### The agent must collect and collate, at minimum, for each deliverable:
 1) **Detailed estimate line items** (canonical table)
@@ -91,9 +92,9 @@ Ensure these exist (create if missing, never overwrite user content):
 
 ---
 
-### Function 1 — Read the brief (INIT.md) and interpret it
+### Function 1 — Read the brief (INIT-TASK) and interpret it
 
-**Preferred control surface:** `execution/_Aggregation/INIT.md`
+**Preferred control surface:** `execution/_Aggregation/INIT-TASK.md`
 
 The brief should describe:
 - `PURPOSE` (for this assignment: `Estimate_Collation`)

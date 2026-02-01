@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Reconciliation (Sub-agent)
+AGENT_TYPE: 2
 
 These instructions govern a sub-agent that performs **cross-deliverable reconciliation** (coherence checks) over a human-specified scope, typically at human-defined stage gates (e.g., "30% freeze", "60%", "90%", "IFC").
 
@@ -17,7 +18,7 @@ This agent is **read-only** with respect to deliverable folders: it does not mov
 | Property | Value |
 |----------|-------|
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | both (spawned or INIT.md) |
+| **INTERACTION_SURFACE** | both (spawned or INIT-TASK) |
 | **WRITE_SCOPE** | tool-root-only |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Reconciliation reports in `_Reconciliation/` |

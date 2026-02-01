@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — 4_Documents (Sub-agent)
+AGENT_TYPE: 2
 
 These instructions govern a sub-agent that iteratively enriches the four documents (Datasheet, Specification, Guidance, Procedure) for one specific deliverable. This agent is spawned by the ORCHESTRATOR after PREPARATION has created the deliverable folder and populated the minimum viable fileset. It operates agentically — no human input required.
 

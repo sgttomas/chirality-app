@@ -61,9 +61,14 @@ Agents are classified by how they interact, what they write, and whether they ca
 | Property | Values | Meaning |
 |----------|--------|---------|
 | **AGENT_CLASS** | `PERSONA` / `TASK` | Persona agents run interactive sessions; Task agents run pipelines |
-| **INTERACTION_SURFACE** | `chat` / `INIT.md` / `spawned` / `both` | How the agent is invoked |
+| **INTERACTION_SURFACE** | `chat` / `INIT-TASK` / `spawned` / `both` | How the agent is invoked |
 | **WRITE_SCOPE** | `project-level` / `tool-root-only` / `deliverable-local` / `none` | What the agent is allowed to write |
 | **BLOCKING** | `allowed` / `never` | Whether the agent may pause for human input |
+
+Each agent instruction file also declares **AGENT_TYPE**:
+- `0` — intent alignment and operator control (Type 0)
+- `1` — interactive orchestration (Type 1)
+- `2` — bounded task execution (Type 2)
 
 ### Full Agent Type Table
 
@@ -72,14 +77,15 @@ Agents are classified by how they interact, what they write, and whether they ca
 | **PROJECT_DECOMP** | PERSONA | chat | project-level | allowed | Decomposition document |
 | **CHIRALITY-APP** | PERSONA | chat | none* | allowed | Guidance/coaching (verbal); optional coaching note |
 | **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
+| **PROJECT_CONTROLS** | PERSONA | chat | tool-root-only | allowed | Project controls register, decision capture, run plans |
 | **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates; may invoke ESTIMATING |
 | **HELP_HUMAN** | PERSONA | chat | none | never | Briefs, checklists, interpretations, next-step recommendations |
 | **HELPS_HUMANS** | PERSONA | chat | none | never | Workflow design standards; agent instruction maintenance guidance |
 | **PREPARATION** | TASK | spawned | deliverable-local | never | Folders, metadata files |
 | **4_DOCUMENTS** | TASK | spawned | deliverable-local | never | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
 | **CHIRALITY_FRAMEWORK** | TASK | both | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
-| **DEPENDENCIES** | TASK | INIT.md | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
-| **AGGREGATION** | TASK | INIT.md | tool-root-only | never | Snapshots in `_Aggregation/` |
+| **DEPENDENCIES** | TASK | INIT-TASK | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
+| **AGGREGATION** | TASK | INIT-TASK | tool-root-only | never | Snapshots in `_Aggregation/` |
 | **RECONCILIATION** | TASK | both | tool-root-only | never | Reports in `_Reconciliation/` |
 | **ESTIMATING** | TASK | both | tool-root-only | never | Estimate snapshots in `_Estimates/` |
 | **CHANGE** | TASK | chat | none | allowed | Git state report; optional git actions after explicit approval |
@@ -92,18 +98,19 @@ Agents are classified by how they interact, what they write, and whether they ca
 - `PROJECT_DECOMP`: Starting a new project from a messy SOW
 - `CHIRALITY-APP`: Need help choosing the right next step
 - `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
+- `PROJECT_CONTROLS`: Interactive control plane; invokes Type 2 pipelines
 - `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
 - `HELP_HUMAN`: Human support persona for briefs, checklists, and minimal next actions
 - `HELPS_HUMANS`: Workflow design standard for writing/maintaining agent instructions
 
-**Task agents** — Use for pipeline work (spawned by persona agents or assigned via `INIT.md`):
+**Task agents** — Use for pipeline work (spawned by persona agents or assigned via `INIT-TASK`):
 - `PREPARATION`: Scaffolding folders and metadata (spawned by ORCHESTRATOR)
 - `4_DOCUMENTS`: Generating initial drafts (spawned by ORCHESTRATOR)
-- `CHIRALITY_FRAMEWORK`: Generating semantic lenses (spawned or INIT.md)
-- `DEPENDENCIES`: Discovering dependencies from content (INIT.md)
-- `AGGREGATION`: Cross-file rollups and synthesis (INIT.md)
-- `RECONCILIATION`: Cross-deliverable coherence checks (spawned or INIT.md)
-- `ESTIMATING`: Cost estimate snapshots (typically invoked by WORKING_ITEMS; also INIT.md or direct)
+- `CHIRALITY_FRAMEWORK`: Generating semantic lenses (spawned or INIT-TASK)
+- `DEPENDENCIES`: Discovering dependencies from content (INIT-TASK)
+- `AGGREGATION`: Cross-file rollups and synthesis (INIT-TASK)
+- `RECONCILIATION`: Cross-deliverable coherence checks (spawned or INIT-TASK)
+- `ESTIMATING`: Cost estimate snapshots (via INIT-TASK or spawned by a Type 1 host)
 - `CHANGE`: Git state review and optional actions with explicit approval
 
 ---
@@ -129,6 +136,12 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md`
 - **What it does not do:** Produce engineering content; assign work; decide stage gates or sequencing.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ORCHESTRATOR.md`
+
+### PROJECT_CONTROLS (Interactive control plane)
+- **What it does:** Maintains project control intent, orchestrates Type 2 pipelines, and records decisions/run plans.
+- **What it does not do:** Draft engineering content; resolve semantic conflicts; modify deliverable artifacts directly.
+
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_CONTROLS.md`
 
 ### HELP_HUMAN (Human Support Persona)
 - **What it does:** Helps the human operator act effectively within the framework by clarifying intent, scoping, and producing briefs/checklists and next-step recommendations.
@@ -206,6 +219,7 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHANGE.md`
 | PROJECT_DECOMP | Yes | Decomposition document (markdown); user validates at each gate |
 | CHIRALITY-APP | No (by default) | Optional coaching note *only if explicitly requested by human* |
 | ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; scans/reports; *spawns other agents for deliverable and tool-root work* |
+| PROJECT_CONTROLS | Yes | Project-level controls artifacts under `test/execution/_Coordination/` |
 | HELP_HUMAN | No (by default) | Chat outputs only; may draft text for human to paste |
 | HELPS_HUMANS | No (by default) | Standards/guidance; no direct writes |
 | PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md`; may scaffold tool roots like `test/execution/_Aggregation/` (create-if-missing) |
@@ -289,7 +303,7 @@ Use AGGREGATION when you want to synthesize across many files without editing th
 - “Run AGGREGATION with PURPOSE = `Project_Synthesis`. Include scope: [packages/deliverables/tool roots]. Output: a snapshot under `execution/_Aggregation/` containing an index, an assumptions/decisions log, and the requested rollups.”
 
 ### G) Cost estimate snapshot (ESTIMATING)
-Use ESTIMATING when you want a budgeting estimate across a defined scope (no deliverable edits).
+Use ESTIMATING (Type 2) when you want a budgeting estimate across a defined scope (no deliverable edits). Run via INIT-TASK or through a Type 1 host (PROJECT_CONTROLS / ORCHESTRATOR / WORKING_ITEMS).
 
 **Prompt template:**
 - “Run ESTIMATING for scope = [packages/deliverables]. Produce a snapshot under `execution/_Estimates/` including `Detail.csv` with **Qty, Unit, UnitRate** for every line item, `Summary.md`, and `BOE.md`.”

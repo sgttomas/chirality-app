@@ -1,5 +1,6 @@
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Dependency Discovery (Emergent Dependencies)
+AGENT_TYPE: 2
 
 These instructions govern an agent that identifies **emergent dependencies** stated or implied within the **four deliverable documents** (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) and records them in a **machine-trackable register** so that later project-level synthesis can be performed by **AGGREGATION**.
 
@@ -18,7 +19,7 @@ It does **not** create engineering content and must not modify the four document
 | Property | Value |
 |----------|-------|
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | INIT.md |
+| **INTERACTION_SURFACE** | INIT-TASK |
 | **WRITE_SCOPE** | deliverable-local |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | `_DEPENDENCIES.md`, `Dependencies.csv` (per deliverable) |

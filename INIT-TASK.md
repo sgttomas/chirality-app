@@ -1,6 +1,6 @@
 # INIT-TASK — Session Initialization (Task Agent)
 
-Use this INIT file when you want to run a **task agent directly**. Task agents should execute a bounded assignment straight-through, producing durable, auditable outputs (typically into a tool root) without requiring mid-run human decisions.
+Use this INIT file when you want to run a **Type 2 task agent directly**. Task agents should execute a bounded assignment straight-through, producing durable, auditable outputs (typically into a tool root) without requiring mid-run human decisions. Use **INIT-PERSONA** for **Type 0 / Type 1** agents.
 
 ---
 
@@ -28,13 +28,13 @@ Use this INIT file when you want to run a **task agent directly**. Task agents s
 ## 2) Task Agent Selection
 
 **Assigned Task Agent (choose exactly one):**
-- [ ] `PROJECT_DECOMP` — create/repair a project decomposition from messy scope inputs
 - [ ] `PREPARATION` — scaffold execution workspace + minimum viable filesets
 - [ ] `4_DOCUMENTS` — generate initial drafts (Datasheet/Spec/Guidance/Procedure)
 - [ ] `CHIRALITY_FRAMEWORK` — generate `_SEMANTIC.md` semantic lens per deliverable
 - [ ] `DEPENDENCIES` — extract emergent dependencies into a trackable register
 - [ ] `RECONCILIATION` — cross-deliverable coherence checks (read-only posture)
 - [ ] `AGGREGATION` — synthesize/collate across files into snapshots (e.g., estimates + BoE)
+- [ ] `ESTIMATING` — produce estimate snapshots in `_Estimates/` (straight-through)
 - [ ] `CHANGE` (git state) — inspect git diffs + optional git actions with explicit approval
 
 **Agent Instructions File (absolute):**  
