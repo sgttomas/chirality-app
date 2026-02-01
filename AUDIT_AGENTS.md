@@ -1,4 +1,6 @@
-# AUDIT_AGENT.md
+# AUDIT_AGENTS.md
+> Compatibility alias: canonical rubric is `AUDIT_AGENT.md`. This file mirrors it to satisfy references expecting `AUDIT_AGENTS.md`.
+
 **AGENT_* Coherence & Conformance Audit Rubric**  
 **Canonical standard:** `AGENT_HELPS_HUMANS.md`. All other `AGENT_*.md` files must conform unless the canonical contains an internal contradiction that prevents system functionality (rare; minimal fix only).
 

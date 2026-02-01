@@ -81,22 +81,22 @@ Each agent instruction file also declares **AGENT_TYPE**:
 
 ### Full Agent Type Table
 
-| Agent | CLASS | INTERACTION | WRITE_SCOPE | BLOCKING | PRIMARY_OUTPUTS |
+| Agent | CLASS | INTERACTION | PRIMARY_OUTPUTS |
 |-------|-------|-------------|-------------|----------|-----------------|
-| **PROJECT_DECOMP** | PERSONA | chat | project-level | allowed | Decomposition document |
-| **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
-| **PROJECT_CONTROLS** | PERSONA | chat | tool-root-only | allowed | Project controls register, decision capture, run plans |
-| **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates; may invoke ESTIMATING |
-| **HELP_HUMAN** | PERSONA | chat | none | never | Briefs, checklists, interpretations, next-step recommendations |
-| **HELPS_HUMANS** | PERSONA | chat | none | never | Workflow design standards; agent instruction maintenance guidance |
-| **PREPARATION** | TASK | spawned | deliverable-local | never | Folders, metadata files |
-| **4_DOCUMENTS** | TASK | spawned | deliverable-local | never | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
-| **CHIRALITY_FRAMEWORK** | TASK | spawned | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
-| **DEPENDENCIES** | TASK | spawned | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
-| **AGGREGATION** | TASK | spawned | tool-root-only | never | Snapshots in `_Aggregation/` |
-| **RECONCILIATION** | TASK | spawned | tool-root-only | never | Reports in `_Reconciliation/` |
-| **ESTIMATING** | PERSONA | chat | tool-root-only | never | Estimate snapshots in `_Estimates/` |
-| **CHANGE** | PERSONA | chat | none | allowed | Git state report; optional git actions after explicit approval |
+| **PROJECT_DECOMP** | PERSONA | chat | Decomposition document |
+| **ORCHESTRATOR** | PERSONA | chat | `_COORDINATION.md`; spawns sub-agents |
+| **PROJECT_CONTROLS** | PERSONA | chat | Project controls register, decision capture, run plans |
+| **WORKING_ITEMS** | PERSONA | chat | User defined output |
+| **HELP_HUMAN** | PERSONA | chat | Briefs, checklists, interpretations, next-step recommendations |
+| **HELPS_HUMANS** | PERSONA | chat | Workflow design standards; agent instruction maintenance guidance |
+| **PREPARATION** | TASK | spawned | Folders, metadata files |
+| **4_DOCUMENTS** | TASK | spawned | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
+| **CHIRALITY_FRAMEWORK** | TASK | spawned | `_SEMANTIC.md`, `_STATUS.md` |
+| **DEPENDENCIES** | TASK | spawned | `_DEPENDENCIES.md`, `Dependencies.csv` |
+| **AGGREGATION** | TASK | spawned | Snapshots in `_Aggregation/` |
+| **RECONCILIATION** | PERSONA | chat | Reports in `_Reconciliation/` |
+| **ESTIMATING** | TASK | spawned | Estimate snapshots in `_Estimates/` |
+| **CHANGE** | PERSONA | chat | Git state report; optional git actions after explicit approval |
 
 
 ### When to use which class
@@ -115,15 +115,13 @@ Each agent instruction file also declares **AGENT_TYPE**:
 - `CHIRALITY_FRAMEWORK`: Generating semantic lenses 
 - `DEPENDENCIES`: Discovering dependencies from content 
 - `AGGREGATION`: Cross-file rollups and synthesis 
-- `RECONCILIATION`: Cross-deliverable coherence checks 
+- `RECONCILIATION`: Cross-deliverable or intra-agent coherence checks 
 - `ESTIMATING`: Cost estimate snapshots
 - `CHANGE`: Git state review and optional actions with explicit approval
 
 ---
 
 ## 3) Agent index (what each one is for)
-
-> Filenames may include `_REVISED_..._v3` (or later). Treat the names below as *agent types*.
 
 ### PROJECT_DECOMP (Project Decomposition)
 - **What it does:** Transforms a messy, user-supplied Scope of Work (SOW) into a structured scope output (SSOW), then decomposes SSOW into flat Packages, Deliverables, and anticipated Artifacts. Runs a conversational, gate-controlled process with the user.
@@ -180,8 +178,8 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY_FRAMEWOR
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`
 
-### RECONCILIATION (Cross-deliverable dependency checks)
-- **What it does:** Read-only scan across the dependency mapping between deliverables and compares to current state of `4 Documents` for coherence and consistency.
+### RECONCILIATION (Cross-deliverable and intra-agent dependency checks)
+- **What it does:** Read-only scan across the dependency mapping between deliverables and compares to current state of `4 Documents` for coherence and consistency. Or runs the AUDIT_AGENT.md protocol.
 - **What it does not do:** Modify deliverables; resolve conflicts without human rulings.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_RECONCILIATION.md`
@@ -212,12 +210,5 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHANGE.md`
 
 ---
 
-## 4) Non-negotiable quality rules (how to avoid bad output)
-
-- **No invention:** if it isn’t in a source, mark **TBD** or label **ASSUMPTION/PROPOSAL**.
-- **Cite sources:** every non-trivial claim, requirement, or value should be traceable to a reference.
-- **Conflict handling:** contradictions produce a **Conflict Table** and a request for a human ruling.
-- **Keep scope clean:** WORKING_ITEMS stays inside one deliverable folder. Use CHIRALITY_FRAMEWORK for semantic lens generation (`_SEMANTIC.md`), RECONCILIATION for coherence checks, and AGGREGATION/ESTIMATING for cross-scope synthesis/costing.
-- **Don’t confuse stage gates with lifecycle:** stage gates can be recorded in coordination notes, but `_STATUS.md` uses only the lifecycle states.
 
 EOF

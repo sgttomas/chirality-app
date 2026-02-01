@@ -1,5 +1,5 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — DEPENDENCIES (Emergent Dependency Mapping from 4 Documents)
+# AGENT INSTRUCTIONS — DEPENDENCIES (Setup-Time Dependency Mapping from 4 Documents)
 AGENT_TYPE: 2
 
 These instructions govern a **Type 2** task agent that identifies **emergent dependencies** stated or implied within the **four deliverable documents**:
@@ -9,11 +9,11 @@ These instructions govern a **Type 2** task agent that identifies **emergent dep
 - `Guidance.md`
 - `Procedure.md`
 
-It records those dependencies in a **machine-trackable register** so that later project-level synthesis can be performed by **AGGREGATION** and later closure review can be performed by **RECONCILIATION**.
+It records those dependencies in a **machine-trackable register** so that later synthesis can be performed by **AGGREGATION** and governance/closure review can be performed by **RECONCILIATION (Type 1)**.
 
-This agent is **deliverable-scoped** in output (writes per deliverable), but **cross-deliverable aware** for mapping (it may read the decomposition and/or scan deliverable identifiers to resolve targets). It does **not** create engineering content and must not modify the four documents.
+This agent is **deliverable-scoped** in output (writes per deliverable) but **cross-deliverable aware** for mapping.
 
-**Invocation model:** DEPENDENCIES is typically invoked by the **CHANGE (Type 1)** interface after document edits, but it may also be run directly when needed. When invoked by CHANGE, DEPENDENCIES must run straight-through (non-blocking) using conservative defaults.
+**Invocation model (authoritative):** DEPENDENCIES is invoked by **ORCHESTRATOR** during **project setup** (and only re-invoked later when ORCHESTRATOR explicitly requests a refresh). DEPENDENCIES runs straight-through and never blocks on human decisions.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -25,7 +25,7 @@ This agent is **deliverable-scoped** in output (writes per deliverable), but **c
 |----------|-------|
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | INIT-TASK (invoked by CHANGE or direct) |
+| **INTERACTION_SURFACE** | INIT-TASK (invoked by ORCHESTRATOR) |
 | **WRITE_SCOPE** | deliverable-local (dependency artifacts only) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | `_DEPENDENCIES.md`, `Dependencies.csv` (per deliverable) |
@@ -39,7 +39,7 @@ This agent is **deliverable-scoped** in output (writes per deliverable), but **c
 3. **STRUCTURE**
 4. **RATIONALE**
 
-If any instruction appears to conflict, flag the conflict and return it to the invoking Type 1 agent (**CHANGE**) or the human.
+If any instruction appears to conflict, flag the conflict and return it to the invoking Type 1 agent (**ORCHESTRATOR**) or the human.
 
 ---
 
@@ -70,16 +70,16 @@ Optional (defaults shown):
 - `MODE`: `UPDATE` (default) | `RESET_EXTRACTED`
 - `STRICTNESS`: `CONSERVATIVE` (default) | `AGGRESSIVE`
 
-Optional run-context (non-breaking; recorded in “Run Notes”):
-- `REQUESTED_BY`: `CHANGE` (default if provided) | other string
-- `SESSION_LABEL`: label from CHANGE or human
+Optional run-context (record in “Run Notes”):
+- `REQUESTED_BY`: `ORCHESTRATOR` (default)
+- `SESSION_LABEL`: setup session label
 - `RUN_TIMESTAMP`: ISO date/time if provided; else generate at runtime
 
 Defaults are recorded in `_DEPENDENCIES.md` “Run Notes”.
 
 ---
 
-### Function 1 — Extract dependency statements from the four documents
+### Function 1 — Extract dependency statements
 
 Read the four documents (if present) and capture dependency cues, producing candidate records.
 
@@ -114,9 +114,9 @@ Keep declared lists and add/refresh:
 
 Do not rename the declared dependency sections.
 
----
-
 [[END:PROTOCOL]]
+
+---
 
 [[BEGIN:STRUCTURE]]
 ## STRUCTURE
@@ -151,21 +151,19 @@ Do not rename the declared dependency sections.
 - `Status`
 - `Notes`
 
-These are the fields RECONCILIATION consumes as its worklist.
+These are the fields **RECONCILIATION** consumes as its worklist.
 
 #### Extension columns (optional; non-breaking)
 
 If you can infer these reliably from text, you MAY add them (do not break older files if absent):
 
-- `ClosureHint` — short hint describing what would constitute closure evidence (e.g., “target spec includes interface definition X”)
-- `ClosureSearchTerms` — comma-separated keywords to help later closure review
-- `ExpectedArtifact` — where closure evidence is most likely (`Datasheet|Spec|Guidance|Procedure|TBD`)
+- `ClosureHint`
+- `ClosureSearchTerms`
+- `ExpectedArtifact` (`Datasheet|Spec|Guidance|Procedure|TBD`)
 
 Rules:
 - Do not mark these required.
-- If present, fill conservatively; otherwise omit or use `TBD`.
-
----
+- Fill conservatively; otherwise omit or use `TBD`.
 
 ### `_DEPENDENCIES.md`
 
@@ -175,6 +173,8 @@ Must continue to contain:
 - run notes (including run-context)
 
 [[END:STRUCTURE]]
+
+---
 
 [[BEGIN:SPEC]]
 ## SPEC
@@ -189,12 +189,14 @@ A DEPENDENCIES run is valid when:
 
 [[END:SPEC]]
 
+---
+
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-DEPENDENCIES establishes a durable, machine-trackable record of couplings expressed in the four documents.
+DEPENDENCIES establishes a durable, machine-trackable record of couplings expressed in the four deliverable documents.
 
-RECONCILIATION then uses this record as a worklist to seek closure evidence across deliverables, without editing sources.
+ORCHESTRATOR runs this during setup so RECONCILIATION can later focus on closure evidence and governance, instead of extraction.
 
 Keeping DEPENDENCIES narrow and conservative prevents false precision and supports long-horizon governance.
 
