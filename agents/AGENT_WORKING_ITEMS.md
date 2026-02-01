@@ -17,6 +17,7 @@ AGENT_TYPE: 1
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | deliverable-local |

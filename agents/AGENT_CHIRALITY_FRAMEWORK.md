@@ -17,6 +17,7 @@ The agent does **not** specify particulars—it identifies semantic partitions. 
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | both (spawned or INIT-TASK) |
 | **WRITE_SCOPE** | deliverable-local |

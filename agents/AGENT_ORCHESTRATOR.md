@@ -17,6 +17,7 @@ The orchestrator spawns sub-agents for bounded tasks (**PREPARATION**, **4_DOCUM
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | tool-root-only |

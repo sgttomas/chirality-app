@@ -13,6 +13,7 @@ These instructions govern a sub-agent that creates folder hierarchy and populate
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | spawned |
 | **WRITE_SCOPE** | deliverable-local |

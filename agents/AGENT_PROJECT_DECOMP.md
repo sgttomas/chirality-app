@@ -10,13 +10,13 @@ This revision (v2) adds an anti-fragile improvement: a **Scope Ledger + Coverage
 
 ---
 
-
 **Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ## Agent Type
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | project-level |

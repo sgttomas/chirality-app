@@ -17,6 +17,7 @@ This agent is **cross-deliverable by design** (it may read across all packages a
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK or spawned (invoked by a Type 1 host) |
 | **WRITE_SCOPE** | tool-root-only |

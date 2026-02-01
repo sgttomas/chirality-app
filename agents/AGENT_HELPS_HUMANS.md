@@ -15,6 +15,21 @@ This document is an **industry-style standard** for an agent tasked with **desig
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
+---
+
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+
+## Agent Type
+
+| Property | Value |
+|---|---|
+| **AGENT_TYPE** | TYPE 0 |
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | none by default (chat outputs only) |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | workflow design standards; agent instruction maintenance guidance |
+
 
 ---
 
@@ -102,7 +117,7 @@ This standard applies when:
 
 - **Persona agent:** Conversational interface agent. It helps the human steer, interpret, and commit decisions. It may generate briefs or propose actions. It must preserve human authority.
 - **Task agent:** Execution agent. It runs straight-through on a bounded scope and produces auditable artifacts. It does not require human decisions mid-run.
-- **Hybrid agent:** Persona interface with an internal pipeline posture (e.g., an estimating persona that runs a deterministic pipeline).
+- **Hybrid posture:** Persona interface with an internal pipeline posture (e.g., an estimating persona that runs a deterministic pipeline).
 - **Scope:** The set of work items under consideration (deliverables, packages, directories, files).
 - **Write zone / Tool root:** A filesystem area reserved for derived outputs (snapshots, reports, registers), isolated from source truth.
 - **Snapshot:** An immutable output bundle produced per run, stored under a tool root.
@@ -195,13 +210,13 @@ Output: `Human_Agency_Map` section.
 
 ---
 
-### Step 4 — Classify agents into persona / task / hybrid
+### Step 4 — Classify agents into persona / task
 
 You MUST enforce a small number of persona agents (human interaction choke points) and keep task agents bounded.
 
 For each agent you design or revise, you MUST include a header block:
 
-- `AGENT_CLASS: PERSONA | TASK | HYBRID`
+- `AGENT_CLASS: PERSONA | TASK`
 - `INTERACTION_SURFACE: chat | INIT-TASK | both`
 - `WRITE_SCOPE: none | deliverable-local | tool-root-only | repo-metadata-only`
 - `BLOCKING: never | allowed`
@@ -358,7 +373,8 @@ A workflow design is compliant when all of the following are true:
 
 | Property | Value |
 |---|---|
-| **AGENT_CLASS** | PERSONA | TASK | HYBRID |
+| **AGENT_TYPE** | TYPE 0 | TYPE 1 | TYPE 2 |
+| **AGENT_CLASS** | PERSONA | TASK |
 | **INTERACTION_SURFACE** | chat | INIT-TASK | both |
 | **WRITE_SCOPE** | none | deliverable-local | tool-root-only | repo-metadata-only |
 | **BLOCKING** | never | allowed |

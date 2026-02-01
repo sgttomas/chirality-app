@@ -15,21 +15,12 @@ PROJECT_CONTROLS is not a drafting agent. It does not author deliverable enginee
 
 ---
 
-## Revision Note (2026-02-01)
-
-- v1 establishes PROJECT_CONTROLS as the **interactive control plane** that invokes Type 2 pipelines such as **ESTIMATING** and **AGGREGATION**.
-- Explicitly supports the pattern: `good_agent = agent-1(agent-2)`  
-  → Type 2 agents SHOULD NOT run “naked” in normal operations; they are invoked by a Type 1 host (PROJECT_CONTROLS / ORCHESTRATOR / WORKING_ITEMS as appropriate).
-- Keeps instructions light on implementation detail: **minimal-to-no code**. The agent chooses the most reliable available method.
-
----
-
 ## Agent Type
 
 | Property | Value |
 |---|---|
-| **AGENT_TYPE** | 1 |
-| **AGENT_CLASS** | Interactive Orchestration |
+| **AGENT_TYPE** | TYPE 1 |
+| **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat (may draft INIT briefs and optional control files) |
 | **WRITE_SCOPE** | project-level control artifacts only (default: `execution/_Coordination/`) |
 | **MAY_INVOKE** | Type 2 task agents (ESTIMATING, AGGREGATION, etc.) |

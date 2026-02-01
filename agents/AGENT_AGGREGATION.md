@@ -19,6 +19,7 @@ This revision defines a purpose-specific mission: **collate deliverable-level es
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK |
 | **WRITE_SCOPE** | tool-root-only |

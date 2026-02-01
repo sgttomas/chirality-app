@@ -1,27 +1,34 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — Reconciliation (Sub-agent)
+# AGENT INSTRUCTIONS — RECONCILIATION (Dependency Closure Review Across 4 Documents)
 AGENT_TYPE: 2
 
-These instructions govern a sub-agent that performs **cross-deliverable reconciliation** (coherence checks) over a human-specified scope, typically at human-defined stage gates (e.g., "30% freeze", "60%", "90%", "IFC").
+These instructions govern a **Type 2** task agent that performs cross-deliverable reconciliation focused narrowly on the **four deliverable documents**:
 
-This agent is **read-only** with respect to deliverable folders: it does not move deliverables through lifecycle states, and it does not modify deliverable artifacts. It produces **reconciliation reports** that help humans make decisions and coordinate follow-up WORKING_ITEMS sessions.
+- `Datasheet.md`
+- `Specification.md`
+- `Guidance.md`
+- `Procedure.md`
+
+**Primary mission:** review dependencies recorded in each deliverable’s `_DEPENDENCIES.md` / `Dependencies.csv` (produced by **DEPENDENCIES**) and seek **evidence** in the four documents (and any additional sources the human directs) that supports **closure** (or continued openness) of those dependencies.
+
+This agent is **read-only** with respect to deliverable folders: it does not modify deliverable artifacts or dependency registers. It produces **closure review reports and registers** under `_Reconciliation/` so humans can make rulings and later synthesis can be performed by **AGGREGATION**.
+
+**Invocation model:** RECONCILIATION is typically invoked by the **CHANGE (Type 1)** interface as part of gate review or targeted closure review, but it may also be run directly when needed.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
-
 ---
-
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ## Agent Type
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | both (spawned or INIT-TASK) |
-| **WRITE_SCOPE** | tool-root-only |
+| **INTERACTION_SURFACE** | INIT-TASK (invoked by CHANGE or direct) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/`) |
 | **BLOCKING** | never |
-| **PRIMARY_OUTPUTS** | Reconciliation reports in `_Reconciliation/` |
+| **PRIMARY_OUTPUTS** | Dependency Closure Report + Closure Register |
 
 ---
 
@@ -29,182 +36,215 @@ This agent is **read-only** with respect to deliverable folders: it does not mov
 
 1. **PROTOCOL** governs sequencing and interaction rules.
 2. **SPEC** governs validity (pass/fail requirements).
-3. **STRUCTURE** defines the allowed entities and relationships.
+3. **STRUCTURE** defines the artifacts and schemas you must write.
 4. **RATIONALE** governs interpretation when ambiguity remains.
 
-If any instruction appears to conflict, flag the conflict and return it to the ORCHESTRATOR (or the human, if invoked directly).
-
----
-
-
-## Foundations: Ontology, Epistemology, Praxeology, Axiology
-
-- **STRUCTURE (Ontology):** what exists to be reconciled (deliverables, their artifacts, and interface signals).
-- **SPEC (Epistemology + Axiology):** what counts as a valid reconciliation finding (evidence-first; no invention; scope explicit).
-- **PROTOCOL (Praxeology):** how to inventory, extract signals, check coherence, and report.
-- **RATIONALE (Axiology):** why reconciliation is governance (humans rule; the agent surfaces conflicts early and transparently).
-
----
-
-
-## Project Instance Paths
-
-This agent is instantiated for the following project:
-
-| Item | Absolute Path |
-|---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf` |
-
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+If any instruction appears to conflict, flag the conflict and return it to the invoking Type 1 agent (**CHANGE**) or the human.
 
 ---
 
 ## Non-negotiable invariants
 
-- **No invention.** Do not fabricate values, requirements, code clauses, or interface assumptions. Missing information is recorded as TBD.
-- **Read-only deliverables.** Do not edit `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, or any deliverable artifacts.
-- **Write quarantine (outputs).** Write only under `execution/_Reconciliation/`. Do not write anywhere else in the workspace.
-- **No work assignment.** Provide findings and suggested follow-ups; humans decide priorities and owners.
-- **Scope is explicit.** Operate only on the scope provided (packages/deliverables). Do not “expand scope” silently.
-- **Evidence-first.** Every non-trivial finding points to a concrete source location (file + section/heading) or is marked “location TBD”.
-- **Stage gates are human-managed.** The agent may accept a gate label for naming reports, but it does not interpret stage gates as deliverable states.
+- **No invention.** Do not fabricate satisfaction evidence, requirements, or maturity states. Missing evidence stays `UNKNOWN`.
+- **Read-only deliverables.** Do not edit any deliverable-local files, including:
+  - `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+  - `_DEPENDENCIES.md`, `Dependencies.csv`
+  - `_STATUS.md`, `_CONTEXT.md`, `_REFERENCES.md`
+- **Write quarantine (outputs).** Write only under `{EXECUTION_ROOT}/_Reconciliation/`.
+- **Scope is explicit.** Operate only on the scope provided (packages/deliverables/paths).
+- **Evidence-first.** Every candidate closure finding must cite concrete locations (file + heading/section) or be explicitly marked `location TBD`.
+- **No work assignment.** Provide findings and suggested follow-ups; humans decide owners/priorities.
+- **No closure without approval.** You may propose `CANDIDATE_SATISFIED`, but the **human ruling** remains `TBD`.
 
 ---
 
 ## Glossary
 
-- **Scope**: The set of packages and/or deliverables to reconcile.
-- **Gate label**: Human-supplied text used to label the reconciliation run (e.g., “30% Freeze”).
-- **Interface signal**: Any cross-deliverable coupling evidence (term definitions, shared tags, parameters, assumptions, requirements, identifiers).
-- **Cross-deliverable conflict**: Two or more deliverables make incompatible claims about the same interface signal.
-- **Reconciliation report**: A structured output file summarizing coherence findings and conflicts.
+- **Dependency worklist:** the set of dependency records found in `**/Dependencies.csv` and/or `_DEPENDENCIES.md` within scope.
+- **Closure evidence:** text in the four documents (or directed sources) that indicates the dependency is satisfied (or not).
+- **Candidate closure:** the agent’s evidence-backed recommendation; not a final ruling.
+- **Human ruling:** explicit acceptance/closure decision made by the human; recorded outside this agent (or by a future “closure application” agent).
+
+---
+
+## Paths (defaults; may be overridden by INIT)
+
+Inputs:
+- `EXECUTION_ROOT` (optional): root folder for runtime tools and outputs  
+  - default: `execution/` (relative to repo root)
+
+Derived tool roots:
+- Reconciliation tool root: `{EXECUTION_ROOT}/_Reconciliation/`
+- Archive: `{EXECUTION_ROOT}/_Reconciliation/_Archive/`
+
+When this document refers to `execution/`, it means the resolved `EXECUTION_ROOT`.
 
 ---
 
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
-### Operational — "How to do?"
+### Inputs (from CHANGE or human)
 
-This agent receives a reconciliation request and produces a report.
-
----
-
-### Inputs (from ORCHESTRATOR or human)
-
-- Workspace root path: `/Users/ryan/ai-env/projects/chirality-app/test/execution/`
-- Scope definition (one of):
+Required:
+- `SCOPE` (one of):
   - list of package IDs, or
   - list of deliverable IDs, or
-  - “all deliverables under execution/”
-- Gate label (free text; used for report naming)
-- Optional: focus areas (e.g., terminology, parameters, assumptions, interfaces, dependency declarations)
+  - explicit list of deliverable folder paths
+
+Optional:
+- `EXECUTION_ROOT`: default `execution/`
+- `GATE_LABEL` (optional; used in report naming)
+- `EVIDENCE_ROOTS` (optional; where else to look besides the four docs)
+  - default: deliverable folders in scope only
+  - may include project references if human directs (e.g., PDFs, standards folders)
+- `FOCUS` (optional):
+  - `DEPENDENCY_CLOSURE` (default)
+  - `DEPENDENCY_CONFLICTS` (optional additional reporting)
+- `VERBOSITY` (optional): `LOW` (default) | `MED` | `HIGH`
+
+If inputs are missing, proceed with conservative defaults and record defaults in the report.
 
 ---
 
 ### Outputs
 
-- Ensure (create if missing) the tool root:
-  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/`
-  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/_Archive/`
-- Write a report file:
-  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/Reconciliation_Report_{GateLabel}_{YYYY-MM-DD}.md`
-- Do not overwrite an existing report with the same name; if a name collision occurs, append a suffix.
-- Optional (recommended): update a pointer file:
-  - `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/_LATEST.md` (overwrite allowed; it is a pointer).
+Ensure (create if missing) the tool roots:
+- `{EXECUTION_ROOT}/_Reconciliation/`
+- `{EXECUTION_ROOT}/_Reconciliation/_Archive/`
+
+Write, per run:
+- `{EXECUTION_ROOT}/_Reconciliation/Dependency_Closure_Report_{GateLabel}_{YYYY-MM-DD}.md`
+- `{EXECUTION_ROOT}/_Reconciliation/Dependency_Closure_Register_{GateLabel}_{YYYY-MM-DD}.csv`
+
+Optional pointer:
+- `{EXECUTION_ROOT}/_Reconciliation/_LATEST.md` (overwrite allowed; pointer only)
+
+Do not overwrite reports; if a name collision occurs, append a suffix.
 
 ---
 
-### Steps
-
-#### Step 1: Inventory the scope
+### Step 1 — Inventory scope + locate dependency worklists
 
 **Action:**
-1. Enumerate deliverable folders included by the scope.
-2. For each deliverable folder, record:
-   - Deliverable ID and name (from `_CONTEXT.md`)
-   - Package (from `_CONTEXT.md`)
-   - Current lifecycle state (from `_STATUS.md`)
-   - Dependency tracking mode (from `_DEPENDENCIES.md`, if present)
-   - Reference list count (from `_REFERENCES.md`)
+1. Enumerate deliverables included by scope.
+2. For each deliverable folder:
+   - record Deliverable ID/name (from `_CONTEXT.md` if present)
+   - record current lifecycle state (from `_STATUS.md` if present)
+   - locate `Dependencies.csv` and `_DEPENDENCIES.md` (if present)
 
-**Output:** A scope inventory table in the report.
+**Output:** Inventory table in the report, including “dependency register present?” indicators.
 
 ---
 
-#### Step 2: Collect interface signals
+### Step 2 — Load dependency records (worklist)
 
-**Action (read-only):**
-For each deliverable in scope, parse these files if present:
-- `Datasheet.md`
-- `Specification.md`
-- `Guidance.md`
-- `Procedure.md`
-- `_CONTEXT.md`
-- `_DEPENDENCIES.md`
-- `_REFERENCES.md`
-- `_SEMANTIC.md`
+**Action:**
+For each deliverable in scope:
+- Prefer `Dependencies.csv` as canonical.
+- If `Dependencies.csv` is missing but `_DEPENDENCIES.md` contains an extracted table, use that as a fallback worklist and mark provenance `FALLBACK_MD`.
 
-Extract “interface signals” without inference:
-- Shared identifiers and names (tags, equipment IDs, document numbers, etc.)
-- Defined terms / glossary items (explicitly defined)
-- Declared numeric parameters (with units) and where they appear
-- Declared assumptions (ASSUMPTION)
-- Open gaps (TBD)
-- Stated requirements that reference external entities
+Include both origins:
+- `Origin=DECLARED` (human/system declared)
+- `Origin=EXTRACTED` (from DEPENDENCIES)
 
-**Output:** A per-deliverable “Signals Summary” section (brief; do not dump full content).
+**Output:** A summarized count table:
+- total dependencies
+- active dependencies
+- by direction (UPSTREAM/DOWNSTREAM)
+- by target type (internal deliverable, external doc, etc.)
+- by “unknown target” count
 
 ---
 
-#### Step 3: Run coherence checks (cross-deliverable)
+### Step 3 — Seek closure evidence in the four documents
 
-Perform checks only on extracted signals.
+**Action (evidence-first; no invention):**
+For each dependency record in the worklist (primarily `Status=ACTIVE`):
 
-**3A — Terminology coherence**
-- Same concept named differently across deliverables
-- Same term used for different concepts
+1) Identify the likely **evidence targets**:
+   - If `TargetType=DELIVERABLE`, identify the target deliverable folder and its four docs.
+   - If `TargetType=EXTERNAL_DOC` or `EXTERNAL_PARTY`, use `EVIDENCE_ROOTS` only if provided; otherwise mark `UNKNOWN`.
 
-**3B — Parameter coherence**
-- Same parameter appears with different values/units across deliverables
+2) Search for evidence signals in:
+   - the **from-deliverable’s** four docs, and
+   - the **target deliverable’s** four docs (if internal target is resolvable),
+   - plus any additional sources in `EVIDENCE_ROOTS` (only when directed).
 
-**3C — Assumption collisions**
-- ASSUMPTION statements that are mutually incompatible across deliverables
+3) Evidence signals (non-exhaustive; interpret conservatively):
+   - explicit references to a produced item/value (“provided in …”, “see …”, “per …”, “as defined in …”)
+   - interface definition present in target docs and consistently referenced by from docs
+   - procedure steps indicating availability/hand-off (“verify X from Y”, “accept Y deliverable”, “tie-in complete”)
+   - explicit maturity satisfaction if stated
 
-**3D — Declared dependency coherence (only if dependencies are declared)**
-- If deliverable A declares B upstream at maturity threshold X, verify B’s `_STATUS.md` is at least X
-- Report mismatches as “declared dependency not satisfied” (advisory only)
+4) Record evidence references:
+   - `EvidenceRef_From` (file + heading)
+   - `EvidenceRef_Target` (file + heading) (if applicable)
+   - optional short excerpt (<= 30 words)
 
-**Output:** Findings grouped by type, each with traceable references.
-
----
-
-#### Step 4: Produce the Cross-Deliverable Conflict Table
-
-If any conflicts exist, create a Conflict Table in the report:
-
-| Conflict ID | Conflict | Source A | Source B | Impacted deliverables | Proposed authority (PROPOSAL) | Human ruling |
-|---|---|---|---|---|---|---|
-
-Rules:
-- “Source A/B” must include file name + section/heading reference (or “location TBD”).
-- “Proposed authority” is optional; only fill if an explicit authority hierarchy is available in-scope; otherwise use TBD.
-- “Human ruling” remains TBD.
+**Important:** Do not treat absence of evidence as proof of not satisfied. Use `UNKNOWN` unless there is explicit contradictory evidence.
 
 ---
 
-#### Step 5: Recommend follow-ups (non-binding)
+### Step 4 — Determine candidate closure status (without ruling)
 
-Provide a “Suggested Follow-Ups” section:
-- Items that likely need a WORKING_ITEMS session
-- Items that need a human decision/ruling
-- Items that look like missing reference materials rather than true conflicts
+For each dependency record, assign one of the following **CandidateStatus** values:
 
-Do not assign owners or priorities unless the human explicitly requests it.
+- `CANDIDATE_SATISFIED` — clear evidence that dependency is met (with citations)
+- `CANDIDATE_UNSATISFIED` — clear evidence it is not met (with citations)
+- `BLOCKED_BY_MATURITY` — a maturity requirement exists and target is not at that maturity (advisory; uses `_STATUS.md` if available)
+- `CONFLICT` — evidence indicates incompatible claims across the four docs
+- `UNKNOWN` — insufficient evidence either way
+- `NOT_APPLICABLE` — dependency type/target does not admit document-based closure (rare; must be justified)
+
+Also record:
+- `ApprovalNeeded = TRUE` for all candidate satisfactions/closures
+- `SuggestedNextAction` (smallest follow-up; e.g., “WORKING_ITEMS on DEL-### Spec section”, “human ruling required”)
+
+---
+
+### Step 5 — Produce outputs
+
+#### 5A) Dependency Closure Register (CSV)
+
+Write one row per dependency record reviewed (scope-bounded), including:
+
+- Identity:
+  - `DependencyID`, `FromDeliverableID`, `FromPackageID`
+  - `TargetType`, `TargetDeliverableID`, `TargetName`
+- Dependency basis:
+  - `DependencyType`, `Direction`, `Statement`, `SourceRef` (from dependency record)
+- Closure review:
+  - `CandidateStatus`
+  - `EvidenceRef_From`
+  - `EvidenceRef_Target`
+  - `EvidenceNotes` (short)
+  - `ApprovalNeeded` (`TRUE|FALSE`)
+  - `HumanRuling` (`TBD` always in this agent)
+  - `SuggestedNextAction`
+
+This register is designed to be aggregated later by **AGGREGATION**.
+
+#### 5B) Dependency Closure Report (Markdown)
+
+Include:
+- Scope + gate label
+- Inventory summary
+- Coverage metrics (how many dependencies reviewed; how many lacked dependency registers)
+- Findings grouped by CandidateStatus
+- A “Top blockers” list:
+  - unknown targets, missing target docs, maturity blocks, conflicts
+- Suggested follow-ups (non-binding)
+
+---
+
+### Step 6 — Optional: targeted cross-check of dependency conflicts
+
+If `FOCUS` includes `DEPENDENCY_CONFLICTS`, include a section that lists:
+- dependencies where closure evidence implies incompatible interfaces or contradictory parameters across deliverables
+- each with cited sources
+
+Do not broaden into general interface signal reconciliation beyond dependency context.
 
 ---
 
@@ -213,89 +253,64 @@ Do not assign owners or priorities unless the human explicitly requests it.
 [[BEGIN:SPEC]]
 ## SPEC
 
-### Normative — "What must it be?"
-
-A reconciliation run is valid when:
+A dependency-closure reconciliation run is valid when:
 
 | Requirement | Validation |
-|-------------|------------|
-| Scope is explicit | Report states exactly what packages/deliverables were included |
-| Read-only behavior | No deliverable files were modified |
-| Inventory present | Report includes a scope inventory table |
-| Findings are evidence-backed | Each non-trivial finding points to file+section or is marked location TBD |
-| Conflict Table present when needed | If conflicts exist, a Conflict Table is included |
-| No invention | No fabricated parameters or requirements appear |
+|---|---|
+| Scope explicit | Report states included packages/deliverables |
+| Read-only deliverables | No edits to deliverable artifacts or dependency registers |
+| Worklist derived from dependency records | Findings trace back to `Dependencies.csv` / `_DEPENDENCIES.md` |
+| Evidence-backed statuses | Any status other than `UNKNOWN` cites file+section evidence |
+| Closure output artifacts exist | Report + CSV register written under `_Reconciliation/` |
+| No invention / no rulings | Human ruling remains `TBD`; agent only proposes |
 
----
-
-### Invalid States
-
-| Invalid State | Why |
-|---------------|-----|
-| Modifying deliverable state or artifacts | Violates read-only invariant |
-| Expanding scope silently | Breaks trust and reproducibility |
-| Reporting conflicts without evidence | Creates false precision |
-| Attempting to “resolve” conflicts unilaterally | Humans own rulings |
-
----
+Invalid behaviors include:
+- marking closure without citations
+- editing dependency registers directly
+- expanding scope without instruction
+- resolving conflicts unilaterally
 
 [[END:SPEC]]
 
 [[BEGIN:STRUCTURE]]
 ## STRUCTURE
 
-### Descriptive — "What is it?"
+### Output file names
 
----
+- `Dependency_Closure_Report_{GateLabel}_{YYYY-MM-DD}.md`
+- `Dependency_Closure_Register_{GateLabel}_{YYYY-MM-DD}.csv`
 
-### Reconciliation Report Schema (recommended)
+### Dependency Closure Register columns (required)
 
-```markdown
-# Reconciliation Report — {GateLabel} — {YYYY-MM-DD}
+- `DependencyID`
+- `FromPackageID`
+- `FromDeliverableID`
+- `TargetType`
+- `TargetDeliverableID`
+- `TargetName`
+- `Direction`
+- `DependencyType`
+- `Statement`
+- `SourceRef`
+- `CandidateStatus`
+- `EvidenceRef_From`
+- `EvidenceRef_Target`
+- `EvidenceNotes`
+- `ApprovalNeeded`
+- `HumanRuling`
+- `SuggestedNextAction`
 
-## Scope
-- **Gate label:** ...
-- **Scope definition:** ...
-- **Focus areas:** ...
+### CandidateStatus enum
 
-## Inventory
-| Deliverable | Package | State | Dep Mode | Ref Count | Semantic Lens | Notes |
-|---|---|---|---|---:|---|---|---|
-
-## Findings
-### Terminology
-- ...
-
-### Parameters
-- ...
-
-### Assumptions
-- ...
-
-### Declared Dependencies (advisory)
-- ...
-
-## Conflict Table (if any)
-| Conflict ID | Conflict | Source A | Source B | Impacted deliverables | Proposed authority (PROPOSAL) | Human ruling |
-|---|---|---|---|---|---|---|
-
-## Suggested Follow-Ups (non-binding)
-- ...
-```
-
----
+`CANDIDATE_SATISFIED | CANDIDATE_UNSATISFIED | BLOCKED_BY_MATURITY | CONFLICT | UNKNOWN | NOT_APPLICABLE`
 
 [[END:STRUCTURE]]
 
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-### Directional — "How to think?"
+DEPENDENCIES makes couplings visible by extracting them from the four documents.
 
-Cross-deliverable reconciliation is a governance activity. It should be run when humans decide the time is right (often at freeze points) to surface interface mismatches and contradictions **before** they become costly.
-
-The reconciliation agent does not attempt to replace human orchestration; it provides structured visibility so humans can coordinate follow-up work efficiently.
-
----
+RECONCILIATION is the governance step that checks those couplings for closure evidence across the same four documents, producing a reviewable register so humans can approve closure and AGGREGATION can track status over time.
 
 [[END:RATIONALE]]

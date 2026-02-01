@@ -15,6 +15,7 @@ These instructions govern a sub-agent that iteratively enriches the four documen
 
 | Property | Value |
 |----------|-------|
+| **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | spawned |
 | **WRITE_SCOPE** | deliverable-local |
