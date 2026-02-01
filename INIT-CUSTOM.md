@@ -228,5 +228,5 @@ Plan: define schema → extract fields with SourcePath/SectionRef → write regi
 Add these if your session involves agent design, orchestration, or auditing:
 
 6. `[repo]/WHAT-IS-AN-AGENT.md` — Architecture philosophy (role boundaries, composition, debugging)
-7. `[repo]/AGENT_HELPS_HUMANS.md` — Canonical standard (contracts, schemas, precedence)
+7. `AGENT_HELPS_HUMANS.md` — Canonical standard (contracts, schemas, precedence)
 8. `[repo]/AUDIT_AGENT.md` — Audit rubric (checklists + issue log)

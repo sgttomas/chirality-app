@@ -17,7 +17,7 @@ For each checklist item, mark one:
 ### Evidence rule (mandatory)
 For every ⚠️ or ❌:
 - Provide **one short excerpt** (≤ 25 words) from the file and location: `{filename — section heading}`  
-- Provide the **canonical requirement** excerpt (≤ 25 words) and location: `{AGENT_HELPS_HUMANS — section heading}`  
+- Provide the **canonical requirement** excerpt (≤ 25 words) and location: `{AGENT_HELPS_HUMANS.md — section heading}`  
 - Provide a **conformance fix** (specific edit instruction; minimal change preferred)
 
 ### Severity

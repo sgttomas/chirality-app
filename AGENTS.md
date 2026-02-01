@@ -153,7 +153,7 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_CONTROLS.m
 - **What it does:** Defines standards for designing agentic workflows and writing/maintaining agent instruction sets.
 - **What it does not do:** Produce engineering deliverable content; execute project work.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELPS_HUMANS.md`
+File: `AGENT_HELPS_HUMANS.md`
 
 ### PREPARATION (Scaffolding)
 - **What it does:** Creates package/deliverable folders and writes the minimum viable fileset (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`) idempotently.
