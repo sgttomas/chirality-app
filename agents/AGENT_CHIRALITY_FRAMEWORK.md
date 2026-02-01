@@ -138,7 +138,7 @@ This document defines the procedure for semantic matrix generation through seven
 
 4. **Write `_SEMANTIC.md`**
    - Use the Output Format schema in STRUCTURE.
-   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, and all matrices.
+   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, all matrices, and the **Document Lens Index** (final `u` only; do not show Step 1/2/3 interpretation work inside the Index).
 
 5. **Update readiness state (conditional)**
    - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY` and append a History entry:  
@@ -584,11 +584,6 @@ The file must be valid markdown and include:
 ## Matrix E — Evaluation (3×4)
 ...
 
-## Application Notes
-- These matrices partition the semantic space for this deliverable.
-- Use as lenses when viewing Datasheet, Specification, Guidance, Procedure.
-- Matrices identify types/categories; particulars are resolved downstream (e.g., in WORKING_ITEMS sessions).
-- Lens ≠ authority: do not treat these as evidence for requirements or parameters.
 ```
 
 All matrices must be presented in markdown table format, and must conform to their shape and construction rules defined above.
