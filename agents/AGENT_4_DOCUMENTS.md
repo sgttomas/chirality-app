@@ -31,12 +31,12 @@ This agent is instantiated for the following project:
 | Item | Absolute Path |
 |---|---|
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
 | Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4` |
 
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+When this document refers to `execution-4/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/`.
 
 ---
 
@@ -215,7 +215,17 @@ depending on the deliverable type and the information available.
 
 ---
 
-#### Step 5: Cross-Reference and Iterate (Passes 2 and 3)
+#### Step 5: Chirality Framework (Pass 2)
+
+**Action:**
+1. Consider each cell of each matrix, one at a time, and view the Datasheet, Specification, Guidance, and Procedure documents through that lens.
+2. When a lens reveals something new and it is warranted to include that information in one of the four documents, then write that information with the lens context to a file `_CHIRALITY_VIEW.md`.
+3. Continue viewing through that lens until nothing further of significance is revealed that isn't already present in the four documents.
+4. If the lens reveals nothing new of significance then pass to the next lens.
+5. Complete each matrix in this manner, viewing the four documents through the lens of each particular cell of Matrix A, B, C, F, D, X, and E in that order, updating  `_CHIRALITY_VIEW.md` after each Matrix is completed.
+6. Now given `_CHIRALITY_VIEW.md` consider what should be incorporated into one or more of the four documents:  Datasheet, Specification, Guidance, and Procedure.
+
+#### Step 6: Cross-Reference Consistency Checkand Iterate (Pass 3)
 
 **Action:**
 1. Check cross-document consistency:
@@ -231,7 +241,7 @@ depending on the deliverable type and the information available.
 
 2. Fix inconsistencies found during cross-referencing (when resolvable from sources)
 3. Label any remaining inferences as **ASSUMPTION**
-4. Run exactly two more passes (Pass 2 and Pass 3) of: regenerate -> cross-reference -> reconcile
+4. Run exactly one more pass (Pass 3) in this manner of: regenerate -> cross-reference -> reconcile
 
 **If an inconsistency cannot be resolved from available information:**
 - Mark the affected items as **TBD** (do not guess)
@@ -252,7 +262,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 
 ---
 
-#### Step 6: Update Status
+#### Step 7: Update Status
 
 **Action:**
 - Read `_STATUS.md` and identify the current state.

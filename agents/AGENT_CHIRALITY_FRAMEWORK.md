@@ -77,7 +77,6 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
   - `{deliverable_folder}/_SEMANTIC.md` (primary output), and
   - `{deliverable_folder}/_STATUS.md` *only* to advance `INITIALIZED → SEMANTIC_READY` (append history; never regress).
 - **Do not modify the four drafted documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
-- **Lens ≠ authority.** The semantic lens is a question-shaping scaffold. It must not be presented as evidence for requirements, parameters, or compliance claims.
 
 ## Glossary
 
@@ -138,7 +137,7 @@ This document defines the procedure for semantic matrix generation through seven
 
 4. **Write `_SEMANTIC.md`**
    - Use the Output Format schema in STRUCTURE.
-   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, all matrices, and the **Document Lens Index** (final `u` only; do not show Step 1/2/3 interpretation work inside the Index).
+   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement,  and all matrices (final `u` only; do not show Step 1/2/3 interpretation work inside the Index).
 
 5. **Update readiness state (conditional)**
    - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY` and append a History entry:  
@@ -542,7 +541,7 @@ This document defines the seven-phase matrix system and construction rules.
 The file must be valid markdown and include:
 
 ```markdown
-# Semantic Lens: [DEL-ID] [Deliverable Name]
+# Deliverble: [DEL-ID] [Deliverable Name]
 
 **Generated:** [YYYY-MM-DD]
 **Perspective:** [1–3 sentence deliverable-bound perspective; no particulars]
