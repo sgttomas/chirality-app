@@ -2,6 +2,13 @@
 
 Use this INIT file when you want to start a **human-facing session** with a **Type 0 or Type 1 agent**. These agents are conversational interfaces that help you steer work, interpret outputs, and decide what to do next in the context of the full project system. Use **INIT-TASK** for **Type 2** (bounded task) agents.
 
+
+**Layer mapping (Type 0 / Type 1 / Type 2):**
+- **Type 0 (Architect):** maintains the canonical standards/contracts for the agent system (e.g., `AGENT_HELPS_HUMANS.md`). Use when you are changing the system itself.
+- **Type 1 (Manager):** runs the human-facing session: interprets intent, decomposes work, writes briefs, routes to Type 2 specialists, and synthesizes results.
+- **Type 2 (Specialist):** executes a bounded brief and returns outputs + evidence; does not redefine global policy/contracts.
+
+
 > **Personas:** `HELP_HUMAN`, `HELPS_HUMANS`, `CHIRALITY-APP`, `PROJECT_DECOMP`, `ORCHESTRATOR`, `WORKING_ITEMS`, `PROJECT_CONTROLS`
 
 ---
@@ -34,16 +41,14 @@ Use this INIT file when you want to start a **human-facing session** with a **Ty
 ## 2) Persona Selection
 
 **Selected Persona (choose exactly one):**
-- [ ] `HELP_HUMAN` — scoped briefs, checklists, minimal next-step guidance
+- [ ] `HELP_HUMAN` — scoped briefs, checklists, next-step guidance
 - [ ] `HELPS_HUMANS` — workflow design standards and agent instruction guidance
-- [ ] `CHIRALITY-APP` — navigation, “what should I do next?”, framework alignment
 - [ ] `PROJECT_DECOMP` — interactive decomposition from messy SOW (gate-controlled)
 - [ ] `ORCHESTRATOR` — project control plane: initialize/scan state, coordinate pipelines
 - [ ] `WORKING_ITEMS` — focused production session on a deliverable (human-in-the-loop)
 - [ ] `PROJECT_CONTROLS` — interactive control plane; invokes Type 2 pipelines (e.g., ESTIMATING)
+- [ ] `CHANGE` — manage the state of the files; reconcile dependencies across deliverables.
 
-**Persona Objective (one sentence):**  
-[What you want from this persona session — e.g., “Decide next steps for PKG-08 to reach CHECKING.”]
 
 ---
 
@@ -134,9 +139,11 @@ If you want this persona to trigger task work, list requested task invocations h
 
 1. `[repo]/README.md`
 2. `[repo]/AGENTS.md`
-3. The selected persona’s agent instructions
-4. Decomposition file (if applicable)
-5. Any deliverable folder(s) in scope (if applicable)
+3. `[repo]/WHAT-IS-AN-AGENT.md` (when designing/changing agents or debugging role boundaries)
+4. The selected persona’s agent instructions
+5. Decomposition file (if applicable)
+6. Any deliverable folder(s) in scope (if applicable)
+7. `[repo]/DIRECTORY_TREE.md`
 
 ---
 
@@ -150,59 +157,3 @@ If you want this persona to trigger task work, list requested task invocations h
 - [ ] Other constraints: [ ]
 
 ---
-
----
-
-## Quick Start Suggestions (prudent defaults)
-
-Use one of these short blocks to get moving fast. Edit bracketed fields.
-
-### QS-1: Unsure what to do next (navigator session)
-```markdown
-Selected Persona: CHIRALITY-APP
-Persona Objective: Decide the next 1–3 actions based on current project state
-Scope Type: Whole project
-Inputs Available: [check what exists]
-Outputs you want: A next-step plan + draft INIT-TASK briefs
-```
-
-### QS-2: Establish/inspect project state (control plane)
-```markdown
-Selected Persona: ORCHESTRATOR
-Persona Objective: Report current workspace state and recommend the smallest next pipeline
-Scope Type: [Single package | Whole project]
-In-Scope IDs: [PKG-###]
-Outputs you want: State summary + proposed task invocations
-```
-
-### QS-3: Focused production session on one deliverable
-```markdown
-Selected Persona: WORKING_ITEMS
-Persona Objective: Refine and issue one deliverable (or move it to next lifecycle gate)
-Scope Type: Single deliverable
-Deliverables: [DEL-###]
-Inputs Available: 4 docs + _SEMANTIC.md (if present)
-Outputs you want: Clear edits/targets + what to rerun next (if any)
-```
-
-### QS-4: Cost estimate review or estimate strategy
-```markdown
-Selected Persona: PROJECT_CONTROLS
-Persona Objective: Define estimate scope and invoke ESTIMATING (Type 2) for a defined scope
-Scope Type: [Single deliverable | Single package]
-In-Scope IDs: [DEL-### or PKG-###]
-Outputs you want: Estimate approach + INIT-TASK brief for ESTIMATING
-```
-
-### QS-5: Parallel work check (repo state awareness)
-```markdown
-Selected Persona: ORCHESTRATOR
-Persona Objective: Assess git/project state and recommend safe next actions
-Scope Type: Whole project
-Outputs you want: A git-state check brief (INIT-TASK) and publication plan (if needed)
-```
-
-## Start Instruction to Agent
-
-**Agent:** Read this INIT-PERSONA file fully, then begin the session in the selected persona.  
-**Operating stance:** Keep scope explicit, preserve human decision rights, and propose the smallest next action consistent with the project state.

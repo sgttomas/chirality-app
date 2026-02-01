@@ -1,5 +1,24 @@
 # INIT-TASK — Session Initialization (Task Agent)
 
+## Standards & precedence (canonical)
+
+- **Canonical standard:** `AGENT_HELPS_HUMANS.md`  
+  Where any instruction or template conflicts with the canonical standard, **this file (and any downstream instructions) must be edited to conform to v2**.
+- **Audit rubric:** `AUDIT_AGENT.md` (use it to check conformance across files)
+
+## Layer model (0/1/2) — how to choose the right INIT
+
+This repository uses a layered agent architecture:
+
+- **Agent 0 / Type 0 (Architect):** defines and maintains canonical standards, contracts, and role boundaries.
+- **Agent 1 / Type 1 (Manager):** interprets intent, decomposes work, writes briefs, routes to Specialists, and merges results.
+- **Agent 2 / Type 2 (Specialist):** executes a narrow brief straight-through and returns outputs + evidence.
+
+**Rule of thumb:**
+- Use **INIT-PERSONA** for sessions that involve interpretation, orchestration, or multi-step planning (Type 0/1 behavior).
+- Use **INIT-TASK** for direct execution by a Type 2 task agent.
+- Use **INIT-CUSTOM** when you need a bespoke INIT but still want to remain framework-consistent.
+
 Use this INIT file when you want to run a **Type 2 task agent directly**. Task agents should execute a bounded assignment straight-through, producing durable, auditable outputs (typically into a tool root) without requiring mid-run human decisions. Use **INIT-PERSONA** for **Type 0 / Type 1** agents.
 
 ---
@@ -34,8 +53,6 @@ Use this INIT file when you want to run a **Type 2 task agent directly**. Task a
 - [ ] `DEPENDENCIES` — extract emergent dependencies into a trackable register
 - [ ] `RECONCILIATION` — cross-deliverable coherence checks (read-only posture)
 - [ ] `AGGREGATION` — synthesize/collate across files into snapshots (e.g., estimates + BoE)
-- [ ] `ESTIMATING` — produce estimate snapshots in `_Estimates/` (straight-through)
-- [ ] `CHANGE` (git state) — inspect git diffs + optional git actions with explicit approval
 
 **Agent Instructions File (absolute):**  
 [Path to the relevant `AGENT_*.md` instructions file.]
@@ -102,84 +119,8 @@ If the task involves optional execution (e.g., git actions), define approval pos
 
 1. `[repo]/README.md`
 2. `[repo]/AGENTS.md`
-3. Selected task agent instructions
+3. Selected task agent instructions (must conform to `AGENT_HELPS_HUMANS.md`)
 4. Decomposition file (if applicable)
 5. Scope folders/files (if applicable)
 
 ---
-
----
-
-## Quick Start Suggestions (prudent defaults)
-
-Use one of these short blocks to run a common task agent workflow. Edit bracketed fields.
-
-### QS-1: Create/repair a project decomposition (foundation)
-```markdown
-Assigned Task Agent: PROJECT_DECOMP
-Task Summary: Create/repair decomposition from current SOW and references
-Inputs Available: [attach/paste SOW, links, notes]
-Expected Output Artifacts: Decomposition doc + Scope Ledger + Coverage summary
-```
-
-### QS-2: Scaffold workspace (folders + minimum viable files)
-```markdown
-Assigned Task Agent: PREPARATION
-Task Summary: Create execution scaffolding and minimum viable filesets for scoped deliverables
-Scope: Packages: [PKG-###]  Deliverables: [optional]
-Expected Output Location: [execution root]
-```
-
-### QS-3: Generate initial 4 documents for a package or deliverable set
-```markdown
-Assigned Task Agent: 4_DOCUMENTS
-Task Summary: Draft Datasheet/Specification/Guidance/Procedure for scoped deliverables
-Scope: Packages: [PKG-###] or Deliverables: [DEL-###]
-Constraints: Use project templates; leave unknowns as TBD; cite sources
-```
-
-### QS-4: Generate semantic lens artifacts
-```markdown
-Assigned Task Agent: CHIRALITY_FRAMEWORK
-Task Summary: Generate _SEMANTIC.md for each scoped deliverable to guide WORKING_ITEMS
-Scope: Packages: [PKG-###] or Deliverables: [DEL-###]
-Expected Outputs: _SEMANTIC.md in each deliverable folder
-```
-
-### QS-5: Extract dependencies into a trackable register
-```markdown
-Assigned Task Agent: DEPENDENCIES
-Task Summary: Discover and record dependencies emerging from the 4 documents
-Scope: Packages: [PKG-###] or Deliverables: [DEL-###]
-Expected Outputs: Dependencies register + coverage report
-```
-
-### QS-6: Aggregate estimates + BoE + risks/assumptions (deliverable-by-deliverable recommended)
-```markdown
-Assigned Task Agent: AGGREGATION
-Task Summary: Collate Estimate + Basis of Estimate + Risks + Assumptions into aggregation snapshots
-Scope: Deliverables: [DEL-###] (repeat per deliverable / per package)
-Expected Output Location: [execution/_Aggregation/...]
-Constraints: Treat missing items as TBD; preserve provenance; surface duplicates/conflicts
-```
-
-### QS-7: Stage-gate coherence check (read-only)
-```markdown
-Assigned Task Agent: RECONCILIATION
-Task Summary: Run cross-deliverable coherence checks for a stage gate
-Scope: Packages: [PKG-###]
-Constraints: Read-only; produce findings + issues list; no edits
-```
-
-### QS-8: Git state check (and optionally execute actions with approval)
-```markdown
-Assigned Task Agent: CHANGE (git state)
-Task Summary: Summarize differences vs upstream and advise what it signifies
-ALLOW_EXECUTION: [FALSE | TRUE]
-Constraints: Execute only after explicit APPROVE token
-```
-
-## Start Instruction to Agent
-
-**Agent:** Read this INIT-TASK file fully, then execute the assigned task agent instructions for the given scope.  
-**Operating stance:** Straight-through, bounded scope, provenance-first, no invention, and report coverage/QA/conflicts as outputs.

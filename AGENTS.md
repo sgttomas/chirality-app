@@ -8,6 +8,15 @@ If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGE
 
 ---
 
+## 0) Standards & precedence (canonical spec)
+
+- **Canonical standard:** `AGENT_HELPS_HUMANS.md`. Where any other `AGENT_*` file disagrees, **the other file must be edited to conform**.
+- **Required metadata:** every `AGENT_*` instruction file should include the canonical Agent Header Block fields (e.g., `AGENT_CLASS`, `INTERACTION_SURFACE`, `WRITE_SCOPE`, `BLOCKING`, `PRIMARY_OUTPUTS`) and use canonical terminology.
+- **Contract discipline:** Type 1 Managers write briefs and orchestrate; Type 2 Specialists execute bounded briefs and return checkable outputs + evidence; Type 0 defines/maintains contracts.
+- **Auditing:** use `AUDIT_AGENT.md` as the fill-in rubric when adding agents or checking conformance across the suite.
+
+---
+
 ## 1) The core model (the rules that keep the system coherent)
 
 ### Project Decomposition
@@ -75,7 +84,6 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | Agent | CLASS | INTERACTION | WRITE_SCOPE | BLOCKING | PRIMARY_OUTPUTS |
 |-------|-------|-------------|-------------|----------|-----------------|
 | **PROJECT_DECOMP** | PERSONA | chat | project-level | allowed | Decomposition document |
-| **CHIRALITY-APP** | PERSONA | chat | none* | allowed | Guidance/coaching (verbal); optional coaching note |
 | **ORCHESTRATOR** | PERSONA | chat | tool-root-only | allowed | `_COORDINATION.md`; spawns sub-agents |
 | **PROJECT_CONTROLS** | PERSONA | chat | tool-root-only | allowed | Project controls register, decision capture, run plans |
 | **WORKING_ITEMS** | PERSONA | chat | deliverable-local | allowed | 4 docs, `_STATUS.md` updates; may invoke ESTIMATING |
@@ -83,34 +91,32 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **HELPS_HUMANS** | PERSONA | chat | none | never | Workflow design standards; agent instruction maintenance guidance |
 | **PREPARATION** | TASK | spawned | deliverable-local | never | Folders, metadata files |
 | **4_DOCUMENTS** | TASK | spawned | deliverable-local | never | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
-| **CHIRALITY_FRAMEWORK** | TASK | both | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
-| **DEPENDENCIES** | TASK | INIT-TASK | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
-| **AGGREGATION** | TASK | INIT-TASK | tool-root-only | never | Snapshots in `_Aggregation/` |
-| **RECONCILIATION** | TASK | both | tool-root-only | never | Reports in `_Reconciliation/` |
-| **ESTIMATING** | TASK | both | tool-root-only | never | Estimate snapshots in `_Estimates/` |
-| **CHANGE** | TASK | chat | none | allowed | Git state report; optional git actions after explicit approval |
+| **CHIRALITY_FRAMEWORK** | TASK | spawned | deliverable-local | never | `_SEMANTIC.md`, `_STATUS.md` |
+| **DEPENDENCIES** | TASK | spawned | deliverable-local | never | `_DEPENDENCIES.md`, `Dependencies.csv` |
+| **AGGREGATION** | TASK | spawned | tool-root-only | never | Snapshots in `_Aggregation/` |
+| **RECONCILIATION** | TASK | spawned | tool-root-only | never | Reports in `_Reconciliation/` |
+| **ESTIMATING** | PERSONA | chat | tool-root-only | never | Estimate snapshots in `_Estimates/` |
+| **CHANGE** | PERSONA | chat | none | allowed | Git state report; optional git actions after explicit approval |
 
-*\* CHIRALITY-APP writes nothing by default; may produce an optional coaching note only on explicit human request.*
 
 ### When to use which class
 
 **Persona agents** — Use when you need an interactive session:
 - `PROJECT_DECOMP`: Starting a new project from a messy SOW
-- `CHIRALITY-APP`: Need help choosing the right next step
+- `HELP_HUMAP`: Need help choosing the right next step
 - `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
 - `PROJECT_CONTROLS`: Interactive control plane; invokes Type 2 pipelines
 - `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
-- `HELP_HUMAN`: Human support persona for briefs, checklists, and minimal next actions
 - `HELPS_HUMANS`: Workflow design standard for writing/maintaining agent instructions
 
-**Task agents** — Use for pipeline work (spawned by persona agents or assigned via `INIT-TASK`):
-- `PREPARATION`: Scaffolding folders and metadata (spawned by ORCHESTRATOR)
-- `4_DOCUMENTS`: Generating initial drafts (spawned by ORCHESTRATOR)
-- `CHIRALITY_FRAMEWORK`: Generating semantic lenses (spawned or INIT-TASK)
-- `DEPENDENCIES`: Discovering dependencies from content (INIT-TASK)
-- `AGGREGATION`: Cross-file rollups and synthesis (INIT-TASK)
-- `RECONCILIATION`: Cross-deliverable coherence checks (spawned or INIT-TASK)
-- `ESTIMATING`: Cost estimate snapshots (via INIT-TASK or spawned by a Type 1 host)
+**Task agents** — Use for pipeline work 
+- `PREPARATION`: Scaffolding folders and metadata
+- `4_DOCUMENTS`: Generating initial drafts
+- `CHIRALITY_FRAMEWORK`: Generating semantic lenses 
+- `DEPENDENCIES`: Discovering dependencies from content 
+- `AGGREGATION`: Cross-file rollups and synthesis 
+- `RECONCILIATION`: Cross-deliverable coherence checks 
+- `ESTIMATING`: Cost estimate snapshots
 - `CHANGE`: Git state review and optional actions with explicit approval
 
 ---
@@ -125,11 +131,11 @@ Each agent instruction file also declares **AGENT_TYPE**:
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_DECOMP.md`
 
-### CHIRALITY-APP (Human Guidance / Navigator)
+### HELP_HUMAN (Human Support Persona)
 - **What it does:** Helps the human choose the correct next step and avoid framework misuse.
 - **What it does not do:** Draft engineering content; change `_STATUS.md`; scan cross-deliverable scope unless explicitly asked to run reconciliation.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md`
+File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELP_HUMAN.md`
 
 ### ORCHESTRATOR (Workspace + visibility)
 - **What it does:** Ingests the decomposition; records coordination representation + dependency mode; spawns bounded sub-agents; scans/reports status.
@@ -142,12 +148,6 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ORCHESTRATOR.md`
 - **What it does not do:** Draft engineering content; resolve semantic conflicts; modify deliverable artifacts directly.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_CONTROLS.md`
-
-### HELP_HUMAN (Human Support Persona)
-- **What it does:** Helps the human operator act effectively within the framework by clarifying intent, scoping, and producing briefs/checklists and next-step recommendations.
-- **What it does not do:** Do project work directly; write files by default; bypass human decision rights.
-
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELP_HUMAN.md`
 
 ### HELPS_HUMANS (Workflow Design Standard)
 - **What it does:** Defines standards for designing agentic workflows and writing/maintaining agent instruction sets.
@@ -180,12 +180,11 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY_FRAMEWOR
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`
 
-### RECONCILIATION (Cross-deliverable coherence checks)
-- **What it does:** Read-only scan across a human-defined scope to find terminology/parameter/assumption/interface mismatches; outputs a reconciliation report + conflict table.
+### RECONCILIATION (Cross-deliverable dependency checks)
+- **What it does:** Read-only scan across the dependency mapping between deliverables and compares to current state of `4 Documents` for coherence and consistency.
 - **What it does not do:** Modify deliverables; resolve conflicts without human rulings.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_RECONCILIATION.md`
-
 
 ### AGGREGATION (Project-level synthesis across files)
 - **What it does:** Aggregates across any human-defined scope (deliverables, packages, tool roots) and writes a timestamped snapshot under `execution/_Aggregation/` (does not edit inputs).
@@ -206,110 +205,14 @@ File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
 
 ### CHANGE (Diff • Interpret • Recommend • Execute with Approval)
-- **What it does:** Inspects git state, summarizes changes, and optionally executes git actions after explicit approval.
+- **What it does:** Inspects git state, summarizes changes, and optionally executes git actions after explicit approval. Creates output in `_DEPENDENCIES.md` per deliverable.
 - **What it does not do:** Change repo state without approval; perform destructive actions without heightened approval.
 
 File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHANGE.md`
----
-
-## 4) Who is allowed to write what (important)
-
-| Agent | Writes files? | Allowed writes (high level) |
-|---|---:|---|
-| PROJECT_DECOMP | Yes | Decomposition document (markdown); user validates at each gate |
-| CHIRALITY-APP | No (by default) | Optional coaching note *only if explicitly requested by human* |
-| ORCHESTRATOR | Yes | `test/execution/_Coordination/_COORDINATION.md`; scans/reports; *spawns other agents for deliverable and tool-root work* |
-| PROJECT_CONTROLS | Yes | Project-level controls artifacts under `test/execution/_Coordination/` |
-| HELP_HUMAN | No (by default) | Chat outputs only; may draft text for human to paste |
-| HELPS_HUMANS | No (by default) | Standards/guidance; no direct writes |
-| PREPARATION | Yes | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md` (=OPEN), `_REFERENCES.md`; may scaffold tool roots like `test/execution/_Aggregation/` (create-if-missing) |
-| 4_DOCUMENTS | Yes | Four docs; `_STATUS.md` update `OPEN→INITIALIZED` only if currently `OPEN` |
-| CHIRALITY_FRAMEWORK | Yes | Writes/overwrites `_SEMANTIC.md`; may update `_STATUS.md` `INITIALIZED→SEMANTIC_READY` only if currently `INITIALIZED` |
-| WORKING_ITEMS | Yes (human-directed) | Updates four docs; may update `_STATUS.md` when the human decides |
-| RECONCILIATION | Yes | Writes a report under `test/execution/_Reconciliation/` only (read-only deliverables) |
-| AGGREGATION | Yes | Writes snapshots under `test/execution/_Aggregation/` only (read-only inputs by default) |
-| ESTIMATING | Yes | Writes snapshots under `test/execution/_Estimates/` only (read-only deliverables) |
-| DEPENDENCIES | Yes | Updates `_DEPENDENCIES.md` and `Dependencies.csv` per deliverable only (read-only four documents) |
-| CHANGE | No (by default) | Read-only git state reporting; may execute git actions only with explicit approval |
 
 ---
 
-## 5) Project-specific conventions (from the decomposition)
-
-### Filesystem-safe folder labels
-Some package/deliverable names contain characters that cannot appear in folder names (example: `/`).
-
-- Folder names use sanitized labels: `{PKG-ID}_{PkgLabel}` and `{DEL-ID}_{DelLabel}`.
-- Canonical (unsanitized) names remain recorded exactly inside `_CONTEXT.md` for traceability.
-
-### Objectives mapping may be package/range-based (best-effort)
-If objectives are not listed per deliverable row:
-- Use package-based association (mapping expressed as deliverable ranges grouped by package).
-- Treat “best-effort” objective mapping as advisory and confirm priority with the human.
-
-### Global boundaries matter
-Before locking requirements, consult the decomposition’s:
-- **Scope Focus / exclusions**
-- **Decisions Captured**
-
-These often encode responsibility splits (Employer vs Contractor) and interface boundaries.
-
-### Baseline reference volumes
-The decomposition references Employer's Requirements volumes (Vol 2 Part 1–3), located at `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf`. If you don't have them yet:
-- Index their expected location in package `0_References/_REFERENCE_INDEX.md` (or a similar index),
-- Treat downstream requirements as **TBD** until the documents are provided.
-
----
-
-## 6) Copy/paste runbooks (prompt templates)
-
-### 0) Create project decomposition (before anything else)
-Use PROJECT_DECOMP to transform a messy Scope of Work into a structured decomposition document. This produces the input required by all other agents.
-
-**Prompt template:**
-- "Run PROJECT_DECOMP. Here is my Scope of Work: [paste or attach SOW]. Help me structure this into Packages, Deliverables, and anticipated Artifacts."
-
-The agent will guide you through six phases (Intake → Define Scope → Define Packages → Define Deliverables → Verify Coverage → Finalize) with confirmation gates at each step.
-
-### A) Kickoff (initialize workspace)
-Use ORCHESTRATOR with the decomposition file path and explicitly confirm coordination representation + dependency mode.
-
-**Prompt template:**
-- "Run ORCHESTRATOR Function 1 (Initialize) using `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`. I want coordination representation = Schedule-first, dependency mode = NOT_TRACKED. Summarize what you ingest and show the gate question."
-
-### B) Scaffold + initialize drafts (+ semantic lens)
-After initialization is confirmed:
-
-**Prompt template:**
-- “Run ORCHESTRATOR Function 2 (Scaffold). It should scaffold folders (PREPARATION), initialize drafts (4_DOCUMENTS), and then generate semantic lenses (CHIRALITY_FRAMEWORK). Report missing references and how many deliverables reached `SEMANTIC_READY`.”
-
-### C) Start work on one deliverable (WORKING_ITEMS)
-**Prompt template:**
-- “Start a WORKING_ITEMS session for DEL-XX.XX. Read `_CONTEXT.md`, `_REFERENCES.md`, `_SEMANTIC.md` (if present), and the deliverable entry in the decomposition. Then propose updated Datasheet/Specification/Guidance/Procedure with citations, marking TBD/ASSUMPTION as needed.”
-
-### D) Scan & report status (what’s going on?)
-**Prompt template:**
-- “Run ORCHESTRATOR Scan & Report. Group deliverables by lifecycle state, and (only if dependency mode isn’t NOT_TRACKED) also show advisory blocked/unblocked based on declared dependencies.”
-
-### E) Cross-deliverable reconciliation (human-triggered)
-**Prompt template:**
-- “Run RECONCILIATION for scope = PKG-08 and PKG-11 at gate label ‘30% Freeze’. Focus areas: interfaces, parameters, terminology, assumptions.”
-
-
-### F) Project-level aggregation (AGGREGATION)
-Use AGGREGATION when you want to synthesize across many files without editing them (reports, registers, rollups, “basis” documents, etc.).
-
-**Prompt template:**
-- “Run AGGREGATION with PURPOSE = `Project_Synthesis`. Include scope: [packages/deliverables/tool roots]. Output: a snapshot under `execution/_Aggregation/` containing an index, an assumptions/decisions log, and the requested rollups.”
-
-### G) Cost estimate snapshot (ESTIMATING)
-Use ESTIMATING (Type 2) when you want a budgeting estimate across a defined scope (no deliverable edits). Run via INIT-TASK or through a Type 1 host (PROJECT_CONTROLS / ORCHESTRATOR / WORKING_ITEMS).
-
-**Prompt template:**
-- “Run ESTIMATING for scope = [packages/deliverables]. Produce a snapshot under `execution/_Estimates/` including `Detail.csv` with **Qty, Unit, UnitRate** for every line item, `Summary.md`, and `BOE.md`.”
----
-
-## 7) Non-negotiable quality rules (how to avoid bad output)
+## 4) Non-negotiable quality rules (how to avoid bad output)
 
 - **No invention:** if it isn’t in a source, mark **TBD** or label **ASSUMPTION/PROPOSAL**.
 - **Cite sources:** every non-trivial claim, requirement, or value should be traceable to a reference.

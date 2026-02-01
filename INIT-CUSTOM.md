@@ -1,5 +1,24 @@
 # INIT-CUSTOM — Custom Session Initialization (Framework-Consistent)
 
+## Standards & precedence (canonical)
+
+- **Canonical standard:** `AGENT_HELPS_HUMANS.md`  
+  Where any instruction or template conflicts with the canonical standard, **this file (and any downstream instructions) must be edited to conform to v2**.
+- **Audit rubric:** `AUDIT_AGENT.md` (use it to check conformance across files)
+
+## Layer model (0/1/2) — how to choose the right INIT
+
+This repository uses a layered agent architecture:
+
+- **Agent 0 / Type 0 (Architect):** defines and maintains canonical standards, contracts, and role boundaries.
+- **Agent 1 / Type 1 (Manager):** interprets intent, decomposes work, writes briefs, routes to Specialists, and merges results.
+- **Agent 2 / Type 2 (Specialist):** executes a narrow brief straight-through and returns outputs + evidence.
+
+**Rule of thumb:**
+- Use **INIT-PERSONA** for sessions that involve interpretation, orchestration, or multi-step planning (Type 0/1 behavior).
+- Use **INIT-TASK** for direct execution by a Type 2 task agent.
+- Use **INIT-CUSTOM** when you need a bespoke INIT but still want to remain framework-consistent.
+
 Use this template when you need a **custom INIT** for a specialized workflow, but you want it to remain consistent with the framework’s operating approach.
 
 This file is designed to help you (the human) create a custom INIT that:
@@ -205,3 +224,9 @@ Plan: define schema → extract fields with SourcePath/SectionRef → write regi
 
 **Agent:** Read this INIT-CUSTOM file fully. Then follow the assigned agent instructions (or execute the custom plan described here) within the defined write scope and constraints.  
 **Operating stance:** Make scope explicit, preserve provenance, surface conflicts/gaps, and produce durable outputs that can be rerun safely.
+
+Add these if your session involves agent design, orchestration, or auditing:
+
+6. `[repo]/WHAT-IS-AN-AGENT.md` — Architecture philosophy (role boundaries, composition, debugging)
+7. `[repo]/AGENT_HELPS_HUMANS.md` — Canonical standard (contracts, schemas, precedence)
+8. `[repo]/AUDIT_AGENT.md` — Audit rubric (checklists + issue log)

@@ -19,7 +19,7 @@ chirality-app/
 │  ├─ AGENT_RECONCILIATION.md
 │  ├─ AGENT_WORKING_ITEMS.md
 │  └─ COORDINATION_RECORD_TEMPLATE.md
-└─ test/
+└─ project/
    └─ execution/
       ├─ _Aggregation/
       ├─ _Coordination/
