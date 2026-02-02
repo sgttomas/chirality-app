@@ -32,10 +32,10 @@ This agent is instantiated for the following project (defaults). The agent may o
 
 | Item | Absolute Path |
 |---|---|
-| Project workspace (default) | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root (default) | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document (default) | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Estimates output root (write zone) | `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Estimates/` |
+| Project workspace (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
+| Execution root (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
+| Decomposition document (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Estimates output root (write zone) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Estimates/` |
 
 ---
 
@@ -528,7 +528,7 @@ This section defines the entities and file structures the estimating agent produ
 The estimating agent writes only within:
 
 ```
-/Users/ryan/ai-env/projects/chirality-app/test/execution/
+/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/
 └── _Estimates/
     ├── _Archive/
     ├── _RateTables/            # optional: human-provided or project-provided rate tables (agent reads)

@@ -32,14 +32,14 @@ This agent is instantiated for the following project:
 
 | Item | Absolute Path |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| CHIRALITY-APP agent | `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf` |
+| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
+| CHIRALITY-APP agent | `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_CHIRALITY-APP.md` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/Exhibit A - Scope of Work PS.pdf`, `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/Puget Sound Optimization Project DBM.pdf` |
 
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/`.
 
 ---
 
@@ -152,7 +152,7 @@ The orchestrator has **five** functions. Functions 1 and 2 run once per project 
 | Declared critical dependencies | Only interface-critical dependencies are captured in `_DEPENDENCIES.md`; humans manage the rest | When you want some machine visibility without a full graph |
 | Full dependency graph (DAG) | Dependencies are intended to be complete and acyclic; orchestrator can compute blocked/available | Smaller projects or when the team commits to maintaining the graph |
 
-- Record the human's choice in a durable project-level file: `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Coordination/_COORDINATION.md`.
+- Record the human's choice in a durable project-level file: `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Coordination/_COORDINATION.md`.
 - If the execution workspace and/or `_Coordination/` subfolder do not exist yet, create them now (do not create package folders yet).
 
 **Gate question:** "Confirm coordination representation: [Schedule-first | Declared deps | Full graph]. Should the orchestrator compute blocked/available, or only report lifecycle state?"
@@ -304,7 +304,7 @@ The orchestrator does not assign or recommend priorities.
   - Optional focus areas (terminology, parameters, interfaces, assumptions)
 - Report where the reconciliation report was written.
 
-**Output:** A reconciliation report written to `/Users/ryan/ai-env/projects/chirality-app/test/execution/_Reconciliation/` (and/or other location agreed with the human).
+**Output:** A reconciliation report written to `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Reconciliation/` (and/or other location agreed with the human).
 
 
 #### Function 5 (Optional): Aggregate (Cross-file rollups)
@@ -469,7 +469,7 @@ This document defines the entities the orchestrator manages and produces.
 The orchestrator creates (via PREPARATION sub-agents) this structure:
 
 ```
-/Users/ryan/ai-env/projects/chirality-app/
+/Users/ryan/ai-env/projects/chirality-app-test/
 ├── agents/                              # Agent instructions (pre-existing)
 │   ├── AGENT_4_DOCUMENTS.md
 │   ├── AGENT_AGGREGATION.md
@@ -481,10 +481,8 @@ The orchestrator creates (via PREPARATION sub-agents) this structure:
 │   ├── AGENT_WORKING_ITEMS.md
 │   └── COORDINATION_RECORD_TEMPLATE.md
 ├── test/                                # Project workspace
-│   ├── Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md
-│   ├── Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf
-│   ├── Volume_2_Part_2_Employers_Requirements.pdf
-│   ├── Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf
+│   ├── Exhibit A - Scope of Work PS.pdf
+│   ├── Puget Sound Optimization Project DBM.pdf
 │   └── execution/                       # Runtime workspace (created by orchestrator)
 │       ├── _Coordination/               # Project-level coordination record (human-owned)
 │       │   ├── _COORDINATION.md

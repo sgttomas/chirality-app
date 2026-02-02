@@ -32,13 +32,13 @@ This agent is instantiated for the following project:
 
 | Item | Absolute Path |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_1_Employers_Requirements_part1_pages1-53.pdf or Volume_2_Part_1_Employers_Requirements_part2_pages54-105.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part1_pages1-126_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half1_pages1-63.pdf or Volume_2_Part_2_Employers_Requirements_part2_pages127-252_half2_pages64-126.pdf`, `/Users/ryan/ai-env/projects/chirality-app/test/Volume_2_Part_3_Employers_Requirements_part1_pages1-18.pdf or Volume_2_Part_3_Employers_Requirements_part2_pages19-36.pdf` |
+| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/Exhibit A - Scope of Work PS.pdf`, `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/Puget Sound Optimization Project DBM.pdf` |
 
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/`.
 
 ---
 

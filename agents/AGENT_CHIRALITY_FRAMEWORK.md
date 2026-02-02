@@ -32,12 +32,12 @@ This agent is instantiated for the following project:
 
 | Item | Absolute Path |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
+| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
 
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution/`.
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/`.
 
 ---
 

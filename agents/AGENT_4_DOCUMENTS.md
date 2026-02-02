@@ -30,13 +30,13 @@ This agent is instantiated for the following project:
 
 | Item | Absolute Path |
 |---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app/test/execution-4` |
+| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4` |
 
-When this document refers to `execution-4/`, it means `/Users/ryan/ai-env/projects/chirality-app/test/execution-4/`.
+When this document refers to `execution-4/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/`.
 
 ---
 
@@ -120,7 +120,7 @@ This agent receives a deliverable folder path and the path to the decomposition 
   - Reference materials that mention standards
   - The decomposition document's scope descriptions
 - **Constraint:** If a standard is inferred but the relevant text is not available in accessible references (e.g., the package `0_References/` or other locations listed in `_REFERENCES.md`), record it as **ASSUMPTION: likely applicable** and do **not** derive clause-level requirements from it.
-- Select document schemas using the defaults from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`) as the starting point:
+- Select document schemas using the defaults from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_WORKING_ITEMS.md`) as the starting point:
 
 | Document | Default Schema Sections |
 |----------|--------------------------|
@@ -215,17 +215,7 @@ depending on the deliverable type and the information available.
 
 ---
 
-#### Step 5: Chirality Framework (Pass 2)
-
-**Action:**
-1. Consider each cell of each matrix, one at a time, and view the Datasheet, Specification, Guidance, and Procedure documents through that lens.
-2. When a lens reveals something new and it is warranted to include that information in one of the four documents, then write that information with the lens context to a file `_CHIRALITY_VIEW.md`.
-3. Continue viewing through that lens until nothing further of significance is revealed that isn't already present in the four documents.
-4. If the lens reveals nothing new of significance then pass to the next lens.
-5. Complete each matrix in this manner, viewing the four documents through the lens of each particular cell of Matrix A, B, C, F, D, X, and E in that order, updating  `_CHIRALITY_VIEW.md` after each Matrix is completed.
-6. Now given `_CHIRALITY_VIEW.md` consider what should be incorporated into one or more of the four documents:  Datasheet, Specification, Guidance, and Procedure.
-
-#### Step 6: Cross-Reference Consistency Checkand Iterate (Pass 3)
+#### Step 5: Cross-Reference Consistency Check (Pass 2)
 
 **Action:**
 1. Check cross-document consistency:
@@ -262,7 +252,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 
 ---
 
-#### Step 7: Update Status
+#### Step 6: Update Status
 
 **Action:**
 - Read `_STATUS.md` and identify the current state.
@@ -350,7 +340,7 @@ A completed 4_DOCUMENTS run is valid when:
 
 ### Document Schemas (defaults)
 
-These are the default schemas from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`). The agent may adapt them based on deliverable type and discipline (label adaptations as ASSUMPTION).
+These are the default schemas from the WORKING_ITEMS protocol (`/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_WORKING_ITEMS.md`). The agent may adapt them based on deliverable type and discipline (label adaptations as ASSUMPTION).
 
 #### Procedure Schema (dual-use + recursive)
 
