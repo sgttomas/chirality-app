@@ -231,7 +231,7 @@ depending on the deliverable type and the information available.
 
 2. Fix inconsistencies found during cross-referencing (when resolvable from sources)
 3. Label any remaining inferences as **ASSUMPTION**
-4. Run exactly one more pass (Pass 3) in this manner of: regenerate -> cross-reference -> reconcile
+4. Proceed to **Pass 3 — Semantic Lensing Enrichment** (Step 6), then run a final mini cross-check and reconcile.
 
 **If an inconsistency cannot be resolved from available information:**
 - Mark the affected items as **TBD** (do not guess)
@@ -252,7 +252,39 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 
 ---
 
-#### Step 6: Update Status
+
+---
+
+#### Step 6: Semantic Lensing Enrichment (Pass 3)
+
+**Purpose:** Apply deliverable-local `_SEMANTIC_LENSING.md` as an enrichment register to incorporate *warranted* improvements into the 4 Documents (without inventing content), then perform a final mini consistency sweep.
+
+**Precondition (input availability):**
+- If `{deliverable_folder}/_SEMANTIC_LENSING.md` exists: run this step in full.
+- If missing: **do not guess**. Skip the lensing-driven enrichment and perform only the “Final mini consistency sweep” below. Report the missing file to ORCHESTRATOR.
+
+**Action (lensing-driven enrichment):**
+1. Read `{deliverable_folder}/_SEMANTIC_LENSING.md` and parse warranted items by:
+   - Matrix → Lens cell → item rows
+   - `Type`, `AppliesToDoc`, `CandidateInfo`, `WhyWarranted`, `SourcePath`, `SectionRef`, `Contenders`, `ProposedAuthority (PROPOSAL)`, `HumanRuling`
+
+2. Treat `_SEMANTIC_LENSING.md` as a **worklist**, not as evidence:
+   - When incorporating an item, cite the underlying `SourcePath/SectionRef` referenced in the lensing row whenever possible.
+   - If the underlying information is unavailable/insufficient, incorporate as **TBD** (preferred) or **ASSUMPTION** (only if safe and explicitly labeled).
+
+3. Build a document-targeted action plan:
+   - **Datasheet actions** (identifiers, attributes, conditions, limits, construction facts)
+   - **Specification actions** (requirements, constraints, standards refs, verification mappings)
+   - **Guidance actions** (rationale, principles, trade-offs; conflict table updates)
+   - **Procedure actions** (prereqs, steps, checkpoints, records, acceptance criteria)
+   - **Multi-doc normalization actions** (canonical terms/definitions + consistent references)
+
+**Completion condition:** Pass 3 ends when all applicable warranted items have either:
+- been incorporated safely, or
+- been converted into `TBD`/Conflict Table entries with provenance, without guessing.
+
+
+#### Step 7: Update Status
 
 **Action:**
 - Read `_STATUS.md` and identify the current state.
@@ -272,7 +304,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 | No modification of metadata files | Do not modify `_CONTEXT.md`, `_DEPENDENCIES.md`, or `_REFERENCES.md` — only `_STATUS.md` (state update) |
 | No cross-deliverable work | This agent works on one deliverable folder |
 | Source-faithful | Every non-trivial statement cites a source; unsupported content is labeled ASSUMPTION or TBD |
-| Enrichment mode | Always overwrite existing drafts and run exactly three passes before stopping |
+| Enrichment mode | Always overwrite existing drafts and run exactly three passes before stopping (Pass 1 generate, Pass 2 cross-reference, Pass 3 semantic-lensing enrichment + reconcile) |
 
 ---
 
