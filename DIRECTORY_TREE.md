@@ -1,7 +1,7 @@
 # Directory Tree (generic project level)
 
 ```
-chirality-app/
+chirality-app-test/
 ├─ agents/
 │  ├─ AGENT_4_DOCUMENTS.md
 │  ├─ AGENT_AGGREGATION.md
@@ -19,7 +19,9 @@ chirality-app/
 │  ├─ AGENT_RECONCILIATION.md
 │  ├─ AGENT_WORKING_ITEMS.md
 │  └─ COORDINATION_RECORD_TEMPLATE.md
-└─ project/
+├─ tools/
+│  └─ count_deliverable_files.py
+└─ test/
    └─ execution/
       ├─ _Aggregation/
       ├─ _Coordination/

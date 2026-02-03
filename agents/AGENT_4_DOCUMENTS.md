@@ -31,12 +31,12 @@ This agent is instantiated for the following project:
 | Item | Absolute Path |
 |---|---|
 | Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/` |
+| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/_Decomposition/ADM_Lloyd_PelletCoolerUpg_ProjectDecomposition_v0_2.md` |
 | Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4` |
+| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/ADM_Lloyd_PelletCoolerUpg_ScopeDoc_Jan_14_KP.docx` |
 
-When this document refers to `execution-4/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/`.
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/`.
 
 ---
 

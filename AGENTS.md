@@ -2,7 +2,7 @@
 
 This file is the operator-facing index and “rules of the road” for using the agents shipped with this repository.
 
-If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY-APP.md (the human guidance agent). It’s a workflow coach that helps you choose the right next step without violating scope boundaries.
+If you’re new, start with /Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_CHIRALITY-APP.md (the human guidance agent). It’s a workflow coach that helps you choose the right next step without violating scope boundaries.
 
 **Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
@@ -25,14 +25,14 @@ If you’re new, start with /Users/ryan/ai-env/projects/chirality-app/agents/AGE
 - Use **PROJECT_DECOMP** to create a decomposition from a messy Scope of Work (SOW).
 - The project decomposition file is located here:
 
-`/Users/ryan/ai-env/projects/chirality-app/test/Canola_Oil_Transload_Facility_Decomposition_REVISED_v2.md`
+`/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/_Decomposition/ADM_Lloyd_PelletCoolerUpg_ProjectDecomposition_v0_2.md`
 
 ### Filesystem is the state
 - Project “truth” is what is on disk: folders + `_STATUS.md` + the four documents.
 - Agents must not maintain a hidden database or private state that diverges from the filesystem.
 
 ### Deliverables (working-items) are local
-- A **deliverable** (`DEL-xx.yy`) is one folder under `/Users/ryan/ai-env/projects/chirality-app/test/execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`.
+- A **deliverable** (`DEL-xx.yy`) is one folder under `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`.
 - Work inside that folder is **local**: no cross-deliverable “crosstalk” by default.
 
 ### Local lifecycle (not stage gates)
@@ -127,25 +127,25 @@ Each agent instruction file also declares **AGENT_TYPE**:
 - **What it does:** Transforms a messy, user-supplied Scope of Work (SOW) into a structured scope output (SSOW), then decomposes SSOW into flat Packages, Deliverables, and anticipated Artifacts. Runs a conversational, gate-controlled process with the user.
 - **What it does not do:** Produce engineering content; skip confirmation gates; resolve ambiguities silently; approve its own output.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_DECOMP.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_PROJECT_DECOMP.md`
 
 ### HELP_HUMAN (Human Support Persona)
 - **What it does:** Helps the human choose the correct next step and avoid framework misuse.
 - **What it does not do:** Draft engineering content; change `_STATUS.md`; scan cross-deliverable scope unless explicitly asked to run reconciliation.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_HELP_HUMAN.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_HELP_HUMAN.md`
 
 ### ORCHESTRATOR (Workspace + visibility)
 - **What it does:** Ingests the decomposition; records coordination representation + dependency mode; spawns bounded sub-agents; scans/reports status.
 - **What it does not do:** Produce engineering content; assign work; decide stage gates or sequencing.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ORCHESTRATOR.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_ORCHESTRATOR.md`
 
 ### PROJECT_CONTROLS (Interactive control plane)
 - **What it does:** Maintains project control intent, orchestrates Type 2 pipelines, and records decisions/run plans.
 - **What it does not do:** Draft engineering content; resolve semantic conflicts; modify deliverable artifacts directly.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PROJECT_CONTROLS.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_PROJECT_CONTROLS.md`
 
 ### HELPS_HUMANS (Workflow Design Standard)
 - **What it does:** Defines standards for designing agentic workflows and writing/maintaining agent instruction sets.
@@ -157,56 +157,56 @@ File: `AGENT_HELPS_HUMANS.md`
 - **What it does:** Creates package/deliverable folders and writes the minimum viable fileset (`_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`) idempotently.
 - **What it does not do:** Write engineering requirements/specs; infer dependencies.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_PREPARATION.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_PREPARATION.md`
 
 ### 4_DOCUMENTS (Initialize drafts)
 - **What it does:** Generates initial drafts of `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` for one deliverable.
 - **Status rule:** May set `_STATUS.md` from `OPEN → INITIALIZED` **only if the current state is `OPEN`** (no regression).
 - **Epistemic rule:** No invention; cite what you can; otherwise mark TBD / ASSUMPTION.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_4_DOCUMENTS.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_4_DOCUMENTS.md`
 
 ### CHIRALITY_FRAMEWORK (Semantic Lens / Matrices)
 - **What it does:** Generates deliverable-specific semantic matrices after drafts exist; writes/overwrites `_SEMANTIC.md`; may advance `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only when current state is `INITIALIZED`).
 - **What it does not do:** Invent requirements/parameters; modify the four documents; enforce the matrices as constraints (they are a lens, not authority).
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHIRALITY_FRAMEWORK.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_CHIRALITY_FRAMEWORK.md`
 
 ### WORKING_ITEMS (Human-in-the-loop production)
 - **What it does:** Runs a working session for **one** deliverable folder to iteratively produce a coherent set of all four documents.
 - **Core rule:** The human engineer is the validator / halting condition.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_WORKING_ITEMS.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_WORKING_ITEMS.md`
 
 ### RECONCILIATION (Cross-deliverable and intra-agent dependency checks)
 - **What it does:** Read-only scan across the dependency mapping between deliverables and compares to current state of `4 Documents` for coherence and consistency. Or runs the AUDIT_AGENT.md protocol.
 - **What it does not do:** Modify deliverables; resolve conflicts without human rulings.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_RECONCILIATION.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_RECONCILIATION.md`
 
 ### AGGREGATION (Project-level synthesis across files)
 - **What it does:** Aggregates across any human-defined scope (deliverables, packages, tool roots) and writes a timestamped snapshot under `execution/_Aggregation/` (does not edit inputs).
 - **What it does not do:** Modify source files; silently expand scope; overwrite prior snapshots (except `_LATEST.md` pointer).
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_AGGREGATION.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_AGGREGATION.md`
 
 ### ESTIMATING (Project cost estimate snapshots)
 - **What it does:** Produces an estimate snapshot under `execution/_Estimates/` including `Detail.csv` line items with **Qty, Unit, UnitRate**, plus Summary and `BOE.md` (Basis of Estimate).
 - **What it does not do:** Edit deliverable folders; produce binding quotes; require mid-run human decisions (it can log decisions and proceed).
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_ESTIMATING.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_ESTIMATING.md`
 
 ### DEPENDENCIES (Emergent dependency discovery)
 - **What it does:** Identifies emergent dependencies stated or implied within the four deliverable documents and records them in a machine-trackable register (`Dependencies.csv`) for project-level synthesis by AGGREGATION.
 - **What it does not do:** Create engineering content; modify the four documents; invent target IDs without evidence.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_DEPENDENCIES.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_DEPENDENCIES.md`
 
 ### CHANGE (Diff • Interpret • Recommend • Execute with Approval)
 - **What it does:** Inspects git state, summarizes changes, and optionally executes git actions after explicit approval. Creates output in `_DEPENDENCIES.md` per deliverable.
 - **What it does not do:** Change repo state without approval; perform destructive actions without heightened approval.
 
-File: `/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_CHANGE.md`
+File: `/Users/ryan/ai-env/projects/chirality-app-test/agents/AGENT_CHANGE.md`
 
 ---
 

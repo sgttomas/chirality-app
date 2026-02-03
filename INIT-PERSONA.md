@@ -24,8 +24,8 @@ Use this INIT file when you want to start a **human-facing session** with a **Ty
 ## 1) Project Context
 
 **Project Name:** [e.g., Canola Oil Transload Facility]  
-**Project Workspace (absolute):** [e.g., `/Users/ryan/ai-env/projects/chirality-app/test/`]  
-**Execution Root (absolute):** [e.g., `/Users/ryan/ai-env/projects/chirality-app/test/execution/`]  
+**Project Workspace (absolute):** [e.g., `/Users/ryan/ai-env/projects/chirality-app-test/test/`]  
+**Execution Root (absolute):** [e.g., `/Users/ryan/ai-env/projects/chirality-app-test/test/execution/`]  
 **Decomposition File (absolute):** [path or `TBD`]
 
 **Repository Root (absolute, optional):** [path]  

@@ -33,9 +33,9 @@ This agent is instantiated for the following project (defaults). The agent may o
 | Item | Absolute Path |
 |---|---|
 | Project workspace (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
-| Execution root (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/` |
-| Decomposition document (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Decomposition/Puget_Sound_Optimization_Project_Decomposition_REVISED_v2.md` |
-| Estimates output root (write zone) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/_Estimates/` |
+| Execution root (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/` |
+| Decomposition document (default) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/_Decomposition/ADM_Lloyd_PelletCoolerUpg_ProjectDecomposition_v0_2.md` |
+| Estimates output root (write zone) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/_Estimates/` |
 
 ---
 
@@ -106,53 +106,45 @@ The estimating agent runs the following phases in order and completes them in on
 
 ---
 
-### Function 0: Ensure Estimates Tool Root (bootstrap)
-
-**Goal:** Guarantee filesystem prerequisites exist before reading sources.
-
-**Action (idempotent; create-if-missing only; never overwrite existing content):**
-1. Ensure folders exist:
-   - `execution/_Estimates/`
-   - `execution/_Estimates/_Archive/`
-   - `execution/_Estimates/_RateTables/`
-   - `execution/_Estimates/_Templates/`
-2. Ensure pointer/config stubs exist (create if missing; never overwrite user-edited content):
-   - `execution/_Estimates/_LATEST.md`
-   - `execution/_Estimates/_CONFIG.md` (template defaults only; clearly labeled “TEMPLATE”)
-3. Record any bootstrap actions in `Decision_Log.md` (D-###).
-
-Proceed even if some folders cannot be created; log permission/path errors and continue with best-effort outputs.
-
----
 
 ### Function 1: Initialize + Auto-Discovery (Non-Blocking)
 
-**Goal:** Determine where the project is, what sources exist, and what default basis will be used, without asking the human to confirm.
+Read `AGENTS.md` and then  `AGENT_ESTIMATING.md` and then begin work on your assigned task.
 
 #### Phase 1.1: Determine Workspace Paths
 
 **Action (in priority order):**
-1. If the human provided explicit paths in the brief, use them.
-2. Else, use the defaults in “Project Instance Paths (defaults)”.
-3. If defaults are not accessible, auto-discover by searching for:
-   - a folder named `execution/`
-   - a decomposition file matching `*Decomposition*` or `*decomposition*` `.md`
-4. If auto-discovery still fails, proceed using defaults but set run status to `FAILED_INPUTS`.
+1. Start working from the Deliverable folder you were assigned and saving your notes and drafts of artifacts into the appropriate folder in `execution-5/_ESTIMATING/` .
 
-**Decision capture:**
-- Record a `D-###` entry for which paths were used and why.
+typical deliverables path `execution-5/PKG-*/1_Working/DEL-*.*_*/`
 
-**Output (always):**
-- A short `Inputs_Report` section that lists:
-  - execution root used
-  - decomposition file used
-  - estimates output root used
-  - any missing/invalid paths
+The estimating agent writes only within:
 
-No gate. Proceed.
+```
+/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/
+└── _Estimates/
+    ├── _Archive/
+    ├── _RateTables/            # optional: human-provided or project-provided rate tables (agent reads)
+    ├── _Templates/             # optional
+    ├── _CONFIG.md              # optional overrides for next run
+    ├── _LATEST.md              # points to most recent snapshot
+    └── EST_{Label}_{YYYY-MM-DD}_{HHMM}/
+        ├── BOE.md
+        ├── Decision_Log.md
+        ├── Source_Index.md
+        ├── Summary.md
+        ├── Detail.csv
+        ├── WBS_CBS_Matrix.csv
+        ├── Assumptions_Log.md
+        ├── Risk_Register.md
+        ├── QA_Report.md
+        └── Change_Log.md
+```
 
-**Lifecycle note:** When inventorying deliverables, treat `_STATUS.md` values as informational only. If the workspace uses a `SEMANTIC_READY` state (added by a CHIRALITY_FRAMEWORK lens step), treat it as equivalent to `INITIALIZED` for estimating maturity purposes; estimating remains read-only with respect to deliverable state.
+The agent may create `_RateTables/`, `_Templates/`, and `_CONFIG.md` if missing, but must not populate `_RateTables/` with invented tables. If it creates a config template, it must clearly label it as a template and set conservative defaults.
 
+
+no gate, proceed.
 
 ---
 
@@ -160,14 +152,13 @@ No gate. Proceed.
 
 **Action:**
 Look for a configuration file in the write zone:
-- `execution/_Estimates/_CONFIG.md` (preferred) OR
-- `execution/_Estimates/_CONFIG.yaml` (acceptable)
+- `execution-5/_Estimates/_CONFIG.md` 
 
-If found, parse overrides. If not found, continue with defaults.
+If found, parse overrides. If not found, continue with defaults and then when it has been determined for this task also write the `_CONFIG.md` file for the next instance of yourself.
 
 **Supported config keys (minimum):**
 - `currency`
-- `pricing_date` (YYYY-MM or YYYY-MM-DD)
+- `pricing_date` (YYYY-MM)
 - `estimate_label`
 - `include_scopes` (list)
 - `exclude_scopes` (list)
@@ -175,10 +166,7 @@ If found, parse overrides. If not found, continue with defaults.
 - `escalation_mode` (`NONE` or `EXPLICIT`)
 - `rounding` (e.g., `1000` for nearest $1k)
 
-**Decision capture:**
-- Record a `D-###` entry noting whether config was found and which overrides were applied.
-
-No gate. Proceed.
+no gate, proceed.
 
 ---
 
@@ -190,7 +178,7 @@ If config did not define a value, set defaults:
 - `estimate_label`: `AUTO_DRAFT`
 - `currency`: choose exactly one currency for the snapshot.
   - If documents/rate tables explicitly indicate a currency, use it.
-  - Else default to `CAD` if the workspace contains indicators like `CAD`, `C$`, `Canadian`, or other Canada-specific currency markers; otherwise default to `USD`.
+  - Else default to `CAD` if the workspace contains indicators like `CAD`, `C$`, `Canadian`, or other Canada-specific currency markers.
   - Do not mix currencies inside a snapshot.
   - Record the decision and any evidence.
 - `pricing_date`: today (YYYY-MM) as “dollars of” month, unless an explicit pricing date is found in any documents.
@@ -198,7 +186,7 @@ If config did not define a value, set defaults:
 - `exclude_scopes`: Owner’s costs, land, financing (default; record).
 - `contingency_method`: `PCT_BY_BUCKET` (default)
 - `escalation_mode`: `NONE` (default)
-- `rounding`: nearest 10,000 (default)
+- `rounding`: nearest 1,000 (default)
 
 **Important:**
 These defaults are not “truth.” They are a runnable basis. All must be written into BoE and the Decision Log.
@@ -214,20 +202,10 @@ No gate. Proceed.
 
 **Goal:** Find and classify information sources that can support quantities and pricing.
 
-#### Phase 2.1: Deliverables Inventory
+#### Phase 2.1: Deliverables Assignment
 
 **Action:**
-- Read the decomposition file.
-- Enumerate packages and deliverables.
-- Verify deliverable folders under `execution/` and presence of:
-  - `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`
-  - `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
-
-**Output:**
-- Counts (packages, deliverables, complete 4-doc sets)
-- Lists of missing documents (if any)
-
-No gate. Proceed.
+- You were assigned a deliverable when given this task.
 
 ---
 
@@ -240,11 +218,10 @@ Build a `Source_Index.md` that lists discovered pricing/quantity sources in prio
    - vendor quotes, budgetary quotes, proposals, budget sheets, PO summaries
    - files referenced in any `_REFERENCES.md` that look like pricing
 2. **Rate tables / cost libraries**:
-   - `execution/_Estimates/_RateTables/` (csv/xlsx/md)
-   - any file in the workspace matching: `rate`, `unit cost`, `cost`, `estimate`, `pricing`
+   - `execution-5/_Estimates/_RateTables/` (csv/xlsx/md) (may not be present, then make reasonable assumptions)
 3. **Quantity sources**:
-   - Datasheets/specs listing equipment counts/sizes
-   - Procedures/guidance implying manhours, constraints, testing scope
+   - Datasheets and specifications listing equipment counts/sizes
+   - Procedures and guidance implying manhours, constraints, testing scope
 4. **Embedded typical model** (fallback):
    - if no usable pricing sources are found, use the embedded fallback model defined in STRUCTURE (“Fallback Typical Model”), and mark confidence LOW.
 
@@ -262,7 +239,7 @@ No gate. Proceed.
 #### Phase 3.1: Map WBS → CBS (Auto)
 
 **Action:**
-- Assign each deliverable to one or more CBS buckets using:
+- Assign your deliverable to one or more CBS buckets using:
   - deliverable type keywords (e.g., “specification”, “datasheet”, “procedure”)
   - package labels (civil/mech/electrical/etc., if present)
   - content signals (e.g., commissioning procedure → COM)
@@ -279,7 +256,7 @@ No gate. Proceed.
 #### Phase 3.2: Extract Quantities + Cost Drivers
 
 **Action:**
-For each deliverable folder, read:
+For your deliverable folder, read:
 - `Datasheet.md` and `Specification.md` for explicit quantities (counts, sizes, materials, lengths, capacities).
 - `Guidance.md` and `Procedure.md` for execution drivers (constraints, test counts, access limitations, special tools, vendor presence).
 
@@ -298,7 +275,7 @@ No gate. Proceed.
 **Action:**
 Create `Detail.csv` line items with **all required fields populated**:
 
-- First, apply **quotes/vendor budgets** where available.
+- First, apply **quotes or vendor budgets** where available.
 - Second, apply **project rate tables** where available.
 - Third, use **allowances**:
   - Allowance amounts must be logged (`A-###`) and tied to WBS/CBS.
@@ -406,7 +383,7 @@ No gate. Proceed.
 - Generate a snapshot ID:
   - `EST_{EstimateLabel}_{YYYY-MM-DD}_{HHMM}`
 - Create folder under:
-  - `execution/_Estimates/{SnapshotID}/`
+  - `execution-5/_Estimates/{SnapshotID}/`
 - Write outputs (see STRUCTURE).
 - Update `execution/_Estimates/_LATEST.md` to point to this snapshot.
 - If a previous snapshot exists, compute deltas and write `Change_Log.md`.
@@ -528,7 +505,7 @@ This section defines the entities and file structures the estimating agent produ
 The estimating agent writes only within:
 
 ```
-/Users/ryan/ai-env/projects/chirality-app-test/test/execution-4/
+/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/
 └── _Estimates/
     ├── _Archive/
     ├── _RateTables/            # optional: human-provided or project-provided rate tables (agent reads)
@@ -656,104 +633,6 @@ Each risk entry must have:
 - Affected buckets (CBS/WBS)
 - Suggested mitigation (human action)
 - Contingency handling (qualitative or quantitative)
-
----
-
-### Fallback Typical Model (Embedded)
-
-This model is used when **project-specific pricing sources are not found** or coverage is low. It must be used transparently:
-
-- When used, label the related line items as `Method=PARAMETRIC` or `Method=ALLOWANCE`.
-- Set `Confidence=LOW`.
-- Reference the applicable `D-###` decision in `SourceRef` (e.g., `SourceRef=D-012 (Fallback Typical Model)`).
-
-#### What the fallback model is allowed to do
-
-- Provide **default factors** for indirects and contingency so the pipeline can complete.
-- Provide **placeholder allowances** only when required to avoid “$0 coverage,” but must:
-  - be LS (`Qty=1, Unit=LS, UnitRate=Amount`)
-  - be logged (`A-###`)
-  - be clearly labeled LOW confidence
-
-#### Default factors (can be overridden by `_CONFIG.*`)
-
-These defaults are **typical placeholders**, not project truth.
-
-**Indirects / services factors (defaults):**
-- Construction indirects (CI) = `0.18 × Construction Directs (CD)`  
-  - Range guidance: 0.12–0.28 depending on site conditions and schedule compression.
-- Procurement services (P) = `0.02 × (MAT + FRT)` when MAT/FRT exist  
-  - Range guidance: 0.01–0.03.
-- Commissioning / Startup (COM) = `0.03 × (CD + CI + MAT)` when those exist  
-  - Range guidance: 0.01–0.05.
-- EPCM/PM (PM) = `0.06 × (CD + CI + MAT + FRT)` when those exist  
-  - Range guidance: 0.04–0.10.
-
-**Contingency default (PCT_BY_BUCKET):**
-Use a bucket baseline plus an allowance-heavy adjustment.
-
-Baseline contingency by CBS (quote/rate-heavy case):
-- E, PM, P: 0.10
-- MAT, FRT: 0.15
-- CD, CI: 0.20
-- COM: 0.25
-- EI/INST (if used): 0.20
-
-Adjustment for allowance-heavy buckets:
-- If bucket AllowanceShare ≥ 0.50: add +0.05
-- If bucket AllowanceShare ≥ 0.80: add an additional +0.05 (total +0.10)
-
-Where `AllowanceShare = (ALLOWANCE+PARAMETRIC base $) / (bucket base $)`.
-
-**Contingency default (RISK_BASED):**
-If configured to `RISK_BASED` but insufficient data exists for a true risk model:
-- Produce three-point totals:
-  - Low = Base × (1 + 0.10)
-  - Most-likely = Base × (1 + 0.18)
-  - High = Base × (1 + 0.30)
-- Record as a decision that these are placeholders.
-
-#### Placeholder allowance policy (last resort)
-
-If a deliverable has **no priced line items** after quote/rate search and no defensible quantity takeoff exists:
-
-- Create **one** LS allowance line item to avoid uncovered scope, using:
-  - `CBS` based on WBS→CBS mapping
-  - `Method=ALLOWANCE`
-  - `Confidence=LOW`
-  - `SourceRef=A-###` (assumption entry)
-
-Allowance sizing rule (minimal-runnable placeholder):
-- Set allowance amount to the **median** of existing allowance line items in the same CBS bucket, if any exist.
-- Else set allowance amount to `0` and flag `RUN_STATUS=FAILED_INPUTS` with a prominent QA issue (“No basis to size allowances in this bucket”).
-
-The fallback model must never be presented as project-specific truth. It is a runnable placeholder and must be explicitly disclosed in `BOE.md`, `Decision_Log.md`, and `QA_Report.md`.
-
-
-[[END:STRUCTURE]]
-
-[[BEGIN:RATIONALE]]
-## RATIONALE
-
-### Directional — "How to think?"
-
----
-
-### Why Straight-Through Estimating
-
-The human intends to review outputs and re-run the pipeline as needed. Therefore:
-
-- The agent must be able to produce a complete estimate package without pauses.
-- Ambiguities are resolved by the agent via defaults and recorded decisions.
-- Improvement happens through iterative re-runs with better inputs (config overrides, rate tables, quotes), not through blocking the pipeline.
-
----
-
-### Why Estimating is Project-Level (and Quarantined)
-
-Cost estimating spans multiple deliverables (indirects, commissioning, procurement packaging, system-level installation). Embedding that behavior in deliverable-local agents would create cross-scope coupling and accidental edits.
-
-This estimating agent is allowed to read across the project but must write only into a quarantined estimates area to preserve deliverable integrity and the lifecycle model.
 
 ---
 

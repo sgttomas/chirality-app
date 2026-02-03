@@ -61,6 +61,18 @@ Agents are described in `AGENTS.md`.
 
 Agent instruction files are located in `agents/`.
 
+## Deliverable file census
+
+`COUNT_FILES` is a Type 2 agent that runs `tools/count_deliverable_files.py` to enumerate each `PKG-*/1_Working/DEL-*` folder under a chosen execution root and report how many regular files live inside. Each deliverable acts as a concurrent subagent, so the CLI accepts `--max-workers` (default `min(32, cpu count)`) to cap parallelism. The agent prints one timestamped line per deliverable and a final summary line; no new files are created. Invoke it with a brief like:
+
+```text
+ExecutionRoot: test/execution-5
+DeliverableGlob: PKG-*/1_Working/DEL-*
+MaxWorkers: 8
+```
+
+The instruction set is documented in `agents/AGENT_COUNT_FILES.md`.
+
 ## Deliverable Folder Structure
 
 Each deliverable folder contains:
