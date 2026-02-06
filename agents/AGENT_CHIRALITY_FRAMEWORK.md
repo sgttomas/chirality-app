@@ -423,6 +423,7 @@ This document defines the seven-phase matrix system and construction rules.
 | **evaluative** | | | | |
 
 **Construction:** Direct semantic multiplication of row × column.
+   -	Show your work
 
 ---
 
@@ -443,6 +444,7 @@ This document defines the seven-phase matrix system and construction rules.
 | **wisdom** | | | | |
 
 **Construction:** Direct semantic multiplication of row × column.
+   -	Show your work
 
 ---
 
@@ -457,8 +459,10 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
+   -	Show your work
 2. Interpret to atomic units: `C(i,j) = I(row_i, col_j, L_C(i,j))`
-
+   -	Show your work
+   
 ---
 
 ### Matrix F — Requirements
@@ -472,7 +476,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_F(i,j) = Σ_k (C(i,k) * B(k,j))`
+   -	Show your work
 2. Interpret to atomic units: `F(i,j) = I(row_i, col_j, L_F(i,j))`
+   -	Show your work
 
 ---
 
@@ -487,7 +493,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Create intermediate collection by addition: `L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`
+   -	Show your work
 2. Interpret to atomic unit: `D(i,j) = I(row_i, col_j, L_D(i,j))`
+   -	Show your work
 
 ---
 
@@ -514,7 +522,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_X(i,j) = Σ_k (K(i,k) * C(k,j))`
+   -	Show your work
 2. Interpret to atomic units: `X(i,j) = I(row_i, col_j, L_X(i,j))`
+   -	Show your work
 
 ---
 
@@ -529,7 +539,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_E(i,j) = Σ_k (D(i,k) * X(k,j))`
+   -	Show your work
 2. Interpret to atomic units: `E(i,j) = I(row_i, col_j, L_E(i,j))`
+   -	Show your work
 
 ---
 
