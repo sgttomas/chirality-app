@@ -61,18 +61,6 @@ Agents are described in `AGENTS.md`.
 
 Agent instruction files are located in `agents/`.
 
-## Deliverable file census
-
-`COUNT_FILES` is a Type 2 agent that runs `tools/count_deliverable_files.py` to enumerate each `PKG-*/1_Working/DEL-*` folder under a chosen execution root and report how many regular files live inside. Each deliverable acts as a concurrent subagent, so the CLI accepts `--max-workers` (default `min(32, cpu count)`) to cap parallelism. The agent prints one timestamped line per deliverable and a final summary line; no new files are created. Invoke it with a brief like:
-
-```text
-ExecutionRoot: test/execution-5
-DeliverableGlob: PKG-*/1_Working/DEL-*
-MaxWorkers: 8
-```
-
-The instruction set is documented in `agents/AGENT_COUNT_FILES.md`.
-
 ## Deliverable Folder Structure
 
 Each deliverable folder contains:
@@ -93,9 +81,9 @@ Each deliverable folder contains:
 ```
 
 Project-level outputs live in separate tool roots:
-- `execution/_Aggregation/` — Aggregation snapshots
-- `execution/_Estimates/` — Cost estimate snapshots
-- `execution/_Reconciliation/` — Reconciliation reports
+- `execution-*/_Aggregation/` — Aggregation snapshots
+- `execution-*/_Estimates/` — Cost estimate snapshots
+- `execution-*/_Reconciliation/` — Reconciliation reports
 
 ## Regulated, High-Stakes, and Professional-Responsibility Environments
 
@@ -106,7 +94,7 @@ Many EPC and design-build programs run in environments where deliverables are:
 - **Subject to codes/standards, regulator expectations, and internal QA** (document control, traceability, configuration management)
 - Produced under **high professional responsibility** (engineering duty of care; formal review and sign-off)
 
-In these settings, “agentic workflows” are only valuable if they are **auditable, controllable, and review-friendly**. Chirality’s approach is intentionally conservative: agents accelerate production, but the project truth remains explicit in files, and humans remain the accountable validators.
+In these settings, “agentic workflows” are only valuable if they are **auditable, controllable, and review-friendly**. The approach used in this Chirality App project is intentionally conservative: agents accelerate production, but the project truth remains explicit in files, and humans remain the accountable validators.
 
 ### What `WHAT-IS-AN-AGENT.md` means in high-stakes workflows
 
@@ -168,87 +156,7 @@ This framework is designed to support professional responsibility, not replace i
 
 - Treat agent outputs as **drafts and structured assistance**, not authoritative engineering judgment.
 - Keep **human review and sign-off** as the decision gate for safety, compliance, and contractual commitments.
-- Align the workflow with your organization’s **QMS / document control / retention** requirements.
 
-## Scaling 
-This framework is intentionally designed to make scaling plausible because it treats:
-
-- **The filesystem as the system state** (not chat memory)
-- **Standard artifacts as the interface** between people and agents (the 4 Documents, lifecycle states, and optional `_SEMANTIC.md`)
-- **Agent composition (0/1/2 layering)** as the control surface for separation of duties and debuggability
-
-Below are the most evidently probable patterns (i.e., what teams commonly converge toward when a file-centric, contract-driven workflow is adopted).
-
-### Pattern 1: Standardization reduces dependence on individual craft
-
-The fastest path to team-scale reliability is usually to standardize:
-
-- **Folder and artifact conventions** (so any contributor can locate “what matters” quickly)
-- **The “4 Documents” baseline** (so every deliverable starts from a known structure)
-- **Lifecycle transitions** (so “what stage are we in?” is unambiguous)
-- **Brief + acceptance criteria format** (so Specialists can be swapped without losing intent)
-
-As these conventions settle, the work shifts from “inventing how to proceed” to “executing a known playbook,” which is what scales across people.
-
-### Pattern 2: Deliverable folders become “bootable experts” when filesystem state is treated as agent state
-
-When a deliverable type has a well-established structure (and your team consistently maintains that structure), the folder stops being “a place where files live” and becomes a **portable expert context**.
-
-In practice, a properly-scoped agent can behave *like an expert in that deliverable* because it can reliably load:
-
-- the deliverable’s `_CONTEXT.md` (purpose, scope boundaries, interfaces, constraints),
-- `_REFERENCES.md` (standards, upstream requirements, source documents),
-- `_STATUS.md` (lifecycle state, open decisions, readiness),
-- `_SEMANTIC.md` (if present: the project’s preferred framing, concepts, and “what questions matter here”),
-- plus the “4 Documents” and any WORKING_ITEMS history.
-
-That bundle acts like an “expert boot image”: it provides the *situated* project knowledge that usually lives in a senior person’s head (what matters, what’s in-bounds, what must be cited, what’s decided vs unresolved), while the model supplies general reasoning and drafting ability.
-
-**Most probable outcomes when this is done well:**
-- Specialists become **interchangeable** across people and sessions (less dependence on a single operator’s memory).
-- New team members can “boot into” competent contribution faster (onboarding becomes reading + executing, not oral tradition).
-- Outputs become more consistent across deliverables because the same state primitives and templates are always present.
-
-### Pattern 3: “Context compounds” — the folder gets smarter as work progresses
-
-Once the filesystem is the state, every iteration can add durable signal:
-
-- resolved assumptions and decisions move from chat into `_CONTEXT.md` / the 4 Docs,
-- citations and standards harden in `_REFERENCES.md`,
-- recurring edge cases and definitions stabilize in `_SEMANTIC.md`,
-- and lifecycle status makes readiness explicit.
-
-Over time, this tends to shift work from “inventing how to do this deliverable” to “executing a known playbook,” and the playbook keeps improving. The practical effect is **fewer clarification loops** and **higher-quality first drafts**, because each new run inherits a richer, more accurate local context.
-
-### Pattern 4: Cross-deliverable coherence becomes a scheduled activity
-
-As more deliverables reach mature states, cross-scope agents become more reliable — but only if you treat coherence checks as **events**, not constant background noise. Common practice is to run reconciliation at:
-- package freeze points,
-- design review milestones,
-- and pre-issuance checks.
-
-### What you can realistically expect to improve over time
-
-If the above patterns hold, the most realistic improvements are:
-
-- **Lower onboarding time** for new contributors (because the state is in the folder, not in someone’s head)
-- **More parallelism** (multiple deliverables worked concurrently without colliding)
-- **Fewer review iterations** (because drafts are structured for checking and have explicit evidence/assumptions)
-- **Higher consistency** across deliverables (terminology and intent converge through repeated use of the same structures)
-
-### What can prevent scaling (and how this framework mitigates it)
-
-Common scale blockers:
-- **Uncontrolled instruction drift** (different operators “teach” different behaviors)
-- **Skipping lifecycle states** (folders stop being trustworthy as a source of truth)
-- **Over-broad write scopes** (agents change too much, too quickly, too quietly)
-- **Implicit assumptions** (not captured in `_CONTEXT.md` / `_STATUS.md` / `_REFERENCES.md`)
-
-Mitigations built into this approach:
-- canonical standards (Agent 0),
-- orchestration and gating (Agent 1),
-- narrow execution (Agent 2),
-- and auditability via stable artifacts.
 
 ## Documentation
 
@@ -256,7 +164,3 @@ Mitigations built into this approach:
 - `agents/AGENT_*.md` — Individual agent instruction files
 - `WHAT-IS-AN-AGENT.md` — Architecture philosophy (layering, composition, debugging)
 - `AGENT_HELPS_HUMANS.md` — Canonical workflow-design standard for agent instruction sets and pipelines
-- `AUDIT_AGENT.md` — Audit rubric for coherence/conformance across AGENT_* files
-- `INIT-PERSONA.md` — Manager-style session INIT (interpretation, orchestration, multi-step work)
-- `INIT-TASK.md` — Specialist-style task INIT (brief-driven execution)
-- `INIT-CUSTOM.md` — Template for bespoke INITs while remaining framework-consistent

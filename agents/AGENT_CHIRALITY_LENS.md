@@ -2,11 +2,11 @@
 # AGENT INSTRUCTIONS — Chirality Lens (CHIRALITY_LENS)
 AGENT_TYPE: 2
 
-These instructions govern a task agent that **applies the matrix outputs from CHIRALITY_FRAMEWORK as semantic lenses** over the **four drafted documents** for a single Deliverable (Datasheet, Specification, Guidance, Procedure), and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`.
+These instructions govern a task agent that applies the matrices from `_SEMANTIC.md` as semantic lenses over the "4 Documents" (Datasheet, Guidance, Procedure, Specification) and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`.
 
-This agent does **not** edit the four documents. It produces an **enrichment-ready information register** that a subsequent 4_DOCUMENTS agent (in a separate session) can use during an enrichment pass **before** the final consistency pass.
+This agent does **not** edit the four documents. It produces an **enrichment-ready information register** that a subsequent agent (in a separate session) can use.
 
-**The human does not read this document. The human has a conversation. You follow these instructions.**
+**The human does not read this document. You follow these instructions.**
 
 ---
 
@@ -30,9 +30,10 @@ This agent does **not** edit the four documents. It produces an **enrichment-rea
 Produce a **matrix-organized lensing register** that:
 1) Uses **each cell** of each matrix **A, B, C, F, D, X, E** (from `_SEMANTIC.md`) as a perspective lens,  
 2) Applies that lens to each of the **4 Documents**, and  
-3) Captures only what is **warranted** to carry forward as enrichment input: missing categories, weak/unclear semantics, cross-document inconsistencies, verification gaps, and “questions-to-answer” needed to eliminate TBDs.
+3) Captures what is apparent through the lens. then
+4) Briefly justifies why this perspective matters.
 
-This artifact is designed for a subsequent 4_DOCUMENTS enrichment run to incorporate into the documents with high leverage and low drift.
+This artifact is designed for a subsequent agent session to incorporate these perspectives into the 4 Documents (Datasheet, Guidance, Procedure, Specification).
 
 ---
 
@@ -56,7 +57,8 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 - **Provenance is mandatory.** Every captured item must include `SourcePath` and best-effort `SectionRef` (use “location TBD” if needed).
 - **Conflicts are surfaced, not resolved.** When documents disagree, create a conflict item and leave `HumanRuling = TBD`.
 - **No recursive ingestion.** Do not treat `_SEMANTIC_LENSING.md` as an input source for subsequent runs unless explicitly instructed.
-- **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E must be used as a lens (even if it yields “no warranted items”).
+- **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E must be used as a lens (even if it yields no items, state that no items were found).
+- **Do not capture**:- Pure restatements that add no new leverage (avoid duplicating what is already clear and consistent); Engineering decisions that require human authority; instead record as a conflict or question.
 
 ---
 
@@ -66,18 +68,18 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 - `deliverable_folder` — absolute path to one deliverable folder under:
   `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
-- `decomposition_path` — absolute path to the decomposition document (traceability only; do not reinterpret scope unless explicitly told)
 
 ### Files read (deliverable-local)
 
-- `{deliverable_folder}/_CONTEXT.md`
 - `{deliverable_folder}/_STATUS.md`
-- `{deliverable_folder}/_SEMANTIC.md` **(required)** — output from CHIRALITY_FRAMEWORK
+- `{deliverable_folder}/_CONTEXT.md`
+- `{deliverable_folder}/_REFERENCES.md` (optional; read if present)
+- `{deliverable_folder}/_SEMANTIC.md` (required - source for the lenses)
 - `{deliverable_folder}/Datasheet.md`
 - `{deliverable_folder}/Specification.md`
 - `{deliverable_folder}/Guidance.md`
 - `{deliverable_folder}/Procedure.md`
-- `{deliverable_folder}/_REFERENCES.md` (optional; read if present)
+
 
 ### Primary Output
 
@@ -93,15 +95,10 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 # Glossary
 
 - **Lens (matrix cell):** the atomic semantic unit in a matrix cell (e.g., `A[normative, guiding]`) used as a “what to look for” perspective.
-- **Warranted item:** an enrichment-relevant statement, gap, conflict, verification need, or question that should be carried into a future enrichment pass.
-- **4 Documents:** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
-- **Doc role:** how each document type contributes:
-  - Datasheet = identifiers/attributes/conditions/construction (facts)
-  - Specification = requirements/standards/verification mappings (constraints)
-  - Guidance = rationale/principles/trade-offs (judgment support)
-  - Procedure = steps/verification/records (execution structure)
+- **Perspective item:** an aspect apparent through the perspective of that lens that should be carried into a future enrichment pass of the 4 Documents 
+- **4 Documents:** `Datasheet.md`, `Guidance.md`, `Procedure.md`, `Specification.md`.
 
----
+--
 
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL — Straight-through Lensing Procedure
@@ -121,77 +118,36 @@ Read, in order:
 4) The 4 Documents (Datasheet, Specification, Guidance, Procedure)
 5) `_REFERENCES.md` (if present; list but do not expand scope unless told)
 
-### Step 2 — Parse matrices into lens sets
+### Step 2 — Parse matrices into lens tables
 
-For each matrix M ∈ {A, B, C, F, D, X, E}:
-- Extract:
-  - Matrix name
-  - Row labels
-  - Column labels
-  - Cell values (atomic semantic units)
-- Create an internal lens list:
-  - `LensID := M:<RowLabel>:<ColLabel>`
-  - `LensValue := cell value`
+For each matrix M ∈ {A, B, C, F, D, X, E} in `_SEMANTIC.md` do:
+2.1) Extract:
+    - Matrix name
+    - Row labels
+    - Column labels
+    - Cell values (atomic semantic units)
+2.2) Then generate the output template in the specified markdown table format.
+    - The first column is the Matrix name
+    - Second column is the Row label
+    - Third column is the Column label
+    - Fourth column is the corresponding lens
+    - Fifth column is to be the perspective given by applying the lens to the content of the 4 Documents
+    - Sixth column is to be the brief justification for why the perspective recorded in the fifth column is justified
+    - Seventh column is to be for identifying from which of the 4 Documents does this perspective apply (can be one or several)
+    - Eight column is to be for identifying where in the particular Document this perspective is applicable (can be a locality or the entirety)
 
 If a matrix cell is empty or malformed:
-- Record a warranted item: `Type=MatrixError` with provenance to `_SEMANTIC.md`, and continue.
+- Record item: `Type=MatrixError` with provenance to `_SEMANTIC.md`, and continue.
 
-### Step 3 — Apply each lens to each document
+### Step 3 — Write `_SEMANTIC_LENSING.md`
 
-For each `LensID/LensValue`, examine each document with the following lens questions.
+- Systematically and exhaustively take the perspective of each lens throughout each document but record only what is justified.  
+- Separate your perspectives across as many line items as required. 
+- Write/overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the schema in STRUCTURE.
 
-#### 3A — Universal lens questions (all documents)
+### Step 4 — Report completion
 
-From the perspective of `LensValue`:
-- **Presence:** Is there any content that clearly instantiates this perspective?
-- **Clarity:** Is the content stated in an unambiguous, implementable way for its document role?
-- **Completeness (local):** Is the relevant section (for that document type) fully populated or does it hide “silent TBDs”?
-- **Consistency (cross-doc):** Do other documents say something different under the same conceptual slot?
-- **Traceability:** Is it anchored to a source (or at minimum to `_CONTEXT.md`/decomposition narrative) or is it free-floating?
-
-#### 3B — Document-role-specific lens questions
-
-**Datasheet.md**
-- Does this lens imply missing identifiers, attributes, conditions, limits, or construction facts?
-- Are there datasheet fields that should exist but are currently blank/TBD?
-- Are units/terminology aligned with Specification?
-
-**Specification.md**
-- Does this lens reveal missing requirements, missing verification methods, or missing standards references?
-- Is a “must/shall” requirement present in one document but absent here?
-- Are requirements testable and mapped to verification?
-
-**Guidance.md**
-- Does this lens indicate missing rationale, principles, trade-offs, or operational considerations?
-- Are there unresolved conflicts that should appear in a conflict table for human ruling?
-
-**Procedure.md**
-- Does this lens indicate missing prerequisites, steps, verification checkpoints, or record outputs?
-- Are any Specification requirements not reflected in procedure verification?
-
-### Step 4 — Determine what is warranted to capture
-
-Capture a warranted item when **any** of the following hold:
-
-1) **Missing but implied slot:** A document role suggests a slot that should exist (e.g., verification for a requirement) and it is missing/TBD.
-2) **Weak/unclear statement:** Content exists but is too vague to be actionable for its role (e.g., “ensure compliance” with no criteria).
-3) **Cross-document mismatch:** Two documents disagree or use incompatible terms/values.
-4) **Verification gap:** Requirement exists without verification path, or procedure step exists without pass/fail criterion.
-5) **Rationale gap:** Specification requirement exists without Guidance rationale.
-6) **Normalization need:** Same concept appears in multiple places but needs a canonical statement (avoid drift).
-7) **Question-to-answer:** To eliminate TBDs, a concrete question must be answered; record it as such rather than inventing.
-
-**Do not capture**:
-- Pure restatements that add no new leverage (avoid duplicating what is already clear and consistent).
-- Engineering decisions that require human authority; instead record as a conflict or question.
-
-### Step 5 — Write `_SEMANTIC_LENSING.md`
-
-Write/overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the schema in STRUCTURE.
-
-### Step 6 — Report completion
-
-Report (to ORCHESTRATOR or human):
+Report:
 - Deliverable ID/name
 - Whether `_SEMANTIC.md` was present and parsed
 - Count of warranted items (total + by document)
@@ -212,19 +168,25 @@ A run is valid only if:
 
 ### S2 — No-invention constraint
 
-A warranted item must be one of:
-- Extracted statement(s) with provenance, or
+A recorded item must be one of:
+- Perspective statement with provenance, or
 - A conflict statement grounded in at least two cited contenders, or
 - A question-to-answer (`Type=TBD_Question`) with rationale and where to look.
 
-Anything else must be labeled `ASSUMPTION` and MUST include a justification line explaining why the assumption is safe for enrichment (prefer questions over assumptions).
+No speculation or baseless assumptions.  Use "TBD" instead, to draw the human's attention to the matter.
 
 ### S3 — Provenance constraint
 
-Every warranted item MUST include:
-- `SourcePath` (one of the 4 documents, `_SEMANTIC.md`, `_CONTEXT.md`, decomposition, or `_REFERENCES.md`)
-- `SectionRef` (best-effort heading path; or “location TBD”)
-- If it references a conflict: **two** sources minimum.
+Every recorded item MUST be placed in the appropriate Matrix table following this format:
+- Matrix lensing output table format:
+    - The first column is the Matrix name
+    - Second column is the Row label
+    - Third column is the Column label
+    - Fourth column is the corresponding lens
+    - Fifth column is to be the perspective given by applying the lens to the content of the 4 Documents
+    - Sixth column is to be the brief justification for why the perspective recorded in the fifth column is justified
+    - Seventh column is to be for identifying from which of the 4 Documents does this perspective apply (can be one or several)
+    - Eight column is to be for identifying where in the particular Document this perspective is applicable (can be a locality or the entirety)
 
 ### S4 — Human decision rights preserved
 
@@ -241,8 +203,8 @@ Instead:
 
 The output must be:
 - Deterministically structured
-- Easy for a future 4_DOCUMENTS enrichment pass to consume
-- Organized primarily by **Matrix**, then by **Lens cell**, then by **Document**
+- Easy for a future agent to consume
+- Organized in the specified markdown table format.
 
 ---
 
