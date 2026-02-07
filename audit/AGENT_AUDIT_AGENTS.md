@@ -12,18 +12,22 @@ Given a bundle of `AGENT_*.md` files (and the canonical standard they cite), pro
 - an issue log (prioritized),
 - and a minimal patch plan (prefer unified diffs or explicit rewrite blocks).
 
+This task agent is designed to be brief-driven so a Type 1 manager (especially `WORKING_ITEMS`) can delegate the audit as a deterministic specialist run.
+
 ## Invocation / Ownership
-- This agent is typically invoked by **RECONCILIATION (Type 1)** with an explicit brief.
+- Primary manager: **WORKING_ITEMS (Type 1)** via explicit task brief.
 - This agent is **read-only**: it does not edit agent instruction files.
 - This agent writes only to its tool root under `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/`.
+- This agent must execute straight-through and return decision-ready outputs to the invoking manager.
+- RECONCILIATION is a separate workflow that may be run by `WORKING_ITEMS`; it is not part of this task contract.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
 ---
 
 ## Revision
-- Version: v1
-- Date: 2026-02-01
+- Version: v1.1
+- Date: 2026-02-07
 
 ---
 
@@ -50,8 +54,9 @@ Given a bundle of `AGENT_*.md` files (and the canonical standard they cite), pro
 
 ---
 
-## Inputs (from RECONCILIATION or human)
+## Inputs (from WORKING_ITEMS / human)
 
+- `TASK_BRIEF_FILE`: optional markdown brief path (recommended when manager is `WORKING_ITEMS`)
 - `EXECUTION_ROOT`: default `execution/`
 - `GATE_LABEL`: optional label for naming outputs
 - `FILES_TO_AUDIT`: explicit list of paths to `AGENT_*.md` files
@@ -62,7 +67,25 @@ Given a bundle of `AGENT_*.md` files (and the canonical standard they cite), pro
 
 If `FILES_TO_AUDIT` is missing, the agent must not guess wildly; it may:
 - search within the provided scope for `AGENT_*.md`, or
-- return a “missing input” error to RECONCILIATION.
+- return a “missing input” error to the invoking manager.
+
+### WORKING_ITEMS brief contract (recommended)
+When invoked by `WORKING_ITEMS`, prefer this brief block:
+
+```markdown
+PURPOSE: Audit AGENT_*.md instruction files for conformance and role coherence.
+SCOPE: <explicit paths or bundle identifier>
+WHERE_TO_LOOK: <roots/patterns to enumerate AGENT_*.md>
+OUTPUT_LABEL: <gate label or run label>
+CONSTRAINTS:
+  - Use AUDIT_AGENT.md (alias AUDIT_AGENTS.md) rubric
+  - Read-only on audited files
+  - Evidence excerpts <= 25 words
+EXCLUSIONS:
+  - <paths/patterns>
+NOTES:
+  - Canon file path, manager notes, acceptance focus
+```
 
 ---
 
@@ -87,9 +110,10 @@ Optional pointer:
 
 ### Step 0 — Preconditions
 
-1) Confirm `RUBRIC_FILE` exists and is readable.
-2) Confirm `FILES_TO_AUDIT` list is non-empty.
-3) Confirm the canonical file (`CANON_FILE`) exists; if missing:
+1) Confirm invocation is from `WORKING_ITEMS` and task brief inputs are readable.
+2) Confirm `RUBRIC_FILE` exists and is readable.
+3) Confirm `FILES_TO_AUDIT` list is non-empty.
+4) Confirm the canonical file (`CANON_FILE`) exists; if missing:
    - still run the inventory + drift detection,
    - but mark all conformance checks that require canon as **BLOCKER**.
 
@@ -139,12 +163,13 @@ Do not apply patches; only propose them.
 
 ---
 
-### Step 5 — Return summary to RECONCILIATION
+### Step 5 — Return summary to invoking manager
 
 In the task’s final message, include:
 - where outputs were written,
 - top issues (≤10),
 - any blockers.
+- recommended next manager action (`accept`, `request patching`, or `rerun with tighter scope`).
 
 [[END:PROTOCOL]]
 
@@ -159,6 +184,7 @@ An agent-audit run is valid when:
 - A prioritized issue log is produced.
 - A patch plan is produced (diff or rewrite blocks).
 - No `AGENT_*.md` files are modified.
+- Outputs are sufficient for `WORKING_ITEMS` to decide the next action without re-running the audit.
 
 [[END:SPEC]]
 
@@ -169,6 +195,6 @@ An agent-audit run is valid when:
 
 Auditing the agent layer prevents silent role drift, contract mismatch, and unsafe permission creep.
 
-Keeping this work as a Type 2 task allows RECONCILIATION (Type 1) to remain the decision interface while delegating heavy analysis to a repeatable rubric-driven process.
+Keeping this work as a Type 2 task allows `WORKING_ITEMS` to remain the decision interface while delegating heavy analysis to a repeatable rubric-driven process.
 
 [[END:RATIONALE]]

@@ -94,7 +94,7 @@ Each agent instruction file also declares **AGENT_TYPE**:
 
 **Persona agents** — Use when you need an interactive session:
 - `PROJECT_DECOMP`: Starting a new project from a messy SOW
-- `HELP_HUMAP`: Need help choosing the right next step
+- `HELP_HUMAN`: Need help choosing the right next step
 - `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
 - `PROJECT_CONTROLS`: Interactive control plane; invokes Type 2 pipelines
 - `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
@@ -106,9 +106,8 @@ Each agent instruction file also declares **AGENT_TYPE**:
 - `CHIRALITY_FRAMEWORK`: Generating semantic lenses 
 - `DEPENDENCIES`: Discovering dependencies from content 
 - `AGGREGATION`: Cross-file rollups and synthesis 
-- `RECONCILIATION`: Cross-deliverable or intra-agent coherence checks 
-- `ESTIMATING`: Cost estimate snapshots
 - `CHANGE`: Git state review and optional actions with explicit approval
+- `ESTIMATING`: Cost estimate snapshots
 
 ---
 

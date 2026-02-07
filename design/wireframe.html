@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chirality Command Center - Wireframe Concept</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #05070a;
+            --bg-panel: rgba(15, 23, 42, 0.85);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.12);
+            --accent-orange: #f97316; /* Operative Orange */
+            
+            /* PORTAL COLORS (LOCKED) */
+            --col-normative: #dc2626; --col-operative: #f97316; --col-evaluative: #fde047;
+            --col-guiding: #8b5cf6; --col-applying: #1e40af; --col-judging: #10b981; --col-reviewing: #0ea5e9;
+        }
+
+        body {
+            background: var(--bg-deep);
+            background-image: radial-gradient(circle at 20% 30%, rgba(157, 80, 187, 0.1) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.1) 0%, transparent 40%);
+            color: var(--text-main);
+            font-family: 'EB Garamond', serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 1.2rem;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+        .glass { background: var(--bg-panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 12px; }
+
+        header { padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .brand { font-weight: 800; font-size: 2.2rem; letter-spacing: 2px; text-transform: uppercase; }
+        .breadcrumbs { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.8rem; letter-spacing: 1px; }
+        
+        #wireframe-controls { background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--accent-orange); padding: 10px; text-align: center; z-index: 1000; flex-shrink: 0; }
+        #wireframe-controls button { background: transparent; color: var(--text-dim); border: 1px solid var(--border); padding: 6px 16px; margin: 0 6px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 1rem; transition: all 0.2s; }
+        #wireframe-controls button.active { border-color: var(--accent-orange); color: var(--accent-orange); box-shadow: 0 0 10px rgba(249, 115, 22, 0.3); }
+
+        .screen { display: none; flex-grow: 1; flex-direction: column; height: 100%; overflow: hidden; }
+        .screen.active { display: flex; }
+
+        .main-content { flex-grow: 1; display: flex; padding: 20px; gap: 20px; overflow: hidden; }
+
+        /* --- PORTAL GRID (LEFT) --- */
+        .portal-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+        .hex-grid { display: grid; grid-template-columns: repeat(4, 160px); grid-gap: 25px; padding: 40px; position: relative; }
+        .hex-column-label { text-align: center; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 2px; }
+        .hex-row-label { position: absolute; left: -130px; top: 50%; transform: translateY(-50%); font-weight: bold; text-transform: uppercase; font-size: 1rem; width: 110px; text-align: right; color: var(--text-dim); }
+        .hex-wrapper { position: relative; width: 160px; height: 140px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s; }
+        .hex-wrapper:hover { transform: scale(1.1); }
+        .hex { width: 100%; height: 100%; background-color: rgba(255,255,255,0.1); clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%); display: flex; justify-content: center; align-items: center; position: relative; }
+        .hex::before { content: ''; position: absolute; inset: 4px; background: var(--bg-deep); clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%); z-index: 0; }
+        .hex-content { z-index: 1; font-size: 1.2rem; font-weight: 800; text-transform: uppercase; font-family: 'EB Garamond', serif; text-align: center; line-height: 1.1; }
+        
+        .row-normative .hex { background-color: var(--col-normative); filter: drop-shadow(0 0 8px rgba(220,38,38,0.4)); }
+        .row-operative .hex { background-color: var(--col-operative); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4)); }
+        .row-evaluative .hex { background-color: var(--col-evaluative); filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.4)); }
+        
+        .col-guiding .hex-content { color: var(--col-guiding); }
+        .col-applying .hex-content { color: var(--col-applying); }
+        .col-judging .hex-content { color: var(--col-judging); }
+        .col-reviewing .hex-content { color: var(--col-reviewing); }
+
+        /* --- DASHBOARD (RIGHT) --- */
+        .dashboard-panel { width: 550px; display: flex; flex-direction: column; padding: 25px; gap: 20px; }
+        .dashboard-title { font-weight: 800; font-size: 1.8rem; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; }
+        .dashboard-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 10px; }
+        .deliverable-card { padding: 18px; display: flex; align-items: center; gap: 15px; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+        .deliverable-card:hover { background: rgba(255,255,255,0.05); border-color: var(--border); transform: translateX(-5px); }
+        .del-status-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .status-open { border: 1px solid var(--text-dim); }
+        .status-in-progress { background: var(--col-guiding); box-shadow: 0 0 10px var(--col-guiding); }
+        .status-checking { background: var(--col-judging); box-shadow: 0 0 10px var(--col-judging); }
+        .status-issued { background: var(--col-reviewing); box-shadow: 0 0 10px var(--col-reviewing); }
+        .del-id { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent-orange); min-width: 90px; }
+        .del-name { font-weight: 600; font-size: 1.2rem; flex-grow: 1; }
+
+        /* --- WORKBENCH CONTENT --- */
+        .workbench-layout { display: flex; width: 100%; height: 100%; gap: 20px; }
+        .chat-panel { width: 500px; display: flex; flex-direction: column; }
+        .chat-messages { flex-grow: 1; padding: 30px; overflow-y: auto; font-size: 1.3rem; }
+        .msg-agent { border-left: 4px solid var(--accent-orange); padding: 15px 25px; background: rgba(249, 115, 22, 0.05); margin-bottom: 25px; border-radius: 0 12px 12px 0; }
+        .chat-input { padding: 25px; border-top: 1px solid var(--border); }
+        .chat-input input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); padding: 15px; color: white; font-family: inherit; font-size: 1.2rem; border-radius: 8px; }
+
+        .right-panel { flex-grow: 1; display: flex; gap: 20px; overflow: hidden; }
+        .fs-sidebar { width: 280px; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border); }
+        .panel-label { padding: 12px 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .tree-view { padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; color: #777; line-height: 2; overflow-y: auto; }
+        .tree-active { color: var(--text-main); font-weight: bold; text-shadow: 0 0 8px rgba(255,255,255,0.2); }
+        .tree-folder { color: var(--col-guiding); opacity: 0.8; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; }
+        .content-header { padding: 15px 25px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .context-status { color: var(--col-judging); border: 1px solid var(--col-judging); padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; }
+        .file-preview { padding: 40px; font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: #cbd5e1; line-height: 1.8; overflow-y: auto; }
+        .diff-add { color: var(--col-judging); background: rgba(16, 185, 129, 0.1); display: block; }
+
+        /* --- PIPELINE CONTENT --- */
+        .pipeline-layout { display: flex; width: 100%; height: 100%; gap: 20px; }
+        .brief-panel { width: 380px; }
+        .brief-content { padding: 30px; font-size: 1.1rem; }
+        .brief-content h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent-orange); text-transform: uppercase; margin: 30px 0 12px 0; letter-spacing: 2px; }
+        .brief-content p { color: var(--text-dim); line-height: 1.7; margin: 0; }
+        
+        .monitor-panel { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.4); border-radius: 16px; padding: 30px; border: 1px solid var(--border); }
+        .monitor-header { display: flex; justify-content: space-between; margin-bottom: 25px; align-items: center; }
+        .status-indicator { display: flex; align-items: center; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: bold; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #333; }
+        .status-dot.active { background: var(--col-judging); box-shadow: 0 0 12px var(--col-judging); }
+        
+        .console-output { flex-grow: 1; background: #020205; border-radius: 12px; border: 1px solid #222; padding: 25px; font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: #666; overflow-y: auto; line-height: 1.6; }
+        .log-success { color: var(--col-judging); }
+        .monitor-footer { padding-top: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-run { background: linear-gradient(135deg, var(--accent-orange), #dc2626); color: white; border: none; padding: 15px 40px; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; font-family: inherit; font-size: 1.1rem; }
+
+        .manifest-panel { width: 320px; }
+        .manifest-list { padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; line-height: 2.2; }
+        .manifest-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .manifest-action { font-weight: bold; color: var(--accent-orange); }
+
+    </style>
+</head>
+<body>
+
+    <div id="wireframe-controls">
+        <button onclick="showScreen('home')" class="active" id="btn-home">PORTAL</button>
+        <button onclick="showScreen('workbench')" id="btn-workbench">WORKBENCH</button>
+        <button onclick="showScreen('session')" id="btn-session">DIRECT</button>
+        <button onclick="showScreen('pipeline')" id="btn-pipeline">PIPELINE</button>
+    </div>
+
+    <!-- VIEW 1: HOME (COMMAND) -->
+    <div id="screen-home" class="screen active">
+        <header>
+            <div class="brand">CHIRALITY // <span style="color:var(--accent-orange)">COMMAND</span></div>
+            <div class="breadcrumbs">SYSTEM_RECOVERY: SUCCESS</div>
+        </header>
+        <div class="main-content">
+            <div class="portal-container">
+                <div class="hex-grid">
+                    <div class="hex-column-label" style="color:var(--col-guiding)">Guiding</div>
+                    <div class="hex-column-label" style="color:var(--col-applying)">Applying</div>
+                    <div class="hex-column-label" style="color:var(--col-judging)">Judging</div>
+                    <div class="hex-column-label" style="color:var(--col-reviewing)">Reviewing</div>
+
+                    <div class="hex-wrapper row-normative col-guiding" onclick="launchAgent('Decomp', 'normative', 'persona')">
+                        <div class="hex-row-label">Normative</div>
+                        <div class="hex"><div class="hex-content">Decomp</div></div>
+                    </div>
+                    <div class="hex-wrapper row-normative col-applying" onclick="launchAgent('Orchestrate', 'normative', 'persona')">
+                        <div class="hex"><div class="hex-content">Orchestrate</div></div>
+                    </div>
+                    <div class="hex-wrapper row-normative col-judging" onclick="launchAgent('Items', 'normative', 'persona')">
+                        <div class="hex"><div class="hex-content">Items</div></div>
+                    </div>
+                    <div class="hex-wrapper row-normative col-reviewing" onclick="launchAgent('Aggregate', 'normative', 'task')">
+                        <div class="hex"><div class="hex-content">Aggregate</div></div>
+                    </div>
+
+                    <div class="hex-wrapper row-operative col-guiding" onclick="launchAgent('Help', 'operative', 'persona')">
+                        <div class="hex-row-label">Operative</div>
+                        <div class="hex"><div class="hex-content">Help</div></div>
+                    </div>
+                    <div class="hex-wrapper row-operative col-applying" onclick="launchAgent('Prep*', 'operative', 'task')">
+                        <div class="hex"><div class="hex-content">Prep*</div></div>
+                    </div>
+                    <div class="hex-wrapper row-operative col-judging" onclick="launchAgent('Task*', 'operative', 'task')">
+                        <div class="hex"><div class="hex-content">Task*</div></div>
+                    </div>
+                    <div class="hex-wrapper row-operative col-reviewing" onclick="launchAgent('Audit*', 'operative', 'task')">
+                        <div class="hex"><div class="hex-content">Audit*</div></div>
+                    </div>
+
+                    <div class="hex-wrapper row-evaluative col-guiding" onclick="launchAgent('Humans', 'evaluative', 'persona')">
+                        <div class="hex-row-label">Evaluative</div>
+                        <div class="hex"><div class="hex-content">Humans</div></div>
+                    </div>
+                    <div class="hex-wrapper row-evaluative col-applying" onclick="launchAgent('Change', 'evaluative', 'persona')">
+                        <div class="hex"><div class="hex-content">Change</div></div>
+                    </div>
+                    <div class="hex-wrapper row-evaluative col-judging" onclick="launchAgent('Deps*', 'evaluative', 'task')">
+                        <div class="hex"><div class="hex-content">Deps*</div></div>
+                    </div>
+                    <div class="hex-wrapper row-evaluative col-reviewing" onclick="launchAgent('Recon', 'evaluative', 'persona')">
+                        <div class="hex"><div class="hex-content">Recon</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-panel glass">
+                <div class="dashboard-title">
+                    <span>Deliverables</span>
+                    <span class="mono" style="font-size: 0.8rem; color: var(--text-dim);">COUNT: 142</span>
+                </div>
+                <div class="dashboard-list">
+                    <div class="deliverable-card glass" onclick="showScreen('workbench')">
+                        <div class="del-status-dot status-in-progress"></div>
+                        <div class="del-id">DEL-01.01</div>
+                        <div class="del-name">Site General Layout</div>
+                    </div>
+                    <div class="deliverable-card glass" onclick="showScreen('workbench')">
+                        <div class="del-status-dot status-checking"></div>
+                        <div class="del-id">DEL-01.02</div>
+                        <div class="del-name">Grading & Drainage Plan</div>
+                    </div>
+                    <div class="deliverable-card glass">
+                        <div class="del-status-dot status-issued"></div>
+                        <div class="del-id">DEL-02.01</div>
+                        <div class="del-name">Structural Foundation Calcs</div>
+                    </div>
+                    <div class="deliverable-card glass">
+                        <div class="del-status-dot status-open"></div>
+                        <div class="del-id">DEL-02.02</div>
+                        <div class="del-name">Anchor Bolt Plan</div>
+                    </div>
+                    <div class="deliverable-card glass">
+                        <div class="del-status-dot status-in-progress"></div>
+                        <div class="del-id">DEL-03.01</div>
+                        <div class="del-name">Electrical Single Line Diagram</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: WORKBENCH -->
+    <div id="screen-workbench" class="screen">
+        <header><div class="brand">WORK // <span style="color:var(--accent-orange)">BENCH</span></div></header>
+        <div class="main-content">
+            <div class="workbench-layout">
+                <div class="chat-panel glass">
+                    <div class="chat-messages">
+                        <div class="msg-agent">
+                            <strong>SYSTEM_AGENT</strong><br>
+                            Neural link established. Filesystem mapped. I found 3 distinct deliverables. See the proposal on the right.
+                        </div>
+                        <div style="text-align:right; font-style:italic; color:var(--text-dim); margin-bottom:20px;">
+                            Wait, "Grading Plan" should be in Package 02.
+                        </div>
+                        <div class="msg-agent">
+                            <strong>SYSTEM_AGENT</strong><br>
+                            Understood. Moving [DEL-02] Grading Plan to [PKG-02]. Updating proposal...
+                        </div>
+                    </div>
+                    <div class="chat-input"><input type="text" placeholder="Send instruction..."></div>
+                </div>
+                <div class="right-panel">
+                    <div class="fs-sidebar">
+                        <div class="panel-label">Deliverable Tree</div>
+                        <div class="tree-view">
+                            <span class="tree-folder">1_Working/</span><br>
+                            &nbsp;&nbsp;<span class="tree-folder">DEL-02_Grading/</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── _CONTEXT.md<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── _STATUS.md<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-active">Specification.md</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;└── Guidance.md
+                        </div>
+                    </div>
+                    <div class="content-area glass">
+                        <div class="content-header">
+                            <span class="mono">PREVIEW: Specification.md</span>
+                            <span class="context-status">DRAFTING</span>
+                        </div>
+                        <div class="file-preview">
+# Grading Plan Specification
+
+## [PKG-01] Civil General
+- [DEL-01] Site Plan
+
+<span class="diff-add">## [PKG-02] Earthworks</span>
+<span class="diff-add">- [DEL-02] Grading Plan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: DIRECT -->
+    <div id="screen-session" class="screen">
+        <header><div class="brand">DIRECT // <span style="color:var(--accent-orange)">LINK</span></div></header>
+        <div class="main-content">
+            <div class="workbench-layout">
+                <div class="chat-panel glass" style="width: 600px;">
+                    <div class="chat-messages">
+                        <div class="msg-agent"><strong>AGENT</strong><br>Direct terminal active. Bypassing initialization protocol. Direct filesystem access enabled.</div>
+                    </div>
+                    <div class="chat-input"><input type="text" placeholder="Direct command..."></div>
+                </div>
+                <div class="right-panel">
+                    <div class="fs-sidebar glass" style="width: 100%;">
+                        <div class="panel-label">Project Root Structure</div>
+                        <div class="tree-view" style="font-size: 1.2rem;">
+                            ├── .gitignore<br>
+                            ├── README.md<br>
+                            ├── AGENTS.md<br>
+                            ├── WHAT_IS_AN_AGENT.md<br>
+                            └── <span style="color: var(--accent-orange)">agents/</span><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── AGENT_DECOMP.md<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;└── AGENT_CHANGE.md
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: PIPELINE -->
+    <div id="screen-pipeline" class="screen">
+        <header><div class="brand">TASK // <span style="color:var(--accent-orange)">PIPELINE</span></div></header>
+        <div class="main-content">
+            <div class="pipeline-layout">
+                <div class="brief-panel glass">
+                    <div class="panel-label">Execution Brief</div>
+                    <div class="brief-content">
+                        <h3>Purpose</h3>
+                        <p>Execute straight-through processing of project metadata to ensure cross-deliverable coherence.</p>
+                        <h3>Scope</h3>
+                        <p>All items under /execution-*/ with .md extension.</p>
+                        <h3>Constraints</h3>
+                        <p>- No silent fixes<br>- Surface drift<br>- Record provenance</p>
+                    </div>
+                </div>
+                <div class="monitor-panel">
+                    <div class="monitor-header">
+                        <div class="status-indicator">
+                            <div class="status-dot active" id="pipeline-status-dot"></div>
+                            STATUS: <span id="pipeline-status-text">READY</span>
+                        </div>
+                        <div class="mono" style="font-size:0.8rem; color:var(--text-dim);">TASK_ID: CH-2026-X4</div>
+                    </div>
+                    <div class="console-output" id="pipeline-console">
+> Pipeline initialized at 2026-02-06 14:22:10<br>
+> Validating brief contract...<br>
+> Target filesystem ready.<br>
+> Awaiting user 'Execute' command.
+                    </div>
+                    <div class="monitor-footer">
+                        <div style="display:flex; gap: 30px;">
+                            <div class="stat-item"><span class="stat-label">Items Found</span><span class="stat-value">142</span></div>
+                            <div class="stat-item"><span class="stat-label">Est. Time</span><span class="stat-value">~15s</span></div>
+                        </div>
+                        <button class="btn-run" onclick="startPipelineDemo()">Execute Pipeline</button>
+                    </div>
+                </div>
+                <div class="manifest-panel glass">
+                    <div class="panel-label">Write Manifest</div>
+                    <div class="manifest-list">
+                        <div class="manifest-item"><span>_Aggregation/</span><span class="manifest-action">WRITE</span></div>
+                        <div class="manifest-item"><span>Summary.csv</span><span class="manifest-action">APPEND</span></div>
+                        <div class="manifest-item"><span>Audit.log</span><span class="manifest-action">OVERWRITE</span></div>
+                        <div class="manifest-item"><span>_LATEST.md</span><span class="manifest-action">LINK</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#wireframe-controls button').forEach(el => el.classList.remove('active'));
+            document.getElementById('screen-' + id).classList.add('active');
+            document.getElementById('btn-' + id).classList.add('active');
+        }
+        function launchAgent(name, tier, type) {
+            if (type === 'persona') {
+                if (name === 'Decomp' || name === 'Items') showScreen('workbench');
+                else showScreen('session');
+            } else {
+                showScreen('pipeline');
+            }
+        }
+        function startPipelineDemo() {
+            const console = document.getElementById('pipeline-console');
+            const status = document.getElementById('pipeline-status-text');
+            status.innerText = "EXECUTING...";
+            let lines = [
+                "> Spawning Agent Thread...",
+                "> Scanning /execution-01/PKG-01/...",
+                "> Extracting terminologies...",
+                "> Conflict found in 'Grading'. Surface in Conflict.csv",
+                "> Writing snapshot: SNAPSHOT_20260206_1422",
+                "> Pipeline Complete."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= lines.length) {
+                    clearInterval(interval);
+                    status.innerText = "SUCCESS";
+                    status.style.color = "#10b981";
+                    return;
+                }
+                console.innerHTML += `<br><span class="log-success">${lines[i]}</span>`;
+                console.scrollTop = console.scrollHeight;
+                i++;
+            }, 500);
+        }
+    </script>
+</body>
+</html>

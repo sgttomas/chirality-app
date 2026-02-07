@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-deep: #05070a;
+  --color-bg-panel: rgba(15, 23, 42, 0.85);
+  --color-text-main: #f8fafc;
+  --color-text-dim: #94a3b8;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-accent-orange: #f97316;
+
+  /* Cognitive Palette */
+  --color-normative: #dc2626;
+  --color-operative: #f97316;
+  --color-evaluative: #fde047;
+  --color-guiding: #8b5cf6;
+  --color-applying: #1e40af;
+  --color-judging: #10b981;
+  --color-reviewing: #0ea5e9;
+
+  --font-eb: var(--font-eb-garamond);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+/* Global Styles */
+body {
+    background-color: var(--color-bg-deep);
+    background-image: radial-gradient(circle at 20% 30%, rgba(157, 80, 187, 0.1) 0%, transparent 40%),
+                      radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.1) 0%, transparent 40%);
+    color: var(--color-text-main);
+    font-family: var(--font-eb), serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Utilities */
+.glass {
+    background: var(--color-bg-panel);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+}
+
+.mono {
+    font-family: var(--font-mono);
+}
+
+/* --- PORTAL GRID (LEFT) --- */
+.hex-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 160px);
+    grid-gap: 25px;
+    padding: 40px;
+    position: relative;
+}
+
+.hex-column-label {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+}
+
+.hex-row-label {
+    position: absolute;
+    left: -130px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1rem;
+    width: 110px;
+    text-align: right;
+    color: var(--color-text-dim);
+}
+
+.hex-wrapper {
+    position: relative;
+    width: 160px;
+    height: 140px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.hex-wrapper:hover {
+    transform: scale(1.1);
+}
+
+.hex {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255,255,255,0.1);
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.hex::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: var(--color-bg-deep);
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    z-index: 0;
+}
+
+.hex-content {
+    z-index: 1;
+    font-size: 1.2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-family: var(--font-eb);
+    text-align: center;
+    line-height: 1.1;
+}
+
+.row-normative .hex { background-color: var(--color-normative); filter: drop-shadow(0 0 8px rgba(220,38,38,0.4)); }
+.row-operative .hex { background-color: var(--color-operative); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4)); }
+.row-evaluative .hex { background-color: var(--color-evaluative); filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.4)); }
+
+.col-guiding .hex-content { color: var(--color-guiding); }
+.col-applying .hex-content { color: var(--color-applying); }
+.col-judging .hex-content { color: var(--color-judging); }
+.col-reviewing .hex-content { color: var(--color-reviewing); }
+
+
+/* --- DASHBOARD (RIGHT) --- */
+.dashboard-title {
+    font-weight: 800;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.deliverable-card {
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.deliverable-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--color-border);
+    transform: translateX(-5px);
+}
+
+.del-status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-open { border: 1px solid var(--color-text-dim); }
+.status-in-progress { background: var(--color-guiding); box-shadow: 0 0 10px var(--color-guiding); }
+.status-checking { background: var(--color-judging); box-shadow: 0 0 10px var(--color-judging); }
+.status-issued { background: var(--color-reviewing); box-shadow: 0 0 10px var(--color-reviewing); }
+
+.del-id {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-accent-orange);
+    min-width: 90px;
+}
+
+.del-name {
+    font-weight: 600;
+    font-size: 1.2rem;
+    flex-grow: 1;
+}
