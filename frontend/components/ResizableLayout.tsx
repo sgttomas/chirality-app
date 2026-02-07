@@ -12,10 +12,12 @@ interface ResizableLayoutProps {
   autoPrompt?: string | null;
   placeholder?: string;
   mode?: "agent" | "direct";
+  harnessMode: "workbench" | "pipeline" | "direct";
+  personaId: string | null;
   projectRoot: string | null;
   
   // Sidebar Content (The middle pane controls)
-  sidebarContent: (onFileSelect: (path: string) => void) => ReactNode;
+  sidebarContent: () => ReactNode;
   
   // Preview State
   selectedFile: string | null;
@@ -27,6 +29,8 @@ export function ResizableLayout({
   autoPrompt,
   placeholder,
   mode = "agent",
+  harnessMode,
+  personaId,
   sidebarContent,
   selectedFile,
   projectRoot
@@ -49,6 +53,8 @@ export function ResizableLayout({
             sessionId={sessionId}
             autoPrompt={autoPrompt}
             mode={mode}
+            harnessMode={harnessMode}
+            personaId={personaId}
             placeholder={placeholder}
             projectRoot={projectRoot}
         />
@@ -62,7 +68,7 @@ export function ResizableLayout({
         className="flex flex-col h-full bg-black/20 border-r border-white/10 overflow-hidden flex-shrink-0"
         style={{ width: `${sidebarWidth}px`, minWidth: '300px' }}
       >
-        {typeof sidebarContent === 'function' ? (sidebarContent as any)() : sidebarContent}
+        {sidebarContent()}
       </div>
 
       {/* Resizer 2 */}

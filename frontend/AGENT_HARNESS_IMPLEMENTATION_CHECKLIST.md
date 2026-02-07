@@ -43,43 +43,43 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 
 ### New file
 
-- [ ] `frontend/lib/harness/persona-manager.ts`
-  - [ ] `load(projectRoot, personaId): Promise<PersonaConfig | null>`.
-  - [ ] `list(projectRoot): Promise<PersonaConfig[]>`.
-  - [ ] `buildSystemPrompt(projectRoot, persona, mode): Promise<string>`.
-  - [ ] `writeSystemPromptFile(projectRoot, sessionId, prompt): Promise<string>` (atomic write).
-  - [ ] Parse YAML frontmatter fields:
-    - [ ] `tools` -> `--tools`
-    - [ ] `disallowed_tools` -> `--disallowedTools`
-    - [ ] `auto_approve_tools` -> `--allowedTools`
-    - [ ] `max_turns` override
-  - [ ] mtime cache for `README.md`, `AGENTS.md`, persona file.
-  - [ ] 16k token budget enforcement (~4 chars/token): truncate persona first, then project context.
+- [x] `frontend/lib/harness/persona-manager.ts`
+  - [x] `load(projectRoot, personaId): Promise<PersonaConfig | null>`.
+  - [x] `list(projectRoot): Promise<PersonaConfig[]>`.
+  - [x] `buildSystemPrompt(projectRoot, persona, mode): Promise<string>`.
+  - [x] `writeSystemPromptFile(projectRoot, sessionId, prompt): Promise<string>` (atomic write).
+  - [x] Parse YAML frontmatter fields:
+    - [x] `tools` -> `--tools`
+    - [x] `disallowed_tools` -> `--disallowedTools`
+    - [x] `auto_approve_tools` -> `--allowedTools`
+    - [x] `max_turns` override
+  - [x] mtime cache for `README.md`, `AGENTS.md`, persona file.
+  - [x] 16k token budget enforcement (~4 chars/token): truncate persona first, then project context.
 
 ## 3) Session persistence module
 
 ### New file
 
-- [ ] `frontend/lib/harness/session-manager.ts`
-  - [ ] `create(projectRoot, persona, mode): Promise<Session>`.
-  - [ ] `resume(sessionId): Promise<Session>`.
-  - [ ] `save(session): Promise<void>` (atomic write temp + rename).
-  - [ ] `list(projectRoot?): Promise<SessionSummary[]>` (sort by `updatedAt` desc).
-  - [ ] `get(sessionId): Promise<Session>`.
-  - [ ] `delete(sessionId): Promise<void>`.
-  - [ ] Persist under `{projectRoot}/.chirality/sessions/{id}.json`.
-  - [ ] Store/update `claudeSessionId` from `session:init`.
+- [x] `frontend/lib/harness/session-manager.ts`
+  - [x] `create(projectRoot, persona, mode): Promise<Session>`.
+  - [x] `resume(sessionId): Promise<Session>`.
+  - [x] `save(session): Promise<void>` (atomic write temp + rename).
+  - [x] `list(projectRoot?): Promise<SessionSummary[]>` (sort by `updatedAt` desc).
+  - [x] `get(sessionId): Promise<Session>`.
+  - [x] `delete(sessionId): Promise<void>`.
+  - [x] Persist under `{projectRoot}/.chirality/sessions/{id}.json`.
+  - [x] Store/update `claudeSessionId` from `session:init`.
 
 ## 4) Server orchestrator wiring
 
 ### New file
 
-- [ ] `frontend/lib/harness/index.ts`
-  - [ ] Export singleton instances: `sessionManager`, `personaManager`, `claudeCodeManager`.
-  - [ ] Implement `startHarnessTurn({ sessionId, message, opts })` as async generator yielding `UIEvent`.
-  - [ ] Add resume fallback behavior:
-    - [ ] If resume fails, emit `session:error`, retry once without `--resume`, capture new `session:init`.
-  - [ ] Persist session updates on `session:init`, `session:complete`, and terminal exit.
+- [x] `frontend/lib/harness/index.ts`
+  - [x] Export singleton instances: `sessionManager`, `personaManager`, `claudeCodeManager`.
+  - [x] Implement `startHarnessTurn({ sessionId, message, opts })` as async generator yielding `UIEvent`.
+  - [x] Add resume fallback behavior:
+    - [x] If resume fails, emit `session:error`, retry once without `--resume`, capture new `session:init`.
+  - [x] Persist session updates on `session:init`, `session:complete`, and terminal exit.
 
 ## 5) API routes (`/api/harness/*`)
 
@@ -92,43 +92,43 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 - [x] `frontend/app/api/harness/interrupt/route.ts`
   - [x] `POST` request body: `{ sessionId }`.
   - [x] Call `claudeCodeManager.interrupt(sessionId)`.
-- [ ] `frontend/app/api/harness/session/create/route.ts`
-  - [ ] `POST` body: `{ projectRoot, persona, mode }`.
-  - [ ] Return `201 { session }`.
-- [ ] `frontend/app/api/harness/session/list/route.ts`
-  - [ ] `GET` query: `projectRoot?`.
-- [ ] `frontend/app/api/harness/session/[id]/route.ts`
-  - [ ] `GET` -> `{ session }`.
-  - [ ] `DELETE` -> `204`.
+- [x] `frontend/app/api/harness/session/create/route.ts`
+  - [x] `POST` body: `{ projectRoot, persona, mode }`.
+  - [x] Return `201 { session }`.
+- [x] `frontend/app/api/harness/session/list/route.ts`
+  - [x] `GET` query: `projectRoot?`.
+- [x] `frontend/app/api/harness/session/[id]/route.ts`
+  - [x] `GET` -> `{ session }`.
+  - [x] `DELETE` -> `204`.
 
 ## 6) Frontend chat integration
 
 ### Existing file updates
 
-- [ ] `frontend/components/ChatPanel.tsx`
-  - [ ] Replace `/api/chat` request path with harness flow:
-    - [ ] On init: create/load harness session via `/api/harness/session/*`.
-    - [ ] On send: open SSE `POST /api/harness/turn`.
-  - [ ] Add SSE event handlers for all `UIEvent` types:
-    - [ ] `chat:delta` append assistant text incrementally.
-    - [ ] `chat:complete` finalize assistant message.
-    - [ ] `tool:start`, `tool:result` add terminal-style entries.
-    - [ ] `session:init` store model + `claudeSessionId` in local UI state.
-    - [ ] `session:complete` update metadata.
-    - [ ] `session:error` display error message/toast entry.
-    - [ ] `process:exit` clear loading state and re-enable input.
-  - [ ] Add `interrupt` button/state -> call `POST /api/harness/interrupt`.
-  - [ ] Keep per-view local chat history UX, but server is source of session metadata.
-  - [ ] Remove direct dependency on user-provided Anthropic key in UI for harness turns.
-- [ ] `frontend/components/ResizableLayout.tsx`
-  - [ ] Pass mode/persona metadata needed for harness session creation.
-- [ ] `frontend/components/WorkbenchView.tsx`
-  - [ ] Map `agentName` to harness persona id.
-  - [ ] Keep autoPrompt behavior as user message (first turn).
-- [ ] `frontend/components/PipelineView.tsx`
-  - [ ] Map `selectedVariant` to persona id for session create.
-- [ ] `frontend/components/DirectLinkView.tsx`
-  - [ ] Ensure mode is sent as `"direct"` for session create.
+- [x] `frontend/components/ChatPanel.tsx`
+  - [x] Replace `/api/chat` request path with harness flow:
+    - [x] On init: create/load harness session via `/api/harness/session/*`.
+    - [x] On send: open SSE `POST /api/harness/turn`.
+  - [x] Add SSE event handlers for all `UIEvent` types:
+    - [x] `chat:delta` append assistant text incrementally.
+    - [x] `chat:complete` finalize assistant message.
+    - [x] `tool:start`, `tool:result` add terminal-style entries.
+    - [x] `session:init` store model + `claudeSessionId` in local UI state.
+    - [x] `session:complete` update metadata.
+    - [x] `session:error` display error message/toast entry.
+    - [x] `process:exit` clear loading state and re-enable input.
+  - [x] Add `interrupt` button/state -> call `POST /api/harness/interrupt`.
+  - [x] Keep per-view local chat history UX, but server is source of session metadata.
+  - [x] Remove direct dependency on user-provided Anthropic key in UI for harness turns.
+- [x] `frontend/components/ResizableLayout.tsx`
+  - [x] Pass mode/persona metadata needed for harness session creation.
+- [x] `frontend/components/WorkbenchView.tsx`
+  - [x] Map `agentName` to harness persona id.
+  - [x] Keep autoPrompt behavior as user message (first turn).
+- [x] `frontend/components/PipelineView.tsx`
+  - [x] Map `selectedVariant` to persona id for session create.
+- [x] `frontend/components/DirectLinkView.tsx`
+  - [x] Ensure mode is sent as `"direct"` for session create.
 
 ## 7) Transition strategy from current `/api/chat`
 
@@ -156,11 +156,11 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 
 - [x] **Assignment A — Harness Core**
   - [x] `frontend/lib/harness/{types,defaults,env-filter,logger,stream-parser,claude-code-manager}.ts`
-- [ ] **Assignment B — Persona + Session + Orchestrator**
-  - [ ] `frontend/lib/harness/{persona-manager,session-manager,index}.ts`
-- [ ] **Assignment C — API + UI Integration**
-  - [ ] `frontend/app/api/harness/**`
-  - [ ] `frontend/components/{ChatPanel,ResizableLayout,WorkbenchView,PipelineView,DirectLinkView}.tsx`
+- [x] **Assignment B — Persona + Session + Orchestrator**
+  - [x] `frontend/lib/harness/{persona-manager,session-manager,index}.ts`
+- [x] **Assignment C — API + UI Integration**
+  - [x] `frontend/app/api/harness/**`
+  - [x] `frontend/components/{ChatPanel,ResizableLayout,WorkbenchView,PipelineView,DirectLinkView}.tsx`
 - [ ] **Assignment D — Verification + Docs**
   - [ ] `frontend/README.md`
   - [ ] Manual verification log covering section 8.

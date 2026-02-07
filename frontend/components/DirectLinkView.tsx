@@ -16,6 +16,8 @@ export function DirectLinkView({ projectRoot }: DirectLinkViewProps) {
       agentName="SYSTEM_SESSION"
       sessionId="direct_terminal"
       mode="direct"
+      harnessMode="direct"
+      personaId={null}
       selectedFile={selectedFile}
       placeholder="Enter direct command..."
       projectRoot={projectRoot}

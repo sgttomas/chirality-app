@@ -10,23 +10,25 @@ interface WorkbenchViewProps {
     projectRoot: string | null;
 }
 
-const PERSONA_FILE_MAPPING: Record<string, string> = {
-    "DECOMP": "AGENT_PROJECT_DECOMP.md",
-    "ORCHESTRATE": "AGENT_ORCHESTRATOR.md",
-    "WORKING_ITEMS": "AGENT_WORKING_ITEMS.md",
-    "AGGREGATE": "AGENT_AGGREGATION.md",
-    "HELP": "AGENT_HELP_HUMAN.md",
-    "AGENTS": "AGENT_HELPS_HUMANS.md",
-    "CHANGE": "AGENT_CHANGE.md",
-    "DEPENDENCIES": "AGENT_DEPENDENCIES.md",
-    "RECONCILING": "AGENT_RECONCILIATION.md"
+const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
+    "DECOMP": { personaId: "PROJECT_DECOMP", fileName: "AGENT_PROJECT_DECOMP.md" },
+    "ORCHESTRATE": { personaId: "ORCHESTRATOR", fileName: "AGENT_ORCHESTRATOR.md" },
+    "WORKING_ITEMS": { personaId: "WORKING_ITEMS", fileName: "AGENT_WORKING_ITEMS.md" },
+    "AGGREGATE": { personaId: "AGGREGATION", fileName: "AGENT_AGGREGATION.md" },
+    "HELP": { personaId: "HELP_HUMAN", fileName: "AGENT_HELP_HUMAN.md" },
+    "AGENTS": { personaId: "HELPS_HUMANS", fileName: "AGENT_HELPS_HUMANS.md" },
+    "CHANGE": { personaId: "CHANGE", fileName: "AGENT_CHANGE.md" },
+    "DEPENDENCIES": { personaId: "DEPENDENCIES", fileName: "AGENT_DEPENDENCIES.md" },
+    "RECONCILING": { personaId: "RECONCILIATION", fileName: "AGENT_RECONCILIATION.md" }
 };
 
 export function WorkbenchView({ agentName, initialPath, projectRoot }: WorkbenchViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(initialPath || "README.md");
 
-  const fileName = PERSONA_FILE_MAPPING[agentName];
-  const autoPrompt = fileName ? `Read agents/${fileName} and initialize your persona accordingly. Output your initialization status.` : null;
+  const personaConfig = WORKBENCH_PERSONA_MAPPING[agentName];
+  const autoPrompt = personaConfig
+    ? `Read agents/${personaConfig.fileName} and initialize your persona accordingly. Output your initialization status.`
+    : null;
 
   return (
     <ResizableLayout
@@ -34,6 +36,8 @@ export function WorkbenchView({ agentName, initialPath, projectRoot }: Workbench
       agentName={agentName}
       sessionId={`workbench_${agentName}`}
       autoPrompt={autoPrompt}
+      harnessMode="workbench"
+      personaId={personaConfig?.personaId ?? null}
       selectedFile={selectedFile}
       projectRoot={projectRoot}
       sidebarContent={() => (

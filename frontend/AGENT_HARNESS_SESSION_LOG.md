@@ -82,3 +82,97 @@ Purpose: durable progress tracking across multiple development sessions for Harn
   - `/api/chat` is still legacy and not yet marked deprecated in code header.
 - Next session first task: implement `frontend/lib/harness/session-manager.ts` and `frontend/lib/harness/index.ts`, then add `/api/harness/session/{create,list,[id]}` routes wired to persisted `.chirality/sessions/*.json`.
 - Commit(s): none
+
+## 2026-02-07 — Session 2
+- Goal: implement Assignment B session persistence/orchestrator wiring and session CRUD APIs, then migrate `/api/harness/turn` to persisted sessions.
+- Completed checklist items:
+  - Section 3 `SessionManager` contract implemented (`create/resume/save/list/get/delete`) with atomic writes under `{projectRoot}/.chirality/sessions/{id}.json`.
+  - Section 4 `index.ts` wiring completed for singleton exports and `startHarnessTurn(...)` with persistence on `session:init`, `session:complete`, and `process:exit`.
+  - Section 5 session CRUD routes completed: `session/create`, `session/list`, and `session/[id]` (`GET` + `DELETE 204`).
+  - `/api/harness/turn` refactored to require existing session and use `SessionManager`-backed persistence instead of in-memory session creation.
+- Files changed:
+  - `frontend/lib/harness/session-manager.ts`
+  - `frontend/lib/harness/index.ts`
+  - `frontend/lib/harness/persona-manager.ts`
+  - `frontend/app/api/harness/session/create/route.ts`
+  - `frontend/app/api/harness/session/list/route.ts`
+  - `frontend/app/api/harness/session/[id]/route.ts`
+  - `frontend/app/api/harness/turn/route.ts`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- lib/harness/session-manager.ts lib/harness/persona-manager.ts lib/harness/index.ts app/api/harness/turn/route.ts app/api/harness/session/create/route.ts app/api/harness/session/list/route.ts app/api/harness/session/[id]/route.ts` (pass).
+  - `npx tsc --noEmit` (pass).
+  - API smoke script `/tmp/harness-smoke.sh` (pass): `create=201`, turn 1 SSE included `session:init` + `chat:delta` + `chat:complete` + `process:exit`, turn 2 on same session returned `200` and showed resume continuity (`--resume {claudeSessionId}` observed in `harness.log`), `list=200`, `get=200`, `delete=204`.
+  - Session file checks (pass): `.chirality/sessions/{sessionId}.json` existed after create/turn and was removed after delete.
+- Blockers/Risks:
+  - `index.ts` resume-failure fallback (retry without `--resume` after resume error) is still pending.
+  - `persona-manager.ts` is currently a minimal stub for compatibility; full frontmatter/context implementation remains open.
+- Next session first task: implement `startHarnessTurn` resume-failure fallback (emit `session:error`, retry once without `--resume`, persist new `session:init`).
+- Commit(s): none
+
+## 2026-02-07 — Session 3
+- Goal: finish remaining Assignment B work (full `PersonaManager`, orchestrator prompt/tool-policy flow, and resume-failure fallback behavior).
+- Completed checklist items:
+  - Section 2 `persona-manager.ts` completed (`load/list/buildSystemPrompt/writeSystemPromptFile`) with frontmatter parsing for `tools`, `disallowed_tools`, `auto_approve_tools`, `max_turns`.
+  - Section 2 mtime cache implemented for `README.md`, `AGENTS.md`, and persona files; 16k token budget enforcement added with truncation priority (persona first, then project context).
+  - Section 4 resume-fallback logic completed in `startHarnessTurn(...)`: detect resume failure, emit `session:error`, retry once without `--resume`, and persist authoritative `session:init` IDs.
+  - Section 9 Assignment B marked complete.
+- Files changed:
+  - `frontend/lib/harness/types.ts`
+  - `frontend/lib/harness/persona-manager.ts`
+  - `frontend/lib/harness/index.ts`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- lib/harness/persona-manager.ts lib/harness/index.ts lib/harness/types.ts` (pass).
+  - `npx tsc --noEmit` (pass).
+  - API smoke (pass):
+    - Create session: `POST /api/harness/session/create` returned `201`.
+    - Turn 1 stream contained `session:init`, `chat:delta`, `chat:complete`, `session:complete`, `process:exit`.
+    - Prompt file emitted at `.chirality/prompts/{sessionId}-system.txt` via `PersonaManager.writeSystemPromptFile`.
+    - Forced resume failure by setting persisted `claudeSessionId` to invalid value; fallback turn emitted `session:error`, retried once without `--resume`, and completed successfully.
+    - Post-fallback continuity turn succeeded and `harness.log` confirmed `--resume {updatedClaudeSessionId}` usage.
+    - Session JSON was confirmed to update `claudeSessionId` from invalid value to recovered `session:init` value before delete.
+    - Session CRUD re-check: list `200`, get `200`, delete `204`, and session file removed.
+- Blockers/Risks:
+  - Resume failure detection currently relies on error-pattern matching and pre-init failure heuristics; future Claude CLI error-shape changes may require pattern updates.
+  - Fallback scenario may surface more than one `session:init` event in a single streamed turn if Claude emits init before erroring on bad resume input.
+- Next session first task: start Assignment C by wiring `frontend/components/ChatPanel.tsx` to session-create + SSE turn flow (`/api/harness/session/*` and `/api/harness/turn`).
+- Commit(s): none
+
+## 2026-02-07 — Session 4
+- Goal: start and complete Assignment C frontend chat migration to harness session + SSE turn APIs, including interrupt wiring.
+- Completed checklist items:
+  - Section 6 completed for `ChatPanel`, `ResizableLayout`, `WorkbenchView`, `PipelineView`, and `DirectLinkView`.
+  - Assignment C marked complete (`frontend/components/{ChatPanel,ResizableLayout,WorkbenchView,PipelineView,DirectLinkView}.tsx`).
+- Files changed:
+  - `frontend/components/ChatPanel.tsx`
+  - `frontend/components/ResizableLayout.tsx`
+  - `frontend/components/WorkbenchView.tsx`
+  - `frontend/components/PipelineView.tsx`
+  - `frontend/components/DirectLinkView.tsx`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- components/ChatPanel.tsx components/ResizableLayout.tsx components/WorkbenchView.tsx components/PipelineView.tsx components/DirectLinkView.tsx` (pass).
+  - `npx tsc --noEmit` (pass).
+  - Session/create + streamed turn smoke (pass):
+    - `POST /api/harness/session/create` returned `201`.
+    - `POST /api/harness/turn` SSE contained `session:init`, `chat:delta`, `chat:complete`, `session:complete`, `process:exit`.
+    - `GET /api/harness/session/:id` after turn showed persisted `claudeSessionId` from `session:init`.
+  - Interrupt smoke (pass):
+    - Started long-running `POST /api/harness/turn`, then `POST /api/harness/interrupt` returned `{"ok":true}`.
+    - Stream exited with `session:error` (`...signal=SIGINT`) followed by `process:exit` with `signal:\"SIGINT\"`.
+  - Regression checks (pass):
+    - `GET /api/harness/session/list?projectRoot=...` returned persisted sessions.
+    - `DELETE /api/harness/session/:id` returned `204` and removed corresponding `.chirality/sessions/{id}.json`.
+    - Legacy `POST /api/chat` still available (returns `{\"error\":\"API Key required\"}` without key).
+- Blockers/Risks:
+  - UI validation was performed through harness API smoke + code-path inspection; no browser automation was run to assert rendered DOM transitions.
+  - Tool event rendering currently uses chat-pane terminal-style entries (text markers) and does not yet route to a dedicated terminal pane model.
+- Next session first task: implement the remaining Assignment D items (README harness docs + validation log updates for permissions/parse-robustness checks).
+- Commit(s): none

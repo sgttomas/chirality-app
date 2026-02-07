@@ -1,66 +1,19 @@
-import path from "node:path";
-
 import { NextRequest, NextResponse } from "next/server";
 
-import { claudeCodeManager, getHarnessSessionStore } from "@/lib/harness/claude-code-manager";
-import type { Session, SessionMode, TurnOpts, UIEvent } from "@/lib/harness/types";
+import { claudeCodeManager, sessionManager, startHarnessTurn } from "@/lib/harness";
+import { SessionNotFoundError } from "@/lib/harness/session-manager";
+import type { TurnOpts, UIEvent } from "@/lib/harness/types";
 
 export const runtime = "nodejs";
 
 type TurnRequestBody = {
   sessionId?: unknown;
   message?: unknown;
-  opts?: TurnOpts & {
-    projectRoot?: string;
-    persona?: string | null;
-    mode?: SessionMode;
-  };
+  opts?: unknown;
 };
 
-const ALLOWED_MODES: SessionMode[] = ["workbench", "pipeline", "direct"];
-
-function isSessionMode(value: unknown): value is SessionMode {
-  return typeof value === "string" && ALLOWED_MODES.includes(value as SessionMode);
-}
-
-function getOrCreateSession(sessionId: string, opts: TurnRequestBody["opts"]): Session {
-  const store = getHarnessSessionStore();
-  const existing = store.get(sessionId);
-  const now = new Date().toISOString();
-
-  const projectRootFromOpts =
-    typeof opts?.projectRoot === "string" && opts.projectRoot.trim()
-      ? opts.projectRoot
-      : path.resolve(process.cwd(), "..");
-
-  const modeFromOpts = isSessionMode(opts?.mode) ? opts.mode : "direct";
-  const personaFromOpts = typeof opts?.persona === "string" ? opts.persona : null;
-
-  if (existing) {
-    const updated: Session = {
-      ...existing,
-      updatedAt: now,
-      projectRoot: projectRootFromOpts || existing.projectRoot,
-      mode: modeFromOpts,
-      persona: personaFromOpts,
-    };
-
-    store.set(sessionId, updated);
-    return updated;
-  }
-
-  const session: Session = {
-    id: sessionId,
-    createdAt: now,
-    updatedAt: now,
-    projectRoot: projectRootFromOpts,
-    persona: personaFromOpts,
-    mode: modeFromOpts,
-    claudeSessionId: null,
-  };
-
-  store.set(sessionId, session);
-  return session;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function formatSseEvent(event: UIEvent): string {
@@ -78,6 +31,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   const message = typeof body.message === "string" ? body.message : "";
+  const opts = body.opts === undefined ? undefined : isObject(body.opts) ? (body.opts as TurnOpts) : null;
 
   if (!sessionId) {
     return NextResponse.json({ error: "sessionId is required." }, { status: 400 });
@@ -87,12 +41,24 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "message is required." }, { status: 400 });
   }
 
+  if (opts === null) {
+    return NextResponse.json({ error: "opts must be an object when provided." }, { status: 400 });
+  }
+
   if (claudeCodeManager.isRunning(sessionId)) {
     return NextResponse.json({ error: "A turn is already running for this session." }, { status: 409 });
   }
 
-  const session = getOrCreateSession(sessionId, body.opts);
-  const store = getHarnessSessionStore();
+  try {
+    await sessionManager.resume(sessionId);
+  } catch (error) {
+    if (error instanceof SessionNotFoundError) {
+      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+    }
+
+    const messageText = error instanceof Error ? error.message : "Failed to load session.";
+    return NextResponse.json({ error: messageText }, { status: 500 });
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -110,24 +76,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
       void (async () => {
         try {
-          for await (const event of claudeCodeManager.startTurn(session, message, body.opts)) {
-            if (event.type === "session:init") {
-              const current = store.get(sessionId);
-              if (current) {
-                current.claudeSessionId = event.claudeSessionId;
-                current.updatedAt = new Date().toISOString();
-                store.set(sessionId, current);
-              }
-            }
-
-            if (event.type === "session:complete" || event.type === "session:error" || event.type === "process:exit") {
-              const current = store.get(sessionId);
-              if (current) {
-                current.updatedAt = new Date().toISOString();
-                store.set(sessionId, current);
-              }
-            }
-
+          for await (const event of startHarnessTurn({ sessionId, message, opts })) {
             sendEvent(event);
           }
         } catch (error) {

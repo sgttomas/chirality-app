@@ -72,8 +72,10 @@ export type UIEvent =
 export interface PersonaConfig {
   id: string;
   sourceFile: string;
-  allowedTools?: string[];
+  body?: string;
+  tools?: string;
   disallowedTools?: string[];
+  autoApproveTools?: string[];
   maxTurns?: number;
 }
 
