@@ -21,23 +21,22 @@ Read in this order:
 Then start coding immediately unless blocked.
 
 Scope for this run:
-Primary goal: implement automated validation for Section 8 and make it repeatable for pre-merge use.
-- Add an executable validation script under `frontend/scripts/` that runs the Section 8 matrix end-to-end:
-  - smoke stream (`chat:delta` -> `chat:complete` -> `process:exit`),
-  - session init persistence and resume (`--resume`) behavior,
-  - permission behavior under `dontAsk` (unapproved denied; explicitly approved proceeds),
-  - interrupt behavior (`SIGINT` path),
-  - parse robustness via malformed NDJSON injection (mocked `claude` binary),
-  - `/api/chat` reachability regression check.
-- Script should produce machine-readable pass/fail output and preserve raw artifacts (SSE/log snippets) in a deterministic temp folder.
-- Document script usage and expected outputs in `frontend/docs/harness/harness_manual_validation.md`.
-- If needed, add a short “Validation automation” section in `frontend/README.md` linking to the script.
+Primary goal: add a CI/pre-merge wrapper target for harness validation and publish machine-readable artifacts.
+- Keep using `frontend/scripts/validate-harness-section8.mjs` as the canonical Section 8 runner.
+- Add a wrapper target/command that:
+  - runs Section 8 automation non-interactively for pre-merge use,
+  - exits non-zero on validation failure,
+  - persists `summary.json` to a stable artifact path suitable for CI collection (not only temp output),
+  - prints the final artifact location clearly in stdout.
+- Update docs so operators can run the pre-merge command and know exactly which artifact file to upload/archive.
+- Do not regress existing harness behavior while adding wrapper/packaging logic.
 
 Target files:
-- `frontend/scripts/` (new validation script)
+- `frontend/package.json` (add pre-merge validation target if needed)
+- `frontend/scripts/` (wrapper script and/or artifact publish helper)
 - `frontend/docs/harness/harness_manual_validation.md`
-- `frontend/README.md` (only if script usage guidance is added)
-- Any minimal harness files needed to support deterministic validation (only if required)
+- `frontend/README.md`
+- Any minimal harness files needed to support CI-safe artifact publishing (only if required)
 
 Hard constraints:
 - Keep Assignment A + B + C behavior intact.
@@ -50,8 +49,8 @@ Hard constraints:
 
 Validation before finishing:
 1. Lint/typecheck on touched files.
-2. Run the new automated validation script and capture its summary output.
-3. Confirm Section 8 evidence is updated in docs (commands + observed output + pass/fail).
+2. Run the new pre-merge wrapper target end-to-end and capture its summary/artifact output.
+3. Confirm docs reflect the wrapper command and stable artifact path.
 4. Regression checks:
    - Harness session CRUD + turn + interrupt paths still working.
    - `/api/chat` still reachable.
