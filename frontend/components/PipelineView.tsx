@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FileTree } from "./FileTree";
 import { Resizer } from "./Resizer";
 import { FilePreview } from "./FilePreview";
+import { ChatPanel } from "./ChatPanel";
 
 export function PipelineView() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -12,25 +13,12 @@ export function PipelineView() {
 
   return (
     <div className="workbench-layout h-full">
-      {/* Chat Panel */}
-      <div className="chat-panel glass" style={{ width: `${chatWidth}px`, minWidth: '200px' }}>
-        <div className="chat-messages">
-          <div className="msg-agent">
-            <strong>TASK_AGENT</strong>
-            <br />
-            Pipeline initialized. Awaiting execution brief validation. 
-            Select target files from the manifest on the right to review proposed changes.
-          </div>
-          <div className="msg-agent">
-            <strong>SYSTEM</strong>
-            <br />
-            Scan complete: 142 items found. 12 conflicts identified.
-          </div>
-        </div>
-        <div className="chat-input">
-          <input type="text" placeholder="Execute command..." className="outline-none" />
-        </div>
-      </div>
+      <ChatPanel 
+        agentName="TASK_PIPELINE" 
+        width={chatWidth} 
+        onResize={(delta) => setChatWidth(prev => prev + delta)} 
+        placeholder="Execute command..."
+      />
 
       <Resizer onResize={(delta) => setChatWidth((prev) => prev + delta)} />
 

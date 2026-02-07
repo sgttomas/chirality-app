@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FileTree } from "./FileTree";
 import { Resizer } from "./Resizer";
 import { FilePreview } from "./FilePreview";
+import { ChatPanel } from "./ChatPanel";
 
 export function DirectLinkView() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -12,19 +13,12 @@ export function DirectLinkView() {
 
   return (
     <div className="workbench-layout h-full">
-      {/* Chat Panel */}
-      <div className="chat-panel glass" style={{ width: `${chatWidth}px`, minWidth: '200px' }}>
-        <div className="chat-messages">
-          <div className="msg-agent">
-            <strong>AGENT</strong>
-            <br />
-            Direct terminal active. Bypassing initialization protocol. Direct filesystem access enabled.
-          </div>
-        </div>
-        <div className="chat-input">
-          <input type="text" placeholder="Direct command..." className="outline-none" />
-        </div>
-      </div>
+      <ChatPanel 
+        agentName="DIRECT_LINK" 
+        width={chatWidth} 
+        onResize={(delta) => setChatWidth(prev => prev + delta)} 
+        placeholder="Direct command..."
+      />
 
       <Resizer onResize={(delta) => setChatWidth((prev) => prev + delta)} />
 
