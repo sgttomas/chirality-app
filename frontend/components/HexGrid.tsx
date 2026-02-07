@@ -6,27 +6,27 @@ type HexData = {
   row: string;
   col: string;
   label: string;
-  isTask?: boolean;
+  type: "persona" | "task";
 };
 
 const hexData: HexData[] = [
   // Normative Row
-  { row: "normative", col: "guiding", label: "Decomp" },
-  { row: "normative", col: "applying", label: "Orchestrate" },
-  { row: "normative", col: "judging", label: "Items" },
-  { row: "normative", col: "reviewing", label: "Aggregate" },
+  { row: "normative", col: "guiding", label: "Decomp", type: "persona" },
+  { row: "normative", col: "applying", label: "Orchestrate", type: "persona" },
+  { row: "normative", col: "judging", label: "Items", type: "persona" },
+  { row: "normative", col: "reviewing", label: "Aggregate", type: "task" },
   
   // Operative Row
-  { row: "operative", col: "guiding", label: "Help" },
-  { row: "operative", col: "applying", label: "Prep*" },
-  { row: "operative", col: "judging", label: "Task*" },
-  { row: "operative", col: "reviewing", label: "Audit*" },
+  { row: "operative", col: "guiding", label: "Help", type: "persona" },
+  { row: "operative", col: "applying", label: "Prep*", type: "task" },
+  { row: "operative", col: "judging", label: "Task*", type: "task" },
+  { row: "operative", col: "reviewing", label: "Audit*", type: "task" },
   
   // Evaluative Row
-  { row: "evaluative", col: "guiding", label: "Humans" },
-  { row: "evaluative", col: "applying", label: "Change" },
-  { row: "evaluative", col: "judging", label: "Deps*" },
-  { row: "evaluative", col: "reviewing", label: "Recon" },
+  { row: "evaluative", col: "guiding", label: "Humans", type: "persona" },
+  { row: "evaluative", col: "applying", label: "Change", type: "persona" },
+  { row: "evaluative", col: "judging", label: "Deps*", type: "task" },
+  { row: "evaluative", col: "reviewing", label: "Recon", type: "persona" },
 ];
 
 const columns = [
@@ -36,9 +36,11 @@ const columns = [
   { id: "reviewing", label: "Reviewing" },
 ];
 
-const rows = ["normative", "operative", "evaluative"];
+interface HexGridProps {
+    onLaunch: (name: string, tier: string, type: "persona" | "task") => void;
+}
 
-export function HexGrid() {
+export function HexGrid({ onLaunch }: HexGridProps) {
   return (
     <div className="portal-container flex-1 flex items-center justify-center relative">
       <div className="hex-grid">
@@ -54,11 +56,11 @@ export function HexGrid() {
         ))}
 
         {/* Grid Items */}
-        {hexData.map((hex, index) => (
+        {hexData.map((hex) => (
           <div
             key={`${hex.row}-${hex.col}`}
             className={`hex-wrapper row-${hex.row} col-${hex.col}`}
-            onClick={() => console.log(`Clicked ${hex.label}`)}
+            onClick={() => onLaunch(hex.label, hex.row, hex.type)}
           >
             {/* Show Row Label only for the first column (Guiding) */}
             {hex.col === "guiding" && (

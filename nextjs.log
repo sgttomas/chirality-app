@@ -1,0 +1,139 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/ryan/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/ryan/ai-env/projects/chirality-app/frontend/package-lock.json
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.75:3000
+
+✓ Starting...
+✓ Ready in 664ms
+ GET / 200 in 1576ms (compile: 1484ms, render: 92ms)
+✓ Compiled in 88ms
+✓ Compiled in 16ms
+✓ Compiled in 37ms
+ GET / 200 in 109ms (compile: 56ms, render: 53ms)
+✓ Compiled in 15ms
+✓ Compiled in 10ms
+✓ Compiled in 9ms
+ GET / 200 in 115ms (compile: 40ms, render: 75ms)
+ GET / 200 in 28ms (compile: 1832µs, render: 26ms)
+ GET / 200 in 27ms (compile: 1536µs, render: 26ms)
+ GET / 200 in 26ms (compile: 1205µs, render: 25ms)
+ GET / 200 in 33ms (compile: 1132µs, render: 32ms)
+ GET / 200 in 26ms (compile: 1645µs, render: 25ms)
+ GET / 200 in 19ms (compile: 1395µs, render: 18ms)
+ GET / 200 in 10ms (compile: 1175µs, render: 9ms)
+✓ Compiled in 81ms
+✓ Compiled in 68ms
+ GET / 200 in 171ms (compile: 55ms, render: 117ms)
+ GET / 200 in 74ms (compile: 5ms, render: 69ms)
+ GET / 200 in 61ms (compile: 20ms, render: 40ms)
+ GET / 200 in 27ms (compile: 1376µs, render: 26ms)
+ GET / 200 in 30ms (compile: 1130µs, render: 29ms)
+ GET / 200 in 36ms (compile: 1235µs, render: 35ms)
+ GET / 200 in 38ms (compile: 1790µs, render: 36ms)
+ GET / 200 in 25ms (compile: 1472µs, render: 24ms)
+ GET / 200 in 18ms (compile: 1101µs, render: 17ms)
+ GET / 200 in 9ms (compile: 1113µs, render: 8ms)
+✓ Compiled in 41ms
+ GET /api/fs/read?path=README.md 200 in 321ms (compile: 306ms, render: 15ms)
+ GET /api/fs 200 in 345ms (compile: 339ms, render: 6ms)
+ GET /api/fs/read?path=README.md 200 in 15ms (compile: 10ms, render: 5ms)
+ GET /api/fs 200 in 25ms (compile: 19ms, render: 6ms)
+ GET /api/fs/read?path=agents%2FAGENT_4_DOCUMENTS.md 200 in 7ms (compile: 3ms, render: 4ms)
+ GET /api/fs/read?path=agents%2FAGENT_DOMAIN_DECOMP.md 200 in 4ms (compile: 1830µs, render: 2ms)
+ GET /api/fs 200 in 20ms (compile: 6ms, render: 15ms)
+ GET /api/fs 200 in 4ms (compile: 1173µs, render: 2ms)
+ GET /api/fs 200 in 5ms (compile: 1873µs, render: 3ms)
+ GET /api/fs/read?path=README.md 200 in 15ms (compile: 8ms, render: 7ms)
+ GET /api/fs/read?path=README.md 200 in 3ms (compile: 1232µs, render: 2ms)
+ GET /api/fs 200 in 8ms (compile: 4ms, render: 3ms)
+ GET /api/fs 200 in 6ms (compile: 1132µs, render: 4ms)
+ GET /api/fs/read?path=README.md 200 in 8ms (compile: 6ms, render: 1599µs)
+ GET /api/fs/read?path=README.md 200 in 5ms (compile: 3ms, render: 2ms)
+ GET /api/fs 200 in 11ms (compile: 5ms, render: 6ms)
+✓ Compiled in 107ms
+ GET /api/fs/read?path=README.md 200 in 24ms (compile: 8ms, render: 16ms)
+ GET /api/fs 200 in 39ms (compile: 34ms, render: 6ms)
+ GET /api/fs 200 in 5ms (compile: 1531µs, render: 3ms)
+ GET /api/fs/read?path=README.md 200 in 10ms (compile: 7ms, render: 3ms)
+ GET /api/fs/read?path=AGENTS.md 200 in 4ms (compile: 1681µs, render: 2ms)
+✓ Compiled in 175ms
+ GET /api/fs/read?path=README.md 200 in 56ms (compile: 6ms, render: 50ms)
+ GET /api/fs 200 in 66ms (compile: 63ms, render: 3ms)
+ GET / 200 in 251ms (compile: 61ms, render: 190ms)
+ GET /api/fs 200 in 18ms (compile: 12ms, render: 7ms)
+ GET /api/fs/read?path=README.md 200 in 21ms (compile: 19ms, render: 2ms)
+ GET /api/fs 200 in 5ms (compile: 1790µs, render: 3ms)
+ GET /api/fs/read?path=README.md 200 in 5ms (compile: 2ms, render: 3ms)
+ GET /api/fs 200 in 30ms (compile: 13ms, render: 17ms)
+ GET /api/fs 200 in 5ms (compile: 1462µs, render: 4ms)
+ GET /api/fs 200 in 13ms (compile: 3ms, render: 10ms)
+ GET /api/fs/read?path=README.md 200 in 22ms (compile: 14ms, render: 7ms)
+ GET /api/fs/read?path=README.md 200 in 10ms (compile: 4ms, render: 5ms)
+ GET /api/fs 200 in 17ms (compile: 11ms, render: 6ms)
+ GET / 200 in 52ms (compile: 16ms, render: 36ms)
+ GET /api/fs 200 in 15ms (compile: 4ms, render: 11ms)
+ GET /api/fs 200 in 8ms (compile: 2ms, render: 5ms)
+ GET / 200 in 34ms (compile: 3ms, render: 31ms)
+ GET /api/fs 200 in 11ms (compile: 5ms, render: 6ms)
+ GET /api/fs/read?path=README.md 200 in 17ms (compile: 12ms, render: 5ms)
+ GET /api/fs 200 in 7ms (compile: 1452µs, render: 6ms)
+ GET /api/fs/read?path=README.md 200 in 11ms (compile: 9ms, render: 1950µs)
+✓ Compiled in 92ms
+✓ Compiled in 55ms
+ GET /api/fs 200 in 18ms (compile: 8ms, render: 10ms)
+ GET /api/fs/read?path=README.md 200 in 20ms (compile: 17ms, render: 3ms)
+ GET /api/fs 200 in 6ms (compile: 1490µs, render: 4ms)
+ GET /api/fs/read?path=README.md 200 in 4ms (compile: 2ms, render: 1399µs)
+ GET /api/fs/read?path=agents%2FAGENT_ORCHESTRATOR.md 200 in 29ms (compile: 14ms, render: 15ms)
+ GET /api/fs/read?path=agents%2FAGENT_CHIRALITY_FRAMEWORK.md 200 in 17ms (compile: 12ms, render: 5ms)
+ GET /api/fs/read?path=.claude%2Fsettings.local.json 200 in 9ms (compile: 5ms, render: 4ms)
+ GET /api/fs/read?path=agents%2FAGENT_AGGREGATION.md 200 in 18ms (compile: 13ms, render: 5ms)
+ GET /api/fs/read?path=agents%2FAGENT_PREPARATION.md 200 in 10ms (compile: 3ms, render: 7ms)
+ GET /api/fs 200 in 12ms (compile: 2ms, render: 10ms)
+ GET /api/fs 200 in 5ms (compile: 1911µs, render: 3ms)
+✓ Compiled in 88ms
+✓ Compiled in 46ms
+ GET /api/fs 200 in 202ms (compile: 97ms, render: 105ms)
+ GET /api/fs 200 in 12ms (compile: 2ms, render: 10ms)
+ GET /api/fs 200 in 33ms (compile: 17ms, render: 16ms)
+ GET /api/fs 200 in 8ms (compile: 5ms, render: 3ms)
+✓ Compiled in 151ms
+ GET /api/fs 200 in 42ms (compile: 9ms, render: 34ms)
+ GET /api/fs 200 in 68ms (compile: 25ms, render: 43ms)
+ GET /api/fs/read?path=README.md 200 in 71ms (compile: 67ms, render: 4ms)
+ GET /api/fs/read?path=README.md 200 in 6ms (compile: 3ms, render: 3ms)
+ GET /api/fs 200 in 10ms (compile: 5ms, render: 5ms)
+ GET /api/fs 200 in 6ms (compile: 1856µs, render: 4ms)
+ GET /api/fs 200 in 6ms (compile: 2ms, render: 4ms)
+ GET /api/fs 200 in 27ms (compile: 20ms, render: 7ms)
+ GET /api/fs/read?path=README.md 200 in 31ms (compile: 26ms, render: 5ms)
+ GET /api/fs/read?path=README.md 200 in 10ms (compile: 4ms, render: 6ms)
+ GET /api/fs 200 in 15ms (compile: 10ms, render: 5ms)
+✓ Compiled in 292ms
+✓ Compiled in 27ms
+ GET /api/fs 200 in 60ms (compile: 29ms, render: 31ms)
+ GET /api/fs 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 286ms (compile: 97ms, render: 189ms)
+ GET /api/fs 200 in 12ms (compile: 6ms, render: 7ms)
+ GET /api/fs 200 in 9ms (compile: 1946µs, render: 7ms)
+ GET /api/fs/read?path=agents%2FAGENT_AGGREGATION.md 200 in 19ms (compile: 10ms, render: 9ms)
+✓ Compiled in 96ms
+ GET /api/fs 200 in 38ms (compile: 17ms, render: 21ms)
+ GET /api/fs 200 in 7ms (compile: 2ms, render: 4ms)
+ GET /api/fs/read?path=agents%2FAGENT_CHANGE.md 200 in 26ms (compile: 4ms, render: 21ms)
+✓ Compiled in 115ms
+✓ Compiled in 1506ms
+ GET /api/fs/read?path=agents%2FAGENT_AGGREGATION.md 200 in 36ms (compile: 24ms, render: 12ms)
+ GET /api/fs/read?path=agents%2FAGENT_DEPENDENCIES.md 200 in 15ms (compile: 5ms, render: 10ms)
+ GET /api/fs/read?path=agents%2FAGENT_HELP_HUMAN.md 200 in 19ms (compile: 5ms, render: 15ms)
+ GET /api/fs/read?path=tasks%2FAGENT_CONTEXT_TRANSPOSE.md 200 in 27ms (compile: 9ms, render: 18ms)

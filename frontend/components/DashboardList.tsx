@@ -16,7 +16,11 @@ const deliverables: Deliverable[] = [
   { id: "DEL-03.01", name: "Electrical Single Line Diagram", status: "in-progress" },
 ];
 
-export function DashboardList() {
+interface DashboardListProps {
+    onSelect: () => void;
+}
+
+export function DashboardList({ onSelect }: DashboardListProps) {
   return (
     <div className="dashboard-panel glass w-[550px] flex flex-col p-6 gap-5 h-full">
       <div className="dashboard-title">
@@ -27,7 +31,7 @@ export function DashboardList() {
       </div>
       <div className="dashboard-list flex-grow overflow-y-auto flex flex-col gap-3 pr-2">
         {deliverables.map((del) => (
-          <div key={del.id} className="deliverable-card glass">
+          <div key={del.id} className="deliverable-card glass" onClick={onSelect}>
             <div className={`del-status-dot status-${del.status}`}></div>
             <div className="del-id">{del.id}</div>
             <div className="del-name">{del.name}</div>
