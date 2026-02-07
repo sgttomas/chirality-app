@@ -32,13 +32,14 @@ interface ChatPanelProps {
   sessionId: string;
   autoPrompt?: string | null;
   mode?: "agent" | "direct"; // New mode prop
+  projectRoot: string | null;
 }
 
 export interface ChatPanelHandle {
     injectMessage: (message: string) => void;
 }
 
-export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({ agentName, width, placeholder = "Send instruction...", sessionId: viewId, autoPrompt, mode = "agent" }, ref) => {
+export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({ agentName, width, placeholder = "Send instruction...", sessionId: viewId, autoPrompt, mode = "agent", projectRoot }, ref) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [input, setInput] = useState("");
@@ -67,7 +68,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({ agentNam
   useEffect(() => {
     const savedSessions = localStorage.getItem(`sessions_${viewId}`);
     if (savedSessions) {
-        const parsed = JSON.parse(savedSessions);
+        let parsed = JSON.parse(savedSessions);
+        // Migration: Ensure all IDs are strings and look unique (simple check)
+        // If we see duplicate IDs or number-like strings that might collide, regen them.
+        const seenIds = new Set();
+        parsed = parsed.map((s: any) => {
+            if (!s.id || seenIds.has(s.id) || !isNaN(Number(s.id))) {
+                s.id = crypto.randomUUID();
+            }
+            seenIds.add(s.id);
+            return s;
+        });
+        
         if (parsed.length > 0) {
             setSessions(parsed);
             setActiveSessionId(parsed[0].id);
@@ -99,9 +111,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({ agentNam
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeSessionId, sessions]);
 
+  useEffect(() => {
+    if (projectRoot && activeSession && activeSession.cwd !== projectRoot && apiKey) {
+        handleDirSelect(projectRoot);
+    }
+  }, [projectRoot, activeSessionId, apiKey]);
+
   const createNewSession = () => {
     const newSession: Session = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: `Session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         messages: [{ role: "assistant", content: mode === "agent" ? `System initialized. ${agentName} ready.` : "Direct connection established. Commands ready." }],
         cwd: "~"
@@ -180,13 +198,39 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({ agentNam
     setInput("");
   };
 
-  const handleDirSelect = (path: string) => {
+  const handleDirSelect = async (path: string) => {
       setShowDirPicker(false);
-      handleAutoSend(`cd ${path}`);
+      if (!apiKey || !activeSessionId) return;
+
+      setIsLoading(true);
+      try {
+          const response = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  apiKey,
+                  sessionId: activeSessionId,
+                  systemAction: { type: "set_cwd", path }
+              })
+          });
+          const data = await response.json();
+          if (data.session?.cwd) {
+              const parts = data.session.cwd.split("/");
+              setCwd(parts[parts.length - 1] || "/");
+              
+              // Add a system message to chat
+              const systemMsg: Message = { role: "assistant", content: `System: Working directory changed to ${data.session.cwd}` };
+              updateActiveSession([...activeSession.messages, systemMsg], data.session.cwd);
+          }
+      } catch (e) {
+          console.error("Failed to update CWD", e);
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   return (
-    <div className="chat-panel glass h-full flex flex-row overflow-hidden min-h-0" style={{ width: `${width}px`, minWidth: '750px' }}>
+    <div className="chat-panel glass h-full w-full flex flex-row overflow-hidden min-h-0">
       <div className="session-sidebar flex flex-col h-full shrink-0 border-r border-white/10 bg-black/40 shadow-xl" style={{ width: '220px' }}>
         <div className="panel-label flex justify-between items-center p-4 border-b border-white/10 shrink-0 bg-black/20">
             <span className="text-[10px] tracking-[0.2em] font-black text-[var(--color-accent-orange)] uppercase">History</span>

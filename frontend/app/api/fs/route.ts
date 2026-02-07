@@ -49,8 +49,17 @@ function readDirectory(dir: string, baseDir: string): FileNode[] {
 
 export async function GET(req: NextRequest) {
   try {
-    // Starting from the project root (one level up from frontend)
-    const rootPath = path.resolve(process.cwd(), "..");
+    const searchParams = req.nextUrl.searchParams;
+    const queryPath = searchParams.get("path");
+
+    // Starting from the project root (one level up from frontend) or the provided path
+    const rootPath = queryPath ? path.resolve(queryPath) : path.resolve(process.cwd(), "..");
+    
+    // Ensure the path exists
+    if (!fs.existsSync(rootPath)) {
+       return NextResponse.json({ error: "Path does not exist" }, { status: 404 });
+    }
+
     const tree = readDirectory(rootPath, rootPath);
     return NextResponse.json(tree);
   } catch (error) {

@@ -34,35 +34,68 @@ export function FilePreview({ path }: FilePreviewProps) {
 
   const isMarkdown = path?.toLowerCase().endsWith(".md");
 
-  return (
-    <div className="content-area glass overflow-hidden flex flex-col flex-grow">
-      <div className="content-header shrink-0">
-        <span className="mono uppercase text-sm tracking-widest truncate max-w-[70%]">
-          PREVIEW: {path || "None Selected"}
-        </span>
-        <span className="context-status">{loading ? "LOADING..." : (isMarkdown ? "FORMATTED" : "RAW_TEXT")}</span>
-      </div>
-      <div className="file-preview flex-grow overflow-y-auto">
-        {path ? (
-          <div className="p-10">
-            {isMarkdown ? (
-              <div className="markdown-content">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    return (
+
+      <div className="content-area glass overflow-hidden flex flex-col h-full min-h-0">
+
+        <div className="content-header shrink-0">
+
+          <span className="mono uppercase text-sm tracking-widest truncate max-w-[70%]">
+
+            PREVIEW: {path || "None Selected"}
+
+          </span>
+
+          <span className="context-status">{loading ? "LOADING..." : (isMarkdown ? "FORMATTED" : "RAW_TEXT")}</span>
+
+        </div>
+
+        <div className="flex-grow overflow-y-auto custom-scrollbar min-h-0">
+
+          {path ? (
+
+            <div className="p-10">
+
+              {isMarkdown ? (
+
+                <div className="markdown-content">
+
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+
+                    {content}
+
+                  </ReactMarkdown>
+
+                </div>
+
+              ) : (
+
+                <pre className="whitespace-pre-wrap font-mono text-sm text-[#cbd5e1]">
+
                   {content}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap font-mono text-sm text-[#cbd5e1]">
-                {content}
-              </pre>
-            )}
-          </div>
-        ) : (
-          <div className="h-full flex items-center justify-center opacity-20 italic">
-            Select a file to preview content
-          </div>
-        )}
+
+                </pre>
+
+              )}
+
+            </div>
+
+          ) : (
+
+            <div className="h-full flex items-center justify-center opacity-20 italic">
+
+              Select a file to preview content
+
+            </div>
+
+          )}
+
+        </div>
+
       </div>
-    </div>
-  );
-}
+
+    );
+
+  }
+
+  

@@ -13,9 +13,9 @@
   --color-operative: #f97316;
   --color-evaluative: #fde047;
   --color-guiding: #8b5cf6;
-  --color-applying: #1e40af;
+  --color-applying: #0ea5e9;
   --color-judging: #10b981;
-  --color-reviewing: #0ea5e9;
+  --color-reviewing: #1e40af;
 
   --font-eb: var(--font-eb-garamond);
   --font-mono: var(--font-jetbrains-mono);
@@ -59,8 +59,8 @@ body {
 
 .hex-grid {
     display: grid;
-    grid-template-columns: repeat(4, 160px);
-    grid-gap: 25px;
+    grid-template-columns: repeat(4, 200px);
+    grid-gap: 12px;
     padding: 60px 40px;
     position: relative;
 }
@@ -89,7 +89,7 @@ body {
 
 .hex-wrapper {
     position: relative;
-    width: 160px;
+    width: 200px;
     height: 140px;
     display: flex;
     justify-content: center;
@@ -100,13 +100,14 @@ body {
 
 .hex-wrapper:hover {
     transform: scale(1.1);
+    z-index: 10;
 }
 
 .hex {
     width: 100%;
     height: 100%;
     background-color: rgba(255,255,255,0.1);
-    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    clip-path: polygon(12.5% 0, 87.5% 0, 100% 50%, 87.5% 100%, 12.5% 100%, 0% 50%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -118,7 +119,7 @@ body {
     position: absolute;
     inset: 4px;
     background: var(--color-bg-deep);
-    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    clip-path: polygon(12.5% 0, 87.5% 0, 100% 50%, 87.5% 100%, 12.5% 100%, 0% 50%);
     z-index: 0;
 }
 
@@ -130,6 +131,7 @@ body {
     font-family: var(--font-eb);
     text-align: center;
     line-height: 1.1;
+    padding: 0 40px; /* Room for long words */
 }
 
 .row-normative .hex { background-color: var(--color-normative); filter: drop-shadow(0 0 8px rgba(220,38,38,0.4)); }
@@ -220,7 +222,7 @@ body {
 .panel-label { padding: 12px 20px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-text-dim); text-transform: uppercase; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
 .tree-view { padding: 20px; font-family: var(--font-mono); font-size: 0.95rem; color: #777; line-height: 2; overflow-y: auto; flex-grow: 1; }
 .tree-active { color: var(--color-text-main); font-weight: bold; text-shadow: 0 0 8px rgba(255,255,255,0.2); }
-.tree-folder { color: var(--color-guiding); opacity: 0.8; }
+.tree-folder { color: var(--color-applying); opacity: 0.8; }
 
 .content-area { display: flex; flex-direction: column; min-height: 0; }
 .content-header { padding: 15px 25px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }

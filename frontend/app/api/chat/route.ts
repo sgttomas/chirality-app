@@ -7,8 +7,27 @@ import util from "util";
 
 const execAsync = util.promisify(exec);
 
-// Simple in-memory session store
-const sessions: Record<string, { cwd: string; env: Record<string, string> }> = {};
+// Path for persistent session storage
+const SESSION_FILE = path.resolve(process.cwd(), ".sessions.json");
+
+function loadSessions(): Record<string, { cwd: string; env: Record<string, string> }> {
+    try {
+        if (fs.existsSync(SESSION_FILE)) {
+            return JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
+        }
+    } catch (e) {
+        console.error("Failed to load sessions", e);
+    }
+    return {};
+}
+
+function saveSessions(sessions: Record<string, any>) {
+    try {
+        fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+    } catch (e) {
+        console.error("Failed to save sessions", e);
+    }
+}
 
 const tools: Anthropic.Tool[] = [
   {
@@ -60,13 +79,13 @@ const tools: Anthropic.Tool[] = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, apiKey, model, sessionId = "default" } = await req.json();
+    const { messages, apiKey, model, sessionId = "default", systemAction } = await req.json();
 
     if (!apiKey) {
       return NextResponse.json({ error: "API Key required" }, { status: 401 });
     }
 
-    const anthropic = new Anthropic({ apiKey });
+    const sessions = loadSessions();
 
     // Initialize or retrieve session state
     if (!sessions[sessionId]) {
@@ -77,7 +96,26 @@ export async function POST(req: NextRequest) {
     }
     const session = sessions[sessionId];
 
-    // Read System Instructions from Files
+    // Handle Direct System Actions (Bypasses Claude)
+    if (systemAction) {
+        if (systemAction.type === "set_cwd") {
+            const targetPath = path.resolve(session.cwd, systemAction.path);
+            if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isDirectory()) {
+                session.cwd = targetPath;
+                saveSessions(sessions);
+                return NextResponse.json({ 
+                    content: `System: CWD updated to ${session.cwd}`,
+                    session: { cwd: session.cwd } 
+                });
+            } else {
+                return NextResponse.json({ error: "Directory not found" }, { status: 404 });
+            }
+        }
+    }
+
+    const anthropic = new Anthropic({ apiKey });
+
+    // Read System Instructions
     let systemInstructions = "";
     try {
         const rootPath = path.resolve(process.cwd(), "..");
@@ -85,7 +123,7 @@ export async function POST(req: NextRequest) {
         const agents = fs.readFileSync(path.join(rootPath, "AGENTS.md"), "utf-8");
         systemInstructions = `YOU ARE THE CHIRALITY APP AGENT. ADHERE TO THE FOLLOWING PROJECT SPECIFICATIONS:\n\n${readme}\n\n${agents}\n\nCURRENT WORKING DIRECTORY: ${session.cwd}\nENVIRONMENT IS PERSISTENT. USE execute_command FOR SHELL TASKS. USE read_file/write_file FOR FILE EDITS.`;
     } catch (e) {
-        systemInstructions = "You are a DevOps assistant. (Error loading specific instructions from README/AGENTS files)";
+        systemInstructions = "You are a DevOps assistant.";
     }
 
     let currentMessages = [...messages];
@@ -136,7 +174,7 @@ export async function POST(req: NextRequest) {
                 } else {
                     const { stdout, stderr } = await execAsync(toolInput.command, { 
                         cwd: session.cwd,
-                        env: session.env 
+                        env: session.env as NodeJS.ProcessEnv 
                     });
                     toolResultContent = stdout || stderr || "(No output)";
                 }
@@ -162,9 +200,11 @@ export async function POST(req: NextRequest) {
         messages: currentMessages,
       });
 
+      saveSessions(sessions);
       return NextResponse.json({ ...finalMsg, session: { cwd: session.cwd } });
     }
 
+    saveSessions(sessions);
     return NextResponse.json({ ...msg, session: { cwd: session.cwd } });
 
   } catch (error: any) {

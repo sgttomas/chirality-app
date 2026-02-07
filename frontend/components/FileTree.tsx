@@ -7,14 +7,18 @@ interface FileTreeProps {
   onFileSelect?: (path: string) => void;
   onDirectorySelect?: (path: string) => void;
   className?: string;
+  rootPath?: string | null;
 }
 
-export function FileTree({ onFileSelect, onDirectorySelect, className }: FileTreeProps) {
+export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath }: FileTreeProps) {
   const [nodes, setNodes] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/fs")
+    const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
+    setLoading(true);
+    
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setNodes(data);
@@ -24,7 +28,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className }: FileTre
         console.error("Failed to fetch file tree:", err);
         setLoading(false);
       });
-  }, []);
+  }, [rootPath]);
 
   if (loading) return <div className="p-4 mono text-sm opacity-50">Scanning filesystem...</div>;
 
