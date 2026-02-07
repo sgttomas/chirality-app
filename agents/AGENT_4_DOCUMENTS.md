@@ -257,7 +257,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 
 #### Step 6: Semantic Lensing Enrichment (Pass 3)
 
-**Purpose:** Apply deliverable-local `_SEMANTIC_LENSING.md` as an enrichment register to incorporate *warranted* improvements into the 4 Documents (without inventing content), then perform a final mini consistency sweep.
+**Purpose:** Apply deliverable-local `_SEMANTIC_LENSING.md` as an enrichment register to incorporate only what is deemed by yourself to be warranted improvements into the 4 Documents (without inventing content).
 
 **Precondition (input availability):**
 - If `{deliverable_folder}/_SEMANTIC_LENSING.md` exists: run this step in full.
@@ -282,6 +282,7 @@ This is a local visibility tool. Cross-deliverable reconciliation is handled els
 **Completion condition:** Pass 3 ends when all applicable warranted items have either:
 - been incorporated safely, or
 - been converted into `TBD`/Conflict Table entries with provenance, without guessing.
+- a final consistency sweep over the 4 Documents is done.
 
 
 #### Step 7: Update Status
