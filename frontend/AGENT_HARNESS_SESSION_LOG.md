@@ -176,3 +176,58 @@ Purpose: durable progress tracking across multiple development sessions for Harn
   - Tool event rendering currently uses chat-pane terminal-style entries (text markers) and does not yet route to a dedicated terminal pane model.
 - Next session first task: implement the remaining Assignment D items (README harness docs + validation log updates for permissions/parse-robustness checks).
 - Commit(s): none
+
+## 2026-02-07 — Session 5
+- Goal: complete Assignment D docs/validation, close Section 7/8 gaps, and preserve legacy `/api/chat` compatibility.
+- Completed checklist items:
+  - Section 7 transition updates completed (`/api/chat` marked deprecated in code header; README harness runtime/ops docs added).
+  - Section 8 open validations completed: permissions deny/allow behavior under `dontAsk`; malformed NDJSON parse logging + skip without crash.
+  - Assignment D marked complete (`frontend/README.md` + manual validation artifact).
+- Files changed:
+  - `frontend/app/api/chat/route.ts`
+  - `frontend/README.md`
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - Harness validation script executed outside sandbox (`/tmp/run-harness-validation.sh`) to allow Claude CLI access to `~/.claude` state.
+  - Smoke/Session/Resume checks (pass): `turn-smoke.sse` and `turn-resume.sse` showed `session:init -> chat:delta -> chat:complete -> session:complete -> process:exit`; `harness.log` captured `--resume 8e98b556-2023-473c-a778-25da76004a14` for second turn.
+  - Permissions checks (pass):
+    - Unapproved tool denied without hang (`tools=Read`, request `Bash`) produced `tool:result` with `<tool_use_error>Error: No such tool available: Bash</tool_use_error>` and terminal `process:exit`.
+    - Explicitly approved tool proceeded (`tools=Bash`, `autoApproveTools=["Bash(echo *)"]`) produced `tool:result` content `UNAPPROVED_ALLOW_TEST` and `chat:complete` with same text.
+  - Parse robustness check (pass): mocked `claude` stream emitted malformed line `MALFORMED_LINE_FOR_PARSE_TEST`; `harness.log` recorded `event:"parse:error"` and turn still emitted `chat:complete`, `session:complete`, `process:exit`.
+  - Regression checks (pass): session list/get/delete returned `200/200/204`; interrupt returned `200 {"ok":true}` with turn ending on `signal:"SIGINT"`; legacy `/api/chat` remained reachable (`401 {"error":"API Key required"}`).
+  - Prompt artifact check (pass): `.chirality/prompts/185444df-93ad-4b63-b03b-b67ac9a9deb5-system.txt` exists and contains assembled harness system prompt.
+  - Lint/typecheck on touched code (pass): `npm run lint -- app/api/chat/route.ts lib/harness/claude-code-manager.ts lib/harness/stream-parser.ts` and `npx tsc --noEmit`.
+- Blockers/Risks:
+  - Manual validation currently depends on local CLI/runtime availability and permissions to run outside sandbox; CI automation for these checks is still not in place.
+  - Permission semantics are sensitive to combined `--tools` and `--allowedTools` policy; incorrect persona frontmatter could unintentionally over-allow or over-restrict tool access.
+- Next session first task: add an automated harness e2e smoke script under `frontend/scripts/` that replays the Section 8 matrix (including mocked malformed NDJSON injection) for repeatable pre-merge verification.
+- Commit(s): none
+
+## 2026-02-07 — Session 6
+- Goal: implement repeatable pre-merge Section 8 automation and update evidence/tracking artifacts.
+- Completed checklist items:
+  - Section 8 repeatable pre-merge automation implemented (`frontend/scripts/validate-harness-section8.mjs`) with deterministic artifact output and machine-readable summary.
+  - Assignment D automation/docs item completed (README validation-automation section + automated evidence doc refresh).
+  - Regression validation incorporated in automation run (`/api/harness/session/*`, `/api/harness/turn`, `/api/harness/interrupt`, `/api/chat` reachability).
+- Files changed:
+  - `frontend/scripts/validate-harness-section8.mjs`
+  - `frontend/lib/harness/types.ts`
+  - `frontend/lib/harness/claude-code-manager.ts`
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/README.md`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- scripts/validate-harness-section8.mjs lib/harness/claude-code-manager.ts lib/harness/types.ts` (pass).
+  - `npx tsc --noEmit` (pass).
+  - `./scripts/validate-harness-section8.mjs` (pass): `HARNESS_VALIDATION_STATUS=pass`, totals `8/8` checks passed, summary at `/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-harness-validation/latest/summary.json`.
+  - Section 8 automation evidence refreshed in `frontend/docs/harness/harness_manual_validation.md` with command, observed outputs, artifacts, and pass/fail matrix.
+- Blockers/Risks:
+  - Interrupt assertions are intentionally tolerant to platform/runtime variation (`signal:null` with `session:error` interruption marker) while still requiring explicit interrupt success + no `session:complete`.
+  - `TurnOpts.claudeExecutable` is a non-production test override; future hardening may further scope allowed paths if external exposure risk increases.
+- Next session first task: add a CI/pre-merge wrapper target that runs `frontend/scripts/validate-harness-section8.mjs` and publishes `summary.json` as a build artifact.
+- Commit(s): none

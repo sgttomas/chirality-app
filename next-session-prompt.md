@@ -9,69 +9,52 @@ Read in this order:
 3. `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
 4. `AGENT_HARNESS_SPEC-v2-3.md`
 5. `frontend/docs/harness/chirality_harness_graphs_and_sequence.md`
-6. `frontend/components/ChatPanel.tsx`
-7. `frontend/components/ResizableLayout.tsx`
-8. `frontend/components/WorkbenchView.tsx`
-9. `frontend/components/PipelineView.tsx`
-10. `frontend/components/DirectLinkView.tsx`
-11. `frontend/app/api/harness/turn/route.ts`
-12. `frontend/app/api/harness/session/create/route.ts`
-13. `frontend/app/api/harness/session/list/route.ts`
-14. `frontend/app/api/harness/session/[id]/route.ts`
-15. `frontend/lib/harness/index.ts`
-16. `frontend/lib/harness/types.ts`
+6. `frontend/README.md`
+7. `frontend/app/api/chat/route.ts`
+8. `frontend/app/api/harness/turn/route.ts`
+9. `frontend/lib/harness/claude-code-manager.ts`
+10. `frontend/lib/harness/stream-parser.ts`
+11. `frontend/lib/harness/logger.ts`
+12. `frontend/lib/harness/env-filter.ts`
+13. `frontend/lib/harness/index.ts`
 
 Then start coding immediately unless blocked.
 
 Scope for this run:
-Primary goal: start Assignment C by wiring frontend chat flow to Harness APIs.
-- Migrate `ChatPanel` send flow from `/api/chat` to harness session + SSE turn flow.
-- Ensure session bootstrap path is in place (create/load harness session with mode/persona/projectRoot).
-- Handle all required harness `UIEvent` types in chat UI:
-  - `chat:delta`, `chat:complete`, `tool:start`, `tool:result`,
-  - `session:init`, `session:complete`, `session:error`, `process:exit`.
-- Add interrupt action/state wired to `POST /api/harness/interrupt`.
-- Keep existing UX behavior where possible (local chat history and loading transitions).
+Primary goal: implement automated validation for Section 8 and make it repeatable for pre-merge use.
+- Add an executable validation script under `frontend/scripts/` that runs the Section 8 matrix end-to-end:
+  - smoke stream (`chat:delta` -> `chat:complete` -> `process:exit`),
+  - session init persistence and resume (`--resume`) behavior,
+  - permission behavior under `dontAsk` (unapproved denied; explicitly approved proceeds),
+  - interrupt behavior (`SIGINT` path),
+  - parse robustness via malformed NDJSON injection (mocked `claude` binary),
+  - `/api/chat` reachability regression check.
+- Script should produce machine-readable pass/fail output and preserve raw artifacts (SSE/log snippets) in a deterministic temp folder.
+- Document script usage and expected outputs in `frontend/docs/harness/harness_manual_validation.md`.
+- If needed, add a short “Validation automation” section in `frontend/README.md` linking to the script.
 
 Target files:
-- `frontend/components/ChatPanel.tsx`
-- `frontend/components/ResizableLayout.tsx` (if needed for mode/persona/projectRoot wiring)
-- `frontend/components/WorkbenchView.tsx` (if needed for persona mapping)
-- `frontend/components/PipelineView.tsx` (if needed for persona mapping)
-- `frontend/components/DirectLinkView.tsx` (if needed for direct mode wiring)
+- `frontend/scripts/` (new validation script)
+- `frontend/docs/harness/harness_manual_validation.md`
+- `frontend/README.md` (only if script usage guidance is added)
+- Any minimal harness files needed to support deterministic validation (only if required)
 
 Hard constraints:
-- Keep Assignment A + Assignment B behavior intact.
-- Keep `/api/chat` intact during migration (do not remove route).
+- Keep Assignment A + B + C behavior intact.
+- Keep `/api/chat` route available (already deprecated; no removal).
 - Preserve session CRUD behavior and filesystem persistence under `.chirality/sessions/{id}.json`.
 - `system/init.session_id` remains authoritative for `claudeSessionId`.
 - Never leak secrets in logs or API responses.
 - One in-flight turn per session remains enforced (409 conflict).
-
-Implementation requirements:
-- Frontend must use harness session endpoints before turn streaming:
-  - create/load session (`/api/harness/session/*`)
-  - turn stream (`POST /api/harness/turn`, SSE)
-  - interrupt (`POST /api/harness/interrupt`)
-- Session metadata tracked in UI state must include at least:
-  - `sessionId`, `claudeSessionId`, `mode`, `persona`.
-- `session:error` must surface in UI (message or toast-equivalent entry).
-- `process:exit` must always clear in-flight/loading state.
-- If needed, map existing UI mode/persona selectors to harness persona IDs without breaking current views.
+- Do not weaken tool-permission safety to make tests pass.
 
 Validation before finishing:
 1. Lint/typecheck on touched files.
-2. Frontend smoke flow:
-   - Start a session from UI path (or equivalent test harness path).
-   - Send a message and verify streamed `chat:delta`/`chat:complete` rendering.
-   - Verify `session:init` metadata is captured in UI state.
-   - Verify `process:exit` restores input availability.
-3. Interrupt flow:
-   - Start a long-running turn.
-   - Trigger interrupt and verify stream exits cleanly and UI unblocks.
-4. Regression check:
-   - Existing harness session CRUD + turn route behavior remains working.
-   - `/api/chat` route remains untouched and available.
+2. Run the new automated validation script and capture its summary output.
+3. Confirm Section 8 evidence is updated in docs (commands + observed output + pass/fail).
+4. Regression checks:
+   - Harness session CRUD + turn + interrupt paths still working.
+   - `/api/chat` still reachable.
 
 Progress tracking required at end:
 1. Update completed boxes in `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`.

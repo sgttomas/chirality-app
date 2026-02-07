@@ -5,6 +5,11 @@ import path from "path";
 import { exec } from "child_process";
 import util from "util";
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, prefer-const */
+/**
+ * @deprecated Legacy Anthropic SDK chat route retained for backward compatibility.
+ * Prefer harness APIs (`/api/harness/session/*`, `/api/harness/turn`, `/api/harness/interrupt`) for all new integrations.
+ */
 const execAsync = util.promisify(exec);
 
 // Path for persistent session storage

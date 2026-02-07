@@ -134,23 +134,24 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 
 ### Existing file updates
 
-- [ ] `frontend/app/api/chat/route.ts`
-  - [ ] Mark deprecated in header comment.
-  - [ ] Do not remove until harness flow is stable and UI switched.
-- [ ] `frontend/README.md`
-  - [ ] Document harness env requirements (`ANTHROPIC_API_KEY`, Claude CLI installed).
-  - [ ] Document new API routes and troubleshooting steps.
+- [x] `frontend/app/api/chat/route.ts`
+  - [x] Mark deprecated in header comment.
+  - [x] Do not remove until harness flow is stable and UI switched.
+- [x] `frontend/README.md`
+  - [x] Document harness env requirements (`ANTHROPIC_API_KEY`, Claude CLI installed).
+  - [x] Document new API routes and troubleshooting steps.
 
 ## 8) Validation checklist (must pass)
 
 - [x] Smoke: send prompt, receive streaming `chat:delta`, then `chat:complete`, then `process:exit`.
 - [x] Session init: verify `session:init` captures emitted `session_id` and persists `claudeSessionId`.
 - [x] Resume: turn 2 uses `--resume {claudeSessionId}` and maintains continuity.
-- [ ] Permissions: default `dontAsk` denies unapproved tools without hang; approved tools proceed.
+- [x] Permissions: default `dontAsk` denies unapproved tools without hang; approved tools proceed.
 - [x] Persona injection: prompt file exists at `.chirality/prompts/{sessionId}-system.txt`.
 - [x] Interrupt/kill: long turn interrupted and exits cleanly with `process:exit`.
-- [ ] Parse robustness: malformed NDJSON lines are logged + skipped (no crash).
+- [x] Parse robustness: malformed NDJSON lines are logged + skipped (no crash).
 - [x] Secret safety: logs show redaction and filtered env behavior.
+- [x] Repeatable pre-merge automation exists under `frontend/scripts/validate-harness-section8.mjs` with machine-readable summary + deterministic artifacts.
 
 ## 9) Assignment slices (parallelizable)
 
@@ -161,6 +162,7 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 - [x] **Assignment C — API + UI Integration**
   - [x] `frontend/app/api/harness/**`
   - [x] `frontend/components/{ChatPanel,ResizableLayout,WorkbenchView,PipelineView,DirectLinkView}.tsx`
-- [ ] **Assignment D — Verification + Docs**
-  - [ ] `frontend/README.md`
-  - [ ] Manual verification log covering section 8.
+- [x] **Assignment D — Verification + Docs**
+  - [x] `frontend/README.md`
+  - [x] Manual verification log covering section 8.
+  - [x] Automated Section 8 validation script + usage docs.

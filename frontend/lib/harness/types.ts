@@ -37,6 +37,8 @@ export interface TurnOpts {
   maxTurns?: number;
   systemPromptAppend?: string;
   systemPromptFile?: string;
+  // Test-only override used by validation tooling to inject a mocked claude binary.
+  claudeExecutable?: string;
   verbose?: boolean;
   includePartialMessages?: boolean;
 }

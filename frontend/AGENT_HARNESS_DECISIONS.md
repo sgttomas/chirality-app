@@ -120,3 +120,45 @@ Purpose: record implementation decisions that should persist across sessions to 
   - `frontend/components/WorkbenchView.tsx`
   - `frontend/components/PipelineView.tsx`
   - `frontend/components/DirectLinkView.tsx`
+
+## D-010: Permission deny validation is asserted via unavailable-tool error under `dontAsk`
+- Date: 2026-02-07
+- Status: accepted
+- Context: `dontAsk` does not inherently block tools that are explicitly available in the turn (`--tools`); to validate deny behavior we need a deterministic unapproved-tool scenario.
+- Decision: validate deny behavior by requesting `Bash` while `--tools Read` is active, and validate allow behavior by enabling `--tools Bash --allowedTools "Bash(echo *)"`.
+- Consequences: Section 8 permission checks are reproducible and verify both sides of policy behavior (explicit deny path and explicit approve path) without relying on ambiguous model/tool heuristics.
+- References:
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/lib/harness/claude-code-manager.ts`
+
+## D-011: Parse-robustness validation uses a mocked `claude` binary to inject malformed NDJSON
+- Date: 2026-02-07
+- Status: accepted
+- Context: real Claude streams are not guaranteed to emit malformed lines on demand, but Section 8 requires proof that malformed NDJSON lines are logged and skipped without crashing the turn.
+- Decision: run a dedicated validation pass with `PATH` prefixed to a temporary mock `claude` script that emits one malformed line (`MALFORMED_LINE_FOR_PARSE_TEST`) between valid NDJSON events.
+- Consequences: parser error handling can be validated deterministically end-to-end (`parse:error` log + successful `chat:complete`/`process:exit`) without modifying production harness code paths.
+- References:
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/lib/harness/stream-parser.ts`
+  - `frontend/lib/harness/claude-code-manager.ts`
+
+## D-012: Section 8 automation emits stable artifacts and machine-readable summary
+- Date: 2026-02-07
+- Status: accepted
+- Context: manual validation output was not suitable for repeatable pre-merge checks and left artifacts scattered across ad-hoc temp paths.
+- Decision: standardize on `frontend/scripts/validate-harness-section8.mjs`, writing artifacts to deterministic `/tmp/chirality-harness-validation/latest` and emitting `summary.json` plus explicit `HARNESS_VALIDATION_STATUS` output.
+- Consequences: validation can be consumed by humans and CI-style tooling, and every run preserves comparable SSE/log evidence in a single known location.
+- References:
+  - `frontend/scripts/validate-harness-section8.mjs`
+  - `frontend/docs/harness/harness_manual_validation.md`
+
+## D-013: Parse-robustness automation injects mock binary via non-production `claudeExecutable` override
+- Date: 2026-02-07
+- Status: accepted
+- Context: Next.js dev lock prevents a second concurrent dev instance, so standing up a dedicated mock-PATH server for malformed NDJSON testing is not reliable during pre-merge automation runs.
+- Decision: add `TurnOpts.claudeExecutable` as a test-only absolute-path override honored only outside production; Section 8 automation uses it to run a mocked `claude` binary for malformed NDJSON injection on the existing server instance.
+- Consequences: parse-robustness remains deterministic and end-to-end while avoiding lock contention and without changing production runtime behavior.
+- References:
+  - `frontend/lib/harness/types.ts`
+  - `frontend/lib/harness/claude-code-manager.ts`
+  - `frontend/scripts/validate-harness-section8.mjs`

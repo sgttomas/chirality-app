@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chirality Frontend + Harness Runtime
 
-## Getting Started
+This frontend uses the Chirality Harness (`/api/harness/*`) to run Claude Code turns and stream events to the UI.
 
-First, run the development server:
+## Runtime Requirements
+
+- Node.js + npm (project uses Next.js 16)
+- Claude Code CLI available on `PATH` (the server spawns `claude -p ...`)
+- `ANTHROPIC_API_KEY` set in the server environment
+
+Example:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+which claude
+claude --version
+npm run dev
+```
+
+## Start the App
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Harness API Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `POST /api/harness/session/create`
+  - Body: `{ "projectRoot": "/abs/path", "persona": "ORCHESTRATOR" | null, "mode": "workbench" | "pipeline" | "direct" }`
+  - Returns: `201 { session }`
+- `GET /api/harness/session/list?projectRoot=/abs/path`
+  - Returns: `200 [SessionSummary]`
+- `GET /api/harness/session/:id`
+  - Returns: `200 { session }`
+- `DELETE /api/harness/session/:id`
+  - Returns: `204` (or `409` if a turn is currently in-flight)
+- `POST /api/harness/turn`
+  - Body: `{ "sessionId": "...", "message": "...", "opts": { ... } }`
+  - Returns: `text/event-stream` with UI events (`session:init`, `chat:delta`, `chat:complete`, `tool:start`, `tool:result`, `session:complete`, `session:error`, `process:exit`)
+- `POST /api/harness/interrupt`
+  - Body: `{ "sessionId": "..." }`
+  - Returns: `{ "ok": true }` when a run is active
 
-## Learn More
+## Validation Automation
 
-To learn more about Next.js, take a look at the following resources:
+- Run Section 8 pre-merge validation with:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+./scripts/validate-harness-section8.mjs
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- The script writes deterministic artifacts to `${TMPDIR:-/tmp}/chirality-harness-validation/latest`.
+- Machine-readable status is emitted in stdout and persisted at `${TMPDIR:-/tmp}/chirality-harness-validation/latest/summary.json`.
+- Full usage/details: `docs/harness/harness_manual_validation.md`.
 
-## Deploy on Vercel
+## Legacy Route
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `POST /api/chat` remains available for compatibility but is deprecated.
+- New work should use harness routes only.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Troubleshooting
+
+- `session:error` with missing key/auth issues:
+  - Confirm `ANTHROPIC_API_KEY` is set in the same shell/process running `npm run dev`.
+- `spawn ENOENT` / no Claude execution:
+  - Ensure Claude CLI is installed and on `PATH` (`which claude`).
+- Turn appears blocked or tool calls fail in headless runs:
+  - Check `opts.permissionMode` and tool policy (`tools`, `disallowedTools`, `autoApproveTools`).
+  - In `dontAsk`, unapproved tools are denied by design.
+- No stream output in client:
+  - Verify `/api/harness/turn` response header is `text/event-stream` and no proxy is buffering.
+- Need low-level diagnostics:
+  - Inspect `.chirality/logs/harness.log` for `process:spawn`, `parse:error`, `session:error`, and `process:exit` entries.
+  - Inspect `.chirality/prompts/{sessionId}-system.txt` to replay a turn directly in Claude CLI.

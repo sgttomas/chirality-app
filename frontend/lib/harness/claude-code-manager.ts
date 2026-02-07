@@ -181,6 +181,24 @@ function buildClaudeArgs(session: Session, userMessage: string, promptFile: stri
   return args;
 }
 
+function resolveClaudeExecutable(opts?: TurnOpts): string {
+  const candidate = typeof opts?.claudeExecutable === "string" ? opts.claudeExecutable.trim() : "";
+  if (!candidate) {
+    return "claude";
+  }
+
+  // Guardrails: executable override is only honored in non-production runs.
+  if (process.env.NODE_ENV === "production") {
+    return "claude";
+  }
+
+  if (!path.isAbsolute(candidate)) {
+    return "claude";
+  }
+
+  return candidate;
+}
+
 function createLogEntry(
   sessionId: string,
   level: LogEntry["level"],
@@ -272,12 +290,13 @@ export class ClaudeCodeManager {
     }
 
     const args = buildClaudeArgs(session, userMessage, promptFile, opts);
+    const claudeExecutable = resolveClaudeExecutable(opts);
     const argsForLog = [...args];
     const promptIndex = argsForLog.indexOf("-p");
     if (promptIndex >= 0 && promptIndex + 1 < argsForLog.length) {
       argsForLog[promptIndex + 1] = "[USER_MESSAGE_REDACTED]";
     }
-    const commandForLog = `claude ${argsForLog
+    const commandForLog = `${claudeExecutable} ${argsForLog
       .map((arg) => (arg.includes(" ") ? JSON.stringify(arg) : arg))
       .join(" ")}`;
 
@@ -295,7 +314,7 @@ export class ClaudeCodeManager {
       childEnv.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     }
 
-    const child = spawn("claude", args, {
+    const child = spawn(claudeExecutable, args, {
       cwd: session.projectRoot,
       env: childEnv,
       stdio: ["ignore", "pipe", "pipe"],
