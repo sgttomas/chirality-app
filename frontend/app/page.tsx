@@ -11,12 +11,22 @@ type View = "home" | "workbench" | "session" | "pipeline";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>("home");
+  const [agentFamily, setAgentFamily] = useState<string | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const launchAgent = (name: string, tier: string, type: "persona" | "task") => {
-    if (type === "persona") {
-      if (name === "Decomp" || name === "Items") setCurrentView("workbench");
-      else setCurrentView("session");
+    // List of items mapping to Workbench
+    const workbenchItems = [
+        "DECOMP", "ORCHESTRATE", "WORKING_ITEMS", "AGGREGATE", 
+        "HELP", "AGENTS", "CHANGE", "DEPENDENCIES", "RECONCILING"
+    ];
+
+    setSelectedAgent(name);
+
+    if (workbenchItems.includes(name)) {
+      setCurrentView("workbench");
     } else {
+      setAgentFamily(name); // e.g. "PREP*"
       setCurrentView("pipeline");
     }
   };
@@ -28,14 +38,17 @@ export default function Home() {
           <div className="flex-grow flex p-5 gap-5 overflow-hidden">
             <HexGrid onLaunch={launchAgent} />
             <div className="shrink-0">
-              <DashboardList onSelect={() => setCurrentView("workbench")} />
+              <DashboardList onSelect={() => {
+                  setSelectedAgent("WORKING_ITEMS");
+                  setCurrentView("workbench");
+              }} />
             </div>
           </div>
         );
       case "workbench":
         return (
           <div className="flex-grow p-5 overflow-hidden">
-            <WorkbenchView />
+            <WorkbenchView agentName={selectedAgent} />
           </div>
         );
       case "session":
@@ -47,7 +60,7 @@ export default function Home() {
       case "pipeline":
         return (
           <div className="flex-grow p-5 overflow-hidden">
-            <PipelineView />
+            <PipelineView family={agentFamily} />
           </div>
         );
       default:

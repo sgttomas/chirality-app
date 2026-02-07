@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
+    "ansi-to-html": "^0.7.2",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

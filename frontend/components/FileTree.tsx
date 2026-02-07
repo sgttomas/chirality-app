@@ -5,10 +5,11 @@ import { FileNode } from "@/app/api/fs/route";
 
 interface FileTreeProps {
   onFileSelect?: (path: string) => void;
+  onDirectorySelect?: (path: string) => void;
   className?: string;
 }
 
-export function FileTree({ onFileSelect, className }: FileTreeProps) {
+export function FileTree({ onFileSelect, onDirectorySelect, className }: FileTreeProps) {
   const [nodes, setNodes] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,19 +31,20 @@ export function FileTree({ onFileSelect, className }: FileTreeProps) {
   return (
     <div className={`tree-view ${className}`}>
       {nodes.map((node) => (
-        <TreeNode key={node.path} node={node} onFileSelect={onFileSelect} depth={0} />
+        <TreeNode key={node.path} node={node} onFileSelect={onFileSelect} onDirectorySelect={onDirectorySelect} depth={0} />
       ))}
     </div>
   );
 }
 
-function TreeNode({ node, onFileSelect, depth }: { node: FileNode; onFileSelect?: (path: string) => void; depth: number }) {
+function TreeNode({ node, onFileSelect, onDirectorySelect, depth }: { node: FileNode; onFileSelect?: (path: string) => void; onDirectorySelect?: (path: string) => void; depth: number }) {
   const [isOpen, setIsOpen] = useState(depth < 1); // Expand first level by default
 
   const toggle = (e: React.MouseEvent) => {
     if (node.isDirectory) {
       e.stopPropagation();
       setIsOpen(!isOpen);
+      onDirectorySelect?.(node.path);
     } else {
       onFileSelect?.(node.path);
     }
@@ -52,13 +54,13 @@ function TreeNode({ node, onFileSelect, depth }: { node: FileNode; onFileSelect?
     <div className="select-none">
       <div 
         onClick={toggle}
-        className={`flex items-center gap-1 cursor-pointer hover:text-[var(--color-text-main)] transition-colors py-0.5 ${!node.isDirectory ? 'hover:bg-white/5' : ''}`}
+        className={`flex items-center gap-1 cursor-pointer hover:text-[var(--color-text-main)] transition-colors py-0.5 ${!node.isDirectory ? 'hover:bg-white/5' : 'hover:bg-[var(--color-guiding)]/10'}`}
         style={{ paddingLeft: `${depth * 16}px` }}
       >
-        <span className="opacity-50 mono w-4 inline-block text-center">
+        <span className="opacity-50 mono w-4 inline-block text-center text-[10px]">
           {node.isDirectory ? (isOpen ? "▼" : "▶") : "•"}
         </span>
-        <span className={node.isDirectory ? "tree-folder" : "text-[var(--color-text-dim)]"}>
+        <span className={`${node.isDirectory ? "tree-folder font-bold" : "text-[var(--color-text-dim)]"} text-sm truncate`}>
           {node.name}{node.isDirectory && "/"}
         </span>
       </div>
@@ -66,7 +68,7 @@ function TreeNode({ node, onFileSelect, depth }: { node: FileNode; onFileSelect?
       {node.isDirectory && isOpen && node.children && (
         <div>
           {node.children.map((child) => (
-            <TreeNode key={child.path} node={child} onFileSelect={onFileSelect} depth={depth + 1} />
+            <TreeNode key={child.path} node={child} onFileSelect={onFileSelect} onDirectorySelect={onDirectorySelect} depth={depth + 1} />
           ))}
         </div>
       )}

@@ -12,12 +12,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const rootPath = path.resolve(process.cwd(), "..");
-    const fullPath = path.join(rootPath, filePath);
+    const fullPath = path.resolve(rootPath, filePath);
 
-    // Security check: ensure path is within project root
-    if (!fullPath.startsWith(rootPath)) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
+    // Security check removed to allow full system access as requested
+    // if (!fullPath.startsWith(rootPath)) { ... }
 
     if (!fs.existsSync(fullPath) || fs.lstatSync(fullPath).isDirectory()) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });

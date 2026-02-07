@@ -11,22 +11,22 @@ type HexData = {
 
 const hexData: HexData[] = [
   // Normative Row
-  { row: "normative", col: "guiding", label: "Decomp", type: "persona" },
-  { row: "normative", col: "applying", label: "Orchestrate", type: "persona" },
-  { row: "normative", col: "judging", label: "Items", type: "persona" },
-  { row: "normative", col: "reviewing", label: "Aggregate", type: "task" },
+  { row: "normative", col: "guiding", label: "DECOMP", type: "persona" },
+  { row: "normative", col: "applying", label: "ORCHESTRATE", type: "persona" },
+  { row: "normative", col: "judging", label: "WORKING_ITEMS", type: "persona" },
+  { row: "normative", col: "reviewing", label: "AGGREGATE", type: "persona" },
   
   // Operative Row
-  { row: "operative", col: "guiding", label: "Help", type: "persona" },
-  { row: "operative", col: "applying", label: "Prep*", type: "task" },
-  { row: "operative", col: "judging", label: "Task*", type: "task" },
-  { row: "operative", col: "reviewing", label: "Audit*", type: "task" },
+  { row: "operative", col: "guiding", label: "HELP", type: "persona" },
+  { row: "operative", col: "applying", label: "PREP*", type: "task" },
+  { row: "operative", col: "judging", label: "TASK*", type: "task" },
+  { row: "operative", col: "reviewing", label: "AUDIT*", type: "task" },
   
   // Evaluative Row
-  { row: "evaluative", col: "guiding", label: "Humans", type: "persona" },
-  { row: "evaluative", col: "applying", label: "Change", type: "persona" },
-  { row: "evaluative", col: "judging", label: "Deps*", type: "task" },
-  { row: "evaluative", col: "reviewing", label: "Recon", type: "persona" },
+  { row: "evaluative", col: "guiding", label: "AGENTS", type: "persona" },
+  { row: "evaluative", col: "applying", label: "CHANGE", type: "persona" },
+  { row: "evaluative", col: "judging", label: "DEPENDENCIES", type: "persona" },
+  { row: "evaluative", col: "reviewing", label: "RECONCILING", type: "persona" },
 ];
 
 const columns = [
