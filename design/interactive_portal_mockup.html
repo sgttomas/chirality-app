@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chirality Portal - Visual Navigation Concept</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #05070a;
+            color: #f8fafc;
+            font-family: 'Georgia', serif; /* Simulating EB Garamond */
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            position: relative;
+            width: 1200px;
+            height: 600px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* The Visual Layer (Images) */
+        .visual-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            opacity: 0.3; /* Dimmed by default, highlights bring it up */
+            transition: opacity 0.3s ease;
+        }
+
+        .left-diamond {
+            width: 50%;
+            height: 100%;
+            background-image: url('https://raw.githubusercontent.com/google/gemini-cli-images/main/clipboard-1770535381481.png'); /* Placeholder URL logic */
+            /* Since I can't access the local temp file directly in a browser without a server, 
+               I will simulate the structure with CSS shapes for this mockup */
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.2), rgba(30, 58, 138, 0.1));
+            position: relative;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .right-diamond {
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(234, 88, 12, 0.1), rgba(124, 45, 18, 0.1));
+            position: relative;
+        }
+
+        /* Mocking the diagram structures with CSS for visualization */
+        .diagram-tree {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            transform: translateY(-50%);
+            border-left: 4px solid #3b82f6;
+            border-radius: 20px 0 0 20px;
+        }
+        .tree-branch {
+            position: absolute;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: #3b82f6;
+        }
+        .tree-node {
+            width: 120px;
+            height: 40px;
+            border: 1px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 10px;
+            color: #93c5fd;
+            position: absolute;
+            transition: all 0.3s;
+        }
+        
+        .diagram-flow {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+        }
+        .flow-node {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 1px solid #f97316;
+            background: rgba(249, 115, 22, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 10px;
+            color: #fdba74;
+            transition: all 0.3s;
+        }
+
+        /* Interactive Overlay (Hotspots) */
+        .hotspot-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+
+        .hotspot {
+            position: absolute;
+            cursor: pointer;
+            /* border: 1px dashed rgba(255,255,255,0.2); Debugging borders */
+        }
+        
+        .hotspot:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Discovery Hotspots */
+        .hs-inception { top: 40%; left: 2%; width: 15%; height: 20%; }
+        .hs-breakdown { top: 10%; left: 20%; width: 25%; height: 80%; }
+        .hs-requirements { top: 10%; left: 50%; width: 40%; height: 80%; }
+
+        /* Resolution Hotspots */
+        .hs-dev { top: 10%; left: 55%; width: 15%; height: 80%; }
+        .hs-integration { top: 20%; left: 72%; width: 15%; height: 60%; }
+        .hs-closure { top: 35%; left: 90%; width: 8%; height: 30%; }
+
+        /* Agent HUD Overlay */
+        .hud-layer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .agent-card {
+            width: 140px;
+            height: 180px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.3;
+            transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+        }
+
+        .agent-card.active {
+            opacity: 1;
+            transform: translateY(0) scale(1.1);
+            border-color: var(--highlight-color);
+            box-shadow: 0 0 20px var(--highlight-glow);
+        }
+
+        .agent-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .agent-name {
+            font-weight: 800;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            color: #f8fafc;
+        }
+        .agent-role {
+            font-family: monospace;
+            font-size: 0.6rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        /* Hover Effects Logic */
+        /* INCEPTION -> DECOMP */
+        .hs-inception:hover ~ .hud-layer .card-decomp { --highlight-color: #3b82f6; --highlight-glow: rgba(59, 130, 246, 0.4); opacity: 1; transform: translateY(0) scale(1.1); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+        
+        /* BREAKDOWN -> ORCHESTRATE */
+        .hs-breakdown:hover ~ .hud-layer .card-orch { --highlight-color: #8b5cf6; --highlight-glow: rgba(139, 92, 246, 0.4); opacity: 1; transform: translateY(0) scale(1.1); border-color: #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+
+        /* REQUIREMENTS -> WORKING_ITEMS */
+        .hs-requirements:hover ~ .hud-layer .card-items { --highlight-color: #10b981; --highlight-glow: rgba(16, 185, 129, 0.4); opacity: 1; transform: translateY(0) scale(1.1); border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+
+        /* DEV/INT -> CHANGE */
+        .hs-dev:hover ~ .hud-layer .card-change,
+        .hs-integration:hover ~ .hud-layer .card-change { --highlight-color: #f97316; --highlight-glow: rgba(249, 115, 22, 0.4); opacity: 1; transform: translateY(0) scale(1.1); border-color: #f97316; box-shadow: 0 0 20px rgba(249, 115, 22, 0.4); }
+
+        /* CLOSURE -> RECONCILE */
+        .hs-closure:hover ~ .hud-layer .card-recon { --highlight-color: #fde047; --highlight-glow: rgba(253, 224, 71, 0.4); opacity: 1; transform: translateY(0) scale(1.1); border-color: #fde047; box-shadow: 0 0 20px rgba(253, 224, 71, 0.4); }
+
+        /* Highlight visual elements on hover */
+        .hs-inception:hover ~ .visual-layer .left-diamond .tree-node:nth-child(1) { background: #3b82f6; color: white; box-shadow: 0 0 15px #3b82f6; }
+        .hs-breakdown:hover ~ .visual-layer .left-diamond .tree-node:not(:nth-child(1)) { border-color: #8b5cf6; color: #ddd; box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+
+    </style>
+</head>
+<body>
+
+    <h1 style="position: absolute; top: 20px; font-weight: 100; opacity: 0.5; letter-spacing: 4px; font-family: monospace;">VISUAL_METHODOLOGY_INTERFACE // PROTOTYPE</h1>
+
+    <div class="container">
+        <!-- Background Visuals (Simulating the Image Structure) -->
+        <div class="visual-layer">
+            <div class="left-diamond">
+                <div class="diagram-tree">
+                    <!-- Inception Node -->
+                    <div class="tree-node" style="top: 50%; left: -20px; width: 100px; height: 60px; border-width: 2px;">INCEPTION</div>
+                    
+                    <!-- Breakdown Nodes -->
+                    <div class="tree-node" style="top: 20%; left: 150px;">SCOPE</div>
+                    <div class="tree-node" style="top: 40%; left: 150px;">REQS</div>
+                    <div class="tree-node" style="top: 60%; left: 150px;">STAKEHOLDERS</div>
+                    
+                    <!-- Leaf Nodes -->
+                    <div class="tree-node" style="top: 10%; left: 300px; width: 80px; opacity: 0.5;">...</div>
+                    <div class="tree-node" style="top: 20%; left: 300px; width: 80px; opacity: 0.5;">...</div>
+                    <div class="tree-node" style="top: 30%; left: 300px; width: 80px; opacity: 0.5;">...</div>
+                    <div class="tree-node" style="top: 50%; left: 300px; width: 80px; opacity: 0.5;">...</div>
+                    <div class="tree-node" style="top: 70%; left: 300px; width: 80px; opacity: 0.5;">...</div>
+                </div>
+            </div>
+            <div class="right-diamond">
+                <div class="diagram-flow">
+                    <div class="flow-node" style="border-color: #f97316;">DEV</div>
+                    <div class="flow-node" style="border-color: #f97316;">TEST</div>
+                    <div class="flow-node" style="border-color: #a855f7; width: 100px; height: 100px;">INTEGRATION</div>
+                    <div class="flow-node" style="border-color: #10b981;">UAT</div>
+                    <div class="flow-node" style="border-color: #eab308; border-width: 3px;">FINAL</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Hotspots (Invisible triggers) -->
+        <!-- Note: Placed *before* the HUD so ~ sibling selector works easily in CSS only mockup -->
+        <div class="hotspot hs-inception" title="Inception Phase"></div>
+        <div class="hotspot hs-breakdown" title="Decomposition Phase"></div>
+        <div class="hotspot hs-requirements" title="Detailed Requirements"></div>
+        
+        <div class="hotspot hs-dev" title="Development Phase"></div>
+        <div class="hotspot hs-integration" title="Integration & Build"></div>
+        <div class="hotspot hs-closure" title="Project Closure"></div>
+
+        <!-- Agent HUD (Reacts to hovers above) -->
+        <div class="hud-layer">
+            <div class="agent-card card-decomp">
+                <div class="agent-icon">💠</div>
+                <div class="agent-name">DECOMP</div>
+                <div class="agent-role">Problem Space</div>
+            </div>
+            <div class="agent-card card-orch">
+                <div class="agent-icon">⚡</div>
+                <div class="agent-name">ORCHESTRATE</div>
+                <div class="agent-role">Structural Plan</div>
+            </div>
+            <div class="agent-card card-items">
+                <div class="agent-icon">📝</div>
+                <div class="agent-name">WORKING_ITEMS</div>
+                <div class="agent-role">Task Definition</div>
+            </div>
+            <div class="agent-card card-change">
+                <div class="agent-icon">🔨</div>
+                <div class="agent-name">CHANGE</div>
+                <div class="agent-role">Execution</div>
+            </div>
+            <div class="agent-card card-recon">
+                <div class="agent-icon">🏁</div>
+                <div class="agent-name">RECONCILE</div>
+                <div class="agent-role">Closure</div>
+            </div>
+        </div>
+    </div>
+    
+    <p style="margin-top: 30px; color: #64748b; font-family: monospace; font-size: 0.8rem;">
+        HOVER OVER DIAGRAM AREAS TO ACTIVATE AGENTS
+    </p>
+
+</body>
+</html>
