@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import Convert from "ansi-to-html";
 
-import { DirectoryPicker } from "./DirectoryPicker";
 import type { UIEvent } from "@/lib/harness/types";
 
 type ViewMode = "agent" | "direct";
@@ -85,20 +84,48 @@ function truncate(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)}...`;
 }
 
-function summarizeValue(value: unknown, maxChars = 220): string {
-  try {
-    if (typeof value === "string") {
-      return truncate(value, maxChars);
-    }
+const TOOL_STATUS_LABELS: Record<string, string> = {
+  read_file: "Reading file",
+  write_file: "Writing file",
+  execute_command: "Running command",
+  list_directory: "Scanning directory",
+  search_file_content: "Searching files",
+  glob: "Finding files",
+};
 
-    if (value === null || typeof value === "undefined") {
-      return "";
-    }
+function humanizeToolName(toolName: string): string {
+  return toolName
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
-    return truncate(JSON.stringify(value), maxChars);
-  } catch {
-    return "[unserializable input]";
+function formatCostUsd(cost: number | null): string {
+  if (cost === null || Number.isNaN(cost)) {
+    return "n/a";
   }
+  if (cost < 0.01) {
+    return `<$${0.01.toFixed(2)}`;
+  }
+  return `$${cost.toFixed(2)}`;
+}
+
+function shortSessionId(sessionId: string | null): string {
+  if (!sessionId) {
+    return "pending";
+  }
+  return sessionId.slice(0, 8);
+}
+
+function formatRunTime(isoTimestamp: string | null): string {
+  if (!isoTimestamp) {
+    return "--:--";
+  }
+  const parsed = new Date(isoTimestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return "--:--";
+  }
+  return parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatFolderLabel(pathValue: string): string {
@@ -305,7 +332,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isInterrupting, setIsInterrupting] = useState(false);
-    const [statusText, setStatusText] = useState<string>("Processing_Request");
+    const [statusText, setStatusText] = useState<string>("Ready");
     const [inFlightHarnessSessionId, setInFlightHarnessSessionId] = useState<string | null>(null);
     const [inFlightLocalSessionId, setInFlightLocalSessionId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -561,33 +588,25 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const handleHarnessEvent = (event: UIEvent, localSessionId: string): boolean => {
       switch (event.type) {
         case "chat:delta": {
-          setStatusText("Typing_Response");
+          setStatusText("Composing response");
           appendStreamingDelta(localSessionId, event.text);
           return false;
         }
         case "chat:complete": {
-          setStatusText("Processing_Request");
+          setStatusText("Finalizing response");
           finalizeAssistantMessage(localSessionId, event.text);
           return false;
         }
         case "tool:start": {
-          // Map tool names to user-friendly status text
-          const toolLabels: Record<string, string> = {
-            "read_file": "Reading_File",
-            "write_file": "Writing_File",
-            "execute_command": "Executing_Command",
-            "list_directory": "Scanning_Directory",
-            "search_file_content": "Searching_Files",
-            "glob": "Finding_Files"
-          };
-          setStatusText(toolLabels[event.name] || `Running_${event.name}`);
+          setStatusText(TOOL_STATUS_LABELS[event.name] ?? `Running ${humanizeToolName(event.name)}`);
           return false;
         }
         case "tool:result": {
-          setStatusText("Analyzing_Result");
+          setStatusText(event.isError ? "Tool returned an error" : "Analyzing tool result");
           return false;
         }
         case "session:init": {
+          setStatusText("Session initialized");
           updateHarnessMetadata(localSessionId, {
             sessionId: event.sessionId,
             claudeSessionId: event.claudeSessionId,
@@ -597,6 +616,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           return false;
         }
         case "session:complete": {
+          setStatusText("Turn complete");
           updateHarnessMetadata(localSessionId, {
             lastCompletedAt: new Date().toISOString(),
             lastCostUsd: event.costUsd,
@@ -608,12 +628,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           return false;
         }
         case "session:error": {
+          setStatusText("Session error");
           appendAssistantMessage(localSessionId, `[session:error] ${event.error}`);
           return false;
         }
         case "process:exit": {
           setIsLoading(false);
           setIsInterrupting(false);
+          setStatusText("Ready");
           setInFlightHarnessSessionId(null);
           setInFlightLocalSessionId(null);
           return true;
@@ -673,6 +695,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       }
 
       appendUserAndPlaceholder(localSessionId, message);
+      setStatusText("Preparing request");
       setIsLoading(true);
       setIsInterrupting(false);
 
@@ -692,6 +715,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         sawProcessExit = await streamTurn(harnessSession.id, message, localSessionId);
       } catch (error) {
         const messageText = error instanceof Error ? error.message : String(error);
+        setStatusText("Request failed");
         finalizeWithError(localSessionId, messageText);
       } finally {
         if (!sawProcessExit) {
@@ -709,6 +733,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         return;
       }
 
+      setStatusText("Interrupting turn");
       setIsInterrupting(true);
 
       try {
@@ -724,6 +749,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             inFlightLocalSessionId ?? activeSessionId,
             `[session:error] Interrupt failed: ${error}`,
           );
+          setStatusText("Interrupt failed");
           setIsInterrupting(false);
         }
       } catch (error) {
@@ -732,6 +758,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           inFlightLocalSessionId ?? activeSessionId,
           `[session:error] Interrupt failed: ${message}`,
         );
+        setStatusText("Interrupt failed");
         setIsInterrupting(false);
       }
     };
@@ -819,6 +846,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     };
 
     const activeSession = sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
+    const activeHarness = activeSession?.harness;
+    const modeLabel = mode === "agent" ? "Agent Persona" : "Direct Link";
+    const sessionLabel = shortSessionId(activeHarness?.sessionId ?? null);
+    const modelLabel = truncate(activeHarness?.model ?? "pending", 26);
+    const rootLabel = formatFolderLabel(activeSession?.cwd ?? projectRoot ?? "~");
+    const costLabel = formatCostUsd(activeHarness?.lastCostUsd ?? null);
+    const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
+    const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
 
     const sendMessage = async (): Promise<void> => {
       if (!input.trim()) {
@@ -830,130 +865,158 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     };
 
     return (
-      <div className="chat-panel glass h-full w-full flex flex-row overflow-hidden min-h-0">
+      <div className="chat-panel ui-panel h-full w-full flex flex-row overflow-hidden min-h-0">
         <div
-          className="session-sidebar flex flex-col h-full shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface-high)] shadow-xl"
+          className="session-sidebar flex h-full shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-high)] shadow-xl"
           style={{ width: "220px" }}
         >
-          <div className="panel-label flex justify-between items-center p-4 border-b border-[var(--color-border)] shrink-0 bg-[var(--color-surface-mid)]">
-            <span className="text-[10px] tracking-[0.2em] font-black text-[var(--color-accent-orange)] uppercase">
+          <div className="panel-label flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-mid)] p-3.5">
+            <span className="ui-type-mono-meta text-[10px] font-black text-[var(--color-accent-orange)] opacity-80">
               History
             </span>
             <button
+              type="button"
               onClick={createNewSession}
-              className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 border border-white/10 text-[var(--color-accent-orange)] font-black text-lg hover:bg-[var(--color-accent-orange)] hover:text-black transition-all"
+              className="ui-control ui-focus-ring flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-accent-orange)] text-sm font-black hover:bg-[var(--color-accent-orange)]/15"
             >
               +
             </button>
           </div>
           <div className="flex-grow overflow-y-auto custom-scrollbar">
             {sessions.map((session) => (
-              <div
+              <button
                 key={session.id}
-                className={`group relative p-4 border-b border-white/[0.05] cursor-pointer transition-all ${
+                type="button"
+                className={`ui-focus-ring group relative w-full border-b border-white/[0.05] px-3.5 py-3 text-left transition-all ${
                   activeSessionId === session.id
-                    ? "bg-[var(--color-accent-orange)]/10 border-r-2 border-r-[var(--color-accent-orange)]"
+                    ? "border-r-2 border-r-[var(--color-accent-orange)] bg-[var(--color-accent-orange)]/9"
                     : "hover:bg-white/5"
                 }`}
                 onClick={() => setActiveSessionId(session.id)}
               >
-                <div className="font-mono text-[8px] opacity-30 mb-1.5 tracking-[0.1em]">{session.id}</div>
+                <div className="mono mb-1.5 text-[8px] tracking-[0.1em] text-[var(--color-text-dim)]/65">{shortSessionId(session.harness.sessionId)}</div>
                 <div
-                  className={`truncate text-[10px] font-bold tracking-wider uppercase ${
+                  className={`truncate text-[10px] font-bold tracking-[0.14em] uppercase ${
                     activeSessionId === session.id ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"
                   }`}
                 >
                   {session.name}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
         <div className="flex-grow flex flex-col min-w-0 h-full relative bg-[var(--color-surface-low)]">
-          <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center shrink-0 bg-[var(--color-surface-high)] backdrop-blur-sm gap-3">
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[9px] font-black tracking-[0.3em] text-[var(--color-accent-orange)] uppercase opacity-80">
-                {mode === "agent" ? "Agent_Persona" : "Direct_Link"}
-              </span>
-              <span className="font-bold tracking-[0.1em] text-xs truncate uppercase text-[var(--color-text-main)]">
-                {agentName}
-                <span className="opacity-30 mx-2">{"//"}</span>
-                <span className="text-[var(--color-text-dim)] text-[10px] lowercase italic font-normal">
-                  {activeSession?.name}
+          <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface-high)] px-4 py-3.5 backdrop-blur-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex flex-col gap-2">
+                <span className="mono text-[9px] font-black tracking-[0.2em] text-[var(--color-accent-orange)] uppercase opacity-80">
+                  {modeLabel}
                 </span>
-              </span>
-              <span className="font-mono text-[9px] text-white/50 truncate">
-                {activeSession?.harness.sessionId
-                  ? `harness:${activeSession.harness.sessionId} ${activeSession.harness.model ? `(${activeSession.harness.model})` : ""}`
-                  : "harness: not initialized"}
-              </span>
-            </div>
+                <span className="truncate text-xs font-bold tracking-[0.1em] uppercase text-[var(--color-text-main)]">
+                  {agentName}
+                  <span className="mx-2 text-[var(--color-text-dim)]/40">{"//"}</span>
+                  <span className="text-[10px] font-medium lowercase italic text-[var(--color-text-dim)]">
+                    {activeSession?.name}
+                  </span>
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
+                    session {sessionLabel}
+                  </span>
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
+                    model {modelLabel}
+                  </span>
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
+                    cwd {rootLabel}
+                  </span>
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
+                    cost {costLabel}
+                  </span>
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
+                    last {lastRunLabel}
+                  </span>
+                </div>
+              </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              {isLoading && (
-                <button
-                  onClick={() => {
-                    void handleInterrupt();
-                  }}
-                  disabled={isInterrupting || !inFlightHarnessSessionId}
-                  className="text-[9px] font-mono text-red-300 uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded border border-red-400/30 disabled:opacity-40"
+              <div className="flex shrink-0 items-center gap-2">
+                {isLoading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleInterrupt();
+                    }}
+                    disabled={isInterrupting || !inFlightHarnessSessionId}
+                    className="ui-focus-ring rounded-md border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.12em] text-red-200 disabled:opacity-40"
+                  >
+                    {isInterrupting ? "Interrupting..." : "Interrupt Turn"}
+                  </button>
+                )}
+
+                <span
+                  className={`mono rounded-md border px-3 py-1.5 text-[9px] uppercase tracking-[0.12em] ${
+                    isLoading
+                      ? "border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                      : "border-[var(--color-border)] bg-[var(--color-surface-low)] text-[var(--color-text-dim)]"
+                  }`}
                 >
-                  {isInterrupting ? "Interrupting..." : "Interrupt"}
-                </button>
-              )}
-
-              <span className="text-[9px] font-mono uppercase tracking-widest bg-[var(--color-accent-orange)]/10 px-3 py-1.5 rounded border border-[var(--color-accent-orange)]/20 text-[var(--color-accent-orange)]">
-                {isLoading ? "Turn Running" : "Ready"}
-              </span>
+                  {statusBadge}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex-grow overflow-y-auto font-mono text-sm min-h-0 custom-scrollbar">
+          <div className="flex-grow min-h-0 overflow-y-auto font-mono text-sm custom-scrollbar">
             {activeSession?.messages.map((message, index) => (
               <div
                 key={index}
-                className={`p-6 border-b border-[var(--color-border)] ${message.role === "assistant" ? "bg-[var(--color-surface-low)]" : ""}`}
+                className={`border-b border-[var(--color-border)] px-5 py-4 ${
+                  message.role === "assistant" ? "bg-[var(--color-surface-low)]/55" : "bg-transparent"
+                }`}
               >
-                <div className="flex items-center gap-3 mb-3 opacity-40 text-[9px] uppercase tracking-[0.2em] font-black">
+                <div className="mb-2 flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
                   <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"}>
-                    {message.role === "assistant" ? "CLAUDE" : "USER"}
+                    {message.role === "assistant" ? "Assistant" : "User"}
                   </span>
-                  <span className="w-1 h-1 bg-[var(--color-text-dim)] rounded-full" />
-                  <span className="text-[var(--color-text-dim)]">{new Date().toLocaleTimeString()}</span>
+                  {message.streaming && (
+                    <span className="mono rounded border border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/12 px-1.5 py-0.5 text-[8px] tracking-[0.1em] text-[var(--color-accent-orange)]">
+                      streaming
+                    </span>
+                  )}
                 </div>
 
                 {message.role === "assistant" ? (
                   <div
-                    className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[var(--color-text-main)] font-mono"
+                    className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)] px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]"
                     dangerouslySetInnerHTML={{ __html: convert.toHtml(message.content) }}
                   />
                 ) : (
-                  <div className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[var(--color-text-main)] font-mono">{message.content}</div>
+                  <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-low)]/35 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
+                    {message.content}
+                  </div>
                 )}
               </div>
             ))}
             {isLoading && (
-              <div className="p-6 font-mono text-[10px] uppercase tracking-[0.3em] flex items-center gap-4 transition-all duration-500">
-                <div className="flex gap-1.5 items-center">
-                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[ping_1.5s_infinite]" />
-                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[bounce_1s_infinite_100ms]" />
-                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[ping_1.5s_infinite_200ms]" />
+              <div className="border-b border-[var(--color-border)] px-5 py-4">
+                <div className="ui-panel-soft inline-flex items-center gap-2 rounded-md px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[var(--color-accent-orange)] animate-pulse" />
+                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-accent-orange)]">
+                    {statusText}
+                  </span>
                 </div>
-                <span className="text-[var(--color-accent-orange)] opacity-80 animate-pulse">
-                    {statusText}...
-                </span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chat-input shrink-0 bg-[var(--color-surface-high)] border-t border-[var(--color-border)] p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center">
+          <div className="chat-input shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+            <div className="ui-panel-soft flex items-center rounded-md px-3 py-2">
               <input
                 type="text"
                 placeholder={placeholder}
-                className="outline-none w-full bg-transparent font-mono text-[var(--color-text-main)] placeholder:text-white/10 text-sm tracking-wide flex-grow disabled:opacity-40"
+                className="w-full flex-grow bg-transparent text-sm tracking-wide text-[var(--color-text-main)] placeholder:text-white/20 outline-none disabled:opacity-40 mono"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => {
