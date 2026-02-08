@@ -31,7 +31,7 @@ export function DirectLinkView({ projectRoot, onNavigateHome, onRootChange }: Di
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--color-applying)]">
-                  Project Matrix
+                  Project Directory
                 </span>
                 <span className="mono mt-1 block truncate text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-dim)]/85">
                   Direct link // live root

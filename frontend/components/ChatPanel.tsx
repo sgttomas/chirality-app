@@ -963,7 +963,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const costLabel = formatCostUsd(activeHarness?.lastCostUsd ?? null);
     const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
     const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
-    const sessionRailWidth = Math.max(140, Math.min(220, Math.floor(width * 0.32)));
+    const sessionChipWidth = Math.max(120, Math.min(180, Math.floor(width * 0.2)));
     const spinnerGlyph = prefersReducedMotion
       ? "•"
       : BRAILLE_SPINNER_FRAMES[spinnerFrameIndex % BRAILLE_SPINNER_FRAMES.length];
@@ -979,77 +979,28 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
     return (
       <div className="chat-panel h-full w-full min-h-0 overflow-hidden rounded-[inherit]">
-        <div className="relative flex h-full min-h-0 overflow-hidden">
+        <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-85"
+            className="pointer-events-none absolute inset-0 opacity-90"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 8% 10%, rgba(249,115,22,0.12), transparent 35%), radial-gradient(circle at 80% 0%, rgba(123,175,212,0.16), transparent 40%)",
+                "radial-gradient(circle at 8% 0%, rgba(249,115,22,0.13), transparent 34%), radial-gradient(circle at 92% 8%, rgba(123,175,212,0.18), transparent 36%), linear-gradient(130deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 40%)",
             }}
           />
 
-          <aside
-            className="session-sidebar relative z-10 m-1 mr-0 flex h-[calc(100%-0.5rem)] shrink-0 flex-col rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/78 shadow-[0_10px_26px_rgba(0,0,0,0.34)]"
-            style={{ width: `${sessionRailWidth}px` }}
-          >
-            <div className="panel-label flex shrink-0 items-center justify-between border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/75 px-3 py-3">
-              <div className="min-w-0">
-                <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)]/85">
-                  Session Ring
-                </span>
-                <span className="mono mt-1 block truncate text-[8px] uppercase tracking-[0.12em] text-[var(--color-text-dim)]/80">
-                  Runtime slices
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={createNewSession}
-                className="ui-control ui-focus-ring flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-accent-orange)] text-sm font-black hover:bg-[var(--color-accent-orange)]/15"
-                title="Create new session"
-              >
-                +
-              </button>
-            </div>
-            <div className="flex-grow overflow-y-auto p-2 custom-scrollbar">
-              {sessions.map((session) => (
-                <button
-                  key={session.id}
-                  type="button"
-                  className={`ui-focus-ring group relative mb-1.5 w-full rounded-md border px-2.5 py-2.5 text-left transition-all ${
-                    activeSessionId === session.id
-                      ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.18)]"
-                      : "border-transparent bg-white/[0.02] hover:border-[var(--color-border)]/80 hover:bg-white/[0.06]"
-                  }`}
-                  onClick={() => setActiveSessionId(session.id)}
-                >
-                  <div className="mono mb-1 text-[8px] tracking-[0.11em] text-[var(--color-text-dim)]/68">
-                    {shortSessionId(session.harness.sessionId)}
-                  </div>
-                  <div
-                    className={`truncate text-[10px] font-bold tracking-[0.14em] uppercase ${
-                      activeSessionId === session.id ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"
-                    }`}
-                  >
-                    {session.name}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </aside>
-
-          <div className="relative z-10 flex min-w-0 flex-1 flex-col py-1 pl-2 pr-1">
-            <div className="shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/82 px-4 py-3 backdrop-blur-sm">
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-2 p-2">
+            <div className="shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/85 px-4 py-3 backdrop-blur-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex flex-col gap-2">
                   <span className="mono text-[9px] font-black tracking-[0.19em] text-[var(--color-accent-orange)] uppercase opacity-85">
-                    {modeLabel}
+                    Command Uplink
                   </span>
                   <span className="truncate text-xs font-bold tracking-[0.1em] uppercase text-[var(--color-text-main)]">
                     {agentName}
                     <span className="mx-2 text-[var(--color-text-dim)]/45">{"//"}</span>
                     <span className="text-[10px] font-medium lowercase italic text-[var(--color-text-dim)]">
-                      {activeSession?.name}
+                      {modeLabel}
                     </span>
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -1098,19 +1049,61 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
               </div>
             </div>
 
-            <div className="custom-scrollbar mt-2 min-h-0 flex-grow overflow-y-auto px-1 pb-2 font-mono text-sm">
-              <div className="space-y-2">
+            <div className="shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/68 px-3 py-2.5 shadow-[0_10px_22px_rgba(0,0,0,0.2)]">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-orange)]/85">
+                  Session Ring
+                </span>
+                <button
+                  type="button"
+                  onClick={createNewSession}
+                  className="ui-control ui-focus-ring rounded-md px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/12"
+                  title="Create new session"
+                >
+                  New
+                </button>
+              </div>
+              <div className="custom-scrollbar flex gap-1.5 overflow-x-auto pb-1">
+                {sessions.map((session) => (
+                  <button
+                    key={session.id}
+                    type="button"
+                    className={`ui-focus-ring shrink-0 rounded-md border px-2.5 py-2 text-left transition-all ${
+                      activeSessionId === session.id
+                        ? "border-[var(--color-accent-orange)]/45 bg-[var(--color-accent-orange)]/14 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.22)]"
+                        : "border-[var(--color-border)]/55 bg-[var(--color-surface-low)]/46 hover:border-[var(--color-border-strong)]"
+                    }`}
+                    style={{ width: `${sessionChipWidth}px` }}
+                    onClick={() => setActiveSessionId(session.id)}
+                  >
+                    <div className="mono truncate text-[8px] tracking-[0.11em] text-[var(--color-text-dim)]/68">
+                      {shortSessionId(session.harness.sessionId)}
+                    </div>
+                    <div
+                      className={`mt-1 truncate text-[10px] font-bold tracking-[0.14em] uppercase ${
+                        activeSessionId === session.id ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"
+                      }`}
+                    >
+                      {session.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-1 pb-1 font-mono text-sm">
+              <div className="space-y-3">
                 {activeSession?.messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`rounded-xl border px-4 py-3 shadow-[0_8px_22px_rgba(0,0,0,0.24)] ${
+                    className={`rounded-xl border px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.22)] ${
                       message.role === "assistant"
-                        ? "border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/68"
-                        : "border-[var(--color-border)]/45 bg-[var(--color-surface-low)]/42"
+                        ? "border-[var(--color-accent-orange)]/25 bg-[linear-gradient(145deg,rgba(249,115,22,0.1),rgba(0,0,0,0.22))]"
+                        : "border-[var(--color-applying)]/28 bg-[linear-gradient(145deg,rgba(123,175,212,0.1),rgba(0,0,0,0.2))]"
                     }`}
                   >
-                    <div className="mb-2 flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
-                      <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"}>
+                    <div className="mb-2 flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.16em] opacity-70">
+                      <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-[var(--color-applying)]"}>
                         {message.role === "assistant" ? "Assistant" : "User"}
                       </span>
                       {message.streaming && (
@@ -1139,7 +1132,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                         ) : null}
                       </div>
                     ) : (
-                      <div className="rounded-md border border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/35 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
+                      <div className="rounded-md border border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/45 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
                         {message.content}
                       </div>
                     )}
@@ -1201,7 +1194,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="chat-input mt-2 shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/85 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.22)]">
+            <div className="chat-input shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/88 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.22)]">
               <div className="ui-panel-soft flex items-center rounded-md px-3 py-2">
                 <input
                   type="text"
