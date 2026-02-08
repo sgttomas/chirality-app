@@ -7,9 +7,11 @@ import {
   DEFAULT_MAX_TURNS,
   DEFAULT_PERMISSION_MODE,
   DEFAULT_SETTING_SOURCES,
+  LOG_TRUNCATE_USER_TEXT,
 } from "./defaults";
 import { mapSdkMessageToUiEvents } from "./agent-sdk-event-mapper";
-import type { Session, TurnOpts, UIEvent } from "./types";
+import { appendLog } from "./logger";
+import type { LogEntry, Session, TurnOpts, UIEvent } from "./types";
 
 declare global {
   var __chiralityHarnessAgentSdkManager: AgentSdkManager | undefined;
@@ -21,6 +23,33 @@ type ActiveRun = {
   interruptRequested: boolean;
   killRequested: boolean;
 };
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+
+  return `${text.slice(0, max)}...[truncated]`;
+}
+
+function createLogEntry(
+  sessionId: string,
+  level: LogEntry["level"],
+  event: string,
+  data?: Record<string, unknown>,
+): LogEntry {
+  return {
+    timestamp: new Date().toISOString(),
+    sessionId,
+    level,
+    event,
+    data,
+  };
+}
+
+function fireAndForgetLog(projectRoot: string, entry: LogEntry): void {
+  void appendLog(projectRoot, entry);
+}
 
 function normalizeModel(model: unknown): string | undefined {
   if (typeof model !== "string") {
@@ -46,6 +75,15 @@ function getMessageError(message: SDKMessage): string | null {
   }
 
   return `Claude Agent SDK reported ${message.subtype}.`;
+}
+
+function resolveModelForLog(opts?: TurnOpts): string | null {
+  if (typeof opts?.model !== "string") {
+    return null;
+  }
+
+  const trimmed = opts.model.trim();
+  return trimmed ? trimmed : null;
 }
 
 function splitCsvTools(value: string | undefined): string[] {
@@ -178,6 +216,7 @@ export class AgentSdkManager {
       throw conflictErr;
     }
 
+    const startedAt = Date.now();
     const abortController = new AbortController();
     const sdkQuery = query({
       prompt: userMessage,
@@ -193,12 +232,84 @@ export class AgentSdkManager {
 
     this.activeRuns.set(session.id, activeRun);
 
+    fireAndForgetLog(
+      session.projectRoot,
+      createLogEntry(session.id, "info", "turn:start", {
+        userMessage: truncate(userMessage, LOG_TRUNCATE_USER_TEXT),
+        persona: session.persona,
+        mode: session.mode,
+      }),
+    );
+
+    const resolvedModel = resolveModelForLog(opts);
+    fireAndForgetLog(
+      session.projectRoot,
+      createLogEntry(session.id, "info", "turn:model", {
+        resolvedModel,
+        usedModelFlag: Boolean(resolvedModel),
+      }),
+    );
+
     let surfacedRuntimeError: string | null = null;
 
     try {
       for await (const sdkMessage of sdkQuery) {
         const mappedEvents = mapSdkMessageToUiEvents(sdkMessage, session.id);
         for (const uiEvent of mappedEvents) {
+          if (uiEvent.type === "session:init") {
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "info", "session:init", {
+                claudeSessionId: uiEvent.claudeSessionId,
+                model: uiEvent.model,
+                tools: uiEvent.tools,
+              }),
+            );
+          }
+
+          if (uiEvent.type === "tool:start") {
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "info", "tool:start", {
+                toolUseId: uiEvent.toolUseId,
+                toolName: uiEvent.name,
+                inputSummary: truncate(JSON.stringify(uiEvent.input), LOG_TRUNCATE_USER_TEXT),
+              }),
+            );
+          }
+
+          if (uiEvent.type === "tool:result") {
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "info", "tool:result", {
+                toolUseId: uiEvent.toolUseId,
+                isError: uiEvent.isError,
+                contentLength: uiEvent.content.length,
+              }),
+            );
+          }
+
+          if (uiEvent.type === "session:complete") {
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "info", "turn:complete", {
+                costUsd: uiEvent.costUsd,
+                inputTokens: uiEvent.usage.input_tokens,
+                outputTokens: uiEvent.usage.output_tokens,
+                durationMs: Date.now() - startedAt,
+              }),
+            );
+          }
+
+          if (uiEvent.type === "session:error") {
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "warn", "turn:error", {
+                error: uiEvent.error,
+              }),
+            );
+          }
+
           yield uiEvent;
         }
 
@@ -209,6 +320,12 @@ export class AgentSdkManager {
       }
     } catch (error) {
       surfacedRuntimeError = error instanceof Error ? error.message : String(error);
+      fireAndForgetLog(
+        session.projectRoot,
+        createLogEntry(session.id, "error", "turn:error", {
+          error: surfacedRuntimeError,
+        }),
+      );
       yield {
         type: "session:error",
         sessionId: session.id,
@@ -221,6 +338,15 @@ export class AgentSdkManager {
 
     const signal = activeRun.interruptRequested ? "SIGINT" : activeRun.killRequested ? "SIGTERM" : null;
     const code = signal ? null : surfacedRuntimeError ? 1 : 0;
+
+    fireAndForgetLog(
+      session.projectRoot,
+      createLogEntry(session.id, "info", "process:exit", {
+        exitCode: code,
+        signal,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
 
     yield {
       type: "process:exit",

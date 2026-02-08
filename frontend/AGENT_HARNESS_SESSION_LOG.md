@@ -331,7 +331,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 22:57:04 -0700
 - Batch ID: `P2-C1`
 - Completed Task IDs: `RT-004`, `RT-005`, `RT-008`, `RT-011`, `API-001`, `API-002`
-- Commit SHA: pending
+- Commit SHA: `178de94`
 - Validation run:
   - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/index.ts app/api/harness/turn/route.ts app/api/harness/interrupt/route.ts` (pass).
   - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` still imports removed `@anthropic-ai/sdk` and is scheduled for removal in `P3-C1`.
@@ -339,4 +339,18 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - `agent-sdk-manager` now drives runtime control paths; logging parity events (`turn:start`, `turn:model`, `tool:*`, `turn:complete`, `process:exit`) are not yet added and are tracked for `P2-C2`.
 - Next session first task: execute `P2-C2` (`RT-006`, `RT-012`, `RT-013`) for logging parity and env-filter cleanup.
+- Commit(s): `178de94`
+
+## 2026-02-07 — Session 13 (SDK Cutover P2-C2)
+- Date/Time: 2026-02-07 23:00:18 -0700
+- Batch ID: `P2-C2`
+- Completed Task IDs: `RT-006`, `RT-012`, `RT-013`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/claude-code-manager.ts lib/harness/env-filter.ts` (pass).
+  - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` still imports removed `@anthropic-ai/sdk` and will be removed in `P3-C1`.
+  - Logging parity verification by code inspection: SDK path now emits `turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, and `process:exit` through `appendLog(...)`.
+- Blockers/Risks:
+  - Legacy `claude-code-manager.ts` still exists until `P3-C1`; it remains compile-compatible but is no longer in active runtime paths.
+- Next session first task: execute `P3-C1` (`API-006`, `RM-001`, `RM-002`) to remove `/api/chat`, CLI manager, and NDJSON parser.
 - Commit(s): none

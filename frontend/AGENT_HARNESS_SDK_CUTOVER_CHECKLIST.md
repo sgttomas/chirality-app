@@ -16,14 +16,14 @@ Baseline reference:
 - [x] `frontend/lib/harness/agent-sdk-manager.ts` (new) — implement `startTurn/isRunning/interrupt/kill` using `query()`.
 - [x] `frontend/lib/harness/agent-sdk-manager.ts` — pass SDK options: `cwd`, `resume`, `model`, `maxTurns`, `includePartialMessages`, `allowedTools`, `disallowedTools`, `systemPrompt` preset `claude_code` with `append`, `tools` preset `claude_code`, `settingSources`.
 - [x] `frontend/lib/harness/agent-sdk-manager.ts` — map `permissionMode: "dontAsk"` to SDK `permissionMode: "bypassPermissions"` and set `allowDangerouslySkipPermissions: true`.
-- [ ] `frontend/lib/harness/agent-sdk-manager.ts` — keep logging parity (`turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `process:exit`).
+- [x] `frontend/lib/harness/agent-sdk-manager.ts` — keep logging parity (`turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `process:exit`).
 - [x] `frontend/lib/harness/agent-sdk-event-mapper.ts` (new) — map `SDKMessage` to existing `UIEvent` contract.
 - [x] `frontend/lib/harness/index.ts` — replace `claudeCodeManager` wiring with `agentSdkManager`.
 - [x] `frontend/lib/harness/types.ts` — remove CLI-only fields (`claudeExecutable`), add any SDK option types needed.
 - [x] `frontend/lib/harness/defaults.ts` — add explicit SDK defaults for `settingSources` and Claude Code preset usage.
 - [x] `frontend/lib/harness/persona-manager.ts` — keep `CLAUDE.md` model read; ensure value is passed into SDK options path.
-- [ ] `frontend/lib/harness/logger.ts` — keep as-is unless event payload schema needs minor adjustments.
-- [ ] `frontend/lib/harness/env-filter.ts` — remove child-process env filtering if unused; keep redaction utilities if still referenced.
+- [x] `frontend/lib/harness/logger.ts` — keep as-is unless event payload schema needs minor adjustments.
+- [x] `frontend/lib/harness/env-filter.ts` — remove child-process env filtering if unused; keep redaction utilities if still referenced.
 
 ## API Routes
 - [x] `frontend/app/api/harness/turn/route.ts` — keep SSE contract unchanged; point execution to SDK manager.

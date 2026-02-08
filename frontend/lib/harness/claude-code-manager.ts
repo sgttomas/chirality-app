@@ -9,7 +9,7 @@ import {
   LOG_TRUNCATE_STREAM_LINE,
   LOG_TRUNCATE_USER_TEXT,
 } from "./defaults";
-import { filterChildEnv, redactForLogs } from "./env-filter";
+import { redactForLogs } from "./env-filter";
 import { appendLog } from "./logger";
 import { mapClaudeEventToUiEvents, parseNdjsonLine } from "./stream-parser";
 import type { LogEntry, Session, TurnOpts, UIEvent } from "./types";
@@ -332,7 +332,7 @@ export class ClaudeCodeManager {
       }),
     );
 
-    const childEnv = filterChildEnv(process.env);
+    const childEnv = { ...process.env } as NodeJS.ProcessEnv;
     if (opts?.apiKey) {
       childEnv.ANTHROPIC_API_KEY = opts.apiKey;
     } else if (process.env.ANTHROPIC_API_KEY) {

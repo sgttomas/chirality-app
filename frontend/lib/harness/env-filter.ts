@@ -9,51 +9,8 @@ const HARD_DENYLIST: RegExp[] = [
   /^REDIS_URL$/i,
 ];
 
-const EXPLICIT_WHITELIST = new Set([
-  "ANTHROPIC_API_KEY",
-  "PATH",
-  "HOME",
-  "USER",
-  "SHELL",
-  "TERM",
-  "NODE_ENV",
-  "NODE_OPTIONS",
-  "PWD",
-  "LANG",
-  "LC_ALL",
-  "LC_CTYPE",
-  "TMPDIR",
-  "TEMP",
-  "TMP",
-]);
-
 export function isSensitiveKey(key: string): boolean {
   return HARD_DENYLIST.some((pattern) => pattern.test(key));
-}
-
-export function filterChildEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const filtered = {} as NodeJS.ProcessEnv;
-
-  for (const [key, value] of Object.entries(env)) {
-    if (typeof value === "undefined") {
-      continue;
-    }
-
-    if (isSensitiveKey(key)) {
-      continue;
-    }
-
-    filtered[key] = value;
-  }
-
-  for (const key of EXPLICIT_WHITELIST) {
-    const value = env[key];
-    if (typeof value !== "undefined") {
-      filtered[key] = value;
-    }
-  }
-
-  return filtered;
 }
 
 export function redactForLogs(value: string): string {
