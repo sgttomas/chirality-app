@@ -216,8 +216,8 @@ function DiffViewer({ diffText, changesOnly }: { diffText: string; changesOnly: 
   const displayRows = useMemo(() => collapseContextRows(rows, changesOnly), [rows, changesOnly]);
 
   return (
-    <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-low)]/35">
-      <div className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/60 px-0 py-1.5">
+    <div className="rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface-high)]/45 shadow-[0_10px_24px_rgba(0,0,0,0.2)]">
+      <div className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-b border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/65 px-0 py-1.5">
         <span className="mono px-3 text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-dim)]/80">
           Old
         </span>
@@ -238,7 +238,7 @@ function DiffViewer({ diffText, changesOnly }: { diffText: string; changesOnly: 
               return (
                 <div
                   key={`${index}-collapse-${row.hiddenCount}-${oldRange}-${newRange}`}
-                  className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-l-2 border-l-[var(--color-border)] bg-[var(--color-surface-high)]/55 text-[12px] leading-6"
+                  className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-l-2 border-l-[var(--color-border)]/80 bg-[var(--color-surface-high)]/52 text-[12px] leading-6"
                 >
                   <span className="mono px-3 text-right tabular-nums text-[11px] text-[var(--color-text-dim)]/75">{oldRange}</span>
                   <span className="mono px-3 text-right tabular-nums text-[11px] text-[var(--color-text-dim)]/75">{newRange}</span>
@@ -276,14 +276,14 @@ function DiffViewer({ diffText, changesOnly }: { diffText: string; changesOnly: 
               contentClass = "mono px-3 whitespace-pre text-[11px] font-semibold tracking-[0.02em] text-[var(--color-applying)]";
               markerClass = "text-[var(--color-applying)]";
             } else if (isFile) {
-              rowClass += " border-l-[var(--color-accent-orange)] bg-[var(--color-surface-high)]/65";
+              rowClass += " border-l-[var(--color-accent-orange)] bg-[var(--color-surface-high)]/72";
               contentClass = "mono px-3 whitespace-pre text-[11px] font-semibold tracking-[0.02em] text-[var(--color-accent-orange)]";
               markerClass = "text-[var(--color-accent-orange)]";
             } else if (row.type === "meta") {
-              rowClass += " bg-[var(--color-surface-high)]/45";
+              rowClass += " bg-[var(--color-surface-high)]/48";
               contentClass = "mono px-3 whitespace-pre text-[11px] text-[var(--color-text-dim)]";
             } else if (isCtx) {
-              rowClass += " hover:bg-[var(--color-surface-low)]/55";
+              rowClass += " hover:bg-[var(--color-surface-low)]/45";
             }
 
             const marker = row.text.charAt(0);
@@ -448,18 +448,18 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
   const changesOnlyDisabled = !diffPayload?.diff || loadingDiff || !!diffError;
 
   return (
-    <section className="content-area ui-panel flex h-full min-h-0 flex-col overflow-hidden">
-      <header className="content-header flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-mid)]/55 px-4 py-3">
+    <section className="content-area flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit] bg-transparent">
+      <header className="content-header flex items-center justify-between gap-3 border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/62 px-4 py-3">
         <div className="min-w-0">
-          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/80">
-            File Preview
+          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/85">
+            Preview Deck
           </p>
           <p className="mono truncate text-[11px] text-[var(--color-text-main)]/90" title={path ?? "No file selected"}>
             {fileName}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-md border border-[var(--color-border)]/80 bg-[var(--color-surface-low)]/70 p-1">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--color-border)]/80 bg-[var(--color-surface-low)]/78 p-1">
             <button
               type="button"
               onClick={() => setMode("file")}
@@ -515,15 +515,15 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 custom-scrollbar">
+      <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto px-5 py-4">
         {!path ? (
-          <div className="ui-panel-soft flex h-full items-center justify-center rounded-md px-6 text-center">
+          <div className="ui-panel-soft flex h-full items-center justify-center rounded-xl px-6 text-center">
             <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
               Select a file to preview.
             </p>
           </div>
         ) : loading ? (
-          <div className="ui-panel-soft flex h-full items-center justify-center gap-2 rounded-md px-6 text-center">
+          <div className="ui-panel-soft flex h-full items-center justify-center gap-2 rounded-xl px-6 text-center">
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-accent-orange)] animate-pulse" aria-hidden />
             <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
               {mode === "diff" ? "Loading git diff..." : "Loading content..."}
@@ -531,7 +531,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
           </div>
         ) : mode === "diff" ? (
           diffError ? (
-            <div className="ui-panel-soft flex h-full items-center justify-center rounded-md px-6 text-center">
+            <div className="ui-panel-soft flex h-full items-center justify-center rounded-xl px-6 text-center">
               <p className="mono whitespace-pre-wrap text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-orange)]">
                 Diff error: {diffError}
               </p>
@@ -539,7 +539,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
           ) : diffPayload?.diff ? (
             <DiffViewer diffText={diffPayload.diff} changesOnly={changesOnly} />
           ) : (
-            <div className="ui-panel-soft flex h-full items-center justify-center rounded-md px-6 text-center">
+            <div className="ui-panel-soft flex h-full items-center justify-center rounded-xl px-6 text-center">
               <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
                 {diffPayload?.message ?? "No git changes for this file."}
               </p>

@@ -161,7 +161,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     return directories;
   }, [gitStatuses]);
 
-  const containerClass = `h-full overflow-y-auto px-2 py-2 custom-scrollbar ${className ?? ""}`;
+  const containerClass = `h-full overflow-y-auto px-2 py-2.5 custom-scrollbar ${className ?? ""}`;
 
   if (loading) {
     return (
@@ -254,10 +254,10 @@ function TreeNode({
         onClick={toggle}
         className={`ui-focus-ring group flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors ${
           isSelected
-            ? "border-[var(--color-border-strong)] bg-[var(--color-surface-low)] text-[var(--color-text-main)]"
+            ? "border-[var(--color-border-strong)] bg-[var(--color-surface-low)]/82 text-[var(--color-text-main)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]"
             : hasGitSignal
-              ? "border-[var(--color-accent-orange)]/20 bg-[var(--color-accent-orange)]/6 text-[var(--color-text-main)] hover:border-[var(--color-accent-orange)]/35 hover:bg-[var(--color-accent-orange)]/10"
-              : "border-transparent text-[var(--color-text-dim)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-low)]/75 hover:text-[var(--color-text-main)]"
+              ? "border-[var(--color-accent-orange)]/20 bg-[var(--color-accent-orange)]/8 text-[var(--color-text-main)] hover:border-[var(--color-accent-orange)]/35 hover:bg-[var(--color-accent-orange)]/12"
+              : "border-transparent text-[var(--color-text-dim)] hover:border-[var(--color-border)]/70 hover:bg-[var(--color-surface-low)]/72 hover:text-[var(--color-text-main)]"
         }`}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
       >
@@ -351,7 +351,7 @@ function GitStatusRow({ gitLoadState, changedCount }: GitStatusRowProps) {
   }
 
   return (
-    <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--color-border)]/80 bg-[var(--color-surface-low)]/70 px-2.5 py-1.5">
+    <div className="mb-2.5 flex items-center justify-between rounded-md border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/72 px-2.5 py-1.5">
       <span className="ui-type-mono-meta text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
         Git State
       </span>

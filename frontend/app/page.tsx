@@ -87,7 +87,7 @@ export default function Home() {
   const title = VIEW_TITLE[currentView];
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden">
       {showDirPicker && (
         <DirectoryPicker
           onSelect={(path) => {
@@ -99,8 +99,8 @@ export default function Home() {
       )}
 
       {/* Wireframe Controls */}
-      <div id="wireframe-controls" className="shrink-0 border-b border-[var(--color-border)] bg-black/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 px-4 py-2.5">
+      <div id="wireframe-controls" className="shrink-0 px-3 pb-2 pt-3">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 rounded-xl border border-[var(--color-border)]/60 bg-black/45 px-4 py-2.5 shadow-[0_14px_35px_rgba(0,0,0,0.28)] backdrop-blur-md">
           {VIEW_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -131,8 +131,8 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="shrink-0 border-b border-[var(--color-border)]/60 bg-black/20">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-6">
+      <header className="shrink-0 px-3 pb-3">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/55 px-5 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.24)] md:px-6">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 md:gap-6">
             <div className="ui-type-title whitespace-nowrap font-extrabold tracking-[0.14em] uppercase">
               {title.lead}

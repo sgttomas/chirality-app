@@ -58,13 +58,14 @@ export function ResizableLayout({
   onNavigateHome,
   onRootChange
 }: ResizableLayoutProps) {
-  const [chatWidth, setChatWidth] = useState(700);
-  const [sidebarWidth, setSidebarWidth] = useState(350);
+  const [chatWidth, setChatWidth] = useState(760);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [compactPane, setCompactPane] = useState<"files" | "preview">("files");
   const [viewportWidth, setViewportWidth] = useState(1280);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
 
   const folderLabel = formatFolderLabel(projectRoot ?? "~");
   const footerGhostButtonClass =
@@ -88,58 +89,92 @@ export function ResizableLayout({
     };
   }, []);
 
-  const renderGlobalActionsFooter = () => (
-    <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] px-3 py-2.5">
-      <div
-        className={`grid items-center gap-2 ${
-          isCompactLayout ? "grid-cols-1 sm:grid-cols-[auto,minmax(0,1fr),auto]" : "grid-cols-[auto,minmax(0,1fr),auto]"
-        }`}
-      >
-        <div className="group relative">
-          <button
-            onClick={() => onNavigateHome?.()}
-            disabled={!onNavigateHome}
-            className={`${footerGhostButtonClass} text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            PORTAL
-          </button>
-          <div className={`${footerTooltipClass} left-0`}>
-            <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
-              <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
-            </p>
-          </div>
-        </div>
-
+  const renderGlobalActionsFooter = (compact = false) => (
+    <div className="ui-panel-soft shrink-0 rounded-xl p-2.5">
+      <div className={`flex gap-2 ${compact ? "flex-col" : "items-center"}`}>
         <button
           onClick={() => setShowDirPicker(true)}
-          className={`${footerAccentButtonClass} min-w-0 justify-center truncate`}
+          className={`${footerAccentButtonClass} min-w-0 justify-center truncate ${compact ? "w-full" : "flex-1"}`}
         >
           <span className="opacity-50 font-mono">DIR:</span>
           <span className="truncate">{folderLabel}</span>
           <span className="text-white/30 font-mono ml-1">❯</span>
         </button>
 
-        <div className="group relative">
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className={footerAccentButtonClass}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-            Settings
-          </button>
-          <div className={`${footerTooltipClass} right-0`}>
-            <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
-              <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
-            </p>
+        <div className={`grid grid-cols-2 gap-2 ${compact ? "w-full" : "w-[210px] shrink-0"}`}>
+          <div className="group relative">
+            <button
+              onClick={() => onNavigateHome?.()}
+              disabled={!onNavigateHome}
+              className={`${footerGhostButtonClass} w-full justify-center text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              Portal
+            </button>
+            <div className={`${footerTooltipClass} left-0`}>
+              <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
+                <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
+              </p>
+            </div>
+          </div>
+
+          <div className="group relative">
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className={`${footerAccentButtonClass} w-full justify-center`}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Config
+            </button>
+            <div className={`${footerTooltipClass} right-0`}>
+              <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
+                <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
+              </p>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  const renderCollapsedSidebar = () => (
+    <div className="ui-panel-soft flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
+      <span className="mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-dim)]">
+        Project rail folded
+      </span>
+      <button
+        onClick={() => setIsSidebarCollapsed(false)}
+        className="ui-control ui-focus-ring flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] hover:text-[var(--color-accent-orange)]"
+        title="Expand Project Directory"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" />
+        </svg>
+        Expand
+      </button>
+    </div>
+  );
+
+  const renderCollapsedPreview = () => (
+    <div className="ui-panel-soft flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
+      <span className="mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-dim)]">
+        Preview deck folded
+      </span>
+      <button
+        onClick={() => setIsPreviewCollapsed(false)}
+        className="ui-control ui-focus-ring flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] hover:text-[var(--color-accent-orange)]"
+        title="Expand Preview"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
+        </svg>
+        Expand
+      </button>
     </div>
   );
 
@@ -147,7 +182,16 @@ export function ResizableLayout({
     "ui-control ui-focus-ring px-3 py-1.5 mono text-[10px] font-semibold uppercase tracking-[0.1em]";
 
   return (
-    <div className="w-full h-full bg-[var(--color-surface-low)] overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--color-surface-low)]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-70"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 12% 18%, rgba(123,175,212,0.18), transparent 38%), radial-gradient(circle at 84% 8%, rgba(249,115,22,0.14), transparent 40%), linear-gradient(115deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 34%)",
+        }}
+      />
+
       {showDirPicker && (
         <DirectoryPicker
           onSelect={(path) => {
@@ -164,8 +208,19 @@ export function ResizableLayout({
       />
 
       {isCompactLayout ? (
-        <div className="flex h-full flex-col overflow-hidden">
-          <div className="h-[52%] min-h-[300px] shrink-0">
+        <div className="relative flex h-full flex-col overflow-hidden gap-2 px-2.5 pb-2.5 pt-2">
+          <div className="shrink-0 rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface-high)]/55 p-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-orange)]/85">
+                Operations Deck
+              </span>
+              <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-dim)]/80">
+                HEX ROUTE
+              </span>
+            </div>
+          </div>
+
+          <div className="h-[52%] min-h-[290px] shrink-0 rounded-2xl border border-[var(--color-border)]/45 bg-[var(--color-surface-high)]/65 p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
             <ChatPanel
               agentName={agentName}
               width={viewportWidth}
@@ -180,7 +235,7 @@ export function ResizableLayout({
             />
           </div>
 
-          <div className="shrink-0 border-y border-[var(--color-border)] bg-[var(--color-surface-mid)]/75 px-3 py-2">
+          <div className="shrink-0 rounded-lg border border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/75 px-3 py-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -209,19 +264,24 @@ export function ResizableLayout({
 
           <div className="min-h-0 flex-1 overflow-hidden">
             {compactPane === "files" ? (
-              <div className="flex h-full min-h-0 flex-col overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-surface-mid)]">
+              <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden rounded-xl">
                 {sidebarContent()}
               </div>
             ) : (
-              <FilePreview path={selectedFile} projectRoot={projectRoot} />
+              <div className="ui-panel-strong h-full overflow-hidden rounded-xl">
+                <FilePreview path={selectedFile} projectRoot={projectRoot} />
+              </div>
             )}
           </div>
 
-          {renderGlobalActionsFooter()}
+          {renderGlobalActionsFooter(true)}
         </div>
       ) : (
-        <div className="flex h-full flex-row overflow-hidden">
-          <div className="h-full flex-shrink-0" style={{ width: `${chatWidth}px`, minWidth: "400px" }}>
+        <div className="relative flex h-full flex-row items-stretch gap-3 overflow-hidden px-3 pb-3 pt-2">
+          <div
+            className="relative h-full flex-shrink-0 rounded-2xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/70 p-1.5 shadow-[0_24px_52px_rgba(0,0,0,0.42)]"
+            style={{ width: `${chatWidth}px`, minWidth: "430px" }}
+          >
             <ChatPanel
               agentName={agentName}
               width={chatWidth}
@@ -238,20 +298,40 @@ export function ResizableLayout({
 
           <Resizer onResize={(delta) => setChatWidth((prev) => Math.max(400, prev + delta))} />
 
-          <div
-            className="flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface-mid)]"
-            style={{ width: `${sidebarWidth}px`, minWidth: "300px" }}
-          >
-            <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
-              {sidebarContent()}
-            </div>
+          <div className="flex min-w-[360px] flex-1 flex-col gap-3 overflow-hidden">
+            {isSidebarCollapsed ? (
+              renderCollapsedSidebar()
+            ) : (
+              <div className="group/sidebar ui-panel relative flex min-h-[240px] flex-[0_0_42%] flex-col overflow-hidden rounded-2xl">
+                <button
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  className="ui-control ui-focus-ring absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-md px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)] group-hover/sidebar:inline-flex"
+                  title="Collapse Project Directory"
+                >
+                  Fold
+                </button>
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  {sidebarContent()}
+                </div>
+              </div>
+            )}
+
             {renderGlobalActionsFooter()}
-          </div>
 
-          <Resizer onResize={(delta) => setSidebarWidth((prev) => Math.max(250, prev + delta))} />
-
-          <div className="flex-grow min-w-[300px] h-full overflow-hidden">
-            <FilePreview path={selectedFile} projectRoot={projectRoot} />
+            {isPreviewCollapsed ? (
+              renderCollapsedPreview()
+            ) : (
+              <div className="group/preview ui-panel-strong relative min-h-[280px] flex-1 overflow-hidden rounded-2xl">
+                <button
+                  onClick={() => setIsPreviewCollapsed(true)}
+                  className="ui-control ui-focus-ring absolute right-3 top-3 z-10 hidden items-center gap-1 rounded-md px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)] group-hover/preview:inline-flex"
+                  title="Collapse Preview"
+                >
+                  Fold
+                </button>
+                <FilePreview path={selectedFile} projectRoot={projectRoot} />
+              </div>
+            )}
           </div>
         </div>
       )}
