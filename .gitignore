@@ -2,3 +2,8 @@
 test/
 .Archive/
 .env
+
+# Harness runtime artifacts (keep scope precise; do not ignore all .chirality)
+.chirality/logs/
+.chirality/prompts/
+.chirality/sessions/
