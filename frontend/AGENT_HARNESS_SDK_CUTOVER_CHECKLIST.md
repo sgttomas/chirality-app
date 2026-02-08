@@ -31,7 +31,7 @@ Baseline reference:
 - [ ] `frontend/app/api/harness/session/create/route.ts` — no behavior change expected; verify compatibility.
 - [ ] `frontend/app/api/harness/session/[id]/route.ts` — no behavior change expected; verify compatibility.
 - [ ] `frontend/app/api/harness/session/list/route.ts` — no behavior change expected; verify compatibility.
-- [ ] `frontend/app/api/chat/route.ts` — delete (legacy path removal in wholesale migration).
+- [x] `frontend/app/api/chat/route.ts` — delete (legacy path removal in wholesale migration).
 
 ## Frontend/UI
 - [ ] `frontend/components/ChatPanel.tsx` — verify no contract changes required; only adjust if event shape differs.
@@ -52,8 +52,8 @@ Baseline reference:
 - [ ] `frontend/AGENT_HARNESS_SESSION_LOG.md` — append migration run log and parity results.
 
 ## Removals
-- [ ] `frontend/lib/harness/claude-code-manager.ts` — delete after SDK manager parity is passing.
-- [ ] `frontend/lib/harness/stream-parser.ts` — delete after SDK message mapper fully replaces NDJSON parsing.
+- [x] `frontend/lib/harness/claude-code-manager.ts` — delete after SDK manager parity is passing.
+- [x] `frontend/lib/harness/stream-parser.ts` — delete after SDK message mapper fully replaces NDJSON parsing.
 
 ## Merge Gate (must all pass)
 - [ ] `npm run lint`

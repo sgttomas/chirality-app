@@ -345,7 +345,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 23:00:18 -0700
 - Batch ID: `P2-C2`
 - Completed Task IDs: `RT-006`, `RT-012`, `RT-013`
-- Commit SHA: pending
+- Commit SHA: `5b37fbb`
 - Validation run:
   - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/claude-code-manager.ts lib/harness/env-filter.ts` (pass).
   - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` still imports removed `@anthropic-ai/sdk` and will be removed in `P3-C1`.
@@ -353,4 +353,18 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - Legacy `claude-code-manager.ts` still exists until `P3-C1`; it remains compile-compatible but is no longer in active runtime paths.
 - Next session first task: execute `P3-C1` (`API-006`, `RM-001`, `RM-002`) to remove `/api/chat`, CLI manager, and NDJSON parser.
+- Commit(s): `5b37fbb`
+
+## 2026-02-07 — Session 14 (SDK Cutover P3-C1)
+- Date/Time: 2026-02-07 23:02:24 -0700
+- Batch ID: `P3-C1`
+- Completed Task IDs: `API-006`, `RM-001`, `RM-002`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- app/api/harness/turn/route.ts app/api/harness/interrupt/route.ts app/api/harness/session/[id]/route.ts lib/harness/index.ts lib/harness/agent-sdk-manager.ts lib/harness/agent-sdk-event-mapper.ts` (pass).
+  - `npx next typegen` (pass; regenerated route types after deleting `/api/chat`).
+  - `npx tsc --noEmit` (pass).
+- Blockers/Risks:
+  - Validation scripts/docs still reference legacy `/api/chat` and CLI parse-mock behavior; these are scheduled for update in `P4-C1`/`P4-C2`.
+- Next session first task: execute `P4-C1` (`VAL-001`, `VAL-002`) to update validation scripts for SDK-native behavior.
 - Commit(s): none
