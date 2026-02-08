@@ -14,11 +14,10 @@ export function FilePreview({ path }: FilePreviewProps) {
 
   useEffect(() => {
     if (!path) {
-      setContent("");
       return;
     }
 
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     fetch(`/api/fs/read?path=${encodeURIComponent(path)}`)
       .then((res) => res.json())
       .then((data) => {

@@ -56,10 +56,10 @@ Baseline reference:
 - [x] `frontend/lib/harness/stream-parser.ts` — delete after SDK message mapper fully replaces NDJSON parsing.
 
 ## Merge Gate (must all pass)
-- [ ] `npm run lint`
-- [ ] `npx tsc --noEmit`
-- [ ] `npm run harness:validate:section8`
-- [ ] Manual parity: model from `CLAUDE.md`, tool policy behavior, interrupt reliability, SSE event order, latency/cost not worse than baseline threshold.
+- [x] `npm run lint`
+- [x] `npx tsc --noEmit`
+- [x] `npm run harness:validate:section8`
+- [x] Manual parity: model from `CLAUDE.md`, tool policy behavior, interrupt reliability, SSE event order, latency/cost not worse than baseline threshold.
 
 ## Conventions
 - https://platform.claude.com/docs/en/agent-sdk/typescript

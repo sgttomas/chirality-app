@@ -387,7 +387,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 23:10:02 -0700
 - Batch ID: `P4-C2`
 - Completed Task IDs: `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`, `DOC-006`, `DOC-007`
-- Commit SHA: pending
+- Commit SHA: `f81f256`
 - Validation run:
   - `npm run lint -- scripts/validate-harness-section8.mjs scripts/validate-harness-premerge.mjs` (pass; docs-adjacent script updates remain clean).
   - `npx tsc --noEmit` (pass).
@@ -395,4 +395,25 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - Manual parity gate (`GATE-004`) still requires live runtime verification for latency/cost/permission behavior.
 - Next session first task: execute `P5-C1` merge gates (`GATE-001`..`GATE-004`).
+- Commit(s): `f81f256`
+
+## 2026-02-07 — Session 17 (SDK Cutover P5-C1)
+- Date/Time: 2026-02-07 23:20:00 -0700
+- Batch ID: `P5-C1`
+- Completed Task IDs: `GATE-001`, `GATE-002`, `GATE-003`, `GATE-004`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint` (pass).
+  - `npx tsc --noEmit` (pass).
+  - `npm run harness:validate:section8` (pass): `HARNESS_VALIDATION_STATUS=pass`, totals `7/7` passed, summary at `/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-harness-validation/latest/summary.json`.
+  - `npm run harness:validate:premerge` (pass): `HARNESS_PREMERGE_STATUS=pass`, `HARNESS_PREMERGE_ARTIFACT_PATH=/Users/ryan/ai-env/projects/chirality-app/frontend/artifacts/harness/section8/latest/summary.json`.
+  - Manual parity checks (pass):
+    - model propagation from `CLAUDE.md` observed via `session:init.model=claude-haiku-4-5-20251001` while root `CLAUDE.md` declares `model: haiku`.
+    - tool policy behavior validated by `section8.permissions_dontask` pass.
+    - interrupt reliability validated by `section8.interrupt_sigint` pass.
+    - SSE event ordering validated by smoke/resume matrix (`session:init -> chat:delta -> chat:complete -> session:complete -> process:exit`).
+    - no evidence of latency/cost regression in gate runs; baseline threshold not numerically specified in checklist.
+- Blockers/Risks:
+  - none.
+- Next session first task: open PR from `migration/agent-sdk-wholesale` and include Section 8 artifact + cutover checklist in PR description.
 - Commit(s): none

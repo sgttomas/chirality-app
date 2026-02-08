@@ -41,8 +41,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ nodes, current: targetPath });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown system list error.";
     console.error("System List Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

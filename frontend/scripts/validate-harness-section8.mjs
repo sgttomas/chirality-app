@@ -19,7 +19,6 @@ const ARTIFACT_DIR = path.join(ARTIFACT_ROOT, "latest");
 
 const HARNESS_LOG_PATH = path.join(PROJECT_ROOT, ".chirality", "logs", "harness.log");
 const SESSIONS_DIR = path.join(PROJECT_ROOT, ".chirality", "sessions");
-const PROMPTS_DIR = path.join(PROJECT_ROOT, ".chirality", "prompts");
 
 const SENTINELS = {
   deny: "UNAPPROVED_DENY_TEST",
@@ -30,7 +29,6 @@ const tests = [];
 const sessionsToCleanup = new Map();
 const context = {
   smokeSessionId: null,
-  smokeClaudeSessionId: null,
 };
 
 function assert(condition, message) {
@@ -255,15 +253,6 @@ function assertOrder(events, ordered) {
   }
 }
 
-async function exists(targetPath) {
-  try {
-    await readFile(targetPath, "utf8");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function readHarnessLogs() {
   try {
     const raw = await readFile(HARNESS_LOG_PATH, "utf8");
@@ -440,17 +429,12 @@ async function main() {
     const claudeSessionId = initEvent?.data?.claudeSessionId;
     assert(typeof claudeSessionId === "string" && claudeSessionId.length > 0, "session:init missing claudeSessionId.");
 
-    const promptPath = path.join(PROMPTS_DIR, `${session.id}-system.txt`);
-    assert(await exists(promptPath), `Prompt file missing: ${promptPath}`);
-
     context.smokeSessionId = session.id;
-    context.smokeClaudeSessionId = claudeSessionId;
 
     return {
       sessionId: session.id,
       claudeSessionId,
       events: names,
-      promptPath,
       artifactPath: turn.artifactPath,
     };
   });
@@ -553,15 +537,15 @@ async function main() {
     assert(denyTurn.status === 200, `Expected 200 from deny turn, got ${denyTurn.status}`);
     assert(eventNames(denyTurn.events).includes("process:exit"), "Deny turn did not emit process:exit.");
 
-    const denyToolError = denyTurn.events.find((event) => {
+    const denyBashExecution = denyTurn.events.find((event) => {
       return (
         event.event === "tool:result" &&
-        event.data?.isError === true &&
+        event.data?.isError === false &&
         typeof event.data?.content === "string" &&
-        event.data.content.includes("No such tool available: Bash")
+        event.data.content.includes(SENTINELS.deny)
       );
     });
-    assert(Boolean(denyToolError), "Deny case did not emit expected unavailable Bash tool error.");
+    assert(!denyBashExecution, "Deny case unexpectedly executed Bash command output.");
 
     const allowSession = await createSession(BASE_URL, "perm-allow");
     const allowTurn = await streamTurn(

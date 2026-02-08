@@ -16,7 +16,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
 
   useEffect(() => {
     const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     
     fetch(url)
       .then((res) => res.json())

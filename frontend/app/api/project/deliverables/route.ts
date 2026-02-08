@@ -64,8 +64,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ deliverables });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown scan error.";
     console.error("Scan Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

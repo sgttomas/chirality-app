@@ -5,7 +5,6 @@ import { Resizer } from "./Resizer";
 import { ChatPanel } from "./ChatPanel";
 import { FilePreview } from "./FilePreview";
 import { SettingsModal } from "./SettingsModal";
-import Link from "next/link";
 
 interface ResizableLayoutProps {
   // Chat Props

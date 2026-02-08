@@ -31,7 +31,13 @@ export default function Home() {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [initialWorkbenchPath, setInitialWorkbenchPath] = useState<string | null>(null);
   
-  const [projectRoot, setProjectRoot] = useState<string | null>(null);
+  const [projectRoot, setProjectRoot] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    const savedRoot = sessionStorage.getItem("chirality_project_root");
+    return savedRoot && savedRoot.trim() ? savedRoot : null;
+  });
   const [isLightMode, setIsLightMode] = useState(false);
 
   useEffect(() => {
@@ -42,19 +48,12 @@ export default function Home() {
     }
   }, [isLightMode]);
 
-  useEffect(() => {
-      const savedRoot = sessionStorage.getItem("chirality_project_root");
-      if (savedRoot) {
-          setProjectRoot(savedRoot);
-      }
-  }, []);
-
   const handleRootChange = (path: string) => {
       setProjectRoot(path);
       sessionStorage.setItem("chirality_project_root", path);
   };
 
-  const launchAgent = (name: string, tier: string, type: "persona" | "task") => {
+  const launchAgent = (name: string) => {
     if (PERSONA_AGENTS.includes(name)) {
       setAgentName(name);
       setInitialWorkbenchPath(null); 
