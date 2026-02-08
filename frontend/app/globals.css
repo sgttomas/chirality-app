@@ -6,6 +6,8 @@
   --color-text-main: #f8fafc;
   --color-text-dim: #94a3b8;
   --color-border: rgba(255, 255, 255, 0.12);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-focus-ring: rgba(249, 115, 22, 0.45);
   --color-accent-orange: #f97316;
 
   --color-surface-high: rgba(0, 0, 0, 0.4);
@@ -23,6 +25,44 @@
 
   --font-eb: var(--font-eb-garamond);
   --font-mono: var(--font-jetbrains-mono);
+
+  /* Semantic aliases (no palette value changes) */
+  --color-text-strong: var(--color-text-main);
+  --color-text-muted: var(--color-text-dim);
+  --color-surface-panel: var(--color-bg-panel);
+  --color-surface-strong: var(--color-surface-high);
+  --color-surface-soft: var(--color-surface-mid);
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Elevation scale */
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 46px rgba(0, 0, 0, 0.35);
+
+  /* Typography roles */
+  --type-display-size: clamp(1.9rem, 2.2vw, 2.6rem);
+  --type-title-size: clamp(1.25rem, 1.4vw, 1.75rem);
+  --type-body-size: 1rem;
+  --type-meta-size: 0.75rem;
+  --type-mono-meta-size: 0.72rem;
+  --type-meta-letter-spacing: 0.14em;
 }
 
 @utility light-mode {
@@ -31,6 +71,8 @@
   --color-text-main: #334155; /* Slate 700 */
   --color-text-dim: #64748b; /* Slate 500 */
   --color-border: rgba(51, 65, 85, 0.15); /* Soft Grey */
+  --color-border-strong: rgba(51, 65, 85, 0.26);
+  --color-focus-ring: rgba(234, 88, 12, 0.4);
   --color-accent-orange: #ea580c;
 
   /* Surfaces with slight tints */
@@ -90,11 +132,121 @@ body.light-mode .hex-wrapper:hover .hex {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .mono {
     font-family: var(--font-mono);
+}
+
+/* Foundation utilities for polish slices:
+   - Use `ui-panel*` for shared panel chrome.
+   - Use `ui-control` / `ui-button-primary` for common control behavior.
+   - Use `ui-type-*` + `ui-stack-*` for consistent typography and spacing rhythm. */
+.ui-panel {
+    background: var(--color-surface-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-sm);
+}
+
+.ui-panel-soft {
+    background: var(--color-surface-soft);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.ui-panel-strong {
+    background: var(--color-surface-strong);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+}
+
+.ui-control {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-control:hover {
+    color: var(--color-text-strong);
+    border-color: var(--color-border-strong);
+    background: var(--color-surface-low);
+}
+
+.ui-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ui-button-primary {
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--color-accent-orange), var(--color-normative));
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.ui-button-primary:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.ui-button-primary:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.ui-button-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ui-type-display {
+    font-size: var(--type-display-size);
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.ui-type-title {
+    font-size: var(--type-title-size);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.ui-type-body {
+    font-size: var(--type-body-size);
+    line-height: 1.6;
+}
+
+.ui-type-meta {
+    font-size: var(--type-meta-size);
+    letter-spacing: var(--type-meta-letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.ui-type-mono-meta {
+    font-family: var(--font-mono);
+    font-size: var(--type-mono-meta-size);
+    letter-spacing: var(--type-meta-letter-spacing);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+
+.ui-stack-sm > * + * { margin-top: var(--space-2); }
+.ui-stack-md > * + * { margin-top: var(--space-4); }
+.ui-stack-lg > * + * { margin-top: var(--space-6); }
+
+.ui-focus-ring:focus-visible,
+.ui-control:focus-visible,
+.ui-button-primary:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
 }
 
 /* --- PORTAL GRID (LEFT) --- */
