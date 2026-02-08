@@ -24,6 +24,8 @@ const PUBLISHED_SUMMARY_PATH = path.join(PUBLISHED_ARTIFACT_DIR, "summary.json")
 const REQUIRED_SDK_TEST_IDS = [
   "setup.server_reachable",
   "regression.session_crud",
+  "section8.session_boot_endpoint",
+  "section8.boot_fingerprint_drift",
   "section8.smoke_stream",
   "section8.session_persistence_resume",
   "section8.permissions_dontask",

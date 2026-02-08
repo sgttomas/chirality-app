@@ -1,7 +1,7 @@
 import { agentSdkManager } from "./agent-sdk-manager";
 import { PersonaManager } from "./persona-manager";
 import { SessionManager } from "./session-manager";
-import type { PersonaConfig, Session, TurnOpts, UIEvent } from "./types";
+import type { PersonaConfig, Session, SessionBootReason, SessionBootResult, TurnOpts, UIEvent } from "./types";
 
 declare global {
   var __chiralityHarnessPersonaManager_v2: PersonaManager | undefined;
@@ -22,6 +22,12 @@ export type StartHarnessTurnArgs = {
   opts?: TurnOpts;
 };
 
+export type EnsureHarnessSessionBootedArgs = {
+  sessionId: string;
+  force?: boolean;
+  opts?: TurnOpts;
+};
+
 const RESUME_FAILURE_PATTERNS = [
   "--resume",
   "resume",
@@ -31,6 +37,14 @@ const RESUME_FAILURE_PATTERNS = [
   "no such session",
   "exited before a result event",
 ];
+
+const BOOTSTRAP_TURN_MESSAGE =
+  "Initialize this session using your current system and persona instructions. Reply with exactly: BOOTSTRAP_OK";
+const BOOTSTRAP_TURN_OPTS: TurnOpts = {
+  maxTurns: 1,
+  permissionMode: "plan",
+  includePartialMessages: false,
+};
 
 function markSessionUpdated(session: Session): void {
   session.updatedAt = new Date().toISOString();
@@ -74,6 +88,31 @@ function normalizeModelValue(model: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function normalizeTurnContext(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function composeSystemPromptAppend(basePrompt: string | null, turnContext: string | null): string | undefined {
+  if (basePrompt && turnContext) {
+    return `${basePrompt}\n\nTurn-specific context:\n${turnContext}`;
+  }
+
+  if (basePrompt) {
+    return basePrompt;
+  }
+
+  if (turnContext) {
+    return `Turn-specific context:\n${turnContext}`;
+  }
+
+  return undefined;
+}
+
 function isResumeFailure(error: string, usedResume: boolean, sawSessionInit: boolean): boolean {
   if (!usedResume || sawSessionInit) {
     return false;
@@ -83,16 +122,101 @@ function isResumeFailure(error: string, usedResume: boolean, sawSessionInit: boo
   return RESUME_FAILURE_PATTERNS.some((pattern) => lowered.includes(pattern));
 }
 
+function classifyBootReason(session: Session, fingerprint: string, force: boolean): SessionBootReason {
+  if (force) {
+    return "forced";
+  }
+
+  if (!session.claudeSessionId) {
+    return "missing_claude_session";
+  }
+
+  if (!session.bootFingerprint || !session.bootedAt) {
+    return "missing_boot_metadata";
+  }
+
+  if (session.bootFingerprint !== fingerprint) {
+    return "fingerprint_changed";
+  }
+
+  return "already_booted";
+}
+
+export async function ensureHarnessSessionBooted({
+  sessionId,
+  force = false,
+  opts,
+}: EnsureHarnessSessionBootedArgs): Promise<SessionBootResult> {
+  const session = await sessionManager.resume(sessionId);
+  const persona = session.persona ? await personaManager.load(session.projectRoot, session.persona) : null;
+  const fingerprint = await personaManager.getBootFingerprint(session.projectRoot, persona, session.mode);
+  const reason = classifyBootReason(session, fingerprint, force);
+  const previousFingerprint = session.bootFingerprint ?? null;
+  const previousClaudeSessionId = session.claudeSessionId ?? null;
+
+  if (reason === "already_booted") {
+    return {
+      session,
+      booted: false,
+      reason,
+      fingerprint,
+      previousFingerprint,
+      previousClaudeSessionId,
+    };
+  }
+
+  if (force && session.claudeSessionId) {
+    session.claudeSessionId = null;
+    session.bootFingerprint = null;
+    session.bootedAt = null;
+    await saveSession(session);
+  }
+
+  let surfacedBootError: string | null = null;
+  const bootTurnOpts: TurnOpts = {
+    ...BOOTSTRAP_TURN_OPTS,
+    ...(opts ?? {}),
+    maxTurns: BOOTSTRAP_TURN_OPTS.maxTurns,
+    permissionMode: BOOTSTRAP_TURN_OPTS.permissionMode,
+    includePartialMessages: BOOTSTRAP_TURN_OPTS.includePartialMessages,
+  };
+
+  for await (const event of startHarnessTurn({
+    sessionId,
+    message: BOOTSTRAP_TURN_MESSAGE,
+    opts: bootTurnOpts,
+  })) {
+    if (event.type === "session:error") {
+      surfacedBootError = event.error;
+    }
+  }
+
+  if (surfacedBootError) {
+    throw new Error(`Session boot failed: ${surfacedBootError}`);
+  }
+
+  const updatedSession = await sessionManager.get(sessionId);
+  if (!updatedSession.claudeSessionId) {
+    throw new Error("Session boot failed: missing claudeSessionId after bootstrap.");
+  }
+
+  return {
+    session: updatedSession,
+    booted: true,
+    reason,
+    fingerprint,
+    previousFingerprint,
+    previousClaudeSessionId,
+  };
+}
+
 export async function* startHarnessTurn({ sessionId, message, opts }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
   const session = await sessionManager.resume(sessionId);
   const persona = session.persona ? await personaManager.load(session.projectRoot, session.persona) : null;
   const globalModel = await personaManager.getGlobalModel(session.projectRoot);
-  const basePrompt = await personaManager.buildSystemPrompt(session.projectRoot, persona, session.mode);
-  const systemPrompt = opts?.systemPromptAppend
-    ? `${basePrompt}\n\nTurn-specific context:\n${opts.systemPromptAppend}`
-    : basePrompt;
+  const bootFingerprint = await personaManager.getBootFingerprint(session.projectRoot, persona, session.mode);
+  const turnContext = normalizeTurnContext(opts?.systemPromptAppend);
   const mergedOpts = mergePersonaTurnDefaults(persona, opts);
-  mergedOpts.systemPromptAppend = systemPrompt;
   const requestedModel = normalizeModelValue(mergedOpts.model);
   const configuredGlobalModel = normalizeModelValue(globalModel);
 
@@ -104,13 +228,34 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
     delete mergedOpts.model;
   }
 
-  // Detect model change: if the desired model differs from the session's active model,
-  // we must start a fresh Claude session to ensure the model change takes effect.
-  // We also reset if session.model is unknown (legacy session) to guarantee compliance.
+  // Reset to a fresh Claude session when model or boot context drift is detected.
+  // Boot context drift includes instruction-file changes and legacy sessions
+  // that do not yet carry boot metadata.
   const desiredModel = mergedOpts.model;
-  if (session.claudeSessionId && desiredModel && session.model !== desiredModel) {
+  const modelChanged = Boolean(session.claudeSessionId && desiredModel && session.model !== desiredModel);
+  const bootFingerprintChanged = Boolean(session.claudeSessionId && session.bootFingerprint !== bootFingerprint);
+  const missingBootMetadata = Boolean(session.claudeSessionId && (!session.bootFingerprint || !session.bootedAt));
+
+  if (modelChanged || bootFingerprintChanged || missingBootMetadata) {
     session.claudeSessionId = null;
+    session.bootFingerprint = null;
+    session.bootedAt = null;
     await saveSession(session);
+  }
+
+  // Boot-up behavior:
+  // - Fresh Claude session (no resume ID): inject full project/persona prompt.
+  // - Resumed Claude session: rely on persisted transcript memory and only append
+  //   turn-scoped context if the caller provides it.
+  const shouldBootstrapPrompt = !session.claudeSessionId;
+  const basePrompt = shouldBootstrapPrompt
+    ? await personaManager.buildSystemPrompt(session.projectRoot, persona, session.mode)
+    : null;
+  const systemPromptAppend = composeSystemPromptAppend(basePrompt, turnContext);
+  if (systemPromptAppend) {
+    mergedOpts.systemPromptAppend = systemPromptAppend;
+  } else {
+    delete mergedOpts.systemPromptAppend;
   }
 
   const hadResumeAtStart = Boolean(session.claudeSessionId);
@@ -118,6 +263,7 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
 
   while (true) {
     const runSession = attemptedFreshRetry ? { ...session, claudeSessionId: null } : session;
+    const bootingFreshSession = !runSession.claudeSessionId;
     let sawSessionInit = false;
     let shouldRetryWithoutResume = false;
 
@@ -126,6 +272,10 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
         sawSessionInit = true;
         session.claudeSessionId = event.claudeSessionId;
         session.model = event.model; // Sync the authoritative model from the CLI init event
+        if (bootingFreshSession) {
+          session.bootFingerprint = bootFingerprint;
+          session.bootedAt = new Date().toISOString();
+        }
         await saveSession(session);
       }
 

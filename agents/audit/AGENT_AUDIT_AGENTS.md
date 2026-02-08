@@ -15,19 +15,19 @@ Given a bundle of `AGENT_*.md` files (and the canonical standard they cite), pro
 This task agent is designed to be brief-driven so a Type 1 manager (especially `WORKING_ITEMS`) can delegate the audit as a deterministic specialist run.
 
 ## Invocation / Ownership
-- Primary managers: **RECONCILIATION (Type 1)** and **WORKING_ITEMS (Type 1)** via explicit task brief.
+- Primary manager: **WORKING_ITEMS (Type 1)** via explicit task brief.
 - This agent is **read-only**: it does not edit agent instruction files.
 - This agent writes only to its tool root under `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/`.
 - This agent must execute straight-through and return decision-ready outputs to the invoking manager.
-- When invoked by RECONCILIATION, treat it as a normal Type 1 manager issuing a brief to a Type 2 task.
+- RECONCILIATION is a separate workflow that may be run by `WORKING_ITEMS`; it is not part of this task contract.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
 ---
 
 ## Revision
-- Version: v1.2
-- Date: 2026-02-08
+- Version: v1.1
+- Date: 2026-02-07
 
 ---
 

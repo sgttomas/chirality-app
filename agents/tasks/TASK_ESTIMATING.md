@@ -7,7 +7,7 @@ This brief is the single task contract for the run.
 
 ## 2) Agent Routing
 - Primary persona interface: `WORKING_ITEMS` (`agents/AGENT_WORKING_ITEMS.md`)
-- Task-execution basis: `AGENT_ESTIMATING` (`agents/AGENT_ESTIMATING.md`)
+- Task-execution basis: `AGENT_ESTIMATING` (`agents/AGENT_ESTIMATING.md`) when present; otherwise this task file Section 11A is authoritative for estimate schema and fallback behavior
 - Design standard basis: `AGENT_HELPS_HUMANS` (`agents/AGENT_HELPS_HUMANS.md`)
 
 Execution posture:
@@ -20,7 +20,7 @@ Execution posture:
 2. `AGENTS.md`
 3. `test/execution-7/INIT-PERSONA.md`
 4. `agents/AGENT_WORKING_ITEMS.md`
-5. `agents/AGENT_ESTIMATING.md`
+5. `agents/AGENT_ESTIMATING.md` (if present). If archived/missing, use Section 11A in this file as the execution contract for `Detail.csv` and fallback rules.
 
 ## 4) Authoritative DAG Control Snapshot (Mandatory)
 Use this hardened snapshot as dependency authority:
@@ -173,6 +173,39 @@ At minimum include:
 
 For full estimating runs also include:
 - `Detail.csv`
+
+### 11A) Canonical `Detail.csv` Schema (Required)
+
+When `Detail.csv` is produced, the following columns are mandatory and must be populated on every row:
+
+- `LineID`
+- `CBS`
+- `WBS_PackageID`
+- `WBS_DeliverableID`
+- `Description`
+- `Qty`
+- `Unit`
+- `UnitRate`
+- `Amount`
+- `Currency`
+- `Method` (`QUOTE|RATE_TABLE|HISTORICAL|ALLOWANCE|PARAMETRIC`)
+- `SourceRef` (file path + section or assumption/decision reference)
+- `Confidence` (`LOW|MED|HIGH`)
+- `Notes`
+
+Allowance/parametric convention (mandatory):
+- Set `Qty = 1`
+- Set `Unit = LS`
+- Set `UnitRate = Amount`
+
+If quote/rate-table sources are unavailable, fallback pricing is allowed using `ALLOWANCE`/`PARAMETRIC`, but assumptions and decision rationale must be recorded in:
+- `Assumptions_Log.md`
+- `Decision_Log.md`
+
+`RUN_STATUS` guidance:
+- `OK`: no critical failures and outputs are meaningful
+- `WARNINGS`: material assumptions/ambiguities remain
+- `FAILED_INPUTS`: inputs insufficient for meaningful totals
 
 For DAG-directed run control include:
 - `nodes.csv` (if updated)

@@ -71,12 +71,12 @@ export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }
 
   return (
     <section className="dashboard-panel ui-panel relative flex h-full w-full max-w-full flex-col gap-4 overflow-hidden p-5 xl:w-[550px]">
-      <header className="flex shrink-0 flex-col gap-3 border-b border-[var(--color-border)] pb-3">
+      <header className="flex shrink-0 flex-col gap-3 ui-panel-soft rounded-lg px-4 py-3 border-none">
         <div className="flex items-center justify-between gap-3">
           <h2 className="ui-type-title text-[1.35rem] font-black tracking-[0.12em] uppercase text-[var(--color-text-main)]">
             Deliverables
           </h2>
-          <span className="ui-panel-soft mono rounded-md px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] uppercase text-[var(--color-text-dim)]">
+          <span className="mono rounded-md border border-[var(--color-border)]/50 bg-[var(--color-surface-low)]/50 px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] uppercase text-[var(--color-text-dim)]">
             COUNT: {deliverables.length}
           </span>
         </div>
@@ -134,7 +134,7 @@ export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }
               key={del.id}
               type="button"
               onClick={() => onSelect(del)}
-              className="ui-focus-ring group flex w-full items-center gap-3 rounded-lg border border-transparent bg-[var(--color-surface-low)]/55 px-4 py-3 text-left transition-all duration-200 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-low)]/85"
+              className="ui-panel-soft ui-focus-ring group flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:border-[var(--color-border-strong)] hover:shadow-md"
               aria-label={`Open ${del.id} ${del.name}`}
             >
               <span className={`del-status-dot status-${del.status}`} aria-hidden />

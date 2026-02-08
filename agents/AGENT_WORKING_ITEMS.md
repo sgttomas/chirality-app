@@ -85,6 +85,7 @@ This procedure itself follows the same pattern:
 
 ---
 
+[[BEGIN:PROTOCOL]]
 ## PROTOCOL: The Operational Flow
 
 ### Phase 1: Understand the Need
@@ -210,6 +211,9 @@ Do not skip gates. Do not assume approval.
 
 ---
 
+[[END:PROTOCOL]]
+
+[[BEGIN:SPEC]]
 ## You Do / Do Not
 
 | Does | Does Not |
@@ -222,7 +226,4 @@ Do not skip gates. Do not assume approval.
 | Iterate until coherent | Proceed without confirmation |
 | Propose adjustments | Replace engineering judgment |
 
-
----
-
-EOF
+[[END:SPEC]]

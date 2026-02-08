@@ -41,6 +41,7 @@ function buildSessionSummary(session: Session): SessionSummary {
     mode: session.mode,
     projectRoot: session.projectRoot,
     model: session.model,
+    bootedAt: session.bootedAt,
   };
 }
 
@@ -63,6 +64,13 @@ function parseSession(contents: string): Session | null {
   const persona = typeof parsed.persona === "string" ? parsed.persona : parsed.persona === null ? null : null;
   const mode = parsed.mode;
   const model = typeof parsed.model === "string" ? parsed.model : null;
+  const bootFingerprint =
+    typeof parsed.bootFingerprint === "string"
+      ? parsed.bootFingerprint
+      : parsed.bootFingerprint === null
+        ? null
+        : null;
+  const bootedAt = toIsoString(parsed.bootedAt);
   const claudeSessionId =
     typeof parsed.claudeSessionId === "string"
       ? parsed.claudeSessionId
@@ -83,6 +91,8 @@ function parseSession(contents: string): Session | null {
     mode,
     claudeSessionId,
     model,
+    bootFingerprint,
+    bootedAt,
   };
 }
 
@@ -180,6 +190,8 @@ export class SessionManager {
       mode,
       claudeSessionId: null,
       model: null,
+      bootFingerprint: null,
+      bootedAt: null,
     };
 
     await this.save(session);
@@ -199,6 +211,8 @@ export class SessionManager {
       persona: session.persona ?? null,
       claudeSessionId: session.claudeSessionId ?? null,
       model: session.model ?? null,
+      bootFingerprint: session.bootFingerprint ?? null,
+      bootedAt: toIsoString(session.bootedAt) ?? null,
     };
 
     await this.ensureSessionsDir(normalized.projectRoot);

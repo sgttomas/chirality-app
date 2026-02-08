@@ -213,11 +213,7 @@ export function ResizableLayout({
     <div className="relative h-full w-full overflow-hidden bg-[var(--color-surface-low)]">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 12% 18%, rgba(123,175,212,0.18), transparent 38%), radial-gradient(circle at 84% 8%, rgba(249,115,22,0.14), transparent 40%), linear-gradient(115deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 34%)",
-        }}
+        className="ui-neural-overlay pointer-events-none absolute inset-0 opacity-70"
       />
 
       {showDirPicker && (
@@ -237,7 +233,7 @@ export function ResizableLayout({
 
       {isCompactLayout ? (
         <div className="relative flex h-full flex-col overflow-hidden gap-2 px-2.5 pb-2.5 pt-2">
-          <div className="shrink-0 rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface-high)]/55 p-2">
+          <div className="shrink-0 ui-panel-soft p-2">
             <div className="flex items-center justify-between gap-3">
               <span className="mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-orange)]/85">
                 Operations Deck
@@ -248,7 +244,7 @@ export function ResizableLayout({
             </div>
           </div>
 
-          <div className="h-[52%] min-h-[290px] shrink-0 rounded-2xl border border-[var(--color-border)]/45 bg-[var(--color-surface-high)]/65 p-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
+          <div className="h-[52%] min-h-[290px] shrink-0 ui-panel-strong p-1.5">
             <ChatPanel
               agentName={agentName}
               width={viewportWidth}
@@ -263,7 +259,7 @@ export function ResizableLayout({
             />
           </div>
 
-          <div className="shrink-0 rounded-lg border border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/75 px-3 py-2">
+          <div className="shrink-0 ui-panel-soft px-3 py-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -292,11 +288,11 @@ export function ResizableLayout({
 
           <div className="min-h-0 flex-1 overflow-hidden">
             {compactPane === "files" ? (
-              <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden rounded-xl">
+              <div className="ui-panel flex h-full min-h-0 flex-col overflow-hidden">
                 {sidebarContent()}
               </div>
             ) : (
-              <div className="ui-panel-strong h-full overflow-hidden rounded-xl">
+              <div className="ui-panel-strong h-full overflow-hidden">
                 <FilePreview path={selectedFile} projectRoot={projectRoot} />
               </div>
             )}
@@ -307,7 +303,7 @@ export function ResizableLayout({
       ) : (
         <div className="relative flex h-full flex-row items-stretch gap-3 overflow-hidden px-3 pb-3 pt-2">
           <div
-            className="relative h-full flex-shrink-0 rounded-2xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/70 p-1.5 shadow-[0_24px_52px_rgba(0,0,0,0.42)]"
+            className="relative h-full flex-shrink-0 ui-panel-strong p-1.5"
             style={{ width: `${chatWidth}px`, minWidth: "430px" }}
           >
             <ChatPanel
@@ -330,7 +326,7 @@ export function ResizableLayout({
             renderCollapsedSidebar()
           ) : (
             <div
-              className="group/sidebar ui-panel relative flex h-full shrink-0 flex-col overflow-hidden rounded-2xl"
+              className="group/sidebar ui-panel relative flex h-full shrink-0 flex-col overflow-hidden"
               style={{ width: `${sidebarWidth}px`, minWidth: "290px" }}
             >
               <button

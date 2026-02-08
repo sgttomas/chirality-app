@@ -11,6 +11,8 @@ export interface Session {
   mode: SessionMode;
   claudeSessionId: string | null;
   model: string | null;
+  bootFingerprint: string | null;
+  bootedAt: string | null;
 }
 
 export interface SessionSummary {
@@ -21,6 +23,23 @@ export interface SessionSummary {
   mode: SessionMode;
   projectRoot: string;
   model: string | null;
+  bootedAt: string | null;
+}
+
+export type SessionBootReason =
+  | "already_booted"
+  | "forced"
+  | "missing_claude_session"
+  | "missing_boot_metadata"
+  | "fingerprint_changed";
+
+export interface SessionBootResult {
+  session: Session;
+  booted: boolean;
+  reason: SessionBootReason;
+  fingerprint: string;
+  previousFingerprint: string | null;
+  previousClaudeSessionId: string | null;
 }
 
 export interface UsageInfo {

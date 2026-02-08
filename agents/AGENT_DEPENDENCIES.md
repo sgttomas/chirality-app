@@ -49,6 +49,38 @@ This agent is **deliverable-scoped** in output (writes per deliverable) but **cr
 
 ---
 
+## Dependency Model: Information Flow Only
+
+**Purpose:** Dependencies capture **information flow** from sources to execution pipelines, NOT scheduling, coordination, or structural relationships.
+
+**Architecture:** Hierarchical information transfer
+- PROJECT → PHASE 1 (FEED) → PHASE 2 (Execution) → PHASE 3
+- Information flows downward through phases
+- Cross-phase information transfer only
+
+**What to Extract:**
+- ✅ FEED outputs → Execution deliverable inputs (information transfer)
+- ✅ Design basis → Detailed design → Construction packages
+- ✅ Earlier phase deliverables → Later phase deliverables (when information flows)
+- ✅ Requirements/objectives → Implementation deliverables
+
+**What NOT to Extract:**
+- ❌ Design (DEL-XX-01) ↔ Turnover (DEL-XX-02) within same package (structural, obvious)
+- ❌ COORDINATION relationships (concurrent work, not information flow)
+- ❌ Scheduling dependencies (out of scope)
+- ❌ Structural concurrency (two packages doing parallel work with no data exchange)
+
+**Peer-to-peer within the same phase — use judgement:**
+- ✅ Extract when one discipline needs another's engineering data (e.g., civil needs mechanical foundation loads, electrical needs instrumentation panel sizes). This is information flow even though both are same-phase deliverables.
+- ❌ Do NOT extract when the relationship is purely structural concurrency (two packages doing independent parallel work with no data exchange).
+
+**Direction Usage:**
+- **UPSTREAM:** This deliverable requires information FROM the target (information flows TO this deliverable)
+- **DOWNSTREAM:** This deliverable produces information FOR the target (information flows FROM this deliverable)
+- **COORDINATION:** DO NOT USE - coordination relationships don't belong in information-flow dependency graph
+
+---
+
 ## Precedence (conflict resolution)
 
 1. **PROTOCOL**
@@ -80,6 +112,10 @@ If any instruction appears to conflict, flag the conflict and return it to the i
 - **Enum normalization on write.** Normalize legacy variants to canonical enums (for example `INBOUND` -> `UPSTREAM`, `OUTBOUND` -> `DOWNSTREAM`).
 - **Lifecycle hygiene.** Track both extraction lifecycle (`FirstSeen`/`LastSeen`/`Status`) and closure lifecycle (`RequiredMaturity`/`ProposedMaturity`/`SatisfactionStatus`).
 - **Referential integrity.** Ensure `FromDeliverableID` matches the current deliverable; preserve unresolved targets as `UNKNOWN`/`TBD` rather than guessing.
+- **Information flow only.** Extract only dependencies that represent information transfer across phases/deliverables. Do NOT extract:
+  - Design↔Turnover relationships within the same package (structural, not information flow)
+  - COORDINATION relationships (concurrent work, not information transfer)
+  - Peer-to-peer interfaces that don't represent information dependencies
 
 ---
 
@@ -287,6 +323,7 @@ Before finalizing files, run these checks:
 - Target ID placement is consistent:
   - For `TargetType=DELIVERABLE`, `TargetDeliverableID` MUST be populated and MUST match the deliverable ID format (typically `DEL-###`).
   - For `TargetType=WBS_NODE`/`REQUIREMENT`, `TargetRefID` MUST be populated and `TargetDeliverableID` MUST be empty.
+  - For `TargetType` in {`EXTERNAL`, `PACKAGE`, `DOCUMENT`, `EQUIPMENT`}, `TargetDeliverableID` MUST be empty (these are not deliverables; use `TargetName` for identification and `TargetRefID` for any stable reference ID). Do NOT place `TBD` in `TargetDeliverableID` for non-deliverable targets.
 
 **Graph integrity checks (Tree × DAG invariants)**
 - **Parent anchor check (Floating Node rule):**
@@ -389,7 +426,10 @@ These are the fields **RECONCILIATION** consumes as its worklist.
   - `TRACES_TO_REQUIREMENT` (deliverable traces to a requirement ID)
   - `NOT_APPLICABLE` (all non-anchor edges)
 
-- `Direction`: `UPSTREAM` | `DOWNSTREAM`
+- `Direction`: `UPSTREAM` | `DOWNSTREAM` (COORDINATION not used in information-flow model)
+  - UPSTREAM: Information flows FROM target TO this deliverable
+  - DOWNSTREAM: Information flows FROM this deliverable TO target
+  - Note: COORDINATION direction is deprecated - coordination relationships don't represent information flow
 
 - `DependencyType` (execution semantics; anchors use `OTHER`):
   - `PREREQUISITE` | `INTERFACE` | `COORDINATION` | `INFORMATION` | `HANDOVER` | `ENABLES` | `CONSTRAINT` | `OTHER`
@@ -411,6 +451,30 @@ Legacy read compatibility:
 - If `RegisterSchemaVersion` is missing, add it on write and set to `v3.1`.
 - If `TargetRefID` is missing, add it on write (blank by default). If legacy rows contain non-`DEL-###` identifiers in `TargetDeliverableID` for non-deliverable targets, migrate them to `TargetRefID` and clear `TargetDeliverableID` (record in `Notes`).
 - Other legacy values MAY be retained in `Notes` for traceability, but persisted row values must use canonical enums.
+
+#### Exclusion Examples (Do NOT Extract These)
+
+**Design↔Turnover within same package:**
+```
+❌ Design Dossier → Turnover Dossier (same package — structural, not information flow)
+❌ Turnover Dossier → Design Dossier (same package — structural, not information flow)
+```
+
+**COORDINATION relationships:**
+```
+❌ Any dependency with Direction=COORDINATION
+❌ "Interface with..." statements (interfaces ≠ information flow)
+❌ "Coordinate with..." statements (coordination ≠ information flow)
+```
+
+**Peer-to-peer within same phase (requires judgement):**
+```
+✅ Civil → Mechanical (foundation loads needed for structural design — cross-discipline info flow)
+✅ Civil → Electrical (transformer pad locations needed for site layout — cross-discipline info flow)
+✅ Civil → Instrumentation (panel sizes needed for building layout — cross-discipline info flow)
+❌ Linepipe installation ↔ Block valve installation (independent parallel work, no data exchange)
+✅ FEED design basis → Execution detailed design (cross-phase info flow)
+```
 
 #### Extension columns (optional; non-breaking)
 

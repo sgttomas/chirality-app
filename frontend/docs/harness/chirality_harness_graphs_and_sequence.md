@@ -20,6 +20,7 @@ flowchart LR
     Turn["POST /api/harness/turn\n(SSE: UIEvents)"]
     Interrupt["POST /api/harness/interrupt"]
     SessCreate["POST /api/harness/session/create"]
+    SessBoot["POST /api/harness/session/boot"]
     SessList["GET /api/harness/session/list"]
     SessGet["GET /api/harness/session/:id"]
     SessDel["DELETE /api/harness/session/:id"]
@@ -28,6 +29,7 @@ flowchart LR
   GUI --> Turn
   GUI --> Interrupt
   GUI --> SessCreate
+  GUI --> SessBoot
   GUI --> SessList
   GUI --> SessGet
   GUI --> SessDel
@@ -83,6 +85,14 @@ sequenceDiagram
   participant SDK as Agent SDK query()
   participant MAP as AgentSdkEventMapper
   participant LOG as Logger
+
+  Note over GUI,API: Optional prewarm boot path
+  GUI->>API: POST /api/harness/session/boot { sessionId }
+  API->>SS: resume(sessionId)
+  API->>PM: getBootFingerprint(projectRoot, persona, mode)
+  API->>ASM: startTurn(bootstrap message, plan mode)
+  API->>SS: save(claudeSessionId, bootFingerprint, bootedAt)
+  API-->>GUI: 200 { session, boot }
 
   GUI->>API: POST /api/harness/turn { sessionId, message, opts }
   API-->>GUI: 200 text/event-stream

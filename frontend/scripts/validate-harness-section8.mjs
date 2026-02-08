@@ -19,6 +19,8 @@ const ARTIFACT_DIR = path.join(ARTIFACT_ROOT, "latest");
 
 const HARNESS_LOG_PATH = path.join(PROJECT_ROOT, ".chirality", "logs", "harness.log");
 const SESSIONS_DIR = path.join(PROJECT_ROOT, ".chirality", "sessions");
+const BOOT_TEST_PERSONA_ID = "BOOT_TEST_TMP";
+const BOOT_TEST_PERSONA_FILE = path.join(PROJECT_ROOT, "agents", `AGENT_${BOOT_TEST_PERSONA_ID}.md`);
 
 const SENTINELS = {
   deny: "UNAPPROVED_DENY_TEST",
@@ -300,6 +302,19 @@ async function deleteSession(baseUrl, sessionId, label) {
   clearSessionFromCleanup(baseUrl, sessionId);
 }
 
+async function bootSession(baseUrl, sessionId, label, { force = false, opts } = {}) {
+  const response = await requestJson(baseUrl, "/api/harness/session/boot", {
+    method: "POST",
+    body: {
+      sessionId,
+      force,
+      ...(opts ? { opts } : {}),
+    },
+  });
+  await writeJsonArtifact(`api/${label}-boot.json`, response);
+  return response;
+}
+
 async function cleanupSessions() {
   const cleanupResults = [];
 
@@ -401,6 +416,70 @@ async function main() {
     assert(isNotFoundAfterDelete, `Expected not-found after delete, got status ${afterDeleteResponse.status}.`);
 
     return { sessionId: session.id };
+  });
+
+  await runTest("section8.session_boot_endpoint", "Session boot endpoint idempotency", async () => {
+    const session = await createSession(BASE_URL, "boot-endpoint");
+
+    const firstBoot = await bootSession(BASE_URL, session.id, "boot-endpoint-initial");
+    assert(firstBoot.status === 200, `Expected 200 from first boot call, got ${firstBoot.status}`);
+    assert(firstBoot.json?.boot?.booted === true, "Expected first boot call to perform bootstrap.");
+    assert(typeof firstBoot.json?.session?.claudeSessionId === "string", "First boot call missing claudeSessionId.");
+    assert(typeof firstBoot.json?.session?.bootFingerprint === "string", "First boot call missing bootFingerprint.");
+    assert(typeof firstBoot.json?.session?.bootedAt === "string", "First boot call missing bootedAt.");
+
+    const secondBoot = await bootSession(BASE_URL, session.id, "boot-endpoint-repeat");
+    assert(secondBoot.status === 200, `Expected 200 from second boot call, got ${secondBoot.status}`);
+    assert(secondBoot.json?.boot?.booted === false, "Expected second boot call to be a no-op.");
+    assert(secondBoot.json?.boot?.reason === "already_booted", "Expected no-op boot reason to be already_booted.");
+
+    return {
+      sessionId: session.id,
+      firstReason: firstBoot.json?.boot?.reason ?? null,
+      secondReason: secondBoot.json?.boot?.reason ?? null,
+      bootFingerprint: firstBoot.json?.session?.bootFingerprint ?? null,
+    };
+  });
+
+  await runTest("section8.boot_fingerprint_drift", "Boot fingerprint drift triggers re-bootstrap", async () => {
+    const personaInitial = `---\nmax_turns: 2\n---\nPersona bootstrap content v1\n`;
+    const personaUpdated = `---\nmax_turns: 2\n---\nPersona bootstrap content v2\n`;
+    await writeFile(BOOT_TEST_PERSONA_FILE, personaInitial, "utf8");
+
+    try {
+      const session = await createSession(BASE_URL, "boot-fingerprint", {
+        persona: BOOT_TEST_PERSONA_ID,
+        mode: "workbench",
+      });
+
+      const initialBoot = await bootSession(BASE_URL, session.id, "boot-fingerprint-initial");
+      assert(initialBoot.status === 200, `Expected 200 from initial fingerprint boot, got ${initialBoot.status}`);
+      const fingerprintBefore = initialBoot.json?.session?.bootFingerprint;
+      assert(typeof fingerprintBefore === "string", "Initial boot fingerprint is missing.");
+
+      await writeFile(BOOT_TEST_PERSONA_FILE, personaUpdated, "utf8");
+
+      const driftBoot = await bootSession(BASE_URL, session.id, "boot-fingerprint-after-drift");
+      assert(driftBoot.status === 200, `Expected 200 from drift boot call, got ${driftBoot.status}`);
+      assert(driftBoot.json?.boot?.booted === true, "Expected drift boot call to re-bootstrap.");
+      assert(
+        driftBoot.json?.boot?.reason === "fingerprint_changed",
+        `Expected drift boot reason fingerprint_changed, got ${driftBoot.json?.boot?.reason ?? "unknown"}.`,
+      );
+
+      const fingerprintAfter = driftBoot.json?.session?.bootFingerprint;
+      assert(typeof fingerprintAfter === "string", "Drift boot fingerprint is missing.");
+      assert(fingerprintAfter !== fingerprintBefore, "Boot fingerprint did not change after persona file update.");
+
+      return {
+        sessionId: session.id,
+        reason: driftBoot.json?.boot?.reason ?? null,
+        fingerprintBefore,
+        fingerprintAfter,
+      };
+    } finally {
+      await rm(BOOT_TEST_PERSONA_FILE, { force: true }).catch(() => undefined);
+    }
   });
 
   await runTest("section8.smoke_stream", "Smoke stream ordering", async () => {

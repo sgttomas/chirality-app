@@ -32,11 +32,11 @@ This revision defines a purpose-specific mission: **collate deliverable-level es
 
 | Item | Default |
 |---|---|
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/` |
-| Aggregation tool root (write zone) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/_Aggregation/` |
+| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/` |
+| Aggregation tool root (write zone) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/_Aggregation/` |
 | Brief file (preferred) | `execution/_Aggregation/INIT-TASK.md` |
 
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-5/`.
+When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/`.
 
 ---
 

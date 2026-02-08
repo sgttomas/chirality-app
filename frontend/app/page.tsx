@@ -100,7 +100,7 @@ export default function Home() {
 
       {/* Wireframe Controls */}
       <div id="wireframe-controls" className="shrink-0 px-3 pb-2 pt-3">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 rounded-xl border border-[var(--color-border)]/60 bg-black/45 px-4 py-2.5 shadow-[0_14px_35px_rgba(0,0,0,0.28)] backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 ui-panel px-4 py-2.5 shadow-md">
           {VIEW_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -114,10 +114,10 @@ export default function Home() {
               {tab.label}
             </button>
           ))}
-          <div className="mx-1 hidden h-5 w-px bg-white/15 sm:block" />
+          <div className="mx-1 hidden h-5 w-px bg-[var(--color-border)]/50 sm:block" />
           <button
             disabled
-            className="ui-control cursor-default px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-white/30 border-white/10"
+            className="ui-control cursor-default px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)]/40 border-[var(--color-border)]/50"
           >
             Dashboard
           </button>
@@ -132,7 +132,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="shrink-0 px-3 pb-3">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/55 px-5 py-4 shadow-[0_12px_32px_rgba(0,0,0,0.24)] md:px-6">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 ui-panel px-5 py-4 shadow-md md:px-6">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 md:gap-6">
             <div className="ui-type-title whitespace-nowrap font-extrabold tracking-[0.14em] uppercase">
               {title.lead}
@@ -142,7 +142,7 @@ export default function Home() {
 
             {/* Contextual Selectors in Header */}
             {currentView === "workbench" && (
-              <div className="ui-panel-soft ml-0 flex items-center gap-2.5 rounded-lg px-3 py-2 md:ml-1">
+              <div className="ui-panel-soft ml-0 flex items-center gap-2.5 px-3 py-2 md:ml-1">
                 <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Persona</span>
                 <select
                   value={agentName}
@@ -150,7 +150,7 @@ export default function Home() {
                   className="ui-focus-ring min-w-[180px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                 >
                   {PERSONA_AGENTS.map((agent) => (
-                    <option key={agent} value={agent} className="bg-slate-900">
+                    <option key={agent} value={agent} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
                       {agent}
                     </option>
                   ))}
@@ -160,7 +160,7 @@ export default function Home() {
 
             {currentView === "pipeline" && (
               <div className="ml-0 flex flex-wrap items-center gap-2.5 md:ml-1 md:gap-3">
-                <div className="ui-panel-soft flex items-center gap-2.5 rounded-lg px-3 py-2">
+                <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-2">
                   <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Family</span>
                   <select
                     value={pipelineFamily}
@@ -171,25 +171,25 @@ export default function Home() {
                     className="ui-focus-ring min-w-[130px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                   >
                     {PIPELINE_FAMILIES.map((f) => (
-                      <option key={f} value={f} className="bg-slate-900">
+                      <option key={f} value={f} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
                         {f}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="ui-panel-soft flex items-center gap-2.5 rounded-lg px-3 py-2">
+                <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-2">
                   <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Variant</span>
                   <select
                     value={selectedVariant || ""}
                     onChange={(e) => setSelectedVariant(e.target.value || null)}
                     className="ui-focus-ring min-w-[140px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                   >
-                    <option value="" className="bg-slate-900 opacity-50">
+                    <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)] opacity-50">
                       -- SELECT --
                     </option>
                     {variants.map((v) => (
-                      <option key={v} value={v} className="bg-slate-900">
+                      <option key={v} value={v} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
                         {v}
                       </option>
                     ))}

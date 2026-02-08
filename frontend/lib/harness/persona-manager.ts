@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Dirent } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -288,6 +289,15 @@ export class PersonaManager {
     return path.join(path.resolve(projectRoot), "agents");
   }
 
+  private async fileStatSignature(filePath: string): Promise<string> {
+    try {
+      const fileStat = await stat(filePath);
+      return `${path.resolve(filePath)}:${fileStat.mtimeMs}:${fileStat.size}`;
+    } catch {
+      return `${path.resolve(filePath)}:missing`;
+    }
+  }
+
   private async readCachedTextFile(filePath: string): Promise<string | null> {
     let fileStat;
     try {
@@ -391,6 +401,32 @@ export class PersonaManager {
     // Fallback: look for "model: value" in the body
     const match = content.match(/^model:\s*(.+)$/m);
     return match ? match[1].trim() : null;
+  }
+
+  async getBootFingerprint(projectRoot: string, persona: PersonaConfig | null, mode: SessionMode): Promise<string> {
+    const root = path.resolve(projectRoot);
+    const files = [
+      path.join(root, "README.md"),
+      path.join(root, "AGENTS.md"),
+      path.join(root, "CLAUDE.md"),
+    ];
+
+    if (persona?.sourceFile) {
+      files.push(path.resolve(persona.sourceFile));
+    }
+
+    const signatures = await Promise.all(files.map((filePath) => this.fileStatSignature(filePath)));
+    signatures.sort((left, right) => left.localeCompare(right));
+
+    const hash = createHash("sha256");
+    hash.update(`mode:${mode}\n`);
+    hash.update(`persona:${persona?.id ?? "none"}\n`);
+
+    for (const signature of signatures) {
+      hash.update(`${signature}\n`);
+    }
+
+    return hash.digest("hex");
   }
 
   async list(projectRoot: string): Promise<PersonaConfig[]> {

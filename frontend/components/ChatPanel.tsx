@@ -14,6 +14,8 @@ type Message = {
   streaming?: boolean;
 };
 
+type BootState = "pending" | "booting" | "ready";
+
 type HarnessSessionMeta = {
   sessionId: string | null;
   claudeSessionId: string | null;
@@ -24,6 +26,9 @@ type HarnessSessionMeta = {
   lastCompletedAt: string | null;
   lastCostUsd: number | null;
   projectRoot: string | null;
+  bootFingerprint: string | null;
+  bootedAt: string | null;
+  bootState: BootState;
 };
 
 type LocalChatSession = {
@@ -42,6 +47,17 @@ type HarnessSessionPayload = {
   persona: string | null;
   mode: HarnessMode;
   claudeSessionId: string | null;
+  model: string | null;
+  bootFingerprint: string | null;
+  bootedAt: string | null;
+};
+
+type BootSessionResponse = {
+  session?: HarnessSessionPayload;
+  boot?: {
+    booted?: boolean;
+    reason?: string;
+  };
 };
 
 type ToolChipStatus = "running" | "done" | "error";
@@ -95,6 +111,14 @@ function trimString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+function deriveBootState(value: {
+  claudeSessionId: string | null;
+  bootFingerprint: string | null;
+  bootedAt: string | null;
+}): BootState {
+  return value.claudeSessionId && value.bootFingerprint && value.bootedAt ? "ready" : "pending";
 }
 
 function truncate(text: string, maxChars: number): string {
@@ -202,6 +226,15 @@ function buildHarnessMeta(
     lastCompletedAt: sameContract ? existing?.lastCompletedAt ?? null : null,
     lastCostUsd: sameContract ? existing?.lastCostUsd ?? null : null,
     projectRoot: projectRoot ?? existing?.projectRoot ?? null,
+    bootFingerprint: sameContract ? existing?.bootFingerprint ?? null : null,
+    bootedAt: sameContract ? existing?.bootedAt ?? null : null,
+    bootState: sameContract
+      ? deriveBootState({
+          claudeSessionId: existing?.claudeSessionId ?? null,
+          bootFingerprint: existing?.bootFingerprint ?? null,
+          bootedAt: existing?.bootedAt ?? null,
+        })
+      : "pending",
   };
 }
 
@@ -283,6 +316,8 @@ function normalizeStoredSessions(
         : [],
       lastCompletedAt: trimString(rawHarness?.lastCompletedAt) ?? null,
       lastCostUsd: typeof rawHarness?.lastCostUsd === "number" ? rawHarness.lastCostUsd : null,
+      bootFingerprint: trimString(rawHarness?.bootFingerprint) ?? null,
+      bootedAt: trimString(rawHarness?.bootedAt) ?? null,
       mode: rawHarness?.mode,
       persona: rawHarness?.persona,
       projectRoot: trimString(rawHarness?.projectRoot) ?? projectRoot,
@@ -546,7 +581,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       values: Partial<
         Pick<
           HarnessSessionMeta,
-          "sessionId" | "claudeSessionId" | "model" | "tools" | "projectRoot" | "lastCompletedAt" | "lastCostUsd"
+          | "sessionId"
+          | "claudeSessionId"
+          | "model"
+          | "tools"
+          | "projectRoot"
+          | "lastCompletedAt"
+          | "lastCostUsd"
+          | "bootFingerprint"
+          | "bootedAt"
+          | "bootState"
         >
       >,
     ): void => {
@@ -585,6 +629,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             model: shouldResetSession ? null : session.harness.model,
             tools: shouldResetSession ? [] : session.harness.tools,
             projectRoot: nextRoot,
+            bootFingerprint: shouldResetSession ? null : session.harness.bootFingerprint,
+            bootedAt: shouldResetSession ? null : session.harness.bootedAt,
+            bootState: shouldResetSession ? "pending" : session.harness.bootState,
             mode: harnessMode,
             persona: personaId ?? null,
           },
@@ -620,6 +667,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       const desiredPersona = personaId ?? null;
 
       const hydrateFromServer = (serverSession: HarnessSessionPayload): HarnessSessionPayload => {
+        const nextBootState = deriveBootState({
+          claudeSessionId: serverSession.claudeSessionId,
+          bootFingerprint: serverSession.bootFingerprint,
+          bootedAt: serverSession.bootedAt,
+        });
+
         updateSession(localSessionId, (session) => ({
           ...session,
           cwd: serverSession.projectRoot,
@@ -627,7 +680,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             ...session.harness,
             sessionId: serverSession.id,
             claudeSessionId: serverSession.claudeSessionId,
+            model: serverSession.model,
             projectRoot: serverSession.projectRoot,
+            bootFingerprint: serverSession.bootFingerprint,
+            bootedAt: serverSession.bootedAt,
+            bootState: nextBootState,
             mode: serverSession.mode,
             persona: serverSession.persona,
           },
@@ -696,6 +753,62 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       }
 
       return createSession();
+    };
+
+    const ensureBootedHarnessSession = async (
+      harnessSession: HarnessSessionPayload,
+      localSessionId: string,
+    ): Promise<HarnessSessionPayload> => {
+      setStatusText("Booting agent context");
+      updateHarnessMetadata(localSessionId, { bootState: "booting" });
+
+      try {
+        const apiKey = localStorage.getItem("anthropic_api_key") || undefined;
+        const response = await fetch("/api/harness/session/boot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: harnessSession.id, opts: { apiKey } }),
+        });
+
+        if (!response.ok) {
+          const error = await readErrorBody(response);
+          throw new Error(`Failed to boot harness session: ${error}`);
+        }
+
+        const payload = (await response.json()) as BootSessionResponse;
+        const serverSession = payload?.session;
+
+        if (!serverSession?.id) {
+          throw new Error("Boot session response was missing session metadata.");
+        }
+
+        const nextBootState = deriveBootState({
+          claudeSessionId: serverSession.claudeSessionId,
+          bootFingerprint: serverSession.bootFingerprint,
+          bootedAt: serverSession.bootedAt,
+        });
+
+        updateHarnessMetadata(localSessionId, {
+          sessionId: serverSession.id,
+          claudeSessionId: serverSession.claudeSessionId,
+          model: serverSession.model,
+          projectRoot: serverSession.projectRoot,
+          bootFingerprint: serverSession.bootFingerprint,
+          bootedAt: serverSession.bootedAt,
+          bootState: nextBootState,
+        });
+
+        if (payload.boot?.booted) {
+          setStatusText(payload.boot.reason === "fingerprint_changed" ? "Context refreshed" : "Boot complete");
+        } else {
+          setStatusText("Boot ready");
+        }
+
+        return serverSession;
+      } catch (error) {
+        updateHarnessMetadata(localSessionId, { bootState: "pending" });
+        throw error;
+      }
     };
 
     const handleHarnessEvent = (event: UIEvent, localSessionId: string): boolean => {
@@ -818,16 +931,26 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
       try {
         const harnessSession = await ensureHarnessSession(localSessionId);
-        setInFlightHarnessSessionId(harnessSession.id);
+        const bootedSession = await ensureBootedHarnessSession(harnessSession, localSessionId);
+
+        setInFlightHarnessSessionId(bootedSession.id);
         setInFlightLocalSessionId(localSessionId);
 
         updateHarnessMetadata(localSessionId, {
-          sessionId: harnessSession.id,
-          claudeSessionId: harnessSession.claudeSessionId,
-          projectRoot: harnessSession.projectRoot,
+          sessionId: bootedSession.id,
+          claudeSessionId: bootedSession.claudeSessionId,
+          projectRoot: bootedSession.projectRoot,
+          model: bootedSession.model,
+          bootFingerprint: bootedSession.bootFingerprint,
+          bootedAt: bootedSession.bootedAt,
+          bootState: deriveBootState({
+            claudeSessionId: bootedSession.claudeSessionId,
+            bootFingerprint: bootedSession.bootFingerprint,
+            bootedAt: bootedSession.bootedAt,
+          }),
         });
 
-        sawProcessExit = await streamTurn(harnessSession.id, message, localSessionId);
+        sawProcessExit = await streamTurn(bootedSession.id, message, localSessionId);
       } catch (error) {
         const messageText = error instanceof Error ? error.message : String(error);
         setStatusText("Request failed");
@@ -970,6 +1093,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const costLabel = formatCostUsd(activeHarness?.lastCostUsd ?? null);
     const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
     const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
+    const bootState = activeHarness?.bootState ?? "pending";
+    const bootLabel = bootState === "ready" ? "boot ready" : bootState === "booting" ? "booting" : "needs bootstrap";
+    const bootBadgeClass =
+      bootState === "ready"
+        ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-200"
+        : bootState === "booting"
+          ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-orange)]"
+          : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
     const historyRailWidth = Math.max(168, Math.min(230, Math.floor(width * 0.24)));
     const spinnerGlyph = prefersReducedMotion
       ? "•"
@@ -989,11 +1120,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-90"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 8% 0%, rgba(249,115,22,0.13), transparent 34%), radial-gradient(circle at 92% 8%, rgba(123,175,212,0.18), transparent 36%), linear-gradient(130deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 40%)",
-            }}
+            className="ui-neural-overlay pointer-events-none absolute inset-0 opacity-90"
           />
 
           <div className="relative z-10 flex min-h-0 flex-1 gap-2 p-2">
@@ -1083,7 +1210,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             )}
 
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/85 px-4 py-3 backdrop-blur-sm">
+              <div className="shrink-0 ui-glass-header rounded-xl px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex flex-col gap-2">
                     <span className="mono text-[9px] font-black tracking-[0.19em] text-[var(--color-accent-orange)] uppercase opacity-85">
@@ -1111,6 +1238,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                       </span>
                       <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
                         last {lastRunLabel}
+                      </span>
+                      <span className={`mono rounded border px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] ${bootBadgeClass}`}>
+                        {bootLabel}
                       </span>
                     </div>
                   </div>
@@ -1147,10 +1277,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                   {activeSession?.messages.map((message, index) => (
                     <div
                       key={index}
-                      className={`rounded-xl border px-4 py-3 shadow-[0_10px_24px_rgba(0,0,0,0.22)] ${
+                      className={`ui-panel px-4 py-3 shadow-md ${
                         message.role === "assistant"
-                          ? "border-[var(--color-accent-orange)]/25 bg-[linear-gradient(145deg,rgba(249,115,22,0.1),rgba(0,0,0,0.22))]"
-                          : "border-[var(--color-applying)]/28 bg-[linear-gradient(145deg,rgba(123,175,212,0.1),rgba(0,0,0,0.2))]"
+                          ? "border-[var(--color-accent-orange)]/25"
+                          : "border-[var(--color-applying)]/28"
                       }`}
                     >
                       <div className="mb-2 flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.16em] opacity-70">
@@ -1165,7 +1295,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                       </div>
 
                       {message.role === "assistant" ? (
-                        <div className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)]/60 px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
+                        <div className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/30 px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
                           <span
                             dangerouslySetInnerHTML={{
                               __html: convert.toHtml(prepareAnsiContent(message.content)),
@@ -1183,14 +1313,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                           ) : null}
                         </div>
                       ) : (
-                        <div className="rounded-md border border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/45 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
+                        <div className="rounded-md border border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/30 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
                           {message.content}
                         </div>
                       )}
                     </div>
                   ))}
                   {isLoading && (
-                    <div className={`rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/72 px-4 py-3 shadow-[0_8px_22px_rgba(0,0,0,0.22)] ${prefersReducedMotion ? "" : "turn-waiting"}`}>
+                    <div className={`ui-panel px-4 py-3 shadow-md ${prefersReducedMotion ? "" : "turn-waiting"}`}>
                       <div className="ui-panel-soft inline-flex items-center gap-2 rounded-md px-3 py-1.5">
                         <span
                           aria-hidden
@@ -1245,12 +1375,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="chat-input shrink-0 rounded-xl border border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/88 p-3 shadow-[0_-8px_24px_rgba(0,0,0,0.22)]">
-                <div className="ui-panel-soft flex items-center rounded-md px-3 py-2">
+              <div className="chat-input shrink-0 ui-panel-strong p-3">
+                <div className="ui-panel-soft flex items-center rounded-md px-3 py-2 bg-[var(--color-surface-low)]/20">
                   <input
                     type="text"
                     placeholder={placeholder}
-                    className="mono w-full flex-grow bg-transparent text-sm tracking-wide text-[var(--color-text-main)] placeholder:text-white/20 outline-none disabled:opacity-40"
+                    className="mono w-full flex-grow bg-transparent text-sm tracking-wide text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]/40 outline-none disabled:opacity-40"
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={(event) => {

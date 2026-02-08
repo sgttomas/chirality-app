@@ -266,7 +266,7 @@ function TreeNode({
             node.isDirectory
               ? hasDirtyChildren
                 ? "text-[var(--color-accent-orange)]"
-                : "text-[var(--color-applying)]/80"
+                : "text-[var(--color-accent-directory)]/80"
               : "text-[var(--color-text-dim)]/75"
           }`}
         >
@@ -277,7 +277,7 @@ function TreeNode({
             node.isDirectory
               ? hasDirtyChildren
                 ? "font-semibold text-[var(--color-accent-orange)] group-hover:text-[var(--color-accent-orange)]"
-                : "font-semibold text-[var(--color-applying)]/95 group-hover:text-[var(--color-applying)]"
+                : "font-semibold text-[var(--color-accent-directory)]/95 group-hover:text-[var(--color-accent-directory)]"
               : fileGitMeta
                 ? `${fileGitMeta.textClass} font-semibold`
                 : "text-[var(--color-text-main)]/85"

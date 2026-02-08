@@ -25,7 +25,7 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
         aria-labelledby="directory-picker-title"
         className="ui-panel-strong flex h-[min(82vh,720px)] w-[min(92vw,780px)] flex-col overflow-hidden"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/75 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-panel)]/75 px-5 py-4">
           <div className="min-w-0">
             <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Workspace</p>
             <h2 id="directory-picker-title" className="text-[1.05rem] font-bold tracking-[0.06em] uppercase text-[var(--color-text-main)]">
@@ -45,14 +45,14 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
           </button>
         </div>
 
-        <div className="flex-grow min-h-0 overflow-hidden bg-[var(--color-surface-mid)]/55 p-4">
+        <div className="flex-grow min-h-0 overflow-hidden bg-[var(--color-surface-sunken)]/55 p-4">
           <SystemFileTree
             onSelect={(path) => setSelectedPath(path)}
             className="h-full"
           />
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-high)]/75 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-panel)]/75 px-4 py-3">
           <div className="ui-panel-soft flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2">
             <span className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">
               Selected

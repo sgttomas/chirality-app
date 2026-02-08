@@ -216,8 +216,8 @@ function DiffViewer({ diffText, changesOnly }: { diffText: string; changesOnly: 
   const displayRows = useMemo(() => collapseContextRows(rows, changesOnly), [rows, changesOnly]);
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface-high)]/45 shadow-[0_10px_24px_rgba(0,0,0,0.2)]">
-      <div className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-b border-[var(--color-border)]/55 bg-[var(--color-surface-high)]/65 px-0 py-1.5">
+    <div className="ui-panel shadow-md overflow-hidden">
+      <div className="grid grid-cols-[70px_70px_minmax(0,1fr)] border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/65 px-0 py-1.5">
         <span className="mono px-3 text-right text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-dim)]/80">
           Old
         </span>
@@ -449,7 +449,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
 
   return (
     <section className="content-area flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit] bg-transparent">
-      <header className="content-header flex items-center justify-between gap-3 border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/62 pl-4 pr-14 py-3">
+      <header className="content-header ui-panel-soft flex items-center justify-between gap-3 rounded-none border-t-0 border-x-0 pl-4 pr-14 py-3">
         <div className="min-w-0">
           <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/85">
             Preview Deck
