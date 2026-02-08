@@ -1,63 +1,79 @@
 # Chirality Command Center // Project Memory
 
-## System Architecture & Capability Report (v0.5 Prototype)
+## Current Snapshot (2026-02-08)
 
-**Operational Model:** "The Glass Cockpit" / Filesystem-as-State
-**Primary Function:** A GUI-wrapped Agentic CLI that orchestrates local development workflows via the Anthropic API.
+**Operational model:** Filesystem-as-state with a Next.js GUI over the Chirality Harness (`/api/harness/*`), backed by the Anthropic Agent SDK (`query()`).
 
-### 1. Technical Stack
-*   **Frontend:** Next.js (App Router), React, Tailwind CSS (v4).
-*   **Design System:** "Neural/Glass" aesthetic. Dark mode, glassmorphism, EB Garamond (Serif) typography for UI, JetBrains Mono for data/code.
-*   **Backend:** Next.js API Routes (`/api/chat`, `/api/fs`, `/api/project`) acting as a local proxy.
-*   **State Persistence:** Local filesystem (`.sessions.json`) for session context (CWD, Env Vars); `localStorage` for UI preferences and API keys.
-*   **AI Engine:** Anthropic SDK (Claude 3.5 Sonnet/Haiku) via direct API Key.
+This document replaces older `/api/chat` and `.sessions.json` assumptions.
 
-### 2. Agentic Architecture (The "Claude Code" Replication Layer)
-The application replicates the functionality of the `claude-code` CLI tool but wraps it in a persistent, multi-modal GUI.
+## 1) Technical Stack
 
-**Core Capabilities:**
-*   **Tool Use / Function Calling:**
-    *   `execute_command(cmd)`: Runs shell commands (`git`, `npm`, `ls`) directly on the host machine.
-    *   `read_file(path)`: Reads raw content from the local filesystem.
-    *   `write_file(path, content)`: Creates or overwrites files locally.
-    *   `list_directory(path)`: Scans folder contents.
-*   **Session Persistence:**
-    *   Tracks **Current Working Directory (CWD)** via `.sessions.json`.
-    *   Persists Environment Variables across turns.
-    *   `cd` commands executed by the agent persist for subsequent messages.
-*   **ANSI Rendering:** Shell output is captured and rendered with full ANSI color support (`ansi-to-html`).
-*   **Dynamic Context Injection:**
-    *   **System Prompt:** Automatically reads `README.md` and `AGENTS.md` on every request.
-    *   **Auto-Prompting:** Automatically injects instructions (e.g., "Read agents/AGENT_DECOMP.md...") when switching Personas or Task Variants.
+- Frontend: Next.js 16 (App Router), React 19, Tailwind CSS v4.
+- Runtime orchestration: `frontend/lib/harness/*` (`agent-sdk-manager`, `session-manager`, `persona-manager`).
+- Core APIs:
+  - `POST /api/harness/session/create`
+  - `GET /api/harness/session/list`
+  - `GET|DELETE /api/harness/session/:id`
+  - `POST /api/harness/turn` (SSE)
+  - `POST /api/harness/interrupt`
+  - File/project utilities: `/api/fs`, `/api/fs/read`, `/api/system/list`, `/api/project/config`, `/api/project/deliverables`
+- Design language: Neural/Glass UI, light/dark mode support, EB Garamond + JetBrains Mono.
 
-### 3. User Experience Modes (The "Views")
+## 2) Persistence Model
 
-**A. The Portal (Home)**
-*   **Purpose:** Navigation and Status.
-*   **Features:**
-    *   **Hex Grid:** Symmetrical, interconnected navigation to Agent Personas.
-    *   **Dynamic Dashboard:** Scans any selected local folder for `PKG-*/1_Working/DEL-*` structures and displays real-time status from `_STATUS.md`.
+- Harness session records: `<projectRoot>/.chirality/sessions/<sessionId>.json`.
+- Harness logs: `<projectRoot>/.chirality/logs/harness.log` (rotated).
+- Browser storage:
+  - `sessionStorage["chirality_project_root"]` for shared project root.
+  - `localStorage["anthropic_api_key"]` for API key.
+  - `localStorage["sessions_<viewId>"]` for local chat transcript/session UI state.
 
-**B. The Workbench (Persona-Driven)**
-*   **Purpose:** Interactive, conversational engineering tasks.
-*   **Layout:** 3-Pane `ResizableLayout` (Chat | Deliverable Tree | Live Preview).
-*   **Mechanism:** Agent Persona switching (e.g., `DECOMP`, `CHANGE`) triggers auto-initialization.
+## 3) UX Modes
 
-**C. The Pipeline (Task-Driven)**
-*   **Purpose:** High-volume, straight-through processing.
-*   **Mechanism:** Select **Task Family** (`PREP*`, `AUDIT*`) -> Select **Variant** -> Auto-load instructions.
-*   **Layout:** Sidebar focuses on "File Context" rather than navigation.
+- **Portal (home):** Hex-grid navigation + deliverables dashboard.
+- **Workbench:** Persona-driven interactive mode.
+- **Pipeline:** Task-family/variant-driven mode.
+- **Direct Link:** Raw direct mode (`mode="direct"`).
+- Shared shell: `ResizableLayout` centralizes global footer actions, including root-directory selection.
 
-**D. Direct Link (Raw Terminal)**
-*   **Purpose:** Ad-hoc CLI access.
-*   **Mechanism:** `mode="direct"`. No persona framing. Pure System Session.
+## 4) Harness Contract Notes
 
-### 4. Key Implementation Patterns
-*   **ResizableLayout:** A unified wrapper component that handles the 3-pane flexbox logic and resizers for all interactive views.
-*   **ChatPanel:** A self-contained component handling message history, API key management (localStorage), session switching, and directory navigation.
-*   **SystemFileTree:** Lazy-loading file browser that allows navigation outside the project root (unrestricted system access).
+- UI turn streaming depends on stable SSE `UIEvent` types:
+  - `session:init`, `chat:delta`, `chat:complete`, `tool:start`, `tool:result`, `session:complete`, `session:error`, `process:exit`.
+- `POST /api/harness/interrupt` interrupts active SDK turns and is reflected through terminal events.
+- Chat UX direction is status-text-first (compact tool/in-flight feedback).
 
-### 5. Future Roadmap Items (Identified during dev)
-*   **Streaming Responses:** Currently, the agent response waits for full completion. Streaming text would improve "terminal feel."
-*   **Interactive Input:** The agent cannot handle interactive prompts (e.g., password requests).
-*   **Diff View:** The "Preview" pane currently shows the *current* state. A true "Diff" view for proposed changes would be valuable.
+## 5) UI Polish Status
+
+Source of truth: `frontend/docs/ui/UI_POLISH_EXECUTION_PLAN.md` (cosmetic pass notes dated 2026-02-08).
+
+Completed slices:
+
+1. Slice #1 (`globals.css` foundation + reusable classes) - `878872d`
+2. Slice #2 (`page.tsx` shell + shared root-selector polish in `ResizableLayout.tsx`) - `ddfc3ab`, `474a023`
+3. Slice #3 (`DashboardList.tsx` hierarchy/loading-empty/root-context polish) - `db3cb4f`
+4. Slice #4 (`ChatPanel.tsx` status language/readability/in-flight polish) - `dd26440`
+5. Slice #5 (file/system/utility component polish) - `e451e43`
+6. Slice #6 (accessibility + responsive + hydration sanity pass) - `9093679`
+
+Preserved constraints across the polish work:
+
+- Palette values and semantic meaning unchanged.
+- Portal hexagon colors/labels unchanged.
+- Harness/SSE behavior contract unchanged.
+- Project-root picker remains centralized in `ResizableLayout.tsx`.
+- SSR-safe browser-storage init pattern retained in `frontend/app/page.tsx`.
+- ChatPanel kept status-text-first for loading/tool feedback.
+
+## 6) Validation Baseline
+
+Current baseline checks:
+
+- `npm run lint` (frontend) - pass
+- `npx tsc --noEmit` (frontend) - pass
+- `npm run harness:validate:premerge` (frontend) - pass (7/7)
+
+Notes:
+
+- In network-restricted environments, `npm run build` may fail fetching Google Fonts (`EB Garamond`, `JetBrains Mono`).
+- `frontend/app/api/fs/read/route.ts` can emit Turbopack broad-pattern warnings due to unrestricted path resolution design.
