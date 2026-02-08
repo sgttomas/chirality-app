@@ -120,51 +120,51 @@ export function ResizableLayout({
         <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] px-3 py-2.5">
           <div className="grid grid-cols-[auto,minmax(0,1fr),auto] items-center gap-2">
             <div className="group relative">
-            <button 
-              onClick={() => onNavigateHome?.()}
-              disabled={!onNavigateHome}
-              className={`${footerGhostButtonClass} text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              PORTAL
-            </button>
-            {/* Tooltip */}
-            <div className={`${footerTooltipClass} left-0`}>
-              <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
-                <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
-              </p>
+              <button 
+                onClick={() => onNavigateHome?.()}
+                disabled={!onNavigateHome}
+                className={`${footerGhostButtonClass} text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                PORTAL
+              </button>
+              {/* Tooltip */}
+              <div className={`${footerTooltipClass} left-0`}>
+                <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
+                  <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={() => setShowDirPicker(true)}
-            className={`${footerAccentButtonClass} min-w-0 justify-center truncate`}
-          >
-            <span className="opacity-50 font-mono">DIR:</span>
-            <span className="truncate">{folderLabel}</span>
-            <span className="text-white/30 font-mono ml-1">❯</span>
-          </button>
-
-          <div className="group relative">
             <button
-              onClick={() => setIsSettingsOpen(true)}
-              className={footerAccentButtonClass}
+              onClick={() => setShowDirPicker(true)}
+              className={`${footerAccentButtonClass} min-w-0 justify-center truncate`}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-              Settings
+              <span className="opacity-50 font-mono">DIR:</span>
+              <span className="truncate">{folderLabel}</span>
+              <span className="text-white/30 font-mono ml-1">❯</span>
             </button>
-            {/* Tooltip */}
-            <div className={`${footerTooltipClass} right-0`}>
-              <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
-                <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
-              </p>
+
+            <div className="group relative">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className={footerAccentButtonClass}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                Settings
+              </button>
+              {/* Tooltip */}
+              <div className={`${footerTooltipClass} right-0`}>
+                <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
+                  <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
+                </p>
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
