@@ -26,23 +26,29 @@
 }
 
 @utility light-mode {
-  --color-bg-deep: #94a3b8; /* Slate 400 - Much darker base */
-  --color-bg-panel: rgba(241, 245, 249, 0.85); /* Slate 100 - Bright Grey Panels */
-  --color-text-main: #0f172a;
-  --color-text-dim: #334155;
-  --color-border: rgba(51, 65, 85, 0.2);
-  --color-accent-orange: #d97706; /* Amber 600 - Honey tone */
+  --color-bg-deep: #faf9f6; /* Off-white / Paper */
+  --color-bg-panel: rgba(255, 255, 255, 0.55); /* Frosted Glass */
+  --color-text-main: #334155; /* Slate 700 */
+  --color-text-dim: #64748b; /* Slate 500 */
+  --color-border: rgba(51, 65, 85, 0.15); /* Soft Grey */
+  --color-accent-orange: #ea580c;
 
-  --color-surface-high: rgba(255, 255, 255, 0.9);
-  --color-surface-mid: rgba(226, 232, 240, 0.6); /* Slate 200 tint */
-  --color-surface-low: rgba(226, 232, 240, 0.3);
+  /* Surfaces with slight tints */
+  --color-surface-high: rgba(255, 255, 255, 0.8);
+  --color-surface-mid: rgba(241, 245, 249, 0.6);
+  --color-surface-low: rgba(226, 232, 240, 0.4);
 }
 
 /* Global Styles */
 body {
     background-color: var(--color-bg-deep);
-    background-image: radial-gradient(circle at 20% 30%, rgba(157, 80, 187, 0.1) 0%, transparent 40%),
-                      radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.1) 0%, transparent 40%);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 60%),
+        radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.1) 0%, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(20, 184, 166, 0.12) 0%, transparent 60%);
+    background-size: 100% 100%;
+    background-position: 0 0;
+    background-attachment: fixed;
     color: var(--color-text-main);
     font-family: var(--font-eb), serif;
     min-height: 100vh;
@@ -52,15 +58,30 @@ body {
 
 body.light-mode {
     background-image: 
-        /* The Wacky Texture: Polka/Terrazzo pattern */
-        radial-gradient(circle, rgba(139, 92, 246, 0.15) 2px, transparent 2.5px),
-        radial-gradient(circle, rgba(234, 179, 8, 0.15) 2px, transparent 2.5px),
-        /* Organic colored fog */
-        radial-gradient(at 0% 0%, rgba(167, 139, 250, 0.4) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(250, 204, 21, 0.3) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(74, 222, 128, 0.3) 0px, transparent 50%);
-    background-size: 24px 24px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
-    background-position: 0 0, 12px 12px, 0 0, 0 0, 0 0;
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.35) 0%, transparent 70%), /* Lavender / Purple - Top Left */
+        radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.25) 0%, transparent 60%), /* Peach - Top Right */
+        radial-gradient(at 50% 100%, rgba(20, 184, 166, 0.25) 0%, transparent 70%); /* Teal - Bottom Center */
+    background-size: 100% 100%;
+    background-position: 0 0;
+    background-attachment: fixed;
+}
+
+/* Light Mode Portal Overrides */
+body.light-mode .hex {
+    background-color: rgba(255, 255, 255, 0.4); /* Default translucent border */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .hex::before {
+    background: rgba(255, 255, 255, 0.85); /* Stronger frosted fill */
+}
+
+body.light-mode .row-normative .hex { background-color: var(--color-normative); }
+body.light-mode .row-operative .hex { background-color: var(--color-operative); }
+body.light-mode .row-evaluative .hex { background-color: var(--color-evaluative); }
+
+body.light-mode .hex-wrapper:hover .hex {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 /* Utilities */

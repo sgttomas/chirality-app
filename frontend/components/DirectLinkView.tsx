@@ -7,9 +7,10 @@ import { ResizableLayout } from "./ResizableLayout";
 interface DirectLinkViewProps {
     projectRoot: string | null;
     onNavigateHome?: () => void;
+    onRootChange?: (path: string) => void;
 }
 
-export function DirectLinkView({ projectRoot, onNavigateHome }: DirectLinkViewProps) {
+export function DirectLinkView({ projectRoot, onNavigateHome, onRootChange }: DirectLinkViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   return (
@@ -23,6 +24,7 @@ export function DirectLinkView({ projectRoot, onNavigateHome }: DirectLinkViewPr
       placeholder="Enter direct command..."
       projectRoot={projectRoot}
       onNavigateHome={onNavigateHome}
+      onRootChange={onRootChange}
       sidebarContent={() => (
         <>
           <div className="panel-label shrink-0 bg-[var(--color-surface-mid)] p-3 border-b border-[var(--color-border)] flex items-center justify-between">

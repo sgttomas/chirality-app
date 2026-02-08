@@ -31,13 +31,7 @@ export default function Home() {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [initialWorkbenchPath, setInitialWorkbenchPath] = useState<string | null>(null);
   
-  const [projectRoot, setProjectRoot] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const savedRoot = sessionStorage.getItem("chirality_project_root");
-    return savedRoot && savedRoot.trim() ? savedRoot : null;
-  });
+  const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const [isLightMode, setIsLightMode] = useState(false);
 
   useEffect(() => {
@@ -47,6 +41,14 @@ export default function Home() {
       document.body.classList.remove("light-mode");
     }
   }, [isLightMode]);
+
+  useEffect(() => {
+    const savedRoot = sessionStorage.getItem("chirality_project_root");
+    if (!savedRoot || !savedRoot.trim()) {
+      return;
+    }
+    queueMicrotask(() => setProjectRoot(savedRoot));
+  }, []);
 
   const handleRootChange = (path: string) => {
       setProjectRoot(path);
@@ -75,6 +77,7 @@ export default function Home() {
         <button onClick={() => setCurrentView("workbench")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "workbench" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>WORKBENCH</button>
         <button onClick={() => setCurrentView("pipeline")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "pipeline" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>PIPELINE</button>
         <button onClick={() => setCurrentView("session")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "session" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>DIRECT</button>
+        <button className="bg-transparent text-white/20 border border-white/5 py-1.5 px-4 mx-1.5 rounded-md cursor-default transition-all uppercase text-[11px] tracking-widest font-bold">Dashboard</button>
         <button onClick={() => setIsLightMode(!isLightMode)} className="bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer hover:text-[var(--color-text-main)] transition-all ml-8">
             {isLightMode ? "☾ DARK" : "☀ LIGHT"}
         </button>
@@ -170,12 +173,14 @@ export default function Home() {
             initialPath={initialWorkbenchPath} 
             projectRoot={projectRoot} 
             onNavigateHome={() => setCurrentView("home")}
+            onRootChange={handleRootChange}
           />
         )}
         {currentView === "session" && (
           <DirectLinkView 
             projectRoot={projectRoot} 
             onNavigateHome={() => setCurrentView("home")}
+            onRootChange={handleRootChange}
           />
         )}
         {currentView === "pipeline" && (
@@ -184,6 +189,7 @@ export default function Home() {
             selectedVariant={selectedVariant} 
             projectRoot={projectRoot} 
             onNavigateHome={() => setCurrentView("home")}
+            onRootChange={handleRootChange}
           />
         )}
       </main>

@@ -5,6 +5,7 @@ import { Resizer } from "./Resizer";
 import { ChatPanel } from "./ChatPanel";
 import { FilePreview } from "./FilePreview";
 import { SettingsModal } from "./SettingsModal";
+import { DirectoryPicker } from "./DirectoryPicker";
 
 interface ResizableLayoutProps {
   // Chat Props
@@ -25,6 +26,22 @@ interface ResizableLayoutProps {
 
   // Navigation
   onNavigateHome?: () => void;
+  onRootChange?: (path: string) => void;
+}
+
+function formatFolderLabel(pathValue: string): string {
+  const cleaned = pathValue.trim();
+  if (!cleaned || cleaned === "~") {
+    return "~";
+  }
+
+  const normalized = cleaned.replace(/\/+$/, "");
+  if (!normalized) {
+    return "/";
+  }
+
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "/";
 }
 
 export function ResizableLayout({
@@ -38,11 +55,15 @@ export function ResizableLayout({
   sidebarContent,
   selectedFile,
   projectRoot,
-  onNavigateHome
+  onNavigateHome,
+  onRootChange
 }: ResizableLayoutProps) {
   const [chatWidth, setChatWidth] = useState(700);
   const [sidebarWidth, setSidebarWidth] = useState(350);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showDirPicker, setShowDirPicker] = useState(false);
+
+  const folderLabel = formatFolderLabel(projectRoot ?? "~");
 
   // Define a way to trigger file selection from inside sidebarContent if needed
   // But actually we just want to pass the setSelectedFile function up.
@@ -50,6 +71,15 @@ export function ResizableLayout({
   
   return (
     <div className="w-full h-full flex flex-row overflow-hidden bg-[var(--color-surface-low)]">
+      {showDirPicker && (
+        <DirectoryPicker 
+          onSelect={(path) => {
+            setShowDirPicker(false);
+            onRootChange?.(path);
+          }} 
+          onCancel={() => setShowDirPicker(false)} 
+        />
+      )}
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
@@ -85,7 +115,7 @@ export function ResizableLayout({
         </div>
 
         {/* Global Actions Footer */}
-        <div className="shrink-0 p-3 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] flex items-center justify-between">
+        <div className="shrink-0 p-3 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] flex items-center justify-between gap-2">
           <div className="group relative">
             <button 
               onClick={onNavigateHome}
@@ -104,22 +134,14 @@ export function ResizableLayout({
             </div>
           </div>
 
-          <div className="group relative">
-            <button 
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/[0.02] border border-white/5 text-[10px] uppercase tracking-widest text-white/20 transition-all font-bold cursor-default"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
-              </svg>
-              Dashboard
-            </button>
-            {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-              <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-center">
-                <span className="text-[var(--color-accent-orange)] font-bold">Future Feature:</span> Project-specific dashboard builder and monitoring interface.
-              </p>
-            </div>
-          </div>
+          <button
+            onClick={() => setShowDirPicker(true)}
+            className="flex-grow flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-accent-orange)]/5 border border-[var(--color-accent-orange)]/20 text-[10px] uppercase tracking-widest text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/10 transition-all font-bold shadow-[0_0_10px_rgba(249,115,22,0.05)] truncate"
+          >
+            <span className="opacity-50 font-mono">DIR:</span>
+            <span className="truncate">{folderLabel}</span>
+            <span className="text-white/30 font-mono ml-1">❯</span>
+          </button>
 
           <div className="group relative">
             <button

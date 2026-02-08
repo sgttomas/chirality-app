@@ -136,10 +136,18 @@ function mapStreamDeltaToUiEvents(event: unknown, sessionId: string): UIEvent[] 
     if (deltaType === "text_delta" && text) {
       return [{ type: "chat:delta", sessionId, text }];
     }
+    // Ignore thought deltas
+    return [];
   }
 
   if (streamType === "content_block_start" && isRecord(event.content_block)) {
     const blockType = asString(event.content_block.type);
+
+    // Ignore thought blocks
+    if (blockType === "thought") {
+      return [];
+    }
+
     if (blockType === "tool_use") {
       const toolUseId = asString(event.content_block.id) ?? "unknown-tool-use";
       const name = asString(event.content_block.name) ?? "unknown-tool";

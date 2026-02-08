@@ -9,6 +9,7 @@ interface WorkbenchViewProps {
     initialPath?: string | null;
     projectRoot: string | null;
     onNavigateHome?: () => void;
+    onRootChange?: (path: string) => void;
 }
 
 const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
@@ -23,7 +24,7 @@ const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: s
     "RECONCILING": { personaId: "RECONCILIATION", fileName: "AGENT_RECONCILIATION.md" }
 };
 
-export function WorkbenchView({ agentName, initialPath, projectRoot, onNavigateHome }: WorkbenchViewProps) {
+export function WorkbenchView({ agentName, initialPath, projectRoot, onNavigateHome, onRootChange }: WorkbenchViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(initialPath || "README.md");
 
   const personaConfig = WORKBENCH_PERSONA_MAPPING[agentName];
@@ -42,6 +43,7 @@ export function WorkbenchView({ agentName, initialPath, projectRoot, onNavigateH
       selectedFile={selectedFile}
       projectRoot={projectRoot}
       onNavigateHome={onNavigateHome}
+      onRootChange={onRootChange}
       sidebarContent={() => (
         <>
           <div className="panel-label shrink-0 flex justify-between items-center bg-[var(--color-surface-mid)] p-4 border-b border-[var(--color-border)]">

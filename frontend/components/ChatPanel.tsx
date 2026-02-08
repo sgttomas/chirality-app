@@ -305,7 +305,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isInterrupting, setIsInterrupting] = useState(false);
-    const [showDirPicker, setShowDirPicker] = useState(false);
+    const [statusText, setStatusText] = useState<string>("Processing_Request");
     const [inFlightHarnessSessionId, setInFlightHarnessSessionId] = useState<string | null>(null);
     const [inFlightLocalSessionId, setInFlightLocalSessionId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -561,25 +561,30 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const handleHarnessEvent = (event: UIEvent, localSessionId: string): boolean => {
       switch (event.type) {
         case "chat:delta": {
+          setStatusText("Typing_Response");
           appendStreamingDelta(localSessionId, event.text);
           return false;
         }
         case "chat:complete": {
+          setStatusText("Processing_Request");
           finalizeAssistantMessage(localSessionId, event.text);
           return false;
         }
         case "tool:start": {
-          const summary = summarizeValue(event.input);
-          const message = summary
-            ? `[tool:start] ${event.name} (${event.toolUseId})\n${summary}`
-            : `[tool:start] ${event.name} (${event.toolUseId})`;
-          appendAssistantMessage(localSessionId, message);
+          // Map tool names to user-friendly status text
+          const toolLabels: Record<string, string> = {
+            "read_file": "Reading_File",
+            "write_file": "Writing_File",
+            "execute_command": "Executing_Command",
+            "list_directory": "Scanning_Directory",
+            "search_file_content": "Searching_Files",
+            "glob": "Finding_Files"
+          };
+          setStatusText(toolLabels[event.name] || `Running_${event.name}`);
           return false;
         }
         case "tool:result": {
-          const resultText = event.content || "(no output)";
-          const label = event.isError ? "tool:error" : "tool:result";
-          appendAssistantMessage(localSessionId, `[${label}] ${event.toolUseId}\n${resultText}`);
+          setStatusText("Analyzing_Result");
           return false;
         }
         case "session:init": {
@@ -814,7 +819,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     };
 
     const activeSession = sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
-    const folderLabel = formatFolderLabel(activeSession?.cwd ?? "~");
 
     const sendMessage = async (): Promise<void> => {
       if (!input.trim()) {
@@ -823,14 +827,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
       await sendPrompt(input);
       setInput("");
-    };
-
-    const handleDirSelect = (path: string): void => {
-      setShowDirPicker(false);
-      if (!activeSessionId) {
-        return;
-      }
-      applyProjectRoot(activeSessionId, path, true);
     };
 
     return (
@@ -875,8 +871,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         </div>
 
         <div className="flex-grow flex flex-col min-w-0 h-full relative bg-[var(--color-surface-low)]">
-          {showDirPicker && <DirectoryPicker onSelect={handleDirSelect} onCancel={() => setShowDirPicker(false)} />}
-
           <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center shrink-0 bg-[var(--color-surface-high)] backdrop-blur-sm gap-3">
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-[9px] font-black tracking-[0.3em] text-[var(--color-accent-orange)] uppercase opacity-80">
@@ -919,50 +913,47 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             {activeSession?.messages.map((message, index) => (
               <div
                 key={index}
-                className={`p-6 border-b border-white/[0.03] ${message.role === "assistant" ? "bg-white/[0.015]" : ""}`}
+                className={`p-6 border-b border-[var(--color-border)] ${message.role === "assistant" ? "bg-[var(--color-surface-low)]" : ""}`}
               >
                 <div className="flex items-center gap-3 mb-3 opacity-40 text-[9px] uppercase tracking-[0.2em] font-black">
-                  <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-white"}>
+                  <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"}>
                     {message.role === "assistant" ? "CLAUDE" : "USER"}
                   </span>
-                  <span className="w-1 h-1 bg-white/20 rounded-full" />
-                  <span>{new Date().toLocaleTimeString()}</span>
+                  <span className="w-1 h-1 bg-[var(--color-text-dim)] rounded-full" />
+                  <span className="text-[var(--color-text-dim)]">{new Date().toLocaleTimeString()}</span>
                 </div>
 
                 {message.role === "assistant" ? (
                   <div
-                    className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[#e2e8f0] font-mono"
+                    className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[var(--color-text-main)] font-mono"
                     dangerouslySetInnerHTML={{ __html: convert.toHtml(message.content) }}
                   />
                 ) : (
-                  <div className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[#e2e8f0] font-mono">{message.content}</div>
+                  <div className="whitespace-pre-wrap leading-[1.7] text-[14px] text-[var(--color-text-main)] font-mono">{message.content}</div>
                 )}
               </div>
             ))}
             {isLoading && (
-              <div className="p-6 opacity-40 animate-pulse font-mono text-[10px] uppercase tracking-[0.3em] flex items-center gap-4">
-                <span className="w-2 h-2 bg-[var(--color-accent-orange)] rounded-full" />
-                Processing_Request...
+              <div className="p-6 font-mono text-[10px] uppercase tracking-[0.3em] flex items-center gap-4 transition-all duration-500">
+                <div className="flex gap-1.5 items-center">
+                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[ping_1.5s_infinite]" />
+                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[bounce_1s_infinite_100ms]" />
+                    <span className="w-1.5 h-1.5 bg-[var(--color-accent-orange)] rounded-full animate-[ping_1.5s_infinite_200ms]" />
+                </div>
+                <span className="text-[var(--color-accent-orange)] opacity-80 animate-pulse">
+                    {statusText}...
+                </span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           <div className="chat-input shrink-0 bg-[var(--color-surface-high)] border-t border-[var(--color-border)] p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowDirPicker(true)}
-                className="font-mono text-[var(--color-accent-orange)] font-black text-xs whitespace-nowrap bg-[var(--color-accent-orange)]/10 border border-[var(--color-accent-orange)]/20 px-3 py-1.5 rounded flex items-center gap-2 shadow-[0_0_10px_rgba(249,115,22,0.1)] hover:bg-[var(--color-accent-orange)]/20 transition-colors cursor-pointer"
-                disabled={isLoading}
-              >
-                <span className="opacity-50 text-[10px]">DIR:</span>
-                {folderLabel}
-                <span className="text-white/30 ml-1">❯</span>
-              </button>
+            <div className="flex items-center">
               <input
                 type="text"
                 placeholder={placeholder}
-                className="outline-none w-grow bg-transparent font-mono text-[var(--color-text-main)] placeholder:text-white/10 text-sm tracking-wide flex-grow disabled:opacity-40"
+                className="outline-none w-full bg-transparent font-mono text-[var(--color-text-main)] placeholder:text-white/10 text-sm tracking-wide flex-grow disabled:opacity-40"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => {

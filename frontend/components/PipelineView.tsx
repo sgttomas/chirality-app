@@ -9,6 +9,7 @@ interface PipelineViewProps {
     selectedVariant: string | null;
     projectRoot: string | null;
     onNavigateHome?: () => void;
+    onRootChange?: (path: string) => void;
 }
 
 const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
@@ -21,7 +22,7 @@ const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: st
     "AUDIT_DEPENDENCIES": { personaId: "AUDIT_DEPENDENCIES", fileName: "AGENT_AUDIT_DEPENDENCIES.md" }
 };
 
-export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome }: PipelineViewProps) {
+export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome, onRootChange }: PipelineViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const personaConfig = selectedVariant
@@ -43,6 +44,7 @@ export function PipelineView({ family, selectedVariant, projectRoot, onNavigateH
       personaId={personaConfig?.personaId ?? null}
       projectRoot={projectRoot}
       onNavigateHome={onNavigateHome}
+      onRootChange={onRootChange}
       sidebarContent={() => (
         <>
           <div className="panel-label shrink-0 bg-[var(--color-surface-mid)] flex justify-between items-center px-4 py-3 border-b border-[var(--color-border)]">
