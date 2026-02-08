@@ -166,6 +166,10 @@ function buildClaudeArgs(session: Session, userMessage: string, promptFile: stri
     args.push("--resume", session.claudeSessionId);
   }
 
+  if (opts?.model) {
+    args.push("--model", opts.model);
+  }
+
   if (typeof tools === "string" && tools.trim()) {
     args.push("--tools", tools);
   }
@@ -216,6 +220,15 @@ function createLogEntry(
 
 function fireAndForgetLog(projectRoot: string, entry: LogEntry): void {
   void appendLog(projectRoot, entry);
+}
+
+function resolveModelForLog(opts?: TurnOpts): string | null {
+  if (typeof opts?.model !== "string") {
+    return null;
+  }
+
+  const trimmed = opts.model.trim();
+  return trimmed ? trimmed : null;
 }
 
 export class ClaudeCodeManager {
@@ -309,10 +322,23 @@ export class ClaudeCodeManager {
       }),
     );
 
+    const resolvedModel = resolveModelForLog(opts);
+    fireAndForgetLog(
+      session.projectRoot,
+      createLogEntry(session.id, "info", "turn:model", {
+        resolvedModel,
+        usedModelFlag: Boolean(resolvedModel),
+      }),
+    );
+
     const childEnv = filterChildEnv(process.env);
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (opts?.apiKey) {
+      childEnv.ANTHROPIC_API_KEY = opts.apiKey;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       childEnv.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     }
+
+    console.log("[DEBUG] Spawning Claude with args:", JSON.stringify(args, null, 2));
 
     const child = spawn(claudeExecutable, args, {
       cwd: session.projectRoot,
@@ -327,7 +353,7 @@ export class ClaudeCodeManager {
       createLogEntry(session.id, "info", "process:spawn", {
         command: commandForLog,
         pid: child.pid ?? null,
-        redactions: process.env.ANTHROPIC_API_KEY ? { ANTHROPIC_API_KEY: redactForLogs(process.env.ANTHROPIC_API_KEY) } : undefined,
+        redactions: childEnv.ANTHROPIC_API_KEY ? { ANTHROPIC_API_KEY: redactForLogs(childEnv.ANTHROPIC_API_KEY) } : undefined,
       }),
     );
 

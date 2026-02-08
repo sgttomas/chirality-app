@@ -40,6 +40,7 @@ function buildSessionSummary(session: Session): SessionSummary {
     persona: session.persona,
     mode: session.mode,
     projectRoot: session.projectRoot,
+    model: session.model,
   };
 }
 
@@ -61,6 +62,7 @@ function parseSession(contents: string): Session | null {
   const updatedAt = toIsoString(parsed.updatedAt);
   const persona = typeof parsed.persona === "string" ? parsed.persona : parsed.persona === null ? null : null;
   const mode = parsed.mode;
+  const model = typeof parsed.model === "string" ? parsed.model : null;
   const claudeSessionId =
     typeof parsed.claudeSessionId === "string"
       ? parsed.claudeSessionId
@@ -80,6 +82,7 @@ function parseSession(contents: string): Session | null {
     persona,
     mode,
     claudeSessionId,
+    model,
   };
 }
 
@@ -176,6 +179,7 @@ export class SessionManager {
       persona: persona ?? null,
       mode,
       claudeSessionId: null,
+      model: null,
     };
 
     await this.save(session);
@@ -194,6 +198,7 @@ export class SessionManager {
       createdAt: toIsoString(session.createdAt) ?? new Date().toISOString(),
       persona: session.persona ?? null,
       claudeSessionId: session.claudeSessionId ?? null,
+      model: session.model ?? null,
     };
 
     await this.ensureSessionsDir(normalized.projectRoot);

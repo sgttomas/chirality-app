@@ -54,7 +54,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
       <div className="flex gap-2 mb-2">
         <button 
             onClick={handleUp}
-            className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs font-mono"
+            className="px-2 py-1 bg-[var(--color-surface-mid)] hover:bg-[var(--color-surface-high)] rounded text-xs font-mono"
             title="Go Up"
         >
             ..
@@ -64,7 +64,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
                 type="text" 
                 value={manualPath} 
                 onChange={(e) => setManualPath(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs font-mono text-[var(--color-text-main)] focus:border-[var(--color-accent-orange)] outline-none"
+                className="w-full bg-[var(--color-surface-high)] border border-[var(--color-border)] rounded px-2 py-1 text-xs font-mono text-[var(--color-text-main)] focus:border-[var(--color-accent-orange)] outline-none"
             />
         </form>
         <button 
@@ -76,7 +76,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
       </div>
 
       {/* File List */}
-      <div className="flex-grow overflow-y-auto border border-white/5 rounded bg-black/20 p-2 custom-scrollbar">
+      <div className="flex-grow overflow-y-auto border border-[var(--color-border)] rounded bg-[var(--color-surface-mid)] p-2 custom-scrollbar">
         {loading ? (
             <div className="p-4 text-xs opacity-50 font-mono">Loading...</div>
         ) : (

@@ -20,19 +20,19 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md">
       <div className="glass w-[600px] h-[700px] flex flex-col shadow-2xl border-[var(--color-accent-orange)]/30">
-        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/40">
+        <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-high)]">
           <h2 className="text-sm font-bold text-[var(--color-accent-orange)] tracking-widest uppercase">Select Directory</h2>
-          <button onClick={onCancel} className="text-white/50 hover:text-white transition-colors">✕</button>
+          <button onClick={onCancel} className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors">✕</button>
         </div>
         
-        <div className="flex-grow overflow-hidden p-4 bg-black/20">
+        <div className="flex-grow overflow-hidden p-4 bg-[var(--color-surface-mid)]">
             <SystemFileTree 
                 onSelect={(path) => setSelectedPath(path)}
                 className="h-full"
             />
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/40 flex justify-between items-center">
+        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] flex justify-between items-center">
             <div className="text-[10px] font-mono text-[var(--color-text-dim)] truncate max-w-[350px]">
                 {selectedPath ? `Selected: ${selectedPath}` : "Select a target..."}
             </div>

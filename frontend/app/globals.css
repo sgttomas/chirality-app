@@ -8,6 +8,10 @@
   --color-border: rgba(255, 255, 255, 0.12);
   --color-accent-orange: #f97316;
 
+  --color-surface-high: rgba(0, 0, 0, 0.4);
+  --color-surface-mid: rgba(0, 0, 0, 0.2);
+  --color-surface-low: rgba(0, 0, 0, 0.05);
+
   /* Cognitive Palette */
   --color-normative: #dc2626;
   --color-operative: #f97316;
@@ -21,6 +25,19 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
+@utility light-mode {
+  --color-bg-deep: #94a3b8; /* Slate 400 - Much darker base */
+  --color-bg-panel: rgba(241, 245, 249, 0.85); /* Slate 100 - Bright Grey Panels */
+  --color-text-main: #0f172a;
+  --color-text-dim: #334155;
+  --color-border: rgba(51, 65, 85, 0.2);
+  --color-accent-orange: #d97706; /* Amber 600 - Honey tone */
+
+  --color-surface-high: rgba(255, 255, 255, 0.9);
+  --color-surface-mid: rgba(226, 232, 240, 0.6); /* Slate 200 tint */
+  --color-surface-low: rgba(226, 232, 240, 0.3);
+}
+
 /* Global Styles */
 body {
     background-color: var(--color-bg-deep);
@@ -31,6 +48,19 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+body.light-mode {
+    background-image: 
+        /* The Wacky Texture: Polka/Terrazzo pattern */
+        radial-gradient(circle, rgba(139, 92, 246, 0.15) 2px, transparent 2.5px),
+        radial-gradient(circle, rgba(234, 179, 8, 0.15) 2px, transparent 2.5px),
+        /* Organic colored fog */
+        radial-gradient(at 0% 0%, rgba(167, 139, 250, 0.4) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(250, 204, 21, 0.3) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(74, 222, 128, 0.3) 0px, transparent 50%);
+    background-size: 24px 24px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: 0 0, 12px 12px, 0 0, 0 0, 0 0;
 }
 
 /* Utilities */

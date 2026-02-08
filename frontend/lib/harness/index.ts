@@ -4,7 +4,7 @@ import { SessionManager } from "./session-manager";
 import type { PersonaConfig, Session, TurnOpts, UIEvent } from "./types";
 
 declare global {
-  var __chiralityHarnessPersonaManager: PersonaManager | undefined;
+  var __chiralityHarnessPersonaManager_v2: PersonaManager | undefined;
   var __chiralityHarnessSessionManager: SessionManager | undefined;
 }
 
@@ -12,7 +12,7 @@ export const sessionManager =
   globalThis.__chiralityHarnessSessionManager ?? (globalThis.__chiralityHarnessSessionManager = new SessionManager());
 
 export const personaManager =
-  globalThis.__chiralityHarnessPersonaManager ?? (globalThis.__chiralityHarnessPersonaManager = new PersonaManager());
+  globalThis.__chiralityHarnessPersonaManager_v2 ?? (globalThis.__chiralityHarnessPersonaManager_v2 = new PersonaManager());
 
 export { claudeCodeManager };
 
@@ -66,6 +66,15 @@ function mergePersonaTurnDefaults(persona: PersonaConfig | null, opts: TurnOpts 
   return merged;
 }
 
+function normalizeModelValue(model: unknown): string | undefined {
+  if (typeof model !== "string") {
+    return undefined;
+  }
+
+  const trimmed = model.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function isResumeFailure(error: string, usedResume: boolean, sawSessionInit: boolean): boolean {
   if (!usedResume || sawSessionInit) {
     return false;
@@ -78,12 +87,32 @@ function isResumeFailure(error: string, usedResume: boolean, sawSessionInit: boo
 export async function* startHarnessTurn({ sessionId, message, opts }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
   const session = await sessionManager.resume(sessionId);
   const persona = session.persona ? await personaManager.load(session.projectRoot, session.persona) : null;
+  const globalModel = await personaManager.getGlobalModel(session.projectRoot);
   const basePrompt = await personaManager.buildSystemPrompt(session.projectRoot, persona, session.mode);
   const systemPrompt = opts?.systemPromptAppend
     ? `${basePrompt}\n\nTurn-specific context:\n${opts.systemPromptAppend}`
     : basePrompt;
   const systemPromptFile = await personaManager.writeSystemPromptFile(session.projectRoot, session.id, systemPrompt);
   const mergedOpts = mergePersonaTurnDefaults(persona, opts, systemPromptFile);
+  const requestedModel = normalizeModelValue(mergedOpts.model);
+  const configuredGlobalModel = normalizeModelValue(globalModel);
+
+  if (requestedModel) {
+    mergedOpts.model = requestedModel;
+  } else if (configuredGlobalModel) {
+    mergedOpts.model = configuredGlobalModel;
+  } else {
+    delete mergedOpts.model;
+  }
+
+  // Detect model change: if the desired model differs from the session's active model,
+  // we must start a fresh Claude session to ensure the model change takes effect.
+  // We also reset if session.model is unknown (legacy session) to guarantee compliance.
+  const desiredModel = mergedOpts.model;
+  if (session.claudeSessionId && desiredModel && session.model !== desiredModel) {
+    session.claudeSessionId = null;
+    await saveSession(session);
+  }
 
   const hadResumeAtStart = Boolean(session.claudeSessionId);
   let attemptedFreshRetry = false;
@@ -97,6 +126,7 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
       if (event.type === "session:init") {
         sawSessionInit = true;
         session.claudeSessionId = event.claudeSessionId;
+        session.model = event.model; // Sync the authoritative model from the CLI init event
         await saveSession(session);
       }
 

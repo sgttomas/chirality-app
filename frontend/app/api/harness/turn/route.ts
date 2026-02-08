@@ -16,6 +16,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function normalizeTurnOpts(value: Record<string, unknown>): TurnOpts {
+  const normalized = { ...value } as TurnOpts & { model?: unknown };
+  if (typeof normalized.model === "string") {
+    const trimmed = normalized.model.trim();
+    if (trimmed) {
+      normalized.model = trimmed;
+    } else {
+      delete normalized.model;
+    }
+  } else {
+    delete normalized.model;
+  }
+
+  return normalized as TurnOpts;
+}
+
 function formatSseEvent(event: UIEvent): string {
   return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
 }
@@ -31,7 +47,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   const message = typeof body.message === "string" ? body.message : "";
-  const opts = body.opts === undefined ? undefined : isObject(body.opts) ? (body.opts as TurnOpts) : null;
+  const opts = body.opts === undefined ? undefined : isObject(body.opts) ? normalizeTurnOpts(body.opts) : null;
 
   if (!sessionId) {
     return NextResponse.json({ error: "sessionId is required." }, { status: 400 });

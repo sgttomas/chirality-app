@@ -24,8 +24,8 @@ const hexData: HexData[] = [
   
   // Evaluative Row
   { row: "evaluative", col: "guiding", label: "AGENTS", type: "persona" },
-  { row: "evaluative", col: "applying", label: "CHANGE", type: "persona" },
-  { row: "evaluative", col: "judging", label: "DEPENDENCIES", type: "persona" },
+  { row: "evaluative", col: "applying", label: "DEPENDENCIES", type: "persona" },
+  { row: "evaluative", col: "judging", label: "CHANGE", type: "persona" },
   { row: "evaluative", col: "reviewing", label: "RECONCILING", type: "persona" },
 ];
 

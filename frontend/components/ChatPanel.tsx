@@ -67,7 +67,7 @@ const convert = new Convert({
   bg: "transparent",
   newline: true,
   escapeXML: true,
-  stream: true,
+  stream: false,
 });
 
 function trimString(value: unknown): string | null {
@@ -252,85 +252,37 @@ async function consumeSseStream(
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let eventName = "message";
-  let dataLines: string[] = [];
-
-  const dispatch = (): void => {
-    if (dataLines.length === 0) {
-      eventName = "message";
-      return;
-    }
-
-    const payload = dataLines.join("\n");
-    onEvent(eventName, payload);
-    eventName = "message";
-    dataLines = [];
-  };
-
-  const processLine = (line: string): void => {
-    if (line === "") {
-      dispatch();
-      return;
-    }
-
-    if (line.startsWith(":")) {
-      return;
-    }
-
-    if (line.startsWith("event:")) {
-      eventName = line.slice(6).trim();
-      return;
-    }
-
-    if (line.startsWith("data:")) {
-      dataLines.push(line.slice(5).trimStart());
-    }
-  };
 
   while (true) {
     const { value, done } = await reader.read();
-    if (done) {
-      break;
-    }
+    if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
 
-    while (true) {
-      const newlineIndex = buffer.indexOf("\n");
-      if (newlineIndex < 0) {
-        break;
+    // SSE blocks are delimited by double newlines
+    let boundaryIndex;
+    while ((boundaryIndex = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, boundaryIndex);
+      buffer = buffer.slice(boundaryIndex + 2);
+
+      let eventName = "message";
+      let data = "";
+
+      const lines = block.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("event:")) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+          data += (data ? "\n" : "") + line.slice(5).trimStart();
+        }
       }
 
-      let line = buffer.slice(0, newlineIndex);
-      buffer = buffer.slice(newlineIndex + 1);
-
-      if (line.endsWith("\r")) {
-        line = line.slice(0, -1);
+      if (data) {
+        onEvent(eventName, data);
       }
-
-      processLine(line);
     }
   }
 
-  buffer += decoder.decode();
-
-  while (buffer.length > 0) {
-    const newlineIndex = buffer.indexOf("\n");
-    if (newlineIndex < 0) {
-      processLine(buffer.endsWith("\r") ? buffer.slice(0, -1) : buffer);
-      buffer = "";
-      break;
-    }
-
-    let line = buffer.slice(0, newlineIndex);
-    buffer = buffer.slice(newlineIndex + 1);
-    if (line.endsWith("\r")) {
-      line = line.slice(0, -1);
-    }
-    processLine(line);
-  }
-
-  dispatch();
   reader.releaseLock();
 }
 
@@ -393,17 +345,17 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         const messages = [...session.messages];
         const last = messages[messages.length - 1];
 
-        if (!last || last.role !== "assistant" || !last.streaming) {
-          messages.push({ role: "assistant", content: deltaText, streaming: true });
+        // If the last message is assistant and streaming, append to it
+        if (last && last.role === "assistant" && last.streaming) {
+          messages[messages.length - 1] = {
+            ...last,
+            content: `${last.content}${deltaText}`,
+          };
           return { ...session, messages };
         }
 
-        messages[messages.length - 1] = {
-          ...last,
-          content: `${last.content}${deltaText}`,
-          streaming: true,
-        };
-
+        // Otherwise start a new streaming message
+        messages.push({ role: "assistant", content: deltaText, streaming: true });
         return { ...session, messages };
       });
     };
@@ -667,12 +619,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     };
 
     const streamTurn = async (harnessSessionId: string, message: string, localSessionId: string): Promise<boolean> => {
+      const apiKey = localStorage.getItem("anthropic_api_key") || undefined;
+      
       const response = await fetch("/api/harness/turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: harnessSessionId,
           message,
+          opts: { apiKey },
         }),
       });
 
@@ -881,10 +836,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     return (
       <div className="chat-panel glass h-full w-full flex flex-row overflow-hidden min-h-0">
         <div
-          className="session-sidebar flex flex-col h-full shrink-0 border-r border-white/10 bg-black/40 shadow-xl"
+          className="session-sidebar flex flex-col h-full shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface-high)] shadow-xl"
           style={{ width: "220px" }}
         >
-          <div className="panel-label flex justify-between items-center p-4 border-b border-white/10 shrink-0 bg-black/20">
+          <div className="panel-label flex justify-between items-center p-4 border-b border-[var(--color-border)] shrink-0 bg-[var(--color-surface-mid)]">
             <span className="text-[10px] tracking-[0.2em] font-black text-[var(--color-accent-orange)] uppercase">
               History
             </span>
@@ -919,10 +874,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           </div>
         </div>
 
-        <div className="flex-grow flex flex-col min-w-0 h-full relative bg-black/10">
+        <div className="flex-grow flex flex-col min-w-0 h-full relative bg-[var(--color-surface-low)]">
           {showDirPicker && <DirectoryPicker onSelect={handleDirSelect} onCancel={() => setShowDirPicker(false)} />}
 
-          <div className="p-4 border-b border-white/10 flex justify-between items-center shrink-0 bg-black/40 backdrop-blur-sm gap-3">
+          <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center shrink-0 bg-[var(--color-surface-high)] backdrop-blur-sm gap-3">
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-[9px] font-black tracking-[0.3em] text-[var(--color-accent-orange)] uppercase opacity-80">
                 {mode === "agent" ? "Agent_Persona" : "Direct_Link"}
@@ -993,7 +948,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chat-input shrink-0 bg-black/80 border-t border-white/10 p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+          <div className="chat-input shrink-0 bg-[var(--color-surface-high)] border-t border-[var(--color-border)] p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowDirPicker(true)}

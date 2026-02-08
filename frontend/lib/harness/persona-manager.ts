@@ -375,6 +375,24 @@ export class PersonaManager {
     );
   }
 
+  async getGlobalModel(projectRoot: string): Promise<string | null> {
+    const claudePath = path.join(path.resolve(projectRoot), "CLAUDE.md");
+    const content = await this.readCachedTextFile(claudePath);
+    if (!content) {
+      return null;
+    }
+
+    const { frontmatter } = splitFrontmatter(content);
+    const modelInFrontmatter = stringifyScalar(frontmatter.model);
+    if (modelInFrontmatter) {
+      return modelInFrontmatter;
+    }
+
+    // Fallback: look for "model: value" in the body
+    const match = content.match(/^model:\s*(.+)$/m);
+    return match ? match[1].trim() : null;
+  }
+
   async list(projectRoot: string): Promise<PersonaConfig[]> {
     const personasDir = this.projectPersonaDir(projectRoot);
 

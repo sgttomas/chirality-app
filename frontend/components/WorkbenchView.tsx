@@ -8,6 +8,7 @@ interface WorkbenchViewProps {
     agentName: string;
     initialPath?: string | null;
     projectRoot: string | null;
+    onNavigateHome?: () => void;
 }
 
 const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
@@ -22,7 +23,7 @@ const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: s
     "RECONCILING": { personaId: "RECONCILIATION", fileName: "AGENT_RECONCILIATION.md" }
 };
 
-export function WorkbenchView({ agentName, initialPath, projectRoot }: WorkbenchViewProps) {
+export function WorkbenchView({ agentName, initialPath, projectRoot, onNavigateHome }: WorkbenchViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(initialPath || "README.md");
 
   const personaConfig = WORKBENCH_PERSONA_MAPPING[agentName];
@@ -40,9 +41,10 @@ export function WorkbenchView({ agentName, initialPath, projectRoot }: Workbench
       personaId={personaConfig?.personaId ?? null}
       selectedFile={selectedFile}
       projectRoot={projectRoot}
+      onNavigateHome={onNavigateHome}
       sidebarContent={() => (
         <>
-          <div className="panel-label shrink-0 flex justify-between items-center bg-black/20 p-4 border-b border-white/5">
+          <div className="panel-label shrink-0 flex justify-between items-center bg-[var(--color-surface-mid)] p-4 border-b border-[var(--color-border)]">
               <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--color-accent-orange)]">Project Directory</span>
           </div>
           

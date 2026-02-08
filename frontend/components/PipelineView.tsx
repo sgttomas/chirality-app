@@ -8,6 +8,7 @@ interface PipelineViewProps {
     family: string;
     selectedVariant: string | null;
     projectRoot: string | null;
+    onNavigateHome?: () => void;
 }
 
 const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
@@ -16,11 +17,11 @@ const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: st
     "CHIRALITY_FRAMEWORK": { personaId: "CHIRALITY_FRAMEWORK", fileName: "AGENT_CHIRALITY_FRAMEWORK.md" },
     "CHIRALITY_LENS": { personaId: "CHIRALITY_LENS", fileName: "AGENT_CHIRALITY_LENS.md" },
     "TASK_ESTIMATING": { personaId: "ESTIMATING", fileName: "AGENT_ESTIMATING.md" },
-    "AUDIT_AGENTS": { personaId: "AUDIT_AGENTS", fileName: "AGENT_DEPENDENCIES.md" },
-    "AUDIT_DEPENDENCIES": { personaId: "AUDIT_DEPENDENCIES", fileName: "AGENT_DEPENDENCIES.md" }
+    "AUDIT_AGENTS": { personaId: "AUDIT_AGENTS", fileName: "AGENT_AUDIT_AGENTS.md" },
+    "AUDIT_DEPENDENCIES": { personaId: "AUDIT_DEPENDENCIES", fileName: "AGENT_AUDIT_DEPENDENCIES.md" }
 };
 
-export function PipelineView({ family, selectedVariant, projectRoot }: PipelineViewProps) {
+export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome }: PipelineViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const personaConfig = selectedVariant
@@ -41,9 +42,10 @@ export function PipelineView({ family, selectedVariant, projectRoot }: PipelineV
       harnessMode="pipeline"
       personaId={personaConfig?.personaId ?? null}
       projectRoot={projectRoot}
+      onNavigateHome={onNavigateHome}
       sidebarContent={() => (
         <>
-          <div className="panel-label shrink-0 bg-black/20 flex justify-between items-center px-4 py-3 border-b border-white/5">
+          <div className="panel-label shrink-0 bg-[var(--color-surface-mid)] flex justify-between items-center px-4 py-3 border-b border-[var(--color-border)]">
               <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--color-accent-orange)]">Project Directory</span>
           </div>
           

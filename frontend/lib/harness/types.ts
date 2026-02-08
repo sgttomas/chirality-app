@@ -8,6 +8,7 @@ export interface Session {
   persona: string | null;
   mode: SessionMode;
   claudeSessionId: string | null;
+  model: string | null;
 }
 
 export interface SessionSummary {
@@ -17,6 +18,7 @@ export interface SessionSummary {
   persona: string | null;
   mode: SessionMode;
   projectRoot: string;
+  model: string | null;
 }
 
 export interface UsageInfo {
@@ -28,6 +30,8 @@ export interface UsageInfo {
 
 export interface TurnOpts {
   permissionMode?: "default" | "acceptEdits" | "dontAsk" | "plan";
+  model?: string;
+  apiKey?: string;
   tools?: string;
   disallowedTools?: string[];
   autoApproveTools?: string[];
