@@ -81,10 +81,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-      <div className="ui-panel-strong w-[min(92vw,460px)] overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-modal-title"
+        className="ui-panel-strong w-[min(92vw,460px)] overflow-hidden"
+      >
         <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/70 px-5 py-4">
           <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Configuration</p>
-          <h2 className="text-[1.05rem] font-bold uppercase tracking-[0.08em] text-[var(--color-text-main)]">Settings</h2>
+          <h2 id="settings-modal-title" className="text-[1.05rem] font-bold uppercase tracking-[0.08em] text-[var(--color-text-main)]">Settings</h2>
           <p className="mt-1 mono text-[10px] text-[var(--color-text-dim)]">
             ROOT: {projectRoot ?? "NOT_SET"}
           </p>

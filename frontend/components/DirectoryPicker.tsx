@@ -19,11 +19,16 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm">
-      <div className="ui-panel-strong flex h-[min(82vh,720px)] w-[min(92vw,780px)] flex-col overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="directory-picker-title"
+        className="ui-panel-strong flex h-[min(82vh,720px)] w-[min(92vw,780px)] flex-col overflow-hidden"
+      >
         <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/75 px-5 py-4">
           <div className="min-w-0">
             <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Workspace</p>
-            <h2 className="text-[1.05rem] font-bold tracking-[0.06em] uppercase text-[var(--color-text-main)]">
+            <h2 id="directory-picker-title" className="text-[1.05rem] font-bold tracking-[0.06em] uppercase text-[var(--color-text-main)]">
               Select Project Directory
             </h2>
             <p className="mt-1 text-[12px] text-[var(--color-text-dim)]/85">

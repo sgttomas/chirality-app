@@ -57,10 +57,12 @@ export function HexGrid({ onLaunch }: HexGridProps) {
 
         {/* Grid Items */}
         {hexData.map((hex) => (
-          <div
+          <button
             key={`${hex.row}-${hex.col}`}
-            className={`hex-wrapper row-${hex.row} col-${hex.col}`}
+            type="button"
+            className={`hex-wrapper hex-launch ui-focus-ring row-${hex.row} col-${hex.col}`}
             onClick={() => onLaunch(hex.label, hex.row, hex.type)}
+            aria-label={`Launch ${hex.label} ${hex.type}`}
           >
             {/* Show Row Label only for the first column (Guiding) */}
             {hex.col === "guiding" && (
@@ -70,7 +72,7 @@ export function HexGrid({ onLaunch }: HexGridProps) {
             <div className="hex">
               <div className="hex-content">{hex.label}</div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

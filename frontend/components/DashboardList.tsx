@@ -69,7 +69,7 @@ export function DashboardList({ onSelect, projectRoot }: DashboardListProps) {
   };
 
   return (
-    <section className="dashboard-panel ui-panel w-[550px] flex h-full flex-col gap-4 overflow-hidden p-5 relative">
+    <section className="dashboard-panel ui-panel relative flex h-full w-full max-w-full flex-col gap-4 overflow-hidden p-5 xl:w-[550px]">
       <header className="flex shrink-0 flex-col gap-3 border-b border-[var(--color-border)] pb-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="ui-type-title text-[1.35rem] font-black tracking-[0.12em] uppercase text-[var(--color-text-main)]">

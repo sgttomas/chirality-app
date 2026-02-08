@@ -317,6 +317,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
   (
     {
       agentName,
+      width,
       placeholder = "Send instruction...",
       sessionId: viewId,
       autoPrompt,
@@ -854,6 +855,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const costLabel = formatCostUsd(activeHarness?.lastCostUsd ?? null);
     const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
     const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
+    const sessionRailWidth = Math.max(140, Math.min(220, Math.floor(width * 0.32)));
 
     const sendMessage = async (): Promise<void> => {
       if (!input.trim()) {
@@ -868,7 +870,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       <div className="chat-panel ui-panel h-full w-full flex flex-row overflow-hidden min-h-0">
         <div
           className="session-sidebar flex h-full shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-high)] shadow-xl"
-          style={{ width: "220px" }}
+          style={{ width: `${sessionRailWidth}px` }}
         >
           <div className="panel-label flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-mid)] p-3.5">
             <span className="ui-type-mono-meta text-[10px] font-black text-[var(--color-accent-orange)] opacity-80">

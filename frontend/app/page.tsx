@@ -196,9 +196,9 @@ export default function Home() {
       {/* Main View Area */}
       <main className="flex-grow overflow-hidden">
         {currentView === "home" && (
-            <div className="flex h-full gap-5 overflow-hidden px-5 pb-5 pt-4">
+            <div className="flex h-full flex-col gap-4 overflow-y-auto px-3 pb-4 pt-3 xl:flex-row xl:gap-5 xl:overflow-hidden xl:px-5 xl:pb-5 xl:pt-4">
                 <HexGrid onLaunch={launchAgent} />
-                <div className="shrink-0">
+                <div className="w-full shrink-0 xl:w-auto">
                     <DashboardList 
                         onSelect={(del) => {
                             setAgentName("WORKING_ITEMS");
