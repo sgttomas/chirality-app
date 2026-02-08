@@ -284,3 +284,17 @@ Purpose: durable progress tracking across multiple development sessions for Harn
   - Pending staged index deletions for previously tracked `.chirality` runtime files must be committed to fully realize status hygiene for all collaborators.
 - Next session first task: add optional failure-only full-artifact upload mode in `.github/workflows/harness-premerge.yml` based on `harness_artifact_mirroring_guidance.md`.
 - Commit(s): none
+
+## 2026-02-07 — Session 9 (SDK Cutover P0-C1)
+- Date/Time: 2026-02-07 22:43:59 -0700
+- Batch ID: `P0-C1`
+- Completed Task IDs: `PRE-001`, `PRE-002`, `PRE-003`
+- Commit SHA: `0703aed` (git-ref-only baseline batch; no code/runtime edits)
+- Validation run:
+  - `git rev-list -n 1 baseline-sdk-cutover-2026-02-07` resolved to `9ae2447`.
+  - `git push origin baseline-sdk-cutover-2026-02-07` returned `Everything up-to-date`.
+  - `git switch -c migration/agent-sdk-wholesale && git push -u origin migration/agent-sdk-wholesale` succeeded; tracking set to `origin/migration/agent-sdk-wholesale`.
+- Blockers/Risks:
+  - none.
+- Next session first task: execute `P1-C1` (`RT-001`, `RT-002`, `RT-009`, `RT-010`) with minimal SDK contract/default changes.
+- Commit(s): none

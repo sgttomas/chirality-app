@@ -6,9 +6,9 @@ Baseline reference:
 - Tag target: `baseline-sdk-cutover-2026-02-07`
 
 ## Pre-Cutover
-- [ ] `git tag -a baseline-sdk-cutover-2026-02-07 9ae2447 -m "Pre-SDK wholesale migration baseline"`
-- [ ] `git push origin baseline-sdk-cutover-2026-02-07`
-- [ ] `git switch -c migration/agent-sdk-wholesale && git push -u origin migration/agent-sdk-wholesale`
+- [x] `git tag -a baseline-sdk-cutover-2026-02-07 9ae2447 -m "Pre-SDK wholesale migration baseline"`
+- [x] `git push origin baseline-sdk-cutover-2026-02-07`
+- [x] `git switch -c migration/agent-sdk-wholesale && git push -u origin migration/agent-sdk-wholesale`
 
 ## Runtime Files
 - [ ] `frontend/package.json` — remove `@anthropic-ai/sdk`, add `@anthropic-ai/claude-agent-sdk`.
