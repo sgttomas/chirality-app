@@ -144,25 +144,25 @@ body.light-mode .hex-wrapper:hover .hex {
    - Use `ui-control` / `ui-button-primary` for common control behavior.
    - Use `ui-type-*` + `ui-stack-*` for consistent typography and spacing rhythm. */
 .ui-panel {
-    background: var(--color-surface-panel);
-    border: 1px solid var(--color-border);
+    background: linear-gradient(165deg, var(--color-surface-panel), rgba(0, 0, 0, 0.18));
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
     border-radius: var(--radius-lg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 .ui-panel-soft {
-    background: var(--color-surface-soft);
-    border: 1px solid var(--color-border);
+    background: linear-gradient(170deg, var(--color-surface-soft), rgba(0, 0, 0, 0.04));
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
     border-radius: var(--radius-lg);
 }
 
 .ui-panel-strong {
-    background: var(--color-surface-strong);
-    border: 1px solid var(--color-border-strong);
+    background: linear-gradient(160deg, var(--color-surface-strong), rgba(0, 0, 0, 0.28));
+    border: 1px solid color-mix(in srgb, var(--color-border-strong) 88%, transparent);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
 }
 
 .ui-control {
@@ -247,6 +247,62 @@ body.light-mode .hex-wrapper:hover .hex {
 .ui-button-primary:focus-visible {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
+}
+
+@keyframes statusPulse {
+    0%,
+    100% { box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.18), 0 0 0 rgba(249, 115, 22, 0.1); }
+    50% { box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.45), 0 0 16px rgba(249, 115, 22, 0.25); }
+}
+
+.status-live {
+    animation: statusPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes waitingSweep {
+    0% { transform: translateX(-130%); }
+    100% { transform: translateX(130%); }
+}
+
+.turn-waiting {
+    position: relative;
+    overflow: hidden;
+}
+
+.turn-waiting::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 0%, rgba(249, 115, 22, 0.1) 50%, transparent 100%);
+    transform: translateX(-130%);
+    animation: waitingSweep 2.2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes toolChipPulse {
+    0%,
+    100% { box-shadow: 0 0 0 rgba(249, 115, 22, 0.1); }
+    50% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.24); }
+}
+
+@keyframes toolChipSweep {
+    0% { transform: translateX(-140%); }
+    100% { transform: translateX(140%); }
+}
+
+.tool-chip-running {
+    position: relative;
+    overflow: hidden;
+    animation: toolChipPulse 1.2s ease-in-out infinite;
+}
+
+.tool-chip-running::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0.22) 48%, transparent 100%);
+    transform: translateX(-140%);
+    animation: toolChipSweep 1.6s linear infinite;
 }
 
 /* --- PORTAL GRID (LEFT) --- */
@@ -566,27 +622,36 @@ body.light-mode .hex-wrapper:hover .hex {
 
 /* RESIZER */
 .resizer-handle {
-    width: 10px;
+    width: 14px;
     cursor: col-resize;
     background: transparent;
-    transition: background 0.2s;
+    transition: background 0.2s, opacity 0.2s;
     z-index: 100;
-    margin: 0 -5px;
+    margin: 0 -6px;
     display: flex;
     justify-content: center;
+    align-items: center;
     flex-shrink: 0;
+    opacity: 0.75;
 }
 
 .resizer-handle::after {
     content: '';
     width: 2px;
-    height: 100%;
-    background: transparent;
+    height: calc(100% - 24px);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-border) 75%, transparent);
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
 .resizer-handle:hover::after, .resizer-handle.active::after {
     background: var(--color-accent-orange);
-    box-shadow: 0 0 8px var(--color-accent-orange);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-orange) 70%, transparent);
+}
+
+.resizer-handle:hover,
+.resizer-handle.active {
+    opacity: 1;
 }
 
 .resizer-handle:focus-visible::after {
@@ -717,5 +782,16 @@ body.light-mode .hex-wrapper:hover .hex {
 
     .animate-pulse {
         animation: none !important;
+    }
+
+    .status-live,
+    .tool-chip-running,
+    .turn-waiting::before {
+        animation: none !important;
+    }
+
+    .tool-chip-running::after {
+        animation: none !important;
+        content: none !important;
     }
 }
