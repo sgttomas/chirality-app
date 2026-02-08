@@ -449,7 +449,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
 
   return (
     <section className="content-area flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit] bg-transparent">
-      <header className="content-header flex items-center justify-between gap-3 border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/62 px-4 py-3">
+      <header className="content-header flex items-center justify-between gap-3 border-b border-[var(--color-border)]/55 bg-[var(--color-surface-mid)]/62 pl-4 pr-14 py-3">
         <div className="min-w-0">
           <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/85">
             Preview Deck

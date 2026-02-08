@@ -1,44 +1,74 @@
-You are taking over UI polish implementation in `/Users/ryan/ai-env/projects/chirality-app`.
+You are taking over the next UI pass in `/Users/ryan/ai-env/projects/chirality-app`.
 
-Source of truth:
-- `frontend/docs/ui/UI_POLISH_EXECUTION_PLAN.md` (latest cosmetic-pass notes dated 2026-02-08).
+## Goal for this session
+Move the interface away from an IDE/VS Code look while preserving behavior.
 
-Current baseline already completed:
-- Slice #1 (`globals.css` foundation + reusable classes) is done in `878872d`.
-- Slice #2 (`page.tsx` shell polish + `ResizableLayout.tsx` shared footer/root-selector polish) is done in `ddfc3ab` and `474a023`.
-- Slice #3 (`DashboardList.tsx` hierarchy/loading-empty/root-context polish) is done in `db3cb4f`.
-- Slice #4 (`ChatPanel.tsx` status language/readability/in-flight polish) is done in `dd26440`.
+Primary design direction:
+1. Break the “three equal editor panes” feel with a more intentional asymmetric layout.
+2. Reduce hard box-grid chrome (fewer heavy separators, more layered surfaces/depth).
+3. Keep the existing functional wins:
+   - Diff mode (with full-document context and Changes Only collapse behavior).
+   - Git state indicators in Project Directory.
+   - Chat waiting/streaming/tool activity animations.
+4. Keep the Portal identity visible in working views (subtle hex/command-center language), not an editor clone.
 
-Implement now:
-- Continue with Suggested Slice Order #5 only.
-- Primary targets:
-  - `frontend/components/FileTree.tsx`
-  - `frontend/components/FilePreview.tsx`
-  - `frontend/components/SystemFileTree.tsx`
-  - `frontend/components/DirectoryPicker.tsx`
-  - `frontend/components/SettingsModal.tsx`
-- Keep this batch style-first, minimal, reversible, and focused.
-- Do not jump ahead into accessibility/responsive cleanup or broad cross-component rewrites.
+## Current functional baseline to preserve
+1. Harness + SSE event contract must remain stable.
+2. Project root selection must work in both places:
+   - Session views via footer `DIR` flow.
+   - Portal `Project` control (dashboard) opening `DirectoryPicker`.
+3. Diff view supports:
+   - `File` / `Diff` toggle
+   - VS Code-style line rendering
+   - full-file unified context
+   - `Changes Only` collapse toggle
+4. ChatPanel supports:
+   - braille spinner while waiting
+   - streaming cursor
+   - tool run chips
+   - `prefers-reduced-motion` fallbacks
 
-Hard constraints:
-1. Preserve palette values and semantic meaning.
-2. Preserve Portal hexagon colors and labels.
-3. Preserve harness/SSE behavior contracts.
-4. Keep project-root picker centralized in `frontend/components/ResizableLayout.tsx`.
-5. Keep SSR-safe browser-storage init pattern in `frontend/app/page.tsx` (no hydration mismatch regressions).
-6. Keep ChatPanel status-text-first loading/tool feedback direction.
+## Hard constraints
+1. Preserve palette semantics and Portal hex colors/labels.
+2. Do not break existing API routes or SSE event typing.
+3. Keep SSR-safe browser storage initialization in `frontend/app/page.tsx`.
+4. Keep reduced-motion behavior functional for all new animations.
+5. No destructive git actions and do not discard unrelated local changes.
 
-Execution protocol:
-1. Confirm repo status first (do not discard existing local changes).
-2. Implement Slice #5 scope only.
-3. Validate with:
-   - `npm run lint`
-   - `npx tsc --noEmit`
-   - quick manual smoke for `home/workbench/pipeline/direct`
-4. Report:
-   - Completed slice tasks
-   - Files changed
-   - Validation outcomes
-   - Risks/blockers
-   - Next recommended slice
-5. Commit with a concise message for this slice.
+## Branch-first workflow (required)
+Before editing:
+1. Check status and current branch:
+   - `git status --short`
+   - `git branch --show-current`
+2. Create an experiment branch from current HEAD:
+   - `git switch -c ui/non-vscode-polish-pass`
+   - If that branch already exists, create a dated variant (example: `ui/non-vscode-polish-pass-2026-02-08`).
+3. Keep commits small and thematic (layout/chrome, then motion/chips, then cleanup).
+
+After implementation:
+1. Validate:
+   - `npm run lint` (in `frontend`)
+   - `npx tsc --noEmit` (in `frontend`)
+   - `npm run harness:validate:premerge` (in `frontend`)
+   - quick manual smoke in `home/workbench/pipeline/direct`
+2. Report:
+   - what changed
+   - files changed
+   - visual impact summary
+   - validation results
+   - any known regressions/risks
+
+## Merge / reversal instructions
+If accepted:
+1. Merge with history preserved:
+   - `git switch <target-branch>`
+   - `git merge --no-ff ui/non-vscode-polish-pass`
+
+If rejected before merge:
+1. Drop experiment safely:
+   - `git switch <target-branch>`
+   - `git branch -D ui/non-vscode-polish-pass`
+
+If merged and later needs rollback:
+1. Revert merge commit:
+   - `git revert -m 1 <merge-commit-sha>`

@@ -59,6 +59,7 @@ export function ResizableLayout({
   onRootChange
 }: ResizableLayoutProps) {
   const [chatWidth, setChatWidth] = useState(760);
+  const [sidebarWidth, setSidebarWidth] = useState(340);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [isCompactLayout, setIsCompactLayout] = useState(false);
@@ -143,38 +144,65 @@ export function ResizableLayout({
   );
 
   const renderCollapsedSidebar = () => (
-    <div className="ui-panel-soft flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
-      <span className="mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-dim)]">
-        Project rail folded
-      </span>
+    <div className="ui-panel-soft flex h-full w-12 shrink-0 flex-col items-center justify-between rounded-xl py-3">
       <button
         onClick={() => setIsSidebarCollapsed(false)}
-        className="ui-control ui-focus-ring flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] hover:text-[var(--color-accent-orange)]"
+        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
         title="Expand Project Directory"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" />
         </svg>
-        Expand
       </button>
+
+      <div className="flex flex-col items-center gap-2">
+        <button
+          onClick={() => setShowDirPicker(true)}
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          title={`Change Dir: ${folderLabel}`}
+        >
+          <span className="mono text-[8px] font-bold">DIR</span>
+        </button>
+        <button
+          onClick={() => onNavigateHome?.()}
+          disabled={!onNavigateHome}
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          title="Portal"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+        </button>
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          title="Settings"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
     </div>
   );
 
   const renderCollapsedPreview = () => (
-    <div className="ui-panel-soft flex shrink-0 items-center justify-between rounded-xl px-3 py-2">
-      <span className="mono text-[10px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-dim)]">
-        Preview deck folded
-      </span>
+    <div className="ui-panel-soft flex h-full w-10 shrink-0 flex-col items-center rounded-xl py-3">
       <button
         onClick={() => setIsPreviewCollapsed(false)}
-        className="ui-control ui-focus-ring flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] hover:text-[var(--color-accent-orange)]"
+        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
         title="Expand Preview"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
         </svg>
-        Expand
       </button>
+      <div className="mt-3 w-px flex-1 bg-[var(--color-border)]/70" />
+      <span className="mono py-3 text-[8px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-dim)]/80 [writing-mode:vertical-rl] rotate-180">
+        Preview
+      </span>
     </div>
   );
 
@@ -298,41 +326,53 @@ export function ResizableLayout({
 
           <Resizer onResize={(delta) => setChatWidth((prev) => Math.max(400, prev + delta))} />
 
-          <div className="flex min-w-[360px] flex-1 flex-col gap-3 overflow-hidden">
-            {isSidebarCollapsed ? (
-              renderCollapsedSidebar()
-            ) : (
-              <div className="group/sidebar ui-panel relative flex min-h-[240px] flex-[0_0_42%] flex-col overflow-hidden rounded-2xl">
-                <button
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  className="ui-control ui-focus-ring absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-md px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)] group-hover/sidebar:inline-flex"
-                  title="Collapse Project Directory"
-                >
-                  Fold
-                </button>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  {sidebarContent()}
-                </div>
+          {isSidebarCollapsed ? (
+            renderCollapsedSidebar()
+          ) : (
+            <div
+              className="group/sidebar ui-panel relative flex h-full shrink-0 flex-col overflow-hidden rounded-2xl"
+              style={{ width: `${sidebarWidth}px`, minWidth: "290px" }}
+            >
+              <button
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="ui-control ui-focus-ring absolute right-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-orange)]"
+                title="Collapse Project Directory"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="13 17 8 12 13 7" />
+                  <polyline points="20 17 15 12 20 7" />
+                </svg>
+              </button>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {sidebarContent()}
               </div>
-            )}
-
-            {renderGlobalActionsFooter()}
-
-            {isPreviewCollapsed ? (
-              renderCollapsedPreview()
-            ) : (
-              <div className="group/preview ui-panel-strong relative min-h-[280px] flex-1 overflow-hidden rounded-2xl">
-                <button
-                  onClick={() => setIsPreviewCollapsed(true)}
-                  className="ui-control ui-focus-ring absolute right-3 top-3 z-10 hidden items-center gap-1 rounded-md px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)] group-hover/preview:inline-flex"
-                  title="Collapse Preview"
-                >
-                  Fold
-                </button>
-                <FilePreview path={selectedFile} projectRoot={projectRoot} />
+              <div className="shrink-0 px-2.5 pb-2.5 pt-2">
+                {renderGlobalActionsFooter()}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {!isSidebarCollapsed && (
+            <Resizer onResize={(delta) => setSidebarWidth((prev) => Math.max(250, prev + delta))} />
+          )}
+
+          {isPreviewCollapsed ? (
+            renderCollapsedPreview()
+          ) : (
+            <div className="group/preview ui-panel-strong relative h-full min-w-[320px] flex-1 overflow-hidden rounded-2xl">
+              <button
+                onClick={() => setIsPreviewCollapsed(true)}
+                className="ui-control ui-focus-ring absolute left-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-orange)]"
+                title="Collapse Preview"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="11 17 16 12 11 7" />
+                  <polyline points="4 17 9 12 4 7" />
+                </svg>
+              </button>
+              <FilePreview path={selectedFile} projectRoot={projectRoot} />
+            </div>
+          )}
         </div>
       )}
     </div>
