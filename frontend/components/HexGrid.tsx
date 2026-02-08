@@ -30,10 +30,10 @@ const hexData: HexData[] = [
 ];
 
 const columns = [
-  { id: "guiding", label: "Guiding" },
-  { id: "applying", label: "Applying" },
-  { id: "judging", label: "Judging" },
-  { id: "reviewing", label: "Reviewing" },
+  { id: "guiding", label: "GUIDING" },
+  { id: "applying", label: "APPLYING" },
+  { id: "judging", label: "JUDGING" },
+  { id: "reviewing", label: "REVIEWING" },
 ];
 
 interface HexGridProps {
@@ -49,7 +49,6 @@ export function HexGrid({ onLaunch }: HexGridProps) {
           <div
             key={col.id}
             className={`hex-column-label col-${col.id}`}
-            style={{ color: `var(--color-${col.id})` }}
           >
             {col.label}
           </div>
