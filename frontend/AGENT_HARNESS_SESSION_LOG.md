@@ -373,7 +373,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 23:05:46 -0700
 - Batch ID: `P4-C1`
 - Completed Task IDs: `VAL-001`, `VAL-002`
-- Commit SHA: pending
+- Commit SHA: `70e4d41`
 - Validation run:
   - `npm run lint -- scripts/validate-harness-section8.mjs scripts/validate-harness-premerge.mjs` (pass).
   - `npx tsc --noEmit` (pass).
@@ -381,4 +381,18 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - Runtime validation still requires a live local harness server and authenticated Claude environment; full execution is deferred to `P5-C1` gate run.
 - Next session first task: execute `P4-C2` docs updates (`DOC-001`..`DOC-007`) to align runbooks and decision logs with SDK-only runtime.
+- Commit(s): `70e4d41`
+
+## 2026-02-07 — Session 16 (SDK Cutover P4-C2)
+- Date/Time: 2026-02-07 23:10:02 -0700
+- Batch ID: `P4-C2`
+- Completed Task IDs: `DOC-001`, `DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`, `DOC-006`, `DOC-007`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- scripts/validate-harness-section8.mjs scripts/validate-harness-premerge.mjs` (pass; docs-adjacent script updates remain clean).
+  - `npx tsc --noEmit` (pass).
+  - Documentation conformance review: removed CLI/NDJSON/`/api/chat` guidance from active runbooks; architecture and checklists now describe SDK-only runtime.
+- Blockers/Risks:
+  - Manual parity gate (`GATE-004`) still requires live runtime verification for latency/cost/permission behavior.
+- Next session first task: execute `P5-C1` merge gates (`GATE-001`..`GATE-004`).
 - Commit(s): none

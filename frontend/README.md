@@ -1,20 +1,17 @@
 # Chirality Frontend + Harness Runtime
 
-This frontend uses the Chirality Harness (`/api/harness/*`) to run Claude Code turns and stream events to the UI.
+This frontend uses the Chirality Harness (`/api/harness/*`) backed by the Anthropic Agent SDK (`query()`) to run turns and stream events to the UI.
 
 ## Runtime Requirements
 
 - Node.js + npm (project uses Next.js 16)
-- Claude Code CLI available on `PATH` (the server spawns `claude -p ...`)
-- `ANTHROPIC_API_KEY` set in the server environment
+- Anthropic authentication available to the server process (for example `ANTHROPIC_API_KEY`)
 - For pre-merge harness validation, frontend server reachable at `HARNESS_BASE_URL` (default `http://127.0.0.1:3000`)
 
 Example:
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-which claude
-claude --version
 npm run dev
 ```
 
@@ -75,11 +72,6 @@ npm run harness:validate:premerge
 - Mirroring strategy guidance: `docs/harness/harness_artifact_mirroring_guidance.md`.
 - CI wiring: `.github/workflows/harness-premerge.yml` runs the same wrapper command and uploads `frontend/artifacts/harness/section8/latest/summary.json`.
 
-## Legacy Route
-
-- `POST /api/chat` remains available for compatibility but is deprecated.
-- New work should use harness routes only.
-
 ## Troubleshooting
 
 - `fetch failed` during `npm run harness:validate:premerge`:
@@ -87,8 +79,6 @@ npm run harness:validate:premerge
   - Confirm frontend server is running and reachable at `http://127.0.0.1:3000` (or set `HARNESS_BASE_URL` to the correct URL).
 - `session:error` with missing key/auth issues:
   - Confirm `ANTHROPIC_API_KEY` is set in the same shell/process running `npm run dev` (or injected as a CI secret).
-- `spawn ENOENT` / no Claude execution:
-  - Ensure Claude CLI is installed and on `PATH` (`which claude`).
 - Wrapper completed but artifact missing:
   - Validate `frontend/artifacts/harness/section8/latest/summary.json` exists.
   - If missing, the pre-merge wrapper should fail; inspect wrapper stdout/stderr for `Missing Section 8 summary artifact`.
@@ -98,5 +88,4 @@ npm run harness:validate:premerge
 - No stream output in client:
   - Verify `/api/harness/turn` response header is `text/event-stream` and no proxy is buffering.
 - Need low-level diagnostics:
-  - Inspect `.chirality/logs/harness.log` for `process:spawn`, `parse:error`, `session:error`, and `process:exit` entries.
-  - Inspect `.chirality/prompts/{sessionId}-system.txt` to replay a turn directly in Claude CLI.
+  - Inspect `.chirality/logs/harness.log` for `turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `session:error`, and `process:exit` entries.

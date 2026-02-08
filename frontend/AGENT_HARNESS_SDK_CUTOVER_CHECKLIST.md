@@ -43,13 +43,13 @@ Baseline reference:
 - [x] `frontend/scripts/validate-harness-premerge.mjs` — update to run SDK-based validation assertions.
 
 ## Docs
-- [ ] `frontend/README.md` — replace “spawns `claude -p`” with SDK runtime description and required settings.
-- [ ] `frontend/docs/harness/chirality_harness_graphs_and_sequence.md` — replace child-process/NDJSON graph with SDK `query()` flow.
-- [ ] `frontend/docs/harness/harness_manual_validation.md` — update test matrix for SDK path.
-- [ ] `frontend/docs/harness/harness_ci_integration.md` — update CI expectations and failure signatures.
-- [ ] `frontend/AGENT_HARNESS_DECISIONS.md` — record hard cutover decision and no-dual-path rule.
-- [ ] `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md` — replace CLI tasks with SDK tasks.
-- [ ] `frontend/AGENT_HARNESS_SESSION_LOG.md` — append migration run log and parity results.
+- [x] `frontend/README.md` — replace “spawns `claude -p`” with SDK runtime description and required settings.
+- [x] `frontend/docs/harness/chirality_harness_graphs_and_sequence.md` — replace child-process/NDJSON graph with SDK `query()` flow.
+- [x] `frontend/docs/harness/harness_manual_validation.md` — update test matrix for SDK path.
+- [x] `frontend/docs/harness/harness_ci_integration.md` — update CI expectations and failure signatures.
+- [x] `frontend/AGENT_HARNESS_DECISIONS.md` — record hard cutover decision and no-dual-path rule.
+- [x] `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md` — replace CLI tasks with SDK tasks.
+- [x] `frontend/AGENT_HARNESS_SESSION_LOG.md` — append migration run log and parity results.
 
 ## Removals
 - [x] `frontend/lib/harness/claude-code-manager.ts` — delete after SDK manager parity is passing.

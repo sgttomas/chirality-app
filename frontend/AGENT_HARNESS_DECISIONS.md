@@ -25,14 +25,14 @@ Purpose: record implementation decisions that should persist across sessions to 
 - Status: accepted
 - Context: multiple historical approaches exist (custom Anthropic loop vs Claude Code subprocess harness).
 - Decision: implementation follows `AGENT_HARNESS_SPEC-v2-3.md` as source of truth for architecture and behavior.
-- Consequences: new work must align to subprocess + NDJSON + SSE design; conflicting legacy patterns are deprecated.
+- Consequences: new work must align to SDK runtime + SSE design; conflicting legacy patterns are deprecated.
 - References:
   - `AGENT_HARNESS_SPEC-v2-3.md`
   - `frontend/docs/harness/chirality_harness_graphs_and_sequence.md`
 
 ## D-001: Keep legacy `/api/chat` during migration
 - Date: 2026-02-07
-- Status: accepted
+- Status: superseded
 - Context: existing UI currently depends on `/api/chat` and direct Anthropic SDK flow.
 - Decision: do not remove `/api/chat` until `/api/harness/*` is stable and UI switch is complete.
 - Consequences: temporary dual-path backend is expected; avoid breaking existing chat until cutover.
@@ -133,7 +133,7 @@ Purpose: record implementation decisions that should persist across sessions to 
 
 ## D-011: Parse-robustness validation uses a mocked `claude` binary to inject malformed NDJSON
 - Date: 2026-02-07
-- Status: accepted
+- Status: superseded
 - Context: real Claude streams are not guaranteed to emit malformed lines on demand, but Section 8 requires proof that malformed NDJSON lines are logged and skipped without crashing the turn.
 - Decision: run a dedicated validation pass with `PATH` prefixed to a temporary mock `claude` script that emits one malformed line (`MALFORMED_LINE_FOR_PARSE_TEST`) between valid NDJSON events.
 - Consequences: parser error handling can be validated deterministically end-to-end (`parse:error` log + successful `chat:complete`/`process:exit`) without modifying production harness code paths.
@@ -154,7 +154,7 @@ Purpose: record implementation decisions that should persist across sessions to 
 
 ## D-013: Parse-robustness automation injects mock binary via non-production `claudeExecutable` override
 - Date: 2026-02-07
-- Status: accepted
+- Status: superseded
 - Context: Next.js dev lock prevents a second concurrent dev instance, so standing up a dedicated mock-PATH server for malformed NDJSON testing is not reliable during pre-merge automation runs.
 - Decision: add `TurnOpts.claudeExecutable` as a test-only absolute-path override honored only outside production; Section 8 automation uses it to run a mocked `claude` binary for malformed NDJSON injection on the existing server instance.
 - Consequences: parse-robustness remains deterministic and end-to-end while avoiding lock contention and without changing production runtime behavior.
@@ -196,3 +196,15 @@ Purpose: record implementation decisions that should persist across sessions to 
   - `.github/workflows/harness-premerge.yml`
   - `frontend/scripts/validate-harness-premerge.mjs`
   - `frontend/docs/harness/harness_ci_integration.md`
+
+## D-017: Wholesale SDK cutover with no dual runtime path
+- Date: 2026-02-08
+- Status: accepted
+- Context: migration work is complete and runtime behavior must now be single-path to avoid regression drift and duplicated maintenance.
+- Decision: hard-cut to Anthropic Agent SDK runtime (`agent-sdk-manager` + `query()`), remove `/api/chat`, remove CLI subprocess manager, remove NDJSON parser, and keep SSE/UIEvent contract stable.
+- Consequences: all harness validations, docs, and CI expectations target SDK-native behavior only; legacy subprocess assumptions are no longer valid.
+- References:
+  - `frontend/lib/harness/agent-sdk-manager.ts`
+  - `frontend/lib/harness/agent-sdk-event-mapper.ts`
+  - `frontend/app/api/harness/turn/route.ts`
+  - `frontend/AGENT_HARNESS_SDK_CUTOVER_CHECKLIST.md`
