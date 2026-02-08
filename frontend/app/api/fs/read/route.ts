@@ -5,14 +5,15 @@ import path from "path";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const filePath = searchParams.get("path");
+  const rootParam = searchParams.get("projectRoot");
 
   if (!filePath) {
     return NextResponse.json({ error: "No path provided" }, { status: 400 });
   }
 
   try {
-    const rootPath = path.resolve(process.cwd(), "..");
-    const fullPath = path.resolve(rootPath, filePath);
+    const rootPath = rootParam ? path.resolve(rootParam) : path.resolve(process.cwd(), "..");
+    const fullPath = path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(rootPath, filePath);
 
     // Security check removed to allow full system access as requested
     // if (!fullPath.startsWith(rootPath)) { ... }

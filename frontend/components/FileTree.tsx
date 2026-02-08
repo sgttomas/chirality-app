@@ -1,7 +1,67 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { FileNode } from "@/app/api/fs/route";
+import React, { useEffect, useMemo, useState } from "react";
+import type { FileNode } from "@/app/api/fs/route";
+
+type GitFileState = "modified" | "added" | "deleted" | "renamed" | "untracked" | "conflicted";
+type GitLoadState = "loading" | "ready" | "not_repo" | "error";
+
+type GitStatusResponse = {
+  state?: "ready" | "not_repo";
+  statuses?: Record<string, GitFileState>;
+  summary?: {
+    changed?: number;
+  };
+  error?: string;
+};
+
+type GitBadgeMeta = {
+  label: string;
+  badgeClass: string;
+  textClass: string;
+};
+
+function getGitBadgeMeta(state: GitFileState): GitBadgeMeta {
+  switch (state) {
+    case "added":
+      return {
+        label: "A",
+        badgeClass: "text-[var(--color-judging)] border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10",
+        textClass: "text-[var(--color-judging)]",
+      };
+    case "deleted":
+      return {
+        label: "D",
+        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
+        textClass: "text-[var(--color-accent-orange)]",
+      };
+    case "renamed":
+      return {
+        label: "R",
+        badgeClass: "text-[var(--color-applying)] border-[var(--color-applying)]/35 bg-[var(--color-applying)]/10",
+        textClass: "text-[var(--color-applying)]",
+      };
+    case "untracked":
+      return {
+        label: "?",
+        badgeClass: "text-[var(--color-applying)] border-[var(--color-applying)]/35 bg-[var(--color-applying)]/10",
+        textClass: "text-[var(--color-applying)]",
+      };
+    case "conflicted":
+      return {
+        label: "!",
+        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/40 bg-[var(--color-accent-orange)]/12",
+        textClass: "text-[var(--color-accent-orange)]",
+      };
+    case "modified":
+    default:
+      return {
+        label: "M",
+        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
+        textClass: "text-[var(--color-accent-orange)]",
+      };
+  }
+}
 
 interface FileTreeProps {
   onFileSelect?: (path: string) => void;
@@ -14,8 +74,12 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
   const [nodes, setNodes] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [gitStatuses, setGitStatuses] = useState<Record<string, GitFileState>>({});
+  const [gitLoadState, setGitLoadState] = useState<GitLoadState>("loading");
+  const [changedCount, setChangedCount] = useState(0);
 
   useEffect(() => {
+    let canceled = false;
     const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
     queueMicrotask(() => setLoading(true));
     queueMicrotask(() => setSelectedPath(null));
@@ -23,15 +87,79 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        if (canceled) return;
         setNodes(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {
+        if (canceled) return;
         console.error("Failed to fetch file tree:", err);
         setNodes([]);
         setLoading(false);
       });
+
+    return () => {
+      canceled = true;
+    };
   }, [rootPath]);
+
+  useEffect(() => {
+    let canceled = false;
+    const url = rootPath ? `/api/fs/git-status?path=${encodeURIComponent(rootPath)}` : "/api/fs/git-status";
+    queueMicrotask(() => setGitLoadState("loading"));
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data: GitStatusResponse) => {
+        if (canceled) return;
+
+        if (data.state === "ready") {
+          const statuses = data.statuses ?? {};
+          setGitStatuses(statuses);
+          setChangedCount(
+            typeof data.summary?.changed === "number" ? data.summary.changed : Object.keys(statuses).length,
+          );
+          setGitLoadState("ready");
+          return;
+        }
+
+        if (data.state === "not_repo") {
+          setGitStatuses({});
+          setChangedCount(0);
+          setGitLoadState("not_repo");
+          return;
+        }
+
+        if (typeof data.error === "string") {
+          console.error("Failed to fetch git status:", data.error);
+        }
+        setGitStatuses({});
+        setChangedCount(0);
+        setGitLoadState("error");
+      })
+      .catch((err) => {
+        if (canceled) return;
+        console.error("Failed to fetch git status:", err);
+        setGitStatuses({});
+        setChangedCount(0);
+        setGitLoadState("error");
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [rootPath]);
+
+  const dirtyDirectories = useMemo(() => {
+    const directories = new Set<string>();
+    Object.keys(gitStatuses).forEach((relativePath) => {
+      const parts = relativePath.split("/").filter(Boolean);
+      for (let index = 1; index < parts.length; index += 1) {
+        directories.add(parts.slice(0, index).join("/"));
+      }
+    });
+    return directories;
+  }, [gitStatuses]);
 
   const containerClass = `h-full overflow-y-auto px-2 py-2 custom-scrollbar ${className ?? ""}`;
 
@@ -50,6 +178,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
   if (nodes.length === 0) {
     return (
       <div className={containerClass}>
+        <GitStatusRow gitLoadState={gitLoadState} changedCount={changedCount} />
         <div className="ui-panel-soft rounded-md px-3 py-4 text-center">
           <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
             No files found.
@@ -61,6 +190,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
 
   return (
     <div className={`${containerClass} mono text-[12px] leading-relaxed text-[var(--color-text-dim)]`}>
+      <GitStatusRow gitLoadState={gitLoadState} changedCount={changedCount} />
       {nodes.map((node) => (
         <TreeNode
           key={node.path}
@@ -70,6 +200,8 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
           depth={0}
           selectedPath={selectedPath}
           setSelectedPath={setSelectedPath}
+          gitStatuses={gitStatuses}
+          dirtyDirectories={dirtyDirectories}
         />
       ))}
     </div>
@@ -83,11 +215,26 @@ interface TreeNodeProps {
   depth: number;
   selectedPath: string | null;
   setSelectedPath: (path: string) => void;
+  gitStatuses: Record<string, GitFileState>;
+  dirtyDirectories: Set<string>;
 }
 
-function TreeNode({ node, onFileSelect, onDirectorySelect, depth, selectedPath, setSelectedPath }: TreeNodeProps) {
+function TreeNode({
+  node,
+  onFileSelect,
+  onDirectorySelect,
+  depth,
+  selectedPath,
+  setSelectedPath,
+  gitStatuses,
+  dirtyDirectories,
+}: TreeNodeProps) {
   const [isOpen, setIsOpen] = useState(depth < 1); // Expand first level by default
   const isSelected = selectedPath === node.path;
+  const fileGitState = node.isDirectory ? undefined : gitStatuses[node.path];
+  const fileGitMeta = fileGitState ? getGitBadgeMeta(fileGitState) : null;
+  const hasDirtyChildren = node.isDirectory && dirtyDirectories.has(node.path);
+  const hasGitSignal = Boolean(fileGitMeta) || hasDirtyChildren;
 
   const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -108,13 +255,19 @@ function TreeNode({ node, onFileSelect, onDirectorySelect, depth, selectedPath, 
         className={`ui-focus-ring group flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors ${
           isSelected
             ? "border-[var(--color-border-strong)] bg-[var(--color-surface-low)] text-[var(--color-text-main)]"
-            : "border-transparent text-[var(--color-text-dim)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-low)]/75 hover:text-[var(--color-text-main)]"
+            : hasGitSignal
+              ? "border-[var(--color-accent-orange)]/20 bg-[var(--color-accent-orange)]/6 text-[var(--color-text-main)] hover:border-[var(--color-accent-orange)]/35 hover:bg-[var(--color-accent-orange)]/10"
+              : "border-transparent text-[var(--color-text-dim)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-low)]/75 hover:text-[var(--color-text-main)]"
         }`}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
       >
         <span
           className={`mono w-4 text-center text-[10px] ${
-            node.isDirectory ? "text-[var(--color-accent-orange)]/80" : "text-[var(--color-text-dim)]/75"
+            node.isDirectory
+              ? hasDirtyChildren
+                ? "text-[var(--color-accent-orange)]"
+                : "text-[var(--color-applying)]/80"
+              : "text-[var(--color-text-dim)]/75"
           }`}
         >
           {node.isDirectory ? (isOpen ? "▾" : "▸") : "•"}
@@ -122,14 +275,31 @@ function TreeNode({ node, onFileSelect, onDirectorySelect, depth, selectedPath, 
         <span
           className={`min-w-0 flex-1 truncate text-[11px] ${
             node.isDirectory
-              ? "font-semibold text-[var(--color-accent-orange)]/95 group-hover:text-[var(--color-accent-orange)]"
-              : "text-[var(--color-text-main)]/85"
+              ? hasDirtyChildren
+                ? "font-semibold text-[var(--color-accent-orange)] group-hover:text-[var(--color-accent-orange)]"
+                : "font-semibold text-[var(--color-applying)]/95 group-hover:text-[var(--color-applying)]"
+              : fileGitMeta
+                ? `${fileGitMeta.textClass} font-semibold`
+                : "text-[var(--color-text-main)]/85"
           }`}
           title={node.path}
         >
           {node.name || "/"}
           {node.isDirectory ? "/" : ""}
         </span>
+        {fileGitMeta ? (
+          <span
+            className={`mono rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] ${fileGitMeta.badgeClass}`}
+            title={`Git status: ${fileGitState}`}
+          >
+            {fileGitMeta.label}
+          </span>
+        ) : hasDirtyChildren ? (
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent-orange)] shadow-[0_0_8px_var(--color-accent-orange)]"
+            title="Contains git changes"
+          />
+        ) : null}
       </button>
 
       {node.isDirectory && isOpen && node.children && (
@@ -143,10 +313,51 @@ function TreeNode({ node, onFileSelect, onDirectorySelect, depth, selectedPath, 
               depth={depth + 1}
               selectedPath={selectedPath}
               setSelectedPath={setSelectedPath}
+              gitStatuses={gitStatuses}
+              dirtyDirectories={dirtyDirectories}
             />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface GitStatusRowProps {
+  gitLoadState: GitLoadState;
+  changedCount: number;
+}
+
+function GitStatusRow({ gitLoadState, changedCount }: GitStatusRowProps) {
+  let label = "Loading";
+  let pillClass =
+    "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10";
+
+  if (gitLoadState === "ready") {
+    if (changedCount > 0) {
+      label = `${changedCount} Changed`;
+      pillClass =
+        "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
+    } else {
+      label = "Clean";
+      pillClass = "text-[var(--color-judging)] border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10";
+    }
+  } else if (gitLoadState === "not_repo") {
+    label = "No Repo";
+    pillClass = "text-[var(--color-text-dim)] border-[var(--color-border)] bg-[var(--color-surface-low)]";
+  } else if (gitLoadState === "error") {
+    label = "Unavailable";
+    pillClass = "text-[var(--color-text-dim)] border-[var(--color-border)] bg-[var(--color-surface-low)]";
+  }
+
+  return (
+    <div className="mb-2 flex items-center justify-between rounded-md border border-[var(--color-border)]/80 bg-[var(--color-surface-low)]/70 px-2.5 py-1.5">
+      <span className="ui-type-mono-meta text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
+        Git State
+      </span>
+      <span className={`mono rounded border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] ${pillClass}`}>
+        {label}
+      </span>
     </div>
   );
 }

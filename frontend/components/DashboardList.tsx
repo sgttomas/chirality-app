@@ -13,6 +13,7 @@ type Deliverable = {
 interface DashboardListProps {
   onSelect: (del: Deliverable) => void;
   projectRoot: string | null;
+  onOpenProjectRootPicker?: () => void;
 }
 
 const STATUS_LABELS: Record<Deliverable["status"], string> = {
@@ -41,7 +42,7 @@ function formatRootLabel(pathValue: string): string {
   return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
 }
 
-export function DashboardList({ onSelect, projectRoot }: DashboardListProps) {
+export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }: DashboardListProps) {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -79,20 +80,31 @@ export function DashboardList({ onSelect, projectRoot }: DashboardListProps) {
             COUNT: {deliverables.length}
           </span>
         </div>
-        <div className="ui-panel-soft flex items-center gap-2 rounded-md px-3 py-2">
+        <button
+          type="button"
+          onClick={() => onOpenProjectRootPicker?.()}
+          className={`ui-panel-soft ui-focus-ring flex items-center gap-2 rounded-md px-3 py-2 text-left ${
+            onOpenProjectRootPicker
+              ? "cursor-pointer hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-low)]/75"
+              : "cursor-default"
+          }`}
+          title={projectRoot || "No project root selected"}
+        >
           <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-75">
             Project
           </span>
-          <span
-            className="mono min-w-0 truncate text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-main)]/90"
-            title={projectRoot || "No project root selected"}
-          >
+          <span className="mono min-w-0 flex-1 truncate text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-main)]/90">
             {projectRoot ? formatRootLabel(projectRoot) : "NOT_SET"}
           </span>
-        </div>
+          {onOpenProjectRootPicker && (
+            <span className="mono text-[9px] font-semibold tracking-[0.08em] text-[var(--color-text-dim)]">
+              CHANGE
+            </span>
+          )}
+        </button>
         {!projectRoot && (
           <p className="mono text-[10px] font-medium tracking-[0.12em] uppercase text-[var(--color-text-dim)]/85">
-            Set root from the shared footer in workbench/pipeline/direct.
+            Click PROJECT to set root for portal and sessions.
           </p>
         )}
       </header>

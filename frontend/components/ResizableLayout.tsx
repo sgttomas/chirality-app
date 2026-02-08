@@ -213,7 +213,7 @@ export function ResizableLayout({
                 {sidebarContent()}
               </div>
             ) : (
-              <FilePreview path={selectedFile} />
+              <FilePreview path={selectedFile} projectRoot={projectRoot} />
             )}
           </div>
 
@@ -251,7 +251,7 @@ export function ResizableLayout({
           <Resizer onResize={(delta) => setSidebarWidth((prev) => Math.max(250, prev + delta))} />
 
           <div className="flex-grow min-w-[300px] h-full overflow-hidden">
-            <FilePreview path={selectedFile} />
+            <FilePreview path={selectedFile} projectRoot={projectRoot} />
           </div>
         </div>
       )}

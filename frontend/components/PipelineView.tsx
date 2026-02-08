@@ -47,8 +47,9 @@ export function PipelineView({ family, selectedVariant, projectRoot, onNavigateH
       onRootChange={onRootChange}
       sidebarContent={() => (
         <>
-          <div className="panel-label shrink-0 bg-[var(--color-surface-mid)] flex justify-between items-center px-4 py-3 border-b border-[var(--color-border)]">
-              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--color-accent-orange)]">Project Directory</span>
+          <div className="panel-label shrink-0 bg-[var(--color-surface-mid)] flex justify-between items-center p-4 border-b border-[var(--color-border)]">
+              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--color-applying)]">Project Directory</span>
+              <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
           </div>
           
           <div className="flex-grow overflow-y-auto p-2 min-h-0 custom-scrollbar">

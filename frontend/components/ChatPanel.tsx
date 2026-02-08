@@ -44,6 +44,14 @@ type HarnessSessionPayload = {
   claudeSessionId: string | null;
 };
 
+type ToolChipStatus = "running" | "done" | "error";
+
+type ToolChip = {
+  toolUseId: string;
+  name: string;
+  status: ToolChipStatus;
+};
+
 interface ChatPanelProps {
   agentName: string;
   width: number;
@@ -64,10 +72,22 @@ export interface ChatPanelHandle {
 const convert = new Convert({
   fg: "#f8fafc",
   bg: "transparent",
-  newline: true,
+  newline: false, // whitespace-pre-wrap handles this
   escapeXML: true,
   stream: false,
 });
+
+/**
+ * Pre-processes string to ensure ANSI escape codes are in a format 
+ * ansi-to-html understands (converting literal \033 or \u001b if they exist).
+ */
+function prepareAnsiContent(content: string): string {
+  if (!content) return "";
+  return content
+    .replace(/\\033/g, "\x1b")
+    .replace(/\\u001b/g, "\x1b")
+    .replace(/\\e/g, "\x1b");
+}
 
 function trimString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -93,11 +113,19 @@ const TOOL_STATUS_LABELS: Record<string, string> = {
   glob: "Finding files",
 };
 
+const BRAILLE_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+const TOOL_CHIP_LIMIT = 4;
+const TOOL_CHIP_SETTLE_MS = 2200;
+
 function humanizeToolName(toolName: string): string {
   return toolName
     .replace(/[_-]+/g, " ")
     .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function toolStatusLabel(toolName: string): string {
+  return TOOL_STATUS_LABELS[toolName] ?? humanizeToolName(toolName);
 }
 
 function formatCostUsd(cost: number | null): string {
@@ -334,6 +362,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const [isLoading, setIsLoading] = useState(false);
     const [isInterrupting, setIsInterrupting] = useState(false);
     const [statusText, setStatusText] = useState<string>("Ready");
+    const [activeTools, setActiveTools] = useState<ToolChip[]>([]);
+    const [spinnerFrameIndex, setSpinnerFrameIndex] = useState(0);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [inFlightHarnessSessionId, setInFlightHarnessSessionId] = useState<string | null>(null);
     const [inFlightLocalSessionId, setInFlightLocalSessionId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -341,10 +372,84 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const sessionsRef = useRef<LocalChatSession[]>([]);
     const sendPromptRef = useRef<(messageContent: string, localSessionId?: string) => Promise<void>>(async () => {});
     const applyProjectRootRef = useRef<(localSessionId: string, nextRoot: string, announce: boolean) => void>(() => {});
+    const toolTimersRef = useRef<Record<string, number>>({});
+    const toolNameByUseIdRef = useRef<Record<string, string>>({});
 
     useEffect(() => {
       sessionsRef.current = sessions;
     }, [sessions]);
+
+    useEffect(() => {
+      const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      queueMicrotask(() => setPrefersReducedMotion(mediaQuery.matches));
+
+      const handleChange = (event: MediaQueryListEvent) => {
+        setPrefersReducedMotion(event.matches);
+      };
+
+      mediaQuery.addEventListener("change", handleChange);
+      return () => {
+        mediaQuery.removeEventListener("change", handleChange);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!isLoading || prefersReducedMotion) {
+        return;
+      }
+
+      const intervalId = window.setInterval(() => {
+        setSpinnerFrameIndex((previous) => (previous + 1) % BRAILLE_SPINNER_FRAMES.length);
+      }, 90);
+
+      return () => {
+        window.clearInterval(intervalId);
+      };
+    }, [isLoading, prefersReducedMotion]);
+
+    useEffect(() => {
+      return () => {
+        Object.values(toolTimersRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
+      };
+    }, []);
+
+    const clearToolTimer = (toolUseId: string): void => {
+      const timeoutId = toolTimersRef.current[toolUseId];
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+        delete toolTimersRef.current[toolUseId];
+      }
+    };
+
+    const scheduleToolRemoval = (toolUseId: string, delayMs = TOOL_CHIP_SETTLE_MS): void => {
+      clearToolTimer(toolUseId);
+      toolTimersRef.current[toolUseId] = window.setTimeout(() => {
+        setActiveTools((previous) => previous.filter((tool) => tool.toolUseId !== toolUseId));
+        delete toolTimersRef.current[toolUseId];
+        delete toolNameByUseIdRef.current[toolUseId];
+      }, delayMs);
+    };
+
+    const resetToolChips = (): void => {
+      Object.values(toolTimersRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
+      toolTimersRef.current = {};
+      toolNameByUseIdRef.current = {};
+      setActiveTools([]);
+    };
+
+    const upsertToolChip = (toolUseId: string, toolName: string, status: ToolChipStatus): void => {
+      setActiveTools((previous) => {
+        const next = previous.filter((tool) => tool.toolUseId !== toolUseId);
+        next.push({ toolUseId, name: toolName, status });
+        return next.slice(-TOOL_CHIP_LIMIT);
+      });
+    };
+
+    const markToolResult = (toolUseId: string, isError: boolean): void => {
+      const toolName = toolNameByUseIdRef.current[toolUseId] ?? "execute_command";
+      upsertToolChip(toolUseId, toolName, isError ? "error" : "done");
+      scheduleToolRemoval(toolUseId, isError ? 3000 : TOOL_CHIP_SETTLE_MS);
+    };
 
     const updateSession = (localSessionId: string, updater: (session: LocalChatSession) => LocalChatSession): void => {
       setSessions((previous) => previous.map((session) => (session.id === localSessionId ? updater(session) : session)));
@@ -599,10 +704,14 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           return false;
         }
         case "tool:start": {
-          setStatusText(TOOL_STATUS_LABELS[event.name] ?? `Running ${humanizeToolName(event.name)}`);
+          toolNameByUseIdRef.current[event.toolUseId] = event.name;
+          clearToolTimer(event.toolUseId);
+          upsertToolChip(event.toolUseId, event.name, "running");
+          setStatusText(toolStatusLabel(event.name));
           return false;
         }
         case "tool:result": {
+          markToolResult(event.toolUseId, event.isError);
           setStatusText(event.isError ? "Tool returned an error" : "Analyzing tool result");
           return false;
         }
@@ -622,10 +731,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             lastCompletedAt: new Date().toISOString(),
             lastCostUsd: event.costUsd,
           });
-          appendAssistantMessage(
-            localSessionId,
-            `[session:complete] cost=$${event.costUsd.toFixed(6)} input=${event.usage.input_tokens} output=${event.usage.output_tokens}`,
-          );
           return false;
         }
         case "session:error": {
@@ -639,6 +744,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           setStatusText("Ready");
           setInFlightHarnessSessionId(null);
           setInFlightLocalSessionId(null);
+          resetToolChips();
           return true;
         }
         default:
@@ -696,6 +802,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       }
 
       appendUserAndPlaceholder(localSessionId, message);
+      resetToolChips();
       setStatusText("Preparing request");
       setIsLoading(true);
       setIsInterrupting(false);
@@ -724,6 +831,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           setIsInterrupting(false);
           setInFlightHarnessSessionId(null);
           setInFlightLocalSessionId(null);
+          resetToolChips();
         }
       }
     };
@@ -824,8 +932,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     }, [autoPrompt, activeSessionId, sessions, isLoading]);
 
     useEffect(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [activeSessionId, sessions]);
+      messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
+    }, [activeSessionId, sessions, prefersReducedMotion]);
 
     useEffect(() => {
       if (!projectRoot || !activeSessionId) {
@@ -856,6 +964,9 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
     const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
     const sessionRailWidth = Math.max(140, Math.min(220, Math.floor(width * 0.32)));
+    const spinnerGlyph = prefersReducedMotion
+      ? "•"
+      : BRAILLE_SPINNER_FRAMES[spinnerFrameIndex % BRAILLE_SPINNER_FRAMES.length];
 
     const sendMessage = async (): Promise<void> => {
       if (!input.trim()) {
@@ -989,10 +1100,23 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 </div>
 
                 {message.role === "assistant" ? (
-                  <div
-                    className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)] px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]"
-                    dangerouslySetInnerHTML={{ __html: convert.toHtml(message.content) }}
-                  />
+                  <div className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)] px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: convert.toHtml(prepareAnsiContent(message.content)),
+                      }}
+                    />
+                    {message.streaming ? (
+                      <span
+                        aria-hidden
+                        className={`ml-1 inline-block text-[var(--color-accent-orange)] ${
+                          prefersReducedMotion ? "opacity-80" : "animate-pulse"
+                        }`}
+                      >
+                        ▍
+                      </span>
+                    ) : null}
+                  </div>
                 ) : (
                   <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-low)]/35 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
                     {message.content}
@@ -1003,11 +1127,53 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             {isLoading && (
               <div className="border-b border-[var(--color-border)] px-5 py-4">
                 <div className="ui-panel-soft inline-flex items-center gap-2 rounded-md px-3 py-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[var(--color-accent-orange)] animate-pulse" />
+                  <span
+                    aria-hidden
+                    className={`mono inline-flex w-4 justify-center text-[13px] text-[var(--color-accent-orange)] ${
+                      prefersReducedMotion ? "" : "tracking-tight"
+                    }`}
+                  >
+                    {spinnerGlyph}
+                  </span>
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-accent-orange)]">
                     {statusText}
                   </span>
                 </div>
+                {activeTools.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {activeTools.map((tool) => {
+                      const isRunning = tool.status === "running";
+                      const isError = tool.status === "error";
+
+                      const chipClass = isRunning
+                        ? "border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                        : isError
+                          ? "border-red-400/35 bg-red-500/10 text-red-200"
+                          : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
+
+                      const iconClass = isRunning
+                        ? "text-[var(--color-accent-orange)]"
+                        : isError
+                          ? "text-red-200"
+                          : "text-[var(--color-judging)]";
+
+                      const icon = isRunning ? spinnerGlyph : isError ? "✕" : "✓";
+
+                      return (
+                        <span
+                          key={tool.toolUseId}
+                          className={`mono inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[9px] uppercase tracking-[0.1em] ${chipClass} ${
+                            isRunning && !prefersReducedMotion ? "animate-pulse" : ""
+                          }`}
+                          title={`${toolStatusLabel(tool.name)} (${tool.status})`}
+                        >
+                          <span className={`inline-flex w-3 justify-center ${iconClass}`}>{icon}</span>
+                          <span className="max-w-[18rem] truncate">{truncate(toolStatusLabel(tool.name), 34)}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
             <div ref={messagesEndRef} />

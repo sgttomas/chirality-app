@@ -82,7 +82,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
           type="button"
           onClick={() => void fetchDir(manualPath)}
           disabled={loading}
-          className="ui-control ui-focus-ring px-2 py-1 mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10 hover:bg-[var(--color-accent-orange)]/16"
+          className="ui-control ui-focus-ring px-2 py-1 mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-applying)] border-[var(--color-applying)]/30 bg-[var(--color-applying)]/10 hover:bg-[var(--color-applying)]/16"
         >
           Open
         </button>
@@ -136,7 +136,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
               >
                 <span
                   className={`mono w-4 text-center text-[10px] ${
-                    node.isDirectory ? "text-[var(--color-accent-orange)]/80" : "text-[var(--color-text-dim)]/75"
+                    node.isDirectory ? "text-[var(--color-applying)]/80" : "text-[var(--color-text-dim)]/75"
                   }`}
                   aria-hidden
                 >
@@ -145,7 +145,7 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
                 <span
                   className={`mono min-w-0 flex-1 truncate text-[11px] ${
                     node.isDirectory
-                      ? "font-semibold text-[var(--color-accent-orange)]/95 group-hover:text-[var(--color-accent-orange)]"
+                      ? "font-semibold text-[var(--color-applying)]/95 group-hover:text-[var(--color-applying)]"
                       : "text-[var(--color-text-main)]/85"
                   }`}
                   title={node.path}

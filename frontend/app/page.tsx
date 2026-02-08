@@ -6,6 +6,7 @@ import { DashboardList } from "@/components/DashboardList";
 import { WorkbenchView } from "@/components/WorkbenchView";
 import { PipelineView } from "@/components/PipelineView";
 import { DirectLinkView } from "@/components/DirectLinkView";
+import { DirectoryPicker } from "@/components/DirectoryPicker";
 
 type View = "home" | "workbench" | "session" | "pipeline";
 
@@ -47,6 +48,7 @@ export default function Home() {
   
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const [isLightMode, setIsLightMode] = useState(false);
+  const [showDirPicker, setShowDirPicker] = useState(false);
 
   useEffect(() => {
     if (isLightMode) {
@@ -86,6 +88,16 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      {showDirPicker && (
+        <DirectoryPicker
+          onSelect={(path) => {
+            setShowDirPicker(false);
+            handleRootChange(path);
+          }}
+          onCancel={() => setShowDirPicker(false)}
+        />
+      )}
+
       {/* Wireframe Controls */}
       <div id="wireframe-controls" className="shrink-0 border-b border-[var(--color-border)] bg-black/70 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 px-4 py-2.5">
@@ -204,7 +216,8 @@ export default function Home() {
                             setAgentName("WORKING_ITEMS");
                             setInitialWorkbenchPath(del.path + "/_STATUS.md");
                             setCurrentView("workbench");
-                        }} 
+                        }}
+                        onOpenProjectRootPicker={() => setShowDirPicker(true)}
                         projectRoot={projectRoot}
                     />
                 </div>

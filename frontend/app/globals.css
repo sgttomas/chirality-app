@@ -19,9 +19,9 @@
   --color-operative: #f97316;
   --color-evaluative: #fde047;
   --color-guiding: #8b5cf6;
-  --color-applying: #0ea5e9;
+  --color-applying: #7BAFD4; /* UNC Tarheels Blue */
   --color-judging: #10b981;
-  --color-reviewing: #1e40af;
+  --color-reviewing: #003087; /* Duke Royal Blue */
 
   --font-eb: var(--font-eb-garamond);
   --font-mono: var(--font-jetbrains-mono);
