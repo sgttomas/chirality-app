@@ -186,7 +186,8 @@ function buildClaudeArgs(session: Session, userMessage: string, promptFile: stri
 }
 
 function resolveClaudeExecutable(opts?: TurnOpts): string {
-  const candidate = typeof opts?.claudeExecutable === "string" ? opts.claudeExecutable.trim() : "";
+  const candidate =
+    typeof opts?.pathToClaudeCodeExecutable === "string" ? opts.pathToClaudeCodeExecutable.trim() : "";
   if (!candidate) {
     return "claude";
   }

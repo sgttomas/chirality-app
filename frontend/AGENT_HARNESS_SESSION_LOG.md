@@ -289,7 +289,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 22:43:59 -0700
 - Batch ID: `P0-C1`
 - Completed Task IDs: `PRE-001`, `PRE-002`, `PRE-003`
-- Commit SHA: `0703aed` (git-ref-only baseline batch; no code/runtime edits)
+- Commit SHA: `06fda0b` (tracking-doc commit for completed git baseline refs)
 - Validation run:
   - `git rev-list -n 1 baseline-sdk-cutover-2026-02-07` resolved to `9ae2447`.
   - `git push origin baseline-sdk-cutover-2026-02-07` returned `Everything up-to-date`.
@@ -297,4 +297,19 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - none.
 - Next session first task: execute `P1-C1` (`RT-001`, `RT-002`, `RT-009`, `RT-010`) with minimal SDK contract/default changes.
+- Commit(s): `06fda0b`
+
+## 2026-02-07 — Session 10 (SDK Cutover P1-C1)
+- Date/Time: 2026-02-07 22:43:59 -0700
+- Batch ID: `P1-C1`
+- Completed Task IDs: `RT-001`, `RT-002`, `RT-009`, `RT-010`
+- Commit SHA: pending
+- Validation run:
+  - `npm uninstall @anthropic-ai/sdk` (pass).
+  - `npm install @anthropic-ai/claude-agent-sdk` (pass; lockfile refreshed).
+  - `npm run lint -- lib/harness/types.ts lib/harness/defaults.ts lib/harness/claude-code-manager.ts` (pass).
+  - `npx tsc --noEmit` (expected fail at this batch boundary): `app/api/chat/route.ts` still imports `@anthropic-ai/sdk` until planned legacy-path removal phase.
+- Blockers/Risks:
+  - Temporary typecheck break is isolated to legacy `/api/chat` import after dependency swap; planned resolution is batch `P3-C1` (`API-006`) where legacy route is removed.
+- Next session first task: execute `P1-C2` (`RT-003`, `RT-007`) by adding SDK runtime manager and SDK->`UIEvent` mapper without route cutover.
 - Commit(s): none

@@ -1,3 +1,5 @@
+import type { SettingSource } from "@anthropic-ai/claude-agent-sdk";
+
 export type SessionMode = "workbench" | "pipeline" | "direct";
 
 export interface Session {
@@ -41,8 +43,9 @@ export interface TurnOpts {
   maxTurns?: number;
   systemPromptAppend?: string;
   systemPromptFile?: string;
-  // Test-only override used by validation tooling to inject a mocked claude binary.
-  claudeExecutable?: string;
+  settingSources?: SettingSource[];
+  // Test-only override used by validation tooling to inject a mocked SDK runtime path.
+  pathToClaudeCodeExecutable?: string;
   verbose?: boolean;
   includePartialMessages?: boolean;
 }
