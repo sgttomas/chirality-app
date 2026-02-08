@@ -1,16 +1,61 @@
 # Chirality Harness Validation (Automated)
 
-Date: 2026-02-07
+Date: 2026-02-08
 
 Project root: `/Users/ryan/ai-env/projects/chirality-app`
 
 Validation script: `frontend/scripts/validate-harness-section8.mjs`
+Pre-merge wrapper: `frontend/scripts/validate-harness-premerge.mjs`
+CI workflow: `.github/workflows/harness-premerge.yml`
+
+## Prerequisites
+
+- Harness server reachable at `HARNESS_BASE_URL` (default `http://127.0.0.1:3000`)
+- Claude CLI installed and available on `PATH`
+- `ANTHROPIC_API_KEY` available in the process environment (or injected as CI secret)
+
+Quick checks:
+
+```bash
+which claude
+claude --version
+echo "${ANTHROPIC_API_KEY:+set}"
+```
 
 ## Usage
+
+Canonical local pre-merge sequence:
+
+1. Start frontend server:
+
+```bash
+cd frontend
+npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+2. Run pre-merge wrapper in a separate shell:
+
+```bash
+cd frontend
+npm run harness:validate:premerge
+```
+
+3. Collect stable summary artifact:
+
+`frontend/artifacts/harness/section8/latest/summary.json`
+
+Direct Section 8 run (without stable artifact copy):
 
 ```bash
 cd frontend
 ./scripts/validate-harness-section8.mjs
+```
+
+CI/pre-merge command:
+
+```bash
+cd frontend
+npm run harness:validate:premerge
 ```
 
 Optional environment overrides:
@@ -18,19 +63,28 @@ Optional environment overrides:
 - `HARNESS_BASE_URL` (default: `http://127.0.0.1:3000`)
 - `HARNESS_VALIDATION_ARTIFACT_ROOT` (default: `${TMPDIR:-/tmp}/chirality-harness-validation`)
 - `HARNESS_REQUEST_TIMEOUT_MS` (default: `180000`)
+- `HARNESS_PREMERGE_ARTIFACT_DIR` (default: `frontend/artifacts/harness/section8/latest`)
 
 ## Machine-Readable Outputs
 
 - Script stdout includes:
   - `HARNESS_VALIDATION_SUMMARY_PATH=<path>`
   - `HARNESS_VALIDATION_STATUS=pass|fail`
+- `HARNESS_PREMERGE_ARTIFACT_PATH=<stable-path>` (wrapper command)
 - JSON summary is written to:
   - `${TMPDIR:-/tmp}/chirality-harness-validation/latest/summary.json`
+  - `frontend/artifacts/harness/section8/latest/summary.json` (stable CI artifact path via wrapper)
+
+CI upload target path:
+
+- `frontend/artifacts/harness/section8/latest/summary.json`
 
 Run captured in this session:
 
 - `HARNESS_VALIDATION_STATUS=pass`
 - `HARNESS_VALIDATION_SUMMARY_PATH=/var/folders/0s/50y7rb796d1bqdxmpcz6qg800000gn/T/chirality-harness-validation/latest/summary.json`
+- `HARNESS_PREMERGE_STATUS=pass`
+- `HARNESS_PREMERGE_ARTIFACT_PATH=/Users/ryan/ai-env/projects/chirality-app/frontend/artifacts/harness/section8/latest/summary.json`
 
 ## Artifact Layout
 
@@ -46,6 +100,25 @@ Key files produced:
 - `logs/*.json` (log snippets used for assertions)
 - `mock/bin/claude` (mocked binary used for malformed NDJSON test)
 - `cleanup/sessions.json` (best-effort session cleanup report)
+
+Guidance on when to mirror full artifacts to stable CI paths:
+
+- `frontend/docs/harness/harness_artifact_mirroring_guidance.md`
+- `frontend/docs/harness/harness_ci_integration.md`
+
+## Common Failures and Fixes
+
+- `fetch failed`
+  - Cause: server not running or not reachable at `HARNESS_BASE_URL`.
+  - Fix: start server on `http://127.0.0.1:3000` or set `HARNESS_BASE_URL` to a reachable URL.
+- Missing auth/key errors
+  - Cause: `ANTHROPIC_API_KEY` not present in runtime/CI environment.
+  - Fix: export key in shell running server/validator, or configure CI secret `ANTHROPIC_API_KEY`.
+- Missing summary artifact after run
+  - Cause: wrapper failed before publish, or summary generation failed.
+  - Fix: check wrapper output for `HARNESS_VALIDATION_STATUS` and verify both:
+    - `${TMPDIR:-/tmp}/chirality-harness-validation/latest/summary.json`
+    - `frontend/artifacts/harness/section8/latest/summary.json`
 
 ## Section 8 Matrix (Automated Evidence)
 

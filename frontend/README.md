@@ -7,6 +7,7 @@ This frontend uses the Chirality Harness (`/api/harness/*`) to run Claude Code t
 - Node.js + npm (project uses Next.js 16)
 - Claude Code CLI available on `PATH` (the server spawns `claude -p ...`)
 - `ANTHROPIC_API_KEY` set in the server environment
+- For pre-merge harness validation, frontend server reachable at `HARNESS_BASE_URL` (default `http://127.0.0.1:3000`)
 
 Example:
 
@@ -45,15 +46,34 @@ Open `http://localhost:3000`.
 
 ## Validation Automation
 
-- Run Section 8 pre-merge validation with:
+Canonical local pre-merge run sequence:
+
+1. Start the server (default binds to `http://127.0.0.1:3000`):
 
 ```bash
-./scripts/validate-harness-section8.mjs
+cd frontend
+npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-- The script writes deterministic artifacts to `${TMPDIR:-/tmp}/chirality-harness-validation/latest`.
-- Machine-readable status is emitted in stdout and persisted at `${TMPDIR:-/tmp}/chirality-harness-validation/latest/summary.json`.
+2. In a separate shell, run the wrapper command:
+
+```bash
+cd frontend
+npm run harness:validate:premerge
+```
+
+3. Collect the stable summary artifact:
+
+`frontend/artifacts/harness/section8/latest/summary.json`
+
+- The wrapper runs the canonical Section 8 validator (`./scripts/validate-harness-section8.mjs`) non-interactively.
+- Canonical artifacts remain at `${TMPDIR:-/tmp}/chirality-harness-validation/latest`.
+- Stable CI artifact is published at `frontend/artifacts/harness/section8/latest/summary.json`.
+- Wrapper stdout prints `HARNESS_PREMERGE_ARTIFACT_PATH=<absolute-path>` for collection/upload steps.
 - Full usage/details: `docs/harness/harness_manual_validation.md`.
+- CI wiring details: `docs/harness/harness_ci_integration.md`.
+- Mirroring strategy guidance: `docs/harness/harness_artifact_mirroring_guidance.md`.
+- CI wiring: `.github/workflows/harness-premerge.yml` runs the same wrapper command and uploads `frontend/artifacts/harness/section8/latest/summary.json`.
 
 ## Legacy Route
 
@@ -62,10 +82,16 @@ Open `http://localhost:3000`.
 
 ## Troubleshooting
 
+- `fetch failed` during `npm run harness:validate:premerge`:
+  - The validator could not reach `HARNESS_BASE_URL`.
+  - Confirm frontend server is running and reachable at `http://127.0.0.1:3000` (or set `HARNESS_BASE_URL` to the correct URL).
 - `session:error` with missing key/auth issues:
-  - Confirm `ANTHROPIC_API_KEY` is set in the same shell/process running `npm run dev`.
+  - Confirm `ANTHROPIC_API_KEY` is set in the same shell/process running `npm run dev` (or injected as a CI secret).
 - `spawn ENOENT` / no Claude execution:
   - Ensure Claude CLI is installed and on `PATH` (`which claude`).
+- Wrapper completed but artifact missing:
+  - Validate `frontend/artifacts/harness/section8/latest/summary.json` exists.
+  - If missing, the pre-merge wrapper should fail; inspect wrapper stdout/stderr for `Missing Section 8 summary artifact`.
 - Turn appears blocked or tool calls fail in headless runs:
   - Check `opts.permissionMode` and tool policy (`tools`, `disallowedTools`, `autoApproveTools`).
   - In `dontAsk`, unapproved tools are denied by design.

@@ -231,3 +231,56 @@ Purpose: durable progress tracking across multiple development sessions for Harn
   - `TurnOpts.claudeExecutable` is a non-production test override; future hardening may further scope allowed paths if external exposure risk increases.
 - Next session first task: add a CI/pre-merge wrapper target that runs `frontend/scripts/validate-harness-section8.mjs` and publishes `summary.json` as a build artifact.
 - Commit(s): none
+
+## 2026-02-07 — Session 7
+- Goal: add CI/pre-merge wrapper target for Section 8 validation and publish stable machine-readable artifacts.
+- Completed checklist items:
+  - Section 8 CI wrapper item completed (stable `summary.json` publish path + stdout artifact path output).
+  - Assignment D wrapper/docs item completed (pre-merge command + artifact archive guidance in README/manual validation doc).
+- Files changed:
+  - `frontend/scripts/validate-harness-premerge.mjs`
+  - `frontend/package.json`
+  - `frontend/.gitignore`
+  - `frontend/README.md`
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- scripts/validate-harness-premerge.mjs scripts/validate-harness-section8.mjs` (pass).
+  - `npx tsc --noEmit` (pass).
+  - `npm run harness:validate:premerge` (pass with elevated local-network execution): `HARNESS_VALIDATION_STATUS=pass`, `HARNESS_PREMERGE_STATUS=pass`, `HARNESS_PREMERGE_ARTIFACT_PATH=/Users/ryan/ai-env/projects/chirality-app/frontend/artifacts/harness/section8/latest/summary.json`.
+  - Regression checks covered in the wrapper run (all pass): session CRUD + turn + interrupt paths, plus legacy `/api/chat` reachability (`401 API Key required`).
+- Blockers/Risks:
+  - Wrapper execution depends on a reachable local harness server (`HARNESS_BASE_URL`, default `http://127.0.0.1:3000`); if unavailable, canonical tests fail and wrapper exits non-zero.
+  - Stable artifact publication currently copies only `summary.json`; CI jobs that need full SSE/log evidence should also archive `${TMPDIR:-/tmp}/chirality-harness-validation/latest`.
+- Next session first task: add an optional wrapper flag/env to also mirror the full deterministic artifact directory (not just `summary.json`) into a stable CI path when required.
+- Commit(s): none
+
+## 2026-02-08 — Session 8
+- Goal: complete pre-merge operational hardening for root ignore hygiene, CI wiring, and prerequisite/runbook clarity.
+- Completed checklist items:
+  - Section 8 root ignore hygiene item completed (root `.gitignore` entries for runtime `.chirality` outputs + index untracking via `git rm --cached`).
+  - Section 8 CI wiring item completed (`.github/workflows/harness-premerge.yml` running wrapper + artifact upload contract).
+  - Section 8 runbook clarity item completed (`README` + manual validation + CI integration doc updates with prerequisites, sequence, and failure fixes).
+- Files changed:
+  - `.gitignore`
+  - `.github/workflows/harness-premerge.yml`
+  - `frontend/README.md`
+  - `frontend/docs/harness/harness_manual_validation.md`
+  - `frontend/docs/harness/harness_ci_integration.md`
+  - `frontend/AGENT_HARNESS_IMPLEMENTATION_CHECKLIST.md`
+  - `frontend/AGENT_HARNESS_DECISIONS.md`
+  - `frontend/AGENT_HARNESS_SESSION_LOG.md`
+- Validation run:
+  - `npm run lint -- scripts/validate-harness-section8.mjs scripts/validate-harness-premerge.mjs` (pass).
+  - `npx tsc --noEmit` (pass).
+  - `npm run harness:validate:premerge` (pass): `HARNESS_VALIDATION_STATUS=pass`, `HARNESS_PREMERGE_STATUS=pass`, `HARNESS_PREMERGE_ARTIFACT_PATH=/Users/ryan/ai-env/projects/chirality-app/frontend/artifacts/harness/section8/latest/summary.json`.
+  - Artifact verification (pass): `frontend/artifacts/harness/section8/latest/summary.json` exists and reports `status=pass` (`8/8` tests).
+  - Root ignore hygiene verification (pass): `git ls-files | rg '^\\.chirality/(logs|prompts|sessions)/'` returned no tracked runtime files after untracking.
+  - Regression checks covered by wrapper run (pass): session CRUD + turn + interrupt and `/api/chat` reachability (`401 API Key required`).
+- Blockers/Risks:
+  - New CI workflow assumes runner environment has Claude CLI installed on `PATH`; otherwise preflight fails by design.
+  - Pending staged index deletions for previously tracked `.chirality` runtime files must be committed to fully realize status hygiene for all collaborators.
+- Next session first task: add optional failure-only full-artifact upload mode in `.github/workflows/harness-premerge.yml` based on `harness_artifact_mirroring_guidance.md`.
+- Commit(s): none

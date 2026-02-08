@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "harness:validate:section8": "./scripts/validate-harness-section8.mjs",
+    "harness:validate:premerge": "./scripts/validate-harness-premerge.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",

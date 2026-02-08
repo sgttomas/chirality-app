@@ -162,3 +162,37 @@ Purpose: record implementation decisions that should persist across sessions to 
   - `frontend/lib/harness/types.ts`
   - `frontend/lib/harness/claude-code-manager.ts`
   - `frontend/scripts/validate-harness-section8.mjs`
+
+## D-014: Pre-merge wrapper publishes stable CI artifact while keeping Section 8 script canonical
+- Date: 2026-02-07
+- Status: accepted
+- Context: `validate-harness-section8.mjs` writes machine-readable `summary.json` under `${TMPDIR:-/tmp}`, which is deterministic but not a stable repository-relative artifact path for CI collection/upload contracts.
+- Decision: add `frontend/scripts/validate-harness-premerge.mjs` and `npm run harness:validate:premerge`; the wrapper executes the canonical Section 8 script unchanged, then copies its `summary.json` to `frontend/artifacts/harness/section8/latest/summary.json` and prints `HARNESS_PREMERGE_ARTIFACT_PATH=...`.
+- Consequences: pre-merge pipelines get a stable artifact path without duplicating validation logic, and canonical Section 8 behavior remains single-sourced in `validate-harness-section8.mjs`.
+- References:
+  - `frontend/scripts/validate-harness-premerge.mjs`
+  - `frontend/scripts/validate-harness-section8.mjs`
+  - `frontend/package.json`
+
+## D-015: Root-level `.chirality` runtime ignores must be precise and repository-scoped
+- Date: 2026-02-08
+- Status: accepted
+- Context: runtime churn from `.chirality/logs`, `.chirality/prompts`, and `.chirality/sessions` appeared in root `git status` during validation runs because only frontend-local ignores existed.
+- Decision: add root `.gitignore` rules for `.chirality/logs/`, `.chirality/prompts/`, and `.chirality/sessions/` (without ignoring all `.chirality/`) and remove already-tracked runtime files from the index via `git rm --cached`.
+- Consequences: runtime artifacts remain on disk for harness behavior while no longer polluting version control status; future non-runtime files under `.chirality/` can still be tracked intentionally.
+- References:
+  - `.gitignore`
+  - `.chirality/logs/harness.log`
+  - `.chirality/prompts/`
+  - `.chirality/sessions/`
+
+## D-016: CI pre-merge gate validates server reachability + wrapper output contract
+- Date: 2026-02-08
+- Status: accepted
+- Context: wrapper command existed but no repository CI job executed it, so pre-merge guarantees depended on manual local runs.
+- Decision: add GitHub Actions workflow `.github/workflows/harness-premerge.yml` that starts frontend, polls `/api/harness/session/list?projectRoot=...`, runs `npm run harness:validate:premerge`, fails when summary is missing, and uploads `frontend/artifacts/harness/section8/latest/summary.json`.
+- Consequences: pre-merge automation is explicit and reproducible, with a stable uploaded summary artifact and clear prerequisite failures for missing `ANTHROPIC_API_KEY` or Claude CLI.
+- References:
+  - `.github/workflows/harness-premerge.yml`
+  - `frontend/scripts/validate-harness-premerge.mjs`
+  - `frontend/docs/harness/harness_ci_integration.md`

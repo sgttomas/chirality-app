@@ -152,6 +152,10 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
 - [x] Parse robustness: malformed NDJSON lines are logged + skipped (no crash).
 - [x] Secret safety: logs show redaction and filtered env behavior.
 - [x] Repeatable pre-merge automation exists under `frontend/scripts/validate-harness-section8.mjs` with machine-readable summary + deterministic artifacts.
+- [x] CI/pre-merge wrapper target publishes `summary.json` to stable `frontend/artifacts/harness/section8/latest/summary.json` and prints artifact path in stdout.
+- [x] Root `.gitignore` ignores runtime churn in `.chirality/logs/`, `.chirality/prompts/`, and `.chirality/sessions/` without ignoring the full `.chirality/` tree.
+- [x] CI wiring runs `cd frontend && npm run harness:validate:premerge`, verifies `frontend/artifacts/harness/section8/latest/summary.json`, and uploads that summary as build artifact.
+- [x] Runbook docs explicitly cover `HARNESS_BASE_URL` reachability, Claude CLI + `ANTHROPIC_API_KEY` prerequisites, canonical local run sequence, and common failure remediation.
 
 ## 9) Assignment slices (parallelizable)
 
@@ -166,3 +170,4 @@ Supporting runtime/sequence maps: `frontend/docs/harness/chirality_harness_graph
   - [x] `frontend/README.md`
   - [x] Manual verification log covering section 8.
   - [x] Automated Section 8 validation script + usage docs.
+  - [x] Pre-merge wrapper target + stable artifact publishing docs.
