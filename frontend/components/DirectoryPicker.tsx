@@ -18,34 +18,65 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-md">
-      <div className="glass w-[600px] h-[700px] flex flex-col shadow-2xl border-[var(--color-accent-orange)]/30">
-        <div className="p-4 border-b border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-high)]">
-          <h2 className="text-sm font-bold text-[var(--color-accent-orange)] tracking-widest uppercase">Select Directory</h2>
-          <button onClick={onCancel} className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors">✕</button>
-        </div>
-        
-        <div className="flex-grow overflow-hidden p-4 bg-[var(--color-surface-mid)]">
-            <SystemFileTree 
-                onSelect={(path) => setSelectedPath(path)}
-                className="h-full"
-            />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm">
+      <div className="ui-panel-strong flex h-[min(82vh,720px)] w-[min(92vw,780px)] flex-col overflow-hidden">
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/75 px-5 py-4">
+          <div className="min-w-0">
+            <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Workspace</p>
+            <h2 className="text-[1.05rem] font-bold tracking-[0.06em] uppercase text-[var(--color-text-main)]">
+              Select Project Directory
+            </h2>
+            <p className="mt-1 text-[12px] text-[var(--color-text-dim)]/85">
+              This root is shared by workbench, pipeline, and direct sessions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="ui-control ui-focus-ring px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
+            aria-label="Close directory picker"
+          >
+            Close
+          </button>
         </div>
 
-        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] flex justify-between items-center">
-            <div className="text-[10px] font-mono text-[var(--color-text-dim)] truncate max-w-[350px]">
-                {selectedPath ? `Selected: ${selectedPath}` : "Select a target..."}
-            </div>
-            <div className="flex gap-3">
-                <button onClick={onCancel} className="px-4 py-2 hover:bg-white/10 rounded transition-colors text-[10px] uppercase font-bold tracking-widest">Cancel</button>
-                <button 
-                    onClick={handleConfirm} 
-                    disabled={!selectedPath}
-                    className={`px-6 py-2 rounded font-black transition-all text-[10px] uppercase tracking-widest ${selectedPath ? 'bg-[var(--color-accent-orange)] text-black hover:brightness-110 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
-                >
-                    Set_CWD
-                </button>
-            </div>
+        <div className="flex-grow min-h-0 overflow-hidden bg-[var(--color-surface-mid)]/55 p-4">
+          <SystemFileTree
+            onSelect={(path) => setSelectedPath(path)}
+            className="h-full"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-high)]/75 px-4 py-3">
+          <div className="ui-panel-soft flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2">
+            <span className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">
+              Selected
+            </span>
+            <span className="mono min-w-0 truncate text-[10px] text-[var(--color-text-main)]/85" title={selectedPath ?? ""}>
+              {selectedPath ?? "Choose a directory from the list."}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ui-control ui-focus-ring px-3 py-1.5 mono text-[10px] font-semibold uppercase tracking-[0.1em]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={!selectedPath}
+              className={`ui-focus-ring px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] ${
+                selectedPath
+                  ? "ui-button-primary"
+                  : "ui-control text-[var(--color-text-dim)]"
+              }`}
+            >
+              Use Directory
+            </button>
+          </div>
         </div>
       </div>
     </div>

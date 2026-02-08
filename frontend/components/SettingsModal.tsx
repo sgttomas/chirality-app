@@ -11,31 +11,37 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, projectRoot }) => {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      setStatus(null);
       // Load API Key from local storage
       const storedKey = localStorage.getItem("anthropic_api_key");
       if (storedKey) setApiKey(storedKey);
+      else setApiKey("");
 
       // Load Model from server
       if (projectRoot) {
-        setIsLoading(true);
+        setIsFetching(true);
         fetch(`/api/project/config?projectRoot=${encodeURIComponent(projectRoot)}`)
           .then((res) => res.json())
           .then((data) => {
-            if (data.model) setModel(data.model);
+            if (typeof data.model === "string") setModel(data.model);
+            else setModel("");
           })
           .catch((err) => console.error("Failed to load config", err))
-          .finally(() => setIsLoading(false));
+          .finally(() => setIsFetching(false));
+      } else {
+        setModel("");
       }
     }
   }, [isOpen, projectRoot]);
 
   const handleSave = async () => {
-    setIsLoading(true);
+    setIsSaving(true);
     setStatus(null);
 
     try {
@@ -60,64 +66,88 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
       setStatus("Settings saved successfully.");
       setTimeout(onClose, 1000);
     } catch (error) {
-        setStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      setStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[var(--color-bg-panel)] border border-[var(--color-border)] rounded-lg shadow-2xl w-[400px] p-6 text-sm font-mono text-[var(--color-text-main)] backdrop-blur-xl">
-        <h2 className="text-lg font-bold mb-4 text-[var(--color-accent-orange)] tracking-wide uppercase">Settings</h2>
+  const statusIsError = Boolean(status?.startsWith("Error"));
+  const statusClass = statusIsError
+    ? "border-[var(--color-normative)]/35 bg-[var(--color-normative)]/10 text-[var(--color-normative)]"
+    : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
 
-        <div className="space-y-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+      <div className="ui-panel-strong w-[min(92vw,460px)] overflow-hidden">
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/70 px-5 py-4">
+          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Configuration</p>
+          <h2 className="text-[1.05rem] font-bold uppercase tracking-[0.08em] text-[var(--color-text-main)]">Settings</h2>
+          <p className="mt-1 mono text-[10px] text-[var(--color-text-dim)]">
+            ROOT: {projectRoot ?? "NOT_SET"}
+          </p>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
           <div>
-            <label className="block text-xs uppercase tracking-widest opacity-60 mb-2">Anthropic API Key</label>
+            <label className="ui-type-mono-meta mb-2 block text-[10px] font-semibold text-[var(--color-text-dim)]/80">
+              Anthropic API Key
+            </label>
             <input
               type="password"
-              className="w-full bg-[var(--color-surface-high)] border border-[var(--color-border)] rounded px-3 py-2 outline-none focus:border-[var(--color-accent-orange)] transition-colors placeholder:text-[var(--color-text-dim)]"
+              className="ui-control ui-focus-ring w-full bg-[var(--color-surface-high)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]"
               placeholder="sk-ant-..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-            <p className="text-[10px] opacity-40 mt-1">Stored locally in your browser.</p>
+            <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">Stored locally in your browser.</p>
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-widest opacity-60 mb-2">Global Model (CLAUDE.md)</label>
+            <label className="ui-type-mono-meta mb-2 block text-[10px] font-semibold text-[var(--color-text-dim)]/80">
+              Global Model (CLAUDE.md)
+            </label>
             <input
               type="text"
-              className="w-full bg-[var(--color-surface-high)] border border-[var(--color-border)] rounded px-3 py-2 outline-none focus:border-[var(--color-accent-orange)] transition-colors placeholder:text-[var(--color-text-dim)]"
+              className="ui-control ui-focus-ring w-full bg-[var(--color-surface-high)] px-3 py-2 text-sm text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]"
               placeholder="e.g. sonnet, opus, claude-3-5-sonnet-20240620"
               value={model}
               onChange={(e) => setModel(e.target.value)}
+              disabled={!projectRoot || isFetching}
             />
-             <p className="text-[10px] opacity-40 mt-1">Applies to all new turns.</p>
+            {!projectRoot ? (
+              <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">
+                Select a project root from the shared footer before saving model config.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">Applies to all new turns.</p>
+            )}
           </div>
+
+          {status && (
+            <div className={`rounded-md border px-3 py-2 text-[11px] ${statusClass}`}>
+              {status}
+            </div>
+          )}
         </div>
 
-        {status && (
-            <div className={`mt-4 text-xs ${status.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                {status}
-            </div>
-        )}
-
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface-high)]/60 px-5 py-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded hover:bg-[var(--color-surface-mid)] transition-colors text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]"
+            className="ui-control ui-focus-ring px-3 py-1.5 mono text-[10px] font-semibold uppercase tracking-[0.1em]"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={isLoading}
-            className="px-4 py-2 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)] border border-[var(--color-accent-orange)]/20 rounded hover:bg-[var(--color-accent-orange)]/20 transition-all font-bold tracking-wide uppercase disabled:opacity-50"
+            disabled={isSaving || isFetching}
+            className={`ui-focus-ring px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] ${
+              isSaving || isFetching ? "ui-control text-[var(--color-text-dim)]" : "ui-button-primary"
+            }`}
           >
-            {isLoading ? "Saving..." : "Save"}
+            {isSaving ? "Saving..." : isFetching ? "Loading..." : "Save"}
           </button>
         </div>
       </div>

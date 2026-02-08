@@ -13,97 +13,153 @@ export function SystemFileTree({ onSelect, className }: SystemFileTreeProps) {
   const [currentPath, setCurrentPath] = useState("/");
   const [manualPath, setManualPath] = useState("/");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchDir = async (path: string) => {
+  const fetchDir = async (pathInput: string) => {
+    const targetPath = pathInput.trim() || "/";
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/system/list?path=${encodeURIComponent(path)}`);
+      const res = await fetch(`/api/system/list?path=${encodeURIComponent(targetPath)}`);
       const data = await res.json();
-      if (data.nodes) {
-        setRootNodes(data.nodes);
-        setCurrentPath(data.current);
-        setManualPath(data.current);
+      if (!res.ok || data.error) {
+        throw new Error(typeof data.error === "string" ? data.error : "Failed to read directory.");
       }
+      setRootNodes(Array.isArray(data.nodes) ? data.nodes : []);
+      const resolvedCurrent = typeof data.current === "string" && data.current ? data.current : targetPath;
+      setCurrentPath(resolvedCurrent);
+      setManualPath(resolvedCurrent);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to fetch system path:", e);
+      setRootNodes([]);
+      setError(e instanceof Error ? e.message : "Unable to read directory.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Initial load
-    fetchDir("/");
+    void fetchDir("/");
   }, []);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchDir(manualPath);
+    void fetchDir(manualPath);
   };
 
   const handleUp = () => {
     const parts = currentPath.split("/").filter(Boolean);
     parts.pop();
     const parent = "/" + parts.join("/");
-    fetchDir(parent);
+    void fetchDir(parent || "/");
   };
 
+  const atRoot = currentPath === "/";
+
   return (
-    <div className={`flex flex-col h-full ${className}`}>
-      {/* Navigation Bar */}
-      <div className="flex gap-2 mb-2">
-        <button 
-            onClick={handleUp}
-            className="px-2 py-1 bg-[var(--color-surface-mid)] hover:bg-[var(--color-surface-high)] rounded text-xs font-mono"
-            title="Go Up"
+    <div className={`flex h-full min-h-0 flex-col ${className ?? ""}`}>
+      <div className="ui-panel-soft mb-2 flex items-center gap-2 rounded-md p-2">
+        <button
+          type="button"
+          onClick={handleUp}
+          disabled={atRoot || loading}
+          className="ui-control ui-focus-ring px-2 py-1 mono text-[10px] font-semibold uppercase tracking-[0.1em]"
+          title="Go to parent directory"
         >
-            ..
+          Up
         </button>
         <form onSubmit={handleManualSubmit} className="flex-grow">
-            <input 
-                type="text" 
-                value={manualPath} 
-                onChange={(e) => setManualPath(e.target.value)}
-                className="w-full bg-[var(--color-surface-high)] border border-[var(--color-border)] rounded px-2 py-1 text-xs font-mono text-[var(--color-text-main)] focus:border-[var(--color-accent-orange)] outline-none"
-            />
+          <input
+            type="text"
+            value={manualPath}
+            onChange={(e) => setManualPath(e.target.value)}
+            className="ui-control ui-focus-ring w-full bg-[var(--color-surface-high)] px-2 py-1 mono text-[10px] text-[var(--color-text-main)]"
+            placeholder="/"
+            aria-label="System path"
+          />
         </form>
-        <button 
-            onClick={() => fetchDir(manualPath)}
-            className="px-2 py-1 bg-[var(--color-accent-orange)]/20 hover:bg-[var(--color-accent-orange)]/40 text-[var(--color-accent-orange)] rounded text-xs font-bold"
+        <button
+          type="button"
+          onClick={() => void fetchDir(manualPath)}
+          disabled={loading}
+          className="ui-control ui-focus-ring px-2 py-1 mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10 hover:bg-[var(--color-accent-orange)]/16"
         >
-            GO
+          Open
         </button>
       </div>
 
-      {/* File List */}
-      <div className="flex-grow overflow-y-auto border border-[var(--color-border)] rounded bg-[var(--color-surface-mid)] p-2 custom-scrollbar">
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <span className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-text-dim)]/80">Current</span>
+        <span className="mono min-w-0 truncate text-[10px] text-[var(--color-text-main)]/85" title={currentPath}>
+          {currentPath}
+        </span>
+      </div>
+
+      <div className="ui-panel-soft flex-grow min-h-0 overflow-y-auto rounded-md p-2 custom-scrollbar">
         {loading ? (
-            <div className="p-4 text-xs opacity-50 font-mono">Loading...</div>
+          <div className="rounded-md px-3 py-4 text-center">
+            <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
+              Loading directory...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="rounded-md border border-[var(--color-normative)]/35 bg-[var(--color-normative)]/10 px-3 py-3">
+            <p className="mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-normative)]">
+              Error
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-text-main)]/85">{error}</p>
+          </div>
+        ) : rootNodes.length === 0 ? (
+          <div className="rounded-md px-3 py-4 text-center">
+            <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
+              Directory is empty.
+            </p>
+          </div>
         ) : (
-            <div>
-                {rootNodes.map(node => (
-                    <div 
-                        key={node.path}
-                        className={`flex items-center gap-2 p-1.5 cursor-pointer hover:bg-white/10 rounded ${node.path === manualPath ? 'bg-white/5' : ''}`}
-                        onClick={() => {
-                            if (node.isDirectory) {
-                                fetchDir(node.path);
-                            } 
-                            onSelect(node.path);
-                        }}
-                    >
-                        <span className="text-[10px] opacity-50 w-4 text-center">
-                            {node.isDirectory ? "📁" : "📄"}
-                        </span>
-                        <span className={`text-xs font-mono truncate ${node.isDirectory ? 'text-[var(--color-accent-orange)]' : 'text-[var(--color-text-dim)]'}`}>
-                            {node.name}
-                        </span>
-                    </div>
-                ))}
-                {rootNodes.length === 0 && (
-                    <div className="p-4 text-xs opacity-30 font-mono italic">Empty directory</div>
+          <div className="space-y-1">
+            {rootNodes.map((node) => (
+              <button
+                type="button"
+                key={node.path}
+                className={`ui-focus-ring group flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors ${
+                  node.path === manualPath
+                    ? "border-[var(--color-border-strong)] bg-[var(--color-surface-low)] text-[var(--color-text-main)]"
+                    : "border-transparent bg-transparent text-[var(--color-text-dim)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-low)]/80 hover:text-[var(--color-text-main)]"
+                }`}
+                onClick={() => {
+                  setManualPath(node.path);
+                  if (node.isDirectory) {
+                    void fetchDir(node.path);
+                  }
+                  onSelect(node.path);
+                }}
+              >
+                <span
+                  className={`mono w-4 text-center text-[10px] ${
+                    node.isDirectory ? "text-[var(--color-accent-orange)]/80" : "text-[var(--color-text-dim)]/75"
+                  }`}
+                  aria-hidden
+                >
+                  {node.isDirectory ? "▸" : "•"}
+                </span>
+                <span
+                  className={`mono min-w-0 flex-1 truncate text-[11px] ${
+                    node.isDirectory
+                      ? "font-semibold text-[var(--color-accent-orange)]/95 group-hover:text-[var(--color-accent-orange)]"
+                      : "text-[var(--color-text-main)]/85"
+                  }`}
+                  title={node.path}
+                >
+                  {node.name}
+                </span>
+                {node.isDirectory && (
+                  <span className="mono rounded border border-[var(--color-border)] bg-[var(--color-surface-low)] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.08em] text-[var(--color-text-dim)]">
+                    DIR
+                  </span>
                 )}
-            </div>
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
