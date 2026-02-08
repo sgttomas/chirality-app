@@ -64,10 +64,12 @@ export function ResizableLayout({
   const [showDirPicker, setShowDirPicker] = useState(false);
 
   const folderLabel = formatFolderLabel(projectRoot ?? "~");
-
-  // Define a way to trigger file selection from inside sidebarContent if needed
-  // But actually we just want to pass the setSelectedFile function up.
-  // Actually, let's keep it simple and just accept the sidebarContent as a function or just trust the parent.
+  const footerGhostButtonClass =
+    "ui-control ui-focus-ring flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] uppercase cursor-pointer";
+  const footerAccentButtonClass =
+    "ui-control ui-focus-ring flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] uppercase cursor-pointer text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/8 hover:bg-[var(--color-accent-orange)]/14";
+  const footerTooltipClass =
+    "pointer-events-none absolute bottom-full mb-2 w-52 rounded-md border border-white/10 bg-black/80 p-2 opacity-0 shadow-xl backdrop-blur-md transition-opacity group-hover:opacity-100 z-50";
   
   return (
     <div className="w-full h-full flex flex-row overflow-hidden bg-[var(--color-surface-low)]">
@@ -107,7 +109,7 @@ export function ResizableLayout({
 
       {/* Pane 2: Middle Sidebar (Controls + File Tree) */}
       <div 
-        className="flex flex-col h-full bg-[var(--color-surface-mid)] border-r border-[var(--color-border)] overflow-hidden flex-shrink-0"
+        className="flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface-mid)]"
         style={{ width: `${sidebarWidth}px`, minWidth: '300px' }}
       >
         <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
@@ -115,11 +117,13 @@ export function ResizableLayout({
         </div>
 
         {/* Global Actions Footer */}
-        <div className="shrink-0 p-3 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] flex items-center justify-between gap-2">
-          <div className="group relative">
+        <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-high)] px-3 py-2.5">
+          <div className="grid grid-cols-[auto,minmax(0,1fr),auto] items-center gap-2">
+            <div className="group relative">
             <button 
-              onClick={onNavigateHome}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-[10px] uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all font-bold cursor-pointer"
+              onClick={() => onNavigateHome?.()}
+              disabled={!onNavigateHome}
+              className={`${footerGhostButtonClass} text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -127,7 +131,7 @@ export function ResizableLayout({
               PORTAL
             </button>
             {/* Tooltip */}
-            <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+            <div className={`${footerTooltipClass} left-0`}>
               <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
                 <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
               </p>
@@ -136,7 +140,7 @@ export function ResizableLayout({
 
           <button
             onClick={() => setShowDirPicker(true)}
-            className="flex-grow flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-accent-orange)]/5 border border-[var(--color-accent-orange)]/20 text-[10px] uppercase tracking-widest text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/10 transition-all font-bold shadow-[0_0_10px_rgba(249,115,22,0.05)] truncate"
+            className={`${footerAccentButtonClass} min-w-0 justify-center truncate`}
           >
             <span className="opacity-50 font-mono">DIR:</span>
             <span className="truncate">{folderLabel}</span>
@@ -146,7 +150,7 @@ export function ResizableLayout({
           <div className="group relative">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--color-accent-orange)]/5 border border-[var(--color-accent-orange)]/20 text-[10px] uppercase tracking-widest text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/10 transition-all font-bold shadow-[0_0_10px_rgba(249,115,22,0.05)]"
+              className={footerAccentButtonClass}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
@@ -155,11 +159,12 @@ export function ResizableLayout({
               Settings
             </button>
             {/* Tooltip */}
-            <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-black/80 backdrop-blur-md border border-white/10 rounded shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+            <div className={`${footerTooltipClass} right-0`}>
               <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
                 <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
               </p>
             </div>
+          </div>
           </div>
         </div>
       </div>

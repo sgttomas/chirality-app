@@ -14,6 +14,20 @@ const PERSONA_AGENTS = [
     "HELP", "AGENTS", "DEPENDENCIES", "CHANGE", "RECONCILING"
 ];
 
+const VIEW_TABS: Array<{ id: View; label: string }> = [
+  { id: "home", label: "PORTAL" },
+  { id: "workbench", label: "WORKBENCH" },
+  { id: "pipeline", label: "PIPELINE" },
+  { id: "session", label: "DIRECT" }
+];
+
+const VIEW_TITLE: Record<View, { lead: string; accent: string }> = {
+  home: { lead: "COMMAND", accent: "PORTAL" },
+  workbench: { lead: "WORK", accent: "BENCH" },
+  session: { lead: "DIRECT", accent: "LINK" },
+  pipeline: { lead: "TASK", accent: "PIPELINE" }
+};
+
 const PIPELINE_FAMILIES = ["PREP*", "TASK*", "AUDIT*"];
 
 const FAMILY_MAP: Record<string, string[]> = {
@@ -68,91 +82,121 @@ export default function Home() {
   };
 
   const variants = FAMILY_MAP[pipelineFamily] || [];
+  const title = VIEW_TITLE[currentView];
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Wireframe Controls */}
-      <div id="wireframe-controls" className="bg-black/90 border-b border-[var(--color-accent-orange)] p-2.5 text-center z-50 shrink-0">
-        <button onClick={() => setCurrentView("home")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "home" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>PORTAL</button>
-        <button onClick={() => setCurrentView("workbench")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "workbench" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>WORKBENCH</button>
-        <button onClick={() => setCurrentView("pipeline")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "pipeline" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>PIPELINE</button>
-        <button onClick={() => setCurrentView("session")} className={`bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer transition-all ${currentView === "session" ? "border-[var(--color-accent-orange)] text-[var(--color-accent-orange)] shadow-[0_0_10px_rgba(249,115,22,0.3)]" : ""}`}>DIRECT</button>
-        <button className="bg-transparent text-white/20 border border-white/5 py-1.5 px-4 mx-1.5 rounded-md cursor-default transition-all uppercase text-[11px] tracking-widest font-bold">Dashboard</button>
-        <button onClick={() => setIsLightMode(!isLightMode)} className="bg-transparent text-[var(--color-text-dim)] border border-[var(--color-border)] py-1.5 px-4 mx-1.5 rounded-md cursor-pointer hover:text-[var(--color-text-main)] transition-all ml-8">
+      <div id="wireframe-controls" className="shrink-0 border-b border-[var(--color-border)] bg-black/70 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 px-4 py-2.5">
+          {VIEW_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentView(tab.id)}
+              className={`ui-control ui-focus-ring cursor-pointer px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase ${
+                currentView === tab.id
+                  ? "border-[var(--color-accent-orange)] bg-[var(--color-accent-orange)]/6 text-[var(--color-accent-orange)] shadow-[0_0_12px_rgba(249,115,22,0.22)]"
+                  : "text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+          <div className="mx-1 hidden h-5 w-px bg-white/15 sm:block" />
+          <button
+            disabled
+            className="ui-control cursor-default px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-white/30 border-white/10"
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setIsLightMode(!isLightMode)}
+            className="ui-control ui-focus-ring ml-0 cursor-pointer px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] sm:ml-3"
+          >
             {isLightMode ? "☾ DARK" : "☀ LIGHT"}
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Header */}
-      <header className="flex justify-between items-center p-6 shrink-0 bg-black/20">
-        <div className="flex items-center gap-8">
-            <div className="text-3xl font-extrabold tracking-widest uppercase">
-                {currentView === "home" && <>COMMAND // <span className="text-[var(--color-accent-orange)]">PORTAL</span></>}
-                {currentView === "workbench" && <>WORK // <span className="text-[var(--color-accent-orange)]">BENCH</span></>}
-                {currentView === "session" && <>DIRECT // <span className="text-[var(--color-accent-orange)]">LINK</span></>}
-                {currentView === "pipeline" && <>TASK // <span className="text-[var(--color-accent-orange)]">PIPELINE</span></>}
+      <header className="shrink-0 border-b border-[var(--color-border)]/60 bg-black/20">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-6">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 md:gap-6">
+            <div className="ui-type-title whitespace-nowrap font-extrabold tracking-[0.14em] uppercase">
+              {title.lead}
+              <span className="px-1 text-[var(--color-text-dim)]">{" // "}</span>
+              <span className="text-[var(--color-accent-orange)]">{title.accent}</span>
             </div>
 
             {/* Contextual Selectors in Header */}
             {currentView === "workbench" && (
-                <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-lg ml-4">
-                    <span className="text-[9px] font-black tracking-[0.2em] text-[var(--color-accent-orange)] uppercase opacity-60">Persona:</span>
-                    <select 
-                        value={agentName}
-                        onChange={(e) => setAgentName(e.target.value)}
-                        className="bg-transparent text-xs font-bold tracking-widest text-[var(--color-text-main)] outline-none cursor-pointer uppercase"
-                    >
-                        {PERSONA_AGENTS.map(agent => (
-                            <option key={agent} value={agent} className="bg-slate-900">{agent}</option>
-                        ))}
-                    </select>
-                </div>
+              <div className="ui-panel-soft ml-0 flex items-center gap-2.5 rounded-lg px-3 py-2 md:ml-1">
+                <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Persona</span>
+                <select
+                  value={agentName}
+                  onChange={(e) => setAgentName(e.target.value)}
+                  className="ui-focus-ring min-w-[180px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                >
+                  {PERSONA_AGENTS.map((agent) => (
+                    <option key={agent} value={agent} className="bg-slate-900">
+                      {agent}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
 
             {currentView === "pipeline" && (
-                <div className="flex items-center gap-6 ml-4">
-                    <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-lg">
-                        <span className="text-[9px] font-black tracking-[0.2em] text-[var(--color-accent-orange)] uppercase opacity-60">Family:</span>
-                        <select 
-                            value={pipelineFamily}
-                            onChange={(e) => {
-                                setPipelineFamily(e.target.value);
-                                setSelectedVariant(null);
-                            }}
-                            className="bg-transparent text-xs font-bold tracking-widest text-[var(--color-text-main)] outline-none cursor-pointer uppercase"
-                        >
-                            {PIPELINE_FAMILIES.map(f => (
-                                <option key={f} value={f} className="bg-slate-900">{f}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-lg">
-                        <span className="text-[9px] font-black tracking-[0.2em] text-[var(--color-accent-orange)] uppercase opacity-60">Variant:</span>
-                        <select 
-                            value={selectedVariant || ""}
-                            onChange={(e) => setSelectedVariant(e.target.value || null)}
-                            className="bg-transparent text-xs font-bold tracking-widest text-[var(--color-text-main)] outline-none cursor-pointer uppercase min-w-[120px]"
-                        >
-                            <option value="" className="bg-slate-900 opacity-50">-- SELECT --</option>
-                            {variants.map(v => (
-                                <option key={v} value={v} className="bg-slate-900">{v}</option>
-                            ))}
-                        </select>
-                    </div>
+              <div className="ml-0 flex flex-wrap items-center gap-2.5 md:ml-1 md:gap-3">
+                <div className="ui-panel-soft flex items-center gap-2.5 rounded-lg px-3 py-2">
+                  <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Family</span>
+                  <select
+                    value={pipelineFamily}
+                    onChange={(e) => {
+                      setPipelineFamily(e.target.value);
+                      setSelectedVariant(null);
+                    }}
+                    className="ui-focus-ring min-w-[130px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                  >
+                    {PIPELINE_FAMILIES.map((f) => (
+                      <option key={f} value={f} className="bg-slate-900">
+                        {f}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-            )}
-        </div>
 
-        <div className="mono text-sm text-[var(--color-text-dim)] tracking-wider">
-          SYSTEM_RECOVERY: SUCCESS
+                <div className="ui-panel-soft flex items-center gap-2.5 rounded-lg px-3 py-2">
+                  <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-70">Variant</span>
+                  <select
+                    value={selectedVariant || ""}
+                    onChange={(e) => setSelectedVariant(e.target.value || null)}
+                    className="ui-focus-ring min-w-[140px] cursor-pointer bg-transparent text-[11px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                  >
+                    <option value="" className="bg-slate-900 opacity-50">
+                      -- SELECT --
+                    </option>
+                    {variants.map((v) => (
+                      <option key={v} value={v} className="bg-slate-900">
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mono ui-type-meta hidden sm:block">
+            SYSTEM_RECOVERY: SUCCESS
+          </div>
         </div>
       </header>
 
       {/* Main View Area */}
       <main className="flex-grow overflow-hidden">
         {currentView === "home" && (
-            <div className="flex p-5 gap-5 h-full overflow-hidden">
+            <div className="flex h-full gap-5 overflow-hidden px-5 pb-5 pt-4">
                 <HexGrid onLaunch={launchAgent} />
                 <div className="shrink-0">
                     <DashboardList 
