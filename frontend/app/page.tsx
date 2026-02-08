@@ -206,7 +206,6 @@ export default function Home() {
                             setCurrentView("workbench");
                         }} 
                         projectRoot={projectRoot}
-                        onRootChange={handleRootChange}
                     />
                 </div>
             </div>
