@@ -303,7 +303,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 22:43:59 -0700
 - Batch ID: `P1-C1`
 - Completed Task IDs: `RT-001`, `RT-002`, `RT-009`, `RT-010`
-- Commit SHA: pending
+- Commit SHA: `712a039`
 - Validation run:
   - `npm uninstall @anthropic-ai/sdk` (pass).
   - `npm install @anthropic-ai/claude-agent-sdk` (pass; lockfile refreshed).
@@ -312,4 +312,17 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - Temporary typecheck break is isolated to legacy `/api/chat` import after dependency swap; planned resolution is batch `P3-C1` (`API-006`) where legacy route is removed.
 - Next session first task: execute `P1-C2` (`RT-003`, `RT-007`) by adding SDK runtime manager and SDK->`UIEvent` mapper without route cutover.
+- Commit(s): `712a039`
+
+## 2026-02-07 — Session 11 (SDK Cutover P1-C2)
+- Date/Time: 2026-02-07 22:53:55 -0700
+- Batch ID: `P1-C2`
+- Completed Task IDs: `RT-003`, `RT-007`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/agent-sdk-event-mapper.ts` (pass).
+  - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` import for `@anthropic-ai/sdk` remains until `P3-C1` removal phase.
+- Blockers/Risks:
+  - `agent-sdk-manager` is intentionally scaffold-only in this batch and not yet wired into `index.ts` or API routes; cutover work lands in `P2-C1`.
+- Next session first task: execute `P2-C1` (`RT-004`, `RT-005`, `RT-008`, `RT-011`, `API-001`, `API-002`) to switch turn/interrupt runtime to SDK with parity options.
 - Commit(s): none

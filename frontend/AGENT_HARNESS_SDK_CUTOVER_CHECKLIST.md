@@ -13,11 +13,11 @@ Baseline reference:
 ## Runtime Files
 - [x] `frontend/package.json` — remove `@anthropic-ai/sdk`, add `@anthropic-ai/claude-agent-sdk`.
 - [x] `frontend/package-lock.json` — regenerate lockfile after dependency swap.
-- [ ] `frontend/lib/harness/agent-sdk-manager.ts` (new) — implement `startTurn/isRunning/interrupt/kill` using `query()`.
+- [x] `frontend/lib/harness/agent-sdk-manager.ts` (new) — implement `startTurn/isRunning/interrupt/kill` using `query()`.
 - [ ] `frontend/lib/harness/agent-sdk-manager.ts` — pass SDK options: `cwd`, `resume`, `model`, `maxTurns`, `includePartialMessages`, `allowedTools`, `disallowedTools`, `systemPrompt` preset `claude_code` with `append`, `tools` preset `claude_code`, `settingSources`.
 - [ ] `frontend/lib/harness/agent-sdk-manager.ts` — map `permissionMode: "dontAsk"` to SDK `permissionMode: "bypassPermissions"` and set `allowDangerouslySkipPermissions: true`.
 - [ ] `frontend/lib/harness/agent-sdk-manager.ts` — keep logging parity (`turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `process:exit`).
-- [ ] `frontend/lib/harness/agent-sdk-event-mapper.ts` (new) — map `SDKMessage` to existing `UIEvent` contract.
+- [x] `frontend/lib/harness/agent-sdk-event-mapper.ts` (new) — map `SDKMessage` to existing `UIEvent` contract.
 - [ ] `frontend/lib/harness/index.ts` — replace `claudeCodeManager` wiring with `agentSdkManager`.
 - [x] `frontend/lib/harness/types.ts` — remove CLI-only fields (`claudeExecutable`), add any SDK option types needed.
 - [x] `frontend/lib/harness/defaults.ts` — add explicit SDK defaults for `settingSources` and Claude Code preset usage.
