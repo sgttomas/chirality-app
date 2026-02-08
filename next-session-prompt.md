@@ -6,12 +6,19 @@ Source of truth:
 Current baseline already completed:
 - Slice #1 (`globals.css` foundation + reusable classes) is done in `878872d`.
 - Slice #2 (`page.tsx` shell polish + `ResizableLayout.tsx` shared footer/root-selector polish) is done in `ddfc3ab` and `474a023`.
+- Slice #3 (`DashboardList.tsx` hierarchy/loading-empty/root-context polish) is done in `db3cb4f`.
+- Slice #4 (`ChatPanel.tsx` status language/readability/in-flight polish) is done in `dd26440`.
 
 Implement now:
-- Continue with Suggested Slice Order #3 only.
-- Primary target: `frontend/components/DashboardList.tsx`.
+- Continue with Suggested Slice Order #5 only.
+- Primary targets:
+  - `frontend/components/FileTree.tsx`
+  - `frontend/components/FilePreview.tsx`
+  - `frontend/components/SystemFileTree.tsx`
+  - `frontend/components/DirectoryPicker.tsx`
+  - `frontend/components/SettingsModal.tsx`
 - Keep this batch style-first, minimal, reversible, and focused.
-- Do not jump ahead into ChatPanel or broad cross-component rewrites.
+- Do not jump ahead into accessibility/responsive cleanup or broad cross-component rewrites.
 
 Hard constraints:
 1. Preserve palette values and semantic meaning.
@@ -23,7 +30,7 @@ Hard constraints:
 
 Execution protocol:
 1. Confirm repo status first (do not discard existing local changes).
-2. Implement Slice #3 scope only.
+2. Implement Slice #5 scope only.
 3. Validate with:
    - `npm run lint`
    - `npx tsc --noEmit`
