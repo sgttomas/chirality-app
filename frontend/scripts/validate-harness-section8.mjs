@@ -24,7 +24,6 @@ const PROMPTS_DIR = path.join(PROJECT_ROOT, ".chirality", "prompts");
 const SENTINELS = {
   deny: "UNAPPROVED_DENY_TEST",
   allow: "UNAPPROVED_ALLOW_TEST",
-  malformed: "MALFORMED_LINE_FOR_PARSE_TEST",
 };
 
 const tests = [];
@@ -372,7 +371,6 @@ async function main() {
   await ensureDir(path.join(ARTIFACT_DIR, "api"));
   await ensureDir(path.join(ARTIFACT_DIR, "sse"));
   await ensureDir(path.join(ARTIFACT_DIR, "logs"));
-  await ensureDir(path.join(ARTIFACT_DIR, "mock"));
   await chmod(SCRIPT_PATH, 0o755);
 
   await runTest("setup.server_reachable", "Main harness server reachability", async () => {
@@ -495,23 +493,40 @@ async function main() {
     assert(resumeTurn.status === 200, `Expected 200 from resume turn request, got ${resumeTurn.status}`);
     assertOrder(eventNames(resumeTurn.events), ["chat:complete", "process:exit"]);
 
-    const logs = await readHarnessLogs();
-    const resumeSpawns = logs.filter((entry) => {
-      return (
-        entry &&
-        entry.sessionId === sessionId &&
-        entry.event === "process:spawn" &&
-        typeof entry.data?.command === "string" &&
-        entry.data.command.includes("--resume")
-      );
+    const resumeInit = findEvent(resumeTurn.events, "session:init");
+    const resumedClaudeSessionId = resumeInit?.data?.claudeSessionId;
+    assert(
+      typeof resumedClaudeSessionId === "string" && resumedClaudeSessionId.length > 0,
+      "Resume turn did not emit session:init with claudeSessionId.",
+    );
+
+    const getAfter = await requestJson(BASE_URL, `/api/harness/session/${encodeURIComponent(sessionId)}`, {
+      method: "GET",
     });
-    await writeJsonArtifact("logs/resume-spawn-snippets.json", resumeSpawns);
-    assert(resumeSpawns.length > 0, "No process:spawn log entry contained --resume for the resumed turn.");
+    await writeJsonArtifact("api/resume-get-after.json", getAfter);
+    assert(getAfter.status === 200, `Expected 200 from session/:id after resume, got ${getAfter.status}`);
+    const persistedAfter = getAfter.json?.session?.claudeSessionId;
+    assert(
+      persistedAfter === resumedClaudeSessionId,
+      "Persisted claudeSessionId after resume does not match latest session:init event.",
+    );
+
+    const logs = await readHarnessLogs();
+    const turnStarts = logs.filter((entry) => entry && entry.sessionId === sessionId && entry.event === "turn:start");
+    const processExits = logs.filter((entry) => entry && entry.sessionId === sessionId && entry.event === "process:exit");
+    await writeJsonArtifact("logs/resume-runtime-markers.json", {
+      turnStartCount: turnStarts.length,
+      processExitCount: processExits.length,
+    });
+    assert(turnStarts.length >= 2, "Expected at least two turn:start log entries for initial + resumed turns.");
+    assert(processExits.length >= 2, "Expected at least two process:exit log entries for initial + resumed turns.");
 
     return {
       sessionId,
       persistedClaudeSessionId: persistedBefore,
-      resumeSpawnCount: resumeSpawns.length,
+      resumedClaudeSessionId,
+      turnStartCount: turnStarts.length,
+      processExitCount: processExits.length,
     };
   });
 
@@ -641,104 +656,55 @@ async function main() {
     const sessionErrorEvent = findEvent(interruptTurn.events, "session:error");
     const sessionErrorText =
       typeof sessionErrorEvent?.data?.error === "string" ? sessionErrorEvent.data.error : "";
-    assert(sessionErrorText.length > 0, "Interrupt path did not emit session:error.");
-
-    const sigintLike = signal === "SIGINT" || sessionErrorText.includes("SIGINT");
-    const interruptedWithoutResult = sessionErrorText.includes("exited before a result event");
-    assert(sigintLike || interruptedWithoutResult, "Interrupt path did not produce an interruption marker.");
+    const sigintLike =
+      signal === "SIGINT" ||
+      sessionErrorText.toUpperCase().includes("SIGINT") ||
+      sessionErrorText.toLowerCase().includes("interrupt");
+    assert(sigintLike, "Interrupt path did not produce an SDK interruption marker.");
 
     return {
       sessionId: session.id,
       exitSignal: signal,
       exitCode,
+      hasSessionError: sessionErrorText.length > 0,
       sessionError: sessionErrorText,
       interruptStatus: interruptResponse.status,
       interruptArtifact: path.join(ARTIFACT_DIR, "api", "interrupt-response.json"),
     };
   });
 
-  await runTest("section8.parse_robustness_mocked", "Parse robustness with mocked claude NDJSON injection", async () => {
-    const mockBinDir = path.join(ARTIFACT_DIR, "mock", "bin");
-    await ensureDir(mockBinDir);
+  await runTest("section8.sdk_native_stream", "SDK-native stream handling (no NDJSON parse layer)", async () => {
+    const session = await createSession(BASE_URL, "sdk-native");
 
-    const mockClaudePath = path.join(mockBinDir, "claude");
-    const mockClaudeScript = [
-      "#!/usr/bin/env bash",
-      "printf '%s\\n' '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"mock-claude-session\",\"tools\":[\"Read\"],\"model\":\"mock-model\"}'",
-      "printf '%s\\n' '{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"mock delta\"}},\"session_id\":\"mock-claude-session\"}'",
-      `printf '%s\\n' '${SENTINELS.malformed}'`,
-      "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"mock complete\",\"session_id\":\"mock-claude-session\",\"total_cost_usd\":0,\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}'",
-    ].join("\n");
-    await writeFile(mockClaudePath, `${mockClaudeScript}\n`, "utf8");
-    await chmod(mockClaudePath, 0o755);
-    await writeTextArtifact("mock/claude-script.sh", mockClaudeScript);
-
-    const session = await createSession(BASE_URL, "mock-parse");
     const turn = await streamTurn(
       BASE_URL,
       {
         sessionId: session.id,
-        message: "parse robustness test",
-        opts: {
-          maxTurns: 1,
-          claudeExecutable: mockClaudePath,
-        },
+        message: "Respond with exactly: sdk native stream ok",
+        opts: { maxTurns: 1 },
       },
-      "sse/turn-parse-mocked.sse",
+      "sse/turn-sdk-native.sse",
     );
-    await writeJsonArtifact("api/mock-parse-meta.json", {
+    await writeJsonArtifact("api/sdk-native-meta.json", {
       status: turn.status,
       events: eventNames(turn.events),
       artifactPath: turn.artifactPath,
     });
 
-    assert(turn.status === 200, `Expected 200 from mocked parse turn, got ${turn.status}`);
-    assertOrder(eventNames(turn.events), ["chat:delta", "chat:complete", "process:exit"]);
-
-    const initEvent = findEvent(turn.events, "session:init");
-    assert(initEvent?.data?.model === "mock-model", "Mocked claude executable override was not applied.");
+    assert(turn.status === 200, `Expected 200 from sdk-native turn, got ${turn.status}`);
+    const names = eventNames(turn.events);
+    assert(names.includes("chat:complete"), "SDK-native turn did not emit chat:complete.");
+    assert(names.includes("process:exit"), "SDK-native turn did not emit process:exit.");
 
     const logs = await readHarnessLogs();
-    const parseErrors = logs.filter((entry) => {
-      return (
-        entry &&
-        entry.sessionId === session.id &&
-        entry.event === "parse:error" &&
-        typeof entry.data?.line === "string" &&
-        entry.data.line.includes(SENTINELS.malformed)
-      );
-    });
-    await writeJsonArtifact("logs/mock-parse-errors.json", parseErrors);
-    assert(parseErrors.length > 0, "No parse:error log entry found for malformed NDJSON line.");
-
-    await deleteSession(BASE_URL, session.id, "mock-parse");
+    const parseErrors = logs.filter((entry) => entry && entry.sessionId === session.id && entry.event === "parse:error");
+    await writeJsonArtifact("logs/sdk-native-parse-errors.json", parseErrors);
+    assert(parseErrors.length === 0, "SDK-native runtime unexpectedly emitted parse:error logs.");
 
     return {
       sessionId: session.id,
       parseErrorCount: parseErrors.length,
-      mockClaudePath,
-    };
-  });
-
-  await runTest("regression.api_chat_reachability", "Legacy /api/chat reachability regression", async () => {
-    const response = await requestJson(BASE_URL, "/api/chat", {
-      method: "POST",
-      body: {
-        messages: [],
-        model: "claude-3-5-haiku-latest",
-      },
-    });
-    await writeJsonArtifact("api/chat-reachability.json", response);
-
-    assert(response.status === 401, `Expected 401 from deprecated /api/chat without apiKey, got ${response.status}`);
-    assert(
-      response.json?.error === "API Key required",
-      `Expected /api/chat error "API Key required", got ${JSON.stringify(response.json)}`,
-    );
-
-    return {
-      status: response.status,
-      error: response.json?.error ?? null,
+      eventCount: names.length,
     };
   });
 

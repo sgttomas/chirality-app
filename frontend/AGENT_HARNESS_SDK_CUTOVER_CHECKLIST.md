@@ -39,8 +39,8 @@ Baseline reference:
 - [ ] `frontend/components/ResizableLayout.tsx` — update wording if it references old runtime behavior.
 
 ## Validation Scripts
-- [ ] `frontend/scripts/validate-harness-section8.mjs` — remove mock `claudeExecutable` flow; add SDK-native parse/interruption checks.
-- [ ] `frontend/scripts/validate-harness-premerge.mjs` — update to run SDK-based validation assertions.
+- [x] `frontend/scripts/validate-harness-section8.mjs` — remove mock `claudeExecutable` flow; add SDK-native parse/interruption checks.
+- [x] `frontend/scripts/validate-harness-premerge.mjs` — update to run SDK-based validation assertions.
 
 ## Docs
 - [ ] `frontend/README.md` — replace “spawns `claude -p`” with SDK runtime description and required settings.

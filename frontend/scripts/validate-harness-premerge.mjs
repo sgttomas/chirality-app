@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, copyFile, mkdir } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -20,6 +20,16 @@ const PUBLISHED_ARTIFACT_DIR =
   process.env.HARNESS_PREMERGE_ARTIFACT_DIR ??
   path.join(FRONTEND_ROOT, "artifacts", "harness", "section8", "latest");
 const PUBLISHED_SUMMARY_PATH = path.join(PUBLISHED_ARTIFACT_DIR, "summary.json");
+
+const REQUIRED_SDK_TEST_IDS = [
+  "setup.server_reachable",
+  "regression.session_crud",
+  "section8.smoke_stream",
+  "section8.session_persistence_resume",
+  "section8.permissions_dontask",
+  "section8.interrupt_sigint",
+  "section8.sdk_native_stream",
+];
 
 function createLineCollector(onLine) {
   let buffer = "";
@@ -97,6 +107,36 @@ async function publishSummary(sourceSummaryPath) {
   await copyFile(sourceSummaryPath, PUBLISHED_SUMMARY_PATH);
 }
 
+async function readSummary(summaryPath) {
+  const raw = await readFile(summaryPath, "utf8");
+  return JSON.parse(raw);
+}
+
+function assertSdkSummaryShape(summary) {
+  if (!summary || typeof summary !== "object") {
+    throw new Error("Section 8 summary must be a JSON object.");
+  }
+
+  if (!Array.isArray(summary.tests)) {
+    throw new Error("Section 8 summary is missing tests array.");
+  }
+
+  const observed = new Set(
+    summary.tests
+      .map((test) => (test && typeof test.id === "string" ? test.id : null))
+      .filter((id) => typeof id === "string"),
+  );
+
+  const missing = REQUIRED_SDK_TEST_IDS.filter((id) => !observed.has(id));
+  if (missing.length > 0) {
+    throw new Error(`Section 8 summary missing required SDK test IDs: ${missing.join(", ")}`);
+  }
+
+  if (observed.has("regression.api_chat_reachability")) {
+    throw new Error("Legacy /api/chat regression test is still present in Section 8 summary.");
+  }
+}
+
 async function main() {
   const result = await runCanonicalValidation();
   const sourceSummaryPath = result.summaryPath;
@@ -104,6 +144,20 @@ async function main() {
 
   if (!summaryExists) {
     console.error(`Missing Section 8 summary artifact: ${sourceSummaryPath}`);
+    process.exitCode = result.code ?? 1;
+    if (process.exitCode === 0) {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  let parsedSummary;
+  try {
+    parsedSummary = await readSummary(sourceSummaryPath);
+    assertSdkSummaryShape(parsedSummary);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Invalid Section 8 SDK summary: ${message}`);
     process.exitCode = result.code ?? 1;
     if (process.exitCode === 0) {
       process.exitCode = 1;
@@ -125,6 +179,7 @@ async function main() {
 
   console.log(`HARNESS_PREMERGE_ARTIFACT_PATH=${PUBLISHED_SUMMARY_PATH}`);
   console.log(`HARNESS_PREMERGE_SOURCE_SUMMARY_PATH=${sourceSummaryPath}`);
+  console.log(`HARNESS_PREMERGE_TEST_COUNT=${Array.isArray(parsedSummary?.tests) ? parsedSummary.tests.length : 0}`);
   if (result.status) {
     console.log(`HARNESS_PREMERGE_STATUS=${result.status}`);
   }

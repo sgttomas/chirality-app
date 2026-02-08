@@ -359,7 +359,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 23:02:24 -0700
 - Batch ID: `P3-C1`
 - Completed Task IDs: `API-006`, `RM-001`, `RM-002`
-- Commit SHA: pending
+- Commit SHA: `23357a1`
 - Validation run:
   - `npm run lint -- app/api/harness/turn/route.ts app/api/harness/interrupt/route.ts app/api/harness/session/[id]/route.ts lib/harness/index.ts lib/harness/agent-sdk-manager.ts lib/harness/agent-sdk-event-mapper.ts` (pass).
   - `npx next typegen` (pass; regenerated route types after deleting `/api/chat`).
@@ -367,4 +367,18 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - Validation scripts/docs still reference legacy `/api/chat` and CLI parse-mock behavior; these are scheduled for update in `P4-C1`/`P4-C2`.
 - Next session first task: execute `P4-C1` (`VAL-001`, `VAL-002`) to update validation scripts for SDK-native behavior.
+- Commit(s): `23357a1`
+
+## 2026-02-07 — Session 15 (SDK Cutover P4-C1)
+- Date/Time: 2026-02-07 23:05:46 -0700
+- Batch ID: `P4-C1`
+- Completed Task IDs: `VAL-001`, `VAL-002`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- scripts/validate-harness-section8.mjs scripts/validate-harness-premerge.mjs` (pass).
+  - `npx tsc --noEmit` (pass).
+  - Validation logic updates verified by static inspection: removed legacy `/api/chat` check and mocked `claudeExecutable` NDJSON path; added SDK-native stream/parity assertions and premerge summary schema assertions.
+- Blockers/Risks:
+  - Runtime validation still requires a live local harness server and authenticated Claude environment; full execution is deferred to `P5-C1` gate run.
+- Next session first task: execute `P4-C2` docs updates (`DOC-001`..`DOC-007`) to align runbooks and decision logs with SDK-only runtime.
 - Commit(s): none
