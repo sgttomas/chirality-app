@@ -1,48 +1,37 @@
-  You are taking over SDK cutover work in `/Users/ryan/ai-env/projects/chirality-app`.
+You are taking over UI polish implementation in `/Users/ryan/ai-env/projects/chirality-app`.
 
-  Primary objective:
-  - Execute a wholesale migration from CLI subprocess runtime to Anthropic Agent SDK.
-  - No dual runtime path and no legacy junk left behind.
+Source of truth:
+- `frontend/docs/ui/UI_POLISH_EXECUTION_PLAN.md` (latest cosmetic-pass notes dated 2026-02-08).
 
-  Source of truth:
-  - `frontend/AGENT_HARNESS_SDK_CUTOVER_CHECKLIST.md`
-  - Follow Task IDs and phase commit batches exactly (`P0-C1` through `P5-C1`).
+Current baseline already completed:
+- Slice #1 (`globals.css` foundation + reusable classes) is done in `878872d`.
+- Slice #2 (`page.tsx` shell polish + `ResizableLayout.tsx` shared footer/root-selector polish) is done in `ddfc3ab` and `474a023`.
 
-  Critical constraints:
-  1. Preserve current SSE `UIEvent` contract and `ChatPanel` behavior.
-  2. Keep Chirality workflow overlays (persona/system append prompting).
-  3. Configure SDK for Claude Code parity:
-     - `systemPrompt` preset `claude_code` + append
-     - `tools` preset `claude_code`
-     - explicit `settingSources`
-     - parity for resume/model/maxTurns/permission behavior (`dontAsk` -> bypass permissions behavior).
-  4. Remove `/api/chat`, CLI manager, and NDJSON parser only in planned removal phase.
-  5. Keep changes minimal, reversible, and commit-batch scoped.
+Implement now:
+- Continue with Suggested Slice Order #3 only.
+- Primary target: `frontend/components/DashboardList.tsx`.
+- Keep this batch style-first, minimal, reversible, and focused.
+- Do not jump ahead into ChatPanel or broad cross-component rewrites.
 
-  Progress tracking protocol (required after each completed task):
-  1. In `frontend/AGENT_HARNESS_SDK_CUTOVER_CHECKLIST.md`:
-     - Mark completed checklist items as `[x]`.
-     - Keep Task IDs as canonical status.
-  2. For each finished commit batch:
-     - Append an entry to `frontend/AGENT_HARNESS_SESSION_LOG.md` including:
-       - date/time
-       - batch ID (e.g., `P2-C1`)
-       - completed Task IDs
-       - commit SHA
-       - validation results
-       - blockers/risks (if any)
-  3. Use commit message format:
-     - `<type>: <batch-id> <task-id list>`
-     - Example: `feat: P2-C1 RT-004 RT-005 RT-008 API-001 API-002`
+Hard constraints:
+1. Preserve palette values and semantic meaning.
+2. Preserve Portal hexagon colors and labels.
+3. Preserve harness/SSE behavior contracts.
+4. Keep project-root picker centralized in `frontend/components/ResizableLayout.tsx`.
+5. Keep SSR-safe browser-storage init pattern in `frontend/app/page.tsx` (no hydration mismatch regressions).
+6. Keep ChatPanel status-text-first loading/tool feedback direction.
 
-  Execution requirements:
-  - Start by confirming repo state, then run `P0-C1`.
-  - Use the plan tool and track status by Task IDs.
-  - For each batch: implement, validate, summarize changed files + results + next batch.
-  - If parity/performance regresses, stop and recommend rollback to baseline tag.
-
-  Deliverable after each batch:
-  - Completed Task IDs
-  - Files changed
-  - Validation outcomes
-  - Next batch recommendation
+Execution protocol:
+1. Confirm repo status first (do not discard existing local changes).
+2. Implement Slice #3 scope only.
+3. Validate with:
+   - `npm run lint`
+   - `npx tsc --noEmit`
+   - quick manual smoke for `home/workbench/pipeline/direct`
+4. Report:
+   - Completed slice tasks
+   - Files changed
+   - Validation outcomes
+   - Risks/blockers
+   - Next recommended slice
+5. Commit with a concise message for this slice.
