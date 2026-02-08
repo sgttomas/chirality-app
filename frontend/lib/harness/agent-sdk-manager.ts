@@ -1,6 +1,13 @@
 import { query, type Options as AgentSdkOptions, type Query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
-import { DEFAULT_INCLUDE_PARTIAL_MESSAGES, DEFAULT_MAX_TURNS, DEFAULT_PERMISSION_MODE } from "./defaults";
+import {
+  CLAUDE_CODE_SYSTEM_PROMPT_PRESET,
+  CLAUDE_CODE_TOOLS_PRESET,
+  DEFAULT_INCLUDE_PARTIAL_MESSAGES,
+  DEFAULT_MAX_TURNS,
+  DEFAULT_PERMISSION_MODE,
+  DEFAULT_SETTING_SOURCES,
+} from "./defaults";
 import { mapSdkMessageToUiEvents } from "./agent-sdk-event-mapper";
 import type { Session, TurnOpts, UIEvent } from "./types";
 
@@ -41,13 +48,67 @@ function getMessageError(message: SDKMessage): string | null {
   return `Claude Agent SDK reported ${message.subtype}.`;
 }
 
+function splitCsvTools(value: string | undefined): string[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function resolveToolRestriction(opts: TurnOpts | undefined): AgentSdkOptions["tools"] {
+  const toolsValue = opts?.toolsOverride ?? opts?.tools;
+  const configuredTools = splitCsvTools(toolsValue);
+  if (configuredTools.length > 0) {
+    return configuredTools;
+  }
+
+  return {
+    type: "preset",
+    preset: CLAUDE_CODE_TOOLS_PRESET,
+  };
+}
+
+function resolvePermissionSettings(opts: TurnOpts | undefined): {
+  permissionMode: NonNullable<AgentSdkOptions["permissionMode"]>;
+  allowDangerouslySkipPermissions?: boolean;
+} {
+  const mode = opts?.permissionMode ?? DEFAULT_PERMISSION_MODE;
+  if (mode === "dontAsk") {
+    return {
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
+    };
+  }
+
+  return {
+    permissionMode: mode,
+  };
+}
+
 function toAgentSdkOptions(session: Session, opts: TurnOpts | undefined, abortController: AbortController): AgentSdkOptions {
+  const permissionSettings = resolvePermissionSettings(opts);
+  const disallowedTools = opts?.disallowedToolsOverride ?? opts?.disallowedTools ?? [];
+  const autoApproveTools = opts?.autoApproveToolsOverride ?? opts?.autoApproveTools ?? [];
+
   const options: AgentSdkOptions = {
     cwd: session.projectRoot,
     abortController,
-    permissionMode: opts?.permissionMode ?? DEFAULT_PERMISSION_MODE,
+    permissionMode: permissionSettings.permissionMode,
     maxTurns: opts?.maxTurns ?? DEFAULT_MAX_TURNS,
     includePartialMessages: opts?.includePartialMessages ?? DEFAULT_INCLUDE_PARTIAL_MESSAGES,
+    tools: resolveToolRestriction(opts),
+    disallowedTools,
+    allowedTools: autoApproveTools,
+    settingSources: opts?.settingSources ?? [...DEFAULT_SETTING_SOURCES],
+    systemPrompt: {
+      type: "preset",
+      preset: CLAUDE_CODE_SYSTEM_PROMPT_PRESET,
+      append: opts?.systemPromptAppend,
+    },
   };
 
   const model = normalizeModel(opts?.model);
@@ -55,12 +116,16 @@ function toAgentSdkOptions(session: Session, opts: TurnOpts | undefined, abortCo
     options.model = model;
   }
 
-  if (opts?.settingSources) {
-    options.settingSources = opts.settingSources;
+  if (permissionSettings.allowDangerouslySkipPermissions) {
+    options.allowDangerouslySkipPermissions = true;
   }
 
   if (opts?.pathToClaudeCodeExecutable) {
     options.pathToClaudeCodeExecutable = opts.pathToClaudeCodeExecutable;
+  }
+
+  if (session.claudeSessionId) {
+    options.resume = session.claudeSessionId;
   }
 
   if (opts?.apiKey) {

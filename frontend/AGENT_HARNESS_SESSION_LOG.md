@@ -318,11 +318,25 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 22:53:55 -0700
 - Batch ID: `P1-C2`
 - Completed Task IDs: `RT-003`, `RT-007`
-- Commit SHA: pending
+- Commit SHA: `a5c4b2c`
 - Validation run:
   - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/agent-sdk-event-mapper.ts` (pass).
   - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` import for `@anthropic-ai/sdk` remains until `P3-C1` removal phase.
 - Blockers/Risks:
   - `agent-sdk-manager` is intentionally scaffold-only in this batch and not yet wired into `index.ts` or API routes; cutover work lands in `P2-C1`.
 - Next session first task: execute `P2-C1` (`RT-004`, `RT-005`, `RT-008`, `RT-011`, `API-001`, `API-002`) to switch turn/interrupt runtime to SDK with parity options.
+- Commit(s): `a5c4b2c`
+
+## 2026-02-07 — Session 12 (SDK Cutover P2-C1)
+- Date/Time: 2026-02-07 22:57:04 -0700
+- Batch ID: `P2-C1`
+- Completed Task IDs: `RT-004`, `RT-005`, `RT-008`, `RT-011`, `API-001`, `API-002`
+- Commit SHA: pending
+- Validation run:
+  - `npm run lint -- lib/harness/agent-sdk-manager.ts lib/harness/index.ts app/api/harness/turn/route.ts app/api/harness/interrupt/route.ts` (pass).
+  - `npx tsc --noEmit` (expected fail at this batch boundary): legacy `app/api/chat/route.ts` still imports removed `@anthropic-ai/sdk` and is scheduled for removal in `P3-C1`.
+  - SSE/API contract sanity by inspection: `event: <UIEvent.type>` framing in `app/api/harness/turn/route.ts` unchanged.
+- Blockers/Risks:
+  - `agent-sdk-manager` now drives runtime control paths; logging parity events (`turn:start`, `turn:model`, `tool:*`, `turn:complete`, `process:exit`) are not yet added and are tracked for `P2-C2`.
+- Next session first task: execute `P2-C2` (`RT-006`, `RT-012`, `RT-013`) for logging parity and env-filter cleanup.
 - Commit(s): none

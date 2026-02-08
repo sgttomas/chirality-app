@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { claudeCodeManager, sessionManager, startHarnessTurn } from "@/lib/harness";
+import { agentSdkManager, sessionManager, startHarnessTurn } from "@/lib/harness";
 import { SessionNotFoundError } from "@/lib/harness/session-manager";
 import type { TurnOpts, UIEvent } from "@/lib/harness/types";
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "opts must be an object when provided." }, { status: 400 });
   }
 
-  if (claudeCodeManager.isRunning(sessionId)) {
+  if (agentSdkManager.isRunning(sessionId)) {
     return NextResponse.json({ error: "A turn is already running for this session." }, { status: 409 });
   }
 
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       };
 
       const onAbort = (): void => {
-        claudeCodeManager.interrupt(sessionId);
+        agentSdkManager.interrupt(sessionId);
       };
 
       req.signal.addEventListener("abort", onAbort);
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       })();
     },
     cancel() {
-      claudeCodeManager.interrupt(sessionId);
+      agentSdkManager.interrupt(sessionId);
     },
   });
 

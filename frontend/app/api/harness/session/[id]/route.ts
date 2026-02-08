@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { claudeCodeManager, sessionManager } from "@/lib/harness";
+import { agentSdkManager, sessionManager } from "@/lib/harness";
 import { SessionNotFoundError } from "@/lib/harness/session-manager";
 
 export const runtime = "nodejs";
@@ -39,7 +39,7 @@ export async function DELETE(_req: NextRequest, context: RouteContext): Promise<
     return NextResponse.json({ error: "sessionId is required." }, { status: 400 });
   }
 
-  if (claudeCodeManager.isRunning(sessionId)) {
+  if (agentSdkManager.isRunning(sessionId)) {
     return NextResponse.json({ error: "Cannot delete a session with an in-flight turn." }, { status: 409 });
   }
 

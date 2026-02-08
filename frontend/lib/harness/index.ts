@@ -1,4 +1,4 @@
-import { claudeCodeManager } from "./claude-code-manager";
+import { agentSdkManager } from "./agent-sdk-manager";
 import { PersonaManager } from "./persona-manager";
 import { SessionManager } from "./session-manager";
 import type { PersonaConfig, Session, TurnOpts, UIEvent } from "./types";
@@ -14,7 +14,7 @@ export const sessionManager =
 export const personaManager =
   globalThis.__chiralityHarnessPersonaManager_v2 ?? (globalThis.__chiralityHarnessPersonaManager_v2 = new PersonaManager());
 
-export { claudeCodeManager };
+export { agentSdkManager };
 
 export type StartHarnessTurnArgs = {
   sessionId: string;
@@ -41,10 +41,9 @@ async function saveSession(session: Session): Promise<void> {
   await sessionManager.save(session);
 }
 
-function mergePersonaTurnDefaults(persona: PersonaConfig | null, opts: TurnOpts | undefined, systemPromptFile: string): TurnOpts {
+function mergePersonaTurnDefaults(persona: PersonaConfig | null, opts: TurnOpts | undefined): TurnOpts {
   const merged: TurnOpts = {
     ...(opts ?? {}),
-    systemPromptFile,
   };
 
   if (merged.tools === undefined && persona?.tools) {
@@ -92,8 +91,8 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
   const systemPrompt = opts?.systemPromptAppend
     ? `${basePrompt}\n\nTurn-specific context:\n${opts.systemPromptAppend}`
     : basePrompt;
-  const systemPromptFile = await personaManager.writeSystemPromptFile(session.projectRoot, session.id, systemPrompt);
-  const mergedOpts = mergePersonaTurnDefaults(persona, opts, systemPromptFile);
+  const mergedOpts = mergePersonaTurnDefaults(persona, opts);
+  mergedOpts.systemPromptAppend = systemPrompt;
   const requestedModel = normalizeModelValue(mergedOpts.model);
   const configuredGlobalModel = normalizeModelValue(globalModel);
 
@@ -122,7 +121,7 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
     let sawSessionInit = false;
     let shouldRetryWithoutResume = false;
 
-    for await (const event of claudeCodeManager.startTurn(runSession, message, mergedOpts)) {
+    for await (const event of agentSdkManager.startTurn(runSession, message, mergedOpts)) {
       if (event.type === "session:init") {
         sawSessionInit = true;
         session.claudeSessionId = event.claudeSessionId;

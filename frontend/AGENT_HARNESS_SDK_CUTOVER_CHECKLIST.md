@@ -14,20 +14,20 @@ Baseline reference:
 - [x] `frontend/package.json` — remove `@anthropic-ai/sdk`, add `@anthropic-ai/claude-agent-sdk`.
 - [x] `frontend/package-lock.json` — regenerate lockfile after dependency swap.
 - [x] `frontend/lib/harness/agent-sdk-manager.ts` (new) — implement `startTurn/isRunning/interrupt/kill` using `query()`.
-- [ ] `frontend/lib/harness/agent-sdk-manager.ts` — pass SDK options: `cwd`, `resume`, `model`, `maxTurns`, `includePartialMessages`, `allowedTools`, `disallowedTools`, `systemPrompt` preset `claude_code` with `append`, `tools` preset `claude_code`, `settingSources`.
-- [ ] `frontend/lib/harness/agent-sdk-manager.ts` — map `permissionMode: "dontAsk"` to SDK `permissionMode: "bypassPermissions"` and set `allowDangerouslySkipPermissions: true`.
+- [x] `frontend/lib/harness/agent-sdk-manager.ts` — pass SDK options: `cwd`, `resume`, `model`, `maxTurns`, `includePartialMessages`, `allowedTools`, `disallowedTools`, `systemPrompt` preset `claude_code` with `append`, `tools` preset `claude_code`, `settingSources`.
+- [x] `frontend/lib/harness/agent-sdk-manager.ts` — map `permissionMode: "dontAsk"` to SDK `permissionMode: "bypassPermissions"` and set `allowDangerouslySkipPermissions: true`.
 - [ ] `frontend/lib/harness/agent-sdk-manager.ts` — keep logging parity (`turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `process:exit`).
 - [x] `frontend/lib/harness/agent-sdk-event-mapper.ts` (new) — map `SDKMessage` to existing `UIEvent` contract.
-- [ ] `frontend/lib/harness/index.ts` — replace `claudeCodeManager` wiring with `agentSdkManager`.
+- [x] `frontend/lib/harness/index.ts` — replace `claudeCodeManager` wiring with `agentSdkManager`.
 - [x] `frontend/lib/harness/types.ts` — remove CLI-only fields (`claudeExecutable`), add any SDK option types needed.
 - [x] `frontend/lib/harness/defaults.ts` — add explicit SDK defaults for `settingSources` and Claude Code preset usage.
-- [ ] `frontend/lib/harness/persona-manager.ts` — keep `CLAUDE.md` model read; ensure value is passed into SDK options path.
+- [x] `frontend/lib/harness/persona-manager.ts` — keep `CLAUDE.md` model read; ensure value is passed into SDK options path.
 - [ ] `frontend/lib/harness/logger.ts` — keep as-is unless event payload schema needs minor adjustments.
 - [ ] `frontend/lib/harness/env-filter.ts` — remove child-process env filtering if unused; keep redaction utilities if still referenced.
 
 ## API Routes
-- [ ] `frontend/app/api/harness/turn/route.ts` — keep SSE contract unchanged; point execution to SDK manager.
-- [ ] `frontend/app/api/harness/interrupt/route.ts` — interrupt via SDK manager session abort (not process signal).
+- [x] `frontend/app/api/harness/turn/route.ts` — keep SSE contract unchanged; point execution to SDK manager.
+- [x] `frontend/app/api/harness/interrupt/route.ts` — interrupt via SDK manager session abort (not process signal).
 - [ ] `frontend/app/api/harness/session/create/route.ts` — no behavior change expected; verify compatibility.
 - [ ] `frontend/app/api/harness/session/[id]/route.ts` — no behavior change expected; verify compatibility.
 - [ ] `frontend/app/api/harness/session/list/route.ts` — no behavior change expected; verify compatibility.

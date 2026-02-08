@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { claudeCodeManager } from "@/lib/harness/claude-code-manager";
+import { agentSdkManager } from "@/lib/harness";
 
 export const runtime = "nodejs";
 
@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "sessionId is required." }, { status: 400 });
   }
 
-  if (!claudeCodeManager.isRunning(sessionId)) {
+  if (!agentSdkManager.isRunning(sessionId)) {
     return NextResponse.json({ error: "No active run for session." }, { status: 404 });
   }
 
-  const signaled = claudeCodeManager.interrupt(sessionId);
+  const signaled = agentSdkManager.interrupt(sessionId);
   if (!signaled) {
     return NextResponse.json({ error: "No active run for session." }, { status: 404 });
   }
