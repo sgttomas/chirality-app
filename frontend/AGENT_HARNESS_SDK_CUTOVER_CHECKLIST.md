@@ -28,15 +28,15 @@ Baseline reference:
 ## API Routes
 - [x] `frontend/app/api/harness/turn/route.ts` — keep SSE contract unchanged; point execution to SDK manager.
 - [x] `frontend/app/api/harness/interrupt/route.ts` — interrupt via SDK manager session abort (not process signal).
-- [ ] `frontend/app/api/harness/session/create/route.ts` — no behavior change expected; verify compatibility.
-- [ ] `frontend/app/api/harness/session/[id]/route.ts` — no behavior change expected; verify compatibility.
-- [ ] `frontend/app/api/harness/session/list/route.ts` — no behavior change expected; verify compatibility.
+- [x] `frontend/app/api/harness/session/create/route.ts` — no behavior change expected; verify compatibility.
+- [x] `frontend/app/api/harness/session/[id]/route.ts` — no behavior change expected; verify compatibility.
+- [x] `frontend/app/api/harness/session/list/route.ts` — no behavior change expected; verify compatibility.
 - [x] `frontend/app/api/chat/route.ts` — delete (legacy path removal in wholesale migration).
 
 ## Frontend/UI
-- [ ] `frontend/components/ChatPanel.tsx` — verify no contract changes required; only adjust if event shape differs.
-- [ ] `frontend/components/SettingsModal.tsx` — keep model config flow; verify it still drives SDK model selection.
-- [ ] `frontend/components/ResizableLayout.tsx` — update wording if it references old runtime behavior.
+- [x] `frontend/components/ChatPanel.tsx` — verify no contract changes required; only adjust if event shape differs.
+- [x] `frontend/components/SettingsModal.tsx` — keep model config flow; verify it still drives SDK model selection.
+- [x] `frontend/components/ResizableLayout.tsx` — update wording if it references old runtime behavior.
 
 ## Validation Scripts
 - [x] `frontend/scripts/validate-harness-section8.mjs` — remove mock `claudeExecutable` flow; add SDK-native parse/interruption checks.

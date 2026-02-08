@@ -401,7 +401,7 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Date/Time: 2026-02-07 23:20:00 -0700
 - Batch ID: `P5-C1`
 - Completed Task IDs: `GATE-001`, `GATE-002`, `GATE-003`, `GATE-004`
-- Commit SHA: pending
+- Commit SHA: `bd46f3b`
 - Validation run:
   - `npm run lint` (pass).
   - `npx tsc --noEmit` (pass).
@@ -416,4 +416,19 @@ Purpose: durable progress tracking across multiple development sessions for Harn
 - Blockers/Risks:
   - none.
 - Next session first task: open PR from `migration/agent-sdk-wholesale` and include Section 8 artifact + cutover checklist in PR description.
+- Commit(s): `bd46f3b`
+
+## 2026-02-07 — Session 18 (SDK Cutover P5-C1 Supplemental Verification)
+- Date/Time: 2026-02-07 23:20:00 -0700
+- Batch ID: `P5-C1`
+- Completed Task IDs: `API-003`, `API-004`, `API-005`, `UI-001`, `UI-002`, `UI-003`
+- Commit SHA: pending
+- Validation run:
+  - Section 8 CRUD checks (`regression.session_crud`) confirm create/get/list/delete compatibility for session routes.
+  - `section8.smoke_stream` + `section8.session_persistence_resume` confirm unchanged SSE/UIEvent behavior consumed by `ChatPanel`.
+  - Settings flow verified by code path: `SettingsModal` writes project config model; runtime reads `CLAUDE.md` model via `persona-manager` and applies it to SDK options in `index.ts`/`agent-sdk-manager.ts`.
+  - `ResizableLayout` no longer contains legacy runtime wording; only shared layout/settings shell remains.
+- Blockers/Risks:
+  - none.
+- Next session first task: open PR from `migration/agent-sdk-wholesale` with cutover batch evidence.
 - Commit(s): none
