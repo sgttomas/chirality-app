@@ -1,8 +1,10 @@
 # Chirality App
 
-A multi-agent framework for EPC (Engineering, Procurement, Construction) and design-build projects.
+A filesystem-native agent orchestration runtime for complex, deliverable-heavy projects.
 
-Chirality App provides a structured, deliverable-centric approach to producing engineering and project documentation using coordinated AI agents. Work is organized around **deliverables** that progress through a defined lifecycle, with clear boundaries between local (single-deliverable) and cross-project operations.
+Chirality maintains three orthogonal views of project reality—**hierarchical structure (WBS tree)**, **execution dependencies (DAG)**, and **timeline (Gantt)**—using specialized AI agents that keep them synchronized. Work is organized around deliverables that live as structured folders. All state is git-tracked. No database, no configuration, no vendor lock-in.
+
+Designed for EPC (Engineering, Procurement, Construction), design-build, and other regulated environments where projects have 50+ deliverables, hundreds of dependencies, and audit trail requirements.
 
 ## Core Concepts
 
@@ -20,7 +22,15 @@ Every project starts with a **decomposition document** produced by PROJECT_DECOM
 The decomposition is the source of truth that initializes all downstream agent workflows. Its stable IDs enable longitudinal tracking and cross-deliverable reconciliation.
 
 ### Filesystem as State
-Project truth lives on disk. Agents read and write files directly—there is no hidden database or divergent state. The folder structure itself encodes project status.
+
+Project state lives entirely in git-tracked files—no database, no server state, no configuration files. The filesystem IS the knowledge graph:
+- **Nodes:** Deliverable folders (DEL-XXX-XX), package folders (PKG-XXX)
+- **Edges:** Rows in Dependencies.csv, ANCHOR rows connecting tree to graph
+- **Properties:** Markdown files (Datasheet.md, Specification.md, etc.)
+
+Agents traverse this implicit graph on-demand. Analysis artifacts (closure reports, aggregations) are materialized as markdown/JSON in `_Reconciliation/` or `_Aggregation/`, then git-committed for auditability.
+
+**Key advantage:** No synchronization burden. The graph is always current because it's derived from files, not copied into a database.
 
 ### Deliverable Lifecycle
 Each deliverable progresses through local lifecycle states:
@@ -38,28 +48,25 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 
 Stage gates (30/60/90/IFC) are human-managed milestones, separate from lifecycle states.
 
-### Coordination Modes
-The framework separates how teams coordinate from how dependencies are tracked:
+### Coordination Representation
 
-| Coordination Representation | Description |
-|---|---|
-| Schedule-first | Gantt/stage gates drive sequencing |
-| Declared deps | Explicit interface-critical edges only |
-| Full graph | Complete dependency DAG |
+The framework separates **how teams coordinate** (schedule-first, declared dependencies, or full graph) from **how the system tracks dependencies** (always maintains the full DAG, but humans choose which edges to enforce for scheduling).
 
-| Dependency Tracking Mode | Behavior |
-|---|---|
-| `NOT_TRACKED` | No blocker analysis |
-| `DECLARED` | Advisory blockers from declared edges |
-| `FULL_GRAPH` | Full DAG analysis |
+Most EPC projects use **schedule-first coordination** (Gantt drives sequencing) while **dependency tracking** remains active for blocker detection and audit purposes. The dependency graph exists whether or not it drives the schedule.
 
-Most EPC projects work best with **Schedule-first** + **NOT_TRACKED** or **DECLARED**.
+See `_COORDINATION.md` in each execution instance for the chosen representation.
 
 ## Agents
 
-Agents are described in `AGENTS.md`.
+Agent roles and conventions are described in `AGENTS.md`.
 
-Agent instruction files are located in `agents/`.
+Agent instruction files are located in `agents/` (Type 0/1 managers) and `agents/tasks/`, `agents/prep/`, `agents/audit/` (Type 2 specialists).
+
+Key instruction files:
+- `agents/AGENT_HELPS_HUMANS.md` — Canonical standard for agent design
+- `agents/AGENT_RECONCILIATION.md` — Type 1 manager for cross-deliverable reconciliation
+- `agents/AGENT_DEPENDENCIES.md` — Type 2 specialist for dependency extraction
+- `agents/tasks/AGENT_AUDIT_DEP_CLOSURE.md` — Type 2 specialist for closure analysis
 
 ## Deliverable Folder Structure
 
@@ -69,21 +76,27 @@ Each deliverable folder contains:
 {PKG-ID}_{PkgLabel}/
 └── 1_Working/
     └── {DEL-ID}_{DelLabel}/
-        ├── _CONTEXT.md        # Identity + decomposition pointer
-        ├── _DEPENDENCIES.md   # Dependency mode + declared edges
-        ├── _STATUS.md         # Lifecycle state + history
-        ├── _REFERENCES.md     # Source document pointers
-        ├── _SEMANTIC.md       # Semantic lens (optional)
-        ├── Datasheet.md       # Key parameters and data
-        ├── Specification.md   # Technical requirements
-        ├── Guidance.md        # Design guidance and rationale
-        └── Procedure.md       # Execution procedures
+        ├── _CONTEXT.md          # Identity + decomposition pointer
+        ├── _STATUS.md           # Lifecycle state + history
+        ├── _REFERENCES.md       # Source document pointers
+        ├── _DEPENDENCIES.md     # Dependency summary + run notes
+        ├── Dependencies.csv     # Structured dependency register (v3.1 schema)
+        ├── AGENT_TASK.md        # Deliverable-local task agent (self-initializing)
+        ├── MEMORY.md            # Accumulated knowledge and context
+        ├── Datasheet.md         # Key parameters and data
+        ├── Specification.md     # Technical requirements
+        ├── Guidance.md          # Design guidance and rationale
+        ├── Procedure.md         # Execution procedures
+        ├── _SEMANTIC.md         # Semantic lens (optional)
+        └── _SEMANTIC_LENSING.md # Semantic analysis (optional)
 ```
 
 Project-level outputs live in separate tool roots:
 - `execution-*/_Aggregation/` — Aggregation snapshots
 - `execution-*/_Estimates/` — Cost estimate snapshots
-- `execution-*/_Reconciliation/` — Reconciliation reports
+- `execution-*/_Reconciliation/` — Reconciliation reports, closure analysis
+- `execution-*/_Archive/` — Baseline snapshots with checksums
+- `execution-*/_Scripts/` — Deployment and analysis scripts
 
 ## Regulated, High-Stakes, and Professional-Responsibility Environments
 
@@ -94,11 +107,11 @@ Many EPC and design-build programs run in environments where deliverables are:
 - **Subject to codes/standards, regulator expectations, and internal QA** (document control, traceability, configuration management)
 - Produced under **high professional responsibility** (engineering duty of care; formal review and sign-off)
 
-In these settings, “agentic workflows” are only valuable if they are **auditable, controllable, and review-friendly**. The approach used in this Chirality App project is intentionally conservative: agents accelerate production, but the project truth remains explicit in files, and humans remain the accountable validators.
+In these settings, "agentic workflows" are only valuable if they are **auditable, controllable, and review-friendly**. The approach used in this Chirality App project is intentionally conservative: agents accelerate production, but the project truth remains explicit in files, and humans remain the accountable validators.
 
 ### What `WHAT-IS-AN-AGENT.md` means in high-stakes workflows
 
-`WHAT-IS-AN-AGENT.md` frames a “great agent” as a **composed system** with clear layers:
+`WHAT-IS-AN-AGENT.md` frames a "great agent" as a **composed system** with clear layers:
 
 - **Agent 0 / Type 0 (Architect):** defines and maintains the standards, contracts, and role boundaries
 - **Agent 1 / Type 1 (Manager):** interprets intent, decomposes work, writes briefs, routes to Specialists, and merges results
@@ -108,7 +121,7 @@ In regulated work, this layered design is prudent because it:
 
 - Creates **separation of concerns** (policy/standards vs orchestration vs execution), making failures easier to localize and fix
 - Enables **stateless, brief-driven Specialists**, reducing hidden context, reducing drift, and improving repeatability
-- Supports **deterministic debugging** (“is this a standards problem, a routing problem, or an execution problem?”)
+- Supports **deterministic debugging** ("is this a standards problem, a routing problem, or an execution problem?")
 - Encourages **fan-out/fan-in** when appropriate, making reviews faster (specialists produce bounded artifacts that can be checked independently)
 
 ### What `AGENT_HELPS_HUMANS.md` means in high-stakes workflows
@@ -118,10 +131,10 @@ In regulated work, this layered design is prudent because it:
 - **Explicit contracts** (clear inputs, outputs, acceptance criteria)
 - **Write scope discipline** (what an agent is allowed to modify, and when)
 - **Provenance and evidence expectations** (what must be cited, what must be marked as TBD/assumption)
-- **QA gates** (checking steps that prevent silent failure or silent “fixes”)
+- **QA gates** (checking steps that prevent silent failure or silent "fixes")
 - **Snapshot-oriented outputs** (so review is anchored to stable artifacts, not transient chat context)
 
-This is prudent because most real-world failures in regulated documentation are *not* “lack of content,” but:
+This is prudent because most real-world failures in regulated documentation are *not* "lack of content," but:
 - ambiguous scope,
 - untraceable rationale,
 - uncontrolled revisions,
@@ -130,25 +143,14 @@ This is prudent because most real-world failures in regulated documentation are 
 
 ### How this framework supports common regulated-controls expectations
 
-Without claiming “automatic compliance,” the architecture supports the kinds of controls auditors and QA programs typically expect:
+Without claiming "automatic compliance," the architecture supports the kinds of controls auditors and QA programs typically expect:
 
-- **Traceability:** decomposition IDs, scope ledgers, references files, and deliverable-local context make “why is this requirement here?” answerable.
-- **Document control:** “filesystem as state” and lifecycle gating align naturally with controlled document progression (draft → check → issue).
+- **Traceability:** decomposition IDs, scope ledgers, references files, and deliverable-local context make "why is this requirement here?" answerable.
+- **Document control:** "filesystem as state" and lifecycle gating align naturally with controlled document progression (draft → check → issue).
 - **Configuration management:** snapshots and explicit change review reduce accidental drift and make diffs meaningful.
 - **Verification & validation:** QA gates, conflict surfacing, and explicit uncertainty labeling create a reviewable V&V posture.
-- **Segregation of duties:** Manager vs Specialist vs Human validator boundaries reduce the risk of one “all-powerful agent” making uncontrolled changes.
+- **Segregation of duties:** Manager vs Specialist vs Human validator boundaries reduce the risk of one "all-powerful agent" making uncontrolled changes.
 - **Information security & confidentiality:** least-privilege data handling and constrained write scopes reduce accidental exposure and unintended edits.
-
-### Practical benefits for engineering + project management
-
-When implemented with discipline, the combined effect is:
-
-- **Faster production with fewer review cycles** (because outputs are structured for checking, not just generation)
-- **Lower rework risk** via scope coverage telemetry and explicit gap surfacing
-- **Improved interface management** (terminology discipline + reconciliation checkpoints reduce cross-deliverable contradictions)
-- **Better change defensibility** (clear diffs, clear assumptions, clear provenance)
-- **More reliable handover** (deliverables are self-describing via `_CONTEXT.md`, `_STATUS.md`, `_REFERENCES.md`)
-- **Stronger audit readiness** (evidence, history, and decision points are preserved as artifacts)
 
 ### Responsible-use note (important)
 
@@ -156,11 +158,3 @@ This framework is designed to support professional responsibility, not replace i
 
 - Treat agent outputs as **drafts and structured assistance**, not authoritative engineering judgment.
 - Keep **human review and sign-off** as the decision gate for safety, compliance, and contractual commitments.
-
-
-## Documentation
-
-- `AGENTS.md` — Operator-facing guide to agents and prompt templates
-- `agents/AGENT_*.md` — Individual agent instruction files
-- `WHAT-IS-AN-AGENT.md` — Architecture philosophy (layering, composition, debugging)
-- `AGENT_HELPS_HUMANS.md` — Canonical workflow-design standard for agent instruction sets and pipelines
