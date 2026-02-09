@@ -1,10 +1,15 @@
 # Chirality App
 
-A filesystem-native agent orchestration runtime for complex, deliverable-heavy projects.
+Chirality App is a desktop harness for running AI agents against a user-selected folder on your local filesystem.
 
-Chirality maintains three orthogonal views of project reality—**hierarchical structure (WBS tree)**, **execution dependencies (DAG)**, and **timeline (Gantt)**—using specialized AI agents that keep them synchronized. Work is organized around deliverables that live as structured folders. All state is git-tracked. No database, no configuration, no vendor lock-in.
+It bundles a release-managed “agent operating system” (instructions + framework docs) inside the app, and lets users point the runtime at any working directory (`projectRoot`) where agents read/write state as plain files. There is no separate database to install and no server to run: the filesystem is the state.
 
-Designed for EPC (Engineering, Procurement, Construction), design-build, and other regulated environments where projects have 50+ deliverables, hundreds of dependencies, and audit trail requirements.
+This repo ships:
+- The desktop UI (session control + streaming logs).
+- A harness runtime (tool calling, permissions, and event streaming).
+- A structured, auditable “filesystem-as-state” project model intended for deliverable-heavy work (EPC/design-build and similar environments).
+
+If you can choose a folder, you can run Chirality: pick a working directory, start a session, and let agents create/update the project structure under that root.
 
 ## Core Concepts
 
