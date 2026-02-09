@@ -98,41 +98,70 @@ export default function Home() {
         />
       )}
 
-      {/* Wireframe Controls */}
-      <div id="wireframe-controls" className="shrink-0 px-3 pb-2 pt-3">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-center gap-2 ui-panel px-4 py-2.5 shadow-md">
-          {VIEW_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setCurrentView(tab.id)}
-              className={`ui-control ui-focus-ring cursor-pointer px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase ${
-                currentView === tab.id
-                  ? "border-[var(--color-accent-orange)] bg-[var(--color-accent-orange)]/6 text-[var(--color-accent-orange)] shadow-[0_0_12px_rgba(249,115,22,0.22)]"
-                  : "text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]"
-              }`}
+      {/* Integrated Brand & Navigation Header */}
+      <div id="integrated-header" className="shrink-0 px-3 pt-3 pb-2">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 ui-panel px-4 py-2 shadow-lg backdrop-blur-md">
+          
+          {/* Left: Parent Branding */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-stone-200/5 ring-1 ring-white/10 shadow-lg">
+               <img 
+                 src="/chirality-logo.png" 
+                 alt="Chirality Logo" 
+                 className="h-full w-full object-cover scale-[1.7] opacity-95 mix-blend-lighten contrast-[1.1]"
+               />
+            </div>
+            <a 
+              href="https://www.chirality.ai" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[1.1rem] font-medium tracking-tight text-[var(--color-text-main)] italic opacity-90 hover:opacity-100 hover:text-[var(--color-accent-orange)] transition-all whitespace-nowrap"
+              style={{ fontFamily: 'var(--font-eb)' }}
             >
-              {tab.label}
+              Chirality.ai
+            </a>
+          </div>
+
+          {/* Center: Navigation Tabs */}
+          <div className="flex items-center gap-2">
+            {VIEW_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setCurrentView(tab.id)}
+                className={`ui-control ui-focus-ring cursor-pointer px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase ${
+                  currentView === tab.id
+                    ? "border-[var(--color-accent-orange)] bg-[var(--color-accent-orange)]/6 text-[var(--color-accent-orange)] shadow-[0_0_12px_rgba(249,115,22,0.22)]"
+                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+            <div className="mx-1 hidden h-5 w-px bg-[var(--color-border)]/50 sm:block" />
+            <button
+              onClick={() => setIsLightMode(!isLightMode)}
+              className="ui-control ui-focus-ring cursor-pointer px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]"
+            >
+              {isLightMode ? "☾ DARK" : "☀ LIGHT"}
             </button>
-          ))}
-          <div className="mx-1 hidden h-5 w-px bg-[var(--color-border)]/50 sm:block" />
-          <button
-            disabled
-            className="ui-control cursor-default px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)]/40 border-[var(--color-border)]/50"
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setIsLightMode(!isLightMode)}
-            className="ui-control ui-focus-ring ml-0 cursor-pointer px-4 py-1.5 text-[11px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] sm:ml-3"
-          >
-            {isLightMode ? "☾ DARK" : "☀ LIGHT"}
-          </button>
+          </div>
+
+          {/* Right: Product Branding */}
+          <div className="flex flex-col text-right min-w-0">
+            <span className="mono text-[8px] font-black tracking-[0.25em] uppercase text-[var(--color-accent-orange)] opacity-60">
+              Enterprise Suite
+            </span>
+            <span className="text-[1.1rem] font-medium tracking-tight text-[var(--color-text-main)] italic opacity-90 whitespace-nowrap" style={{ fontFamily: 'var(--font-eb)' }}>
+              Chirality App
+            </span>
+          </div>
+
         </div>
       </div>
 
-      {/* Header */}
+      {/* Sub-Header (Contextual Selectors) */}
       <header className="shrink-0 px-3 pb-3">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 ui-panel px-5 py-4 shadow-md md:px-6">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-4 ui-panel px-5 py-3 shadow-md md:px-6">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 md:gap-6">
             <div className="ui-type-title whitespace-nowrap font-extrabold tracking-[0.14em] uppercase">
               {title.lead}

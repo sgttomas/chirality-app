@@ -387,7 +387,7 @@ body.light-mode .ui-panel-strong {
     align-items: center; 
     justify-content: center; 
     position: relative; 
-    overflow-y: auto; 
+    overflow: auto; 
     min-height: 0;
     padding: var(--space-8);
 }
@@ -397,49 +397,50 @@ body.light-mode .ui-panel-strong {
     --hex-height: 130px;
     display: grid;
     grid-template-columns: repeat(4, var(--hex-width));
-    grid-gap: 20px;
-    padding: 60px 50px;
+    grid-gap: 24px;
+    padding: 60px 50px 60px 200px;
     position: relative;
     /* Grounding background that respects theme */
-    background: radial-gradient(circle at center, color-mix(in srgb, var(--color-surface-sunken) 80%, transparent) 0%, transparent 70%);
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
     border-radius: var(--radius-xl);
 }
 
 .hex-column-label {
     text-align: center;
     font-family: var(--font-mono);
-    font-weight: 800;
-    margin-bottom: 24px;
+    font-weight: 900;
+    margin-bottom: 32px;
     text-transform: uppercase;
     font-size: 0.85rem;
-    letter-spacing: 0.2em;
-    opacity: 1;
-    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    letter-spacing: 0.25em;
+    color: var(--col-color);
+    text-shadow: 0 0 15px var(--col-color);
+    opacity: 0.95;
+    transition: all 0.3s ease;
 }
 
 .hex-wrapper:hover ~ .hex-column-label,
 .hex-grid:has(.hex-wrapper:hover) .hex-column-label {
-    opacity: 0.5;
-    filter: blur(1px);
+    opacity: 0.4;
+    filter: blur(2px);
 }
 
 .hex-row-label {
     position: absolute;
-    left: -150px;
+    left: -185px;
     top: 50%;
     transform: translateY(-50%);
     font-family: var(--font-mono);
-    font-weight: 800;
+    font-weight: 900;
     text-transform: uppercase;
     font-size: 0.8rem;
-    letter-spacing: 0.2em;
-    width: 130px;
+    letter-spacing: 0.25em;
+    width: 180px;
     text-align: right;
     /* Color matches the ROW */
     color: var(--row-color);
-    text-shadow: 0 0 10px var(--row-color), 0 0 20px var(--row-color);
-    opacity: 0.9;
+    text-shadow: 0 0 12px var(--row-color);
+    opacity: 0.85;
     pointer-events: none;
     transition: all 0.3s ease;
 }
@@ -447,6 +448,7 @@ body.light-mode .ui-panel-strong {
 .hex-wrapper:hover .hex-row-label {
     opacity: 1;
     transform: translateY(-50%) translateX(10px);
+    text-shadow: 0 0 20px var(--row-color);
 }
 
 .hex-wrapper {
@@ -457,7 +459,7 @@ body.light-mode .ui-panel-strong {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .hex-launch {
@@ -471,114 +473,97 @@ body.light-mode .ui-panel-strong {
 }
 
 .hex-wrapper:focus-visible .hex {
-    filter: drop-shadow(0 0 20px var(--row-color));
+    box-shadow: 0 0 30px var(--row-color);
 }
 
 .hex-wrapper:hover {
-    transform: scale(1.08);
+    transform: scale(1.1);
     z-index: 10;
 }
 
+/* The Crystalline Hexagon */
 .hex {
     width: 100%;
     height: 100%;
-    /* The outer container is the GLOW COLOR (Row Color) */
+    /* The outer container is the BORDER COLOR (Row Color) */
     background-color: var(--row-color);
     clip-path: polygon(12.5% 0, 87.5% 0, 100% 50%, 87.5% 100%, 12.5% 100%, 0% 50%);
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
-    /* Neon Glow Effect */
-    filter: 
-        drop-shadow(0 0 5px var(--row-color))
-        drop-shadow(0 0 15px var(--row-color));
+    padding: 2px; /* Border thickness */
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
     transition: all 0.3s ease;
 }
 
-/* Solid dark inner core with very subtle atmosphere */
+/* Dark glass core */
 .hex::before {
     content: '';
     position: absolute;
-    inset: 2px; /* Thinner inset = Thicker border */
-    background: var(--color-surface-element); 
+    inset: 2px;
+    background: rgba(5, 5, 10, 0.88); 
     clip-path: polygon(12.5% 0, 87.5% 0, 100% 50%, 87.5% 100%, 12.5% 100%, 0% 50%);
     z-index: 0;
-    /* Subtle inner lighting at the very edges */
-    background-image: radial-gradient(circle at center, rgba(var(--row-rgb, 255, 255, 255), 0.05), transparent 80%);
-}
-
-/* Top/Bottom Sharp Accent Glows */
-.hex::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 12.5%;
-    right: 12.5%;
-    height: 100%;
-    background: linear-gradient(to bottom, 
-        rgba(255, 255, 255, 0.15) 0%, 
-        transparent 10%, 
-        transparent 90%, 
-        rgba(255, 255, 255, 0.15) 100%
-    );
-    z-index: 1;
-    opacity: 0.3;
-    transition: opacity 0.3s ease;
 }
 
 .hex-wrapper:hover .hex {
-    filter: 
-        drop-shadow(0 0 8px #fff)
-        drop-shadow(0 0 25px var(--row-color));
-    background-color: #fff;
+    box-shadow: 0 0 25px var(--row-color);
+    background-color: #fff; /* White rim on hover */
 }
 
-.hex-wrapper:hover .hex::after {
-    opacity: 0.5;
+.hex-wrapper:hover .hex::before {
+    background: rgba(15, 15, 25, 0.95);
 }
 
 .hex-content {
     z-index: 2;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 800;
     text-transform: uppercase;
     font-family: var(--font-mono);
     letter-spacing: 0.12em;
     text-align: center;
-    line-height: 1.1;
-    padding: 0 30px;
+    line-height: 1.2;
+    padding: 0 25px;
     color: var(--col-color);
-    /* Clean text shadow for legibility */
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 0 5px var(--col-color);
+    text-shadow: 0 0 12px var(--col-color);
     transition: all 0.3s ease;
 }
 
 .hex-wrapper:hover .hex-content {
     color: #fff;
-    text-shadow: 0 0 10px var(--col-color);
-    transform: scale(1.02);
+    text-shadow: 0 0 8px #fff, 0 0 20px var(--col-color);
+    transform: scale(1.05);
 }
 
-/* --- PALETTE DEFINITIONS --- */
+/* --- PALETTE DEFINITIONS (NEON REDESIGN) --- */
 
-/* Row Colors (Borders & Row Labels) - Pure Saturated Neon */
-.row-normative { --row-color: #ff0000; --row-rgb: 255, 0, 0; }
-.row-operative { --row-color: #ff8c00; --row-rgb: 255, 140, 0; }
-.row-evaluative { --row-color: #ffff00; --row-rgb: 255, 255, 0; }
+/* Row Colors (Structural - Borders) */
+.row-normative { --row-color: #ff4d4d; } /* Signal Red */
+.row-operative { --row-color: #ff9f43; } /* Safety Orange */
+.row-evaluative { --row-color: #ffeb3b; } /* Warning Yellow */
 
-/* Column Colors (Text & Headers) - Intense Neon */
-.col-guiding   { --col-color: #ff00ff; color: #ff00ff; }     /* Magenta */
-.col-applying  { --col-color: #7BAFD4; color: #7BAFD4; }     /* UNC Tarheels Blue */
-.col-judging   { --col-color: #00ff00; color: #00ff00; }     /* Lime */
-.col-reviewing { --col-color: #003087; color: #003087; }     /* Duke Royal Blue */
+/* Column Colors (Functional - High Luminance Neons) */
+.col-guiding   { --col-color: #e879f9; } /* Fuchsia 400 */
+.col-applying  { --col-color: #22d3ee; } /* Cyan 400 */
+.col-judging   { --col-color: #4ade80; } /* Green 400 */
+.col-reviewing { --col-color: #818cf8; } /* Indigo 400 */
 
-/* Column Colors (Text & Headers) - Neon */
-.col-guiding   { --col-color: #d946ef; color: #d946ef; }     /* Purple */
-.col-applying  { --col-color: #7BAFD4; color: #7BAFD4; }     /* UNC Tarheels Blue */
-.col-judging   { --col-color: #22c55e; color: #22c55e; }     /* Green */
-.col-reviewing { --col-color: #003087; color: #003087; }     /* Duke Royal Blue */
+/* Light Mode Overrides */
+body.light-mode .col-guiding   { --col-color: #c026d3; }
+body.light-mode .col-applying  { --col-color: #0891b2; }
+body.light-mode .col-judging   { --col-color: #16a34a; }
+body.light-mode .col-reviewing { --col-color: #4f46e5; }
 
+body.light-mode .hex {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+body.light-mode .hex::before {
+    /* More pronounced row-matched haze for light mode cores */
+    background: radial-gradient(circle at center, color-mix(in srgb, var(--row-color) 15%, #fff) 0%, color-mix(in srgb, var(--row-color) 4%, #fff) 100%);
+}
 
 /* --- DASHBOARD (RIGHT) --- */
 .dashboard-panel { 
@@ -762,7 +747,7 @@ body.light-mode .ui-panel-strong {
     .hex-grid {
         --hex-width: 176px;
         --hex-height: 124px;
-        padding: 44px 28px;
+        padding: 44px 28px 44px 160px;
     }
 
     .hex-content {
@@ -771,8 +756,8 @@ body.light-mode .ui-panel-strong {
     }
 
     .hex-row-label {
-        left: -112px;
-        width: 96px;
+        left: -145px;
+        width: 140px;
     }
 }
 
@@ -786,7 +771,7 @@ body.light-mode .ui-panel-strong {
         --hex-width: 150px;
         --hex-height: 106px;
         grid-gap: 10px;
-        padding: 30px 20px;
+        padding: 30px 20px 30px 130px;
     }
 
     .hex-column-label {
@@ -796,8 +781,8 @@ body.light-mode .ui-panel-strong {
     }
 
     .hex-row-label {
-        left: -96px;
-        width: 84px;
+        left: -115px;
+        width: 110px;
         font-size: 0.82rem;
     }
 
