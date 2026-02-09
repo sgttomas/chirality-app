@@ -27,7 +27,6 @@ jobs:
   build-macos:
     name: Build macOS installers
     runs-on: macos-latest
-    timeout-minutes: 120
     defaults:
       run:
         working-directory: frontend
