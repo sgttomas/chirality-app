@@ -27,6 +27,7 @@ jobs:
   build-macos:
     name: Build macOS installers
     runs-on: macos-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: frontend
@@ -90,6 +91,8 @@ jobs:
 
       - name: Build macOS DMG artifacts
         shell: bash
+        env:
+          DEBUG: "electron-builder,electron-builder:*,electron-osx-sign,electron-osx-sign*,@electron/notarize*"
         run: |
           if [[ "${{ steps.mac_signing.outputs.mode }}" == "unsigned" ]]; then
             unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
