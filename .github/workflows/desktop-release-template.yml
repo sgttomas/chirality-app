@@ -50,25 +50,11 @@ jobs:
 
       - name: Build macOS DMG artifacts
         shell: bash
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [[ -n "${CSC_LINK:-}" && -n "${CSC_KEY_PASSWORD:-}" ]]; then
-            echo "macOS signing enabled."
-            if [[ -z "${APPLE_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
-              echo "Notarization secrets are incomplete; continuing without notarization."
-              unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
-            fi
-          else
-            echo "macOS signing disabled (missing CSC_LINK or CSC_KEY_PASSWORD)."
-            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
-            export CSC_IDENTITY_AUTO_DISCOVERY=false
-          fi
-
+          # Force unsigned build for public beta distribution.
+          # This avoids certificate setup requirements and ensures deterministic CI output.
+          unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
           npx electron-builder@25.1.8 --mac dmg --arm64 --publish never
 
       - name: Upload macOS artifacts
@@ -87,11 +73,6 @@ jobs:
     defaults:
       run:
         working-directory: frontend
-    env:
-      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -104,16 +85,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Normalize Windows signing env
-        shell: pwsh
-        run: |
-          if ($env:WIN_CSC_LINK) {
-            "CSC_LINK=$env:WIN_CSC_LINK" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
-          if ($env:WIN_CSC_KEY_PASSWORD) {
-            "CSC_KEY_PASSWORD=$env:WIN_CSC_KEY_PASSWORD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
-
       - name: Install dependencies
         run: npm ci
 
@@ -121,7 +92,11 @@ jobs:
         run: npm run build -- --webpack
 
       - name: Build Windows NSIS artifacts
-        run: npx electron-builder@25.1.8 --win nsis --x64 --publish never
+        shell: bash
+        run: |
+          # Force unsigned build for public beta distribution.
+          unset CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD
+          npx electron-builder@25.1.8 --win nsis --x64 --publish never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
