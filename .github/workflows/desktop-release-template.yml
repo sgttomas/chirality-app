@@ -30,12 +30,6 @@ jobs:
     defaults:
       run:
         working-directory: frontend
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
       - name: Checkout
@@ -48,23 +42,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Normalize macOS signing env
-        shell: bash
-        run: |
-          if [[ -n "${CSC_LINK:-}" && -n "${CSC_KEY_PASSWORD:-}" ]]; then
-            echo "macOS signing enabled."
-          else
-            echo "macOS signing disabled (CSC_LINK/CSC_KEY_PASSWORD not fully configured)."
-            {
-              echo "CSC_IDENTITY_AUTO_DISCOVERY=false"
-              echo "CSC_LINK="
-              echo "CSC_KEY_PASSWORD="
-              echo "APPLE_ID="
-              echo "APPLE_APP_SPECIFIC_PASSWORD="
-              echo "APPLE_TEAM_ID="
-            } >> "$GITHUB_ENV"
-          fi
-
       - name: Install dependencies
         run: npm ci
 
@@ -72,7 +49,27 @@ jobs:
         run: npm run build -- --webpack
 
       - name: Build macOS DMG artifacts
-        run: npx electron-builder@25.1.8 --mac dmg --arm64 --publish never
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [[ -n "${CSC_LINK:-}" && -n "${CSC_KEY_PASSWORD:-}" ]]; then
+            echo "macOS signing enabled."
+            if [[ -z "${APPLE_ID:-}" || -z "${APPLE_APP_SPECIFIC_PASSWORD:-}" || -z "${APPLE_TEAM_ID:-}" ]]; then
+              echo "Notarization secrets are incomplete; continuing without notarization."
+              unset APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            fi
+          else
+            echo "macOS signing disabled (missing CSC_LINK or CSC_KEY_PASSWORD)."
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+
+          npx electron-builder@25.1.8 --mac dmg --arm64 --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
