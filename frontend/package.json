@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
@@ -40,7 +40,10 @@
     "appId": "ai.chirality.app",
     "productName": "Chirality App",
     "icon": "electron/icons/icon.png",
-    "asar": false,
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
     "afterSign": "electron/notarize.cjs",
     "directories": {
       "output": "dist-electron"
@@ -50,11 +53,15 @@
       ".next/**/*",
       "!.next/dev{,/**}",
       "!.next/cache{,/**}",
-      "app/**/*",
-      "components/**/*",
-      "lib/**/*",
       "public/**/*",
       "node_modules/**/*",
+      "!node_modules/**/.bin{,/**}",
+      "!node_modules/**/{test,tests,__tests__,__mocks__,example,examples,doc,docs}{,/**}",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.d.ts",
+      "!node_modules/**/*.md",
+      "!node_modules/**/*.markdown",
+      "!node_modules/**/tsconfig*.json",
       "package.json",
       "next.config.mjs"
     ],
@@ -64,24 +71,11 @@
         "to": "instruction-root/agents"
       },
       {
-        "from": "../AGENTS.md",
-        "to": "instruction-root/AGENTS.md"
-      },
-      {
-        "from": "../README.md",
-        "to": "instruction-root/README.md"
-      },
-      {
-        "from": "../CLAUDE.md",
-        "to": "instruction-root/CLAUDE.md"
-      },
-      {
-        "from": "../WHAT-IS-AN-AGENT.md",
-        "to": "instruction-root/WHAT-IS-AN-AGENT.md"
-      },
-      {
-        "from": "../PROFESSIONAL_ENGINEERING.md",
-        "to": "instruction-root/PROFESSIONAL_ENGINEERING.md"
+        "from": "..",
+        "to": "instruction-root",
+        "filter": [
+          "*.md"
+        ]
       },
       {
         "from": "../design",

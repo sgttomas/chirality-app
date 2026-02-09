@@ -2,6 +2,7 @@
 test/
 .Archive/
 .env
+Engineering/
 
 # Harness runtime artifacts (keep scope precise; do not ignore all .chirality)
 .chirality/logs/

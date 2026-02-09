@@ -1,16 +1,20 @@
 # Professional Engineering with Agentic AI in Regulated Practice
-_Date: 2026-02-09_
-Revision 0
-Issued for Use
-Chirality AI (APEGA P17007)
 
-**Standard for the Design, Use, and Governance of AI Systems in High-Stakes Engineering**
+## [Chirality AI](https://www.linkedin.com/company/chirality-ai/)
 
-A companion governance standard to the implementation standard for designing agents, called `AGENTS_HELPS_HUMANS.md` 
+2 followers
 
----
+February 9, 2026
 
-## Preamble
+*Date: 2026-02-09,* Revision 0, Issued for Use
+
+### Standard for the Design, Use, and Governance of AI Systems in High-Stakes Engineering
+
+A companion governance standard to the implementation standard for designing agents, available here: <https://github.com/sgttomas/chirality-app/blob/main/agents/AGENT_HELPS_HUMANS.md>
+
+\---
+
+### Preamble
 
 This document defines the **professional practice standard** for designing and using AI (including agentic workflows) inside **regulated engineering practice**: work that can affect public safety, the environment, property, critical infrastructure, and public trust.
 
@@ -22,31 +26,27 @@ Professional engineering is a **duty-of-care practice**: commitments to reality 
 
 AI changes the cost of drafting, searching, reconciling, and summarizing. AI does **not** change what regulators, clients, insurers, courts, and the public require: competence, independent judgment, verification, assumption of responsibility, and a durable project record.
 
-This document rests on a single axiom:
+\---
 
-> **AI can accelerate engineering work. It cannot inherit professional responsibility.**
-
-In regulated, high-stakes environments — where failure harms life, public safety, or critical infrastructure — Artificial Intelligence is not a replacement for engineering judgment. It is a material that must be engineered.
-
----
-
-## 1. Definitions and Scope
+### 1. Definitions and Scope
 
 ### 1.1 What Is an "Agent"?
 
-An agent is not a model. It is a **controlled system architecture**:
+An agent is a **controlled system architecture in which decisions are made**:
 
-```
-Agent = Model + Instructions + Tools + State + Governance
-```
+Agent = Model + Instructions + Tools + Files Access + Governance
+
+- **Model**: The cognitive engine (e.g., an LLM) that generates interpretations, candidates, and communication.
+- **Instructions**: The written operating contract that constrains and shapes the model’s behavior, such as role, scope, invariants, required inputs/outputs, evidence rules, stop conditions, and permitted write actions. For Chirality AI this is the AGENT\_\*.md spec that makes behavior repeatable and auditable.
+- **Tools**: The bounded action interface between the agent and the world that the model itself is in control of (primarily) and may use at the behest of the user (secondarily). This includes: file reads/writes, validators, calculators, extractors, APIs, build/test commands.
+- **Files Access**: The agent’s governed ability to read and (optionally) write to the project’s authoritative artifacts in the filesystem.
+- **Governance**: The control layer that orchestrates what is allowed and how agents and humans interact. The decision points and workflows are engineered for validation of outputs and assumption of professional responsibility.
 
 The model provides the cognitive substrate (reasoning, perception). The *architecture* provides the agency (control, memory, safety). "Agentic" is therefore not a property of a model but of the **system** it operates within: state, control loops, tool access, environment, and constraints.
 
 ### 1.2 Agency Is a System Property
 
 Models generate candidates. **Systems** decide what candidates are allowed, what actions can be taken, what evidence is required, and when to stop and ask a human.
-
----
 
 ## 2. Non-Negotiables
 
@@ -78,40 +78,39 @@ An engineer must not use an agent to perform work they are not competent to veri
 
 Engineering does not accept "sounds right." Engineering accepts:
 
-- Inputs and sources (cited)
-- Assumptions (clearly labeled)
-- Method (stated and appropriate)
-- Verification evidence (checks run, results recorded)
-- Uncertainty and limits (explicit)
+- Inputs and sources
+- Assumptions
+- Methodology
+- Verification evidence
+- Uncertainty and limitations
 
 ### 2.5 Hierarchy of Authority
 
 Agents cannot assume responsibility for professional outputs. Engineers follow a hierarchy of authority in technical matters as follows:
-1. Laws and Regulation
-2. Codes and Standards
-3. Specifications (stamped / approved for use)
-4. Published technical literature and professional judgment
-5. Project / task needs
 
-#### 2.5.1 Role of Agents in the Hierarchy of Authority
+1. Laws/regulations
+2. Codes/standards
+3. Project specifications / design basis (approved for use)
+4. Verified engineering analysis + published literature
+5. Professional judgment
 
-Agents and the outputs they produce carry no authority at all.  
+### 2.5.1 Role of Agents in the Hierarchy of Authority
 
-- **Unknowns are explicit.** Agents must output `TBD` or `UNKNOWN` rather than guess a plausible value. Any gap filled by the agent must be logged in an `Assumptions_Register`.
+Agent outputs carry no professional authority for reliance. They are drafts/decision support unless explicitly accepted and issued by an accountable professional.
+
+- **Unknowns are explicit.** Agents must output TBD or UNKNOWN rather than guess a plausible value. Any gap filled by the agent must be logged in an Assumptions_Register.
 - **Conflicts are surfaced.** If Source A says "100 MPa" and Source B says "120 MPa," the agent's job is not to pick the average or choose one silently. It is to **halt and report the conflict** with pointers to the disagreeing sources.
 - **Sources and constraints are organized** for people to validate.
 
 ### 2.6 Provenance Is Mandatory
 
-Every extraction, summary, or parameter value should cite its source file and section. Every output artifact must trace back to a specific set of input constraints and a specific version of the agent instructions. "Trust me" is not an engineering concept.  The Engineer needs a validation record to assume responsibility for the output.
+Every extraction, summary, or parameter value should cite its source file and section. Every output artifact must trace back to a specific set of input constraints and a specific version of the agent instructions. "Trust me" is not an engineering concept. The Engineer needs a validation record to assume responsibility for the output.
 
 ### 2.7 Assume Failure Over Time
 
 Agentic failure modes are trajectory failures: drift, compounding errors, silent corruption. Monitoring, verification, and recovery are part of the architecture, not add-ons.
 
----
-
-## 3. The Human–AI Contract
+### 3. The Human–AI Contract
 
 ### Humans (accountable professionals) are responsible for:
 
@@ -132,11 +131,9 @@ Agentic failure modes are trajectory failures: drift, compounding errors, silent
 
 **AI outputs are drafts and decision support. Human acceptance is what makes them engineering work product.**
 
----
+### 4. Cognitive Boundaries
 
-## 4. Cognitive Boundaries
-
-Before any agent runs, the cognitive space must be pre-structured. We do not ask agents to "figure it out." We define what is deterministic and what is genuinely probabilistic.
+Before any agent runs, the type of behaviors the agent can engage in and the focus of its attention for domain awareness must be defined. We do not ask agents to "figure it out." We define what is deterministic and what is genuinely probabilistic. This is defined further in AGENT_HELPS\_[HUMANS.md](http://HUMANS.md).
 
 ### 4.1 The Deterministic Layer (Validator-Friendly)
 
@@ -160,31 +157,27 @@ Agents are reserved for work that genuinely requires inference under uncertainty
 
 **Rule of thumb:** If you can write a validator for it, structure it. Reserve agent cognition for what you cannot.
 
----
-
-## 5. Architecture Requirements
+### 5. Architecture Requirements
 
 ### 5.1 The Filesystem Is the System of Record
 
 In professional practice, **State = Liability**. Deliverables and logs live as files under version control.
 
 - **Artifact-First:** Agents must read from and write to the filesystem.
-- **No Hidden Memory:** If a decision is not in a versioned file, it does not exist.
-- **Git History Is the Legal Record:** Version control enables meaningful diffs for review, reproducibility, rollback, and audits that do not depend on vendor systems or transient chats.
+- **No Hidden Memory:** If a decision is not in a versioned file, does not exist for purposes of reliance.
+- **Git History Is the Development Record:** Version control enables meaningful diffs for review, reproducibility, rollback, and audits that do not depend on vendor systems or transient chats.
 
 ### 5.2 State Must Be First-Class and Inspectable
 
 Minimum state artifacts (risk-proportionate):
 
-| Artifact | Purpose |
-| :--- | :--- |
-| **Scope Ledger** | What is in scope and what is out |
-| **Assumptions Register** | Every assumption, its source, and its status |
-| **Decisions Log** | Who decided, when, why, and what alternatives were considered |
-| **Requirements / Traceability Matrix** | Requirements linked to verification evidence |
-| **Hazards / Risk Register** | Identified hazards, controls, and residual risk (as applicable) |
-| **Verification Log** | Checks run, results, and sign-offs |
-| **Change Log** | What changed, why, and its impact |
+- **Scope Ledger**: What is in scope and what is out.
+- **Assumptions Register**: Every assumption, its source, and its status.
+- **Decisions Log**: Who decided, when, why, and what alternatives were considered.
+- **Requirements / Traceability Matrix**: Requirements linked to verification evidence.
+- **Hazards / Risk Register**: Identified hazards, controls, and residual risk (as applicable).
+- **Verification Log**: Checks run, results, and sign-offs.
+- **Change Log**: What changed, why, and its impact.
 
 ### 5.3 Typed Actions and Gated Writes
 
@@ -195,12 +188,12 @@ Do not give AI "do anything" powers.
 - Validate outputs (schemas, linters, tests, cross-file consistency)
 - Require explicit human approval for risky operations (writes to controlled areas, deletions, scope expansion)
 
-See `AGENT_HELPS_HUMANS.md` for an implementation of this agent design standard.
+For an implementation of this agent design standard, see AGENT_HELPS\_[HUMANS.md](http://HUMANS.md) <https://github.com/sgttomas/chirality-app/blob/main/agents/AGENT_HELPS_HUMANS.md>
 
 ### 5.4 Verification and Validation
 
-- **Verification (mechanized where possible):** Automate checks — schemas, math, linting, consistency, unit tests, cross-references.
-- **Validation (human judgment):** Confirm the right problem is being solved and the solution is fit-for-purpose, supported by evidence.
+1. **Verification (mechanized where possible):** Automate checks — schemas, math, linting, consistency, unit tests, cross-references.
+2. **Validation (human judgment):** Confirm the right problem is being solved and the solution is fit-for-purpose, supported by evidence.
 
 Where practice requires it, enforce **independent review** and **separation of duties**.
 
@@ -214,69 +207,48 @@ Agent operating instructions are part of the system. Treat them like controlled 
 - Clear release notes for material changes
 - Test coverage for high-risk workflows
 
----
+Any change to AGENT\_\*.md that alters write scope, tool access, or outputs requires review and a recorded release note.
 
-## 6. The Three-Layer Governance Model
+### 6. The Three-Layer Governance Model
 
 To maintain control across complex projects, decompose agency into three distinct roles with clear boundaries of authority:
 
-| Layer | Role | Scope | Responsibility | Human Equivalent |
-| :--- | :--- | :--- | :--- | :--- |
-| **Type 0** | **Architect** | Governance | Defines the "rules" of the project: standards, schemas, templates, safety rules, and the boundaries within which all other agents operate. | Principal / Chief Engineer |
-| **Type 1** | **Manager** | Orchestration | Plans workflows, decomposes tasks, routes information, assembles evidence packages, and monitors progress against acceptance criteria. | Project Manager / Lead |
-| **Type 2** | **Specialist** | Execution | Performs narrow, stateless, checkable tasks (e.g., "Extract Loads from Document X," "Format Specification per Template Y"). | Junior Engineer / Designer |
+The **Type 0** layer, acting as the Director, is responsible for governance. It defines the "rules" of the project, including standards, schemas, templates, safety rules, and the boundaries within which all other agents operate. This layer is analogous to the role of a Principal or Chief Engineer.
+
+The **Type 1** layer, functioning as the Manager, handles orchestration. It plans workflows, decomposes tasks, routes information, assembles evidence packages, and monitors progress against acceptance criteria. This role is similar to that of a Project Manager or Lead.
+
+The **Type 2** layer, serving as the Specialist, focuses on execution. It performs narrow, stateless, checkable tasks such as "Extract Loads from Document X" or "Format Specification per Template Y." This layer is comparable to the role of a Junior Engineer or Designer.
 
 A Type 2 agent cannot modify the rules set by Type 0. A Type 1 agent cannot approve deliverables for external reliance. Authority flows downward; escalation flows upward.
 
----
+### 7. Review Gates for Reliance (Risk-Proportionate)
 
-## 7. Review Gates for Reliance (Risk-Proportionate)
+Every deliverable passes through a repeatable gate sequence before it is relied upon. AI can assemble the evidence pack. Humans pass or fail the gate.
 
-### 7.1 The Gate Model
+- Gate A: Completeness
+- Gate B: Traceability
+- Gate C: Verification
+- Gate D: Approval/Issuance
 
-Every deliverable passes through a repeatable gate sequence before it is relied upon:
+### 8. Professional Competence
 
-| Gate | Question | Who Can Pass It |
-| :--- | :--- | :--- |
-| **Gate A — Completeness** | Is the scope stated? Are required sections present? Are TBDs listed? | Type 1 agent or human |
-| **Gate B — Traceability** | Do claims map to sources? Are assumptions labeled? Are conflicts surfaced? | Type 1 agent or human |
-| **Gate C — Verification** | Do appropriate checks, tests, and calculations exist and pass? | Automated + human review |
-| **Gate D — Approval** | Has the accountable professional reviewed and signed off for reliance? | **Human only (EoR)** |
+- **Train for competence:** how to review AI outputs, how to detect hallucination and omission, how to maintain independent judgment, and how to operate within the governance model.
+- **Engage stakeholders early:** regulators, clients, insurers, and QA leads — align expectations around auditability, record-keeping, and reliance.
 
-AI can assemble the evidence pack. Humans pass or fail the gate.
+### 9. Closing Principle
 
----
-
-## 8. Path Forward (Implementation Sequence)
-
-### Phase 1 — Foundations
-1. **Write the jurisdiction addendum:** governing regulators, applicable codes and standards, sealing and signature rules, record retention requirements, confidentiality and data handling, required review and independence rules.
-2. **Stand up the minimum artifact set:** scope, assumptions, decisions, requirements, hazards (if applicable), verification, and change control.
-
-### Phase 2 — Tooling
-3. **Build validators and evidence tooling:** schemas, linters, cross-file consistency checks, traceability reports, and automated gate evidence assembly.
-4. **Define the action vocabulary:** typed agent actions with preconditions, postconditions, and permission boundaries.
-
-### Phase 3 — Governance
-5. **Define decision rights and gates:** who decides what, what requires review, what cannot be automated, and what constitutes adequate independent review.
-6. **Establish instruction governance:** versioning, review, testing, and release process for all agent operating instructions.
-
-### Phase 4 — Capability
-7. **Train for competence:** how to review AI outputs, how to detect hallucination and omission, how to maintain independent judgment, and how to operate within the governance model.
-8. **Engage stakeholders early:** regulators, clients, insurers, and QA leads — align expectations around auditability, record-keeping, and reliance.
-
----
-
-## 9. Closing Principle
+**Engineer a harness that allows judgment to scale.**
 
 AI becomes compatible with regulated professional engineering when it is **engineered into a controlled system**: structure first, bounded actions, evidence and auditability, monitoring and recovery, humans retaining decision rights and responsibility.
 
-If we cannot make it auditable, we cannot rely on it.
+> If we cannot make it auditable, we cannot rely on it.
 
-Use AI to widen and organize the field of consideration; use professional judgment to narrow, accept, and issue. 
+Use AI to widen and organize the field of consideration; use professional judgment to narrow, accept, and issue.
 
-That preserves what professional work outputs mean: a competent person warrants this under duty of care, backed by an auditable record. 
+That preserves what professional work outputs mean: a competent person warrants this under duty of care, backed by an auditable record.
 
-Engineer a harness that allows judgment to scale.
+### 10. Responsible Member
 
+I take responsibility for adopting this standard internally and ensuring it’s used appropriately at Chirality AI, as part of the Professional Practice Management Plan (PPMP.
 
+\-Ryan Tufts, P.Eng. (APEGA 78780 | Feb 9, 2026. |. Chirality AI (APEGA P17007)
