@@ -3,6 +3,7 @@ test/
 .Archive/
 .env
 Engineering/
+next-session-prompt.md
 
 # Harness runtime artifacts (keep scope precise; do not ignore all .chirality)
 .chirality/logs/
