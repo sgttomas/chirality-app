@@ -49,6 +49,8 @@ export default function Home() {
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const [isLightMode, setIsLightMode] = useState(false);
   const [showDirPicker, setShowDirPicker] = useState(false);
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [latestReleaseTag, setLatestReleaseTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLightMode) {
@@ -64,6 +66,34 @@ export default function Home() {
       return;
     }
     queueMicrotask(() => setProjectRoot(savedRoot));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkForUpdates = async () => {
+      if (!window.chiralityDesktop) {
+        return;
+      }
+
+      try {
+        const result = await window.chiralityDesktop.checkForUpdates();
+        if (cancelled || !result.ok) {
+          return;
+        }
+
+        setIsUpdateAvailable(result.updateAvailable);
+        setLatestReleaseTag(result.latestTag ?? null);
+      } catch {
+        // Keep silent status fallback for transient network failures.
+      }
+    };
+
+    void checkForUpdates();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleRootChange = (path: string) => {
@@ -228,8 +258,14 @@ export default function Home() {
             )}
           </div>
 
-          <div className="mono ui-type-meta hidden sm:block">
-            SYSTEM_RECOVERY: SUCCESS
+          <div
+            className={`mono ui-type-meta hidden sm:block ${
+              isUpdateAvailable ? "text-[var(--color-accent-orange)]" : ""
+            }`}
+          >
+            {isUpdateAvailable
+              ? `UPDATE AVAILABLE! CHECK CONFIG${latestReleaseTag ? ` (${latestReleaseTag})` : ""}`
+              : "SYSTEM_RECOVERY: SUCCESS"}
           </div>
         </div>
       </header>
