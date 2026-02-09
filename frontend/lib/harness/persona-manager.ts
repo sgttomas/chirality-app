@@ -4,6 +4,7 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/p
 import path from "node:path";
 
 import { DEFAULT_SYSTEM_PROMPT, PROMPT_TOKEN_BUDGET } from "./defaults";
+import { getInstructionRoot } from "./instruction-root";
 import type { PersonaConfig, SessionMode } from "./types";
 
 const CHAR_PER_TOKEN_ESTIMATE = 4;
@@ -284,9 +285,18 @@ function joinPromptSections(base: string, projectContext: string, personaSection
 
 export class PersonaManager {
   private readonly textCache = new Map<string, CachedText>();
+  private readonly instructionRoot: string;
 
-  private projectPersonaDir(projectRoot: string): string {
-    return path.join(path.resolve(projectRoot), "agents");
+  constructor(instructionRoot: string = getInstructionRoot()) {
+    this.instructionRoot = path.resolve(instructionRoot);
+  }
+
+  getInstructionRoot(): string {
+    return this.instructionRoot;
+  }
+
+  private instructionPersonaDir(): string {
+    return path.join(this.instructionRoot, "agents");
   }
 
   private async fileStatSignature(filePath: string): Promise<string> {
@@ -365,19 +375,19 @@ export class PersonaManager {
     return parsed;
   }
 
-  async load(projectRoot: string, personaId: string): Promise<PersonaConfig | null> {
+  async load(personaId: string): Promise<PersonaConfig | null> {
     const normalizedId = normalizePersonaId(personaId);
     if (!normalizedId) {
       return null;
     }
 
-    const directPath = path.join(this.projectPersonaDir(projectRoot), `${PERSONA_FILE_PREFIX}${normalizedId}${PERSONA_FILE_SUFFIX}`);
+    const directPath = path.join(this.instructionPersonaDir(), `${PERSONA_FILE_PREFIX}${normalizedId}${PERSONA_FILE_SUFFIX}`);
     const directMatch = await this.parsePersonaFile(directPath);
     if (directMatch) {
       return directMatch;
     }
 
-    const available = await this.list(projectRoot);
+    const available = await this.list();
     return (
       available.find((persona) => {
         return normalizePersonaId(persona.id) === normalizedId;
@@ -385,8 +395,8 @@ export class PersonaManager {
     );
   }
 
-  async getGlobalModel(projectRoot: string): Promise<string | null> {
-    const claudePath = path.join(path.resolve(projectRoot), "CLAUDE.md");
+  async getGlobalModel(): Promise<string | null> {
+    const claudePath = path.join(this.instructionRoot, "CLAUDE.md");
     const content = await this.readCachedTextFile(claudePath);
     if (!content) {
       return null;
@@ -403,12 +413,11 @@ export class PersonaManager {
     return match ? match[1].trim() : null;
   }
 
-  async getBootFingerprint(projectRoot: string, persona: PersonaConfig | null, mode: SessionMode): Promise<string> {
-    const root = path.resolve(projectRoot);
+  async getBootFingerprint(persona: PersonaConfig | null, mode: SessionMode): Promise<string> {
     const files = [
-      path.join(root, "README.md"),
-      path.join(root, "AGENTS.md"),
-      path.join(root, "CLAUDE.md"),
+      path.join(this.instructionRoot, "README.md"),
+      path.join(this.instructionRoot, "AGENTS.md"),
+      path.join(this.instructionRoot, "CLAUDE.md"),
     ];
 
     if (persona?.sourceFile) {
@@ -429,8 +438,8 @@ export class PersonaManager {
     return hash.digest("hex");
   }
 
-  async list(projectRoot: string): Promise<PersonaConfig[]> {
-    const personasDir = this.projectPersonaDir(projectRoot);
+  async list(): Promise<PersonaConfig[]> {
+    const personasDir = this.instructionPersonaDir();
 
     let entries: Dirent[];
     try {
@@ -464,12 +473,13 @@ export class PersonaManager {
     const baseSection = [
       DEFAULT_SYSTEM_PROMPT,
       `Project root: ${root}`,
+      `Instruction root: ${this.instructionRoot}`,
       `Mode: ${mode}`,
       modeInstruction(mode),
     ].join("\n\n");
 
-    const readmePath = path.join(root, "README.md");
-    const agentsPath = path.join(root, "AGENTS.md");
+    const readmePath = path.join(this.instructionRoot, "README.md");
+    const agentsPath = path.join(this.instructionRoot, "AGENTS.md");
 
     const [readmeContents, agentsContents] = await Promise.all([
       this.readCachedTextFile(readmePath),
@@ -480,10 +490,10 @@ export class PersonaManager {
     const readmeText = readmeContents?.trim();
     const agentsText = agentsContents?.trim();
     if (readmeText) {
-      projectContextSections.push(`README.md:\n${readmeText}`);
+      projectContextSections.push(`Instruction README.md:\n${readmeText}`);
     }
     if (agentsText) {
-      projectContextSections.push(`AGENTS.md:\n${agentsText}`);
+      projectContextSections.push(`Instruction AGENTS.md:\n${agentsText}`);
     }
 
     let projectContext = projectContextSections.join("\n\n");

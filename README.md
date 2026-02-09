@@ -32,6 +32,14 @@ Agents traverse this implicit graph on-demand. Analysis artifacts (closure repor
 
 **Key advantage:** No synchronization burden. The graph is always current because it's derived from files, not copied into a database.
 
+### Instruction Root vs Working Root
+
+In deployable desktop builds, Chirality separates:
+- **Instruction root**: release-managed app bundle containing `README.md`, `AGENTS.md`, `agents/*`, and related framework docs.
+- **Working root (`projectRoot`)**: user-selected filesystem location where agents execute and create/update deliverable state.
+
+This preserves a stable agent operating system while keeping project execution fully filesystem-native in user-controlled folders.
+
 ### Deliverable Lifecycle
 Each deliverable progresses through local lifecycle states:
 

@@ -1,5 +1,5 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — CONTEXT_TRANSPOSE (Perceptual Context Transposition)
+# AGENT INSTRUCTIONS — CONTEXT-TRANSPOSE (Perceptual Context Transposition)
 AGENT_TYPE: 1
 
 These instructions govern an agent that **transposes Chirality App between perceptual contexts** (e.g., from a *project* framing to a *domain knowledge* framing) **without breaking structural integrity**.
@@ -15,7 +15,7 @@ This agent is **not** a content generator for the target domain. It is a **templ
 
 ---
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CONTEXT_TRANSPOSE`) when referring to the agent itself. This applies to all agents.
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CONTEXT-TRANSPOSE`) when referring to the agent itself. This applies to all agents.
 
 ## Agent Type
 
@@ -279,7 +279,7 @@ Human confirms: “Transposition is complete and accepted.”
 [[BEGIN:SPEC]]
 ## SPEC
 
-A CONTEXT_TRANSPOSE run is compliant when:
+A CONTEXT-TRANSPOSE run is compliant when:
 
 ### S1 — Gates exist and are honored
 - The agent MUST not proceed past each gate without human confirmation.

@@ -4,7 +4,7 @@ import { SessionManager } from "./session-manager";
 import type { PersonaConfig, Session, SessionBootReason, SessionBootResult, TurnOpts, UIEvent } from "./types";
 
 declare global {
-  var __chiralityHarnessPersonaManager_v2: PersonaManager | undefined;
+  var __chiralityHarnessPersonaManager_v3: PersonaManager | undefined;
   var __chiralityHarnessSessionManager: SessionManager | undefined;
 }
 
@@ -12,7 +12,7 @@ export const sessionManager =
   globalThis.__chiralityHarnessSessionManager ?? (globalThis.__chiralityHarnessSessionManager = new SessionManager());
 
 export const personaManager =
-  globalThis.__chiralityHarnessPersonaManager_v2 ?? (globalThis.__chiralityHarnessPersonaManager_v2 = new PersonaManager());
+  globalThis.__chiralityHarnessPersonaManager_v3 ?? (globalThis.__chiralityHarnessPersonaManager_v3 = new PersonaManager());
 
 export { agentSdkManager };
 
@@ -148,8 +148,8 @@ export async function ensureHarnessSessionBooted({
   opts,
 }: EnsureHarnessSessionBootedArgs): Promise<SessionBootResult> {
   const session = await sessionManager.resume(sessionId);
-  const persona = session.persona ? await personaManager.load(session.projectRoot, session.persona) : null;
-  const fingerprint = await personaManager.getBootFingerprint(session.projectRoot, persona, session.mode);
+  const persona = session.persona ? await personaManager.load(session.persona) : null;
+  const fingerprint = await personaManager.getBootFingerprint(persona, session.mode);
   const reason = classifyBootReason(session, fingerprint, force);
   const previousFingerprint = session.bootFingerprint ?? null;
   const previousClaudeSessionId = session.claudeSessionId ?? null;
@@ -212,9 +212,9 @@ export async function ensureHarnessSessionBooted({
 
 export async function* startHarnessTurn({ sessionId, message, opts }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
   const session = await sessionManager.resume(sessionId);
-  const persona = session.persona ? await personaManager.load(session.projectRoot, session.persona) : null;
-  const globalModel = await personaManager.getGlobalModel(session.projectRoot);
-  const bootFingerprint = await personaManager.getBootFingerprint(session.projectRoot, persona, session.mode);
+  const persona = session.persona ? await personaManager.load(session.persona) : null;
+  const globalModel = await personaManager.getGlobalModel();
+  const bootFingerprint = await personaManager.getBootFingerprint(persona, session.mode);
   const turnContext = normalizeTurnContext(opts?.systemPromptAppend);
   const mergedOpts = mergePersonaTurnDefaults(persona, opts);
   const requestedModel = normalizeModelValue(mergedOpts.model);

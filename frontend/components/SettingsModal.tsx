@@ -11,6 +11,8 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, projectRoot }) => {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
+  const [instructionRoot, setInstructionRoot] = useState<string | null>(null);
+  const [instructionWritable, setInstructionWritable] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -24,21 +26,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
       else setApiKey("");
 
       // Load Model from server
-      if (projectRoot) {
-        setIsFetching(true);
-        fetch(`/api/project/config?projectRoot=${encodeURIComponent(projectRoot)}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (typeof data.model === "string") setModel(data.model);
-            else setModel("");
-          })
-          .catch((err) => console.error("Failed to load config", err))
-          .finally(() => setIsFetching(false));
-      } else {
-        setModel("");
-      }
+      setIsFetching(true);
+      fetch("/api/project/config")
+        .then((res) => res.json())
+        .then((data) => {
+          if (typeof data.model === "string") {
+            setModel(data.model);
+          } else {
+            setModel("");
+          }
+
+          setInstructionRoot(typeof data.instructionRoot === "string" ? data.instructionRoot : null);
+          setInstructionWritable(Boolean(data.writable));
+        })
+        .catch((err) => {
+          console.error("Failed to load config", err);
+          setInstructionRoot(null);
+          setInstructionWritable(false);
+        })
+        .finally(() => setIsFetching(false));
     }
-  }, [isOpen, projectRoot]);
+  }, [isOpen]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -53,11 +61,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
       }
 
       // Save Model
-      if (projectRoot && model.trim()) {
+      if (model.trim()) {
         const res = await fetch("/api/project/config", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectRoot, model: model.trim() }),
+          body: JSON.stringify({ model: model.trim() }),
         });
         
         if (!res.ok) throw new Error("Failed to save model configuration");
@@ -91,7 +99,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
           <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Configuration</p>
           <h2 id="settings-modal-title" className="text-[1.05rem] font-bold uppercase tracking-[0.08em] text-[var(--color-text-main)]">Settings</h2>
           <p className="mt-1 mono text-[10px] text-[var(--color-text-dim)]">
-            ROOT: {projectRoot ?? "NOT_SET"}
+            PROJECT ROOT: {projectRoot ?? "NOT_SET"}
+          </p>
+          <p className="mono text-[10px] text-[var(--color-text-dim)]">
+            INSTRUCTION ROOT: {instructionRoot ?? "UNRESOLVED"}
           </p>
         </div>
 
@@ -120,14 +131,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
               placeholder="e.g. sonnet, opus, claude-3-5-sonnet-20240620"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              disabled={!projectRoot || isFetching}
+              disabled={isFetching || !instructionWritable}
             />
-            {!projectRoot ? (
+            {!instructionWritable ? (
               <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">
-                Select a project root from the shared footer before saving model config.
+                Instruction root is read-only. Model changes must ship through a formal release.
               </p>
             ) : (
-              <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">Applies to all new turns.</p>
+              <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">
+                Applies to all new turns and all project roots.
+              </p>
             )}
           </div>
 

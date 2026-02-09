@@ -7,6 +7,7 @@ This frontend uses the Chirality Harness (`/api/harness/*`) backed by the Anthro
 - Node.js + npm (project uses Next.js 16)
 - Anthropic authentication available to the server process (for example `ANTHROPIC_API_KEY`)
 - For pre-merge harness validation, frontend server reachable at `HARNESS_BASE_URL` (default `http://127.0.0.1:3000`)
+- App instruction bundle root resolvable (default autodetect; override with `CHIRALITY_INSTRUCTION_ROOT`)
 
 Example:
 
@@ -22,6 +23,62 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+## Runtime Root Model
+
+- `projectRoot`: user-selected working root (`cwd`) where agents execute and where `.chirality/*` runtime state is written.
+- `instructionRoot`: fixed release-managed instruction bundle (`AGENTS.md`, `README.md`, `agents/*`, `CLAUDE.md`).
+- Harness persona loading, boot fingerprinting, and global model lookup read from `instructionRoot`.
+
+## Desktop Packaging (Installers)
+
+Build outputs:
+- macOS: `.dmg`
+- Windows: `.exe` (NSIS)
+
+Commands:
+
+```bash
+cd frontend
+npm install
+npm run desktop:dist
+```
+
+Packaging notes:
+- `desktop:dist` runs `next build` before `electron-builder`.
+- `instructionRoot` files are bundled into `resources/instruction-root`.
+- End-user runtime remains filesystem-native (no database setup).
+
+### Signing and Notarization Placeholders (Release Readiness)
+
+The repo now includes placeholder config for release signing:
+- macOS hardened runtime + entitlements: `electron/entitlements.mac.plist`
+- macOS notarization hook: `electron/notarize.cjs` (runs after signing when env vars are present)
+- Windows signing metadata placeholder: `build.win.publisherName` in `package.json` (replace before signed release)
+
+Recommended release command:
+
+```bash
+cd frontend
+npm run desktop:dist:release
+```
+
+Environment variables for signed/notarized releases:
+- macOS code-signing: `CSC_LINK`, `CSC_KEY_PASSWORD`
+- macOS notarization: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+- Windows code-signing: `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD` (or `CSC_LINK`, `CSC_KEY_PASSWORD`)
+
+Unsigned dev builds continue to work when these variables are not set.
+
+GitHub Actions release template:
+- Workflow file: `.github/workflows/desktop-release-template.yml`
+- Trigger:
+  - `push` tags matching `v*` (auto build + draft release publish)
+  - `workflow_dispatch` (optional publish when `publish_release=true`)
+- Secrets consumed by the workflow:
+  - `CSC_LINK`, `CSC_KEY_PASSWORD`
+  - `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+  - `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`
 
 ## Harness API Routes
 

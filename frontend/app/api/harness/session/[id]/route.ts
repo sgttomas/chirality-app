@@ -6,7 +6,7 @@ import { SessionNotFoundError } from "@/lib/harness/session-manager";
 export const runtime = "nodejs";
 
 type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 };
 
 async function resolveSessionId(context: RouteContext): Promise<string> {

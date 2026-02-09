@@ -20,12 +20,12 @@ Create standardized AGENT_TASK.md (identical everywhere) and per-deliverable MEM
 - `FORCE_MEMORY`: default `false` (skip if MEMORY.md already exists; set `true` to overwrite)
 - `FORCE_AGENT_TASK`: default `true` (always overwrite AGENT_TASK.md with canonical copy)
 - `DRY_RUN`: default `false` (preview what would be created without writing)
-- `AGENT_TASK_TEMPLATE_PATH`: optional override (default: `{EXECUTION_ROOT}/_Scripts/AGENT_TASK_TEMPLATE.md`)
+- `AGENT_TASK_TEMPLATE_PATH`: optional override (default: `agents/tasks/AGENT_TASK.md`)
 
 ### Core Operations
 
 #### Operation 1: Deploy AGENT_TASK.md
-- Load canonical template from `_Scripts/AGENT_TASK_TEMPLATE.md`
+- Load canonical template from `agents/tasks/AGENT_TASK.md`
 - Copy identical content to all 71 deliverable folders
 - Always overwrite (template is canonical; deliverables should not diverge)
 - No customization per deliverable (that's what MEMORY.md is for)

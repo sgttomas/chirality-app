@@ -89,7 +89,7 @@ sequenceDiagram
   Note over GUI,API: Optional prewarm boot path
   GUI->>API: POST /api/harness/session/boot { sessionId }
   API->>SS: resume(sessionId)
-  API->>PM: getBootFingerprint(projectRoot, persona, mode)
+  API->>PM: getBootFingerprint(persona, mode)
   API->>ASM: startTurn(bootstrap message, plan mode)
   API->>SS: save(claudeSessionId, bootFingerprint, bootedAt)
   API-->>GUI: 200 { session, boot }
@@ -101,7 +101,7 @@ sequenceDiagram
   SS-->>API: Session (projectRoot/persona/mode/claudeSessionId/model)
 
   API->>PM: buildSystemPrompt(projectRoot, persona, mode)
-  PM-->>API: base prompt (+ Chirality context)
+  PM-->>API: base prompt (+ instructionRoot context)
 
   API->>ASM: startTurn(session, message, merged opts)
   ASM->>SDK: query({ prompt, options })

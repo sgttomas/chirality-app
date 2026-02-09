@@ -2,11 +2,16 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "desktop:dev": "npx electron@33.3.1 .",
+    "desktop:pack": "npm run build && npx electron-builder@25.1.8 --dir --publish never",
+    "desktop:dist": "npm run build && npx electron-builder@25.1.8 --publish never",
+    "desktop:dist:release": "npm run build -- --webpack && npx electron-builder@25.1.8 --publish never",
     "harness:validate:section8": "./scripts/validate-harness-section8.mjs",
     "harness:validate:premerge": "./scripts/validate-harness-premerge.mjs"
   },
@@ -20,13 +25,90 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^33.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "appId": "ai.chirality.app",
+    "productName": "Chirality App",
+    "asar": false,
+    "afterSign": "electron/notarize.cjs",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "app/**/*",
+      "components/**/*",
+      "lib/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "next.config.mjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../agents",
+        "to": "instruction-root/agents"
+      },
+      {
+        "from": "../AGENTS.md",
+        "to": "instruction-root/AGENTS.md"
+      },
+      {
+        "from": "../README.md",
+        "to": "instruction-root/README.md"
+      },
+      {
+        "from": "../CLAUDE.md",
+        "to": "instruction-root/CLAUDE.md"
+      },
+      {
+        "from": "../WHAT-IS-AN-AGENT.md",
+        "to": "instruction-root/WHAT-IS-AN-AGENT.md"
+      },
+      {
+        "from": "../design",
+        "to": "instruction-root/design"
+      },
+      {
+        "from": "../init",
+        "to": "instruction-root/init"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "publisherName": "REPLACE_WITH_LEGAL_PUBLISHER_NAME",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "artifactName": "${productName} Setup ${version}-${arch}.${ext}"
+    }
   }
 }
