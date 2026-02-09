@@ -39,6 +39,7 @@
   "build": {
     "appId": "ai.chirality.app",
     "productName": "Chirality App",
+    "icon": "electron/icons/icon.png",
     "asar": false,
     "afterSign": "electron/notarize.cjs",
     "directories": {
@@ -86,6 +87,7 @@
       }
     ],
     "mac": {
+      "icon": "electron/icons/icon.png",
       "target": [
         "dmg"
       ],
@@ -99,6 +101,7 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "win": {
+      "icon": "electron/icons/icon.png",
       "publisherName": "REPLACE_WITH_LEGAL_PUBLISHER_NAME",
       "signingHashAlgorithms": [
         "sha256"
