@@ -48,13 +48,54 @@ jobs:
       - name: Build frontend
         run: npm run build -- --webpack
 
+      - name: Configure macOS signing mode
+        id: mac_signing
+        shell: bash
+        env:
+          REQUIRE_SIGNING: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release) }}
+          CSC_LINK_SECRET: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD_SECRET: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD_SECRET: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [[ "${REQUIRE_SIGNING}" == "true" ]]; then
+            missing=0
+            for key in CSC_LINK_SECRET CSC_KEY_PASSWORD_SECRET APPLE_ID_SECRET APPLE_APP_SPECIFIC_PASSWORD_SECRET APPLE_TEAM_ID_SECRET; do
+              if [[ -z "${!key:-}" ]]; then
+                echo "::error::Missing required macOS release secret: ${key%_SECRET}"
+                missing=1
+              fi
+            done
+
+            if [[ "${missing}" -ne 0 ]]; then
+              echo "::error::Signed + notarized macOS release is required for publish/tag builds."
+              exit 1
+            fi
+
+            {
+              echo "CSC_LINK=${CSC_LINK_SECRET}"
+              echo "CSC_KEY_PASSWORD=${CSC_KEY_PASSWORD_SECRET}"
+              echo "APPLE_ID=${APPLE_ID_SECRET}"
+              echo "APPLE_APP_SPECIFIC_PASSWORD=${APPLE_APP_SPECIFIC_PASSWORD_SECRET}"
+              echo "APPLE_TEAM_ID=${APPLE_TEAM_ID_SECRET}"
+            } >> "$GITHUB_ENV"
+
+            echo "mode=signed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+          echo "macOS build will be unsigned (artifact/testing mode)." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build macOS DMG artifacts
         shell: bash
         run: |
-          # Force unsigned build for public beta distribution.
-          # This avoids certificate setup requirements and ensures deterministic CI output.
-          unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
-          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          if [[ "${{ steps.mac_signing.outputs.mode }}" == "unsigned" ]]; then
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+
           npx electron-builder@25.1.8 --mac dmg --arm64 --publish never
 
       - name: Upload macOS artifacts

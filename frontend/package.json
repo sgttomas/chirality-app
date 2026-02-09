@@ -48,6 +48,8 @@
     "files": [
       "electron/**/*",
       ".next/**/*",
+      "!.next/dev{,/**}",
+      "!.next/cache{,/**}",
       "app/**/*",
       "components/**/*",
       "lib/**/*",
