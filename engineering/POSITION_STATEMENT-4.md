@@ -1,0 +1,9 @@
+Chirality AI Position Statement on Professional Engineering
+
+Chirality AI is built for regulated, high-stakes engineering work where outcomes can affect life, environment, critical infrastructure, and public trust. In this context, “AI” is not a novelty and “agentic” is not an excuse. What matters is professional practice: competence, duty of care, traceability, verification, and accountable decision-making.
+
+We treat agentic AI as a system-level engineering discipline, not a model feature. LLMs change the cost of perception, reasoning, and communication, but they do not change what an engineering system is, nor what professional responsibility requires. Engineering remains a closed-loop practice under uncertainty: define scope, establish constraints, generate artifacts, verify them, manage change, and document decisions so they can withstand review.
+
+Chirality AI is designed around explicit decision rights. Humans—licensed professionals operating under a regulated framework—retain authority for safety-critical judgments, acceptance/issuance, scope changes, ethical adjudication, and final responsibility. Agents are bounded collaborators: they execute constrained transformations, generate drafts and alternatives, surface risks and gaps, reconcile evidence, and produce reviewable artifacts—always within defined permissions, structured state, and audit trails.
+
+Our core architectural stance is governance-first: pre-structure what is stable and verifiable (constraints, schemas, interfaces, validators, ledgers) and reserve “agent cognition” only for genuine uncertainty and combinatorics. We do not seek to replace professional judgment. We seek to amplify professional engineering by making the work more explicit, more checkable, and more defensible—so that speed never comes at the expense of safety, accountability, or integrity.

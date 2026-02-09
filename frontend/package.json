@@ -80,6 +80,10 @@
         "to": "instruction-root/WHAT-IS-AN-AGENT.md"
       },
       {
+        "from": "../PROFESSIONAL_ENGINEERING.md",
+        "to": "instruction-root/PROFESSIONAL_ENGINEERING.md"
+      },
+      {
         "from": "../design",
         "to": "instruction-root/design"
       },
