@@ -1,0 +1,59 @@
+﻿2026-02-09T21:25:01.2349436Z ##[group]Run actions/checkout@v4
+2026-02-09T21:25:01.2350767Z with:
+2026-02-09T21:25:01.2351414Z   repository: sgttomas/chirality-app
+2026-02-09T21:25:01.2352618Z   token: ***
+2026-02-09T21:25:01.2353231Z   ssh-strict: true
+2026-02-09T21:25:01.2353873Z   ssh-user: git
+2026-02-09T21:25:01.2354521Z   persist-credentials: true
+2026-02-09T21:25:01.2355269Z   clean: true
+2026-02-09T21:25:01.2355916Z   sparse-checkout-cone-mode: true
+2026-02-09T21:25:01.2356742Z   fetch-depth: 1
+2026-02-09T21:25:01.2357374Z   fetch-tags: false
+2026-02-09T21:25:01.2358034Z   show-progress: true
+2026-02-09T21:25:01.2358697Z   lfs: false
+2026-02-09T21:25:01.2359307Z   submodules: false
+2026-02-09T21:25:01.2359966Z   set-safe-directory: true
+2026-02-09T21:25:01.2360890Z ##[endgroup]
+2026-02-09T21:25:01.5030581Z Syncing repository: sgttomas/chirality-app
+2026-02-09T21:25:01.5033528Z ##[group]Getting Git version info
+2026-02-09T21:25:01.5035006Z Working directory is 'D:\a\chirality-app\chirality-app'
+2026-02-09T21:25:01.6138904Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-02-09T21:25:02.0321905Z git version 2.53.0.windows.1
+2026-02-09T21:25:02.0391186Z ##[endgroup]
+2026-02-09T21:25:02.0440094Z Temporarily overriding HOME='D:\a\_temp\15557d7b-7074-4fcb-9ee4-d260d36fcb5b' before making global git config changes
+2026-02-09T21:25:02.0442551Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-09T21:25:02.0444777Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chirality-app\chirality-app
+2026-02-09T21:25:02.1069645Z Deleting the contents of 'D:\a\chirality-app\chirality-app'
+2026-02-09T21:25:02.1076902Z ##[group]Initializing the repository
+2026-02-09T21:25:02.1086921Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chirality-app\chirality-app
+2026-02-09T21:25:02.2144443Z Initialized empty Git repository in D:/a/chirality-app/chirality-app/.git/
+2026-02-09T21:25:02.2244870Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/sgttomas/chirality-app
+2026-02-09T21:25:02.2771821Z ##[endgroup]
+2026-02-09T21:25:02.2774175Z ##[group]Disabling automatic garbage collection
+2026-02-09T21:25:02.2782495Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-02-09T21:25:02.3113914Z ##[endgroup]
+2026-02-09T21:25:02.3115104Z ##[group]Setting up auth
+2026-02-09T21:25:02.3126997Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-02-09T21:25:02.3423660Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-02-09T21:25:03.8954141Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-09T21:25:03.9251573Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-02-09T21:25:04.4318014Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-09T21:25:04.4614309Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-02-09T21:25:04.9724501Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-02-09T21:25:05.0043004Z ##[endgroup]
+2026-02-09T21:25:05.0043626Z ##[group]Fetching the repository
+2026-02-09T21:25:05.0058108Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4813235f6b5e82e75dc126e2d61c2cff87a16cf2:refs/remotes/origin/main
+2026-02-09T21:25:06.5548522Z From https://github.com/sgttomas/chirality-app
+2026-02-09T21:25:06.5552162Z  * [new ref]         4813235f6b5e82e75dc126e2d61c2cff87a16cf2 -> origin/main
+2026-02-09T21:25:06.5926509Z ##[endgroup]
+2026-02-09T21:25:06.5927171Z ##[group]Determining the checkout info
+2026-02-09T21:25:06.5930404Z ##[endgroup]
+2026-02-09T21:25:06.5940512Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-02-09T21:25:06.6406907Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-02-09T21:25:06.6756021Z ##[group]Checking out the ref
+2026-02-09T21:25:06.6766740Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+2026-02-09T21:25:06.8640027Z Switched to a new branch 'main'
+2026-02-09T21:25:06.8666872Z branch 'main' set up to track 'origin/main'.
+2026-02-09T21:25:06.8739067Z ##[endgroup]
+2026-02-09T21:25:06.9225923Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-02-09T21:25:06.9497233Z 4813235f6b5e82e75dc126e2d61c2cff87a16cf2

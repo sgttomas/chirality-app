@@ -1,0 +1,3 @@
+﻿2026-02-09T22:14:09.6965300Z Cleaning up orphan processes
+2026-02-09T22:14:10.5572040Z Terminate orphan process: pid (14487) (notarytool)
+2026-02-09T22:14:10.7414750Z Terminate orphan process: pid (7150) (node)

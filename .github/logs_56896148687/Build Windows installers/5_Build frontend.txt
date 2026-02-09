@@ -1,0 +1,49 @@
+﻿2026-02-09T22:23:52.2474831Z ##[group]Run npm run build -- --webpack
+2026-02-09T22:23:52.2475534Z [36;1mnpm run build -- --webpack[0m
+2026-02-09T22:23:52.2543564Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-02-09T22:23:52.2543903Z ##[endgroup]
+2026-02-09T22:23:52.9093319Z 
+2026-02-09T22:23:52.9094094Z > frontend@1.0.1 build
+2026-02-09T22:23:52.9094592Z > next build --webpack
+2026-02-09T22:23:52.9094830Z 
+2026-02-09T22:23:53.8110002Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-02-09T22:23:53.8184044Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-02-09T22:23:53.8185030Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-02-09T22:23:53.8186366Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-02-09T22:23:53.8187511Z https://nextjs.org/telemetry
+2026-02-09T22:23:53.8187880Z 
+2026-02-09T22:23:53.8379165Z ▲ Next.js 16.1.6 (webpack)
+2026-02-09T22:23:53.8380456Z 
+2026-02-09T22:23:53.8920359Z   Creating an optimized production build ...
+2026-02-09T22:24:19.0605729Z ✓ Compiled successfully in 21.6s
+2026-02-09T22:24:19.0679171Z   Running TypeScript ...
+2026-02-09T22:24:24.3153724Z   Collecting page data using 3 workers ...
+2026-02-09T22:24:27.1556166Z   Generating static pages using 3 workers (0/16) ...
+2026-02-09T22:24:27.2102595Z   Generating static pages using 3 workers (4/16) 
+2026-02-09T22:24:27.4240038Z   Generating static pages using 3 workers (8/16) 
+2026-02-09T22:24:27.4566688Z   Generating static pages using 3 workers (12/16) 
+2026-02-09T22:24:27.5325837Z ✓ Generating static pages using 3 workers (16/16) in 378.2ms
+2026-02-09T22:24:28.4602204Z   Finalizing page optimization ...
+2026-02-09T22:24:28.4602772Z   Collecting build traces ...
+2026-02-09T22:24:37.9415372Z 
+2026-02-09T22:24:37.9437452Z Route (app)
+2026-02-09T22:24:37.9438014Z ┌ ○ /
+2026-02-09T22:24:37.9438357Z ├ ○ /_not-found
+2026-02-09T22:24:37.9439907Z ├ ƒ /api/fs
+2026-02-09T22:24:37.9440235Z ├ ƒ /api/fs/diff
+2026-02-09T22:24:37.9440583Z ├ ƒ /api/fs/git-status
+2026-02-09T22:24:37.9440917Z ├ ƒ /api/fs/read
+2026-02-09T22:24:37.9441251Z ├ ƒ /api/harness/interrupt
+2026-02-09T22:24:37.9441656Z ├ ƒ /api/harness/session/[id]
+2026-02-09T22:24:37.9442363Z ├ ƒ /api/harness/session/boot
+2026-02-09T22:24:37.9443171Z ├ ƒ /api/harness/session/create
+2026-02-09T22:24:37.9444055Z ├ ƒ /api/harness/session/list
+2026-02-09T22:24:37.9444519Z ├ ƒ /api/harness/turn
+2026-02-09T22:24:37.9444884Z ├ ƒ /api/project/config
+2026-02-09T22:24:37.9445308Z ├ ƒ /api/project/deliverables
+2026-02-09T22:24:37.9445748Z └ ƒ /api/system/list
+2026-02-09T22:24:37.9445956Z 
+2026-02-09T22:24:37.9445968Z 
+2026-02-09T22:24:37.9446333Z ○  (Static)   prerendered as static content
+2026-02-09T22:24:37.9446971Z ƒ  (Dynamic)  server-rendered on demand
+2026-02-09T22:24:37.9447284Z 

@@ -1,0 +1,17 @@
+﻿2026-02-09T22:22:50.5897600Z ##[group]Run npm ci
+2026-02-09T22:22:50.5897910Z [36;1mnpm ci[0m
+2026-02-09T22:22:50.5949190Z shell: /bin/bash -e {0}
+2026-02-09T22:22:50.5949480Z ##[endgroup]
+2026-02-09T22:22:54.5175180Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-02-09T22:23:07.5153060Z 
+2026-02-09T22:23:07.5256420Z added 520 packages, and audited 521 packages in 17s
+2026-02-09T22:23:07.5298610Z 
+2026-02-09T22:23:07.5300740Z 240 packages are looking for funding
+2026-02-09T22:23:07.5302040Z   run `npm fund` for details
+2026-02-09T22:23:07.5322800Z 
+2026-02-09T22:23:07.5326980Z 1 moderate severity vulnerability
+2026-02-09T22:23:07.5444100Z 
+2026-02-09T22:23:07.5529050Z To address all issues (including breaking changes), run:
+2026-02-09T22:23:07.5562890Z   npm audit fix --force
+2026-02-09T22:23:07.5563170Z 
+2026-02-09T22:23:07.5563390Z Run `npm audit` for details.

@@ -1,0 +1,8 @@
+2026-02-09T21:24:54.7480000Z Requested labels: windows-latest
+2026-02-09T21:24:54.7480000Z Job defined at: sgttomas/chirality-app/.github/workflows/desktop-release-template.yml@refs/heads/main
+2026-02-09T21:24:54.7480000Z Waiting for a runner to pick up this job...
+2026-02-09T21:24:54.7780000Z Job is waiting for a hosted runner to come online.
+2026-02-09T21:24:54.7780000Z Job is about to start running on the hosted runner: GitHub Actions 1000001760
+2026-02-09T21:24:54.7440000Z Evaluating build-windows.if
+2026-02-09T21:24:54.7440000Z Evaluating: success()
+2026-02-09T21:24:54.7440000Z Result: true

@@ -1,0 +1,17 @@
+﻿2026-02-09T22:23:20.6192634Z ##[group]Run npm ci
+2026-02-09T22:23:20.6192983Z [36;1mnpm ci[0m
+2026-02-09T22:23:20.6330490Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-02-09T22:23:20.6330832Z ##[endgroup]
+2026-02-09T22:23:33.5218841Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-02-09T22:23:51.6955195Z 
+2026-02-09T22:23:51.6955974Z added 518 packages, and audited 519 packages in 27s
+2026-02-09T22:23:51.6961756Z 
+2026-02-09T22:23:51.6962267Z 238 packages are looking for funding
+2026-02-09T22:23:51.6963176Z   run `npm fund` for details
+2026-02-09T22:23:51.7163386Z 
+2026-02-09T22:23:51.7164281Z 1 moderate severity vulnerability
+2026-02-09T22:23:51.7164637Z 
+2026-02-09T22:23:51.7171551Z To address all issues (including breaking changes), run:
+2026-02-09T22:23:51.7174191Z   npm audit fix --force
+2026-02-09T22:23:51.7177855Z 
+2026-02-09T22:23:51.7178698Z Run `npm audit` for details.

@@ -1,0 +1,18 @@
+﻿2026-02-09T21:25:06.9926718Z ##[group]Run actions/setup-node@v4
+2026-02-09T21:25:06.9927063Z with:
+2026-02-09T21:25:06.9927217Z   node-version: 20
+2026-02-09T21:25:06.9927405Z   cache: npm
+2026-02-09T21:25:06.9927614Z   cache-dependency-path: frontend/package-lock.json
+2026-02-09T21:25:06.9928305Z   always-auth: false
+2026-02-09T21:25:06.9928480Z   check-latest: false
+2026-02-09T21:25:06.9928810Z   token: ***
+2026-02-09T21:25:06.9928989Z ##[endgroup]
+2026-02-09T21:25:07.2429928Z Found in cache @ C:\hostedtoolcache\windows\node\20.20.0\x64
+2026-02-09T21:25:07.2439993Z ##[group]Environment details
+2026-02-09T21:25:12.1133491Z node: v20.20.0
+2026-02-09T21:25:12.1133933Z npm: 10.8.2
+2026-02-09T21:25:12.1134191Z yarn: 1.22.22
+2026-02-09T21:25:12.1135457Z ##[endgroup]
+2026-02-09T21:25:12.1997099Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\20.20.0\x64\npm.cmd config get cache"
+2026-02-09T21:25:12.7995933Z C:\npm\cache
+2026-02-09T21:25:13.1235521Z npm cache is not found

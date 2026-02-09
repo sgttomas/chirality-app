@@ -1,0 +1,51 @@
+﻿2026-02-09T21:26:28.2835635Z ##[group]Run # Force unsigned build for public beta distribution.
+2026-02-09T21:26:28.2836202Z [36;1m# Force unsigned build for public beta distribution.[0m
+2026-02-09T21:26:28.2836626Z [36;1munset CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD[0m
+2026-02-09T21:26:28.2837243Z [36;1mnpx electron-builder@25.1.8 --win nsis --x64 --publish never[0m
+2026-02-09T21:26:28.2855860Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-02-09T21:26:28.2856240Z ##[endgroup]
+2026-02-09T21:26:36.9403279Z npm warn exec The following package was not found and will be installed: electron-builder@25.1.8
+2026-02-09T21:27:02.7227423Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-02-09T21:27:03.3435578Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-02-09T21:27:05.0848363Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-02-09T21:27:07.7950115Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-02-09T21:27:08.1588561Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-02-09T21:27:08.2914557Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-02-09T21:27:11.8058977Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-02-09T21:27:30.3677933Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-02-09T21:27:35.7746138Z npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-02-09T21:27:43.2856300Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-02-09T21:27:59.9389033Z   • electron-builder  version=25.1.8 os=10.0.26100
+2026-02-09T21:27:59.9443579Z   • loaded configuration  file=package.json ("build" field)
+2026-02-09T21:27:59.9458809Z   • description is missed in the package.json  appPackageFile=D:\a\chirality-app\chirality-app\frontend\package.json
+2026-02-09T21:27:59.9460510Z   • author is missed in the package.json  appPackageFile=D:\a\chirality-app\chirality-app\frontend\package.json
+2026-02-09T21:28:00.1460589Z   • executing @electron/rebuild  electronVersion=33.3.1 arch=x64 buildFromSource=false appDir=./
+2026-02-09T21:28:00.1472511Z   • installing native dependencies  arch=x64
+2026-02-09T21:28:00.9387395Z   • completed installing native dependencies
+2026-02-09T21:28:00.9450071Z   • packaging       platform=win32 arch=x64 electron=33.3.1 appOutDir=dist-electron\win-unpacked
+2026-02-09T21:28:01.1963320Z   • downloading     url=https://github.com/electron/electron/releases/download/v33.3.1/electron-v33.3.1-win32-x64.zip size=115 MB parts=8
+2026-02-09T21:28:01.5446535Z   • downloaded      url=https://github.com/electron/electron/releases/download/v33.3.1/electron-v33.3.1-win32-x64.zip duration=582ms
+2026-02-09T21:28:11.5126492Z   • updating asar integrity executable resource  executablePath=dist-electron\win-unpacked\Chirality App.exe
+2026-02-09T21:28:11.9577186Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+2026-02-09T21:28:12.0124304Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=183ms
+2026-02-09T21:28:12.7346059Z   • signing with signtool.exe  path=dist-electron\win-unpacked\Chirality App.exe
+2026-02-09T21:28:12.7348017Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T21:28:12.7355046Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T21:28:12.7441222Z   • signing with signtool.exe  path=dist-electron\win-unpacked\resources\app.asar.unpacked\node_modules\@anthropic-ai\claude-agent-sdk\vendor\ripgrep\x64-win32\rg.exe
+2026-02-09T21:28:12.7443073Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T21:28:12.7445502Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T21:28:12.7479722Z   • building        target=nsis file=dist-electron\Chirality App Setup 1.0.1-x64.exe archs=x64 oneClick=true perMachine=false
+2026-02-09T21:28:12.9081350Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z size=1.3 MB parts=1
+2026-02-09T21:28:12.9302040Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z duration=165ms
+2026-02-09T21:28:13.3526146Z   • signing with signtool.exe  path=dist-electron\win-unpacked\resources\elevate.exe
+2026-02-09T21:28:13.3527643Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T21:28:13.3528812Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T21:29:08.6634127Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z size=731 kB parts=1
+2026-02-09T21:29:08.6803956Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z duration=250ms
+2026-02-09T21:29:09.9089163Z   • signing with signtool.exe  path=dist-electron\__uninstaller-nsis-frontend.exe
+2026-02-09T21:29:09.9090296Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T21:29:09.9092297Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T21:29:11.4279798Z   • signing with signtool.exe  path=dist-electron\Chirality App Setup 1.0.1-x64.exe
+2026-02-09T21:29:11.4282929Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T21:29:11.4284464Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T21:29:11.4288200Z   • building block map  blockMapFile=dist-electron\Chirality App Setup 1.0.1-x64.exe.blockmap

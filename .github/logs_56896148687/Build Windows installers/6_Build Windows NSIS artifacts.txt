@@ -1,0 +1,40 @@
+﻿2026-02-09T22:24:38.1337958Z ##[group]Run # Force unsigned build for public beta distribution.
+2026-02-09T22:24:38.1338606Z [36;1m# Force unsigned build for public beta distribution.[0m
+2026-02-09T22:24:38.1339060Z [36;1munset CSC_LINK CSC_KEY_PASSWORD WIN_CSC_LINK WIN_CSC_KEY_PASSWORD[0m
+2026-02-09T22:24:38.1339531Z [36;1mnpx electron-builder@25.1.8 --win nsis --x64 --publish never[0m
+2026-02-09T22:24:38.1356286Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-02-09T22:24:38.1356686Z ##[endgroup]
+2026-02-09T22:24:44.7414055Z   • electron-builder  version=25.1.8 os=10.0.26100
+2026-02-09T22:24:44.7471294Z   • loaded configuration  file=package.json ("build" field)
+2026-02-09T22:24:44.7486729Z   • description is missed in the package.json  appPackageFile=D:\a\chirality-app\chirality-app\frontend\package.json
+2026-02-09T22:24:44.7488480Z   • author is missed in the package.json  appPackageFile=D:\a\chirality-app\chirality-app\frontend\package.json
+2026-02-09T22:24:44.9715242Z   • executing @electron/rebuild  electronVersion=33.3.1 arch=x64 buildFromSource=false appDir=./
+2026-02-09T22:24:44.9730336Z   • installing native dependencies  arch=x64
+2026-02-09T22:24:45.9258141Z   • completed installing native dependencies
+2026-02-09T22:24:45.9347746Z   • packaging       platform=win32 arch=x64 electron=33.3.1 appOutDir=dist-electron\win-unpacked
+2026-02-09T22:24:46.1321290Z   • downloading     url=https://github.com/electron/electron/releases/download/v33.3.1/electron-v33.3.1-win32-x64.zip size=115 MB parts=8
+2026-02-09T22:24:46.4130304Z   • downloaded      url=https://github.com/electron/electron/releases/download/v33.3.1/electron-v33.3.1-win32-x64.zip duration=457ms
+2026-02-09T22:24:58.1209722Z   • updating asar integrity executable resource  executablePath=dist-electron\win-unpacked\Chirality App.exe
+2026-02-09T22:24:58.7177451Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+2026-02-09T22:24:58.7636324Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=240ms
+2026-02-09T22:24:59.7697283Z   • signing with signtool.exe  path=dist-electron\win-unpacked\Chirality App.exe
+2026-02-09T22:24:59.7699409Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T22:24:59.7709097Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T22:24:59.7843099Z   • signing with signtool.exe  path=dist-electron\win-unpacked\resources\app.asar.unpacked\node_modules\@anthropic-ai\claude-agent-sdk\vendor\ripgrep\x64-win32\rg.exe
+2026-02-09T22:24:59.7844393Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T22:24:59.7845175Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T22:24:59.7874768Z   • building        target=nsis file=dist-electron\Chirality App Setup 1.0.1-x64.exe archs=x64 oneClick=true perMachine=false
+2026-02-09T22:24:59.9588526Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z size=1.3 MB parts=1
+2026-02-09T22:24:59.9873545Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z duration=178ms
+2026-02-09T22:25:01.0348786Z   • signing with signtool.exe  path=dist-electron\win-unpacked\resources\elevate.exe
+2026-02-09T22:25:01.0350498Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T22:25:01.0351904Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T22:26:12.3119291Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z size=731 kB parts=1
+2026-02-09T22:26:12.3348910Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z duration=194ms
+2026-02-09T22:26:13.5316155Z   • signing with signtool.exe  path=dist-electron\__uninstaller-nsis-frontend.exe
+2026-02-09T22:26:13.5317902Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T22:26:13.5320501Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T22:26:15.1783671Z   • signing with signtool.exe  path=dist-electron\Chirality App Setup 1.0.1-x64.exe
+2026-02-09T22:26:15.1785599Z   • deprecated field  fields=["signingHashAlgorithms","publisherName"] reason=please move to win.signtoolOptions.<field_name>
+2026-02-09T22:26:15.1787330Z   • no signing info identified, signing is skipped  signHook=false cscInfo=null
+2026-02-09T22:26:15.1792609Z   • building block map  blockMapFile=dist-electron\Chirality App Setup 1.0.1-x64.exe.blockmap

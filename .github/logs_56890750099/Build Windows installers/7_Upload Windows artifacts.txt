@@ -1,0 +1,43 @@
+﻿2026-02-09T21:29:12.7766704Z ##[group]Run actions/upload-artifact@v4
+2026-02-09T21:29:12.7767153Z with:
+2026-02-09T21:29:12.7767371Z   name: desktop-windows-installers
+2026-02-09T21:29:12.7767831Z   path: frontend/dist-electron/*.exe
+frontend/dist-electron/*.exe.blockmap
+
+2026-02-09T21:29:12.7768269Z   if-no-files-found: error
+2026-02-09T21:29:12.7768507Z   retention-days: 14
+2026-02-09T21:29:12.7768755Z   compression-level: 6
+2026-02-09T21:29:12.7768978Z   overwrite: false
+2026-02-09T21:29:12.7769228Z   include-hidden-files: false
+2026-02-09T21:29:12.7769464Z ##[endgroup]
+2026-02-09T21:29:13.0744073Z With the provided path, there will be 2 files uploaded
+2026-02-09T21:29:13.0752333Z Artifact name is valid!
+2026-02-09T21:29:13.0757012Z Root directory input is valid!
+2026-02-09T21:29:13.2173805Z Beginning upload of artifact content to blob storage
+2026-02-09T21:29:14.0435456Z Uploaded bytes 8388608
+2026-02-09T21:29:14.3503599Z Uploaded bytes 16777216
+2026-02-09T21:29:14.4129874Z Uploaded bytes 25165824
+2026-02-09T21:29:14.6691335Z Uploaded bytes 33554432
+2026-02-09T21:29:14.9779734Z Uploaded bytes 41943040
+2026-02-09T21:29:15.2655921Z Uploaded bytes 50331648
+2026-02-09T21:29:15.5518053Z Uploaded bytes 58720256
+2026-02-09T21:29:15.8534333Z Uploaded bytes 67108864
+2026-02-09T21:29:16.0815112Z Uploaded bytes 75497472
+2026-02-09T21:29:16.4161473Z Uploaded bytes 83886080
+2026-02-09T21:29:16.6361338Z Uploaded bytes 92274688
+2026-02-09T21:29:16.9393227Z Uploaded bytes 100663296
+2026-02-09T21:29:17.2895342Z Uploaded bytes 109051904
+2026-02-09T21:29:17.6213478Z Uploaded bytes 117440512
+2026-02-09T21:29:17.8228722Z Uploaded bytes 125829120
+2026-02-09T21:29:18.0961470Z Uploaded bytes 134217728
+2026-02-09T21:29:18.3598024Z Uploaded bytes 142606336
+2026-02-09T21:29:18.6903963Z Uploaded bytes 150994944
+2026-02-09T21:29:19.0900799Z Uploaded bytes 159383552
+2026-02-09T21:29:19.3311759Z Uploaded bytes 167772160
+2026-02-09T21:29:19.3788023Z Uploaded bytes 168525244
+2026-02-09T21:29:19.4187909Z Finished uploading artifact content to blob storage!
+2026-02-09T21:29:19.4193221Z SHA256 digest of uploaded artifact zip is eca48a541a3d2a982bd58bdbb5a2f0a20ecdb30cec463727c64e6a1953acd1f2
+2026-02-09T21:29:19.4196631Z Finalizing artifact upload
+2026-02-09T21:29:19.6195696Z Artifact desktop-windows-installers.zip successfully finalized. Artifact ID 5438925841
+2026-02-09T21:29:19.6197616Z Artifact desktop-windows-installers has been successfully uploaded! Final size is 168525244 bytes. Artifact ID is 5438925841
+2026-02-09T21:29:19.6211928Z Artifact download URL: https://github.com/sgttomas/chirality-app/actions/runs/21841272174/artifacts/5438925841

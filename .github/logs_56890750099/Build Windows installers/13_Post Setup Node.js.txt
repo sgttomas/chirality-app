@@ -1,0 +1,5 @@
+﻿2026-02-09T21:29:19.6563865Z Post job cleanup.
+2026-02-09T21:29:20.0532340Z [command]"C:\Program Files\Git\usr\bin\tar.exe" --posix -cf cache.tzst --exclude cache.tzst -P -C D:/a/chirality-app/chirality-app --files-from manifest.txt --force-local --use-compress-program "zstd -T0"
+2026-02-09T21:29:25.9442905Z Sent 0 of 325459135 (0.0%), 0.0 MBs/sec
+2026-02-09T21:29:26.6838729Z Sent 325459135 of 325459135 (100.0%), 177.9 MBs/sec
+2026-02-09T21:29:26.8844285Z Cache saved with the key: node-cache-Windows-x64-npm-348f747c7a8ab69d8d8360e9e82d85e172b094ce6dc11e04db77425005dfd55e

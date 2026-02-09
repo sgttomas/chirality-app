@@ -1,0 +1,25 @@
+﻿2026-02-09T22:23:00.7945488Z ##[group]Run actions/setup-node@v4
+2026-02-09T22:23:00.7945847Z with:
+2026-02-09T22:23:00.7946024Z   node-version: 20
+2026-02-09T22:23:00.7946202Z   cache: npm
+2026-02-09T22:23:00.7946419Z   cache-dependency-path: frontend/package-lock.json
+2026-02-09T22:23:00.7946697Z   always-auth: false
+2026-02-09T22:23:00.7946869Z   check-latest: false
+2026-02-09T22:23:00.7947209Z   token: ***
+2026-02-09T22:23:00.7947417Z ##[endgroup]
+2026-02-09T22:23:01.0627603Z Found in cache @ C:\hostedtoolcache\windows\node\20.20.0\x64
+2026-02-09T22:23:01.0643341Z ##[group]Environment details
+2026-02-09T22:23:04.6172415Z node: v20.20.0
+2026-02-09T22:23:04.6172926Z npm: 10.8.2
+2026-02-09T22:23:04.6173142Z yarn: 1.22.22
+2026-02-09T22:23:04.6175298Z ##[endgroup]
+2026-02-09T22:23:04.7303395Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\20.20.0\x64\npm.cmd config get cache"
+2026-02-09T22:23:05.2779370Z C:\npm\cache
+2026-02-09T22:23:05.5758999Z Cache hit for: node-cache-Windows-x64-npm-348f747c7a8ab69d8d8360e9e82d85e172b094ce6dc11e04db77425005dfd55e
+2026-02-09T22:23:06.6704028Z Received 150994944 of 325459135 (46.4%), 138.7 MBs/sec
+2026-02-09T22:23:07.7434051Z Received 306184192 of 325459135 (94.1%), 138.4 MBs/sec
+2026-02-09T22:23:07.8770866Z Received 325459135 of 325459135 (100.0%), 138.3 MBs/sec
+2026-02-09T22:23:07.8774735Z Cache Size: ~310 MB (325459135 B)
+2026-02-09T22:23:07.8926688Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/6a40d743-a364-4ec0-8971-a06534913813/cache.tzst -P -C D:/a/chirality-app/chirality-app --force-local --use-compress-program "zstd -d"
+2026-02-09T22:23:20.5572787Z Cache restored successfully
+2026-02-09T22:23:20.5871177Z Cache restored from key: node-cache-Windows-x64-npm-348f747c7a8ab69d8d8360e9e82d85e172b094ce6dc11e04db77425005dfd55e
