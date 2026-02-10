@@ -22,7 +22,7 @@ AGENT_TYPE: 1
 | INTERACTION_SURFACE | chat |
 | WRITE_SCOPE | deliverable-local |
 | BLOCKING | allowed |
-| PRIMARY_OUTPUTS | Updated 4 docs (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`); `_STATUS.md` updates (human-directed) |
+| PRIMARY_OUTPUTS | Updated 4 docs (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`); `MEMORY.md` (working memory); `_STATUS.md` updates (human-directed) |
 
 ---
 
@@ -90,7 +90,26 @@ This procedure itself follows the same pattern:
 
 ### Phase 1: Understand the Need
 
- Session initialization: At the start of every session, read `_CONTEXT.md` in the working folder to understand your assignment. Follow the pointer to the project decomposition document and read the relevant entries for deliverable-specific context. Read `_REFERENCES.md` for indicated reference materials only. If `_SEMANTIC.md` is present, read it as the deliverable's semantic structure (matrices A/B/C/F/D/X/E). If `_SEMANTIC_LENSING.md` is present, read it as the enrichment register from the initialization pipeline — it contains unresolved items (TBDs, conflicts awaiting human ruling, warranted enrichments marked ASSUMPTION) that are natural agenda items for this session.
+ **Spawning TASK agents:** AGENT_TASK.md lives at `agents/tasks/AGENT_TASK.md` (canonical location — NOT in deliverable folders). When spawning a TASK sub-agent:
+
+1. Reference the canonical instruction file at `agents/tasks/AGENT_TASK.md`.
+2. Pass `DeliverablePath` (required) — the absolute path to the target deliverable folder.
+3. Define `Tasks:` — the specific bounded work for the sub-agent.
+4. Set permission flags as needed (`ApplyEdits`, `UseSemanticLensing`, etc.).
+
+Brief template:
+```markdown
+PURPOSE: <what you want the sub-agent to do>
+RequestedBy: WORKING_ITEMS
+DeliverablePath: <REQUIRED; absolute path to the target deliverable folder>
+Tasks:
+  - <specific asks>
+ApplyEdits: <true if the sub-agent should apply changes, false for proposals only>
+```
+
+See `agents/tasks/AGENT_TASK.md` §INIT-TASK brief format for the full set of available flags.
+
+ Session initialization: At the start of every session, read `_CONTEXT.md` in the working folder to understand your assignment. Read `MEMORY.md` to load working memory from previous sessions — this is how you know what has already been decided, what the human prefers, and what items are carried forward. Follow the pointer to the project decomposition document and read the relevant entries for deliverable-specific context. Read `_REFERENCES.md` for indicated reference materials only. If `_SEMANTIC.md` is present, read it as the deliverable's semantic structure (matrices A/B/C/F/D/X/E). If `_SEMANTIC_LENSING.md` is present, read it as the enrichment register from the initialization pipeline — it contains unresolved items (TBDs, conflicts awaiting human ruling, warranted enrichments marked ASSUMPTION) that are natural agenda items for this session.
 
 #### Reference tracking
 
@@ -189,6 +208,21 @@ An agentic LLM with file access, operating within a conversation. Non-negotiable
 ### Audit Trail at the Production Boundary
 
 The initialization pipeline (4_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS) produces structured, traceable artifacts with provenance markers, lens tags, and source paths. When WORKING_ITEMS begins, the audit trail transitions to conversation + git diffs. Maintain citation discipline at the same standard: every non-trivial change to the 4 Documents should be traceable to a source, a human instruction, or an explicitly labeled ASSUMPTION. This is especially important when promoting a TBD to a concrete value — record where the information came from.
+
+---
+
+## Working memory (`MEMORY.md`)
+
+`MEMORY.md` is the deliverable's working memory — shared between WORKING_ITEMS and any TASK sub-agents spawned during the session. It is the primary mechanism for retaining important state across sessions.
+
+**Read:** Always read during session initialization, after `_CONTEXT.md` and before the four documents. If it does not exist, continue without it and create it on first write.
+
+**Write:** Always writable — no permission needed. Write whenever appropriate:
+- At the human's explicit request
+- When key decisions are made, rulings are given, TBDs are resolved, or proposals are accepted/rejected
+- At session close, to capture anything worth preserving
+
+**Curate, don't accumulate.** Keep it concise and organized by semantic topic, then chronologically within each topic. The section headings in MEMORY.md are a minimum schema — add new sections as the deliverable's needs dictate. See `agents/tasks/AGENT_TASK.md` §Working Memory for the full content guidance.
 
 ---
 

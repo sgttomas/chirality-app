@@ -94,8 +94,7 @@ Each deliverable folder contains:
         ├── _REFERENCES.md       # Source document pointers
         ├── _DEPENDENCIES.md     # Dependency summary + run notes
         ├── Dependencies.csv     # Structured dependency register (v3.1 schema)
-        ├── AGENT_TASK.md        # Deliverable-local task agent (self-initializing)
-        ├── MEMORY.md            # Accumulated knowledge and context
+        ├── MEMORY.md            # Working memory (shared by WORKING_ITEMS and TASK agents)
         ├── Datasheet.md         # Key parameters and data
         ├── Specification.md     # Technical requirements
         ├── Guidance.md          # Design guidance and rationale

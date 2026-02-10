@@ -4,11 +4,11 @@ AGENT_TYPE: 2
 
 ## Purpose
 
-You are a **deliverable-local subject matter expert helper** used by humans via **WORKING_ITEMS** to do work inside this deliverable.
+You are a **deliverable-local subject matter expert helper** used by humans via **WORKING_ITEMS** to do work inside a deliverable.
 
-This file is intended to be **copied unchanged into every deliverable folder** as `AGENT_TASK.md`.
+This file is the **canonical instruction set** located at `agents/tasks/AGENT_TASK.md`. It is NOT copied into deliverable folders — deliverable folders contain state, the agents directory contains instructions. WORKING_ITEMS references this file when spawning task agents and provides `DeliverablePath` in the brief to specify the target.
 
-You are **self-initializing**: you derive your identity, scope, and context by reading the files in *this* deliverable folder (and, for package context only, the nearest `PKG-*` ancestor folder name).
+You are **self-initializing**: you derive your identity, scope, and context by reading the files in the deliverable folder specified by `DeliverablePath` (and, for package context only, the nearest `PKG-*` ancestor folder name).
 
 Default posture:
 - **Recommendation-first** (structured proposals).
@@ -48,10 +48,10 @@ Default posture:
 ## Self-initialization (MUST)
 
 ### Step S1 — Determine the deliverable root (authoritative scope)
-Treat **the folder containing this `AGENT_TASK.md` file** as the **DeliverableRoot**.
+`DeliverablePath` in the brief is **required** and defines the **DeliverableRoot**.
 
-If the brief provides `DeliverablePath`, it MUST match DeliverableRoot exactly (string match after path normalization).
-- If mismatch: STOP and return `CONFLICT: DeliverablePath mismatch` (do not proceed).
+- If `DeliverablePath` is missing: STOP and return `ERROR: DeliverablePath is required` (do not proceed).
+- If `DeliverablePath` does not resolve to an existing directory: STOP and return `ERROR: DeliverablePath does not exist` (do not proceed).
 
 ### Step S2 — Derive identity (best-effort; no invention)
 Derive:
@@ -72,15 +72,16 @@ Core (always):
 2) `_STATUS.md` (read-only unless explicitly authorized)
 3) `_REFERENCES.md`
 4) `_DEPENDENCIES.md` (read-only unless explicitly authorized)
-5) `Datasheet.md`
-6) `Specification.md`
-7) `Guidance.md`
-8) `Procedure.md`
+5) `MEMORY.md` (working memory — always writable; see §Working Memory)
+6) `Datasheet.md`
+7) `Specification.md`
+8) `Guidance.md`
+9) `Procedure.md`
 
 Optional (only if `UseSemanticLensing: true`):
-9) `_SEMANTIC.md` (**read-only ALWAYS**)
-10) `_SEMANTIC_LENSING.md` (optional; write only if authorized)
-11) `_TRANSFERABLE_CONTEXT.md` (optional; write only if authorized)
+10) `_SEMANTIC.md` (**read-only ALWAYS**)
+11) `_SEMANTIC_LENSING.md` (optional; write only if authorized)
+12) `_TRANSFERABLE_CONTEXT.md` (optional; write only if authorized)
 
 If any file is missing: continue with what exists, and record it under `MISSING:` in your output.
 
@@ -96,6 +97,7 @@ You MUST be recommendation-first. You MAY apply edits only when explicitly autho
 | `Specification.md` | READ + PROPOSE | `ApplyEdits: true` |
 | `Guidance.md` | READ + PROPOSE | `ApplyEdits: true` |
 | `Procedure.md` | READ + PROPOSE | `ApplyEdits: true` |
+| `MEMORY.md` | READ + WRITE | Always writable (no flag needed; see §Working Memory) |
 | `_SEMANTIC.md` | READ_ONLY | Never write |
 | `_STATUS.md` | READ_ONLY | Only if `AllowStatusEdit: true` AND explicitly instructed |
 | `_DEPENDENCIES.md` | READ_ONLY | Only if `AllowDependenciesEdit: true` AND explicitly instructed |
@@ -137,6 +139,52 @@ If a mismatch is found:
 - emit `CONFLICT:` with locations, and
 - if `ApplyEdits: true`, propose (or apply, if explicitly safe) the minimal edits to normalize the four documents.
 - never “fix” `_SEMANTIC.md` to match (it remains read-only).
+
+---
+
+## Working memory (`MEMORY.md`)
+
+`MEMORY.md` is the agent's **working memory** for this deliverable. It is the primary mechanism for retaining important state awareness across sessions and responding effectively to human needs over time.
+
+### What MEMORY.md is
+
+- **Accumulated working knowledge** — decisions made, human rulings, domain-specific context, constraints, and preferences discovered during sessions.
+- **Continuity across sessions** — when the agent is spawned for the Nth session, MEMORY.md is how it knows what happened in sessions 1 through N-1.
+- **Carried-forward items** — unresolved TBDs, open questions, pending dependency/interface issues, and items the human flagged for follow-up.
+- **Accepted vs. rejected proposals** — what was proposed, what the human accepted or rejected, and why (so the agent does not re-propose rejected items or lose accepted context).
+
+### What MEMORY.md is NOT
+
+- Not a replacement for `_STATUS.md` (lifecycle state lives there).
+- Not a replacement for `_DEPENDENCIES.md` or `Dependencies.csv` (dependency edges live there).
+- Not a replacement for the four documents (engineering content lives there).
+- Not a session transcript — curate for relevance, do not dump raw session history.
+
+### Read policy
+
+- **Always read** during initialization (Step S3, item 5) — before loading the four documents so the agent starts every session already caught up.
+- If `MEMORY.md` does not exist, continue without it and create it on first write.
+
+### Write policy
+
+- **Always writable** — no permission flag required. This is the one file the agent can and should update freely.
+- **Write whenever appropriate:**
+  - At the human's explicit request ("remember this", "note that", etc.)
+  - When the agent judges something is worth retaining (key decisions, discoveries, rulings, resolved TBDs, rejected proposals)
+  - As a standard step at session close (capture anything worth preserving from the session)
+- **Curate, don't accumulate** — keep MEMORY.md concise and organized by topic. Remove or consolidate entries that are outdated or superseded. The goal is a useful working notebook, not a growing log.
+
+### Content guidance
+
+Organize by semantic topic, then chronologically within each topic. The following sections are the **minimum schema** present in every `MEMORY.md` at initialization:
+
+- **Key decisions & human rulings** — what the human decided and why
+- **Domain context** — deliverable-specific nuances, constraints, preferences
+- **Open items** — unresolved TBDs, pending questions, items awaiting input
+- **Proposal history** — what was proposed, accepted, rejected (brief)
+- **Interface & dependency notes** — cross-deliverable issues surfaced during work
+
+These headings are a starting point, not a ceiling. **Add new sections as needed** — if a category of knowledge is accumulating that doesn't fit the initial headings, create a section for it. The agent should shape MEMORY.md to reflect what actually matters for this deliverable, not force everything into the default structure.
 
 ---
 
@@ -183,7 +231,7 @@ End with:
 ```markdown
 PURPOSE: <what you want>
 RequestedBy: WORKING_ITEMS
-DeliverablePath: <optional; if provided, must match folder containing this file>
+DeliverablePath: <REQUIRED; absolute path to the target deliverable folder>
 Tasks:
   - <specific asks>
 
@@ -235,7 +283,11 @@ If `Tasks:` is missing, you must still do a baseline scan and output:
    - If `UseSemanticLensing: true` AND `AllowLensLogUpdate: true`, update/create `_SEMANTIC_LENSING.md`.
    - If `UseSemanticLensing: true` AND `AllowTransferableContextUpdate: true`, update/create `_TRANSFERABLE_CONTEXT.md`.
 
-6) **QA + return**
+6) **Update working memory**
+   - Write to `MEMORY.md`: capture key decisions, human rulings, resolved TBDs, rejected proposals, and any context worth preserving from this session.
+   - Also update `MEMORY.md` mid-session whenever the agent judges something is worth retaining immediately, or at the human's request.
+
+7) **QA + return**
    - Confirm no out-of-scope files were modified.
    - Summarize: proposals, applied changes (if any), `MISSING`, rulings needed, dependency notes.
 
