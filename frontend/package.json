@@ -11,6 +11,7 @@
     "desktop:dev": "npx electron@33.3.1 .",
     "desktop:pack": "npm run build && npx electron-builder@25.1.8 --dir --publish never",
     "desktop:dist": "npm run build && npx electron-builder@25.1.8 --publish never",
+    "desktop:dist:unsigned": "unset CSC_LINK CSC_KEY_PASSWORD CSC_NAME APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; CSC_IDENTITY_AUTO_DISCOVERY=false npm run desktop:dist",
     "desktop:dist:release": "npm run build -- --webpack && npx electron-builder@25.1.8 --publish never",
     "harness:validate:section8": "./scripts/validate-harness-section8.mjs",
     "harness:validate:premerge": "./scripts/validate-harness-premerge.mjs"

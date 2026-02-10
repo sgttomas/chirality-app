@@ -1,4 +1,7 @@
 import { query, type Options as AgentSdkOptions, type Query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
   CLAUDE_CODE_SYSTEM_PROMPT_PRESET,
@@ -23,6 +26,9 @@ type ActiveRun = {
   interruptRequested: boolean;
   killRequested: boolean;
 };
+
+const SDK_CLI_RELATIVE_PATH = path.join("node_modules", "@anthropic-ai", "claude-agent-sdk", "cli.js");
+const DEFAULT_PATH_SEGMENTS = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"];
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) {
@@ -97,6 +103,66 @@ function splitCsvTools(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function resolveClaudeExecutablePath(): string | undefined {
+  const fromEnv = process.env.CHIRALITY_CLAUDE_CODE_EXECUTABLE?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const candidates: string[] = [];
+  if (typeof resourcesPath === "string" && resourcesPath.trim().length > 0) {
+    candidates.push(path.join(resourcesPath, "app.asar.unpacked", SDK_CLI_RELATIVE_PATH));
+    candidates.push(path.join(resourcesPath, "app.asar", SDK_CLI_RELATIVE_PATH));
+    candidates.push(path.join(resourcesPath, SDK_CLI_RELATIVE_PATH));
+  }
+
+  candidates.push(path.join(process.cwd(), SDK_CLI_RELATIVE_PATH));
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function prependPathSegment(pathValue: string | undefined, segment: string): string {
+  if (!pathValue || pathValue.trim().length === 0) {
+    return segment;
+  }
+
+  const segments = pathValue.split(":");
+  if (segments.includes(segment)) {
+    return pathValue;
+  }
+
+  return `${segment}:${pathValue}`;
+}
+
+function resolveNodeExecutable(env: NodeJS.ProcessEnv): string | undefined {
+  const envOverride = env.CHIRALITY_NODE_EXECUTABLE?.trim();
+  if (envOverride && fs.existsSync(envOverride)) {
+    return envOverride;
+  }
+
+  const pathEntries = (env.PATH ?? "")
+    .split(":")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const searchEntries = [...new Set([...pathEntries, ...DEFAULT_PATH_SEGMENTS])];
+  for (const entry of searchEntries) {
+    const candidate = path.join(entry, "node");
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
 function resolveToolRestriction(opts: TurnOpts | undefined): AgentSdkOptions["tools"] {
   const toolsValue = opts?.toolsOverride ?? opts?.tools;
   const configuredTools = splitCsvTools(toolsValue);
@@ -160,18 +226,43 @@ function toAgentSdkOptions(session: Session, opts: TurnOpts | undefined, abortCo
 
   if (opts?.pathToClaudeCodeExecutable) {
     options.pathToClaudeCodeExecutable = opts.pathToClaudeCodeExecutable;
+  } else {
+    const resolvedExecutablePath = resolveClaudeExecutablePath();
+    if (resolvedExecutablePath) {
+      options.pathToClaudeCodeExecutable = resolvedExecutablePath;
+    }
   }
 
   if (session.claudeSessionId) {
     options.resume = session.claudeSessionId;
   }
 
+  const runtimeEnv: NodeJS.ProcessEnv = { ...process.env };
   if (opts?.apiKey) {
-    options.env = {
-      ...process.env,
-      ANTHROPIC_API_KEY: opts.apiKey,
+    runtimeEnv.ANTHROPIC_API_KEY = opts.apiKey;
+  }
+  for (const segment of DEFAULT_PATH_SEGMENTS) {
+    runtimeEnv.PATH = prependPathSegment(runtimeEnv.PATH, segment);
+  }
+
+  const resolvedNodeExecutable = resolveNodeExecutable(runtimeEnv);
+  if (resolvedNodeExecutable) {
+    runtimeEnv.PATH = prependPathSegment(runtimeEnv.PATH, path.dirname(resolvedNodeExecutable));
+    options.spawnClaudeCodeProcess = (spawnOptions) => {
+      const command = spawnOptions.command === "node" ? resolvedNodeExecutable : spawnOptions.command;
+      const childEnv: NodeJS.ProcessEnv = {
+        ...spawnOptions.env,
+        NODE_ENV: process.env.NODE_ENV ?? "production",
+      };
+      return spawn(command, spawnOptions.args, {
+        cwd: spawnOptions.cwd,
+        env: childEnv,
+        signal: spawnOptions.signal,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
     };
   }
+  options.env = runtimeEnv;
 
   return options;
 }
