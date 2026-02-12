@@ -5,6 +5,7 @@ test/
 engineering/
 next-session-prompt.md
 download/
+resumes/
 
 # Harness runtime artifacts (keep scope precise; do not ignore all .chirality)
 .chirality/logs/
