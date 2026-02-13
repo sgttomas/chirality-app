@@ -1,4 +1,4 @@
-MIT License
+MIT License + Professional Engineering Clause
 
 Copyright (c) 2026 Ryan Tufts
 
