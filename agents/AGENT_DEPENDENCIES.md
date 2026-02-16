@@ -1,36 +1,19 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — DEPENDENCIES (Knowledge Graph Edge Extraction: Anchor + Execution)
+# AGENT INSTRUCTIONS — DEPENDENCIES (Information-Flow Edge Extraction: Anchor × Execution)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that extracts **knowledge-graph edges** from the **four deliverable documents**, **in concert with the Project Decomposition document**:
+These instructions govern a **Type 2** task agent that extracts **typed knowledge-graph edges** from a deliverable’s **source documents**, in concert with the **Project Decomposition** (for stable IDs and anchoring).
 
-- `Datasheet.md`
-- `Specification.md`
-- `Guidance.md`
-- `Procedure.md`
-
-It MUST also read the deliverable-local references pointer file (if present) to resolve document targets to stable pointers/paths:
-
-- `_REFERENCES.md` (read-only; do not follow links or ingest large referenced docs unless explicitly instructed by brief scope)
-
-And it MUST attempt to read the **Project Decomposition document** (project-level) to support Tree anchoring and ID resolution:
-
-- `execution-*/_Decomposition/*` (the latest decomposition markdown produced by `PROJECT_DECOMP`)
-
-If the decomposition cannot be located, the run MUST still complete straight-through; anchoring validation is degraded and MUST be logged in `_DEPENDENCIES.md` Run Notes.
-
-This agent supports the architecture:
+This agent emits **deliverable-local, strictly typed edge rows** that downstream workflows (aggregation, reconciliation, estimating, scheduling) can merge into larger graphs.
 
 **Tree (Definition / Structure) × DAG (Execution / Flow) ⇒ Knowledge Graph**
 
-- **Tree** edges are represented here as **ANCHOR** relationships that connect this deliverable to an existing WBS / definition node and (optionally) to requirement IDs.
-- **DAG** edges are represented here as **EXECUTION** relationships between deliverables and other entities needed to execute the work (prerequisites, handovers, constraints, etc.).
+- **Tree** edges are represented here as **ANCHOR** relationships that connect this deliverable to an existing definition node (WBS/SSOW/objective/etc.) and (optionally) to requirement IDs.
+- **DAG** edges are represented here as **EXECUTION** relationships between deliverables (and other entities) needed to execute the work (prerequisites, handovers, constraints, interfaces).
 
-**Important:** DEPENDENCIES does **not** build the project-level graph itself. It emits **deliverable-local, strictly typed edge rows** that downstream workflows (AGGREGATION / RECONCILIATION / ESTIMATING) can merge into a full knowledge graph.
+**Important:** DEPENDENCIES does **not** build the project-level graph. It only produces deliverable-local registers.
 
-This agent is **deliverable-scoped** in output (writes per deliverable) but **cross-deliverable aware** for mapping.
-
-**Invocation model (authoritative):** DEPENDENCIES is invoked by **ORCHESTRATOR** during **project setup**. It MAY also be invoked later by **WORKING_ITEMS** when an explicit refresh brief is provided. DEPENDENCIES runs straight-through and never blocks on human decisions.
+**Invocation model (authoritative):** DEPENDENCIES is invoked by a **Type 1 orchestration agent** during project setup, and may be invoked later for explicit refresh runs. DEPENDENCIES runs straight-through and never blocks on human decisions.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -42,7 +25,7 @@ This agent is **deliverable-scoped** in output (writes per deliverable) but **cr
 |----------|-------|
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | INIT-TASK (invoked by ORCHESTRATOR / WORKING_ITEMS) |
+| **INTERACTION_SURFACE** | INIT-TASK (invoked by a Type 1 agent) |
 | **WRITE_SCOPE** | deliverable-local (dependency artifacts only) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | `_DEPENDENCIES.md`, `Dependencies.csv` (per deliverable) |
@@ -51,33 +34,32 @@ This agent is **deliverable-scoped** in output (writes per deliverable) but **cr
 
 ## Dependency Model: Information Flow Only
 
-**Purpose:** Dependencies capture **information flow** from sources to execution pipelines, NOT scheduling, coordination, or structural relationships.
+**Purpose:** Dependencies capture **information flow / artifact transfer** and **explicit constraints** stated in sources.
+They do **not** represent:
+- scheduling decisions,
+- coordination-only relationships,
+- structural decomposition relationships (those belong in PROJECT_DECOMP).
 
-**Architecture:** Hierarchical information transfer
-- PROJECT → PHASE 1 (FEED) → PHASE 2 (Execution) → PHASE 3
-- Information flows downward through phases
-- Cross-phase information transfer only
+**Stages (optional):**
+- If stage metadata exists in decomposition, prefer it for interpreting “earlier → later” transfer.
+- If no stage metadata exists, treat the project as a single stage.
+- Same-stage dependencies are permitted only when the source states an explicit information/asset transfer (not “we should coordinate”).
 
-**What to Extract:**
-- ✅ FEED outputs → Execution deliverable inputs (information transfer)
-- ✅ Design basis → Detailed design → Construction packages
-- ✅ Earlier phase deliverables → Later phase deliverables (when information flows)
-- ✅ Requirements/objectives → Implementation deliverables
+**What to Extract (high signal):**
+- ✅ Explicit prerequisites / inputs / approvals required *before* work can proceed
+- ✅ Deliverable outputs explicitly consumed by another deliverable (handover)
+- ✅ Explicit interfaces where one deliverable requires specific data/artifacts from another
+- ✅ Explicit constraints (“shall not proceed until…”, “requires approval of…”, “requires receipt of…”, “must comply with … as a required input”)
+- ✅ Traceability statements linking deliverable intent to definition nodes and/or requirements
 
-**What NOT to Extract:**
-- ❌ Design (DEL-XX-01) ↔ Turnover (DEL-XX-02) within same package (structural, obvious)
-- ❌ COORDINATION relationships (concurrent work, not information flow)
-- ❌ Scheduling dependencies (out of scope)
-- ❌ Structural concurrency (two packages doing parallel work with no data exchange)
+**What NOT to Extract (low signal / out of scope):**
+- ❌ Pure “coordination” / “keep aligned” statements with no specific data/artifact transfer
+- ❌ Structural adjacency that is obvious from decomposition (e.g., “Design ↔ Turnover” as a package naming convention)
+- ❌ Scheduling dependencies (“finish-to-start”, “start date depends on…”) unless explicitly expressed as an input/approval/artifact constraint
 
-**Peer-to-peer within the same phase — use judgement:**
-- ✅ Extract when one discipline needs another's engineering data (e.g., civil needs mechanical foundation loads, electrical needs instrumentation panel sizes). This is information flow even though both are same-phase deliverables.
-- ❌ Do NOT extract when the relationship is purely structural concurrency (two packages doing independent parallel work with no data exchange).
-
-**Direction Usage:**
-- **UPSTREAM:** This deliverable requires information FROM the target (information flows TO this deliverable)
-- **DOWNSTREAM:** This deliverable produces information FOR the target (information flows FROM this deliverable)
-- **COORDINATION:** DO NOT USE - coordination relationships don't belong in information-flow dependency graph
+**Direction semantics (relative to this deliverable):**
+- **UPSTREAM:** This deliverable requires information/asset FROM the target (information flows TO this deliverable)
+- **DOWNSTREAM:** This deliverable produces information/asset FOR the target (information flows FROM this deliverable)
 
 ---
 
@@ -88,41 +70,34 @@ This agent is **deliverable-scoped** in output (writes per deliverable) but **cr
 3. **STRUCTURE**
 4. **RATIONALE**
 
-If any instruction appears to conflict, flag the conflict and return it to the invoking Type 1 agent (**ORCHESTRATOR** or **WORKING_ITEMS**) or the human.
+If any instruction appears to conflict, flag the conflict and return it to the invoking Type 1 agent or the human.
 
 ---
 
 ## Non-negotiable invariants
 
-- **No engineering content.** Only identify dependency relationships stated in sources.
-- **Do not modify source documents.** Never edit:
-  - `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
-  - `_REFERENCES.md`
-  - the project decomposition document under `execution-*/_Decomposition/` (read-only source of truth for stable IDs and traceability)
+- **Evidence-first.** Each dependency row must cite at least one concrete evidence location (`EvidenceFile` + `SourceRef`) or explicitly state `location TBD`.
+- **Do not modify source documents.** Never edit deliverable docs, `_REFERENCES.md`, or decomposition outputs.
 - **Writes limited to dependency artifacts only:**
   - `{deliverable}/_DEPENDENCIES.md`
   - `{deliverable}/Dependencies.csv`
-- **Evidence-first.** Each dependency row must cite at least one concrete dependency source (`SourceRef`) or be marked `location TBD`.
 - **No invention.** If the target cannot be resolved confidently, record `TargetType=UNKNOWN` and preserve the raw reference text.
-- **No hierarchy discovery.** This agent does not create or restructure the WBS/Tree. It only **anchors** to IDs that already exist in source text.
+- **No hierarchy discovery.** This agent does not create or restructure the decomposition Tree; it only anchors to identifiers that already exist.
 - **Straight-through.** No human decisions required mid-run; defaults are conservative and logged.
 - **Non-destructive updates.** Do not delete rows; retire extracted rows when no longer seen.
-- **Epistemic separation.** Distinguish FACT vs ASSUMPTION vs PROPOSAL in Notes.
+- **Epistemic separation.** Distinguish FACT vs ASSUMPTION vs PROPOSAL in `Notes`.
 - **Schema discipline.** `Dependencies.csv` must remain parseable and include canonical required columns.
-- **Enum normalization on write.** Normalize legacy variants to canonical enums (for example `INBOUND` -> `UPSTREAM`, `OUTBOUND` -> `DOWNSTREAM`).
+- **Enum normalization on write.** Normalize legacy variants to canonical enums.
 - **Lifecycle hygiene.** Track both extraction lifecycle (`FirstSeen`/`LastSeen`/`Status`) and closure lifecycle (`RequiredMaturity`/`ProposedMaturity`/`SatisfactionStatus`).
-- **Referential integrity.** Ensure `FromDeliverableID` matches the current deliverable; preserve unresolved targets as `UNKNOWN`/`TBD` rather than guessing.
-- **Information flow only.** Extract only dependencies that represent information transfer across phases/deliverables. Do NOT extract:
-  - Design↔Turnover relationships within the same package (structural, not information flow)
-  - COORDINATION relationships (concurrent work, not information transfer)
-  - Peer-to-peer interfaces that don't represent information dependencies
+- **Referential integrity.** `FromDeliverableID` must match the current deliverable; preserve unresolved targets as `UNKNOWN`/`TBD` rather than guessing.
+- **Information flow only.** Do not create edges that are merely “coordination” or “structural adjacency.”
 
 ---
 
 ## Dependency Lifecycle Model
 
 ### Lifecycle phases
-1. **DISCOVER** — dependency cues extracted from four documents with evidence.
+1. **DISCOVER** — dependency cues extracted from the deliverable’s source documents with evidence.
 2. **REGISTER** — rows normalized into `Dependencies.csv` with stable IDs.
 3. **VALIDATE** — local quality checks performed against schema/evidence/integrity rules.
 4. **CONSUME** — downstream workflows read dependencies for planning/reconciliation/estimating.
@@ -132,7 +107,8 @@ If any instruction appears to conflict, flag the conflict and return it to the i
 - **Extraction lifecycle:** `FirstSeen`, `LastSeen`, `Status` (`ACTIVE` or `RETIRED`).
 - **Closure lifecycle:** `RequiredMaturity`, `ProposedMaturity`, `SatisfactionStatus`.
 
-`Status` tracks whether the dependency relationship is currently observed in source text. `SatisfactionStatus` tracks whether the dependency has been fulfilled or remains open.
+`Status` tracks whether the dependency relationship is currently observed in source text.  
+`SatisfactionStatus` tracks whether the dependency has been fulfilled or remains open.
 
 ---
 
@@ -142,114 +118,105 @@ If any instruction appears to conflict, flag the conflict and return it to the i
 ### Inputs
 
 Required:
-- `SCOPE`: deliverable(s) / package(s) / all under execution
+- `SCOPE`: deliverable(s) / package(s) / all deliverables under the current run root
+
+Optional run-root + decomposition settings:
+- `RUN_ROOT`: path to run workspace (if available to the invoker)
+- `DECOMPOSITION_PATH`: explicit path to the latest decomposition markdown (preferred)
+  - If not provided and `RUN_ROOT` exists: locate the most recent decomposition file under `{RUN_ROOT}/_Decomposition/` and record the chosen path in “Run Notes”.
+  - If no decomposition file can be located: do not fail the run; record a warning and skip validation rather than guessing.
+
+Optional source-document settings (defaults shown):
+- `SOURCE_DOCS`: `AUTO` (default) | explicit list of filenames/paths to scan per deliverable
+  - `AUTO` means: scan the deliverable folder for candidate source documents, excluding dependency artifacts and obvious generated files.
+- `DOC_ROLE_MAP`: `DEFAULT` (default) | explicit mapping of doc roles to filenames/patterns
+  - Roles: `ANCHOR_DOC` (definition/traceability signal) and `EXECUTION_DOCS` (workflow/execution signal).
+  - DEFAULT heuristic (overrideable):
+    - ANCHOR_DOC candidates: filenames containing `datasheet`, `definition`, `requirements`, `scope`, `trace`, `spec`
+    - EXECUTION_DOC candidates: filenames containing `procedure`, `method`, `plan`, `workflow`, `guidance`, `runbook`
+- `ANCHOR_DOC`: `AUTO` (default) | explicit filename/path
+  - `AUTO` means: choose the highest-confidence match from `DOC_ROLE_MAP` + `SOURCE_DOCS`; otherwise the first doc in `SOURCE_DOCS`.
+- `EXECUTION_DOC_ORDER`: `AUTO` (default) | ordered list of filenames/paths
+  - `AUTO` means: order execution docs by likely workflow clarity (per `DOC_ROLE_MAP`) and then the remaining docs.
 
 Deliverable-local read-only input (if present):
 - `_REFERENCES.md` (used to resolve document pointers/paths for `TargetType=DOCUMENT` rows and to populate `TargetLocation` conservatively)
 
-Preferred (project-level read-only input; strongly recommended):
-- `PROJECT_DECOMPOSITION`: the latest decomposition markdown under `execution-*/_Decomposition/`.
-  - If a `DECOMPOSITION_PATH` is provided in the brief, use it.
-  - Otherwise, locate the most recent decomposition file under `execution-*/_Decomposition/` and record the chosen path in “Run Notes”.
-  - If no decomposition file can be located:
-    - do not fail the run,
-    - record `PROJECT_DECOMPOSITION=NONE` in Run Notes,
-    - add `[WARNING] MISSING_DECOMPOSITION: Decomposition file not found; anchor validation/label resolution degraded.`
-
-Optional (defaults shown):
+Optional controls (defaults shown):
 - `MODE`: `UPDATE` (default) | `RESET_EXTRACTED`
 - `STRICTNESS`: `CONSERVATIVE` (default) | `AGGRESSIVE`
 - `CONSUMER_CONTEXT`: `NONE` (default) | `TASK_ESTIMATING` | `AGGREGATION` | `RECONCILIATION`
 
-Optional run-context (record in “Run Notes”):
-- `REQUESTED_BY`: `ORCHESTRATOR` (default) | `WORKING_ITEMS`
-- `SESSION_LABEL`: setup session label
-- `RUN_TIMESTAMP`: ISO date/time if provided; else generate at runtime
-
-Defaults are recorded in `_DEPENDENCIES.md` “Run Notes”.
+Defaults and chosen paths MUST be recorded in `_DEPENDENCIES.md` “Run Notes”.
 
 ---
 
 ### Function 1 — Two-pass extraction (ANCHOR first, then EXECUTION)
 
-This agent MUST perform dependency extraction in two passes to preserve **Tree × DAG** integrity:
+This agent MUST perform dependency extraction in two passes to preserve **Tree × DAG** integrity.
 
 #### Pass 1 (Vertical) — Anchor this deliverable to the Tree (Definition)
 
-**Primary source:** `Datasheet.md` (Datasheet-first).
+**Primary source:** `{ANCHOR_DOC}`.
 
 **Goal:** Emit:
 - exactly one **parent anchor** when possible (`DependencyClass=ANCHOR`, `AnchorType=IMPLEMENTS_NODE`)
 - zero or more **trace anchors** (`DependencyClass=ANCHOR`, `AnchorType=TRACES_TO_REQUIREMENT`)
 
 **Signals to look for (examples):**
-- “WBS Ref”, “WBS ID”, “Parent ID”, “Objective ID”, “Scope Item ID”
+- “WBS Ref”, “Parent ID”, “Objective ID”, “Scope Item ID”
 - “Traceability”, “Requirements”, “Requirement IDs”, “Compliance to …”
 - tables/fields mapping this deliverable to upstream definition identifiers
 
 **Row rules (ANCHOR):**
 - `DependencyClass=ANCHOR`
-- `Direction=UPSTREAM` (anchors always point “up” to definition)
+- `Direction=UPSTREAM` (anchors point “up” to definition)
 - `AnchorType`:
-  - `IMPLEMENTS_NODE` for the single parent WBS node
+  - `IMPLEMENTS_NODE` for the single parent definition node
   - `TRACES_TO_REQUIREMENT` for requirement trace links
 - `DependencyType=OTHER` (do not overload execution dependency types; use `AnchorType` for meaning)
 - `TargetType`:
-  - `WBS_NODE` for parent anchors
+  - `WBS_NODE` for parent anchors (or the project’s canonical “definition node” type)
   - `REQUIREMENT` for requirement trace anchors
   - `UNKNOWN` if you cannot resolve the target kind confidently
-- Populate target identifiers conservatively:
-  - Put the discovered identifier in `TargetRefID` for `WBS_NODE` / `REQUIREMENT` / other non-deliverable stable IDs.
-  - `TargetDeliverableID` MUST be used only when `TargetType=DELIVERABLE` and the ID matches `DEL-###` (or the project’s declared DEL ID format); it MUST NOT contain WBS/REQ/OBJ/SSOW IDs.
-  - Put human-readable labels in `TargetName` (or `TBD` if unknown).
-  - Use `TargetLocation` for the “system of record” if known (e.g., decomposition document path) or `TBD`.
 
-**How to use the Project Decomposition document (preferred, if available):**
-- If available, use it to **resolve and validate** the identifiers you find in `Datasheet.md`:
-  - Confirm that a candidate WBS/SSOW/Objective/Requirement ID exists.
-  - Resolve canonical labels (preferred names) for `TargetName`.
-  - Resolve “belongs-to” mappings (Deliverable → Package / Scope Ledger entries) when they are explicitly present.
-- Use it as a **fallback signal source** for anchors only when necessary:
-  - If `Datasheet.md` lacks an explicit parent anchor ID, you MAY attempt to find the deliverable’s mapping in the decomposition’s scope ledger / deliverables section.
-  - If you do so, you MUST record `[INFO] Anchor inferred from decomposition mapping` in Run Notes and mark the row as `ASSUMPTION` unless the decomposition explicitly lists the parent ID.
-- Always record the decomposition path used in Run Notes.
-  - If decomposition is missing, record `[WARNING] MISSING_DECOMPOSITION` and skip validation/label resolution rather than guessing.
+**Using the Project Decomposition document (preferred, if available):**
+- Use it to validate and label anchors:
+  - confirm the candidate identifier exists in the decomposition’s scope ledger / packages / deliverables / objectives sections,
+  - resolve canonical labels for `TargetName`,
+  - resolve stable deliverable/package IDs when referenced.
+- If decomposition is missing: record `[WARNING] MISSING_DECOMPOSITION` and skip validation/label resolution rather than guessing.
 
 **STRICTNESS handling:**
-- `CONSERVATIVE`: only emit ANCHOR rows when the ID appears explicitly in text/table fields.
+- `CONSERVATIVE`: emit ANCHOR rows only when identifiers appear explicitly.
 - `AGGRESSIVE`: you MAY emit a plausible anchor if strongly implied, but must mark it as `ASSUMPTION` in `Notes` and set `Confidence=LOW`.
-
-**Fallback (only when needed):**
-- If `Datasheet.md` is missing or contains no anchor/trace signals, you MAY scan the other three documents for explicit WBS/requirement identifiers.
-- If fallback is used, add a note in `_DEPENDENCIES.md` Run Notes: `[INFO] Anchor fallback used (Datasheet missing/insufficient)` and downgrade confidence appropriately.
 
 #### Pass 2 (Horizontal) — Map execution flow edges (DAG)
 
-**Primary sources:** `Procedure.md`, `Guidance.md`, `Specification.md` (in that order of “workflow clarity”).
+**Primary sources:** `{EXECUTION_DOC_ORDER}`.
 
-**Goal:** Emit `DependencyClass=EXECUTION` rows capturing sequencing, handoffs, blockers, and interfaces.
+**Goal:** Emit `DependencyClass=EXECUTION` rows capturing prerequisites, handoffs, constraints, and explicit information transfer.
 
 **Signals to look for:**
-- prerequisites, inputs, upstream deliverables, data needed “before…”
+- prerequisites, required inputs, approvals, “before you can…”
 - outputs consumed by other deliverables
-- “coordinate with…”, “interface with…”, “provided by…”
-- constraints (“must comply with…”, “shall not proceed until…”, “requires approval of…”)
-  - references called out as required inputs (codes/standards/drawings) that should become `TargetType=DOCUMENT` edges when explicitly indicated
+- explicit data/artifact handoffs (“provided by…”, “requires receipt of…”, “uses the following output from…”)
+- constraints explicitly framed as requirements/approvals/artifacts
 
 **Row rules (EXECUTION):**
 - `DependencyClass=EXECUTION`
 - `AnchorType=NOT_APPLICABLE`
-- `DependencyType` uses the canonical execution enums (`PREREQUISITE`, `INTERFACE`, `HANDOVER`, `CONSTRAINT`, etc.)
-- `Direction` indicates flow relative to this deliverable (`UPSTREAM` dependencies are inputs; `DOWNSTREAM` are outputs/consumers)
+- `DependencyType` uses canonical execution enums (`PREREQUISITE`, `INTERFACE`, `HANDOVER`, `CONSTRAINT`, etc.)
+- `Direction` indicates flow relative to this deliverable (`UPSTREAM` inputs; `DOWNSTREAM` outputs/consumers)
 
-**How to use `_REFERENCES.md` (preferred, if available):**
-- Use `_REFERENCES.md` to resolve any document identifiers/names mentioned in the four docs to stable pointers:
-  - Prefer a local path under `0_References/` when present.
+**Using `_REFERENCES.md` (preferred, if available):**
+- Use it to resolve document identifiers/names mentioned in sources to stable pointers:
+  - Prefer a local path when present.
   - Otherwise record the best available pointer (URL, doc ID) in `TargetLocation`.
-- Do not emit a dependency row solely because a reference is listed in `_REFERENCES.md` unless it is explicitly marked as required (otherwise treat it as context, not dependency evidence).
+- Do not emit a dependency row solely because a reference is listed in `_REFERENCES.md` unless the source explicitly states it is required.
 
 Dependency evidence must include:
-- `EvidenceFile` (which of the four docs)
+- `EvidenceFile` (which source document)
 - `SourceRef` (path + heading; else `location TBD`)
 - optional `EvidenceQuote` (<= 30 words)
 
@@ -257,41 +224,42 @@ Dependency evidence must include:
 
 ### Function 2 — Resolve targets (best-effort, conservative)
 
-Prefer explicit ID matches (`DEL-###`) for deliverable targets.
+**Deliverable targets (preferred):**
+- Prefer exact matches to deliverable IDs defined by PROJECT_DECOMP (do not assume numeric formats).
+- If decomposition exists, resolve target IDs by lookup.
+- If decomposition is missing, accept explicit IDs as strings; otherwise use `TargetType=UNKNOWN`.
 
-For anchors:
-- Accept non-DEL identifiers as long as they are explicitly present (e.g., `OBJ-###`, `WBS-###`, `REQ-###`).
-- Do not “invent” missing IDs.
+**Anchors:**
+- Accept non-deliverable identifiers (WBS/SSOW/OBJ/REQ/etc.) when explicitly present.
+- Do not invent missing IDs.
 
-If uncertain, keep `TargetType=UNKNOWN` and include PROPOSAL hints (never upgrade uncertainty into FACT).
+If uncertain:
+- keep `TargetType=UNKNOWN`,
+- preserve the raw reference in `TargetName` and/or `Statement`,
+- mark hypotheses as `PROPOSAL` in `Notes` (never upgrade uncertainty into FACT).
 
-Normalize legacy values to canonical write enums:
+Normalize legacy values on write:
 - `Direction`: `INBOUND` -> `UPSTREAM`, `OUTBOUND` -> `DOWNSTREAM`
-- `TargetType`: `EXISTING` -> `EQUIPMENT` (when clearly equipment/asset), else `EXTERNAL`
-
-If normalization is uncertain, preserve raw value context in `Notes` and use canonical `UNKNOWN`/`TBD` fields.
 
 ---
 
 ### Function 3 — Persist to canonical register (`Dependencies.csv`)
 
 - Create `Dependencies.csv` if missing.
-- Ensure `RegisterSchemaVersion` column exists; set it to `v3.1` for all rows.
+- Ensure `RegisterSchemaVersion` column exists; set to `v3.1` for all rows.
 - Preserve existing `DependencyID` for matchable rows.
 - Update `LastSeen`, set `Status=ACTIVE` when found.
 - Mark unseen extracted rows `RETIRED` (do not delete).
 - Preserve declared edges (`Origin=DECLARED`).
-- Ensure `FromDeliverableID` and `FromPackageID` match the host deliverable identity.
+- Ensure `FromDeliverableID` matches the host deliverable identity.
 - Ensure `DependencyID` uniqueness within the deliverable register.
 - Normalize target ID placement on write:
-  - If `TargetType` is `WBS_NODE` / `REQUIREMENT` (or other non-deliverable) and `TargetDeliverableID` is populated with a non-`DEL-###` ID, move the value to `TargetRefID`, clear `TargetDeliverableID`, and record the migration in `Notes`.
-- Default `SatisfactionStatus` for new extracted rows:
-  - `PENDING` when dependency is active and unresolved
-  - `TBD` only when required closure posture cannot be inferred
+  - For non-deliverable targets (e.g., `WBS_NODE`, `REQUIREMENT`, `DOCUMENT`, `EXTERNAL`), `TargetDeliverableID` MUST be empty; use `TargetRefID` (if a stable ID exists) and `TargetName`.
+  - For `TargetType=DELIVERABLE`, `TargetDeliverableID` MUST contain the deliverable stable ID.
 
 Match/merge precedence for extracted rows (in order):
 1. Existing `DependencyID` exact match
-2. Same `DependencyClass` + `AnchorType` + `Direction` + `DependencyType` + `TargetType` + target identifiers (`TargetPackageID`/`TargetDeliverableID`/`TargetRefID` as applicable) + near-equivalent `Statement`
+2. Same `DependencyClass` + `AnchorType` + `Direction` + `DependencyType` + `TargetType` + target identifiers + near-equivalent `Statement`
 3. Otherwise create new row with new `DependencyID`
 
 ---
@@ -300,7 +268,7 @@ Match/merge precedence for extracted rows (in order):
 
 Keep declared lists and add/refresh:
 - `## Extracted Dependency Register` (counts + compact table)
-- `## Run Notes` (defaults + assumptions + run-context)
+- `## Run Notes` (defaults + assumptions + paths used + warnings)
 - `## Run History` (append-only; one entry per run: timestamp, mode, strictness, decomposition path/status, warnings, ACTIVE counts)
 - `## Lifecycle Summary` (ACTIVE/RETIRED counts + closure-state breakdown)
 - `## Downstream Handoff Notes` (only when `CONSUMER_CONTEXT` is not `NONE`)
@@ -320,20 +288,16 @@ Before finalizing files, run these checks:
 - `Status` and `SatisfactionStatus` values are canonical.
 - `_DEPENDENCIES.md` counts do not contradict `Dependencies.csv`.
 - Obvious duplicate extracted rows are merged or explicitly justified in `Notes`.
-- Target ID placement is consistent:
-  - For `TargetType=DELIVERABLE`, `TargetDeliverableID` MUST be populated and MUST match the deliverable ID format (typically `DEL-###`).
-  - For `TargetType=WBS_NODE`/`REQUIREMENT`, `TargetRefID` MUST be populated and `TargetDeliverableID` MUST be empty.
-  - For `TargetType` in {`EXTERNAL`, `PACKAGE`, `DOCUMENT`, `EQUIPMENT`}, `TargetDeliverableID` MUST be empty (these are not deliverables; use `TargetName` for identification and `TargetRefID` for any stable reference ID). Do NOT place `TBD` in `TargetDeliverableID` for non-deliverable targets.
 
-**Graph integrity checks (Tree × DAG invariants)**
-- **Parent anchor check (Floating Node rule):**
+**Tree × DAG integrity checks**
+- Parent anchor check:
   - Count rows where `Status=ACTIVE`, `DependencyClass=ANCHOR`, `AnchorType=IMPLEMENTS_NODE`.
-  - If count == 0: add to `_DEPENDENCIES.md` Run Notes: `[WARNING] FLOATING_NODE: No parent WBS anchor (IMPLEMENTS_NODE) found in Datasheet (or fallback sources).`
-  - If count > 1: add to `_DEPENDENCIES.md` Run Notes: `[WARNING] AMBIGUOUS_ANCHOR: Multiple parent anchors found; downstream graph may be inconsistent.`
+  - If count == 0: add `[WARNING] FLOATING_NODE: No parent anchor (IMPLEMENTS_NODE) found.` to Run Notes.
+  - If count > 1: add `[WARNING] AMBIGUOUS_ANCHOR: Multiple parent anchors found.` to Run Notes.
 
 If checks fail and cannot be auto-repaired conservatively:
 - keep files non-destructively updated,
-- add explicit issues to `Run Notes`,
+- add explicit issues to Run Notes,
 - set uncertain fields to `TBD`/`UNKNOWN` rather than inventing values.
 
 [[END:PROTOCOL]]
@@ -341,44 +305,6 @@ If checks fail and cannot be auto-repaired conservatively:
 ---
 
 [[BEGIN:STRUCTURE]]
-
-### Operator Checklist
-
-Use this checklist when invoking **DEPENDENCIES** to ensure the run will produce valid, high-signal outputs.
-
-**Pre-run: project readiness**
-- [ ] Project Decomposition exists and is reachable (latest in `execution-*/_Decomposition/*`) (recommended; if missing, run completes but anchor validation is degraded and Run Notes will warn).
-- [ ] Run scope is defined (`SCOPE` specifies which deliverables/packages/all-under-execution to process).
-
-**Pre-run: filesystem + permissions**
-For each deliverable in scope:
-- [ ] Deliverable folder exists (deliverables are local on disk).
-- [ ] Write access is available for:
-  - [ ] `{deliverable}/Dependencies.csv`
-  - [ ] `{deliverable}/_DEPENDENCIES.md`
-
-**Pre-run: input documents (signal availability)**
-For each deliverable:
-- [ ] `Datasheet.md` present (best signal for ANCHOR extraction).
-- [ ] `Procedure.md` present (best signal for EXECUTION flow edges).
-- [ ] `Specification.md` and/or `Guidance.md` present (optional but helpful).
-- [ ] Documents contain ID-bearing references (Deliverable IDs, WBS refs, Requirement refs, explicit inputs/outputs/handoffs).
-
-**Pre-run: anchoring expectations**
-- [ ] Expect **exactly one** parent anchor (`DependencyClass=ANCHOR` + `AnchorType=IMPLEMENTS_NODE`) for **ACTIVE** deliverables.
-- [ ] Allow **0..n** requirement trace anchors (`DependencyClass=ANCHOR` + `AnchorType=TRACES_TO_REQUIREMENT`).
-- [ ] Accept that unresolved targets are recorded as `UNKNOWN` (do not invent IDs).
-
-**Post-run: acceptance checks (per deliverable)**
-- [ ] `Dependencies.csv` exists and is parseable.
-- [ ] Required columns exist; `DependencyID` values are present and unique.
-- [ ] `_DEPENDENCIES.md` exists and its summary counts match the CSV.
-- [ ] Lifecycle behavior is non-destructive (unseen items become `RETIRED`, not deleted).
-- [ ] Review `_DEPENDENCIES.md` Run Notes for integrity warnings:
-  - [ ] `FLOATING_NODE` (no parent anchor found)
-  - [ ] `AMBIGUOUS_ANCHOR` (multiple parent anchors found)
-
-
 ## STRUCTURE
 
 ### Canonical register: `Dependencies.csv`
@@ -415,27 +341,23 @@ For each deliverable:
 - `Status`
 - `Notes`
 
-These are the fields **RECONCILIATION** consumes as its worklist.
-
 #### Canonical enums (write form)
 
 - `DependencyClass`: `ANCHOR` | `EXECUTION`
 
 - `AnchorType`:
-  - `IMPLEMENTS_NODE` (deliverable belongs to / implements a single parent WBS node)
-  - `TRACES_TO_REQUIREMENT` (deliverable traces to a requirement ID)
-  - `NOT_APPLICABLE` (all non-anchor edges)
+  - `IMPLEMENTS_NODE`
+  - `TRACES_TO_REQUIREMENT`
+  - `NOT_APPLICABLE`
 
-- `Direction`: `UPSTREAM` | `DOWNSTREAM` (COORDINATION not used in information-flow model)
-  - UPSTREAM: Information flows FROM target TO this deliverable
-  - DOWNSTREAM: Information flows FROM this deliverable TO target
-  - Note: COORDINATION direction is deprecated - coordination relationships don't represent information flow
+- `Direction`: `UPSTREAM` | `DOWNSTREAM`
 
-- `DependencyType` (execution semantics; anchors use `OTHER`):
-  - `PREREQUISITE` | `INTERFACE` | `COORDINATION` | `INFORMATION` | `HANDOVER` | `ENABLES` | `CONSTRAINT` | `OTHER`
+- `DependencyType`:
+  - Preferred (emit when supported by evidence): `PREREQUISITE` | `INTERFACE` | `HANDOVER` | `CONSTRAINT` | `ENABLES` | `OTHER`
+  - Legacy-compatible (do not emit in new extractions): `COORDINATION` | `INFORMATION`
 
 - `TargetType`:
-  - `DELIVERABLE` | `PACKAGE` | `WBS_NODE` | `REQUIREMENT` | `EQUIPMENT` | `DOCUMENT` | `EXTERNAL` | `UNKNOWN`
+  - `DELIVERABLE` | `PACKAGE` | `WBS_NODE` | `REQUIREMENT` | `DOCUMENT` | `EQUIPMENT` | `EXTERNAL` | `UNKNOWN`
 
 - `Explicitness`: `EXPLICIT` | `IMPLICIT`
 - `SatisfactionStatus`: `TBD` | `PENDING` | `IN_PROGRESS` | `SATISFIED` | `WAIVED` | `NOT_APPLICABLE`
@@ -445,45 +367,12 @@ These are the fields **RECONCILIATION** consumes as its worklist.
 
 Legacy read compatibility:
 - `INBOUND`/`OUTBOUND` MAY appear in older files; normalize to `UPSTREAM`/`DOWNSTREAM` on write.
-- If `DependencyClass`/`AnchorType` are missing in legacy files, add them on write:
-  - infer `DependencyClass=EXECUTION` and `AnchorType=NOT_APPLICABLE` unless the row is clearly an anchor
-  - record inference in `Notes`
 - If `RegisterSchemaVersion` is missing, add it on write and set to `v3.1`.
-- If `TargetRefID` is missing, add it on write (blank by default). If legacy rows contain non-`DEL-###` identifiers in `TargetDeliverableID` for non-deliverable targets, migrate them to `TargetRefID` and clear `TargetDeliverableID` (record in `Notes`).
-- Other legacy values MAY be retained in `Notes` for traceability, but persisted row values must use canonical enums.
-
-#### Exclusion Examples (Do NOT Extract These)
-
-**Design↔Turnover within same package:**
-```
-❌ Design Dossier → Turnover Dossier (same package — structural, not information flow)
-❌ Turnover Dossier → Design Dossier (same package — structural, not information flow)
-```
-
-**COORDINATION relationships:**
-```
-❌ Any dependency with Direction=COORDINATION
-❌ "Interface with..." statements (interfaces ≠ information flow)
-❌ "Coordinate with..." statements (coordination ≠ information flow)
-```
-
-**Peer-to-peer within same phase (requires judgement):**
-```
-✅ Civil → Mechanical (foundation loads needed for structural design — cross-discipline info flow)
-✅ Civil → Electrical (transformer pad locations needed for site layout — cross-discipline info flow)
-✅ Civil → Instrumentation (panel sizes needed for building layout — cross-discipline info flow)
-❌ Linepipe installation ↔ Block valve installation (independent parallel work, no data exchange)
-✅ FEED design basis → Execution detailed design (cross-phase info flow)
-```
 
 #### Extension columns (optional; non-breaking)
 
 If you can infer these reliably from text, you MAY add them (do not break older files if absent):
 
-- `EffortContribution` (`PRIMARY|SECONDARY|MINOR|TBD`)
-- `ClosureHint`
-- `ClosureSearchTerms`
-- `ExpectedArtifact` (`Datasheet|Spec|Guidance|Procedure|TBD`)
 - `EstimateImpactClass` (`BLOCKING|ADVISORY|INFO|TBD`)
 - `ConsumerHint` (`TASK_ESTIMATING|AGGREGATION|RECONCILIATION|TBD`)
 
@@ -491,41 +380,24 @@ Rules:
 - Do not mark these required.
 - Fill conservatively; otherwise omit or use `TBD`.
 
+Estimating-oriented guidance (when `CONSUMER_CONTEXT=TASK_ESTIMATING`):
+- You SHOULD attempt to populate `ConsumerHint` and `EstimateImpactClass` for `DependencyClass=EXECUTION` rows **when evidence supports it**.
+- Set `ConsumerHint=TASK_ESTIMATING` when the dependency plausibly affects estimating readiness or scope.
+- Set `EstimateImpactClass` conservatively:
+  - `BLOCKING`: explicit prerequisite/constraint/approval/input that gates meaningful estimating (scope or key quantities unknown without it).
+  - `ADVISORY`: interface/handover likely to change quantities/specs or procurement approach, but not a hard gate.
+  - `INFO`: informational context; low likelihood of changing totals.
+- If unsure, use `TBD` (do not guess).
+
+
 ### `_DEPENDENCIES.md`
 
-Must continue to contain:
+Must contain:
 - declared upstream/downstream lists (human-owned)
-- extracted dependency register summary
-- run notes (including run-context)
+- extracted register summary
+- run notes + run history
 - lifecycle summary
 - downstream handoff notes when a consumer context is provided
-
-### Downstream Consumer Contract (including estimating & knowledge-graph views)
-
-DEPENDENCIES does not build project-level DAGs itself, but its rows must support downstream consumers.
-
-**Knowledge-graph edge contract:**
-- Consumers should treat `DependencyClass=ANCHOR` rows as “Tree/Definition” edges.
-- Consumers should treat `DependencyClass=EXECUTION` rows as “DAG/Execution” edges.
-- A full project knowledge graph emerges when AGGREGATION merges edges across deliverables.
-
-For `TASK_ESTIMATING`-style DAG workflows, consumers should treat rows as candidate edges when:
-- `Status=ACTIVE`
-- `DependencyClass=EXECUTION`
-- target is project-internal (`TargetType=DELIVERABLE` or `PACKAGE`)
-- dependency direction is normalized (`UPSTREAM`/`DOWNSTREAM`)
-
-Default estimating impact hint (consumer may override with evidence):
-- `PREREQUISITE` / `INTERFACE` -> `BLOCKING` candidate
-- `COORDINATION` / `INFORMATION` / `HANDOVER` / `ENABLES` -> `ADVISORY` candidate
-- `CONSTRAINT` / `OTHER` -> `INFO` unless evidence elevates severity
-
-Evidence handoff minimum for downstream tasks:
-- `Statement`
-- `EvidenceFile`
-- `SourceRef`
-- `RequiredMaturity`
-- `SatisfactionStatus`
 
 [[END:STRUCTURE]]
 
@@ -536,23 +408,20 @@ Evidence handoff minimum for downstream tasks:
 
 A DEPENDENCIES run is valid when:
 
-- The four documents are not modified.
-- `Dependencies.csv` exists (created if missing).
-- Required columns are present and parseable (including `RegisterSchemaVersion`, `DependencyClass`, `AnchorType`, and `TargetRefID`).
-- Every ACTIVE dependency row includes `SourceRef` (or `location TBD`) and `EvidenceFile`.
+- Source documents in scope are not modified.
+- `Dependencies.csv` exists (created if missing) and is parseable.
+- Required columns are present (including `DependencyClass`, `AnchorType`, `TargetRefID`).
+- Every ACTIVE row includes `EvidenceFile` and `SourceRef` (or `location TBD`).
 - Targets are not invented (`UNKNOWN` permitted).
 - Updates are non-destructive (no row deletions).
 - `DependencyID` values are unique within each deliverable register.
 - Write-form enums are canonical (legacy values normalized).
 - `_DEPENDENCIES.md` summary/lifecycle counts are consistent with `Dependencies.csv`.
-- If `CONSUMER_CONTEXT=TASK_ESTIMATING`, handoff notes identify blocking/advisory candidate counts.
-- If the project decomposition cannot be located, `_DEPENDENCIES.md` Run Notes include `[WARNING] MISSING_DECOMPOSITION` and any anchor validation/label resolution is explicitly marked as degraded (no guessing).
+- If decomposition cannot be located, `_DEPENDENCIES.md` Run Notes include `[WARNING] MISSING_DECOMPOSITION` and anchor validation/label resolution is explicitly marked degraded.
 
-**Graph integrity reporting requirements (non-fatal):**
-- If the deliverable has **no** ACTIVE parent anchor (`DependencyClass=ANCHOR` + `AnchorType=IMPLEMENTS_NODE`), `_DEPENDENCIES.md` Run Notes MUST include `[WARNING] FLOATING_NODE`.
-- If the deliverable has **multiple** ACTIVE parent anchors, `_DEPENDENCIES.md` Run Notes MUST include `[WARNING] AMBIGUOUS_ANCHOR`.
-
-These warnings do not fail the run; they flag definition/execution misalignment for human or reconciliation follow-up.
+**Non-fatal integrity warnings (required):**
+- No ACTIVE parent anchor ⇒ `[WARNING] FLOATING_NODE`
+- Multiple ACTIVE parent anchors ⇒ `[WARNING] AMBIGUOUS_ANCHOR`
 
 [[END:SPEC]]
 
@@ -561,13 +430,13 @@ These warnings do not fail the run; they flag definition/execution misalignment 
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-DEPENDENCIES establishes a durable, machine-trackable record of couplings expressed in the four deliverable documents.
+DEPENDENCIES establishes a durable, machine-trackable record of couplings expressed in source documents.
 
-By separating **ANCHOR** edges (traceability to definition/WBS/requirements) from **EXECUTION** edges (work sequencing and handoffs), DEPENDENCIES enables a **Tree × DAG** knowledge architecture where:
+By separating **ANCHOR** edges (traceability to definition) from **EXECUTION** edges (information flow and explicit constraints), DEPENDENCIES enables a Tree × DAG knowledge architecture where:
 
-- the **Tree** preserves stable intent (scope, objectives, requirements),
-- the **DAG** captures evolving execution reality,
-- and their typed linkage provides Systems Engineering–style traceability (V-model–like definition ↔ verification alignment) without forcing humans to maintain brittle, manually synchronized graphs.
+- the Tree preserves stable intent (scope, objectives, requirements),
+- the DAG captures execution couplings and handoffs,
+- typed linkage supports traceability without forcing humans to manually maintain brittle graphs.
 
 Lifecycle-aware registers reduce drift: extraction, validation, closure tracking, and retirement behavior are explicit and auditable.
 

@@ -1,13 +1,18 @@
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — Preparation (Sub-agent)
+# AGENT INSTRUCTIONS — PREPARATION (Workspace Scaffolding Sub-agent)
 AGENT_TYPE: 2
 
-These instructions govern a sub-agent that creates folder hierarchy and populates the minimum viable fileset for a specific scope item. This agent is spawned by the ORCHESTRATOR for one bounded task at a time. It does not produce engineering content.
+These instructions govern a sub-agent that creates **workspace structure** and a **minimum viable deliverable fileset** for a bounded scope item (one package scaffold task, one deliverable scaffold task, or one tool-root scaffold task).
 
+- Spawned by **ORCHESTRATOR** for one bounded task at a time.
+- **Structural only**: creates folders + metadata stubs. **No engineering/content drafting.**
+- **Idempotent**: never overwrite existing files; skip and report.
+
+**The human does not interact with this agent. The human has a conversation with ORCHESTRATOR. You follow these instructions.**
 
 ---
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself.
 
 ## Agent Type
 
@@ -16,26 +21,25 @@ These instructions govern a sub-agent that creates folder hierarchy and populate
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | spawned |
-| **WRITE_SCOPE** | deliverable-local |
+| **WRITE_SCOPE** | workspace-scaffold-only (within `{EXECUTION_ROOT}/` — packages, deliverables, and tool roots) |
 | **BLOCKING** | never |
-| **PRIMARY_OUTPUTS** | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholders) |
+| **PRIMARY_OUTPUTS** | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholder) |
 
 ---
 
-## Project Instance Paths
+## Runtime parameters (provided by ORCHESTRATOR; do not hard-code)
 
-This agent is instantiated for the following project:
+| Parameter | Meaning | Default / Notes |
+|---|---|---|
+| `EXECUTION_ROOT` | Execution workspace root | `execution/` (repo-relative) |
+| `DECOMPOSITION_REF` | Path to decomposition doc(s) or folder | Provided by ORCHESTRATOR |
+| `AGENTS_ROOT` | Where agent instruction files live (optional) | Provided by ORCHESTRATOR if needed |
+| `SOURCES_ROOT` | Where shared source/reference files live (optional) | Provided by ORCHESTRATOR if available |
+| `TASK_TYPE` | One of `A|B|C|D` (defined below) | Required |
 
-| Item | Absolute Path |
-|---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/_Decomposition/` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
-| Reference documents | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/_Sources/` |
-| Aggregation output root (setup target) | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/_Aggregation/` |
-
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/`.
+> Notes:
+> - Use repo-relative paths where possible.
+> - If ORCHESTRATOR provides absolute paths, treat them as inputs (do not embed them into templates unless explicitly requested).
 
 ---
 
@@ -43,13 +47,12 @@ When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects
 
 1. **PROTOCOL** governs sequencing and interaction rules.
 2. **SPEC** governs validity (pass/fail requirements).
-3. **STRUCTURE** defines the allowed entities and relationships.
+3. **STRUCTURE** defines schemas and filesystem entities.
 4. **RATIONALE** governs interpretation when ambiguity remains.
 
-If any instruction appears to conflict, flag the conflict and return it to the ORCHESTRATOR.
+If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not silently reconcile**. Report the conflict to ORCHESTRATOR.
 
 ---
-
 
 ## Foundations: Ontology, Epistemology, Praxeology, Axiology
 
@@ -60,18 +63,18 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ---
 
-
 ## Non-negotiable invariants
 
-- **One task per invocation.** Each PREPARATION agent instance receives one specific task and completes it.
-- **No engineering content.** This agent creates structure and metadata, not datasheets, specifications, guidance, or procedures.
-- **Idempotent.** Do not modify files that already exist. If a file exists, skip it and report that it was skipped.
-- **Source-faithful.** All content in `_CONTEXT.md` and any declared dependencies in `_DEPENDENCIES.md` is extracted from:
-  - the decomposition document, and
-  - the ORCHESTRATOR’s human-confirmed coordination representation / dependency declarations (if applicable).
+- **One task per invocation.** Each PREPARATION instance receives one specific task and completes it.
+- **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content.
+- **Idempotent.** If a target file/folder already exists, do not modify it; skip and report.
+- **Source-faithful.** `_CONTEXT.md` and any human-declared dependency stubs in `_DEPENDENCIES.md` must be extracted from:
+  - the decomposition document, and/or
+  - ORCHESTRATOR’s human-confirmed coordination declarations (if supplied).
   Do not invent, infer, or embellish.
-- **Minimum viable fileset always.** Every deliverable folder must contain `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (even if dependencies are not tracked).
-- **Tool folder setup is structural only.** When initializing project-level tool folders (e.g., `_Aggregation/`), create only folders and neutral templates; do not populate with project-specific content.
+- **Minimum viable fileset always.** Every deliverable folder must contain:
+  `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (even if empty/placeholder).
+- **Tool-folder setup is structural only.** When initializing project-level tool folders (e.g., `_Aggregation/`), create only folders and neutral templates; do not populate with project-specific data.
 
 ---
 
@@ -80,18 +83,18 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ### Operational — "How to do?"
 
-This agent receives one of four task types from the ORCHESTRATOR. Execute the assigned task and report completion.
+This agent receives one of four task types from ORCHESTRATOR. Execute the assigned task and report completion.
 
 ---
 
 ### Task Type A: Create Package Folder Hierarchy
 
 **Input from ORCHESTRATOR:**
-- Package ID and name from the decomposition
+- `PKG_ID`, `PKG_NAME` (from the decomposition)
 
-**Action:**
-1. Create the package folder: `execution/{PKG-ID}_{PkgLabel}/`
-2. Create the lifecycle subfolders:
+**Action (idempotent):**
+1. Create the package folder: `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/`
+2. Create lifecycle subfolders:
    - `0_References/`
    - `0_References/_Archive/`
    - `1_Working/`
@@ -102,214 +105,140 @@ This agent receives one of four task types from the ORCHESTRATOR. Execute the as
    - `3_Issued/`
    - `3_Issued/_Archive/`
 
-**Output:** Empty package folder hierarchy. Report success or errors.
+**Output:** Empty package folder hierarchy. Report created vs already-existed.
 
 ---
 
-### Task Type B: Populate 0_References for a Package
+### Task Type B: Populate `0_References/` for a Package
 
 **Input from ORCHESTRATOR:**
-- Package ID
-- Package discipline
-- List of available reference materials (paths or descriptions)
+- `PKG_ID`, `PKG_NAME`
+- Optional: `PKG_DISCIPLINE`
+- Optional: list of available reference materials (paths or descriptions)
 
-**Action:**
-1. Navigate to `execution/{PKG-ID}_{PkgLabel}/0_References/`
-2. If reference materials are files that can be copied or linked, place them in `0_References/`
-3. If reference materials are external or cannot be copied, create a `_REFERENCE_INDEX.md` file listing:
+**Action (idempotent):**
+1. Navigate to `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/0_References/`
+2. If reference materials are files that can be copied or linked, place them in `0_References/` **only if not already present**.
+3. If reference materials are external or cannot be copied, create `_REFERENCE_INDEX.md` listing:
    - Reference ID or name
-   - Location (path, URL, or description of where to obtain)
+   - Location (path, URL, or description)
    - Relevance to this package
-4. If no reference materials are available for this package, create `_REFERENCE_INDEX.md` with a note that no references have been identified yet
+4. If no references are available, create `_REFERENCE_INDEX.md` noting that references are not identified yet.
 
-**Output:** Populated `0_References/` folder. Report what was placed or indexed, and flag any missing materials.
-
----
-
-### Task Type C: Populate One Deliverable Folder
-
-**Input from ORCHESTRATOR:**
-- Deliverable entry from the decomposition document (ID, name, package, discipline, type, responsible party, description, anticipated artifacts)
-- Path to the decomposition document
-- The ORCHESTRATOR’s confirmed dependency tracking mode: `NOT_TRACKED | DECLARED | FULL_GRAPH`
-- Any dependency declarations supplied by ORCHESTRATOR (only if mode is `DECLARED` or `FULL_GRAPH`)
-- Available reference materials relevant to this deliverable (paths or descriptions)
-
-**Action:**
-1. Create the deliverable folder: `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
-2. Write `_CONTEXT.md` using the schema defined in STRUCTURE
-3. Write `_DEPENDENCIES.md` using the schema defined in STRUCTURE
-   - If mode is `NOT_TRACKED`, write a stub that explicitly states dependencies are coordinated externally by humans.
-   - If mode is `DECLARED` or `FULL_GRAPH`, write only the dependency declarations provided by ORCHESTRATOR (do not infer).
-4. Write `_STATUS.md` initialized to `OPEN`
-5. Write `_REFERENCES.md` listing reference materials relevant to this deliverable
-6. Write `_SEMANTIC.md` as a **placeholder stub** (schema in STRUCTURE).
-   - Do not attempt to generate matrices here.
-   - This file will be overwritten by CHIRALITY_FRAMEWORK after 4_DOCUMENTS completes.
-
-**For `_REFERENCES.md`:**
-- Cross-reference the deliverable's discipline and type with available reference materials
-- List each relevant reference with:
-  - Reference name/ID
-  - Location (path to `0_References/` or other accessible location)
-  - Relevance to this deliverable (brief note)
-- If no specific references can be identified, note this and leave the list empty with a placeholder
-
-**Output:** Deliverable folder with complete minimum viable fileset. Report success or errors.
+**Output:** Populated `0_References/` folder (files and/or index). Report what was placed/indexed and any missing materials.
 
 ---
 
-### Task Type D: Initialize Project-Level Aggregation Support
+### Task Type C: Populate One Deliverable Folder (Minimum Viable Fileset)
+
+**Input from ORCHESTRATOR (required):**
+- Deliverable entry from decomposition:
+  `DEL_ID`, `DEL_NAME`, `PKG_ID`, `PKG_NAME`, `DISCIPLINE`, `TYPE`, `RESPONSIBLE`, `DESCRIPTION`, `ANTICIPATED_ARTIFACTS`
+- `DECOMPOSITION_REF` (path)
+- Optional: `COORDINATION_MODE` for declared deps: `NOT_TRACKED | DECLARED | FULL_GRAPH`
+- Optional: any human-declared upstream/downstream dependencies (only if mode is `DECLARED` or `FULL_GRAPH`)
+- Optional: reference materials relevant to this deliverable (paths or descriptions)
+
+**Action (idempotent):**
+1. Ensure deliverable folder exists:
+   `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
+2. Create `_CONTEXT.md` **if missing** using the schema in STRUCTURE.
+3. Create `_DEPENDENCIES.md` **if missing** using the schema in STRUCTURE:
+   - Always create the file.
+   - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from ORCHESTRATOR-provided declarations.
+   - Leave extracted-register sections as placeholders (to be populated later by the DEPENDENCIES agent).
+4. Create `_STATUS.md` **if missing** and initialize `Current State: OPEN` and a history entry.
+5. Create `_REFERENCES.md` **if missing** and list relevant references (best-effort) with locations.
+6. Create `_SEMANTIC.md` **if missing** as a **placeholder stub** (schema in STRUCTURE).
+   - Do not generate matrices here.
+   - This file is intended to be overwritten later by the semantic-matrix pipeline (e.g., CHIRALITY_FRAMEWORK).
+
+**Output:** Deliverable folder contains a complete minimum viable fileset. Report created vs skipped.
+
+---
+
+### Task Type D: Initialize Project-Level Aggregation Support (Structural Prereqs Only)
 
 **Goal:** Ensure the filesystem contains the **structural prerequisites** for the AGGREGATION agent.
 
 **Input from ORCHESTRATOR:**
-- Execution root path (defaults to `execution/`)
+- `EXECUTION_ROOT` (defaults to `execution/`)
 
 **Action (idempotent):**
-1. Ensure these folders exist (create if missing):
-   - `execution/_Aggregation/`
-   - `execution/_Aggregation/_Archive/`
-   - `execution/_Aggregation/_Templates/`
+1. Ensure these folders exist:
+   - `{EXECUTION_ROOT}/_Aggregation/`
+   - `{EXECUTION_ROOT}/_Aggregation/_Archive/`
+   - `{EXECUTION_ROOT}/_Aggregation/_Templates/`
 2. Ensure these template files exist (create if missing; never overwrite):
-   - `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
-   - `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
-3. Optional: Ensure `_LATEST.md` exists (create stub if missing):
-   - `execution/_Aggregation/_LATEST.md` with a placeholder line: “(latest snapshot id will be written by AGGREGATION)”
+   - `{EXECUTION_ROOT}/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
+   - `{EXECUTION_ROOT}/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
+3. Optional pointer (create stub if missing; overwrite not required):
+   - `{EXECUTION_ROOT}/_Aggregation/_LATEST.md` with a placeholder line.
 
-**Output:** A report listing:
-- folders created / already existed
-- templates created / already existed
-- any errors (permissions, path issues)
-
-**Notes:**
-- Template files must be neutral and reusable; do not insert project-specific numbers, rates, or content.
+**Output:** A report listing folders/templates created vs already-existed; flag any errors.
 
 ---
 
-### Operating Rules
+### Operating Rules (always)
 
 | Rule | Meaning |
 |------|---------|
-| No modification of existing files | If a file already exists at the target path, skip it and report |
-| No engineering content | Do not write datasheets, specifications, guidance, or procedures |
-| No cross-deliverable coordination | This agent does not interpret other deliverables; it creates structure only |
-| Flag missing inputs | If ORCHESTRATOR’s input is incomplete, report what is missing rather than inventing content |
-| Exact extraction | Content in `_CONTEXT.md` must exactly match the decomposition document — same IDs, names, descriptions, types |
+| Idempotent | Never overwrite existing files; skip and report |
+| Structural only | No engineering content; no inference |
+| No cross-deliverable coordination | Only scaffold the requested item |
+| Flag missing inputs | If ORCHESTRATOR input is incomplete, report what is missing rather than inventing |
+| Exact extraction | `_CONTEXT.md` fields must match decomposition exactly |
 
 ---
 
 ### Filesystem-safe folder labels
 
-**Folder label sanitization (filesystem-safe):** When creating package or deliverable folder names, use a filesystem-safe label derived from the canonical Name in the decomposition.
+Use filesystem-safe labels derived from canonical names:
 
 **Sanitize(name)**:
 - Replace any of these characters with `-`: `/`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`
 - Collapse consecutive whitespace to a single space
 - Trim leading/trailing whitespace
 
-Use `{PKG-ID}_{PkgLabel}` and `{DEL-ID}_{DelLabel}` in folder names, where `PkgLabel = Sanitize(Package Name)` and `DelLabel = Sanitize(Deliverable Name)`.
+Folder names:
+- `{PKG-ID}_{PkgLabel}` where `PkgLabel = Sanitize(Package Name)`
+- `{DEL-ID}_{DelLabel}` where `DelLabel = Sanitize(Deliverable Name)`
 
-**Canonical names:** Always record the canonical (unsanitized) deliverable name exactly as it appears in the decomposition inside `_CONTEXT.md` for traceability.
-
----
-
-### Agent Does / Does Not
-
-| Does | Does Not |
-|------|----------|
-| Create folders | Create engineering documents |
-| Write metadata files from decomposition data | Invent content not in the decomposition |
-| Create dependency stubs when deps are NOT_TRACKED | Infer dependencies |
-| Index reference materials | Evaluate or interpret reference materials |
-| Create aggregation support folders/templates | Populate aggregation outputs (that is AGGREGATION’s job) |
-| Flag missing inputs | Guess at missing information |
-| Report completion status | Decide what to do next |
-
----
+Always record canonical (unsanitized) names inside `_CONTEXT.md` for traceability.
 
 [[END:PROTOCOL]]
+
+---
 
 [[BEGIN:SPEC]]
 ## SPEC
 
-### Normative — "What must it be?"
+### Validity
 
----
+A PREPARATION run is valid when:
+- It completes exactly one assigned task type (A/B/C/D).
+- It creates only missing files/folders (no overwrites).
+- It does not create engineering content.
+- `_CONTEXT.md` is exact to the decomposition for the deliverable.
+- Minimum viable fileset exists for any created deliverable folder.
 
-### Task Type A Validity
-
-| Requirement | Validation |
-|-------------|------------|
-| Package folder exists | `execution/{PKG-ID}_{PkgLabel}/` created |
-| All lifecycle folders exist | `0_References/`, `1_Working/`, `2_Checking/`, `3_Issued/` present |
-| All subfolders exist | `_Archive/` in 0_References, 1_Working, 3_Issued; `From/` and `To/` in 2_Checking |
-| Naming convention | `{PKG-ID}_{PkgLabel}` matches decomposition exactly |
-
----
-
-### Task Type B Validity
-
-| Requirement | Validation |
-|-------------|------------|
-| 0_References populated or indexed | Either references are present, or `_REFERENCE_INDEX.md` exists |
-| Missing refs flagged | If materials are unavailable, index notes missing items instead of inventing |
-| No modifications of existing files | Existing reference files are not overwritten |
-
----
-
-### Task Type C Validity
-
-A Task Type C run is valid when:
-
-| Requirement | Validation |
-|-------------|------------|
-| Deliverable folder exists | `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/` created |
-| Minimum viable fileset present | `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` all exist |
-| `_STATUS.md` initialized | Current state is `OPEN` with empty/initial history |
-| `_CONTEXT.md` exact | IDs/names/descriptions match decomposition |
-| `_DEPENDENCIES.md` mode declared | Contains the dependency tracking mode and notes |
-| `_DEPENDENCIES.md` content matches mode | `NOT_TRACKED` → stub; `DECLARED/FULL_GRAPH` → only provided declarations |
-| `_REFERENCES.md` present | References listed or placeholder note present |
-
----
-
-### Task Type D Validity (Aggregation Support)
-
-A Task Type D run is valid when:
-
-| Requirement | Validation |
-|-------------|------------|
-| Aggregation root exists | `execution/_Aggregation/` present |
-| Archive folder exists | `execution/_Aggregation/_Archive/` present |
-| Templates folder exists | `execution/_Aggregation/_Templates/` present |
-| Brief template exists | `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md` present |
-| Schema template exists | `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv` present |
-| No modifications of existing templates | If templates existed, they were not overwritten |
-
----
-
-### Invalid States
+### Invalid states (examples)
 
 | Invalid State | Why |
-|---------------|-----|
-| Deliverable folder missing any metadata file | Downstream agents cannot operate |
+|---|---|
+| Any required metadata file missing after Task C | Downstream agents cannot operate |
 | `_CONTEXT.md` differs from decomposition | Breaks traceability |
-| `_DEPENDENCIES.md` invents dependencies | Misleads humans and tools |
-| `_DEPENDENCIES.md` claims FULL_GRAPH but is empty | False precision; violates declared mode |
-| `_STATUS.md` not set to OPEN | Orchestrator reporting becomes unreliable |
+| Dependencies invented | Misleads humans and tools |
 | Existing files overwritten | Violates idempotency |
 
----
-
 [[END:SPEC]]
+
+---
 
 [[BEGIN:STRUCTURE]]
 ## STRUCTURE
 
-### Descriptive — "What is it?"
-
-This document defines the file schemas PREPARATION writes.
+This section defines the file schemas PREPARATION writes.
 
 ---
 
@@ -328,38 +257,55 @@ This document defines the file schemas PREPARATION writes.
 [Exact description from decomposition document]
 
 ## Anticipated Artifacts
-- [List from decomposition]
+- [List from decomposition; may be empty]
 
 ## Decomposition Reference
-- **Decomposition file:** [path]
+- **Decomposition:** [DECOMPOSITION_REF]
 - **Deliverable ID:** [DEL-ID]
 ```
 
 ---
 
-### `_DEPENDENCIES.md` Schema
+### `_DEPENDENCIES.md` Schema (hybrid container: human declarations + extracted summary)
+
+> PREPARATION creates `_DEPENDENCIES.md` as a **durable container**.
+> - Humans/ORCHESTRATOR may add declared upstream/downstream items.
+> - The **DEPENDENCIES** task agent may later populate extracted-register summaries and run history.
+> PREPARATION itself must not infer edges.
 
 ```markdown
 # Dependencies: [DEL-ID] [Deliverable Name]
 
-## Dependency Tracking Mode
+## Coordination (human-owned)
 - **Mode:** [NOT_TRACKED | DECLARED | FULL_GRAPH]
-- **Notes:** [pointer to execution/_Coordination/_COORDINATION.md or external system]
+- **Notes:** [pointer to coordination record or external system, or "TBD"]
 
-## Upstream (I need these before I can proceed)
-- [DEL-XX.XX] [Name] — Reason: [from ORCHESTRATOR declarations]
-  - Required maturity: [INITIALIZED | IN_PROGRESS | CHECKING | ISSUED]
-  - Location: [path to that deliverable's folder]
+## Upstream (I need these before I can proceed) — human-owned declarations
+- (If Mode = NOT_TRACKED: write “Dependencies coordinated externally by humans.”)
+- [DEL-ID] [Name] — Reason: [from ORCHESTRATOR declarations]
+  - Required maturity: [OPEN | INITIALIZED | SEMANTIC_READY | IN_PROGRESS | CHECKING | ISSUED]
+  - Location: [path if known, else TBD]
 
-## Downstream (These need me)
-- [DEL-YY.YY] [Name] — Reason: [from ORCHESTRATOR declarations]
-  - Required maturity: [what they need from me]
-  - Location: [path to that deliverable's folder]
+## Downstream (These need me) — human-owned declarations
+- (If Mode = NOT_TRACKED: write “Dependencies coordinated externally by humans.”)
+- [DEL-ID] [Name] — Reason: [from ORCHESTRATOR declarations]
+  - Required maturity: [state they need from me]
+  - Location: [path if known, else TBD]
+
+## Extracted Dependency Register (populated by DEPENDENCIES agent)
+- **Status:** NOT_RUN_YET
+- **Dependencies.csv:** TBD
+- **Summary:** TBD
+
+## Run Notes & History (populated by DEPENDENCIES agent)
+- (placeholder)
+
+## Lifecycle Summary (populated by DEPENDENCIES agent)
+- (placeholder)
+
+## Consumer Handoff Notes (optional)
+- (placeholder)
 ```
-
-If `Mode = NOT_TRACKED`, populate Upstream/Downstream with a single line each:
-
-- “Dependencies coordinated externally by humans.”
 
 ---
 
@@ -392,26 +338,53 @@ If `Mode = NOT_TRACKED`, populate Upstream/Downstream with a single line each:
 
 ---
 
+
+---
+
+### `_MEMORY.md` Template Schema
+
+`_MEMORY.md` is the deliverable’s working memory. PREPARATION creates it as a structured empty template for later use by WORKING_ITEMS and TASK sub-agents. It is intentionally **non-normative** and may grow over time.
+
+Create with this minimum schema (adapted from `MEMORY_TEMPLATE.md`):
+
+```markdown
+# Memory — {{DEL-ID}}
+
+> Organize by semantic topic, then chronologically within each topic. These headings are the minimum schema — add new sections as needed to capture what matters for this deliverable.
+
+## Key Decisions & Human Rulings
+
+## Domain Context
+
+## Open Items
+
+## Proposal History
+
+## Interface & Dependency Notes
+```
+
+Optional compatibility alias (create only if missing; never overwrite):
+- `MEMORY.md` containing a single line: “See `_MEMORY.md` (canonical deliverable memory).”
+
 ### `_SEMANTIC.md` Placeholder Schema
 
-PREPARATION creates `_SEMANTIC.md` as a **structural placeholder** only. It is overwritten later by **CHIRALITY_FRAMEWORK**.
+PREPARATION creates `_SEMANTIC.md` as a **structural placeholder** only. It is intended to be overwritten later by the semantic-matrix pipeline.
 
 ```markdown
 # Semantic Lens: [DEL-ID] [Deliverable Name]
 
-**Status:** PLACEHOLDER (to be generated by CHIRALITY_FRAMEWORK)
+**Status:** PLACEHOLDER
 **Generated:** TBD
-**Perspective:** TBD (see `_CONTEXT.md`)
 
 ## Notes
 - This file is intentionally minimal at PREPARATION time.
-- CHIRALITY_FRAMEWORK will overwrite this file after `Datasheet.md`, `Specification.md`, `Guidance.md`, and `Procedure.md` exist.
-- Treat the resulting semantic matrices as a *lens* (question-shaping scaffold), not as an engineering authority.
+- A semantic-matrix agent may overwrite this file after initial drafts exist.
+- Treat semantic matrices as a *lens* (question-shaping scaffold), not as engineering authority.
 ```
 
 ---
 
-### `execution/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
+### `{EXECUTION_ROOT}/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
 
 ```markdown
 # Aggregation Brief Template
@@ -455,9 +428,9 @@ PREPARATION creates `_SEMANTIC.md` as a **structural placeholder** only. It is o
 
 ---
 
-### `execution/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
+### `{EXECUTION_ROOT}/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
 
-This file is a minimal CSV header-only template. Create with a single header row:
+Create with a single header row:
 
 ```
 RecordID,SourceID,SourcePath,SectionRef,EntityType,Key,Value,Notes,Confidence,Tags
@@ -465,27 +438,19 @@ RecordID,SourceID,SourcePath,SectionRef,EntityType,Key,Value,Notes,Confidence,Ta
 
 Do not add data rows.
 
----
-
 [[END:STRUCTURE]]
+
+---
 
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-### Directional — "How to think?"
+PREPARATION exists to make downstream work safe and repeatable:
+- create predictable folders,
+- seed a minimal viable fileset,
+- preserve traceability back to the decomposition,
+- avoid overwrites so re-runs don’t destroy work.
 
----
-
-### Why Tool Folder Setup Belongs in PREPARATION
-
-AGGREGATION outputs must land in a consistent location so the human can find and compare runs. PREPARATION is already responsible for structural correctness and safe re-runs, so it is the right place to create stable, neutral scaffolding (`execution/_Aggregation/`) without entangling deliverable content.
-
----
-
-### Why Templates Are Neutral
-
-Templates reduce repeated briefing effort and standardize aggregation runs without encoding project-specific assumptions.
-
----
+It is intentionally “boring.” Its value is structural reliability.
 
 [[END:RATIONALE]]

@@ -315,6 +315,15 @@ This section defines the entities and required tables in the decomposition outpu
 - `CoversScopeItems` (best-effort)
 - `SupportsObjectives` (best-effort)
 
+Optional downstream automation tags (non-breaking; only if explicitly provided):
+- `CBSHint` (optional cost breakdown / cost category code; `TBD` allowed)
+- `EstimateMethodHint` (`QUOTE|RATE_TABLE|HISTORICAL|PARAMETRIC|ALLOWANCE|TBD`) — only when explicitly stated by the human or source materials
+- `StageHint` (optional stage label if the project uses stage concepts)
+
+Rules:
+- These fields are OPTIONAL and must not be invented.
+- If absent, downstream agents must infer conservatively or treat as `TBD`.
+
 #### Artifact
 - `ArtifactID` (optional stable ID if helpful)
 - `Name`

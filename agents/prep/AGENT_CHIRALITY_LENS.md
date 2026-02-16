@@ -28,20 +28,23 @@ This agent does **not** edit the four documents. It produces an **enrichment-rea
 ## Purpose
 
 Produce a **matrix-organized lensing register** that:
-1) Uses **each cell** of each matrix **A, B, C, F, D, X, E** (from `_SEMANTIC.md`) as a perspective lens,  
-2) Applies that lens to each of the **4 Documents**, and  
-3) Captures what is apparent through the lens. then
-4) Briefly justifies why this perspective matters.
 
-This artifact is designed for a subsequent agent session to incorporate these perspectives into the 4 Documents (Datasheet, Guidance, Procedure, Specification).
+1) Uses **each cell** of each matrix **A, B, C, F, D, X, E** (from `_SEMANTIC.md`) as a **lens** (a “what to look for” perspective),  
+2) Applies that lens to each of the **4 Documents**, and  
+3) Records only **warranted** enrichment inputs (gaps, conflicts, needed questions) with provenance—**without rewriting** the documents.
+
+This output is intended to make follow-on enrichment:
+- **auditable** (evidence-linked),
+- **minimal** (only what’s warranted),
+- **safe** (no invention; no conflict resolution by the agent).
 
 ---
 
 ## Precedence (conflict resolution)
 
-1. **PROTOCOL** governs sequencing and interaction rules.
-2. **SPEC** governs validity (what counts as warranted information + how it must be recorded).
-3. **STRUCTURE** defines required register schema and output format.
+1. **PROTOCOL** governs sequencing and run behavior.
+2. **SPEC** governs validity (what counts as warranted + how it must be recorded).
+3. **STRUCTURE** defines register schema and output format.
 4. **RATIONALE** governs interpretation when ambiguity remains.
 
 If any instruction appears to conflict, flag the conflict and return it to the ORCHESTRATOR (or to the human if run in chat).
@@ -52,13 +55,20 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 - **One deliverable per run.** Operate on a single deliverable folder only.
 - **Read-only on the 4 Documents.** You MUST NOT edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
-- **Use matrices as lenses, not as authority.** The matrices condition what to look for; they do not justify inventing content.
-- **No invention.** If information is not in the four documents (or other explicitly read deliverable-local files), record it as a **TBD Question** rather than asserting it.
-- **Provenance is mandatory.** Every captured item must include `SourcePath` and best-effort `SectionRef` (use “location TBD” if needed).
-- **Conflicts are surfaced, not resolved.** When documents disagree, create a conflict item and leave `HumanRuling = TBD`.
+- **Use matrices as lenses, not as authority.** Matrices condition what to look for; they do not justify inventing content.
+- **No invention.** If information is not present in the four documents (or other explicitly read deliverable-local files), record it as `Type=TBD_Question` rather than asserting it.
+- **Provenance is mandatory.** Every warranted item must include `SourcePath` and best-effort `SectionRef` (use “location TBD” if needed).
+- **Conflicts are surfaced, not resolved.** When documents disagree, create `Type=Conflict` and leave `HumanRuling = TBD`.
 - **No recursive ingestion.** Do not treat `_SEMANTIC_LENSING.md` as an input source for subsequent runs unless explicitly instructed.
-- **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E must be used as a lens (even if it yields no items, state that no items were found).
-- **Do not capture**:- Pure restatements that add no new leverage (avoid duplicating what is already clear and consistent); Engineering decisions that require human authority; instead record as a conflict or question.
+- **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E MUST appear in the **Lens Coverage** table (even if it yields no warranted items).
+- **Do not force verbosity.** If documents are already consistent and complete under a lens, record `CoverageStatus=NO_ITEMS` for that lens and move on.
+- **Avoid restatement.** Do not emit items that merely repeat what is already clear and consistent across documents.
+- **Preserve document-role boundaries (non-authoritative placement guidance):** When proposing where to apply a future enrichment, prefer:
+  - requirements + acceptance criteria → `Specification.md`
+  - procedural prerequisites/steps/checks → `Procedure.md`
+  - rationale/intent/tradeoffs/interpretation help → `Guidance.md`
+  - factual parameters/enumerations/identifiers → `Datasheet.md`
+  This is a suggestion signal only; it does not authorize edits.
 
 ---
 
@@ -71,15 +81,17 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ### Files read (deliverable-local)
 
-- `{deliverable_folder}/_STATUS.md`
+Required (if missing, degrade with warnings and proceed with what exists unless `_SEMANTIC.md` is missing):
 - `{deliverable_folder}/_CONTEXT.md`
-- `{deliverable_folder}/_REFERENCES.md` (optional; read if present)
-- `{deliverable_folder}/_SEMANTIC.md` (required - source for the lenses)
+- `{deliverable_folder}/_STATUS.md`
+- `{deliverable_folder}/_SEMANTIC.md` (required; source for the lenses)
 - `{deliverable_folder}/Datasheet.md`
 - `{deliverable_folder}/Specification.md`
 - `{deliverable_folder}/Guidance.md`
 - `{deliverable_folder}/Procedure.md`
 
+Optional:
+- `{deliverable_folder}/_REFERENCES.md` (read if present; list pointers but do not expand scope unless explicitly instructed)
 
 ### Primary Output
 
@@ -95,10 +107,11 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 # Glossary
 
 - **Lens (matrix cell):** the atomic semantic unit in a matrix cell (e.g., `A[normative, guiding]`) used as a “what to look for” perspective.
-- **Perspective item:** an aspect apparent through the perspective of that lens that should be carried into a future enrichment pass of the 4 Documents 
+- **LensKey:** canonical identifier for a lens cell: `M:[RowLabel]:[ColLabel]`.
+- **Warranted item:** a gap/conflict/question that is actionable for a later enrichment pass, grounded by evidence or explicit absence.
 - **4 Documents:** `Datasheet.md`, `Guidance.md`, `Procedure.md`, `Specification.md`.
 
---
+---
 
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL — Straight-through Lensing Procedure
@@ -108,6 +121,8 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 1. Confirm `{deliverable_folder}` exists and is readable.
 2. Confirm `_SEMANTIC.md` exists.
    - If missing: write `_SEMANTIC_LENSING.md` with a blocking header (“Missing _SEMANTIC.md; run CHIRALITY_FRAMEWORK first”) and stop.
+3. Confirm each of the 4 Documents exists.
+   - If one or more are missing: do **not** fail the run. Record `[WARNING] MISSING_DOC: <filename>` in the output header and proceed with available docs.
 
 ### Step 1 — Read context + inputs
 
@@ -115,43 +130,74 @@ Read, in order:
 1) `_CONTEXT.md` (deliverable identity + description)
 2) `_STATUS.md` (record current state; do not change it)
 3) `_SEMANTIC.md` (extract matrices A, B, C, F, D, X, E)
-4) The 4 Documents (Datasheet, Specification, Guidance, Procedure)
+4) The 4 Documents (Datasheet, Specification, Guidance, Procedure) that exist
 5) `_REFERENCES.md` (if present; list but do not expand scope unless told)
 
-### Step 2 — Parse matrices into lens tables
+### Step 2 — Parse matrices into a lens inventory (coverage scaffold)
 
-For each matrix M ∈ {A, B, C, F, D, X, E} in `_SEMANTIC.md` do:
-2.1) Extract:
-    - Matrix name
-    - Row labels
-    - Column labels
-    - Cell values (atomic semantic units)
-2.2) Then generate the output template in the specified markdown table format.
-    - The first column is the Matrix name
-    - Second column is the Row label
-    - Third column is the Column label
-    - Fourth column is the corresponding lens
-    - Fifth column is to be the perspective given by applying the lens to the content of the 4 Documents
-    - Sixth column is to be the brief justification for why the perspective recorded in the fifth column is justified
-    - Seventh column is to be for identifying from which of the 4 Documents does this perspective apply (can be one or several)
-    - Eight column is to be for identifying where in the particular Document this perspective is applicable (can be a locality or the entirety)
+For each matrix `M ∈ {A, B, C, F, D, X, E}` in `_SEMANTIC.md`:
+
+- Extract:
+  - matrix name
+  - row labels (in order)
+  - column labels (in order)
+  - cell values (atomic semantic units)
+
+- Construct a **Lens Coverage** row for every cell (row-major, deterministic):
+  - `LensKey = M:[RowLabel]:[ColLabel]`
+  - `LensValue = cell value`
+  - Initialize `ItemCount=0`
+  - Initialize `CoverageStatus=NO_ITEMS`
 
 If a matrix cell is empty or malformed:
-- Record item: `Type=MatrixError` with provenance to `_SEMANTIC.md`, and continue.
+- Set `CoverageStatus=MATRIX_ERROR` for that `LensKey`,
+- Add a `Type=MatrixError` warranted item referencing `_SEMANTIC.md`,
+- Continue (do not fail the run).
 
-### Step 3 — Write `_SEMANTIC_LENSING.md`
+### Step 3 — Apply lenses to the 4 Documents and record warranted items
 
-- Systematically and exhaustively take the perspective of each lens throughout each document but record only what is justified.  
-- Separate your perspectives across as many line items as required. 
-- Write/overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the schema in STRUCTURE.
+For each `LensKey` in the lens inventory:
 
-### Step 4 — Report completion
+1) **Scan** the 4 Documents and ask: “What becomes salient under this lens?”
+2) Record only what meets the warranted threshold (below).
+3) Update the Lens Coverage row (`ItemCount`, `CoverageStatus`) accordingly.
+
+**Warranted threshold (tight filter):** create an item only when at least one is true:
+
+- `Conflict`: two+ documents (or two+ locations) make incompatible claims about the same thing (include contenders).
+- `VerificationGap`: a normative requirement exists but acceptance/verification is missing or ambiguous.
+- `MissingSlot`: a category suggested by the lens is absent where it would reasonably belong (record as absence; do not invent content).
+- `WeakStatement`: language is materially ambiguous/vague in a way that could change implementation decisions.
+- `RationaleGap`: a decision/requirement exists without enough explanation to interpret safely (prefer Guidance as suggested placement).
+- `Normalization`: terminology or naming is inconsistent across documents in a way that risks drift.
+- `TBD_Question`: a necessary input is missing and must be sourced externally or from references.
+
+**How to write `CandidateInfo` (enrichment-ready, non-destructive):**
+- Phrase as a minimal *additive* suggestion (e.g., “Add acceptance criteria for …”, “Clarify definition of …”, “Record TBD: …”).
+- Do not draft full paragraphs.
+- Do not introduce new numeric values or “shall” requirements unless they already exist and you are only pointing to the gap.
+
+**Provenance for absence (`MissingSlot`):**
+- `SourcePath` must include the doc(s) you searched.
+- `SectionRef` can be:
+  - a specific heading where it would belong, or
+  - `entire document scanned` if no better anchor exists.
+
+**Conflict handling:**
+- Populate `Contenders` with two+ `path#section` entries.
+- Set `HumanRuling=TBD` (unless a human ruling exists elsewhere and you can cite it).
+
+### Step 4 — Write `_SEMANTIC_LENSING.md`
+
+Write/overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the schema in STRUCTURE.
+
+### Step 5 — Report completion (to invoker)
 
 Report:
 - Deliverable ID/name
 - Whether `_SEMANTIC.md` was present and parsed
-- Count of warranted items (total + by document)
-- Any matrix parsing errors or severe conflicts detected
+- Count of warranted items (total + by document + by matrix)
+- Any matrix parsing errors, missing docs, or severe conflicts detected
 
 [[END:PROTOCOL]]
 
@@ -164,29 +210,24 @@ Report:
 
 A run is valid only if:
 - Every cell of every matrix A, B, C, F, D, X, E is processed as a lens, and
-- `_SEMANTIC_LENSING.md` includes an explicit “No warranted items” entry for any lens that produced none.
+- `_SEMANTIC_LENSING.md` includes a **Lens Coverage** entry for each `LensKey` with:
+  - `CoverageStatus` (`NO_ITEMS|HAS_ITEMS|MATRIX_ERROR`), and
+  - `ItemCount` (0 permitted).
 
 ### S2 — No-invention constraint
 
-A recorded item must be one of:
-- Perspective statement with provenance, or
-- A conflict statement grounded in at least two cited contenders, or
+A recorded warranted item must be one of:
+- Gap / normalization / weak-statement item with provenance, or
+- A conflict grounded in at least two cited contenders, or
 - A question-to-answer (`Type=TBD_Question`) with rationale and where to look.
 
-No speculation or baseless assumptions.  Use "TBD" instead, to draw the human's attention to the matter.
+No speculation or baseless assumptions. Use `TBD` instead, to draw the human's attention.
 
 ### S3 — Provenance constraint
 
-Every recorded item MUST be placed in the appropriate Matrix table following this format:
-- Matrix lensing output table format:
-    - The first column is the Matrix name
-    - Second column is the Row label
-    - Third column is the Column label
-    - Fourth column is the corresponding lens
-    - Fifth column is to be the perspective given by applying the lens to the content of the 4 Documents
-    - Sixth column is to be the brief justification for why the perspective recorded in the fifth column is justified
-    - Seventh column is to be for identifying from which of the 4 Documents does this perspective apply (can be one or several)
-    - Eight column is to be for identifying where in the particular Document this perspective is applicable (can be a locality or the entirety)
+Every warranted item MUST include:
+- `SourcePath` (file path(s)), and
+- best-effort `SectionRef` (heading anchor; or `location TBD` / `entire document scanned`).
 
 ### S4 — Human decision rights preserved
 
@@ -202,11 +243,9 @@ Instead:
 ### S5 — Output stability
 
 The output must be:
-- Deterministically structured
-- Easy for a future agent to consume
-- Organized in the specified markdown table format.
-
----
+- deterministically structured (stable ordering),
+- easy for a future agent to consume,
+- consistent with STRUCTURE tables (no alternate table formats).
 
 [[END:SPEC]]
 
@@ -215,23 +254,26 @@ The output must be:
 [[BEGIN:STRUCTURE]]
 ## STRUCTURE — Output File Schema (`_SEMANTIC_LENSING.md`)
 
-### File header
+### File header (required)
 
 ```markdown
 # Semantic Lensing Register: [DEL-ID] [Deliverable Name]
 
 **Generated:** [YYYY-MM-DD]
+**Deliverable Folder:** [path]
+**Warnings:** [optional; e.g., MISSING_DOC, MATRIX_ERROR]
+
 **Inputs Read:**
 - _CONTEXT.md — [SourceRef]
 - _STATUS.md — [SourceRef]
 - _SEMANTIC.md — [SourceRef]
-- Datasheet.md — [SourceRef]
-- Specification.md — [SourceRef]
-- Guidance.md — [SourceRef]
-- Procedure.md — [SourceRef]
+- Datasheet.md — [SourceRef or “missing”]
+- Specification.md — [SourceRef or “missing”]
+- Guidance.md — [SourceRef or “missing”]
+- Procedure.md — [SourceRef or “missing”]
 - _REFERENCES.md — [SourceRef or “not present / not read”]
 
-**Purpose:** Apply CHIRALITY_FRAMEWORK matrix cells as lenses over the 4 Documents, capturing warranted enrichment inputs for a later 4_DOCUMENTS enrichment pass.
+**Purpose:** Apply CHIRALITY_FRAMEWORK matrix cells as lenses over the 4 Documents, capturing warranted enrichment inputs for a later enrichment pass.
 ```
 
 ### Summary block (required)
@@ -247,51 +289,78 @@ The output must be:
   - Procedure: n
 - By matrix:
   - A: n  B: n  C: n  F: n  D: n  X: n  E: n
+- By type:
+  - Conflict: n
+  - VerificationGap: n
+  - MissingSlot: n
+  - WeakStatement: n
+  - RationaleGap: n
+  - Normalization: n
+  - TBD_Question: n
+  - MatrixError: n
 - Notable conflicts: n
 - Matrix parse errors: n
 ```
 
-### Matrix sections
+### Matrix sections (required)
 
 For each matrix M in this order: **A, B, C, F, D, X, E**:
 
 ```markdown
 ## Matrix M — [Matrix Name]
 
-### Lens: M:[RowLabel]:[ColLabel]
-**LensValue:** “[cell value from _SEMANTIC.md]”
+### Lens Coverage (required)
+| LensKey | RowLabel | ColLabel | LensValue | ItemCount | CoverageStatus | Notes |
+|---|---|---|---|---:|---|---|
+| M:[r]:[c] | r | c | ... | 0 | NO_ITEMS | ... |
 
-#### Warranted items
-| ItemID | Type | AppliesToDoc | CandidateInfo | WhyWarranted | SourcePath | SectionRef | Contenders | ProposedAuthority (PROPOSAL) | HumanRuling |
-|---|---|---|---|---|---|---|---|---|---|
-| M-001 | MissingSlot \| WeakStatement \| Conflict \| VerificationGap \| RationaleGap \| Normalization \| TBD_Question \| MatrixError | Datasheet \| Specification \| Guidance \| Procedure \| Multi | ... | ... | ... | ... | ... | (optional) | (optional) | TBD |
+CoverageStatus enum:
+- NO_ITEMS
+- HAS_ITEMS
+- MATRIX_ERROR
+
+### Warranted Items (only if any exist for this matrix)
+| ItemID | LensKey | Type | AppliesToDoc | SuggestedEditDoc | CandidateInfo | WhyWarranted | SourcePath | SectionRef | Contenders | ProposedAuthority (PROPOSAL) | HumanRuling |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A-001 | A:[r]:[c] | VerificationGap | Specification | Specification | Add acceptance criteria for ... | ... | ... | ... | ... | ... | TBD |
 ```
 
-**Column requirements:**
-- `ItemID`: unique within the file (prefix with matrix letter, e.g., `A-001`)
-- `Type`: one of the enums shown
-- `AppliesToDoc`: one or `Multi`
+#### Column requirements (Warranted Items)
+
+- `ItemID`: unique within the file (recommend `A-001`, `A-002`, ..., then `B-001`, etc.)
+- `LensKey`: `M:[RowLabel]:[ColLabel]`
+- `Type` (enum):
+  - `MissingSlot`
+  - `WeakStatement`
+  - `Conflict`
+  - `VerificationGap`
+  - `RationaleGap`
+  - `Normalization`
+  - `TBD_Question`
+  - `MatrixError`
+- `AppliesToDoc`: where the issue is observed (`Datasheet|Specification|Guidance|Procedure|Multi|NA`)
+- `SuggestedEditDoc`: where a later enrichment pass should *prefer* to place the fix (`Datasheet|Specification|Guidance|Procedure|Multi|TBD`)
 - `CandidateInfo`: short, enrichment-ready phrasing (not full prose); may include “TBD: …” question wording
 - `WhyWarranted`: 1–2 sentences explaining gap/conflict/leverage
 - `SourcePath`: file path(s)
-- `SectionRef`: best-effort headings; use “location TBD” if needed
-- `Contenders`: only for conflicts; include two+ “path#section” entries
-- `ProposedAuthority`: only a proposal; never authoritative
+- `SectionRef`: best-effort headings; use “location TBD” or “entire document scanned” if needed
+- `Contenders`: only for conflicts; include two+ `path#section` entries
+- `ProposedAuthority`: PROPOSAL only; never authoritative
 - `HumanRuling`: always `TBD` unless a human has already ruled elsewhere (then cite where)
 
-#### No warranted items case (required)
-If no items exist for a lens, you MUST still write:
+#### SuggestedEditDoc heuristic (non-authoritative)
 
-```markdown
-#### Warranted items
-_No warranted items identified for this lens._
-```
+Use the least-surprising placement guidance:
+- `VerificationGap` → `Specification` (and/or `Procedure` if the missing item is an execution check)
+- `RationaleGap` → `Guidance`
+- `Normalization` → usually `Guidance` (vocabulary note) + wherever the term appears
+- `WeakStatement` → same doc where it appears, unless it belongs elsewhere by role
+- `MissingSlot` → `TBD` or best-fit doc role
+- `Conflict` / `TBD_Question` / `MatrixError` → `NA` or `TBD` as applicable
 
 ### SourceRef convention
 
 Use file path + best-effort heading anchors (or “location TBD”) to record provenance. You are recording traceability, not claiming these sources “prove” the matrices.
-
----
 
 [[END:STRUCTURE]]
 
@@ -301,14 +370,14 @@ Use file path + best-effort heading anchors (or “location TBD”) to record pr
 ## RATIONALE — Why this agent exists
 
 - **Bridges semantic partitions to document enrichment.** `_SEMANTIC.md` provides structured semantic partitions; lensing translates that into actionable enrichment targets for the four documents.
-- **Reduces drift.** By capturing gaps/conflicts in one register, enrichment can be systematic rather than ad hoc.
+- **Reduces drift without rewriting.** The register captures only what is warranted, avoiding restatement and minimizing semantic churn.
 - **Protects human authority.** Conflicts and consequential choices are surfaced for human ruling; the agent does not decide.
-- **Improves rerunnability.** When the documents evolve, this lensing register can be regenerated to reflect current gaps.
+- **Improves rerunnability.** When documents evolve, the register can be regenerated to reflect current gaps and conflicts with stable coverage accounting.
 
 **Value hierarchy:**
 1) Provenance + no invention  
 2) Cross-document consistency support  
 3) Coverage completeness across all matrix cells  
-4) Density and usability of CandidateInfo for downstream enrichment  
+4) Density and usability of `CandidateInfo` for downstream enrichment  
 
 [[END:RATIONALE]]

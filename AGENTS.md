@@ -20,17 +20,18 @@ This file is the operator-facing index and “rules of the road” for using the
 ### Project Decomposition
 - A project that lacks structure cannot be effectively worked on by agents.
 - Project decomposition is what initiates all other agentic workflows.
+- **Decomposition invariant:** Projects are always decomposed as **Packages containing Deliverables**.
 - Use **PROJECT_DECOMP** to create a decomposition from a messy Scope of Work (SOW).
 - The project decomposition file is located here:
 
-`/Users/ryan/ai-env/projects/chirality-app-test/test/execution-*/_Decomposition/`
+`{EXECUTION_ROOT}/_Decomposition/`
 
 ### Filesystem is the state
 - Project “truth” is what is on disk: folders + `_STATUS.md` + the four documents.
 - Agents must not maintain a hidden database or private state that diverges from the filesystem.
 
 ### Deliverables (working-items) are local
-- A **deliverable** (`DEL-xx.yy`) is one folder under `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-*/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`.
+- A **deliverable** (`DEL-XXX-YY`) is one folder under `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`.
 - Work inside that folder is **local**: no cross-deliverable “crosstalk” by default.
 
 ### Local lifecycle (not stage gates)
@@ -45,7 +46,8 @@ Deliverables progress through a local lifecycle:
 ### Cross-deliverable operations are opt-in and human-triggered
 - **RECONCILIATION**: coherence checks across a human-defined scope (read-only deliverables) → writes under `execution/_Reconciliation/`.
 - **AGGREGATION**: synthesis/collection across a human-defined scope (read-only inputs by default) → writes under `execution/_Aggregation/`.
-- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only deliverables) → writes under `execution/_Estimates/`.
+- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only deliverables) → writes under `execution/_Estimates/`. Runs are parameterized by `BASIS_OF_ESTIMATE` (QUOTE | RATE_TABLE | HISTORICAL | PARAMETRIC | ALLOWANCE). No agent-authored BOE is required by default.
+- **SCHEDULING**: parameterized schedule generation from the dependency graph (read-only deliverables) → writes under `execution/_Schedule/`. Supports PRECEDENCE, CONSTRAINT, or HYBRID scheduling basis.
 
 ---
 
@@ -74,10 +76,11 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **4_DOCUMENTS** | TASK | spawned | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
 | **AGGREGATION** | TASK | spawned | Snapshots in `_Aggregation/` |
 | **AUDIT_AGENTS** | TASK | spawned | Agent state report |
+| **AUDIT_DECOMP** | TASK | spawned | `Decomp-Coverage_Report.md`, `Decomp-Coverage_IssueLog.csv`, `Decomp-Coverage_Matrix.csv`, and `coverage_summary.json` |
 | **AUDIT_DEPENDENCIES** | TASK | spawned | Dependencies state report |
 | **CHANGE** | PERSONA | chat | Git state report; optional git actions after explicit approval |
 | **CHIRALITY_FRAMEWORK** | TASK | spawned | `_SEMANTIC.md`, `_STATUS.md` |
-| **CHIRALITY_LENS** | TASK | spawned | `_SEMANTIC_LENSING.md`, `_STATUS.md` |
+| **CHIRALITY_LENS** | TASK | spawned | `_SEMANTIC_LENSING.md` |
 | **DEPENDENCIES** | TASK | spawned | `_DEPENDENCIES.md`, `Dependencies.csv` |
 | **ESTIMATING** | TASK | spawned | Estimate snapshots in `_Estimates/` |
 | **HELP_HUMAN** | PERSONA | chat | Briefs, checklists, interpretations, next-step recommendations |
@@ -87,27 +90,10 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **PROJECT_CONTROLS** | PERSONA | chat | Project controls register, decision capture, run plans |
 | **PROJECT_DECOMP** | PERSONA | chat | Decomposition document |
 | **RECONCILIATION** | PERSONA | chat | Reports in `_Reconciliation/` |
+| **SCHEDULING** | PERSONA | chat | Schedule structure, duration model, Gantt (Mermaid + CSV), critical path / risk report in `_Schedule/` — parameterized by `BASIS_OF_SCHEDULE` (PRECEDENCE / CONSTRAINT / HYBRID) |
 | **TASK_SETUP** | TASK | spawned | Initialized agent instructions specific to the deliverable |
 | **WORKING_ITEMS** | PERSONA | chat | User defined output |
 
-### When to use which class
-
-**Persona agents** — Use when you need an interactive session:
-- `PROJECT_DECOMP`: Starting a new project from a messy SOW
-- `HELP_HUMAN`: Need help choosing the right next step
-- `ORCHESTRATOR`: Initializing workspace, scanning status, spawning sub-agents
-- `PROJECT_CONTROLS`: Interactive control plane; invokes Type 2 pipelines
-- `WORKING_ITEMS`: Production work on a specific deliverable (human-in-the-loop)
-- `HELPS_HUMANS`: Workflow design standard for writing/maintaining agent instructions
-
-**Task agents** — Use for pipeline work 
-- `PREPARATION`: Scaffolding folders and metadata
-- `4_DOCUMENTS`: Generating initial drafts
-- `CHIRALITY_FRAMEWORK`: Generating semantic lenses 
-- `DEPENDENCIES`: Discovering dependencies from content 
-- `AGGREGATION`: Cross-file rollups and synthesis 
-- `CHANGE`: Git state review and optional actions with explicit approval
-- `ESTIMATING`: Cost estimate snapshots
 
 ---
 

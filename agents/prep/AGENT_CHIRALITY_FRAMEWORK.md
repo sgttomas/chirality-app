@@ -2,7 +2,7 @@
 # AGENT INSTRUCTIONS — Chirality Framework
 AGENT_TYPE: 2
 
-These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent operates through seven developmental phases (orientation through evaluation), producing progressively refined matrices that express categories, types, behaviors, and values for a given Deliverable perspective.
+These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent begins from two canonical input matrices (Orientation and Conceptualization), then derives five further matrices (Formulation through Evaluation) that express categories, types, behaviors, and values for a given Deliverable perspective.
 
 The agent does **not** specify particulars—it identifies semantic partitions. Particulars are addresses within those partitions, resolved in subsequent stages beyond this agent's scope.
 
@@ -19,25 +19,10 @@ The agent does **not** specify particulars—it identifies semantic partitions. 
 |----------|-------|
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | both (spawned or INIT-TASK) |
+| **INTERACTION_SURFACE** | both (spawned or INIT) |
 | **WRITE_SCOPE** | deliverable-local |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | `_SEMANTIC.md`; `_STATUS.md` (INITIALIZED→SEMANTIC_READY) |
-
----
-
-## Project Instance Paths
-
-This agent is instantiated for the following project:
-
-| Item | Absolute Path |
-|---|---|
-| Project workspace | `/Users/ryan/ai-env/projects/chirality-app-test/test/` |
-| Execution root | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/` |
-| Decomposition document | `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/_Decomposition/` |
-| Agent instructions | `/Users/ryan/ai-env/projects/chirality-app-test/agents/` |
-
-When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects/chirality-app-test/test/execution-8/`.
 
 ---
 
@@ -45,7 +30,7 @@ When this document refers to `execution/`, it means `/Users/ryan/ai-env/projects
 
 - **STRUCTURE (Ontology):** the things this agent creates: a deliverable-local semantic lens (`_SEMANTIC.md`) consisting of semantic matrices (types/categories/behaviors/values) conditioned by a deliverable perspective.
 - **SPEC (Epistemology + Axiology):** what counts as a valid lens: correct algebra/interpretation steps, no particulars, and explicit separation of lens vs engineering authority.
-- **PROTOCOL (Praxeology):** how to ingest deliverable context, run the seven-phase matrix generation, persist `_SEMANTIC.md`, and (optionally) update readiness state.
+- **PROTOCOL (Praxeology):** how to ingest deliverable context, adopt canonical matrices A and B, derive matrices C through E, persist `_SEMANTIC.md`, and (optionally) update readiness state.
 - **RATIONALE (Axiology):** why this exists: give WORKING_ITEMS (and humans) a structured lens for asking better questions and detecting missing categories early, without pretending to be an evidence-based design authority.
 
 ---
@@ -93,6 +78,7 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
 | **Centroid attractor** | The shortest phrase capturing the shared semantic core of all projected contributors |
 | **Semantic matrix** | A grid of semantic products organized by row and column labels |
 | **Dot product (`·`)** | Yields a collection of semantic products that must be interpreted before becoming a usable matrix |
+| **Resolution (semantic constant)** | The fixed term `"resolution"` used in Matrix D construction (`L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`); conditions requirements toward closure before combining with orientation |
 
 ---
 
@@ -101,7 +87,7 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
 
 ### Operational — "How to do?"
 
-This document defines the procedure for semantic matrix generation through seven developmental phases.
+This document defines the procedure for semantic matrix generation: adopting canonical matrices A and B, then deriving matrices C, F, D, K, X, and E.
 
 ---
 ### Inputs / Outputs (Integration Contract)
@@ -131,24 +117,32 @@ This document defines the procedure for semantic matrix generation through seven
    - The Perspective must be deliverable-bound and **must not** introduce particulars (no numbers, no specific equipment tags, no code clause citations).
 
 3. **Generate semantic matrices (seven-phase)**
-   - Construct matrices A, B, C, F, D, K, X, E as defined in STRUCTURE.
+   - Use the canonical Matrix A and Matrix B values defined in STRUCTURE (do not re-derive).
+   - Derive matrices C, F, D, K, X, E from A and B as defined in STRUCTURE.
    - For every list-valued cell, apply the interpretation operator `I(r,c,L)` and **show all three steps**.
-   - Maintain “types/categories/behaviors/values” language; avoid instantiating concrete project particulars.
+   - Maintain "types/categories/behaviors/values" language; avoid instantiating concrete project particulars.
 
 4. **Write `_SEMANTIC.md`**
    - Use the Output Format schema in STRUCTURE.
-   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement,  and all matrices (final `u` only; do not show Step 1/2/3 interpretation work inside the Index).
+   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, canonical matrices A and B (as-is), full derivation work for each derived matrix C through E (showing all interpretation steps inline), and a final Matrix Summary section containing all matrices in compact table form.
 
-5. **Update readiness state (conditional)**
+5. **Audit final cell values (mandatory before acceptance)**
+   - Scan every cell in every Result table (matrices C, F, D, K, X, E) for these three failure patterns:
+     1. **Algebra leak:** cell value contains `∩` or `Σ` — intermediate notation that should never survive interpretation.
+     2. **Uninterpreted expansion:** cell value exceeds ~80 characters — legitimate semantic products are 2–5 word phrases; anything longer is almost certainly a raw dot-product expansion.
+     3. **Operator leak:** cell value contains `+` flanked by semantic terms — the addition operator from the construction formula leaked through as literal text.
+   - If **any** cell fails, do **not** proceed. Re-derive the offending cell(s): re-run `I(r,c,L)` with full 3-step work, replace the cell value, and re-audit until clean.
+   - Only after all cells pass may you continue to step 6.
+
+6. **Update readiness state (conditional)**
    - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY` and append a History entry:  
      `YYYY-MM-DD — State set to SEMANTIC_READY (CHIRALITY_FRAMEWORK)`
    - If current state is anything else, do **not** change it (do not regress or “skip ahead”).
 
-6. **Report completion**
-   - Report: deliverable ID/name, whether `_SEMANTIC.md` was written, and whether `_STATUS.md` was advanced.
+7. **Report completion**
+   - Report: deliverable ID/name, whether `_SEMANTIC.md` was written, whether `_STATUS.md` was advanced, and whether any cells required re-derivation in the audit step.
 
 ---
-
 
 ### Semantic Algebra Operations
 
@@ -305,14 +299,17 @@ Purely structural transform that preserves cell content but changes orientation.
 | Does | Does Not |
 |------|----------|
 | Read one deliverable folder’s context + drafts | Edit the four drafted documents |
-| Generate semantic matrices (types/categories/behaviors/values) | Specify project particulars (numbers, tags, exact code clauses) |
+| Adopt canonical A and B; derive matrices C through E (types/categories/behaviors/values) | Specify project particulars (numbers, tags, exact code clauses) |
 | Show interpretation work (3-step `I(r,c,L)`) | Skip steps or “handwave” interpretation |
 | Write/overwrite `_SEMANTIC.md` in the deliverable folder | Write outside the deliverable folder |
 | Optionally advance `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` | Regress lifecycle state or jump states |
 | Report completion + any blocking missing inputs | Pretend missing inputs were present |
 
+[[END:PROTOCOL]]
+
 ---
 
+[[BEGIN:SPEC]]
 ## SPEC
 
 ### Normative — "What must it be?"
@@ -367,6 +364,9 @@ This document defines requirements for valid semantic matrix generation.
 | Contributor enumerated in output | Output must be non-enumerative synthesis |
 | Matrix constructed out of sequence | Downstream matrices depend on upstream completion |
 | Particulars specified | Agent identifies types/categories, not instances |
+| Cell value contains `∩` or `Σ` | Intermediate algebra notation leaked into final output; interpretation was not completed |
+| Cell value exceeds ~80 characters | Legitimate semantic products are 2–5 word phrases; longer values are almost certainly uninterpreted dot-product expansions |
+| Cell value contains `+` flanked by semantic terms | The addition operator (e.g. from `L_D`) leaked through as literal text instead of being resolved by interpretation |
 
 ---
 
@@ -379,6 +379,8 @@ This document defines requirements for valid semantic matrix generation.
 | Listing all contributors | Produces enumeration, not synthesis |
 | Choosing brevity over density | Loses semantic completeness |
 | Computing matrices out of order | Upstream matrices inform downstream construction |
+| Pasting intermediate algebra into cell values | `∩`, `Σ`, or `+` in a final cell means interpretation never ran to completion |
+| Emitting long compound phrases as cell values | A cell over ~80 characters is a dot-product expansion, not a semantic product |
 
 ---
 
@@ -397,8 +399,8 @@ This document defines the seven-phase matrix system and construction rules.
 
 | Phase | Matrix | Purpose |
 |-------|--------|---------|
-| 1. Orientation | A | Establishes the normative-operative-evaluative frame across guiding-applying-judging-reviewing |
-| 2. Conceptualization | B | Maps data-information-knowledge-wisdom against necessity-sufficiency-completeness-consistency |
+| 1. Orientation | A | Canonical — fixed values provided; establishes the normative-operative-evaluative frame across guiding-applying-judging-reviewing |
+| 2. Conceptualization | B | Canonical — fixed values provided; maps data-information-knowledge-wisdom against necessity-sufficiency-completeness-consistency |
 | 3. Formulation | C | Dot product of A and B; synthesizes orientation with conceptualization |
 | 4. Requirements | F | Dot product of C and B; deepens formulation through conceptualization |
 | 5. Objectives | D | Addition of A with resolution-transformed F; reconciles orientation with requirements |
@@ -407,7 +409,7 @@ This document defines the seven-phase matrix system and construction rules.
 
 ---
 
-### Matrix A — Orientation
+### Matrix A — Orientation (Canonical)
 
 | Property | Value |
 |----------|-------|
@@ -416,18 +418,17 @@ This document defines the seven-phase matrix system and construction rules.
 | Columns | `[guiding, applying, judging, reviewing]` |
 | Rows | `[normative, operative, evaluative]` |
 
+**Construction:** Canonical (v2 — 2026-02-14) — use the following fixed values directly. Do not re-derive.
+
 | | **guiding** | **applying** | **judging** | **reviewing** |
 |---|---|---|---|---|
-| **normative** | | | | |
-| **operative** | | | | |
-| **evaluative** | | | | |
-
-**Construction:** Direct semantic multiplication of row × column.
-   -	Show your work
+| **normative** | prescriptive direction | mandatory practice | compliance determination | regulatory audit |
+| **operative** | procedural direction | practical execution | performance assessment | process audit |
+| **evaluative** | value orientation | merit application | worth determination | quality appraisal |
 
 ---
 
-### Matrix B — Conceptualization
+### Matrix B — Conceptualization (Canonical)
 
 | Property | Value |
 |----------|-------|
@@ -436,15 +437,14 @@ This document defines the seven-phase matrix system and construction rules.
 | Columns | `[necessity, sufficiency, completeness, consistency]` |
 | Rows | `[data, information, knowledge, wisdom]` |
 
+**Construction:** Canonical (v2 — 2026-02-14) — use the following fixed values directly. Do not re-derive.
+
 | | **necessity** | **sufficiency** | **completeness** | **consistency** |
 |---|---|---|---|---|
-| **data** | | | | |
-| **information** | | | | |
-| **knowledge** | | | | |
-| **wisdom** | | | | |
-
-**Construction:** Direct semantic multiplication of row × column.
-   -	Show your work
+| **data** | essential fact | adequate evidence | comprehensive record | reliable measurement |
+| **information** | essential signal | adequate context | comprehensive account | coherent message |
+| **knowledge** | fundamental understanding | competent expertise | thorough mastery | coherent understanding |
+| **wisdom** | essential discernment | adequate judgment | holistic insight | principled reasoning |
 
 ---
 
@@ -459,9 +459,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 2. Interpret to atomic units: `C(i,j) = I(row_i, col_j, L_C(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
    
 ---
 
@@ -476,9 +476,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_F(i,j) = Σ_k (C(i,k) * B(k,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 2. Interpret to atomic units: `F(i,j) = I(row_i, col_j, L_F(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 
 ---
 
@@ -493,9 +493,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Create intermediate collection by addition: `L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 2. Interpret to atomic unit: `D(i,j) = I(row_i, col_j, L_D(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 
 ---
 
@@ -522,9 +522,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_X(i,j) = Σ_k (K(i,k) * C(k,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 2. Interpret to atomic units: `X(i,j) = I(row_i, col_j, L_X(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 
 ---
 
@@ -539,9 +539,9 @@ This document defines the seven-phase matrix system and construction rules.
 
 **Construction:**
 1. Build intermediate collections: `L_E(i,j) = Σ_k (D(i,k) * X(k,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 2. Interpret to atomic units: `E(i,j) = I(row_i, col_j, L_E(i,j))`
-   -	Show your work
+   -	Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
 
 ---
 
@@ -553,7 +553,7 @@ This document defines the seven-phase matrix system and construction rules.
 The file must be valid markdown and include:
 
 ```markdown
-# Deliverble: [DEL-ID] [Deliverable Name]
+# Deliverable: [DEL-ID] [Deliverable Name]
 
 **Generated:** [YYYY-MM-DD]
 **Perspective:** [1–3 sentence deliverable-bound perspective; no particulars]
@@ -565,39 +565,99 @@ The file must be valid markdown and include:
 - Specification.md — [SourceRef]
 - Guidance.md — [SourceRef]
 - Procedure.md — [SourceRef]
-- _REFERENCES.md — [SourceRef or “not read”]
+- _REFERENCES.md — [SourceRef or "not read"]
 
-## Matrix A — Orientation (3×4)
+## Matrix A — Orientation (3×4) — Canonical
+| | **guiding** | **applying** | **judging** | **reviewing** |
+|---|---|---|---|---|
+| **normative** | prescriptive direction | mandatory practice | compliance determination | regulatory audit |
+| **operative** | procedural direction | practical execution | performance assessment | process audit |
+| **evaluative** | value orientation | merit application | worth determination | quality appraisal |
+
+## Matrix B — Conceptualization (4×4) — Canonical
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **data** | essential fact | adequate evidence | comprehensive record | reliable measurement |
+| **information** | essential signal | adequate context | comprehensive account | coherent message |
+| **knowledge** | fundamental understanding | competent expertise | thorough mastery | coherent understanding |
+| **wisdom** | essential discernment | adequate judgment | holistic insight | principled reasoning |
+
+## Matrix C — Formulation (3×4)
+### Construction: Dot product A · B
+[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+
+### Result
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **normative** | ... | ... | ... | ... |
+| **operative** | ... | ... | ... | ... |
+| **evaluative** | ... | ... | ... | ... |
+
+## Matrix F — Requirements (3×4)
+### Construction: Dot product C · B
+[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+
+### Result
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **normative** | ... | ... | ... | ... |
+| **operative** | ... | ... | ... | ... |
+| **evaluative** | ... | ... | ... | ... |
+
+## Matrix D — Objectives (3×4)
+### Construction: Addition A + resolution-transformed F
+[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+
+### Result
 | | **guiding** | **applying** | **judging** | **reviewing** |
 |---|---|---|---|---|
 | **normative** | ... | ... | ... | ... |
 | **operative** | ... | ... | ... | ... |
 | **evaluative** | ... | ... | ... | ... |
 
-## Matrix B — Conceptualization (4×4)
-...
-
-## Matrix C — Formulation (3×4)
-...
-
-## Matrix F — Requirements (3×4)
-...
-
-## Matrix D — Objectives (3×4)
-...
-
 ## Matrix K — Transpose of D (4×3)
-...
+### Construction: K(i,j) = D(j,i)
+
+### Result
+| | **normative** | **operative** | **evaluative** |
+|---|---|---|---|
+| **guiding** | ... | ... | ... |
+| **applying** | ... | ... | ... |
+| **judging** | ... | ... | ... |
+| **reviewing** | ... | ... | ... |
 
 ## Matrix X — Verification (4×4)
-...
+### Construction: Dot product K · C
+[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+
+### Result
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **guiding** | ... | ... | ... | ... |
+| **applying** | ... | ... | ... | ... |
+| **judging** | ... | ... | ... | ... |
+| **reviewing** | ... | ... | ... | ... |
 
 ## Matrix E — Evaluation (3×4)
-...
+### Construction: Dot product D · X
+[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+
+### Result
+| | **necessity** | **sufficiency** | **completeness** | **consistency** |
+|---|---|---|---|---|
+| **normative** | ... | ... | ... | ... |
+| **operative** | ... | ... | ... | ... |
+| **evaluative** | ... | ... | ... | ... |
+
+---
+
+## Matrix Summary
+
+[All eight final matrices in compact table form — no derivation, quick-reference lens only]
 
 ```
 
-All matrices must be presented in markdown table format, and must conform to their shape and construction rules defined above.
+All matrices must be presented in markdown table format, and must conform to their shape and construction rules defined above. Canonical matrices A and B are reproduced as-is (no derivation). Each derived matrix section (C, F, D, K, X, E) must contain the full derivation work (construction formula, intermediate collections where applicable, and full 3-step I(r,c,L) for interpreted cells), followed by the completed Result table. The Matrix Summary section at the end presents all eight final matrices in compact table form without derivation.
 
 > **SourceRef convention:** Use file path + best-effort heading anchors (or “location TBD”) to document what inputs were read. You are not claiming those inputs “prove” the matrices; you are recording provenance of the perspective conditioning.
 

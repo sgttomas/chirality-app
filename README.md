@@ -20,6 +20,7 @@ Every project starts with a **decomposition document** produced by PROJECT_DECOM
 - **Scope Ledger** — Machine-checkable table mapping every scope item to exactly one Package and (best-effort) to Deliverables
 - **Packages** — Flat partitions of scope (no nesting; no overlaps; no gaps)
 - **Deliverables** — Units of production within each Package, with types, responsibilities, and anticipated Artifacts
+- **Decomposition invariant** — Decomposition is always organized as **Packages containing Deliverables**. Optional mappings (objectives, hints, etc.) must preserve this grouping.
 - **Objectives** — Success criteria derived from scope, mapped to supporting Deliverables
 - **Vocabulary Map** — Canonical terms and synonyms to prevent semantic drift
 - **Coverage & Telemetry** — Metrics summary (counts, gaps, open issues) that makes decomposition quality measurable across revisions
@@ -94,18 +95,19 @@ Each deliverable folder contains:
         ├── _REFERENCES.md       # Source document pointers
         ├── _DEPENDENCIES.md     # Dependency summary + run notes
         ├── Dependencies.csv     # Structured dependency register (v3.1 schema)
-        ├── MEMORY.md            # Working memory (shared by WORKING_ITEMS and TASK agents)
+        ├── _MEMORY.md           # Working memory (shared by WORKING_ITEMS and TASK agents; created by PREPARATION)
+        ├── MEMORY.md            # Optional compatibility pointer to _MEMORY.md (may exist; do not treat as canonical)
         ├── Datasheet.md         # Key parameters and data
         ├── Specification.md     # Technical requirements
         ├── Guidance.md          # Design guidance and rationale
         ├── Procedure.md         # Execution procedures
-        ├── _SEMANTIC.md         # Semantic lens (optional)
+        ├── _SEMANTIC.md         # Semantic lens with derivation work (optional)
         └── _SEMANTIC_LENSING.md # Semantic analysis (optional)
 ```
 
 Project-level outputs live in separate tool roots:
 - `execution-*/_Aggregation/` — Aggregation snapshots
-- `execution-*/_Estimates/` — Cost estimate snapshots
+- `execution-*/_Estimates/` — Cost estimate snapshots (driven by `BASIS_OF_ESTIMATE`; no agent-authored BOE required by default)
 - `execution-*/_Reconciliation/` — Reconciliation reports, closure analysis
 - `execution-*/_Archive/` — Baseline snapshots with checksums
 - `execution-*/_Scripts/` — Deployment and analysis scripts
