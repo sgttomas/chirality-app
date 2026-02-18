@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-08,DEL-08-01,PROF-SCHED,CAD,2600,1,100,Scheduler hours for Gantt production and critical path
+PKG-08,DEL-08-01,PROF-PM,CAD,1400,1,100,PM coordination and review hours
+PKG-08,DEL-08-01,PROF-CM,CAD,620,1,100,CM construction sequencing input
+PKG-08,DEL-08-01,TOTAL,CAD,4620,3,100,Deliverable total -- all lines priced with full provenance

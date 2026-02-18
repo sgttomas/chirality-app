@@ -1,0 +1,16 @@
+TradeID,Trade,HourlyRate_CAD,BurdenMultiplier,FullyBurdenedRate_CAD,Basis,Confidence,Notes
+T-01,General Labourer,38,1.45,55,MARKET,MEDIUM,Alberta prevailing; includes benefits/WCB/overhead
+T-02,Carpenter,50,1.44,72,MARKET,MEDIUM,Journeyman rate; forming + framing
+T-03,Ironworker (Structural),54,1.44,78,MARKET,MEDIUM,Steel erection; reinforcing
+T-04,Concrete Finisher,47,1.45,68,MARKET,MEDIUM,Flatwork + slab finishing
+T-05,Plumber / Pipefitter,57,1.44,82,MARKET,MEDIUM,Mechanical rough-in + fixtures
+T-06,Sheet Metal Worker,54,1.44,78,MARKET,MEDIUM,HVAC ductwork
+T-07,Electrician (Journeyman),55,1.45,80,MARKET,MEDIUM,Power + lighting + low voltage
+T-08,Heavy Equipment Operator,52,1.44,75,MARKET,MEDIUM,Excavator; loader; grader
+T-09,Light Equipment Operator,45,1.44,65,MARKET,MEDIUM,Skid steer; compactor; small excavator
+T-10,Insulator,50,1.44,72,MARKET,MEDIUM,Mechanical + building envelope insulation
+T-11,Roofer,45,1.44,65,MARKET,MEDIUM,Metal roof installation
+T-12,Painter,42,1.43,60,MARKET,MEDIUM,Interior/exterior finishes
+T-13,Millwright,55,1.45,80,MARKET,MEDIUM,Equipment installation + alignment
+T-14,Crane Operator (Mobile),58,1.48,86,MARKET,MEDIUM,Steel erection support; equipment setting
+T-15,Surveyor / Instrument Person,48,1.44,69,MARKET,MEDIUM,Layout + as-built survey

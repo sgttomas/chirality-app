@@ -1,0 +1,21 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-08,DEL-08-01,WBS Development - Define 6 major phases and Level 2/3 breakdown (50-150 activities),8,HR,125,1000,CAD,ALLOWANCE,A-001;A-005,MED,Scheduler: ~8 hrs for WBS structure per typical Design-Build phasing
+L-002,E,PKG-08,DEL-08-01,Duration Assignment - Research and assign durations to all activities using historical benchmarks,12,HR,125,1500,CAD,ALLOWANCE,A-001;A-006,MED,Scheduler: ~0.1 hrs per activity for 100 activities + benchmarking research
+L-003,E,PKG-08,DEL-08-01,Dependency Logic - Establish predecessor/successor relationships and sequencing,8,HR,125,1000,CAD,ALLOWANCE,A-001;A-007,MED,Scheduler: dependency mapping for CPM schedule
+L-004,E,PKG-08,DEL-08-01,Critical Path Analysis - Calculate and verify critical path in scheduling software,4,HR,125,500,CAD,ALLOWANCE,A-001;A-008,MED,Scheduler: CPM calculation and verification
+L-005,E,PKG-08,DEL-08-01,Gantt Chart Production - Format and export detailed schedule to PDF,4,HR,125,500,CAD,ALLOWANCE,A-001;A-009,MED,Scheduler: visual formatting and export for proposal
+L-006,E,PKG-08,DEL-08-01,Milestone Summary - Extract and document 12-15 key milestones with target dates and float,4,HR,125,500,CAD,ALLOWANCE,A-001;A-010,MED,Scheduler: milestone extraction and table formatting
+L-007,E,PKG-08,DEL-08-01,Critical Path Narrative - Draft 1-2 page narrative explaining critical path and float management,6,HR,125,750,CAD,ALLOWANCE,A-001;A-011,MED,Scheduler: technical writing for critical path explanation
+L-008,E,PKG-08,DEL-08-01,Schedule Assumptions Document - Compile weather/permitting/procurement/commissioning assumptions,6,HR,125,750,CAD,ALLOWANCE,A-001;A-012,MED,Scheduler: consolidate all assumptions from Steps 2-5 per Procedure
+L-009,E,PKG-08,DEL-08-01,Addendum 03 Integration - Document survey post-award constraint and pickled sand removal impacts,2,HR,125,250,CAD,ALLOWANCE,A-001;A-013,MED,Scheduler: addenda compliance documentation per REQ-SCH-009
+L-010,PM,PKG-08,DEL-08-01,Coordination with DEL-05-01/02 (Pricing) - Align schedule duration with general conditions and escalation,3,HR,140,420,CAD,ALLOWANCE,A-003;A-014,MED,Technical Lead + Estimator coordination per REQ-SCH-010
+L-011,PM,PKG-08,DEL-08-01,Coordination with DEL-04-01 (Construction Methodology) - Verify sequencing alignment,2,HR,140,280,CAD,ALLOWANCE,A-003;A-015,MED,Technical Lead + Construction Manager coordination
+L-012,PM,PKG-08,DEL-08-01,Coordination with DEL-06-01 (Commissioning Narrative) - Verify commissioning phase duration,2,HR,140,280,CAD,ALLOWANCE,A-003;A-016,MED,Technical Lead + Commissioning Lead coordination per REQ-SCH-005
+L-013,PM,PKG-08,DEL-08-01,Coordination with DEL-09-01 (Risk Register) - Align schedule buffers with identified risks,2,HR,140,280,CAD,ALLOWANCE,A-003;A-017,MED,Technical Lead + Risk Manager coordination per REQ-SCH-011
+L-014,PM,PKG-08,DEL-08-01,Coordination with DEL-02-01 (Concept Design) - Verify scope alignment,1,HR,140,140,CAD,ALLOWANCE,A-003;A-018,MED,Technical Lead + Architect scope verification per F-003
+L-015,PM,PKG-08,DEL-08-01,Internal QA Peer Review - Duration reasonableness check against historical norms (per REQ-SCH-002),4,HR,150,600,CAD,ALLOWANCE,A-002;A-019,MED,Senior Scheduler/PM peer review per X-002
+L-016,PM,PKG-08,DEL-08-01,Dependency Logic Verification - Peer review of CPM logic per D-004 requirement,2,HR,150,300,CAD,ALLOWANCE,A-002;A-020,MED,Senior Scheduler verification per Step 4.4a
+L-017,PM,PKG-08,DEL-08-01,Specification Compliance Check - Verify REQ-SCH-000 through REQ-SCH-012,3,HR,150,450,CAD,ALLOWANCE,A-002;A-021,MED,Senior PM verification of all specification requirements
+L-018,PM,PKG-08,DEL-08-01,Final Review and Sign-off - Proposal Manager approval before submission,2,HR,150,300,CAD,ALLOWANCE,A-002;A-022,MED,Final gatekeeping sign-off per Step 10
+L-019,E,PKG-08,DEL-08-01,Revisions and Rework - Address peer review comments and coordination feedback,6,HR,125,750,CAD,ALLOWANCE,A-001;A-023,LOW,Estimated 20% of development effort for revisions
+L-020,CONT,PKG-08,DEL-08-01,Contingency - 15% of base estimate for uncertainty,1,LS,1500,1500,CAD,ALLOWANCE,D-004;R-001,MED,PCT_BY_BUCKET method at 15% of CAD 9750 base

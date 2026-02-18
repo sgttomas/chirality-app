@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-01,03-DESIGN,CAD,13500,1,100,Civil engineering design fees — DEL-03-01 share (30% of total civil design fee per ASM-001)
+PKG-003,DEL-03-01,03-SURVEY,CAD,5000,1,100,Construction survey and staking — initial site layout share per ASM-002
+PKG-003,DEL-03-01,TOTAL,CAD,18500,2,100,Total DEL-03-01 estimate

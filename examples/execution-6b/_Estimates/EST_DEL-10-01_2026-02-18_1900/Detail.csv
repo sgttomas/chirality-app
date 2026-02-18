@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF-PM,PKG-010,DEL-10-01,Project Manager -- risk identification; likelihood/impact assessment; mitigation strategy development,10,HR,175,1750,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-10-01/R-02 + Professional_Staff_Rates.csv R-02,MED,PM leads risk register compilation across all 6 categories (design; site/environmental; cost; schedule; procurement; permitting)
+L-002,PROF-CM,PKG-010,DEL-10-01,Construction Manager -- construction and schedule risk input,4,HR,155,620,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-10-01/R-15 + Professional_Staff_Rates.csv R-15,MED,CM provides construction-specific risk entries and reviews mitigation feasibility

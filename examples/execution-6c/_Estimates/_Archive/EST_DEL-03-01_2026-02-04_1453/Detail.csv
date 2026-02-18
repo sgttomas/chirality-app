@@ -1,0 +1,15 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+E-001,E,PKG-05,DEL-03-01,Design Manager/PM - Narrative Authoring (Steps 1-3),16,HR,175.00,2800.00,CAD,ALLOWANCE,A-001,MED,Primary author per Procedure.md; includes RFP review and content drafting
+E-002,E,PKG-05,DEL-03-01,Design Manager/PM - Cross-Deliverable Coordination (Step 4),4,HR,175.00,700.00,CAD,ALLOWANCE,A-001,MED,Coordination with DEL-04-01 DEL-08-01 DEL-03-02 per Procedure.md Step 4
+E-003,E,PKG-05,DEL-03-01,Design Manager/PM - Trade-off Analysis and Principle Application (Step 5),4,HR,175.00,700.00,CAD,ALLOWANCE,A-001,MED,Review Guidance.md principles T-01 through T-06 per Procedure.md Step 5
+E-004,E,PKG-05,DEL-03-01,Design Manager/PM - QC and Final Review (Steps 7-8),6,HR,175.00,1050.00,CAD,ALLOWANCE,A-001,MED,QC checklist completion and final approval per Procedure.md Steps 7-8
+E-005,E,PKG-05,DEL-03-01,Lead Architect Input - Design Process Requirements,4,HR,185.00,740.00,CAD,ALLOWANCE,A-002,MED,Professional seal requirements and design phases input per Procedure.md Prerequisites
+E-006,E,PKG-05,DEL-03-01,Discipline Leads Input - Coordination Procedures (4 disciplines avg 2 hr each),8,HR,165.00,1320.00,CAD,ALLOWANCE,A-003,MED,Civil/Structural/Mechanical/Electrical leads input per Procedure.md Prerequisites
+E-007,E,PKG-05,DEL-03-01,Construction Manager Input - Constructability Integration,3,HR,160.00,480.00,CAD,ALLOWANCE,A-004,MED,Coordination with DEL-04-01 and constructability reviews per Procedure.md Prerequisites
+E-008,E,PKG-05,DEL-03-01,Scheduler Input - Milestone Timing Alignment,2,HR,140.00,280.00,CAD,ALLOWANCE,A-005,MED,Design milestone durations alignment with DEL-08-01 per Procedure.md Prerequisites
+E-009,E,PKG-05,DEL-03-01,Graphics/CAD - Visual Aids Production (Step 6),8,HR,95.00,760.00,CAD,ALLOWANCE,A-006,LOW,Design process flowchart timeline diagram coordination matrix per Procedure.md Step 6
+E-010,E,PKG-05,DEL-03-01,Administrative/QC Support - Document Formatting and Review,4,HR,85.00,340.00,CAD,ALLOWANCE,A-007,MED,Formatting QC support proofreading
+PM-001,PM,PKG-05,DEL-03-01,Project Management Coordination Overhead,1,LS,1676.00,1676.00,CAD,ALLOWANCE,D-003,MED,15% overhead on direct engineering labor (11170 x 0.15)
+PM-002,PM,PKG-05,DEL-03-01,Stakeholder Review Cycles (2 cycles assumed),4,HR,175.00,700.00,CAD,ALLOWANCE,A-008,LOW,Internal review iterations before final approval
+CONT-001,CONT,PKG-05,DEL-03-01,Contingency - Engineering,1,LS,2234.00,2234.00,CAD,ALLOWANCE,D-004,LOW,20% contingency on E bucket (11170 x 0.20)
+CONT-002,CONT,PKG-05,DEL-03-01,Contingency - Project Management,1,LS,356.00,356.00,CAD,ALLOWANCE,D-004,LOW,15% contingency on PM bucket (2376 x 0.15)

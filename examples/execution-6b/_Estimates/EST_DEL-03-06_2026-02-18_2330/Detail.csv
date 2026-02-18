@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,DESIGN_BRIEF,PKG-003,DEL-03-06,Architect (Project) -- Accessibility per ABC; adaptability/expansion; cross-discipline coordination,8,hr,145,1160,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-03-06 R-04 + Professional_Staff_Rates.csv R-04,MEDIUM,SOW-0015 + SOW-0014 coverage; coordinating structural/mechanical input; single-role deliverable

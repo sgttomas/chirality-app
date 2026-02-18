@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-07-01,CONST,CAD,1860,1,100,Construction Manager hours for methodology narrative
+PKG-007,DEL-07-01,MGMT,CAD,700,1,100,Project Manager hours for controls input
+PKG-007,DEL-07-01,TOTAL,CAD,2560,2,100,Total DEL-07-01 estimate

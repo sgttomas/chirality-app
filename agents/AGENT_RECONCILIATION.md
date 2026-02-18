@@ -293,11 +293,22 @@ A RECONCILIATION cycle is valid when:
 
 ---
 
+## Output Persistence
+
+RECONCILIATION is a Type 1 persona agent. It does not produce immutable snapshots. Its durable filesystem artifacts are:
+
+- Reports in `{EXECUTION_ROOT}/_Reconciliation/` (via spawned Type 2 tasks)
+- Decision-ready guidance presented in conversation (human captures binding decisions)
+
+These artifacts persist in the filesystem and are git-tracked. RECONCILIATION does not maintain transient state outside of conversation context.
+
+---
+
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
 RECONCILIATION is governance-heavy: it needs human decision rights, evidence discipline, and careful routing.
 
-The no-autopilot + human-directed toolbelt rules keep reconciliation useful without turning it into an “all-powerful agent” that runs surprise workflows or expands scope.
+The no-autopilot + human-directed toolbelt rules keep reconciliation useful without turning it into an "all-powerful agent" that runs surprise workflows or expands scope.
 
 [[END:RATIONALE]]

@@ -1,0 +1,17 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-04,DEL-02-01,Site Concept Plan Development - Layout within 12-acre developable area including building placement orientation parking and circulation,1,LS,4500,4500,CAD,ALLOWANCE,A-007,MED,Includes CAD work coordination with flood zone mapping and service routing
+L-002,E,PKG-04,DEL-02-01,Concept Floor Plans Development - Fire Hall and Public Works zones with program fit verification,1,LS,8000,8000,CAD,ALLOWANCE,A-008,MED,Multiple floor plans for integrated facility; apparatus bays staff areas ICP
+L-003,E,PKG-04,DEL-02-01,Building Massing Study - 3D modeling of form scale and solar-ready roof design,1,LS,3500,3500,CAD,ALLOWANCE,A-009,MED,SketchUp or Revit massing model with perspective views
+L-004,E,PKG-04,DEL-02-01,Key Sections Development - Vertical relationships and 16 ft door height verification,1,LS,2500,2500,CAD,ALLOWANCE,A-010,MED,2-3 building sections showing apparatus bay heights exhaust space
+L-005,E,PKG-04,DEL-02-01,Key Elevations Development - All four building facades with material indication,1,LS,3000,3000,CAD,ALLOWANCE,A-011,MED,4 elevation drawings with annotations
+L-006,E,PKG-04,DEL-02-01,Concept Design Narrative - Design intent and Addendum 03 compliance documentation,1,LS,2500,2500,CAD,ALLOWANCE,A-012,MED,Written narrative covering program fit site concept technical requirements code compliance
+L-007,E,PKG-04,DEL-02-01,Addendum 03 Technical Requirements Integration - 16ft doors sumps exhaust generator fill stations solar-ready,1,LS,1500,1500,CAD,ALLOWANCE,A-013,MED,Technical coordination for specific addendum requirements
+L-008,E,PKG-04,DEL-02-01,Civil Engineering Coordination - Site grading drainage services routing input,1,LS,2000,2000,CAD,ALLOWANCE,A-014,LOW,Civil engineer coordination for site concept development
+L-009,E,PKG-04,DEL-02-01,Structural Engineering Coordination - Long-span bay structure and solar-ready roof provisions,1,LS,1500,1500,CAD,ALLOWANCE,A-015,LOW,Structural input for massing feasibility
+L-010,E,PKG-04,DEL-02-01,MEP Engineering Coordination - Generator sizing exhaust system HVAC space allocation,1,LS,2000,2000,CAD,ALLOWANCE,A-016,LOW,Mechanical electrical coordination for technical requirements
+L-011,E,PKG-04,DEL-02-01,Code Consultant Review - Building code occupancy egress accessibility compliance check,1,LS,1500,1500,CAD,ALLOWANCE,A-017,LOW,Code compliance spot-check at concept stage
+L-012,E,PKG-04,DEL-02-01,Internal QA and Cross-Deliverable Consistency Check,1,LS,1500,1500,CAD,ALLOWANCE,A-018,MED,Self-review and coordination with DEL-02-02 DEL-02-03 PKG-02
+L-013,E,PKG-04,DEL-02-01,Deliverable Assembly and PDF Export - Drawing set compilation and narrative formatting,1,LS,1000,1000,CAD,ALLOWANCE,A-019,HIGH,PDF export and file assembly for proposal submission
+L-014,E,PKG-04,DEL-02-01,Proposal Manager Coordination - Schedule and submission format alignment,1,LS,500,500,CAD,ALLOWANCE,A-020,HIGH,Coordination meetings and communication
+L-015,PM,PKG-04,DEL-02-01,Project Management - Design coordination and schedule management,1,LS,2000,2000,CAD,ALLOWANCE,A-021,MED,Lead Architect PM effort for deliverable
+L-016,CONT,PKG-04,DEL-02-01,Design Contingency - 15% on base estimate for scope uncertainty,1,LS,5700,5700,CAD,ALLOWANCE,D-004,MED,Contingency for TBDs including Appendix B access and Town setbacks

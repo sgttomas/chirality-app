@@ -1,0 +1,12 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+EC-01,Clearing,Site clearing and grubbing,acre,3500,5000,4200,PARAMETRIC,MEDIUM,Brush/tree removal; grubbing; assumes moderate vegetation on 12-acre site
+EC-02,Stripping,Topsoil stripping and stockpiling (on-site),m3,8,12,10,PARAMETRIC,MEDIUM,150-300mm depth; stockpiled for re-use
+EC-03,Excavation,Common excavation (cut to subgrade),m3,12,18,15,PARAMETRIC,MEDIUM,Native soils; no rock; load/haul/place
+EC-04,Fill,Engineered fill (imported granular; placed and compacted),m3,25,35,30,PARAMETRIC,MEDIUM,Pit-run or crushed gravel; 95% Proctor compaction
+EC-05,Fill,Building pad preparation (granular base; compacted),m2,18,28,22,PARAMETRIC,MEDIUM,300-450mm granular base; proof-rolled; tested
+EC-06,Compaction,Subgrade compaction (in-situ soils),m3,5,8,6,PARAMETRIC,MEDIUM,Proof-rolling + nuclear density testing
+EC-07,Erosion,Erosion and sediment control (construction phase),lump_sum,15000,30000,22000,PARAMETRIC,MEDIUM,Silt fence; sediment trap; inlet protection; maintenance; per Alberta ESC guidelines
+EC-08,Drainage,Surface drainage and swales,lm,45,70,55,PARAMETRIC,MEDIUM,Graded swale; rip-rap at outlets; no storm sewer (overland drainage per project)
+EC-09,Topsoil,Topsoil replacement and seeding (final grading),m2,8,14,11,PARAMETRIC,MEDIUM,150mm topsoil; hydroseed; per disturbed area
+EC-10,Geotechnical,Geotechnical investigation (additional; if required),lump_sum,25000,40000,32000,PARAMETRIC,MEDIUM,Not anticipated per DEC-013; existing 2021 report sufficient
+EC-11,Survey,Construction survey and staking,lump_sum,8000,15000,12000,PARAMETRIC,MEDIUM,Initial layout; progress surveys; as-built; for full site development

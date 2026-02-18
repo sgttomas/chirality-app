@@ -1,0 +1,17 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PM,PKG-01,DEL-01-02,Proposal Manager - Content Freeze and Timeline Coordination (Step 1),1,LS,800,800,CAD,ALLOWANCE,A-003,LOW,Estimated 4 hours at $200/hr; includes freeze communications and timeline documentation
+L-002,PM,PKG-01,DEL-01-02,Proposal Manager - Content File Collection and Verification (Step 2),1,LS,1200,1200,CAD,ALLOWANCE,A-004,LOW,Estimated 6 hours at $200/hr; 20+ deliverable files to collect and verify
+L-003,PM,PKG-01,DEL-01-02,Proposal Manager - RFP Structure Verification and Assembly Outline (Step 3),1,LS,600,600,CAD,ALLOWANCE,A-005,LOW,Estimated 3 hours at $200/hr; RFP Sections 6-9 mapping
+L-004,PM,PKG-01,DEL-01-02,Graphics Coordinator - Image Optimization (Step 4),1,LS,1000,1000,CAD,ALLOWANCE,A-006,LOW,Estimated 8 hours at $125/hr; multiple renderings and plans to optimize to <15MB
+L-005,PM,PKG-01,DEL-01-02,Proposal Manager - Initial PDF Assembly (Step 5),1,LS,1000,1000,CAD,ALLOWANCE,A-007,LOW,Estimated 5 hours at $200/hr; PDF compilation cover page TOC bookmarks
+L-006,PM,PKG-01,DEL-01-02,Proposal Manager - Compliance Verification (Step 6),1,LS,800,800,CAD,ALLOWANCE,A-008,LOW,Estimated 4 hours at $200/hr; cross-check against DEL-01-01 matrix
+L-007,PM,PKG-01,DEL-01-02,Proposal Manager - File Size Check and Optimization (Step 7),1,LS,400,400,CAD,ALLOWANCE,A-009,LOW,Estimated 2 hours at $200/hr; size verification and compression if needed
+L-008,PM,PKG-01,DEL-01-02,QA Review Team - Quality Assurance Review (Step 8),1,LS,1600,1600,CAD,ALLOWANCE,A-010,LOW,Estimated 8 hours total (PM + 1-2 senior reviewers at avg $200/hr)
+L-009,PM,PKG-01,DEL-01-02,Proposal Manager - Submission Email Preparation (Step 9),1,LS,400,400,CAD,ALLOWANCE,A-011,LOW,Estimated 2 hours at $200/hr; email draft file naming recipient verification
+L-010,PM,PKG-01,DEL-01-02,Proposal Manager - Final Pre-Submission Check (Step 10),1,LS,400,400,CAD,ALLOWANCE,A-012,LOW,Estimated 2 hours at $200/hr; final checklist and sign-off
+L-011,PM,PKG-01,DEL-01-02,Proposal Manager - Submission Execution and Monitoring (Step 11),1,LS,400,400,CAD,ALLOWANCE,A-013,LOW,Estimated 2 hours at $200/hr; send verify proof retention
+L-012,PM,PKG-01,DEL-01-02,Proposal Manager - Post-Submission Actions and Archiving (Step 12),1,LS,400,400,CAD,ALLOWANCE,A-014,LOW,Estimated 2 hours at $200/hr; archive and debrief
+L-013,PM,PKG-01,DEL-01-02,Administrative Support - File Organization and Document Management,1,LS,500,500,CAD,ALLOWANCE,A-015,LOW,Estimated 5 hours at $100/hr; file naming organization tracking
+L-014,PM,PKG-01,DEL-01-02,Software and Tools - PDF Assembly and Optimization Tools,1,LS,200,200,CAD,ALLOWANCE,A-016,LOW,Pro-rata allocation for Adobe Acrobat or equivalent tool usage
+L-015,PM,PKG-01,DEL-01-02,Revision Contingency - Potential Resubmission Effort,1,LS,1000,1000,CAD,ALLOWANCE,A-017,LOW,Allowance for one revision cycle if errors discovered post-initial submission
+L-016,CONT,PKG-01,DEL-01-02,Contingency - Estimate Uncertainty Reserve,1,LS,1600,1600,CAD,ALLOWANCE,D-006,LOW,15% of base estimate ($10700); all pricing is allowance-based

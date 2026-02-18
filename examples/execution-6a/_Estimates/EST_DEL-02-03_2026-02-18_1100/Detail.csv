@@ -1,0 +1,33 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,21.03.01,PKG-002,DEL-02-03,Sealed concrete floor finish — PW shop bays (densifier + sealer; grind + polish),780,m2,35,27300,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-08,MED,4 bays x 2100 sf/bay = 8400 sf = 780 m2; rate from IA-08 RecommendedRate $35/m2
+L-002,21.03.01,PKG-002,DEL-02-03,Sealed concrete floor finish — workshop area,74,m2,35,2590,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-08,MED,800 sf workshop = 74 m2; same finish as bays
+L-003,21.03.01,PKG-002,DEL-02-03,Sealed concrete floor finish — warehouse/storage area,56,m2,35,1960,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-08,MED,600 sf storage = 56 m2; same finish as bays
+L-004,21.03.02,PKG-002,DEL-02-03,Exposed structure paint — PW shop bay ceilings,780,m2,22,17160,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-07,MED,Spray-apply latex to exposed structure in 4 bays
+L-005,21.03.02,PKG-002,DEL-02-03,Exposed structure paint — workshop ceiling,74,m2,22,1628,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-07,MED,Workshop area ceiling
+L-006,21.03.02,PKG-002,DEL-02-03,Compressed air piping — hard-plumbed through bays,1,LS,15000,15000,CAD,ALLOWANCE,Assumptions_Log.md#ASM-008,LOW,Functional Program Rows 27-28 require hard-plumbed air lines; no rate table item; allowance used per FALLBACK_POLICY
+L-007,21.03.02,PKG-002,DEL-02-03,Shop bay interior wall paint (epoxy/semi-gloss; washable),320,m2,20,6400,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-13,MED,Bay perimeter walls within PW zone; estimated 320 m2 total wall area across 4 bays
+L-008,21.03.03,PKG-002,DEL-02-03,Workshop workbench and welding area fit-up,1,LS,22000,22000,CAD,ALLOWANCE,Equipment_Pricing.csv#EQ-13,LOW,Workshop equipment allowance: bench grinder; drill press; workbench; storage; per PW functional needs
+L-009,21.03.03,PKG-002,DEL-02-03,Warehouse/parts storage shelving and racking,1,LS,12000,12000,CAD,ALLOWANCE,Assumptions_Log.md#ASM-009,LOW,Industrial shelving/racking for parts storage; no rate table item; allowance per FALLBACK_POLICY
+L-010,21.03.04,PKG-002,DEL-02-03,PW lockers — heavy-duty full-height (40 units),40,each,1000,40000,CAD,RATE_TABLE,Equipment_Pricing.csv#EQ-07,MED,40 standard heavy-duty personnel lockers per functional program; RecommendedPrice $1000/each
+L-011,21.03.04,PKG-002,DEL-02-03,PPE/locker room — ceramic tile flooring (shower/wet areas),56,m2,118,6608,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-10,MED,Shower and change area wet zones; ~600 sf = 56 m2; rate from IA-10
+L-012,21.03.04,PKG-002,DEL-02-03,PPE/locker room — sealed concrete flooring (dry areas),55,m2,35,1925,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-08,MED,Dry locker area; ~600 sf = 55 m2
+L-013,21.03.04,PKG-002,DEL-02-03,PPE/locker room — moisture-resistant partitions,65,m2,132,8580,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-04,MED,Shower stall partitions and wet area walls; ~65 m2 estimated
+L-014,21.03.04,PKG-002,DEL-02-03,PPE/locker room — suspended gypsum ceiling (washroom/shower),111,m2,102,11322,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-06,MED,Full locker room area 1200 sf = 111 m2; moisture-rated ceiling
+L-015,21.03.04,PKG-002,DEL-02-03,PPE/locker room — epoxy wall paint,180,m2,20,3600,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-13,MED,All locker room walls; estimated 180 m2
+L-016,21.03.04,PKG-002,DEL-02-03,PPE/locker room — washroom accessories package (2 washrooms),2,each,800,1600,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-24,MED,Dispensers + mirrors + shelves per washroom
+L-017,21.03.04,PKG-002,DEL-02-03,PPE/locker room — toilet partitions (4 stalls),4,each,1500,6000,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-25,MED,Phenolic partitions; 2 per washroom x 2 washrooms
+L-018,21.03.04,PKG-002,DEL-02-03,PPE/locker room — grab bars + accessible fittings (2 washrooms),2,each,1100,2200,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-17,MED,Stainless steel grab bars per accessible washroom
+L-019,21.03.04,PKG-002,DEL-02-03,PPE/locker room — vanity countertops,3,lm,575,1725,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-22,MED,Solid surface countertops; ~3 lm total across 2 washroom vanities
+L-020,21.03.04,PKG-002,DEL-02-03,PPE/first aid room — fit-up,1,LS,3500,3500,CAD,ALLOWANCE,Assumptions_Log.md#ASM-010,LOW,First aid equipment; PPE storage; food washing area; 100-150 sf room; no rate table item
+L-021,21.03.05,PKG-002,DEL-02-03,Shop office — sealed concrete floor,19,m2,35,665,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-08,MED,200 sf = 19 m2; sealed concrete per OSR direction
+L-022,21.03.05,PKG-002,DEL-02-03,Shop office — suspended acoustic tile ceiling,19,m2,68,1292,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-05,MED,Standard T-bar ACT for office area
+L-023,21.03.05,PKG-002,DEL-02-03,Shop office — wall paint (standard latex),50,m2,13,650,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-12,MED,Office perimeter walls; ~50 m2 estimated
+L-024,21.03.05,PKG-002,DEL-02-03,Shop washroom — ceramic tile floor,9,m2,118,1062,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-10,MED,100 sf = 9 m2; washroom floor
+L-025,21.03.05,PKG-002,DEL-02-03,Shop washroom — moisture-resistant partitions,18,m2,132,2376,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-04,MED,Washroom walls; ~18 m2
+L-026,21.03.05,PKG-002,DEL-02-03,Shop washroom — suspended gypsum ceiling,9,m2,102,918,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-06,MED,Moisture-rated ceiling
+L-027,21.03.05,PKG-002,DEL-02-03,Shop washroom — epoxy wall paint,18,m2,20,360,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-13,MED,Epoxy paint for wet area
+L-028,21.03.05,PKG-002,DEL-02-03,Shop washroom — accessories package,1,each,800,800,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-24,MED,Dispensers + mirrors + shelves
+L-029,21.03.05,PKG-002,DEL-02-03,Shop washroom — grab bars + accessible fittings,1,each,1100,1100,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-17,MED,Accessible washroom per ABC
+L-030,21.03.05,PKG-002,DEL-02-03,Shop washroom — toilet partition,1,each,1500,1500,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-25,MED,Single stall partition
+L-031,21.03.05,PKG-002,DEL-02-03,Shop washroom — vanity countertop,1,lm,575,575,CAD,RATE_TABLE,Interior_Architectural_Rates.csv#IA-22,MED,Solid surface; 1 lm
+L-032,21.03.04,PKG-002,DEL-02-03,PPE/locker room — shower fixtures and plumbing rough-in (2 standalone showers),1,LS,8000,8000,CAD,ALLOWANCE,Assumptions_Log.md#ASM-011,LOW,2 standalone showers per functional program; includes shower valves + drains + waterproofing; no specific rate table item for showers

@@ -1,0 +1,23 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-06,DEL-04-02,Plan Document - Section 1 Introduction (drafting),4,HR,140,560,CAD,ALLOWANCE,A-005,MED,CM effort - Project overview + purpose + key principles
+L-002,E,PKG-06,DEL-04-02,Plan Document - Section 2 Budget Baseline Establishment,6,HR,140,840,CAD,ALLOWANCE,A-005,MED,CM effort - Baseline definition + addenda integration + cost code structure
+L-003,E,PKG-06,DEL-04-02,Plan Document - Section 3 Change Management Workflow,8,HR,140,1120,CAD,ALLOWANCE,A-005,MED,CM effort - Change identification + pricing + authorization + documentation
+L-004,E,PKG-06,DEL-04-02,Plan Document - Section 4 Cost Reporting Protocols,6,HR,140,840,CAD,ALLOWANCE,A-005,MED,CM effort - Frequency + format + distribution + variance analysis
+L-005,E,PKG-06,DEL-04-02,Plan Document - Section 5 Contingency Management,4,HR,140,560,CAD,ALLOWANCE,A-005,MED,CM effort - Allocation + authorization + tracking + replenishment
+L-006,E,PKG-06,DEL-04-02,Plan Document - Section 6 Integration with Project Controls,6,HR,140,840,CAD,ALLOWANCE,A-005,MED,CM effort - Schedule + risk + communications + quality + safety integration
+L-007,E,PKG-06,DEL-04-02,Plan Document - Section 7 Implementation and Governance,4,HR,140,560,CAD,ALLOWANCE,A-005,MED,CM effort - Roles + tools + continuous improvement
+L-008,E,PKG-06,DEL-04-02,Change Request Form Template Development,2,HR,130,260,CAD,ALLOWANCE,A-006,MED,Commercial Lead effort
+L-009,E,PKG-06,DEL-04-02,Change Order Log Template Development,2,HR,130,260,CAD,ALLOWANCE,A-006,MED,Commercial Lead effort
+L-010,E,PKG-06,DEL-04-02,Monthly Cost Report Template Development,3,HR,130,390,CAD,ALLOWANCE,A-006,MED,Commercial Lead effort - Including variance thresholds
+L-011,E,PKG-06,DEL-04-02,Delegation of Authority Matrix Development,2,HR,130,260,CAD,ALLOWANCE,A-006,MED,Commercial Lead effort
+L-012,E,PKG-06,DEL-04-02,Commercial Lead - Change Pricing Methodology Section Support,4,HR,130,520,CAD,ALLOWANCE,A-006,MED,Support for REQ-5 pricing methodology consistency
+L-013,E,PKG-06,DEL-04-02,Appendix H Consistency Verification (REQ-9),3,HR,130,390,CAD,ALLOWANCE,A-007,LOW,Cross-check with DEL-05-01/02/03 - effort depends on Appendix H completeness
+L-014,E,PKG-06,DEL-04-02,Addenda Integration Review (REQ-10),2,HR,140,280,CAD,ALLOWANCE,A-008,MED,Review Addenda 01-03 impacts on budget baseline
+L-015,PM,PKG-06,DEL-04-02,Proposal Manager - Oversight and Coordination,4,HR,150,600,CAD,ALLOWANCE,A-009,MED,Coordination with other deliverables + strategy alignment
+L-016,PM,PKG-06,DEL-04-02,Internal Review - Construction Manager Review,2,HR,140,280,CAD,ALLOWANCE,A-010,MED,Per Procedure Step 9 - CM review of draft
+L-017,PM,PKG-06,DEL-04-02,Internal Review - Commercial Lead Review,2,HR,130,260,CAD,ALLOWANCE,A-010,MED,Per Procedure Step 9 - Commercial Lead review
+L-018,PM,PKG-06,DEL-04-02,Internal Review - PM Final Review and Sign-off,2,HR,150,300,CAD,ALLOWANCE,A-010,MED,Per Procedure Step 9 - PM final review
+L-019,PM,PKG-06,DEL-04-02,Document Formatting and Finalization,2,HR,100,200,CAD,ALLOWANCE,A-011,MED,Technical staff - Per Procedure Step 10
+L-020,PM,PKG-06,DEL-04-02,Plan Validation Walkthrough (Optional),1,LS,420,420,CAD,ALLOWANCE,A-012,LOW,Per Procedure Step 12 - 1hr session x 3 participants (CM + Commercial Lead + PM)
+L-021,CONT,PKG-06,DEL-04-02,Contingency - Engineering & Design,1,LS,938,938,CAD,ALLOWANCE,D-004,MED,15% contingency on E subtotal (6260 x 0.15 = 939 rounded)
+L-022,CONT,PKG-06,DEL-04-02,Contingency - Project Management,1,LS,309,309,CAD,ALLOWANCE,D-004,MED,15% contingency on PM subtotal (2060 x 0.15 = 309)

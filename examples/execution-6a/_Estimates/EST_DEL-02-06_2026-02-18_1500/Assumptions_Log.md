@@ -1,0 +1,10 @@
+# Assumptions Log
+
+## Run: EST_DEL-02-06_2026-02-18_1500
+
+| AssumptionID | Category | Assumption | Source/Basis | Sensitivity | Resolution Path |
+|-------------|----------|------------|-------------|-------------|----------------|
+| ASM-001 | Area Split | Main PSB (18,000 sf per PP-05) is split into 12,800 sf apparatus/shop bay area (8 bays x ~1,600 sf/bay) and 5,200 sf institutional/office/shared area for electrical rate application | PP-05 (18,000 sf total); PP-11 (4 fire bays); PP-12 (4 PW bays); bay size estimated from typical apparatus bay dimensions | MEDIUM -- a shift of +/- 1,000 sf between zones changes total by approximately +/- $7,000 (difference between ES-01 $21/sf and ES-02 $14/sf = $7/sf; plus lighting difference) | Resolve when DEL-02-01 floor plan confirms actual area breakdown |
+| ASM-002 | Labor Hours | Electrical commissioning labor estimated at 100 hours of journeyman electrician time | Engineering judgment for building of this size and complexity; covers panel testing, circuit verification, lighting commissioning, IT testing, emergency lighting battery tests | LOW -- total commissioning line is $8,000 (1.2% of total); range likely 80-120 hours ($6,400-$9,600) | Resolve when DEL-01-07 commissioning plan defines scope and hours |
+| ASM-003 | Data Drops | IT/telecom data drop count of 45 per PP-27 breakdown (meeting room 15 + offices 8 + reception 2 + admin 4 + bay displays 4 + misc 12) | Assumed_Project_Parameters.csv:PP-27 | MEDIUM -- each drop is $850; +/- 10 drops = +/- $8,500 | Resolve when IT/telecom design is advanced under DEL-02-06 detailed design phase |
+| ASM-004 | Building Config | Estimate assumes single-storey building (18,000 sf per PP-05); does not include second-storey option (PP-06 = 20,000 sf) | PP-05 used over PP-06 because PP-06 confidence is LOW and 2nd storey is optional per SOW-0601 | LOW -- if 2nd storey is elected, additional 2,000 sf of institutional electrical/lighting would add approximately $31/sf x 2,000 = ~$62,000 | Resolve when DEL-02-01 confirms building configuration |

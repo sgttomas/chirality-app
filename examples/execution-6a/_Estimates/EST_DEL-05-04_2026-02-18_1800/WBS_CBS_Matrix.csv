@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-05-04,26-SECURITY,CAD,50000,1,100,Parametric placeholder; no vendor quote; LOW confidence; camera count assumed at 16 (PP-29)
+PKG-005,DEL-05-04,26-SECURITY-MONITORING,CAD,5400,1,100,Parametric placeholder; annual monitoring; no vendor quote; LOW confidence

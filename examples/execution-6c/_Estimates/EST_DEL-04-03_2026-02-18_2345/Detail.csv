@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,LABOUR_PROFESSIONAL,PKG-06,DEL-04-03,Project Manager — communications plan drafting; meeting structure; reporting cadence; stakeholder touchpoints,6,hr,175,1050,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-04-03/R-02 + Professional_Staff_Rates.csv R-02,MEDIUM,PM leads narrative production; 6 hours per LOE
+L-002,LABOUR_PROFESSIONAL,PKG-06,DEL-04-03,Construction Manager — construction phase communications input; site meeting structure; field reporting,4,hr,155,620,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-04-03/R-15 + Professional_Staff_Rates.csv R-15,MEDIUM,CM provides construction-phase communications input; 4 hours per LOE

@@ -1,0 +1,2 @@
+DeliverableID,PackageID,DeliverableName,Path,InScope,Notes
+DEL-01-01,PKG-01,Compliance Matrix & Checklist,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6c/PKG-01_Compliance & Submission/1_Working/DEL-01-01_ComplianceMatrixAndChecklist,TRUE,Single deliverable in scope per INIT-TASK brief. Tier 0 (no upstream production dependencies). Substance: Administrative.

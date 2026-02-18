@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0102-01,ADMIN,PKG-001,DEL-01-02,Proposal Coordinator / Writer -- Final PDF assembly; TOC; page numbering; submission QA; revision control,16,hr,105,1680,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-02 R-22 (16h) + Professional_Staff_Rates.csv R-22 ($105/hr),MED,Must be last deliverable; depends on all other packages complete
+L-0102-02,MGMT,PKG-001,DEL-01-02,Project Manager -- Final review and sign-off of assembled PDF submission,4,hr,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-02 R-02 (4h) + Professional_Staff_Rates.csv R-02 ($175/hr),MED,Includes Letter of Offer (Appendix G) execution review

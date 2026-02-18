@@ -1,0 +1,31 @@
+FromDeliverableID,FromPackageID,DeclaredBasis,FallbackPolicy,AllowMixed,ActualMethodsUsed,RunStatus,RunContextPath
+DEL-01-01,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-01_2026-02-18_1200/Run_Context.md
+DEL-01-02,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-02_2026-02-18_0900/Run_Context.md
+DEL-01-03,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-03_2026-02-18_1720/Run_Context.md
+DEL-01-04,PKG-001,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, RATE_TABLE",WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-04_2026-02-18_1400/Run_Context.md
+DEL-01-05,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-05_2026-02-18_0000/Run_Context.md
+DEL-01-06,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-06_2026-02-18_1030/Run_Context.md
+DEL-01-07,PKG-001,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-01-07_2026-02-18_1830/Run_Context.md
+DEL-02-01,PKG-002,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-01_2026-02-18_0800/Run_Context.md
+DEL-02-02,PKG-002,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, RATE_TABLE",WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-02_2026-02-18_1036/Run_Context.md
+DEL-02-03,PKG-002,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, RATE_TABLE",WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-03_2026-02-18_1100/Run_Context.md
+DEL-02-04,PKG-002,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-04_2026-02-18_1130/Run_Context.md
+DEL-02-05,PKG-002,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-05_2026-02-18_1400/Run_Context.md
+DEL-02-06,PKG-002,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-06_2026-02-18_1500/Run_Context.md
+DEL-02-07,PKG-002,QUOTE,ALLOW_ALLOWANCE,TRUE,ALLOWANCE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-02-07_2026-02-18_1600/Run_Context.md
+DEL-03-01,PKG-003,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-03-01_2026-02-18_1900/Run_Context.md
+DEL-03-02,PKG-003,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-03-02_2026-02-18_1130/Run_Context.md
+DEL-03-03,PKG-003,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-03-03_2026-02-18_1200/Run_Context.md
+DEL-03-04,PKG-003,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, RATE_TABLE",WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-03-04_2026-02-18_2100/Run_Context.md
+DEL-03-05,PKG-003,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, RATE_TABLE",WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-03-05_2026-02-18_2000/Run_Context.md
+DEL-04-01,PKG-004,PARAMETRIC,ALLOW_ALLOWANCE,TRUE,"ALLOWANCE, PARAMETRIC",OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-04-01_2026-02-18_1200/Run_Context.md
+DEL-04-02,PKG-004,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-04-02_2026-02-18_1100/Run_Context.md
+DEL-04-03,PKG-004,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-04-03_2026-02-18_1400/Run_Context.md
+DEL-04-04,PKG-004,RATE_TABLE,STRICT,FALSE,RATE_TABLE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-04-04_2026-02-18_1500/Run_Context.md
+DEL-05-01,PKG-005,QUOTE,ALLOW_ALLOWANCE,TRUE,ALLOWANCE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-01_2026-02-18_1500/Run_Context.md
+DEL-05-02,PKG-005,RATE_TABLE,STRICT,FALSE,RATE_TABLE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-02_2026-02-18_1600/Run_Context.md
+DEL-05-03,PKG-005,QUOTE,ALLOW_ALLOWANCE,TRUE,PARAMETRIC,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-03_2026-02-18_1700/Run_Context.md
+DEL-05-04,PKG-005,QUOTE,ALLOW_ALLOWANCE,TRUE,PARAMETRIC,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-04_2026-02-18_1800/Run_Context.md
+DEL-05-05,PKG-005,QUOTE,ALLOW_ALLOWANCE,TRUE,ALLOWANCE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-05_2026-02-18_1800/Run_Context.md
+DEL-05-06,PKG-005,QUOTE,STRICT,FALSE,QUOTE,WARNINGS,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-06_2026-02-18_1900/Run_Context.md
+DEL-05-07,PKG-005,ALLOWANCE,STRICT,FALSE,ALLOWANCE,OK,/Users/ryan/ai-env/projects/chirality-app-test/test/execution-6a/_Estimates/EST_DEL-05-07_2026-02-18_2200/Run_Context.md

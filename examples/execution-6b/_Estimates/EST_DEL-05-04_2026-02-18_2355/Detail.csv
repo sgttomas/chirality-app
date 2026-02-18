@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,DESIGN_SERVICES,PKG-005,DEL-05-04,Electrical Engineer (Senior) — Panel accessibility; fixture replacement; control system serviceability; IT/telecom infrastructure maintainability; security/access control lifecycle; fire alarm maintenance approach,8,hr,155,1240,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-05-04/R-13 + Professional_Staff_Rates.csv row R-13,MED,8 hrs x $155/hr; single-role deliverable; narrative authoring by senior electrical engineer

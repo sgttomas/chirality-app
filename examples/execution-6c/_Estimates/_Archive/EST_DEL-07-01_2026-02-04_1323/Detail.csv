@@ -1,0 +1,18 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-03,DEL-07-01,RFP Requirements Review and OSR Analysis,4,HR,150,600,CAD,ALLOWANCE,A-005;Procedure Step 1,LOW,Proposal Manager labor for RFP/OSR review
+L-002,PM,PKG-03,DEL-07-01,Team Qualifications Coordination Setup,2,HR,150,300,CAD,ALLOWANCE,A-008;Procedure Step 2,MED,Coordination meeting and matrix creation
+L-003,E,PKG-03,DEL-07-01,Comparable Project Selection and Scoring,4,HR,150,600,CAD,ALLOWANCE,A-005;Procedure Step 3,LOW,Project database query and comparability scoring
+L-004,E,PKG-03,DEL-07-01,Project Data Collection,8,HR,100,800,CAD,ALLOWANCE,A-002;A-006;Procedure Step 4,LOW,HR/Admin labor for data gathering
+L-005,E,PKG-03,DEL-07-01,Project Data Verification,4,HR,150,600,CAD,ALLOWANCE,A-005;Procedure Step 4,LOW,Proposal Manager verification effort
+L-006,PM,PKG-03,DEL-07-01,Reference Coordination and Verification,4,HR,150,600,CAD,ALLOWANCE,A-007;Procedure Step 4.3,LOW,Contact references and confirm availability
+L-007,E,PKG-03,DEL-07-01,Firm Overview Drafting,2,HR,150,300,CAD,ALLOWANCE,A-005;Procedure Step 5,LOW,Initial firm overview narrative
+L-008,E,PKG-03,DEL-07-01,Comparable Projects Descriptions,8,HR,150,1200,CAD,ALLOWANCE,A-005;Procedure Step 6,LOW,Write 3-5 project descriptions with OSR alignment
+L-009,E,PKG-03,DEL-07-01,Delivery Success Narrative,4,HR,150,600,CAD,ALLOWANCE,A-005;Procedure Step 7,LOW,Track record summary and OSR connection
+L-010,PM,PKG-03,DEL-07-01,Cross-Deliverable Consistency Check,4,HR,150,600,CAD,ALLOWANCE,A-008;Procedure Step 8,MED,Alignment with DEL-07-02 and DEL-07-03
+L-011,PM,PKG-03,DEL-07-01,Technical Review - Cycle 1,4,HR,200,800,CAD,ALLOWANCE,A-003;A-009;Procedure Step 10,MED,Senior PM/Principal first review
+L-012,PM,PKG-03,DEL-07-01,Technical Review - Cycle 2,4,HR,200,800,CAD,ALLOWANCE,A-003;A-009;Procedure Step 10,MED,Senior PM/Principal second review
+L-013,E,PKG-03,DEL-07-01,Document Revisions,4,HR,150,600,CAD,ALLOWANCE,A-005;Procedure Step 10,LOW,Address review comments and refine
+L-014,PM,PKG-03,DEL-07-01,Executive Review and Approval,2,HR,300,600,CAD,ALLOWANCE,A-004;A-010;Procedure Step 10.2,MED,Leadership review and worth adjudication
+L-015,E,PKG-03,DEL-07-01,RFP Compliance and Format Check,2,HR,150,300,CAD,ALLOWANCE,A-012;Procedure Step 9,LOW,Format verification and compliance matrix update
+L-016,E,PKG-03,DEL-07-01,Quality Review and Finalization,2,HR,150,300,CAD,ALLOWANCE,A-005;Procedure Step 10.1,LOW,Proofreading and final formatting
+L-100,CONT,PKG-03,DEL-07-01,Contingency (20% on base estimate),1,LS,1920,1920,CAD,ALLOWANCE,D-006;Risk_Register.md,LOW,20% contingency for scope uncertainty and allowance-based pricing

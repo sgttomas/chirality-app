@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-09,LABOUR,CAD,1720,2,100,All lines sourced from rate table + level of effort inputs

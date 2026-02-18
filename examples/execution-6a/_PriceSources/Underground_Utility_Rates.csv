@@ -1,0 +1,13 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+UU-01,Water,Water main (150mm PVC; complete — trench/bed/pipe/backfill/compact),lm,180,220,200,PARAMETRIC,MEDIUM,1.5-2.0m depth; includes fittings pro-rated; Alberta freeze depth considerations
+UU-02,Water,Water service connection to building (50mm copper or PE),each,3500,5500,4500,PARAMETRIC,MEDIUM,From main to building entry; includes curb stop; per building
+UU-03,Sanitary,Sanitary sewer (200mm PVC gravity; complete),lm,200,250,225,PARAMETRIC,MEDIUM,Includes bedding/backfill; manholes pro-rated at 1 per 90m
+UU-04,Sanitary,Sanitary service connection to building,each,3000,5000,4000,PARAMETRIC,MEDIUM,From main/manhole to building entry; includes cleanout
+UU-05,Storm,Storm drainage pipe (250mm PVC; if required),lm,220,280,250,PARAMETRIC,MEDIUM,Project uses overland drainage — may need limited pipe at specific locations
+UU-06,Gas,Natural gas service (50mm PE; by utility or estimate),lm,120,160,140,PARAMETRIC,MEDIUM,ATCO Gas typically installs to meter; estimate for on-site distribution
+UU-07,Power,Power duct bank (2-way; concrete-encased),lm,200,280,240,PARAMETRIC,MEDIUM,From padmount transformer to building; or between buildings
+UU-08,Telecom,Telecom conduit (100mm PVC; direct-buried),lm,80,120,100,PARAMETRIC,MEDIUM,Service entrance conduit; includes pull string
+UU-09,Trench,Common trench (shared utilities; 2.0m deep),lm,85,120,100,PARAMETRIC,MEDIUM,Where utilities share a trench alignment; per linear metre of trench
+UU-10,Tie-In,Municipal utility tie-in (water; at municipal stub),each,5000,12000,8000,ALLOWANCE,LOW,Highly variable; depends on stub location/depth/condition; DEC-004 cash allowance item
+UU-11,Tie-In,Municipal utility tie-in (sewer; at municipal stub),each,5000,12000,8000,ALLOWANCE,LOW,Same considerations as water tie-in
+UU-12,Tie-In,Municipal utility tie-in (total allowance — all utilities),lump_sum,25000,50000,35000,ALLOWANCE,LOW,Combined allowance for water + sewer + gas + power + telecom tie-ins; DEC-004 item — Owner must confirm or DB must propose value

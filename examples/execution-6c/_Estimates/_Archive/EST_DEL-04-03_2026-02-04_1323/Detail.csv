@@ -1,0 +1,22 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-06,DEL-04-03,Communications Plan Structure Development - Define roles/responsibilities/escalation paths (REQ-COMM-001),6,HR,140,840,CAD,ALLOWANCE,A-002;A-005,MED,Construction Manager as responsible party; includes role definitions and plan governance authority
+L-002,E,PKG-06,DEL-04-03,Meeting Cadence and Structure Definition - 4 meeting types with agendas/attendees (REQ-COMM-002),8,HR,140,1120,CAD,ALLOWANCE,A-002;A-006,MED,Kickoff/design progress/construction progress/commissioning coordination meetings
+L-003,E,PKG-06,DEL-04-03,Progress Reporting Requirements - Monthly report structure and distribution (REQ-COMM-003),4,HR,140,560,CAD,ALLOWANCE,A-002;A-007,MED,Report template structure and content requirements
+L-004,E,PKG-06,DEL-04-03,Change Management Communication Protocol - Change order process and approval workflow (REQ-COMM-004),3,HR,140,420,CAD,ALLOWANCE,A-002;A-008,MED,Written proposals/approvals/change order log maintenance
+L-005,E,PKG-06,DEL-04-03,RFI Protocol and Escalation Process - 3 priority levels with timelines (REQ-COMM-005),3,HR,140,420,CAD,ALLOWANCE,A-002;A-009,MED,Routine 7d/critical 3d/emergency 24h response timelines
+L-006,E,PKG-06,DEL-04-03,Safety and Emergency Communication Protocol - Incident notification requirements (REQ-COMM-006),2,HR,140,280,CAD,ALLOWANCE,A-002;A-010,MED,1hr verbal/24hr written notification; 24/7 contacts
+L-007,E,PKG-06,DEL-04-03,Commissioning and Training Communication - Coordination with Fire/Public Works operations (REQ-COMM-007),3,HR,140,420,CAD,ALLOWANCE,A-002;A-011,MED,Weekly commissioning coordination; training scheduling protocols
+L-008,E,PKG-06,DEL-04-03,Subconsultant and Subtrade Coordination - Single-point-of-responsibility structure (REQ-COMM-008),2,HR,140,280,CAD,ALLOWANCE,A-002;A-012,MED,Internal coordination/Owner visibility mechanisms
+L-009,E,PKG-06,DEL-04-03,Document Control and Distribution Protocols - Naming conventions/version control (REQ-COMM-009),3,HR,140,420,CAD,ALLOWANCE,A-002;A-013,MED,Platform selection/distribution lists/retention requirements
+L-010,E,PKG-06,DEL-04-03,Decision Tracking and Action Item Management - Registers and escalation (REQ-COMM-010),2,HR,140,280,CAD,ALLOWANCE,A-002;A-014,MED,Action item register/decision log structure
+L-011,E,PKG-06,DEL-04-03,Cyclic Plan Compliance Review Mechanism (REQ-COMM-011),2,HR,140,280,CAD,ALLOWANCE,A-002;A-015,MED,Quarterly review cadence and adjustment mechanisms
+L-012,E,PKG-06,DEL-04-03,Operational Validation During Execution (REQ-COMM-012),2,HR,140,280,CAD,ALLOWANCE,A-002;A-016,MED,KPI reporting/Owner feedback mechanisms
+L-013,E,PKG-06,DEL-04-03,Stakeholder Register Development - 8 stakeholder groups with communication needs,4,HR,140,560,CAD,ALLOWANCE,A-002;A-017,MED,Fire Dept/Public Works/Owner/AHJ differentiation
+L-014,E,PKG-06,DEL-04-03,Communications Performance Metrics (KPIs) - 6 KPIs with targets,2,HR,140,280,CAD,ALLOWANCE,A-002;A-018,MED,RFI response/meeting timeliness/action item closure
+L-015,E,PKG-06,DEL-04-03,Communications Infrastructure Readiness Planning - 7 components,2,HR,140,280,CAD,ALLOWANCE,A-002;A-019,MED,Portal/email lists/templates readiness
+L-016,E,PKG-06,DEL-04-03,Visual Artifacts Creation - Meeting diagram/cadence timeline/escalation flowchart,6,HR,100,600,CAD,ALLOWANCE,A-003;A-020,MED,3 visual artifacts per Procedure Step 13
+L-017,E,PKG-06,DEL-04-03,Cross-Deliverable Consistency Verification - DEL-04-01/04-02/03-01/06-01 alignment,4,HR,100,400,CAD,ALLOWANCE,A-003;A-021,MED,Meeting frequencies/change protocols/commissioning alignment
+L-018,PM,PKG-06,DEL-04-03,Proposal Manager Review - Draft review and alignment with evaluation criteria,3,HR,150,450,CAD,ALLOWANCE,A-001;A-022,MED,Alignment with RFP Section 7.3.4 requirements
+L-019,PM,PKG-06,DEL-04-03,Independent Review and Sign-Off - Per Procedure Step 12,2,HR,150,300,CAD,ALLOWANCE,A-001;A-023,MED,Quality check before finalization
+L-020,PM,PKG-06,DEL-04-03,Submission Readiness Checklist Completion - Final verification,1,HR,150,150,CAD,ALLOWANCE,A-001;A-024,MED,Per Procedure Step 13 checklist
+L-021,CONT,PKG-06,DEL-04-03,Contingency - 15% of base estimate for uncertainty,1,LS,1300,1300,CAD,ALLOWANCE,D-004;R-001,MED,PCT_BY_BUCKET method at 15% on CAD 8620 base

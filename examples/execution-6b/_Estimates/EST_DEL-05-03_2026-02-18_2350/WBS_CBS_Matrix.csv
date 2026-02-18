@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-05-03,PROFESSIONAL_SERVICES.MECHANICAL_ENGINEERING,CAD,1280,1,100,All line items have non-TBD SourceRef

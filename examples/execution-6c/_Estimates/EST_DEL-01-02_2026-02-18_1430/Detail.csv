@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,ADMIN_PRODUCTION,PKG-01,DEL-01-02,Proposal Coordinator — Final PDF assembly + submission QA + revision control,14,hr,105,1470,CAD,RATE_TABLE,Professional_Staff_Rates.csv#R-22 + Level_of_Effort.csv#DEL-01-02/R-22,MEDIUM,Primary production role; assembles all 20 deliverable outputs into single PDF (<15MB); compliance cross-check against DEL-01-01; revision numbering
+L-02,ADMIN_PRODUCTION,PKG-01,DEL-01-02,Project Manager — Final review and sign-off,4,hr,175,700,CAD,RATE_TABLE,Professional_Staff_Rates.csv#R-02 + Level_of_Effort.csv#DEL-01-02/R-02,MEDIUM,Executive review; Letter of Offer execution; submission authorization

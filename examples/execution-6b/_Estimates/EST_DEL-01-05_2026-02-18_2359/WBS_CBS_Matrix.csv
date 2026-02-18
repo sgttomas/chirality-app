@@ -1,0 +1,11 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-05,PRD.COMP,CAD,6020,3,100,Production cost -- estimator/PM hours to compile Schedule B
+PKG-001,DEL-01-05,CON.GR,CAD,1291000,12,100,General Requirements -- design fees + bonds + insurance + permits + utility fees + environmental
+PKG-001,DEL-01-05,CON.BLD,CAD,4623000,38,100,Public Services Buildings -- structural + envelope + interior + mechanical + electrical + equipment
+PKG-001,DEL-01-05,CON.SIT,CAD,1413000,26,100,Public Services Sitework -- earthwork + paving + underground utilities
+PKG-001,DEL-01-05,OPT.WSH,CAD,123000,3,100,Additional Item 1 -- Wash Bay
+PKG-001,DEL-01-05,OPT.YLT,CAD,106000,2,100,Additional Item 2 -- Yard Lighting
+PKG-001,DEL-01-05,OPT.ACC,CAD,45000,1,100,Additional Item 3 -- Access Control
+PKG-001,DEL-01-05,OPT.SEC,CAD,55000,2,100,Additional Item 4 -- Security/Cameras
+PKG-001,DEL-01-05,OPT.SGN,CAD,34000,2,100,Additional Item 5 -- Signage
+PKG-001,DEL-01-05,OPT.FFE,CAD,20000,1,100,Additional Item 6 -- FF&E cash allowance

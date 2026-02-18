@@ -1,0 +1,19 @@
+ItemID,Category,Description,Unit,PriceMin,PriceMax,RecommendedPrice,Basis,Confidence,Notes
+OPT-01,WashBay,Built-in wash bay (complete system),system,75000,120000,95000,PARAMETRIC,LOW,Equipment + containment + drainage + water treatment/recycling + HVAC modification for heated wash area; installed in PW bay area
+OPT-02,WashBay,Wash bay plumbing/drainage modifications,lump_sum,12000,20000,16000,PARAMETRIC,LOW,Hot/cold water supply; floor drain; containment curb; connection to separator
+OPT-03,WashBay,Wash bay environmental compliance (effluent treatment),lump_sum,8000,18000,12000,PARAMETRIC,LOW,Oil/water separator; possible connection to municipal sewer; AEPA requirements TBD
+OPT-04,YardLighting,Yard light (pole + fixture + base + wiring; per unit installed),each,6500,9000,7500,PARAMETRIC,MEDIUM,25-30 ft pole; LED fixture (IES; dark-sky compliant); concrete base; conduit + wiring from panel
+OPT-05,YardLighting,Yard lighting conduit run (from panel to first pole),lm,65,95,80,PARAMETRIC,MEDIUM,Underground conduit + wiring; from building electrical room to perimeter; balance in pole-to-pole rate
+OPT-06,AccessControl,Access control system (10-zone; main building),system,35000,55000,45000,PARAMETRIC,LOW,Readers (card/fob); controllers; head-end software; door contacts; request-to-exit; wiring; programming; commissioning
+OPT-07,AccessControl,Access control per additional zone (above 10),each,2500,4000,3200,PARAMETRIC,LOW,Reader + controller + wiring + programming per zone
+OPT-08,Security,Security camera system (16 cameras; NVR; network),system,40000,60000,50000,PARAMETRIC,LOW,IP cameras (interior + exterior); NVR + storage; network switches; cabling; mounting; programming; commissioning
+OPT-09,Security,Security monitoring service (annual),year,3600,7200,5400,PARAMETRIC,LOW,Remote monitoring; alarm response coordination; annual subscription
+OPT-10,Signage,Town branding signage (fabricated; non-illuminated),each,8000,18000,12000,PARAMETRIC,LOW,Depends on Town branding guidelines (PENDING from Owner); aluminum + vinyl or dimensional letters; structural mount
+OPT-11,Signage,Town branding signage (fabricated; illuminated),each,15000,30000,22000,PARAMETRIC,LOW,Same + LED backlighting or halo illumination; electrical connection; illuminated vs non decision TBD
+OPT-12,Appliances,Refrigerator with freezer (commercial residential; per unit),each,1200,2000,1500,PARAMETRIC,MEDIUM,Standard full-size; 2 units required per spec
+OPT-13,Appliances,Microwave (commercial; per unit),each,300,600,450,PARAMETRIC,MEDIUM,Commercial-duty countertop; 2 units required
+OPT-14,Appliances,Stove/oven with range hood (residential),each,2500,4500,3500,PARAMETRIC,MEDIUM,Electric or gas range; range hood with exhaust; 1 unit
+OPT-15,Appliances,Dishwasher (commercial residential),each,800,1500,1100,PARAMETRIC,MEDIUM,Standard built-in; 1 unit
+OPT-16,Appliances,Residential laundry set (washer + dryer; per set),set,2000,3500,2800,PARAMETRIC,MEDIUM,Front-load washer + dryer; 2 sets required per spec
+OPT-17,Appliances,Appliance installation and connection (all units),lump_sum,3000,6000,4500,PARAMETRIC,MEDIUM,Plumbing connections; electrical connections; venting; testing; for all appliances above
+OPT-18,FF&E,FF&E cash allowance (furniture fixtures and equipment),lump_sum,20000,20000,20000,ALLOWANCE,HIGH,Fixed at $20000 CAD per DEC-005/OI-004; allocation: Meeting/Training $8k; Lunchroom $6k; Reception $3k; Misc $3k

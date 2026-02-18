@@ -1,0 +1,15 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+MS-01,HVAC,HVAC system (complete; institutional/municipal),sf,28,35,32,PARAMETRIC,MEDIUM,Includes RTUs/AHUs; ductwork; controls; diffusers; for heated/cooled areas
+MS-02,HVAC,HVAC system (complete; apparatus/shop bays — heated only),sf,18,24,21,PARAMETRIC,MEDIUM,Radiant or unit heaters; simpler distribution; no cooling
+MS-03,Plumbing,Plumbing system (complete; institutional),sf,12,16,14,PARAMETRIC,MEDIUM,Includes fixtures; piping; water heater; drain/vent
+MS-04,Plumbing,Plumbing system (apparatus/shop bays — minimal fixtures),sf,5,8,6,PARAMETRIC,MEDIUM,Bay sumps; hose bibs; limited fixtures
+MS-05,FireProtection,Fire protection (wet sprinkler; institutional),sf,5,7,6,PARAMETRIC,LOW,If required by AHJ; may not be required for this occupancy
+MS-06,Exhaust,Vehicle exhaust extraction system (per apparatus bay),each,22000,28000,25000,PARAMETRIC,MEDIUM,Source-capture type; hose reel + overhead track + fan + duct to exterior
+MS-07,Exhaust,Shop bay ventilation system (per bay),each,8000,14000,11000,PARAMETRIC,MEDIUM,Supply + exhaust; may be combined with heating system
+MS-08,Equipment,Breathing air compressor system (fire service; complete),system,45000,65000,55000,PARAMETRIC,LOW,Compressor + dryer + distribution piping + fill stations; cascade or standalone
+MS-09,Equipment,Water fill station (2-inch; installed),each,2800,4200,3500,PARAMETRIC,MEDIUM,2" connection; valve; hose adapter; backflow preventer; piping
+MS-10,Equipment,Bay sump assembly (installed with plumbing connection),each,3500,5500,4500,PARAMETRIC,MEDIUM,Oil/water separator type; floor drain + trap + connection to sanitary
+MS-11,Equipment,Domestic hot water heater (commercial; gas-fired),each,4500,7500,6000,PARAMETRIC,MEDIUM,75-100 gallon capacity; institutional duty
+MS-12,Controls,Building automation system (BAS; institutional),sf,3,5,4,PARAMETRIC,MEDIUM,DDC controls; sensors; programming; commissioning
+MS-13,Ventilation,Cold storage ventilation (condensation prevention),sf,2,4,3,PARAMETRIC,MEDIUM,Ridge vents or gable fans; minimal mechanical
+MS-14,HVAC,Radiant in-floor heating (apparatus bays),sf,8,12,10,PARAMETRIC,MEDIUM,Hydronic loops in slab; boiler system shared with building

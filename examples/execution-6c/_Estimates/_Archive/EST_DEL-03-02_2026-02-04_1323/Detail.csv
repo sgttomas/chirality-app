@@ -1,0 +1,16 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L001,E,PKG-05,DEL-03-02,Discipline Scope Matrix Development - Define deliverables for 6 disciplines across 4 phases,8,HR,175,1400,CAD,ALLOWANCE,A-005,MED,Design Manager effort to define Architecture/Structural/Mechanical/Electrical/Civil/Landscape scopes at SD/DD/CD/IFC phases
+L002,E,PKG-05,DEL-03-02,QA/QC Checkpoint Table Development - Define 5 layers x 4 phases,6,HR,175,1050,CAD,ALLOWANCE,A-006,MED,Design Manager defines self-check/DM review/code review/constructability/Owner review checkpoints
+L003,E,PKG-05,DEL-03-02,Coordination Process Documentation - BIM workflow and meeting protocols,4,HR,175,700,CAD,ALLOWANCE,A-007,MED,Includes BIM clash detection workflow and coordination meeting protocols
+L004,E,PKG-05,DEL-03-02,Document Control Protocol Development - Numbering system and revision tracking,4,HR,100,400,CAD,ALLOWANCE,A-008,MED,Technical writer develops numbering/revision/distribution/DMS protocols
+L005,E,PKG-05,DEL-03-02,Owner Review Process Documentation - Submittal format and comment incorporation,3,HR,175,525,CAD,ALLOWANCE,A-009,MED,Design Manager documents Owner review milestones and approval process
+L006,E,PKG-05,DEL-03-02,Code Compliance and Permitting Strategy,3,HR,175,525,CAD,ALLOWANCE,A-010,MED,Includes Alberta Building Code approach and third-party review strategy
+L007,E,PKG-05,DEL-03-02,Addenda Integration Checklist - Map 7+ Addendum 03 items to disciplines,4,HR,100,400,CAD,ALLOWANCE,A-011,MED,Technical writer creates traceability matrix for overhead doors/bay sumps/exhaust/generator/solar-ready/etc.
+L008,E,PKG-05,DEL-03-02,Schedule Alignment with DEL-08-01 - Milestone coordination,2,HR,175,350,CAD,ALLOWANCE,A-012,LOW,Coordination with project schedule deliverable
+L009,E,PKG-05,DEL-03-02,Drawing Index Structure Template (Example artifact),2,HR,100,200,CAD,ALLOWANCE,A-013,MED,Based on Guidance Example 1 structure
+L010,E,PKG-05,DEL-03-02,Completeness Checklist Template (Example artifact),2,HR,100,200,CAD,ALLOWANCE,A-014,MED,QA/QC checklist template development
+L011,E,PKG-05,DEL-03-02,Change Management Workflow Documentation,2,HR,100,200,CAD,ALLOWANCE,A-015,MED,Based on Guidance Example 5 structure
+L012,PM,PKG-05,DEL-03-02,Design Manager Plan Review and Coordination,4,HR,175,700,CAD,ALLOWANCE,A-016,MED,Internal review and cross-deliverable consistency check with DEL-03-01
+L013,PM,PKG-05,DEL-03-02,Proposal Manager Review and Integration,2,HR,150,300,CAD,ALLOWANCE,A-017,MED,Final review and integration into proposal package
+L014,E,PKG-05,DEL-03-02,Document Assembly and Formatting,3,HR,100,300,CAD,ALLOWANCE,A-018,HIGH,Technical writer assembles final plan document
+L015,CONT,PKG-05,DEL-03-02,Contingency Reserve (15% on E+PM base),1,LS,1100,1100,CAD,ALLOWANCE,D-005,LOW,15% contingency on CAD 7250 base estimate

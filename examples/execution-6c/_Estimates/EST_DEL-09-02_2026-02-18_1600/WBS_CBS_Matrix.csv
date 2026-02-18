@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-09,DEL-09-02,PROF-PM,CAD,1400,1,100,Project Manager coordination and review
+PKG-09,DEL-09-02,PROF-CIVIL,CAD,930,1,100,Senior Civil Engineer technical review
+PKG-09,DEL-09-02,PROF-GEOTECH,CAD,620,1,100,Geotechnical Engineer report interpretation
+PKG-09,DEL-09-02,ALL,CAD,2950,3,100,Deliverable total (all CBS codes)

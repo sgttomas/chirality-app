@@ -1,0 +1,19 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-09,DEL-09-01,Risk Identification Workshop - PM Facilitation (4 hrs),1,LS,800.00,800.00,CAD,ALLOWANCE,A-003,MED,PM leads 4-hour workshop with Technical Leads; Procedure.md Step 1-2
+L-002,E,PKG-09,DEL-09-01,Risk Identification Workshop - Technical Lead Participation (6 discipline leads x 4 hrs),1,LS,3600.00,3600.00,CAD,ALLOWANCE,A-004,MED,6 Technical Leads at avg $150/hr x 4 hrs workshop; Procedure.md Personnel
+L-003,E,PKG-09,DEL-09-01,Pre-Workshop Preparation - Technical Leads (6 leads x 2 hrs each),1,LS,1800.00,1800.00,CAD,ALLOWANCE,A-005,MED,Pre-read and preliminary risk list preparation; Procedure.md Step 1
+L-004,E,PKG-09,DEL-09-01,Risk Assessment and Scoring (PM + leads) - 7 categories,1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-006,MED,Probability/Impact scoring for ~20 risks; Procedure.md Step 3
+L-005,E,PKG-09,DEL-09-01,Mitigation Strategy Development - High Priority Risks (score >=15),1,LS,2000.00,2000.00,CAD,ALLOWANCE,A-007,MED,Detailed mitigation plans for ~5 high-priority risks; Procedure.md Step 4
+L-006,E,PKG-09,DEL-09-01,Mitigation Strategy Development - Medium/Low Priority Risks,1,LS,1500.00,1500.00,CAD,ALLOWANCE,A-008,MED,Summary mitigations for ~15 medium/low risks; Procedure.md Step 4
+L-007,E,PKG-09,DEL-09-01,Quality Management Plan - Design QC Procedures (5 checkpoints),1,LS,1600.00,1600.00,CAD,ALLOWANCE,A-009,MED,Define Concept through 100% CD QC procedures; Procedure.md Step 5.1
+L-008,E,PKG-09,DEL-09-01,Quality Management Plan - Construction QC Procedures (4 inspection points),1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-010,MED,Foundation/Structure/MEP/Finishes inspection procedures; Procedure.md Step 5.2
+L-009,E,PKG-09,DEL-09-01,Quality Management Plan - Commissioning QC Requirements,1,LS,800.00,800.00,CAD,ALLOWANCE,A-011,MED,Functional testing/training/documentation verification; Procedure.md Step 5.3
+L-010,E,PKG-09,DEL-09-01,Quality Management Plan - Documentation QC Standards,1,LS,600.00,600.00,CAD,ALLOWANCE,A-012,MED,Drawing/spec/as-built/closeout review procedures; Procedure.md Step 5.4
+L-011,E,PKG-09,DEL-09-01,Risk Register Documentation and Formatting,1,LS,1000.00,1000.00,CAD,ALLOWANCE,A-013,MED,Compile risk register table and mitigation plans; Procedure.md Step 6
+L-012,E,PKG-09,DEL-09-01,QMP Documentation and Formatting,1,LS,800.00,800.00,CAD,ALLOWANCE,A-014,MED,Compile QMP document across 4 QC areas; Procedure.md Step 6
+L-013,PM,PKG-09,DEL-09-01,Internal Review - PM Coordination,1,LS,600.00,600.00,CAD,ALLOWANCE,A-015,MED,PM review for completeness and consistency; Procedure.md Step 7
+L-014,PM,PKG-09,DEL-09-01,Cross-Deliverable Consistency Check,1,LS,800.00,800.00,CAD,ALLOWANCE,A-016,MED,Verify consistency with DEL-09-02/05-03/08-01/06-01; Procedure.md Step 7
+L-015,PM,PKG-09,DEL-09-01,Proposal Integration and Handoff,1,LS,400.00,400.00,CAD,ALLOWANCE,A-017,MED,Finalize and handoff to Proposal Manager; Procedure.md Step 7
+L-016,E,PKG-09,DEL-09-01,Reference Material Review - Technical Reports,1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-018,MED,Review Geotech/Wetland/Environmental/Flood/Grading reports for risk inputs; _REFERENCES.md
+L-017,E,PKG-09,DEL-09-01,Reference Material Review - RFP and Addenda,1,LS,600.00,600.00,CAD,ALLOWANCE,A-019,MED,Review RFP risk themes and Addenda 01-03 changes; _REFERENCES.md
+L-100,CONT,PKG-09,DEL-09-01,Contingency (15% of base estimate),1,LS,3000.00,3000.00,CAD,ALLOWANCE,D-006,LOW,15% contingency for 100% ALLOWANCE estimate basis

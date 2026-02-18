@@ -1,0 +1,27 @@
+CBS_Category,Description,ProductionAmount_CAD,ConstructionAmount_CAD,BondInsuranceAmount_CAD,TotalAmount_CAD,LineCount,CostType
+ADMIN,Administrative / Proposal Coordinator / Document Control,5350,0,0,5350,8,PRODUCTION
+MGMT,Project Management / Design Management / Coordination,20700,0,0,20700,17,PRODUCTION
+LEGAL,Legal Review + Surety Broker Fee,4700,0,0,4700,2,PRODUCTION
+DESIGN,Architecture / Engineering (all disciplines),36330,0,0,36330,18,PRODUCTION
+PRODUCTION-CAD,CAD / BIM Production,6080,0,0,6080,1,PRODUCTION
+SPECIALTY,Building Science Consulting,3300,0,0,3300,2,PRODUCTION
+FIN,Estimating (Senior + Intermediate),15040,0,0,15040,5,PRODUCTION
+SCHED,Scheduling,2600,0,0,2600,1,PRODUCTION
+CONST_MGMT,Construction Management,4650,0,0,4650,5,PRODUCTION
+QUALITY,Quality Lead,1040,0,0,1040,1,PRODUCTION
+COMMISSIONING,Commissioning Lead,2240,0,0,2240,1,PRODUCTION
+HR,HR Coordinator,1020,0,0,1020,1,PRODUCTION
+GEOTECH,Geotechnical Engineer,620,0,0,620,1,PRODUCTION
+GR,General Requirements,0,1305000,0,1305000,1,CONSTRUCTION
+STRUCT,Structural + Cold Storage,0,1610000,0,1610000,2,CONSTRUCTION
+ENVLP,Building Envelope,0,980000,0,980000,1,CONSTRUCTION
+INTARCH,Interior Architectural,0,520000,0,520000,1,CONSTRUCTION
+MECH,Mechanical Systems,0,1180000,0,1180000,1,CONSTRUCTION
+ELEC,Electrical Systems,0,810000,0,810000,1,CONSTRUCTION
+CIVIL,Site/Civil + Underground Utilities,0,1580000,0,1580000,2,CONSTRUCTION
+EQUIP,Specialty Equipment,0,540000,0,540000,1,CONSTRUCTION
+DESFEE,Professional Design Fees,0,780000,0,780000,1,CONSTRUCTION
+FEES,Permits + Fees (in construction),0,558000,0,558000,2,CONSTRUCTION
+OPT,Additional Options + GST,0,866000,0,866000,8,CONSTRUCTION
+BOND,Bond Premiums (Performance + L&M),0,0,246575,246575,2,BOND_INSURANCE
+INS,Insurance Premiums (CCIP + Builder's Risk + CGL),0,0,290959,290959,3,BOND_INSURANCE

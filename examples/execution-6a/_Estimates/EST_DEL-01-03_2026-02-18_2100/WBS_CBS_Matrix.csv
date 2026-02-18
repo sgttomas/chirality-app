@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-03,CBS-LABOUR-SAFETY,CAD,6600,1,100,Safety Officer labour; unchanged from prior run
+PKG-001,DEL-01-03,CBS-LABOUR-ADMIN,CAD,640,1,100,Admin/Doc Control labour; unchanged from prior run
+PKG-001,DEL-01-03,CBS-TRAINING,CAD,4500,1,100,Training costs; resolved from TBD to $4500 ALLOWANCE
+PKG-001,DEL-01-03,CBS-SUPPLIES,CAD,3500,1,100,PPE/signage supplies; resolved from TBD to $3500 ALLOWANCE
+PKG-001,DEL-01-03,ALL,CAD,15240,4,100,All 4 lines priced (100%); total $15240

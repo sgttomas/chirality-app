@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-07,CBS-0107-CX,CAD,16800,1,100,Commissioning Lead labor -- overall Cx coordination only
+PKG-001,DEL-01-07,CBS-0107-MGT,CAD,5250,1,100,Project Manager -- Cx oversight and closeout
+PKG-001,DEL-01-07,CBS-0107-ADM,CAD,1600,1,100,Administrative / Document Control -- as-built and O&M assembly
+PKG-001,DEL-01-07,TOTAL,CAD,23650,3,100,DEL-01-07 total

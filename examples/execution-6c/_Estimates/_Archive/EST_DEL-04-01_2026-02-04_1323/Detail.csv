@@ -1,0 +1,18 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-06,DEL-04-01,Initial Setup and Context Review (Step 1),4,HR,175.00,700.00,CAD,ALLOWANCE,A-007; Procedure.md Step 1,MED,CM reviewing context files and decomposition document
+L-002,E,PKG-06,DEL-04-01,External Reference Document Review (Step 2),12,HR,175.00,2100.00,CAD,ALLOWANCE,A-006; Procedure.md Step 2,LOW,Review of geotech/wetland/environmental/flood/grading reports plus RFP Section 7.2
+L-003,PM,PKG-06,DEL-04-01,Cross-Deliverable Coordination (Step 3),16,HR,175.00,2800.00,CAD,ALLOWANCE,A-005; Procedure.md Step 3,MED,Coordination with DEL-02-01/DEL-08-01/DEL-09-02/DEL-05-03 authors
+L-004,E,PKG-06,DEL-04-01,Draft Construction Methodology Narrative (Step 4),32,HR,175.00,5600.00,CAD,ALLOWANCE,A-002; Procedure.md Step 4,MED,Primary authoring work - staging/logistics/safety/admin sections
+L-005,E,PKG-06,DEL-04-01,Internal Technical Review - PM Review,4,HR,175.00,700.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,PM review for alignment and consistency
+L-006,E,PKG-06,DEL-04-01,Internal Technical Review - Estimator Review,2,HR,175.00,350.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,Estimator review for pricing consistency with DEL-05-03
+L-007,E,PKG-06,DEL-04-01,Internal Technical Review - Safety Lead Review,4,HR,175.00,700.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,Safety Lead review for Alberta OHS compliance
+L-008,E,PKG-06,DEL-04-01,Internal Technical Review - Lead Architect Review,2,HR,175.00,350.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,Architect review for design concept alignment
+L-009,E,PKG-06,DEL-04-01,Internal Technical Review - Scheduler Review,2,HR,175.00,350.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,Scheduler review for schedule alignment
+L-010,E,PKG-06,DEL-04-01,Revision After Internal Review,8,HR,175.00,1400.00,CAD,ALLOWANCE,A-004; Procedure.md Step 5,MED,CM addressing review comments
+L-011,PM,PKG-06,DEL-04-01,Compliance Review - Proposal Manager (Step 6),4,HR,175.00,700.00,CAD,ALLOWANCE,Procedure.md Step 6,MED,RFP Section 7.2 compliance verification
+L-012,E,PKG-06,DEL-04-01,Credibility Review - Senior Reviewer (Step 6),4,HR,175.00,700.00,CAD,ALLOWANCE,Procedure.md Step 6,MED,Senior reviewer credibility and persuasiveness assessment
+L-013,E,PKG-06,DEL-04-01,Revision After Compliance/Credibility Review,4,HR,175.00,700.00,CAD,ALLOWANCE,A-004; Procedure.md Step 6,MED,Addressing compliance gaps and credibility improvements
+L-014,E,PKG-06,DEL-04-01,Finalize Narrative and Format (Step 7),4,HR,175.00,700.00,CAD,ALLOWANCE,Procedure.md Step 7,MED,Final formatting and delivery to Proposal Manager
+L-015,E,PKG-06,DEL-04-01,Supporting Exhibits - Site Logistics Diagram,1,LS,800.00,800.00,CAD,ALLOWANCE,A-008; Guidance.md Example 2,MED,Conceptual site logistics plan diagram
+L-016,E,PKG-06,DEL-04-01,Supporting Exhibits - Construction Phasing Diagram,1,LS,600.00,600.00,CAD,ALLOWANCE,A-008; Guidance.md Example 1,MED,Visual representation of staging sequence
+L-017,CONT,PKG-06,DEL-04-01,Contingency (10% of base),1,LS,1925.00,1925.00,CAD,ALLOWANCE,D-006; BOE.md,MED,10% contingency on base estimate of $19250

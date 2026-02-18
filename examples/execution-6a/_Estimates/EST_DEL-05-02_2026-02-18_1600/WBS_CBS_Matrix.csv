@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-05-02,26-ELEC,CAD,90000,1,100,Per-light unit rate ($7500/ea) x 12 assumed qty; total scales with elected quantity
+PKG-005,DEL-05-02,26-COND,CAD,8000,1,100,Fixed conduit run cost (panel to first pole); does not scale per light
+PKG-005,DEL-05-02,ALL,CAD,98000,2,100,TOTAL for DEL-05-02 at assumed 12-pole quantity. Per-unit rate: $7500/light + $8000 fixed conduit = $8167 effective per light (at 12 units)

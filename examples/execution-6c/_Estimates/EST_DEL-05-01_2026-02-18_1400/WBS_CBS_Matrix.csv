@@ -1,0 +1,14 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-02,DEL-05-01,FIN,CAD,8560,2,100,Production cost: Estimator Senior (40h) + Estimator Intermediate (24h) hours to compile Schedule A
+PKG-02,DEL-05-01,MGMT,CAD,1400,1,100,Production cost: PM review and pricing strategy (8h)
+PKG-02,DEL-05-01,GR,CAD,1305000,1,100,Construction content: General requirements (15% of base construction)
+PKG-02,DEL-05-01,STRUCT,CAD,1610000,2,100,Construction content: Structural/concrete (main PSB $1320k + cold storage $290k)
+PKG-02,DEL-05-01,ENVLP,CAD,980000,1,100,Construction content: Building envelope (main PSB)
+PKG-02,DEL-05-01,INTARCH,CAD,520000,1,100,Construction content: Interior architectural (main PSB)
+PKG-02,DEL-05-01,MECH,CAD,1180000,1,100,Construction content: Mechanical systems (main PSB)
+PKG-02,DEL-05-01,ELEC,CAD,810000,1,100,Construction content: Electrical systems (main PSB)
+PKG-02,DEL-05-01,CIVIL,CAD,1580000,2,100,Construction content: Site/civil works ($1230k) + underground utilities ($350k)
+PKG-02,DEL-05-01,EQUIP,CAD,540000,1,100,Construction content: Specialty equipment and temporary facilities
+PKG-02,DEL-05-01,DESFEE,CAD,780000,1,100,Construction content: Professional design fees (all disciplines)
+PKG-02,DEL-05-01,FEES,CAD,558000,2,100,Construction content: Bonds/insurance ($474k) + permits/fees ($84k)
+PKG-02,DEL-05-01,OPT,CAD,866000,8,100,Construction content: Additional Options 1-6 ($355k) + GST base ($493k) + GST options ($18k)

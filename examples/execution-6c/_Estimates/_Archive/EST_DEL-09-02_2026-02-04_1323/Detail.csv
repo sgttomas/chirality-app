@@ -1,0 +1,30 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-09,DEL-09-02,Reference Report Review - Geotechnical Investigation Report,6,HR,150,900,CAD,ALLOWANCE,A-001,LOW,Senior engineer review and extraction; 1 report x 6 hrs
+L-002,E,PKG-09,DEL-09-02,Reference Report Review - Wetland Assessment Report,6,HR,150,900,CAD,ALLOWANCE,A-001,LOW,Senior engineer review and extraction; 1 report x 6 hrs
+L-003,E,PKG-09,DEL-09-02,Reference Report Review - Desktop Environmental Assessment,6,HR,150,900,CAD,ALLOWANCE,A-001,LOW,Senior engineer review and extraction; 1 report x 6 hrs
+L-004,E,PKG-09,DEL-09-02,Reference Report Review - Site Grading Document,4,HR,150,600,CAD,ALLOWANCE,A-001,LOW,Senior engineer review; simpler document type
+L-005,E,PKG-09,DEL-09-02,Reference Report Review - Flood Zone Mapping,4,HR,150,600,CAD,ALLOWANCE,A-001,LOW,Senior engineer review; mapping document
+L-006,E,PKG-09,DEL-09-02,Reference Report Review - Adjacent Subdivision Design,4,HR,150,600,CAD,ALLOWANCE,A-001,LOW,Senior engineer review; interface document
+L-007,E,PKG-09,DEL-09-02,Reference Report Review - RFP Base Document,6,HR,125,750,CAD,ALLOWANCE,A-001,LOW,Engineer review of RFP sections 2.3 and 7.4
+L-008,E,PKG-09,DEL-09-02,Constraint Identification and Impact Assessment,8,HR,150,1200,CAD,ALLOWANCE,A-002,LOW,Senior engineer - identify site constraints per Specification R-11
+L-009,E,PKG-09,DEL-09-02,Mitigation Strategy Development,10,HR,150,1500,CAD,ALLOWANCE,A-002,LOW,Senior engineer - develop mitigation strategies with cross-references
+L-010,PM,PKG-09,DEL-09-02,Constraint-to-Mitigation Matrix Synthesis,6,HR,175,1050,CAD,ALLOWANCE,A-002,LOW,PM - integrate and synthesize findings
+L-011,E,PKG-09,DEL-09-02,Site Characterization Narrative (R-15),10,HR,150,1500,CAD,ALLOWANCE,A-003,MEDIUM,Senior engineer - 1-2 page unified narrative per Specification R-15
+L-012,PM,PKG-09,DEL-09-02,Cross-Deliverable Coordination - DEL-02-01,4,HR,175,700,CAD,ALLOWANCE,A-004,LOW,PM coordination with Concept Design lead
+L-013,PM,PKG-09,DEL-09-02,Cross-Deliverable Coordination - DEL-05-03,3,HR,175,525,CAD,ALLOWANCE,A-004,LOW,PM coordination with Pricing lead
+L-014,PM,PKG-09,DEL-09-02,Cross-Deliverable Coordination - DEL-09-01,3,HR,175,525,CAD,ALLOWANCE,A-004,LOW,PM coordination with Risk Register lead
+L-015,PM,PKG-09,DEL-09-02,Cross-Deliverable Coordination - DEL-08-01,4,HR,175,700,CAD,ALLOWANCE,A-004,LOW,PM coordination with Schedule lead
+L-016,PM,PKG-09,DEL-09-02,QA Review and Documentation Sign-off,6,HR,175,1050,CAD,ALLOWANCE,A-005,MEDIUM,PM - quality review per Procedure Step 8a
+L-017,E,PKG-09,DEL-09-02,Discipline Sign-off Coordination,4,HR,150,600,CAD,ALLOWANCE,A-005,MEDIUM,Senior engineer - coordinate environmental/geotech/civil sign-offs
+L-018,E,PKG-09,DEL-09-02,Artifact Production - Site Conditions Summary Narrative,4,HR,125,500,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce site summary narrative artifact
+L-019,E,PKG-09,DEL-09-02,Artifact Production - Geotechnical Findings Table,3,HR,125,375,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce geotech findings table
+L-020,E,PKG-09,DEL-09-02,Artifact Production - Wetland Constraints Map Reference,2,HR,125,250,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce wetland map reference
+L-021,E,PKG-09,DEL-09-02,Artifact Production - Environmental Clearance Statement,2,HR,125,250,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce environmental statement
+L-022,E,PKG-09,DEL-09-02,Artifact Production - Flood Zone Compliance Statement,2,HR,125,250,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce flood compliance statement
+L-023,E,PKG-09,DEL-09-02,Artifact Production - Survey Assumptions Statement,2,HR,125,250,CAD,ALLOWANCE,A-007,MEDIUM,Engineer - produce survey assumptions per Addendum 03
+L-024,E,PKG-09,DEL-09-02,Verification Activities (R-01 to R-12),9,HR,125,1125,CAD,ALLOWANCE,A-008,MEDIUM,Engineer - verification per Specification verification methods
+L-025,PM,PKG-09,DEL-09-02,Propagation Checklist and Record Maintenance,4,HR,175,700,CAD,ALLOWANCE,D-005/A-004,LOW,PM - per Procedure Step 6a Site Conditions Propagation Protocol
+L-026,E,PKG-09,DEL-09-02,Traceability Matrix Development (X-003),4,HR,125,500,CAD,ALLOWANCE,A-008,MEDIUM,Engineer - per Specification R-12 Consistency Demonstration Method
+L-027,PM,PKG-09,DEL-09-02,Conflict Resolution Support (CONF-001),1,LS,100,100,CAD,ALLOWANCE,R-006,LOW,Allowance for flood zone variance resolution if required
+L-028,CONT,PKG-09,DEL-09-02,Contingency - Engineering (15%),1,LS,1909,1909,CAD,ALLOWANCE,D-007/R-001-R-006,LOW,15% contingency on E bucket per Risk Register
+L-029,CONT,PKG-09,DEL-09-02,Contingency - Project Management (15%),1,LS,803,803,CAD,ALLOWANCE,D-007/R-001-R-006,LOW,15% contingency on PM bucket per Risk Register

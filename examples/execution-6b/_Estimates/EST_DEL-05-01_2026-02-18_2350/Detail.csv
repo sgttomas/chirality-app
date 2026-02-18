@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-05-01-001,CBS-100,PKG-005,DEL-05-01,Architect (Project) -- Architectural durability and maintenance narrative: cladding; roofing; interior finishes lifecycle; flooring by zone; doors/hardware durability; moisture management,10,hr,145,1450,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-05-01/R-04 + Professional_Staff_Rates.csv row R-04,MED,10 hrs from LoE; $145/hr from rate table; single role assignment covers full narrative production scope

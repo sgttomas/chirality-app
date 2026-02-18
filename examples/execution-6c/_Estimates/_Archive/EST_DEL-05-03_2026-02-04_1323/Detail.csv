@@ -1,0 +1,15 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 1 Introduction,1,LS,500.00,500.00,CAD,ALLOWANCE,A-002,LOW,Professional effort to draft introduction section; ~2-4 hours estimated
+L-002,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 2 Addenda Integration,1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-002,LOW,Documentation of 3 addenda impacts; ~6-8 hours estimated
+L-003,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 3 Base Scope Assumptions,1,LS,800.00,800.00,CAD,ALLOWANCE,A-002,LOW,Technical requirements documentation; ~4-6 hours estimated
+L-004,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 4 Exclusions,1,LS,600.00,600.00,CAD,ALLOWANCE,A-002,LOW,Exclusion statements with rationale; ~3-4 hours estimated
+L-005,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 5 Allowances,1,LS,1000.00,1000.00,CAD,ALLOWANCE,A-002,LOW,Allowance table with values and triggers; ~5-6 hours estimated
+L-006,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 6 Additional Options,1,LS,1500.00,1500.00,CAD,ALLOWANCE,A-002,LOW,6 Additional Options scope and pricing basis; ~8-10 hours estimated
+L-007,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 7 Value Alternatives,1,LS,800.00,800.00,CAD,ALLOWANCE,A-003,LOW,SOW-028 value alternatives documentation (if applicable); ~4-6 hours estimated
+L-008,E,PKG-02,DEL-05-03,Pricing Narrative Document Production - Section 8 Pricing Assumptions,1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-002,LOW,Key estimating assumptions table; ~6-8 hours estimated
+L-009,PM,PKG-02,DEL-05-03,Cross-Reference to Schedules A/B (R-8 compliance),1,LS,1000.00,1000.00,CAD,ALLOWANCE,A-004,LOW,Bidirectional consistency check with DEL-05-01 and DEL-05-02; ~5-6 hours estimated
+L-010,PM,PKG-02,DEL-05-03,Cross-Reference to Related Deliverables,1,LS,1200.00,1200.00,CAD,ALLOWANCE,A-005,LOW,Consistency check with DEL-02-01; DEL-04-01; DEL-08-01; DEL-09-01; DEL-09-02; ~6-8 hours estimated
+L-011,PM,PKG-02,DEL-05-03,Specification Requirement Verification (R-1 through R-10),1,LS,800.00,800.00,CAD,ALLOWANCE,A-006,LOW,Verification checklist completion; ~4-5 hours estimated
+L-012,PM,PKG-02,DEL-05-03,Review and Approval Cycle,1,LS,1000.00,1000.00,CAD,ALLOWANCE,A-007,LOW,Internal review; revisions; and sign-off process; ~5-6 hours estimated
+L-013,PM,PKG-02,DEL-05-03,Document Integration into Proposal PDF,1,LS,400.00,400.00,CAD,ALLOWANCE,A-008,LOW,Final formatting and PDF integration with PKG-01; ~2-3 hours estimated
+L-100,CONT,PKG-02,DEL-05-03,Contingency (15% of base estimate),1,LS,1650.00,1650.00,CAD,ALLOWANCE,D-005,LOW,15% contingency applied to $11000 base due to 100% allowance-based pricing

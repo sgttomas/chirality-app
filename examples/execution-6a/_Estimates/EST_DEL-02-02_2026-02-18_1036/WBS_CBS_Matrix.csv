@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-02,03-CONCRETE,CAD,30829,6,100,Sealed concrete floor finishing for apparatus bays + 5 support rooms
+PKG-002,DEL-02-02,09-FINISHES,CAD,62850,26,100,Interior finishes -- partitions / ceilings / paint / tile / doors for bays and all support rooms
+PKG-002,DEL-02-02,10-SPECIALTIES,CAD,92600,3,100,Bunker gear lockers (40 units) + decon washroom accessories + toilet partitions
+PKG-002,DEL-02-02,11-EQUIPMENT,CAD,55000,1,100,Breathing air compressor system (complete)
+PKG-002,DEL-02-02,22-PLUMBING,CAD,18000,1,100,Bay sump assemblies -- oil/water separator type (4 fire bays)
+PKG-002,DEL-02-02,23-MECH,CAD,20000,1,100,Compressed air distribution piping allowance (compressor room to 4 bays)
+PKG-002,DEL-02-02,TOTAL,CAD,279279,38,100,DEL-02-02 total -- all CBS categories

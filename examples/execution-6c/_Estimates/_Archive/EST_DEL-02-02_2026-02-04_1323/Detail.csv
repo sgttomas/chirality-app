@@ -1,0 +1,28 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+E-001,E,PKG-04,DEL-02-02,Architectural Design Brief - Site plan narrative,8,HR,175,1400,CAD,ALLOWANCE,A-001,MED,Lead Architect - site plan and building placement rationale
+E-002,E,PKG-04,DEL-02-02,Architectural Design Brief - Architectural plan narrative,12,HR,175,2100,CAD,ALLOWANCE,A-001,MED,Lead Architect - building layout and functional zoning narrative
+E-003,E,PKG-04,DEL-02-02,Architectural Design Brief - Exterior elevations narrative,8,HR,175,1400,CAD,ALLOWANCE,A-001,MED,Lead Architect - materials palette and building character
+E-004,E,PKG-04,DEL-02-02,Architectural Design Brief - Durability/Maintenance narrative premium,12,HR,175,2100,CAD,ALLOWANCE,A-002,MED,Enhanced effort for 15-point scoring category per D-010
+E-005,E,PKG-04,DEL-02-02,Civil Design Brief - Site grading and drainage narrative,6,HR,165,990,CAD,ALLOWANCE,A-003,MED,Civil Engineer - drainage and stormwater approach
+E-006,E,PKG-04,DEL-02-02,Civil Design Brief - Parking and circulation narrative,4,HR,165,660,CAD,ALLOWANCE,A-003,MED,Civil Engineer - apparatus routing and PW yard circulation
+E-007,E,PKG-04,DEL-02-02,Civil Design Brief - Site servicing narrative,4,HR,165,660,CAD,ALLOWANCE,A-003,MED,Civil Engineer - utility connections approach
+E-008,E,PKG-04,DEL-02-02,Structural Design Brief - System selection narrative,6,HR,170,1020,CAD,ALLOWANCE,A-004,MED,Structural Engineer - structural system and foundation approach
+E-009,E,PKG-04,DEL-02-02,Structural Design Brief - Expansion provisions narrative,4,HR,170,680,CAD,ALLOWANCE,A-004,MED,Structural Engineer - future expansion structural provisions
+E-010,E,PKG-04,DEL-02-02,Structural Design Brief - Solar-ready roof structure narrative,4,HR,170,680,CAD,ALLOWANCE,A-004,MED,Structural Engineer - solar panel load capacity per Addendum 03
+E-011,E,PKG-04,DEL-02-02,Mechanical Design Brief - HVAC systems narrative,8,HR,165,1320,CAD,ALLOWANCE,A-005,MED,Mechanical Engineer - heating/cooling/ventilation approach
+E-012,E,PKG-04,DEL-02-02,Mechanical Design Brief - Fire apparatus exhaust narrative,6,HR,165,990,CAD,ALLOWANCE,A-005,MED,Mechanical Engineer - direct exhaust per Addendum 03 Section 1.12
+E-013,E,PKG-04,DEL-02-02,Mechanical Design Brief - Plumbing and sumps narrative,4,HR,165,660,CAD,ALLOWANCE,A-005,MED,Mechanical Engineer - fill stations and bay sumps per Addendum 03
+E-014,E,PKG-04,DEL-02-02,Electrical/IT Design Brief - Power distribution narrative,6,HR,165,990,CAD,ALLOWANCE,A-006,MED,Electrical Engineer - service sizing and distribution
+E-015,E,PKG-04,DEL-02-02,Electrical/IT Design Brief - Generator and backup power narrative,6,HR,165,990,CAD,ALLOWANCE,A-006,MED,Electrical Engineer - backup generator per Addendum 03 Section 1.15
+E-016,E,PKG-04,DEL-02-02,Electrical/IT Design Brief - Lighting and controls narrative,4,HR,165,660,CAD,ALLOWANCE,A-006,MED,Electrical Engineer - LED lighting and control strategy
+E-017,E,PKG-04,DEL-02-02,Electrical/IT Design Brief - IT and communications narrative,6,HR,165,990,CAD,ALLOWANCE,A-006,MED,Electrical Engineer - data infrastructure and ICP requirements
+E-018,E,PKG-04,DEL-02-02,Electrical/IT Design Brief - Solar-ready provisions narrative,4,HR,165,660,CAD,ALLOWANCE,A-006,MED,Electrical Engineer - future solar interconnection per Addendum 03 Section 1.17
+E-019,E,PKG-04,DEL-02-02,Accessibility Narrative,4,HR,175,700,CAD,ALLOWANCE,A-007,MED,Lead Architect - Alberta Building Code accessibility approach
+E-020,E,PKG-04,DEL-02-02,Adaptability Flexibility Expansion Narrative,6,HR,175,1050,CAD,ALLOWANCE,A-007,MED,Lead Architect - future growth and expansion provisions
+E-021,E,PKG-04,DEL-02-02,Document integration and formatting,8,HR,125,1000,CAD,ALLOWANCE,A-008,MED,Technical Writer - compile and format narrative document
+E-022,E,PKG-04,DEL-02-02,Cross-reference consistency with DEL-02-01,6,HR,175,1050,CAD,ALLOWANCE,A-008,MED,Lead Architect - ensure narrative aligns with Concept Design Package
+PM-001,PM,PKG-04,DEL-02-02,Coordination and quality assurance review,8,HR,150,1200,CAD,ALLOWANCE,A-008,MED,Proposal Manager - coordination across disciplines and QA
+PM-002,PM,PKG-04,DEL-02-02,Requirements compliance verification,6,HR,150,900,CAD,ALLOWANCE,A-008,MED,Proposal Manager - verify RFP Section 7.1.2-7.1.5 compliance
+PM-003,PM,PKG-04,DEL-02-02,Internal review cycle management,6,HR,150,900,CAD,ALLOWANCE,A-008,MED,Proposal Manager - manage review and revision cycles
+CONT-001,CONT,PKG-04,DEL-02-02,Contingency - Engineering scope uncertainty,1,LS,3600,3600,CAD,ALLOWANCE,D-005,LOW,15% on Engineering base per contingency method
+CONT-002,CONT,PKG-04,DEL-02-02,Contingency - PM coordination uncertainty,1,LS,300,300,CAD,ALLOWANCE,D-005,LOW,10% on PM base per contingency method

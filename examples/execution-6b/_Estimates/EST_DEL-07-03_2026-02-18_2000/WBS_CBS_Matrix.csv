@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-07-03,MGMT,CAD,1400,1,100,Single role (PM) at 8 hrs x $175/hr; full provenance

@@ -1,0 +1,18 @@
+Execution,DeliverableID,DeliverableName,RoleID,Role,EstimatedHours,Basis,Notes
+6a,DEL-01-01,Integrated Design Management & Submission Packages,R-02,Project Manager,120,PARAMETRIC,PM oversight across full 18-month construction phase; ~7 hr/wk
+6a,DEL-01-01,Integrated Design Management & Submission Packages,R-03,Design Manager,80,PARAMETRIC,Design phase leadership 4 months; periodic review during construction
+6a,DEL-01-01,Integrated Design Management & Submission Packages,R-04,Architect (Project),40,PARAMETRIC,Design review; QA/QC review cycles
+6a,DEL-01-01,Integrated Design Management & Submission Packages,R-24,Administrative / Document Control,60,PARAMETRIC,Document management full project duration; ~3.5 hr/wk
+6a,DEL-01-02,Baseline Schedule Updates & Reporting,R-17,Scheduler,80,PARAMETRIC,Schedule development (40h) + monthly updates (2h/mo x 18mo = 36h) + closeout
+6a,DEL-01-02,Baseline Schedule Updates & Reporting,R-02,Project Manager,20,PARAMETRIC,Schedule review + reporting oversight
+6a,DEL-01-03,Health & Safety Plan,R-20,Safety Officer,60,PARAMETRIC,H&S plan development (20h) + site safety management (~2.5h/wk x 16wk active)
+6a,DEL-01-03,Health & Safety Plan,R-24,Administrative / Document Control,8,PARAMETRIC,Safety documentation filing
+6a,DEL-01-04,Permitting Inspections & AHJ Coordination,R-02,Project Manager,40,PARAMETRIC,Permit applications; inspection coordination; AHJ liaison throughout project
+6a,DEL-01-04,Permitting Inspections & AHJ Coordination,R-24,Administrative / Document Control,12,PARAMETRIC,Permit documentation; inspection records
+6a,DEL-01-05,Meetings Documentation & Change Control,R-02,Project Manager,90,PARAMETRIC,Biweekly meetings (2h x 36 = 72h) + change control admin (18h)
+6a,DEL-01-05,Meetings Documentation & Change Control,R-24,Administrative / Document Control,50,PARAMETRIC,Minutes; RFI log; submittal tracking; change order documentation
+6a,DEL-01-06,Site Supervision Logistics & Housekeeping,R-16,Site Superintendent,1440,PARAMETRIC,Full-time on site: 40h/wk x 18mo x 4.33wk/mo ≈ trimmed to 80% utilization
+6a,DEL-01-06,Site Supervision Logistics & Housekeeping,R-15,Construction Manager,60,PARAMETRIC,Periodic site visits; logistics oversight; ~3.5h/wk
+6a,DEL-01-07,Commissioning Closeout & Warranty,R-21,Commissioning Lead,120,PARAMETRIC,Cx plan (20h) + functional testing (40h) + training (20h) + as-built coordination (20h) + warranty admin (20h)
+6a,DEL-01-07,Commissioning Closeout & Warranty,R-02,Project Manager,30,PARAMETRIC,Cx oversight; closeout coordination; warranty management
+6a,DEL-01-07,Commissioning Closeout & Warranty,R-24,Administrative / Document Control,20,PARAMETRIC,As-built documentation; O&M manual assembly; warranty log

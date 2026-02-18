@@ -1,0 +1,8 @@
+# Assumptions Log -- EST_DEL-10-01_2026-02-18_1900
+
+| Assumption ID | Assumption | Basis | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | Level_of_Effort.csv hours for DEL-10-01 are complete and final (R-02: 10 hrs, R-15: 4 hrs; total 14 hrs) | Level_of_Effort.csv, Basis=PARAMETRIC, provided as PRICE_SOURCE | If additional roles are needed (e.g., discipline engineers providing risk input beyond CM), hours and cost would increase. Materiality: LOW (incremental hours would likely be small). |
+| ASM-002 | Professional_Staff_Rates.csv rates are current and applicable for this proposal period | Professional_Staff_Rates.csv, Basis=MARKET, Confidence=MEDIUM | If rates change, line item amounts change proportionally. At 14 total hours, a 10% rate variance would shift the total by approximately $237. Materiality: LOW. |
+| ASM-003 | This estimate covers proposal production cost only (hours to compile risk register and write mitigation plan), not project-phase risk contingency or construction risk budget | Brief instructions: "Proposal production cost estimate: hours to compile risk register and write mitigation plan" | If the estimate were interpreted to include project-phase risk management costs, the total would be significantly higher. This assumption is explicitly stated in the brief. |
+| ASM-004 | No additional specialist roles (e.g., environmental consultant, geotechnical engineer) contribute hours to the risk register | Level_of_Effort.csv shows only R-02 and R-15 allocated to DEL-10-01 | If specialist input hours were added, cost would increase. The PM is assumed to synthesize specialist knowledge from source documents without dedicated specialist authoring time on this deliverable. |

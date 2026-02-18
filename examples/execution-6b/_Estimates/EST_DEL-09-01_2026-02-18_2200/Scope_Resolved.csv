@@ -1,0 +1,2 @@
+DeliverableID,PackageID,Path,InScope,Notes
+DEL-09-01,PKG-009,test/execution-6b/PKG-009_Schedule_and_Milestones/1_Working/DEL-09-01_DetailedProjectSchedule/,TRUE,Single deliverable in PKG-009; Gantt chart + critical path + schedule assumptions

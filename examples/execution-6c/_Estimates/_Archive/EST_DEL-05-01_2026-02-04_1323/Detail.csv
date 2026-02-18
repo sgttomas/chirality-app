@@ -1,0 +1,26 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-02,DEL-05-01,Engineering and Design Services - Main Building,1,LS,480000,480000,CAD,ALLOWANCE,A-001,LOW,8% of estimated construction cost; typical D-B range 8-12%
+L-002,E,PKG-02,DEL-05-01,Engineering and Design Services - Cold Storage Building,1,LS,48000,48000,CAD,ALLOWANCE,A-001,LOW,8% of cold storage construction
+L-003,PM,PKG-02,DEL-05-01,Project Management / EPCM Services,1,LS,240000,240000,CAD,ALLOWANCE,A-002,LOW,4% of total construction; typical range 3-5%
+L-004,CD,PKG-02,DEL-05-01,Main Building Construction - Fire Hall + Public Works Combined,15000,SF,350,5250000,CAD,ALLOWANCE,A-003,LOW,Estimated 15000 SF at $350/SF Alberta institutional benchmark
+L-005,CD,PKG-02,DEL-05-01,Cold Storage Building Construction (60x100 unheated),6000,SF,100,600000,CAD,ALLOWANCE,A-004,LOW,6000 SF at $100/SF unheated storage benchmark
+L-006,CD,PKG-02,DEL-05-01,Site Work - 12 Acre Development,12,AC,75000,900000,CAD,ALLOWANCE,A-005,LOW,$75K/acre site development allowance
+L-007,CD,PKG-02,DEL-05-01,Service Tie-Ins Cash Allowance (water/wastewater/elec/comm/gas),1,LS,150000,150000,CAD,ALLOWANCE,A-006,LOW,Per Addendum 03 s1.7 allowance permitted
+L-008,CD,PKG-02,DEL-05-01,Generator - Backup Power (kitchen/meeting room/ICP/bathrooms),1,LS,85000,85000,CAD,ALLOWANCE,A-007,LOW,Per Addendum 03 s1.15
+L-009,CD,PKG-02,DEL-05-01,Fire Apparatus Exhaust System (2 apparatus x 4 bays),8,EA,12000,96000,CAD,ALLOWANCE,A-008,LOW,Per Addendum 03 s1.12
+L-010,CD,PKG-02,DEL-05-01,Fill Stations 2 inch minimum (Fire Bay + PW Bay),2,EA,8000,16000,CAD,ALLOWANCE,A-009,LOW,Per Addendum 03 s1.16
+L-011,CD,PKG-02,DEL-05-01,Solar-Ready Roof Structure Upgrade,1,LS,45000,45000,CAD,ALLOWANCE,A-010,LOW,Per Addendum 03 s1.17
+L-012,CD,PKG-02,DEL-05-01,Bunker Gear Lockers (40 units),40,EA,2500,100000,CAD,ALLOWANCE,A-011,LOW,Per Addendum 03 s1.13
+L-013,CD,PKG-02,DEL-05-01,Bay Sumps - All Bays,8,EA,5000,40000,CAD,ALLOWANCE,A-012,LOW,Per Addendum 03 s1.8; estimated 8 bays
+L-014,CD,PKG-02,DEL-05-01,16 ft Overhead Doors (upgrade from standard),8,EA,3500,28000,CAD,ALLOWANCE,A-013,LOW,Per Addendum 03 s1.10; incremental cost
+L-015,CI,PKG-02,DEL-05-01,Construction Indirects (Field Overhead/Supervision),1,LS,584000,584000,CAD,ALLOWANCE,D-004,LOW,8% of construction directs
+L-016,MAT,PKG-02,DEL-05-01,Performance Bond (50% of contract),1,LS,75000,75000,CAD,ALLOWANCE,A-014,LOW,Estimated 1.5% of base; 50% performance
+L-017,MAT,PKG-02,DEL-05-01,Labour and Material Payment Bond (50% of contract),1,LS,75000,75000,CAD,ALLOWANCE,A-014,LOW,Estimated 1.5% of base; 50% L&M
+L-018,COM,PKG-02,DEL-05-01,Commissioning and Startup,1,LS,146000,146000,CAD,ALLOWANCE,A-015,LOW,2% of construction directs
+L-019,CONT,PKG-02,DEL-05-01,Contingency - Base Contract,1,LS,1398000,1398000,CAD,ALLOWANCE,D-003,LOW,15% of base estimate pre-contingency; HIGH due to allowance basis
+L-100,CD,PKG-02,DEL-05-01,Option 1 - Built-in Wash Bay (structure + equipment),1,LS,125000,125000,CAD,ALLOWANCE,A-020,LOW,Interior structure addition + pressure wash equipment
+L-101,CD,PKG-02,DEL-05-01,Option 2 - Yard Lighting Installation,1,LS,85000,85000,CAD,ALLOWANCE,A-021,LOW,Site lighting for operational yard
+L-102,CD,PKG-02,DEL-05-01,Option 3 - Building Access Control System,1,LS,65000,65000,CAD,ALLOWANCE,A-022,LOW,Electronic access control per RFP s12.3
+L-103,CD,PKG-02,DEL-05-01,Option 4 - Security and Camera System (installation only),1,LS,95000,95000,CAD,ALLOWANCE,A-023,LOW,Installation only; monthly monitoring excluded per Guidance Conflict-02
+L-104,CD,PKG-02,DEL-05-01,Option 5 - Signage for Exterior (branding/wayfinding),1,LS,35000,35000,CAD,ALLOWANCE,A-024,LOW,Exterior signage per RFP s12.5
+L-105,CD,PKG-02,DEL-05-01,Option 6 - Appliances Package,1,LS,25000,25000,CAD,ALLOWANCE,A-025,LOW,2 fridges/freezers + 2 microwaves + stove/oven/hood + dishwasher + 2 laundry sets per RFP s12.6

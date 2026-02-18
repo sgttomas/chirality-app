@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS_Code,CBS_Description,Base_Amount_CAD,Contingency_CAD,Total_CAD
+PKG-01,DEL-01-03,PM,Project Management / EPCM,4400,660,5060
+PKG-01,DEL-01-03,E,Engineering & Design,700,105,805
+PKG-01,DEL-01-03,P,Procurement,800,120,920
+PKG-01,DEL-01-03,CONT,Contingency,0,870,870
+PKG-01,DEL-01-03,TOTAL,Deliverable Total,5900,870,6770

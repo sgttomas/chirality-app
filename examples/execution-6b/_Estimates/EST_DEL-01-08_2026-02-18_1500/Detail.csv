@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROPOSAL_ADMIN,PKG-001,DEL-01-08,HR Coordinator — availability confirmations; resume source files; formatting,12,hr,85,1020,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-08/R-26 + Professional_Staff_Rates.csv row R-26,MED,12 hrs at $85/hr; resume collection and coordination with team members
+L-002,PROPOSAL_ADMIN,PKG-001,DEL-01-08,Proposal Coordinator / Writer — resume editing to 2-page max; role descriptions,8,hr,105,840,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-08/R-22 + Professional_Staff_Rates.csv row R-22,MED,8 hrs at $105/hr; editing resumes to RFP 2-page format and writing role descriptions

@@ -1,0 +1,23 @@
+AssumptionUID,AssumptionID,FromDeliverableID,Assumption,Source,ImpactIfWrong,Confidence
+DEL-05-01::A-001,A-001,DEL-05-01,Main PSB building footprint is 18000 sf per PP-05,Assumed_Project_Parameters.csv PP-05,+/-10% area = +/-$300-500k on building scope,MEDIUM
+DEL-05-01::A-002,A-002,DEL-05-01,Cold storage building is 6000 sf (60x100 ft) per PP-07,Assumed_Project_Parameters.csv PP-07 (CONFIRMED),Low risk; confirmed dimension,HIGH
+DEL-05-01::A-003,A-003,DEL-05-01,Developed site area is 4.5 acres per PP-10,Assumed_Project_Parameters.csv PP-10,+/-1 acre = +/-$200-300k civil costs,MEDIUM
+DEL-05-01::A-004,A-004,DEL-05-01,Main PSB split approximately 40% office/admin (7200 sf) and 60% apparatus/shop bays (10800 sf),Functional program (4 fire + 4 PW bays),If split different; MEP and interior costs shift,MEDIUM
+DEL-05-01::A-006,A-006,DEL-05-01,General requirements at 15% of base construction,Industry standard 12-18%; midpoint used,If at 18% end; adds $261k,MEDIUM
+DEL-05-01::A-007,A-007,DEL-05-01,Design fees at 9% blended rate of base construction,Professional_Design_Fees.csv + industry standard,If 12%; adds $261k. If 7%; saves $174k,MEDIUM
+DEL-05-01::A-011,A-011,DEL-05-01,OI-004 resolved as $20000 FF&E cash allowance on Additional Option 6,BOE Section 4; OPT-18,If FF&E scope expanded; Schedule A structure changes,HIGH
+DEL-05-01::A-012,A-012,DEL-05-01,GST rate is 5% (Alberta has no PST),Federal GST rate,Low risk; stable rate,HIGH
+DEL-05-01::A-013,A-013,DEL-05-01,No escalation applied (base year 2024) per BOE A-08,BOE Assumptions,3-5% annual escalation = $300-500k/year if delayed,MEDIUM
+DEL-02-01::ASM-001,ASM-001,DEL-02-01,Professional staff hourly rates reflect Alberta 2024 market rates,Professional_Staff_Rates.csv (MARKET; MEDIUM),$29610 could range $20727-$38493,MEDIUM
+DEL-02-01::ASM-002,ASM-002,DEL-02-01,LOE hours (228h) appropriate for consolidated concept design package,Level_of_Effort.csv (PARAMETRIC),+30% would be $38493,MEDIUM
+DEL-02-01::ASM-005,ASM-005,DEL-02-01,Consolidated DEL-02-01 includes civil/site concept work from 6b split,Level_of_Effort.csv Notes,Consolidation may create coordination overhead not fully captured,MEDIUM
+DEL-02-01::ASM-006,ASM-006,DEL-02-01,No premium for schedule compression or overtime,No source,Compressed timeline (PP-04: 6 weeks) could increase costs,LOW
+DEL-02-02::ASM-0202-002,ASM-0202-002,DEL-02-02,80 hours adequate for consolidated design brief (5 SOW items),Level_of_Effort.csv (PARAMETRIC),+/-20-30% on $12170; largest single narrative effort,MEDIUM
+DEL-02-02::ASM-0202-003,ASM-0202-003,DEL-02-02,No rework or iteration allowance included in 80 hours,Implied by single LOE cycle,If concept changes trigger rework; additional hours needed,LOW
+DEL-01-03::A-001,A-001,DEL-01-03,Bond types: standard Performance (50%) + L&M Payment (50%),Industry standard; RFP S5.3.1 not extracted,If 100% performance bond required; premiums could double,MEDIUM
+DEL-01-03::A-003,A-003,DEL-01-03,CCIP is insurance delivery model (not OPIP),BOE A-07; FP-03,If OPIP; CCIP $197260 would not apply,LOW
+DEL-01-03::A-006,A-006,DEL-01-03,Construction value ($9.863M) is PARAMETRIC and will change,EST_DEL-05-01 notes,All % premiums ($537534) scale with final value,MEDIUM
+BOE::A-01,A-01,PROJECT,All professional hourly rates are internal DB rates (not external consultant fees),BOE Section 8,External rates may be higher,MEDIUM
+BOE::A-02,A-02,PROJECT,Consolidated deliverables require multi-discipline coordination overhead,Decomposition structure,If underestimated; budget exceeded,MEDIUM
+BOE::A-08,A-08,PROJECT,Base year 2024; no escalation applied,BOE assumptions,If delayed; 3-5%/year escalation,MEDIUM
+BOE::A-09,A-09,PROJECT,All 21 deliverables estimated regardless of evaluation weight,BOE strategy,Low-weight items naturally have lower hours,HIGH

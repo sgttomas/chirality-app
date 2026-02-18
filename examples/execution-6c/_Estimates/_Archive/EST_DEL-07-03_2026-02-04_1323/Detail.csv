@@ -1,0 +1,14 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-03,DEL-07-03,Template Acquisition and Review (Procedure Step 1),1,LS,300,300,CAD,ALLOWANCE,A-006,LOW,Proposal Manager 2 hrs @ CAD 150/hr - obtain and review RFP Appendix I template
+L-002,E,PKG-03,DEL-07-03,Scope Category Checklist Development (Procedure Step 2),1,LS,450,450,CAD,ALLOWANCE,A-007,LOW,Proposal Manager 3 hrs @ CAD 150/hr - compile 12+ major scope categories per REQ-02
+L-003,E,PKG-03,DEL-07-03,Consultant/Subtrade Identification - Design Disciplines (Procedure Step 3),1,LS,600,600,CAD,ALLOWANCE,A-008,LOW,PM 2 hrs + Admin 4 hrs - identify 12 design consultant firms
+L-004,E,PKG-03,DEL-07-03,Consultant/Subtrade Identification - Construction Trades (Procedure Step 3),1,LS,510,510,CAD,ALLOWANCE,A-009,LOW,PM 2 hrs + Admin 2 hrs - identify 10+ construction subtrades
+L-005,E,PKG-03,DEL-07-03,Consultant/Subtrade Identification - Specialty Systems (Procedure Step 3),1,LS,380,380,CAD,ALLOWANCE,A-010,LOW,PM 1.5 hrs + Admin 2 hrs - identify 6 specialty system suppliers per Addendum 03
+L-006,E,PKG-03,DEL-07-03,Personnel Detail Collection (Procedure Step 3),1,LS,340,340,CAD,ALLOWANCE,A-011,LOW,Admin 4 hrs @ CAD 85/hr - collect key personnel names addresses for 25-30 firms
+L-007,E,PKG-03,DEL-07-03,Cost Breakdown Cross-Check (Procedure Step 4),1,LS,300,300,CAD,ALLOWANCE,A-012,LOW,PM 2 hrs - align with DEL-05-02 Appendix H Schedule B
+L-008,E,PKG-03,DEL-07-03,Addenda Compliance Review (Procedure Step 5),1,LS,150,150,CAD,ALLOWANCE,A-013,LOW,PM 1 hr - verify Addendum 03 scope alignment no pickled sand bldg
+L-009,E,PKG-03,DEL-07-03,Cross-Deliverable Consistency Check (Procedure Step 6),1,LS,450,450,CAD,ALLOWANCE,A-014,LOW,PM 3 hrs - cross-reference DEL-07-01 DEL-07-02 per REQ-08
+L-010,E,PKG-03,DEL-07-03,Table Formatting and Finalization (Procedure Step 7),1,LS,340,340,CAD,ALLOWANCE,A-015,LOW,Admin 4 hrs @ CAD 85/hr - format per RFP template
+L-011,E,PKG-03,DEL-07-03,Quality Review and Approval (Procedure Step 8),1,LS,300,300,CAD,ALLOWANCE,A-016,LOW,PM 2 hrs - review against REQ-07 scoring criteria
+L-012,E,PKG-03,DEL-07-03,Final PDF Integration (Procedure Step 9),1,LS,170,170,CAD,ALLOWANCE,A-017,LOW,Admin 2 hrs - integrate into DEL-01-02 verify file size
+L-013,E,PKG-03,DEL-07-03,Compliance Matrix Update (Procedure Step 10),1,LS,160,160,CAD,ALLOWANCE,A-018,LOW,Admin 1 hr + PM 0.5 hr - update DEL-01-01 with completion status

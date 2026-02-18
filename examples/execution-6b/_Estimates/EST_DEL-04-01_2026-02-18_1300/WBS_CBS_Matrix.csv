@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-04-01,PROF_SERVICES,CAD,2560,2,100,All lines priced from rate table + level of effort; no TBD amounts

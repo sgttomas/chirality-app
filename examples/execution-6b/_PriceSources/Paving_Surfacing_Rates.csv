@@ -1,0 +1,10 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+PS-01,Asphalt,Heavy duty asphalt (fire apparatus rated; 150mm HMA on 300mm granular),m2,85,100,92,PARAMETRIC,MEDIUM,Alberta municipal spec; designed for fire truck loading; includes base prep
+PS-02,Asphalt,Light duty asphalt (parking lot; 75mm HMA on 200mm granular),m2,55,65,60,PARAMETRIC,MEDIUM,Standard parking lot section; personal vehicle loading
+PS-03,Aggregate,Aggregate surfacing (150mm crushed gravel; compacted),m2,25,35,30,PARAMETRIC,MEDIUM,Yard/storage areas; maintenance gravel surface
+PS-04,Concrete,Concrete apron (200mm reinforced; at overhead doors),m2,120,145,132,PARAMETRIC,MEDIUM,Reinforced for vehicle turning; broom finish; includes sub-base
+PS-05,Concrete,Concrete curb and gutter (barrier type),lm,75,90,82,PARAMETRIC,MEDIUM,Standard Alberta municipal profile; includes base
+PS-06,Concrete,Concrete sidewalk (100mm; broom finish),m2,65,85,75,PARAMETRIC,MEDIUM,Accessible route; includes sub-base; dowelled at joints
+PS-07,Marking,Parking lot line painting,lm,3,5,4,PARAMETRIC,MEDIUM,Latex traffic paint; stalls + accessible markings + fire lanes
+PS-08,Marking,Accessible parking signage and markings,each,350,550,450,PARAMETRIC,MEDIUM,Post + sign + painted symbol per stall
+PS-09,Bollard,Steel bollard (concrete-filled; painted),each,800,1200,1000,PARAMETRIC,MEDIUM,150mm dia; 1.2m above grade; at doors/corners/fuel areas

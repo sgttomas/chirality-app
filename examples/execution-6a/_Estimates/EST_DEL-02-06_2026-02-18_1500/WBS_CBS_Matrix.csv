@@ -1,0 +1,9 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-06,26-00,CAD,333400,3,100,Electrical power distribution + service entrance
+PKG-002,DEL-02-06,26-10,CAD,12000,1,100,Solar-ready electrical provisions
+PKG-002,DEL-02-06,26-50,CAD,173800,3,100,LED lighting (institutional + bay + emergency)
+PKG-002,DEL-02-06,26-80,CAD,8000,1,100,System-specific commissioning labor
+PKG-002,DEL-02-06,26-90,CAD,15486,1,100,Electrical engineering design fees
+PKG-002,DEL-02-06,27-00,CAD,80250,3,100,IT/telecom infrastructure + displays
+PKG-002,DEL-02-06,27-50,CAD,20000,1,100,PA/paging system
+PKG-002,DEL-02-06,TOTAL,CAD,642936,13,100,DEL-02-06 grand total

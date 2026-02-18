@@ -1,0 +1,8 @@
+# Assumptions Log
+
+| AssumptionID | Assumption | Source / Justification | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | DEL-04-03 requires only one role (R-13 Electrical Engineer Senior, 8 hours) for complete production. | Level_of_Effort.csv, row for DEL-04-03. Only one row exists for this deliverable. | If additional roles are needed (e.g., intermediate electrical engineer for supporting calculations, or CAD tech for diagrams), the estimate would increase. |
+| ASM-002 | The hourly rate of $155 CAD for Electrical Engineer (Senior) is a market-based rate applicable to this project. | Professional_Staff_Rates.csv, row R-13. Basis=MARKET, Confidence=MEDIUM. | If actual rates differ (e.g., due to firm-specific rate cards or project-specific negotiations), the total would change proportionally. |
+| ASM-003 | 8 hours is sufficient for authoring the electrical energy efficiency narrative covering LED controls, motor efficiency, solar-ready electrical provisions, and metering/sub-metering strategy. | Level_of_Effort.csv basis=PARAMETRIC. The deliverable is a proposal-stage narrative, not a detailed engineering design. | If scope complexity requires more hours (e.g., detailed energy modeling or code compliance calculations), actual effort could exceed the estimate. Risk: LOW to MEDIUM for a proposal-stage narrative. |
+| ASM-004 | No QA/review hours by a second party are included in the LoE for this deliverable. | Level_of_Effort.csv shows no PM or reviewer hours allocated to DEL-04-03. | If internal peer review or PM review is required, additional hours at PM rate ($175/hr) or other rates would apply. |

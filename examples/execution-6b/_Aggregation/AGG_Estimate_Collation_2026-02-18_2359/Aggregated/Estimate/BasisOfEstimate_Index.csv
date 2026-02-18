@@ -1,0 +1,41 @@
+FromDeliverableID,SnapshotID,BASIS_OF_ESTIMATE,FALLBACK_POLICY,ALLOW_MIXED,Currency,RunContextPath,Notes
+DEL-01-01,EST_DEL-01-01_2026-02-18_1400,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-01_2026-02-18_1400/Run_Context.md,Single-method; production hours only
+DEL-01-02,EST_DEL-01-02_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-02_2026-02-18_2359/Run_Context.md,Single-method; production hours only
+DEL-01-03,EST_DEL-01-03_2026-02-18_1400,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,CAD,_Estimates/EST_DEL-01-03_2026-02-18_1400/Run_Context.md,Mixed methods: RATE_TABLE (production) + ALLOWANCE (bond/insurance premiums)
+DEL-01-04,EST_DEL-01-04_2026-02-18_2359,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,CAD,_Estimates/EST_DEL-01-04_2026-02-18_2359/Run_Context.md,Dual-nature: production (RATE_TABLE) + construction pricing (RATE_TABLE/PARAMETRIC/ALLOWANCE)
+DEL-01-05,EST_DEL-01-05_2026-02-18_2359,RATE_TABLE,ALLOW_ALLOWANCE,TRUE,CAD,_Estimates/EST_DEL-01-05_2026-02-18_2359/Run_Context.md,Dual-nature: production (RATE_TABLE) + construction pricing detail breakdown
+DEL-01-06,EST_DEL-01-06_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-06_2026-02-18_2359/Run_Context.md,Single-method; production hours only
+DEL-01-07,EST_DEL-01-07_2026-02-18_1500,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-07_2026-02-18_1500/Run_Context.md,Single-method; production hours only
+DEL-01-08,EST_DEL-01-08_2026-02-18_1500,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-08_2026-02-18_1500/Run_Context.md,Single-method; production hours only
+DEL-01-09,EST_DEL-01-09_2026-02-18_1500,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-01-09_2026-02-18_1500/Run_Context.md,Single-method; production hours only
+DEL-02-01,EST_DEL-02-01_2026-02-18_2000,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-02-01_2026-02-18_2000/Run_Context.md,Single-method; design hours
+DEL-02-02,EST_DEL-02-02_2026-02-18_2100,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-02-02_2026-02-18_2100/Run_Context.md,Single-method; civil design hours
+DEL-02-03,EST_DEL-02-03_2026-02-18_2100,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-02-03_2026-02-18_2100/Run_Context.md,Single-method; structural concept
+DEL-02-04,EST_DEL-02-04_2026-02-18_2200,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-02-04_2026-02-18_2200/Run_Context.md,Single-method; mechanical concept
+DEL-02-05,EST_DEL-02-05_2026-02-18_2200,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-02-05_2026-02-18_2200/Run_Context.md,Single-method; electrical concept
+DEL-03-01,EST_DEL-03-01_2026-02-18_2000,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-01_2026-02-18_2000/Run_Context.md,Single-method; brief writing
+DEL-03-02,EST_DEL-03-02_2026-02-18_1955,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-02_2026-02-18_1955/Run_Context.md,Single-method; brief writing
+DEL-03-03,EST_DEL-03-03_2026-02-18_2300,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-03_2026-02-18_2300/Run_Context.md,Single-method; brief writing
+DEL-03-04,EST_DEL-03-04_2026-02-18_2300,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-04_2026-02-18_2300/Run_Context.md,Single-method; brief writing
+DEL-03-05,EST_DEL-03-05_2026-02-18_2330,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-05_2026-02-18_2330/Run_Context.md,Single-method; brief writing
+DEL-03-06,EST_DEL-03-06_2026-02-18_2330,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-03-06_2026-02-18_2330/Run_Context.md,Single-method; brief writing
+DEL-04-01,EST_DEL-04-01_2026-02-18_1300,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-04-01_2026-02-18_1300/Run_Context.md,Single-method; sustainability narrative
+DEL-04-02,EST_DEL-04-02_2026-02-18_2300,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-04-02_2026-02-18_2300/Run_Context.md,Single-method; energy narrative
+DEL-04-03,EST_DEL-04-03_2026-02-18_2345,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-04-03_2026-02-18_2345/Run_Context.md,Single-method; electrical energy
+DEL-05-01,EST_DEL-05-01_2026-02-18_2350,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-05-01_2026-02-18_2350/Run_Context.md,Single-method; durability narrative
+DEL-05-02,EST_DEL-05-02_2026-02-18_2345,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-05-02_2026-02-18_2345/Run_Context.md,Single-method; durability narrative
+DEL-05-03,EST_DEL-05-03_2026-02-18_2350,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-05-03_2026-02-18_2350/Run_Context.md,Single-method; maintainability narrative
+DEL-05-04,EST_DEL-05-04_2026-02-18_2355,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-05-04_2026-02-18_2355/Run_Context.md,Single-method; maintainability narrative
+DEL-06-01,EST_DEL-06-01_2026-02-18_1600,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-06-01_2026-02-18_1600/Run_Context.md,Single-method; methodology narrative
+DEL-06-02,EST_DEL-06-02_2026-02-18_1800,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-06-02_2026-02-18_1800/Run_Context.md,Single-method; documents plan
+DEL-07-01,EST_DEL-07-01_2026-02-18_1700,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-07-01_2026-02-18_1700/Run_Context.md,Single-method; construction methodology
+DEL-07-02,EST_DEL-07-02_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-07-02_2026-02-18_2359/Run_Context.md,Single-method; administration narrative
+DEL-07-03,EST_DEL-07-03_2026-02-18_2000,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-07-03_2026-02-18_2000/Run_Context.md,Single-method; subconsultant approach
+DEL-07-04,EST_DEL-07-04_2026-02-18_2355,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-07-04_2026-02-18_2355/Run_Context.md,Single-method; meetings narrative
+DEL-07-05,EST_DEL-07-05_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-07-05_2026-02-18_2359/Run_Context.md,Single-method; quality management
+DEL-08-01,EST_DEL-08-01_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-08-01_2026-02-18_2359/Run_Context.md,Single-method; commissioning narrative
+DEL-08-02,EST_DEL-08-02_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-08-02_2026-02-18_2359/Run_Context.md,Single-method; deficiency narrative
+DEL-08-03,EST_DEL-08-03_2026-02-18_2359,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-08-03_2026-02-18_2359/Run_Context.md,Single-method; warranty narrative
+DEL-09-01,EST_DEL-09-01_2026-02-18_2200,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-09-01_2026-02-18_2200/Run_Context.md,Single-method; schedule production
+DEL-10-01,EST_DEL-10-01_2026-02-18_1900,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-10-01_2026-02-18_1900/Run_Context.md,Single-method; risk register
+DEL-10-02,EST_DEL-10-02_2026-02-18_1900,RATE_TABLE,STRICT,FALSE,CAD,_Estimates/EST_DEL-10-02_2026-02-18_1900/Run_Context.md,Single-method; due diligence summary

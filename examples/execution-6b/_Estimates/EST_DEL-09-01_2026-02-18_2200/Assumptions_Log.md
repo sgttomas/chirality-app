@@ -1,0 +1,10 @@
+# Assumptions Log -- EST_DEL-09-01_2026-02-18_2200
+
+| AssumptionID | Assumption | Basis | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | Scheduler hours (20h) are sufficient to produce a proposal-stage Gantt chart with CPM analysis, milestones, and assumptions narrative | Level_of_Effort.csv row 66 (PARAMETRIC basis) | If schedule complexity requires more iterations (e.g., multiple Owner review cycles), hours could increase. 20h is reasonable for a proposal-stage schedule. |
+| ASM-002 | PM review hours (8h) include coordination with DEL-06-02 (design milestones), DEL-08-01 (commissioning milestones), and schedule assumptions validation | Level_of_Effort.csv row 67 (PARAMETRIC basis) | If milestone coordination requires additional meetings or iterations, PM hours could increase. |
+| ASM-003 | Construction Manager input (4h) is limited to verbal/meeting input on construction sequencing and durations, not independent schedule production | Level_of_Effort.csv row 68 (PARAMETRIC basis) | If CM needs to independently develop detailed construction phase logic, hours would be insufficient. 4h assumes CM provides input to Scheduler who builds the Gantt. |
+| ASM-004 | Scheduling software license/subscription costs are embedded in the Scheduler's hourly rate | Brief BOE context: "PS-10: embedded in hourly rate per INDEX.md" | If scheduling software requires a separate procurement, an additional line item would be needed. This is a minor cost risk. |
+| ASM-005 | The schedule deliverable is a proposal-stage artefact (not a full construction-phase CPM schedule) | RFP Section 7.1.9 context; proposal preparation scope | Proposal-stage schedule is a presentation of planned timeline, not a construction-phase scheduling tool. Post-award scheduling is a separate scope. |
+| ASM-006 | All hourly rates from Professional_Staff_Rates.csv include standard overhead, benefits, and profit | Rates basis = MARKET, Confidence = MEDIUM | If rates need to be grossed up for overhead/profit, amounts would increase. Assumed rates are all-in. |

@@ -1,0 +1,26 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+IA-01,Partitions,Steel stud + 2-layer drywall (fire-rated; 1-hr; both sides finished),m2,95,130,112,PARAMETRIC,MEDIUM,92mm steel stud; 2x 15.9mm Type X GWB each side; taped + mudded; Alberta 2024
+IA-02,Partitions,Steel stud + 1-layer drywall (non-rated; both sides finished),m2,70,95,82,PARAMETRIC,MEDIUM,64mm steel stud; 1x 12.7mm GWB each side; taped + mudded
+IA-03,Partitions,Steel stud + drywall on one side (furred wall or chase),m2,45,65,55,PARAMETRIC,MEDIUM,Furred wall at exterior or utility chase; insulation separate
+IA-04,Partitions,Washroom/wet area partition (moisture-resistant GWB + cement board),m2,110,155,132,PARAMETRIC,MEDIUM,Cement board at wet areas; moisture-resistant GWB above; includes vapour barrier
+IA-05,Ceilings,Suspended acoustic tile ceiling (600x600 lay-in; T-bar grid),m2,55,80,68,PARAMETRIC,MEDIUM,Standard mineral fibre tile; 15mm exposed T-bar; seismic clips in Alberta
+IA-06,Ceilings,Suspended gypsum board ceiling (1-layer; taped + finished + painted),m2,85,120,102,PARAMETRIC,MEDIUM,For washrooms and specialty areas; includes framing + finish
+IA-07,Ceilings,Exposed structure — paint only (deck/joists; spray or roll),m2,18,28,22,PARAMETRIC,MEDIUM,For apparatus bays + shop bays; spray-apply latex to exposed structure
+IA-08,Flooring,Sealed concrete floor (densifier + sealer; grind + polish optional),m2,25,45,35,PARAMETRIC,MEDIUM,Typical for apparatus bays; shop bays; corridors; office areas per RFP direction
+IA-09,Flooring,Vinyl composition tile (VCT; standard commercial; installed),m2,50,72,60,PARAMETRIC,MEDIUM,For offices and common areas if not sealed concrete
+IA-10,Flooring,Ceramic tile (floor; commercial grade; thin-set; grouted),m2,95,140,118,PARAMETRIC,MEDIUM,Washrooms + shower/decon areas
+IA-11,Flooring,Rubber flooring (commercial; sheet or tile; installed),m2,75,105,90,PARAMETRIC,MEDIUM,Weight room or high-traffic utility areas
+IA-12,Paint,Interior paint — walls (2 coats latex; standard commercial),m2,10,16,13,PARAMETRIC,MEDIUM,Includes primer; drywall surfaces; labour + material
+IA-13,Paint,Interior paint — walls (epoxy/semi-gloss; washable; wet areas),m2,16,25,20,PARAMETRIC,MEDIUM,For washrooms; decon; kitchen; cleaning-intensive areas
+IA-14,Paint,Interior paint — ceiling (1-2 coats flat latex; drywall or ACT touch-up),m2,8,14,11,PARAMETRIC,MEDIUM,Standard white; sprayed or rolled
+IA-15,Accessibility,Accessible door hardware upgrade (lever + closer + kick plate; per opening),each,250,400,325,PARAMETRIC,MEDIUM,Premium over standard hardware for accessible openings
+IA-16,Accessibility,Tactile walking surface indicator (cast-in-place or surface-applied),m2,180,280,230,PARAMETRIC,MEDIUM,At stairs; ramps; hazardous vehicular areas per Alberta Building Code
+IA-17,Accessibility,Grab bars + accessories (per accessible washroom; supply + install),each,800,1400,1100,PARAMETRIC,MEDIUM,Stainless steel; includes blocking in wall; per CSA B651 / ABC
+IA-18,Accessibility,Accessible signage package (per floor; tactile + Braille room signs),LS,2500,4500,3500,PARAMETRIC,MEDIUM,Room ID; washroom; exit; stair; elevator if applicable; Alberta Building Code
+IA-19,Signage,Code-required exit signage (illuminated; per unit installed),each,350,550,450,PARAMETRIC,MEDIUM,LED; battery backup; includes wiring allowance; per Alberta Fire Code
+IA-20,Signage,Fire safety signage package (extinguisher; pull station; area of refuge markers),LS,1500,2500,2000,PARAMETRIC,MEDIUM,Full building package; vinyl or aluminum; includes installation
+IA-21,Signage,Room identification signage (non-tactile; per unit),each,80,150,115,PARAMETRIC,MEDIUM,Aluminum or acrylic; engraved or printed; installed
+IA-22,Millwork,Washroom vanity countertop (solid surface; per lm installed),lm,450,700,575,PARAMETRIC,MEDIUM,Solid surface (Corian or equivalent); includes undermount sink cutouts
+IA-23,Millwork,Reception/service counter (laminate; per lm; standard),lm,650,1000,825,PARAMETRIC,MEDIUM,Laminate on plywood; transaction top; accessible section
+IA-24,Specialties,Washroom accessories package (per washroom; dispensers + mirrors + shelves),each,600,1000,800,PARAMETRIC,MEDIUM,Stainless steel; includes toilet partitions hardware allowance
+IA-25,Specialties,Toilet partition (floor-mounted; overhead-braced; per stall),each,1200,1800,1500,PARAMETRIC,MEDIUM,Phenolic or solid plastic; includes hardware + installation

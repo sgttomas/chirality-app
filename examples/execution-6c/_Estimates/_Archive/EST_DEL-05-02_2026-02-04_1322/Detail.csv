@@ -1,0 +1,26 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,GR,PKG-02,DEL-05-02,Project Management & Supervision,1,LS,200000,200000,CAD,ALLOWANCE,A-007; D-003,LOW,Allowance based on 10% GR factor; 8-12% typical per Guidance.md
+L-002,GR,PKG-02,DEL-05-02,Mobilization/Demobilization,1,LS,75000,75000,CAD,ALLOWANCE,A-007; D-003,LOW,Allowance for site establishment and demob
+L-003,GR,PKG-02,DEL-05-02,Temporary Facilities,1,LS,100000,100000,CAD,ALLOWANCE,A-007; D-003,LOW,Site office; temp utilities; fencing; signage
+L-004,GR,PKG-02,DEL-05-02,Project Closeout & Commissioning Support,1,LS,75000,75000,CAD,ALLOWANCE,A-007; D-003,LOW,Documentation; training; warranty coordination
+L-005,B,PKG-02,DEL-05-02,Substructure (Foundation),1,LS,600000,600000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF building; $30/SF foundation
+L-006,B,PKG-02,DEL-05-02,Superstructure (Structure),1,LS,900000,900000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $45/SF structural
+L-007,B,PKG-02,DEL-05-02,Envelope (Walls; Roofing; Openings),1,LS,800000,800000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $40/SF envelope incl 16ft overhead doors
+L-008,B,PKG-02,DEL-05-02,Interior Finishes,1,LS,600000,600000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $30/SF finishes
+L-009,B,PKG-02,DEL-05-02,Mechanical Systems (HVAC; Plumbing),1,LS,900000,900000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $45/SF MEP; includes bay sumps
+L-010,B,PKG-02,DEL-05-02,Electrical Systems,1,LS,600000,600000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $30/SF electrical; includes solar-ready provisions and emergency generator
+L-011,B,PKG-02,DEL-05-02,Fire Protection,1,LS,400000,400000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Allowance for 20000 SF; $20/SF; includes fire apparatus exhaust system
+L-012,B,PKG-02,DEL-05-02,Specialties & Equipment,1,LS,400000,400000,CAD,ALLOWANCE,A-008; D-007; D-008,LOW,Lockers; apparatus bay doors; fill stations; equipment
+L-013,SW,PKG-02,DEL-05-02,Earthwork & Grading,1,LS,300000,300000,CAD,ALLOWANCE,A-009; D-002; D-009,LOW,Allowance for 12-acre developable area; site grading
+L-014,SW,PKG-02,DEL-05-02,Site Utilities (Water; Sanitary; Storm),1,LS,400000,400000,CAD,ALLOWANCE,A-009; A-010; D-009,LOW,Service tie-in allowance per Addendum 03; OI-003 resolved
+L-015,SW,PKG-02,DEL-05-02,Paving & Curbs,1,LS,350000,350000,CAD,ALLOWANCE,A-009; D-009,LOW,Apparatus aprons; parking; yard areas
+L-016,SW,PKG-02,DEL-05-02,Landscaping,1,LS,100000,100000,CAD,ALLOWANCE,A-009; D-009,LOW,Topsoil; seeding; plantings
+L-017,SW,PKG-02,DEL-05-02,Site Lighting (Base Scope),1,LS,75000,75000,CAD,ALLOWANCE,A-009; D-009,LOW,Base building perimeter and parking lighting
+L-018,CONT,PKG-02,DEL-05-02,Design Contingency (10%),1,LS,598000,598000,CAD,ALLOWANCE,D-005; A-006,LOW,10% on base construction; early-stage estimate
+L-019,OPT,PKG-02,DEL-05-02,Option 1: Built-in Wash Bay (Capital),1,LS,75000,75000,CAD,ALLOWANCE,A-011; D-010,LOW,In-ground system with drainage; water treatment TBD
+L-020,OPT,PKG-02,DEL-05-02,Option 2: Yard Lighting (Capital),1,LS,50000,50000,CAD,ALLOWANCE,A-012; D-010,LOW,Additional pole lighting for yard coverage
+L-021,OPT,PKG-02,DEL-05-02,Option 3: Building Access Control (Capital),1,LS,40000,40000,CAD,ALLOWANCE,A-013; D-010,LOW,Card reader system; assumes 10-15 doors
+L-022,OPT,PKG-02,DEL-05-02,Option 4: Security/Cameras (Capital),1,LS,60000,60000,CAD,ALLOWANCE,A-014; D-010,LOW,Camera system installation; coverage TBD
+L-023,OPT,PKG-02,DEL-05-02,Option 4: Security/Cameras (Monitoring Fee - Annual),1,YR,6000,6000,CAD,ALLOWANCE,A-014; D-010; R-004,LOW,Annual monitoring service fee SEPARATED per R-004
+L-024,OPT,PKG-02,DEL-05-02,Option 5: Exterior Signage/Branding (Capital),1,LS,25000,25000,CAD,ALLOWANCE,A-015; D-010,LOW,Town branding signage; illuminated assumed
+L-025,OPT,PKG-02,DEL-05-02,Option 6: Appliances (Capital),1,LS,30000,30000,CAD,ALLOWANCE,A-016; D-010,LOW,Kitchen appliances for crew areas

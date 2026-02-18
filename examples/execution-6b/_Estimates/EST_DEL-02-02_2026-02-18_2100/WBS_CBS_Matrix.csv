@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-02,CBS-200,CAD,5720,2,100,Civil engineering design labour (senior + intermediate)
+PKG-002,DEL-02-02,CBS-210,CAD,1520,1,100,CAD/BIM drawing production labour
+PKG-002,DEL-02-02,ALL,CAD,7240,3,100,Deliverable total -- all CBS codes

@@ -1,0 +1,2 @@
+ConflictID,FromDeliverableID_A,FromDeliverableID_B,Field,Value_A,Value_B,Resolution,Notes
+CON-001,DEL-05-05,DEL-05-05,Amount,12000,22000,BOTH_KEPT,"Two mutually exclusive scenarios (non-illuminated vs illuminated signage). Both carried in Detail.csv; primary scenario ($12,000 non-illuminated) used in project totals per Summary.md. Alternate ($22,000 illuminated) carried as informational."

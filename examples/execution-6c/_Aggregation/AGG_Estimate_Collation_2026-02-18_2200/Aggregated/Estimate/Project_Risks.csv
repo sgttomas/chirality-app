@@ -1,0 +1,8 @@
+RiskUID,RiskID,FromDeliverableID,RiskDescription,Likelihood,Impact,Mitigation,Source
+PROJECT::R-001,R-001,PROJECT,Construction pricing is PARAMETRIC only -- no vendor quotes. Actual costs could vary +/-30-50% from the $10.729M estimate.,HIGH,HIGH,Obtain vendor quotes and sub-trade pricing before proposal submission,QA_Report / BOE W-001
+PROJECT::R-002,R-002,PROJECT,Professional hourly rates are market estimates. Actual firm rates may differ by +/-20-30%.,MEDIUM,MEDIUM,Replace with actual firm billing rates when available,BOE A-01 / INDEX.md
+PROJECT::R-003,R-003,PROJECT,OI-004 (FF&E treatment) still formally OPEN. If resolved differently from $20k allowance; Schedule A/B structure changes.,LOW,LOW,Resolve OI-004 before finalizing PKG-02 estimates,BOE OI-004
+PROJECT::R-004,R-004,PROJECT,Bond/insurance rates are market estimates. CCIP rate (2.0%) has LOW confidence.,MEDIUM,MEDIUM,Obtain actual surety and insurance quotes,DEL-01-03 W-004
+PROJECT::R-005,R-005,PROJECT,Proposal preparation timeline (6 weeks per PP-04) may force compressed parallel effort; increasing coordination overhead not captured in LOE.,MEDIUM,MEDIUM,Monitor timeline and add coordination premium if compressed,DEL-02-01 ASM-006
+PROJECT::R-006,R-006,PROJECT,Reference documents flagged as inaccessible in Dependencies.csv. If permanently unavailable; some narratives proceed with assumptions and gaps.,LOW,LOW,Obtain reference documents before production begins,BOE A-10
+DEL-08-01::R-001,R-001,DEL-08-01,Schedule dependent on construction methodology (DEL-04-01) which is co-developed -- circular dependency may cause iteration.,MEDIUM,LOW,Coordinate DEL-08-01 and DEL-04-01 production in parallel with explicit reconciliation point,EST_DEL-08-01 Risk_Register.md

@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-02,DEL-05-03,MGMT,CAD,2100,1,100,Project Manager — narrative authoring and cross-deliverable coordination
+PKG-02,DEL-05-03,FIN,CAD,1160,1,100,Senior Estimator — pricing assumptions documentation
+PKG-02,DEL-05-03,TOTAL,CAD,3260,2,100,DEL-05-03 production cost total (all RATE_TABLE)

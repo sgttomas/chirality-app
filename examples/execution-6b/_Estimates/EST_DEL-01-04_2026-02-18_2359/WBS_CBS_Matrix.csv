@@ -1,0 +1,18 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-04,PRD.COMP,CAD,9960,3,100,Production cost -- estimator/PM hours to compile Schedule A
+PKG-001,DEL-01-04,CON.STR,CAD,896000,5,100,Structural/concrete -- foundations + slabs + steel + deck
+PKG-001,DEL-01-04,CON.ENV,CAD,808000,6,100,Building envelope -- wall panels + roof panels + glazing + doors + sealant + air barrier
+PKG-001,DEL-01-04,CON.INT,CAD,280000,6,100,Interior architectural -- partitions + ceilings + flooring + paint + accessibility + millwork
+PKG-001,DEL-01-04,CON.MEC,CAD,942000,7,100,Mechanical -- HVAC + plumbing + fire protection + exhaust + ventilation + BAS
+PKG-001,DEL-01-04,CON.ELC,CAD,697000,8,100,Electrical -- power + service + lighting + IT + fire alarm + emergency + solar-ready + cold storage
+PKG-001,DEL-01-04,CON.CIV,CAD,552000,9,100,Earthwork/civil -- clearing + stripping + excavation + fill + pads + ESC + drainage + landscaping + survey
+PKG-001,DEL-01-04,CON.PAV,CAD,651000,8,100,Paving/surfacing -- heavy duty + light duty + aggregate + aprons + curb + sidewalk + marking + bollards
+PKG-001,DEL-01-04,CON.UTL,CAD,210000,7,86,Underground utilities -- water + sewer + storm + gas + power duct + telecom + tie-in allowance; 1 ALLOWANCE line
+PKG-001,DEL-01-04,CON.EQP,CAD,1000000,15,87,Equipment/specialty -- OH doors + generator + lockers + SCBA + fill stations + sumps + displays + PA + workshop + cold storage PEMB + temp facilities; 2 non-RATE_TABLE lines
+PKG-001,DEL-01-04,CON.GR,CAD,1291000,11,82,General requirements -- design fees + bonds + insurance + permits + utility fees + environmental + broker; 2 ALLOWANCE lines
+PKG-001,DEL-01-04,OPT.WSH,CAD,123000,1,100,Option 1 -- Wash Bay
+PKG-001,DEL-01-04,OPT.YLT,CAD,106000,1,100,Option 2 -- Yard Lighting
+PKG-001,DEL-01-04,OPT.ACC,CAD,45000,1,100,Option 3 -- Access Control
+PKG-001,DEL-01-04,OPT.SEC,CAD,55000,1,100,Option 4 -- Security/Cameras
+PKG-001,DEL-01-04,OPT.SGN,CAD,34000,1,100,Option 5 -- Signage
+PKG-001,DEL-01-04,OPT.FFE,CAD,20000,1,100,Option 6 -- FF&E ($20K cash allowance per DEC-012)

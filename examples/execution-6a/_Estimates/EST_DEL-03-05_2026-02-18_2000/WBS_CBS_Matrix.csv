@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-05,PROF_SERVICES,CAD,26500,2,100,Environmental consultant fees (L-01) + ESC plan preparation (L-04)
+PKG-003,DEL-03-05,REGULATORY_FEES,CAD,16970,3,100,AEPA Water Act application (L-02) + ABWRET-A wetland replacement fee (L-03) + Development permit flood fringe component (L-05)
+PKG-003,DEL-03-05,ALL_CBS_TOTAL,CAD,43470,5,100,Grand total for DEL-03-05

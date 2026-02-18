@@ -1,0 +1,11 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-04,31.00,CAD,3730,1,100,Civil engineering design fees for utility routing
+PKG-003,DEL-03-04,31.40,CAD,41000,4,100,Water distribution (main + service connections to PSB and Cold Storage)
+PKG-003,DEL-03-04,31.41,CAD,31000,2,100,Sanitary sewer distribution (main + service connection to PSB)
+PKG-003,DEL-03-04,31.42,CAD,16800,1,100,Natural gas distribution to PSB
+PKG-003,DEL-03-04,31.43,CAD,38400,2,100,Power duct bank distribution to PSB and Cold Storage
+PKG-003,DEL-03-04,31.44,CAD,12000,1,100,Telecom conduit to PSB
+PKG-003,DEL-03-04,31.45,CAD,10000,1,100,Common trench shared corridor
+PKG-003,DEL-03-04,31.49,CAD,35000,1,100,Municipal tie-in allowance (DEC-004) -- PENDING OWNER CONFIRMATION
+PKG-003,DEL-03-04,31.50,CAD,39000,5,100,Utility connection fees (water/sewer/power/gas/telecom)
+PKG-003,DEL-03-04,TOTAL,CAD,226930,18,100,Grand total DEL-03-04

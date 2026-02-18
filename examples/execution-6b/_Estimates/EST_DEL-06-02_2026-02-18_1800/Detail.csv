@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0602-01,DESIGN_MANAGEMENT,PKG-006,DEL-06-02,Design Manager -- plan production: 5 design submission milestones; discipline deliverables list; coordination approach; QA/QC checkpoints,10,hr,165,1650,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-06-02/R-03 + Professional_Staff_Rates.csv R-03,MED,Design Manager leads milestone planning and coordination documentation
+L-0602-02,DESIGN_MANAGEMENT,PKG-006,DEL-06-02,Project Manager -- input on Owner review cycles and coordination oversight,4,hr,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-06-02/R-02 + Professional_Staff_Rates.csv R-02,MED,PM provides input on review cycles and Owner coordination

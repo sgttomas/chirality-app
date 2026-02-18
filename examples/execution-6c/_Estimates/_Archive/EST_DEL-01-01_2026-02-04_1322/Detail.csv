@@ -1,0 +1,13 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-01,DEL-01-01,Initial Compliance Matrix Creation - Extract and map 51 RFP requirements (Sections 6-9),16,HR,150,2400,CAD,ALLOWANCE,A-001;A-004,MED,Proposal Manager: ~0.3 hrs/requirement for extraction and mapping
+L-002,E,PKG-01,DEL-01-01,Addenda Integration Checklist - Extract and track 24 addendum items,8,HR,150,1200,CAD,ALLOWANCE,A-001;A-005,MED,Proposal Manager: ~0.3 hrs/item for extraction and impact mapping
+L-003,E,PKG-01,DEL-01-01,Pass/Fail Risk Register - Document 8 high-risk items with owners and resolution paths,4,HR,150,600,CAD,ALLOWANCE,A-001;A-006,MED,Proposal Manager: ~0.5 hrs/risk item
+L-004,E,PKG-01,DEL-01-01,Cross-Reference with Decomposition - Verify scope ledger mappings and consistency,4,HR,100,400,CAD,ALLOWANCE,A-002;A-007,MED,Proposal Controls Specialist support task
+L-005,E,PKG-01,DEL-01-01,Deliverable Mapping Coordination - Coordinate with 9 package leads on requirement assignments,6,HR,150,900,CAD,ALLOWANCE,A-001;A-008,MED,~0.6 hrs per package for coordination
+L-006,PM,PKG-01,DEL-01-01,Compliance Review Meetings - 50% draft milestone review,2,HR,150,300,CAD,ALLOWANCE,A-001;A-009,MED,Team review meeting
+L-007,PM,PKG-01,DEL-01-01,Compliance Review Meetings - 90% draft milestone review,2,HR,150,300,CAD,ALLOWANCE,A-001;A-009,MED,Team review meeting
+L-008,PM,PKG-01,DEL-01-01,Compliance Review Meetings - Final pre-submission review,3,HR,150,450,CAD,ALLOWANCE,A-001;A-009,MED,Final verification and sign-off
+L-009,E,PKG-01,DEL-01-01,Matrix Updates - Living document maintenance during proposal development,8,HR,100,800,CAD,ALLOWANCE,A-002;A-010,LOW,Estimated 20% of initial effort for updates
+L-010,PM,PKG-01,DEL-01-01,Final Verification and Sign-Off - Truth-testing and Proposal Manager approval,4,HR,150,600,CAD,ALLOWANCE,A-001;A-011,MED,Sample verification of mappings
+L-011,E,PKG-01,DEL-01-01,Documentation and Record Keeping - Extraction logs and audit trail,2,HR,100,200,CAD,ALLOWANCE,A-002;A-012,MED,Administrative documentation
+L-012,CONT,PKG-01,DEL-01-01,Contingency - 15% of base estimate for uncertainty,1,LS,1100,1100,CAD,ALLOWANCE,D-004;R-001,MED,PCT_BY_BUCKET method at 15%

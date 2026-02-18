@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-04,DEL-02-03,PROF_SERVICES.SPECIALTY,CAD,1980,1,100,Building Science Consultant lead (R-27)
+PKG-04,DEL-02-03,PROF_SERVICES.MECH,CAD,1280,1,100,Mechanical Engineer Senior (R-11)
+PKG-04,DEL-02-03,PROF_SERVICES.ELEC,CAD,930,1,100,Electrical Engineer Senior (R-13)
+PKG-04,DEL-02-03,PROF_SERVICES.ARCH,CAD,580,1,100,Architect Project (R-04)
+PKG-04,DEL-02-03,PROF_SERVICES,CAD,4770,4,100,Deliverable total -- all CBS categories

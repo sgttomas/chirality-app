@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-01,MGMT,CAD,34200,2,100,Project Manager ($21000) + Design Manager ($13200)
+PKG-001,DEL-01-01,DESIGN,CAD,5800,1,100,Architect (Project) for design review/QA-QC ($5800)
+PKG-001,DEL-01-01,ADMIN,CAD,4800,1,100,Administrative / Document Control ($4800)
+PKG-001,DEL-01-01,TOTAL,CAD,44800,4,100,All CBS categories combined for DEL-01-01

@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-04-03,02-Sitework,CAD,11140,2,100,Granular base + vapour barrier (L-007 + L-008)
+PKG-004,DEL-04-03,03-Concrete,CAD,75514,4,100,Grade beams + floor slab + OH door aprons + person door aprons + rebar (L-002 + L-003 + L-004 + L-005 + L-009)
+PKG-004,DEL-04-03,05-Metals,CAD,63600,2,100,Screw piles + anchor bolts (L-001 + L-010)
+PKG-004,DEL-04-03,31-Earthwork,CAD,6684,1,100,Subgrade preparation (L-006)
+PKG-004,DEL-04-03,ALL,CAD,156938,10,100,TOTAL -- all CBS categories for DEL-04-03

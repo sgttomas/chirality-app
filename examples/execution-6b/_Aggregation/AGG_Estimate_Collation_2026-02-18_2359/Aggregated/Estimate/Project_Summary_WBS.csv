@@ -1,0 +1,14 @@
+WBS_PackageID,PackageName,CostCategory,DeliverableCount,ProductionCost_CAD,ConstructionPricing_CAD,FinancialAllowances_CAD,TotalAmount_CAD,ProductionHours,Notes
+PKG-001,Proposal Compliance Commercial and Team Qualifications,PRODUCTION,9,30480,0,0,30480,226,Production hours for all 9 DELs (excludes construction pricing and financial allowances)
+PKG-001,Proposal Compliance Commercial and Team Qualifications,CONSTRUCTION_PRICING,2,0,7710000,0,7710000,0,Schedule A/B construction pricing (reported once; DEL-01-04 and DEL-01-05 are dual views of same pricing)
+PKG-001,Proposal Compliance Commercial and Team Qualifications,FINANCIAL_ALLOWANCE,1,0,0,543500,543500,0,Bond and insurance premiums from DEL-01-03 (L-004 through L-007)
+PKG-002,Conceptual Design,PRODUCTION,5,33580,0,0,33580,260,Highest-effort technical package; architectural drawings + 4 discipline narratives
+PKG-003,Design Brief,PRODUCTION,6,9150,0,0,9150,60,6 narrative deliverables (5 discipline briefs + accessibility/adaptability)
+PKG-004,Sustainability and Energy,PRODUCTION,3,5400,0,0,5400,34,Building science + mechanical + electrical energy narratives
+PKG-005,Durability and Maintenance,PRODUCTION,4,5210,0,0,5210,34,4 discipline durability/maintainability narratives
+PKG-006,Delivery Plan,PRODUCTION,2,4700,0,0,4700,28,Design methodology + documents plan
+PKG-007,Construction Methodology,PRODUCTION,5,7990,0,0,7990,50,Methodology + administration + subconsultant + meetings + quality
+PKG-008,Commissioning Closeout and Warranty,PRODUCTION,3,4550,0,0,4550,30,Commissioning + deficiency + warranty narratives
+PKG-009,Schedule and Milestones,PRODUCTION,1,4620,0,0,4620,32,Gantt chart production + schedule narrative
+PKG-010,Due Diligence and Risk Management,PRODUCTION,2,5320,0,0,5320,32,Risk register + site conditions summary
+TOTAL,All Packages,ALL,38,111000,7710000,543500,8364500,786,Grand total across all categories

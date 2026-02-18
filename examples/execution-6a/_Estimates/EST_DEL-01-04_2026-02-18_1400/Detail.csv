@@ -1,0 +1,8 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,01-MGMT,PKG-001,DEL-01-04,Project Manager -- permit applications; inspection coordination; AHJ liaison,40,hr,175,7000,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-04/R-02 + Professional_Staff_Rates.csv R-02,MED,40h per Level_of_Effort.csv; $175/hr per Professional_Staff_Rates.csv
+L-02,01-MGMT,PKG-001,DEL-01-04,Administrative / Document Control -- permit documentation; inspection records,12,hr,80,960,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-04/R-24 + Professional_Staff_Rates.csv R-24,MED,12h per Level_of_Effort.csv; $80/hr per Professional_Staff_Rates.csv
+L-03,01-FEES,PKG-001,DEL-01-04,Building permit -- Town of Penhold (0.75% of estimated construction value),1,LS,65250,65250,CAD,ALLOWANCE,Fees_Permits_Insurance.csv FP-06 + Assumed_Project_Parameters.csv PP-24,LOW,0.75% recommended rate x $8700000 PP-24; Penhold fee schedule TBD; ALLOWANCE method per FALLBACK_POLICY
+L-04,01-FEES,PKG-001,DEL-01-04,Development permit -- Town of Penhold,1,LS,1200,1200,CAD,ALLOWANCE,Fees_Permits_Insurance.csv FP-07,LOW,Recommended rate $1200; Penhold fee schedule TBD
+L-05,01-FEES,PKG-001,DEL-01-04,Electrical permit -- Alberta Safety Codes,1,LS,2500,2500,CAD,ALLOWANCE,Fees_Permits_Insurance.csv FP-08,MED,Recommended rate $2500; based on electrical scope
+L-06,01-FEES,PKG-001,DEL-01-04,Plumbing permit -- Alberta Safety Codes,1,LS,2000,2000,CAD,ALLOWANCE,Fees_Permits_Insurance.csv FP-09,MED,Recommended rate $2000; based on fixture count
+L-07,01-FEES,PKG-001,DEL-01-04,Gas permit -- Alberta Safety Codes,1,LS,1000,1000,CAD,ALLOWANCE,Fees_Permits_Insurance.csv FP-10,MED,Recommended rate $1000; based on appliance count

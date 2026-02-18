@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-06,PROF_SERVICES.PM,CAD,2100,1,100,PM hours for pricing narrative writing
+PKG-001,DEL-01-06,PROF_SERVICES.ESTIMATING,CAD,1160,1,100,Estimator hours for assumptions documentation
+PKG-001,DEL-01-06,ALL,CAD,3260,2,100,Total production cost for DEL-01-06

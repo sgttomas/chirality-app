@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-008,DEL-08-03,PROFESSIONAL_SERVICES,CAD,1260,2,100,All lines priced via RATE_TABLE with full source references

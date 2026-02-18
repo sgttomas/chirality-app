@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-01,DEL-01-03,MGMT,CAD,700,1,100,Production cost — PM coordination
+PKG-01,DEL-01-03,LEGAL,CAD,4700,2,100,Production cost (legal review $1200) + surety broker fee ($3500)
+PKG-01,DEL-01-03,ADMIN,CAD,160,1,100,Production cost — document assembly
+PKG-01,DEL-01-03,BOND,CAD,246575,2,100,Performance bond + L&M bond premiums (2.5% combined on $9863000)
+PKG-01,DEL-01-03,INS,CAD,290959,3,100,CCIP + builder's risk + CGL insurance premiums (2.95% combined on $9863000)
+PKG-01,DEL-01-03,TOTAL,CAD,543094,9,100,Grand total — production ($2060) + bonds ($246575) + insurance ($290959) + broker ($3500)

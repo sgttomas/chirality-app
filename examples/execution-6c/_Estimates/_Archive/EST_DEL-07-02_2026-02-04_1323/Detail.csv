@@ -1,0 +1,12 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,E,PKG-03,DEL-07-02,Key role identification and documentation - Proposal Manager labor,4,HR,150,600,CAD,ALLOWANCE,A-006,MED,Procedure.md Step 1; estimated 4 hours
+L-002,E,PKG-03,DEL-07-02,Personnel assignment and credential verification - HR/Admin labor,8,HR,100,800,CAD,ALLOWANCE,A-007,MED,Procedure.md Step 2; 10 members x 0.8 hr each
+L-003,E,PKG-03,DEL-07-02,Resume content gathering coordination - HR/Admin labor,16,HR,100,1600,CAD,ALLOWANCE,A-008,LOW,"Procedure.md Step 3; 10 members x 1.5 hr coordination each, variable"
+L-004,E,PKG-03,DEL-07-02,Resume tailoring and formatting - Proposal Manager labor,20,HR,150,3000,CAD,ALLOWANCE,A-009,MED,Procedure.md Step 4; 10 resumes x 2 hr each
+L-005,E,PKG-03,DEL-07-02,Key personnel list assembly - Proposal Manager labor,2,HR,150,300,CAD,ALLOWANCE,A-010,MED,Procedure.md Step 5; estimated 2 hours
+L-006,E,PKG-03,DEL-07-02,Cross-deliverable consistency checks - Proposal Manager labor,4,HR,150,600,CAD,ALLOWANCE,A-011,MED,Procedure.md Step 6; 3 deliverables + synthesis
+L-007,E,PKG-03,DEL-07-02,QA review and corrections - QA Reviewer labor,4,HR,125,500,CAD,ALLOWANCE,A-012,MED,Procedure.md Step 7; comprehensive review
+L-008,E,PKG-03,DEL-07-02,Final packaging and PDF assembly - Proposal Manager labor,2,HR,150,300,CAD,ALLOWANCE,A-013,HIGH,Procedure.md Step 8; standard formatting
+L-009,PM,PKG-03,DEL-07-02,Technical Lead input for role definition and personnel review,6,HR,175,1050,CAD,ALLOWANCE,A-014,MED,Procedure.md Steps 1-2; 3 leads x 2 hr each
+L-010,CI,PKG-03,DEL-07-02,Indirect coordination and document management,1,LS,1175,1175,CAD,ALLOWANCE,A-015,MED,15% of direct labor (7850); admin overhead
+L-011,CONT,PKG-03,DEL-07-02,Contingency - scope uncertainty and ALLOWANCE pricing risk,1,LS,1805,1805,CAD,ALLOWANCE,D-004,LOW,20% of base estimate (9025); all items ALLOWANCE-priced

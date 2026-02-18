@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-010,DEL-10-01,PROF-PM,CAD,1750,1,100,Project Manager hours for risk register
+PKG-010,DEL-10-01,PROF-CM,CAD,620,1,100,Construction Manager hours for risk input
+PKG-010,DEL-10-01,ALL,CAD,2370,2,100,Deliverable total

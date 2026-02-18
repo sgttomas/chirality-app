@@ -1,0 +1,15 @@
+# Decision Log
+
+## Run: EST_DEL-02-06_2026-02-18_1500
+
+| DecisionID | Category | Decision | Rationale | Impact |
+|-----------|----------|----------|-----------|--------|
+| DEC-RC-01 | CBS Mapping | CBS codes assigned using CSI MasterFormat Division 26/27 conventions mapped from Electrical_System_Rates.csv Category column | No explicit CBSHint in decomposition; deterministic mapping needed | Drives WBS_CBS_Matrix grouping; documented in Run_Context.md |
+| DEC-RC-02 | Scope Exclusion | Fire alarm system (ES-08 at $3.50/sf) excluded from DEL-02-06 estimate | ES-08 exists in rate table but fire alarm is not listed among DEL-02-06 scope items (SOW-0224 through SOW-0228, SOW-0203 partial, SOW-0208 partial) in the decomposition; no SOW item maps fire alarm to DEL-02-06 | Potential undercount of ~$63,000 if fire alarm is later assigned to DEL-02-06; flagged in Summary.md and QA_Report.md for human review |
+| DEC-RC-03 | Rate Selection | Used RecommendedRate (midpoint) from Electrical_System_Rates.csv for all items | RATE_TABLE basis; RecommendedRate is the source-provided best estimate between RateMin and RateMax | Consistent pricing approach across all line items |
+| DEC-RC-04 | Area Application | Emergency lighting (ES-11) applied to full 18,000 sf building footprint rather than split by zone | Emergency lighting is a code requirement across the entire building regardless of use type | Consistent with SOW-0228 code compliance requirement |
+| DEC-RC-05 | Design Fee Base | Design fee (DF-05) calculated on construction subtotal ($619,450) which excludes commissioning labor | DF-05 FeeBase states "Construction cost of electrical scope"; commissioning is not construction cost | Design fee = $15,486 (2.5% x $619,450) |
+| DEC-RC-06 | Cross-Reference | PA system priced from ES-09 ($20,000 LS) cross-referenced with EQ-12 ($20,000 system); same recommended price confirmed | Both sources agree on $20,000; increases confidence | No price conflict; MED confidence maintained |
+| DEC-RC-07 | Cross-Reference | Bay displays priced from ES-10 ($2,500/each) cross-referenced with EQ-11 ($2,500/each); same recommended price confirmed | Both sources agree on $2,500/each for 4 units | No price conflict; MED confidence maintained |
+| DEC-RC-08 | Scope Boundary | Compressed air electrical feed included within bay power distribution (L-0602) rather than as separate line | Brief cost ownership rules state "Compressed air ELECTRICAL FEED" belongs to DEL-02-06; ES-02 rate description includes "heavier circuits" which covers circuit feeds to bay equipment | No separate line needed; cost is captured in bay power distribution rate |
+| DEC-RC-09 | Scope Boundary | Yard lighting electrical service point (panel/breaker provision) included within service entrance (L-0611) rather than as separate line | Brief states "Electrical service point for yard lighting (panel/breaker)" belongs to DEL-02-06; this is panel space reservation within the service entrance switchboard | Marginal cost included in ES-14 lump sum; no separate line needed |

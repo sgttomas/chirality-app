@@ -1,0 +1,16 @@
+ItemID,Category,Description,Unit,PriceMin,PriceMax,RecommendedPrice,Quantity_Assumed,Basis,Confidence,Notes
+EQ-01,Doors,Overhead door (16x16 ft; motorized; insulated; car-wash grade hardware; with windows),each,18000,22000,20000,8,PARAMETRIC,MEDIUM,Main PSB: 4 fire apparatus bays + 4 PW shop bays; car-wash grade = corrosion-resistant tracks/springs/rollers
+EQ-02,Doors,Overhead door (16x16 ft; motorized; insulated; standard grade; with windows),each,12000,15000,13500,2,PARAMETRIC,MEDIUM,Cold storage building: 2 doors; standard duty
+EQ-03,Doors,Person door (commercial steel; hollow metal frame),each,1800,2200,2000,2,PARAMETRIC,MEDIUM,Cold storage building person doors
+EQ-04,Generator,Diesel generator system (100-150 kW; complete),system,120000,180000,150000,1,PARAMETRIC,LOW,Includes: genset; ATS; distribution to essential loads; fuel tank (72-hr per assumption); concrete pad; exhaust system; sound attenuation; commissioning
+EQ-05,Generator,Automatic transfer switch (ATS; 200-400A),each,8000,15000,12000,1,PARAMETRIC,MEDIUM,Included in EQ-04 system price; listed separately for reference if itemized
+EQ-06,Lockers,Bunker gear locker (fire service; heavy-duty ventilated),each,1800,2500,2200,40,PARAMETRIC,MEDIUM,Individual full-height lockers; steel; ventilated; per functional program requirement
+EQ-07,Lockers,PW locker (heavy-duty; full-height),each,800,1200,1000,40,PARAMETRIC,MEDIUM,Standard heavy-duty personnel lockers; per functional program
+EQ-08,Equipment,Breathing air compressor system (fire service; complete),system,45000,65000,55000,1,PARAMETRIC,LOW,High-pressure cascade or standalone; compressor + dryer + storage + fill panels + distribution piping; CON-M-01 resolved to DEL-02-02 / firehall
+EQ-09,Equipment,Water fill station (2-inch; installed),each,2800,4200,3500,2,PARAMETRIC,MEDIUM,2" connection with valve; hose adapter; backflow preventer; wall-mounted
+EQ-10,Equipment,Bay sump assembly (oil/water separator type; installed),each,3500,5500,4500,8,PARAMETRIC,MEDIUM,4 fire bays + 4 PW bays minimum; floor drain + trap + separator + connection to sanitary; sump rough-in in DEL-02-04 cost
+EQ-11,Display,Apparatus bay display (55-inch commercial; wall-mounted),each,2000,3000,2500,4,PARAMETRIC,MEDIUM,Info/dispatch display; mount + power + data; 4 fire apparatus bays
+EQ-12,PA,PA/paging system (building-wide; basic),system,15000,25000,20000,1,PARAMETRIC,MEDIUM,Amplifier; speakers; zone paging; microphone stations; wiring
+EQ-13,Equipment,Workshop equipment allowance (PW shop),lump_sum,15000,30000,22000,ALLOWANCE,LOW,Bench grinder; drill press; workbench; storage; per PW functional needs
+EQ-14,Temp,Temporary facilities and fencing (construction phase),month,3500,6000,4500,18,PARAMETRIC,MEDIUM,Temp fencing; temp power; site office (if required); portable toilets; per month of construction
+EQ-15,Temp,Temporary power and lighting (construction phase),lump_sum,8000,15000,12000,PARAMETRIC,MEDIUM,Temp panel; temp lighting; GFCI protection; per CSA requirements

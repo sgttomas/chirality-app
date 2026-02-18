@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-04-02,08-Doors,CAD,36750,7,71,5 of 7 lines have direct rate table SourceRef; 2 lines (L-0402-11 and L-0402-12) have location TBD
+PKG-004,DEL-04-02,03-Concrete,CAD,13776,2,100,Both lines have direct rate table SourceRef
+PKG-004,DEL-04-02,07-Thermal,CAD,1286,2,100,Both lines have direct rate table SourceRef
+PKG-004,DEL-04-02,ALL,CAD,51812,11,82,Rollup total; 9 of 11 lines have direct SourceRef; 2 lines with location TBD

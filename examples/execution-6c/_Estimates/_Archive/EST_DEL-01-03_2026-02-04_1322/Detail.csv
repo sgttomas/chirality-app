@@ -1,0 +1,12 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PM,PKG-01,DEL-01-03,Proposal Manager - RFP Requirements Extraction (Step 1),4,HR,150,600,CAD,ALLOWANCE,A-003,MED,Review RFP Section 5.3.1 and extract bonding/insurance requirements
+L-002,PM,PKG-01,DEL-01-03,Proposal Manager - Surety Coordination (Step 2),8,HR,150,1200,CAD,ALLOWANCE,A-004,MED,Engage surety/broker and coordinate Agreement to Bond letter
+L-003,PM,PKG-01,DEL-01-03,Proposal Manager - Bond Cost Statement Preparation (Step 3),4,HR,150,600,CAD,ALLOWANCE,A-005,MED,Draft bond cost inclusion statement and coordinate with Estimator
+L-004,PM,PKG-01,DEL-01-03,Proposal Manager - Insurance Summary Preparation (Step 4),4,HR,150,600,CAD,ALLOWANCE,A-006,LOW,Conditional - only if required by RFP Section 5.3.1
+L-005,PM,PKG-01,DEL-01-03,Proposal Manager - Package Assembly and Cross-Reference (Step 5),4,HR,150,600,CAD,ALLOWANCE,A-007,MED,Assemble deliverable components and coordinate with DEL-01-01 and DEL-01-02
+L-006,PM,PKG-01,DEL-01-03,Proposal Manager - Final QC and Approval (Step 6),4,HR,150,600,CAD,ALLOWANCE,A-008,MED,Final QC checklist and approval process
+L-007,E,PKG-01,DEL-01-03,Estimator - Bond Cost Estimation Support,4,HR,175,700,CAD,ALLOWANCE,A-009,MED,Provide contract value estimate for surety; coordinate bond cost inclusion in Appendix H
+L-008,P,PKG-01,DEL-01-03,Surety/Broker Processing Fee,1,LS,500,500,CAD,ALLOWANCE,A-010,LOW,Administrative fee for Agreement to Bond letter issuance (if applicable)
+L-009,P,PKG-01,DEL-01-03,Insurance Broker Consultation,1,LS,300,300,CAD,ALLOWANCE,A-011,LOW,Consultation fee for insurance approach confirmation (conditional)
+L-010,PM,PKG-01,DEL-01-03,Document Control and Filing,2,HR,100,200,CAD,ALLOWANCE,A-012,MED,Filing of records; surety license verification documentation
+L-100,CONT,PKG-01,DEL-01-03,Contingency (15% of base),1,LS,870,870,CAD,ALLOWANCE,D-004,MED,15% contingency for scope uncertainty from TBD items

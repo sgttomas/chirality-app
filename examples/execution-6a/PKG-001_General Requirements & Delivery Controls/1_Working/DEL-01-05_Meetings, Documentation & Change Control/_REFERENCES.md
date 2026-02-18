@@ -1,0 +1,7 @@
+# References: DEL-01-05 Meetings, Documentation & Change Control
+
+## Applicable References
+- RFP 2024_004 -- Location: _Sources/ -- Relevance: Meeting and documentation requirements (sections 7.3, 7.3.5)
+
+## Notes
+- References are shared across PKG-001 deliverables at the package 0_References/ level.

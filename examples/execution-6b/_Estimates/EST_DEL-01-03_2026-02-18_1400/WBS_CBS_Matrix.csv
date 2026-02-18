@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-03,01.ADMIN.BOND_INS,CAD,2060,3,100,Production hours: PM + Legal + Admin (RATE_TABLE method)
+PKG-001,DEL-01-03,01.PREMIUM.BOND,CAD,300000,2,100,Performance bond + L&M bond premiums (ALLOWANCE method; based on PP-25 = $12M)
+PKG-001,DEL-01-03,01.PREMIUM.INS,CAD,240000,1,100,CCIP insurance premium (ALLOWANCE method; based on PP-25 = $12M)
+PKG-001,DEL-01-03,01.PREMIUM.BROKER,CAD,3500,1,100,Surety broker fee (ALLOWANCE method)
+PKG-001,DEL-01-03,TOTAL,CAD,545560,7,100,All CBS categories combined

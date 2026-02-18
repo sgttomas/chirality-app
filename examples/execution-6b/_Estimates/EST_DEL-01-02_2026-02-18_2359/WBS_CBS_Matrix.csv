@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-02,ADMIN,CAD,1680,1,100,Proposal Coordinator production hours for final PDF assembly
+PKG-001,DEL-01-02,MGMT,CAD,700,1,100,Project Manager final review and sign-off
+PKG-001,DEL-01-02,TOTAL,CAD,2380,2,100,Deliverable total -- pure production cost for final assembly

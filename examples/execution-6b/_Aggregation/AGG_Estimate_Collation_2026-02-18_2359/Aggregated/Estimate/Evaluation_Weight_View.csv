@@ -1,0 +1,13 @@
+EvaluationCategory,Points,Packages,Deliverables,TotalHours,Cost_CAD,CostPerPoint_CAD,Notes
+Mandatory Compliance,Pass/Fail,PKG-001 compliance,DEL-01-01 DEL-01-02 DEL-01-03,58,5440,N/A,Compliance matrix + final assembly + bonding/insurance (production hours only; excludes financial allowances)
+Proposed Conceptual Design,20,PKG-002,DEL-02-01 DEL-02-02 DEL-02-03 DEL-02-04 DEL-02-05,260,33580,1679,Highest technical weight; architectural drawings + 4 discipline narratives
+Design Brief,5,PKG-003,DEL-03-01 DEL-03-02 DEL-03-03 DEL-03-04 DEL-03-05 DEL-03-06,60,9150,1830,5 discipline sub-briefs + accessibility/adaptability
+Durability and Maintenance,15,PKG-005,DEL-05-01 DEL-05-02 DEL-05-03 DEL-05-04,34,5210,347,4 discipline durability/maintainability narratives
+Delivery Plan,3,PKG-006,DEL-06-01 DEL-06-02,28,4700,1567,Design methodology + documents plan
+Construction Methodology,3,PKG-007,DEL-07-01 DEL-07-02 DEL-07-03 DEL-07-04 DEL-07-05,50,7990,2663,5 construction methodology narratives
+Commissioning,2,PKG-008,DEL-08-01 DEL-08-02 DEL-08-03,30,4550,2275,Commissioning + deficiency + warranty
+Schedule,2,PKG-009,DEL-09-01,32,4620,2310,Gantt chart production + schedule narrative
+Team and Firms,15,PKG-001 team,DEL-01-07 DEL-01-08 DEL-01-09,64,6640,443,Firm profile + resumes + subtrade list
+Proposal Price,35,PKG-001 pricing,DEL-01-04 DEL-01-05 DEL-01-06,104,18400,526,Schedule A/B production hours + pricing narrative (excludes construction pricing content)
+Sustainability and Energy,N/A,PKG-004,DEL-04-01 DEL-04-02 DEL-04-03,34,5400,N/A,Not separately scored but part of conceptual design evaluation
+Due Diligence,N/A,PKG-010,DEL-10-01 DEL-10-02,32,5320,N/A,Risk register + site conditions (supporting documentation)

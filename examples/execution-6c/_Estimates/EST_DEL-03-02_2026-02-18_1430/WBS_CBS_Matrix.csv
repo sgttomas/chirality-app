@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-05,DEL-03-02,MGMT,CAD,2350,2,100,Design Manager (10h x $165) + PM (4h x $175); all lines have source references

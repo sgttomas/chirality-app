@@ -1,0 +1,9 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-05,23-HVAC,CAD,435200,3,100,HVAC institutional + apparatus bays + PW bays
+PKG-002,DEL-02-05,23-PLMB,CAD,163600,4,100,Plumbing institutional + bays + kitchen rough-in + wash bay rough-in
+PKG-002,DEL-02-05,23-EXHS,CAD,144000,2,100,Vehicle exhaust extraction (fire) + shop bay ventilation (PW)
+PKG-002,DEL-02-05,23-EQUP,CAD,49000,3,100,Water fill stations + bay sumps + DHW heater
+PKG-002,DEL-02-05,23-CTRL,CAD,72000,1,100,Building automation system
+PKG-002,DEL-02-05,23-FPRT,CAD,108000,1,100,Fire protection (conditional on AHJ); LOW confidence
+PKG-002,DEL-02-05,23-MECH-DESIGN,CAD,24295,1,100,Mechanical engineering design fees
+PKG-002,DEL-02-05,23-COMM,CAD,18000,1,100,System-specific commissioning labour

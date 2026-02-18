@@ -1,0 +1,8 @@
+# Assumptions Log — EST_DEL-01-08_2026-02-18_1500
+
+| AssumptionID | Assumption | Source/Basis | Impact if Wrong |
+|---|---|---|---|
+| EST-ASM-001 | The hours in Level_of_Effort.csv (12 hr R-26, 8 hr R-22) are a complete representation of the effort required to produce DEL-01-08 | Level_of_Effort.csv rows for DEL-01-08; brief instruction to use this source for hours | If additional roles or hours are needed (e.g., PM review time, principal oversight), the estimate would increase. The current scope covers only resume compilation, formatting, and editing. |
+| EST-ASM-002 | The hourly rates in Professional_Staff_Rates.csv are current and applicable to this project | Professional_Staff_Rates.csv; all rates marked MARKET basis, MEDIUM confidence | If actual rates differ from the rate table (e.g., due to negotiated rates, overtime, or rate escalation), amounts would change proportionally. |
+| EST-ASM-003 | Resume content exists and is available from team members within the estimated hours | Implied by Level_of_Effort.csv hours allocation | If source resumes are missing, outdated, or require extensive rewriting beyond formatting, additional hours may be needed. The estimate covers formatting to 2-page max and writing role descriptions, not original resume creation. |
+| EST-ASM-004 | Cost ownership rule is applied: all resume assembly and formatting costs are in DEL-01-08, not in DEL-01-07 | Brief instruction: "Resume assembly + formatting -> DEL-01-08 (NOT in DEL-01-07)" | No impact on DEL-01-08 total, but the cost ownership boundary must be respected when estimating DEL-01-07 to avoid double-counting. |

@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-06,01-CMGT,CAD,203700,2,100,Site Superintendent + Construction Manager labor; unchanged from prior run
+PKG-001,DEL-01-06,01-SITE,CAD,60000,2,100,Temp facilities/fencing ($35000) + site cleaning ($25000); resolved from TBD to ALLOWANCE

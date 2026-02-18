@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-02,PROF_SERVICES,CAD,1550,1,100,Single role (Civil Engineer Senior); 10 hrs x $155/hr; full provenance

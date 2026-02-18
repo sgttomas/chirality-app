@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0705-01,MGMT,PKG-007,DEL-07-05,Quality Lead -- design QC / construction QC / commissioning QC / documentation QC / NMS recommendation,8,hr,130,1040,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-05 R-23 (8 hr) + Professional_Staff_Rates.csv R-23 ($130/hr),MED,Primary author; covers all four QC domains plus NMS format recommendation
+L-0705-02,MGMT,PKG-007,DEL-07-05,Project Manager -- quality framework input and review,4,hr,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-05 R-02 (4 hr) + Professional_Staff_Rates.csv R-02 ($175/hr),MED,Input on quality framework; coordination with DEL-07-01 construction methodology

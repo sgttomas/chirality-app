@@ -74,13 +74,13 @@ See `_COORDINATION.md` in each execution instance for the chosen representation.
 
 Agent roles and conventions are described in `AGENTS.md`.
 
-Agent instruction files are located in `agents/` (Type 0/1 managers) and `agents/tasks/`, `agents/prep/`, `agents/audit/` (Type 2 specialists).
+Agent instruction files are located in `agents/` (flat directory; all agent types).
 
 Key instruction files:
 - `agents/AGENT_HELPS_HUMANS.md` — Canonical standard for agent design
 - `agents/AGENT_RECONCILIATION.md` — Type 1 manager for cross-deliverable reconciliation
 - `agents/AGENT_DEPENDENCIES.md` — Type 2 specialist for dependency extraction
-- `agents/tasks/AGENT_AUDIT_DEP_CLOSURE.md` — Type 2 specialist for closure analysis
+- `agents/AGENT_AUDIT_DEP_CLOSURE.md` — Type 2 specialist for closure analysis
 
 ## Deliverable Folder Structure
 
