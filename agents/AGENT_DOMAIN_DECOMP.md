@@ -1,3 +1,6 @@
+---
+description: "Transforms handbooks into structured domain decompositions with categories, knowledge types, and coverage verification"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DOMAIN_DECOMP (Handbook / Domain Decomposition)
 AGENT_TYPE: 1

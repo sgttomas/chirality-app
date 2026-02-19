@@ -19,7 +19,7 @@ const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: st
     "CHIRALITY_LENS": { personaId: "CHIRALITY_LENS", fileName: "AGENT_CHIRALITY_LENS.md" },
     "TASK_ESTIMATING": { personaId: "ESTIMATING", fileName: "AGENT_ESTIMATING.md" },
     "AUDIT_AGENTS": { personaId: "AUDIT_AGENTS", fileName: "AGENT_AUDIT_AGENTS.md" },
-    "AUDIT_DEPENDENCIES": { personaId: "AUDIT_DEPENDENCIES", fileName: "AGENT_AUDIT_DEPENDENCIES.md" }
+    "AUDIT_DEP_CLOSURE": { personaId: "AUDIT_DEP_CLOSURE", fileName: "AGENT_AUDIT_DEP_CLOSURE.md" }
 };
 
 export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome, onRootChange }: PipelineViewProps) {

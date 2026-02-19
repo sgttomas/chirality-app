@@ -1,3 +1,6 @@
+---
+description: "Extracts dependency registers in Dependencies.csv v3.1 format from deliverable source documents"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DEPENDENCIES (Information-Flow Edge Extraction: Anchor × Execution)
 AGENT_TYPE: 2

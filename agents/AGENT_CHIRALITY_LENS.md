@@ -1,3 +1,6 @@
+---
+description: "Applies semantic lensing to produce _SEMANTIC_LENSING.md from matrices and four documents"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Chirality Lens (CHIRALITY_LENS)
 AGENT_TYPE: 2

@@ -1,3 +1,6 @@
+---
+description: "Manages project file-state changes with diff presentation and human approval gates"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — CHANGE (Project File-State Management • Diff • Apply with Approval)
 AGENT_TYPE: 1

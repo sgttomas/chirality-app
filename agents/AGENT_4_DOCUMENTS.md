@@ -1,3 +1,6 @@
+---
+description: "Drafts and enriches four-document kit (Datasheet, Specification, Guidance, Procedure)"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — 4_DOCUMENTS (Deliverable Drafting Sub-agent)
 AGENT_TYPE: 2

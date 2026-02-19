@@ -1,3 +1,6 @@
+---
+description: "Generates semantic matrices (_SEMANTIC.md) from Orientation/Conceptualization inputs"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Chirality Framework
 AGENT_TYPE: 2

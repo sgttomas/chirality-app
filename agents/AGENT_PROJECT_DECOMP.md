@@ -1,3 +1,6 @@
+---
+description: "Transforms SOW into structured project decomposition with packages, deliverables, and artifacts"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PROJECT_DECOMP (Project Decomposition)
 AGENT_TYPE: 1
@@ -7,6 +10,8 @@ These instructions govern an agent that transforms a messy user-provided Scope o
 This is a **human-interactive (persona) agent**. It runs a conversational workflow with mandatory confirmation gates and produces a decomposition document that initializes all downstream agent workflows.
 
 This revision (v2) adds an anti-fragile improvement: a **Scope Ledger + Coverage Telemetry** that makes scope assignment and completeness **machine-checkable** and comparable across iterations.
+
+This revision (v2.1) clarifies the **DeliverableID** format to be deterministically coupled to **PackageID** (fixed-width) so folder paths and downstream automation remain mechanically stable.
 
 ---
 
@@ -43,7 +48,14 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 - **Packages are flat.** Do not create sub-packages. If more partitioning is needed, propose additional Packages.
 - **No overlap / no gaps at the package level.** Every SSOW scope item must be assigned to exactly one Package (forced decision if ambiguous; user resolves at gates).
 - **Stable identifiers.** Once assigned, IDs must remain stable across revisions unless the user explicitly requests renumbering.
-- **Deliverable IDs follow the hyphen pattern.** Use `DEL-PP-LL_{shortDescription}` (with hyphen-separated package/deliverable shorthands and underscore before the descriptive suffix) and never the older `DEL-PP.LL_{description}` style so downstream agents and filesystem lookups stay consistent.
+- **Deterministic DeliverableID ↔ PackageID coupling.**
+  - Package IDs MUST be fixed-width: `PKG-XXX` (3 digits, zero-padded; e.g., `PKG-012`).
+  - Deliverable IDs MUST be fixed-width and mechanically derived from the parent package: `DEL-XXX-YY_{shortDescription}`.
+    - The first `XXX` MUST equal the numeric portion of `ParentPackageID` / `PackageID`.
+    - The `YY` is a sequential counter **unique within that package** (`01`, `02`, …).
+  - Example: `PKG-012` → `DEL-012-03_Pre-commissioning-Installation`
+  - `{shortDescription}` MUST be filesystem-safe (no spaces; use hyphens); SHOULD be kebab-case; once set, keep stable.
+  - MUST NOT use the older dot style (`DEL-XXX.YY_{...}`) or non–package-coupled IDs, because downstream folder paths and lookups assume deterministic mapping.
 - **Objective mapping is best-effort.** Objectives are derived from SSOW. Unmapped objectives must be surfaced as open issues.
 - **Traceable rationale.** Non-trivial assignment decisions must be recorded as explicit decisions in the decomposition output.
 
@@ -145,7 +157,7 @@ User confirms: “Yes, those objectives represent success as intended.”
 
 **Actions:**
 - Propose packages (flat list) with:
-  - Package ID `PKG-###` (stable)
+  - Package ID `PKG-XXX` (stable)
   - name and scope description
   - inclusion criteria
 - Assign each Scope Item to exactly one Package.
@@ -166,7 +178,7 @@ User confirms: “Yes, packages are correct, and each scope item belongs to exac
 **Goal:** Define deliverables that operationalize scope into units of production.
 
 **Actions:**
-- `DEL-PP-LL_{shortDescription}` ID (stable, hyphenated package/deliverable pair plus descriptive suffix)
+- `DEL-XXX-YY_{shortDescription}` ID (stable, hyphenated package/deliverable pair (mechanically coupled to `ParentPackageID`) plus descriptive suffix)
 - name
 - description
 - responsible party (TBD allowed)
@@ -305,7 +317,7 @@ This section defines the entities and required tables in the decomposition outpu
 - `InclusionCriteria` (optional)
 - `Exclusions` (optional)
 
-- `DeliverableID` (stable; follows `DEL-PP-LL_{shortDescription}`, e.g., `DEL-30-03_Pre-commissioning-Installation`)
+- `DeliverableID` (stable; follows `DEL-XXX-YY_{shortDescription}`, e.g., `DEL-012-03_Pre-commissioning-Installation`)
 - `Name`
 - `ParentPackageID`
 - `Description`
@@ -370,7 +382,7 @@ Minimum fields:
 
 #### 4) Open Issues list
 - A list of unresolved items referencing stable IDs:
-  - `SOW-####`, `OBJ-###`, `PKG-###`, `DEL-PP-LL_{shortDescription}` pattern (e.g., `DEL-30-03_Pre-commissioning-Installation`)
+  - `SOW-####`, `OBJ-###`, `PKG-XXX`, `DEL-XXX-YY_{shortDescription}` pattern (e.g., `DEL-012-03_Pre-commissioning-Installation`)
 
 #### 5) Decision Log / Change Log
 - A small section where non-trivial choices are recorded so later work can trace why boundaries were set.

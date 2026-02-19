@@ -20,6 +20,12 @@ export type StartHarnessTurnArgs = {
   sessionId: string;
   message: string;
   opts?: TurnOpts;
+  /**
+   * Set to true when the turn is a bootstrap/init turn.
+   * Bootstrap turns must NOT receive subagent injection — they are
+   * lightweight single-turn sessions for fingerprinting and session setup.
+   */
+  isBootstrap?: boolean;
 };
 
 export type EnsureHarnessSessionBootedArgs = {
@@ -185,6 +191,7 @@ export async function ensureHarnessSessionBooted({
     sessionId,
     message: BOOTSTRAP_TURN_MESSAGE,
     opts: bootTurnOpts,
+    isBootstrap: true,
   })) {
     if (event.type === "session:error") {
       surfacedBootError = event.error;
@@ -210,7 +217,14 @@ export async function ensureHarnessSessionBooted({
   };
 }
 
-export async function* startHarnessTurn({ sessionId, message, opts }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
+/**
+ * Runtime allowlist of Type 1 persona IDs that may receive subagent injection.
+ * Initial rollout: ORCHESTRATOR and RECONCILIATION only.
+ * WORKING_ITEMS is deferred until the first two prove stable.
+ */
+const TYPE_1_SUBAGENT_ALLOWLIST = new Set(["ORCHESTRATOR", "RECONCILIATION"]);
+
+export async function* startHarnessTurn({ sessionId, message, opts, isBootstrap = false }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
   const session = await sessionManager.resume(sessionId);
   const persona = session.persona ? await personaManager.load(session.persona) : null;
   const globalModel = await personaManager.getGlobalModel();
@@ -256,6 +270,45 @@ export async function* startHarnessTurn({ sessionId, message, opts }: StartHarne
     mergedOpts.systemPromptAppend = systemPromptAppend;
   } else {
     delete mergedOpts.systemPromptAppend;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Subagent injection — three-gate model.
+  //
+  // All three gates must pass for subagents to be injected:
+  //   1. Feature flag: CHIRALITY_ENABLE_SUBAGENTS === "true"
+  //   2. Runtime Type 1 allowlist: persona ID in TYPE_1_SUBAGENT_ALLOWLIST
+  //   3. Persona frontmatter: `subagents` field present and non-empty
+  //
+  // Bootstrap turns are explicitly excluded via the isBootstrap parameter.
+  // On any failure, the turn proceeds without agents (graceful fallback).
+  // ---------------------------------------------------------------------------
+  if (
+    !isBootstrap &&
+    process.env.CHIRALITY_ENABLE_SUBAGENTS === "true" &&
+    persona?.id &&
+    TYPE_1_SUBAGENT_ALLOWLIST.has(persona.id.toUpperCase()) &&
+    persona.subagents &&
+    persona.subagents.length > 0
+  ) {
+    try {
+      const definitions = await personaManager.buildSubagentDefinitions(persona.subagents);
+      if (Object.keys(definitions).length > 0) {
+        mergedOpts.agents = definitions;
+        console.info(
+          `[harness] Injected ${Object.keys(definitions).length} subagent(s) for Type 1 persona '${persona.id}': [${Object.keys(definitions).join(", ")}]`,
+        );
+      } else {
+        console.warn(
+          `[harness] Persona '${persona.id}' declared subagents [${persona.subagents.join(", ")}] but none resolved — proceeding without agents.`,
+        );
+      }
+    } catch (err) {
+      console.warn(
+        `[harness] Failed to build subagent definitions for '${persona.id}' — proceeding without agents.`,
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
   const hadResumeAtStart = Boolean(session.claudeSessionId);

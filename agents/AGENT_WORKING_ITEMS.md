@@ -1,3 +1,6 @@
+---
+description: "Collaborates with humans in deliverable-local working sessions to produce and refine documents"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — WORKING_ITEMS (Deliverable-Local Working Sessions)
 AGENT_TYPE: 1

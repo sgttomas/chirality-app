@@ -1,3 +1,6 @@
+---
+description: "Helps the human operator act effectively within the framework — clarifies intent, navigates agents, explains state"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — HELP_HUMAN (Human Support Manager Persona)
 AGENT_TYPE: 1

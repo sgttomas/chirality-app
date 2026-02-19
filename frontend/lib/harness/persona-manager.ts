@@ -5,12 +5,27 @@ import path from "node:path";
 
 import { DEFAULT_SYSTEM_PROMPT, PROMPT_TOKEN_BUDGET } from "./defaults";
 import { getInstructionRoot } from "./instruction-root";
-import type { PersonaConfig, SessionMode } from "./types";
+import type { PersonaConfig, SessionMode, SubagentDefinition } from "./types";
 
 const CHAR_PER_TOKEN_ESTIMATE = 4;
 const PROMPT_CHAR_BUDGET = PROMPT_TOKEN_BUDGET * CHAR_PER_TOKEN_ESTIMATE;
 const PERSONA_FILE_PREFIX = "AGENT_";
 const PERSONA_FILE_SUFFIX = ".md";
+
+/**
+ * Subagent prompt compaction threshold. If a subagent instruction body exceeds
+ * this character count (~3K tokens), non-operational sections are stripped.
+ * Set to 0 to disable compaction entirely.
+ */
+const SUBAGENT_COMPACT_THRESHOLD = 12_000;
+
+/** Regex patterns for sections stripped during prompt compaction. */
+const COMPACT_STRIP_PATTERNS: RegExp[] = [
+  /\[\[DOC:AGENT_INSTRUCTIONS\]\][\s\S]*?(?=\n#|\n\[\[|$)/gi,
+  /\[\[BEGIN:RATIONALE\]\][\s\S]*?\[\[END:RATIONALE\]\]/gi,
+];
+
+const VALID_SUBAGENT_MODELS = new Set(["sonnet", "opus", "haiku", "inherit"]);
 
 type CachedText = {
   mtimeMs: number;
@@ -372,6 +387,16 @@ export class PersonaManager {
       parsed.maxTurns = maxTurns;
     }
 
+    const description = stringifyScalar(frontmatter.description);
+    if (description) {
+      parsed.description = description;
+    }
+
+    const subagents = toStringList(frontmatter.subagents);
+    if (subagents) {
+      parsed.subagents = subagents;
+    }
+
     return parsed;
   }
 
@@ -465,6 +490,188 @@ export class PersonaManager {
     }
 
     return personas.sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Subagent registry — builds SDK-native SubagentDefinition records from
+  // agent instruction files for injection into Type 1 sessions.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Compacts a subagent instruction body by stripping non-operational sections.
+   * Only runs when the body exceeds `SUBAGENT_COMPACT_THRESHOLD`.
+   * Returns the original body unchanged if compaction is disabled (threshold=0)
+   * or if the body is under the threshold.
+   */
+  private compactSubagentPrompt(body: string, agentId: string): string {
+    if (SUBAGENT_COMPACT_THRESHOLD <= 0 || body.length <= SUBAGENT_COMPACT_THRESHOLD) {
+      return body;
+    }
+
+    let compacted = body;
+    for (const pattern of COMPACT_STRIP_PATTERNS) {
+      compacted = compacted.replace(pattern, "");
+    }
+
+    // Collapse runs of 3+ blank lines into 2
+    compacted = compacted.replace(/\n{3,}/g, "\n\n").trim();
+
+    if (compacted.length < body.length) {
+      console.info(
+        `[harness] Compacted subagent '${agentId}' prompt: ${body.length} → ${compacted.length} chars (${Math.round((1 - compacted.length / body.length) * 100)}% reduction)`,
+      );
+    }
+
+    return compacted;
+  }
+
+  /**
+   * Builds SDK-native subagent definitions for a list of agent IDs.
+   *
+   * For each ID, resolves `agents/AGENT_{ID}.md`, reads/parses frontmatter,
+   * and constructs a SubagentDefinition. Missing files or invalid configs are
+   * logged and skipped — the parent turn proceeds with whatever agents resolved.
+   *
+   * @param agentIds - Array of Type 2 agent IDs (e.g., ["PREPARATION", "4_DOCUMENTS"])
+   * @returns Record mapping agent ID to SubagentDefinition
+   */
+  async buildSubagentDefinitions(agentIds: string[]): Promise<Record<string, SubagentDefinition>> {
+    const definitions: Record<string, SubagentDefinition> = {};
+    const seen = new Set<string>();
+
+    for (const rawId of agentIds) {
+      const normalizedId = normalizePersonaId(rawId);
+      if (!normalizedId) {
+        console.warn(`[harness] Skipping empty subagent ID.`);
+        continue;
+      }
+
+      // Duplicate check — first-wins
+      if (seen.has(normalizedId)) {
+        console.warn(`[harness] Duplicate subagent ID '${normalizedId}' — skipping.`);
+        continue;
+      }
+      seen.add(normalizedId);
+
+      const filePath = path.join(
+        this.instructionPersonaDir(),
+        `${PERSONA_FILE_PREFIX}${normalizedId}${PERSONA_FILE_SUFFIX}`,
+      );
+
+      const fileContents = await this.readCachedTextFile(filePath);
+      if (fileContents === null) {
+        console.warn(`[harness] Subagent file not found: ${filePath} — skipping '${normalizedId}'.`);
+        continue;
+      }
+
+      const { frontmatter, body } = splitFrontmatter(fileContents);
+
+      // Description — required; fallback to first heading or first line
+      let description = stringifyScalar(frontmatter.description) ?? null;
+      if (!description) {
+        const headingMatch = body.match(/^#\s+(.+)$/m);
+        if (headingMatch) {
+          description = headingMatch[1].trim();
+          console.warn(
+            `[harness] Subagent '${normalizedId}' missing 'description' frontmatter — falling back to heading: "${description}"`,
+          );
+        } else {
+          description = `Agent ${normalizedId}`;
+          console.warn(
+            `[harness] Subagent '${normalizedId}' missing 'description' frontmatter and no heading found — using default.`,
+          );
+        }
+      }
+
+      // Prompt — compacted instruction body
+      const prompt = this.compactSubagentPrompt(body, normalizedId);
+      if (!prompt) {
+        console.warn(`[harness] Subagent '${normalizedId}' has empty instruction body — skipping.`);
+        continue;
+      }
+
+      // Tools — from frontmatter; strip "Task" to prevent nesting
+      let tools = toStringList(frontmatter.tools) as string[] | undefined;
+      if (tools && tools.includes("Task")) {
+        console.warn(`[harness] Stripping 'Task' from subagent '${normalizedId}' tools — nesting not permitted.`);
+        tools = tools.filter((t) => t !== "Task");
+        if (tools.length === 0) {
+          tools = undefined;
+        }
+      }
+
+      // Model — validate if present
+      const rawModel = stringifyScalar(frontmatter.model) ?? null;
+      let model: SubagentDefinition["model"];
+      if (rawModel) {
+        const lower = rawModel.toLowerCase();
+        if (VALID_SUBAGENT_MODELS.has(lower)) {
+          model = lower as SubagentDefinition["model"];
+        } else {
+          console.warn(
+            `[harness] Subagent '${normalizedId}' has invalid model '${rawModel}' — omitting (will inherit parent model).`,
+          );
+        }
+      }
+
+      const def: SubagentDefinition = { description, prompt };
+      if (tools) {
+        def.tools = tools;
+      }
+      if (model) {
+        def.model = model;
+      }
+
+      definitions[normalizedId] = def;
+    }
+
+    return definitions;
+  }
+
+  /**
+   * Machine-readable registry validation. Returns which agent IDs resolved
+   * successfully and which had errors. Does not modify state.
+   */
+  async validateRegistry(agentIds: string[]): Promise<{ valid: string[]; errors: string[] }> {
+    const valid: string[] = [];
+    const errors: string[] = [];
+
+    for (const rawId of agentIds) {
+      const normalizedId = normalizePersonaId(rawId);
+      if (!normalizedId) {
+        errors.push(`Empty agent ID from input '${rawId}'`);
+        continue;
+      }
+
+      const filePath = path.join(
+        this.instructionPersonaDir(),
+        `${PERSONA_FILE_PREFIX}${normalizedId}${PERSONA_FILE_SUFFIX}`,
+      );
+
+      const fileContents = await this.readCachedTextFile(filePath);
+      if (fileContents === null) {
+        errors.push(`${normalizedId}: file not found at ${filePath}`);
+        continue;
+      }
+
+      const { frontmatter, body } = splitFrontmatter(fileContents);
+
+      if (!body.trim()) {
+        errors.push(`${normalizedId}: empty instruction body`);
+        continue;
+      }
+
+      if (!stringifyScalar(frontmatter.description)) {
+        errors.push(`${normalizedId}: missing 'description' frontmatter (will use fallback)`);
+        // This is a warning, not a hard error — agent is still valid
+        valid.push(normalizedId);
+        continue;
+      }
+
+      valid.push(normalizedId);
+    }
+
+    return { valid, errors };
   }
 
   async buildSystemPrompt(projectRoot: string, persona: PersonaConfig | null, mode: SessionMode): Promise<string> {

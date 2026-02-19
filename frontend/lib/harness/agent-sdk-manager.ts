@@ -233,6 +233,59 @@ function toAgentSdkOptions(session: Session, opts: TurnOpts | undefined, abortCo
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Subagent injection — guarded assignment.
+  //
+  // The SDK's Options type may not yet expose `agents` in its TS definition.
+  // We cast through Record<string, unknown> to isolate the breakage to this
+  // single line if the SDK removes/renames the field. When the SDK type is
+  // confirmed stable, replace with direct assignment: options.agents = ...
+  // ---------------------------------------------------------------------------
+  const hasAgents = opts?.agents && Object.keys(opts.agents).length > 0;
+  if (hasAgents) {
+    (options as Record<string, unknown>).agents = opts!.agents;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Task tool enforcement — when subagents are present, the model MUST have
+  // access to the Task tool to invoke them. Enforce all three tool knobs:
+  //
+  //   1. tools      — if explicit array, ensure "Task" included
+  //   2. disallowedTools — ensure "Task" is NOT present
+  //   3. allowedTools    — ensure "Task" IS present (auto-approve)
+  //
+  // Also validate subagent definitions: strip "Task" from any subagent's
+  // tools array to prevent nesting (least privilege).
+  // ---------------------------------------------------------------------------
+  if (hasAgents) {
+    // 1. Tools: if explicit array (not preset), ensure "Task" is included
+    if (Array.isArray(options.tools) && !options.tools.includes("Task")) {
+      options.tools.push("Task");
+    }
+
+    // 2. disallowedTools: strip "Task" if present
+    if (Array.isArray(options.disallowedTools) && options.disallowedTools.includes("Task")) {
+      console.warn("[harness] Stripping 'Task' from disallowedTools — required for subagent invocation.");
+      options.disallowedTools = options.disallowedTools.filter((t) => t !== "Task");
+    }
+
+    // 3. allowedTools: ensure "Task" is present for auto-approve
+    if (Array.isArray(options.allowedTools) && !options.allowedTools.includes("Task")) {
+      options.allowedTools = [...options.allowedTools, "Task"];
+    }
+
+    // Validate subagent definitions: strip "Task" from subagent tools to prevent nesting
+    const agentsRecord = (options as Record<string, unknown>).agents as Record<string, { tools?: string[] }> | undefined;
+    if (agentsRecord) {
+      for (const [agentId, def] of Object.entries(agentsRecord)) {
+        if (Array.isArray(def.tools) && def.tools.includes("Task")) {
+          console.warn(`[harness] Stripping 'Task' from subagent '${agentId}' tools — nesting not permitted.`);
+          def.tools = def.tools.filter((t) => t !== "Task");
+        }
+      }
+    }
+  }
+
   if (session.claudeSessionId) {
     options.resume = session.claudeSessionId;
   }

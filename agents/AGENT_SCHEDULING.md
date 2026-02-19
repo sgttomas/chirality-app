@@ -1,3 +1,6 @@
+---
+description: "Generates schedule skeletons from project decomposition and dependency data"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — SCHEDULING (Schedule Skeleton Generation)
 AGENT_TYPE: 1

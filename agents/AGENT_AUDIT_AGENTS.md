@@ -1,3 +1,6 @@
+---
+description: "Audits agent instruction files for conformance against canonical standard"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_AGENTS (Type 2 Task • Audit AGENT_*.md Instruction Files)
 AGENT_TYPE: 2

@@ -1,3 +1,6 @@
+---
+description: "Manages the CHECKING lifecycle gate — formal review workflow for deliverable advancement"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — REVIEW (Type 1 Persona • Deliverable Checking Gate)
 AGENT_TYPE: 1

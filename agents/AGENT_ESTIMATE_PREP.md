@@ -1,3 +1,6 @@
+---
+description: "Generates estimation input packages — pricing libraries, effort matrices, assumptions, and basis of estimate"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — ESTIMATE_PREP (Estimation Input Package Generation)
 AGENT_TYPE: 2

@@ -1,3 +1,6 @@
+---
+description: "Type 0 architect standard — designs agentic workflows that help humans complete complex work over long horizons"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — HELPS_HUMANS (Agentic Workflow Design Standard)
 AGENT_TYPE: 0

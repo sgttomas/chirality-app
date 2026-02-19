@@ -1,4 +1,26 @@
-import type { SettingSource } from "@anthropic-ai/claude-agent-sdk";
+import type { SettingSource, Options as AgentSdkOptions } from "@anthropic-ai/claude-agent-sdk";
+
+// ---------------------------------------------------------------------------
+// SubagentDefinition — compile-safe extraction from SDK's Options.agents type.
+//
+// If the SDK exports `agents` on Options we derive the per-agent value type
+// automatically, keeping our contract in lockstep. If the field doesn't exist
+// (older SDK, or type not yet shipped), the conditional resolves to `never`
+// and the ternary falls through to a manual definition that mirrors the
+// documented SDK shape.
+// ---------------------------------------------------------------------------
+type ExtractAgentDef<T> = T extends Record<string, infer V> ? V : never;
+type MaybeSdkAgents = AgentSdkOptions extends { agents?: infer A } ? A : never;
+type SdkAgentDef = ExtractAgentDef<NonNullable<MaybeSdkAgents>>;
+
+export type SubagentDefinition = [SdkAgentDef] extends [never]
+  ? {
+      description: string;
+      prompt: string;
+      tools?: string[];
+      model?: "sonnet" | "opus" | "haiku" | "inherit";
+    }
+  : SdkAgentDef;
 
 export type SessionMode = "workbench" | "pipeline" | "direct";
 
@@ -67,6 +89,8 @@ export interface TurnOpts {
   pathToClaudeCodeExecutable?: string;
   verbose?: boolean;
   includePartialMessages?: boolean;
+  /** SDK-native subagent definitions keyed by agent ID. Populated by persona injection logic. */
+  agents?: Record<string, SubagentDefinition>;
 }
 
 export type UIEvent =
@@ -105,6 +129,10 @@ export interface PersonaConfig {
   disallowedTools?: string[];
   autoApproveTools?: string[];
   maxTurns?: number;
+  /** Human-readable agent description (parsed from frontmatter `description` field). */
+  description?: string;
+  /** Allowlisted Type 2 agent IDs this persona may spawn as subagents (parsed from frontmatter `subagents` CSV). */
+  subagents?: string[];
 }
 
 export interface LogEntry {

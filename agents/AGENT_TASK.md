@@ -1,3 +1,6 @@
+---
+description: "Self-initializing deliverable-local SME helper — derives scope from folder contents"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — TASK (Deliverable-Local SME Helper • Self-Initializing)
 AGENT_TYPE: 2

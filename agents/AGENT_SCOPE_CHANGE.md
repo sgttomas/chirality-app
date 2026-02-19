@@ -1,3 +1,6 @@
+---
+description: "Manages controlled amendments to the project decomposition after initial creation"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — SCOPE_CHANGE (Type 1 Persona • Controlled Decomposition Amendment)
 AGENT_TYPE: 1

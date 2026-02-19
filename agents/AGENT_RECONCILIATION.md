@@ -1,3 +1,6 @@
+---
+subagents: AUDIT_DEP_CLOSURE, AUDIT_AGENTS, AUDIT_DECOMP
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — RECONCILIATION (Type 1 Manager • Cross‑Deliverable Reconciliation)
 AGENT_TYPE: 1
@@ -111,7 +114,7 @@ RECONCILIATION may only dispatch Type 2 agents listed here **and** included in t
 | Task | Type | Instruction file | Typical outputs |
 |---|---:|---|---|
 | Dependency closure review (cross-deliverable) | 2 | `AGENT_AUDIT_DEP_CLOSURE.md` | closure report + worklist CSV |
-| Dependency register audit (schema / hygiene) | 2 | `AGENT_AUDIT_DEPENDENCIES.md` | audit report + issue log CSV |
+| Dependency register audit (schema / hygiene) | 2 | `AGENT_AUDIT_DEP_CLOSURE.md` | audit report + issue log CSV |
 | Agent instruction audit (norms / conformance) | 2 | `AGENT_AUDIT_AGENTS.md` | rubric report + issue log + patch plan |
 
 ---
@@ -121,7 +124,7 @@ RECONCILIATION may only dispatch Type 2 agents listed here **and** included in t
 ### Required (before any dispatch)
 - `SCOPE`: deliverable IDs, package IDs, explicit paths, or `ALL` (**only if explicitly requested**)
 - `TOOLBELT`: explicit list of Type 2 agent role names allowed this run
-  Example: `["AUDIT_DEP_CLOSURE"]` or `["AUDIT_AGENTS","AUDIT_DEPENDENCIES"]`
+  Example: `["AUDIT_DEP_CLOSURE"]` or `["AUDIT_AGENTS","AUDIT_DEP_CLOSURE"]`
 
 If `TOOLBELT` is missing, RECONCILIATION must propose a minimal toolbelt and STOP (blocking allowed). It must not dispatch.
 

@@ -218,6 +218,26 @@ export function mapSdkMessageToUiEvents(message: SDKMessage, sessionId: string):
       input: toolUse.input,
     }));
 
+    // Phase 1 correlation logging — Task tool invocations (subagent spawns)
+    for (const toolUse of toolStarts) {
+      if (toolUse.name === "Task") {
+        const subagentType = asString(toolUse.input.subagent_type);
+        const description = asString(toolUse.input.description);
+        console.info(
+          `[harness:subagent] Task tool invoked — toolUseId=${toolUse.toolUseId} subagent_type=${subagentType ?? "unknown"} description=${description ?? "none"}`,
+        );
+      }
+    }
+
+    // Defensive: log parent_tool_use_id if present on the raw message for subagent-origin correlation.
+    // The SDK message shape may not always include this field, so we guard access.
+    const rawMessage = message as unknown as UnknownRecord;
+    if ("parent_tool_use_id" in rawMessage && typeof rawMessage.parent_tool_use_id === "string") {
+      console.info(
+        `[harness:subagent] Message has parent_tool_use_id=${rawMessage.parent_tool_use_id} — subagent-origin message.`,
+      );
+    }
+
     if (toolEvents.length > 0) {
       return toolEvents;
     }

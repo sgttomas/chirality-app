@@ -1,3 +1,6 @@
+---
+description: "Aggregates information across file sets for rollups, registers, catalogs, and estimate collation"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AGGREGATION (Cross-File Rollups + Estimate Collation)
 AGENT_TYPE: 2

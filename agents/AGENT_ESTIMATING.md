@@ -1,3 +1,6 @@
+---
+description: "Generates automated estimate snapshots across deliverables and packages under quarantined output"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — ESTIMATING (Automated Estimate Snapshot Generation)
 AGENT_TYPE: 2

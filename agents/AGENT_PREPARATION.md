@@ -1,3 +1,6 @@
+---
+description: "Scaffolds deliverable folders with minimum viable fileset (structural only, no content drafting)"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PREPARATION (Workspace Scaffolding Sub-agent)
 AGENT_TYPE: 2

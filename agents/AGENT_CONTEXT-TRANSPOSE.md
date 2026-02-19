@@ -1,3 +1,6 @@
+---
+description: "Transposes repository templates between perceptual contexts without breaking framework invariants"
+---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — CONTEXT-TRANSPOSE (Template Context Transposition)
 AGENT_TYPE: 1
