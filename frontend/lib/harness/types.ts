@@ -71,6 +71,13 @@ export interface UsageInfo {
   cache_creation_input_tokens?: number;
 }
 
+export interface SubagentGovernance {
+  contextSealed: boolean;
+  pipelineRunApproved: boolean;
+  approvalRef: string;
+  approvedBy?: string;
+}
+
 export interface TurnOpts {
   permissionMode?: "default" | "acceptEdits" | "dontAsk" | "plan";
   model?: string;
@@ -89,6 +96,8 @@ export interface TurnOpts {
   pathToClaudeCodeExecutable?: string;
   verbose?: boolean;
   includePartialMessages?: boolean;
+  /** Human-authored delegation proof for Type 1 -> Type 2 subagent spawning. */
+  subagentGovernance?: SubagentGovernance;
   /** SDK-native subagent definitions keyed by agent ID. Populated by persona injection logic. */
   agents?: Record<string, SubagentDefinition>;
 }

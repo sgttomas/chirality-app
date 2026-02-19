@@ -27,6 +27,13 @@ type ActiveRun = {
   killRequested: boolean;
 };
 
+type ActiveSubagentRun = {
+  toolUseId: string;
+  subagentType: string;
+  description: string | null;
+  startedAt: string;
+};
+
 const SDK_CLI_RELATIVE_PATH = path.join("node_modules", "@anthropic-ai", "claude-agent-sdk", "cli.js");
 const DEFAULT_PATH_SEGMENTS = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"];
 
@@ -71,7 +78,7 @@ function getMessageError(message: SDKMessage): string | null {
     return null;
   }
 
-  const firstError = message.errors.find((item) => typeof item === "string" && item.trim().length > 0);
+  const firstError = message.errors.find((item: unknown) => typeof item === "string" && item.trim().length > 0);
   if (firstError) {
     return firstError;
   }
@@ -101,6 +108,15 @@ function splitCsvTools(value: string | undefined): string[] {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 function resolveClaudeExecutablePath(): string | undefined {
@@ -394,6 +410,20 @@ export class AgentSdkManager {
       }),
     );
 
+    const injectedAgentIds = opts?.agents ? Object.keys(opts.agents) : [];
+    if (injectedAgentIds.length > 0) {
+      fireAndForgetLog(
+        session.projectRoot,
+        createLogEntry(session.id, "info", "subagent:registry_applied", {
+          status: "applied",
+          count: injectedAgentIds.length,
+          agentIds: injectedAgentIds,
+          appliedAt: new Date().toISOString(),
+        }),
+      );
+    }
+
+    const activeSubagentRuns = new Map<string, ActiveSubagentRun>();
     let surfacedRuntimeError: string | null = null;
 
     try {
@@ -420,6 +450,29 @@ export class AgentSdkManager {
                 inputSummary: truncate(JSON.stringify(uiEvent.input), LOG_TRUNCATE_USER_TEXT),
               }),
             );
+
+            if (uiEvent.name === "Task") {
+              const startedAt = new Date().toISOString();
+              const subagentType = normalizeOptionalString(uiEvent.input.subagent_type) ?? "unknown";
+              const description = normalizeOptionalString(uiEvent.input.description);
+              const subagentRun: ActiveSubagentRun = {
+                toolUseId: uiEvent.toolUseId,
+                subagentType,
+                description,
+                startedAt,
+              };
+              activeSubagentRuns.set(uiEvent.toolUseId, subagentRun);
+              fireAndForgetLog(
+                session.projectRoot,
+                createLogEntry(session.id, "info", "subagent:start", {
+                  toolUseId: subagentRun.toolUseId,
+                  subagentType: subagentRun.subagentType,
+                  description: subagentRun.description,
+                  status: "started",
+                  startedAt: subagentRun.startedAt,
+                }),
+              );
+            }
           }
 
           if (uiEvent.type === "tool:result") {
@@ -431,6 +484,25 @@ export class AgentSdkManager {
                 contentLength: uiEvent.content.length,
               }),
             );
+
+            const subagentRun = activeSubagentRuns.get(uiEvent.toolUseId);
+            if (subagentRun) {
+              const finishedAt = new Date().toISOString();
+              const terminalEvent = uiEvent.isError ? "subagent:interrupted" : "subagent:complete";
+              const status = uiEvent.isError ? "interrupted" : "complete";
+              fireAndForgetLog(
+                session.projectRoot,
+                createLogEntry(session.id, "info", terminalEvent, {
+                  toolUseId: subagentRun.toolUseId,
+                  subagentType: subagentRun.subagentType,
+                  description: subagentRun.description,
+                  status,
+                  startedAt: subagentRun.startedAt,
+                  finishedAt,
+                }),
+              );
+              activeSubagentRuns.delete(uiEvent.toolUseId);
+            }
           }
 
           if (uiEvent.type === "session:complete") {
@@ -482,6 +554,23 @@ export class AgentSdkManager {
 
     const signal = activeRun.interruptRequested ? "SIGINT" : activeRun.killRequested ? "SIGTERM" : null;
     const code = signal ? null : surfacedRuntimeError ? 1 : 0;
+    const finishedAt = new Date().toISOString();
+
+    for (const subagentRun of activeSubagentRuns.values()) {
+      fireAndForgetLog(
+        session.projectRoot,
+        createLogEntry(session.id, "info", "subagent:interrupted", {
+          toolUseId: subagentRun.toolUseId,
+          subagentType: subagentRun.subagentType,
+          description: subagentRun.description,
+          status: "interrupted",
+          startedAt: subagentRun.startedAt,
+          finishedAt,
+          reason: signal ?? surfacedRuntimeError ?? "process_exit",
+        }),
+      );
+    }
+    activeSubagentRuns.clear();
 
     fireAndForgetLog(
       session.projectRoot,

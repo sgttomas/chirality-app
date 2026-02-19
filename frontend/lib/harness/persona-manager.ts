@@ -33,6 +33,18 @@ type CachedText = {
 };
 
 type FrontmatterRecord = Record<string, unknown>;
+type RegistryIssueSeverity = "error" | "warn";
+type RegistryIssue = {
+  agentId: string;
+  code: string;
+  severity: RegistryIssueSeverity;
+  message: string;
+};
+type RegistryValidationResult = {
+  valid: string[];
+  errors: string[];
+  issues: RegistryIssue[];
+};
 
 function modeInstruction(mode: SessionMode): string {
   if (mode === "workbench") {
@@ -267,6 +279,38 @@ function splitFrontmatter(document: string): { frontmatter: FrontmatterRecord; b
   const frontmatter = parseSimpleYaml(match[1]);
   const body = normalized.slice(match[0].length).trim();
   return { frontmatter, body };
+}
+
+function createRegistryIssue(
+  agentId: string,
+  code: string,
+  severity: RegistryIssueSeverity,
+  message: string,
+): RegistryIssue {
+  return { agentId, code, severity, message };
+}
+
+function parseAgentTypeFromBody(body: string): number | null {
+  const match = body.match(/^AGENT_TYPE:\s*([0-2])\s*$/m);
+  if (!match) {
+    return null;
+  }
+
+  return Number.parseInt(match[1], 10);
+}
+
+function parseAgentClassFromBody(body: string): string | null {
+  const tableMatch = body.match(/^\|\s*\*\*AGENT_CLASS\*\*\s*\|\s*([^|]+?)\s*\|/m);
+  if (tableMatch && tableMatch[1].trim()) {
+    return tableMatch[1].trim().toUpperCase();
+  }
+
+  const scalarMatch = body.match(/^AGENT_CLASS:\s*([A-Za-z_]+)\s*$/m);
+  if (scalarMatch && scalarMatch[1].trim()) {
+    return scalarMatch[1].trim().toUpperCase();
+  }
+
+  return null;
 }
 
 function truncateSection(section: string, overflowChars: number, label: string): string {
@@ -525,6 +569,63 @@ export class PersonaManager {
     return compacted;
   }
 
+  private collectRegistryIssues(agentId: string, frontmatter: FrontmatterRecord, body: string): RegistryIssue[] {
+    const issues: RegistryIssue[] = [];
+
+    if (!body.trim()) {
+      issues.push(createRegistryIssue(agentId, "empty_instruction_body", "error", `${agentId}: empty instruction body`));
+      return issues;
+    }
+
+    const parsedAgentType = parseAgentTypeFromBody(body);
+    if (parsedAgentType === null) {
+      issues.push(createRegistryIssue(agentId, "missing_agent_type", "error", `${agentId}: missing AGENT_TYPE in body header`));
+    } else if (parsedAgentType !== 2) {
+      issues.push(
+        createRegistryIssue(
+          agentId,
+          "invalid_agent_type",
+          "error",
+          `${agentId}: AGENT_TYPE must be 2 for delegated subagents (found ${parsedAgentType})`,
+        ),
+      );
+    }
+
+    const parsedAgentClass = parseAgentClassFromBody(body);
+    if (!parsedAgentClass) {
+      issues.push(
+        createRegistryIssue(
+          agentId,
+          "missing_agent_class",
+          "warn",
+          `${agentId}: missing AGENT_CLASS in Agent Type table (preferred TASK)`,
+        ),
+      );
+    } else if (parsedAgentClass !== "TASK") {
+      issues.push(
+        createRegistryIssue(
+          agentId,
+          "agent_class_not_task",
+          "warn",
+          `${agentId}: AGENT_CLASS should be TASK for delegated subagents (found ${parsedAgentClass})`,
+        ),
+      );
+    }
+
+    if (!stringifyScalar(frontmatter.description)) {
+      issues.push(
+        createRegistryIssue(
+          agentId,
+          "missing_description_frontmatter",
+          "warn",
+          `${agentId}: missing 'description' frontmatter (runtime will use fallback)`,
+        ),
+      );
+    }
+
+    return issues;
+  }
+
   /**
    * Builds SDK-native subagent definitions for a list of agent IDs.
    *
@@ -565,6 +666,17 @@ export class PersonaManager {
       }
 
       const { frontmatter, body } = splitFrontmatter(fileContents);
+      const registryIssues = this.collectRegistryIssues(normalizedId, frontmatter, body);
+      const registryErrors = registryIssues.filter((issue) => issue.severity === "error");
+
+      for (const issue of registryIssues) {
+        const prefix = issue.severity === "error" ? "[harness] Subagent registry error" : "[harness] Subagent registry warning";
+        console.warn(`${prefix}: ${issue.message}`);
+      }
+
+      if (registryErrors.length > 0) {
+        continue;
+      }
 
       // Description — required; fallback to first heading or first line
       let description = stringifyScalar(frontmatter.description) ?? null;
@@ -632,16 +744,26 @@ export class PersonaManager {
    * Machine-readable registry validation. Returns which agent IDs resolved
    * successfully and which had errors. Does not modify state.
    */
-  async validateRegistry(agentIds: string[]): Promise<{ valid: string[]; errors: string[] }> {
+  async validateRegistry(agentIds: string[]): Promise<RegistryValidationResult> {
     const valid: string[] = [];
     const errors: string[] = [];
+    const issues: RegistryIssue[] = [];
+    const seen = new Set<string>();
 
     for (const rawId of agentIds) {
       const normalizedId = normalizePersonaId(rawId);
       if (!normalizedId) {
-        errors.push(`Empty agent ID from input '${rawId}'`);
+        issues.push(createRegistryIssue(String(rawId), "empty_agent_id", "error", `Empty agent ID from input '${rawId}'`));
         continue;
       }
+
+      if (seen.has(normalizedId)) {
+        issues.push(
+          createRegistryIssue(normalizedId, "duplicate_agent_id", "warn", `${normalizedId}: duplicate agent ID in input list`),
+        );
+        continue;
+      }
+      seen.add(normalizedId);
 
       const filePath = path.join(
         this.instructionPersonaDir(),
@@ -650,28 +772,34 @@ export class PersonaManager {
 
       const fileContents = await this.readCachedTextFile(filePath);
       if (fileContents === null) {
-        errors.push(`${normalizedId}: file not found at ${filePath}`);
+        issues.push(
+          createRegistryIssue(
+            normalizedId,
+            "file_not_found",
+            "error",
+            `${normalizedId}: file not found at ${filePath}`,
+          ),
+        );
         continue;
       }
 
       const { frontmatter, body } = splitFrontmatter(fileContents);
+      const perAgentIssues = this.collectRegistryIssues(normalizedId, frontmatter, body);
+      issues.push(...perAgentIssues);
 
-      if (!body.trim()) {
-        errors.push(`${normalizedId}: empty instruction body`);
-        continue;
-      }
-
-      if (!stringifyScalar(frontmatter.description)) {
-        errors.push(`${normalizedId}: missing 'description' frontmatter (will use fallback)`);
-        // This is a warning, not a hard error — agent is still valid
+      const hasError = perAgentIssues.some((issue) => issue.severity === "error");
+      if (!hasError) {
         valid.push(normalizedId);
-        continue;
       }
-
-      valid.push(normalizedId);
     }
 
-    return { valid, errors };
+    for (const issue of issues) {
+      if (issue.severity === "error") {
+        errors.push(issue.message);
+      }
+    }
+
+    return { valid, errors, issues };
   }
 
   async buildSystemPrompt(projectRoot: string, persona: PersonaConfig | null, mode: SessionMode): Promise<string> {

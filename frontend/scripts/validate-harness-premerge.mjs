@@ -28,6 +28,7 @@ const REQUIRED_SDK_TEST_IDS = [
   "section8.boot_fingerprint_drift",
   "section8.smoke_stream",
   "section8.session_persistence_resume",
+  "section8.subagents_off_parity",
   "section8.permissions_dontask",
   "section8.interrupt_sigint",
   "section8.sdk_native_stream",

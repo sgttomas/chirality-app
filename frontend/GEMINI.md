@@ -1,10 +1,10 @@
 # Chirality Command Center // Project Memory
 
-## Current Snapshot (2026-02-08)
+## Current Snapshot (2026-02-19)
 
-**Operational model:** Filesystem-as-state with a Next.js GUI over the Chirality Harness (`/api/harness/*`), backed by the Anthropic Agent SDK (`query()`).
+**Operational model:** Filesystem-as-state with a Next.js GUI over the Chirality Harness (`/api/harness/*`), backed by the Anthropic Agent SDK (`query()`). Electron infrastructure has been removed in favor of a pure Next.js web/local-server model.
 
-This document replaces older `/api/chat` and `.sessions.json` assumptions.
+This document replaces older assumptions and tracks the transition to a hardened engineering standard.
 
 ## 1) Technical Stack
 
@@ -18,6 +18,7 @@ This document replaces older `/api/chat` and `.sessions.json` assumptions.
   - `POST /api/harness/interrupt`
   - File/project utilities: `/api/fs`, `/api/fs/read`, `/api/system/list`, `/api/project/config`, `/api/project/deliverables`
 - Design language: Neural/Glass UI, light/dark mode support, EB Garamond + JetBrains Mono.
+- **Removed:** Electron desktop infrastructure (main, preload, icons) removed for architectural simplicity.
 
 ## 2) Persistence Model
 
@@ -40,6 +41,8 @@ This document replaces older `/api/chat` and `.sessions.json` assumptions.
 
 - UI turn streaming depends on stable SSE `UIEvent` types:
   - `session:init`, `chat:delta`, `chat:complete`, `tool:start`, `tool:result`, `session:complete`, `session:error`, `process:exit`.
+- **Subagent Injection:** Harness now supports subagent definitions injected into the SDK `query()` options.
+- **Task Tool Enforcement:** When subagents are present, the `Task` tool is automatically enabled and auto-approved to allow the model to delegate work.
 - `POST /api/harness/interrupt` interrupts active SDK turns and is reflected through terminal events.
 - Chat UX direction is status-text-first (compact tool/in-flight feedback).
 
@@ -56,22 +59,30 @@ Completed slices:
 5. Slice #5 (file/system/utility component polish) - `e451e43`
 6. Slice #6 (accessibility + responsive + hydration sanity pass) - `9093679`
 
-Preserved constraints across the polish work:
+## 6) Engineering Standards & Governance
 
-- Palette values and semantic meaning unchanged.
-- Portal hexagon colors/labels unchanged.
-- Harness/SSE behavior contract unchanged.
-- Project-root picker remains centralized in `ResizableLayout.tsx`.
-- SSR-safe browser-storage init pattern retained in `frontend/app/page.tsx`.
-- ChatPanel kept status-text-first for loading/tool feedback.
+A new `docs/` directory defines professional engineering standards for the project:
 
-## 6) Validation Baseline
+- `CONTRACT.md`: Authoritative catalog of project invariants.
+- `SPEC.md`: Physical filesystem structures, schemas, and lifecycle states.
+- `DIRECTIVE.md`: Workflow and behavioral mandates.
+- `PLAN.md` & `TYPES.md`: Strategic and classification frameworks.
+
+## 7) Agent Instruction Standard
+
+All `AGENT_*.md` files have been updated to a standardized metadata format:
+
+- **Metadata Headers:** YAML-like block with `description`.
+- **Classification:** Explicit `AGENT_TYPE` (0, 1, 2) and `AGENT_CLASS` (Persona/Task).
+- **Hardened Schemas:** New agents like `AGENT_ESTIMATE_PREP` (Type 2) follow strict CSV schema families (1-9) as defined in `docs/SPEC.md`.
+
+## 8) Validation Baseline
 
 Current baseline checks:
 
 - `npm run lint` (frontend) - pass
 - `npx tsc --noEmit` (frontend) - pass
-- `npm run harness:validate:premerge` (frontend) - pass (7/7)
+- `npm run harness:validate:premerge` (frontend) - pass (9/9)
 
 Notes:
 

@@ -1,7 +1,16 @@
 import { agentSdkManager } from "./agent-sdk-manager";
+import { appendLog } from "./logger";
 import { PersonaManager } from "./persona-manager";
 import { SessionManager } from "./session-manager";
-import type { PersonaConfig, Session, SessionBootReason, SessionBootResult, TurnOpts, UIEvent } from "./types";
+import type {
+  PersonaConfig,
+  Session,
+  SessionBootReason,
+  SessionBootResult,
+  SubagentGovernance,
+  TurnOpts,
+  UIEvent,
+} from "./types";
 
 declare global {
   var __chiralityHarnessPersonaManager_v3: PersonaManager | undefined;
@@ -51,6 +60,79 @@ const BOOTSTRAP_TURN_OPTS: TurnOpts = {
   permissionMode: "plan",
   includePartialMessages: false,
 };
+
+type GovernanceValidationResult =
+  | { valid: true; governance: SubagentGovernance }
+  | { valid: false; reason: string };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function validateSubagentGovernance(value: unknown): GovernanceValidationResult {
+  if (!isRecord(value)) {
+    return {
+      valid: false,
+      reason: "Missing `opts.subagentGovernance` object.",
+    };
+  }
+
+  if (value.contextSealed !== true) {
+    return {
+      valid: false,
+      reason: "`contextSealed` must be true.",
+    };
+  }
+
+  if (value.pipelineRunApproved !== true) {
+    return {
+      valid: false,
+      reason: "`pipelineRunApproved` must be true.",
+    };
+  }
+
+  if (typeof value.approvalRef !== "string" || !value.approvalRef.trim()) {
+    return {
+      valid: false,
+      reason: "`approvalRef` must be a non-empty string.",
+    };
+  }
+
+  const normalized: SubagentGovernance = {
+    contextSealed: true,
+    pipelineRunApproved: true,
+    approvalRef: value.approvalRef.trim(),
+  };
+
+  if (typeof value.approvedBy === "string" && value.approvedBy.trim()) {
+    normalized.approvedBy = value.approvedBy.trim();
+  }
+
+  return {
+    valid: true,
+    governance: normalized,
+  };
+}
+
+function logSubagentGovernanceBlock(
+  session: Session,
+  personaId: string,
+  reason: string,
+  provided: boolean,
+): void {
+  console.warn(`[harness] Subagent delegation blocked for '${personaId}': ${reason}`);
+  void appendLog(session.projectRoot, {
+    timestamp: new Date().toISOString(),
+    sessionId: session.id,
+    level: "warn",
+    event: "subagent:governance_blocked",
+    data: {
+      personaId,
+      reason,
+      provided,
+    },
+  });
+}
 
 function markSessionUpdated(session: Session): void {
   session.updatedAt = new Date().toISOString();
@@ -273,41 +355,52 @@ export async function* startHarnessTurn({ sessionId, message, opts, isBootstrap 
   }
 
   // ---------------------------------------------------------------------------
-  // Subagent injection — three-gate model.
+  // Subagent injection — four-gate model.
   //
-  // All three gates must pass for subagents to be injected:
+  // All four gates must pass for subagents to be injected:
   //   1. Feature flag: CHIRALITY_ENABLE_SUBAGENTS === "true"
   //   2. Runtime Type 1 allowlist: persona ID in TYPE_1_SUBAGENT_ALLOWLIST
   //   3. Persona frontmatter: `subagents` field present and non-empty
+  //   4. Turn governance token: opts.subagentGovernance proving
+  //      context-sealed + pipeline-run-approved + approvalRef
   //
   // Bootstrap turns are explicitly excluded via the isBootstrap parameter.
   // On any failure, the turn proceeds without agents (graceful fallback).
   // ---------------------------------------------------------------------------
-  if (
+  const shouldConsiderSubagentInjection =
     !isBootstrap &&
     process.env.CHIRALITY_ENABLE_SUBAGENTS === "true" &&
     persona?.id &&
     TYPE_1_SUBAGENT_ALLOWLIST.has(persona.id.toUpperCase()) &&
     persona.subagents &&
-    persona.subagents.length > 0
-  ) {
-    try {
-      const definitions = await personaManager.buildSubagentDefinitions(persona.subagents);
-      if (Object.keys(definitions).length > 0) {
-        mergedOpts.agents = definitions;
-        console.info(
-          `[harness] Injected ${Object.keys(definitions).length} subagent(s) for Type 1 persona '${persona.id}': [${Object.keys(definitions).join(", ")}]`,
-        );
-      } else {
+    persona.subagents.length > 0;
+
+  if (shouldConsiderSubagentInjection && persona?.id && persona.subagents) {
+    const governance = validateSubagentGovernance(mergedOpts.subagentGovernance);
+    if (!governance.valid) {
+      logSubagentGovernanceBlock(session, persona.id, governance.reason, mergedOpts.subagentGovernance !== undefined);
+      delete mergedOpts.agents;
+    } else {
+      mergedOpts.subagentGovernance = governance.governance;
+      try {
+        const definitions = await personaManager.buildSubagentDefinitions(persona.subagents);
+        if (Object.keys(definitions).length > 0) {
+          mergedOpts.agents = definitions;
+          console.info(
+            `[harness] Injected ${Object.keys(definitions).length} subagent(s) for Type 1 persona '${persona.id}': [${Object.keys(definitions).join(", ")}]`,
+          );
+        } else {
+          console.warn(
+            `[harness] Persona '${persona.id}' declared subagents [${persona.subagents.join(", ")}] but none resolved — proceeding without agents.`,
+          );
+        }
+      } catch (err) {
         console.warn(
-          `[harness] Persona '${persona.id}' declared subagents [${persona.subagents.join(", ")}] but none resolved — proceeding without agents.`,
+          `[harness] Failed to build subagent definitions for '${persona.id}' — proceeding without agents.`,
+          err instanceof Error ? err.message : err,
         );
+        delete mergedOpts.agents;
       }
-    } catch (err) {
-      console.warn(
-        `[harness] Failed to build subagent definitions for '${persona.id}' — proceeding without agents.`,
-        err instanceof Error ? err.message : err,
-      );
     }
   }
 

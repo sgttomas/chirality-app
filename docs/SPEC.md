@@ -562,6 +562,36 @@ PROTOCOL > SPEC > STRUCTURE > RATIONALE
 
 Use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`). Use the role name (e.g., `CHANGE`) when referring to the agent itself.
 
+### 9.7 Runtime Metadata Contract (Harness)
+
+Harness runtime metadata parsing uses a split contract:
+
+- **YAML frontmatter** (machine fields consumed by runtime where present):
+  - `description`
+  - `subagents`
+  - `tools`
+  - `model`
+  - `max_turns`
+  - `disallowed_tools`
+  - `auto_approve_tools`
+- **Canonical body header/table**:
+  - `AGENT_TYPE: {0|1|2}` line in the instruction body
+  - `AGENT_CLASS` value in the Agent Type table
+
+Subagent registry safety rules:
+
+- Delegated subagents MUST declare `AGENT_TYPE: 2` in the body header.
+- `AGENT_CLASS: TASK` is preferred and validated as a warning-level rule (non-blocking).
+
+Delegation governance rule (fail closed):
+
+- When `CHIRALITY_ENABLE_SUBAGENTS === "true"` and a Type 1 persona is allowlisted for subagents, runtime injects subagents only if `opts.subagentGovernance` is present and valid:
+  - `contextSealed === true`
+  - `pipelineRunApproved === true`
+  - `approvalRef` is a non-empty string
+  - `approvedBy` is optional
+- Missing/invalid governance metadata MUST block subagent injection while allowing the parent turn to continue normally.
+
 ---
 
 ## 10. Filesystem-Safe Labels

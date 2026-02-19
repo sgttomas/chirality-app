@@ -21,6 +21,8 @@ const HARNESS_LOG_PATH = path.join(PROJECT_ROOT, ".chirality", "logs", "harness.
 const SESSIONS_DIR = path.join(PROJECT_ROOT, ".chirality", "sessions");
 const BOOT_TEST_PERSONA_ID = "BOOT_TEST_TMP";
 const BOOT_TEST_PERSONA_FILE = path.join(PROJECT_ROOT, "agents", `AGENT_${BOOT_TEST_PERSONA_ID}.md`);
+const SUBAGENT_OFF_PERSONA_ID = "SUBAGENT_OFF_TMP";
+const SUBAGENT_OFF_PERSONA_FILE = path.join(PROJECT_ROOT, "agents", `AGENT_${SUBAGENT_OFF_PERSONA_ID}.md`);
 
 const SENTINELS = {
   deny: "UNAPPROVED_DENY_TEST",
@@ -591,6 +593,106 @@ async function main() {
       turnStartCount: turnStarts.length,
       processExitCount: processExits.length,
     };
+  });
+
+  await runTest("section8.subagents_off_parity", "Subagents disabled parity (no side effects)", async () => {
+    const personaBody = `---
+description: "Temporary Type 1 parity persona"
+subagents: PREPARATION
+---
+[[DOC:AGENT_INSTRUCTIONS]]
+# AGENT INSTRUCTIONS — ${SUBAGENT_OFF_PERSONA_ID} (Validation Persona)
+AGENT_TYPE: 1
+
+## Agent Type
+
+| Property | Value |
+|---|---|
+| **AGENT_TYPE** | TYPE 1 |
+| **AGENT_CLASS** | PERSONA |
+| **INTERACTION_SURFACE** | chat |
+| **WRITE_SCOPE** | none |
+| **BLOCKING** | never |
+| **PRIMARY_OUTPUTS** | validation response |
+
+[[BEGIN:PROTOCOL]]
+Reply briefly.
+[[END:PROTOCOL]]
+
+[[BEGIN:SPEC]]
+Do not invent missing inputs.
+[[END:SPEC]]
+
+[[BEGIN:STRUCTURE]]
+No additional structure.
+[[END:STRUCTURE]]
+
+[[BEGIN:RATIONALE]]
+Validation-only temporary persona.
+[[END:RATIONALE]]
+`;
+
+    await writeFile(SUBAGENT_OFF_PERSONA_FILE, personaBody, "utf8");
+
+    try {
+      const session = await createSession(BASE_URL, "subagents-off", {
+        persona: SUBAGENT_OFF_PERSONA_ID,
+        mode: "workbench",
+      });
+
+      const parityTurn = await streamTurn(
+        BASE_URL,
+        {
+          sessionId: session.id,
+          message: "Respond with exactly: subagents off parity ok",
+          opts: {
+            maxTurns: 1,
+            subagentGovernance: {
+              contextSealed: true,
+              pipelineRunApproved: true,
+              approvalRef: "validation/subagents-off",
+              approvedBy: "section8-validator",
+            },
+          },
+        },
+        "sse/turn-subagents-off-parity.sse",
+      );
+      await writeJsonArtifact("api/subagents-off-parity-meta.json", {
+        status: parityTurn.status,
+        events: eventNames(parityTurn.events),
+        artifactPath: parityTurn.artifactPath,
+      });
+      assert(parityTurn.status === 200, `Expected 200 from subagents-off parity turn, got ${parityTurn.status}`);
+      assert(eventNames(parityTurn.events).includes("process:exit"), "Subagents-off parity turn did not emit process:exit.");
+
+      const logs = await readHarnessLogs();
+      const forbiddenEvents = new Set([
+        "subagent:registry_applied",
+        "subagent:start",
+        "subagent:complete",
+        "subagent:interrupted",
+      ]);
+      const subagentSideEffects = logs.filter((entry) => {
+        return entry && entry.sessionId === session.id && forbiddenEvents.has(entry.event);
+      });
+      await writeJsonArtifact("logs/subagents-off-parity-side-effects.json", {
+        sessionId: session.id,
+        count: subagentSideEffects.length,
+        events: subagentSideEffects,
+      });
+
+      assert(
+        subagentSideEffects.length === 0,
+        "Subagents-off parity regression: observed subagent lifecycle log side effects for flag-off path.",
+      );
+
+      return {
+        sessionId: session.id,
+        sideEffectCount: subagentSideEffects.length,
+      };
+    } finally {
+      await rm(SUBAGENT_OFF_PERSONA_FILE, { force: true }).catch(() => undefined);
+    }
   });
 
   await runTest("section8.permissions_dontask", "Permissions under dontAsk (deny + allow)", async () => {

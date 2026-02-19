@@ -30,6 +30,22 @@ Open `http://localhost:3000`.
 - `instructionRoot`: fixed release-managed instruction bundle (`AGENTS.md`, `README.md`, `agents/*`, `CLAUDE.md`).
 - Harness persona loading, boot fingerprinting, and global model lookup read from `instructionRoot`.
 
+## Subagent Delegation (Phase 1)
+
+- Feature flag: `CHIRALITY_ENABLE_SUBAGENTS`
+  - Delegation is disabled unless this is exactly `"true"` in the server environment.
+- Initial Type 1 allowlist:
+  - `ORCHESTRATOR`
+  - `RECONCILIATION`
+- Required turn-level governance token when delegation is enabled:
+  - `opts.subagentGovernance.contextSealed === true`
+  - `opts.subagentGovernance.pipelineRunApproved === true`
+  - `opts.subagentGovernance.approvalRef` is a non-empty string
+  - `opts.subagentGovernance.approvedBy` is optional
+- Fail-closed behavior:
+  - Missing/invalid governance token does not fail the turn.
+  - The turn continues without subagent injection.
+
 ## Desktop Packaging (Installers)
 
 Build outputs:
@@ -146,3 +162,9 @@ npm run harness:validate:premerge
   - Verify `/api/harness/turn` response header is `text/event-stream` and no proxy is buffering.
 - Need low-level diagnostics:
   - Inspect `.chirality/logs/harness.log` for `turn:start`, `turn:model`, `session:init`, `tool:start`, `tool:result`, `turn:complete`, `session:error`, and `process:exit` entries.
+  - Subagent lifecycle telemetry is logged as:
+    - `subagent:registry_applied`
+    - `subagent:start`
+    - `subagent:complete`
+    - `subagent:interrupted`
+    - `subagent:governance_blocked` (delegation attempt blocked by missing/invalid governance token)

@@ -1,6 +1,6 @@
 # Subagent Implementation Plan (Persistent)
 
-Last updated: 2026-02-19 (docs-reviewed)
+Last updated: 2026-02-19 (step-5-run-complete)
 Owner: Codex session
 Scope: Finish hardening of Type 1 -> Type 2 subagent spawning rollout in frontend harness.
 
@@ -28,7 +28,7 @@ Any future session should read this file first and continue from the current sta
 ## Execution Plan
 
 ### Step 0 - Governance Conformance (Docs-Aligned)
-Status: `PENDING`
+Status: `DONE`
 
 Targets:
 - `frontend/lib/harness/index.ts`
@@ -47,7 +47,7 @@ Acceptance:
 - Governance docs and runtime behavior agree on where subagent metadata lives.
 
 ### Step 1 - Registry Safety Hardening
-Status: `PENDING`
+Status: `DONE`
 
 Targets:
 - `frontend/lib/harness/persona-manager.ts`
@@ -63,7 +63,7 @@ Acceptance:
 - Non-Type-2 agent files cannot be injected into `mergedOpts.agents`.
 
 ### Step 2 - Durable Subagent Task Tracking
-Status: `PENDING`
+Status: `DONE`
 
 Targets:
 - `frontend/lib/harness/agent-sdk-manager.ts`
@@ -84,7 +84,7 @@ Acceptance:
 - `.chirality/logs/harness.log` contains correlated subagent lifecycle records for delegated runs.
 
 ### Step 3 - Validation Hardening (Flag-Off Parity)
-Status: `PENDING`
+Status: `DONE`
 
 Targets:
 - `frontend/scripts/validate-harness-section8.mjs`
@@ -101,7 +101,7 @@ Acceptance:
 - Premerge validation fails if "subagents off => unchanged behavior" regresses.
 
 ### Step 4 - Operator Documentation Update
-Status: `PENDING`
+Status: `DONE`
 
 Targets:
 - `frontend/README.md`
@@ -116,7 +116,7 @@ Acceptance:
 - README contains concise run/operator guidance for subagent feature behavior.
 
 ### Step 5 - Verification Gate
-Status: `PENDING`
+Status: `DONE`
 
 Work:
 - Run:
@@ -135,6 +135,12 @@ Acceptance:
 - 2026-02-19: Keep `WORKING_ITEMS` out of initial Type 1 subagent allowlist until ORCHESTRATOR/RECONCILIATION are stable.
 - 2026-02-19: `AUDIT_DEP_CLOSURE` is canonical replacement for `AUDIT_DEPENDENCIES`.
 - 2026-02-19: Full `docs/` review surfaced two governance gaps to close first: delegation gate/seal enforcement and metadata contract alignment (frontmatter vs canonical agent header format).
+- 2026-02-19: Step 0 complete. Added fail-closed delegation governance token (`subagentGovernance`) and documented runtime split metadata contract in `docs/SPEC.md`.
+- 2026-02-19: Step 1 complete. Subagent registry now hard-requires `AGENT_TYPE: 2`, warns on non-`TASK` `AGENT_CLASS`, and `validateRegistry()` now returns structured `issues` plus compatible `errors`.
+- 2026-02-19: Step 2 complete. Added durable subagent lifecycle logging (`subagent:registry_applied`, `subagent:start`, `subagent:complete`, `subagent:interrupted`) correlated by `toolUseId` in harness logs.
+- 2026-02-19: Step 3 complete. Added `section8.subagents_off_parity` validator coverage and wired it into premerge required SDK test IDs.
+- 2026-02-19: Step 4 complete. Updated frontend operator docs for feature flag behavior, allowlist, governance token requirements, and subagent lifecycle log events.
+- 2026-02-19: Step 5 run complete. `lint` and `tsc` passed; Section 8/premerge failed in auth-dependent flows (boot/smoke/permissions) due runtime 401/500 while `section8.subagents_off_parity` passed.
 
 ## Update Protocol
 

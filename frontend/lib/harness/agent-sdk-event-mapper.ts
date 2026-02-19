@@ -176,7 +176,7 @@ function mapResultToUiEvents(event: Extract<SDKMessage, { type: "result" }>, ses
     ];
   }
 
-  const explicitError = event.errors.find((item) => typeof item === "string" && item.trim().length > 0);
+  const explicitError = event.errors.find((item: unknown) => typeof item === "string" && item.trim().length > 0);
   const fallbackError =
     event.subtype === "error_max_turns"
       ? "Turn limit reached (max_turns)."
