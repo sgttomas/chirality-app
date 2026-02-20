@@ -111,6 +111,8 @@ export type UIEvent =
       toolUseId: string;
       name: string;
       input: Record<string, unknown>;
+      /** If present, this tool call originated inside a Task/subagent run. */
+      parentToolUseId?: string | null;
     }
   | {
       type: "tool:result";
@@ -118,6 +120,17 @@ export type UIEvent =
       toolUseId: string;
       content: string;
       isError: boolean;
+      /** If present, this tool result originated inside a Task/subagent run. */
+      parentToolUseId?: string | null;
+    }
+  | {
+      type: "tool:progress";
+      sessionId: string;
+      toolUseId: string;
+      name: string;
+      elapsedSeconds: number;
+      /** If present, this tool progress originated inside a Task/subagent run. */
+      parentToolUseId?: string | null;
     }
   | {
       type: "session:init";
@@ -156,10 +169,12 @@ export interface ToolUseInfo {
   toolUseId: string;
   name: string;
   input: Record<string, unknown>;
+  parentToolUseId: string | null;
 }
 
 export interface ToolResultInfo {
   toolUseId: string;
   content: string;
   isError: boolean;
+  parentToolUseId: string | null;
 }

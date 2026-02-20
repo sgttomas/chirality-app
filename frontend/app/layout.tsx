@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { EB_Garamond, JetBrains_Mono } from "next/font/google";
+import { Inter, EB_Garamond, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
 
 const ebGaramond = EB_Garamond({
   variable: "--font-eb-garamond",
@@ -14,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Chirality Command Center",
-  description: "Neural/Glass Interface for Project Chirality",
+  description: "Modern Interface for Project Chirality",
 };
 
 export default function RootLayout({
@@ -25,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${ebGaramond.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${inter.variable} ${ebGaramond.variable} ${jetbrainsMono.variable} antialiased font-sans`}
       >
         {children}
       </body>

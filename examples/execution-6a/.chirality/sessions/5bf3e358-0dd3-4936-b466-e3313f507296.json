@@ -1,0 +1,12 @@
+{
+  "id": "5bf3e358-0dd3-4936-b466-e3313f507296",
+  "createdAt": "2026-02-20T04:43:14.970Z",
+  "updatedAt": "2026-02-20T04:46:09.081Z",
+  "projectRoot": "/Users/ryan/ai-env/projects/chirality-app/examples/execution-6a",
+  "persona": null,
+  "mode": "pipeline",
+  "claudeSessionId": "8a211397-4dd6-4e16-ad04-dec4a979fe69",
+  "model": "claude-haiku-4-5",
+  "bootFingerprint": "b4a0d8fda097e4b0a16a8103ffa1707a97d046f697beec4ea88ed746fa8141c7",
+  "bootedAt": "2026-02-20T04:43:16.216Z"
+}

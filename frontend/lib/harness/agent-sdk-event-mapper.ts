@@ -12,6 +12,14 @@ function asString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function normalizeParentToolUseId(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -76,7 +84,7 @@ function stringifyToolResultContent(content: unknown): string {
   }
 }
 
-function extractToolUseFromAssistantMessage(message: unknown): ToolUseInfo[] {
+function extractToolUseFromAssistantMessage(message: unknown, parentToolUseId: string | null): ToolUseInfo[] {
   if (!isRecord(message) || !Array.isArray(message.content)) {
     return [];
   }
@@ -92,13 +100,13 @@ function extractToolUseFromAssistantMessage(message: unknown): ToolUseInfo[] {
     const name = asString(block.name) ?? "unknown-tool";
     const input = isRecord(block.input) ? block.input : {};
 
-    results.push({ toolUseId, name, input });
+    results.push({ toolUseId, name, input, parentToolUseId });
   }
 
   return results;
 }
 
-function extractToolResultFromUserMessage(message: unknown): ToolResultInfo[] {
+function extractToolResultFromUserMessage(message: unknown, parentToolUseId: string | null): ToolResultInfo[] {
   if (!isRecord(message) || !Array.isArray(message.content)) {
     return [];
   }
@@ -114,13 +122,13 @@ function extractToolResultFromUserMessage(message: unknown): ToolResultInfo[] {
     const isError = block.is_error === true;
     const content = stringifyToolResultContent(block.content);
 
-    results.push({ toolUseId, content, isError });
+    results.push({ toolUseId, content, isError, parentToolUseId });
   }
 
   return results;
 }
 
-function mapStreamDeltaToUiEvents(event: unknown, sessionId: string): UIEvent[] {
+function mapStreamDeltaToUiEvents(event: unknown, sessionId: string, parentToolUseId: string | null): UIEvent[] {
   if (!isRecord(event)) {
     return [];
   }
@@ -152,11 +160,48 @@ function mapStreamDeltaToUiEvents(event: unknown, sessionId: string): UIEvent[] 
       const toolUseId = asString(event.content_block.id) ?? "unknown-tool-use";
       const name = asString(event.content_block.name) ?? "unknown-tool";
       const input = isRecord(event.content_block.input) ? event.content_block.input : {};
-      return [{ type: "tool:start", sessionId, toolUseId, name, input }];
+      return [{ type: "tool:start", sessionId, toolUseId, name, input, parentToolUseId }];
     }
   }
 
   return [];
+}
+
+function mapToolProgressToUiEvents(
+  message: Extract<SDKMessage, { type: "tool_progress" }>,
+  sessionId: string,
+): UIEvent[] {
+  const toolUseId = asString(message.tool_use_id) ?? "unknown-tool-use";
+  const name = asString(message.tool_name) ?? "unknown-tool";
+  const parentToolUseId = normalizeParentToolUseId(message.parent_tool_use_id);
+  const elapsedSeconds = typeof message.elapsed_time_seconds === "number" ? message.elapsed_time_seconds : 0;
+
+  return [{ type: "tool:progress", sessionId, toolUseId, name, elapsedSeconds, parentToolUseId }];
+}
+
+function mapTaskNotificationToUiEvents(message: SDKMessage, sessionId: string): UIEvent[] {
+  if (message.type !== "system" || message.subtype !== "task_notification") {
+    return [];
+  }
+
+  const toolUseId = asString(message.tool_use_id);
+  if (!toolUseId) {
+    return [];
+  }
+
+  const content = asString(message.summary) ?? `Task ${message.status}`;
+  const isError = message.status !== "completed";
+
+  return [
+    {
+      type: "tool:result",
+      sessionId,
+      toolUseId,
+      content,
+      isError,
+      parentToolUseId: null,
+    },
+  ];
 }
 
 function mapResultToUiEvents(event: Extract<SDKMessage, { type: "result" }>, sessionId: string): UIEvent[] {
@@ -205,17 +250,20 @@ export function mapSdkMessageToUiEvents(message: SDKMessage, sessionId: string):
   }
 
   if (message.type === "stream_event") {
-    return mapStreamDeltaToUiEvents(message.event as unknown, sessionId);
+    const parentToolUseId = normalizeParentToolUseId(message.parent_tool_use_id);
+    return mapStreamDeltaToUiEvents(message.event as unknown, sessionId, parentToolUseId);
   }
 
   if (message.type === "assistant") {
-    const toolStarts = extractToolUseFromAssistantMessage(message.message);
+    const parentToolUseId = normalizeParentToolUseId(message.parent_tool_use_id);
+    const toolStarts = extractToolUseFromAssistantMessage(message.message, parentToolUseId);
     const toolEvents: UIEvent[] = toolStarts.map((toolUse) => ({
       type: "tool:start",
       sessionId,
       toolUseId: toolUse.toolUseId,
       name: toolUse.name,
       input: toolUse.input,
+      parentToolUseId: toolUse.parentToolUseId,
     }));
 
     // Phase 1 correlation logging — Task tool invocations (subagent spawns)
@@ -231,10 +279,9 @@ export function mapSdkMessageToUiEvents(message: SDKMessage, sessionId: string):
 
     // Defensive: log parent_tool_use_id if present on the raw message for subagent-origin correlation.
     // The SDK message shape may not always include this field, so we guard access.
-    const rawMessage = message as unknown as UnknownRecord;
-    if ("parent_tool_use_id" in rawMessage && typeof rawMessage.parent_tool_use_id === "string") {
+    if (parentToolUseId) {
       console.info(
-        `[harness:subagent] Message has parent_tool_use_id=${rawMessage.parent_tool_use_id} — subagent-origin message.`,
+        `[harness:subagent] Message has parent_tool_use_id=${parentToolUseId} — subagent-origin message.`,
       );
     }
 
@@ -256,14 +303,24 @@ export function mapSdkMessageToUiEvents(message: SDKMessage, sessionId: string):
   }
 
   if (message.type === "user") {
-    const toolResults = extractToolResultFromUserMessage(message.message);
+    const parentToolUseId = normalizeParentToolUseId(message.parent_tool_use_id);
+    const toolResults = extractToolResultFromUserMessage(message.message, parentToolUseId);
     return toolResults.map((toolResult) => ({
       type: "tool:result",
       sessionId,
       toolUseId: toolResult.toolUseId,
       content: toolResult.content,
       isError: toolResult.isError,
+      parentToolUseId: toolResult.parentToolUseId,
     }));
+  }
+
+  if (message.type === "tool_progress") {
+    return mapToolProgressToUiEvents(message, sessionId);
+  }
+
+  if (message.type === "system" && message.subtype === "task_notification") {
+    return mapTaskNotificationToUiEvents(message, sessionId);
   }
 
   if (message.type === "result") {

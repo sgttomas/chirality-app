@@ -32,6 +32,9 @@ type ActiveSubagentRun = {
   subagentType: string;
   description: string | null;
   startedAt: string;
+  childToolStarts: number;
+  childToolCompletes: number;
+  childToolErrors: number;
 };
 
 const SDK_CLI_RELATIVE_PATH = path.join("node_modules", "@anthropic-ai", "claude-agent-sdk", "cli.js");
@@ -424,6 +427,7 @@ export class AgentSdkManager {
     }
 
     const activeSubagentRuns = new Map<string, ActiveSubagentRun>();
+    const toolParentByUseId = new Map<string, string | null>();
     let surfacedRuntimeError: string | null = null;
 
     try {
@@ -442,11 +446,20 @@ export class AgentSdkManager {
           }
 
           if (uiEvent.type === "tool:start") {
+            const hadParentLink = toolParentByUseId.has(uiEvent.toolUseId);
+            const parentToolUseId =
+              normalizeOptionalString(uiEvent.parentToolUseId) ??
+              normalizeOptionalString(toolParentByUseId.get(uiEvent.toolUseId));
+            if (parentToolUseId) {
+              toolParentByUseId.set(uiEvent.toolUseId, parentToolUseId);
+            }
+
             fireAndForgetLog(
               session.projectRoot,
               createLogEntry(session.id, "info", "tool:start", {
                 toolUseId: uiEvent.toolUseId,
                 toolName: uiEvent.name,
+                parentToolUseId,
                 inputSummary: truncate(JSON.stringify(uiEvent.input), LOG_TRUNCATE_USER_TEXT),
               }),
             );
@@ -460,6 +473,9 @@ export class AgentSdkManager {
                 subagentType,
                 description,
                 startedAt,
+                childToolStarts: 0,
+                childToolCompletes: 0,
+                childToolErrors: 0,
               };
               activeSubagentRuns.set(uiEvent.toolUseId, subagentRun);
               fireAndForgetLog(
@@ -472,18 +488,102 @@ export class AgentSdkManager {
                   startedAt: subagentRun.startedAt,
                 }),
               );
+            } else if (parentToolUseId && !hadParentLink) {
+              const parentSubagentRun = activeSubagentRuns.get(parentToolUseId);
+              if (parentSubagentRun) {
+                parentSubagentRun.childToolStarts += 1;
+                fireAndForgetLog(
+                  session.projectRoot,
+                  createLogEntry(session.id, "info", "subagent:child_tool_start", {
+                    parentToolUseId,
+                    subagentType: parentSubagentRun.subagentType,
+                    childToolUseId: uiEvent.toolUseId,
+                    childToolName: uiEvent.name,
+                    childToolStarts: parentSubagentRun.childToolStarts,
+                  }),
+                );
+              }
             }
           }
 
+          if (uiEvent.type === "tool:progress") {
+            const hadParentLink = toolParentByUseId.has(uiEvent.toolUseId);
+            const parentToolUseId =
+              normalizeOptionalString(uiEvent.parentToolUseId) ??
+              normalizeOptionalString(toolParentByUseId.get(uiEvent.toolUseId));
+            if (parentToolUseId) {
+              toolParentByUseId.set(uiEvent.toolUseId, parentToolUseId);
+
+              if (!hadParentLink) {
+                const parentSubagentRun = activeSubagentRuns.get(parentToolUseId);
+                if (parentSubagentRun) {
+                  parentSubagentRun.childToolStarts += 1;
+                  fireAndForgetLog(
+                    session.projectRoot,
+                    createLogEntry(session.id, "info", "subagent:child_tool_start", {
+                      parentToolUseId,
+                      subagentType: parentSubagentRun.subagentType,
+                      childToolUseId: uiEvent.toolUseId,
+                      childToolName: uiEvent.name,
+                      childToolStarts: parentSubagentRun.childToolStarts,
+                      source: "tool_progress",
+                    }),
+                  );
+                }
+              }
+            }
+
+            fireAndForgetLog(
+              session.projectRoot,
+              createLogEntry(session.id, "info", "tool:progress", {
+                toolUseId: uiEvent.toolUseId,
+                toolName: uiEvent.name,
+                parentToolUseId,
+                elapsedSeconds: uiEvent.elapsedSeconds,
+              }),
+            );
+          }
+
           if (uiEvent.type === "tool:result") {
+            const parentToolUseId =
+              normalizeOptionalString(uiEvent.parentToolUseId) ??
+              normalizeOptionalString(toolParentByUseId.get(uiEvent.toolUseId));
+            if (parentToolUseId) {
+              toolParentByUseId.set(uiEvent.toolUseId, parentToolUseId);
+            }
+
             fireAndForgetLog(
               session.projectRoot,
               createLogEntry(session.id, "info", "tool:result", {
                 toolUseId: uiEvent.toolUseId,
+                parentToolUseId,
                 isError: uiEvent.isError,
                 contentLength: uiEvent.content.length,
               }),
             );
+
+            if (parentToolUseId) {
+              const parentSubagentRun = activeSubagentRuns.get(parentToolUseId);
+              if (parentSubagentRun) {
+                if (uiEvent.isError) {
+                  parentSubagentRun.childToolErrors += 1;
+                } else {
+                  parentSubagentRun.childToolCompletes += 1;
+                }
+
+                fireAndForgetLog(
+                  session.projectRoot,
+                  createLogEntry(session.id, "info", "subagent:child_tool_result", {
+                    parentToolUseId,
+                    subagentType: parentSubagentRun.subagentType,
+                    childToolUseId: uiEvent.toolUseId,
+                    isError: uiEvent.isError,
+                    childToolCompletes: parentSubagentRun.childToolCompletes,
+                    childToolErrors: parentSubagentRun.childToolErrors,
+                  }),
+                );
+              }
+            }
 
             const subagentRun = activeSubagentRuns.get(uiEvent.toolUseId);
             if (subagentRun) {
@@ -499,10 +599,15 @@ export class AgentSdkManager {
                   status,
                   startedAt: subagentRun.startedAt,
                   finishedAt,
+                  childToolStarts: subagentRun.childToolStarts,
+                  childToolCompletes: subagentRun.childToolCompletes,
+                  childToolErrors: subagentRun.childToolErrors,
                 }),
               );
               activeSubagentRuns.delete(uiEvent.toolUseId);
             }
+
+            toolParentByUseId.delete(uiEvent.toolUseId);
           }
 
           if (uiEvent.type === "session:complete") {
@@ -566,11 +671,15 @@ export class AgentSdkManager {
           status: "interrupted",
           startedAt: subagentRun.startedAt,
           finishedAt,
+          childToolStarts: subagentRun.childToolStarts,
+          childToolCompletes: subagentRun.childToolCompletes,
+          childToolErrors: subagentRun.childToolErrors,
           reason: signal ?? surfacedRuntimeError ?? "process_exit",
         }),
       );
     }
     activeSubagentRuns.clear();
+    toolParentByUseId.clear();
 
     fireAndForgetLog(
       session.projectRoot,
