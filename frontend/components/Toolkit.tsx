@@ -43,7 +43,7 @@ function FieldLabel({ label, modified }: { label: string; modified: boolean }) {
   return (
     <label
       className={`ui-type-mono-meta mb-1.5 block text-[9px] font-semibold tracking-[0.12em] uppercase ${
-        modified ? "text-[var(--color-accent-orange)]/90" : "text-[var(--color-text-dim)]/80"
+        modified ? "text-[var(--color-accent-text)]/90" : "text-[var(--color-text-dim)]/80"
       }`}
     >
       {label}
@@ -190,7 +190,7 @@ function GovernanceSection({
               type="button"
               onClick={clearGovernance}
               disabled={disabled}
-              className="mono text-[9px] font-semibold tracking-[0.1em] uppercase text-[var(--color-text-dim)]/60 hover:text-[var(--color-accent-orange)]"
+              className="mono text-[9px] font-semibold tracking-[0.1em] uppercase text-[var(--color-text-dim)]/60 hover:text-[var(--color-accent-text)]"
             >
               Clear governance
             </button>
@@ -231,7 +231,7 @@ const Toolkit: React.FC<ToolkitProps> = ({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="ui-control ui-focus-ring relative flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring relative flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
           title="Expand toolkit"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -258,11 +258,11 @@ const Toolkit: React.FC<ToolkitProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--color-border)]/60 bg-[var(--color-surface-mid)]/72 px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-orange)]/85">
+          <span className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-text)]/85">
             Toolkit
           </span>
           {activeCount > 0 && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-accent-orange)]/20 px-1 text-[8px] font-bold text-[var(--color-accent-orange)]">
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-accent-orange)]/20 px-1 text-[8px] font-bold text-[var(--color-accent-text)]">
               {activeCount}
             </span>
           )}
@@ -270,7 +270,7 @@ const Toolkit: React.FC<ToolkitProps> = ({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="ui-control ui-focus-ring flex h-7 w-7 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring flex h-7 w-7 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
           title="Collapse toolkit"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -413,7 +413,7 @@ const Toolkit: React.FC<ToolkitProps> = ({
           type="button"
           onClick={handleReset}
           disabled={disabled || !activeCount}
-          className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-dim)]/70 hover:text-[var(--color-accent-orange)] disabled:opacity-40 disabled:hover:text-[var(--color-text-dim)]/70"
+          className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-dim)]/70 hover:text-[var(--color-accent-text)] disabled:opacity-40 disabled:hover:text-[var(--color-text-dim)]/70"
         >
           Reset All
         </button>
@@ -421,7 +421,7 @@ const Toolkit: React.FC<ToolkitProps> = ({
           type="button"
           onClick={() => setShowPresets(!showPresets)}
           disabled={disabled}
-          className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)]/80 hover:text-[var(--color-accent-orange)] disabled:opacity-40"
+          className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-text)]/80 hover:text-[var(--color-accent-text)] disabled:opacity-40"
         >
           Presets...
         </button>

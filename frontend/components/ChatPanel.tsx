@@ -130,6 +130,7 @@ interface ChatPanelProps {
   harnessMode: HarnessMode;
   personaId: string | null;
   projectRoot: string | null;
+  showToolkit?: boolean;
 }
 
 export interface ChatPanelHandle {
@@ -558,6 +559,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       harnessMode,
       personaId,
       projectRoot,
+      showToolkit = false,
     },
     ref,
   ) => {
@@ -1637,7 +1639,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       bootState === "ready"
         ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-200"
         : bootState === "booting"
-          ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-orange)]"
+          ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-text)]"
           : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
     const historyRailWidth = Math.max(168, Math.min(230, Math.floor(width * 0.24)));
     const toolkitOverrideCount = countActiveOverrides(activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES);
@@ -1707,7 +1709,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 <button
                   type="button"
                   onClick={() => setIsSessionHistoryCollapsed(false)}
-                  className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+                  className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
                   title="Expand session history"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1721,7 +1723,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 <button
                   type="button"
                   onClick={createNewSession}
-                  className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/12"
+                  className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent-text)] hover:bg-[var(--color-accent-orange)]/12"
                   title="Create new session"
                 >
                   +
@@ -1733,13 +1735,13 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 style={{ width: `${historyRailWidth}px` }}
               >
                 <div className="flex items-center justify-between border-b border-[var(--color-border)]/60 bg-[var(--color-surface-mid)]/72 px-3 py-2.5">
-                  <span className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-orange)]/85">
+                  <span className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-text)]/85">
                     Session History
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsSessionHistoryCollapsed(true)}
-                    className="ui-control ui-focus-ring flex h-7 w-7 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+                    className="ui-control ui-focus-ring flex h-7 w-7 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
                     title="Collapse session history"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1749,24 +1751,24 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                   </button>
                 </div>
 
-                <div className="custom-scrollbar flex-1 overflow-y-auto p-2">
+                <div className="custom-scrollbar flex-1 overflow-y-auto p-1.5">
                   {sessions.map((session) => (
                     <button
                       key={session.id}
                       type="button"
-                      className={`ui-focus-ring mb-1.5 w-full rounded-md border px-2.5 py-2 text-left transition-all ${
+                      className={`ui-focus-ring mb-1 w-full rounded border px-2 py-1.5 text-left transition-all ${
                         activeSessionId === session.id
-                          ? "border-[var(--color-accent-orange)]/45 bg-[var(--color-accent-orange)]/14 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.22)]"
-                          : "border-[var(--color-border)]/55 bg-[var(--color-surface-low)]/46 hover:border-[var(--color-border-strong)]"
+                          ? "border-[var(--color-accent-orange)]/40 bg-[var(--color-accent-orange)]/10"
+                          : "border-[var(--color-border)]/40 bg-[var(--color-surface-low)]/30 hover:border-[var(--color-border-strong)]/50"
                       }`}
                       onClick={() => setActiveSessionId(session.id)}
                     >
-                      <div className="mono truncate text-[8px] tracking-[0.11em] text-[var(--color-text-dim)]/68">
+                      <div className="mono truncate text-[8px] tracking-[0.05em] text-[var(--color-text-dim)]/50">
                         {shortSessionId(session.harness.sessionId)}
                       </div>
                       <div
-                        className={`mt-1 truncate text-[10px] font-bold tracking-[0.14em] uppercase ${
-                          activeSessionId === session.id ? "text-[var(--color-accent-orange)]" : "text-[var(--color-text-dim)]"
+                        className={`mt-0.5 truncate text-[9px] font-bold tracking-[0.05em] uppercase ${
+                          activeSessionId === session.id ? "text-[var(--color-accent-text)]" : "text-[var(--color-text-dim)]"
                         }`}
                       >
                         {session.name}
@@ -1775,167 +1777,172 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                   ))}
                 </div>
 
-                <div className="border-t border-[var(--color-border)]/60 p-2">
+                <div className="border-t border-[var(--color-border)]/40 p-1.5">
                   <button
                     type="button"
                     onClick={createNewSession}
-                    className="ui-control ui-focus-ring w-full rounded-md px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-orange)] hover:bg-[var(--color-accent-orange)]/12"
+                    className="ui-control ui-focus-ring w-full rounded py-1.5 text-[11px] font-bold uppercase tracking-[0.05em] text-[var(--color-accent-text)]/80 hover:bg-[var(--color-accent-orange)]/10"
                   >
-                    + New Session
+                    + NEW SESSION
                   </button>
                 </div>
               </aside>
             )}
 
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="shrink-0 ui-glass-header rounded-xl px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex flex-col gap-2">
-                    <span className="mono text-[9px] font-black tracking-[0.19em] text-[var(--color-accent-orange)] uppercase opacity-85">
-                      Command Uplink
-                    </span>
-                    <span className="truncate text-xs font-bold tracking-[0.1em] uppercase text-[var(--color-text-main)]">
-                      {agentName}
-                      <span className="mx-2 text-[var(--color-text-dim)]/45">{"//"}</span>
-                      <span className="text-[10px] font-medium lowercase italic text-[var(--color-text-dim)]">
-                        {modeLabel}
+              <div className="shrink-0 ui-glass-header rounded-xl px-3.5 py-2.5">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex flex-col">
+                      <span className="mono text-[8px] font-black tracking-[0.2em] text-[var(--color-accent-text)] uppercase opacity-70">
+                        Command Uplink
                       </span>
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
-                        session {sessionLabel}
-                      </span>
-                      <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
-                        model {modelLabel}
-                      </span>
-                      <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
-                        cwd {rootLabel}
-                      </span>
-                      <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
-                        cost {costLabel}
-                      </span>
-                      <span className="mono rounded border border-[var(--color-border)]/70 bg-[var(--color-surface-low)]/70 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]">
-                        last {lastRunLabel}
-                      </span>
-                      <span className={`mono rounded border px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] ${bootBadgeClass}`}>
-                        {bootLabel}
-                      </span>
-                      {toolkitOverrideCount > 0 && (
-                        <span className="mono rounded border border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-accent-orange)]">
-                          overrides {toolkitOverrideCount}
+                      <span className="truncate text-[11px] font-bold tracking-[0.05em] uppercase text-[var(--color-text-main)]">
+                        {agentName}
+                        <span className="mx-1.5 text-[var(--color-text-dim)]/40">/</span>
+                        <span className="text-[9px] font-medium lowercase italic text-[var(--color-text-dim)]">
+                          {modeLabel}
                         </span>
+                      </span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {isLoading && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleInterrupt();
+                          }}
+                          disabled={isInterrupting || !inFlightHarnessSessionId}
+                          className="ui-focus-ring rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[8px] font-mono uppercase tracking-[0.1em] text-red-200 disabled:opacity-40"
+                        >
+                          {isInterrupting ? "Interrupted" : "Interrupt"}
+                        </button>
                       )}
+
+                      <span
+                        className={`mono rounded border px-2 py-1 text-[8px] uppercase tracking-[0.1em] ${
+                          isLoading
+                            ? "border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-text)]"
+                            : "border-[var(--color-border)]/70 bg-[var(--color-surface-low)] text-[var(--color-text-dim)]"
+                        } ${isLoading && !prefersReducedMotion ? "status-live" : ""}`}
+                      >
+                        {statusBadge}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    {isLoading && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void handleInterrupt();
-                        }}
-                        disabled={isInterrupting || !inFlightHarnessSessionId}
-                        className="ui-focus-ring rounded-md border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.12em] text-red-200 disabled:opacity-40"
-                      >
-                        {isInterrupting ? "Interrupting..." : "Interrupt Turn"}
-                      </button>
-                    )}
-
-                    <span
-                      className={`mono rounded-md border px-3 py-1.5 text-[9px] uppercase tracking-[0.12em] ${
-                        isLoading
-                          ? "border-[var(--color-accent-orange)]/28 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-orange)]"
-                          : "border-[var(--color-border)]/75 bg-[var(--color-surface-low)] text-[var(--color-text-dim)]"
-                      } ${isLoading && !prefersReducedMotion ? "status-live" : ""}`}
-                    >
-                      {statusBadge}
-                    </span>
+                  {/* Ultra-compact Metadata Bar */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 opacity-80">
+                    <div className="flex items-center gap-1.5">
+                      <span className="mono text-[11px] uppercase tracking-[0.02em] text-[var(--color-text-dim)]">SID</span>
+                      <span className="mono text-[11px] text-[var(--color-text-main)]">{sessionLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="mono text-[11px] uppercase tracking-[0.02em] text-[var(--color-text-dim)]">MOD</span>
+                      <span className="mono truncate max-w-[120px] text-[11px] text-[var(--color-text-main)]">{modelLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="mono text-[11px] uppercase tracking-[0.02em] text-[var(--color-text-dim)]">CWD</span>
+                      <span className="mono truncate max-w-[100px] text-[11px] text-[var(--color-text-main)]">{rootLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="mono text-[11px] uppercase tracking-[0.02em] text-[var(--color-text-dim)]">COST</span>
+                      <span className="mono text-[11px] text-[var(--color-text-main)]">{costLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`mono rounded-sm border px-1.5 py-0 text-[8px] uppercase tracking-[0.05em] ${bootBadgeClass}`}>
+                        {bootLabel}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-1 pb-1 font-mono text-sm">
-                <div className="space-y-3">
+                <div className="space-y-1.5">
                   {activeSession?.messages.map((message, index) => {
                     const messageKey = `${activeSession.id}:${index}`;
                     const canCopyMessage = message.role === "user" || !message.streaming;
+                    const isAssistant = message.role === "assistant";
+                    
                     return (
-                    <div
-                      key={messageKey}
-                      className={`ui-panel px-4 py-3 shadow-md ${
-                        message.role === "assistant"
-                          ? "border-[var(--color-accent-orange)]/25"
-                          : "border-[var(--color-applying)]/28"
-                      }`}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.16em] opacity-70">
-                          <span className={message.role === "assistant" ? "text-[var(--color-accent-orange)]" : "text-[var(--color-applying)]"}>
-                            {message.role === "assistant" ? "Assistant" : "User"}
-                          </span>
-                          {message.streaming && (
-                            <span className="mono rounded border border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/12 px-1.5 py-0.5 text-[8px] tracking-[0.1em] text-[var(--color-accent-orange)]">
-                              streaming
+                      <div
+                        key={messageKey}
+                        className={`group relative rounded-lg border px-3 py-2 transition-all ${
+                          isAssistant
+                            ? "border-[var(--color-judging)]/24 bg-[var(--color-judging)]/8"
+                            : "border-[var(--color-applying)]/20 bg-[var(--color-applying)]/4"
+                        }`}
+                      >
+                        {/* Compact Header inside the bubble */}
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.14em] opacity-60">
+                            <span className={isAssistant ? "text-[var(--color-judging)]" : "text-[var(--color-applying)]"}>
+                              {isAssistant ? "Assistant" : "User"}
                             </span>
+                            {message.streaming && (
+                              <span className="mono rounded-sm border border-[var(--color-judging)]/35 bg-[var(--color-judging)]/14 px-1 py-0 text-[7px] tracking-[0.05em] text-[var(--color-judging)]">
+                                streaming
+                              </span>
+                            )}
+                          </div>
+                          {canCopyMessage && (
+                            <button
+                              type="button"
+                              className="mono rounded px-1 py-0.5 text-[7px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--color-accent-text)]"
+                              onClick={() => {
+                                void copyChatMessage(messageKey, message.content);
+                              }}
+                            >
+                              {copiedMessageKey === messageKey ? "copied" : "copy"}
+                            </button>
                           )}
                         </div>
-                        {canCopyMessage && (
-                          <button
-                            type="button"
-                            className="ui-control ui-focus-ring mono rounded px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)]"
-                            onClick={() => {
-                              void copyChatMessage(messageKey, message.content);
-                            }}
-                          >
-                            {copiedMessageKey === messageKey ? "copied" : "copy"}
-                          </button>
-                        )}
-                      </div>
 
-                      {message.role === "assistant" ? (
-                        <div className="ui-panel-soft whitespace-pre-wrap rounded-md border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/30 px-4 py-3 font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: convert.toHtml(prepareAnsiContent(message.content)),
-                            }}
-                          />
-                          {message.streaming ? (
-                            <span
-                              aria-hidden
-                              className={`ml-1 inline-block text-[var(--color-accent-orange)] ${
-                                prefersReducedMotion ? "opacity-80" : "animate-pulse"
-                              }`}
-                            >
-                              ▍
-                            </span>
-                          ) : null}
+                        <div className={`whitespace-pre-wrap font-mono text-[13px] leading-[1.6] text-[var(--color-text-main)] ${isAssistant ? "" : "opacity-90"}`}>
+                          {isAssistant ? (
+                            <>
+                              <span
+                                dangerouslySetInnerHTML={{
+                                  __html: convert.toHtml(prepareAnsiContent(message.content)),
+                                }}
+                              />
+                              {message.streaming ? (
+                                <span
+                                  aria-hidden
+                                  className={`ml-1 inline-block text-[var(--color-accent-text)] ${
+                                    prefersReducedMotion ? "opacity-80" : "animate-pulse"
+                                  }`}
+                                >
+                                  ▍
+                                </span>
+                              ) : null}
+                            </>
+                          ) : (
+                            message.content
+                          )}
                         </div>
-                      ) : (
-                        <div className="rounded-md border border-[var(--color-border)]/60 bg-[var(--color-surface-low)]/30 px-4 py-3 whitespace-pre-wrap font-mono text-[14px] leading-[1.7] text-[var(--color-text-main)]">
-                          {message.content}
-                        </div>
-                      )}
-                    </div>
-                  )})}
+                      </div>
+                    );
+                  })}
+
                   {(isLoading || hasTurnActivity) && (
-                    <div className={`ui-panel px-4 py-3 shadow-md ${isLoading && !prefersReducedMotion ? "turn-waiting" : ""}`}>
-                      <div className="ui-panel-soft inline-flex items-center gap-2 rounded-md px-3 py-1.5">
+                    <div className={`rounded-lg border border-[var(--color-border)]/40 bg-[var(--color-surface-low)]/30 px-3 py-2 ${isLoading && !prefersReducedMotion ? "turn-waiting" : ""}`}>
+                      <div className="inline-flex items-center gap-2 rounded bg-[var(--color-surface-mid)]/40 px-2 py-1">
                         <span
                           aria-hidden
-                          className={`mono inline-flex w-4 justify-center text-[13px] ${
+                          className={`mono inline-flex w-3 justify-center text-[11px] ${
                             isLoading
-                              ? "text-[var(--color-accent-orange)]"
+                              ? "text-[var(--color-accent-text)]"
                               : activityGlyph === "!"
                                 ? "text-red-200"
                                 : "text-[var(--color-judging)]"
-                          } ${
-                            isLoading && !prefersReducedMotion ? "tracking-tight" : ""
                           }`}
                         >
                           {activityGlyph}
                         </span>
-                        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-accent-orange)]">
+                        <span className="mono text-[9px] uppercase tracking-[0.1em] text-[var(--color-accent-text)]">
                           {statusText}
                         </span>
                       </div>
@@ -1955,7 +1962,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                                   : isNestedChild
                                     ? "border-[var(--color-guiding)]/25 bg-[var(--color-guiding)]/8 text-[var(--color-text-main)]"
                                   : isRunning
-                                    ? "border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                                    ? "border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                                     : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
 
                             const iconClass = isError
@@ -1965,7 +1972,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                                   : isNestedChild
                                     ? "text-[var(--color-guiding)]"
                                   : isRunning
-                                    ? "text-[var(--color-accent-orange)]"
+                                    ? "text-[var(--color-accent-text)]"
                                     : "text-[var(--color-judging)]";
 
                             const icon = isRunning ? spinnerGlyph : isError ? "✕" : "✓";
@@ -2006,7 +2013,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                       {selectedToolDetail && (
                         <div className="ui-panel-soft mt-2 rounded-md border border-[var(--color-border)]/65 bg-[var(--color-surface-low)]/40 px-3 py-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="mono text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-orange)]/90">
+                            <span className="mono text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-text)]/90">
                               Tool detail: {truncate(selectedToolDetail.label, 42)}
                             </span>
                             <span
@@ -2015,7 +2022,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                                   ? "border-red-400/35 bg-red-500/10 text-red-200"
                                   : selectedToolDetail.isError === false
                                     ? "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]"
-                                    : "border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                                    : "border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                               }`}
                             >
                               {selectedToolDetail.isError === null
@@ -2040,7 +2047,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                             <div className="mt-1 flex justify-end">
                               <button
                                 type="button"
-                                className="ui-control ui-focus-ring mono rounded px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)]"
+                                className="ui-control ui-focus-ring mono rounded px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-text)]"
                                 onClick={() => {
                                   void copyToolDetailSection("input", selectedToolInputText);
                                 }}
@@ -2080,7 +2087,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                             <div className="mt-1 flex justify-end">
                               <button
                                 type="button"
-                                className="ui-control ui-focus-ring mono rounded px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-orange)]"
+                                className="ui-control ui-focus-ring mono rounded px-1.5 py-0.5 text-[8px] uppercase tracking-[0.1em] text-[var(--color-text-dim)] hover:text-[var(--color-accent-text)]"
                                 onClick={() => {
                                   void copyToolDetailSection("result", selectedToolResultText);
                                 }}
@@ -2281,17 +2288,27 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="chat-input shrink-0 ui-panel-strong p-3">
-                <div className="ui-panel-soft flex items-center rounded-md px-3 py-2 bg-[var(--color-surface-low)]/20">
-                  <input
-                    type="text"
+              <div className="chat-input shrink-0 p-1">
+                <div className="flex items-start rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/20 px-2.5 py-1.5 transition-colors focus-within:border-[var(--color-accent-orange)]/50">
+                  <textarea
                     placeholder={placeholder}
-                    className="mono w-full flex-grow bg-transparent text-sm tracking-wide text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]/40 outline-none disabled:opacity-40"
+                    className="mono w-full flex-grow bg-transparent text-[13px] tracking-wide text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]/40 outline-none disabled:opacity-40 resize-none custom-scrollbar min-h-[1.6em] max-h-[140px]"
+                    rows={1}
                     value={input}
-                    onChange={(event) => setInput(event.target.value)}
+                    onChange={(event) => {
+                      setInput(event.target.value);
+                      // Auto-grow height
+                      event.target.style.height = 'auto';
+                      event.target.style.height = `${event.target.scrollHeight}px`;
+                    }}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter") {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
                         void sendMessage();
+                        // Reset height
+                        if (event.currentTarget instanceof HTMLTextAreaElement) {
+                          event.currentTarget.style.height = 'auto';
+                        }
                       }
                     }}
                     autoFocus
@@ -2301,17 +2318,19 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
               </div>
             </div>
 
-            <Toolkit
-              overrides={activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES}
-              onChange={(next) => {
-                if (activeSession) {
-                  updateToolkitOverrides(activeSession.id, next);
-                }
-              }}
-              isCollapsed={isToolkitCollapsed}
-              onToggleCollapse={() => setIsToolkitCollapsed((prev) => !prev)}
-              isLoading={isLoading}
-            />
+            {showToolkit ? (
+              <Toolkit
+                overrides={activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES}
+                onChange={(next) => {
+                  if (activeSession) {
+                    updateToolkitOverrides(activeSession.id, next);
+                  }
+                }}
+                isCollapsed={isToolkitCollapsed}
+                onToggleCollapse={() => setIsToolkitCollapsed((prev) => !prev)}
+                isLoading={isLoading}
+              />
+            ) : null}
           </div>
         </div>
       </div>

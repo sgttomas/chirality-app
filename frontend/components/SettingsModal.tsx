@@ -7,11 +7,20 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectRoot: string | null;
+  toolkitSidebarEnabled: boolean;
+  onToolkitSidebarEnabledChange: (enabled: boolean) => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, projectRoot }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  isOpen,
+  onClose,
+  projectRoot,
+  toolkitSidebarEnabled,
+  onToolkitSidebarEnabledChange,
+}) => {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
+  const [toolkitEnabled, setToolkitEnabled] = useState(false);
   const [instructionRoot, setInstructionRoot] = useState<string | null>(null);
   const [instructionWritable, setInstructionWritable] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
@@ -29,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
       const storedKey = localStorage.getItem("anthropic_api_key");
       if (storedKey) setApiKey(storedKey);
       else setApiKey("");
+      setToolkitEnabled(toolkitSidebarEnabled);
 
       // Load Model from server
       setIsFetching(true);
@@ -51,7 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
         })
         .finally(() => setIsFetching(false));
     }
-  }, [isOpen]);
+  }, [isOpen, toolkitSidebarEnabled]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -76,6 +86,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
         if (!res.ok) throw new Error("Failed to save model configuration");
       }
 
+      onToolkitSidebarEnabledChange(toolkitEnabled);
       setStatus("Settings saved successfully.");
       setTimeout(onClose, 1000);
     } catch (error) {
@@ -151,7 +162,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
         className="ui-panel-strong w-[min(92vw,460px)] overflow-hidden"
       >
         <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-high)]/70 px-5 py-4">
-          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Configuration</p>
+          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-text)]/75">Configuration</p>
           <h2 id="settings-modal-title" className="text-[1.05rem] font-bold uppercase tracking-[0.08em] text-[var(--color-text-main)]">Settings</h2>
           <p className="mt-1 mono text-[10px] text-[var(--color-text-dim)]">
             PROJECT ROOT: {projectRoot ?? "NOT_SET"}
@@ -220,7 +231,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
                   type="button"
                   onClick={handleOpenDownload}
                   disabled={isOpeningDownload}
-                  className="ui-control ui-focus-ring px-3 py-1.5 mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)]"
+                  className="ui-control ui-focus-ring px-3 py-1.5 mono text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-text)]"
                 >
                   {isOpeningDownload ? "Opening..." : "Open download page"}
                 </button>
@@ -233,7 +244,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
                   <>
                     <p>Current: v{updateResult.currentVersion}</p>
                     <p>Latest: {updateResult.latestTag ?? "unknown"}</p>
-                    <p className={updateResult.updateAvailable ? "text-[var(--color-accent-orange)]" : ""}>
+                    <p className={updateResult.updateAvailable ? "text-[var(--color-accent-text)]" : ""}>
                       {updateResult.updateAvailable ? "Update available." : "You are up to date."}
                     </p>
                   </>
@@ -246,6 +257,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
                 Checks GitHub Releases and compares with the installed app version.
               </p>
             )}
+          </div>
+
+          <div>
+            <label className="ui-type-mono-meta mb-2 block text-[10px] font-semibold text-[var(--color-text-dim)]/80">
+              UI Panels
+            </label>
+            <label className="ui-control ui-focus-ring flex items-center justify-between gap-3 bg-[var(--color-surface-high)]/45 px-3 py-2">
+              <span className="text-[12px] text-[var(--color-text-main)]">Show Tool Kit sidebar</span>
+              <input
+                type="checkbox"
+                checked={toolkitEnabled}
+                onChange={(event) => setToolkitEnabled(event.target.checked)}
+                className="h-4 w-4 accent-[var(--color-accent-orange)]"
+              />
+            </label>
+            <p className="mt-1 text-[11px] text-[var(--color-text-dim)]/75">
+              When off, the Tool Kit panel is hidden from chat sessions.
+            </p>
           </div>
 
           {status && (

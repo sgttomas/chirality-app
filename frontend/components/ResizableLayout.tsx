@@ -7,6 +7,8 @@ import { FilePreview } from "./FilePreview";
 import { SettingsModal } from "./SettingsModal";
 import { DirectoryPicker } from "./DirectoryPicker";
 
+const TOOLKIT_SIDEBAR_STORAGE_KEY = "chirality_toolkit_sidebar_enabled";
+
 interface ResizableLayoutProps {
   // Chat Props
   agentName: string;
@@ -67,12 +69,18 @@ export function ResizableLayout({
   const [viewportWidth, setViewportWidth] = useState(1280);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
+  const [isToolkitSidebarEnabled, setIsToolkitSidebarEnabled] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return localStorage.getItem(TOOLKIT_SIDEBAR_STORAGE_KEY) === "true";
+  });
 
   const folderLabel = formatFolderLabel(projectRoot ?? "~");
   const footerGhostButtonClass =
-    "ui-control ui-focus-ring flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] uppercase cursor-pointer";
+    "ui-control ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold tracking-[0.02em] uppercase cursor-pointer";
   const footerAccentButtonClass =
-    "ui-control ui-focus-ring flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-[0.14em] uppercase cursor-pointer text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/8 hover:bg-[var(--color-accent-orange)]/14";
+    "ui-control ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold tracking-[0.02em] uppercase cursor-pointer text-[var(--color-accent-text)] border-[var(--color-accent-orange)]/25 bg-[var(--color-accent-orange)]/8 hover:bg-[var(--color-accent-orange)]/14";
   const footerTooltipClass =
     "pointer-events-none absolute bottom-full mb-2 w-52 rounded-md border border-white/10 bg-black/80 p-2 opacity-0 shadow-xl backdrop-blur-md transition-opacity group-hover:opacity-100 z-50";
   
@@ -91,32 +99,32 @@ export function ResizableLayout({
   }, []);
 
   const renderGlobalActionsFooter = (compact = false) => (
-    <div className="ui-panel-soft shrink-0 rounded-xl p-2.5">
+    <div className="ui-panel-soft shrink-0 rounded-xl p-2">
       <div className={`flex gap-2 ${compact ? "flex-col" : "items-center"}`}>
         <button
           onClick={() => setShowDirPicker(true)}
           className={`${footerAccentButtonClass} min-w-0 justify-center truncate ${compact ? "w-full" : "flex-1"}`}
         >
-          <span className="opacity-50 font-mono">DIR:</span>
-          <span className="truncate">{folderLabel}</span>
-          <span className="text-white/30 font-mono ml-1">❯</span>
+          <span className="opacity-50 font-mono text-[11px]">DIR:</span>
+          <span className="truncate ml-1">{folderLabel}</span>
+          <span className="text-white/20 font-mono ml-1">❯</span>
         </button>
 
-        <div className={`grid grid-cols-2 gap-2 ${compact ? "w-full" : "w-[210px] shrink-0"}`}>
+        <div className={`grid grid-cols-2 gap-2 ${compact ? "w-full" : "w-[185px] shrink-0"}`}>
           <div className="group relative">
             <button
               onClick={() => onNavigateHome?.()}
               disabled={!onNavigateHome}
-              className={`${footerGhostButtonClass} w-full justify-center text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
+              className={`${footerGhostButtonClass} mono text-[11px] w-full justify-center text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]`}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
               </svg>
               Portal
             </button>
             <div className={`${footerTooltipClass} left-0`}>
               <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal">
-                <span className="text-[var(--color-accent-orange)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
+                <span className="text-[var(--color-accent-text)] font-bold">Command Portal:</span> Access the Hex Grid of agent personas and real-time project deliverable status.
               </p>
             </div>
           </div>
@@ -124,9 +132,9 @@ export function ResizableLayout({
           <div className="group relative">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className={`${footerAccentButtonClass} w-full justify-center`}
+              className={`${footerAccentButtonClass} mono text-[11px] w-full justify-center`}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
@@ -134,7 +142,7 @@ export function ResizableLayout({
             </button>
             <div className={`${footerTooltipClass} right-0`}>
               <p className="text-[10px] leading-relaxed text-white/70 font-sans normal-case tracking-normal text-right">
-                <span className="text-[var(--color-accent-orange)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
+                <span className="text-[var(--color-accent-text)] font-bold">Configuration:</span> Update your Anthropic API Key and the Global Model (CLAUDE.md).
               </p>
             </div>
           </div>
@@ -147,7 +155,7 @@ export function ResizableLayout({
     <div className="ui-panel-soft flex h-full w-12 shrink-0 flex-col items-center justify-between rounded-xl py-3">
       <button
         onClick={() => setIsSidebarCollapsed(false)}
-        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
         title="Expand Project Directory"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -158,7 +166,7 @@ export function ResizableLayout({
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={() => setShowDirPicker(true)}
-          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
           title={`Change Dir: ${folderLabel}`}
         >
           <span className="mono text-[8px] font-bold">DIR</span>
@@ -166,7 +174,7 @@ export function ResizableLayout({
         <button
           onClick={() => onNavigateHome?.()}
           disabled={!onNavigateHome}
-          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
           title="Portal"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -176,7 +184,7 @@ export function ResizableLayout({
         </button>
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
           title="Settings"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -192,7 +200,7 @@ export function ResizableLayout({
     <div className="ui-panel-soft flex h-full w-10 shrink-0 flex-col items-center rounded-xl py-3">
       <button
         onClick={() => setIsPreviewCollapsed(false)}
-        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-orange)]"
+        className="ui-control ui-focus-ring flex h-8 w-8 items-center justify-center rounded-md hover:text-[var(--color-accent-text)]"
         title="Expand Preview"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -229,13 +237,18 @@ export function ResizableLayout({
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         projectRoot={projectRoot}
+        toolkitSidebarEnabled={isToolkitSidebarEnabled}
+        onToolkitSidebarEnabledChange={(enabled) => {
+          setIsToolkitSidebarEnabled(enabled);
+          localStorage.setItem(TOOLKIT_SIDEBAR_STORAGE_KEY, enabled ? "true" : "false");
+        }}
       />
 
       {isCompactLayout ? (
         <div className="relative flex h-full flex-col overflow-hidden gap-2 px-2.5 pb-2.5 pt-2">
           <div className="shrink-0 ui-panel-soft p-2">
             <div className="flex items-center justify-between gap-3">
-              <span className="mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-orange)]/85">
+              <span className="mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]/85">
                 Operations Deck
               </span>
               <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-dim)]/80">
@@ -256,6 +269,7 @@ export function ResizableLayout({
               personaId={personaId}
               placeholder={placeholder}
               projectRoot={projectRoot}
+              showToolkit={isToolkitSidebarEnabled}
             />
           </div>
 
@@ -266,7 +280,7 @@ export function ResizableLayout({
                 onClick={() => setCompactPane("files")}
                 className={`${compactTabBaseClass} ${
                   compactPane === "files"
-                    ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                    ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                     : "text-[var(--color-text-dim)]"
                 }`}
               >
@@ -277,7 +291,7 @@ export function ResizableLayout({
                 onClick={() => setCompactPane("preview")}
                 className={`${compactTabBaseClass} ${
                   compactPane === "preview"
-                    ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                    ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                     : "text-[var(--color-text-dim)]"
                 }`}
               >
@@ -302,13 +316,16 @@ export function ResizableLayout({
         </div>
       ) : (
         <div className="relative flex h-full flex-row items-stretch gap-3 overflow-hidden px-3 pb-3 pt-2">
+          {/* Chat Panel - Flexible if others are collapsed */}
           <div
-            className="relative h-full flex-shrink-0 ui-panel-strong p-1.5"
-            style={{ width: `${chatWidth}px`, minWidth: "430px" }}
+            className={`relative h-full ui-panel-strong p-1.5 ${
+                isSidebarCollapsed && isPreviewCollapsed ? "flex-1" : "flex-shrink-0"
+            }`}
+            style={!(isSidebarCollapsed && isPreviewCollapsed) ? { width: `${chatWidth}px`, minWidth: "430px" } : { minWidth: "430px" }}
           >
             <ChatPanel
               agentName={agentName}
-              width={chatWidth}
+              width={isSidebarCollapsed && isPreviewCollapsed ? viewportWidth - 60 : chatWidth}
               onResize={() => {}}
               sessionId={sessionId}
               autoPrompt={autoPrompt}
@@ -317,21 +334,27 @@ export function ResizableLayout({
               personaId={personaId}
               placeholder={placeholder}
               projectRoot={projectRoot}
+              showToolkit={isToolkitSidebarEnabled}
             />
           </div>
 
-          <Resizer onResize={(delta) => setChatWidth((prev) => Math.max(400, prev + delta))} />
+          {!isSidebarCollapsed || !isPreviewCollapsed ? (
+            <Resizer onResize={(delta) => setChatWidth((prev) => Math.max(400, prev + delta))} />
+          ) : null}
 
+          {/* Project Directory / Sidebar */}
           {isSidebarCollapsed ? (
             renderCollapsedSidebar()
           ) : (
             <div
-              className="group/sidebar ui-panel relative flex h-full shrink-0 flex-col overflow-hidden"
-              style={{ width: `${sidebarWidth}px`, minWidth: "290px" }}
+              className={`group/sidebar ui-panel relative flex h-full flex-col overflow-hidden ${
+                isPreviewCollapsed ? "flex-1" : "shrink-0"
+              }`}
+              style={!isPreviewCollapsed ? { width: `${sidebarWidth}px`, minWidth: "290px" } : { minWidth: "290px" }}
             >
               <button
                 onClick={() => setIsSidebarCollapsed(true)}
-                className="ui-control ui-focus-ring absolute right-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-orange)]"
+                className="ui-control ui-focus-ring absolute right-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-text)]"
                 title="Collapse Project Directory"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -348,17 +371,18 @@ export function ResizableLayout({
             </div>
           )}
 
-          {!isSidebarCollapsed && (
+          {!isSidebarCollapsed && !isPreviewCollapsed && (
             <Resizer onResize={(delta) => setSidebarWidth((prev) => Math.max(250, prev + delta))} />
           )}
 
+          {/* Preview Panel */}
           {isPreviewCollapsed ? (
             renderCollapsedPreview()
           ) : (
             <div className="group/preview ui-panel-strong relative h-full min-w-[320px] flex-1 overflow-hidden rounded-2xl">
               <button
                 onClick={() => setIsPreviewCollapsed(true)}
-                className="ui-control ui-focus-ring absolute left-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-orange)]"
+                className="ui-control ui-focus-ring absolute left-2 top-1/2 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border-[var(--color-border)]/65 bg-[var(--color-surface-high)]/82 text-[var(--color-text-dim)] opacity-85 hover:opacity-100 hover:text-[var(--color-accent-text)]"
                 title="Collapse Preview"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">

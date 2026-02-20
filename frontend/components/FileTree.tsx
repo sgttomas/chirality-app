@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { FileNode } from "@/app/api/fs/route";
 
 type GitFileState = "modified" | "added" | "deleted" | "renamed" | "untracked" | "conflicted";
@@ -32,8 +32,8 @@ function getGitBadgeMeta(state: GitFileState): GitBadgeMeta {
     case "deleted":
       return {
         label: "D",
-        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
-        textClass: "text-[var(--color-accent-orange)]",
+        badgeClass: "text-[var(--color-text-main)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
+        textClass: "text-[var(--color-text-main)]",
       };
     case "renamed":
       return {
@@ -50,15 +50,15 @@ function getGitBadgeMeta(state: GitFileState): GitBadgeMeta {
     case "conflicted":
       return {
         label: "!",
-        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/40 bg-[var(--color-accent-orange)]/12",
-        textClass: "text-[var(--color-accent-orange)]",
+        badgeClass: "text-[var(--color-text-main)] border-[var(--color-accent-orange)]/40 bg-[var(--color-accent-orange)]/12",
+        textClass: "text-[var(--color-text-main)]",
       };
     case "modified":
     default:
       return {
         label: "M",
-        badgeClass: "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
-        textClass: "text-[var(--color-accent-orange)]",
+        badgeClass: "text-[var(--color-text-main)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10",
+        textClass: "text-[var(--color-text-main)]",
       };
   }
 }
@@ -77,14 +77,42 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
   const [gitStatuses, setGitStatuses] = useState<Record<string, GitFileState>>({});
   const [gitLoadState, setGitLoadState] = useState<GitLoadState>("loading");
   const [changedCount, setChangedCount] = useState(0);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const previousTreeRootRef = useRef<string | null | undefined>(undefined);
+  const previousGitRootRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const refreshIntervalMs = 4000;
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      setRefreshTick((previous) => previous + 1);
+    };
+
+    const intervalId = window.setInterval(refreshIfVisible, refreshIntervalMs);
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, []);
 
   useEffect(() => {
     let canceled = false;
-    const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
-    queueMicrotask(() => setLoading(true));
-    queueMicrotask(() => setSelectedPath(null));
+    const rootChanged = previousTreeRootRef.current !== rootPath;
+    previousTreeRootRef.current = rootPath;
 
-    fetch(url)
+    const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
+    if (rootChanged) {
+      queueMicrotask(() => setLoading(true));
+      queueMicrotask(() => setSelectedPath(null));
+    }
+
+    fetch(url, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (canceled) return;
@@ -101,14 +129,19 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     return () => {
       canceled = true;
     };
-  }, [rootPath]);
+  }, [rootPath, refreshTick]);
 
   useEffect(() => {
     let canceled = false;
-    const url = rootPath ? `/api/fs/git-status?path=${encodeURIComponent(rootPath)}` : "/api/fs/git-status";
-    queueMicrotask(() => setGitLoadState("loading"));
+    const rootChanged = previousGitRootRef.current !== rootPath;
+    previousGitRootRef.current = rootPath;
 
-    fetch(url)
+    const url = rootPath ? `/api/fs/git-status?path=${encodeURIComponent(rootPath)}` : "/api/fs/git-status";
+    if (rootChanged) {
+      queueMicrotask(() => setGitLoadState("loading"));
+    }
+
+    fetch(url, { cache: "no-store" })
       .then((res) => res.json())
       .then((data: GitStatusResponse) => {
         if (canceled) return;
@@ -148,7 +181,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     return () => {
       canceled = true;
     };
-  }, [rootPath]);
+  }, [rootPath, refreshTick]);
 
   const dirtyDirectories = useMemo(() => {
     const directories = new Set<string>();
@@ -265,7 +298,7 @@ function TreeNode({
           className={`mono w-4 text-center text-[10px] ${
             node.isDirectory
               ? hasDirtyChildren
-                ? "text-[var(--color-accent-orange)]"
+                ? "text-[var(--color-accent-directory)]"
                 : "text-[var(--color-accent-directory)]/80"
               : "text-[var(--color-text-dim)]/75"
           }`}
@@ -276,7 +309,7 @@ function TreeNode({
           className={`min-w-0 flex-1 truncate text-[11px] ${
             node.isDirectory
               ? hasDirtyChildren
-                ? "font-semibold text-[var(--color-accent-orange)] group-hover:text-[var(--color-accent-orange)]"
+                ? "font-semibold text-[var(--color-accent-directory)] group-hover:text-[var(--color-accent-directory)]"
                 : "font-semibold text-[var(--color-accent-directory)]/95 group-hover:text-[var(--color-accent-directory)]"
               : fileGitMeta
                 ? `${fileGitMeta.textClass} font-semibold`
@@ -331,13 +364,13 @@ interface GitStatusRowProps {
 function GitStatusRow({ gitLoadState, changedCount }: GitStatusRowProps) {
   let label = "Loading";
   let pillClass =
-    "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10";
+    "text-[var(--color-text-main)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10";
 
   if (gitLoadState === "ready") {
     if (changedCount > 0) {
       label = `${changedCount} Changed`;
       pillClass =
-        "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
+        "text-[var(--color-text-main)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
     } else {
       label = "Clean";
       pillClass = "text-[var(--color-judging)] border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10";

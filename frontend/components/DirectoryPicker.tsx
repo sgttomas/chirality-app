@@ -27,7 +27,7 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
       >
         <div className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface-panel)]/75 px-5 py-4">
           <div className="min-w-0">
-            <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">Workspace</p>
+            <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-text)]/75">Workspace</p>
             <h2 id="directory-picker-title" className="text-[1.05rem] font-bold tracking-[0.06em] uppercase text-[var(--color-text-main)]">
               Select Project Directory
             </h2>
@@ -54,7 +54,7 @@ export function DirectoryPicker({ onSelect, onCancel }: DirectoryPickerProps) {
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-panel)]/75 px-4 py-3">
           <div className="ui-panel-soft flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2">
-            <span className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/75">
+            <span className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-text)]/75">
               Selected
             </span>
             <span className="mono min-w-0 truncate text-[10px] text-[var(--color-text-main)]/85" title={selectedPath ?? ""}>

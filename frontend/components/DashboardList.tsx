@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 
-type Deliverable = {
+export type Deliverable = {
   id: string;
   name: string;
   pkg: string;
@@ -14,6 +14,8 @@ interface DashboardListProps {
   onSelect: (del: Deliverable) => void;
   projectRoot: string | null;
   onOpenProjectRootPicker?: () => void;
+  deliverables: Deliverable[];
+  loading: boolean;
 }
 
 const STATUS_LABELS: Record<Deliverable["status"], string> = {
@@ -42,33 +44,7 @@ function formatRootLabel(pathValue: string): string {
   return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
 }
 
-export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }: DashboardListProps) {
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!projectRoot) {
-      setDeliverables([]);
-      setLoading(false);
-      return;
-    }
-    void fetchDeliverables(projectRoot);
-  }, [projectRoot]);
-
-  const fetchDeliverables = async (root: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/project/deliverables?path=${encodeURIComponent(root)}`);
-      const data = await res.json();
-      setDeliverables(Array.isArray(data.deliverables) ? data.deliverables : []);
-    } catch (e) {
-      console.error("Failed to load deliverables", e);
-      setDeliverables([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker, deliverables, loading }: DashboardListProps) {
   return (
     <section className="dashboard-panel ui-panel relative flex h-full w-full max-w-full flex-col gap-4 overflow-hidden p-5 xl:w-[550px]">
       <header className="flex shrink-0 flex-col gap-3 ui-panel-soft rounded-lg px-4 py-3 border-none">
@@ -90,7 +66,7 @@ export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }
           }`}
           title={projectRoot || "No project root selected"}
         >
-          <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-orange)] opacity-75">
+          <span className="ui-type-mono-meta text-[9px] font-black text-[var(--color-accent-text)] opacity-75">
             Project
           </span>
           <span className="mono min-w-0 flex-1 truncate text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-main)]/90">
@@ -131,14 +107,14 @@ export function DashboardList({ onSelect, projectRoot, onOpenProjectRootPicker }
         ) : (
           deliverables.map((del) => (
             <button
-              key={del.id}
+              key={`${del.pkg}::${del.id}`}
               type="button"
               onClick={() => onSelect(del)}
               className="ui-panel-soft ui-focus-ring group flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:border-[var(--color-border-strong)] hover:shadow-md"
               aria-label={`Open ${del.id} ${del.name}`}
             >
               <span className={`del-status-dot status-${del.status}`} aria-hidden />
-              <span className="mono min-w-[96px] text-[11px] font-semibold tracking-[0.08em] text-[var(--color-accent-orange)] group-hover:text-[var(--color-text-main)] transition-colors">
+              <span className="mono min-w-[96px] text-[11px] font-semibold tracking-[0.08em] text-[var(--color-accent-text)] group-hover:text-[var(--color-text-main)] transition-colors">
                 {del.id}
               </span>
               <span className="min-w-0 flex-1 truncate text-[1.02rem] font-semibold text-[var(--color-text-main)]">

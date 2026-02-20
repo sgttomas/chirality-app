@@ -78,7 +78,7 @@ const ToolkitPresets: React.FC<ToolkitPresetsProps> = ({ currentOverrides, onApp
         <button
           type="button"
           onClick={onClose}
-          className="ui-control ui-focus-ring flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-text-dim)]/70 hover:text-[var(--color-accent-orange)]"
+          className="ui-control ui-focus-ring flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-text-dim)]/70 hover:text-[var(--color-accent-text)]"
           title="Close presets"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -112,7 +112,7 @@ const ToolkitPresets: React.FC<ToolkitPresetsProps> = ({ currentOverrides, onApp
               type="button"
               onClick={handleSave}
               disabled={!newName.trim()}
-              className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)] hover:text-[var(--color-accent-orange)] disabled:opacity-40"
+              className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-text)] hover:text-[var(--color-accent-text)] disabled:opacity-40"
             >
               Save
             </button>
@@ -122,7 +122,7 @@ const ToolkitPresets: React.FC<ToolkitPresetsProps> = ({ currentOverrides, onApp
             type="button"
             onClick={() => setIsNaming(true)}
             disabled={!canSaveCurrent}
-            className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)]/80 hover:text-[var(--color-accent-orange)] disabled:opacity-40 disabled:hover:text-[var(--color-accent-orange)]/80"
+            className="mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-text)]/80 hover:text-[var(--color-accent-text)] disabled:opacity-40 disabled:hover:text-[var(--color-accent-text)]/80"
           >
             + Save Current
           </button>
@@ -154,7 +154,7 @@ const ToolkitPresets: React.FC<ToolkitPresetsProps> = ({ currentOverrides, onApp
                   <button
                     type="button"
                     onClick={() => handleApply(preset)}
-                    className="mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-orange)] hover:text-[var(--color-accent-orange)]"
+                    className="mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent-text)] hover:text-[var(--color-accent-text)]"
                   >
                     Apply
                   </button>

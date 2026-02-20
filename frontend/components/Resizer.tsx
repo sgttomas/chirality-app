@@ -8,6 +8,7 @@ interface ResizerProps {
 
 export function Resizer({ onResize }: ResizerProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const lastPointerX = useRef<number | null>(null);
 
   const startDragging = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -49,6 +50,20 @@ export function Resizer({ onResize }: ResizerProps) {
     };
   }, [isDragging, onResize]);
 
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+    };
+  }, [isDragging]);
+
   const handleKeyResize = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "ArrowLeft") {
       e.preventDefault();
@@ -67,15 +82,19 @@ export function Resizer({ onResize }: ResizerProps) {
       aria-orientation="vertical"
       aria-label="Resize panels"
       tabIndex={0}
-      className={`resizer-handle ui-focus-ring touch-none ${isDragging ? "active" : ""}`}
+      title="Drag to resize panels"
+      className={`resizer-handle ui-focus-ring touch-none ${isDragging ? "active" : ""} ${isHovered ? "hovered" : ""}`}
       onPointerDown={startDragging}
       onKeyDown={handleKeyResize}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
     >
-      <div
-        className={`h-full w-[2px] transition-colors ${
-          isDragging ? "bg-[var(--color-accent-orange)]" : "bg-transparent"
-        }`}
-      />
+      <div className="resizer-grip" aria-hidden>
+        <span className="resizer-grip-dot" />
+        <span className="resizer-grip-dot" />
+        <span className="resizer-grip-dot" />
+      </div>
+      <span className="resizer-hint">DRAG</span>
     </div>
   );
 }

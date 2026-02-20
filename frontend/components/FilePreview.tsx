@@ -268,17 +268,17 @@ function DiffViewer({ diffText, changesOnly }: { diffText: string; changesOnly: 
               markerClass = "text-[var(--color-judging)]";
             } else if (isDel) {
               rowClass += " border-l-[var(--color-accent-orange)] bg-[var(--color-accent-orange)]/11";
-              numberClass = "mono px-3 text-right tabular-nums text-[11px] text-[var(--color-accent-orange)]/88";
+              numberClass = "mono px-3 text-right tabular-nums text-[11px] text-[var(--color-accent-text)]/88";
               contentClass = "mono px-3 whitespace-pre text-[12px] text-[var(--color-text-main)]/92";
-              markerClass = "text-[var(--color-accent-orange)]";
+              markerClass = "text-[var(--color-accent-text)]";
             } else if (isHunk) {
               rowClass += " border-l-[var(--color-applying)] bg-[var(--color-applying)]/12";
               contentClass = "mono px-3 whitespace-pre text-[11px] font-semibold tracking-[0.02em] text-[var(--color-applying)]";
               markerClass = "text-[var(--color-applying)]";
             } else if (isFile) {
               rowClass += " border-l-[var(--color-accent-orange)] bg-[var(--color-surface-high)]/72";
-              contentClass = "mono px-3 whitespace-pre text-[11px] font-semibold tracking-[0.02em] text-[var(--color-accent-orange)]";
-              markerClass = "text-[var(--color-accent-orange)]";
+              contentClass = "mono px-3 whitespace-pre text-[11px] font-semibold tracking-[0.02em] text-[var(--color-accent-text)]";
+              markerClass = "text-[var(--color-accent-text)]";
             } else if (row.type === "meta") {
               rowClass += " bg-[var(--color-surface-high)]/48";
               contentClass = "mono px-3 whitespace-pre text-[11px] text-[var(--color-text-dim)]";
@@ -407,7 +407,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
   if (path) {
     if (loading) {
       statusLabel = "Loading";
-      statusClass = "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10";
+      statusClass = "text-[var(--color-accent-text)] border-[var(--color-accent-orange)]/30 bg-[var(--color-accent-orange)]/10";
     } else if (mode === "file") {
       statusLabel = isMarkdown ? "Markdown" : "Text";
       statusClass = isMarkdown
@@ -415,12 +415,12 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
         : "text-[var(--color-applying)] border-[var(--color-applying)]/35 bg-[var(--color-applying)]/10";
     } else if (diffError) {
       statusLabel = "Diff Error";
-      statusClass = "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
+      statusClass = "text-[var(--color-accent-text)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
     } else {
       switch (diffPayload?.state) {
         case "changed":
           statusLabel = "Changed";
-          statusClass = "text-[var(--color-accent-orange)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
+          statusClass = "text-[var(--color-accent-text)] border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10";
           break;
         case "untracked":
           statusLabel = "Untracked";
@@ -451,7 +451,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
     <section className="content-area flex h-full min-h-0 flex-col overflow-hidden rounded-[inherit] bg-transparent">
       <header className="content-header ui-panel-soft flex items-center justify-between gap-3 rounded-none border-t-0 border-x-0 pl-4 pr-14 py-3">
         <div className="min-w-0">
-          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-orange)]/85">
+          <p className="ui-type-mono-meta text-[9px] font-semibold text-[var(--color-accent-text)]/85">
             Preview Deck
           </p>
           <p className="mono truncate text-[11px] text-[var(--color-text-main)]/90" title={path ?? "No file selected"}>
@@ -465,7 +465,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
               onClick={() => setMode("file")}
               className={`${toggleButtonBase} ${
                 fileActive
-                  ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                  ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                   : "border-transparent text-[var(--color-text-dim)]"
               }`}
             >
@@ -477,7 +477,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
               disabled={!path}
               className={`${toggleButtonBase} ${
                 diffActive
-                  ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-orange)]"
+                  ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/10 text-[var(--color-accent-text)]"
                   : "border-transparent text-[var(--color-text-dim)]"
               } ${!path ? "cursor-not-allowed opacity-50" : ""}`}
             >
@@ -532,7 +532,7 @@ export function FilePreview({ path, projectRoot }: FilePreviewProps) {
         ) : mode === "diff" ? (
           diffError ? (
             <div className="ui-panel-soft flex h-full items-center justify-center rounded-xl px-6 text-center">
-              <p className="mono whitespace-pre-wrap text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-orange)]">
+              <p className="mono whitespace-pre-wrap text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-accent-text)]">
                 Diff error: {diffError}
               </p>
             </div>

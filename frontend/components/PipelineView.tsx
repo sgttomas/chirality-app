@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { FileTree } from "./FileTree";
 import { ResizableLayout } from "./ResizableLayout";
+import type { Deliverable } from "./DashboardList";
 
 interface PipelineViewProps {
     family: string;
@@ -10,6 +11,7 @@ interface PipelineViewProps {
     projectRoot: string | null;
     onNavigateHome?: () => void;
     onRootChange?: (path: string) => void;
+    deliverables?: Deliverable[];
 }
 
 const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
@@ -22,21 +24,51 @@ const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: st
     "AUDIT_DEP_CLOSURE": { personaId: "AUDIT_DEP_CLOSURE", fileName: "AGENT_AUDIT_DEP_CLOSURE.md" }
 };
 
-export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome, onRootChange }: PipelineViewProps) {
+export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome, onRootChange, deliverables }: PipelineViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
-  const personaConfig = selectedVariant
-    ? (PIPELINE_PERSONA_MAPPING[selectedVariant] ?? { personaId: selectedVariant, fileName: `AGENT_${selectedVariant}.md` })
+  // ---------------------------------------------------------------------------
+  // Resolve persona config — deliverable variants vs. static pipeline agents
+  // ---------------------------------------------------------------------------
+  const isDeliverableKey = selectedVariant?.includes("::");
+  const deliverable = isDeliverableKey
+    ? deliverables?.find(d => `${d.pkg}::${d.id}` === selectedVariant) ?? null
     : null;
-  const autoPrompt = personaConfig
-    ? `Read agents/${personaConfig.fileName} and prepare to execute the pipeline according to those instructions.`
-    : null;
+
+  // STALE KEY GUARD: If variant looks like a deliverable key but doesn't match
+  // any loaded deliverable, treat as null — never fall through to AGENT_${key}.md
+  const personaConfig = isDeliverableKey
+    ? (deliverable ? { personaId: "TASK", fileName: "AGENT_TASK.md" } : null)
+    : selectedVariant
+        ? (PIPELINE_PERSONA_MAPPING[selectedVariant] ?? { personaId: selectedVariant, fileName: `AGENT_${selectedVariant}.md` })
+        : null;
+
+  // AGENT_TASK.md contract: requires DeliverablePath, defaults ApplyEdits=false, UseSemanticLensing=false
+  const autoPrompt = deliverable
+    ? [
+        `Read agents/AGENT_TASK.md and initialize according to those instructions.`,
+        ``,
+        `DeliverablePath: "${deliverable.path}"`,
+        `ApplyEdits: false`,
+        `UseSemanticLensing: false`,
+      ].join("\n")
+    : personaConfig
+        ? `Read agents/${personaConfig.fileName} and prepare to execute the pipeline according to those instructions.`
+        : null;
+
+  // Display name for the layout header
+  const displayName = deliverable
+    ? `${deliverable.id} — ${deliverable.name}`
+    : selectedVariant || family;
 
   return (
     <ResizableLayout
-      key={`${family}_${selectedVariant}`}
-      agentName={selectedVariant || family}
-      sessionId={`pipeline_${family}_${selectedVariant || 'none'}`}
+      key={deliverable ? `task_${selectedVariant}` : `${family}_${selectedVariant}`}
+      agentName={displayName}
+      sessionId={deliverable
+        ? `pipeline_TASK_${deliverable.pkg}_${deliverable.id}`
+        : `pipeline_${family}_${selectedVariant || 'none'}`
+      }
       autoPrompt={autoPrompt}
       selectedFile={selectedFile}
       placeholder="Execute command..."
@@ -60,11 +92,11 @@ export function PipelineView({ family, selectedVariant, projectRoot, onNavigateH
               <span className="h-2 w-2 shrink-0 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]" />
             </div>
           </div>
-          
+
           <div className="flex-grow overflow-y-auto p-2 min-h-0 custom-scrollbar">
-            <FileTree 
+            <FileTree
                 onFileSelect={setSelectedFile}
-                className="h-full" 
+                className="h-full"
                 rootPath={projectRoot}
             />
           </div>
