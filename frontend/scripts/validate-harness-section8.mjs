@@ -19,10 +19,10 @@ const ARTIFACT_DIR = path.join(ARTIFACT_ROOT, "latest");
 
 const HARNESS_LOG_PATH = path.join(PROJECT_ROOT, ".chirality", "logs", "harness.log");
 const SESSIONS_DIR = path.join(PROJECT_ROOT, ".chirality", "sessions");
+const AGENTS_DIR = path.join(PROJECT_ROOT, "agents");
 const BOOT_TEST_PERSONA_ID = "BOOT_TEST_TMP";
 const BOOT_TEST_PERSONA_FILE = path.join(PROJECT_ROOT, "agents", `AGENT_${BOOT_TEST_PERSONA_ID}.md`);
-const SUBAGENT_OFF_PERSONA_ID = "SUBAGENT_OFF_TMP";
-const SUBAGENT_OFF_PERSONA_FILE = path.join(PROJECT_ROOT, "agents", `AGENT_${SUBAGENT_OFF_PERSONA_ID}.md`);
+const SUBAGENT_ALLOWLIST_FOR_VALIDATION = ["ORCHESTRATOR", "RECONCILIATION"];
 
 const SENTINELS = {
   deny: "UNAPPROVED_DENY_TEST",
@@ -153,6 +153,128 @@ function parseSseBlock(rawBlock) {
     dataRaw,
     data,
   };
+}
+
+function normalizeAgentId(raw) {
+  if (typeof raw !== "string") {
+    return null;
+  }
+
+  const trimmed = raw.trim().replace(/^['"]|['"]$/g, "");
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.replace(/^AGENT_/i, "").replace(/\.md$/i, "").toUpperCase();
+}
+
+function splitFrontmatter(document) {
+  const normalized = document.replace(/\r\n/g, "\n");
+  const match = normalized.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
+  if (!match) {
+    return { frontmatter: "", body: normalized.trim() };
+  }
+
+  return {
+    frontmatter: match[1],
+    body: normalized.slice(match[0].length).trim(),
+  };
+}
+
+function parseSubagentsFrontmatter(frontmatterText) {
+  if (!frontmatterText) {
+    return [];
+  }
+
+  const lines = frontmatterText.split("\n");
+  const parsed = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^\s*subagents\s*:\s*(.*)$/i);
+    if (!match) {
+      continue;
+    }
+
+    const inline = match[1].trim();
+    if (inline) {
+      for (const token of inline.split(",")) {
+        const normalized = normalizeAgentId(token);
+        if (normalized) {
+          parsed.push(normalized);
+        }
+      }
+      continue;
+    }
+
+    let cursor = index + 1;
+    while (cursor < lines.length) {
+      const itemMatch = lines[cursor].match(/^\s*-\s*(.+)\s*$/);
+      if (!itemMatch) {
+        break;
+      }
+
+      const normalized = normalizeAgentId(itemMatch[1]);
+      if (normalized) {
+        parsed.push(normalized);
+      }
+      cursor += 1;
+    }
+  }
+
+  return [...new Set(parsed)];
+}
+
+function parseAgentTypeFromBody(body) {
+  const match = body.match(/^AGENT_TYPE:\s*([0-2])\s*$/m);
+  if (!match) {
+    return null;
+  }
+
+  return Number.parseInt(match[1], 10);
+}
+
+async function resolveSubagentOffParityPersona() {
+  for (const personaId of SUBAGENT_ALLOWLIST_FOR_VALIDATION) {
+    const personaFile = path.join(AGENTS_DIR, `AGENT_${personaId}.md`);
+    let personaRaw;
+    try {
+      personaRaw = await readFile(personaFile, "utf8");
+    } catch {
+      continue;
+    }
+
+    const { frontmatter } = splitFrontmatter(personaRaw);
+    const declaredSubagents = parseSubagentsFrontmatter(frontmatter);
+    if (declaredSubagents.length === 0) {
+      continue;
+    }
+
+    const eligibleSubagents = [];
+    for (const subagentId of declaredSubagents) {
+      const subagentFile = path.join(AGENTS_DIR, `AGENT_${subagentId}.md`);
+      let subagentRaw;
+      try {
+        subagentRaw = await readFile(subagentFile, "utf8");
+      } catch {
+        continue;
+      }
+
+      const { body } = splitFrontmatter(subagentRaw);
+      if (parseAgentTypeFromBody(body) === 2) {
+        eligibleSubagents.push(subagentId);
+      }
+    }
+
+    if (eligibleSubagents.length > 0) {
+      return {
+        personaId,
+        declaredSubagents,
+        eligibleSubagents,
+      };
+    }
+  }
+
+  return null;
 }
 
 async function streamTurn(baseUrl, payload, artifactRelPath, onEvent) {
@@ -596,103 +718,73 @@ async function main() {
   });
 
   await runTest("section8.subagents_off_parity", "Subagents disabled parity (no side effects)", async () => {
-    const personaBody = `---
-description: "Temporary Type 1 parity persona"
-subagents: PREPARATION
----
-[[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — ${SUBAGENT_OFF_PERSONA_ID} (Validation Persona)
-AGENT_TYPE: 1
+    const parityPersona = await resolveSubagentOffParityPersona();
+    assert(
+      parityPersona,
+      "Could not find an allowlisted Type 1 persona with declared AGENT_TYPE:2 subagents for parity validation.",
+    );
 
-## Agent Type
+    const session = await createSession(BASE_URL, "subagents-off", {
+      persona: parityPersona.personaId,
+      mode: "workbench",
+    });
 
-| Property | Value |
-|---|---|
-| **AGENT_TYPE** | TYPE 1 |
-| **AGENT_CLASS** | PERSONA |
-| **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | none |
-| **BLOCKING** | never |
-| **PRIMARY_OUTPUTS** | validation response |
-
-[[BEGIN:PROTOCOL]]
-Reply briefly.
-[[END:PROTOCOL]]
-
-[[BEGIN:SPEC]]
-Do not invent missing inputs.
-[[END:SPEC]]
-
-[[BEGIN:STRUCTURE]]
-No additional structure.
-[[END:STRUCTURE]]
-
-[[BEGIN:RATIONALE]]
-Validation-only temporary persona.
-[[END:RATIONALE]]
-`;
-
-    await writeFile(SUBAGENT_OFF_PERSONA_FILE, personaBody, "utf8");
-
-    try {
-      const session = await createSession(BASE_URL, "subagents-off", {
-        persona: SUBAGENT_OFF_PERSONA_ID,
-        mode: "workbench",
-      });
-
-      const parityTurn = await streamTurn(
-        BASE_URL,
-        {
-          sessionId: session.id,
-          message: "Respond with exactly: subagents off parity ok",
-          opts: {
-            maxTurns: 1,
-            subagentGovernance: {
-              contextSealed: true,
-              pipelineRunApproved: true,
-              approvalRef: "validation/subagents-off",
-              approvedBy: "section8-validator",
-            },
+    const parityTurn = await streamTurn(
+      BASE_URL,
+      {
+        sessionId: session.id,
+        message: "Respond with exactly: subagents off parity ok",
+        opts: {
+          maxTurns: 1,
+          subagentGovernance: {
+            contextSealed: true,
+            pipelineRunApproved: true,
+            approvalRef: "validation/subagents-off",
+            approvedBy: "section8-validator",
           },
         },
-        "sse/turn-subagents-off-parity.sse",
-      );
-      await writeJsonArtifact("api/subagents-off-parity-meta.json", {
-        status: parityTurn.status,
-        events: eventNames(parityTurn.events),
-        artifactPath: parityTurn.artifactPath,
-      });
-      assert(parityTurn.status === 200, `Expected 200 from subagents-off parity turn, got ${parityTurn.status}`);
-      assert(eventNames(parityTurn.events).includes("process:exit"), "Subagents-off parity turn did not emit process:exit.");
+      },
+      "sse/turn-subagents-off-parity.sse",
+    );
+    await writeJsonArtifact("api/subagents-off-parity-meta.json", {
+      status: parityTurn.status,
+      events: eventNames(parityTurn.events),
+      artifactPath: parityTurn.artifactPath,
+      personaId: parityPersona.personaId,
+      declaredSubagents: parityPersona.declaredSubagents,
+      eligibleSubagents: parityPersona.eligibleSubagents,
+    });
+    assert(parityTurn.status === 200, `Expected 200 from subagents-off parity turn, got ${parityTurn.status}`);
+    assert(eventNames(parityTurn.events).includes("process:exit"), "Subagents-off parity turn did not emit process:exit.");
 
-      const logs = await readHarnessLogs();
-      const forbiddenEvents = new Set([
-        "subagent:registry_applied",
-        "subagent:start",
-        "subagent:complete",
-        "subagent:interrupted",
-      ]);
-      const subagentSideEffects = logs.filter((entry) => {
-        return entry && entry.sessionId === session.id && forbiddenEvents.has(entry.event);
-      });
-      await writeJsonArtifact("logs/subagents-off-parity-side-effects.json", {
-        sessionId: session.id,
-        count: subagentSideEffects.length,
-        events: subagentSideEffects,
-      });
+    const logs = await readHarnessLogs();
+    const forbiddenEvents = new Set([
+      "subagent:registry_applied",
+      "subagent:start",
+      "subagent:complete",
+      "subagent:interrupted",
+    ]);
+    const subagentSideEffects = logs.filter((entry) => {
+      return entry && entry.sessionId === session.id && forbiddenEvents.has(entry.event);
+    });
+    await writeJsonArtifact("logs/subagents-off-parity-side-effects.json", {
+      sessionId: session.id,
+      personaId: parityPersona.personaId,
+      count: subagentSideEffects.length,
+      events: subagentSideEffects,
+    });
 
-      assert(
-        subagentSideEffects.length === 0,
-        "Subagents-off parity regression: observed subagent lifecycle log side effects for flag-off path.",
-      );
+    assert(
+      subagentSideEffects.length === 0,
+      "Subagents-off parity regression: observed subagent lifecycle log side effects for flag-off path.",
+    );
 
-      return {
-        sessionId: session.id,
-        sideEffectCount: subagentSideEffects.length,
-      };
-    } finally {
-      await rm(SUBAGENT_OFF_PERSONA_FILE, { force: true }).catch(() => undefined);
-    }
+    return {
+      sessionId: session.id,
+      personaId: parityPersona.personaId,
+      sideEffectCount: subagentSideEffects.length,
+      eligibleSubagentCount: parityPersona.eligibleSubagents.length,
+    };
   });
 
   await runTest("section8.permissions_dontask", "Permissions under dontAsk (deny + allow)", async () => {

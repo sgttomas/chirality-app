@@ -592,6 +592,31 @@ Delegation governance rule (fail closed):
   - `approvedBy` is optional
 - Missing/invalid governance metadata MUST block subagent injection while allowing the parent turn to continue normally.
 
+### 9.8 Harness Turn Option Contract
+
+Harness runtime accepts a turn options object (`opts`) on session boot and turn execution APIs.
+
+- `POST /api/harness/turn` accepts `opts` and applies runtime option mapping.
+- `POST /api/harness/session/boot` accepts `opts`; bootstrap policy remains authoritative for bootstrap-only constraints.
+
+UI contract rules:
+
+- UI MAY expose any subset of supported `opts` fields.
+- Omitted fields MUST follow runtime fallback chains (persona defaults, global defaults, and runtime defaults).
+- UI visibility of a field MUST NOT be interpreted as runtime authorization.
+
+Key fallback examples:
+
+- Model: `opts.model` → global model (instruction root) → runtime default.
+- Tools: `opts.tools` → persona `tools` frontmatter → runtime preset.
+- Max turns: `opts.maxTurns` → persona `max_turns` frontmatter → runtime default.
+
+Governance visibility and enforcement:
+
+- UI MAY present delegation governance fields for operator use.
+- Runtime gate/seal logic remains authoritative.
+- Supplying `opts.subagentGovernance` does not guarantee delegation; all runtime gates MUST still pass.
+
 ---
 
 ## 10. Filesystem-Safe Labels

@@ -2,7 +2,7 @@
 description: "Transposes repository templates between perceptual contexts without breaking framework invariants"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
-# AGENT INSTRUCTIONS — CONTEXT-TRANSPOSE (Template Context Transposition)
+# AGENT INSTRUCTIONS — CONTEXT_TRANSPOSE (Template Context Transposition)
 AGENT_TYPE: 1
 
 These instructions govern an agent that **transposes a repository template built on this agent framework** between **perceptual contexts** (source context → target context) **without breaking the framework’s stable invariants**.
@@ -21,7 +21,9 @@ This agent:
 
 ---
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CONTEXT-TRANSPOSE`) when referring to the agent itself. This applies to all agents.
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CONTEXT_TRANSPOSE`) when referring to the agent itself. This applies to all agents.
+
+> **Note:** The role name is `CONTEXT_TRANSPOSE` (underscore) to match the canonical agent index naming; avoid the hyphenated variant to prevent routing mismatches.
 
 ## Agent Type
 
@@ -30,7 +32,7 @@ This agent:
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | repo-metadata-only + CTSP tool-root |
+| **WRITE_SCOPE** | repo-metadata-only |
 | **BLOCKING** | allowed |
 | **PRIMARY_OUTPUTS** | CTSP snapshot; patch plan; optional applied patch (within scope); QA report |
 
@@ -90,12 +92,12 @@ NOTES: {optional}
 
 ## When this agent is appropriate
 
-Use CONTEXT-TRANSPOSE when the human wants to **reuse the framework template in a different primary framing** and needs:
+Use CONTEXT_TRANSPOSE when the human wants to **reuse the framework template in a different primary framing** and needs:
 - terminology discipline (avoid “semantic contamination”),
 - a coherent contract update (not scattered edits),
 - auditable changes with gates and QA.
 
-Do **not** use CONTEXT-TRANSPOSE for routine project runs. It is a **template/OS maintenance** workflow.
+Do **not** use CONTEXT_TRANSPOSE for routine project runs. It is a **template/OS maintenance** workflow.
 
 ---
 
@@ -141,11 +143,11 @@ If instructions conflict, **surface the contradiction** and request a human ruli
 
 ## Write scope discipline
 
-CONTEXT-TRANSPOSE MAY write:
+CONTEXT_TRANSPOSE MAY write:
 - A CTSP snapshot under `{CTSP_ROOT}/` (defined below).
 - Repo “metadata and contracts” files explicitly authorized in the brief (e.g., README, AGENTS index, agent instruction files, templates).
 
-CONTEXT-TRANSPOSE MUST NOT write:
+CONTEXT_TRANSPOSE MUST NOT write:
 - Deliverable working content (any project execution truth).
 - Tool roots belonging to active executions (unless the brief explicitly targets a template scaffold, not live state).
 - Git state (commit/push). Route publication actions to `CHANGE` with explicit approval.
@@ -155,14 +157,14 @@ CONTEXT-TRANSPOSE MUST NOT write:
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
-CONTEXT-TRANSPOSE runs a **gate-controlled** workflow. Do not skip gates.
+CONTEXT_TRANSPOSE runs a **gate-controlled** workflow. Do not skip gates.
 
 ### Inputs (from the human / invoking manager)
 
 Required:
 - `REPO_ROOT`: path to the repository/template root being transposed.
-- `SOURCE_CONTEXT_NAME`: short label for the current framing (e.g., `PROJECT_DELIVERY`).
-- `TARGET_CONTEXT_NAME`: short label for the desired framing (e.g., `DOMAIN_KNOWLEDGE`).
+- `SOURCE_CONTEXT`: short label for the current framing (e.g., `PROJECT_DELIVERY`).
+- `TARGET_CONTEXT`: short label for the desired framing (e.g., `DOMAIN_KNOWLEDGE`).
 - `STRATEGY`: `REPLACE | DUAL_MODE | FORK`
 - `MODE`: `PLAN_ONLY | APPLY_PATCH`
   - `PLAN_ONLY` (default): produce CTSP + patch plan; do not modify repo metadata (beyond CTSP outputs).
@@ -174,9 +176,12 @@ Required (terminology discipline):
 
 Optional (defaults shown):
 - `CTSP_ROOT`: `{REPO_ROOT}/_ContextTranspose/` (default)
-- `OUTPUT_LABEL`: `AUTO` (default; used in snapshot naming)
+- `RUN_LABEL`: `AUTO` (default; used in snapshot naming)
 - `ALLOWED_WRITE_PATHS`: list of repo-relative paths that may be modified when `MODE=APPLY_PATCH`
   - Default: empty (meaning “no patch application allowed”).
+- `UPDATE_LATEST_POINTER`: `false` (default)
+  - Only relevant to `{CTSP_ROOT}/_LATEST.md`; MAY be set `true` only with explicit operator authorization.
+  - In `PLAN_ONLY` mode it MAY update `_LATEST.md` (pointing to the new snapshot) if authorized; otherwise it MUST NOT touch it.
 - `DO_NOT_TOUCH`: list of paths/patterns to treat as immutable.
 - `BACKCOMPAT_EXPECTATION`: `NONE` (default) | short note (e.g., “keep old entrypoints as deprecated stubs”)
 
@@ -355,7 +360,7 @@ CTSP outputs MUST be written to an immutable snapshot folder:
 
 - Tool root: `{CTSP_ROOT}` (default `{REPO_ROOT}/_ContextTranspose/`)
 - Snapshot folder:
-  - `{CTSP_ROOT}/CTX_{OUTPUT_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+  - `{CTSP_ROOT}/CTX_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
 
 Pointer file (optional):
 - `{CTSP_ROOT}/_LATEST.md` MAY be overwritten only if the human authorizes pointer updates.
@@ -408,7 +413,7 @@ Columns:
 [[BEGIN:SPEC]]
 ## SPEC
 
-A CONTEXT-TRANSPOSE run is compliant when:
+A CONTEXT_TRANSPOSE run is compliant when:
 
 ### S1 — Gates exist and are honored
 - The agent MUST not proceed past each gate without human confirmation.

@@ -57,6 +57,12 @@ Engineering does not accept "sounds right." The system requires:
 
 If it is not in a versioned file, it does not exist. Agents must not maintain a hidden database or private state that diverges from the filesystem.
 
+Clarification:
+
+- This constraint applies to **authoritative project execution state** (deliverables, dependencies, approvals, issued artifacts, and gate-relevant records).
+- Non-authoritative operator convenience state (for example UI panel state, local turn-option presets, and other ephemeral runtime preferences) MAY be stored outside project files.
+- Such convenience state MUST NOT be treated as project truth and MUST NOT override contract/governance enforcement.
+
 ### 2.6 Separation of Instruction and Execution
 
 In deployable desktop builds, the system separates:

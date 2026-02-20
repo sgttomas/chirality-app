@@ -59,6 +59,7 @@ Next.js + Electron desktop app with:
 - Streaming event protocol (SSE)
 - Desktop packaging (macOS `.dmg`, Windows `.exe`)
 - Harness validation automation
+- Operator Toolkit panel for per-turn harness options + local presets (zero-impact default path)
 
 ---
 
@@ -128,12 +129,12 @@ Ordered by priority (highest first):
 
 The future candidates are ordered to build on each other:
 
-1. **Schema linter + folder validator** (3.2, 3.3) — low effort, high immediate value, no dependencies
-2. **Content hashes** (3.1) — enables no-ghost-inputs enforcement
-3. **Dependency graph generation** (3.4) — enables visualization and analysis
-4. **Lock mechanism** (3.5) — enables safe parallel execution
-5. **Run records** (3.6) — enables audit trails
-6. **Staleness calculation** (3.7) — depends on graph + run records; completes the governance loop
+1. **Schema linter + folder validator** (3.2, 3.3) — low effort, high immediate value, no dependencies.
+2. **Content hashes** (3.1) — enables no-ghost-inputs enforcement.
+3. **Dependency graph generation** (3.4) — enables visualization and analysis.
+4. **Lock mechanism** (3.5) — enables safe parallel execution.
+5. **Run records** (3.6) — enables audit trails.
+6. **Staleness calculation** (3.7) — depends on graph + run records; completes the governance loop.
 
 ---
 

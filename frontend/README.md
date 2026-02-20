@@ -46,6 +46,20 @@ Open `http://localhost:3000`.
   - Missing/invalid governance token does not fail the turn.
   - The turn continues without subagent injection.
 
+## Toolkit Panel (Operator)
+
+Current behavior:
+
+- A collapsible Toolkit panel in chat exposes per-turn controls (for example model, max turns, tool policy, include-partials, and governance token fields).
+- Zero-impact default is preserved: when no Toolkit overrides are active, effective runtime behavior matches the default path.
+- Delegation governance inputs are visible for operator workflows, but runtime gate enforcement remains authoritative.
+  - Invalid/missing governance metadata continues to block delegation while allowing the parent turn.
+
+Operator preference storage:
+
+- Toolkit UI state/presets may be stored in browser localStorage for convenience.
+- localStorage preferences are non-authoritative and MUST NOT be treated as project execution truth.
+
 ## Desktop Packaging (Installers)
 
 Build outputs:
@@ -125,10 +139,11 @@ cd frontend
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
-2. In a separate shell, run the wrapper command:
+2. In a separate shell, run toolkit validation and then the wrapper command:
 
 ```bash
 cd frontend
+npm run harness:validate:toolkit
 npm run harness:validate:premerge
 ```
 
@@ -136,7 +151,7 @@ npm run harness:validate:premerge
 
 `frontend/artifacts/harness/section8/latest/summary.json`
 
-- The wrapper runs the canonical Section 8 validator (`./scripts/validate-harness-section8.mjs`) non-interactively.
+- The wrapper runs toolkit validation (`./scripts/validate-toolkit.mjs`) and then the canonical Section 8 validator (`./scripts/validate-harness-section8.mjs`) non-interactively.
 - Canonical artifacts remain at `${TMPDIR:-/tmp}/chirality-harness-validation/latest`.
 - Stable CI artifact is published at `frontend/artifacts/harness/section8/latest/summary.json`.
 - Wrapper stdout prints `HARNESS_PREMERGE_ARTIFACT_PATH=<absolute-path>` for collection/upload steps.

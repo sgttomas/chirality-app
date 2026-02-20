@@ -4,6 +4,15 @@ import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } f
 import Convert from "ansi-to-html";
 
 import type { UIEvent } from "@/lib/harness/types";
+import type { ToolkitOverrides } from "@/lib/toolkit-config";
+import {
+  EMPTY_OVERRIDES,
+  buildTurnOptsFromToolkit,
+  validateToolkitOverrides,
+  countActiveOverrides,
+  normalizeStoredOverrides,
+} from "@/lib/toolkit-config";
+import Toolkit from "@/components/Toolkit";
 
 type ViewMode = "agent" | "direct";
 type HarnessMode = "workbench" | "pipeline" | "direct";
@@ -37,6 +46,7 @@ type LocalChatSession = {
   messages: Message[];
   cwd: string;
   harness: HarnessSessionMeta;
+  toolkitOverrides: ToolkitOverrides;
 };
 
 type HarnessSessionPayload = {
@@ -251,6 +261,7 @@ function createLocalSession(
     messages: [initialAssistantMessage(mode, agentName)],
     cwd: projectRoot ?? "~",
     harness: buildHarnessMeta(harnessMode, personaId, projectRoot),
+    toolkitOverrides: { ...EMPTY_OVERRIDES },
   };
 }
 
@@ -329,6 +340,7 @@ function normalizeStoredSessions(
       messages: messages.length > 0 ? messages : [initialAssistantMessage(mode, agentName)],
       cwd,
       harness,
+      toolkitOverrides: normalizeStoredOverrides(record.toolkitOverrides),
     });
   }
 
@@ -401,6 +413,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const [spinnerFrameIndex, setSpinnerFrameIndex] = useState(0);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [isSessionHistoryCollapsed, setIsSessionHistoryCollapsed] = useState(false);
+    const [isToolkitCollapsed, setIsToolkitCollapsed] = useState(true);
     const [inFlightHarnessSessionId, setInFlightHarnessSessionId] = useState<string | null>(null);
     const [inFlightLocalSessionId, setInFlightLocalSessionId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -450,6 +463,12 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     }, [width, isSessionHistoryCollapsed]);
 
     useEffect(() => {
+      if (width < 900 && !isToolkitCollapsed) {
+        setIsToolkitCollapsed(true);
+      }
+    }, [width, isToolkitCollapsed]);
+
+    useEffect(() => {
       return () => {
         Object.values(toolTimersRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
       };
@@ -495,6 +514,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
     const updateSession = (localSessionId: string, updater: (session: LocalChatSession) => LocalChatSession): void => {
       setSessions((previous) => previous.map((session) => (session.id === localSessionId ? updater(session) : session)));
+    };
+
+    const updateToolkitOverrides = (localSessionId: string, overrides: ToolkitOverrides): void => {
+      updateSession(localSessionId, (session) => ({ ...session, toolkitOverrides: overrides }));
     };
 
     const appendAssistantMessage = (localSessionId: string, content: string): void => {
@@ -764,10 +787,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
       try {
         const apiKey = localStorage.getItem("anthropic_api_key") || undefined;
+        const activeLocal = sessionsRef.current.find((s) => s.id === localSessionId);
+        const toolkitModel = activeLocal?.toolkitOverrides?.model?.trim() || undefined;
+        const bootOpts: Record<string, unknown> = {};
+        if (apiKey) bootOpts.apiKey = apiKey;
+        if (toolkitModel) bootOpts.model = toolkitModel;
+
         const response = await fetch("/api/harness/session/boot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: harnessSession.id, opts: { apiKey } }),
+          body: JSON.stringify({ sessionId: harnessSession.id, opts: bootOpts }),
         });
 
         if (!response.ok) {
@@ -874,14 +903,16 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
 
     const streamTurn = async (harnessSessionId: string, message: string, localSessionId: string): Promise<boolean> => {
       const apiKey = localStorage.getItem("anthropic_api_key") || undefined;
-      
+      const activeLocal = sessionsRef.current.find((s) => s.id === localSessionId);
+      const opts = buildTurnOptsFromToolkit(activeLocal?.toolkitOverrides ?? EMPTY_OVERRIDES, apiKey);
+
       const response = await fetch("/api/harness/turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: harnessSessionId,
           message,
-          opts: { apiKey },
+          opts,
         }),
       });
 
@@ -918,6 +949,15 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const sendPrompt = async (messageContent: string, localSessionId = activeSessionId): Promise<void> => {
       const message = messageContent.trim();
       if (!message || isLoading) {
+        return;
+      }
+
+      // Toolkit validation gate — block send if overrides are invalid
+      const currentLocal = sessionsRef.current.find((s) => s.id === localSessionId);
+      const validationErrors = validateToolkitOverrides(currentLocal?.toolkitOverrides ?? EMPTY_OVERRIDES);
+      if (validationErrors.length > 0) {
+        const errorText = validationErrors.map((e) => `[toolkit:validation] ${e.message}`).join("\n");
+        appendAssistantMessage(localSessionId, errorText);
         return;
       }
 
@@ -1102,6 +1142,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-orange)]"
           : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
     const historyRailWidth = Math.max(168, Math.min(230, Math.floor(width * 0.24)));
+    const toolkitOverrideCount = countActiveOverrides(activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES);
     const spinnerGlyph = prefersReducedMotion
       ? "•"
       : BRAILLE_SPINNER_FRAMES[spinnerFrameIndex % BRAILLE_SPINNER_FRAMES.length];
@@ -1242,6 +1283,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                       <span className={`mono rounded border px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] ${bootBadgeClass}`}>
                         {bootLabel}
                       </span>
+                      {toolkitOverrideCount > 0 && (
+                        <span className="mono rounded border border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 px-2 py-0.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-accent-orange)]">
+                          overrides {toolkitOverrideCount}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1394,6 +1440,18 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                 </div>
               </div>
             </div>
+
+            <Toolkit
+              overrides={activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES}
+              onChange={(next) => {
+                if (activeSession) {
+                  updateToolkitOverrides(activeSession.id, next);
+                }
+              }}
+              isCollapsed={isToolkitCollapsed}
+              onToggleCollapse={() => setIsToolkitCollapsed((prev) => !prev)}
+              isLoading={isLoading}
+            />
           </div>
         </div>
       </div>
