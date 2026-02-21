@@ -5,7 +5,7 @@ description: "Audits decomposition quality and coverage — validates filesystem
 # AGENT INSTRUCTIONS — AUDIT_DECOMP (Type 2 Task • Decomposition‑vs‑Filesystem Validation)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that validates whether the **project decomposition document** and the **actual filesystem state** are in sync.
+These instructions govern a **Type 2** task agent that validates whether the **decomposition document** (produced by PROJECT_DECOMP, SOFTWARE_DECOMP, or DOMAIN_DECOMP) and the **actual filesystem state** are in sync.
 
 It checks forward coverage (every declared entity has a folder), reverse coverage (every folder traces to a declaration), context fidelity, artifact presence, objective mapping, and scope ledger integrity.
 
@@ -16,8 +16,9 @@ It checks forward coverage (every declared entity has a folder), reverse coverag
 ---
 
 ## Revision
-- Version: v1.0
-- Date: 2026-02-12
+- Version: v2.0
+- Date: 2026-02-21
+- Changes: Generalized for PROJECT_DECOMP, SOFTWARE_DECOMP, and DOMAIN_DECOMP. Added DECOMP_VARIANT input, variant binding tables, abstract schema terms.
 
 ---
 
@@ -49,7 +50,7 @@ If a human instruction conflicts with this document, obey the human and record t
 
 ## Mission
 
-Parse the project decomposition document (§5 Scope Boundaries, §6 Objectives, §7 Packages, §8 Deliverables) and compare its declarations against the actual filesystem state under `{EXECUTION_ROOT}`. Produce:
+Parse the decomposition document (Ledger, Objectives, Partitions, and Production Units sections — resolved via Variant Section Binding) and compare its declarations against the actual filesystem state under `{EXECUTION_ROOT}`. Produce:
 
 - a coverage report with PASS/WARNING/BLOCKER outcomes for 9 core checks,
 - a per-deliverable coverage matrix,
@@ -75,13 +76,65 @@ Required:
 - `EXECUTION_ROOT`: path to the execution instance (e.g., `test/execution-*`)
 - `DECOMPOSITION_PATH`: path to the decomposition document (e.g., `{EXECUTION_ROOT}/_Decomposition/file_name.md`)
 - `SCOPE`: `ALL` (default) | list of package IDs | list of deliverable IDs
+- `DECOMP_VARIANT`: `PROJECT` | `SOFTWARE` | `DOMAIN` — identifies which decomposition agent produced the document. Determines section binding, folder patterns, entity names, and ID formats (see variant binding tables below).
 
 Optional:
 - `RUN_LABEL`: short label for this run (default `DECOMP_COV`)
 - `REQUESTED_BY`: invoking agent name (default `RECONCILIATION`)
 - `PRIOR_RUN_LABEL`: optional label for comparison mode (load prior JSON and compute deltas)
 
-If `DECOMPOSITION_PATH` is missing, unreadable, or cannot be parsed (§7/§8 not found): write `RUN_SUMMARY.md` with `RUN_STATUS = FAILED_INPUTS` and return.
+### Variant Entity Binding
+
+This protocol uses **Package / Deliverable / Scope Ledger / Scope Item** terminology throughout. When `DECOMP_VARIANT` is not `PROJECT`, substitute terms per this table:
+
+| Protocol term | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP |
+|---------------|----------------|-----------------|---------------|
+| Package | Package | Package | Category |
+| Deliverable | Deliverable | Deliverable | Knowledge Type |
+| Scope Item | Scope Item | Scope Item | Handbook Unit |
+| Scope Ledger | Scope Ledger | Scope Ledger | Domain Ledger |
+| Artifact | Artifact | Artifact | Knowledge Artifact |
+
+### Variant Section Binding
+
+Section numbering differs between decomposition variant outputs. All protocol steps reference sections by **semantic name**; resolve to the correct location using this table:
+
+| Semantic section | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP |
+|------------------|----------------|-----------------|---------------|
+| Ledger | §5 (Scope Ledger) | §5 (Scope Ledger) | §2 (Domain Ledger) |
+| Objectives | §6 (dedicated section) | (via Scope Ledger §5 `ObjectiveID(s)` column) | Objectives section (dedicated) |
+| Partitions (Packages / Categories) | §7 | §3 | Categories section |
+| Production Units (Deliverables / Knowledge Types) | §8 | §4 | Knowledge Types section |
+
+When `DECOMP_VARIANT = SOFTWARE`, Check 7 (Objective Mapping) resolves objectives from the Scope Ledger `ObjectiveID(s)` column rather than a dedicated Objectives section.
+
+### Variant Folder Patterns
+
+| Pattern | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP |
+|---------|----------------|-----------------|---------------|
+| Partition folder | `{ROOT}/PKG-{ID}_*/` | `{ROOT}/PKG-{ID}_*/` | `{ROOT}/CAT-{ID}_*/` |
+| Production Unit folder | `PKG-{PID}_*/1_Working/DEL-{ID}_*/` | `PKG-{PID}_*/1_Working/DEL-{ID}_*/` | `CAT-{PID}_*/1_Working/KTY-{ID}_*/` |
+
+### Variant ID Formats
+
+| Entity | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP |
+|--------|----------------|-----------------|---------------|
+| Partition ID | `PKG-XXX` (3-digit) | `PKG-XX` (2-digit) | `CAT-###` |
+| Production Unit ID | `DEL-XXX-YY_{desc}` | `DEL-XX-YY` | `KTY-CC-TT_{desc}` |
+| ID normalization | Strip `_{desc}` suffix | No suffix; compare directly | Strip `_{desc}` suffix |
+
+### Variant-Specific Behavior
+
+**SOFTWARE_DECOMP:**
+- Step 5 (Context Fidelity): also compare `ContextEnvelope` field
+- Step 7 (Objective Mapping): objectives extracted from Scope Ledger `ObjectiveID(s)` column, not a dedicated section
+
+**DOMAIN_DECOMP:**
+- Step 5 (Context Fidelity): also compare `CanonicalSchema`, `IntendedUsers`, `WhenUsed` fields
+- Step 6 (Artifact Presence): check against the Knowledge Type's anticipated Knowledge Artifacts instead of the standard four-doc set
+- Step 8 (Ledger Integrity): the ledger is named "Domain Ledger" and uses `UnitID` / `CategoryID` / `KnowledgeTypeID(s)` columns
+
+If `DECOMPOSITION_PATH` is missing, unreadable, or cannot be parsed (Partitions/Production Units sections not found per Variant Section Binding): write `RUN_SUMMARY.md` with `RUN_STATUS = FAILED_INPUTS` and return.
 
 If `EXECUTION_ROOT` is missing or no deliverable folders can be discovered: write `RUN_SUMMARY.md` with `RUN_STATUS = FAILED_INPUTS` and return.
 
@@ -117,47 +170,47 @@ Pointer (overwrite allowed; pointer only):
 
 1) Resolve `EXECUTION_ROOT` and `DECOMPOSITION_PATH`.
 2) Parse the decomposition document. Extract:
-   - §7 Packages table → list of `{PackageID, PackageName}`
-   - §8 Deliverables table(s) → list of `{DeliverableID, ParentPackageID, Name, Type, ResponsibleParty, AnticipatedArtifacts, CoversScopeItems, SupportsObjectives}`
-   - §6 Objectives table → list of `{ObjectiveID, Statement}`
-   - §5 Scope Boundaries → In-scope items with IDs
+   - Partitions section (per Variant Section Binding) → list of `{PartitionID, PartitionName}`
+   - Production Units section (per Variant Section Binding) → list of `{ProductionUnitID, ParentPartitionID, Name, Type, ResponsibleParty, AnticipatedArtifacts, CoversAtomicUnits, SupportsObjectives}`
+   - Objectives → list of `{ObjectiveID, Statement}` (from dedicated section or Ledger `ObjectiveID(s)` column, per variant binding)
+   - Ledger → In-scope items with IDs
 3) If parsing fails (sections not found, table format unrecognizable): `FAILED_INPUTS`.
 4) Discover filesystem deliverables in scope:
-   - Scan `{EXECUTION_ROOT}/PKG-*/1_Working/DEL-*/` folder pattern
-   - Build a map of `{FolderPath → extracted PackageID, DeliverableID}`
+   - Scan folder pattern per Variant Folder Patterns table
+   - Build a map of `{FolderPath → extracted PartitionID, ProductionUnitID}`
 5) If `SCOPE` is a subset: filter both parsed lists and discovered folders to the specified scope.
 
 ---
 
 ### Step 1 — Forward Coverage: Packages (Check 1)
 
-For each Package declared in §7:
-- Search for a folder matching `{EXECUTION_ROOT}/PKG-{ID}_*/`
-- Record: `PackageID, DeclaredName, FolderFound (true/false), FolderPath`
-- If not found: issue `BLOCKER` — "Package PKG-{ID} declared in decomposition §7 but no matching folder found"
+For each Partition declared in the Partitions section (per Variant Section Binding):
+- Search for a folder matching the Partition folder pattern (per Variant Folder Patterns)
+- Record: `PartitionID, DeclaredName, FolderFound (true/false), FolderPath`
+- If not found: issue `BLOCKER` — "Partition {ID} declared in Partitions section but no matching folder found"
 
 ---
 
 ### Step 2 — Forward Coverage: Deliverables (Check 2)
 
-For each Deliverable declared in §8:
-- Search for a folder matching `{EXECUTION_ROOT}/PKG-{ParentPkgID}_*/1_Working/DEL-{ID}_*/`
-- Record: `DeliverableID, ParentPackageID, DeclaredName, FolderFound, FolderPath`
-- If not found: issue `BLOCKER` — "Deliverable DEL-{ID} declared in decomposition §8 but no matching folder found under PKG-{ParentPkgID}"
+For each Production Unit declared in the Production Units section (per Variant Section Binding):
+- Search for a folder matching the Production Unit folder pattern (per Variant Folder Patterns)
+- Record: `ProductionUnitID, ParentPartitionID, DeclaredName, FolderFound, FolderPath`
+- If not found: issue `BLOCKER` — "Production Unit {ID} declared in Production Units section but no matching folder found under Partition {ParentPartitionID}"
 
 ---
 
 ### Step 3 — Reverse Coverage: Folders (Check 3)
 
-For each discovered folder `PKG-*/1_Working/DEL-*/`:
-- Extract the DeliverableID from the folder name
-- Check whether this ID exists in the §8 Deliverables table
-- If not found in decomposition: issue `WARNING` — "Folder {path} exists but no matching entry in decomposition §8"
+For each discovered Production Unit folder (per Variant Folder Patterns):
+- Extract the ProductionUnitID from the folder name
+- Check whether this ID exists in the Production Units section
+- If not found in decomposition: issue `WARNING` — "Folder {path} exists but no matching entry in Production Units section"
 
-For each discovered `PKG-*` folder:
-- Extract PackageID from folder name
-- Check against §7
-- If not found: issue `WARNING` — "Package folder {path} exists but no matching entry in decomposition §7"
+For each discovered Partition folder:
+- Extract PartitionID from folder name
+- Check against the Partitions section
+- If not found: issue `WARNING` — "Partition folder {path} exists but no matching entry in Partitions section"
 
 ---
 
@@ -165,7 +218,10 @@ For each discovered `PKG-*` folder:
 
 For each matched pair (decomposition entry ↔ folder):
 - Compare the PackageID and DeliverableID as extracted from the folder name against the decomposition values
-- Normalize comparison: strip trailing labels after the ID prefix (e.g., `DEL-005-01_PowerStudy_FEED` → `DEL-005-01`)
+- Normalize comparison: strip trailing labels after the ID prefix (per Variant ID Formats):
+  - PROJECT_DECOMP: `DEL-005-01_PowerStudy_FEED` → `DEL-005-01`
+  - DOMAIN_DECOMP: `KTY-03-02_Onboarding-Checklist` → `KTY-03-02`
+  - SOFTWARE_DECOMP: IDs have no descriptive suffix; compare directly
 - If the ID prefix does not match after normalization: issue `BLOCKER` — "ID mismatch: folder says {X}, decomposition says {Y}"
 
 ---
@@ -174,23 +230,26 @@ For each matched pair (decomposition entry ↔ folder):
 
 For each deliverable with a matched folder:
 - Read `{folder}/_CONTEXT.md`
-- Compare key fields against decomposition §8 entry:
+- Compare key fields against the Production Units section entry:
   - `Name` (fuzzy match — flag if substantially different)
   - `Package` (must reference correct PackageID)
   - `Type` (must match)
   - `Responsible` (must match, unless one is TBD)
   - `Description` (semantic similarity — flag only if clearly divergent)
+  - When `DECOMP_VARIANT = SOFTWARE`: also compare `ContextEnvelope`
+  - When `DECOMP_VARIANT = DOMAIN`: also compare `CanonicalSchema`, `IntendedUsers`
 - If `_CONTEXT.md` is missing: issue `WARNING` — "No _CONTEXT.md in {folder}"
-- If fields disagree: issue `WARNING` per field — "{field} in _CONTEXT.md does not match decomposition §8"
+- If fields disagree: issue `WARNING` per field — "{field} in _CONTEXT.md does not match the Production Units section"
 
 ---
 
 ### Step 6 — Artifact Presence (Check 6)
 
 For each deliverable with a matched folder:
-- Read the `AnticipatedArtifacts` list from decomposition §8
+- Read the `AnticipatedArtifacts` list from the Production Units section
 - Scan the folder for files matching each anticipated artifact name (fuzzy filename match)
-- Also check for the standard four-doc set: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+- For PROJECT_DECOMP and SOFTWARE_DECOMP: also check for the standard four-doc set (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
+- For DOMAIN_DECOMP: check against the Knowledge Type's anticipated Knowledge Artifacts (no standard four-doc set assumed)
 - Record: `DeliverableID, ArtifactName, Present (true/false), MatchedFile`
 - If absent: issue `INFO` — "Anticipated artifact '{name}' not found in {folder}"
 
@@ -200,23 +259,29 @@ Note: `INFO` severity because artifacts may not yet be produced (depends on life
 
 ### Step 7 — Objective Mapping (Check 7)
 
-For each Objective in §6:
-- Collect all deliverables in §8 that list this ObjectiveID in `SupportsObjectives`
-- For each such deliverable, confirm the folder exists (from Check 2)
-- If an objective has zero supporting deliverables with existing folders: issue `WARNING` — "Objective {OBJ-ID} has no active supporting deliverables"
-- If an objective's only supporting deliverables are all RETIRED (check `_STATUS.md`): issue `WARNING` — "Objective {OBJ-ID} supported only by RETIRED deliverables"
+Resolve Objectives per DECOMP_VARIANT:
+- `PROJECT` / `DOMAIN`: read the dedicated Objectives section
+- `SOFTWARE`: extract unique ObjectiveID values from the Ledger's `ObjectiveID(s)` column
+
+For each Objective:
+- Collect all Production Units (in the Production Units section) that list this ObjectiveID in `SupportsObjectives`
+- For each such Production Unit, confirm the folder exists (from Check 2)
+- If an objective has zero supporting Production Units with existing folders: issue `WARNING` — "Objective {OBJ-ID} has no active supporting Production Units"
+- If an objective's only supporting Production Units are all RETIRED (check `_STATUS.md`): issue `WARNING` — "Objective {OBJ-ID} supported only by RETIRED Production Units"
 
 ---
 
-### Step 8 — Scope Ledger Integrity (Check 8)
+### Step 8 — Ledger Integrity (Check 8)
 
-If the decomposition contains a Scope Ledger (§ or table with ScopeItemID → PackageID → DeliverableID mappings):
-- For each scope item with `InOutStatus = IN`:
-  - Confirm `PackageID` references an existing package (from Check 1)
-  - Confirm `DeliverableID(s)` reference existing deliverables (from Check 2), or are `TBD`
-- If a scope item references a non-existent package or deliverable: issue `WARNING` — "Scope item {SOW-ID} references {entity} which does not exist"
+Resolve the Ledger per DECOMP_VARIANT (Scope Ledger for PROJECT/SOFTWARE; Domain Ledger for DOMAIN).
 
-If no Scope Ledger is found: issue `INFO` — "No Scope Ledger found in decomposition; Check 8 skipped"
+If the decomposition contains a Ledger (table with AtomicUnitID → PartitionID → ProductionUnitID mappings):
+- For each atomic unit with `InOutStatus = IN`:
+  - Confirm PartitionID references an existing partition (from Check 1)
+  - Confirm ProductionUnitID(s) reference existing production units (from Check 2), or are `TBD`
+- If an atomic unit references a non-existent partition or production unit: issue `WARNING` — "Atomic unit {ID} references {entity} which does not exist"
+
+If no Ledger is found: issue `INFO` — "No Ledger found in decomposition; Check 8 skipped"
 
 ---
 
@@ -262,7 +327,7 @@ If `PRIOR_RUN_LABEL` is provided:
    ```
    DeliverableID,PackageID,FolderExists,ContextPresent,ContextMatch,ArtifactCoverage,ObjectivesMapped,LifecycleState,IssueCount
    ```
-   - One row per deliverable declared in the decomposition
+   - One row per production unit declared in the decomposition
    - Additional rows for reverse-only folders (exist in filesystem but not in decomposition)
 
 4) Compile `coverage_summary.json`:
@@ -270,15 +335,16 @@ If `PRIOR_RUN_LABEL` is provided:
    {
      "run_label": "...",
      "timestamp": "...",
+     "decomp_variant": "PROJECT|SOFTWARE|DOMAIN",
      "decomposition_path": "...",
      "decomposition_revision": "...",
      "scope": "...",
-     "packages_declared": 0,
-     "packages_found": 0,
-     "deliverables_declared": 0,
-     "deliverables_found": 0,
-     "forward_coverage_packages_pct": 0.0,
-     "forward_coverage_deliverables_pct": 0.0,
+     "partitions_declared": 0,
+     "partitions_found": 0,
+     "production_units_declared": 0,
+     "production_units_found": 0,
+     "forward_coverage_partitions_pct": 0.0,
+     "forward_coverage_production_units_pct": 0.0,
      "reverse_coverage_pct": 0.0,
      "context_fidelity_pct": 0.0,
      "artifact_presence_pct": 0.0,
@@ -287,7 +353,11 @@ If `PRIOR_RUN_LABEL` is provided:
      "issues_warning": 0,
      "issues_info": 0,
      "lifecycle_distribution": {},
-     "overall_status": "OK|WARNINGS|BLOCKERS"
+     "overall_status": "OK|WARNINGS|BLOCKERS",
+     "concrete_labels": {
+       "partition": "Package|Category",
+       "production_unit": "Deliverable|Knowledge Type"
+     }
    }
    ```
 
@@ -345,7 +415,8 @@ A run is valid when:
 | `IssueID` | string | `COV-{NNN}` sequential within run |
 | `CheckNumber` | integer | 1–9 (maps to check name) |
 | `Severity` | enum | `BLOCKER` / `WARNING` / `INFO` |
-| `EntityType` | enum | `PACKAGE` / `DELIVERABLE` / `OBJECTIVE` / `SCOPE_ITEM` / `CONTEXT` / `ARTIFACT` |
+| `EntityType` | enum | `PARTITION` / `PRODUCTION_UNIT` / `OBJECTIVE` / `ATOMIC_UNIT` / `CONTEXT` / `ARTIFACT` |
+| `ConcreteLabel` | string | Variant-specific name for the entity (e.g., `Package`, `Category`, `Deliverable`, `Knowledge Type`) |
 | `EntityID` | string | The stable ID of the affected entity |
 | `Description` | string | Human-readable description of the issue |
 | `DecompositionRef` | string | Section and row/line in the decomposition document |
@@ -355,8 +426,10 @@ A run is valid when:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `DeliverableID` | string | Stable ID from decomposition (or extracted from folder) |
-| `PackageID` | string | Parent package |
+| `ProductionUnitID` | string | Stable ID from decomposition (or extracted from folder) |
+| `PartitionID` | string | Parent partition |
+| `ConcreteProductionUnitLabel` | string | Variant-specific name (e.g., `Deliverable`, `Knowledge Type`) |
+| `ConcretePartitionLabel` | string | Variant-specific name (e.g., `Package`, `Category`) |
 | `FolderExists` | boolean | Folder found in filesystem |
 | `ContextPresent` | boolean | `_CONTEXT.md` exists |
 | `ContextMatch` | enum | `MATCH` / `PARTIAL` / `MISMATCH` / `MISSING` |

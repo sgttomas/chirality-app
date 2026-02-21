@@ -99,6 +99,20 @@ Use CONTEXT_TRANSPOSE when the human wants to **reuse the framework template in 
 
 Do **not** use CONTEXT_TRANSPOSE for routine project runs. It is a **template/OS maintenance** workflow.
 
+### Pipeline position (relationship to decomposition agents)
+
+CONTEXT_TRANSPOSE operates **upstream** of the decomposition agents. It prepares a framework template for use in a new context; decomposition agents then operate within that context to decompose actual scope.
+
+```
+CONTEXT_TRANSPOSE  (re-frame template: vocabulary, contracts, schemas)
+        ↓
+PROJECT_DECOMP / SOFTWARE_DECOMP / DOMAIN_DECOMP  (decompose scope within the new context)
+        ↓
+PREPARATION → TASK → REVIEW  (execute and validate)
+```
+
+**Boundary:** CONTEXT_TRANSPOSE handles structural and vocabulary transposition (relabeling entities, updating contracts, verifying invariants). It does **not** create domain-specific content additions (e.g., new deliverable type taxonomies, new sizing rubrics, new phase-specific logic). Those are design decisions that belong to the human or a domain-specialist agent, and are expressed in the target context's decomposition agent instruction file.
+
 ---
 
 ## Precedence (conflict resolution)
@@ -323,10 +337,13 @@ Human confirms: “Yes, patch plan + deprecations + QA plan are approved.”
   - update instruction files and templates,
   - add placeholder tool roots/templates (`.gitkeep`) if approved.
 - Produce a diff-style Change Summary and QA report.
+- Produce the **Transposition Telemetry** summary (required in `QA_Report.md`; see STRUCTURE for schema).
+  - In `PLAN_ONLY` mode, telemetry is preliminary (file counts reflect the patch plan, not applied changes).
+  - In `APPLY_PATCH` mode, telemetry reflects actual applied state.
 
 **Outputs (CTSP):**
 - `Change_Summary.md`
-- `QA_Report.md`
+- `QA_Report.md` (including Transposition Telemetry)
 
 **Gate 6 — Human acceptance**
 Human confirms: “Yes, the updated files are correct; proceed to publish (or stop).”
@@ -379,7 +396,7 @@ A run MUST emit:
 - `Patch_Plan.md`
 - `Deprecations_Plan.md`
 - `QA_Plan.md`
-- `QA_Report.md` (may be preliminary in PLAN_ONLY mode)
+- `QA_Report.md` (may be preliminary in PLAN_ONLY mode; MUST include Transposition Telemetry summary)
 - `Change_Summary.md` (may be `TBD` in PLAN_ONLY mode)
 - `Decision_Log.md`
 - `Open_Issues.md`
@@ -405,6 +422,32 @@ Columns:
 - `ProposedFix`
 - `Risk`
 - `DecisionNeeded` (`TRUE|FALSE`)
+
+### Schema — Transposition Telemetry (summary block, required)
+
+The QA Report MUST include a structured Transposition Telemetry summary. This makes transposition quality measurable and comparable across runs, consistent with the Coverage & Telemetry pattern used in decomposition agents.
+
+Minimum fields:
+- `RunLabel`
+- `SourceContext`
+- `TargetContext`
+- `Strategy` (`REPLACE|DUAL_MODE|FORK`)
+- `Mode` (`PLAN_ONLY|APPLY_PATCH`)
+- `InvariantsTested` (count)
+- `InvariantsPassed` (count)
+- `InvariantsFailed` (count; with IDs)
+- `InvariantsTBD` (count; with IDs)
+- `MismatchesIdentified` (count)
+- `MismatchesResolved` (count)
+- `MismatchesOpen` (count; with IDs)
+- `TerminologyViolationsFound` (count)
+- `TerminologyViolationsResolved` (count)
+- `TerminologyViolationsRemaining` (count; must be 0 for acceptance)
+- `FilesAdded` (count)
+- `FilesModified` (count)
+- `FilesDeprecated` (count)
+- `OpenIssuesByType` (counts, with IDs)
+- `Revision` identifier and date
 
 [[END:STRUCTURE]]
 
@@ -436,6 +479,11 @@ A CONTEXT_TRANSPOSE run is compliant when:
 ### S6 — Write scope discipline
 - The agent MUST NOT modify beyond declared write scope.
 - Git actions MUST be delegated to `CHANGE` (or human-run) with explicit approval.
+
+### S7 — Transposition Telemetry is present and machine-checkable
+- `QA_Report.md` MUST include a Transposition Telemetry summary block conforming to the schema in STRUCTURE.
+- `TerminologyViolationsRemaining` MUST be 0 for acceptance.
+- Any `InvariantsFailed` MUST be listed as Open Issues with IDs.
 
 [[END:SPEC]]
 

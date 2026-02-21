@@ -2,14 +2,16 @@
 
 import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import Convert from "ansi-to-html";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-import type { UIEvent } from "@/lib/harness/types";
+import type { UIEvent, Attachment, AttachmentType } from "@/lib/harness/types";
 import type { ToolkitOverrides } from "@/lib/toolkit-config";
+import { FilePicker } from "@/components/FilePicker";
 import {
   EMPTY_OVERRIDES,
   buildTurnOptsFromToolkit,
   validateToolkitOverrides,
-  countActiveOverrides,
   normalizeStoredOverrides,
 } from "@/lib/toolkit-config";
 import Toolkit from "@/components/Toolkit";
@@ -21,6 +23,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   streaming?: boolean;
+  attachments?: Attachment[];
 };
 
 type BootState = "pending" | "booting" | "ready";
@@ -145,6 +148,8 @@ const convert = new Convert({
   stream: false,
 });
 
+const MARKDOWN_REMARK_PLUGINS = [remarkGfm];
+
 /**
  * Pre-processes string to ensure ANSI escape codes are in a format 
  * ansi-to-html understands (converting literal \033 or \u001b if they exist).
@@ -156,6 +161,76 @@ function prepareAnsiContent(content: string): string {
     .replace(/\\u001b/g, "\x1b")
     .replace(/\\e/g, "\x1b");
 }
+
+function containsAnsiEscape(content: string): boolean {
+  return /\x1b\[[0-9;?]*[ -/]*[@-~]/.test(content);
+}
+
+type AssistantMessageContentProps = {
+  content: string;
+  streaming: boolean;
+  prefersReducedMotion: boolean;
+};
+
+const AssistantMessageContent = React.memo(function AssistantMessageContent({
+  content,
+  streaming,
+  prefersReducedMotion,
+}: AssistantMessageContentProps) {
+  const preparedContent = React.useMemo(() => prepareAnsiContent(content), [content]);
+  const ansiHtml = React.useMemo(() => {
+    if (!containsAnsiEscape(preparedContent)) {
+      return null;
+    }
+    return convert.toHtml(preparedContent);
+  }, [preparedContent]);
+
+  if (ansiHtml) {
+    return (
+      <>
+        <span
+          dangerouslySetInnerHTML={{
+            __html: ansiHtml,
+          }}
+        />
+        {streaming ? (
+          <span
+            aria-hidden
+            className={`ml-1 inline-block text-[var(--color-accent-text)] ${
+              prefersReducedMotion ? "opacity-80" : "animate-pulse"
+            }`}
+          >
+            ▍
+          </span>
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="chat-markdown">
+        <ReactMarkdown remarkPlugins={MARKDOWN_REMARK_PLUGINS}>{content}</ReactMarkdown>
+      </div>
+      {streaming ? (
+        <span
+          aria-hidden
+          className={`ml-1 inline-block text-[var(--color-accent-text)] ${
+            prefersReducedMotion ? "opacity-80" : "animate-pulse"
+          }`}
+        >
+          ▍
+        </span>
+      ) : null}
+    </>
+  );
+}, (previous, next) => {
+  return (
+    previous.content === next.content &&
+    previous.streaming === next.streaming &&
+    previous.prefersReducedMotion === next.prefersReducedMotion
+  );
+});
 
 function trimString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -338,17 +413,6 @@ function shortSessionId(sessionId: string | null): string {
   return sessionId.slice(0, 8);
 }
 
-function formatRunTime(isoTimestamp: string | null): string {
-  if (!isoTimestamp) {
-    return "--:--";
-  }
-  const parsed = new Date(isoTimestamp);
-  if (Number.isNaN(parsed.getTime())) {
-    return "--:--";
-  }
-  return parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 function formatFolderLabel(pathValue: string): string {
   const cleaned = pathValue.trim();
   if (!cleaned || cleaned === "~") {
@@ -424,6 +488,40 @@ function createLocalSession(
   };
 }
 
+// Client-side MIME map — used for display only; server reclassifies from path
+const CLIENT_MIME_MAP: Record<string, { mime: string; type: AttachmentType }> = {
+  ".png": { mime: "image/png", type: "image" },
+  ".jpg": { mime: "image/jpeg", type: "image" },
+  ".jpeg": { mime: "image/jpeg", type: "image" },
+  ".gif": { mime: "image/gif", type: "image" },
+  ".webp": { mime: "image/webp", type: "image" },
+  ".pdf": { mime: "application/pdf", type: "document" },
+  ".txt": { mime: "text/plain", type: "text" },
+  ".md": { mime: "text/markdown", type: "text" },
+  ".csv": { mime: "text/csv", type: "text" },
+};
+
+function clientClassify(filePath: string): Attachment | null {
+  const lastDot = filePath.lastIndexOf(".");
+  const ext = lastDot >= 0 ? filePath.slice(lastDot).toLowerCase() : "";
+  const entry = CLIENT_MIME_MAP[ext];
+  if (!entry) return null;
+  const name = filePath.split(/[/\\]/).pop() || filePath;
+  return { path: filePath, name, mimeType: entry.mime, type: entry.type };
+}
+
+function isValidAttachment(a: unknown): a is Attachment {
+  if (!a || typeof a !== "object") return false;
+  const obj = a as Record<string, unknown>;
+  return (
+    typeof obj.path === "string" &&
+    typeof obj.name === "string" &&
+    typeof obj.mimeType === "string" &&
+    typeof obj.type === "string" &&
+    ["image", "document", "text"].includes(obj.type as string)
+  );
+}
+
 function normalizeStoredSessions(
   raw: unknown,
   mode: ViewMode,
@@ -465,7 +563,9 @@ function normalizeStoredSessions(
         if (!role || content === null) {
           return null;
         }
-        return { role, content, streaming: false } as Message;
+        const rawAtts = Array.isArray(msgRecord.attachments) ? msgRecord.attachments : [];
+        const validAtts = rawAtts.filter(isValidAttachment);
+        return { role, content, streaming: false, attachments: validAtts.length > 0 ? validAtts : undefined } as Message;
       })
       .filter((message): message is Message => Boolean(message));
 
@@ -566,6 +666,8 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const [sessions, setSessions] = useState<LocalChatSession[]>([]);
     const [activeSessionId, setActiveSessionId] = useState<string>("");
     const [input, setInput] = useState("");
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [showFilePicker, setShowFilePicker] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isInterrupting, setIsInterrupting] = useState(false);
     const [statusText, setStatusText] = useState<string>("Ready");
@@ -588,7 +690,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const autoPromptSent = useRef<Record<string, boolean>>({});
     const sessionsRef = useRef<LocalChatSession[]>([]);
-    const sendPromptRef = useRef<(messageContent: string, localSessionId?: string) => Promise<void>>(async () => {});
+    const sendPromptRef = useRef<(messageContent: string, localSessionId?: string, messageAttachments?: Attachment[]) => Promise<boolean>>(async () => false);
     const applyProjectRootRef = useRef<(localSessionId: string, nextRoot: string, announce: boolean) => void>(() => {});
     const toolTimersRef = useRef<Record<string, number>>({});
     const toolMetaByUseIdRef = useRef<Record<string, ToolChipMeta>>({});
@@ -842,15 +944,30 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       }));
     };
 
-    const appendUserAndPlaceholder = (localSessionId: string, content: string): void => {
+    const appendUserAndPlaceholder = (localSessionId: string, content: string, messageAttachments?: Attachment[]): void => {
       updateSession(localSessionId, (session) => ({
         ...session,
         messages: [
           ...session.messages,
-          { role: "user", content, streaming: false },
+          { role: "user", content, streaming: false, attachments: messageAttachments },
           { role: "assistant", content: "", streaming: true },
         ],
       }));
+    };
+
+    const rollbackUserAndPlaceholder = (localSessionId: string): void => {
+      updateSession(localSessionId, (session) => {
+        const msgs = session.messages;
+        if (
+          msgs.length >= 2 &&
+          msgs[msgs.length - 2].role === "user" &&
+          msgs[msgs.length - 1].role === "assistant" &&
+          msgs[msgs.length - 1].streaming
+        ) {
+          return { ...session, messages: msgs.slice(0, -2) };
+        }
+        return session;
+      });
     };
 
     const appendStreamingDelta = (localSessionId: string, deltaText: string): void => {
@@ -1401,7 +1518,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       }
     };
 
-    const streamTurn = async (harnessSessionId: string, message: string, localSessionId: string): Promise<boolean> => {
+    const streamTurn = async (harnessSessionId: string, message: string, localSessionId: string, attachmentPaths?: string[]): Promise<boolean> => {
       const apiKey = localStorage.getItem("anthropic_api_key") || undefined;
       const activeLocal = sessionsRef.current.find((s) => s.id === localSessionId);
       const opts = buildTurnOptsFromToolkit(activeLocal?.toolkitOverrides ?? EMPTY_OVERRIDES, apiKey);
@@ -1413,6 +1530,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           sessionId: harnessSessionId,
           message,
           opts,
+          ...(attachmentPaths && attachmentPaths.length > 0 ? { attachments: attachmentPaths } : {}),
         }),
       });
 
@@ -1446,10 +1564,11 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       return sawProcessExit;
     };
 
-    const sendPrompt = async (messageContent: string, localSessionId = activeSessionId): Promise<void> => {
+    const sendPrompt = async (messageContent: string, localSessionId = activeSessionId, messageAttachments?: Attachment[]): Promise<boolean> => {
       const message = messageContent.trim();
-      if (!message || isLoading) {
-        return;
+      const hasAttachments = messageAttachments && messageAttachments.length > 0;
+      if ((!message && !hasAttachments) || isLoading) {
+        return false;
       }
 
       // Toolkit validation gate — block send if overrides are invalid
@@ -1458,10 +1577,10 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
       if (validationErrors.length > 0) {
         const errorText = validationErrors.map((e) => `[toolkit:validation] ${e.message}`).join("\n");
         appendAssistantMessage(localSessionId, errorText);
-        return;
+        return false;
       }
 
-      appendUserAndPlaceholder(localSessionId, message);
+      appendUserAndPlaceholder(localSessionId, message, messageAttachments);
       resetTurnActivity();
       setStatusText("Preparing request");
       setIsLoading(true);
@@ -1490,11 +1609,22 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           }),
         });
 
-        sawProcessExit = await streamTurn(bootedSession.id, message, localSessionId);
+        const attachmentPaths = hasAttachments ? messageAttachments.map((a) => a.path) : undefined;
+        sawProcessExit = await streamTurn(bootedSession.id, message, localSessionId, attachmentPaths);
+        if (!sawProcessExit) {
+          const abruptExitMessage = "Turn ended unexpectedly before process exit.";
+          setStatusText("Request failed");
+          rollbackUserAndPlaceholder(localSessionId);
+          finalizeWithError(localSessionId, abruptExitMessage);
+          return false;
+        }
+        return true;
       } catch (error) {
         const messageText = error instanceof Error ? error.message : String(error);
         setStatusText("Request failed");
+        rollbackUserAndPlaceholder(localSessionId);
         finalizeWithError(localSessionId, messageText);
+        return false;
       } finally {
         if (!sawProcessExit) {
           setIsLoading(false);
@@ -1631,7 +1761,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
     const modelLabel = truncate(activeHarness?.model ?? "pending", 26);
     const rootLabel = formatFolderLabel(activeSession?.cwd ?? projectRoot ?? "~");
     const costLabel = formatCostUsd(activeHarness?.lastCostUsd ?? null);
-    const lastRunLabel = formatRunTime(activeHarness?.lastCompletedAt ?? null);
     const statusBadge = isInterrupting ? "Interrupting" : isLoading ? "Turn running" : "Ready";
     const bootState = activeHarness?.bootState ?? "pending";
     const bootLabel = bootState === "ready" ? "boot ready" : bootState === "booting" ? "booting" : "needs bootstrap";
@@ -1642,7 +1771,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
           ? "border-[var(--color-accent-orange)]/35 bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-text)]"
           : "border-[var(--color-judging)]/35 bg-[var(--color-judging)]/10 text-[var(--color-judging)]";
     const historyRailWidth = Math.max(168, Math.min(230, Math.floor(width * 0.24)));
-    const toolkitOverrideCount = countActiveOverrides(activeSession?.toolkitOverrides ?? EMPTY_OVERRIDES);
     const spinnerGlyph = prefersReducedMotion
       ? "•"
       : BRAILLE_SPINNER_FRAMES[spinnerFrameIndex % BRAILLE_SPINNER_FRAMES.length];
@@ -1686,13 +1814,26 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
         ? "!"
         : "✓";
 
+    const addAttachments = (newFiles: Attachment[]) => {
+      setAttachments((prev) => {
+        const existing = new Set(prev.map((a) => a.path));
+        return [...prev, ...newFiles.filter((f) => !existing.has(f.path))];
+      });
+    };
+    const removeAttachment = (removePath: string) => setAttachments((prev) => prev.filter((a) => a.path !== removePath));
+    const clearAttachments = () => setAttachments([]);
+
     const sendMessage = async (): Promise<void> => {
-      if (!input.trim()) {
+      if (!input.trim() && attachments.length === 0) {
         return;
       }
 
-      await sendPrompt(input);
-      setInput("");
+      const currentAttachments = attachments.length > 0 ? [...attachments] : undefined;
+      const ok = await sendPrompt(input, activeSessionId, currentAttachments);
+      if (ok) {
+        setInput("");
+        clearAttachments();
+      }
     };
 
     return (
@@ -1869,20 +2010,26 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                     return (
                       <div
                         key={messageKey}
-                        className={`group relative rounded-lg border px-3 py-2 transition-all ${
+                        className={`group relative max-w-[94%] rounded-xl border px-3.5 py-2.5 transition-colors ${
                           isAssistant
-                            ? "border-[var(--color-judging)]/24 bg-[var(--color-judging)]/8"
-                            : "border-[var(--color-applying)]/20 bg-[var(--color-applying)]/4"
+                            ? "mr-auto border-[var(--chat-bubble-assistant-border)] bg-[var(--chat-bubble-assistant-bg)]"
+                            : "ml-auto border-[var(--chat-bubble-user-border)] bg-[var(--chat-bubble-user-bg)]"
                         }`}
                       >
                         {/* Compact Header inside the bubble */}
                         <div className="mb-1 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.14em] opacity-60">
-                            <span className={isAssistant ? "text-[var(--color-judging)]" : "text-[var(--color-applying)]"}>
+                          <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.08em] opacity-70">
+                            <span className={isAssistant ? "text-[var(--chat-bubble-assistant-label)]" : "text-[var(--chat-bubble-user-label)]"}>
                               {isAssistant ? "Assistant" : "User"}
                             </span>
                             {message.streaming && (
-                              <span className="mono rounded-sm border border-[var(--color-judging)]/35 bg-[var(--color-judging)]/14 px-1 py-0 text-[7px] tracking-[0.05em] text-[var(--color-judging)]">
+                              <span
+                                className={`mono rounded-full border px-1.5 py-0.5 text-[7px] tracking-[0.04em] ${
+                                  isAssistant
+                                    ? "border-[var(--chat-bubble-assistant-streaming-border)] bg-[var(--chat-bubble-assistant-streaming-bg)] text-[var(--chat-bubble-assistant-label)]"
+                                    : "border-[var(--chat-bubble-user-streaming-border)] bg-[var(--chat-bubble-user-streaming-bg)] text-[var(--chat-bubble-user-label)]"
+                                }`}
+                              >
                                 streaming
                               </span>
                             )}
@@ -1900,27 +2047,31 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                           )}
                         </div>
 
-                        <div className={`whitespace-pre-wrap font-mono text-[13px] leading-[1.6] text-[var(--color-text-main)] ${isAssistant ? "" : "opacity-90"}`}>
+                        <div className="whitespace-pre-wrap font-mono text-[13px] leading-[1.6] text-[var(--color-text-main)]">
                           {isAssistant ? (
-                            <>
-                              <span
-                                dangerouslySetInnerHTML={{
-                                  __html: convert.toHtml(prepareAnsiContent(message.content)),
-                                }}
-                              />
-                              {message.streaming ? (
-                                <span
-                                  aria-hidden
-                                  className={`ml-1 inline-block text-[var(--color-accent-text)] ${
-                                    prefersReducedMotion ? "opacity-80" : "animate-pulse"
-                                  }`}
-                                >
-                                  ▍
-                                </span>
-                              ) : null}
-                            </>
+                            <AssistantMessageContent
+                              content={message.content}
+                              streaming={Boolean(message.streaming)}
+                              prefersReducedMotion={prefersReducedMotion}
+                            />
                           ) : (
-                            message.content
+                            <>
+                              {message.content}
+                              {message.attachments && message.attachments.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {message.attachments.map((att) => (
+                                    <span
+                                      key={att.path}
+                                      className="inline-flex items-center gap-1 rounded border border-[var(--color-applying)]/25 bg-[var(--color-applying)]/8 px-1.5 py-0.5 text-[9px] font-mono tracking-[0.06em] text-[var(--color-applying)]"
+                                      title={att.path}
+                                    >
+                                      <span className="font-bold uppercase">{att.type === "image" ? "IMG" : att.type === "document" ? "DOC" : "TXT"}</span>
+                                      <span className="max-w-[120px] truncate text-[var(--color-text-main)]/80">{att.name}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -2289,7 +2440,45 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
               </div>
 
               <div className="chat-input shrink-0 p-1">
+                {/* Attachment preview strip */}
+                {attachments.length > 0 && (
+                  <div className="mb-1 flex flex-wrap gap-1.5 px-1">
+                    {attachments.map((att) => (
+                      <span
+                        key={att.path}
+                        className="inline-flex items-center gap-1 rounded border border-[var(--color-accent-text)]/25 bg-[var(--color-accent-text)]/8 px-1.5 py-0.5 text-[9px] font-mono tracking-[0.06em]"
+                        title={att.path}
+                      >
+                        <span className="font-bold uppercase text-[var(--color-accent-text)]">
+                          {att.type === "image" ? "IMG" : att.type === "document" ? "DOC" : "TXT"}
+                        </span>
+                        <span className="max-w-[100px] truncate text-[var(--color-text-main)]/80">{att.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(att.path)}
+                          className="ml-0.5 text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors"
+                          aria-label={`Remove ${att.name}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-start rounded border border-[var(--color-border)] bg-[var(--color-surface-low)]/20 px-2.5 py-1.5 transition-colors focus-within:border-[var(--color-accent-orange)]/50">
+                  {/* Paperclip attach button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFilePicker(true)}
+                    disabled={isLoading}
+                    className="mr-1.5 mt-0.5 shrink-0 rounded p-1 text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-accent-text)] disabled:opacity-30"
+                    title="Attach files"
+                    aria-label="Attach files"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  </button>
                   <textarea
                     placeholder={placeholder}
                     className="mono w-full flex-grow bg-transparent text-[13px] tracking-wide text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)]/40 outline-none disabled:opacity-40 resize-none custom-scrollbar min-h-[1.6em] max-h-[140px]"
@@ -2297,7 +2486,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                     value={input}
                     onChange={(event) => {
                       setInput(event.target.value);
-                      // Auto-grow height
                       event.target.style.height = 'auto';
                       event.target.style.height = `${event.target.scrollHeight}px`;
                     }}
@@ -2305,7 +2493,6 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
                         void sendMessage();
-                        // Reset height
                         if (event.currentTarget instanceof HTMLTextAreaElement) {
                           event.currentTarget.style.height = 'auto';
                         }
@@ -2333,6 +2520,21 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(
             ) : null}
           </div>
         </div>
+
+        {showFilePicker && (
+          <FilePicker
+            startPath={projectRoot}
+            existingPaths={attachments.map((a) => a.path)}
+            onCancel={() => setShowFilePicker(false)}
+            onSelect={(paths) => {
+              const classified = paths
+                .map(clientClassify)
+                .filter((a): a is Attachment => a !== null);
+              addAttachments(classified);
+              setShowFilePicker(false);
+            }}
+          />
+        )}
       </div>
     );
   },

@@ -12,7 +12,7 @@ This document describes the SDK-only harness runtime after wholesale cutover.
 flowchart LR
   subgraph GUI["Chirality GUI (Next.js)"]
     Chat["Chat Pane"]
-    Term["Terminal Pane"]
+    Activity["Tool/Subagent Activity Pane"]
     Files["File Tree / Preview"]
   end
 
@@ -37,6 +37,7 @@ flowchart LR
   subgraph Harness["Harness Modules"]
     SM["SessionManager\n(create/resume/save/list/delete)"]
     PM["PersonaManager\n(build append prompt + model)"]
+    AR["AttachmentResolver\n(paths → content blocks)"]
     ASM["AgentSdkManager\n(startTurn/interrupt/kill)"]
     MAP["AgentSdkEventMapper\n(SDKMessage → UIEvent)"]
     LOG["Observability Logger\n(JSONL + rotation)"]
@@ -48,8 +49,10 @@ flowchart LR
   end
 
   Turn --> SM
+  Turn --> AR
   Turn --> ASM
   ASM --> PM
+  AR --> FS
   PM --> FS
   ASM --> SDK
   SDK --> MAP
@@ -80,6 +83,7 @@ sequenceDiagram
   participant GUI as Chirality GUI
   participant API as /api/harness/turn (SSE)
   participant SS as SessionManager
+  participant AR as AttachmentResolver
   participant PM as PersonaManager
   participant ASM as AgentSdkManager
   participant SDK as Agent SDK query()
@@ -94,17 +98,22 @@ sequenceDiagram
   API->>SS: save(claudeSessionId, bootFingerprint, bootedAt)
   API-->>GUI: 200 { session, boot }
 
-  GUI->>API: POST /api/harness/turn { sessionId, message, opts }
+  GUI->>API: POST /api/harness/turn { sessionId, message, opts, attachments? }
   API-->>GUI: 200 text/event-stream
 
   API->>SS: resume(sessionId)
   SS-->>API: Session (projectRoot/persona/mode/claudeSessionId/model)
 
+  opt attachments provided
+    API->>AR: resolveAttachmentsToContentBlocks(message, attachmentPaths)
+    AR-->>API: contentBlocks (+ per-file errors)
+  end
+
   API->>PM: buildSystemPrompt(projectRoot, persona, mode)
   PM-->>API: base prompt (+ instructionRoot context)
 
-  API->>ASM: startTurn(session, message, merged opts)
-  ASM->>SDK: query({ prompt, options })
+  API->>ASM: startTurn(session, message, merged opts, contentBlocks?)
+  ASM->>SDK: query({ prompt/content, options })
 
   loop SDK stream messages
     SDK-->>ASM: SDKMessage

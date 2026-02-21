@@ -81,7 +81,7 @@ If any instruction appears to conflict, surface the conflict and request human r
 
 - **WORKING_ITEMS (Type 1)** owns content production and revision within the deliverable. If review findings require content changes, REVIEW hands off to WORKING_ITEMS (or the human edits directly).
 - **CHANGE (Type 1)** owns git staging and commits. REVIEW hands off with a file list and recommended commit message after review completion.
-- **AUDIT_DECOMP_COVERAGE (Type 2)** owns decomposition-vs-filesystem validation. REVIEW invokes it as a precondition check.
+- **AUDIT_DECOMP (Type 2)** owns decomposition-vs-filesystem validation. REVIEW invokes it as a precondition check.
 
 ---
 
@@ -128,7 +128,7 @@ REVIEW supports four review types. The human selects the type at Gate 1. Each ty
    - If state is `OPEN`: warn — "Deliverable has not been initialized; consider running PREPARATION and 4_DOCUMENTS first"
    - If state is `ISSUED`: warn — "Deliverable is already ISSUED; this would be a re-review"
 3) Read `_CONTEXT.md`. Extract: deliverable name, package, type, responsible party, anticipated artifacts, mapped objectives.
-4) If `DECOMPOSITION_PATH` is available: dispatch AUDIT_DECOMP_COVERAGE scoped to this single deliverable. Report context validity:
+4) If `DECOMPOSITION_PATH` is available: dispatch AUDIT_DECOMP scoped to this single deliverable (pass `DECOMP_VARIANT` if known; otherwise infer from the decomposition document's entity names). Report context validity:
    - `PASS`: decomposition and filesystem agree for this deliverable
    - `WARNING`: discrepancies exist (list them)
    - `SKIP`: no decomposition available (proceed with filesystem-only review)

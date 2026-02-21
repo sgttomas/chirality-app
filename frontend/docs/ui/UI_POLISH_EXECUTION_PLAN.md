@@ -42,6 +42,20 @@ Planning implication:
 
 - Focus polish work on consistency and hardening of this direction, not visual reset.
 
+## 3.2) Incremental UI Updates Since Baseline (2026-02-21)
+
+Recent refinements after the original polish pass:
+
+- Chat bubbles now use role-structured presentation with calmer, low-contrast surfaces:
+  - assistant bubbles left-aligned and near-neutral with subtle role tint
+  - user bubbles right-aligned with stronger but still restrained role tint
+- Assistant responses in chat now render GitHub-flavored markdown for readability (lists, code blocks, tables, blockquotes), with ANSI fallback retained for terminal-style tool output.
+- Header status noise was reduced by removing static fallback copy (`SYSTEM_RECOVERY: SUCCESS`); update messaging now appears only when an update is actually available.
+
+Planning implication:
+
+- Future polish changes should preserve this lower-noise chat hierarchy and markdown readability baseline.
+
 ## 4) Design Direction
 
 Use the current aesthetic (glass + command-center) but reduce noise and increase precision:

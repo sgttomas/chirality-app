@@ -2,6 +2,7 @@ import { agentSdkManager } from "./agent-sdk-manager";
 import { appendLog } from "./logger";
 import { PersonaManager } from "./persona-manager";
 import { SessionManager } from "./session-manager";
+import type { ContentBlock } from "./attachment-resolver";
 import type {
   PersonaConfig,
   Session,
@@ -29,6 +30,7 @@ export type StartHarnessTurnArgs = {
   sessionId: string;
   message: string;
   opts?: TurnOpts;
+  contentBlocks?: ContentBlock[];
   /**
    * Set to true when the turn is a bootstrap/init turn.
    * Bootstrap turns must NOT receive subagent injection — they are
@@ -306,7 +308,7 @@ export async function ensureHarnessSessionBooted({
  */
 const TYPE_1_SUBAGENT_ALLOWLIST = new Set(["ORCHESTRATOR", "RECONCILIATION"]);
 
-export async function* startHarnessTurn({ sessionId, message, opts, isBootstrap = false }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
+export async function* startHarnessTurn({ sessionId, message, opts, contentBlocks, isBootstrap = false }: StartHarnessTurnArgs): AsyncIterable<UIEvent> {
   const session = await sessionManager.resume(sessionId);
   const persona = session.persona ? await personaManager.load(session.persona) : null;
   const globalModel = await personaManager.getGlobalModel();
@@ -413,7 +415,7 @@ export async function* startHarnessTurn({ sessionId, message, opts, isBootstrap 
     let sawSessionInit = false;
     let shouldRetryWithoutResume = false;
 
-    for await (const event of agentSdkManager.startTurn(runSession, message, mergedOpts)) {
+    for await (const event of agentSdkManager.startTurn(runSession, message, mergedOpts, contentBlocks)) {
       if (event.type === "session:init") {
         sawSessionInit = true;
         session.claudeSessionId = event.claudeSessionId;

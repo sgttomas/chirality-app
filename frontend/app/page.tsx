@@ -12,6 +12,7 @@ import { DirectoryPicker } from "@/components/DirectoryPicker";
 import chiralityAppIcon from "@/electron/icons/icon.png";
 
 type View = "home" | "workbench" | "session" | "pipeline";
+const THEME_STORAGE_KEY = "chirality_theme_mode";
 
 const PERSONA_AGENTS = [
     "DECOMP", "ORCHESTRATE", "WORKING_ITEMS", "AGGREGATE",
@@ -49,7 +50,19 @@ export default function Home() {
   const [initialWorkbenchPath, setInitialWorkbenchPath] = useState<string | null>(null);
 
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light") {
+      return true;
+    }
+    if (stored === "dark") {
+      return false;
+    }
+    return window.matchMedia("(prefers-color-scheme: light)").matches;
+  });
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [latestReleaseTag, setLatestReleaseTag] = useState<string | null>(null);
@@ -114,11 +127,22 @@ export default function Home() {
   }, [projectRoot, clearDeliverableVariantIfStaleKey]);
 
   useEffect(() => {
-    if (isLightMode) {
-      document.body.classList.add("light-mode");
-    } else {
-      document.body.classList.remove("light-mode");
-    }
+    const root = document.documentElement;
+    root.classList.add("theme-switching");
+
+    const rafId = window.requestAnimationFrame(() => {
+      document.body.classList.toggle("light-mode", isLightMode);
+      window.setTimeout(() => {
+        root.classList.remove("theme-switching");
+      }, 0);
+    });
+
+    localStorage.setItem(THEME_STORAGE_KEY, isLightMode ? "light" : "dark");
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      root.classList.remove("theme-switching");
+    };
   }, [isLightMode]);
 
   useEffect(() => {
@@ -331,14 +355,11 @@ export default function Home() {
 
           {/* Right: Navigation & Options */}
           <div className="flex items-center gap-3">
-            <div className={`mono ui-type-meta hidden xl:block mr-4 text-[9px] ${
-                isUpdateAvailable ? "text-[var(--color-accent-text)]" : "opacity-60"
-              }`}
-            >
-              {isUpdateAvailable
-                ? `UPDATE AVAILABLE: ${latestReleaseTag ?? "LATEST"}`
-                : "SYSTEM_RECOVERY: SUCCESS"}
-            </div>
+            {isUpdateAvailable && (
+              <div className="mono ui-type-meta hidden xl:block mr-4 text-[9px] text-[var(--color-accent-text)]">
+                {`UPDATE AVAILABLE: ${latestReleaseTag ?? "LATEST"}`}
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               {/* Page Select Dropdown */}

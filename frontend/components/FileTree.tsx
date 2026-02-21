@@ -74,6 +74,7 @@ type TreeNode = FileNode & {
   children?: TreeNode[];
   childrenLoaded?: boolean;
   isLoadingChildren?: boolean;
+  loadError?: string | null;
 };
 
 function normalizeNode(raw: FileNode): TreeNode {
@@ -82,6 +83,7 @@ function normalizeNode(raw: FileNode): TreeNode {
     children: Array.isArray(raw.children) ? raw.children.map(normalizeNode) : undefined,
     childrenLoaded: Array.isArray(raw.children),
     isLoadingChildren: false,
+    loadError: null,
   };
 }
 
@@ -89,16 +91,35 @@ function normalizeNodes(raw: FileNode[]): TreeNode[] {
   return raw.map(normalizeNode);
 }
 
-function updateNodeByPath(nodes: TreeNode[], targetPath: string, update: (node: TreeNode) => TreeNode): TreeNode[] {
+function findNodeByAbsolutePath(nodes: TreeNode[], absolutePath: string): TreeNode | null {
+  for (const node of nodes) {
+    if (node.absolutePath === absolutePath) {
+      return node;
+    }
+    if (node.children && node.children.length > 0) {
+      const nested = findNodeByAbsolutePath(node.children, absolutePath);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  return null;
+}
+
+function updateNodeByAbsolutePath(
+  nodes: TreeNode[],
+  absolutePath: string,
+  update: (node: TreeNode) => TreeNode,
+): TreeNode[] {
   return nodes.map((node) => {
-    if (node.path === targetPath) {
+    if (node.absolutePath === absolutePath) {
       return update(node);
     }
 
     if (node.children && node.children.length > 0) {
       return {
         ...node,
-        children: updateNodeByPath(node.children, targetPath, update),
+        children: updateNodeByAbsolutePath(node.children, absolutePath, update),
       };
     }
 
@@ -116,6 +137,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
   const [refreshTick, setRefreshTick] = useState(0);
   const previousTreeRootRef = useRef<string | null | undefined>(undefined);
   const previousGitRootRef = useRef<string | null | undefined>(undefined);
+  const gitRequestControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const refreshIntervalMs = 4000;
@@ -197,7 +219,21 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
       queueMicrotask(() => setGitLoadState("loading"));
     }
 
-    fetch(url, { cache: "no-store" })
+    if (gitRequestControllerRef.current && !rootChanged) {
+      return () => {
+        canceled = true;
+      };
+    }
+
+    if (rootChanged && gitRequestControllerRef.current) {
+      gitRequestControllerRef.current.abort();
+      gitRequestControllerRef.current = null;
+    }
+
+    const controller = new AbortController();
+    gitRequestControllerRef.current = controller;
+
+    fetch(url, { cache: "no-store", signal: controller.signal })
       .then((res) => res.json())
       .then((data: GitStatusResponse) => {
         if (canceled) return;
@@ -228,62 +264,85 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
       })
       .catch((err) => {
         if (canceled) return;
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
         console.error("Failed to fetch git status:", err);
         setGitStatuses({});
         setChangedCount(0);
         setGitLoadState("error");
+      })
+      .finally(() => {
+        if (gitRequestControllerRef.current === controller) {
+          gitRequestControllerRef.current = null;
+        }
       });
 
     return () => {
       canceled = true;
+      if (gitRequestControllerRef.current === controller) {
+        controller.abort();
+      }
     };
   }, [rootPath, refreshTick]);
 
-  const loadDirectoryChildren = async (nodePath: string, absolutePath: string) => {
+  const loadDirectoryChildren = async (absolutePath: string) => {
     const normalizedRootPath = rootPath?.trim() ?? "";
     if (!normalizedRootPath) {
       return;
     }
 
-    let shouldFetch = false;
-    setNodes((previous) =>
-      updateNodeByPath(previous, nodePath, (node) => {
-        if (node.childrenLoaded || node.isLoadingChildren) {
-          return node;
-        }
-        shouldFetch = true;
-        return { ...node, isLoadingChildren: true };
-      }),
-    );
-
-    if (!shouldFetch) {
+    const nodeToExpand = findNodeByAbsolutePath(nodes, absolutePath);
+    if (!nodeToExpand || nodeToExpand.childrenLoaded || nodeToExpand.isLoadingChildren) {
       return;
     }
 
+    setNodes((previous) =>
+      updateNodeByAbsolutePath(previous, absolutePath, (node) => ({ ...node, isLoadingChildren: true, loadError: null })),
+    );
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
     try {
       const url = `/api/fs?path=${encodeURIComponent(absolutePath)}&base=${encodeURIComponent(normalizedRootPath)}`;
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { cache: "no-store", signal: controller.signal });
       const payload = await response.json();
+      if (!response.ok) {
+        const message =
+          payload && typeof payload.error === "string"
+            ? payload.error
+            : `Failed to load folder (${response.status})`;
+        throw new Error(message);
+      }
       const children = normalizeNodes(Array.isArray(payload) ? payload : []);
 
       setNodes((previous) =>
-        updateNodeByPath(previous, nodePath, (node) => ({
+        updateNodeByAbsolutePath(previous, absolutePath, (node) => ({
           ...node,
           children,
           childrenLoaded: true,
           isLoadingChildren: false,
+          loadError: null,
         })),
       );
     } catch (error) {
+      const message =
+        error instanceof Error && error.name === "AbortError"
+          ? "Timed out while loading folder."
+          : error instanceof Error
+            ? error.message
+            : "Failed to fetch directory children.";
       console.error("Failed to fetch directory children:", error);
       setNodes((previous) =>
-        updateNodeByPath(previous, nodePath, (node) => ({
+        updateNodeByAbsolutePath(previous, absolutePath, (node) => ({
           ...node,
-          children: [],
-          childrenLoaded: true,
+          childrenLoaded: false,
           isLoadingChildren: false,
+          loadError: message,
         })),
       );
+    } finally {
+      window.clearTimeout(timeout);
     }
   };
 
@@ -362,7 +421,7 @@ interface TreeNodeProps {
   node: TreeNode;
   onFileSelect?: (path: string) => void;
   onDirectorySelect?: (path: string) => void;
-  onExpandDirectory: (path: string, absolutePath: string) => void;
+  onExpandDirectory: (absolutePath: string) => void;
   depth: number;
   selectedPath: string | null;
   setSelectedPath: (path: string) => void;
@@ -396,7 +455,7 @@ function TreeNode({
       setIsOpen(nextOpen);
       onDirectorySelect?.(node.path);
       if (nextOpen && !node.childrenLoaded) {
-        onExpandDirectory(node.path, node.absolutePath);
+        onExpandDirectory(node.absolutePath);
       }
       return;
     }
@@ -474,6 +533,13 @@ function TreeNode({
               dirtyDirectories={dirtyDirectories}
             />
           ))}
+        </div>
+      )}
+      {node.isDirectory && isOpen && node.loadError && !node.isLoadingChildren && (
+        <div className="pl-8 pr-2 py-1">
+          <span className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-normative)]">
+            {node.loadError}
+          </span>
         </div>
       )}
       {node.isDirectory && isOpen && node.isLoadingChildren && (

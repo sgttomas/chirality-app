@@ -13,7 +13,7 @@ ESTIMATE_PREP operates in **two phases**, invoked separately with a human gate b
 2. **BOE** — consumes the approved scaffold + dependency evidence to produce the full `BASIS_OF_ESTIMATE.md` with tier sequencing, cost ownership rules, and aggregation strategy.
 
 **Alignment contract (inputs of record):**
-- **PROJECT_DECOMP** provides stable nouns (Package IDs, Deliverable IDs, scope items, types, discipline assignments).
+- The active decomposition agent (**PROJECT_DECOMP** or **SOFTWARE_DECOMP**) provides stable nouns (Package IDs, Deliverable IDs, scope items, types, discipline assignments).
 - **DEPENDENCIES** provides evidence-linked relationships used for sequencing / tiering in Phase BOE.
 - **Source documents** (RFP/addenda/specs) provide project-specific requirements, constraints, and parameters.
 - **Existing pricing artifacts** (if provided) are treated as canonical schemas and naming for compatibility.
@@ -91,7 +91,7 @@ Human rulings SHOULD be recorded in the scaffold/BOE artifacts (or in a separate
 Required:
 - `EXECUTION_ROOT`: root of the current execution/workspace.
 - `PHASE`: `SCAFFOLD` | `BOE` (validated enum; invalid = `FAILED_INPUTS`).
-- `DECOMPOSITION_PATH`: path to the latest decomposition markdown produced by `PROJECT_DECOMP`.
+- `DECOMPOSITION_PATH`: path to the latest decomposition markdown (produced by PROJECT_DECOMP or SOFTWARE_DECOMP).
 - `SOURCE_DOCUMENTS`: path(s) to source documents (RFP, addenda, reference reports, specifications).
 - `CURRENCY`: ISO-like code (e.g., `USD`, `CAD`).
 
@@ -159,7 +159,7 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
   - Deliverable IDs, labels, types, substance characterizations
   - Scope items (SSOW) with mappings to packages/deliverables
   - Discipline assignments and owner roles (if present)
-  - Any hints: `CBSHint`, `EstimateMethodHint`, `StageHint`
+  - Any variant-specific hints: `CBSHint`, `EstimateMethodHint`, `StageHint` (PROJECT_DECOMP) or `ContextEnvelope` (SOFTWARE_DECOMP), if present
 - Derive:
   - **Discipline mix** needed (architecture, civil, structural, mechanical, electrical, PM, etc.)
   - **Deliverable type profile**
@@ -269,7 +269,7 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
   3. **File inventory table** (file name, item count, primary consumer/used-by).
   4. **PS-ID → file mapping** (BOE price-source IDs to files and key items).
   5. **ESTIMATING run configuration:**
-     - **DEL-to-PKG mapping** table (Package → Deliverables).
+     - **Deliverable-to-Package mapping** table (Package → Deliverables).
      - **Per-package `PRICE_SOURCES` mapping** — for each package, list the literal file paths ESTIMATING should load. Differentiate between production-only deliverables (staff rates + LOE + parameters) and dual-nature deliverables that also embed construction pricing (e.g., Schedule A/B).
      - **ESTIMATING usage guidance:** "use `RecommendedRate` as point estimate; flag `Confidence=LOW` items; record `Basis` in Detail.csv Method column."
   6. **Open issues table** (issues affecting PRICE_SOURCES with impact and status).
@@ -580,7 +580,7 @@ Minimum columns:
 
 Minimum contents:
 - Per-deliverable table with columns:
-  - `DEL`, `Name`, `Package`, `BASIS_OF_ESTIMATE`, `FALLBACK_POLICY`, `ALLOW_MIXED`, `Substance`, `Cost Drivers`, `Primary Roles`
+  - `DeliverableID`, `Name`, `Package`, `BASIS_OF_ESTIMATE`, `FALLBACK_POLICY`, `ALLOW_MIXED`, `Substance`, `Cost Drivers`, `Primary Roles`
 - Package cost ownership hints (scope items mapped to multiple deliverables)
 - SOW multi-mapping warnings
 - Marked `DRAFT — requires human review`

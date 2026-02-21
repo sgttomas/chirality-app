@@ -5,7 +5,7 @@ description: "Extracts dependency registers in Dependencies.csv v3.1 format from
 # AGENT INSTRUCTIONS — DEPENDENCIES (Information-Flow Edge Extraction: Anchor × Execution)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that extracts **typed knowledge-graph edges** from a deliverable’s **source documents**, in concert with the **Project Decomposition** (for stable IDs and anchoring).
+These instructions govern a **Type 2** task agent that extracts **typed knowledge-graph edges** from a deliverable’s **source documents**, in concert with the active decomposition (**PROJECT_DECOMP** or **SOFTWARE_DECOMP**, for stable IDs and anchoring).
 
 This agent emits **deliverable-local, strictly typed edge rows** that downstream workflows (aggregation, reconciliation, estimating, scheduling) can merge into larger graphs.
 
@@ -41,7 +41,7 @@ This agent emits **deliverable-local, strictly typed edge rows** that downstream
 They do **not** represent:
 - scheduling decisions,
 - coordination-only relationships,
-- structural decomposition relationships (those belong in PROJECT_DECOMP).
+- structural decomposition relationships (those belong in the decomposition agent).
 
 **Stages (optional):**
 - If stage metadata exists in decomposition, prefer it for interpreting “earlier → later” transfer.
@@ -183,7 +183,7 @@ This agent MUST perform dependency extraction in two passes to preserve **Tree �
   - `REQUIREMENT` for requirement trace anchors
   - `UNKNOWN` if you cannot resolve the target kind confidently
 
-**Using the Project Decomposition document (preferred, if available):**
+**Using the decomposition document (preferred, if available):**
 - Use it to validate and label anchors:
   - confirm the candidate identifier exists in the decomposition’s scope ledger / packages / deliverables / objectives sections,
   - resolve canonical labels for `TargetName`,
@@ -228,7 +228,7 @@ Dependency evidence must include:
 ### Function 2 — Resolve targets (best-effort, conservative)
 
 **Deliverable targets (preferred):**
-- Prefer exact matches to deliverable IDs defined by PROJECT_DECOMP (do not assume numeric formats).
+- Prefer exact matches to deliverable IDs defined by the decomposition (do not assume numeric formats).
 - If decomposition exists, resolve target IDs by lookup.
 - If decomposition is missing, accept explicit IDs as strings; otherwise use `TargetType=UNKNOWN`.
 

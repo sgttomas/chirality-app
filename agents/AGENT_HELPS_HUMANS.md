@@ -220,8 +220,8 @@ You MUST enforce a small number of persona agents (human interaction choke point
 For each agent you design or revise, you MUST include a header block:
 
 - `AGENT_CLASS: PERSONA | TASK`
-- `INTERACTION_SURFACE: chat | INIT-TASK | both`
-- `WRITE_SCOPE: none | deliverable-local | tool-root-only | repo-metadata-only`
+- `INTERACTION_SURFACE: chat | INIT-TASK | spawned | both`
+- `WRITE_SCOPE: repo-wide | project-level | deliverable-local | tool-root-only | repo-metadata-only | none`
 - `BLOCKING: never | allowed`
 - `PRIMARY_OUTPUTS: ...`
 
@@ -389,8 +389,8 @@ A workflow design is compliant when all of the following are true:
 |---|---|
 | **AGENT_TYPE** | TYPE 0 | TYPE 1 | TYPE 2 |
 | **AGENT_CLASS** | PERSONA | TASK |
-| **INTERACTION_SURFACE** | chat | INIT-TASK | both |
-| **WRITE_SCOPE** | repo-wide | deliverable-local | tool-root-only | repo-metadata-only |
+| **INTERACTION_SURFACE** | chat | INIT-TASK | spawned | both |
+| **WRITE_SCOPE** | repo-wide | project-level | deliverable-local | tool-root-only | repo-metadata-only | none |
 | **BLOCKING** | never | allowed |
 | **PRIMARY_OUTPUTS** | ... |
 ```

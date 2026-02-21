@@ -316,7 +316,7 @@ The `RegisterSchemaVersion` column MUST be present in every row and set to `v3.1
 | Column | Type | Description |
 |--------|------|-------------|
 | `EstimateImpactClass` | enum | `BLOCKING`, `ADVISORY`, `INFO`, `TBD` |
-| `ConsumerHint` | enum | `TASK_ESTIMATING`, `AGGREGATION`, `RECONCILIATION`, `TBD` |
+| `ConsumerHint` | enum | `TASK`, `TASK_ESTIMATING`, `AGGREGATION`, `RECONCILIATION`, `TBD` |
 
 ### 6.3 Canonical Enum Values
 
@@ -592,12 +592,38 @@ Delegation governance rule (fail closed):
   - `approvedBy` is optional
 - Missing/invalid governance metadata MUST block subagent injection while allowing the parent turn to continue normally.
 
-### 9.8 Harness Turn Option Contract
+### 9.8 Harness Turn Input Contract
 
 Harness runtime accepts a turn options object (`opts`) on session boot and turn execution APIs.
 
 - `POST /api/harness/turn` accepts `opts` and applies runtime option mapping.
 - `POST /api/harness/session/boot` accepts `opts`; bootstrap policy remains authoritative for bootstrap-only constraints.
+- `POST /api/harness/turn` also accepts optional `attachments` as an array of absolute filesystem path strings.
+
+Attachment handling rules:
+
+- The UI sends attachment paths only; server-side runtime classifies and reads files.
+- Client-supplied attachment metadata (name/mime/type) is non-authoritative and MUST NOT be trusted for execution.
+- A turn MAY omit text when attachments are present (`message.trim() === ""` with non-empty `attachments`).
+- Resolver validation is server-side and enforces:
+  - supported extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.pdf`, `.txt`, `.md`, `.csv`)
+  - `stats.isFile()` check — directories, symlinks, and special files are rejected
+  - per-file size limit (10 MB)
+  - total per-turn raw-byte budget (18 MB raw, which yields ~24 MB after base64 encoding)
+- Partial attachment failure is non-fatal when the turn still has executable content:
+  - if at least one attachment resolves (or user text exists), runtime proceeds and prepends a warning text block to the user content.
+  - if all attachments fail and user text is empty, the request is rejected (`400`).
+
+Prompt mode selection:
+
+- No attachments: runtime uses SDK `query({ prompt: string })`.
+- Attachments present: runtime builds multimodal content blocks and uses SDK `query({ prompt: AsyncIterable<SDKUserMessage> })`.
+
+UI attachment state rules:
+
+- UI stores `Attachment[]` (path, display name, client-classified mime/type) for preview purposes only; server reclassifies.
+- On send failure, UI rolls back the optimistic user message and streaming placeholder, preserving the draft text and attachment selections for retry.
+- Session rehydration validates attachment shape — malformed records are silently dropped; valid records are restored.
 
 UI contract rules:
 

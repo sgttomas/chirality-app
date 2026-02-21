@@ -6,7 +6,7 @@ This document captures the development roadmap for the Chirality project executi
 
 ## 1. Completed: System Hardening
 
-The working system has been codified into formal governance documents. The Charter has been updated to match reality.
+The working system has been codified into formal governance documents and aligned to the active agent framework.
 
 ### Governance Documents Written
 
@@ -18,15 +18,13 @@ The working system has been codified into formal governance documents. The Chart
 | `docs/CONTRACT.md` | Invariant catalog (20 K-* invariants), change policy, enforcement map | Complete |
 | `docs/PLAN.md` | This document | Complete |
 
-### Charter Alignment
+### Governance Alignment
 
-`CHARTER.md` has been revised to match the working system:
-- Hierarchy updated from `phase->package->deliverable->task` to flat `package->deliverable`
-- YAML references replaced with Markdown/CSV reality (`_STATUS.md`, `_DEPENDENCIES.md`, `Dependencies.csv`)
-- Aspirational `schemas/`, `.project/`, `phases/` references removed
-- Invariant catalog points to `docs/CONTRACT.md` as authoritative source
-- Agent capabilities registry mapped to actual agent instruction files
-- Definition of Done checklist updated
+Current governance documents are internally aligned on the core model:
+- Hierarchy is flat `package->deliverable` across `docs/TYPES.md`, `docs/SPEC.md`, and `docs/CONTRACT.md`
+- Authoritative execution state is file-based (`_STATUS.md`, `_DEPENDENCIES.md`, `Dependencies.csv`)
+- Invariant catalog is centralized in `docs/CONTRACT.md`
+- Agent role boundaries and write scopes are defined by the active `AGENT_*.md` instruction suite
 
 ### Agent Instruction Hardening
 
@@ -41,25 +39,40 @@ Agent instruction consistency: 92% → estimated 95%+ after hardening.
 
 ## 2. Existing Tooling
 
-### Python Analysis Tools (`tools/`)
+### Validation + Example Assets
 
-| Script | Purpose |
-|--------|---------|
-| `build_semantic_db.py` | Extracts semantic matrix cells from `_SEMANTIC.md` files into a structured database/CSV |
-| `analyze_semantic_convergence.py` | Analyzes convergence patterns across semantic matrices |
-| `collect_semantics.py` | Collects `_SEMANTIC.md` content across deliverables |
-| `interpret_semantic_cells.py` | Interprets individual semantic matrix cells |
-
-These tools support the semantic analysis pipeline: CHIRALITY_FRAMEWORK generates `_SEMANTIC.md` per deliverable, CHIRALITY_LENS produces `_SEMANTIC_LENSING.md`, and these Python tools enable cross-deliverable analysis.
+- `examples/` provides concrete execution-root samples with package/deliverable structures and semantic artifacts (`_SEMANTIC.md`) for regression and conformance testing.
+- `frontend/docs/harness/` documents SDK runtime validation and CI integration for harness behavior.
+- `frontend/scripts/validate-harness-*.mjs` provides repeatable local and CI validation gates.
 
 ### Desktop Frontend (`frontend/`)
 
 Next.js + Electron desktop app with:
 - Session/turn API (`/api/harness/session/*`, `/api/harness/turn`)
 - Streaming event protocol (SSE)
+- Multimodal turn input via server-resolved file attachments (image/document/text)
+  - `attachment-resolver.ts` — server-side file reader with classification, budget enforcement, and partial failure handling
+  - `FilePicker.tsx` — self-contained file picker modal with multi-select, extension filtering, and directory navigation
+  - ChatPanel attachment pipeline — draft preservation with optimistic UI rollback on send failure
+- Portal-to-Pipeline navigation with deliverable-scoped `TASK*` variants (`pkg::id` composite keys)
+  - Deliverable row click in PORTAL routes to PIPELINE `TASK*` and selects the corresponding deliverable key
+  - `TASK*` is deliverables-only (no fallback static variants); selector shows explicit loading and empty states
+  - Stale deliverable variant keys are cleared when root changes or deliverable fetch fails
+- Shared deliverables state at page-level (`page.tsx`) used by both PORTAL and PIPELINE views
+- Live project-directory refresh in `FileTree`
+  - Periodic polling plus focus/visibility refresh to pick up external filesystem changes
 - Desktop packaging (macOS `.dmg`, Windows `.exe`)
 - Harness validation automation
-- Operator Toolkit panel for per-turn harness options + local presets (zero-impact default path)
+- Operator Toolkit panel for per-turn harness options + local presets
+  - Visibility is controlled from `CONFIG` ("Show Tool Kit sidebar") and persisted in local storage
+- Resizable multi-pane layout improvements
+  - High-visibility drag handles, keyboard resize support, and collapse/expand affordances
+- Theme hardening
+  - Light mode uses non-orange accent text for readability
+  - Assistant and user chat bubbles use role-specific low-contrast surfaces with left/right alignment for quick scanning
+  - Assistant messages render GitHub-flavored markdown in-chat, with ANSI fallback for terminal-style tool output
+  - Top-banner status noise was removed; update messaging only appears when an update is actually available
+  - Header brand tile uses the macOS app icon asset with rounded-square treatment
 
 ---
 
@@ -69,7 +82,7 @@ Ordered by priority (highest first):
 
 ### 3.1 Content Hash Implementation for `_REFERENCES.md`
 
-**What:** Add SHA-256 content hashes for out-of-folder references, as described in the Charter's no-ghost-inputs principle (Section 4.1).
+**What:** Add SHA-256 content hashes for out-of-folder references, aligned with no-ghost-input constraints (`K-GHOST-1`) and provenance requirements (`K-PROV-1`).
 
 **Why:** Currently `_REFERENCES.md` lists paths and descriptions but does not verify that referenced content hasn't changed since sealing. Content hashes would enable automated integrity checking.
 
@@ -101,7 +114,7 @@ Ordered by priority (highest first):
 
 ### 3.5 Lock Mechanism Formalization
 
-**What:** Formalize the deliverable-level lock mechanism described in Charter Section 8.1.
+**What:** Formalize a deliverable-level lock mechanism for concurrent task execution.
 
 **Why:** Concurrent agent execution on the same deliverable is prevented by convention but not enforced. A lock mechanism (e.g., `.lock` file with lease semantics) would enable safe parallel pipeline execution.
 
@@ -109,7 +122,7 @@ Ordered by priority (highest first):
 
 ### 3.6 Run Record Persistence
 
-**What:** Formalize the pipeline run record schema described in Charter Section 5.
+**What:** Formalize a unified pipeline run record schema.
 
 **Why:** Currently, pipeline runs are tracked in `_STATUS.md` history and `_DEPENDENCIES.md` run history, but there is no unified run record per Agent 2 execution. Formal run records would enable better audit trails and rerun management.
 
@@ -117,9 +130,9 @@ Ordered by priority (highest first):
 
 ### 3.7 Staleness Calculation Tooling
 
-**What:** Implement the staleness propagation and triage mechanism described in Charter Sections 7.1-7.3.
+**What:** Implement staleness propagation and triage tooling based on dependency edges and baseline SHAs.
 
-**Why:** Staleness is a charter commitment (K-STALE-1, K-STALE-2) but currently relies on human observation. Automated staleness detection from the dependency graph + git SHAs would make the system's integrity guarantees enforceable.
+**Why:** Staleness is a contract commitment (K-STALE-1, K-STALE-2) but currently relies on human observation. Automated staleness detection from the dependency graph + git SHAs would make the system's integrity guarantees enforceable.
 
 **Effort:** High. Depends on 3.4 (dependency graph generation) and 3.6 (run records with baseline SHAs).
 

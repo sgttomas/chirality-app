@@ -75,6 +75,19 @@
   --type-meta-size: 0.75rem;
   --type-mono-meta-size: 0.72rem;
   --type-meta-letter-spacing: 0.12em;
+
+  /* Chat role surfaces (dark mode baseline) */
+  --chat-bubble-assistant-bg: color-mix(in srgb, var(--color-surface-low) 92%, var(--color-judging) 8%);
+  --chat-bubble-assistant-border: color-mix(in srgb, var(--color-border) 95%, var(--color-judging) 5%);
+  --chat-bubble-assistant-label: color-mix(in srgb, var(--color-text-dim) 60%, var(--color-judging) 40%);
+  --chat-bubble-assistant-streaming-bg: color-mix(in srgb, var(--chat-bubble-assistant-bg) 90%, var(--color-judging) 10%);
+  --chat-bubble-assistant-streaming-border: color-mix(in srgb, var(--chat-bubble-assistant-border) 88%, var(--color-judging) 12%);
+
+  --chat-bubble-user-bg: color-mix(in srgb, var(--color-surface-low) 84%, var(--color-applying) 16%);
+  --chat-bubble-user-border: color-mix(in srgb, var(--color-border) 90%, var(--color-applying) 10%);
+  --chat-bubble-user-label: color-mix(in srgb, var(--color-text-dim) 44%, var(--color-applying) 56%);
+  --chat-bubble-user-streaming-bg: color-mix(in srgb, var(--chat-bubble-user-bg) 88%, var(--color-applying) 12%);
+  --chat-bubble-user-streaming-border: color-mix(in srgb, var(--chat-bubble-user-border) 86%, var(--color-applying) 14%);
 }
 
 .light-mode {
@@ -109,6 +122,19 @@
   --neural-overlay-1: radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.08), transparent 50%);
   --neural-overlay-2: radial-gradient(circle at 84% 8%, rgba(249, 115, 22, 0.06), transparent 55%);
   --neural-overlay-3: linear-gradient(115deg, rgba(15, 23, 42, 0.045) 0%, rgba(15, 23, 42, 0) 38%);
+
+  /* Chat role surfaces (light mode tuned for clean low-contrast borders) */
+  --chat-bubble-assistant-bg: color-mix(in srgb, var(--color-surface-high) 97%, var(--color-judging) 3%);
+  --chat-bubble-assistant-border: color-mix(in srgb, var(--color-border) 95%, var(--color-judging) 5%);
+  --chat-bubble-assistant-label: color-mix(in srgb, var(--color-text-dim) 66%, var(--color-judging) 34%);
+  --chat-bubble-assistant-streaming-bg: color-mix(in srgb, var(--chat-bubble-assistant-bg) 92%, var(--color-judging) 8%);
+  --chat-bubble-assistant-streaming-border: color-mix(in srgb, var(--chat-bubble-assistant-border) 90%, var(--color-judging) 10%);
+
+  --chat-bubble-user-bg: color-mix(in srgb, var(--color-surface-high) 90%, var(--color-applying) 10%);
+  --chat-bubble-user-border: color-mix(in srgb, var(--color-border) 88%, var(--color-applying) 12%);
+  --chat-bubble-user-label: color-mix(in srgb, var(--color-text-dim) 50%, var(--color-applying) 50%);
+  --chat-bubble-user-streaming-bg: color-mix(in srgb, var(--chat-bubble-user-bg) 89%, var(--color-applying) 11%);
+  --chat-bubble-user-streaming-border: color-mix(in srgb, var(--chat-bubble-user-border) 86%, var(--color-applying) 14%);
 }
 
 /* Global Styles */
@@ -219,15 +245,6 @@ body.light-mode .ui-panel-strong {
  * use neutral/dark text for accent text utilities while preserving orange
  * for borders, fills, status dots, and other non-text accents.
  */
-body.light-mode [class*="text-[var(--color-accent-orange)]"] {
-    color: var(--color-accent-text) !important;
-}
-
-body.light-mode [class*="hover:text-[var(--color-accent-orange)]"]:hover,
-body.light-mode [class*="group-hover:text-[var(--color-accent-orange)]"] {
-    color: var(--color-accent-text) !important;
-}
-
 .ui-control {
     background: var(--color-surface-low);
     color: var(--color-text-dim);
@@ -235,6 +252,13 @@ body.light-mode [class*="group-hover:text-[var(--color-accent-orange)]"] {
     border-radius: var(--radius-sm);
     transition: all 0.2s ease;
     font-size: 0.875rem;
+}
+
+/* Prevent large transition storms when switching theme modes. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+    transition: none !important;
 }
 
 .ui-control:hover:not(:disabled) {
@@ -908,6 +932,115 @@ body.light-mode .resizer-handle.active .resizer-grip {
 .markdown-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
 .markdown-content th, .markdown-content td { border: 1px solid var(--color-border); padding: 0.75rem; text-align: left; }
 .markdown-content th { background: var(--color-surface-low); font-weight: bold; }
+
+/* CHAT MARKDOWN STYLING */
+.chat-markdown {
+    font-family: var(--font-inter), sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--color-text-main);
+}
+
+.chat-markdown > *:last-child {
+    margin-bottom: 0;
+}
+
+.chat-markdown p {
+    margin: 0 0 0.6rem 0;
+    color: var(--color-text-main);
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+    margin: 0.25rem 0 0.65rem 1rem;
+    padding-left: 0.85rem;
+}
+
+.chat-markdown li {
+    margin: 0.2rem 0;
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+    margin: 0.45rem 0 0.55rem 0;
+    color: var(--color-text-main);
+    font-weight: 650;
+}
+
+.chat-markdown h1 {
+    font-size: 1.05rem;
+}
+
+.chat-markdown h2 {
+    font-size: 1rem;
+}
+
+.chat-markdown h3 {
+    font-size: 0.95rem;
+}
+
+.chat-markdown code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: color-mix(in srgb, var(--color-surface-mid) 75%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border-radius: 4px;
+    padding: 0.1rem 0.3rem;
+}
+
+.chat-markdown pre {
+    margin: 0.4rem 0 0.7rem 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-surface-sunken) 78%, transparent);
+    overflow-x: auto;
+}
+
+.chat-markdown pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-size: 0.82rem;
+}
+
+.chat-markdown blockquote {
+    margin: 0.35rem 0 0.65rem 0;
+    padding-left: 0.65rem;
+    border-left: 2px solid color-mix(in srgb, var(--chat-bubble-assistant-label) 65%, transparent);
+    color: var(--color-text-dim);
+}
+
+.chat-markdown hr {
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+    margin: 0.7rem 0;
+}
+
+.chat-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.35rem 0 0.7rem 0;
+    font-size: 0.82rem;
+}
+
+.chat-markdown th,
+.chat-markdown td {
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+    padding: 0.35rem 0.45rem;
+    text-align: left;
+}
+
+.chat-markdown th {
+    background: color-mix(in srgb, var(--color-surface-low) 65%, transparent);
+}
+
+.chat-markdown a {
+    color: var(--color-applying);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 
 @media (max-width: 1536px) {
     .hex-grid {

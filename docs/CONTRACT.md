@@ -1,8 +1,10 @@
-# CONTRACT — Invariant Catalog and Change Policy
+# CONTRACT — Invariant Catalog
 
-This document is the authoritative catalog of binding invariants for the Chirality project execution system. It also defines the change policy for governance documents and structural changes.
+This document is the authoritative catalog of binding invariants for the Chirality project execution system.
 
 Invariants listed here are enforceable constraints that agents, tooling, and human processes must respect. Each invariant includes its enforcement point (where and how compliance is checked).
+
+Invariant IDs (`K-*`) are **stable and never reused**. Retired invariants are moved to §3 with retirement rationale.
 
 ---
 
@@ -92,60 +94,7 @@ Invariants listed here are enforceable constraints that agents, tooling, and hum
 
 ---
 
-## 3. Change Policy
-
-### 3.1 Governance Document Changes
-
-Changes to governance documents (`docs/DIRECTIVE.md`, `docs/TYPES.md`, `docs/CONTRACT.md`, `docs/SPEC.md`, `docs/PLAN.md`) require:
-
-1. Branch creation
-2. Pull request with clear description of changes and rationale
-3. Human review and approval
-4. Merge to main
-
-### 3.2 Agent Instruction Changes
-
-Any change to an `AGENT_*.md` file that alters **write scope, tool access, or primary outputs** requires:
-
-1. Branch + PR + human review (same as governance docs)
-2. Recorded release note describing the material change
-
-Minor changes (clarifications, typo fixes, rationale updates) may be committed directly with a descriptive commit message.
-
-### 3.3 Decomposition Changes
-
-Changes to the project decomposition require:
-
-1. PROJECT_DECOMP conversation with human confirmation gates
-2. Folder tree reconciliation (PREPARATION updates affected folders)
-3. Dependency refresh for affected deliverables (DEPENDENCIES agent)
-4. Staleness recalculation for downstream dependents
-
-### 3.4 Structural Changes
-
-Changes that affect the execution root structure (adding/removing packages, deliverables, tool roots) require:
-
-1. Human approval
-2. PREPARATION agent execution for scaffolding
-3. Git commit with descriptive message
-
----
-
-## 4. Invariant Change Protocol
-
-Adding, modifying, or retiring an invariant in this catalog requires:
-
-1. Proposal with rationale (why the invariant needs to change)
-2. Impact assessment (which agents, documents, and processes are affected)
-3. Branch + PR + human review
-4. Update to enforcement map if enforcement points change
-5. Notification to affected agent instruction files (if they reference the invariant)
-
-Invariant IDs (`K-*`) are never reused. Retired invariants are moved to an appendix (Section 5) with retirement rationale.
-
----
-
-## 5. Retired Invariants
+## 3. Retired Invariants
 
 No invariants have been retired.
 

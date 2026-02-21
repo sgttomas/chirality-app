@@ -146,6 +146,12 @@ Fill `AUDIT_AGENT.md`:
 - “Canon extraction” once (if canon is available),
 - one worksheet per audited file.
 
+**Canon check exclusions:** The following canon sections are informational and their absence in an audited file is NOT a conformance finding:
+- `Revision` (version + date) — useful but not required for conformance.
+- `Normative keywords` (MUST/SHOULD/MAY definitions) — usage of normative keywords is sufficient; a dedicated definition section is not required.
+
+Do not flag missing exclusion-listed sections as WARNING, INFO, or any other severity.
+
 For any ⚠️/❌:
 - include evidence excerpt (≤25 words) with a location,
 - include canon excerpt (≤25 words) with a location (if available),

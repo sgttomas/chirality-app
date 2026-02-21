@@ -464,8 +464,9 @@ Every deliverable folder should be seeded with:
 
 ### Deliverable IDs (important)
 
-Deliverable IDs are sourced from the decomposition. Do not invent new IDs. The expected pattern is the hyphen style:
-- `DEL-PP-LL_{shortDescription}`
+Deliverable IDs are sourced from the decomposition. Do not invent new IDs. The expected pattern is the hyphen style (format varies by decomposition variant):
+- PROJECT_DECOMP: `DEL-PPP-LL_{shortDescription}` (3-digit package, 2-digit sequence, description suffix)
+- SOFTWARE_DECOMP: `DEL-PP-LL` (2-digit package, 2-digit sequence, no suffix)
 
 [[END:STRUCTURE]]
 

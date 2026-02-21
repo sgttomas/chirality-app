@@ -1,4 +1,5 @@
-import { query, type Options as AgentSdkOptions, type Query, type SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { query, type Options as AgentSdkOptions, type Query, type SDKMessage, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { ContentBlock } from "./attachment-resolver";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -372,7 +373,7 @@ export class AgentSdkManager {
     return true;
   }
 
-  async *startTurn(session: Session, userMessage: string, opts?: TurnOpts): AsyncIterable<UIEvent> {
+  async *startTurn(session: Session, userMessage: string, opts?: TurnOpts, contentBlocks?: ContentBlock[]): AsyncIterable<UIEvent> {
     if (this.isRunning(session.id)) {
       const conflictErr = new Error(`Session ${session.id} already has an in-flight turn.`);
       (conflictErr as Error & { code?: string }).code = "SESSION_CONFLICT";
@@ -381,8 +382,25 @@ export class AgentSdkManager {
 
     const startedAt = Date.now();
     const abortController = new AbortController();
+
+    let promptValue: string | AsyncIterable<SDKUserMessage>;
+    if (contentBlocks && contentBlocks.length > 0) {
+      const userMsg: SDKUserMessage = {
+        type: "user",
+        message: { role: "user", content: contentBlocks } as SDKUserMessage["message"],
+        parent_tool_use_id: null,
+        session_id: session.claudeSessionId || session.id,
+      };
+      async function* singleMessage() {
+        yield userMsg;
+      }
+      promptValue = singleMessage();
+    } else {
+      promptValue = userMessage;
+    }
+
     const sdkQuery = query({
-      prompt: userMessage,
+      prompt: promptValue,
       options: toAgentSdkOptions(session, opts, abortController),
     });
 

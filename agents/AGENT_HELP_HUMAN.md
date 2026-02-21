@@ -123,7 +123,7 @@ Do **not** infer filesystem state from memory or assumptions.
 Determine which intent class applies:
 
 - **Navigate / decide what to do next** → stay in HELP_HUMAN; *run a grounding scan if needed*, then propose the smallest safe next step
-- **Define reality / boundaries** (scope, decomposition, objectives) → PROJECT_DECOMP (human validation heavy)
+- **Define reality / boundaries** (scope, decomposition, objectives) → route to the appropriate decomposition agent (see **Decomposition routing** below)
 - **Create or refine deliverable content** → WORKING_ITEMS (human-in-the-loop)
 - **Produce drafts at scale** → 4_DOCUMENTS (task)
 - **Generate semantic lens** → CHIRALITY_FRAMEWORK (task)
@@ -134,6 +134,20 @@ Determine which intent class applies:
 - **Publish to repo** → CHANGE (task; approval-gated)
 
 If ambiguous, choose the smallest safe classification and state uncertainty.
+
+### Decomposition routing
+
+All decomposition agents conform to `AGENT_DECOMP_BASE.md` (invariant 7-gate protocol). Three first-class branches exist:
+
+- **PROJECT_DECOMP** — EPC / design-build project scope → Packages → Deliverables
+- **SOFTWARE_DECOMP** — software development scope → Work Domain Packages → agent-executable Deliverables (with Context Envelope sizing)
+- **DOMAIN_DECOMP** — handbook / knowledge domain → Categories → Knowledge Types
+
+**How they combine:**
+- **SOFTWARE_DECOMP extends any branch.** If a PROJECT_DECOMP branch (or any other branch) has software to build, SOFTWARE_DECOMP decomposes that software component. It can also extend a SOFTWARE_DECOMP branch (recursive decomposition of software sub-components).
+- **DOMAIN_DECOMP runs parallel to any branch.** It captures the knowledge domain that a branch operates within — orthogonal to the work decomposition. It can also run parallel to another DOMAIN_DECOMP branch (sub-domains).
+
+To route: ask "what is being decomposed?" If it's a project → PROJECT_DECOMP. If it's software → SOFTWARE_DECOMP. If it's domain knowledge → DOMAIN_DECOMP. If the answer is "a project that includes software," start with PROJECT_DECOMP, then extend with SOFTWARE_DECOMP for the software component.
 
 ---
 
@@ -153,12 +167,12 @@ Use 1 mode unless the human explicitly requests multi-mode guidance.
 **Mode quick guides (condensed):**
 
 - **Mode A — Kickoff / Initialization**
-  - If the human has raw scope but **no structured decomposition**, route them to **PROJECT_DECOMP** first.
+  - If the human has raw scope but **no structured decomposition**, route them to the appropriate decomposition agent (see **Decomposition routing** above).
   - Once decomposition exists: recommend **ORCHESTRATOR initialization** (decomposition path required).
   - Ensure the human explicitly confirms:
     - coordination representation (schedule-first vs declared deps vs full graph)
     - dependency tracking mode (`NOT_TRACKED | DECLARED | FULL_GRAPH`)
-  - Typical pipeline: `PROJECT_DECOMP → ORCHESTRATOR → PREPARATION → 4_DOCUMENTS → CHIRALITY_FRAMEWORK → WORKING_ITEMS`
+  - Typical pipeline: `{DECOMP agent} → ORCHESTRATOR → PREPARATION → 4_DOCUMENTS → CHIRALITY_FRAMEWORK → WORKING_ITEMS`
   - If decomposition includes “Reference Documents”: prompt the human to source them early.
   - Naming safety reminder: folder labels may be sanitized; canonical names should be preserved in `_CONTEXT.md`.
 

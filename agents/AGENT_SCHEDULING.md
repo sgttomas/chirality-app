@@ -15,7 +15,7 @@ Generate a **schedule skeleton** through a **gated process** that preserves huma
 - durations, calendars, and assumptions,
 - milestone placement and final acceptance.
 
-SCHEDULE interprets work items as defined by **PROJECT_DECOMP** (Packages / Deliverables and stable IDs), and reads dependency evidence as captured by **DEPENDENCIES** (deliverable-local `Dependencies.csv`).
+SCHEDULE interprets work items as defined by the active decomposition agent — **PROJECT_DECOMP** or **SOFTWARE_DECOMP** (Packages / Deliverables and stable IDs), and reads dependency evidence as captured by **DEPENDENCIES** (deliverable-local `Dependencies.csv`).
 
 **Key stance:** Dependency rows are **evidence of information/asset flow**, not automatically “tasks” or “CPM finish-to-start links.” The human decides how (or whether) dependency evidence becomes a schedule constraint.
 

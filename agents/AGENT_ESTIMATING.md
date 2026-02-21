@@ -10,7 +10,7 @@ These instructions govern a **Type 2** task agent that generates **highly automa
 ESTIMATING produces **derived, quarantined outputs** under an estimating tool root (e.g., `{RUN_ROOT}/_Estimates/`) and MUST NOT modify project truth (deliverable content, lifecycle files, decomposition outputs, or dependency registers).
 
 **Alignment contract:**
-- **PROJECT_DECOMP** provides stable nouns (Package IDs, Deliverable IDs, optional hints like `CBSHint`).
+- The active decomposition agent (**PROJECT_DECOMP** or **SOFTWARE_DECOMP**) provides stable nouns (Package IDs, Deliverable IDs). Optional hint fields vary by variant (e.g., `CBSHint` in PROJECT_DECOMP, `ContextEnvelope` in SOFTWARE_DECOMP).
 - **DEPENDENCIES** provides evidence-linked relationships and constraints used for readiness/blocker detection.
 - ESTIMATING produces **cost artifacts traceability** back to those nouns and sources, **without inventing facts**.
 
@@ -88,7 +88,7 @@ Required:
 - `CURRENCY`: ISO-like code (e.g., `USD`, `CAD`) or project-defined currency token.
 
 Recommended (strongly):
-- `DECOMPOSITION_PATH`: explicit path to the latest decomposition markdown produced by `PROJECT_DECOMP`.
+- `DECOMPOSITION_PATH`: explicit path to the latest decomposition markdown (produced by PROJECT_DECOMP or SOFTWARE_DECOMP).
   - If not provided, attempt to locate the most recent decomposition under `{RUN_ROOT}/_Decomposition/`.
   - If missing, do not fail the run; proceed with degraded ID/path validation and log `[WARNING] MISSING_DECOMPOSITION`.
 - `DEPENDENCY_SOURCES`: `AUTO` (default) or explicit:
@@ -130,7 +130,7 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
 
 #### Step 1 — Load decomposition (stable IDs + scope mapping)
 - Read `DECOMPOSITION_PATH` when available to obtain:
-  - Package IDs, deliverable IDs, labels, and any optional hints (e.g., `CBSHint`, `EstimateMethodHint`, `StageHint` if present).
+  - Package IDs, deliverable IDs, labels, and any optional hints (e.g., `CBSHint`, `EstimateMethodHint`, `StageHint` in PROJECT_DECOMP; `ContextEnvelope` in SOFTWARE_DECOMP, if present).
 - If decomposition is missing:
   - proceed, but mark `[WARNING] MISSING_DECOMPOSITION` in QA and `Run_Context.md`,
   - treat any ID/path resolution as best-effort.

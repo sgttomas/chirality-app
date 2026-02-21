@@ -178,3 +178,18 @@ export interface ToolResultInfo {
   isError: boolean;
   parentToolUseId: string | null;
 }
+
+export type AttachmentType = "image" | "document" | "text";
+
+export interface Attachment {
+  path: string;
+  name: string;
+  mimeType: string;
+  type: AttachmentType;
+}
+
+export const ATTACHMENT_EXTENSIONS: readonly string[] = [
+  ".png", ".jpg", ".jpeg", ".gif", ".webp",
+  ".pdf",
+  ".txt", ".md", ".csv",
+];
