@@ -13,15 +13,14 @@ interface WorkbenchViewProps {
 }
 
 const WORKBENCH_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
-    "DECOMP": { personaId: "PROJECT_DECOMP", fileName: "AGENT_PROJECT_DECOMP.md" },
-    "ORCHESTRATE": { personaId: "ORCHESTRATOR", fileName: "AGENT_ORCHESTRATOR.md" },
-    "WORKING_ITEMS": { personaId: "WORKING_ITEMS", fileName: "AGENT_WORKING_ITEMS.md" },
-    "AGGREGATE": { personaId: "AGGREGATION", fileName: "AGENT_AGGREGATION.md" },
-    "HELP": { personaId: "HELP_HUMAN", fileName: "AGENT_HELP_HUMAN.md" },
-    "AGENTS": { personaId: "HELPS_HUMANS", fileName: "AGENT_HELPS_HUMANS.md" },
-    "CHANGE": { personaId: "CHANGE", fileName: "AGENT_CHANGE.md" },
-    "DEPENDENCIES": { personaId: "DEPENDENCIES", fileName: "AGENT_DEPENDENCIES.md" },
-    "RECONCILING": { personaId: "RECONCILIATION", fileName: "AGENT_RECONCILIATION.md" }
+  "HELP": { personaId: "HELP_HUMAN", fileName: "AGENT_HELP_HUMAN.md" },
+  "ORCHESTRATE": { personaId: "ORCHESTRATOR", fileName: "AGENT_ORCHESTRATOR.md" },
+  "WORKING_ITEMS": { personaId: "WORKING_ITEMS", fileName: "AGENT_WORKING_ITEMS.md" },
+  "AGGREGATE": { personaId: "AGGREGATION", fileName: "AGENT_AGGREGATION.md" },
+  "AGENTS": { personaId: "HELPS_HUMANS", fileName: "AGENT_HELPS_HUMANS.md" },
+  "DEPENDENCIES": { personaId: "DEPENDENCIES", fileName: "AGENT_DEPENDENCIES.md" },
+  "CHANGE": { personaId: "CHANGE", fileName: "AGENT_CHANGE.md" },
+  "RECONCILING": { personaId: "RECONCILIATION", fileName: "AGENT_RECONCILIATION.md" },
 };
 
 export function WorkbenchView({ agentName, initialPath, projectRoot, onNavigateHome, onRootChange }: WorkbenchViewProps) {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { HexGrid } from "@/components/HexGrid";
+import { HexGrid, type MatrixLaunchPayload } from "@/components/HexGrid";
 import { DashboardList } from "@/components/DashboardList";
 import type { Deliverable } from "@/components/DashboardList";
 import { WorkbenchView } from "@/components/WorkbenchView";
@@ -12,41 +12,105 @@ import { DirectoryPicker } from "@/components/DirectoryPicker";
 import chiralityAppIcon from "@/electron/icons/icon.png";
 
 type View = "home" | "workbench" | "session" | "pipeline";
+type PipelineCategory = "DECOMP*" | "PREP*" | "TASK*" | "AUDIT*";
+type TaskScopeMode = "DELIVERABLES" | "KNOWLEDGE_TYPES";
+
+type PipelineTypeOption = {
+  id: string;
+  label: string;
+  disabled?: boolean;
+};
+
+type KnowledgeTypeOption = {
+  id: string;
+  label: string;
+  matchingDeliverableKeys: string[];
+};
+
+type DeliverablesApiResponse = {
+  deliverables?: Deliverable[];
+  knowledgeDecomposition?: {
+    enabled?: boolean;
+    markerFile?: string | null;
+  };
+  knowledgeTypes?: KnowledgeTypeOption[];
+};
+
 const THEME_STORAGE_KEY = "chirality_theme_mode";
 
-const PERSONA_AGENTS = [
-    "DECOMP", "ORCHESTRATE", "WORKING_ITEMS", "AGGREGATE",
-    "HELP", "AGENTS", "DEPENDENCIES", "CHANGE", "RECONCILING"
-];
+const WORKBENCH_AGENTS = [
+  "HELP",
+  "ORCHESTRATE",
+  "WORKING_ITEMS",
+  "AGGREGATE",
+  "AGENTS",
+  "DEPENDENCIES",
+  "CHANGE",
+  "RECONCILING",
+] as const;
+
+const PIPELINE_CATEGORIES: PipelineCategory[] = ["DECOMP*", "PREP*", "TASK*", "AUDIT*"];
+
+const PIPELINE_TYPE_OPTIONS: Record<PipelineCategory, PipelineTypeOption[]> = {
+  "DECOMP*": [
+    { id: "SOFTWARE", label: "SOFTWARE" },
+    { id: "PROJECT", label: "PROJECT" },
+    { id: "DOMAIN", label: "DOMAIN" },
+    { id: "BASE", label: "BASE (create new)" },
+  ],
+  "PREP*": [
+    { id: "PREPARATION", label: "PREPARATION" },
+    { id: "4_DOCUMENTS", label: "4_DOCUMENTS" },
+    { id: "CHIRALITY_FRAMEWORK", label: "CHIRALITY_FRAMEWORK" },
+    { id: "CHIRALITY_LENS", label: "CHIRALITY_LENS" },
+  ],
+  "TASK*": [
+    { id: "SCOPE_CHANGE", label: "SCOPE_CHANGE" },
+    { id: "SCOPE_PREP", label: "SCOPE_PREP", disabled: true },
+    { id: "ESTIMATE_PREP", label: "ESTIMATE_PREP" },
+    { id: "AUDIT_PREP", label: "AUDIT_PREP", disabled: true },
+    { id: "SCHEDULE_PREP", label: "SCHEDULE_PREP", disabled: true },
+    { id: "ESTIMATING", label: "ESTIMATING" },
+    { id: "SCHEDULING", label: "SCHEDULING" },
+  ],
+  "AUDIT*": [
+    { id: "AGENTS", label: "AGENTS" },
+    { id: "DEPENDENCIES", label: "DEPENDENCIES" },
+    { id: "ESTIMATES", label: "ESTIMATES", disabled: true },
+    { id: "REFERENCES", label: "REFERENCES", disabled: true },
+    { id: "SCHEDULES", label: "SCHEDULES", disabled: true },
+    { id: "SCOPE", label: "SCOPE" },
+  ],
+};
 
 const VIEW_TABS: Array<{ id: View; label: string }> = [
   { id: "home", label: "PORTAL" },
   { id: "workbench", label: "WORKBENCH" },
   { id: "pipeline", label: "PIPELINE" },
-  { id: "session", label: "DIRECT" }
+  { id: "session", label: "DIRECT" },
 ];
 
 const VIEW_TITLE: Record<View, { lead: string; accent: string }> = {
   home: { lead: "COMMAND", accent: "PORTAL" },
   workbench: { lead: "WORK", accent: "BENCH" },
   session: { lead: "DIRECT", accent: "LINK" },
-  pipeline: { lead: "TASK", accent: "PIPELINE" }
+  pipeline: { lead: "TASK", accent: "PIPELINE" },
 };
 
-const PIPELINE_FAMILIES = ["PREP*", "TASK*", "AUDIT*"];
-
-const FAMILY_MAP: Record<string, string[]> = {
-    "PREP*": ["PREPARATION", "4_DOCUMENTS", "CHIRALITY_FRAMEWORK", "CHIRALITY_LENS"],
-    "AUDIT*": ["AUDIT_AGENTS", "AUDIT_DEP_CLOSURE"],
-};
+function getDefaultPipelineType(category: PipelineCategory): string | null {
+  const firstEnabled = PIPELINE_TYPE_OPTIONS[category].find((option) => !option.disabled);
+  return firstEnabled?.id ?? null;
+}
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<View>("home");
 
-  // Shared Navigation State
   const [agentName, setAgentName] = useState<string>("WORKING_ITEMS");
-  const [pipelineFamily, setPipelineFamily] = useState<string>("PREP*");
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [pipelineCategory, setPipelineCategory] = useState<PipelineCategory>("PREP*");
+  const [pipelineType, setPipelineType] = useState<string | null>(getDefaultPipelineType("PREP*"));
+  const [taskScopeMode, setTaskScopeMode] = useState<TaskScopeMode>("DELIVERABLES");
+  const [taskScopeValue, setTaskScopeValue] = useState<string | null>(null);
+  const [taskKnowledgeTargetDeliverable, setTaskKnowledgeTargetDeliverable] = useState<string | null>(null);
   const [initialWorkbenchPath, setInitialWorkbenchPath] = useState<string | null>(null);
 
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
@@ -67,24 +131,20 @@ export default function Home() {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [latestReleaseTag, setLatestReleaseTag] = useState<string | null>(null);
 
-  // ---------------------------------------------------------------------------
-  // Deliverables — single source of truth, fetched at page level.
-  // Derived from projectRoot; both PORTAL DashboardList and PIPELINE TASK*
-  // variants consume this state.
-  // ---------------------------------------------------------------------------
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [deliverablesLoading, setDeliverablesLoading] = useState(false);
-  const clearDeliverableVariantIfStaleKey = useCallback(() => {
-    setSelectedVariant((prev) => (prev?.includes("::") ? null : prev));
-  }, []);
+  const [knowledgeDecompositionEnabled, setKnowledgeDecompositionEnabled] = useState(false);
+  const [knowledgeDecompositionMarker, setKnowledgeDecompositionMarker] = useState<string | null>(null);
+  const [knowledgeTypes, setKnowledgeTypes] = useState<KnowledgeTypeOption[]>([]);
 
   useEffect(() => {
     if (!projectRoot) {
-      // No root → no deliverables. queueMicrotask avoids synchronous setState in effect body.
       queueMicrotask(() => {
         setDeliverables([]);
         setDeliverablesLoading(false);
-        clearDeliverableVariantIfStaleKey();
+        setKnowledgeDecompositionEnabled(false);
+        setKnowledgeDecompositionMarker(null);
+        setKnowledgeTypes([]);
       });
       return;
     }
@@ -96,25 +156,37 @@ export default function Home() {
       signal: controller.signal,
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (!controller.signal.aborted) {
-          const loaded: Deliverable[] = Array.isArray(data.deliverables) ? data.deliverables : [];
-          setDeliverables(loaded);
-
-          // Clear stale deliverable variant key if it no longer matches loaded data.
-          // Done here (not in a separate effect) to avoid cascading renders.
-          setSelectedVariant((prev) => {
-            if (!prev?.includes("::")) return prev;
-            const exists = loaded.some(d => `${d.pkg}::${d.id}` === prev);
-            return exists ? prev : null;
-          });
+      .then((data: DeliverablesApiResponse) => {
+        if (controller.signal.aborted) {
+          return;
         }
+
+        const loaded: Deliverable[] = Array.isArray(data.deliverables) ? data.deliverables : [];
+        setDeliverables(loaded);
+
+        const decomposition = data.knowledgeDecomposition ?? {};
+        setKnowledgeDecompositionEnabled(Boolean(decomposition.enabled));
+        setKnowledgeDecompositionMarker(typeof decomposition.markerFile === "string" ? decomposition.markerFile : null);
+
+        const loadedKnowledgeTypes = Array.isArray(data.knowledgeTypes)
+          ? data.knowledgeTypes.filter((entry) => {
+              return (
+                entry &&
+                typeof entry.id === "string" &&
+                typeof entry.label === "string" &&
+                Array.isArray(entry.matchingDeliverableKeys)
+              );
+            })
+          : [];
+        setKnowledgeTypes(loadedKnowledgeTypes);
       })
       .catch((err) => {
         if (!controller.signal.aborted) {
           console.error("Failed to load deliverables", err);
           setDeliverables([]);
-          clearDeliverableVariantIfStaleKey();
+          setKnowledgeDecompositionEnabled(false);
+          setKnowledgeDecompositionMarker(null);
+          setKnowledgeTypes([]);
         }
       })
       .finally(() => {
@@ -124,7 +196,7 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [projectRoot, clearDeliverableVariantIfStaleKey]);
+  }, [projectRoot]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -182,31 +254,80 @@ export default function Home() {
   }, []);
 
   const handleRootChange = (path: string) => {
-      setProjectRoot(path);
-      sessionStorage.setItem("chirality_project_root", path);
+    setProjectRoot(path);
+    sessionStorage.setItem("chirality_project_root", path);
   };
 
-  const launchAgent = (name: string) => {
-    if (PERSONA_AGENTS.includes(name)) {
-      setAgentName(name);
+  const pipelineTypeOptions = PIPELINE_TYPE_OPTIONS[pipelineCategory];
+  const activePipelineType =
+    pipelineType && pipelineTypeOptions.some((option) => option.id === pipelineType && !option.disabled)
+      ? pipelineType
+      : getDefaultPipelineType(pipelineCategory);
+
+  const deliverableKeyToDeliverable = new Map<string, Deliverable>(
+    deliverables.map((deliverable) => [`${deliverable.pkg}::${deliverable.id}`, deliverable]),
+  );
+
+  const effectiveTaskScopeMode: TaskScopeMode = knowledgeDecompositionEnabled ? taskScopeMode : "DELIVERABLES";
+  const deliverableScopeOptions = deliverables.map((deliverable) => ({
+    id: `${deliverable.pkg}::${deliverable.id}`,
+    label: `${deliverable.id} — ${deliverable.name} (${deliverable.pkg.replace("PKG-", "")})`,
+  }));
+  const knowledgeScopeOptions = knowledgeTypes.map((knowledgeType) => ({
+    id: knowledgeType.id,
+    label: knowledgeType.label,
+  }));
+
+  const rawTaskScopeOptions =
+    effectiveTaskScopeMode === "DELIVERABLES" ? deliverableScopeOptions : knowledgeScopeOptions;
+  const activeTaskScopeValue =
+    taskScopeValue && rawTaskScopeOptions.some((option) => option.id === taskScopeValue) ? taskScopeValue : null;
+
+  const selectedKnowledgeType =
+    effectiveTaskScopeMode === "KNOWLEDGE_TYPES" && activeTaskScopeValue
+      ? knowledgeTypes.find((knowledgeType) => knowledgeType.id === activeTaskScopeValue) ?? null
+      : null;
+
+  const knowledgeTargetDeliverables = selectedKnowledgeType
+    ? selectedKnowledgeType.matchingDeliverableKeys
+        .map((key) => {
+          const deliverable = deliverableKeyToDeliverable.get(key);
+          if (!deliverable) {
+            return null;
+          }
+          return {
+            key,
+            label: `${deliverable.id} — ${deliverable.name} (${deliverable.pkg.replace("PKG-", "")})`,
+          };
+        })
+        .filter((entry): entry is { key: string; label: string } => entry !== null)
+    : [];
+
+  const activeTaskKnowledgeTarget =
+    taskKnowledgeTargetDeliverable && knowledgeTargetDeliverables.some((entry) => entry.key === taskKnowledgeTargetDeliverable)
+      ? taskKnowledgeTargetDeliverable
+      : null;
+
+  const launchFromMatrix = (payload: MatrixLaunchPayload) => {
+    if (payload.launchTarget === "workbench") {
+      setAgentName(payload.label);
       setInitialWorkbenchPath(null);
       setCurrentView("workbench");
-    } else {
-      setPipelineFamily(name);
-      setSelectedVariant(null);
-      setCurrentView("pipeline");
+      return;
     }
-  };
 
-  // ---------------------------------------------------------------------------
-  // Dynamic TASK* variants from deliverables; other families use static FAMILY_MAP
-  // ---------------------------------------------------------------------------
-  const isTaskFamily = pipelineFamily === "TASK*";
-  const taskVariantKeys = deliverables.map(d => `${d.pkg}::${d.id}`);
-  const variants = isTaskFamily ? taskVariantKeys : (FAMILY_MAP[pipelineFamily] || []);
-  const taskLoading = isTaskFamily && deliverablesLoading;
-  const taskEmpty = isTaskFamily && !deliverablesLoading && deliverables.length === 0;
-  const taskVariantDisabled = taskLoading || taskEmpty;
+    const nextCategory = payload.label as PipelineCategory;
+    if (!PIPELINE_CATEGORIES.includes(nextCategory)) {
+      return;
+    }
+
+    setPipelineCategory(nextCategory);
+    setPipelineType(getDefaultPipelineType(nextCategory));
+    setTaskScopeMode("DELIVERABLES");
+    setTaskScopeValue(null);
+    setTaskKnowledgeTargetDeliverable(null);
+    setCurrentView("pipeline");
+  };
 
   const title = VIEW_TITLE[currentView];
 
@@ -222,11 +343,8 @@ export default function Home() {
         />
       )}
 
-      {/* Consolidated Unified Header */}
       <header id="unified-header" className="shrink-0 px-3 pt-3 pb-2">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between gap-4 ui-panel px-4 py-2.5 shadow-lg backdrop-blur-md">
-
-          {/* Left: Brand & Page Context */}
           <div className="flex items-center gap-5 min-w-0">
             <div className="flex items-center gap-3">
               <div
@@ -242,9 +360,7 @@ export default function Home() {
                   width={32}
                   height={32}
                   priority
-                  className={`h-full w-full rounded-[10px] object-cover ${
-                    isLightMode ? "opacity-100" : "opacity-95"
-                  }`}
+                  className={`h-full w-full rounded-[10px] object-cover ${isLightMode ? "opacity-100" : "opacity-95"}`}
                 />
               </div>
               <a
@@ -252,7 +368,7 @@ export default function Home() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[1.05rem] font-medium tracking-tight text-[var(--color-text-main)] italic opacity-90 hover:opacity-100 hover:text-[var(--color-accent-text)] transition-all whitespace-nowrap hidden lg:block"
-                style={{ fontFamily: 'var(--font-eb)' }}
+                style={{ fontFamily: "var(--font-eb)" }}
               >
                 Chirality.ai
               </a>
@@ -267,16 +383,15 @@ export default function Home() {
                 <span className="text-[var(--color-accent-text)]">{title.accent}</span>
               </div>
 
-              {/* Contextual Selectors (Persona/Family/Variant) */}
               {currentView === "workbench" && (
                 <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5 ml-1">
-                  <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Persona</span>
+                  <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Agent</span>
                   <select
                     value={agentName}
                     onChange={(e) => setAgentName(e.target.value)}
-                    className="ui-focus-ring min-w-[140px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                    className="ui-focus-ring min-w-[160px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                   >
-                    {PERSONA_AGENTS.map((agent) => (
+                    {WORKBENCH_AGENTS.map((agent) => (
                       <option key={agent} value={agent} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
                         {agent}
                       </option>
@@ -286,74 +401,161 @@ export default function Home() {
               )}
 
               {currentView === "pipeline" && (
-                <div className="flex items-center gap-2 ml-1">
+                <div className="flex flex-wrap items-center gap-2 ml-1">
                   <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
-                    <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Family</span>
+                    <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Category</span>
                     <select
-                      value={pipelineFamily}
+                      value={pipelineCategory}
                       onChange={(e) => {
-                        setPipelineFamily(e.target.value);
-                        setSelectedVariant(null);
+                        const nextCategory = e.target.value as PipelineCategory;
+                        setPipelineCategory(nextCategory);
+                        setPipelineType(getDefaultPipelineType(nextCategory));
+                        setTaskScopeValue(null);
+                        setTaskKnowledgeTargetDeliverable(null);
                       }}
-                      className="ui-focus-ring min-w-[110px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                      className="ui-focus-ring min-w-[120px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                     >
-                      {PIPELINE_FAMILIES.map((f) => (
-                        <option key={f} value={f} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
-                          {f}
+                      {PIPELINE_CATEGORIES.map((category) => (
+                        <option key={category} value={category} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
+                          {category}
                         </option>
                       ))}
                     </select>
                   </div>
 
                   <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
-                    <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Variant</span>
+                    <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">
+                      {pipelineCategory === "TASK*" ? "Task Agent" : "Type"}
+                    </span>
                     <select
-                      value={selectedVariant || ""}
-                      onChange={(e) => setSelectedVariant(e.target.value || null)}
-                      disabled={taskVariantDisabled}
-                      className={`ui-focus-ring min-w-[130px] max-w-[280px] truncate cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none ${
-                        taskVariantDisabled ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      value={activePipelineType ?? ""}
+                      onChange={(e) => setPipelineType(e.target.value || null)}
+                      className="ui-focus-ring min-w-[180px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
                     >
-                      {taskLoading ? (
-                        <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-dim)]">
-                          Loading deliverables...
+                      {pipelineTypeOptions.map((option) => (
+                        <option
+                          key={option.id}
+                          value={option.id}
+                          disabled={option.disabled}
+                          className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]"
+                        >
+                          {option.disabled ? `${option.label} (coming soon)` : option.label}
                         </option>
-                      ) : taskEmpty ? (
-                        <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-dim)]">
-                          No deliverables — set root in PORTAL
-                        </option>
-                      ) : (
-                        <>
-                          <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)] opacity-50">
-                            {isTaskFamily ? "-- SELECT DELIVERABLE --" : "-- SELECT --"}
-                          </option>
-                          {isTaskFamily && deliverables.length > 0
-                            ? deliverables.map((d) => (
-                                <option
-                                  key={`${d.pkg}::${d.id}`}
-                                  value={`${d.pkg}::${d.id}`}
-                                  className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]"
-                                >
-                                  {d.id} — {d.name} ({d.pkg.replace("PKG-", "")})
-                                </option>
-                              ))
-                            : variants.map((v) => (
-                                <option key={v} value={v} className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
-                                  {v}
-                                </option>
-                              ))
-                          }
-                        </>
-                      )}
+                      ))}
                     </select>
                   </div>
+
+                  {pipelineCategory === "TASK*" && (
+                    <>
+                      <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
+                        <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Scope Mode</span>
+                        <select
+                          value={effectiveTaskScopeMode}
+                          onChange={(e) => {
+                            setTaskScopeMode(e.target.value as TaskScopeMode);
+                            setTaskScopeValue(null);
+                            setTaskKnowledgeTargetDeliverable(null);
+                          }}
+                          className="ui-focus-ring min-w-[150px] cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none"
+                        >
+                          <option value="DELIVERABLES" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
+                            DELIVERABLES
+                          </option>
+                          {knowledgeDecompositionEnabled && (
+                            <option value="KNOWLEDGE_TYPES" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]">
+                              KNOWLEDGE_TYPES
+                            </option>
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
+                        <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Scope</span>
+                        <select
+                          value={activeTaskScopeValue ?? ""}
+                          onChange={(e) => {
+                            setTaskScopeValue(e.target.value || null);
+                            if (effectiveTaskScopeMode === "KNOWLEDGE_TYPES") {
+                              setTaskKnowledgeTargetDeliverable(null);
+                            }
+                          }}
+                          disabled={deliverablesLoading || rawTaskScopeOptions.length === 0}
+                          className={`ui-focus-ring min-w-[220px] max-w-[340px] truncate cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none ${
+                            deliverablesLoading || rawTaskScopeOptions.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          {deliverablesLoading ? (
+                            <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-dim)]">
+                              Loading scope...
+                            </option>
+                          ) : rawTaskScopeOptions.length === 0 ? (
+                            <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-dim)]">
+                              {effectiveTaskScopeMode === "DELIVERABLES"
+                                ? "No deliverables — set root in PORTAL"
+                                : knowledgeDecompositionEnabled
+                                  ? "No knowledge types detected"
+                                  : "Knowledge types unavailable"}
+                            </option>
+                          ) : (
+                            <>
+                              <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)] opacity-60">
+                                -- SELECT --
+                              </option>
+                              {rawTaskScopeOptions.map((option) => (
+                                <option
+                                  key={option.id}
+                                  value={option.id}
+                                  className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]"
+                                >
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          )}
+                        </select>
+                      </div>
+
+                      {effectiveTaskScopeMode === "KNOWLEDGE_TYPES" && (
+                        <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
+                          <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">Target Deliverable</span>
+                          <select
+                            value={activeTaskKnowledgeTarget ?? ""}
+                            onChange={(e) => setTaskKnowledgeTargetDeliverable(e.target.value || null)}
+                            disabled={knowledgeTargetDeliverables.length === 0}
+                            className={`ui-focus-ring min-w-[240px] max-w-[360px] truncate cursor-pointer bg-transparent text-[10px] font-bold tracking-[0.14em] text-[var(--color-text-main)] uppercase outline-none ${
+                              knowledgeTargetDeliverables.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                          >
+                            {knowledgeTargetDeliverables.length === 0 ? (
+                              <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-dim)]">
+                                Select knowledge type first
+                              </option>
+                            ) : (
+                              <>
+                                <option value="" className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)] opacity-60">
+                                  -- SELECT DELIVERABLE --
+                                </option>
+                                {knowledgeTargetDeliverables.map((entry) => (
+                                  <option
+                                    key={entry.key}
+                                    value={entry.key}
+                                    className="bg-[var(--color-surface-sunken)] text-[var(--color-text-main)]"
+                                  >
+                                    {entry.label}
+                                  </option>
+                                ))}
+                              </>
+                            )}
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right: Navigation & Options */}
           <div className="flex items-center gap-3">
             {isUpdateAvailable && (
               <div className="mono ui-type-meta hidden xl:block mr-4 text-[9px] text-[var(--color-accent-text)]">
@@ -362,7 +564,6 @@ export default function Home() {
             )}
 
             <div className="flex items-center gap-2">
-              {/* Page Select Dropdown */}
               <div className="ui-panel-soft flex items-center gap-2.5 px-3 py-1.5">
                 <span className="ui-type-mono-meta text-[8px] font-black text-[var(--color-accent-text)] opacity-70">View</span>
                 <select
@@ -388,30 +589,32 @@ export default function Home() {
               </button>
             </div>
           </div>
-
         </div>
       </header>
 
-      {/* Main View Area */}
       <main className="flex-grow overflow-hidden">
         {currentView === "home" && (
-            <div className="flex h-full flex-col gap-4 overflow-y-auto px-3 pb-4 pt-3 xl:flex-row xl:gap-5 xl:overflow-hidden xl:px-5 xl:pb-5 xl:pt-4">
-                <HexGrid onLaunch={launchAgent} />
-                <div className="w-full shrink-0 xl:w-auto">
-                    <DashboardList
-                        onSelect={(del) => {
-                            setPipelineFamily("TASK*");
-                            setSelectedVariant(`${del.pkg}::${del.id}`);
-                            setCurrentView("pipeline");
-                        }}
-                        onOpenProjectRootPicker={() => setShowDirPicker(true)}
-                        projectRoot={projectRoot}
-                        deliverables={deliverables}
-                        loading={deliverablesLoading}
-                    />
-                </div>
+          <div className="flex h-full flex-col gap-4 overflow-y-auto px-3 pb-4 pt-3 xl:flex-row xl:gap-5 xl:overflow-hidden xl:px-5 xl:pb-5 xl:pt-4">
+            <HexGrid onLaunch={launchFromMatrix} />
+            <div className="w-full shrink-0 xl:w-auto">
+              <DashboardList
+                onSelect={(deliverable) => {
+                  setPipelineCategory("TASK*");
+                  setPipelineType(getDefaultPipelineType("TASK*"));
+                  setTaskScopeMode("DELIVERABLES");
+                  setTaskScopeValue(`${deliverable.pkg}::${deliverable.id}`);
+                  setTaskKnowledgeTargetDeliverable(null);
+                  setCurrentView("pipeline");
+                }}
+                onOpenProjectRootPicker={() => setShowDirPicker(true)}
+                projectRoot={projectRoot}
+                deliverables={deliverables}
+                loading={deliverablesLoading}
+              />
             </div>
+          </div>
         )}
+
         {currentView === "workbench" && (
           <WorkbenchView
             agentName={agentName}
@@ -421,6 +624,7 @@ export default function Home() {
             onRootChange={handleRootChange}
           />
         )}
+
         {currentView === "session" && (
           <DirectLinkView
             projectRoot={projectRoot}
@@ -428,17 +632,33 @@ export default function Home() {
             onRootChange={handleRootChange}
           />
         )}
+
         {currentView === "pipeline" && (
           <PipelineView
-            family={pipelineFamily}
-            selectedVariant={selectedVariant}
+            category={pipelineCategory}
+            pipelineType={activePipelineType}
+            taskScopeMode={pipelineCategory === "TASK*" ? effectiveTaskScopeMode : null}
+            taskScopeValue={pipelineCategory === "TASK*" ? activeTaskScopeValue : null}
+            taskKnowledgeTargetDeliverable={pipelineCategory === "TASK*" ? activeTaskKnowledgeTarget : null}
             projectRoot={projectRoot}
             onNavigateHome={() => setCurrentView("home")}
             onRootChange={handleRootChange}
             deliverables={deliverables}
+            knowledgeTypes={knowledgeTypes}
           />
         )}
       </main>
+
+      {currentView === "pipeline" && pipelineCategory === "TASK*" && !knowledgeDecompositionEnabled && (
+        <div className="px-5 pb-2">
+          <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-text-dim)]/75">
+            Knowledge type scope unavailable: no decomposition marker detected.
+          </p>
+          {knowledgeDecompositionMarker && (
+            <p className="mono text-[10px] text-[var(--color-text-dim)]/65">Marker file: {knowledgeDecompositionMarker}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

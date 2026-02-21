@@ -1,74 +1,129 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FileTree } from "./FileTree";
 import { ResizableLayout } from "./ResizableLayout";
 import type { Deliverable } from "./DashboardList";
 
-interface PipelineViewProps {
-    family: string;
-    selectedVariant: string | null;
-    projectRoot: string | null;
-    onNavigateHome?: () => void;
-    onRootChange?: (path: string) => void;
-    deliverables?: Deliverable[];
-}
+type PipelineCategory = "DECOMP*" | "PREP*" | "TASK*" | "AUDIT*";
+type TaskScopeMode = "DELIVERABLES" | "KNOWLEDGE_TYPES";
 
-const PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
-    "PREPARATION": { personaId: "PREPARATION", fileName: "AGENT_PREPARATION.md" },
-    "4_DOCUMENTS": { personaId: "4_DOCUMENTS", fileName: "AGENT_4_DOCUMENTS.md" },
-    "CHIRALITY_FRAMEWORK": { personaId: "CHIRALITY_FRAMEWORK", fileName: "AGENT_CHIRALITY_FRAMEWORK.md" },
-    "CHIRALITY_LENS": { personaId: "CHIRALITY_LENS", fileName: "AGENT_CHIRALITY_LENS.md" },
-    "TASK_ESTIMATING": { personaId: "ESTIMATING", fileName: "AGENT_ESTIMATING.md" },
-    "AUDIT_AGENTS": { personaId: "AUDIT_AGENTS", fileName: "AGENT_AUDIT_AGENTS.md" },
-    "AUDIT_DEP_CLOSURE": { personaId: "AUDIT_DEP_CLOSURE", fileName: "AGENT_AUDIT_DEP_CLOSURE.md" }
+type KnowledgeTypeOption = {
+  id: string;
+  label: string;
+  matchingDeliverableKeys: string[];
 };
 
-export function PipelineView({ family, selectedVariant, projectRoot, onNavigateHome, onRootChange, deliverables }: PipelineViewProps) {
+interface PipelineViewProps {
+  category: PipelineCategory;
+  pipelineType: string | null;
+  taskScopeMode: TaskScopeMode | null;
+  taskScopeValue: string | null;
+  taskKnowledgeTargetDeliverable: string | null;
+  projectRoot: string | null;
+  onNavigateHome?: () => void;
+  onRootChange?: (path: string) => void;
+  deliverables?: Deliverable[];
+  knowledgeTypes?: KnowledgeTypeOption[];
+}
+
+const STATIC_PIPELINE_PERSONA_MAPPING: Record<string, { personaId: string; fileName: string }> = {
+  "DECOMP*:SOFTWARE": { personaId: "SOFTWARE_DECOMP", fileName: "AGENT_SOFTWARE_DECOMP.md" },
+  "DECOMP*:PROJECT": { personaId: "PROJECT_DECOMP", fileName: "AGENT_PROJECT_DECOMP.md" },
+  "DECOMP*:DOMAIN": { personaId: "DOMAIN_DECOMP", fileName: "AGENT_DOMAIN_DECOMP.md" },
+  "DECOMP*:BASE": { personaId: "DECOMP_BASE", fileName: "AGENT_DECOMP_BASE.md" },
+
+  "PREP*:PREPARATION": { personaId: "PREPARATION", fileName: "AGENT_PREPARATION.md" },
+  "PREP*:4_DOCUMENTS": { personaId: "4_DOCUMENTS", fileName: "AGENT_4_DOCUMENTS.md" },
+  "PREP*:CHIRALITY_FRAMEWORK": { personaId: "CHIRALITY_FRAMEWORK", fileName: "AGENT_CHIRALITY_FRAMEWORK.md" },
+  "PREP*:CHIRALITY_LENS": { personaId: "CHIRALITY_LENS", fileName: "AGENT_CHIRALITY_LENS.md" },
+
+  "TASK*:SCOPE_CHANGE": { personaId: "SCOPE_CHANGE", fileName: "AGENT_SCOPE_CHANGE.md" },
+  "TASK*:ESTIMATE_PREP": { personaId: "ESTIMATE_PREP", fileName: "AGENT_ESTIMATE_PREP.md" },
+  "TASK*:ESTIMATING": { personaId: "ESTIMATING", fileName: "AGENT_ESTIMATING.md" },
+  "TASK*:SCHEDULING": { personaId: "SCHEDULING", fileName: "AGENT_SCHEDULING.md" },
+
+  "AUDIT*:AGENTS": { personaId: "AUDIT_AGENTS", fileName: "AGENT_AUDIT_AGENTS.md" },
+  "AUDIT*:DEPENDENCIES": { personaId: "AUDIT_DEP_CLOSURE", fileName: "AGENT_AUDIT_DEP_CLOSURE.md" },
+  "AUDIT*:SCOPE": { personaId: "AUDIT_DECOMP", fileName: "AGENT_AUDIT_DECOMP.md" },
+};
+
+function toSessionToken(value: string): string {
+  return value.replace(/[^A-Za-z0-9_]+/g, "_");
+}
+
+export function PipelineView({
+  category,
+  pipelineType,
+  taskScopeMode,
+  taskScopeValue,
+  taskKnowledgeTargetDeliverable,
+  projectRoot,
+  onNavigateHome,
+  onRootChange,
+  deliverables,
+  knowledgeTypes,
+}: PipelineViewProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
-  // ---------------------------------------------------------------------------
-  // Resolve persona config — deliverable variants vs. static pipeline agents
-  // ---------------------------------------------------------------------------
-  const isDeliverableKey = selectedVariant?.includes("::");
-  const deliverable = isDeliverableKey
-    ? deliverables?.find(d => `${d.pkg}::${d.id}` === selectedVariant) ?? null
-    : null;
+  const deliverableLookup = useMemo(() => {
+    return new Map((deliverables ?? []).map((deliverable) => [`${deliverable.pkg}::${deliverable.id}`, deliverable]));
+  }, [deliverables]);
 
-  // STALE KEY GUARD: If variant looks like a deliverable key but doesn't match
-  // any loaded deliverable, treat as null — never fall through to AGENT_${key}.md
-  const personaConfig = isDeliverableKey
-    ? (deliverable ? { personaId: "TASK", fileName: "AGENT_TASK.md" } : null)
-    : selectedVariant
-        ? (PIPELINE_PERSONA_MAPPING[selectedVariant] ?? { personaId: selectedVariant, fileName: `AGENT_${selectedVariant}.md` })
+  const selectedKnowledgeType =
+    category === "TASK*" && taskScopeMode === "KNOWLEDGE_TYPES" && taskScopeValue
+      ? knowledgeTypes?.find((knowledgeType) => knowledgeType.id === taskScopeValue) ?? null
+      : null;
+
+  const scopedDeliverable =
+    category === "TASK*" && taskScopeMode === "DELIVERABLES" && taskScopeValue
+      ? deliverableLookup.get(taskScopeValue) ?? null
+      : category === "TASK*" && taskScopeMode === "KNOWLEDGE_TYPES" && taskKnowledgeTargetDeliverable
+        ? deliverableLookup.get(taskKnowledgeTargetDeliverable) ?? null
         : null;
 
-  // AGENT_TASK.md contract: requires DeliverablePath, defaults ApplyEdits=false, UseSemanticLensing=false
-  const autoPrompt = deliverable
+  const hasTaskScopeSelection =
+    category === "TASK*" &&
+    scopedDeliverable &&
+    (taskScopeMode === "DELIVERABLES" || (taskScopeMode === "KNOWLEDGE_TYPES" && selectedKnowledgeType));
+
+  const staticKey = pipelineType ? `${category}:${pipelineType}` : null;
+  const staticPersonaConfig = staticKey ? STATIC_PIPELINE_PERSONA_MAPPING[staticKey] ?? null : null;
+
+  const personaConfig = hasTaskScopeSelection ? { personaId: "TASK", fileName: "AGENT_TASK.md" } : staticPersonaConfig;
+
+  const autoPrompt = hasTaskScopeSelection
     ? [
         `Read agents/AGENT_TASK.md and initialize according to those instructions.`,
         ``,
-        `DeliverablePath: "${deliverable.path}"`,
+        `DeliverablePath: "${scopedDeliverable.path}"`,
         `ApplyEdits: false`,
         `UseSemanticLensing: false`,
+        ...(taskScopeMode === "KNOWLEDGE_TYPES" && selectedKnowledgeType
+          ? [`ScopeMode: KNOWLEDGE_TYPE`, `KnowledgeType: ${selectedKnowledgeType.label}`]
+          : []),
       ].join("\n")
-    : personaConfig
-        ? `Read agents/${personaConfig.fileName} and prepare to execute the pipeline according to those instructions.`
-        : null;
+    : staticPersonaConfig
+      ? `Read agents/${staticPersonaConfig.fileName} and prepare to execute the pipeline according to those instructions.`
+      : null;
 
-  // Display name for the layout header
-  const displayName = deliverable
-    ? `${deliverable.id} — ${deliverable.name}`
-    : selectedVariant || family;
+  const displayName = hasTaskScopeSelection
+    ? taskScopeMode === "KNOWLEDGE_TYPES" && selectedKnowledgeType
+      ? `${selectedKnowledgeType.label} :: ${scopedDeliverable.id}`
+      : `${scopedDeliverable.id} — ${scopedDeliverable.name}`
+    : pipelineType || category;
+
+  const sessionId = hasTaskScopeSelection
+    ? taskScopeMode === "KNOWLEDGE_TYPES" && selectedKnowledgeType
+      ? `pipeline_TASK_KNOWLEDGE_${toSessionToken(selectedKnowledgeType.id)}_${toSessionToken(scopedDeliverable.pkg)}_${toSessionToken(scopedDeliverable.id)}`
+      : `pipeline_TASK_SCOPE_${toSessionToken(scopedDeliverable.pkg)}_${toSessionToken(scopedDeliverable.id)}`
+    : `pipeline_${toSessionToken(category)}_${toSessionToken(pipelineType || "none")}`;
 
   return (
     <ResizableLayout
-      key={deliverable ? `task_${selectedVariant}` : `${family}_${selectedVariant}`}
+      key={sessionId}
       agentName={displayName}
-      sessionId={deliverable
-        ? `pipeline_TASK_${deliverable.pkg}_${deliverable.id}`
-        : `pipeline_${family}_${selectedVariant || 'none'}`
-      }
+      sessionId={sessionId}
       autoPrompt={autoPrompt}
       selectedFile={selectedFile}
       placeholder="Execute command..."
@@ -94,11 +149,7 @@ export function PipelineView({ family, selectedVariant, projectRoot, onNavigateH
           </div>
 
           <div className="flex-grow overflow-y-auto p-2 min-h-0 custom-scrollbar">
-            <FileTree
-                onFileSelect={setSelectedFile}
-                className="h-full"
-                rootPath={projectRoot}
-            />
+            <FileTree onFileSelect={setSelectedFile} className="h-full" rootPath={projectRoot} />
           </div>
         </>
       )}

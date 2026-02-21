@@ -5,7 +5,7 @@ description: "Generates semantic matrices (_SEMANTIC.md) from Orientation/Concep
 # AGENT INSTRUCTIONS — Chirality Framework
 AGENT_TYPE: 2
 
-These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent begins from two canonical input matrices (Orientation and Conceptualization), then derives five further matrices (Formulation through Evaluation) that express categories, types, behaviors, and values for a given Deliverable perspective.
+These instructions govern an agent that applies semantic algebra to generate structured "semantic matrices" for knowledge work. The agent begins from two canonical input matrices (Orientation and Conceptualization), then derives five further matrices (Formulation through Evaluation) that express categories, types, behaviors, and values for a given production unit perspective. The agent supports all three decomposition variants (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP).
 
 The agent does **not** specify particulars—it identifies semantic partitions. Particulars are addresses within those partitions, resolved in subsequent stages beyond this agent's scope.
 
@@ -64,13 +64,13 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
 - **Write scope is deliverable-local.** You may write/overwrite only:
   - `{deliverable_folder}/_SEMANTIC.md` (primary output), and
   - `{deliverable_folder}/_STATUS.md` *only* to advance `INITIALIZED → SEMANTIC_READY` (append history; never regress).
-- **Do not modify the four drafted documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
+- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Artifact documents. This agent is read-only on all production documents.
 
 ## Glossary
 
 | Term | Meaning |
 |------|---------|
-| **Deliverable perspective** | The deliverable-bound viewpoint that conditions all matrix generation (derived from `_CONTEXT.md` + the four drafted documents) |
+| **Deliverable perspective** | The deliverable-bound viewpoint that conditions all matrix generation (derived from `_CONTEXT.md` + the production documents; see Production Documents) |
 | **Semantic lens (`_SEMANTIC.md`)** | The persisted semantic matrices for a deliverable; used as a lens in WORKING_ITEMS; not an engineering authority |
 | **SEMANTIC_READY** | Deliverable lifecycle readiness state indicating `_SEMANTIC.md` has been generated (in addition to drafts) |
 | **Semantic Multiplication (`*`)** | Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined |
@@ -96,8 +96,25 @@ This document defines the procedure for semantic matrix generation: adopting can
 ### Inputs / Outputs (Integration Contract)
 
 **Inputs (from ORCHESTRATOR or human):**
-- `deliverable_folder` — absolute path to one deliverable folder under `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
-- `decomposition_path` — absolute path to the project decomposition document (for traceability; do not re-interpret scope)
+- `deliverable_folder` — absolute path to one production unit folder (resolved by ORCHESTRATOR per variant folder patterns)
+- `decomposition_path` — absolute path to the decomposition document (for traceability; do not re-interpret scope)
+- `DECOMP_VARIANT` (optional) — `PROJECT` | `SOFTWARE` | `DOMAIN`. When provided, determines entity terminology in outputs and which production documents to read. When absent, default to `PROJECT` behavior.
+
+### Variant Awareness
+
+This agent uses **Deliverable** terminology throughout. When `DECOMP_VARIANT = DOMAIN`, substitute per this table:
+
+| Protocol term | PROJECT / SOFTWARE | DOMAIN |
+|---------------|-------------------|--------|
+| Deliverable | Deliverable | Knowledge Type |
+| Package | Package | Category |
+| DEL-ID | DEL-XXX-YY / DEL-XX-YY | KTY-CC-TT_{desc} |
+
+### Production Documents
+
+By default, the agent reads the **standard four-document set** (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) as context for deriving the production unit perspective.
+
+When `DECOMP_VARIANT = DOMAIN`, the production documents are determined by the Knowledge Type's anticipated artifacts and may differ from this set. Read whatever non-metadata production documents (`.md` files not prefixed with `_`) exist in the folder.
 
 **Primary outputs:**
 - `{deliverable_folder}/_SEMANTIC.md` — semantic lens file (overwritten each run)
@@ -112,7 +129,9 @@ This document defines the procedure for semantic matrix generation: adopting can
 1. **Locate and read deliverable context**
    - Read `{deliverable_folder}/_CONTEXT.md` (authoritative identity + description).
    - Read `{deliverable_folder}/_STATUS.md` (current lifecycle state).
-   - Read `{deliverable_folder}/Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` (drafts; do not edit).
+   - Read production documents (drafts; do not edit):
+     - PROJECT / SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+     - DOMAIN: all non-metadata `.md` files in the folder (the Knowledge Type's production documents)
    - Optionally read `{deliverable_folder}/_REFERENCES.md` to understand what evidence is expected downstream.
 
 2. **Derive the deliverable perspective statement**
@@ -301,7 +320,7 @@ Purely structural transform that preserves cell content but changes orientation.
 
 | Does | Does Not |
 |------|----------|
-| Read one deliverable folder’s context + drafts | Edit the four drafted documents |
+| Read one deliverable folder’s context + drafts | Edit production documents |
 | Adopt canonical A and B; derive matrices C through E (types/categories/behaviors/values) | Specify project particulars (numbers, tags, exact code clauses) |
 | Show interpretation work (3-step `I(r,c,L)`) | Skip steps or “handwave” interpretation |
 | Write/overwrite `_SEMANTIC.md` in the deliverable folder | Write outside the deliverable folder |
@@ -567,23 +586,21 @@ This document defines the seven-phase matrix system and construction rules.
 ### Output Format
 
 **File name:** `_SEMANTIC.md`  
-**Location:** inside the target deliverable folder: `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/_SEMANTIC.md`
+**Location:** inside the target production unit folder: `{deliverable_folder}/_SEMANTIC.md`
 
 The file must be valid markdown and include:
 
 ```markdown
-# Deliverable: [DEL-ID] [Deliverable Name]
+# [Production Unit Label]: [ID] [Name]
 
 **Generated:** [YYYY-MM-DD]
-**Perspective:** [1–3 sentence deliverable-bound perspective; no particulars]
+**DECOMP_VARIANT:** [PROJECT|SOFTWARE|DOMAIN]
+**Perspective:** [1–3 sentence production-unit-bound perspective; no particulars]
 **Framework:** Chirality Semantic Algebra
 **Inputs Read:**
 - _CONTEXT.md — [SourceRef]
 - _STATUS.md — [SourceRef]
-- Datasheet.md — [SourceRef]
-- Specification.md — [SourceRef]
-- Guidance.md — [SourceRef]
-- Procedure.md — [SourceRef]
+- [list each production document read] — [SourceRef]
 - _REFERENCES.md — [SourceRef or "not read"]
 
 ## Matrix A — Orientation (3×4) — Canonical

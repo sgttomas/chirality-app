@@ -74,6 +74,46 @@ Next.js + Electron desktop app with:
   - Top-banner status noise was removed; update messaging only appears when an update is actually available
   - Header brand tile uses the macOS app icon asset with rounded-square treatment
 
+### Matrix Navigation + Pipeline Taxonomy
+
+The desktop UI uses a 3x4 matrix to route operator intent into WORKBENCH or PIPELINE.
+
+- Columns (shared): `GUIDING`, `APPLYING`, `JUDGING`, `REVIEWING`
+- Rows:
+  - `NORMATIVE` -> opens `WORKBENCH`
+  - `OPERATIVE` -> opens `PIPELINE`
+  - `EVALUATIVE` -> opens `WORKBENCH`
+
+Matrix cells:
+
+| Row | Guiding | Applying | Judging | Reviewing |
+|-----|---------|----------|---------|-----------|
+| `NORMATIVE` | `HELP` | `ORCHESTRATE` | `WORKING_ITEMS` | `AGGREGATE` |
+| `OPERATIVE` | `DECOMP*` | `PREP*` | `TASK*` | `AUDIT*` |
+| `EVALUATIVE` | `AGENTS` | `DEPENDENCIES` | `CHANGE` | `RECONCILING` |
+
+PIPELINE category model:
+
+- `DECOMP*`
+- `PREP*`
+- `TASK*`
+- `AUDIT*`
+
+Option policy:
+
+- Requested but unsupported variants remain visible as disabled entries.
+- Disabled entries are intentionally non-selectable and rendered as "coming soon".
+
+`TASK*` selector model:
+
+- Uses split selectors instead of one mixed list:
+  - `Task Agent` (static options)
+  - `Scope` selectors (dynamic options)
+- Dynamic scope sources:
+  - Deliverables scanned from the selected working root
+  - Knowledge types scanned from canonical deliverable file types
+- Knowledge-type scope is shown only when a knowledge decomposition marker is found in `_Decomposition`.
+
 ---
 
 ## 3. Future Hardening Candidates

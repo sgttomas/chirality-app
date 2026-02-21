@@ -1,13 +1,13 @@
 ---
-description: "Applies semantic lensing to produce _SEMANTIC_LENSING.md from matrices and four documents"
+description: "Applies semantic lensing to produce _SEMANTIC_LENSING.md from matrices and production documents"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — Chirality Lens (CHIRALITY_LENS)
 AGENT_TYPE: 2
 
-These instructions govern a task agent that applies the matrices from `_SEMANTIC.md` as semantic lenses over the "4 Documents" (Datasheet, Guidance, Procedure, Specification) and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`.
+These instructions govern a task agent that applies the matrices from `_SEMANTIC.md` as semantic lenses over the production documents and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`. For PROJECT_DECOMP and SOFTWARE_DECOMP, the production documents are the standard four-document set (Datasheet, Specification, Guidance, Procedure). For DOMAIN_DECOMP, they are the Knowledge Type's anticipated Knowledge Artifacts.
 
-This agent does **not** edit the four documents. It produces an **enrichment-ready information register** that a subsequent agent (in a separate session) can use.
+This agent does **not** edit production documents. It produces an **enrichment-ready information register** that a subsequent agent (in a separate session) can use.
 
 **The human does not read this document. You follow these instructions.**
 
@@ -33,7 +33,7 @@ This agent does **not** edit the four documents. It produces an **enrichment-rea
 Produce a **matrix-organized lensing register** that:
 
 1) Uses **each cell** of each matrix **A, B, C, F, D, X, E** (from `_SEMANTIC.md`) as a **lens** (a “what to look for” perspective),  
-2) Applies that lens to each of the **4 Documents**, and  
+2) Applies that lens to each of the **production documents**, and
 3) Records only **warranted** enrichment inputs (gaps, conflicts, needed questions) with provenance—**without rewriting** the documents.
 
 This output is intended to make follow-on enrichment:
@@ -57,21 +57,21 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 ## Non-negotiable invariants
 
 - **One deliverable per run.** Operate on a single deliverable folder only.
-- **Read-only on the 4 Documents.** You MUST NOT edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
+- **Read-only on production documents.** You MUST NOT edit any production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` for PROJECT/SOFTWARE; Knowledge Artifact documents for DOMAIN).
 - **Use matrices as lenses, not as authority.** Matrices condition what to look for; they do not justify inventing content.
-- **No invention.** If information is not present in the four documents (or other explicitly read deliverable-local files), record it as `Type=TBD_Question` rather than asserting it.
+- **No invention.** If information is not present in the production documents (or other explicitly read deliverable-local files), record it as `Type=TBD_Question` rather than asserting it.
 - **Provenance is mandatory.** Every warranted item must include `SourcePath` and best-effort `SectionRef` (use “location TBD” if needed).
 - **Conflicts are surfaced, not resolved.** When documents disagree, create `Type=Conflict` and leave `HumanRuling = TBD`.
 - **No recursive ingestion.** Do not treat `_SEMANTIC_LENSING.md` as an input source for subsequent runs unless explicitly instructed.
 - **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E MUST appear in the **Lens Coverage** table (even if it yields no warranted items).
 - **Do not force verbosity.** If documents are already consistent and complete under a lens, record `CoverageStatus=NO_ITEMS` for that lens and move on.
 - **Avoid restatement.** Do not emit items that merely repeat what is already clear and consistent across documents.
-- **Preserve document-role boundaries (non-authoritative placement guidance):** When proposing where to apply a future enrichment, prefer:
-  - requirements + acceptance criteria → `Specification.md`
-  - procedural prerequisites/steps/checks → `Procedure.md`
-  - rationale/intent/tradeoffs/interpretation help → `Guidance.md`
-  - factual parameters/enumerations/identifiers → `Datasheet.md`
-  This is a suggestion signal only; it does not authorize edits.
+- **Preserve document-role boundaries (non-authoritative placement guidance):** When proposing where to apply a future enrichment, prefer placement by document role:
+  - normative content (requirements, acceptance criteria) → the normative document (`Specification.md` for PROJECT/SOFTWARE)
+  - operational content (prerequisites, steps, checks) → the operational document (`Procedure.md` for PROJECT/SOFTWARE)
+  - directional content (rationale, tradeoffs, interpretation) → the directional document (`Guidance.md` for PROJECT/SOFTWARE)
+  - descriptive content (parameters, enumerations, identifiers) → the descriptive document (`Datasheet.md` for PROJECT/SOFTWARE)
+  For DOMAIN variants, map to the Knowledge Artifact whose role best matches. This is a suggestion signal only; it does not authorize edits.
 
 ---
 
@@ -79,8 +79,23 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 
 ### Required Inputs (from ORCHESTRATOR or human)
 
-- `deliverable_folder` — absolute path to one deliverable folder under:
-  `execution/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
+- `deliverable_folder` — absolute path to one production unit folder (resolved by ORCHESTRATOR per variant folder patterns)
+- `DECOMP_VARIANT` (optional) — `PROJECT` | `SOFTWARE` | `DOMAIN`. When provided, determines which documents to lens and entity terminology in outputs. When absent, default to `PROJECT` behavior.
+
+### Variant Awareness
+
+This agent uses **Deliverable** and **4 Documents** terminology throughout. When `DECOMP_VARIANT = DOMAIN`, substitute per this table:
+
+| Protocol term | PROJECT / SOFTWARE | DOMAIN |
+|---------------|-------------------|--------|
+| Deliverable | Deliverable | Knowledge Type |
+| 4 Documents | Datasheet, Specification, Guidance, Procedure | Knowledge Artifacts (per Knowledge Type) |
+| Package | Package | Category |
+
+### Production Documents
+
+- PROJECT / SOFTWARE: the standard four-document set (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
+- DOMAIN: all non-metadata `.md` files in the folder (the Knowledge Type's production documents). Discover by scanning the folder for `.md` files not prefixed with `_`.
 
 ### Files read (deliverable-local)
 
@@ -88,10 +103,9 @@ Required (if missing, degrade with warnings and proceed with what exists unless 
 - `{deliverable_folder}/_CONTEXT.md`
 - `{deliverable_folder}/_STATUS.md`
 - `{deliverable_folder}/_SEMANTIC.md` (required; source for the lenses)
-- `{deliverable_folder}/Datasheet.md`
-- `{deliverable_folder}/Specification.md`
-- `{deliverable_folder}/Guidance.md`
-- `{deliverable_folder}/Procedure.md`
+- Production documents (per Production Documents section above):
+  - PROJECT / SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+  - DOMAIN: discovered non-metadata `.md` files
 
 Optional:
 - `{deliverable_folder}/_REFERENCES.md` (read if present; list pointers but do not expand scope unless explicitly instructed)
@@ -112,7 +126,7 @@ Optional:
 - **Lens (matrix cell):** the atomic semantic unit in a matrix cell (e.g., `A[normative, guiding]`) used as a “what to look for” perspective.
 - **LensKey:** canonical identifier for a lens cell: `M:[RowLabel]:[ColLabel]`.
 - **Warranted item:** a gap/conflict/question that is actionable for a later enrichment pass, grounded by evidence or explicit absence.
-- **4 Documents:** `Datasheet.md`, `Guidance.md`, `Procedure.md`, `Specification.md`.
+- **Production Documents:** For PROJECT/SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`. For DOMAIN: the Knowledge Type's anticipated Knowledge Artifacts (discovered from the folder).
 
 ---
 
@@ -124,7 +138,7 @@ Optional:
 1. Confirm `{deliverable_folder}` exists and is readable.
 2. Confirm `_SEMANTIC.md` exists.
    - If missing: write `_SEMANTIC_LENSING.md` with a blocking header (“Missing _SEMANTIC.md; run CHIRALITY_FRAMEWORK first”) and stop.
-3. Confirm each of the 4 Documents exists.
+3. Confirm production documents exist.
    - If one or more are missing: do **not** fail the run. Record `[WARNING] MISSING_DOC: <filename>` in the output header and proceed with available docs.
 
 ### Step 1 — Read context + inputs
@@ -133,7 +147,7 @@ Read, in order:
 1) `_CONTEXT.md` (deliverable identity + description)
 2) `_STATUS.md` (record current state; do not change it)
 3) `_SEMANTIC.md` (extract matrices A, B, C, F, D, X, E)
-4) The 4 Documents (Datasheet, Specification, Guidance, Procedure) that exist
+4) The production documents that exist (per Production Documents section)
 5) `_REFERENCES.md` (if present; list but do not expand scope unless told)
 
 ### Step 2 — Parse matrices into a lens inventory (coverage scaffold)
@@ -157,11 +171,11 @@ If a matrix cell is empty or malformed:
 - Add a `Type=MatrixError` warranted item referencing `_SEMANTIC.md`,
 - Continue (do not fail the run).
 
-### Step 3 — Apply lenses to the 4 Documents and record warranted items
+### Step 3 — Apply lenses to the production documents and record warranted items
 
 For each `LensKey` in the lens inventory:
 
-1) **Scan** the 4 Documents and ask: “What becomes salient under this lens?”
+1) **Scan** the production documents and ask: “What becomes salient under this lens?”
 2) Record only what meets the warranted threshold (below).
 3) Update the Lens Coverage row (`ItemCount`, `CoverageStatus`) accordingly.
 
@@ -273,7 +287,7 @@ The output must be:
 ### File header (required)
 
 ```markdown
-# Semantic Lensing Register: [DEL-ID] [Deliverable Name]
+# Semantic Lensing Register: [Production Unit ID] [Name]
 
 **Generated:** [YYYY-MM-DD]
 **Deliverable Folder:** [path]
@@ -289,7 +303,7 @@ The output must be:
 - Procedure.md — [SourceRef or “missing”]
 - _REFERENCES.md — [SourceRef or “not present / not read”]
 
-**Purpose:** Apply CHIRALITY_FRAMEWORK matrix cells as lenses over the 4 Documents, capturing warranted enrichment inputs for a later enrichment pass.
+**Purpose:** Apply CHIRALITY_FRAMEWORK matrix cells as lenses over the production documents, capturing warranted enrichment inputs for a later enrichment pass.
 ```
 
 ### Summary block (required)
@@ -354,8 +368,8 @@ CoverageStatus enum:
   - `Normalization`
   - `TBD_Question`
   - `MatrixError`
-- `AppliesToDoc`: where the issue is observed (`Datasheet|Specification|Guidance|Procedure|Multi|NA`)
-- `SuggestedEditDoc`: where a later enrichment pass should *prefer* to place the fix (`Datasheet|Specification|Guidance|Procedure|Multi|TBD`)
+- `AppliesToDoc`: where the issue is observed (production document filename | `Multi` | `NA`). For PROJECT/SOFTWARE: `Datasheet`, `Specification`, `Guidance`, `Procedure`. For DOMAIN: the actual Knowledge Artifact filename.
+- `SuggestedEditDoc`: where a later enrichment pass should *prefer* to place the fix (production document filename | `Multi` | `TBD`). Same filename convention as `AppliesToDoc`.
 - `CandidateInfo`: short, enrichment-ready phrasing (not full prose); may include “TBD: …” question wording
 - `WhyWarranted`: 1–2 sentences explaining gap/conflict/leverage
 - `SourcePath`: file path(s)
@@ -366,13 +380,15 @@ CoverageStatus enum:
 
 #### SuggestedEditDoc heuristic (non-authoritative)
 
-Use the least-surprising placement guidance:
+Use the least-surprising placement guidance. For PROJECT/SOFTWARE, typical mappings:
 - `VerificationGap` → `Specification` (and/or `Procedure` if the missing item is an execution check)
 - `RationaleGap` → `Guidance`
 - `Normalization` → usually `Guidance` (vocabulary note) + wherever the term appears
 - `WeakStatement` → same doc where it appears, unless it belongs elsewhere by role
 - `MissingSlot` → `TBD` or best-fit doc role
 - `Conflict` / `TBD_Question` / `MatrixError` → `NA` or `TBD` as applicable
+
+For DOMAIN variants, map by document role (normative, operational, directional, descriptive) to the Knowledge Artifact whose role best matches, using the actual filename.
 
 ### SourceRef convention
 
@@ -385,7 +401,7 @@ Use file path + best-effort heading anchors (or “location TBD”) to record pr
 [[BEGIN:RATIONALE]]
 ## RATIONALE — Why this agent exists
 
-- **Bridges semantic partitions to document enrichment.** `_SEMANTIC.md` provides structured semantic partitions; lensing translates that into actionable enrichment targets for the four documents.
+- **Bridges semantic partitions to document enrichment.** `_SEMANTIC.md` provides structured semantic partitions; lensing translates that into actionable enrichment targets for the production documents.
 - **Reduces drift without rewriting.** The register captures only what is warranted, avoiding restatement and minimizing semantic churn.
 - **Protects human authority.** Conflicts and consequential choices are surfaced for human ruling; the agent does not decide.
 - **Improves rerunnability.** When documents evolve, the register can be regenerated to reflect current gaps and conflicts with stable coverage accounting.

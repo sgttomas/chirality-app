@@ -736,4 +736,131 @@ The coordination representation is chosen per project instance and recorded once
 
 ---
 
+## 14. UI Navigation and Selector Contract
+
+This section defines deterministic frontend behavior for matrix launch routing and work mode selectors.
+
+### 14.1 PORTAL Matrix Routing
+
+Matrix rows map to destination views as follows:
+
+| Matrix Row | Destination View |
+|------------|------------------|
+| `NORMATIVE` | `WORKBENCH` |
+| `OPERATIVE` | `PIPELINE` |
+| `EVALUATIVE` | `WORKBENCH` |
+
+Matrix columns are shared labels: `GUIDING`, `APPLYING`, `JUDGING`, `REVIEWING`.
+
+### 14.2 WORKBENCH Selector Scope
+
+WORKBENCH persona selector is limited to the NORMATIVE + EVALUATIVE matrix agents:
+
+- `HELP`
+- `ORCHESTRATE`
+- `WORKING_ITEMS`
+- `AGGREGATE`
+- `AGENTS`
+- `DEPENDENCIES`
+- `CHANGE`
+- `RECONCILING`
+
+OPERATIVE matrix entries MUST route to PIPELINE, not WORKBENCH.
+
+### 14.3 PIPELINE Selector Schema
+
+PIPELINE uses category-driven selectors:
+
+1. `Category`: one of `DECOMP*`, `PREP*`, `TASK*`, `AUDIT*`
+2. `Type`: category-specific static options (including disabled placeholders)
+3. TASK-only split controls:
+   - `Task Agent` (static task options)
+   - `Scope Mode` (`DELIVERABLES` or `KNOWLEDGE_TYPES`)
+   - `Scope` (dynamic list based on mode)
+   - `Target Deliverable` (required when scope mode is `KNOWLEDGE_TYPES`)
+
+### 14.4 Disabled Option Behavior
+
+Requested but unsupported variants MUST be shown and disabled:
+
+- Visible to operators (no silent omission)
+- Non-selectable
+- Labeled as coming soon (or equivalent disabled hint)
+
+### 14.5 Stale Selection Reset Rules
+
+Frontend state MUST clear invalid/stale selections when:
+
+- Project root changes
+- Deliverable scan results no longer include the selected deliverable key
+- Knowledge decomposition marker is absent while knowledge-type scope is selected
+- Knowledge type no longer resolves to available target deliverables
+
+---
+
+## 15. `/api/project/deliverables` Response Contract Extension
+
+The deliverables endpoint continues to return `deliverables[]` and is extended with knowledge-scope metadata.
+
+### 15.1 Response Shape
+
+```json
+{
+  "deliverables": [
+    {
+      "id": "DEL-01-01",
+      "name": "Deliverable Name",
+      "pkg": "PKG-01_PackageLabel",
+      "status": "open",
+      "path": "/abs/path/to/deliverable"
+    }
+  ],
+  "knowledgeDecomposition": {
+    "enabled": false,
+    "markerFile": null
+  },
+  "knowledgeTypes": [
+    {
+      "id": "datasheet",
+      "label": "Datasheet",
+      "matchingDeliverableKeys": ["PKG-01_PackageLabel::DEL-01-01"]
+    }
+  ]
+}
+```
+
+### 15.2 `knowledgeDecomposition`
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `enabled` | boolean | `true` only when a knowledge decomposition marker is found in decomposition docs |
+| `markerFile` | string \| null | Path (or filename) of the first marker-bearing decomposition file; `null` when none found |
+
+### 15.3 `knowledgeTypes[]`
+
+Each element represents a canonical knowledge-type bucket observed across scanned deliverables.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `id` | string | Stable key for the knowledge type (e.g., `datasheet`) |
+| `label` | string | Human-readable label (e.g., `Datasheet`) |
+| `matchingDeliverableKeys` | string[] | Deliverable composite keys in `pkg::id` format where this type is present |
+
+Knowledge types SHOULD be derived from canonical deliverable file classes:
+
+- Datasheet
+- Specification
+- Guidance
+- Procedure
+- Dependencies
+- References
+- Context
+- Status
+- Semantic
+- Memory
+
+When `knowledgeDecomposition.enabled=false`, clients MUST NOT present knowledge-type scope as an active selection mode.
+
+---
+
 EOF

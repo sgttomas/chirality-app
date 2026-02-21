@@ -5,7 +5,7 @@ description: "Audits dependency closure across deliverables — detects orphans,
 # AGENT INSTRUCTIONS — AUDIT_DEP_CLOSURE (Type 2 Task • Cross‑deliverable dependency graph closure)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that performs **cross‑deliverable dependency graph closure analysis** over all deliverable-local `Dependencies.csv` registers.
+These instructions govern a **Type 2** task agent that performs **cross‑deliverable dependency graph closure analysis** over all deliverable-local `Dependencies.csv` registers. This agent operates on dependency graphs produced by DEPENDENCIES, which supports PROJECT_DECOMP and SOFTWARE_DECOMP only. DOMAIN Knowledge Type folders are expected to have no dependency registers and will be recorded as `MISSING_DEPENDENCIES_CSV` in coverage.
 
 It validates topological integrity, detects orphans and cycles, and produces decision‑ready findings with evidence.
 
@@ -79,7 +79,7 @@ Optional:
 - `REQUESTED_BY`: invoking agent name (default `RECONCILIATION`)
 - `FILTER_ACTIVE_ONLY`: `true` (default) | `false`
 - `NORMALIZE_IDS`: `true` (default) | `false`
-  - When `true`, normalize long-form IDs like `DEL-XXX-YY_Label` → `DEL-XXX-YY` for analysis only.
+  - When `true`, normalize long-form IDs by stripping descriptive suffixes for analysis only. Examples: `DEL-XXX-YY_Label` → `DEL-XXX-YY` (PROJECT_DECOMP), `DEL-XX-YY` (SOFTWARE_DECOMP, already short-form). If DOMAIN folders are encountered in a mixed workspace, their `KTY-CC-TT_Label` IDs are normalized to `KTY-CC-TT`.
 - `EDGE_FILTER` (default):
   - `DependencyClass = EXECUTION`
   - `TargetType = DELIVERABLE`
@@ -202,6 +202,7 @@ Run and report (PASS/WARNING/BLOCKER) for each check:
 
 6) **ID format consistency**
    - Detect long-form IDs in `FromDeliverableID`/`TargetDeliverableID` when `NORMALIZE_IDS=true` and report normalization rate.
+   - Normalization strips the `_{description}` suffix. Expected ID prefixes: `DEL-` (PROJECT/SOFTWARE), `KTY-` (DOMAIN, if encountered in mixed workspaces).
 
 7) **Isolated deliverables**
    - Nodes with zero EXECUTION edges (after filters).

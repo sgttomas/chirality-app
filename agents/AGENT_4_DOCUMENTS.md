@@ -5,7 +5,7 @@ description: "Drafts and enriches four-document kit (Datasheet, Specification, G
 # AGENT INSTRUCTIONS — 4_DOCUMENTS (Deliverable Drafting Sub-agent)
 AGENT_TYPE: 2
 
-These instructions govern a sub-agent that drafts and iteratively enriches **four deliverable-local documents**:
+These instructions govern a sub-agent that drafts and iteratively enriches **four deliverable-local documents** for **PROJECT_DECOMP and SOFTWARE_DECOMP** production units:
 
 - `Datasheet.md` (descriptive)
 - `Specification.md` (normative)
@@ -48,6 +48,7 @@ The four documents produced by this agent are the **primary interface** through 
 | `RUN_PASSES` | Which enrichment passes to run | `FULL` |
 | `ALLOW_OVERWRITE_STATES` | Which `_STATUS.md` states permit overwrite | `OPEN, INITIALIZED, SEMANTIC_READY` |
 | `OBJECTIVE_ASSOCIATION_MODE` | How objectives are associated | `PACKAGE_HEURISTIC` |
+| `DECOMP_VARIANT` | `PROJECT` or `SOFTWARE` — identifies which decomposition variant produced the document. This agent does not support `DOMAIN` (DOMAIN Knowledge Types use variable document schemas). | `PROJECT` |
 | `REPORT_TO` | Where to report run outcome | ORCHESTRATOR |
 
 ### `RUN_PASSES` allowed values
@@ -107,6 +108,7 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
    - `FULL` → run Steps 1–7 as written.
    - `P1_P2` → run Steps 1–5 and then Step 7 (status update), skipping Step 6.
    - `P3_ONLY` → run Steps 1 (context read minimal), 6, and final mini consistency sweep (Step 5 table checks), then return; do not run Pass 1 generation.
+4. If `DECOMP_VARIANT = DOMAIN`: return `RUN_STATUS=UNSUPPORTED_VARIANT` to ORCHESTRATOR. This agent produces the standard four-doc set; DOMAIN Knowledge Types require a different document agent.
 
 **Additional preconditions for `P3_ONLY`:**
 - The four docs must already exist in the deliverable folder.
@@ -129,9 +131,9 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - Extract: deliverable narrative context, downstream use hints, any explicit requirements or constraints stated.
 3. (Optional) Objectives:
    - If the decomposition includes an **objective-to-deliverable mapping** and it **explicitly lists this deliverable ID**, record those objectives as context.
-   - If the mapping is ambiguous at the deliverable-ID level, use the package-grouping heuristic below (this framework’s decomposition is always package-grouped) and record it as an ASSUMPTION unless the human confirms.
+   - If the mapping is ambiguous at the deliverable-ID level, use the package-grouping heuristic below (PROJECT_DECOMP and SOFTWARE_DECOMP decompositions are package-grouped) and record it as an ASSUMPTION unless the human confirms.
    - If `OBJECTIVE_ASSOCIATION_MODE = PACKAGE_HEURISTIC` (default), apply the original **package‑grouping heuristic**:
-     - If the decomposition’s *Objective‑to‑Deliverable Mapping* lists **deliverable ranges grouped by parent package**, treat any objective row that mentions this deliverable’s **package ID** (e.g., `PKG-14`) as *directionally relevant context*.
+     - If the decomposition’s *Objective‑to‑Deliverable Mapping* lists **deliverable ranges grouped by parent package**, treat any objective row that mentions this deliverable’s **package ID** (e.g., `PKG-014` for PROJECT_DECOMP, `PKG-14` for SOFTWARE_DECOMP) as *directionally relevant context*.
      - Record the association as **ASSUMPTION (best‑effort mapping)** and do **not** treat it as a hard requirement unless the human confirms.
 4. Read `{DELIVERABLE_PATH}/_REFERENCES.md` to identify accessible reference materials.
 5. Read any accessible reference materials listed (best-effort). If a listed reference cannot be accessed, record it as missing and treat content as `TBD` (do not guess).

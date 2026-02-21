@@ -3,41 +3,51 @@
 import React from "react";
 
 type HexData = {
-  row: string;
-  col: string;
+  row: MatrixRow;
+  col: MatrixColumn;
   label: string;
-  type: "persona" | "task";
+  launchTarget: "workbench" | "pipeline";
+};
+
+export type MatrixRow = "normative" | "operative" | "evaluative";
+export type MatrixColumn = "guiding" | "applying" | "judging" | "reviewing";
+
+export type MatrixLaunchPayload = {
+  row: MatrixRow;
+  col: MatrixColumn;
+  label: string;
+  launchTarget: "workbench" | "pipeline";
 };
 
 const hexData: HexData[] = [
   // Normative Row
-  { row: "normative", col: "guiding", label: "DECOMP", type: "persona" },
-  { row: "normative", col: "applying", label: "ORCHESTRATE", type: "persona" },
-  { row: "normative", col: "judging", label: "WORKING_ITEMS", type: "persona" },
-  { row: "normative", col: "reviewing", label: "AGGREGATE", type: "persona" },
+  { row: "normative", col: "guiding", label: "HELP", launchTarget: "workbench" },
+  { row: "normative", col: "applying", label: "ORCHESTRATE", launchTarget: "workbench" },
+  { row: "normative", col: "judging", label: "WORKING_ITEMS", launchTarget: "workbench" },
+  { row: "normative", col: "reviewing", label: "AGGREGATE", launchTarget: "workbench" },
   
   // Operative Row
-  { row: "operative", col: "guiding", label: "HELP", type: "persona" },
-  { row: "operative", col: "applying", label: "PREP*", type: "task" },
-  { row: "operative", col: "judging", label: "TASK*", type: "task" },
-  { row: "operative", col: "reviewing", label: "AUDIT*", type: "task" },
+  { row: "operative", col: "guiding", label: "DECOMP*", launchTarget: "pipeline" },
+  { row: "operative", col: "applying", label: "PREP*", launchTarget: "pipeline" },
+  { row: "operative", col: "judging", label: "TASK*", launchTarget: "pipeline" },
+  { row: "operative", col: "reviewing", label: "AUDIT*", launchTarget: "pipeline" },
   
   // Evaluative Row
-  { row: "evaluative", col: "guiding", label: "AGENTS", type: "persona" },
-  { row: "evaluative", col: "applying", label: "DEPENDENCIES", type: "persona" },
-  { row: "evaluative", col: "judging", label: "CHANGE", type: "persona" },
-  { row: "evaluative", col: "reviewing", label: "RECONCILING", type: "persona" },
+  { row: "evaluative", col: "guiding", label: "AGENTS", launchTarget: "workbench" },
+  { row: "evaluative", col: "applying", label: "DEPENDENCIES", launchTarget: "workbench" },
+  { row: "evaluative", col: "judging", label: "CHANGE", launchTarget: "workbench" },
+  { row: "evaluative", col: "reviewing", label: "RECONCILING", launchTarget: "workbench" },
 ];
 
 const columns = [
-  { id: "guiding", label: "GUIDING" },
-  { id: "applying", label: "APPLYING" },
-  { id: "judging", label: "JUDGING" },
-  { id: "reviewing", label: "REVIEWING" },
+  { id: "guiding", label: "GUIDING" as const },
+  { id: "applying", label: "APPLYING" as const },
+  { id: "judging", label: "JUDGING" as const },
+  { id: "reviewing", label: "REVIEWING" as const },
 ];
 
 interface HexGridProps {
-    onLaunch: (name: string, tier: string, type: "persona" | "task") => void;
+    onLaunch: (payload: MatrixLaunchPayload) => void;
 }
 
 export function HexGrid({ onLaunch }: HexGridProps) {
@@ -60,8 +70,15 @@ export function HexGrid({ onLaunch }: HexGridProps) {
             key={`${hex.row}-${hex.col}`}
             type="button"
             className={`hex-wrapper hex-launch ui-focus-ring row-${hex.row} col-${hex.col}`}
-            onClick={() => onLaunch(hex.label, hex.row, hex.type)}
-            aria-label={`Launch ${hex.label} ${hex.type}`}
+            onClick={() =>
+              onLaunch({
+                row: hex.row,
+                col: hex.col,
+                label: hex.label,
+                launchTarget: hex.launchTarget,
+              })
+            }
+            aria-label={`Launch ${hex.label}`}
           >
             {/* Show Row Label only for the first column (Guiding) */}
             {hex.col === "guiding" && (

@@ -248,7 +248,34 @@ The project decomposition document (produced by PROJECT_DECOMP) defines these ad
 
 ---
 
-## 9. Epistemic Labels
+## 9. UI Navigation Vocabulary
+
+The desktop frontend uses canonical UI terms for matrix routing and pipeline selection state.
+
+### 9.1 Matrix Axes
+
+| Type | Values | Meaning |
+|------|--------|---------|
+| `MatrixRow` | `NORMATIVE`, `OPERATIVE`, `EVALUATIVE` | Major intent lane used for routing to WORKBENCH or PIPELINE |
+| `MatrixColumn` | `GUIDING`, `APPLYING`, `JUDGING`, `REVIEWING` | Role-oriented matrix column shared across all rows |
+
+### 9.2 Pipeline Selectors
+
+| Type | Values | Meaning |
+|------|--------|---------|
+| `PipelineCategory` | `DECOMP*`, `PREP*`, `TASK*`, `AUDIT*` | Top-level pipeline mode selected in the header |
+| `TaskScopeMode` | `DELIVERABLES`, `KNOWLEDGE_TYPES` | Dynamic scope mode used only when `PipelineCategory=TASK*` |
+
+### 9.3 Knowledge Decomposition Terms
+
+| Term | Meaning |
+|------|---------|
+| **Knowledge decomposition marker** | A decomposition-document signal (e.g., headings/phrases containing `Knowledge Categories`, `Knowledge Types`, or equivalent marker text) that enables knowledge-type scope in TASK selectors. |
+| **Knowledge type option** | A canonical file-type bucket (e.g., Datasheet, Specification, Guidance, Procedure, Dependencies, References, Context, Status, Semantic, Memory) returned by API scanning and selectable in TASK scope mode. |
+
+---
+
+## 10. Epistemic Labels
 
 Agents use these labels in `Notes` fields and dependency records to distinguish knowledge certainty:
 

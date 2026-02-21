@@ -26,20 +26,24 @@ This file is the operator-facing index and “rules of the road” for using the
   - **PROJECT_DECOMP** — EPC / design-build projects (Packages → Deliverables, `PKG-XXX` / `DEL-XXX-YY`)
   - **SOFTWARE_DECOMP** — software development (Work Domain Packages → agent-executable Deliverables with Context Envelope sizing, `PKG-XX` / `DEL-XX-YY`)
   - **DOMAIN_DECOMP** — handbook / knowledge domains (Categories → Knowledge Types, `CAT-###` / `KTY-CC-TT`)
+- **How decomposition variants combine:**
+  - **SOFTWARE_DECOMP extends any branch.** If a branch has software to build, SOFTWARE_DECOMP decomposes that software component (including recursively extending other SOFTWARE_DECOMP branches).
+  - **DOMAIN_DECOMP runs parallel to any branch.** It captures the knowledge domain a branch operates within — orthogonal to the work decomposition (including recursively paralleling other DOMAIN_DECOMP branches).
 - The decomposition file is located here:
 
 `{EXECUTION_ROOT}/_Decomposition/`
 
 ### Filesystem is the state
-- Project “truth” is what is on disk: folders + `_STATUS.md` + the four documents.
+- Project “truth” is what is on disk: folders + `_STATUS.md` + production documents.
+- Production documents are the four fixed documents (Datasheet, Specification, Guidance, Procedure) for PROJECT/SOFTWARE, or variable Knowledge Artifact files for DOMAIN.
 - Agents must not maintain a hidden database or private state that diverges from the filesystem.
 
-### Deliverables (working-items) are local
-- A **deliverable** (`DEL-XXX-YY`) is one folder under `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`.
-- Work inside that folder is **local**: no cross-deliverable “crosstalk” by default.
+### Production units (working-items) are local
+- A **production unit** is one folder: a Deliverable (`DEL-XXX-YY`) under `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`, or a Knowledge Type (`KTY-CC-TT`) under `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/{KTY-ID}_{KTYDesc}/`.
+- Work inside that folder is **local**: no cross-unit “crosstalk” by default.
 
 ### Local lifecycle (not stage gates)
-Deliverables progress through a local lifecycle:
+Production units progress through a local lifecycle:
 
 `OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED`
 
@@ -47,11 +51,11 @@ Deliverables progress through a local lifecycle:
 - **SEMANTIC_READY** indicates `_SEMANTIC.md` exists (semantic lens). If the lens step is skipped, deliverables may move from `INITIALIZED → IN_PROGRESS` directly.
 - `_STATUS.md` is the authoritative lifecycle indicator.
 
-### Cross-deliverable operations are opt-in and human-triggered
-- **RECONCILIATION**: coherence checks across a human-defined scope (read-only deliverables) → writes under `execution/_Reconciliation/`.
-- **AGGREGATION**: synthesis/collection across a human-defined scope (read-only inputs by default) → writes under `execution/_Aggregation/`.
-- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only deliverables) → writes under `execution/_Estimates/`. Runs are parameterized by `BASIS_OF_ESTIMATE` (QUOTE | RATE_TABLE | HISTORICAL | PARAMETRIC | ALLOWANCE). No agent-authored BOE is required by default.
-- **SCHEDULING**: parameterized schedule generation from the dependency graph (read-only deliverables) → writes under `execution/_Schedule/`. Supports PRECEDENCE, CONSTRAINT, or HYBRID scheduling basis.
+### Cross-unit operations are opt-in and human-triggered
+- **RECONCILIATION**: coherence checks across a human-defined scope (read-only production units) → writes under `execution/_Reconciliation/`. All variants.
+- **AGGREGATION**: synthesis/collection across a human-defined scope (read-only inputs by default) → writes under `execution/_Aggregation/`. All variants.
+- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only production units) → writes under `execution/_Estimates/`. PROJECT/SOFTWARE only. Runs are parameterized by `BASIS_OF_ESTIMATE` (QUOTE | RATE_TABLE | HISTORICAL | PARAMETRIC | ALLOWANCE). No agent-authored BOE is required by default.
+- **SCHEDULING**: parameterized schedule generation from the dependency graph (read-only production units) → writes under `execution/_Schedule/`. PROJECT/SOFTWARE only. Supports PRECEDENCE, CONSTRAINT, or HYBRID scheduling basis.
 
 ---
 
@@ -65,7 +69,7 @@ Agents are classified by how they interact, what they write, and whether they ca
 |----------|--------|---------|
 | **AGENT_CLASS** | `PERSONA` / `TASK` | Persona agents run interactive sessions; Task agents run pipelines |
 | **INTERACTION_SURFACE** | `chat` / `INIT-TASK` / `spawned` / `both` | How the agent is invoked |
-| **WRITE_SCOPE** | `project-level` / `tool-root-only` / `deliverable-local` / `repo-metadata-only` / `none` | What the agent is allowed to write |
+| **WRITE_SCOPE** | `repo-wide` / `project-level` / `tool-root-only` / `deliverable-local` / `repo-metadata-only` / `none` | What the agent is allowed to write |
 | **BLOCKING** | `allowed` / `never` | Whether the agent may pause for human input |
 
 Each agent instruction file also declares **AGENT_TYPE**:
@@ -104,6 +108,68 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **TASK** | TASK | INIT-TASK | Proposals; optional edits to authorized deliverable-local files |
 | **WORKING_ITEMS** | PERSONA | chat | User defined output |
 
+
+---
+
+## 3) The Agent Matrix
+
+The Agent Matrix organizes the agent suite along two axes derived from Matrix A of the chirality semantic framework:
+
+- **Rows** describe the agent's epistemic posture: NORMATIVE (standards/direction), OPERATIVE (execution/production), EVALUATIVE (assessment/quality)
+- **Columns** describe the agent's functional role: GUIDING (orientation), APPLYING (execution), JUDGING (decision), REVIEWING (audit/feedback)
+
+| | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
+| :--- | :--- | :--- | :--- | :--- |
+| **NORMATIVE** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
+| **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
+| **EVALUATIVE** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+
+**Note:** "AGENTS" in the EVALUATIVE/GUIDING cell refers to `AGENT_HELPS_HUMANS` — the Type 0 canonical standard agent used to build and maintain all other agents.
+
+### UI page routing
+
+Each row maps to a UI surface:
+
+| Row | Page | Interaction model |
+|-----|------|-------------------|
+| **NORMATIVE** | WORKBENCH | Interactive persona sessions with agent selection |
+| **OPERATIVE** | PIPELINE | Pipeline execution with category dropdown menus |
+| **EVALUATIVE** | WORKBENCH | Interactive persona sessions with agent selection |
+
+### OPERATIVE category breakdown (PIPELINE dropdown menus)
+
+The OPERATIVE row contains composite categories (marked with `*`). Each expands into a dropdown menu on the PIPELINE page:
+
+**DECOMP**
+- SOFTWARE
+- PROJECT
+- DOMAIN
+- BASE (create new)
+
+**PREP**
+- PREPARATION
+- 4_DOCUMENTS
+- CHIRALITY_FRAMEWORK
+- CHIRALITY_LENS
+
+**TASK**
+- SCOPE_CHANGE
+- SCOPE_PREP
+- ESTIMATE_PREP
+- AUDIT_PREP
+- SCHEDULE_PREP
+- ESTIMATING
+- SCHEDULING
+- "all deliverables" (for software development or project execution)
+- "all knowledge types" (for domain knowledge curation)
+
+**AUDIT**
+- AGENTS
+- DEPENDENCIES
+- ESTIMATES
+- REFERENCES
+- SCHEDULES
+- SCOPE
 
 ---
 

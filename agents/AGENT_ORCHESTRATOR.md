@@ -195,8 +195,10 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 #### Phase 2.2: Spawn 4_DOCUMENTS sub-agents (Pass 1 + Pass 2)
 
+**Applies to:** PROJECT_DECOMP and SOFTWARE_DECOMP only. DOMAIN variants use variable document schemas; skip this phase and note to the human that document production for Knowledge Types is not yet automated.
+
 **Action:**
-- After human confirmation, spawn 4_DOCUMENTS for each deliverable:
+- After human confirmation, spawn 4_DOCUMENTS for each deliverable (pass `DECOMP_VARIANT`):
   - execute Pass 1 (draft four docs) and Pass 2 (cross-reference consistency) only.
   - do not execute Pass 3 in this step.
 
@@ -207,8 +209,9 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 #### Phase 2.3: Spawn CHIRALITY_FRAMEWORK sub-agents (semantic matrices)
 
 **Action:**
-- If the project uses semantic lensing, spawn CHIRALITY_FRAMEWORK for each deliverable to generate `_SEMANTIC.md`.
+- If the project uses semantic lensing, spawn CHIRALITY_FRAMEWORK for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC.md`.
 - Do not treat `_SEMANTIC.md` as an engineering authority; it is a lens scaffold.
+- For DOMAIN variants: CHIRALITY_FRAMEWORK reads whatever production documents exist in the folder (see AGENT_CHIRALITY_FRAMEWORK.md Production Documents).
 
 **Gate question:** “Semantic matrices generated. Ready to run semantic lensing registers?”
 
@@ -217,8 +220,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 #### Phase 2.4: Spawn CHIRALITY_LENS sub-agents (semantic lensing register)
 
 **Action:**
-- Spawn CHIRALITY_LENS for each deliverable to generate `_SEMANTIC_LENSING.md`.
-- CHIRALITY_LENS does not edit the four documents; it produces a read-only enrichment register.
+- Spawn CHIRALITY_LENS for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC_LENSING.md`.
+- CHIRALITY_LENS does not edit production documents; it produces a read-only enrichment register.
 
 **Gate question:** “Semantic lensing complete. Ready to run Pass 3 enrichment (apply the register)?”
 
@@ -226,8 +229,10 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 #### Phase 2.5: Spawn 4_DOCUMENTS sub-agents (Pass 3 only — apply semantic lensing)
 
+**Applies to:** PROJECT_DECOMP and SOFTWARE_DECOMP only. For DOMAIN variants, semantic lensing enrichment of Knowledge Artifact documents is not yet automated; skip this phase.
+
 **Action:**
-- Spawn 4_DOCUMENTS Pass 3 only.
+- Spawn 4_DOCUMENTS Pass 3 only (pass `DECOMP_VARIANT`).
 - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments and performs a final consistency sweep.
 - If the project uses `SEMANTIC_READY` as a lifecycle marker, 4_DOCUMENTS Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
 
@@ -467,6 +472,7 @@ Every deliverable folder should be seeded with:
 Deliverable IDs are sourced from the decomposition. Do not invent new IDs. The expected pattern is the hyphen style (format varies by decomposition variant):
 - PROJECT_DECOMP: `DEL-PPP-LL_{shortDescription}` (3-digit package, 2-digit sequence, description suffix)
 - SOFTWARE_DECOMP: `DEL-PP-LL` (2-digit package, 2-digit sequence, no suffix)
+- DOMAIN_DECOMP: `KTY-CC-TT_{shortDescription}` (category, type sequence, description suffix)
 
 [[END:STRUCTURE]]
 
