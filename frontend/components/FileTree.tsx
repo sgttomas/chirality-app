@@ -70,8 +70,44 @@ interface FileTreeProps {
   rootPath?: string | null;
 }
 
+type TreeNode = FileNode & {
+  children?: TreeNode[];
+  childrenLoaded?: boolean;
+  isLoadingChildren?: boolean;
+};
+
+function normalizeNode(raw: FileNode): TreeNode {
+  return {
+    ...raw,
+    children: Array.isArray(raw.children) ? raw.children.map(normalizeNode) : undefined,
+    childrenLoaded: Array.isArray(raw.children),
+    isLoadingChildren: false,
+  };
+}
+
+function normalizeNodes(raw: FileNode[]): TreeNode[] {
+  return raw.map(normalizeNode);
+}
+
+function updateNodeByPath(nodes: TreeNode[], targetPath: string, update: (node: TreeNode) => TreeNode): TreeNode[] {
+  return nodes.map((node) => {
+    if (node.path === targetPath) {
+      return update(node);
+    }
+
+    if (node.children && node.children.length > 0) {
+      return {
+        ...node,
+        children: updateNodeByPath(node.children, targetPath, update),
+      };
+    }
+
+    return node;
+  });
+}
+
 export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath }: FileTreeProps) {
-  const [nodes, setNodes] = useState<FileNode[]>([]);
+  const [nodes, setNodes] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [gitStatuses, setGitStatuses] = useState<Record<string, GitFileState>>({});
@@ -103,10 +139,20 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
 
   useEffect(() => {
     let canceled = false;
+    const normalizedRootPath = rootPath?.trim() ?? "";
+    if (!normalizedRootPath) {
+      queueMicrotask(() => {
+        setNodes([]);
+        setSelectedPath(null);
+        setLoading(false);
+      });
+      return;
+    }
+
     const rootChanged = previousTreeRootRef.current !== rootPath;
     previousTreeRootRef.current = rootPath;
 
-    const url = rootPath ? `/api/fs?path=${encodeURIComponent(rootPath)}` : "/api/fs";
+    const url = `/api/fs?path=${encodeURIComponent(normalizedRootPath)}&base=${encodeURIComponent(normalizedRootPath)}`;
     if (rootChanged) {
       queueMicrotask(() => setLoading(true));
       queueMicrotask(() => setSelectedPath(null));
@@ -116,7 +162,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
       .then((res) => res.json())
       .then((data) => {
         if (canceled) return;
-        setNodes(Array.isArray(data) ? data : []);
+        setNodes(normalizeNodes(Array.isArray(data) ? data : []));
         setLoading(false);
       })
       .catch((err) => {
@@ -129,14 +175,24 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     return () => {
       canceled = true;
     };
-  }, [rootPath, refreshTick]);
+  }, [rootPath]);
 
   useEffect(() => {
     let canceled = false;
+    const normalizedRootPath = rootPath?.trim() ?? "";
+    if (!normalizedRootPath) {
+      queueMicrotask(() => {
+        setGitStatuses({});
+        setChangedCount(0);
+        setGitLoadState("not_repo");
+      });
+      return;
+    }
+
     const rootChanged = previousGitRootRef.current !== rootPath;
     previousGitRootRef.current = rootPath;
 
-    const url = rootPath ? `/api/fs/git-status?path=${encodeURIComponent(rootPath)}` : "/api/fs/git-status";
+    const url = `/api/fs/git-status?path=${encodeURIComponent(normalizedRootPath)}`;
     if (rootChanged) {
       queueMicrotask(() => setGitLoadState("loading"));
     }
@@ -183,6 +239,54 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
     };
   }, [rootPath, refreshTick]);
 
+  const loadDirectoryChildren = async (nodePath: string, absolutePath: string) => {
+    const normalizedRootPath = rootPath?.trim() ?? "";
+    if (!normalizedRootPath) {
+      return;
+    }
+
+    let shouldFetch = false;
+    setNodes((previous) =>
+      updateNodeByPath(previous, nodePath, (node) => {
+        if (node.childrenLoaded || node.isLoadingChildren) {
+          return node;
+        }
+        shouldFetch = true;
+        return { ...node, isLoadingChildren: true };
+      }),
+    );
+
+    if (!shouldFetch) {
+      return;
+    }
+
+    try {
+      const url = `/api/fs?path=${encodeURIComponent(absolutePath)}&base=${encodeURIComponent(normalizedRootPath)}`;
+      const response = await fetch(url, { cache: "no-store" });
+      const payload = await response.json();
+      const children = normalizeNodes(Array.isArray(payload) ? payload : []);
+
+      setNodes((previous) =>
+        updateNodeByPath(previous, nodePath, (node) => ({
+          ...node,
+          children,
+          childrenLoaded: true,
+          isLoadingChildren: false,
+        })),
+      );
+    } catch (error) {
+      console.error("Failed to fetch directory children:", error);
+      setNodes((previous) =>
+        updateNodeByPath(previous, nodePath, (node) => ({
+          ...node,
+          children: [],
+          childrenLoaded: true,
+          isLoadingChildren: false,
+        })),
+      );
+    }
+  };
+
   const dirtyDirectories = useMemo(() => {
     const directories = new Set<string>();
     Object.keys(gitStatuses).forEach((relativePath) => {
@@ -203,6 +307,18 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
           <span className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
             Scanning filesystem...
           </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!(rootPath && rootPath.trim())) {
+    return (
+      <div className={containerClass}>
+        <div className="ui-panel-soft rounded-md px-3 py-4 text-center">
+          <p className="mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-dim)]">
+            Select a project root to browse files.
+          </p>
         </div>
       </div>
     );
@@ -230,6 +346,7 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
           node={node}
           onFileSelect={onFileSelect}
           onDirectorySelect={onDirectorySelect}
+          onExpandDirectory={loadDirectoryChildren}
           depth={0}
           selectedPath={selectedPath}
           setSelectedPath={setSelectedPath}
@@ -242,9 +359,10 @@ export function FileTree({ onFileSelect, onDirectorySelect, className, rootPath 
 }
 
 interface TreeNodeProps {
-  node: FileNode;
+  node: TreeNode;
   onFileSelect?: (path: string) => void;
   onDirectorySelect?: (path: string) => void;
+  onExpandDirectory: (path: string, absolutePath: string) => void;
   depth: number;
   selectedPath: string | null;
   setSelectedPath: (path: string) => void;
@@ -256,13 +374,14 @@ function TreeNode({
   node,
   onFileSelect,
   onDirectorySelect,
+  onExpandDirectory,
   depth,
   selectedPath,
   setSelectedPath,
   gitStatuses,
   dirtyDirectories,
 }: TreeNodeProps) {
-  const [isOpen, setIsOpen] = useState(depth < 1); // Expand first level by default
+  const [isOpen, setIsOpen] = useState(false);
   const isSelected = selectedPath === node.path;
   const fileGitState = node.isDirectory ? undefined : gitStatuses[node.path];
   const fileGitMeta = fileGitState ? getGitBadgeMeta(fileGitState) : null;
@@ -273,8 +392,12 @@ function TreeNode({
     e.stopPropagation();
     setSelectedPath(node.path);
     if (node.isDirectory) {
-      setIsOpen((prev) => !prev);
+      const nextOpen = !isOpen;
+      setIsOpen(nextOpen);
       onDirectorySelect?.(node.path);
+      if (nextOpen && !node.childrenLoaded) {
+        onExpandDirectory(node.path, node.absolutePath);
+      }
       return;
     }
     onFileSelect?.(node.path);
@@ -343,6 +466,7 @@ function TreeNode({
               node={child}
               onFileSelect={onFileSelect}
               onDirectorySelect={onDirectorySelect}
+              onExpandDirectory={onExpandDirectory}
               depth={depth + 1}
               selectedPath={selectedPath}
               setSelectedPath={setSelectedPath}
@@ -350,6 +474,13 @@ function TreeNode({
               dirtyDirectories={dirtyDirectories}
             />
           ))}
+        </div>
+      )}
+      {node.isDirectory && isOpen && node.isLoadingChildren && (
+        <div className="pl-8 pr-2 py-1">
+          <span className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-text-dim)]">
+            Loading...
+          </span>
         </div>
       )}
     </div>

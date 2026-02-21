@@ -5,6 +5,7 @@ import path from "path";
 export type FileNode = {
   name: string;
   path: string;
+  absolutePath: string;
   isDirectory: boolean;
   children?: FileNode[];
 };
@@ -30,12 +31,9 @@ function readDirectory(dir: string, baseDir: string): FileNode[] {
       const node: FileNode = {
         name: entry.name,
         path: relativePath,
+        absolutePath: fullPath,
         isDirectory: entry.isDirectory(),
       };
-
-      if (node.isDirectory) {
-        node.children = readDirectory(fullPath, baseDir);
-      }
 
       return node;
     })
@@ -51,16 +49,30 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const queryPath = searchParams.get("path");
+    const basePathParam = searchParams.get("base");
 
-    // Starting from the project root (one level up from frontend) or the provided path
-    const rootPath = queryPath ? path.resolve(queryPath) : path.resolve(process.cwd(), "..");
+    if (!queryPath) {
+      return NextResponse.json({ error: "Path is required" }, { status: 400 });
+    }
+
+    const rootPath = path.resolve(queryPath);
+    const basePath = path.resolve(basePathParam ?? rootPath);
     
     // Ensure the path exists
     if (!fs.existsSync(rootPath)) {
        return NextResponse.json({ error: "Path does not exist" }, { status: 404 });
     }
 
-    const tree = readDirectory(rootPath, rootPath);
+    if (!fs.existsSync(basePath)) {
+      return NextResponse.json({ error: "Base path does not exist" }, { status: 404 });
+    }
+
+    const relativeToBase = path.relative(basePath, rootPath);
+    if (relativeToBase.startsWith("..") || path.isAbsolute(relativeToBase)) {
+      return NextResponse.json({ error: "Path is outside base path" }, { status: 400 });
+    }
+
+    const tree = readDirectory(rootPath, basePath);
     return NextResponse.json(tree);
   } catch (error) {
     console.error("FS API Error:", error);
