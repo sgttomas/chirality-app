@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { agentSdkManager, ensureHarnessSessionBooted } from "@/lib/harness";
-import { SessionNotFoundError } from "@/lib/harness/session-manager";
+import {
+  agentSdkManager,
+  ensureHarnessSessionBooted,
+  SessionBootSdkError,
+  SessionPersonaNotFoundError,
+} from "@/lib/harness";
+import { ProjectRootValidationError, SessionNotFoundError } from "@/lib/harness/session-manager";
 import type { TurnOpts } from "@/lib/harness/types";
 
 export const runtime = "nodejs";
@@ -33,13 +38,21 @@ function normalizeTurnOpts(value: Record<string, unknown>): TurnOpts {
   return normalized as TurnOpts;
 }
 
+function statusForProjectRootValidation(code: ProjectRootValidationError["code"]): number {
+  if (code === "PROJECT_ROOT_NOT_ACCESSIBLE") {
+    return 403;
+  }
+
+  return 400;
+}
+
 export async function POST(req: NextRequest): Promise<Response> {
   let body: BootSessionRequestBody;
 
   try {
     body = (await req.json()) as BootSessionRequestBody;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return NextResponse.json({ errorType: "VALIDATION_ERROR", error: "Invalid JSON body." }, { status: 400 });
   }
 
   const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : "";
@@ -47,15 +60,18 @@ export async function POST(req: NextRequest): Promise<Response> {
   const opts = body.opts === undefined ? undefined : isObject(body.opts) ? normalizeTurnOpts(body.opts) : null;
 
   if (!sessionId) {
-    return NextResponse.json({ error: "sessionId is required." }, { status: 400 });
+    return NextResponse.json({ errorType: "VALIDATION_ERROR", error: "sessionId is required." }, { status: 400 });
   }
 
   if (opts === null) {
-    return NextResponse.json({ error: "opts must be an object when provided." }, { status: 400 });
+    return NextResponse.json({ errorType: "VALIDATION_ERROR", error: "opts must be an object when provided." }, { status: 400 });
   }
 
   if (agentSdkManager.isRunning(sessionId)) {
-    return NextResponse.json({ error: "Cannot boot a session with an in-flight turn." }, { status: 409 });
+    return NextResponse.json(
+      { errorType: "SESSION_IN_FLIGHT", error: "Cannot boot a session with an in-flight turn." },
+      { status: 409 },
+    );
   }
 
   try {
@@ -72,10 +88,40 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
   } catch (error) {
     if (error instanceof SessionNotFoundError) {
-      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+      return NextResponse.json({ errorType: "SESSION_NOT_FOUND", error: "Session not found." }, { status: 404 });
+    }
+
+    if (error instanceof ProjectRootValidationError) {
+      return NextResponse.json(
+        {
+          errorType: error.code,
+          error: error.message,
+        },
+        { status: statusForProjectRootValidation(error.code) },
+      );
+    }
+
+    if (error instanceof SessionPersonaNotFoundError) {
+      return NextResponse.json(
+        {
+          errorType: error.code,
+          error: error.message,
+        },
+        { status: 404 },
+      );
+    }
+
+    if (error instanceof SessionBootSdkError) {
+      return NextResponse.json(
+        {
+          errorType: error.code,
+          error: error.message,
+        },
+        { status: 502 },
+      );
     }
 
     const message = error instanceof Error ? error.message : "Failed to boot session.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ errorType: "SESSION_BOOT_FAILED", error: message }, { status: 500 });
   }
 }

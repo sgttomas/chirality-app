@@ -220,7 +220,7 @@ function registerDesktopUpdateHandlers() {
 }
 
 function isInstructionRoot(rootPath) {
-  const required = ["AGENTS.md", "README.md", "agents"];
+  const required = ["AGENTS.md", "README.md", "agents", "docs"];
   try {
     for (const entry of required) {
       if (!fs.existsSync(path.join(rootPath, entry))) {
@@ -228,7 +228,7 @@ function isInstructionRoot(rootPath) {
       }
     }
 
-    return fs.statSync(path.join(rootPath, "agents")).isDirectory();
+    return fs.statSync(path.join(rootPath, "agents")).isDirectory() && fs.statSync(path.join(rootPath, "docs")).isDirectory();
   } catch {
     return false;
   }

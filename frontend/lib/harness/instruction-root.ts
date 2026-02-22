@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const INSTRUCTION_ROOT_ENV = "CHIRALITY_INSTRUCTION_ROOT";
-const REQUIRED_FILES = ["AGENTS.md", "README.md", "agents"] as const;
+const REQUIRED_FILES = ["AGENTS.md", "README.md", "agents", "docs"] as const;
 
 let cachedInstructionRoot: string | null = null;
 
@@ -17,7 +17,7 @@ function isInstructionRoot(candidate: string): boolean {
       }
     }
 
-    return fs.statSync(path.join(root, "agents")).isDirectory();
+    return fs.statSync(path.join(root, "agents")).isDirectory() && fs.statSync(path.join(root, "docs")).isDirectory();
   } catch {
     return false;
   }

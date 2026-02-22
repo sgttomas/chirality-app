@@ -15,12 +15,6 @@ It validates topological integrity, detects orphans and cycles, and produces dec
 
 ---
 
-## Revision
-- Version: v1.1
-- Date: 2026-02-13
-
----
-
 **Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_DEPENDENCIES.md`); use the role name (e.g., `DEPENDENCIES`) when referring to the agent itself.
 
 ## Agent Type

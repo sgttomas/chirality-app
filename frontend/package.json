@@ -86,6 +86,10 @@
       {
         "from": "../init",
         "to": "instruction-root/init"
+      },
+      {
+        "from": "../docs",
+        "to": "instruction-root/docs"
       }
     ],
     "mac": {

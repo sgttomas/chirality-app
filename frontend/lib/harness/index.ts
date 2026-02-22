@@ -1,7 +1,7 @@
 import { agentSdkManager } from "./agent-sdk-manager";
 import { appendLog } from "./logger";
 import { PersonaManager } from "./persona-manager";
-import { SessionManager } from "./session-manager";
+import { SessionManager, assertProjectRootAccessible } from "./session-manager";
 import type { ContentBlock } from "./attachment-resolver";
 import type {
   PersonaConfig,
@@ -44,6 +44,26 @@ export type EnsureHarnessSessionBootedArgs = {
   force?: boolean;
   opts?: TurnOpts;
 };
+
+export class SessionPersonaNotFoundError extends Error {
+  readonly code = "PERSONA_NOT_FOUND";
+  readonly personaId: string;
+
+  constructor(personaId: string) {
+    super("Persona not found: " + personaId);
+    this.name = "SessionPersonaNotFoundError";
+    this.personaId = personaId;
+  }
+}
+
+export class SessionBootSdkError extends Error {
+  readonly code = "SDK_BOOT_FAILURE";
+
+  constructor(message: string) {
+    super("Session boot SDK failure: " + message);
+    this.name = "SessionBootSdkError";
+  }
+}
 
 const RESUME_FAILURE_PATTERNS = [
   "--resume",
@@ -238,7 +258,13 @@ export async function ensureHarnessSessionBooted({
   opts,
 }: EnsureHarnessSessionBootedArgs): Promise<SessionBootResult> {
   const session = await sessionManager.resume(sessionId);
+  await assertProjectRootAccessible(session.projectRoot);
+
   const persona = session.persona ? await personaManager.load(session.persona) : null;
+  if (session.persona && !persona) {
+    throw new SessionPersonaNotFoundError(session.persona);
+  }
+
   const fingerprint = await personaManager.getBootFingerprint(persona, session.mode);
   const reason = classifyBootReason(session, fingerprint, force);
   const previousFingerprint = session.bootFingerprint ?? null;
@@ -271,24 +297,29 @@ export async function ensureHarnessSessionBooted({
     includePartialMessages: BOOTSTRAP_TURN_OPTS.includePartialMessages,
   };
 
-  for await (const event of startHarnessTurn({
-    sessionId,
-    message: BOOTSTRAP_TURN_MESSAGE,
-    opts: bootTurnOpts,
-    isBootstrap: true,
-  })) {
-    if (event.type === "session:error") {
-      surfacedBootError = event.error;
+  try {
+    for await (const event of startHarnessTurn({
+      sessionId,
+      message: BOOTSTRAP_TURN_MESSAGE,
+      opts: bootTurnOpts,
+      isBootstrap: true,
+    })) {
+      if (event.type === "session:error") {
+        surfacedBootError = event.error;
+      }
     }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown SDK bootstrap failure.";
+    throw new SessionBootSdkError(message);
   }
 
   if (surfacedBootError) {
-    throw new Error(`Session boot failed: ${surfacedBootError}`);
+    throw new SessionBootSdkError(surfacedBootError);
   }
 
   const updatedSession = await sessionManager.get(sessionId);
   if (!updatedSession.claudeSessionId) {
-    throw new Error("Session boot failed: missing claudeSessionId after bootstrap.");
+    throw new SessionBootSdkError("Missing claudeSessionId after bootstrap.");
   }
 
   return {

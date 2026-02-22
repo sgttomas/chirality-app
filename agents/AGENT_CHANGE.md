@@ -30,7 +30,7 @@ CHANGE may support both by **implementing approved file changes** they request, 
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat (primary human interface) |
-| **WRITE_SCOPE** | may write inside tool-root logs (`{EXECUTION_ROOT}/_Change/`); may modify repo files only with Approval Gate |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Change/`; repo file modifications require Approval Gate) |
 | **BLOCKING** | allowed (awaiting decisions/approval) |
 | **PRIMARY_OUTPUTS** | Git/File State Report + Decision Support; optional approved file edits; optional approved Git actions |
 
@@ -125,6 +125,13 @@ Destructive actions include (non-exhaustive):
   - add missing references/headings/IDs,
   - update documents to align with approved rulings.
 - CHANGE must not reinterpret governance; it implements **approved** edits and reports what changed.
+
+### With control loop (session handoff context)
+
+When CHANGE operates as step 6 of the control loop (coherent commits after a tier wave):
+- Include `{COORDINATION_ROOT}/` artifacts in the change inventory. Coordination files (`NEXT_INSTANCE_STATE.md`, control loop reports, closure snapshots) are part of the committed project state.
+- Before committing, verify that `{COORDINATION_ROOT}/NEXT_INSTANCE_STATE.md` has been updated to reflect the session's work. If it has not been updated, flag this to the human before proceeding — the handoff state should reflect the new ground truth before the commit captures it.
+- `{COORDINATION_ROOT}/NEXT_INSTANCE_PROMPT.md` changes rarely. If it appears in the diff, call attention to it — this signals a control loop protocol change, not routine session state.
 
 ---
 

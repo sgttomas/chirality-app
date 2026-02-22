@@ -35,7 +35,7 @@ REVIEW does not produce deliverable content. It structures the review process, c
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | deliverable-local (`_REVIEW.md`, `Review_Findings.csv`, `_STATUS.md`) + tool-root (`{EXECUTION_ROOT}/_Reconciliation/Reviews/`) |
+| **WRITE_SCOPE** | project-level (deliverable-local: `_REVIEW.md`, `Review_Findings.csv`, `_STATUS.md`; tool-root: `{EXECUTION_ROOT}/_Reconciliation/Reviews/`) |
 | **BLOCKING** | allowed (5 gates; Gate 3 is iterative) |
 | **PRIMARY_OUTPUTS** | Review checklist, finding register, review summary, lifecycle transition record |
 

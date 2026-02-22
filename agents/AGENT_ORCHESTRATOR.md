@@ -1,4 +1,5 @@
 ---
+description: "Initializes project workspace, records coordination representation, creates session control loop artifacts, and spawns bounded sub-agents for setup pipelines"
 subagents: PREPARATION, 4_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
@@ -8,8 +9,9 @@ AGENT_TYPE: 1
 These instructions govern a **Type 1 (persona)** agent that:
 1) initializes a project workspace from a decomposition document,
 2) records the human’s chosen **coordination representation** (e.g., schedule/Gantt, table, optional dependency declarations),
-3) runs setup-time pipelines by spawning bounded sub-agents, and
-4) reports filesystem-grounded project state back to the human.
+3) creates session control loop and handoff artifacts,
+4) runs setup-time pipelines by spawning bounded sub-agents, and
+5) reports filesystem-grounded project state back to the human.
 
 The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DEPENDENCIES**, **ESTIMATING**, **AGGREGATION**) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
 
@@ -28,7 +30,7 @@ The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, 
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | tool-root-only (project-level control-plane artifacts) |
 | **BLOCKING** | allowed |
-| **PRIMARY_OUTPUTS** | `{EXECUTION_ROOT}/_Coordination/_COORDINATION.md`; setup pipeline runs via sub-agents |
+| **PRIMARY_OUTPUTS** | `{COORDINATION_ROOT}/_COORDINATION.md`, `{COORDINATION_ROOT}/NEXT_INSTANCE_PROMPT.md` (stable), `{COORDINATION_ROOT}/NEXT_INSTANCE_STATE.md` (initial); setup pipeline runs via sub-agents |
 
 ---
 
@@ -347,6 +349,67 @@ Repeat Phase 4.1 for each subsequent tier until all tiers are complete.
 
 **Report to human:** "Aggregation complete. Results at [path]."
 
+---
+
+### Function 5: Create Control Loop Artifacts (one-time, after Function 1)
+
+**Goal:** Create the session control loop infrastructure that enables multi-session execution with durable handoff state.
+
+**Prerequisite:** Function 1 complete (_COORDINATION.md exists with confirmed coordination representation).
+
+#### Phase 5.1: Create NEXT_INSTANCE_PROMPT.md (stable instructions)
+
+**Action:**
+- Create `{COORDINATION_ROOT}/NEXT_INSTANCE_PROMPT.md` with stable, invariant control-plane instructions.
+- Content must include:
+  1. **Invariant operating instructions** — decomposition authority, three-perspective planning model, sequencing policy (full graph = audit truth, blocker subset = execution truth), PKG-08 handling rule (or equivalent non-driving scope rule).
+  2. **Standard control loop definition** — the 6-step tier loop:
+     1. ORCHESTRATOR scan (BLOCKED/UNBLOCKED advisory)
+     2. Fan-out execution for current tier (WORKING_ITEMS + TASK, one deliverable per TASK session)
+     3. DEPENDENCIES rerun only for touched deliverables
+     4. RECONCILIATION on touched interfaces
+     5. Periodic full AUDIT_DEP_CLOSURE
+     6. CHANGE handoff for coherent commits
+  3. **Tiered strategy rules** — work advances in waves by tier; blocker maturity threshold from `_COORDINATION.md`; policy overlays (e.g., pre-tier gates) are authoritative.
+  4. **TASK concurrency model** — Pattern 1 (tier-local fan-out) and Pattern 2 (development-front teams), dispatch autonomy policy, operating boundary.
+  5. **Information placement table** — canonical homes for each information type.
+  6. **Session startup procedure** — ordered read list for new sessions.
+  7. **Copy/paste starter prompt** — minimal prompt for bootstrapping a new session.
+- This file is stable. It is updated only when the control loop protocol itself changes (not per-session).
+
+**Gate question:** "Control loop instructions created at `{COORDINATION_ROOT}/NEXT_INSTANCE_PROMPT.md`. Confirm?"
+
+---
+
+#### Phase 5.2: Create initial NEXT_INSTANCE_STATE.md (mutable handoff)
+
+**Action:**
+- Create `{COORDINATION_ROOT}/NEXT_INSTANCE_STATE.md` with the initial mutable handoff state.
+- Content must include:
+  1. **Current pointers** — table of paths to coordination policy, closure snapshots, decomposition, roadmap, and other active artifacts.
+  2. **Current program state** — summary of lifecycle states, closure status, active policy overlays, and data-quality notes.
+  3. **Active human rulings and assumptions** — numbered list of standing decisions (blocker threshold, dispatch policy, scope handling, etc.).
+  4. **Core development tiers** — execution queue view derived from blocker-subset topology + current lifecycle states.
+  5. **Immediate next actions** — prioritized list of what the next session should do.
+  6. **Handoff payload** — enumeration of what carries to the next session:
+     - Stable invariant instructions (NEXT_INSTANCE_PROMPT.md)
+     - Mutable state and queue (NEXT_INSTANCE_STATE.md)
+     - Evidence pointers (latest closure/reconciliation snapshots)
+     - Deliverable-local continuity (MEMORY.md, _STATUS.md)
+     - Scope-control artifacts when applicable
+  7. **Update protocol** — instructions for how to update this file at each handoff.
+- This file is mutable. It is updated by WORKING_ITEMS at each session handoff (see AGENT_WORKING_ITEMS.md).
+
+**Gate question:** "Initial handoff state created at `{COORDINATION_ROOT}/NEXT_INSTANCE_STATE.md`. Confirm?"
+
+---
+
+#### Phase 5.3: Ownership boundary
+
+- ORCHESTRATOR creates both files and may update NEXT_INSTANCE_PROMPT.md when the control loop protocol changes.
+- ORCHESTRATOR does not update NEXT_INSTANCE_STATE.md after initial creation — that responsibility belongs to WORKING_ITEMS at session handoff.
+- If the tiered strategy, blocker-subset rules, or concurrency model change (human ruling), ORCHESTRATOR updates NEXT_INSTANCE_PROMPT.md accordingly.
+
 [[END:PROTOCOL]]
 
 ---
@@ -403,6 +466,8 @@ If any of these conditions are not met, ORCHESTRATOR must report the specific mi
   {EXECUTION_ROOT}/             # runtime workspace
     _Coordination/
       _COORDINATION.md
+      NEXT_INSTANCE_PROMPT.md      # stable session startup instructions
+      NEXT_INSTANCE_STATE.md       # mutable session handoff state
       _Archive/
     _Decomposition/            # decomposition document(s)
     _Sources/                  # optional reference staging area
@@ -482,7 +547,9 @@ Deliverable IDs are sourced from the decomposition. Do not invent new IDs. The e
 
 ORCHESTRATOR is a Type 1 persona agent. It does not produce immutable snapshots. Its durable filesystem artifacts are:
 
-- `{EXECUTION_ROOT}/_Coordination/_COORDINATION.md` — coordination representation record
+- `{COORDINATION_ROOT}/_COORDINATION.md` — coordination representation record
+- `{COORDINATION_ROOT}/NEXT_INSTANCE_PROMPT.md` — stable session control loop instructions (created once; updated only on protocol changes)
+- `{COORDINATION_ROOT}/NEXT_INSTANCE_STATE.md` — mutable session handoff state (created by ORCHESTRATOR; updated by WORKING_ITEMS)
 - Package and deliverable folders (via PREPARATION sub-agent)
 - Sub-agent outputs (via spawned Type 2 agents)
 

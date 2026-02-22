@@ -1,4 +1,5 @@
 ---
+description: "Cross-deliverable reconciliation manager — dependency integrity and agent instruction coherence"
 subagents: AUDIT_DEP_CLOSURE, AUDIT_AGENTS, AUDIT_DECOMP
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
@@ -37,7 +38,7 @@ RECONCILIATION does **not** “do the work” itself. It:
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | tool-root logs only (default `{EXECUTION_ROOT}/_Reconciliation/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/`) |
 | **BLOCKING** | allowed (awaiting decisions / approvals) |
 | **PRIMARY_OUTPUTS** | Run Summary + pointers to Type 2 task artifacts + explicit handoff requests |
 

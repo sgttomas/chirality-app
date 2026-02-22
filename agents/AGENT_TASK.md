@@ -56,6 +56,7 @@ This agent uses **Deliverable** terminology throughout. When operating on a DOMA
 
 ---
 
+[[BEGIN:SPEC]]
 ## Hard scope boundary (non-negotiable)
 
 ### In scope
@@ -232,8 +233,9 @@ When enabled:
 When NOT enabled:
 - Do not require matrices, do not require lens tags, and do not create/update lens artifacts.
 
----
+[[END:SPEC]]
 
+[[BEGIN:STRUCTURE]]
 ## Output format (MUST)
 
 ### A) Always produce a structured proposal list
@@ -290,7 +292,7 @@ If `Tasks:` is missing, you must still do a baseline scan and output:
 - top 5 `TBD` items
 - top dependency notes
 
----
+[[END:STRUCTURE]]
 
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL (straight-through)
@@ -324,3 +326,6 @@ If `Tasks:` is missing, you must still do a baseline scan and output:
    - Summarize: proposals, applied changes (if any), `MISSING`, rulings needed, dependency notes.
 
 [[END:PROTOCOL]]
+
+[[BEGIN:RATIONALE]]
+[[END:RATIONALE]]

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { constants as fsConstants } from "node:fs";
 import type { Dirent } from "node:fs";
-import { access, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { Session, SessionMode, SessionSummary } from "./types";
@@ -105,6 +106,60 @@ async function fileExists(targetPath: string): Promise<boolean> {
   }
 }
 
+export type ProjectRootValidationCode =
+  | "PROJECT_ROOT_NOT_FOUND"
+  | "PROJECT_ROOT_NOT_DIRECTORY"
+  | "PROJECT_ROOT_NOT_ACCESSIBLE";
+
+export class ProjectRootValidationError extends Error {
+  readonly code: ProjectRootValidationCode;
+  readonly projectRoot: string;
+
+  constructor(code: ProjectRootValidationCode, projectRoot: string, message: string) {
+    super(message);
+    this.name = "ProjectRootValidationError";
+    this.code = code;
+    this.projectRoot = projectRoot;
+  }
+}
+
+export async function assertProjectRootAccessible(projectRoot: string): Promise<string> {
+  const root = path.resolve(projectRoot);
+
+  let rootStat: Awaited<ReturnType<typeof stat>>;
+  try {
+    rootStat = await stat(root);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Path not found.";
+    throw new ProjectRootValidationError(
+      "PROJECT_ROOT_NOT_FOUND",
+      root,
+      "Working Root path does not exist: " + root + ". " + message,
+    );
+  }
+
+  if (!rootStat.isDirectory()) {
+    throw new ProjectRootValidationError(
+      "PROJECT_ROOT_NOT_DIRECTORY",
+      root,
+      "Working Root path is not a directory: " + root + ".",
+    );
+  }
+
+  try {
+    await access(root, fsConstants.R_OK | fsConstants.W_OK);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Access denied.";
+    throw new ProjectRootValidationError(
+      "PROJECT_ROOT_NOT_ACCESSIBLE",
+      root,
+      "Working Root path is not accessible (read/write): " + root + ". " + message,
+    );
+  }
+
+  return root;
+}
+
 export class SessionNotFoundError extends Error {
   constructor(sessionId: string) {
     super(`Session ${sessionId} was not found.`);
@@ -179,7 +234,7 @@ export class SessionManager {
 
   async create(projectRoot: string, persona: string | null, mode: SessionMode): Promise<Session> {
     const now = new Date().toISOString();
-    const root = path.resolve(projectRoot);
+    const root = await assertProjectRootAccessible(projectRoot);
 
     const session: Session = {
       id: randomUUID(),
