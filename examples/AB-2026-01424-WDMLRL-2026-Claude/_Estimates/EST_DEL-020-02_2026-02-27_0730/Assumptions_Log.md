@@ -1,0 +1,10 @@
+# Assumptions Log — EST_DEL-020-02_2026-02-27_0730
+
+| ID | Assumption | Basis | Impact if Wrong | Confidence |
+|----|-----------|-------|-----------------|------------|
+| ASM-001 | Hourly rates in Professional_Staff_Rates.csv are representative for 2026 Alberta market conditions for a design-build maintenance shop project | Rates are PARAMETRIC estimates with MEDIUM confidence per source file | If actual rates differ, total could shift proportionally. A +/- 15% rate variance on all roles would shift total by +/- ~$1,694 | MEDIUM |
+| ASM-002 | Level-of-effort hours in Level_of_Effort.csv adequately represent the inspection and CCC scope for a ~13,000 sqft maintenance shop addition | Hours are PARAMETRIC estimates per source file | If actual hours differ (e.g., more deficiency remediation coordination needed), total will shift. Total is sensitive to R-23 Commissioning Agent (30 hr = 42.5% of total cost) | MEDIUM |
+| ASM-003 | No non-labour costs are required for DEL-020-02 | Engineering documents describe a professional services deliverable with no material or equipment procurement | If third-party inspection fees, document reproduction, or travel costs are required, they would be additive to the current estimate | MEDIUM |
+| ASM-004 | All 8 roles identified in Level_of_Effort.csv for DEL-020-02 are the complete staffing requirement | Source file defines 8 roles for this deliverable | If additional roles are needed (e.g., specific trade supervisors for re-inspection), labour cost would increase | MEDIUM |
+| ASM-005 | Currency is CAD throughout | PP-17 in Assumed_Project_Parameters.csv confirms CAD; Alberta project context | No impact expected; Alberta project with CAD contract | HIGH |
+| ASM-006 | The CCC process follows a single-pass or minimal-iteration cycle | Procedure describes Steps 1-9 including deficiency remediation; the LOE hours assume a manageable deficiency count | If significant re-inspection cycles are needed (Step 6a — Owner refusal scenario), additional hours beyond the parametric estimate would be required | MEDIUM |

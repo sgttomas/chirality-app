@@ -1,0 +1,23 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-013-05,Welding station exhaust hood (source-capture LEV hood) — supply and install,1,EA,UNIT_RATE,Datasheet,Construction — Welding exhaust hood(s),1 station assumed per R-04 floor plan; hood type TBD (articulating arm vs fixed); see Guidance CT-002
+ITM-002,DEL-013-05,Flexible exhaust ductwork connections — supply and install,1,EA,UNIT_RATE,Datasheet,Construction — Flexible ductwork,Connects hood to rigid duct/filtration; length TBD per design
+ITM-003,DEL-013-05,Rigid ductwork run (galvanized steel) — supply and install,1,LS,LUMP_SUM,Datasheet,Construction — Rigid ductwork (if applicable),From flexible duct transition to fan and outlet; routing and length TBD; material assumed galvanized steel per Guidance
+ITM-004,DEL-013-05,Welding fume filtration unit — supply and install,1,EA,UNIT_RATE,Datasheet,Construction — Filtration unit,Type TBD (cartridge/HEPA); efficiency TBD per Alberta OHS Code
+ITM-005,DEL-013-05,Exhaust fan — supply and install,1,EA,UNIT_RATE,Datasheet,Construction — Exhaust fan,Size/CFM/static pressure TBD; inline or external TBD
+ITM-006,DEL-013-05,Exhaust outlet and stack — supply and install including building envelope penetration,1,EA,UNIT_RATE,Datasheet,Construction — Exhaust outlet / stack,Location and height TBD; weather cap included; flashing and sealing per Procedure Step 3.7
+ITM-007,DEL-013-05,Controls and monitoring — supply and install (on/off control and status indication),1,EA,UNIT_RATE,Datasheet,Construction — Controls and monitoring,Interlock with welding station TBD per REQ-007
+ITM-008,DEL-013-05,Support structure (ductwork hangers and brackets),1,LS,LUMP_SUM,Datasheet,Construction — Support structure,Hangers and brackets TBD per mechanical drawing
+ITM-009,DEL-013-05,Spark arrestor (if required per fire/spark evaluation),1,EA,UNIT_RATE,Specification,REQ-013 — Fire and Spark Hazard Mitigation,Evaluation required; install only if design engineer determines necessary
+ITM-010,DEL-013-05,Mechanical design engineering — LEV system design (P.Eng. stamped IFC drawings),1,LS,LUMP_SUM,Procedure,Phase 1 — Design (Steps 1.1-1.6),Includes welding station layout confirmation and preliminary design review
+ITM-011,DEL-013-05,Safety Code permit application and inspections,1,LS,LUMP_SUM,Procedure,Step 1.5 — Obtain Safety Code Permit,Permit fees paid by County; this covers application effort and inspection coordination
+ITM-012,DEL-013-05,Equipment procurement and submittal review,1,LS,LUMP_SUM,Procedure,Phase 2 — Procurement (Steps 2.1-2.2),Procure all components; submittal review per Specification checklist
+ITM-013,DEL-013-05,Installation labour — mechanical trade (HVAC sheet metal),1,LS,LUMP_SUM,Procedure,Phase 3 — Installation (Steps 3.1-3.10),Hood + duct + filtration + fan + stack + controls installation; AHJ inspection coordination
+ITM-014,DEL-013-05,Testing and commissioning,1,LS,LUMP_SUM,Procedure,Phase 4 — Testing and Commissioning (Steps 4.1-4.8),Pre-commissioning checks; airflow measurement; capture velocity verification; makeup air balance; controls test; filtration check; commissioning report
+ITM-015,DEL-013-05,Closeout documentation (as-builts; O&M manual; warranty certificates; compliance docs),1,LS,LUMP_SUM,Procedure,Phase 5 — Closeout (Steps 5.1-5.6),As-built drawings; O&M manual compilation; warranty certificate collection; documentation package
+ITM-016,DEL-013-05,Project management — PM oversight for DEL-013-05,6,hr,UNIT_RATE,Procedure,Phase 1-5 (overall),Level_of_Effort.csv R-01 allocation for DEL-013-05
+ITM-017,DEL-013-05,Construction project management — field coordination,8,hr,UNIT_RATE,Procedure,Phase 1-5 (overall),Level_of_Effort.csv R-02 allocation for DEL-013-05
+ITM-018,DEL-013-05,Site superintendent — field supervision,10,hr,UNIT_RATE,Procedure,Phase 3-4 (installation and commissioning),Level_of_Effort.csv R-03 allocation for DEL-013-05
+ITM-019,DEL-013-05,Cost estimator support,4,hr,UNIT_RATE,Procedure,Phase 1-2 (design and procurement),Level_of_Effort.csv R-08 allocation for DEL-013-05
+ITM-020,DEL-013-05,QA/QC lead — quality oversight,6,hr,UNIT_RATE,Procedure,Phase 3-4 (installation and commissioning),Level_of_Effort.csv R-06 allocation for DEL-013-05
+ITM-021,DEL-013-05,HSE manager — safety oversight,4,hr,UNIT_RATE,Procedure,Phase 3-4 (installation and commissioning),Level_of_Effort.csv R-05 allocation for DEL-013-05
+ITM-022,DEL-013-05,Photographing concealed work,1,LS,LUMP_SUM,Procedure,Step 3.9 — Photograph Concealed Work,Photographic record of concealed ductwork and penetrations before closure

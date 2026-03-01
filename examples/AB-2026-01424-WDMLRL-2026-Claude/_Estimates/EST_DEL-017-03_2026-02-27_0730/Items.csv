@@ -1,0 +1,36 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-017-03,Existing condition survey and documentation,1,LS,LUMP_SUM,Procedure,Step 1.1,"Survey of existing washroom footprint, fixtures, plumbing, ventilation, finishes"
+ITEM-002,DEL-017-03,Code and accessibility review,1,LS,LUMP_SUM,Procedure,Step 1.2,"Alberta Building Code and Safety Code review for renovation scope, accessibility triggers"
+ITEM-003,DEL-017-03,Design development — renovation layout,1,LS,LUMP_SUM,Procedure,Step 1.3,"Architect and plumbing engineer coordination for renovation layout, fixtures, finishes"
+ITEM-004,DEL-017-03,Permit submission and approval coordination,1,LS,LUMP_SUM,Procedure,Step 1.4,"Building permit, plumbing permit, mechanical permit, electrical permit coordination"
+ITEM-005,DEL-017-03,Site safety setup — hoarding and barricades,1,LS,LUMP_SUM,Procedure,Step 2.1,Isolation of washroom work zone in existing operating building
+ITEM-006,DEL-017-03,Hazardous materials assessment,1,LS,LUMP_SUM,Procedure,Step 2.0,TBD if required — existing building demolition context; ASSUMPTION included as allowance
+ITEM-007,DEL-017-03,Utility isolation (water supply and drains),1,LS,LUMP_SUM,Procedure,Step 2.2,"Coordinate with plumbing contractor to isolate water, cap drains"
+ITEM-008,DEL-017-03,Demolition of existing fixtures and finishes,1,LS,LUMP_SUM,Procedure,Step 2.3,"Remove existing toilet, sink, wall/floor finishes, partitions as required"
+ITEM-009,DEL-017-03,Waste disposal — demolition debris,1,LS,LUMP_SUM,Procedure,Step 2.3,Disposal of demolition waste per applicable regulations
+ITEM-010,DEL-017-03,Plumbing rough-in — renovated fixtures,1,LS,LUMP_SUM,Procedure,Step 3.1,"Water supply lines, drain and vent rough-in for renovated fixtures"
+ITEM-011,DEL-017-03,Plumbing rough-in — urinal addition,1,LS,LUMP_SUM,Procedure,Step 3.1,"Dedicated supply and waste rough-in for new urinal (SOW-0074); floor drain confirmation"
+ITEM-012,DEL-017-03,Mechanical rough-in — exhaust ventilation,1,LS,LUMP_SUM,Procedure,Step 3.2,Exhaust fan rough-in and ductwork per mechanical design
+ITEM-013,DEL-017-03,Electrical rough-in — lighting and power,1,LS,LUMP_SUM,Procedure,Step 3.3,"Wiring for lighting, exhaust fan circuit, receptacles"
+ITEM-014,DEL-017-03,Framing and partition work,TBD,m2,UNIT_RATE,Procedure,Step 3.4,"New or modified partitions for urinal addition and revised layout; wall blocking for wall-mounted fixtures. Qty TBD pending design — ASSUMPTION: 15 m2 of metal stud partition"
+ITEM-015,DEL-017-03,Wall finishes — washroom,TBD,m2,UNIT_RATE,Procedure,Step 4.1,"Durable cleanable finishes (ceramic tile or equivalent) per Finish Schedule. Qty TBD pending design — ASSUMPTION: 30 m2"
+ITEM-016,DEL-017-03,Floor finishes — washroom,TBD,m2,UNIT_RATE,Procedure,Step 4.1,"Slip-resistant durable floor finish. Qty TBD pending design — ASSUMPTION: 12 m2"
+ITEM-017,DEL-017-03,Toilet — supply and install,1,EA,UNIT_RATE,Datasheet,Construction,"Commercial-grade vitreous china water closet; replace existing"
+ITEM-018,DEL-017-03,Sink with faucet — supply and install,1,EA,UNIT_RATE,Datasheet,Construction,"Commercial-grade lavatory with faucet; replace existing"
+ITEM-019,DEL-017-03,Urinal with flush valve — supply and install,1,EA,UNIT_RATE,Datasheet,Attributes,"Wall-hung commercial-grade vitreous china urinal with manual or sensor flush valve (SOW-0074)"
+ITEM-020,DEL-017-03,Washroom accessories — supply and install,1,LS,LUMP_SUM,Procedure,Step 4.2,"Soap dispenser, paper towel/hand dryer, mirror, toilet paper holder, grab bars (if accessibility-required)"
+ITEM-021,DEL-017-03,Exhaust fan — supply and install,1,EA,UNIT_RATE,Procedure,Step 4.3,Exhaust fan connected to ductwork; ASSUMPTION per REQ-007
+ITEM-022,DEL-017-03,Lighting fixtures — supply and install,2,EA,UNIT_RATE,Procedure,Step 4.3,Washroom lighting fixtures; ASSUMPTION: 2 EA
+ITEM-023,DEL-017-03,Paint — walls and ceiling,TBD,m2,UNIT_RATE,Procedure,Step 4.1,"Paint allowance for ceiling and any non-tiled walls. ASSUMPTION: 15 m2"
+ITEM-024,DEL-017-03,Rough-in inspections (plumbing / mechanical / electrical),1,LS,LUMP_SUM,Procedure,Step 5.1,"Inspection coordination, County notification, report filing"
+ITEM-025,DEL-017-03,Final inspections (plumbing / mechanical / electrical / building),1,LS,LUMP_SUM,Procedure,Step 5.2,"Final inspection coordination, County notification, report filing"
+ITEM-026,DEL-017-03,Functional testing and commissioning,1,LS,LUMP_SUM,Procedure,Step 6.1,"Test all fixtures, ventilation, lighting, floor drain"
+ITEM-027,DEL-017-03,Punch-list and deficiency correction,1,LS,LUMP_SUM,Procedure,Step 6.2,Internal punch-list and County walk-through
+ITEM-028,DEL-017-03,Warranty documentation and initiation,1,LS,LUMP_SUM,Procedure,Step 6.3,"Warranty documentation, start date, obligations communicated to County"
+ITEM-029,DEL-017-03,Project management — washroom renovation,1,LS,LUMP_SUM,Procedure,All Phases,PM oversight for DEL-017-03 scope; from Level_of_Effort.csv
+ITEM-030,DEL-017-03,Construction project management,1,LS,LUMP_SUM,Procedure,All Phases,Construction PM for DEL-017-03; from Level_of_Effort.csv
+ITEM-031,DEL-017-03,Site superintendent,1,LS,LUMP_SUM,Procedure,All Phases,Field leadership for DEL-017-03; from Level_of_Effort.csv
+ITEM-032,DEL-017-03,Cost estimator support,1,LS,LUMP_SUM,Procedure,All Phases,Estimate prep and QTO for DEL-017-03; from Level_of_Effort.csv
+ITEM-033,DEL-017-03,QA/QC lead,1,LS,LUMP_SUM,Procedure,All Phases,Quality planning and inspections for DEL-017-03; from Level_of_Effort.csv
+ITEM-034,DEL-017-03,HSE manager support,1,LS,LUMP_SUM,Procedure,All Phases,Safety oversight for DEL-017-03; from Level_of_Effort.csv
+ITEM-035,DEL-017-03,Ceiling finish — washroom,TBD,m2,UNIT_RATE,Procedure,Step 4.1,"Suspended acoustic or moisture-resistant ceiling; ASSUMPTION: 12 m2"

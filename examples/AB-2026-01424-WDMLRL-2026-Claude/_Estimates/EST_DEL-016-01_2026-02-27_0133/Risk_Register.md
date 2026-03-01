@@ -1,0 +1,10 @@
+# Risk Register — EST_DEL-016-01_2026-02-27_0133
+
+| RiskID | Category | Risk Description | Likelihood | Impact | Mitigation | Source |
+|--------|----------|-----------------|------------|--------|------------|--------|
+| RSK-001 | Pricing | Actual crane procurement price significantly exceeds $190k/each allowance (EQ-01 max is $280k/each) | MEDIUM | HIGH — could add up to $180,000 to total | Obtain competitive quotes from multiple suppliers early in procurement; establish budget reserve | Equipment_Pricing.csv EQ-01; Guidance Section 2.1 |
+| RSK-002 | Schedule | Crane lead time (8–12 weeks) jeopardizes December 31, 2026 deadline if procurement is delayed | HIGH | HIGH — project completion delay | Issue RFQ as early as possible; track procurement milestones against critical path | _DEPENDENCIES.md; Guidance Section 2.1 |
+| RSK-003 | Design | TBD design parameters (span, duty class, standards) delay procurement RFQ or result in rework | MEDIUM | MEDIUM — could add 4–8 weeks to schedule and increase design costs | Coordinate early with structural engineer (DEL-002-07) to resolve TBDs before RFQ | Datasheet Sections 2.2–2.4 |
+| RSK-004 | Compliance | Applicable standards and AHJ requirements are TBD; non-compliance discovered late could require rework | LOW | HIGH — potential for crane rejection or re-inspection | Confirm applicable standards with AHJ before procurement; include standards compliance in RFQ requirements | Specification REQ-016-01-07, REQ-016-01-08 |
+| RSK-005 | Double-count | EQ-01 "supply + install" allowance may overlap with separately priced installation labour (DL-003 through DL-007) | MEDIUM | LOW — potential overcount of ~$12k | Clarify scope of "install" in supplier quotes; adjust estimate accordingly | Decision DEC-002 |
+| RSK-006 | Scope | Anti-collision system may be required if shared runways are selected, adding unbudgeted cost | LOW | LOW — estimated $5k–$15k if required | Resolve runway configuration early in structural design | Specification REQ-016-01-15; Guidance Section 3.2 |

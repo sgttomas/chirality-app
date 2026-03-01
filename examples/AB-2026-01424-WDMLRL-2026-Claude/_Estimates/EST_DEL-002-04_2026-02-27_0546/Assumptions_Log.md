@@ -1,0 +1,10 @@
+# Assumptions Log — EST_DEL-002-04_2026-02-27_0546
+
+| ID | Assumption | Source / Basis | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | LOE hours (84 hr Structural Engineer, 36 hr BIM Tech, 6 hr PM, 4 hr Cost Estimator) are adequate for the full design development and IFC production of this deliverable | Level_of_Effort.csv rows for DEL-002-04; PARAMETRIC basis, MEDIUM confidence | If actual hours exceed LOE (e.g., due to unresolved TBD items requiring additional design iterations), cost underestimate; 130 total hours is within typical range for a structural detail set on a ~13,000 sqft industrial building |
+| ASM-002 | Hourly rates ($170 Struct Eng, $95 BIM Tech, $165 PM, $135 Cost Est) reflect current Alberta market rates for design-build professional services | Professional_Staff_Rates.csv; PARAMETRIC basis, MEDIUM confidence | Rate variance directly affects total; +/- 10% on Structural Engineer rate alone would shift total by +/- $1,428 |
+| ASM-003 | Design proceeds without significant rework from unresolved TBD items (service pit depth, mezzanine load, steel plate specs, crane supplier, construction method) | LOE hours assume normal design progression per Procedure steps | If multiple TBD items require design iteration or Owner decision cycles, additional hours beyond LOE may be needed; estimated impact: 10-30% uplift on Structural Engineer hours |
+| ASM-004 | No third-party review, external peer review, or regulatory submission costs are required for this deliverable beyond the P.Eng. stamp | Procedure Steps 14-16 describe internal QC and P.Eng. stamp only | If AHJ requires separate structural review or if a third-party peer review is contractually required, additional cost not captured |
+| ASM-005 | Currency is CAD (Canadian Dollars) | Assumed_Project_Parameters.csv PP-17; Alberta project context | No conversion risk; all rates and amounts are in CAD |
+| ASM-006 | Drawing set scope is approximately 8-15 structural detail sheets | Guidance T-01 typical range for 13,000 sqft industrial building | If sheet count exceeds this range, BIM Technician hours may be insufficient |

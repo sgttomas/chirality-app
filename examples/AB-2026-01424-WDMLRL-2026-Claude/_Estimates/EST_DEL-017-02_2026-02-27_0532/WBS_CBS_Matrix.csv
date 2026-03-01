@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-017,DEL-017-02,Construction Labour > General Construction Labour,CAD,44767.50,14,100,14 lines normalized to canonical CBS
+PKG-017,DEL-017-02,Professional Services > Design & Engineering,CAD,20290.00,3,100,3 lines normalized to canonical CBS
+PKG-017,DEL-017-02,Professional Services > Project Management,CAD,9845.40,13,100,13 lines normalized to canonical CBS
+PKG-017,DEL-017-02,TOTAL,CAD,74902.90,30,100,All CBS categories combined; 30 lines; CBS normalized

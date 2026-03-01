@@ -1,0 +1,15 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-011-04,Insulated steel man-door assembly (door leaf + frame) — supply,3,EA,UNIT_RATE,Datasheet,Attributes / Construction,"Qty assumed 3 EA per ASM-001; material TBD per DEL-001-07, assumed insulated hollow metal steel"
+ITM-002,DEL-011-04,Door hardware set — hinges closers locksets weather stripping threshold (per door),3,EA,UNIT_RATE,Specification,REQ-011-04-01 / REQ-011-04-02,Hardware set per door; specific hardware TBD per DEL-001-07
+ITM-003,DEL-011-04,Accessible door hardware upgrade (lever handle + low threshold) — 1 door,1,EA,UNIT_RATE,Specification,REQ-011-04-04,At least one accessible entrance assumed per ASM-002
+ITM-004,DEL-011-04,Door frame installation labour (set + shim + anchor per opening),3,EA,UNIT_RATE,Procedure,Step 5 — Door Frame Installation,Carpenter labour to set frames in structural openings
+ITM-005,DEL-011-04,Door leaf hanging + hardware installation labour (per door),3,EA,UNIT_RATE,Procedure,Step 6 — Door Leaf and Hardware Installation,Carpenter labour to hang doors and install hardware
+ITM-006,DEL-011-04,Caulking and weatherproofing — frame perimeter sealant (per door),3,EA,UNIT_RATE,Procedure,Step 7 — Caulking and Weatherproofing,Interior + exterior caulk at frame perimeter
+ITM-007,DEL-011-04,Pre-installation structural opening verification,1,LS,LUMP_SUM,Procedure,Step 4 — Pre-Installation Verification,Survey/measurement of 3 structural openings for plumb level and square
+ITM-008,DEL-011-04,Operational testing and adjustment (all doors),1,LS,LUMP_SUM,Procedure,Step 8 — Operational Testing and Adjustment,Functional test of all 3 doors per REQ-011-04-07
+ITM-009,DEL-011-04,Shop drawing / submittal preparation and review,1,LS,LUMP_SUM,Procedure,Step 2 — Submittal and Approval,Shop drawings for door assemblies per DEL-001-11
+ITM-010,DEL-011-04,Safety Code inspection coordination,1,LS,LUMP_SUM,Procedure,Step 9 — Safety Code Inspection,SCO inspection coordination and County representative attendance
+ITM-011,DEL-011-04,Documentation assembly and records closeout,1,LS,LUMP_SUM,Procedure,Step 10 — Documentation Assembly,Compile installation records + testing reports + as-builts
+ITM-012,DEL-011-04,Temporary protection of installed doors during remaining construction,1,LS,LUMP_SUM,Procedure,Step 8A — Temporary Protection,Protective film / cardboard sheathing during ongoing construction
+ITM-013,DEL-011-04,Professional staff — project management and supervision (LOE),1,LS,LUMP_SUM,Datasheet,Identification / Construction,"PM + CPM + Supt + Estimator + QA/QC + HSE hours from Level_of_Effort.csv"
+ITM-014,DEL-011-04,Fire-rated door assembly upgrade allowance (if required),1,LS,LUMP_SUM,Specification,REQ-011-04-03 / Guidance Fire rating,Allowance for fire-rating upgrade on 1 door if fire compartmentation requires; TBD per DEL-001-11

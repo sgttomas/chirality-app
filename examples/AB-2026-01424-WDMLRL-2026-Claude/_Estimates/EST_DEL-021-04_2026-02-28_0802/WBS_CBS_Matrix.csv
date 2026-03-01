@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-04,Construction Labour > General Construction Labour,CAD,7960,9,100,9 line items
+PKG-021,DEL-021-04,Materials > General Materials & Supplies,CAD,500,1,100,CCDC 14-2013 standard form document purchase
+PKG-021,DEL-021-04,Professional Services > Professional Staff,CAD,5000,1,100,Legal counsel review of contract execution package
+PKG-021,DEL-021-04,Professional Services > Project Management,CAD,800,2,100,Contract execution meeting — logistics and adminis; Contract distribution — reproduction and delivery
+PKG-021,DEL-021-04,TOTAL,CAD,14260,13,100,All CBS categories combined; 13 lines priced

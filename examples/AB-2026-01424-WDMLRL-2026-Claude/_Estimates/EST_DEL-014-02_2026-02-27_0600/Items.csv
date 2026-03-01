@@ -1,0 +1,21 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-014-02,"Supply and set new 2,000 US gal septic holding tank",1,EA,UNIT_RATE,Datasheet,Attributes — Tank Capacity / Construction — Work Scope,"New tank supply + installation; material TBD (fiberglass, polyethylene, or concrete) per DEL-006-05"
+ITEM-002,DEL-014-02,Underground sanitary line — connection from building drainage to new holding tank (installed),15,m,UNIT_RATE,Datasheet,Construction — Connection to Building Drainage,Run length assumed 15 m parametric estimate; actual length TBD per IFC drawings (DEL-006-05)
+ITEM-003,DEL-014-02,Existing septic tank removal — pump-out and disposal of contents,1,LS,LUMP_SUM,Procedure,Step 2 — Existing Septic Tank Removal (2.1),"Licensed vacuum truck pump-out; disposal per EPEA and Waste Control Regulation"
+ITEM-004,DEL-014-02,Existing septic tank removal — excavation and tank extraction,1,LS,LUMP_SUM,Procedure,Step 2 — Existing Septic Tank Removal (2.2–2.4),"Excavate, disconnect, remove, and dispose of existing tank structure; backfill existing excavation"
+ITEM-005,DEL-014-02,New tank excavation and bedding preparation,1,LS,LUMP_SUM,Procedure,Step 3 — New Holding Tank Installation (3.1–3.2),"Excavation for new tank pit; bedding layer per geotech and IFC drawings"
+ITEM-006,DEL-014-02,Backfill and compaction — new tank installation,1,LS,LUMP_SUM,Specification,REQ-014-02-11 — Backfill and Compaction,"Backfill, compact around new tank per geotech requirements; compaction testing included"
+ITEM-007,DEL-014-02,Leak/pressure testing and commissioning,1,LS,LUMP_SUM,Specification,REQ-014-02-04 — Connection to Facility Wastewater System,"Hydrostatic or air test per Alberta Plumbing Code; includes test setup, witnessing, documentation"
+ITEM-008,DEL-014-02,Surface restoration — new tank and existing tank excavation areas,1,LS,LUMP_SUM,Specification,Scope — What this deliverable covers,"Restore disturbed surfaces to match surrounding conditions"
+ITEM-009,DEL-014-02,Access manway and riser installation,1,LS,LUMP_SUM,Procedure,Step 3 — New Holding Tank Installation (3.7),"Install access manway, riser(s), and cover to final grade for pump-out access"
+ITEM-010,DEL-014-02,High-level alarm system (if code-required),1,LS,LUMP_SUM,Guidance,Considerations — Alarm / Monitoring,"TBD — may be required by Alberta Safety Codes; provisional allowance [B-004]"
+ITEM-011,DEL-014-02,Professional staff — Project Manager,6,hr,UNIT_RATE,Procedure,Step 1 — Pre-Construction Coordination,Level_of_Effort.csv: R-01 Project Manager for DEL-014-02
+ITEM-012,DEL-014-02,Professional staff — Construction Project Manager,8,hr,UNIT_RATE,Procedure,Step 1 — Pre-Construction Coordination,Level_of_Effort.csv: R-02 Construction Project Manager for DEL-014-02
+ITEM-013,DEL-014-02,Professional staff — Site Superintendent,10,hr,UNIT_RATE,Procedure,Steps 2–5 — Field supervision,Level_of_Effort.csv: R-03 Site Superintendent for DEL-014-02
+ITEM-014,DEL-014-02,Professional staff — Cost Estimator,4,hr,UNIT_RATE,Procedure,Step 1 — Pre-Construction Coordination,Level_of_Effort.csv: R-08 Cost Estimator for DEL-014-02
+ITEM-015,DEL-014-02,Professional staff — QA/QC Lead,6,hr,UNIT_RATE,Procedure,Step 4 — Testing and Commissioning,Level_of_Effort.csv: R-06 QA/QC Lead for DEL-014-02
+ITEM-016,DEL-014-02,Professional staff — HSE Manager,4,hr,UNIT_RATE,Procedure,Steps 2–3 — Excavation safety oversight,Level_of_Effort.csv: R-05 HSE Manager for DEL-014-02
+ITEM-017,DEL-014-02,Plumber labour — tank installation and connections,24,hr,UNIT_RATE,Procedure,Steps 3–4 — New Holding Tank Installation and Testing,"Parametric estimate: plumber for tank setting, connections, testing"
+ITEM-018,DEL-014-02,Equipment operator labour — excavation and backfill,16,hr,UNIT_RATE,Procedure,Steps 2–3 — Excavation for existing removal and new installation,"Parametric estimate: equipment operator for both excavation scopes"
+ITEM-019,DEL-014-02,Labourer — general support,16,hr,UNIT_RATE,Procedure,Steps 2–3 — General site support,"Parametric estimate: general labour for bedding, backfill assist, cleanup"
+ITEM-020,DEL-014-02,Closeout documentation and warranty package,1,LS,LUMP_SUM,Procedure,Step 6 — Closeout Documentation,"Compile submittals, test records, photos, as-builts, warranty letter"

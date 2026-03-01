@@ -1,0 +1,24 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-001-06,Senior Architect — RCP drawing production and coordination lead,54,hr,UNIT_RATE,Procedure,Phases A-D (all steps),Level_of_Effort.csv row DEL-001-06 R-11: 54 hr
+ITM-002,DEL-001-06,Architect — RCP drawing production and detailing,42,hr,UNIT_RATE,Procedure,Phases A-D (all steps),Level_of_Effort.csv row DEL-001-06 R-12: 42 hr
+ITM-003,DEL-001-06,BIM Technician — CAD/BIM modeling and sheet setup,24,hr,UNIT_RATE,Procedure,Phase C (C-01 through C-06),Level_of_Effort.csv row DEL-001-06 R-13: 24 hr
+ITM-004,DEL-001-06,Project Manager — coordination oversight and review,6,hr,UNIT_RATE,Procedure,Phases B and D (coordination and QA),Level_of_Effort.csv row DEL-001-06 R-01: 6 hr
+ITM-005,DEL-001-06,Cost Estimator — quantity takeoff support,4,hr,UNIT_RATE,Procedure,Phase A (A-02 space identification),Level_of_Effort.csv row DEL-001-06 R-08: 4 hr
+ITM-006,DEL-001-06,Interdisciplinary coordination — structural inputs (B-01),1,LS,LUMP_SUM,Procedure,Phase B — Step B-01,Coordination with structural engineer for crane rail and mezzanine ceiling inputs; effort included in Senior Architect and Architect hours above
+ITM-007,DEL-001-06,Interdisciplinary coordination — electrical inputs (B-02),1,LS,LUMP_SUM,Procedure,Phase B — Step B-02,Coordination with electrical engineer for lighting layout; effort included in Senior Architect and Architect hours above
+ITM-008,DEL-001-06,Interdisciplinary coordination — mechanical inputs (B-03),1,LS,LUMP_SUM,Procedure,Phase B — Step B-03,Coordination with mechanical engineer for forced air makeup and exhaust; effort included in Senior Architect and Architect hours above
+ITM-009,DEL-001-06,RCP drawing sheets — Main Shop high-bay area (RCP-01),1,LS,LUMP_SUM,Datasheet,Spaces Covered by RCP — Main Shop Bay,Sheet covering 130x100 ft main shop at 35 ft ceiling; effort included in production hours
+ITM-010,DEL-001-06,RCP drawing sheets — Ancillary rooms (RCP-02),1,LS,LUMP_SUM,Datasheet,Spaces Covered by RCP — Parts Room / Utility / Office / Washroom / Mezzanine,Sheet(s) covering lower-ceiling ancillary rooms; effort included in production hours
+ITM-011,DEL-001-06,RCP drawing sheets — Old North Shop renovation areas (RCP-03),1,LS,LUMP_SUM,Datasheet,Spaces Covered by RCP — Old North Shop renovation areas,Sheet(s) for renovation areas; field verification required per Procedure A-03
+ITM-012,DEL-001-06,High bay lighting layout — Main Shop (20 fixtures),20,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — High Bay Lighting Main Shop,5 rows x 4 fixtures; 150W LED 22000 lumens; placed on RCP per electrical coordination
+ITM-013,DEL-001-06,High bay lighting layout — Wash Bay (6 fixtures),6,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — High Bay Lighting Wash Bay,2 rows x 3 fixtures; placed on RCP per electrical coordination
+ITM-014,DEL-001-06,8-ft LED fixtures — Office / Utility / Parts Room (9 fixtures),9,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — 8-ft LED Fixtures,1 office + 2 utility + 6 parts room; placed on RCP per electrical coordination
+ITM-015,DEL-001-06,Ceiling fans — Main Shop (6 units),6,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — Ceiling Fans,6 ceiling fans in main shop area; placed on RCP per electrical coordination
+ITM-016,DEL-001-06,Exhaust fan locations on RCP,TBD,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — Exhaust Fans,Welding station and other locations; exact qty TBD from mechanical/electrical coordination
+ITM-017,DEL-001-06,Overhead crane rail indication (2 x 5-tonne),2,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — Overhead Crane Beams/Rails,Two crane rail centerlines with elevation annotations
+ITM-018,DEL-001-06,Forced air makeup unit ceiling locations,TBD,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — Forced Air Makeup Units,Qty and configuration TBD from mechanical engineer
+ITM-019,DEL-001-06,Exhaust hose drop points — repair bays,TBD,EA,UNIT_RATE,Datasheet,Ceiling-Mounted Elements — Exhaust Hoses,Ceiling drop-point locations TBD from mechanical coordination
+ITM-020,DEL-001-06,Field verification of existing Old North Shop ceiling conditions,1,LS,LUMP_SUM,Procedure,Phase A — Step A-03,Site visit to record existing ceiling conditions in renovation areas
+ITM-021,DEL-001-06,Internal QA review (D-01),1,LS,LUMP_SUM,Procedure,Phase D — Step D-01,Architect internal check of all RCP content
+ITM-022,DEL-001-06,Interdisciplinary coordination check and sign-off (D-02),1,LS,LUMP_SUM,Procedure,Phase D — Step D-02,Distribution to structural/mechanical/electrical for review
+ITM-023,DEL-001-06,P.Eng. stamp — IFC issue,1,LS,LUMP_SUM,Specification,REQ-RCP-015,Alberta-licensed P.Eng. stamp on all IFC RCP sheets

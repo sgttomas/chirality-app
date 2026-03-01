@@ -1,0 +1,11 @@
+TradeID,Trade,HourlyRate_CAD,BurdenMultiplier,FullyBurdenedRate_CAD,Basis,Confidence,Notes
+T-01,Carpenter,52,1.55,80.6,PARAMETRIC,MEDIUM,"Framing, interior build-out"
+T-02,Concrete Finisher,50,1.55,77.5,PARAMETRIC,MEDIUM,"Slab, flatwork, finishing"
+T-03,Ironworker,58,1.6,92.8,PARAMETRIC,MEDIUM,"Structural steel, crane runway"
+T-04,Electrician,60,1.6,96.0,PARAMETRIC,MEDIUM,"Power, lighting, controls"
+T-05,Plumber,58,1.6,92.8,PARAMETRIC,MEDIUM,"Water, septic, drains"
+T-06,HVAC Sheet Metal,57,1.6,91.2,PARAMETRIC,MEDIUM,"Ducting, ventilation"
+T-07,Equipment Operator,55,1.6,88.0,PARAMETRIC,MEDIUM,"Earthworks, trenching"
+T-08,Labourer,42,1.55,65.1,PARAMETRIC,MEDIUM,General site labour
+T-09,Painter,45,1.55,69.75,PARAMETRIC,MEDIUM,"Coatings, finishes"
+T-10,Drywaller,46,1.55,71.3,PARAMETRIC,MEDIUM,"Partitions, ceilings"

@@ -1,0 +1,5 @@
+ItemID,Category,Description,Unit,PriceMin,PriceMax,RecommendedPrice,Quantity_Assumed,Basis,Confidence,Notes
+EQ-01,Cranes,"Overhead crane, 5 ton class (supply + install)",each,120000,280000,190000,2,ALLOWANCE,LOW,Appendix B (Shop) indicates (2) 5 Ton Cranes
+EQ-02,Wash Bay,Pressure washer system allowance,each,6000,18000,11000,1,ALLOWANCE,LOW,
+EQ-03,Shop,Air compressor allowance,each,9000,24000,15000,1,ALLOWANCE,LOW,
+EQ-04,Safety,Anti-collision system for 2 overhead cranes (shared runway),system,15000,35000,25000,1,ALLOWANCE,LOW,

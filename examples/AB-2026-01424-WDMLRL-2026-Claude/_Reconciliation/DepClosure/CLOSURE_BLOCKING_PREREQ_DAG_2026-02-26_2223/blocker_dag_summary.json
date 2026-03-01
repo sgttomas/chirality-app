@@ -1,0 +1,21 @@
+{
+  "cyclic_sccs": 0,
+  "deliverables_total": 117,
+  "edges_included": 289,
+  "execution_root": "/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude",
+  "filters": {
+    "DependencyClass": "EXECUTION",
+    "DependencyType": "PREREQUISITE",
+    "Direction": [
+      "DOWNSTREAM",
+      "UPSTREAM"
+    ],
+    "EstimateImpactClass": "BLOCKING",
+    "Status": "ACTIVE",
+    "TargetType": "DELIVERABLE"
+  },
+  "orphans": 0,
+  "overall": "PASS",
+  "run_label": "BLOCKING_PREREQ_DAG",
+  "timestamp_local": "2026-02-26T22:25:00-07:00"
+}

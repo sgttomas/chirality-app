@@ -1,0 +1,118 @@
+DeliverableID,PackageID,DependenciesCsv,CoverageStatus,EdgeRowsIncluded
+DEL-001-01,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-01_Preliminary-Design/Dependencies.csv,OK,2
+DEL-001-02,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-02_Floor-Plans/Dependencies.csv,OK,3
+DEL-001-03,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-03_Exterior-Elevations/Dependencies.csv,OK,2
+DEL-001-04,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-04_Building-Sections/Dependencies.csv,OK,6
+DEL-001-05,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-05_Interior-Elevations/Dependencies.csv,OK,1
+DEL-001-06,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-06_Reflected-Ceiling-Plans/Dependencies.csv,OK,1
+DEL-001-07,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-07_Door-Window-Schedule/Dependencies.csv,OK,1
+DEL-001-08,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-08_Finish-Schedule/Dependencies.csv,OK,2
+DEL-001-09,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-09_Demolition-Plans/Dependencies.csv,OK,1
+DEL-001-10,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-10_Renovation-Plans/Dependencies.csv,OK,1
+DEL-001-11,PKG-001,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-001_Architectural Design/1_Working/DEL-001-11_Specification/Dependencies.csv,OK,3
+DEL-002-01,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-01_Preliminary-Design/Dependencies.csv,OK,0
+DEL-002-02,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-02_Foundation-Plan/Dependencies.csv,OK,2
+DEL-002-03,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-03_Framing-Plans/Dependencies.csv,OK,3
+DEL-002-04,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-04_Structural-Sections/Dependencies.csv,OK,2
+DEL-002-05,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-05_Mezzanine-Details/Dependencies.csv,OK,1
+DEL-002-06,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-06_Service-Pit-Details/Dependencies.csv,OK,1
+DEL-002-07,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-07_Crane-Support-Details/Dependencies.csv,OK,2
+DEL-002-08,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-08_Embedment-Plan/Dependencies.csv,OK,2
+DEL-002-09,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-09_Stair-Details/Dependencies.csv,OK,4
+DEL-002-10,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-10_Calculation-Package/Dependencies.csv,OK,1
+DEL-002-11,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-11_Foundation-Design/Dependencies.csv,OK,2
+DEL-002-12,PKG-002,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-002_Structural Design/1_Working/DEL-002-12_Specification/Dependencies.csv,OK,2
+DEL-003-01,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-01_Preliminary-Design/Dependencies.csv,OK,0
+DEL-003-02,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-02_HVAC-Plans/Dependencies.csv,OK,4
+DEL-003-03,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-03_Ductwork-Plans/Dependencies.csv,OK,3
+DEL-003-04,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-04_Exhaust-Plans/Dependencies.csv,OK,3
+DEL-003-05,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-05_Equipment-Schedule/Dependencies.csv,OK,2
+DEL-003-06,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-06_Calculation-Package/Dependencies.csv,OK,1
+DEL-003-07,PKG-003,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-003_Mechanical Design/1_Working/DEL-003-07_Specification/Dependencies.csv,OK,3
+DEL-004-01,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-01_Preliminary-Design/Dependencies.csv,OK,2
+DEL-004-02,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-02_Single-Line-Diagram/Dependencies.csv,OK,1
+DEL-004-03,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-03_Power-Plans/Dependencies.csv,OK,2
+DEL-004-04,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-04_Lighting-Plans/Dependencies.csv,OK,2
+DEL-004-05,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-05_Receptacle-Plans/Dependencies.csv,OK,2
+DEL-004-06,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-06_Panel-Schedules/Dependencies.csv,OK,5
+DEL-004-07,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-07_Low-Voltage-Plans/Dependencies.csv,OK,3
+DEL-004-08,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-08_Calculation-Package/Dependencies.csv,OK,0
+DEL-004-09,PKG-004,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-004_Electrical Design/1_Working/DEL-004-09_Specification/Dependencies.csv,OK,1
+DEL-005-01,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-01_Preliminary-Design/Dependencies.csv,OK,1
+DEL-005-02,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-02_Site-Grading-Plan/Dependencies.csv,OK,3
+DEL-005-03,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-03_Drainage-Plan/Dependencies.csv,OK,3
+DEL-005-04,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-04_Driving-Surface-Layout/Dependencies.csv,OK,3
+DEL-005-05,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-05_Civil-Sections/Dependencies.csv,OK,5
+DEL-005-06,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-06_Calculation-Package/Dependencies.csv,OK,2
+DEL-005-07,PKG-005,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-005_Civil Design/1_Working/DEL-005-07_Specification/Dependencies.csv,OK,3
+DEL-006-01,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-01_Preliminary-Design/Dependencies.csv,OK,2
+DEL-006-02,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-02_Water-Distribution-Plans/Dependencies.csv,OK,3
+DEL-006-03,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-03_Drain-Vent-Plans/Dependencies.csv,OK,2
+DEL-006-04,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-04_Cistern-Pump-Details/Dependencies.csv,OK,4
+DEL-006-05,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-05_Septic-Details/Dependencies.csv,OK,1
+DEL-006-06,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-06_Fixture-Schedule/Dependencies.csv,OK,2
+DEL-006-07,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-07_Calculation-Package/Dependencies.csv,OK,2
+DEL-006-08,PKG-006,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-006_Plumbing Design/1_Working/DEL-006-08_Specification/Dependencies.csv,OK,5
+DEL-007-01,PKG-007,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-007_Landscape Architectural Design/1_Working/DEL-007-01_Preliminary-Design/Dependencies.csv,OK,2
+DEL-007-02,PKG-007,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-007_Landscape Architectural Design/1_Working/DEL-007-02_Landscape-Plans/Dependencies.csv,OK,3
+DEL-007-03,PKG-007,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-007_Landscape Architectural Design/1_Working/DEL-007-03_Planting-Plans/Dependencies.csv,OK,2
+DEL-007-04,PKG-007,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-007_Landscape Architectural Design/1_Working/DEL-007-04_Specification/Dependencies.csv,OK,4
+DEL-008-01,PKG-008,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-008_Geotechnical Investigation & Surveying/1_Working/DEL-008-01_Geotech-Investigation/Dependencies.csv,OK,0
+DEL-008-02,PKG-008,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-008_Geotechnical Investigation & Surveying/1_Working/DEL-008-02_Preliminary-Survey/Dependencies.csv,OK,0
+DEL-008-03,PKG-008,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-008_Geotechnical Investigation & Surveying/1_Working/DEL-008-03_Construction-Survey/Dependencies.csv,OK,1
+DEL-008-04,PKG-008,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-008_Geotechnical Investigation & Surveying/1_Working/DEL-008-04_As-Built-Survey/Dependencies.csv,OK,1
+DEL-009-01,PKG-009,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-009_Permitting & Regulatory Compliance/1_Working/DEL-009-01_Development-Permit/Dependencies.csv,OK,3
+DEL-009-02,PKG-009,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-009_Permitting & Regulatory Compliance/1_Working/DEL-009-02_Building-Permit/Dependencies.csv,OK,1
+DEL-009-03,PKG-009,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-009_Permitting & Regulatory Compliance/1_Working/DEL-009-03_Safety-Code-Permits/Dependencies.csv,OK,1
+DEL-009-04,PKG-009,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-009_Permitting & Regulatory Compliance/1_Working/DEL-009-04_Code-Compliance-Register/Dependencies.csv,OK,3
+DEL-010-01,PKG-010,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-010_Foundation Construction/1_Working/DEL-010-01_Foundation-Construction/Dependencies.csv,OK,5
+DEL-011-01,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-01_Superstructure/Dependencies.csv,OK,12
+DEL-011-02,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-02_Steel-Embedments/Dependencies.csv,OK,3
+DEL-011-03,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-03_Repair-Bays/Dependencies.csv,OK,9
+DEL-011-04,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-04_Doors-Entrances/Dependencies.csv,OK,3
+DEL-011-05,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-05_Wash-Bay-Enclosure/Dependencies.csv,OK,4
+DEL-011-06,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-06_Service-Pit/Dependencies.csv,OK,1
+DEL-011-07,PKG-011,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-011_Building Structure & Envelope/1_Working/DEL-011-07_Mezzanine/Dependencies.csv,OK,5
+DEL-012-01,PKG-012,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-012_Interior Construction & Fit-Out/1_Working/DEL-012-01_Parts-Room/Dependencies.csv,OK,3
+DEL-012-02,PKG-012,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-012_Interior Construction & Fit-Out/1_Working/DEL-012-02_Utility-Room/Dependencies.csv,OK,1
+DEL-012-03,PKG-012,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-012_Interior Construction & Fit-Out/1_Working/DEL-012-03_Office/Dependencies.csv,OK,1
+DEL-013-01,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-01_Heating-System/Dependencies.csv,OK,7
+DEL-013-02,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-02_Air-Exchanger/Dependencies.csv,OK,6
+DEL-013-03,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-03_Makeup-Air/Dependencies.csv,OK,8
+DEL-013-04,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-04_Equipment-Exhaust/Dependencies.csv,OK,2
+DEL-013-05,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-05_Welding-Exhaust/Dependencies.csv,OK,0
+DEL-013-06,PKG-013,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-013_Mechanical & HVAC Installation/1_Working/DEL-013-06_Ceiling-Fans/Dependencies.csv,OK,3
+DEL-014-01,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-01_Cistern/Dependencies.csv,OK,3
+DEL-014-02,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-02_Septic/Dependencies.csv,OK,1
+DEL-014-03,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-03_Bulk-Water/Dependencies.csv,OK,2
+DEL-014-04,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-04_Floor-Drains/Dependencies.csv,OK,1
+DEL-014-05,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-05_Emergency-Shower/Dependencies.csv,OK,2
+DEL-014-06,PKG-014,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-014_Plumbing & Water Systems Installation/1_Working/DEL-014-06_Fixtures/Dependencies.csv,OK,5
+DEL-015-01,PKG-015,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-015_Electrical & Low-Voltage Installation/1_Working/DEL-015-01_Power-Service/Dependencies.csv,OK,0
+DEL-015-02,PKG-015,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-015_Electrical & Low-Voltage Installation/1_Working/DEL-015-02_Lighting/Dependencies.csv,OK,3
+DEL-015-03,PKG-015,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-015_Electrical & Low-Voltage Installation/1_Working/DEL-015-03_Receptacles/Dependencies.csv,OK,4
+DEL-015-04,PKG-015,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-015_Electrical & Low-Voltage Installation/1_Working/DEL-015-04_Equipment-Power/Dependencies.csv,OK,4
+DEL-015-05,PKG-015,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-015_Electrical & Low-Voltage Installation/1_Working/DEL-015-05_Low-Voltage/Dependencies.csv,OK,2
+DEL-016-01,PKG-016,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-016_Crane & Lifting Equipment/1_Working/DEL-016-01_Overhead-Cranes/Dependencies.csv,OK,2
+DEL-017-01,PKG-017,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-017_Existing Building Renovation (Old North Shop)/1_Working/DEL-017-01_Kitchenette-Reno/Dependencies.csv,OK,2
+DEL-017-02,PKG-017,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-017_Existing Building Renovation (Old North Shop)/1_Working/DEL-017-02_Mezzanine-Reno/Dependencies.csv,OK,0
+DEL-017-03,PKG-017,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-017_Existing Building Renovation (Old North Shop)/1_Working/DEL-017-03_Washroom-Reno/Dependencies.csv,OK,2
+DEL-017-04,PKG-017,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-017_Existing Building Renovation (Old North Shop)/1_Working/DEL-017-04_Locker-Room/Dependencies.csv,OK,4
+DEL-018-01,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-01_Topsoil-Strip/Dependencies.csv,OK,1
+DEL-018-02,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-02_Grading-Landscape/Dependencies.csv,OK,6
+DEL-018-03,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-03_Driving-Surface/Dependencies.csv,OK,4
+DEL-018-04,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-04_Pads/Dependencies.csv,OK,4
+DEL-018-05,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-05_Wash-Bay-Drainage/Dependencies.csv,OK,4
+DEL-018-06,PKG-018,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-018_Sitework & Civil Construction/1_Working/DEL-018-06_Utility-Tieins/Dependencies.csv,OK,4
+DEL-019-01,PKG-019,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-019_Construction Management & OH&S/1_Working/DEL-019-01_Prime-Contractor/Dependencies.csv,OK,2
+DEL-019-02,PKG-019,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-019_Construction Management & OH&S/1_Working/DEL-019-02_Weekly-Coordination/Dependencies.csv,OK,1
+DEL-019-03,PKG-019,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-019_Construction Management & OH&S/1_Working/DEL-019-03_Subcontractor-Mgmt/Dependencies.csv,OK,2
+DEL-019-04,PKG-019,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-019_Construction Management & OH&S/1_Working/DEL-019-04_QC-Management/Dependencies.csv,OK,1
+DEL-020-01,PKG-020,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-020_Commissioning & Closeout/1_Working/DEL-020-01_Commissioning/Dependencies.csv,OK,1
+DEL-020-02,PKG-020,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-020_Commissioning & Closeout/1_Working/DEL-020-02_Final-Inspection/Dependencies.csv,OK,1
+DEL-020-03,PKG-020,/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-020_Commissioning & Closeout/1_Working/DEL-020-03_Closeout-Docs/Dependencies.csv,OK,1
+DEL-021-01,PKG-021,"/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-021_Bonding, Insurance & Warranty/1_Working/DEL-021-01_Bid-Security/Dependencies.csv",OK,0
+DEL-021-02,PKG-021,"/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-021_Bonding, Insurance & Warranty/1_Working/DEL-021-02_Performance-Bonds/Dependencies.csv",OK,1
+DEL-021-03,PKG-021,"/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-021_Bonding, Insurance & Warranty/1_Working/DEL-021-03_Insurance/Dependencies.csv",OK,1
+DEL-021-04,PKG-021,"/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-021_Bonding, Insurance & Warranty/1_Working/DEL-021-04_Contract-Execution/Dependencies.csv",OK,3
+DEL-021-05,PKG-021,"/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/PKG-021_Bonding, Insurance & Warranty/1_Working/DEL-021-05_Warranty/Dependencies.csv",OK,1

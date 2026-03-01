@@ -1,0 +1,33 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-017-01,Project Management — DEL-017-01 allocation,6,hr,UNIT_RATE,Procedure,Phase 1-5 (all steps),Level_of_Effort.csv: R-01 Project Manager 6 hr
+ITM-002,DEL-017-01,Construction Project Management,8,hr,UNIT_RATE,Procedure,Phase 2-4 (Steps 6-14),Level_of_Effort.csv: R-02 Construction PM 8 hr
+ITM-003,DEL-017-01,Site Superintendent — kitchenette reno supervision,10,hr,UNIT_RATE,Procedure,Phase 2-4 (Steps 6-14),Level_of_Effort.csv: R-03 Site Superintendent 10 hr
+ITM-004,DEL-017-01,Cost Estimator — pricing and QTO support,4,hr,UNIT_RATE,Procedure,Phase 1 (pre-construction),Level_of_Effort.csv: R-08 Cost Estimator 4 hr
+ITM-005,DEL-017-01,QA/QC Lead — inspection and deficiency tracking,6,hr,UNIT_RATE,Procedure,Phase 4-5 (Steps 15-18),Level_of_Effort.csv: R-06 QA/QC Lead 6 hr
+ITM-006,DEL-017-01,HSE Manager — safety oversight,4,hr,UNIT_RATE,Procedure,Phase 2-4 (Steps 6-14),Level_of_Effort.csv: R-05 HSE Manager 4 hr
+ITM-007,DEL-017-01,Existing Conditions Survey and Photographic Documentation,1,LS,LUMP_SUM,Procedure,Step 1 (Existing Conditions Documentation),Field survey + photos of existing kitchenette per EXISTING-001; hazardous materials assessment per Lensing A-002
+ITM-008,DEL-017-01,Utility Capacity Verification (plumbing + electrical),1,LS,LUMP_SUM,Procedure,Step 2 (Utility Capacity Verification),Confirm existing plumbing and electrical capacity per UTILITY-001
+ITM-009,DEL-017-01,Design Coordination and IFC Drawing Review,1,LS,LUMP_SUM,Procedure,Step 3 (Design Coordination),Contractor coordination with Architect (PKG-001) + Plumbing Eng (PKG-006) + Electrical Eng (PKG-004); IFC review per DESIGN-001
+ITM-010,DEL-017-01,Permit Acquisition (building + safety code permits),1,LS,LUMP_SUM,Procedure,Step 4 (Permitting),Building permit (DEL-009-02) + plumbing/electrical/gas safety code permits (DEL-009-03); GC admin effort; permit fees excluded (County pays)
+ITM-011,DEL-017-01,Workforce Continuity Planning,1,LS,LUMP_SUM,Procedure,Step 5 (Workforce and Continuity Planning),Discuss phasing / temp accommodation with Owner per Guidance Considerations
+ITM-012,DEL-017-01,Hazardous Materials Assessment (ACM + lead paint),1,LS,LUMP_SUM,Procedure,Step 1 (Lensing A-002),ACM and lead-paint testing prior to demolition; abatement if required is additional
+ITM-013,DEL-017-01,Temporary Protection (adjacent areas),1,LS,LUMP_SUM,Procedure,Step 6 (Protect Adjacent Areas),Hoarding / dust barriers / protective sheeting to isolate kitchenette from active building areas
+ITM-014,DEL-017-01,Utility Isolation (plumbing + electrical + gas if applicable),1,LS,LUMP_SUM,Procedure,Step 7 (Utility Isolation),Isolation of plumbing supply and electrical circuits serving kitchenette before demolition
+ITM-015,DEL-017-01,Demolition of Existing Kitchenette,23.2,m2,UNIT_RATE,Procedure,Step 8 (Demolition of Existing Kitchenette),Remove existing cabinetry + appliances + fixtures + finishes + plumbing rough-in + electrical rough-in; 250 sqft = 23.2 m2
+ITM-016,DEL-017-01,Waste Disposal (demolition debris),1,LS,LUMP_SUM,Procedure,Step 8 (Lensing A-004),Debris removal and disposal per applicable regulations; segregate hazardous if applicable
+ITM-017,DEL-017-01,Plumbing Rough-In,1,LS,LUMP_SUM,Procedure,Step 9 (Plumbing Rough-In),New supply lines + drains + vents per IFC plumbing drawings; coordinate with DEL-017-03 and DEL-017-04
+ITM-018,DEL-017-01,Electrical Rough-In,1,LS,LUMP_SUM,Procedure,Step 10 (Electrical Rough-In),New wiring + conduit + boxes + circuits per IFC electrical drawings; connect to existing panel
+ITM-019,DEL-017-01,Gas Fitting Rough-In (conditional),1,LS,LUMP_SUM,Procedure,Step 10A (Gas Fitting — Lensing C-001),Conditional on appliance schedule including gas appliances; TBD pending design
+ITM-020,DEL-017-01,Mechanical / HVAC Rough-In (conditional),1,LS,LUMP_SUM,Procedure,Step 10B (Mechanical HVAC — Lensing F-001 F-003),Conditional on design requiring kitchen exhaust/ventilation; TBD pending appliance schedule
+ITM-021,DEL-017-01,Substrate Preparation,23.2,m2,UNIT_RATE,Procedure,Step 11 (Substrate Preparation),Prepare wall + floor + ceiling substrates; address deficiencies; firestopping if required (Lensing X-001)
+ITM-022,DEL-017-01,Interior Finishes — Flooring,23.2,m2,UNIT_RATE,Procedure,Step 12 (Interior Finishes); Specification REQ-008,Commercial vinyl/laminate per Finish Schedule (DEL-001-08); cleanable and durable for food prep area
+ITM-023,DEL-017-01,Interior Finishes — Wall Partitions (gypsum board),23.2,m2,UNIT_RATE,Datasheet,Construction — Finishing Work,Metal stud + GWB partition; area = kitchenette footprint; actual wall area TBD per design
+ITM-024,DEL-017-01,Interior Finishes — Paint (walls + ceiling),46.4,m2,UNIT_RATE,Procedure,Step 12 (Interior Finishes),Walls + ceiling paint; 2x floor area assumed for combined surface coverage
+ITM-025,DEL-017-01,Interior Finishes — Ceiling,23.2,m2,UNIT_RATE,Procedure,Step 12 (Interior Finishes),Suspended acoustic ceiling or painted ceiling per Finish Schedule
+ITM-026,DEL-017-01,Cabinetry Installation,1,LS,LUMP_SUM,Procedure,Step 13 (Cabinetry Installation); Specification REQ-007,New cabinetry per approved design; level + plumb + securely anchored; procurement responsibility TBD (Lensing E-001)
+ITM-027,DEL-017-01,Fixture and Appliance Installation,1,LS,LUMP_SUM,Procedure,Step 14 (Fixture and Appliance Installation); Specification REQ-007,Plumbing fixtures (sink + faucet) + appliances per approved schedule; appliance list TBD
+ITM-028,DEL-017-01,Trade Inspections (plumbing + electrical + gas if applicable + mechanical if applicable),1,LS,LUMP_SUM,Procedure,Step 15 (Trade Inspections); Specification REQ-009,Schedule and submit all required inspections; County rep present; copies of reports to County
+ITM-029,DEL-017-01,Punch-List and Deficiency Rectification,1,LS,LUMP_SUM,Procedure,Step 16 (Punch-List),Self-inspection and rectification of deficiencies before Owner acceptance
+ITM-030,DEL-017-01,Owner Acceptance and As-Built Submission,1,LS,LUMP_SUM,Procedure,Step 17 (Owner Acceptance),Owner walk-through + as-built drawings (plumbing + electrical + architectural per Lensing X-002)
+ITM-031,DEL-017-01,Warranty Initiation and CCC Contribution,1,LS,LUMP_SUM,Procedure,Step 18 (Warranty Initiation); Specification REQ-011,Warranty tracking initiation per Lensing E-002; coordinate with DEL-020-02 and DEL-020-03
+ITM-032,DEL-017-01,Photographic Documentation (pre-demo + progressive),1,LS,LUMP_SUM,Specification,Documentation — Photographic Documentation,Date-stamped photos at key milestones

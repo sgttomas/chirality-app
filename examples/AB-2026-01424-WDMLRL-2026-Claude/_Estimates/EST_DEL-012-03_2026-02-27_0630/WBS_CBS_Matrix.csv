@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-012,DEL-012-03,Construction Labour > General Construction Labour,CAD,34907.40,20,100,Construction project management — site coordination; Site superintendent — field leadership; HSE manager — safety oversight; ...
+PKG-012,DEL-012-03,Professional Services > Project Management,CAD,2340.00,3,100,Project management — office fit-out coordination; Cost estimator — estimate prep / QTO; QA/QC lead — inspections / deficiency tracking

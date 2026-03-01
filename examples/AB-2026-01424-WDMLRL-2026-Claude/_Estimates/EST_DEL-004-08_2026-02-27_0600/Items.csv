@@ -1,0 +1,31 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-004-08,Service entrance sizing calculation — three-phase power supply sizing and demand analysis (REQ-004-08-01),1,LS,LUMP_SUM,Specification,REQ-004-08-01,Professional engineering effort; includes service entrance conductor sizing and overcurrent protection
+ITEM-002,DEL-004-08,Connected and demand load schedule — all lighting/receptacle/equipment/special-purpose loads (REQ-004-08-02),1,LS,LUMP_SUM,Specification,REQ-004-08-02,Comprehensive load schedule covering all circuits per App B (Electrical) and RFP §3.4
+ITEM-003,DEL-004-08,Lighting calculation — main shop (20x150W LED high bay) (REQ-004-08-03),1,LS,LUMP_SUM,Specification,REQ-004-08-03,Illuminance verification for 5 rows x 4 fixtures; circuit loading documentation
+ITEM-004,DEL-004-08,Lighting calculation — wash bay (6 high bay fixtures) (REQ-004-08-04),1,LS,LUMP_SUM,Specification,REQ-004-08-04,Illuminance verification for 2 rows x 3 fixtures; wet location IP rating confirmation
+ITEM-005,DEL-004-08,Lighting calculation — office/utility/parts-tool room (9 LED fixtures) (REQ-004-08-05),1,LS,LUMP_SUM,Specification,REQ-004-08-05,"Office 1x8' LED, Utility 2x8' LED, Parts/Tool 6x8' LED at 80W each (assumption)"
+ITEM-006,DEL-004-08,Lighting calculation — service pit (REQ-004-08-06),1,LS,LUMP_SUM,Specification,REQ-004-08-06,Fixture type and illuminance TBD; dedicated lighting circuit required
+ITEM-007,DEL-004-08,Receptacle circuit sizing calculations — all types 15A to 50A (REQ-004-08-07),1,LS,LUMP_SUM,Specification,REQ-004-08-07,"Circuit calculations for 15A/120V, 20A/120V, 20A/240V, 30A/240V, 50A/240V receptacles"
+ITEM-008,DEL-004-08,Welding-grade receptacle circuit sizing — 50A/240V (REQ-004-08-08),1,LS,LUMP_SUM,Specification,REQ-004-08-08,Multiple 50A/240V receptacles per D-009 assumption; County confirmation pending
+ITEM-009,DEL-004-08,Crane power feed calculations — two 5-tonne overhead cranes (REQ-004-08-09),1,LS,LUMP_SUM,Specification,REQ-004-08-09,Crane manufacturer FLA data TBD; dedicated circuits per CEC Section 40
+ITEM-010,DEL-004-08,Overhead door power circuit sizing (REQ-004-08-10),1,LS,LUMP_SUM,Specification,REQ-004-08-10,Quantity TBD; assumption ~15-20A/120V per unit; coordinate with DEL-001-07
+ITEM-011,DEL-004-08,Dedicated equipment circuit sizing — compressor 40A / fire hose pump 70A / pressure washer 70A (REQ-004-08-11),1,LS,LUMP_SUM,Specification,REQ-004-08-11,Ratings stated on App B drawing; CEC-compliant protection device sizing
+ITEM-012,DEL-004-08,Ceiling fan circuit sizing — 6 units (REQ-004-08-12),1,LS,LUMP_SUM,Specification,REQ-004-08-12,Fan wattage TBD; coordinate with PKG-003
+ITEM-013,DEL-004-08,Exhaust fan circuit sizing (REQ-004-08-13),1,LS,LUMP_SUM,Specification,REQ-004-08-13,Quantity and wattage TBD; coordinate with PKG-003
+ITEM-014,DEL-004-08,Low-voltage system power supply documentation (REQ-004-08-14),1,LS,LUMP_SUM,Specification,REQ-004-08-14,Security cameras and 2-way radio antenna wiring power supply requirements
+ITEM-015,DEL-004-08,Voltage drop calculations — feeders and critical branch circuits (REQ-004-08-15),1,LS,LUMP_SUM,Specification,REQ-004-08-15,Per CEC limits; specific edition TBD
+ITEM-016,DEL-004-08,Conductor and overcurrent protection sizing — all circuits (REQ-004-08-16),1,LS,LUMP_SUM,Specification,REQ-004-08-16,Per CEC Part I; conduit sizing included
+ITEM-017,DEL-004-08,P.Eng. stamp and professional review (REQ-004-08-17),1,LS,LUMP_SUM,Specification,REQ-004-08-17,P.Eng. licensed in Alberta — stamp and signature on all IFC calculation sheets
+ITEM-018,DEL-004-08,Demand factor documentation per load category (REQ-004-08-19),1,LS,LUMP_SUM,Specification,REQ-004-08-19,CEC clause or engineering rationale for each load category demand factor
+ITEM-019,DEL-004-08,Panel configuration determination and documentation (REQ-004-08-20),1,LS,LUMP_SUM,Specification,REQ-004-08-20,Number of panels and main vs. sub-panel arrangement; sizing basis
+ITEM-020,DEL-004-08,Available fault current determination and device verification (REQ-004-08-21),1,LS,LUMP_SUM,Specification,REQ-004-08-21,Fault current at service entrance; overcurrent device interrupting rating verification
+ITEM-021,DEL-004-08,Heating and makeup air unit circuit sizing (REQ-004-08-22),1,LS,LUMP_SUM,Specification,REQ-004-08-22,Electrical load data from PKG-003; assumption: dedicated circuits required
+ITEM-022,DEL-004-08,Mezzanine electrical loads calculation (REQ-004-08-23),1,LS,LUMP_SUM,Specification,REQ-004-08-23,Mezzanine lighting and receptacle circuits TBD; coordinate with architectural
+ITEM-023,DEL-004-08,Hazardous area classification assessment — service pit (REQ-004-08-24),1,LS,LUMP_SUM,Specification,REQ-004-08-24,CEC hazardous area rules for potential flammable vapors; impacts fixture selection
+ITEM-024,DEL-004-08,Calculation package compilation and cross-reference table,1,LS,LUMP_SUM,Procedure,Step 8,Assembly of all calculation sections with cover sheet and cross-reference to DEL-004-02 through DEL-004-07
+ITEM-025,DEL-004-08,Internal QC review of calculation package,1,LS,LUMP_SUM,Procedure,Step 9,Independent check of load schedule completeness and CEC compliance
+ITEM-026,DEL-004-08,Assumption resolution gate review,1,LS,LUMP_SUM,Procedure,Step 9A,Formal review of all open assumptions before IFC; documented disposition for each
+ITEM-027,DEL-004-08,Project management — coordination and oversight,6,hr,UNIT_RATE,Procedure,Prerequisites,PM coordination for DEL-004-08 per Level_of_Effort.csv (R-01)
+ITEM-028,DEL-004-08,Cost estimating support,4,hr,UNIT_RATE,Procedure,Prerequisites,Cost estimator support per Level_of_Effort.csv (R-08)
+ITEM-029,DEL-004-08,BIM/CAD technical support for calculation documentation,24,hr,UNIT_RATE,Procedure,Step 8,BIM technician support per Level_of_Effort.csv (R-13)
+ITEM-030,DEL-004-08,Electrical engineering — design calculations (all technical items),56,hr,UNIT_RATE,Datasheet,Attributes,Senior electrical engineering effort covering all calculation items per Level_of_Effort.csv (R-16)

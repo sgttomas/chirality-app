@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-05,Construction Labour > General Construction Labour,CAD,3700,4,100,4 line items
+PKG-021,DEL-021-05,Professional Services > Project Management,CAD,4260,4,100,4 line items
+PKG-021,DEL-021-05,ALL,CAD,7960,8,100,All CBS categories combined; 8 lines priced

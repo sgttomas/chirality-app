@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-04,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,6000.00,2,50,Commissioning and performance testing; Operator training and maintenance handover
+PKG-013,DEL-013-04,Construction Labour > General Construction Labour,CAD,11776.80,3,100,HVAC sheet metal labour — ductwork installation; HVAC sheet metal labour — hose drop and fan installation; Labourer — general support
+PKG-013,DEL-013-04,Mechanical > Controls & Commissioning,CAD,5500.00,1,0,Controls and monitoring system
+PKG-013,DEL-013-04,Mechanical > HVAC Equipment & Distribution,CAD,69950.00,8,38,Exhaust hose drop assemblies (4 EA); Exhaust fan(s) — 2 EA; ... (+6 more)
+PKG-013,DEL-013-04,Professional Services > Project Management,CAD,5320.00,5,80,Product submittals and documentation; Project management; ... (+3 more)
+PKG-013,DEL-013-04,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,1370.00,2,100,QA/QC lead; HSE manager

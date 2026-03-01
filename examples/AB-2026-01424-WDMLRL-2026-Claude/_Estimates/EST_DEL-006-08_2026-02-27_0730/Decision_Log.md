@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-006-08_2026-02-27_0730
+
+| DecisionID | Decision | Rationale | Impact |
+|-----------|----------|-----------|--------|
+| DEC-001 | Use LOE (hours x rate) method from Level_of_Effort.csv + Professional_Staff_Rates.csv as primary pricing approach | Level_of_Effort.csv provides deliverable-specific role-hour allocations, which is more granular than the percentage-of-construction-value method from Professional_Design_Fees.csv. For a single-deliverable (specification) estimate, LOE is the most appropriate parametric model. | All priced lines use PARAMETRIC method with hours and rates from PS-1 and PS-2 |
+| DEC-002 | Professional_Design_Fees.csv (PS-4) not used for pricing | PS-4 provides discipline-level fee percentages against total construction value. This is useful for package-level or project-level estimates but is too coarse for a single-deliverable estimate. Additionally, construction value is not provided as an input. | PS-4 documented in Source_Index.md as informational only |
+| DEC-003 | Activity-level items (ITEM-005 through ITEM-020) priced at $0 with effort captured in role-level LOE items | The LOE source provides aggregate hours per role per deliverable, not per activity. Pricing activities separately would require sub-allocating hours, which would be arbitrary without source support. Items are retained at $0 for scope traceability. | 16 of 20 Detail.csv lines at $0; total cost carried by 4 role-level lines |
+| DEC-004 | CBS codes assigned as DESIGN-MGMT, DESIGN-PROD, DESIGN-ENG, DESIGN-QA, DESIGN-COORD, DESIGN-CA, DESIGN-CX | No CBS scheme was provided in pricing sources or decomposition. CBS codes were assigned based on the nature of each activity/role to enable cost breakdown reporting. | WBS_CBS_Matrix.csv populated with 7 CBS categories |
+| DEC-005 | UPDATE_LATEST_POINTER = FALSE respected | As specified in INIT-TASK brief. No pointer files modified. | No `_LATEST.md` file created or updated |
+| DEC-006 | Rounding = NONE (default) | No ROUNDING parameter specified in INIT-TASK brief; protocol default of NONE applied. | All amounts reported to 2 decimal places (cents) |

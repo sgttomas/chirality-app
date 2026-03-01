@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-012,DEL-012-02,Concrete > Concrete & Foundations,CAD,13500.00,3,100,Equipment platforms and mounting infrastructure; Cistern structural pad; Mezzanine stair landing interface and access provisions
+PKG-012,DEL-012-02,General Conditions > General Requirements & Indirect,CAD,4530.00,3,100,Inspections; Construction cleanup and readiness acceptance; As-built survey and documentation
+PKG-012,DEL-012-02,"Interior Construction > Partitions, Finishes & Fit-Out",CAD,15702.00,10,100,Interior partition walls; Wall finishes; Floor finish; ...
+PKG-012,DEL-012-02,"Openings > Doors, Windows & Glazing",CAD,4300.00,2,100,Industrial access door; Fire-rated door upgrade allowance
+PKG-012,DEL-012-02,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,750.00,1,100,Permits and regulatory approvals (prorated)
+PKG-012,DEL-012-02,Professional Services > Design & Engineering,CAD,3290.00,1,100,Design coordination
+PKG-012,DEL-012-02,Professional Services > Project Management,CAD,5420.00,1,100,Professional staff

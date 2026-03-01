@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-002-12_2026-02-27_0841
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Use Level-of-Effort (LOE) method for pricing rather than fee-percentage method | LOE method (hours x rates) provides granular, auditable line items. Fee-percentage method (DF-02 from Professional_Design_Fees.csv) requires a construction value baseline that is not established for this deliverable. | All 4 priced lines use PARAMETRIC method with explicit hours and rates. |
+| DEC-002 | Scope resolution: DEL-002-12 resolves to a single deliverable (Structural Specification) in PKG-002 | SCOPE parameter "DEL-002-12" is an explicit deliverable ID matching exactly one entry in the decomposition and Level_of_Effort.csv. | 1 deliverable estimated; no ambiguity. |
+| DEC-003 | Items ITM-005 through ITM-013 (procedural activities) are not independently priced | These items represent sub-activities within the Structural Engineer and support staff work program. Their effort is already captured within the staff hour allocations (ITM-001 through ITM-004). Double-counting would inflate the estimate. | 9 items appear in Items.csv for traceability but do not generate separate Detail.csv lines. |
+| DEC-004 | Professional_Design_Fees.csv (PS-4) not used for pricing | DF-02 (Structural design fee = 1.8% recommended of construction_value) requires a construction value denominator. No construction value is available in the scope of this run. The LOE approach from PS-1 and PS-2 is the primary pricing method. | PS-4 indexed in Source_Index.md but not applied. No fallback needed. |
+| DEC-005 | CBS categories assigned as Management and Design | R-01 (PM) and R-08 (Cost Estimator) are categorized as Management per Professional_Staff_Rates.csv Category column. R-13 (BIM Tech) and R-14 (Structural Engineer) are categorized as Design. | WBS_CBS_Matrix.csv reflects two CBS categories. |
+| DEC-006 | UPDATE_LATEST_POINTER = FALSE respected | Per INIT-TASK brief, no pointer file (_LATEST.md) was created or modified. | No side effects outside snapshot folder. |

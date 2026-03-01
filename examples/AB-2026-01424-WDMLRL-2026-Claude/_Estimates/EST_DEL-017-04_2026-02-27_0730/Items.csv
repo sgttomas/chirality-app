@@ -1,0 +1,34 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-017-04,Design — Locker room space planning and preliminary design (Step 1.1-1.2),1,LS,LUMP_SUM,Procedure,Phase 1 Steps 1.1-1.2,Professional staff hours from Level_of_Effort.csv; includes County coordination and preliminary layout
+ITM-002,DEL-017-04,Design — Locker system and laundry equipment selection (Step 1.3),1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.3,Product evaluation and specification; professional staff hours
+ITM-003,DEL-017-04,Design — Final design and IFC drawings (Step 1.4),1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.4,Multi-discipline IFC drawings; P.Eng. stamp required per REQ-017-04-04
+ITM-004,DEL-017-04,Permitting — Building and safety code permits (Step 1.5),1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.5,Proponent responsible for application; County pays development permit fees per RFP §3.3.1
+ITM-005,DEL-017-04,Site preparation and temporary protection (Step 2.1),1,LS,LUMP_SUM,Procedure,Phase 2 Step 2.1,Temporary hoarding within Old North Shop; protect adjacent areas
+ITM-006,DEL-017-04,Demolition — remove existing finishes in construction zone (Step 2.2),1,LS,LUMP_SUM,Procedure,Phase 2 Step 2.2,Limited demolition expected per Procedure note [A-004]; scope TBD
+ITM-007,DEL-017-04,Partition wall framing — metal stud + gypsum board,30,m2,UNIT_RATE,Datasheet,Construction — Partition/wall framing,"Assumed ~30 m2 partition area for locker room enclosure (approx 200 sqft room, 8-9 ft ceiling, 3 new walls ~4m avg length); see [ASM-003]"
+ITM-008,DEL-017-04,Moisture-resistant drywall in wet areas (laundry alcove and sink area),10,m2,UNIT_RATE,Procedure,Step 2.8,Moisture-resistant board per code in wet areas; assumed ~10 m2
+ITM-009,DEL-017-04,Door supply and installation (entry door with hardware),1,EA,UNIT_RATE,Datasheet,Construction — Door(s),Door type/fire rating TBD per [F-001]; single entry door assumed
+ITM-010,DEL-017-04,Plumbing rough-in — drain/vent/supply for sink and floor drain,1,LS,LUMP_SUM,Datasheet,Construction — Plumbing rough-in,Sink(s) and floor drain(s); connects to project cistern/septic system per REQ-017-04-05
+ITM-011,DEL-017-04,Plumbing rough-in — laundry connections (washer supply/drain),1,LS,LUMP_SUM,Datasheet,Construction — Laundry rough-in,Hot/cold supply and drain for laundry per SOW-0073
+ITM-012,DEL-017-04,Plumbing fixtures — hand wash sink with faucet and mirror,1,EA,UNIT_RATE,Specification,REQ-017-04-05,Fixture count TBD; 1 sink minimum assumed
+ITM-013,DEL-017-04,Electrical rough-in — lighting circuits and general receptacles,1,LS,LUMP_SUM,Specification,REQ-017-04-06,"Lighting, 15A/120V receptacles per code"
+ITM-014,DEL-017-04,Electrical rough-in — dedicated laundry circuits (washer 20A/240V + dryer 30A/240V),1,LS,LUMP_SUM,Guidance,Considerations — Electrical,Dedicated circuits per Guidance assumed appliance specs
+ITM-015,DEL-017-04,Electrical rough-in — exhaust fan circuit,1,LS,LUMP_SUM,Specification,REQ-017-04-06,Exhaust fan power circuit; code requirement per REQ-017-04-07
+ITM-016,DEL-017-04,Exhaust ventilation — change room exhaust fan supply and install,1,EA,UNIT_RATE,Specification,REQ-017-04-07,Ventilation per code for change room occupancy; ductwork and exterior penetration
+ITM-017,DEL-017-04,Dryer exhaust duct and exterior termination,1,EA,UNIT_RATE,Procedure,Step 2.6,"Dryer exhaust duct routing through exterior wall; lint trap/termination per Procedure Step 2.6; see TBD [E-001]"
+ITM-018,DEL-017-04,Insulation — wall and ceiling (if required),15,m2,UNIT_RATE,Procedure,Step 2.7,Scope TBD per Procedure; assumed ~15 m2 for interior partition and ceiling insulation
+ITM-019,DEL-017-04,Flooring — durable slip-resistant commercial vinyl/laminate,18,m2,UNIT_RATE,Datasheet,Construction — Finishes,"Assumed ~18 m2 room area (~200 sqft); slip-resistant per Procedure Step 2.9"
+ITM-020,DEL-017-04,Ceiling finish — suspended acoustic or painted drywall,18,m2,UNIT_RATE,Procedure,Step 2.8,Assumed same area as floor; ceiling system TBD
+ITM-021,DEL-017-04,Paint — walls and ceiling,60,m2,UNIT_RATE,Procedure,Step 2.14,"Assumed ~60 m2 total paintable area (walls ~42 m2 + ceiling ~18 m2)"
+ITM-022,DEL-017-04,Locker system — supply and install (metal lockers),8,EA,UNIT_RATE,Datasheet,Construction — Locker installation,"Count TBD; 8 lockers assumed for small maintenance crew; see [ASM-004]"
+ITM-023,DEL-017-04,Bench seating — supply and install,1,EA,UNIT_RATE,Datasheet,Construction — Bench seating,Assumption per Datasheet; single bench unit assumed
+ITM-024,DEL-017-04,"Laundry equipment — commercial washer, supply and install",1,EA,UNIT_RATE,Specification,REQ-017-04-02,Commercial grade recommended per Guidance trade-offs; washer spec TBD per [C-001]
+ITM-025,DEL-017-04,"Laundry equipment — commercial dryer, supply and install",1,EA,UNIT_RATE,Specification,REQ-017-04-02,Commercial grade recommended per Guidance trade-offs; dryer spec TBD per [C-001]
+ITM-026,DEL-017-04,Lighting fixtures — supply and install,4,EA,UNIT_RATE,Specification,REQ-017-04-06,Assumed 4 fixtures for ~200 sqft room; exact count TBD at design
+ITM-027,DEL-017-04,Safety code inspections — plumbing/electrical/mechanical/building final,1,LS,LUMP_SUM,Specification,REQ-017-04-08,County representative present per RFP §3.3.2; proponent coordination cost
+ITM-028,DEL-017-04,Ventilation commissioning — exhaust fan and dryer duct functional testing,1,LS,LUMP_SUM,Procedure,Step 2.15 [C-003],Airflow verification per REQ-017-04-07
+ITM-029,DEL-017-04,Punch-list walkthrough and deficiency correction,1,LS,LUMP_SUM,Procedure,Phase 3 Steps 3.3-3.4,County walkthrough and corrections
+ITM-030,DEL-017-04,Project management — DEL-017-04 oversight and coordination,1,LS,LUMP_SUM,Procedure,Phase 1-3 (all),PM hours from Level_of_Effort.csv (R-01); includes DEL-017-03 coordination per REQ-017-04-10
+ITM-031,DEL-017-04,Construction management and site superintendent,1,LS,LUMP_SUM,Procedure,Phase 2-3,Construction PM (R-02) and Site Superintendent (R-03) hours from Level_of_Effort.csv
+ITM-032,DEL-017-04,QA/QC and HSE oversight,1,LS,LUMP_SUM,Procedure,Phase 2-3,QA/QC Lead (R-06) and HSE Manager (R-05) hours from Level_of_Effort.csv
+ITM-033,DEL-017-04,As-built drawings — production,1,LS,LUMP_SUM,Specification,Documentation — As-Built Drawings,Standard design-build deliverable per CCDC 14-2013 [X-003]

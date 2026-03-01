@@ -1,0 +1,10 @@
+# Risk Register — EST_DEL-018-01_2026-02-27_0600
+
+| RiskID | Risk | Likelihood | Impact | Mitigation | Source |
+|--------|------|-----------|--------|------------|--------|
+| RISK-001 | Actual stripping area significantly exceeds the 3,500 m2 parametric assumption, causing cost overrun on the largest line item | MEDIUM | HIGH | Resolve SURVEY-001 and obtain IFC drawings (DEL-005-02) before finalizing estimate. Earthwork cost (L-001) scales linearly with area. | ASM-002; Datasheet — Area of Work (TBD) |
+| RISK-002 | Unexpected subsurface conditions at landfill site (buried waste, contaminated soil, debris) increase stripping difficulty and cost | MEDIUM | MEDIUM | Guidance E-002 identifies this risk. Develop contingency protocol during pre-construction planning. May require additional equipment time and disposal costs not currently budgeted. | Guidance — Considerations — Contingency for Unexpected Subsurface Conditions |
+| RISK-003 | Topsoil depth materially different from 200 mm assumption, affecting labour hours and production rate | MEDIUM | LOW-MEDIUM | Resolve with SURVEY-001 topsoil depth assessment. Production rate and labour hours (ASM-004, ASM-005) would need adjustment. | ASM-003; Datasheet — Topsoil Depth (TBD) |
+| RISK-004 | Seasonal/weather constraints delay or prevent earthworks operations | MEDIUM | MEDIUM | Procedure SEASONAL-001 prerequisite requires ground to be thawed and workable. Alberta earthworks generally infeasible November-March. Schedule risk if stripping is on critical path. | Procedure — SEASONAL-001 prerequisite |
+| RISK-005 | County clearing (SOW-0200) not complete at Proponent mobilization, blocking topsoil stripping | LOW | MEDIUM | Procedure CLEARING-COUNTY prerequisite. Verify clearing status at mobilization. | Guidance — Considerations — Clearing Must Precede Stripping |
+| RISK-006 | Erosion and sediment control costs exceed allowance if stripped subgrade is exposed for extended period before grading | LOW | LOW | Depends on schedule gap between DEL-018-01 (strip) and DEL-018-02 (grading). Longer exposure increases erosion control investment. | Specification REQ-018-01-09; ASM-010 |

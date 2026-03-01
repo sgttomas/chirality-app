@@ -1,0 +1,13 @@
+# Assumptions_Log — EST_DEL-001-11_2026-02-26_2245
+
+## Explicit Assumptions
+
+| AssumptionID | Assumption | Source / Rationale | Risk if Wrong | Affected Items |
+|---|---|---|---|---|
+| ASM-001 | Staff hourly rates in Professional_Staff_Rates.csv are representative of Central Alberta (Ferintosh/Camrose) market rates for 2026 | PS-STAFF confidence = MEDIUM; parametric rates for design-build context | Rates could be +/-20-30% from actual contracted rates; total estimate exposure ~$2,000-$3,000 | DL-001 through DL-005 (all priced lines) |
+| ASM-002 | Level-of-effort hours in Level_of_Effort.csv are sufficient for the specification deliverable scope | PS-LOE confidence = PARAMETRIC; 70 total hours for a specification covering new addition + renovation scope across 7 procedure steps | If scope expands (e.g., multiple specification revisions, extended coordination cycles), hours could increase by 25-50% | ITEM-001 through ITEM-005 |
+| ASM-003 | Code review, inter-discipline coordination, and County approval coordination effort is embedded in the LOE role hours and does not require incremental budget | LOE model allocates hours holistically per deliverable; these activities are named in the Procedure but not separately resourced in LOE | If coordination is more complex than anticipated (multiple review cycles, extended County feedback periods), additional hours may be needed | ITEM-007, ITEM-008, ITEM-009 |
+| ASM-004 | Currency is CAD per PP-17 from Assumed_Project_Parameters.csv | Alberta-based project; all price sources denominated in CAD | Negligible risk — project is in Alberta, Canada | All items |
+| ASM-005 | The existing conditions survey for the Old North Shop will be priced separately or included in a site investigation package | Survey is listed as a prerequisite in Procedure Step 2 but has no associated pricing in the LOE for DEL-001-11 | If survey cost is material ($5,000-$15,000 range typical), the deliverable estimate understates total cost | ITEM-006 / DL-006 |
+| ASM-006 | Building permit fees are the responsibility of the Proponent (Design-Builder) unless confirmed otherwise | OI-003 from INDEX.md flags this as an open issue; RFP §3.3.2 references permit obligations but payment responsibility is ambiguous | If Owner pays permit fees, this item should be excluded from the Design-Builder's estimate | ITEM-011 / DL-011 |
+| ASM-007 | P.Eng. stamp and AAAL registration fees are nominal relative to the overall deliverable cost | Typical Alberta P.Eng. stamp review and AAAL registration are administrative fees, not major cost items | If special engineering review or third-party code review is required, costs could be material | ITEM-010 / DL-010 |

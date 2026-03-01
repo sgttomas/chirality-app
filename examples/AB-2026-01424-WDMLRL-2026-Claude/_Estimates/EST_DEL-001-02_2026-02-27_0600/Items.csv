@@ -1,0 +1,10 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-001-02,Project management — floor plan deliverable oversight and client coordination,6,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-9,PM hours allocated per Level_of_Effort.csv for DEL-001-02
+ITM-002,DEL-001-02,Cost estimator support — quantity takeoff and benchmarking for floor plan deliverable,4,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-9,Cost estimator hours per Level_of_Effort.csv for DEL-001-02
+ITM-003,DEL-001-02,Senior architect — floor plan design lead including code analysis and coordination,54,hr,UNIT_RATE,Procedure,Steps 1-8,Senior architect hours per Level_of_Effort.csv for DEL-001-02; includes code analysis (Step 1) and design lead through IFC
+ITM-004,DEL-001-02,Architect — production drawings including ground floor plan and mezzanine plan and details,42,hr,UNIT_RATE,Procedure,Steps 3-8,Architect production hours per Level_of_Effort.csv for DEL-001-02
+ITM-005,DEL-001-02,BIM technician — CAD/BIM modeling and sheet setup for floor plan set,24,hr,UNIT_RATE,Procedure,Steps 3-5,BIM technician hours per Level_of_Effort.csv for DEL-001-02
+ITM-006,DEL-001-02,Code analysis — Alberta Building Code review for occupancy classification and egress and fire separations and accessible design,1,LS,LUMP_SUM,Specification,REQ-021 / REQ-025; Procedure Step 1,Included within senior architect hours (ITM-003); no separate line — tracked as scope note only
+ITM-007,DEL-001-02,Interdisciplinary coordination review — structural and mechanical and electrical and plumbing,1,LS,LUMP_SUM,Procedure,Step 6,Coordination effort included within architect and senior architect hours; tracked as scope note
+ITM-008,DEL-001-02,IFC stamp — P.Eng. signature and stamp on all issued floor plan sheets,1,LS,LUMP_SUM,Specification,REQ-022; Procedure Step 8.4,Stamp cost included in professional overhead; no separate pricing line available in price sources
+ITM-009,DEL-001-02,County approval gate — confirmation of DEL-001-01 preliminary design approval before IFC,1,LS,LUMP_SUM,Procedure,Step 8.0,Administrative activity; no direct cost — tracked as scope note

@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-009,DEL-009-03,Construction Labour > General Construction Labour,CAD,11465.00,9,100%,9 lines mapped to canonical CBS
+PKG-009,DEL-009-03,Professional Services > Project Management,CAD,1530.00,2,100%,2 lines mapped to canonical CBS
+PKG-009,DEL-009-03,TOTAL,CAD,12995.00,11,100%,All 11 lines; CBS codes normalized to canonical taxonomy

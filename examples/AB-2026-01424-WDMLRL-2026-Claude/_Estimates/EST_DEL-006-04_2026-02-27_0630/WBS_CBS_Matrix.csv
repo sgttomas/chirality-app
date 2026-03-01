@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-006,DEL-006-04,Professional Services > Design & Engineering,CAD,9835,2,100,Plumbing Engineer (49 hr x $160) + BIM Technician (21 hr x $95)
+PKG-006,DEL-006-04,Professional Services > Project Management,CAD,1530,2,100,Project Manager (6 hr x $165) + Cost Estimator (4 hr x $135)
+PKG-006,DEL-006-04,TOTAL,CAD,11365,4,100,All CBS categories combined for DEL-006-04

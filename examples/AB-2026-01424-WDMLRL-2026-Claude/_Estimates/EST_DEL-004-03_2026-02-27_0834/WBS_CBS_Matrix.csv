@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-004-03,Professional Services > Design & Engineering,CAD,17280.00,2,100,Electrical Engineer (L-001) + BIM Technician (L-002)
+PKG-004,DEL-004-03,Professional Services > Project Management,CAD,1530.00,2,100,Project Manager (L-003) + Cost Estimator (L-004)
+PKG-004,DEL-004-03,ALL,CAD,18810.00,4,100,Grand total — all CBS categories

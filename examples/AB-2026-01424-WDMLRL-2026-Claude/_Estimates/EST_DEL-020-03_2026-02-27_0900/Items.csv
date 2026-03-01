@@ -1,0 +1,9 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-020-03,Project Manager — CCC confirmation and closeout coordination (Steps 1-2 and 8-9),6,hr,UNIT_RATE,Procedure,Steps 1-2 and 8-9,Per Level_of_Effort.csv R-01; covers CCC confirmation / payment claim letter / archive assembly / lien holdback submission
+ITEM-002,DEL-020-03,Construction Project Manager — field closeout coordination and deficiency resolution documentation,8,hr,UNIT_RATE,Procedure,Steps 1 and 7,Per Level_of_Effort.csv R-02; field verification of completion and deficiency tracking
+ITEM-003,DEL-020-03,Site Superintendent — site closeout / final self-inspection support and documentation,10,hr,UNIT_RATE,Procedure,Step 1,Per Level_of_Effort.csv R-03; final site condition verification and cleanup documentation
+ITEM-004,DEL-020-03,Cost Estimator — final financial reconciliation and payment claim support,4,hr,UNIT_RATE,Procedure,Step 2,Per Level_of_Effort.csv R-08; financial reconciliation supporting payment claim letter
+ITEM-005,DEL-020-03,QA/QC Lead — closeout quality records compilation and verification,6,hr,UNIT_RATE,Specification,REQ-006 through REQ-009,Per Level_of_Effort.csv R-06; QC documentation review and archive quality check
+ITEM-006,DEL-020-03,HSE Manager — safety closeout records and WCB clearance coordination,4,hr,UNIT_RATE,Procedure,Step 3,Per Level_of_Effort.csv R-05; safety records closeout and WCB clearance support
+ITEM-007,DEL-020-03,Document Controller — closeout documentation assembly and archive indexing,12,hr,UNIT_RATE,Procedure,Steps 5-8,Per Level_of_Effort.csv R-09; as-built drawing compilation / O&M manual organization / archive indexing
+ITEM-008,DEL-020-03,Commissioning Agent — commissioning report compilation and systems turnover documentation,30,hr,UNIT_RATE,Procedure,Step 7,Per Level_of_Effort.csv R-23; commissioning documentation for closeout archive

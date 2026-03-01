@@ -1,0 +1,9 @@
+# Decision Log — EST_DEL-006-05_2026-02-27_0546
+
+| Decision ID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Scope limited to professional design labour only | DEL-006-05 is a Drawing Set deliverable produced by the Plumbing Engineer. Physical construction (tank procurement, excavation, installation, existing tank removal) is under PKG-014 / DEL-014-02. This estimate prices the design effort to produce the drawing set, not the construction it describes. | Items.csv contains only labour line items; no material or construction items |
+| DEC-002 | Used Level_of_Effort.csv x Professional_Staff_Rates.csv as primary pricing method | PARAMETRIC basis; LOE provides deliverable-specific hours by role; Staff Rates provides hourly rates. This combination directly produces priced line items without requiring a construction value basis. | All 4 lines priced as PARAMETRIC; Detail.csv fully populated |
+| DEC-003 | Professional_Design_Fees.csv not used for pricing | This source provides discipline-level fee percentages as a fraction of construction value. No plumbing-specific row exists, and no construction value is established for this deliverable. The LOE-based approach is more precise. | Source indexed but marked as not applicable; no pricing derived from it |
+| DEC-004 | CBS categories assigned as Design Labour and Management | Plumbing Engineer and BIM Technician classified as Design Labour; Project Manager and Cost Estimator classified as Management. Aligns with role categories in Professional_Staff_Rates.csv. | WBS_CBS_Matrix.csv shows two CBS rows |
+| DEC-005 | All 4 LOE rows from Level_of_Effort.csv for DEL-006-05 accepted as-is | The LOE source provides parametric estimates for R-01 (6 hr), R-08 (4 hr), R-13 (21 hr), R-18 (49 hr). Total 80 hours. These are accepted without adjustment as the parametric basis for this run. | Hours from LOE used directly as Qty in Items.csv and Detail.csv |

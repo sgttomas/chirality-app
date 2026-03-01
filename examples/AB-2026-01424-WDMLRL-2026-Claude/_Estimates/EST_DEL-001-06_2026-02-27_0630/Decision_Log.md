@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-001-06_2026-02-27_0630
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Priced DEL-001-06 using staff-hours x hourly-rates (PARAMETRIC) as primary method | BASIS_OF_ESTIMATE = PARAMETRIC; Level_of_Effort.csv provides per-deliverable hour allocations; Professional_Staff_Rates.csv provides hourly rates. This is the most direct and traceable pricing method available. | Estimate of $19,200 CAD for 130 total hours across 5 roles |
+| DEC-002 | Did not independently price scope items ITM-006 through ITM-023 | These items represent the scope of work (drawing sheets, element placement, coordination activities, QA reviews, P.Eng. stamp) that is produced during the labour hours already priced in Detail.csv lines DL-001 through DL-005. Double-counting would occur if these were priced separately. | No additional cost lines; all effort captured in labour |
+| DEC-003 | Used Design Fee cross-check for reasonableness only, not as primary pricing | Professional_Design_Fees.csv DF-01 provides architectural design fee as 4.5% of construction value. This was used as a cross-check ($166,725 total / 11 deliverables = ~$15,157 per deliverable). The LOE-based estimate of $19,200 is within range. | Cross-check supports primary estimate; no adjustment made |
+| DEC-004 | Assigned CBS categories as Design-Labour and Management-Labour | Senior Architect, Architect, and BIM Technician roles are categorized as Design-Labour. Project Manager and Cost Estimator are categorized as Management-Labour. This follows the Category column in Professional_Staff_Rates.csv (Design vs Management). | CBS split: $17,670 Design-Labour + $1,530 Management-Labour |
+| DEC-005 | ROUNDING = NONE applied (default) | Not specified in brief; protocol default is NONE | All amounts shown at full precision (no rounding artifacts) |
+| DEC-006 | UPDATE_LATEST_POINTER = FALSE respected | Per brief instruction; no pointer file modified | No _LATEST.md file created or updated |

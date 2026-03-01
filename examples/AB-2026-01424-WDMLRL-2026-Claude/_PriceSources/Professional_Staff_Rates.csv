@@ -1,0 +1,31 @@
+RoleID,Role,Category,HourlyRate_CAD,Basis,Confidence,Notes
+R-01,Principal / Senior Partner,Management,225,MARKET,MEDIUM,Senior leadership; limited hours on most deliverables
+R-02,Project Manager,Management,175,MARKET,MEDIUM,Primary coordination role; hours on most deliverables
+R-03,Design Manager,Management,165,MARKET,MEDIUM,Design-phase leadership; overlaps with PM on some projects
+R-04,Architect (Project),Design,145,MARKET,MEDIUM,Lead architect for concept + design briefs
+R-05,Architect (Intermediate),Design,120,MARKET,MEDIUM,Supporting architectural production
+R-06,CAD Technician / BIM Operator,Production,95,MARKET,MEDIUM,Drawing production; highest hours on concept package
+R-07,Civil Engineer (Senior),Design,155,MARKET,MEDIUM,Site design lead; civil concept + design brief
+R-08,Civil Engineer (Intermediate),Design,125,MARKET,MEDIUM,Supporting civil production
+R-09,Structural Engineer (Senior),Design,155,MARKET,MEDIUM,Structural concept + design brief lead
+R-10,Structural Engineer (Intermediate),Design,125,MARKET,MEDIUM,Supporting structural production
+R-11,Mechanical Engineer (Senior),Design,160,MARKET,MEDIUM,Mechanical systems lead; HVAC + plumbing + fire protection
+R-12,Mechanical Engineer (Intermediate),Design,130,MARKET,MEDIUM,Supporting mechanical production
+R-13,Electrical Engineer (Senior),Design,155,MARKET,MEDIUM,Electrical/IT/security systems lead
+R-14,Electrical Engineer (Intermediate),Design,125,MARKET,MEDIUM,Supporting electrical production
+R-15,Construction Manager,Construction,155,MARKET,MEDIUM,Construction methodology + administration lead
+R-16,Site Superintendent,Construction,135,MARKET,MEDIUM,On-site supervision; duration-dependent cost
+R-17,Scheduler,Construction,130,MARKET,MEDIUM,Gantt chart production; schedule management
+R-18,Estimator (Senior),Financial,145,MARKET,MEDIUM,Schedule A/B compilation; construction pricing review
+R-19,Estimator (Intermediate),Financial,115,MARKET,MEDIUM,Supporting estimating production
+R-20,Safety Officer,Construction,110,MARKET,MEDIUM,H&S plan; site safety management
+R-21,Commissioning Lead,Construction,140,MARKET,MEDIUM,Cx planning + training + closeout coordination
+R-22,Proposal Coordinator / Writer,Administrative,105,MARKET,MEDIUM,Proposal assembly; compliance tracking; narrative editing
+R-23,Quality Lead,Management,130,MARKET,MEDIUM,QA/QC planning; quality management narrative
+R-24,Administrative / Document Control,Administrative,80,MARKET,MEDIUM,Document management; filing; distribution
+R-25,Legal Review (External),Legal,300,MARKET,MEDIUM,Bond/insurance documentation review; contract review
+R-26,HR Coordinator,Administrative,85,MARKET,MEDIUM,Resume compilation; availability coordination
+R-27,Building Science Consultant,Specialty,165,MARKET,MEDIUM,Energy strategy; envelope performance; sustainability narrative
+R-28,Environmental Consultant,Specialty,155,MARKET,MEDIUM,Flood hazard; wetland; AEPA coordination
+R-29,Geotechnical Engineer,Specialty,155,MARKET,MEDIUM,Foundation recommendations; existing report interpretation
+R-30,Surety Broker,External,0,N/A,N/A,Commission-based; cost captured in Fees_Permits_Insurance.csv

@@ -1,0 +1,20 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+FP-01,Bond,Performance bond (50% of contract price),percent,1.25,1.75,1.50,MARKET,MEDIUM,Standard surety rate for DB municipal projects in Alberta
+FP-02,Bond,Labour and materials payment bond (50% of contract price),percent,0.75,1.25,1.00,MARKET,MEDIUM,Standard surety rate; often bundled with performance bond
+FP-03,Insurance,CCIP insurance (Contractor Controlled Insurance Program),percent,1.50,2.50,2.00,MARKET,LOW,Per DEC-011; rate depends on project risk profile and insurer
+FP-04,Insurance,Builder's risk insurance,percent,0.15,0.25,0.20,MARKET,MEDIUM,During construction; all-risk property coverage
+FP-05,Insurance,General liability insurance (construction),percent,0.50,1.00,0.75,MARKET,MEDIUM,CGL; $5M per occurrence typical for this project size
+FP-06,Permit,Building permit (Town of Penhold),percent,0.50,1.00,0.75,PARAMETRIC,LOW,Percentage of construction value; varies by municipality; Penhold fee schedule TBD
+FP-07,Permit,Development permit (Town of Penhold),lump_sum,500,2000,1200,PARAMETRIC,LOW,Application fee; Penhold fee schedule TBD
+FP-08,Permit,Electrical permit,lump_sum,1500,4000,2500,PARAMETRIC,MEDIUM,Based on electrical scope; Alberta Safety Codes
+FP-09,Permit,Plumbing permit,lump_sum,1000,3000,2000,PARAMETRIC,MEDIUM,Based on fixture count; Alberta Safety Codes
+FP-10,Permit,Gas permit,lump_sum,500,1500,1000,PARAMETRIC,MEDIUM,Based on appliance count; Alberta Safety Codes
+FP-11,Utility,Water utility connection fee,lump_sum,5000,15000,10000,ALLOWANCE,LOW,Town of Penhold fee schedule TBD; highly variable between municipalities
+FP-12,Utility,Sewer utility connection fee,lump_sum,5000,15000,10000,ALLOWANCE,LOW,Town of Penhold fee schedule TBD
+FP-13,Utility,Power service connection fee,lump_sum,5000,20000,12000,ALLOWANCE,LOW,ATCO Electric or FortisAlberta; depends on service size
+FP-14,Utility,Gas service connection fee,lump_sum,2000,8000,5000,ALLOWANCE,LOW,ATCO Gas; depends on service size and distance from main
+FP-15,Utility,Telecom service connection fee,lump_sum,1000,3000,2000,ALLOWANCE,LOW,Telus or local provider
+FP-16,Environmental,AEPA Water Act application fee,lump_sum,3000,8000,5000,PARAMETRIC,LOW,If required for construction near waterway/wetland; regulatory application
+FP-17,Environmental,Environmental consultant fees (flood hazard + wetland assessment update),lump_sum,15000,30000,22000,PARAMETRIC,MEDIUM,Professional assessment; regulatory coordination; AEPA interface
+FP-18,Environmental,Erosion and sediment control plan preparation,lump_sum,3000,6000,4500,PARAMETRIC,MEDIUM,Engineering design + monitoring plan; per Alberta ESC guidelines
+FP-19,Legal,Surety broker fee/commission,lump_sum,2000,5000,3500,MARKET,LOW,Broker fee for arranging bonds; sometimes embedded in bond premium

@@ -1,0 +1,13 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+FP-01,Bonding,Performance bond premium allowance,ls,12000,35000,22000,PARAMETRIC,MEDIUM,Depends on contract value
+FP-02,Bonding,Labour & material payment bond premium allowance,ls,9000,28000,17000,PARAMETRIC,MEDIUM,
+FP-03,Insurance,Builders risk / course of construction insurance,ls,8000,22000,14000,PARAMETRIC,MEDIUM,
+FP-04,Insurance,General liability insurance allowance,ls,3500,9500,6000,PARAMETRIC,MEDIUM,
+FP-05,Permits,Safety code / building permit fees allowance,ls,3000,12000,7000,ALLOWANCE,LOW,Fees may be Owner-paid per scope boundary; confirm
+FP-06,Insurance,WCB coverage — Alberta statutory (~4% of construction payroll),ls,15000,45000,28000,PARAMETRIC,LOW,
+FP-07,Insurance,Professional liability E&O — $5M (~2% of design fees),ls,12000,25000,18000,PARAMETRIC,LOW,
+FP-08,Insurance,Employers liability — $5M per employee,ls,5000,12000,8000,PARAMETRIC,LOW,
+FP-09,Inspection,Crane load testing — 2 x 5-tonne cranes (third-party),ls,4000,8000,6000,PARAMETRIC,LOW,
+FP-10,Inspection,Safety Code inspection coordination — commissioning,ls,2000,5000,3500,PARAMETRIC,LOW,
+FP-11,Regulatory,P.Eng. stamp and AAAL review fee (per issuance cycle),ls,1500,4000,2500,PARAMETRIC,LOW,
+FP-12,Permit,Building permit — Camrose County (13000 sqft commercial),ls,5000,15000,10000,ALLOWANCE,LOW,

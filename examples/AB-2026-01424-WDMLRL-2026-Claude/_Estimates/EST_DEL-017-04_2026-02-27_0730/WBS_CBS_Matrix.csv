@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-017,DEL-017-04,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,600.00,1,100,1 lines normalized to canonical CBS
+PKG-017,DEL-017-04,Construction Labour > General Construction Labour,CAD,33945.00,22,100,22 lines normalized to canonical CBS
+PKG-017,DEL-017-04,General Conditions > General Requirements & Indirect,CAD,1800.00,3,100,3 lines normalized to canonical CBS
+PKG-017,DEL-017-04,Professional Services > Design & Engineering,CAD,6280.00,4,100,4 lines normalized to canonical CBS
+PKG-017,DEL-017-04,Professional Services > Project Management,CAD,5050.00,3,100,3 lines normalized to canonical CBS
+PKG-017,DEL-017-04,TOTAL,CAD,47675.00,33,100,All CBS categories combined; 33 lines; CBS normalized

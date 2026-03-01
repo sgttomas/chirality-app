@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-005-02_2026-02-26_2246
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used LOE x Staff Rate as primary pricing method (not fee-percentage model) | Level_of_Effort.csv provides deliverable-specific hour allocations by role, offering more granular traceability than a percentage-of-construction-value approach. Fee-percentage model (DF-05) used as cross-check only. | Primary method is LOE-based; fee-percentage is cross-check |
+| DEC-002 | Classified all items as UNIT_RATE with hours as unit | DEL-005-02 is a design deliverable. The priceable scope is professional labour hours. Each role's hours are discrete and measurable from LOE data. | All 4 items use UNIT_RATE pricing mode |
+| DEC-003 | Assigned CBS categories as Design-Management, Design-Production, and Design-Technical | PM and Cost Estimator roles are management/support functions. BIM Technician is production. Civil Engineer is technical design leadership. This CBS split provides meaningful cost visibility. | 3 CBS categories used for 4 line items |
+| DEC-004 | Did not price construction materials or equipment | DEL-005-02 scope (per Specification) is limited to the IFC Drawing Set. Construction execution is under PKG-018. Materials (gravel, erosion control) and equipment are not in scope of this design deliverable. | No construction cost lines included |
+| DEC-005 | Did not add contingency or escalation | BASIS_OF_ESTIMATE is PARAMETRIC. The parametric rates already carry +/-20-30% accuracy band per INDEX.md confidence definitions. No separate contingency line is added to avoid double-counting uncertainty. | No contingency line; uncertainty is embedded in MEDIUM confidence rating |
+| DEC-006 | Scope resolved from deliverable folder documents, not decomposition alone | The four deliverable documents (Datasheet, Specification, Guidance, Procedure) were used as the primary scope definition. Decomposition provided WBS traceability (PKG-005, DEL-005-02) and SOW references (SOW-0015, SOW-0020, SOW-0021). | Scope derived from engineering documents with WBS from decomposition |

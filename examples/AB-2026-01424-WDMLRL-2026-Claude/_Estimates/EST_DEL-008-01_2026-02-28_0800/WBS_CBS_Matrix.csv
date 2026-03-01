@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,Notes
+PKG-008,DEL-008-01,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,9600.0,4,L-012 ($4500) + L-024 ($2200) + L-025 ($1500) + L-026 ($1400)
+PKG-008,DEL-008-01,Professional Services > Professional Staff,CAD,0.0,1,L-021 ($0)
+PKG-008,DEL-008-01,Professional Services > Project Management,CAD,1530.0,2,L-001 ($990) + L-002 ($540)
+PKG-008,DEL-008-01,Professional Services > Specialty Consulting,CAD,20000.0,12,L-003 ($3000) + L-004 ($350) + L-010 ($5250) + L-013 ($700) + L-014 ($0) + L-015 ($0) + L-016 ($0) + L-017 ($0) + L-018 ($9000) + L-019 ($350) + L-020 ($1000) + L-022 ($350)
+PKG-008,DEL-008-01,Survey & Investigation > Survey & Field Investigation,CAD,15000.0,7,L-005 ($6000) + L-006 ($1600) + L-007 ($2400) + L-008 ($2500) + L-009 ($1250) + L-011 ($250) + L-023 ($1000)
+PKG-008,DEL-008-01,ALL CBS COMBINED,CAD,46130,26,All lines fully priced; 0 TBD

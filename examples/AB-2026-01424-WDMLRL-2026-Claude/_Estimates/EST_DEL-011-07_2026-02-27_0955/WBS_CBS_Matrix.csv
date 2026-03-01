@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-07,Concrete > Concrete & Foundations,CAD,17205.00,1,100,Composite steel deck with concrete topping for mezzanine flo
+PKG-011,DEL-011-07,Construction Labour > General Construction Labour,CAD,38446.00,3,100,Ironworker labour — mezzanine steel framing installation; Concrete finisher labour — deck topping placement and finish; General labourer — site support for mezzanine construction
+PKG-011,DEL-011-07,Materials > General Materials & Supplies,CAD,25538.50,4,100,Material procurement — structural steel framing members (sup; Concrete supply for deck topping; Reinforcing steel for deck topping (welded wire mesh or reba; +1 more
+PKG-011,DEL-011-07,Professional Services > Professional Staff,CAD,13590.00,8,100,Structural inspection and load capacity certification; As-built documentation preparation and submission; Project Manager — DEL-011-07 management hours; +5 more
+PKG-011,DEL-011-07,Structural Steel & Metals > Structural Steel & Fabrication,CAD,44765.00,4,100,Steel mezzanine structural framing — primary beams/girders a; Steel stair system (stringers; treads; landings) to mezzanin; Guardrails; handrails; edge protection — installation labour; +1 more
+PKG-011,DEL-011-07,TOTAL,CAD,139544.50,20,100,Grand total -- all CBS categories

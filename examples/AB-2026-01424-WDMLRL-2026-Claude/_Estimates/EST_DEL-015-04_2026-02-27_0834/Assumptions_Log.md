@@ -1,0 +1,14 @@
+# Assumptions Log — EST_DEL-015-04_2026-02-27_0834
+
+| AssumptionID | Assumption | Basis | Impact if Wrong | Related Items |
+|---|---|---|---|---|
+| ASM-001 | Overhead door count is 4 (3 main bay doors + 1 wash bay door) | App B-Shop floor plan shows approximately 4 overhead door locations | If more/fewer doors, L-003 cost changes by ~$1,150 per door | ITEM-003 / L-003 |
+| ASM-002 | Exhaust fan count is 2 | App B-Elec shows "E" symbol(s) at welding station area; assumed 2 fans | If more/fewer fans, L-007 cost changes by ~$1,150 per fan; scope boundary with PKG-013 could shift scope entirely | ITEM-007 / L-007 |
+| ASM-003 | Crane power supply method is conductor bar system | Guidance document notes conductor bar preferred for industrial maintenance shop; TBD per crane manufacturer | If festoon cable used instead, crane circuit cost may decrease by 20-30%; if bus duct, cost may increase | ITEM-001/ITEM-002 / L-001/L-002 |
+| ASM-004 | All equipment circuits are 240V or 3-phase (consistent with building 3-phase service) | Building runs on three-phase power (SOW-0051); Guidance Principle 4 | If 600V service, conductor costs may be lower but equipment costs may differ | ITEM-004 through ITEM-007 |
+| ASM-005 | Motor disconnects are required for all motor loads per CEC | Specification REQ-015-04-010; standard CEC practice for motor circuits | If CEC does not require disconnects for certain loads, ITEM-008 quantity may decrease | ITEM-008 / L-008 |
+| ASM-006 | Average conduit run length is ~13 m per circuit | Based on 13,000 sqft shop area; distribution panel assumed centrally located or on a wall with average distances to equipment | If equipment layout or panel location differs significantly, conduit quantity (120 m) may change +/- 30% | ITEM-010 / L-010 |
+| ASM-007 | Electrician productivity is approximately 12 hours per equipment circuit group (rough-in through termination) | Standard parametric productivity for industrial electrical equipment circuit installation | If circuits are more complex (e.g., longer runs, difficult routing), hours may increase 20-40% | ITEM-024 / L-024 |
+| ASM-008 | Equipment is furnished by others; this deliverable covers power circuit installation only | Specification — Excluded scope; _CONTEXT.md | If equipment procurement is included in this scope, costs would increase substantially | All items |
+| ASM-009 | One distribution panel feeds all equipment circuits | TBD per IFC panel schedules (DEL-004-06); assumed single panel for simplicity | If multiple panels, routing and conduit costs may increase; additional panel costs covered under DEL-015-01 | ITEM-010/ITEM-011 |
+| ASM-010 | Safety Code inspection is a single visit covering all equipment circuits | Parametric assumption for inspection coordination cost | If multiple inspection visits are required, L-015 cost may increase by $400-$800 per additional visit | ITEM-015 / L-015 |

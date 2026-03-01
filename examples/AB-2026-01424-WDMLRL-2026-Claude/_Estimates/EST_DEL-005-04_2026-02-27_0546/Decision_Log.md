@@ -1,0 +1,9 @@
+# Decision Log — EST_DEL-005-04_2026-02-27_0546
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used Level_of_Effort.csv (LOE-based parametric) as primary pricing method rather than Professional_Design_Fees.csv (fee-percentage) | LOE-based pricing provides deliverable-level granularity with role-specific hours. Fee-percentage method (DF-05) covers all of PKG-005 civil design, not a single deliverable, and requires a confirmed construction value which is not available. | Primary pricing method selected; all 4 line items priced via LOE x Staff Rates |
+| DEC-002 | Classified all items as UNIT_RATE (hours) rather than LUMP_SUM | Each item has a measurable quantity (hours from LOE) and a unit rate ($/hr from Staff Rates). This preserves granularity and auditability. | PricingMode = UNIT_RATE for all rows in Items.csv |
+| DEC-003 | CBS categories assigned as Design-Civil (for Civil Engineer + BIM Technician) and Management (for PM + Cost Estimator) | Reflects the functional nature of the work: design production vs. management/coordination. Consistent with role categories in Professional_Staff_Rates.csv. | WBS_CBS_Matrix.csv has 2 CBS categories |
+| DEC-004 | Scope limited to design services only; construction costs excluded | DEL-005-04 is a Drawing Set deliverable under PKG-005 (Civil Design). Construction of driving surfaces and pads is scoped under PKG-018 (Sitework & Civil Construction). Pricing construction under a design deliverable would be scope contamination. | Estimate total reflects design services only ($18,390 CAD) |
+| DEC-005 | No fallback pricing required | All 4 items had matching entries in Level_of_Effort.csv and Professional_Staff_Rates.csv. FALLBACK_POLICY = ALLOW_PARAMETRIC was available but not needed. | 0 TBD amounts; 100% pricing coverage |

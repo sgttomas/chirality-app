@@ -1,0 +1,11 @@
+# Decision Log — EST_DEL-011-04_2026-02-27_0949
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Door quantity set to 3 EA based on parametric reasoning (ASM-001) | Datasheet records quantity as TBD. For a ~13,000 sqft industrial maintenance shop, 3 pedestrian doors is a reasonable parametric assumption (1 main entrance + 2 secondary egress). | Directly affects material and labour line items (L-001 through L-006). Estimate scales approximately linearly with door count. |
+| DEC-002 | Carpenter (T-01) selected as primary trade for door installation labour | Door installation in an industrial building is typically carpenter scope. T-01 at $80.60/hr fully burdened from Construction_Labour_Rates.csv. | Labour lines L-004 through L-012 use this rate. |
+| DEC-003 | Fire-rated door allowance (L-014) priced as ALLOWANCE method ($1,500) despite PARAMETRIC basis | No fire-rating requirement confirmed in available sources; compartmentation design TBD per DEL-001-11. FALLBACK_POLICY = ALLOW_PARAMETRIC and ALLOW_MIXED_METHODS = TRUE permit this. | $1,500 allowance included. May be $0 or higher when design is confirmed. Logged as method deviation. |
+| DEC-004 | Hardware set priced at $550/door parametrically | No specific hardware pricing in PRICE_SOURCES. $550/door is a parametric estimate for industrial-grade hardware set (hinges, closer, lockset, weather stripping, threshold). | L-002 totals $1,650. Will be refined when DEL-001-07 hardware schedule is available. |
+| DEC-005 | Submittal preparation priced at Architect rate (R-12, $135/hr) rather than Carpenter rate | Shop drawing preparation is a design/documentation activity, not a trade activity. Architect rate is more appropriate. | L-009 = $810. |
+| DEC-006 | Installation productivity assumed parametrically: 4 hrs/door for frame, 3 hrs/door for hanging+hardware, 1.5 hrs/door for caulking | Standard parametric productivity for hollow metal door installation in industrial construction. | Labour hours total 25.5 hrs for installation activities across 3 doors. |
+| DEC-007 | Professional staff LOE sourced directly from Level_of_Effort.csv (38 hrs total) without adjustment | LOE model from PRICE_SOURCES is treated as the parametric model for professional staff allocation. No basis to adjust. | L-013 = $5,590 (fixed regardless of door count). |

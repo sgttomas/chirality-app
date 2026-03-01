@@ -1,0 +1,5 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+I-001,DEL-005-04,Civil Engineer — design development and drawing production (driving surface layout; pavement section design; pad layout; turning radius analysis; grade/slope design; edge conditions; coordination with DEL-005-02/03/05),84,hr,UNIT_RATE,Procedure,Steps 1-9,Primary design effort; per Level_of_Effort.csv R-17
+I-002,DEL-005-04,BIM Technician — CAD/BIM production of driving surface and pad layout drawings; dimensional annotations; curve data; sheet setup,36,hr,UNIT_RATE,Procedure,Steps 3-6,Drawing production support; per Level_of_Effort.csv R-13
+I-003,DEL-005-04,Project Manager — design coordination; Owner/County liaison; preliminary design review; scope confirmation; aggregate supply boundary coordination,6,hr,UNIT_RATE,Procedure,Steps 1 and 8,PM oversight for design deliverable; per Level_of_Effort.csv R-01
+I-004,DEL-005-04,Cost Estimator — quantity takeoff; benchmarking; estimate preparation for driving surface and pad scope,4,hr,UNIT_RATE,Procedure,Step 1,Estimating support; per Level_of_Effort.csv R-08

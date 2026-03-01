@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-001-04,Professional Services > Design & Engineering,CAD,19200.00,5,100,CBS-normalized from Detail.csv (5 lines)
+PKG-001,DEL-001-04,ALL,CAD,19200.00,5,100,Deliverable total across all CBS categories

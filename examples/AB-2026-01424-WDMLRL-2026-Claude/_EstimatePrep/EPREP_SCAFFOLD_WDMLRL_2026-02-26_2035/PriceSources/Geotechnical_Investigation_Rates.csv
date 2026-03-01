@@ -1,0 +1,16 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+GI-01,Mobilization,Drill rig mob/demob (~100km from Edmonton),ls,4000,8000,6000,PARAMETRIC,LOW,Alberta 2026 drilling contractor rates
+GI-02,Drilling,Borehole drilling — hollow-stem auger,m,30,50,40,PARAMETRIC,MEDIUM,Central Alberta glacial terrain
+GI-03,Drilling,Test pit excavation (backhoe; per pit),each,500,1200,800,PARAMETRIC,MEDIUM,
+GI-04,Monitoring,Groundwater monitoring well installation,each,1500,3500,2500,PARAMETRIC,LOW,
+GI-05,Sampling,Soil sample collection and handling (field),each,30,80,50,PARAMETRIC,MEDIUM,
+GI-06,Lab Testing,Lab — classification and index properties,each,150,350,250,PARAMETRIC,MEDIUM,
+GI-07,Lab Testing,Lab — consolidation/oedometer test,each,400,700,550,PARAMETRIC,LOW,
+GI-08,Lab Testing,Lab — direct shear or triaxial,each,350,650,500,PARAMETRIC,LOW,
+GI-09,Lab Testing,Lab — chemical analysis (soil/groundwater),each,200,500,350,PARAMETRIC,LOW,
+GI-10,Professional,Geotech Engineer — field supervision (per day),day,1400,2100,1750,PARAMETRIC,MEDIUM,
+GI-11,Professional,Geotech Engineer — investigation program development,ls,2000,4000,3000,PARAMETRIC,MEDIUM,
+GI-12,Professional,Geotech Engineer — analysis and report preparation,ls,6000,12000,9000,PARAMETRIC,LOW,
+GI-13,Documentation,P.Eng. certification and report sealing,ls,500,1500,1000,PARAMETRIC,LOW,
+GI-14,Restoration,Site restoration after field investigation,ls,500,2000,1000,PARAMETRIC,LOW,
+GI-15,Documentation,Photo documentation of field investigation,ls,0,500,250,PARAMETRIC,LOW,

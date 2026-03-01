@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-007-03,Professional Services > Design & Engineering,CAD,9450.00,6,100,Landscape Architect (70 hr total across Steps 1-6)
+PKG-007,DEL-007-03,Professional Services > Project Management,CAD,1530.00,2,100,Project Manager (6 hr) + Cost Estimator (4 hr)
+PKG-007,DEL-007-03,TOTAL,CAD,10980.00,8,100,All lines priced via PARAMETRIC method

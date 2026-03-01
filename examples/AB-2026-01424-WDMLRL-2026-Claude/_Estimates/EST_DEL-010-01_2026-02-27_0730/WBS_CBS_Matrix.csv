@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-010,DEL-010-01,"Sitework & Civil > Earthwork, Surfacing & Landscaping",CAD,47997.60,5,100,Sources: Earthwork_Civil_Rates.csv
+PKG-010,DEL-010-01,Concrete > Concrete & Foundations,CAD,431090.00,7,100,"Sources: Assumptions_Log.md, Structural_Concrete_Rates.csv"
+PKG-010,DEL-010-01,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,13500.00,2,100,Sources: Assumptions_Log.md
+PKG-010,DEL-010-01,Survey & Investigation > Survey & Field Investigation,CAD,9500.00,2,100,Sources: Assumptions_Log.md
+PKG-010,DEL-010-01,Professional Services > Project Management,CAD,11000.00,4,100,Sources: Assumptions_Log.md
+PKG-010,DEL-010-01,Professional Services > Professional Staff,CAD,5590.00,6,100,Sources: Professional_Staff_Rates.csv
+PKG-010,DEL-010-01,Construction Labour > General Construction Labour,CAD,51536.00,5,100,Sources: Construction_Labour_Rates.csv

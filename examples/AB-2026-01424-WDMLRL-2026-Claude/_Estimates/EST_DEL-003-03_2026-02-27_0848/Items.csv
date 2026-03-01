@@ -1,0 +1,18 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-003-03,Project Management — ductwork plans oversight and coordination,6,hr,UNIT_RATE,Procedure,Steps 1-9 (overall PM coordination),LOE from Level_of_Effort.csv; R-01 Project Manager
+ITEM-002,DEL-003-03,Cost Estimator — quantity takeoff and benchmarking support,4,hr,UNIT_RATE,Procedure,Steps 2-4 (design inputs and sizing),LOE from Level_of_Effort.csv; R-08 Cost Estimator
+ITEM-003,DEL-003-03,BIM Technician — drawing production and model coordination,36,hr,UNIT_RATE,Procedure,Steps 3-7 (routing development through IFC preparation),LOE from Level_of_Effort.csv; R-13 BIM Technician
+ITEM-004,DEL-003-03,Mechanical Engineer — HVAC ductwork design and P.Eng. stamp,84,hr,UNIT_RATE,Procedure,Steps 1-9 (scope confirmation through IFC issuance),LOE from Level_of_Effort.csv; R-15 Mechanical Engineer
+ITEM-005,DEL-003-03,Ductwork routing plans — main level plan view drawings,1,LS,LUMP_SUM,Specification,REQ-003-03-01 / Documentation — Ductwork Routing Plans,Embedded in ITEM-003 and ITEM-004 effort; listed for traceability as drawing artifact
+ITEM-006,DEL-003-03,Duct sizing schedule or annotated duct dimensions,1,LS,LUMP_SUM,Specification,REQ-003-03-05 / Documentation — Duct Sizing Schedule,Embedded in ITEM-004 effort; listed for traceability as drawing artifact
+ITEM-007,DEL-003-03,Section and elevation views — vertical duct routing at 35 ft ceiling,1,LS,LUMP_SUM,Specification,REQ-003-03-12 / Documentation — Duct Sections/Elevations,Embedded in ITEM-003 and ITEM-004 effort; listed for traceability as drawing artifact
+ITEM-008,DEL-003-03,Structural penetration coordination and documentation,1,LS,LUMP_SUM,Procedure,Step 5 — Structural Penetration Coordination,Coordination effort embedded in Mechanical Engineer and BIM Technician hours
+ITEM-009,DEL-003-03,Interdisciplinary coordination review,1,LS,LUMP_SUM,Procedure,Step 6 — Interdisciplinary Coordination Review,Coordination effort embedded in Project Manager and Mechanical Engineer hours
+ITEM-010,DEL-003-03,P.Eng. stamp and IFC issuance,1,LS,LUMP_SUM,Specification,REQ-003-03-07 / Procedure Step 7-9,Embedded in Mechanical Engineer hours; P.Eng. stamp activity
+ITEM-011,DEL-003-03,Forced-air MUA system distribution ductwork design,1,LS,LUMP_SUM,Datasheet,Ductwork System Coverage — MUA supply ductwork,Design effort for MUA distribution; embedded in ITEM-004 engineering hours
+ITEM-012,DEL-003-03,High-volume air exchanger ductwork connections design,1,LS,LUMP_SUM,Datasheet,Ductwork System Coverage — High-Volume Air Exchanger,Design effort embedded in ITEM-004 engineering hours
+ITEM-013,DEL-003-03,High-recovery heating system distribution ductwork design,1,LS,LUMP_SUM,Datasheet,Ductwork System Coverage — High-Recovery Heating System,Design effort embedded in ITEM-004 engineering hours
+ITEM-014,DEL-003-03,Wash bay ventilation distribution design,1,LS,LUMP_SUM,Datasheet,Key Spaces — Wash Bay,Design effort embedded in ITEM-004 engineering hours; boundary per CON-003-03-01 TBD
+ITEM-015,DEL-003-03,Service pit ventilation ductwork design,1,LS,LUMP_SUM,Datasheet,Key Spaces — Service Pit / Trench,Below-grade duct routing; safety-critical ventilation; design effort embedded in ITEM-004
+ITEM-016,DEL-003-03,Crane clearance verification for ductwork routing,1,LS,LUMP_SUM,Specification,REQ-003-03-14 — Crane Clearance Verification,Two 5-tonne overhead cranes; verification effort embedded in coordination hours
+ITEM-017,DEL-003-03,Ceiling fan spatial coordination,1,LS,LUMP_SUM,Specification,REQ-003-03-15 — Ceiling Fan Spatial Coordination,Six ceiling fans per Appendix B (Electrical); coordination effort embedded in ITEM-009

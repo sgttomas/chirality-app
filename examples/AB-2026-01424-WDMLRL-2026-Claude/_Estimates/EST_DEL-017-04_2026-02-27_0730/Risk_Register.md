@@ -1,0 +1,10 @@
+# Risk Register — EST_DEL-017-04_2026-02-27_0730
+
+| RiskID | Risk | Likelihood | Impact | Driver | Mitigation |
+|--------|------|-----------|--------|--------|-----------|
+| RSK-001 | Workforce headcount significantly exceeds assumption (8 lockers), requiring larger room and more lockers | MEDIUM | HIGH — could increase total by 30-50% if room doubles in size | Datasheet TBD: workforce headcount not stated in RFP | Obtain headcount from County before design phase (Procedure Step 1.1) |
+| RSK-002 | County requires shower facilities in locker room | LOW-MEDIUM | HIGH — adds $5,000-$10,000 for tile shower, plumbing, and drainage | Datasheet TBD [B-002]: showers not mentioned in RFP | Clarify with County at earliest opportunity |
+| RSK-003 | Occupancy classification (TBD [A-001]) triggers additional code requirements (fire separation, accessibility, ventilation rates) beyond current estimate | MEDIUM | MEDIUM — fire-rated assembly and accessibility upgrades could add $3,000-$8,000 | Specification REQ-017-04-03, REQ-017-04-11, REQ-017-04-12 | Design team / building code consultant to confirm occupancy classification early |
+| RSK-004 | Laundry scope clarification [C-001] results in exclusion of appliance supply from this deliverable | LOW | MEDIUM — removes $6,500 from estimate (DL-024, DL-025) but may shift cost to another deliverable | Specification REQ-017-04-02 ambiguity | County ruling on scope boundary |
+| RSK-005 | Existing conditions in Old North Shop construction zone differ from assumptions (hidden utilities, structural issues, contamination) | LOW-MEDIUM | MEDIUM — demolition and site prep costs could increase significantly | Limited information about existing conditions within construction zone | Pre-construction survey of existing conditions before committing to estimate |
+| RSK-006 | Dryer exhaust duct exterior penetration requires additional structural review or permit amendment [E-001] | LOW | LOW-MEDIUM — additional engineering and permit costs ($500-$1,500) | Guidance TBD [E-001] | Resolve routing and permit pathway during design phase |

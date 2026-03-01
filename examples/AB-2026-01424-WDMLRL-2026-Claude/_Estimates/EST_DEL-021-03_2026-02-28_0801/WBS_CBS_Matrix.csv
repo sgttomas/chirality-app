@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,Notes
+PKG-021,DEL-021-03,"Permits, Fees & Insurance > Insurance",CAD,74000,5,5 line items
+PKG-021,DEL-021-03,Construction Labour > General Construction Labour,CAD,7960,8,8 line items
+PKG-021,DEL-021-03,TOTAL,CAD,81960,13,All CBS categories combined; 13 lines priced

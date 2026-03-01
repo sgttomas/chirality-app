@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-017,DEL-017-01,Management,CAD,10085.40,14,100,Professional staff + coordination + permitting + QA/QC + closeout + photo documentation
+PKG-017,DEL-017-01,Construction,CAD,31816.04,16,100,"Conditions survey + utility verification + hazmat + demolition + rough-in + finishes + cabinetry + fixtures; excludes 2 TBD conditional items (gas fitting, HVAC)"
+PKG-017,DEL-017-01,TOTAL,CAD,41901.44,30,93.8,"All CBS categories combined; 30 of 32 lines priced; 2 conditional lines (L-019, L-020) remain TBD pending design"

@@ -1,0 +1,18 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-006-07,Water demand and consumption calculations — fixture unit count and process demand analysis,1,LS,LUMP_SUM,Procedure,Step 2 — Water Demand Analysis,Core engineering calculation sub-artifact; occupancy and process demand
+ITEM-002,DEL-006-07,Water supply line sizing calculations — main and branch line sizing from cistern to all fixtures,1,LS,LUMP_SUM,Procedure,Step 3 — Water Supply Line Sizing,Pipe sizing for all supply branches per peak simultaneous demand
+ITEM-003,DEL-006-07,Pressure drop and pump selection calculations — system curve and pump operating point,1,LS,LUMP_SUM,Procedure,Step 4 — Pressure Drop and Pump Selection,Includes internal distribution pump (100 LPM) and bulk water fill pump
+ITEM-004,DEL-006-07,Drainage system sizing and slope calculations — floor drains and wash bay to mud sump,1,LS,LUMP_SUM,Procedure,Step 5 — Drainage System Sizing and Slope,DFU assignment and slope calc for all drains per NPC
+ITEM-005,DEL-006-07,Vent stack sizing calculations — vent configuration and sizing per NPC,1,LS,LUMP_SUM,Procedure,Step 6 — Vent Stack Sizing,Includes vent termination clearance verification
+ITEM-006,DEL-006-07,Septic system sizing calculations — holding tank capacity and pump-out frequency,1,LS,LUMP_SUM,Procedure,Step 7 — Septic System Sizing,2000 US gal holding tank; regulatory compliance
+ITEM-007,DEL-006-07,Code compliance matrices — NPC and Alberta Safety Code cross-reference,1,LS,LUMP_SUM,Procedure,Step 8 — Code Compliance Matrix,All applicable code sections mapped to design
+ITEM-008,DEL-006-07,Design assumption documentation — explicit listing of all engineering assumptions,1,LS,LUMP_SUM,Procedure,Step 1 — Scope Confirmation and Assumption Initialization,Assumption register with IDs and status tracking
+ITEM-009,DEL-006-07,Equipment performance data sheets — pump curves and manufacturer data,1,LS,LUMP_SUM,Procedure,Step 4 — Pressure Drop and Pump Selection (Output),Internal distribution pump and bulk fill pump data sheets
+ITEM-010,DEL-006-07,Calculation package assembly and P.Eng. review — final integration and stamp,1,LS,LUMP_SUM,Procedure,Step 9 — Calculation Package Assembly and P.Eng. Review,Includes cross-reference to IFC drawings and QA/QC check
+ITEM-011,DEL-006-07,Emergency shower flow and pressure verification calculation,1,LS,LUMP_SUM,Specification,REQ-007 — Emergency Shower,ANSI Z358.1 or equivalent; min flow and duration verification
+ITEM-012,DEL-006-07,Cistern volume and fill frequency analysis,1,LS,LUMP_SUM,Datasheet,Plumbing Systems — Key Sizing Parameters (Cistern),50000 L cistern; fill cycle characterization per Guidance Trade-off 1
+ITEM-013,DEL-006-07,Washroom plumbing fixture calculations — supply and drain sizing,1,LS,LUMP_SUM,Specification,REQ-012 — Washroom Plumbing,Fixture unit count for toilet urinal lavatory; per NPC
+ITEM-014,DEL-006-07,Project management effort for DEL-006-07,6,hr,UNIT_RATE,Datasheet,Identification (PKG-006 context),PM coordination for plumbing calculation package
+ITEM-015,DEL-006-07,Cost estimating support for DEL-006-07,4,hr,UNIT_RATE,Datasheet,Identification (PKG-006 context),Quantity takeoff and benchmarking support
+ITEM-016,DEL-006-07,BIM technician support for DEL-006-07,21,hr,UNIT_RATE,Datasheet,Identification (PKG-006 context),Modeling and sheet setup support
+ITEM-017,DEL-006-07,Plumbing Engineer — engineering effort for calculation package,49,hr,UNIT_RATE,Datasheet,Identification (PKG-006 context),Lead engineering effort — all calculation sub-artifacts

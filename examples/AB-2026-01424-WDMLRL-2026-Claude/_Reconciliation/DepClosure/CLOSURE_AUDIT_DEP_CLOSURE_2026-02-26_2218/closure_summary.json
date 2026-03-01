@@ -1,0 +1,50 @@
+{
+  "checks": {
+    "anchor_coverage": "PASS",
+    "bidirectional_pairs": "INFO",
+    "circular_dependencies": "WARNING",
+    "hub_analysis": "INFO",
+    "id_format_consistency": "INFO",
+    "isolated_deliverables": "PASS",
+    "misplaced_fields": "PASS",
+    "orphan_dependencies": "PASS",
+    "schema_compliance": "PASS"
+  },
+  "deliverables": {
+    "coverage": {
+      "missing_dependencies_csv": 0,
+      "ok": 117,
+      "schema_invalid": 0,
+      "unreadable": 0
+    },
+    "total": 117
+  },
+  "edges": {
+    "execution_to_deliverable_rows_total": 998,
+    "internal_ambiguous_direction_edges": 0,
+    "internal_definite_edges": 998
+  },
+  "execution_root": "/Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude",
+  "filters": {
+    "edge_filter": {
+      "DependencyClass": "EXECUTION",
+      "TargetType": "DELIVERABLE"
+    },
+    "filter_active_only": true,
+    "normalize_ids": true
+  },
+  "metrics": {
+    "anchors_missing": 0,
+    "bidirectional_pairs": 63,
+    "cyclic_sccs": 1,
+    "hubs": 19,
+    "id_normalizations": 97,
+    "isolated_deliverables": 0,
+    "misplaced_rows": 0,
+    "orphans": 0
+  },
+  "overall": "WARNING",
+  "run_label": "AUDIT_DEP_CLOSURE",
+  "scope": "ALL",
+  "timestamp_local": "2026-02-26T22:18:32-07:00"
+}

@@ -1,0 +1,21 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-003-07,Project Management — specification coordination and oversight,6,hr,UNIT_RATE,Procedure,Steps 7-9,PM oversight of specification development; coordination meetings; County approval gate
+ITEM-002,DEL-003-07,Cost Estimating support — specification scope review,4,hr,UNIT_RATE,Procedure,Steps 1-3,Estimator support for equipment cost benchmarking and specification scope validation
+ITEM-003,DEL-003-07,BIM/CAD Technician — specification graphics and schedule support,18,hr,UNIT_RATE,Procedure,Steps 3-6,Equipment schedule formatting; specification figures; ductwork routing graphics
+ITEM-004,DEL-003-07,Mechanical Engineer — specification authoring and technical development,42,hr,UNIT_RATE,Specification,Full document,Lead authoring of mechanical specification covering REQ-M-001 through REQ-M-015; load calculation integration; standards confirmation; P.Eng. review
+ITEM-005,DEL-003-07,Heating system specification section (REQ-M-001),1,LS,LUMP_SUM,Specification,REQ-M-001,"Included in ITEM-004 engineering hours; identifies high-recovery heating system requirements, capacity TBD per DEL-003-06"
+ITEM-006,DEL-003-07,Forced-air makeup air system specification section (REQ-M-002),1,LS,LUMP_SUM,Specification,REQ-M-002,Included in ITEM-004 engineering hours; makeup air volume sizing and tempering requirements
+ITEM-007,DEL-003-07,High-volume air exchanger specification section (REQ-M-003),1,LS,LUMP_SUM,Specification,REQ-M-003,Included in ITEM-004 engineering hours; air change rate and heat recovery provisions
+ITEM-008,DEL-003-07,Heavy equipment exhaust system specification section (REQ-M-004),1,LS,LUMP_SUM,Specification,REQ-M-004,Included in ITEM-004 engineering hours; exhaust hoses and fans for all repair bays
+ITEM-009,DEL-003-07,Welding station exhaust specification section (REQ-M-005),1,LS,LUMP_SUM,Specification,REQ-M-005,Included in ITEM-004 engineering hours; local exhaust ventilation per ACGIH
+ITEM-010,DEL-003-07,Service pit ventilation specification section (REQ-M-006),1,LS,LUMP_SUM,Specification,REQ-M-006,Included in ITEM-004 engineering hours; forced ventilation for below-grade pit
+ITEM-011,DEL-003-07,Ceiling fans specification section (REQ-M-007),1,LS,LUMP_SUM,Specification,REQ-M-007,Included in ITEM-004 engineering hours; 6 ceiling fans for destratification
+ITEM-012,DEL-003-07,Safety code compliance section (REQ-M-008),1,LS,LUMP_SUM,Specification,REQ-M-008,Included in ITEM-004 engineering hours; Alberta Safety Codes and permits
+ITEM-013,DEL-003-07,Natural gas coordination section (REQ-M-010),1,LS,LUMP_SUM,Specification,REQ-M-010,Included in ITEM-004 engineering hours; gas tie-in sizing and coordination
+ITEM-014,DEL-003-07,Wash bay exhaust ventilation section (REQ-M-012),1,LS,LUMP_SUM,Specification,REQ-M-012,Included in ITEM-004 engineering hours; humidity control and freeze protection
+ITEM-015,DEL-003-07,TAB requirements section (REQ-M-013),1,LS,LUMP_SUM,Specification,REQ-M-013,Included in ITEM-004 engineering hours; testing adjusting and balancing requirements
+ITEM-016,DEL-003-07,Commissioning requirements section (REQ-M-014),1,LS,LUMP_SUM,Specification,REQ-M-014,Included in ITEM-004 engineering hours; startup and commissioning process
+ITEM-017,DEL-003-07,Equipment submittal requirements section (REQ-M-015),1,LS,LUMP_SUM,Specification,REQ-M-015,Included in ITEM-004 engineering hours; shop drawing and performance data review
+ITEM-018,DEL-003-07,Discipline coordination — structural/electrical/plumbing/architectural,1,LS,LUMP_SUM,Procedure,Steps 4 and 7,"Included in ITEM-004 engineering hours; coordination transmittals, RFIs, MEP meetings"
+ITEM-019,DEL-003-07,Standards and permits identification,1,LS,LUMP_SUM,Procedure,Step 5,Included in ITEM-004 engineering hours; Alberta Safety Codes and ASHRAE/ACGIH confirmation
+ITEM-020,DEL-003-07,P.Eng. review and seal coordination,1,LS,LUMP_SUM,Procedure,Step 8,Included in ITEM-004 engineering hours; final review and IFC seal coordination

@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-015,DEL-015-05,Construction Labour > Electrical Labour,CAD,9984.00,2,100,CBS normalized; 2 detail lines
+PKG-015,DEL-015-05,Electrical > Commissioning & Administration,CAD,1760.00,2,100,CBS normalized; 2 detail lines
+PKG-015,DEL-015-05,Electrical > Low Voltage & Communications,CAD,9835.00,11,100,CBS normalized; 11 detail lines
+PKG-015,DEL-015-05,General Conditions > General Requirements & Indirect,CAD,1200.00,1,100,CBS normalized; 1 detail lines
+PKG-015,DEL-015-05,Professional Services > Project Management,CAD,4220.00,4,100,CBS normalized; 4 detail lines
+PKG-015,DEL-015-05,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,1370.00,2,100,CBS normalized; 2 detail lines
+PKG-015,DEL-015-05,TOTAL,CAD,28369.00,22,100,All CBS categories combined (post-normalization)

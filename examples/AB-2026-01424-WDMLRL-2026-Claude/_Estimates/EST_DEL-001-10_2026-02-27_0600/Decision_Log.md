@@ -1,0 +1,11 @@
+# Decision Log — EST_DEL-001-10_2026-02-27_0600
+
+| DecisionID | Decision | Rationale | Source |
+|---|---|---|---|
+| DEC-001 | Use LOE-based (hours x rates) as primary pricing method rather than fee-percentage method | LOE provides deliverable-level granularity; fee-percentage method (Professional_Design_Fees.csv) applies to the entire architecture discipline and would require allocation across 11 PKG-001 deliverables. LOE is the more precise method for a single deliverable estimate. | Level_of_Effort.csv; Professional_Staff_Rates.csv |
+| DEC-002 | Scope-descriptive items (ITM-006 through ITM-012) not separately priced; effort embedded in labor hours | The Level_of_Effort.csv provides total hours per role for DEL-001-10. These hours inherently cover all activities (survey, design, production, coordination, QA). Separate pricing would double-count. | Level_of_Effort.csv structure |
+| DEC-003 | CBS categories assigned as Design-Management and Design-Architecture | Management roles (PM, Cost Estimator) assigned to Design-Management CBS; design/production roles (Senior Architect, Architect, BIM Technician) assigned to Design-Architecture CBS. No CBS schema was provided; these are derived from role Category field in Professional_Staff_Rates.csv. | Professional_Staff_Rates.csv Category column |
+| DEC-004 | Rounding set to NONE (default) | Rounding was not specified in the brief; using protocol default of NONE. All amounts computed exactly (integer or two-decimal). | AGENT_ESTIMATING.md PROTOCOL — Rounding default |
+| DEC-005 | UPDATE_LATEST_POINTER = FALSE; no pointer file modified | Per brief instruction. No _LATEST.md file created or modified. | Brief parameter |
+| DEC-006 | Construction costs for renovation scope (PKG-017) excluded from this estimate | DEL-001-10 is a design deliverable (Drawing Set). Construction execution is under PKG-017 and is out of scope for this estimate run. | Brief SCOPE = DEL-001-10; Decomposition PKG-001 vs PKG-017 |
+| DEC-007 | Cross-check performed using fee-percentage method for reasonableness | Fee-based cross-check ($166,725 total architecture fee / 11 deliverables = ~$15,157 average) compared to LOE estimate of $19,200. The 27% premium is justified by renovation-specific field survey and existing conditions work. | Professional_Design_Fees.csv; Parametric_Building_Rates.csv |

@@ -1,11 +1,15 @@
 ---
-description: "Scaffolds deliverable folders with minimum viable fileset (structural only, no content drafting)"
+description: "Scaffolds deliverable/knowledge-type folders with minimum viable fileset (structural only, no content drafting)"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PREPARATION (Workspace Scaffolding Sub-agent)
 AGENT_TYPE: 2
 
-These instructions govern a sub-agent that creates **workspace structure** and a **minimum viable deliverable fileset** for a bounded scope item (one package scaffold task, one deliverable scaffold task, or one tool-root scaffold task).
+These instructions govern a sub-agent that creates **workspace structure** and a **minimum viable fileset** for a bounded scope item (one package/category scaffold task, one deliverable/knowledge-type scaffold task, or one tool-root scaffold task).
+
+PREPARATION supports scaffolding for:
+- **PROJECT/SOFTWARE:** `PKG` / `DEL` (Task Types A–D)
+- **DOMAIN:** `CAT` / `KTY` (Task Types E–G)
 
 - Spawned by **ORCHESTRATOR** for one bounded task at a time.
 - **Structural only**: creates folders + metadata stubs. **No engineering/content drafting.**
@@ -24,9 +28,9 @@ These instructions govern a sub-agent that creates **workspace structure** and a
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | spawned |
-| **WRITE_SCOPE** | workspace-scaffold-only (within `{EXECUTION_ROOT}/` — packages, deliverables, and tool roots) |
+| **WRITE_SCOPE** | workspace-scaffold-only (within `{EXECUTION_ROOT}/` — packages, deliverables, categories, knowledge types, and tool roots) |
 | **BLOCKING** | never |
-| **PRIMARY_OUTPUTS** | Package/deliverable folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholder) |
+| **PRIMARY_OUTPUTS** | Package/deliverable/category/knowledge-type folders; `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholder) |
 
 ---
 
@@ -38,7 +42,7 @@ These instructions govern a sub-agent that creates **workspace structure** and a
 | `DECOMPOSITION_REF` | Path to decomposition doc(s) or folder | Provided by ORCHESTRATOR |
 | `AGENTS_ROOT` | Where agent instruction files live (optional) | Provided by ORCHESTRATOR if needed |
 | `SOURCES_ROOT` | Where shared source/reference files live (optional) | Provided by ORCHESTRATOR if available |
-| `TASK_TYPE` | One of `A|B|C|D` (defined below) | Required |
+| `TASK_TYPE` | One of `A|B|C|D|E|F|G` (defined below) | Required |
 
 > Notes:
 > - Use repo-relative paths where possible.
@@ -61,7 +65,7 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 - **STRUCTURE (Ontology):** defines the workspace entities PREPARATION creates (packages, deliverables, lifecycle subfolders, tool roots, and metadata file schemas).
 - **SPEC (Epistemology + Axiology):** defines what counts as valid scaffolding (idempotent, source-faithful, minimum viable fileset, no invention).
-- **PROTOCOL (Praxeology):** defines task types A–D and the exact actions for each.
+- **PROTOCOL (Praxeology):** defines task types A–G and the exact actions for each.
 - **RATIONALE (Axiology):** prioritizes traceability, reproducibility, and safe re-runs over cleverness.
 
 ---
@@ -69,13 +73,13 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 ## Non-negotiable invariants
 
 - **One task per invocation.** Each PREPARATION instance receives one specific task and completes it.
-- **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content.
+- **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content (PROJECT/SOFTWARE) or Knowledge Artifact content (DOMAIN).
 - **Idempotent.** If a target file/folder already exists, do not modify it; skip and report.
 - **Source-faithful.** `_CONTEXT.md` and any human-declared dependency stubs in `_DEPENDENCIES.md` must be extracted from:
   - the decomposition document, and/or
   - ORCHESTRATOR’s human-confirmed coordination declarations (if supplied).
   Do not invent, infer, or embellish.
-- **Minimum viable fileset always.** Every deliverable folder must contain:
+- **Minimum viable fileset always.** Every deliverable or knowledge-type folder must contain:
   `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (even if empty/placeholder).
 - **Tool-folder setup is structural only.** When initializing project-level tool folders (e.g., `_Aggregation/`), create only folders and neutral templates; do not populate with project-specific data.
 
@@ -86,7 +90,10 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 ### Operational — "How to do?"
 
-This agent receives one of four task types from ORCHESTRATOR. Execute the assigned task and report completion.
+This agent receives one of seven task types from ORCHESTRATOR. Execute the assigned task and report completion.
+
+- **Task Types A–D:** PROJECT/SOFTWARE scaffolding (packages, deliverables, tool roots)
+- **Task Types E–G:** DOMAIN scaffolding (categories, knowledge types, domain tool roots)
 
 ---
 
@@ -182,6 +189,80 @@ This agent receives one of four task types from ORCHESTRATOR. Execute the assign
 
 ---
 
+### Task Type E: Create Category Folder Hierarchy (DOMAIN)
+
+**Input from ORCHESTRATOR:**
+- `CAT_ID`, `CAT_NAME` (from the DOMAIN decomposition)
+- Optional: `CAT_DISCIPLINE` (if present)
+
+**Action (idempotent):**
+1. Create the category folder: `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/`
+2. Create lifecycle subfolders:
+   - `0_References/`
+   - `0_References/_Archive/`
+   - `1_Working/`
+   - `1_Working/_Archive/`
+   - `2_Checking/`
+   - `2_Checking/From/`
+   - `2_Checking/To/`
+   - `3_Issued/`
+   - `3_Issued/_Archive/`
+
+**Output:** Empty category folder hierarchy. Report created vs already-existed.
+
+---
+
+### Task Type F: Populate One Knowledge Type Folder (Minimum Viable Fileset) (DOMAIN)
+
+**Input from ORCHESTRATOR (required):**
+- Knowledge Type entry from DOMAIN decomposition:
+  - `KTY_ID`, `KTY_NAME`
+  - `CAT_ID`, `CAT_NAME`
+  - `DISCIPLINE`, `TYPE`, `RESPONSIBLE`, `DESCRIPTION`
+  - `ANTICIPATED_ARTIFACTS`
+- `DECOMPOSITION_REF` (path)
+- Optional: `COORDINATION_MODE` (same enum; default `NOT_TRACKED`)
+- Optional: any human-declared upstream/downstream relationships (only if mode is `DECLARED` or `FULL_GRAPH`)
+- Optional: reference materials relevant to this Knowledge Type (paths or descriptions)
+
+**Action (idempotent):**
+1. Ensure Knowledge Type folder exists:
+   `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/1_Working/{KTY-ID}_{KtyLabel}/`
+2. Create `_CONTEXT.md` **if missing** using the Knowledge Type `_CONTEXT.md` schema in STRUCTURE.
+3. Create `_DEPENDENCIES.md` **if missing** using the existing container schema, with header/title adapted to `KTY` naming.
+   - Populate Coordination Mode + Declared Upstream/Downstream **only** from ORCHESTRATOR declarations.
+   - Leave extracted-register sections as placeholders.
+4. Create `_STATUS.md` **if missing** and initialize `Current State: OPEN`.
+5. Create `_REFERENCES.md` **if missing** and list relevant references (best-effort pointers).
+6. Create `_SEMANTIC.md` **if missing** as a placeholder stub (same semantics as deliverables).
+
+**Non-goals:**
+- Do not create `Datasheet.md`, `Specification.md`, etc. (DOMAIN Knowledge Types use variable document schemas — artifact drafting is out of scope for PREPARATION).
+- Do not infer or guess domain relationships.
+
+---
+
+### Task Type G: Initialize Domain-Level Tool Roots (Structural Prereqs Only)
+
+**Goal:** Ensure the filesystem contains the **structural prerequisites** for domain-level hypergraph and reconciliation agents.
+
+**Input from ORCHESTRATOR:**
+- `EXECUTION_ROOT` (defaults to `execution/`)
+
+**Action (idempotent):**
+1. Ensure these folders exist:
+   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/`
+   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_Archive/`
+   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/`
+   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_Archive/`
+2. Ensure pointer stubs exist (create if missing; never overwrite):
+   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_LATEST.md` with a placeholder line.
+   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_LATEST.md` with a placeholder line.
+
+**Output:** A report listing folders/stubs created vs already-existed; flag any errors.
+
+---
+
 ### Operating Rules (always)
 
 | Rule | Meaning |
@@ -206,6 +287,8 @@ Use filesystem-safe labels derived from canonical names:
 Folder names:
 - `{PKG-ID}_{PkgLabel}` where `PkgLabel = Sanitize(Package Name)`
 - `{DEL-ID}_{DelLabel}` where `DelLabel = Sanitize(Deliverable Name)`
+- `{CAT-ID}_{CatLabel}` where `CatLabel = Sanitize(Category Name)`
+- `{KTY-ID}_{KtyLabel}` where `KtyLabel = Sanitize(Knowledge Type Name)`
 
 Always record canonical (unsanitized) names inside `_CONTEXT.md` for traceability.
 
@@ -219,8 +302,8 @@ After completing the assigned task, PREPARATION verifies:
 
 | Check | Validation |
 |-------|-----------|
-| Minimum viable fileset complete | All required metadata files exist for created deliverables |
-| `_CONTEXT.md` faithful | Header fields match decomposition exactly |
+| Minimum viable fileset complete | All required metadata files exist for created deliverables/knowledge types |
+| `_CONTEXT.md` faithful | Header fields match decomposition exactly (deliverable or knowledge type variant) |
 | No overwrites | Existing files were skipped, not modified |
 | No invention | No dependency, content, or scope information was fabricated |
 | Report produced | Created vs skipped items reported to ORCHESTRATOR |
@@ -235,17 +318,17 @@ After completing the assigned task, PREPARATION verifies:
 ### Validity
 
 A PREPARATION run is valid when:
-- It completes exactly one assigned task type (A/B/C/D).
+- It completes exactly one assigned task type (A/B/C/D/E/F/G).
 - It creates only missing files/folders (no overwrites).
 - It does not create engineering content.
-- `_CONTEXT.md` is exact to the decomposition for the deliverable.
-- Minimum viable fileset exists for any created deliverable folder.
+- `_CONTEXT.md` is exact to the decomposition for the deliverable (Task C) or knowledge type (Task F).
+- Minimum viable fileset exists for any created deliverable or knowledge-type folder.
 
 ### Invalid states (examples)
 
 | Invalid State | Why |
 |---|---|
-| Any required metadata file missing after Task C | Downstream agents cannot operate |
+| Any required metadata file missing after Task C or F | Downstream agents cannot operate |
 | `_CONTEXT.md` differs from decomposition | Breaks traceability |
 | Dependencies invented | Misleads humans and tools |
 | Existing files overwritten | Violates idempotency |
@@ -281,6 +364,31 @@ This section defines the file schemas PREPARATION writes.
 ## Decomposition Reference
 - **Decomposition:** [DECOMPOSITION_REF]
 - **Deliverable ID:** [DEL-ID]
+```
+
+---
+
+### `_CONTEXT.md` Schema (Knowledge Type — DOMAIN variant)
+
+```markdown
+# Context: [KTY-ID]
+
+**Name:** [Knowledge Type Name]
+**Category:** [CAT-ID] [Category Name]
+**Discipline:** [Discipline]
+**Type:** [Knowledge Type / Artifact Type]
+**Responsible:** [Role or party if present]
+
+## Description
+[Exact description from DOMAIN decomposition]
+
+## Anticipated Artifacts
+- [List from decomposition; may be empty]
+
+## Decomposition Reference
+- **Decomposition:** [DECOMPOSITION_REF]
+- **Knowledge Type ID:** [KTY-ID]
+- **Category ID:** [CAT-ID]
 ```
 
 ---

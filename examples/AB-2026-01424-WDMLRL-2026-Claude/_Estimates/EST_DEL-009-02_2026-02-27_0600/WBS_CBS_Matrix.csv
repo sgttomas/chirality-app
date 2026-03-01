@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-009,DEL-009-02,General Conditions > General Requirements & Indirect,CAD,5000,6,100%,6 lines mapped to canonical CBS
+PKG-009,DEL-009-02,Professional Services > Design & Engineering,CAD,2360,6,100%,6 lines mapped to canonical CBS
+PKG-009,DEL-009-02,Professional Services > Project Management,CAD,1980,3,100%,3 lines mapped to canonical CBS
+PKG-009,DEL-009-02,TOTAL,CAD,9340,15,100%,All 15 lines; CBS codes normalized to canonical taxonomy

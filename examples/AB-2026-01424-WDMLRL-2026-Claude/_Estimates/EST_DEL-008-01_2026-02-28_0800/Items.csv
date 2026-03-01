@@ -1,0 +1,27 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-008-01,Project management — geotech investigation coordination,6,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-7,PM coordination across all investigation phases; qty from Level_of_Effort.csv
+ITEM-002,DEL-008-01,Cost estimating support — geotech investigation,4,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-7,Cost estimator support; qty from Level_of_Effort.csv
+ITEM-003,DEL-008-01,Investigation program development — Geotechnical Engineer,1,LS,UNIT_RATE,Procedure,Step 2 — Develop Investigation Program,Scope/program definition; coord with structural engineer; submit for Owner acceptance
+ITEM-004,DEL-008-01,Site access coordination and safety induction,2,hr,UNIT_RATE,Procedure,Step 1 — Confirm Site Conditions and Coordinate Sequence,Coordination with County for access; safety induction for field personnel on active landfill
+ITEM-005,DEL-008-01,Drill rig mobilization / demobilization to WDMLRL site,1,LS,LUMP_SUM,Procedure,Step 3 — Mobilize and Conduct Field Investigation,Mob/demob of drilling equipment to SW 14-44-21-W4 near Ferintosh AB (approx 30 km S of Camrose)
+ITEM-006,DEL-008-01,Borehole drilling and in-situ testing (SPT or equivalent),40,m,UNIT_RATE,Procedure,Step 3.2 — Execute borehole drilling,4 boreholes to 10m depth = 40m total
+ITEM-007,DEL-008-01,Test pit excavation (if required by investigation program),3,EA,UNIT_RATE,Procedure,Step 3.2,3 test pits per investigation program
+ITEM-008,DEL-008-01,Groundwater monitoring well / standpipe installation,1,EA,UNIT_RATE,Procedure,Step 3.4,1 monitoring well per investigation program
+ITEM-009,DEL-008-01,Soil sample collection and handling,25,EA,UNIT_RATE,Procedure,Step 3.3 — Collect soil samples,25 samples per investigation program
+ITEM-010,DEL-008-01,Field investigation supervision — Geotechnical Engineer,3,day,UNIT_RATE,Procedure,Step 3 — Field Investigation,3-day field program supervision
+ITEM-011,DEL-008-01,Photographic documentation of field investigation,1,LS,LUMP_SUM,Procedure,Step 3.5,Dated and location-referenced photos of boreholes; samples; site conditions; equipment
+ITEM-012,DEL-008-01,Laboratory testing — soil classification and index tests,18,EA,UNIT_RATE,Procedure,Step 4 — Conduct Laboratory Testing,18 classification/index tests from 25 samples
+ITEM-013,DEL-008-01,Laboratory testing QA/QC review,4,hr,UNIT_RATE,Procedure,Step 4.3,Review lab results for completeness and quality; re-testing if anomalous
+ITEM-014,DEL-008-01,Data analysis — bearing capacity analysis,1,LS,UNIT_RATE,Procedure,Step 5.4,Included in GI-12 report preparation scope
+ITEM-015,DEL-008-01,Data analysis — settlement analysis,1,LS,UNIT_RATE,Procedure,Step 5.5,Included in GI-12 report preparation scope
+ITEM-016,DEL-008-01,Data analysis — service pit geotechnical characterization,1,LS,UNIT_RATE,Specification,REQ-011 — Service Pit Geotechnical Characterization,Included in GI-12 report preparation scope
+ITEM-017,DEL-008-01,Deleterious materials assessment relative to RFP §4.8.2 baseline,1,LS,UNIT_RATE,Specification,REQ-004 — Normal Ground Conditions Baseline,Included in GI-12 report preparation scope
+ITEM-018,DEL-008-01,Geotechnical report preparation — drafting and compilation,1,LS,UNIT_RATE,Procedure,Step 6.1 — Draft the geotechnical report,Full report: executive summary; stratigraphy; groundwater; bearing capacity; settlement; foundations; service pit; appendices
+ITEM-019,DEL-008-01,Independent technical review (senior engineer review),2,hr,UNIT_RATE,Specification,REQ-012 — Report Quality Review / Procedure Step 6.2,Internal peer review before issuance to Owner
+ITEM-020,DEL-008-01,Professional engineer certification / seal,1,LS,LUMP_SUM,Specification,REQ-009 — Prepared by Geotechnical Engineer / Procedure Step 6.4,Report signed and sealed by responsible Geotechnical Engineer per Alberta practice
+ITEM-021,DEL-008-01,Report delivery to Owner and project file distribution,1,LS,LUMP_SUM,Procedure,Step 7 — Deliver Report to Owner,Transmit complete report to Camrose County; copy to project file; notify PKG-002; retain transmission record
+ITEM-022,DEL-008-01,Owner draft review cycle coordination (if required),2,hr,UNIT_RATE,Procedure,Step 6.3,Owner draft review/comment period coordination
+ITEM-023,DEL-008-01,Site restoration after field investigation,1,LS,LUMP_SUM,Procedure,Step 3.7,Restore disturbed areas to extent practicable upon completion of field activities
+ITEM-024,DEL-008-01,Lab consolidation/oedometer tests,4,EA,UNIT_RATE,Procedure,Step 4 — Conduct Laboratory Testing,Specialized lab tests not in original takeoff; consolidation/oedometer for settlement analysis
+ITEM-025,DEL-008-01,Lab direct shear/triaxial tests,3,EA,UNIT_RATE,Procedure,Step 4 — Conduct Laboratory Testing,Specialized lab tests not in original takeoff; shear strength parameters for foundation design
+ITEM-026,DEL-008-01,Lab chemical analysis (soil/groundwater),4,EA,UNIT_RATE,Procedure,Step 4 — Conduct Laboratory Testing,Specialized lab tests not in original takeoff; chemical analysis for deleterious materials assessment

@@ -1,0 +1,9 @@
+ItemID,Discipline,Description,FeePercentMin,FeePercentMax,RecommendedPercent,FeeBase,Basis,Confidence,Notes
+DF-01,Architectural,Architectural design fees (full service; concept through CA),6.0,8.0,7.0,Construction cost of architectural scope,MARKET,MEDIUM,Typical Alberta DB project; includes coordination lead role
+DF-02,Civil,Civil engineering design fees,2.0,3.0,2.5,Construction cost of site/civil scope,MARKET,MEDIUM,Site plan through as-built; includes survey coordination
+DF-03,Structural,Structural engineering design fees,2.0,3.0,2.5,Construction cost of structural scope,MARKET,MEDIUM,Concept through shop drawing review
+DF-04,Mechanical,Mechanical engineering design fees,2.0,3.0,2.5,Construction cost of mechanical scope,MARKET,MEDIUM,HVAC + plumbing + fire protection design
+DF-05,Electrical,Electrical engineering design fees,2.0,3.0,2.5,Construction cost of electrical scope,MARKET,MEDIUM,Power + lighting + IT/telecom + fire alarm design
+DF-06,Building Science,Building science consulting,lump_sum,lump_sum,lump_sum,N/A,MARKET,MEDIUM,See Professional_Staff_Rates.csv R-27; typically 40-80 hours at $165/hr = $6600-$13200
+DF-07,Environmental,Environmental consulting (all services),lump_sum,lump_sum,lump_sum,N/A,MARKET,MEDIUM,See Fees_Permits_Insurance.csv FP-17; typically $15000-$30000 for this project
+DF-08,Geotechnical,Geotechnical review (existing report interpretation),lump_sum,lump_sum,lump_sum,N/A,MARKET,MEDIUM,No new investigation per DEC-013; review/interpretation only: 8-16 hours at $155/hr = $1240-$2480

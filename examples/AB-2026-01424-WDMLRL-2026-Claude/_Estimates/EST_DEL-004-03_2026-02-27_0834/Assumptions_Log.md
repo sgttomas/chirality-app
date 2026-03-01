@@ -1,0 +1,9 @@
+# Assumptions Log — EST_DEL-004-03_2026-02-27_0834
+
+| AssumptionID | Assumption | Source | Confidence | Impact if Wrong |
+|---|---|---|---|---|
+| ASM-001 | Hourly rates in Professional_Staff_Rates.csv are valid for 2026 Alberta market conditions | Professional_Staff_Rates.csv (Basis=PARAMETRIC, Confidence=MEDIUM) | MEDIUM | If rates are understated/overstated, total estimate shifts proportionally. Electrical Engineer rate ($165/hr) is the dominant cost driver (73.7% of total). |
+| ASM-002 | Level of effort allocations in Level_of_Effort.csv are appropriate for a Drawing Set deliverable of this complexity (~13,000 sqft industrial maintenance shop with diverse load profile) | Level_of_Effort.csv (Basis=PARAMETRIC) | MEDIUM | If hours are understated, actual cost may exceed estimate. 84 engineer hours and 36 BIM hours appear reasonable for a complex industrial power distribution IFC set. |
+| ASM-003 | This estimate covers professional design services (drawing production) only; construction materials and installation labor are excluded | _CONTEXT.md Type=Drawing Set; Decomposition: PKG-015 handles installation | HIGH | No impact on this estimate; construction costs are a separate scope item. |
+| ASM-004 | The 4 role allocations (Electrical Engineer, BIM Technician, Project Manager, Cost Estimator) from Level_of_Effort.csv represent the complete staffing model for this deliverable | Level_of_Effort.csv DEL-004-03 rows | MEDIUM | If additional roles (e.g., MEP coordination lead, commissioning agent) are needed, hours would increase. The LOE model appears to embed coordination effort within the engineer and PM hours. |
+| ASM-005 | Currency is CAD for all pricing | Assumed_Project_Parameters.csv PP-17; INIT-TASK brief CURRENCY=CAD | MEDIUM | If any price source uses a different currency, conversion would be needed. All sources appear to use CAD. |

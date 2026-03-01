@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-006,DEL-006-06,Professional Services > Design & Engineering,CAD,9835.00,2,100,BIM Technician ($1995) + Plumbing Engineer ($7840)
+PKG-006,DEL-006-06,Professional Services > Project Management,CAD,1530.00,2,100,PM ($990) + Cost Estimator ($540)
+PKG-006,DEL-006-06,TOTAL,CAD,11365.00,4,100,All CBS categories combined for DEL-006-06

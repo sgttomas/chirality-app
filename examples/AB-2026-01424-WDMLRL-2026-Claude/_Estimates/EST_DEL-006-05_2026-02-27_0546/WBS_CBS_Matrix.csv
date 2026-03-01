@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-006,DEL-006-05,Professional Services > Design & Engineering,CAD,9835,2,100,Plumbing Engineer (LN-001) + BIM Technician (LN-002)
+PKG-006,DEL-006-05,Professional Services > Project Management,CAD,1530,2,100,Project Manager (LN-003) + Cost Estimator (LN-004)
+PKG-006,DEL-006-05,TOTAL,CAD,11365,4,100,All CBS categories combined for DEL-006-05

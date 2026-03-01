@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-015,DEL-015-04,Construction Labour > General Construction Labour,CAD,14124.00,2,100,CBS normalized; 2 detail lines
+PKG-015,DEL-015-04,Electrical > Power Distribution & Equipment,CAD,54650.00,17,100,CBS normalized; 17 detail lines
+PKG-015,DEL-015-04,Professional Services > Professional Staff,CAD,5590.00,6,100,CBS normalized; 6 detail lines
+PKG-015,DEL-015-04,TOTAL,CAD,74364.00,25,100,All CBS categories combined (post-normalization)

@@ -1,0 +1,11 @@
+# Risk Register — EST_DEL-018-06_2026-02-27_0930
+
+| Risk ID | Risk Description | Likelihood | Impact | Cost Exposure (CAD) | Mitigation | Source |
+|---------|-----------------|-----------|--------|---------------------|------------|--------|
+| RSK-001 | Gas main extension required — site is remote from nearest gas main | MEDIUM | HIGH | $50,000 - $200,000+ | Early utility provider inquiry (Procedure Step A1/A4); evaluate propane alternative per Guidance Gas Service Extension Risk Assessment | Datasheet — Utility Infrastructure Proximity (TBD); Guidance — Gas Service Extension section |
+| RSK-002 | Customer-owned transformer required for three-phase electrical service | MEDIUM | MEDIUM | $30,000 - $80,000 | Early electrical utility provider inquiry (Procedure Step A3); resolve per Specification REQ-02.9 | Specification REQ-02.9; Guidance Trade-offs |
+| RSK-003 | Utility provider lead times exceed schedule expectations (rural Alberta) | MEDIUM | HIGH | Schedule delay; potential liquidated damages if Dec 31 2026 deadline missed | Initiate provider contact immediately; track lead times per Datasheet lead time table | Datasheet — Utility Provider Lead Times (all TBD); Guidance Principle 1 |
+| RSK-004 | Actual trench distance significantly exceeds assumed 75m | LOW-MEDIUM | MEDIUM | ~$130/m additional per metre beyond 75m (all linear items combined) | Confirm distance through civil design (PKG-005) and utility provider coordination | ASM-001; Datasheet — Utility Infrastructure Proximity |
+| RSK-005 | Combined trench corridor not feasible due to code separation requirements | LOW | MEDIUM | Trenching and backfill costs could triple (~$11,250 additional) | Confirm CEC and CSA B149.1 separation distances before committing to shared trench design | ASM-006; Specification REQ-02.8 |
+| RSK-006 | Additional communications services required by County beyond radio antenna | LOW | LOW | $5,000 - $15,000 additional | Confirm scope with County early (Procedure Step A5) | ASM-005; Specification REQ-03.3 |
+| RSK-007 | Existing buried utilities encountered during trenching | LOW | MEDIUM | $2,000 - $10,000 (relocation/rerouting) | Alberta One-Call locate (PREREQ-11 / REQ-04.8) before any excavation | Specification REQ-04.8; Procedure Step B1 |

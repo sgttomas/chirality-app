@@ -1,0 +1,17 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-004-02,Project Management — SLD oversight and coordination,6,hr,UNIT_RATE,Procedure,Steps 1-10,PM oversight across all procedure steps; from Level_of_Effort.csv R-01
+ITEM-002,DEL-004-02,Cost Estimator — quantity takeoff and benchmarking support,4,hr,UNIT_RATE,Procedure,Steps 1-10,Estimator support for SLD deliverable; from Level_of_Effort.csv R-08
+ITEM-003,DEL-004-02,BIM Technician — SLD drawing production and sheet setup,36,hr,UNIT_RATE,Procedure,Step 4 — Draft Single-Line Diagram,CAD/BIM drafting of SLD; from Level_of_Effort.csv R-13
+ITEM-004,DEL-004-02,Electrical Engineer — SLD design and engineering,84,hr,UNIT_RATE,Procedure,Steps 1-10,Lead engineer: load inventory compilation; utility voltage confirmation; demand/load calculation coordination; SLD hierarchy design; internal review; interdisciplinary coordination; County submission; TBD resolution; P.Eng. stamp; handoff. From Level_of_Effort.csv R-16
+ITEM-005,DEL-004-02,Load inventory compilation from App B (Electrical) and all sources,1,LS,LUMP_SUM,Procedure,Step 1 — Compile Load Inventory,Included in Electrical Engineer hours (ITEM-004); tracked as activity for traceability
+ITEM-006,DEL-004-02,Utility voltage confirmation with local service authority,1,LS,LUMP_SUM,Procedure,Step 2 — Confirm System Voltage,Included in Electrical Engineer hours (ITEM-004); tracked as activity for traceability
+ITEM-007,DEL-004-02,Demand/load calculation coordination with DEL-004-08,1,LS,LUMP_SUM,Procedure,Step 3 — Demand/Load Calculation,Included in Electrical Engineer hours (ITEM-004); iterative with SLD drafting
+ITEM-008,DEL-004-02,SLD drafting — service entrance through branch circuits,1,LS,LUMP_SUM,Procedure,Step 4 — Draft Single-Line Diagram,Included in BIM Technician (ITEM-003) and Electrical Engineer (ITEM-004) hours
+ITEM-009,DEL-004-02,Internal Electrical Engineer review of draft SLD,1,LS,LUMP_SUM,Procedure,Step 5 — Internal Review,Included in Electrical Engineer hours (ITEM-004)
+ITEM-010,DEL-004-02,Interdisciplinary coordination review (Mechanical/Structural/Architect),1,LS,LUMP_SUM,Procedure,Step 6 — Interdisciplinary Coordination,Included in Electrical Engineer and PM hours; REQ-SLD-010 cross-discipline check
+ITEM-011,DEL-004-02,Preliminary issue for County approval per SOW-0010d,1,LS,LUMP_SUM,Procedure,Step 7 — County Submission,Included in PM and Electrical Engineer hours; REQ-SLD-008
+ITEM-012,DEL-004-02,TBD item resolution and SLD finalization,1,LS,LUMP_SUM,Procedure,Step 8 — Resolve TBD Items,Crane ratings; door motors; mechanical equipment; ceiling fans; exhaust fans
+ITEM-013,DEL-004-02,P.Eng. stamp and IFC issue (Alberta-licensed P.Eng.),1,LS,LUMP_SUM,Specification,REQ-SLD-007 — P.Eng. Stamp,Included in Electrical Engineer hours (ITEM-004); REQ-SLD-007
+ITEM-014,DEL-004-02,CEC edition confirmation with Safety Codes authority,1,LS,LUMP_SUM,Specification,REQ-SLD-011 — CEC Edition Confirmation,Gating action for SLD design; included in Electrical Engineer hours
+ITEM-015,DEL-004-02,Electrical permit application inclusion of SLD,1,LS,LUMP_SUM,Specification,REQ-SLD-015 — Permit Application Inclusion,Administrative activity; included in PM hours
+ITEM-016,DEL-004-02,Deliverable handoff to downstream users (PKG-015 et al.),1,LS,LUMP_SUM,Procedure,Step 10 — Deliverable Handoff,Transmittal records; included in PM and Electrical Engineer hours

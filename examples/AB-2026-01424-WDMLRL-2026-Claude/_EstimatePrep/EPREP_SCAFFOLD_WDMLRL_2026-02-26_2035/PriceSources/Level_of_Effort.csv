@@ -1,0 +1,583 @@
+Execution,DeliverableID,DeliverableName,RoleID,Role,EstimatedHours,Basis,Notes
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-01,Preliminary Architectural Design,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-01,Preliminary Architectural Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-01,Preliminary Architectural Design,R-11,Senior Architect,27,PARAMETRIC,PKG-001 Architect — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-01,Preliminary Architectural Design,R-12,Architect,21,PARAMETRIC,PKG-001 Architect — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-01,Preliminary Architectural Design,R-13,BIM Technician,12,PARAMETRIC,PKG-001 Architect — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-02,Architectural Floor Plans,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-02,Architectural Floor Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-02,Architectural Floor Plans,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-02,Architectural Floor Plans,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-02,Architectural Floor Plans,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-03,Exterior Elevations,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-03,Exterior Elevations,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-03,Exterior Elevations,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-03,Exterior Elevations,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-03,Exterior Elevations,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-04,Building Sections,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-04,Building Sections,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-04,Building Sections,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-04,Building Sections,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-04,Building Sections,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-05,Interior Elevations,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-05,Interior Elevations,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-05,Interior Elevations,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-05,Interior Elevations,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-05,Interior Elevations,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-06,Reflected Ceiling Plans,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-06,Reflected Ceiling Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-06,Reflected Ceiling Plans,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-06,Reflected Ceiling Plans,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-06,Reflected Ceiling Plans,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-07,Door & Window Schedule,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-07,Door & Window Schedule,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-07,Door & Window Schedule,R-11,Senior Architect,18,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-07,Door & Window Schedule,R-12,Architect,14,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-07,Door & Window Schedule,R-13,BIM Technician,8,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-08,Finish Schedule,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-08,Finish Schedule,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-08,Finish Schedule,R-11,Senior Architect,18,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-08,Finish Schedule,R-12,Architect,14,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-08,Finish Schedule,R-13,BIM Technician,8,PARAMETRIC,PKG-001 Architect — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-09,Old North Shop Demolition Plans,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-09,Old North Shop Demolition Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-09,Old North Shop Demolition Plans,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-09,Old North Shop Demolition Plans,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-09,Old North Shop Demolition Plans,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-10,Old North Shop Renovation Plans,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-10,Old North Shop Renovation Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-10,Old North Shop Renovation Plans,R-11,Senior Architect,54,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-10,Old North Shop Renovation Plans,R-12,Architect,42,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-10,Old North Shop Renovation Plans,R-13,BIM Technician,24,PARAMETRIC,PKG-001 Architect — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-01,Project Manager,6,PARAMETRIC,PKG-001 Architect — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-001 Architect — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-11,Senior Architect,27,PARAMETRIC,PKG-001 Architect — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-12,Architect,21,PARAMETRIC,PKG-001 Architect — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-13,BIM Technician,12,PARAMETRIC,PKG-001 Architect — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-01,Preliminary Structural Design,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-01,Preliminary Structural Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-01,Preliminary Structural Design,R-13,BIM Technician,18,PARAMETRIC,PKG-002 Structural Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-01,Preliminary Structural Design,R-14,Structural Engineer,42,PARAMETRIC,PKG-002 Structural Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-02,Foundation Plan,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-02,Foundation Plan,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-02,Foundation Plan,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-02,Foundation Plan,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-03,Structural Framing Plans,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-03,Structural Framing Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-03,Structural Framing Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-03,Structural Framing Plans,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-04,Structural Sections & Details,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-04,Structural Sections & Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-04,Structural Sections & Details,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-04,Structural Sections & Details,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-05,Mezzanine Framing Details,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-05,Mezzanine Framing Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-05,Mezzanine Framing Details,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-05,Mezzanine Framing Details,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-06,Service Pit / Trench Structural Details,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-06,Service Pit / Trench Structural Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-06,Service Pit / Trench Structural Details,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-06,Service Pit / Trench Structural Details,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-07,Crane Support Structure Details,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-07,Crane Support Structure Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-07,Crane Support Structure Details,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-07,Crane Support Structure Details,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-08,Steel Plate Embedment Plan,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-08,Steel Plate Embedment Plan,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-08,Steel Plate Embedment Plan,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-08,Steel Plate Embedment Plan,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-09,Stair Details,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-09,Stair Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-09,Stair Details,R-13,BIM Technician,36,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-09,Stair Details,R-14,Structural Engineer,84,PARAMETRIC,PKG-002 Structural Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-10,Structural Calculation Package,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-10,Structural Calculation Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-10,Structural Calculation Package,R-13,BIM Technician,24,PARAMETRIC,PKG-002 Structural Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-10,Structural Calculation Package,R-14,Structural Engineer,56,PARAMETRIC,PKG-002 Structural Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-11,Foundation Design Package (Variable-Price),R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Design Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-11,Foundation Design Package (Variable-Price),R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Design Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-11,Foundation Design Package (Variable-Price),R-13,BIM Technician,21,PARAMETRIC,PKG-002 Structural Engineer — Design Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-11,Foundation Design Package (Variable-Price),R-14,Structural Engineer,49,PARAMETRIC,PKG-002 Structural Engineer — Design Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-12,Structural Specification,R-01,Project Manager,6,PARAMETRIC,PKG-002 Structural Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-12,Structural Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-002 Structural Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-12,Structural Specification,R-13,BIM Technician,18,PARAMETRIC,PKG-002 Structural Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-002-12,Structural Specification,R-14,Structural Engineer,42,PARAMETRIC,PKG-002 Structural Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-01,Preliminary Mechanical Design,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-01,Preliminary Mechanical Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-01,Preliminary Mechanical Design,R-13,BIM Technician,18,PARAMETRIC,PKG-003 Mechanical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-01,Preliminary Mechanical Design,R-15,Mechanical Engineer,42,PARAMETRIC,PKG-003 Mechanical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-02,HVAC Layout Plans,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-02,HVAC Layout Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-02,HVAC Layout Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-02,HVAC Layout Plans,R-15,Mechanical Engineer,84,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-03,Ductwork & Distribution Plans,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-03,Ductwork & Distribution Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-03,Ductwork & Distribution Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-03,Ductwork & Distribution Plans,R-15,Mechanical Engineer,84,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-04,Exhaust System Plans,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-04,Exhaust System Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-04,Exhaust System Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-04,Exhaust System Plans,R-15,Mechanical Engineer,84,PARAMETRIC,PKG-003 Mechanical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-05,Mechanical Equipment Schedule,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-05,Mechanical Equipment Schedule,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-05,Mechanical Equipment Schedule,R-13,BIM Technician,12,PARAMETRIC,PKG-003 Mechanical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-05,Mechanical Equipment Schedule,R-15,Mechanical Engineer,28,PARAMETRIC,PKG-003 Mechanical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-06,Mechanical Calculation Package,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-06,Mechanical Calculation Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-06,Mechanical Calculation Package,R-13,BIM Technician,24,PARAMETRIC,PKG-003 Mechanical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-06,Mechanical Calculation Package,R-15,Mechanical Engineer,56,PARAMETRIC,PKG-003 Mechanical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-07,Mechanical Specification,R-01,Project Manager,6,PARAMETRIC,PKG-003 Mechanical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-07,Mechanical Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-003 Mechanical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-07,Mechanical Specification,R-13,BIM Technician,18,PARAMETRIC,PKG-003 Mechanical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-003-07,Mechanical Specification,R-15,Mechanical Engineer,42,PARAMETRIC,PKG-003 Mechanical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-01,Preliminary Electrical Design,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-01,Preliminary Electrical Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-01,Preliminary Electrical Design,R-13,BIM Technician,18,PARAMETRIC,PKG-004 Electrical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-01,Preliminary Electrical Design,R-16,Electrical Engineer,42,PARAMETRIC,PKG-004 Electrical Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-02,Single-Line Diagram,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-02,Single-Line Diagram,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-02,Single-Line Diagram,R-13,BIM Technician,36,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-02,Single-Line Diagram,R-16,Electrical Engineer,84,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-03,Power Distribution Plans,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-03,Power Distribution Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-03,Power Distribution Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-03,Power Distribution Plans,R-16,Electrical Engineer,84,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-04,Lighting Plans,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-04,Lighting Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-04,Lighting Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-04,Lighting Plans,R-16,Electrical Engineer,84,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-05,Receptacle Layout Plans,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-05,Receptacle Layout Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-05,Receptacle Layout Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-05,Receptacle Layout Plans,R-16,Electrical Engineer,84,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-06,Panel Schedules,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-06,Panel Schedules,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-06,Panel Schedules,R-13,BIM Technician,12,PARAMETRIC,PKG-004 Electrical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-06,Panel Schedules,R-16,Electrical Engineer,28,PARAMETRIC,PKG-004 Electrical Engineer — Schedule
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-07,Low-Voltage System Plans,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-07,Low-Voltage System Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-07,Low-Voltage System Plans,R-13,BIM Technician,36,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-07,Low-Voltage System Plans,R-16,Electrical Engineer,84,PARAMETRIC,PKG-004 Electrical Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-08,Electrical Calculation Package,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-08,Electrical Calculation Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-08,Electrical Calculation Package,R-13,BIM Technician,24,PARAMETRIC,PKG-004 Electrical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-08,Electrical Calculation Package,R-16,Electrical Engineer,56,PARAMETRIC,PKG-004 Electrical Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-09,Electrical Specification,R-01,Project Manager,6,PARAMETRIC,PKG-004 Electrical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-09,Electrical Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-004 Electrical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-09,Electrical Specification,R-13,BIM Technician,18,PARAMETRIC,PKG-004 Electrical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-004-09,Electrical Specification,R-16,Electrical Engineer,42,PARAMETRIC,PKG-004 Electrical Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-01,Preliminary Civil Design,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-01,Preliminary Civil Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-01,Preliminary Civil Design,R-13,BIM Technician,18,PARAMETRIC,PKG-005 Civil Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-01,Preliminary Civil Design,R-17,Civil Engineer,42,PARAMETRIC,PKG-005 Civil Engineer — Design Presentation
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-02,Site Grading Plan,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-02,Site Grading Plan,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-02,Site Grading Plan,R-13,BIM Technician,36,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-02,Site Grading Plan,R-17,Civil Engineer,84,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-03,Drainage Plan,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-03,Drainage Plan,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-03,Drainage Plan,R-13,BIM Technician,36,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-03,Drainage Plan,R-17,Civil Engineer,84,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-04,Driving Surface & Pad Layout Plan,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-04,Driving Surface & Pad Layout Plan,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-04,Driving Surface & Pad Layout Plan,R-13,BIM Technician,36,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-04,Driving Surface & Pad Layout Plan,R-17,Civil Engineer,84,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-05,Civil Sections & Details,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-05,Civil Sections & Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-05,Civil Sections & Details,R-13,BIM Technician,36,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-05,Civil Sections & Details,R-17,Civil Engineer,84,PARAMETRIC,PKG-005 Civil Engineer — Drawing Set
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-06,Civil Calculation Package,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-06,Civil Calculation Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-06,Civil Calculation Package,R-13,BIM Technician,24,PARAMETRIC,PKG-005 Civil Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-06,Civil Calculation Package,R-17,Civil Engineer,56,PARAMETRIC,PKG-005 Civil Engineer — Calculation Package
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-07,Civil Specification,R-01,Project Manager,6,PARAMETRIC,PKG-005 Civil Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-07,Civil Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-005 Civil Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-07,Civil Specification,R-13,BIM Technician,18,PARAMETRIC,PKG-005 Civil Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-005-07,Civil Specification,R-17,Civil Engineer,42,PARAMETRIC,PKG-005 Civil Engineer — Specification
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-01,Preliminary Plumbing Design,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-01,Preliminary Plumbing Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-01,Preliminary Plumbing Design,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-01,Preliminary Plumbing Design,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-02,Water Distribution Plans,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-02,Water Distribution Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-02,Water Distribution Plans,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-02,Water Distribution Plans,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-03,Drain & Vent Plans,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-03,Drain & Vent Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-03,Drain & Vent Plans,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-03,Drain & Vent Plans,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-04,Cistern & Pump Details,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-04,Cistern & Pump Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-04,Cistern & Pump Details,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-04,Cistern & Pump Details,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-05,Septic System Details,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-05,Septic System Details,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-05,Septic System Details,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-05,Septic System Details,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-06,Plumbing Fixture Schedule,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-06,Plumbing Fixture Schedule,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-06,Plumbing Fixture Schedule,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-06,Plumbing Fixture Schedule,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-07,Plumbing Calculation Package,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-07,Plumbing Calculation Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-07,Plumbing Calculation Package,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-07,Plumbing Calculation Package,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-08,Plumbing Specification,R-01,Project Manager,6,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-08,Plumbing Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-08,Plumbing Specification,R-13,BIM Technician,21,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-006-08,Plumbing Specification,R-18,Plumbing Engineer,49,PARAMETRIC,PKG-006 Plumbing Engineer — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-01,Preliminary Design,R-01,Project Manager,6,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-01,Preliminary Design,R-08,Cost Estimator,4,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-01,Preliminary Design,R-19,Landscape Architect,70,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-02,Landscape Plans,R-01,Project Manager,6,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-02,Landscape Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-02,Landscape Plans,R-19,Landscape Architect,70,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-03,Planting Plans,R-01,Project Manager,6,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-03,Planting Plans,R-08,Cost Estimator,4,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-03,Planting Plans,R-19,Landscape Architect,70,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-04,Specification,R-01,Project Manager,6,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-04,Specification,R-08,Cost Estimator,4,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-007-04,Specification,R-19,Landscape Architect,70,PARAMETRIC,PKG-007 Landscape Architect — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-01,Geotech Investigation,R-01,Project Manager,6,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-01,Geotech Investigation,R-08,Cost Estimator,4,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-02,Preliminary Survey,R-01,Project Manager,6,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-02,Preliminary Survey,R-08,Cost Estimator,4,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-03,Construction Survey,R-01,Project Manager,6,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-03,Construction Survey,R-08,Cost Estimator,4,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-04,As Built Survey,R-01,Project Manager,6,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-04,As Built Survey,R-08,Cost Estimator,4,PARAMETRIC,PKG-008 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-01,Development Permit,R-01,Project Manager,6,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-01,Development Permit,R-08,Cost Estimator,4,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-02,Building Permit,R-01,Project Manager,6,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-02,Building Permit,R-08,Cost Estimator,4,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-03,Safety Code Permits,R-01,Project Manager,6,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-03,Safety Code Permits,R-08,Cost Estimator,4,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-04,Code Compliance Register,R-01,Project Manager,6,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-04,Code Compliance Register,R-08,Cost Estimator,4,PARAMETRIC,PKG-009 Project Manager — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-01,Project Manager,6,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-02,Construction Project Manager,8,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-03,Site Superintendent,10,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-08,Cost Estimator,4,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-06,QA/QC Lead,6,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-010-01,Foundation Construction,R-05,HSE Manager,4,PARAMETRIC,PKG-010 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-01,Concrete Superstructure,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-02,Steel Plate Floor Embedments,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-03,Drive-Through Repair Bays,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-04,Entrance/Exit Doors,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-05,Wash Bay Enclosure,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-06,Service Pit/Trench,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-01,Project Manager,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-02,Construction Project Manager,8,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-03,Site Superintendent,10,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-08,Cost Estimator,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-06,QA/QC Lead,6,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-011-07,Mezzanine Structure & Stairs,R-05,HSE Manager,4,PARAMETRIC,PKG-011 General Contractor — Construction
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-01,Project Manager,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-01,Parts Storage Room - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-01,Project Manager,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-02,Utility Room - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-01,Project Manager,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-012-03,Office Space - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-012 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-01,High-Recovery Heating System - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-02,High-Volume Air Exchanger - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-03,Forced-Air Makeup System - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-04,Heavy Equipment Exhaust System - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-05,Welding Station Exhaust System - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-01,Project Manager,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-02,Construction Project Manager,8,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-03,Site Superintendent,10,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-08,Cost Estimator,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-06,QA/QC Lead,6,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-013-06,Ceiling Fans - Context,R-05,HSE Manager,4,PARAMETRIC,PKG-013 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-01,Cistern,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-02,Septic,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-03,Bulk Water,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-04,Floor Drains,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-05,Emergency Shower,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-01,Project Manager,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-02,Construction Project Manager,8,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-03,Site Superintendent,10,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-08,Cost Estimator,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-06,QA/QC Lead,6,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-014-06,Fixtures,R-05,HSE Manager,4,PARAMETRIC,PKG-014 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-01,Project Manager,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-02,Construction Project Manager,8,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-03,Site Superintendent,10,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-08,Cost Estimator,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-06,QA/QC Lead,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-01,Power Service,R-05,HSE Manager,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-01,Project Manager,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-02,Construction Project Manager,8,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-03,Site Superintendent,10,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-08,Cost Estimator,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-06,QA/QC Lead,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-02,Lighting,R-05,HSE Manager,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-01,Project Manager,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-02,Construction Project Manager,8,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-03,Site Superintendent,10,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-08,Cost Estimator,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-06,QA/QC Lead,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-03,Receptacles,R-05,HSE Manager,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-01,Project Manager,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-02,Construction Project Manager,8,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-03,Site Superintendent,10,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-08,Cost Estimator,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-06,QA/QC Lead,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-04,Equipment Power,R-05,HSE Manager,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-01,Project Manager,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-02,Construction Project Manager,8,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-03,Site Superintendent,10,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-08,Cost Estimator,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-06,QA/QC Lead,6,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-015-05,Low Voltage,R-05,HSE Manager,4,PARAMETRIC,PKG-015 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-01,Project Manager,6,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-02,Construction Project Manager,8,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-03,Site Superintendent,10,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-08,Cost Estimator,4,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-06,QA/QC Lead,6,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-016-01,Overhead Cranes,R-05,HSE Manager,4,PARAMETRIC,PKG-016 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-01,Project Manager,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-02,Construction Project Manager,8,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-03,Site Superintendent,10,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-08,Cost Estimator,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-06,QA/QC Lead,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-01,Kitchenette Reno,R-05,HSE Manager,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-01,Project Manager,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-02,Construction Project Manager,8,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-03,Site Superintendent,10,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-08,Cost Estimator,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-06,QA/QC Lead,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-02,Mezzanine Reno,R-05,HSE Manager,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-01,Project Manager,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-02,Construction Project Manager,8,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-03,Site Superintendent,10,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-08,Cost Estimator,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-06,QA/QC Lead,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-03,Washroom Reno,R-05,HSE Manager,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-01,Project Manager,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-02,Construction Project Manager,8,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-03,Site Superintendent,10,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-08,Cost Estimator,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-06,QA/QC Lead,6,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-017-04,Locker Room,R-05,HSE Manager,4,PARAMETRIC,PKG-017 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-01,Topsoil Strip,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-02,Grading Landscape,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-03,Driving Surface,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-04,Pads,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-05,Wash Bay Drainage,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-01,Project Manager,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-02,Construction Project Manager,8,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-03,Site Superintendent,10,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-08,Cost Estimator,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-06,QA/QC Lead,6,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-018-06,Utility Tieins,R-05,HSE Manager,4,PARAMETRIC,PKG-018 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-01,Project Manager,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-02,Construction Project Manager,8,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-03,Site Superintendent,10,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-08,Cost Estimator,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-06,QA/QC Lead,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-01,Prime Contractor Designation & OH&S Program,R-05,HSE Manager,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-01,Project Manager,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-02,Construction Project Manager,8,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-03,Site Superintendent,10,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-08,Cost Estimator,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-06,QA/QC Lead,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-02,Weekly Meetings & Billing Coordination,R-05,HSE Manager,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-01,Project Manager,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-02,Construction Project Manager,8,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-03,Site Superintendent,10,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-08,Cost Estimator,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-06,QA/QC Lead,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-03,Subcontractor Management,R-05,HSE Manager,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-01,Project Manager,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-02,Construction Project Manager,8,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-03,Site Superintendent,10,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-08,Cost Estimator,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-06,QA/QC Lead,6,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-019-04,Construction Quality Control,R-05,HSE Manager,4,PARAMETRIC,PKG-019 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-01,Project Manager,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-02,Construction Project Manager,8,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-03,Site Superintendent,10,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-08,Cost Estimator,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-06,QA/QC Lead,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-05,HSE Manager,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-09,Document Controller,12,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-01,Building Systems Commissioning,R-23,Commissioning Agent,30,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-01,Project Manager,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-02,Construction Project Manager,8,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-03,Site Superintendent,10,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-08,Cost Estimator,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-06,QA/QC Lead,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-05,HSE Manager,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-09,Document Controller,12,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-02,Final Inspection & CCC,R-23,Commissioning Agent,30,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-01,Project Manager,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-02,Construction Project Manager,8,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-03,Site Superintendent,10,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-08,Cost Estimator,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-06,QA/QC Lead,6,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-05,HSE Manager,4,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-09,Document Controller,12,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-020-03,Closeout Documentation,R-23,Commissioning Agent,30,PARAMETRIC,PKG-020 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-01,Project Manager,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-02,Construction Project Manager,8,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-03,Site Superintendent,10,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-25,Contract Administrator,16,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-06,QA/QC Lead,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-05,HSE Manager,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-01,Bid Security Package,R-09,Document Controller,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-01,Project Manager,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-02,Construction Project Manager,8,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-03,Site Superintendent,10,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-25,Contract Administrator,16,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-08,Cost Estimator,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-06,QA/QC Lead,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-05,HSE Manager,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-02,Performance & Payment Bonds,R-09,Document Controller,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-01,Project Manager,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-02,Construction Project Manager,8,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-03,Site Superintendent,10,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-25,Contract Administrator,16,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-08,Cost Estimator,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-06,QA/QC Lead,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-05,HSE Manager,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-03,Insurance Package,R-09,Document Controller,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-01,Project Manager,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-02,Construction Project Manager,8,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-03,Site Superintendent,10,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-25,Contract Administrator,16,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-08,Cost Estimator,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-06,QA/QC Lead,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-05,HSE Manager,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-04,CCDC 14-2013 Contract Execution,R-09,Document Controller,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-01,Project Manager,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-02,Construction Project Manager,8,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-03,Site Superintendent,10,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-25,Contract Administrator,16,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-08,Cost Estimator,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-06,QA/QC Lead,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-05,HSE Manager,4,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-021-05,Guarantee Period Obligations,R-09,Document Controller,6,PARAMETRIC,PKG-021 TBD — TBD
+AB-2026-01424-WDMLRL-2026-Claude,DEL-008-01,Geotech Investigation,R-20,Geotechnical Engineer,60,PARAMETRIC,Program development (16) + field supervision (24) + analysis/review (20)
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-04,Code Compliance Register,R-06,QA/QC Lead,16,PARAMETRIC,Inspection coordination (8) + audit/KPI (4) + deficiency tracking (4)
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-04,Code Compliance Register,R-09,Document Controller,12,PARAMETRIC,Register filing (6) + compliance docs (4) + closeout summary (2)
+AB-2026-01424-WDMLRL-2026-Claude,DEL-009-04,Code Compliance Register,R-22,Permitting Specialist,20,PARAMETRIC,County coordination per inspection (~12 x 1hr) + code tracking (4) + regulatory (4)
+AB-2026-01424-WDMLRL-2026-Claude,DEL-001-11,Architectural Specification,R-21,Surveyor,16,PARAMETRIC,Existing conditions survey of Old North Shop: field (8) + data processing (8)

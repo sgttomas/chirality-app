@@ -1,0 +1,26 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-015-04,Overhead Crane #1 power circuit — dedicated 3-phase circuit supply and conductor bar/festoon system for 5-tonne crane,1,LS,LUMP_SUM,Datasheet,Attributes — C-01,Voltage/amperage TBD pending crane manufacturer data (DEL-016-01); parametric allowance applied
+ITEM-002,DEL-015-04,Overhead Crane #2 power circuit — dedicated 3-phase circuit supply and conductor bar/festoon system for 5-tonne crane,1,LS,LUMP_SUM,Datasheet,Attributes — C-02,Voltage/amperage TBD pending crane manufacturer data (DEL-016-01); parametric allowance applied
+ITEM-003,DEL-015-04,Overhead door operator power circuits — supply and installation of dedicated circuits for all overhead doors,4,EA,UNIT_RATE,Datasheet,Attributes — C-03,"Door count assumed 4 based on App B-Shop floor plan (3 main bay doors + 1 wash bay); TBD per IFC"
+ITEM-004,DEL-015-04,Air compressor dedicated 40A circuit — conduit/wire/breaker/disconnect,1,EA,UNIT_RATE,Datasheet,Attributes — C-04,40A circuit; voltage TBD (assumed 240V per Guidance)
+ITEM-005,DEL-015-04,Fire hose pump dedicated 70A circuit — conduit/wire/breaker/disconnect,1,EA,UNIT_RATE,Datasheet,Attributes — C-05,70A circuit; voltage TBD
+ITEM-006,DEL-015-04,Pressure washer dedicated 70A circuit — conduit/wire/breaker/disconnect,1,EA,UNIT_RATE,Datasheet,Attributes — C-06,70A circuit; voltage TBD
+ITEM-007,DEL-015-04,Exhaust fan power circuit(s) — supply and installation,2,EA,UNIT_RATE,Datasheet,Attributes — C-07,"Fan count assumed 2 per App B-Elec 'E' symbol(s); TBD per IFC and scope boundary (CON-015-04-001)"
+ITEM-008,DEL-015-04,Motor disconnecting means — supply and install disconnect switches for all motor loads (cranes x2 + compressor + fire hose pump + pressure washer + exhaust fans x2),7,EA,UNIT_RATE,Specification,REQ-015-04-010,Per CEC requirement for motor loads; quantity matches motor load count
+ITEM-009,DEL-015-04,Circuit breakers — supply and install overcurrent protection devices in distribution panel per IFC panel schedule,9,EA,UNIT_RATE,Procedure,Phase 3 — Step 3.1,"9 circuits total: 2 crane + 4 overhead door + 1 compressor + 1 fire hose pump + 1 pressure washer (exhaust fans on separate breakers counted in fan circuit item)"
+ITEM-010,DEL-015-04,Conduit/raceway rough-in — supply and install conduit and raceway for all equipment power circuits,120,m,UNIT_RATE,Procedure,Phase 2 — Step 2.1,"Parametric estimate: ~120 m total conduit runs for equipment circuits in 13,000 sqft shop"
+ITEM-011,DEL-015-04,Conductor wire pulling — supply and pull wire for all equipment circuits,120,m,UNIT_RATE,Procedure,Phase 2 — Steps 2.1–2.5,Parametric estimate matched to conduit quantity; assumes average 3-conductor + ground per run
+ITEM-012,DEL-015-04,Grounding and bonding — equipment grounding conductors and bonding connections for all circuits,1,LS,LUMP_SUM,Procedure,Phase 2A — Steps 2A.1–2A.2,Per CEC requirements; lump sum allowance
+ITEM-013,DEL-015-04,Circuit and disconnect labeling — label all circuits at panel and all motor disconnects,1,LS,LUMP_SUM,Procedure,Phase 3 — Step 3.4,Per CEC and project requirements
+ITEM-014,DEL-015-04,Pre-energization testing — continuity and insulation resistance testing for all circuits,1,LS,LUMP_SUM,Procedure,Phase 5 — Step 5.1,Includes test equipment and labour
+ITEM-015,DEL-015-04,Safety Code inspection coordination — scheduling and attending AHJ inspections,1,LS,LUMP_SUM,Procedure,Phase 5 — Step 5.3,Including County representative notification
+ITEM-016,DEL-015-04,Functional testing and commissioning — energization and functional test of all equipment circuits,1,LS,LUMP_SUM,Procedure,Phase 6 — Steps 6.1–6.7,Includes crane functional test coordination with PKG-016
+ITEM-017,DEL-015-04,As-built markups and closeout documentation,1,LS,LUMP_SUM,Procedure,Phase 7 — Steps 7.1–7.3,As-built drawings and inspection report assembly
+ITEM-018,DEL-015-04,Professional staff — Project Manager coordination for DEL-015-04,6,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-01 allocation
+ITEM-019,DEL-015-04,Professional staff — Construction Project Manager for DEL-015-04,8,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-02 allocation
+ITEM-020,DEL-015-04,Professional staff — Site Superintendent for DEL-015-04,10,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-03 allocation
+ITEM-021,DEL-015-04,Professional staff — Cost Estimator for DEL-015-04,4,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-08 allocation
+ITEM-022,DEL-015-04,Professional staff — QA/QC Lead for DEL-015-04,6,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-06 allocation
+ITEM-023,DEL-015-04,Professional staff — HSE Manager for DEL-015-04,4,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv R-05 allocation
+ITEM-024,DEL-015-04,Electrician labour — rough-in and installation of all equipment power circuits,120,hr,UNIT_RATE,Procedure,Phases 2–4,Parametric: ~120 hrs electrician labour for equipment circuit installation in maintenance shop
+ITEM-025,DEL-015-04,Labourer — general support for electrical rough-in,40,hr,UNIT_RATE,Procedure,Phases 2–4,Parametric: support labour at ~1/3 of electrician hours

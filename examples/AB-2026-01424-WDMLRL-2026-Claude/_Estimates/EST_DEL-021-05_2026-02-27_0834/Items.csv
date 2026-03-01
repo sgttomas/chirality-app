@@ -1,0 +1,16 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-021-05,Warranty period initiation — establish warranty register and record CCC date / expiry date,1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.1,Administrative setup at CCC issuance
+ITM-002,DEL-021-05,Contractor contact confirmation and communication of 10-day rectification obligation,1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.2,One-time setup activity
+ITM-003,DEL-021-05,Bond and insurance continuation verification at warranty period start,1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.3,"Confirm performance bond (DEL-021-02) and insurance (DEL-021-03) remain in effect"
+ITM-004,DEL-021-05,Deficiency Holdback Ledger establishment and initial reconciliation,1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.4,Setup of holdback tracking per RFP §2.11
+ITM-005,DEL-021-05,Post-completion inspection scheduling — agree inspection cadence with Owner,1,LS,LUMP_SUM,Procedure,Phase 1 Step 1.5,"ASSUMPTION: 3 inspections at 6, 12, and 20-22 months"
+ITM-006,DEL-021-05,Deficiency identification / logging and defect notification management (ongoing),1,LS,LUMP_SUM,Procedure,Phase 2 Steps 2.1-2.2,Ongoing administration over 2-year warranty period
+ITM-007,DEL-021-05,Contractor rectification monitoring and holdback ledger updates (ongoing),1,LS,LUMP_SUM,Procedure,Phase 2 Step 2.4,10-day deadline tracking; holdback release administration
+ITM-008,DEL-021-05,Scheduled post-completion inspections during warranty period,3,EA,UNIT_RATE,Procedure,Phase 2 Step 2.5,"ASSUMPTION: 3 inspections at 6, 12, and 20-22 months per Guidance C-2"
+ITM-009,DEL-021-05,Mid-period administrative review at 12-month mark,1,LS,LUMP_SUM,Procedure,Phase 2 Step 2.6,ASSUMPTION: adopted per Guidance C-8
+ITM-010,DEL-021-05,Final deficiency review before warranty expiry (60-day lead),1,LS,LUMP_SUM,Procedure,Phase 3 Step 3.1,Review open items; issue final written instructions
+ITM-011,DEL-021-05,Warranty expiration checklist completion and final holdback release,1,LS,LUMP_SUM,Procedure,Phase 3 Steps 3.2-3.3,Final reconciliation and Owner sign-off
+ITM-012,DEL-021-05,Warranty documentation archival,1,LS,LUMP_SUM,Procedure,Phase 3 Step 3.4,Compile and archive all warranty period records
+ITM-013,DEL-021-05,Warranty Period Register — document artifact,1,LS,LUMP_SUM,Datasheet,Construction — Deliverable Artifacts,Administrative record created at CCC
+ITM-014,DEL-021-05,Deficiency Log — document artifact,1,LS,LUMP_SUM,Datasheet,Construction — Deliverable Artifacts,Living document maintained throughout warranty period
+ITM-015,DEL-021-05,Warranty Expiration Checklist — document artifact,1,LS,LUMP_SUM,Datasheet,Construction — Deliverable Artifacts,Closeout document at warranty period end

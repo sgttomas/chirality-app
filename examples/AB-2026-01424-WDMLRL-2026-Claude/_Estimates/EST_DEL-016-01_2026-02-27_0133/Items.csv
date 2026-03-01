@@ -1,0 +1,17 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-016-01-001,DEL-016-01,"5-tonne overhead crane unit (supply, delivered to site) — Crane 1",1,EA,UNIT_RATE,Datasheet,Section 2.1 — Equipment Quantity and Capacity,"RFP §3.4; App B; 5-tonne capacity, trolley, overhead bridge type"
+ITM-016-01-002,DEL-016-01,"5-tonne overhead crane unit (supply, delivered to site) — Crane 2",1,EA,UNIT_RATE,Datasheet,Section 2.1 — Equipment Quantity and Capacity,"RFP §3.4; App B; 5-tonne capacity, trolley, overhead bridge type"
+ITM-016-01-003,DEL-016-01,Crane installation — rigging and mechanical assembly (Crane 1),1,LS,LUMP_SUM,Procedure,Phase C — Step C2,"Assemble bridge, trolley, hoist; place on runway; install end stops, safety devices"
+ITM-016-01-004,DEL-016-01,Crane installation — rigging and mechanical assembly (Crane 2),1,LS,LUMP_SUM,Procedure,Phase C — Step C3,Repeat of C2 for second crane unit
+ITM-016-01-005,DEL-016-01,Crane electrical final connection and verification (both cranes),1,LS,LUMP_SUM,Procedure,Phase C — Step C4,"Energize crane circuits, verify voltage/phase, emergency stop"
+ITM-016-01-006,DEL-016-01,Commissioning — no-load functional test (both cranes),1,LS,LUMP_SUM,Procedure,Phase D — Step D1,"Bridge travel, trolley travel, hoist, limit switches, e-stop"
+ITM-016-01-007,DEL-016-01,Commissioning — load test (both cranes),1,LS,LUMP_SUM,Procedure,Phase D — Step D2,"Load test per applicable standard; witnessed; certificate issued"
+ITM-016-01-008,DEL-016-01,Alberta Safety Code inspection,1,LS,LUMP_SUM,Procedure,Phase D — Step D3,Scheduling and attending AHJ inspection for each crane
+ITM-016-01-009,DEL-016-01,Operational demonstration to Owner,1,LS,LUMP_SUM,Procedure,Phase D — Step D4,Walk-through of controls and safety features with County representative
+ITM-016-01-010,DEL-016-01,Documentation package — shop drawings review and coordination,1,LS,LUMP_SUM,Procedure,Phase B — Step B1,"Shop drawings routing to structural/electrical engineers, disposition"
+ITM-016-01-011,DEL-016-01,Documentation package — closeout compilation,1,LS,LUMP_SUM,Procedure,Phase E — Steps E1 through E3,"O&M manuals, load test certificates, as-installed records, warranty docs"
+ITM-016-01-012,DEL-016-01,Procurement management — RFQ issuance and supplier evaluation,1,LS,LUMP_SUM,Procedure,Phase A — Steps A1 through A5,"RFQ development, supplier evaluation, PO issuance, coordination"
+ITM-016-01-013,DEL-016-01,Professional staff — project management and coordination,1,LS,LUMP_SUM,Specification,Section 2.3 — Installation Requirements,"PM, CPM, Site Super coordination across structural/electrical/crane interfaces"
+ITM-016-01-014,DEL-016-01,Professional staff — QA/QC and HSE oversight,1,LS,LUMP_SUM,Specification,Section 2.2 — Code and Standards; Section 2.3 — Safe Installation,"QA/QC lead and HSE manager oversight during installation and commissioning"
+ITM-016-01-015,DEL-016-01,Anti-collision system (if required — TBD),TBD,LS,LUMP_SUM,Specification,REQ-016-01-15,"TBD — depends on runway configuration (shared vs. independent); see Guidance Section 3.2"
+ITM-016-01-016,DEL-016-01,Freight and delivery to site,1,LS,LUMP_SUM,Datasheet,Section 4.2 — Procurement Notes,Transportation of crane equipment to rural Alberta site

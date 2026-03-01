@@ -1,0 +1,293 @@
+CBS_Original,CBS_L1,CBS_L2,CBS_Canonical,Notes
+01-Design Coordination,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+01-Documentation,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+01-GENERAL,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+01-General,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+01-General Conditions,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+01-Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+01-Permits,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+01-Quality,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+02-Labour,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+03-Access Panels,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-CONCRETE,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+03-Ceiling Finishes,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Concrete,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+03-Doors,Openings,"Doors, Windows & Glazing","Openings > Doors, Windows & Glazing","Doors, windows, hardware, frames, glazing"
+03-Electrical Rough-In,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Equipment Supports,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+03-Finishes,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Fire Protection,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-FitOut,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Floor Finishes,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Foundations,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+03-Interior Finishes,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Interior Partitions,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-MEP Openings,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Partitions,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+03-Stairs,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+05-METALS,Structural Steel & Metals,Structural Steel & Fabrication,Structural Steel & Metals > Structural Steel & Fabrication,"Structural steel framing, fabrication, erection, connections"
+05-Structural,Structural Steel & Metals,Structural Steel & Fabrication,Structural Steel & Metals > Structural Steel & Fabrication,"Structural steel framing, fabrication, erection, connections"
+07-ENVELOPE,Building Envelope,"Cladding, Insulation & Waterproofing","Building Envelope > Cladding, Insulation & Waterproofing","Exterior wall systems, insulation, waterproofing"
+07-Envelope,Building Envelope,"Cladding, Insulation & Waterproofing","Building Envelope > Cladding, Insulation & Waterproofing","Exterior wall systems, insulation, waterproofing"
+08-Doors,Openings,"Doors, Windows & Glazing","Openings > Doors, Windows & Glazing","Doors, windows, hardware, frames, glazing"
+08-OPENINGS,Openings,"Doors, Windows & Glazing","Openings > Doors, Windows & Glazing","Doors, windows, hardware, frames, glazing"
+14-MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+14-PLUMB-ADMIN,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+14-PLUMB-FIXT,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+14-PLUMB-INSP,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+14-PLUMB-LAB,Construction Labour,Plumbing Labour,Construction Labour > Plumbing Labour,Plumbing trade labour
+16-ELECTRICAL,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+16-Electrical,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ADMIN,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+ADMN,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Admin,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Administration,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Bonding,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+CLOSEOUT,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+COMMISSION,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+COMMISSIONING,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+CONCRETE,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+CONSTRUCTION,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+CONSTRUCTION-LABOUR,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+CONSTRUCTION_LABOUR,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+CONSTRUCTION_SUPERVISION,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+CONST_LABOUR,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+CONTINGENCY,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+Commissioning,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+Construction,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Construction Labour,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Construction — Site Services,Sitework & Civil,Underground Utilities & Site Services,Sitework & Civil > Underground Utilities & Site Services,"Underground piping, conduit, site services"
+Construction-Labour,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Construction-Support,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+Contingency,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+DEMOLITION,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+DESIGN,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-CA,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-COORD,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-CX,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-ENG,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-ENGINEERING,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-MGMT,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-PROD,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN-QA,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN_ENG,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN_LABOUR,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN_MGMT,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+DESIGN_PROD,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design Labour,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Architecture,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Civil,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Contingency,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Coordination,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Drafting,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Electrical,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Engineering,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Labour,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Management,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Plumbing,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Production,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Professional,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Design-QA,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Reference,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Structural,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Design-Technical,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Documentation,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+EARTHWORK,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+EARTHWORKS,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+ELECTRICAL-COMMISSIONING,Electrical,Commissioning & Administration,Electrical > Commissioning & Administration,"Electrical commissioning, inspection, permits, documentation"
+ELECTRICAL-COORDINATION,Electrical,Commissioning & Administration,Electrical > Commissioning & Administration,"Electrical commissioning, inspection, permits, documentation"
+ELECTRICAL-CX,Electrical,Commissioning & Administration,Electrical > Commissioning & Administration,"Electrical commissioning, inspection, permits, documentation"
+ELECTRICAL-DEVICES,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ELECTRICAL-DISTRIBUTION,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ELECTRICAL-DOCUMENTATION,Electrical,Commissioning & Administration,Electrical > Commissioning & Administration,"Electrical commissioning, inspection, permits, documentation"
+ELECTRICAL-GROUNDING,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ELECTRICAL-INSPECTION,Electrical,Commissioning & Administration,Electrical > Commissioning & Administration,"Electrical commissioning, inspection, permits, documentation"
+ELECTRICAL-LABOUR,Construction Labour,Electrical Labour,Construction Labour > Electrical Labour,Electrician trade labour
+ELECTRICAL-LV,Electrical,Low Voltage & Communications,Electrical > Low Voltage & Communications,"Data, security, low voltage systems"
+ELECTRICAL-PERMITS,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+ELECTRICAL-SERVICE,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ELECTRICAL-UNDERGROUND,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+ENVIRO,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+EQUIP,Equipment,Process & Facility Equipment,Equipment > Process & Facility Equipment,"Cranes, specialty equipment, equipment rental"
+EQUIPMENT,Equipment,Process & Facility Equipment,Equipment > Process & Facility Equipment,"Cranes, specialty equipment, equipment rental"
+ESTIMATING,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Earthworks,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+Electrical-Equipment,Electrical,Power Distribution & Equipment,Electrical > Power Distribution & Equipment,"Switchgear, panels, service, grounding, devices"
+Equipment,Equipment,Process & Facility Equipment,Equipment > Process & Facility Equipment,"Cranes, specialty equipment, equipment rental"
+Equipment-Rental,Equipment,Process & Facility Equipment,Equipment > Process & Facility Equipment,"Cranes, specialty equipment, equipment rental"
+Excluded,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+FEES,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+FINISHES,Interior Construction,"Partitions, Finishes & Fit-Out","Interior Construction > Partitions, Finishes & Fit-Out","Interior partitions, finishes, fit-out"
+FREIGHT,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+Fees and Permits,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+Field Investigation — Documentation,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Field Investigation — Drilling,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Field Investigation — Mobilization,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Field Investigation — Monitoring,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Field Investigation — Restoration,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Field Investigation — Sampling,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+HSE,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+INS,"Permits, Fees & Insurance",Insurance,"Permits, Fees & Insurance > Insurance","Insurance policies — builders risk, CGL, WCB, E&O, employers liability"
+INSPECTION,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+Indirect,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+LAB,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LAB-GEN,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LAB-PLUMB,Construction Labour,Plumbing Labour,Construction Labour > Plumbing Labour,Plumbing trade labour
+LABOR-DESIGN,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+LABOR-MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+LABOUR,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LABOUR-BIM,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+LABOUR-CONST,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LABOUR-DESIGN,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+LABOUR-ENG,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+LABOUR-EST,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+LABOUR-FIELD,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LABOUR-HSE,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+LABOUR-MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+LABOUR-PM,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+LABOUR-QC,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+LABOUR-SAFETY,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+LABOUR-SPECIALTY,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LABOUR_CONSTRUCTION,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+LABOUR_MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+LABOUR_TRADE,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Laboratory Testing,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+Labour,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour — Admin,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour — Construction,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour — Construction Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Labour — Contract Administration,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Labour — Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Labour-Admin,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-ConcreteFinisher,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-Construction,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-General,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-Ironworker,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Labour-Professional,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Labour-Trade,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Labour-Welder,Construction Labour,General Construction Labour,Construction Labour > General Construction Labour,All trade and general labour
+Landscaping,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+MANAGEMENT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-CPM,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-EST,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-HSE,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-PM,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-QAQC,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MANAGEMENT-SUPT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MAT-PIPE,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+MAT-PLUMB,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+MATERIAL,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+MATERIAL+LABOUR,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+MATERIALS,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+MATL,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+MECHANICAL-ADMIN,Mechanical,Administration & Permits,Mechanical > Administration & Permits,"Mechanical submittals, as-builts, permits, logistics"
+MECHANICAL-COMMISSIONING,Mechanical,Controls & Commissioning,Mechanical > Controls & Commissioning,"HVAC controls, BMS, commissioning, TAB"
+MECHANICAL-CONTROLS,Mechanical,Controls & Commissioning,Mechanical > Controls & Commissioning,"HVAC controls, BMS, commissioning, TAB"
+MECHANICAL-DUCTWORK,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL-ELECTRICAL,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL-EQUIP,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL-FIRE-PROTECTION,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL-LOGISTICS,Mechanical,Administration & Permits,Mechanical > Administration & Permits,"Mechanical submittals, as-builts, permits, logistics"
+MECHANICAL-PERMIT,Mechanical,Administration & Permits,Mechanical > Administration & Permits,"Mechanical submittals, as-builts, permits, logistics"
+MECHANICAL-PIPING,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL_CONTROLS,Mechanical,Controls & Commissioning,Mechanical > Controls & Commissioning,"HVAC controls, BMS, commissioning, TAB"
+MECHANICAL_DUCTWORK,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MECHANICAL_EQUIPMENT,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MEP_ROUGHIN,Mechanical,HVAC Equipment & Distribution,Mechanical > HVAC Equipment & Distribution,"HVAC units, ductwork, piping, fire protection"
+MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MGMT-COORD,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MGMT-FIELD,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MGMT-PM,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+MGMT_LABOUR,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Management-Admin,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Management-Labour,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Management-Professional,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Material,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+Material-Accessories,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+Material-Anchorage,Structural Steel & Metals,Structural Steel & Fabrication,Structural Steel & Metals > Structural Steel & Fabrication,"Structural steel framing, fabrication, erection, connections"
+Material-Coating,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+Material-Devices,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+Material-RoughIn,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+Material-Steel,Structural Steel & Metals,Structural Steel & Fabrication,Structural Steel & Metals > Structural Steel & Fabrication,"Structural steel framing, fabrication, erection, connections"
+Materials,Materials,General Materials & Supplies,Materials > General Materials & Supplies,"Mixed/general materials, supply-and-install composites"
+OTHER,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+Overhead,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+PERMIT,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+PERMIT-INSP,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+PERMITS,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+PERMITTING,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+PLUMBING,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PLUMBING-DEMOLITION,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PLUMBING-ELECTRICAL,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PLUMBING-MATERIAL,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PLUMBING-SITEWORK,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PLUMBING-TESTING,Plumbing,Plumbing Systems,Plumbing > Plumbing Systems,"Plumbing materials, fixtures, piping, testing"
+PRECONSTRUCTION,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+PROCUREMENT,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+PROF,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL-ADMIN,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL-FIELD,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL-HSE,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+PROFESSIONAL-MGMT,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL-QA,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROFESSIONAL_SERVICES,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROF_STAFF,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+PROJECT_MANAGEMENT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Permit,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+Permits,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+Permits and Admin,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+Professional,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional Services,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Professional Services — Administration,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional Services — Design,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Professional Services — Geotechnical,Professional Services,Specialty Consulting,Professional Services > Specialty Consulting,"Geotechnical, regulatory, and specialty consulting"
+Professional Services — Management,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+Professional Services — Regulatory,Professional Services,Specialty Consulting,Professional Services > Specialty Consulting,"Geotechnical, regulatory, and specialty consulting"
+Professional Services — Specialty,Professional Services,Specialty Consulting,Professional Services > Specialty Consulting,"Geotechnical, regulatory, and specialty consulting"
+Professional-BIM,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-Civil,Professional Services,Design & Engineering,Professional Services > Design & Engineering,Design and engineering labour across all disciplines
+Professional-DocControl,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-EST,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-Estimator,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-HSE,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+Professional-Mgmt,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-PM,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-QAQC,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-Staff,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-StructEng,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+Professional-WeldInsp,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+QA-QC,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+QA_QC,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+QUALITY,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+Quality Assurance,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+REGULATORY,"Permits, Fees & Insurance","Permits, Fees & Bonding","Permits, Fees & Insurance > Permits, Fees & Bonding","Permits, inspection fees, regulatory fees, bonding"
+SAFETY,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+SCOPE,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+SITE.CONCRETE,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+SITE.EARTHWORK,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+SITE.GRAVEL,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+SITE.HSE,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+SITE.MGMT,Professional Services,Project Management,Professional Services > Project Management,"Project management, supervision, coordination, admin"
+SITE.QA,"Quality, Safety & Environment",HSE & Quality Assurance,"Quality, Safety & Environment > HSE & Quality Assurance","HSE, QA/QC, inspections, environmental compliance"
+SITE.SURVEY,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+STAFF,Professional Services,Professional Staff,Professional Services > Professional Staff,Professional staff allocations (multi-function)
+STRUCTURAL_CONCRETE,Concrete,Concrete & Foundations,Concrete > Concrete & Foundations,"Structural concrete, foundations, slabs, stairs"
+STRUCTURAL_STEEL,Structural Steel & Metals,Structural Steel & Fabrication,Structural Steel & Metals > Structural Steel & Fabrication,"Structural steel framing, fabrication, erection, connections"
+SURVEY,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+Specialty,General Conditions,General Requirements & Indirect,General Conditions > General Requirements & Indirect,"General conditions, documentation, closeout, freight, contingency"
+Surfacing,Sitework & Civil,"Earthwork, Surfacing & Landscaping","Sitework & Civil > Earthwork, Surfacing & Landscaping","Excavation, grading, surfacing, landscaping, demolition"
+Survey,Survey & Investigation,Survey & Field Investigation,Survey & Investigation > Survey & Field Investigation,"Surveys, geotechnical/environmental investigation"
+TESTING,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+Testing & Inspection,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+Testing and Commissioning,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+UNDERGROUND,Sitework & Civil,Underground Utilities & Site Services,Sitework & Civil > Underground Utilities & Site Services,"Underground piping, conduit, site services"
+Underground Utilities,Sitework & Civil,Underground Utilities & Site Services,Sitework & Civil > Underground Utilities & Site Services,"Underground piping, conduit, site services"
+Utility — Communications,Utilities,Utility Connections,Utilities > Utility Connections,"Utility connections (electrical, gas, communications)"
+Utility — Electrical,Utilities,Utility Connections,Utilities > Utility Connections,"Utility connections (electrical, gas, communications)"
+Utility — Natural Gas,Utilities,Utility Connections,Utilities > Utility Connections,"Utility connections (electrical, gas, communications)"
+VERIFICATION,Commissioning & Testing,"Commissioning, Testing & Inspection","Commissioning & Testing > Commissioning, Testing & Inspection","Systems commissioning, lab testing, functional verification"
+WATERPROOFING,Building Envelope,"Cladding, Insulation & Waterproofing","Building Envelope > Cladding, Insulation & Waterproofing","Exterior wall systems, insulation, waterproofing"

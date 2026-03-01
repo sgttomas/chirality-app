@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-04,LAB,CAD,7960,9,89%,8 of 9 labour lines fully priced; ITEM-005 (contract admin procedures) is TBD — labour effort captured in role-based lines
+PKG-021,DEL-021-04,PROF,CAD,5000,1,100%,Legal counsel review — parametric allowance
+PKG-021,DEL-021-04,MATL,CAD,500,1,100%,CCDC 14-2013 form purchase — parametric estimate
+PKG-021,DEL-021-04,ADMN,CAD,800,2,100%,Execution meeting logistics ($500) + distribution costs ($300)
+PKG-021,DEL-021-04,TOTAL,CAD,14260,13,92%,Partial total; ITEM-005 is TBD (labour already captured in role-based lines)

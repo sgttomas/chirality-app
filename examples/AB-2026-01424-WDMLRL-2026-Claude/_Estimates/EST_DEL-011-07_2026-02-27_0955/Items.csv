@@ -1,0 +1,21 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-011-07,Steel mezzanine structural framing — primary beams/girders and secondary framing members,93,m2,UNIT_RATE,Datasheet,Attributes — Structural System; Construction — Scope Items,Area TBD; assumed 93 m2 (~1000 sqft) from App B layout. Steel framing assumed per Guidance Trade-offs.
+ITM-002,DEL-011-07,Composite steel deck with concrete topping for mezzanine floor,93,m2,UNIT_RATE,Datasheet,Attributes — Floor Deck Type,Concrete-topped steel deck assumed per Guidance Trade-offs. Area same as ITM-001.
+ITM-003,DEL-011-07,Steel stair system (stringers; treads; landings) to mezzanine,1,EA,LUMP_SUM,Datasheet,Attributes — Stair Configuration; Procedure Step 5,Single stair run per App B floor plan. Includes landing structure.
+ITM-004,DEL-011-07,Guardrails; handrails; edge protection at mezzanine perimeter and stairs,55,m,UNIT_RATE,Specification,R-07 — Guardrails and Edge Protection,Perimeter estimated at ~40 m mezzanine edge + ~15 m stair handrails (both sides). ASSUMPTION.
+ITM-005,DEL-011-07,Connection hardware and anchorage to concrete superstructure,1,LS,LUMP_SUM,Specification,R-06 — Integration with Concrete Superstructure; Procedure Step 1,Plates; bolts; welds connecting mezzanine frame to DEL-011-01 superstructure and DEL-011-02 embedments.
+ITM-006,DEL-011-07,Ironworker labour — mezzanine steel framing installation,280,hr,UNIT_RATE,Procedure,Step 3 — Install Mezzanine Structural Frame,Parametric estimate: ~3 hr/m2 for structural steel erection at 93 m2.
+ITM-007,DEL-011-07,Concrete finisher labour — deck topping placement and finishing,60,hr,UNIT_RATE,Procedure,Step 4 — Install Mezzanine Deck,Parametric: ~0.65 hr/m2 for concrete topping placement at 93 m2.
+ITM-008,DEL-011-07,General labourer — site support for mezzanine construction,120,hr,UNIT_RATE,Procedure,Steps 1-8,General support: material handling; cleanup; safety watch; scaffolding assist.
+ITM-009,DEL-011-07,Structural inspection and load capacity certification,1,LS,LUMP_SUM,Specification,R-02 — Load-Bearing Capability; Procedure Step 7,P.Eng. load capacity certification per Specification R-02 (F-001 format). Includes Safety Codes Officer inspections.
+ITM-010,DEL-011-07,As-built documentation preparation and submission,1,LS,LUMP_SUM,Specification,R-10 — As-Built Documentation; Procedure Step 8,As-built package per R-10 (E-002). Includes field verification records.
+ITM-011,DEL-011-07,Project Manager — DEL-011-07 management hours,6,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-8,Per Level_of_Effort.csv for DEL-011-07.
+ITM-012,DEL-011-07,Construction Project Manager — DEL-011-07 site coordination,8,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-8,Per Level_of_Effort.csv for DEL-011-07.
+ITM-013,DEL-011-07,Site Superintendent — DEL-011-07 field leadership,10,hr,UNIT_RATE,Procedure,Prerequisites / Steps 1-8,Per Level_of_Effort.csv for DEL-011-07.
+ITM-014,DEL-011-07,Cost Estimator — DEL-011-07 quantity takeoff support,4,hr,UNIT_RATE,Procedure,Prerequisites,Per Level_of_Effort.csv for DEL-011-07.
+ITM-015,DEL-011-07,QA/QC Lead — DEL-011-07 quality inspections,6,hr,UNIT_RATE,Procedure,Steps 3-7,Per Level_of_Effort.csv for DEL-011-07.
+ITM-016,DEL-011-07,HSE Manager — DEL-011-07 safety oversight,4,hr,UNIT_RATE,Procedure,Steps 1-8,Per Level_of_Effort.csv for DEL-011-07.
+ITM-017,DEL-011-07,Material procurement — structural steel framing members (supply),93,m2,UNIT_RATE,Procedure,Step 2 — Procure Mezzanine Structural Materials,Steel beams; columns; connection plates. Supply portion of mezzanine frame.
+ITM-018,DEL-011-07,Concrete supply for deck topping,5.6,m3,UNIT_RATE,Procedure,Step 4 — Install Mezzanine Deck,93 m2 x 60 mm topping = 5.58 m3. ASSUMPTION: 60 mm concrete topping.
+ITM-019,DEL-011-07,Reinforcing steel for deck topping (welded wire mesh or rebar),465,kg,UNIT_RATE,Procedure,Step 4 — Install Mezzanine Deck,Parametric: ~5 kg/m2 for welded wire mesh in composite deck topping.
+ITM-020,DEL-011-07,Guardrail material supply (steel pipe/tube rail system),55,m,UNIT_RATE,Specification,R-07 — Guardrails and Edge Protection,Industrial steel guardrail; 1067 mm height per NBC requirements. Supply portion.

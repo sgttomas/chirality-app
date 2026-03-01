@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-006,DEL-006-02,General Conditions > General Requirements & Indirect,CAD,0,12,100,Activity scope coverage items (cost in role-based lines)
+PKG-006,DEL-006-02,Professional Services > Design & Engineering,CAD,9835,2,100,BIM Technician 21 hrs @ $95/hr; Plumbing Engineer 49 hrs @ $160/hr
+PKG-006,DEL-006-02,Professional Services > Project Management,CAD,1530,2,100,Project Manager 6 hrs @ $165/hr; Cost Estimator 4 hrs @ $135/hr
+PKG-006,DEL-006-02,TOTAL,CAD,11365,16,100,All CBS categories combined for DEL-006-02

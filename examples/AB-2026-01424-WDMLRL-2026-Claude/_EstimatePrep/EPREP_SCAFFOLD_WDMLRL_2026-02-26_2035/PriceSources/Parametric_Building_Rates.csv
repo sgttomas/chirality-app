@@ -1,0 +1,3 @@
+ItemID,BuildingType,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+PB-01,Industrial,Maintenance shop / light industrial building,sf,220,360,285,PARAMETRIC,MEDIUM,Overall building cross-check; excludes site works
+PB-02,Industrial,Wash bay incremental premium allowance,sf,40,110,70,ALLOWANCE,LOW,Increment over base shell

@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-016,DEL-016-01,EQUIP,CAD,380000.00,3,67%,"2 cranes at $190k/each (ALLOWANCE); 1 TBD line (anti-collision)"
+PKG-016,DEL-016-01,CONST_LABOUR,CAD,12084.80,5,100%,"Ironworker, labourer, electrician installation hours"
+PKG-016,DEL-016-01,COMMISSION,CAD,15000.00,4,100%,"Functional test, load test, AHJ inspection, owner demo"
+PKG-016,DEL-016-01,PROF_STAFF,CAD,12590.00,9,100%,"PM, CPM, Site Super, QA/QC, HSE, Cost Estimator, procurement, shop drawing review, closeout"
+PKG-016,DEL-016-01,FREIGHT,CAD,12000.00,1,100%,"Freight allowance for 2 cranes to rural Alberta"
+PKG-016,DEL-016-01,TOTAL,CAD,431674.80,22,95%,"Grand total excluding 1 TBD line (anti-collision)"

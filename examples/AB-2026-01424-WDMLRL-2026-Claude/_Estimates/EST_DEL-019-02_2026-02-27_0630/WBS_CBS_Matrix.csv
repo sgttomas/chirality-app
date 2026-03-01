@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-019,DEL-019-02,Construction Labour > General Construction Labour,CAD,3250.00,3,100,Construction Project Manager + Site Superintendent + HSE Manager
+PKG-019,DEL-019-02,Professional Services > Project Management,CAD,2340.00,5,100,Project Manager + Cost Estimator + QA/QC Lead
+PKG-019,DEL-019-02,ALL,CAD,5590.00,8,100,All CBS categories combined for DEL-019-02

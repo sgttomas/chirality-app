@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-020,DEL-020-03,Professional Services > Project Management,CAD,3240.00,4,100,PM + Cost Estimator + QA/QC Lead + Document Controller (L-001 + L-004 + L-005 + L-007)
+PKG-020,DEL-020-03,Construction Labour > General Construction Labour,CAD,3250.00,3,100,CPM + Superintendent + HSE Manager (L-002 + L-003 + L-006)
+PKG-020,DEL-020-03,General Conditions > General Requirements & Indirect,CAD,4800.00,1,100,Commissioning Agent (L-008)
+PKG-020,DEL-020-03,ALL,CAD,11290.00,8,100,Grand total across all CBS categories

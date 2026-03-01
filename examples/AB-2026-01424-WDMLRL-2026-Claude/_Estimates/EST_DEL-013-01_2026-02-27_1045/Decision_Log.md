@@ -1,0 +1,13 @@
+# Decision_Log — EST_DEL-013-01_2026-02-27_1045
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used PARAMETRIC as primary method with ALLOWANCE fallback for 2 items | BASIS_OF_ESTIMATE=PARAMETRIC; FALLBACK_POLICY=ALLOW_PARAMETRIC; ALLOW_MIXED_METHODS=TRUE authorizes mixed methods | 92% of lines use PARAMETRIC; 8% use ALLOWANCE |
+| DEC-002 | Equipment line L-001 uses ALLOWANCE method with Qty=2 (not strict LS convention) | MS-01 provides a per-unit allowance rate; quantity of 2 units is assumed based on building size (13,000 sqft high-bay); this preserves unit-rate traceability while acknowledging the rate is an allowance | Amount is 2 x $6,500 = $13,000 rather than a single LS amount |
+| DEC-003 | Ductwork quantity derived from building floor area (1,208 m2) using MS-06 rate ($60/m2) | Actual ductwork quantities are TBD pending mechanical drawings (DEL-003-03). Parametric normalization per floor area is the standard approach in MS-06 | Ductwork line ($72,480) is the largest single item; high sensitivity to actual quantity |
+| DEC-004 | Equipment quantity assumed as 2 units for heating | 13,000 sqft high-bay shop with 35 ft ceiling likely requires multiple heating units for adequate coverage; single unit unlikely to serve the full area. Pending confirmation from DEL-003-07 | If single large unit is specified, total equipment cost may increase (larger units cost more) |
+| DEC-005 | Professional staff hours taken directly from Level_of_Effort.csv without modification | LOE file provides pre-computed parametric allocations for DEL-013-01 specific roles; no basis to override | 6 management lines total $5,590 |
+| DEC-006 | Trade labour hours estimated parametrically (80 hr HVAC sheet metal + 40 hr labourer) | Based on typical mechanical installation scope for 2-unit heating system with ductwork connections; no specific labour breakdown in price sources | Labour lines total $9,900 for trade workers |
+| DEC-007 | Commissioning costs split across 5 line items rather than single LS | Procedure identifies 5 distinct commissioning activities (pre-Cx, inspection, start-up, integrated test, performance); granular breakdown improves traceability | Total commissioning $8,900 across 5 activities |
+| DEC-008 | Safety Code permit fees excluded from estimate | R-01 Section 3.3.1 states Camrose County pays permit fees; proponent cost is coordination/scheduling only | Safety Code inspection line ($500) covers scheduling effort only |
+| DEC-009 | UPDATE_LATEST_POINTER = FALSE; no pointer file updated | Per brief instruction | No pointer file written |

@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-05,"Building Envelope > Cladding, Insulation & Waterproofing",CAD,64706.00,6,100,"Wash bay enclosure walls (insulated metal wall panels); Roof integration — insulated metal roof panels over wash bay; Flashing, trim, sealants at wash bay enclosure junctions; +3 more"
+PKG-011,DEL-011-05,Concrete > Concrete & Foundations,CAD,43895.00,8,100,Wash bay concrete floor slab (heavy-duty reinforced slab-on-; Thickened slab edge / grade beam at wash bay perimeter; Reinforcing steel (rebar) supply + place for floor slab and ; +5 more
+PKG-011,DEL-011-05,Electrical > Power Distribution & Equipment,CAD,1200.00,1,100,Electrical conduit stubs through slab and walls
+PKG-011,DEL-011-05,General Conditions > General Requirements & Indirect,CAD,10040.00,5,100,Pre-pour embedded items inspection (hold point); Self-inspection and pre-CCC quality inspection; County building inspection coordination and sign-off; +2 more
+PKG-011,DEL-011-05,"Openings > Doors, Windows & Glazing",CAD,21916.00,2,100,"Overhead door 24 ft wide, motorized (supply + install); Construction labour — overhead door installation"
+PKG-011,DEL-011-05,Structural Steel & Metals > Structural Steel & Fabrication,CAD,12500.00,2,100,Structural provisions for mezzanine above wash bay; Gantry structural provisions (conditional)
+PKG-011,DEL-011-05,TOTAL,CAD,154257.00,24,100,Grand total -- all CBS categories

@@ -1,0 +1,24 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-011-02,Steel plate supply — repair bay embedments (4 transverse bands x approx 7.3m length x assumed 1.2m width x assumed 25mm thick; A36 or equiv),4,EA,UNIT_RATE,Datasheet,"Attributes — Quantity and Layout",Qty=4 bands repair bay per Appendix B R-04; plate dims TBD per DEL-002-08; assumed ~1.2m x 7.3m x 25mm per band for parametric pricing
+ITEM-002,DEL-011-02,Steel plate supply — wash bay embedments (2 transverse bands x approx 7.3m length x assumed 1.2m width x assumed 25mm thick),2,EA,UNIT_RATE,Datasheet,"Attributes — Quantity and Layout",Qty=2 bands wash bay per Appendix B R-04; scope per CON-011-02-03 TBD
+ITEM-003,DEL-011-02,Headed anchor studs / deformed bar anchors — supply (repair bay plates),4,EA,UNIT_RATE,Specification,REQ-011-02-06: Anchorage to Slab,Anchorage hardware sets for 4 repair bay plate bands; type/qty TBD per DEL-002-08
+ITEM-004,DEL-011-02,Headed anchor studs / deformed bar anchors — supply (wash bay plates),2,EA,UNIT_RATE,Specification,REQ-011-02-06: Anchorage to Slab,Anchorage hardware sets for 2 wash bay plate bands
+ITEM-005,DEL-011-02,Steel plate positioning and elevation setting — labour (ironworker),48,hr,UNIT_RATE,Procedure,"Phase 2 — Steps 5-7",Estimated 8 hrs per plate band x 6 bands; positioning and levelling in formwork
+ITEM-006,DEL-011-02,Anchorage welding — stud welding labour (certified welder),24,hr,UNIT_RATE,Procedure,"Phase 2 — Step 7",Estimated 4 hrs welding per plate band x 6 bands; CSA W47.1/W59
+ITEM-007,DEL-011-02,Pre-pour inspection hold point — structural engineer coordination,8,hr,UNIT_RATE,Procedure,"Phase 2 — Step 8",Structural engineer site visit + inspection + sign-off; 2 pour events (repair bay + wash bay) x 4 hrs
+ITEM-008,DEL-011-02,Pre-pour inspection hold point — GC QA/QC lead coordination,8,hr,UNIT_RATE,Procedure,"Phase 2 — Step 8",GC QA/QC lead present for hold point inspections
+ITEM-009,DEL-011-02,Plate surface protection during concrete pour — materials and labour,1,LS,LUMP_SUM,Procedure,"Phase 3 — Step 8a",Temporary protection (tape/film/covers) for 6 plate bands; removal after set
+ITEM-010,DEL-011-02,Concrete finishing around embedments — additional labour allowance,16,hr,UNIT_RATE,Procedure,"Phase 3 — Steps 9-10",Additional finishing labour around plate perimeters; 6 bands
+ITEM-011,DEL-011-02,Post-pour plate elevation survey (laser level / straightedge),4,hr,UNIT_RATE,Procedure,"Phase 4 — Step 11",Survey flush tolerance verification per DEL-002-08
+ITEM-012,DEL-011-02,Safety code inspection coordination,4,hr,UNIT_RATE,Procedure,"Phase 4 — Step 12",Safety Codes Officer inspection request and coordination
+ITEM-013,DEL-011-02,Load rating certification — structural engineer (P.Eng.),1,LS,LUMP_SUM,Specification,"REQ-011-02-03; Procedure Step 13",P.Eng. load rating certification document; calculation-based (TBD if load test)
+ITEM-014,DEL-011-02,Installation documentation package compilation,8,hr,UNIT_RATE,Procedure,"Phase 4 — Step 14",As-builts; mill certs; weld reports; photos; closeout package
+ITEM-015,DEL-011-02,Welding inspection — third-party welding inspector,8,hr,UNIT_RATE,Specification,"REQ-011-02-08; Procedure Step 7",Certified welding inspector for anchorage welds per CSA
+ITEM-016,DEL-011-02,Mill certificate review and material verification,2,hr,UNIT_RATE,Procedure,"Phase 1 — Step 2",Material receipt verification against DEL-002-12
+ITEM-017,DEL-011-02,Project management — DEL-011-02 scope (PM allocation),6,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,Per Level_of_Effort.csv R-01 allocation
+ITEM-018,DEL-011-02,Construction project management — DEL-011-02 scope,8,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,Per Level_of_Effort.csv R-02 allocation
+ITEM-019,DEL-011-02,Site superintendent — DEL-011-02 scope,10,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,Per Level_of_Effort.csv R-03 allocation
+ITEM-020,DEL-011-02,Cost estimator — DEL-011-02 scope,4,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,Per Level_of_Effort.csv R-08 allocation
+ITEM-021,DEL-011-02,HSE manager — DEL-011-02 scope,4,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,Per Level_of_Effort.csv R-05 allocation
+ITEM-022,DEL-011-02,Corrosion protection allowance — wash bay plates,1,LS,LUMP_SUM,Guidance,"Considerations — Interface with Wash Bay; F-004",Allowance for galvanizing or epoxy coating on wash bay plates; method TBD
+ITEM-023,DEL-011-02,Equipment — crane/telehandler for plate placement,8,hr,UNIT_RATE,Procedure,"Phase 2 — Step 6",Equipment for lifting/placing heavy steel plate bands into formwork

@@ -1,0 +1,26 @@
+RoleID,Role,Category,HourlyRate_CAD,Basis,Confidence,Notes
+R-01,Project Manager,Management,165,PARAMETRIC,MEDIUM,Design-build PM; includes client coordination
+R-02,Construction Project Manager,Construction,155,PARAMETRIC,MEDIUM,Construction management / site coordination
+R-03,Site Superintendent,Construction,145,PARAMETRIC,MEDIUM,Field leadership; schedule + safety coordination
+R-04,General Foreman,Construction,125,PARAMETRIC,MEDIUM,Trade coordination / daily work planning
+R-05,HSE Manager,Construction,140,PARAMETRIC,MEDIUM,Prime contractor safety program oversight
+R-06,QA/QC Lead,Management,135,PARAMETRIC,MEDIUM,"Quality planning, inspections, deficiency tracking"
+R-07,Scheduler,Management,130,PARAMETRIC,MEDIUM,Baseline + updates; critical path monitoring
+R-08,Cost Estimator,Management,135,PARAMETRIC,MEDIUM,"Estimate prep, quantity takeoff, benchmarking"
+R-09,Document Controller,Admin,75,PARAMETRIC,MEDIUM,Document control; submittals; closeout
+R-10,Administrative Assistant,Admin,60,PARAMETRIC,MEDIUM,Admin support
+R-11,Senior Architect,Design,180,PARAMETRIC,MEDIUM,Lead architect; code / coordination
+R-12,Architect,Design,135,PARAMETRIC,MEDIUM,"Production drawings, coordination"
+R-13,BIM Technician,Design,95,PARAMETRIC,MEDIUM,"Modeling, sheet setup, coordination"
+R-14,Structural Engineer,Design,170,PARAMETRIC,MEDIUM,Concrete/steel design; crane support; mezzanine
+R-15,Mechanical Engineer,Design,165,PARAMETRIC,MEDIUM,"HVAC, ventilation, exhaust design"
+R-16,Electrical Engineer,Design,165,PARAMETRIC,MEDIUM,"Power, lighting, low-voltage design"
+R-17,Civil Engineer,Design,160,PARAMETRIC,MEDIUM,"Grading, drainage, access"
+R-18,Plumbing Engineer,Design,160,PARAMETRIC,MEDIUM,"Cistern, septic, floor drains, fixtures"
+R-19,Landscape Architect,Design,135,PARAMETRIC,MEDIUM,"Planting/restoration, site aesthetics"
+R-20,Geotechnical Engineer,Specialty,175,PARAMETRIC,MEDIUM,Geotech oversight; foundation recommendations
+R-21,Surveyor,Specialty,140,PARAMETRIC,MEDIUM,"Survey control, as-builts"
+R-22,Permitting Specialist,Specialty,125,PARAMETRIC,MEDIUM,"Permits, code process tracking"
+R-23,Commissioning Agent,Specialty,160,PARAMETRIC,MEDIUM,"Cx planning, functional testing, turnover"
+R-24,Controls Specialist,Specialty,155,PARAMETRIC,MEDIUM,HVAC control integration / tuning
+R-25,Contract Administrator,Management,120,PARAMETRIC,MEDIUM,"Contracts, bonds, insurance, warranty tracking"

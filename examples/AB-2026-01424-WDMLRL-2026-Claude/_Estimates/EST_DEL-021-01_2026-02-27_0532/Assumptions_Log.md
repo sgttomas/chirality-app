@@ -1,0 +1,11 @@
+# Assumptions Log — EST_DEL-021-01_2026-02-27_0532
+
+| AssumptionID | Assumption | Impact | Confidence | Source |
+|-------------|-----------|--------|------------|--------|
+| ASM-001 | Currency is CAD | All amounts denominated in Canadian dollars | HIGH | Assumed_Project_Parameters.csv PP-17; INIT-TASK brief CURRENCY=CAD |
+| ASM-002 | Proponent will use a bid bond (not certified cheque) for bid security | Drives inclusion of bid bond premium cost (L-009). If certified cheque is used instead, the premium cost does not apply but capital is tied up equal to 10% of bid amount. | MEDIUM | Guidance P5: "Bid bond is preferred for proponents with a surety relationship" |
+| ASM-003 | Bid bond premium estimated at $1,500 CAD (parametric midpoint of $500–$2,500 range) | Directly affects L-009. Actual premium depends on: (a) final bid amount, (b) proponent's bonding capacity and credit, (c) surety's underwriting terms. For a project of this scale (estimated $2M–$4M contract value), bid bond premiums are typically in this range. | LOW | Parametric estimate; Fees_Permits_Insurance.csv FP-01 (performance bond $12K–$35K) used as proportional reference — bid bond premiums are typically 5–15% of performance bond premiums |
+| ASM-004 | Courier delivery to Camrose, AB estimated at $150 CAD | Covers physical courier/delivery of sealed proposal envelope. Assumes proponent is based in central Alberta or Edmonton area. | LOW | Parametric estimate; no source pricing available |
+| ASM-005 | Professional staff rates from Professional_Staff_Rates.csv are current and applicable | All labour rates used as-is from the parametric rate table. Rates are Basis=PARAMETRIC, Confidence=MEDIUM per the source. | MEDIUM | Professional_Staff_Rates.csv header: "Basis,Confidence" columns |
+| ASM-006 | Level of effort hours from Level_of_Effort.csv are valid for DEL-021-01 | 60 total hours across 8 roles accepted as the parametric effort model for bid security preparation and submission. | MEDIUM | Level_of_Effort.csv rows 539–546; Basis=PARAMETRIC |
+| ASM-007 | Bid bond face value (10% of bid amount) is not a cost to the proponent | The face value is a surety obligation, not an out-of-pocket expense. Only the surety premium (fee) is costed. | HIGH | Standard surety practice; Guidance — Purpose and P5 |

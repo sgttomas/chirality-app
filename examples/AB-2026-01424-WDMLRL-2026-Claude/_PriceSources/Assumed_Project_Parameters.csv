@@ -1,0 +1,30 @@
+ParameterID,Category,Parameter,Value,Unit,Source,Confidence,Notes
+PP-01,Duration,Construction duration (NTP to Substantial Performance),18,months,ASSUMPTION,MEDIUM,Typical for $15-20M DB municipal project in Alberta; 18-24 month range
+PP-02,Duration,Design phase duration,4,months,ASSUMPTION,MEDIUM,Concept through IFC; overlap with early procurement
+PP-03,Duration,Total project duration (NTP to Final Completion),22,months,ASSUMPTION,MEDIUM,Construction + 2-month deficiency/warranty period + 2-month seasonal overlap
+PP-04,Duration,Proposal preparation duration,6,weeks,ASSUMPTION,MEDIUM,From decision to pursue through submission; drives 6b/6c coordination overhead
+PP-05,Area,Main PSB building footprint (ground floor),18000,sf,DESIGN_BASIS,MEDIUM,Based on functional program: 4 fire bays + 4 PW bays + office/admin + support spaces; ~160x110 ft
+PP-06,Area,Main PSB building total GFA (if 2-storey option for office/admin),20000,sf,DESIGN_BASIS,LOW,Ground floor 18000 + potential second storey 2000 sf for admin/meeting; 2nd storey TBD per Addendum 03
+PP-07,Area,Cold storage building footprint,6000,sf,CONFIRMED,HIGH,60 ft x 100 ft clear-span per DEC-001; confirmed in RFP
+PP-08,Area,Total building area (main + cold storage),24000,sf,DERIVED,MEDIUM,PP-05 + PP-07; before any 2nd storey option
+PP-09,Area,Site area (total parcel),12,acres,CONFIRMED,HIGH,Per RFP site description
+PP-10,Area,Site area (developed; buildings + paving + yards),4.5,acres,ASSUMPTION,MEDIUM,Estimated: building footprints (~0.55 ac) + parking (~0.8 ac) + access/fire routes (~0.5 ac) + yard/storage (~1.5 ac) + drainage/setbacks (~1.15 ac)
+PP-11,Quantity,Fire apparatus bays,4,each,CONFIRMED,HIGH,Per functional program
+PP-12,Quantity,PW shop bays,4,each,CONFIRMED,HIGH,Per functional program
+PP-13,Quantity,Total overhead doors (main building),8,each,DERIVED,HIGH,4 fire + 4 PW; 16x16 ft per Addendum 03
+PP-14,Quantity,Overhead doors (cold storage),2,each,CONFIRMED,HIGH,16x16 ft; standard grade
+PP-15,Quantity,Bunker gear lockers,40,each,CONFIRMED,HIGH,Per Addendum 03 functional program
+PP-16,Quantity,PW lockers,40,each,CONFIRMED,HIGH,Per functional program
+PP-17,Quantity,Water fill stations (2-inch),2,each,CONFIRMED,HIGH,Per Addendum 03
+PP-18,Quantity,Bay sumps,8,each,DERIVED,HIGH,One per bay minimum (4 fire + 4 PW)
+PP-19,Quantity,Parking stalls (light vehicle),40,each,ASSUMPTION,MEDIUM,Estimate based on staff count (fire + PW) + visitor parking; site plan will confirm
+PP-20,Quantity,Yard lighting poles (if optional elected),12,each,ASSUMPTION,LOW,Perimeter lighting; spacing ~30m; depends on site layout from DEL-03-01
+PP-21,Financial,Estimated construction value (main PSB),6600000,CAD,PARAMETRIC,LOW,18000 sf x $370/sf (fire station parametric); very rough for insurance/bonding percentage calculations
+PP-22,Financial,Estimated construction value (cold storage),290000,CAD,PARAMETRIC,LOW,6000 sf x $48/sf (PEMB complete turnkey); very rough
+PP-23,Financial,Estimated construction value (site/civil),1800000,CAD,PARAMETRIC,LOW,4.5 ac developed x 43560 sf/ac x $9/sf average; very rough
+PP-24,Financial,Estimated total construction value (all base scope),8700000,CAD,PARAMETRIC,LOW,PP-21 + PP-22 + PP-23; order of magnitude only; used for bond/insurance % calculations
+PP-25,Financial,Estimated total project value (with GR + options),12000000,CAD,PARAMETRIC,LOW,Base construction + general requirements (~15%) + contingency (~10%) + optional items; rough order of magnitude
+PP-26,Financial,Generator runtime assumption,72,hours,CONFIRMED,MEDIUM,Per Addendum 03 functional program notes; pending Owner confirmation
+PP-27,Quantity,IT/data drops (main building),45,each,ASSUMPTION,MEDIUM,Meeting room (15) + offices (8) + reception (2) + admin (4) + bay displays (4) + misc (12)
+PP-28,Quantity,Controlled access zones (if optional elected),10,each,ASSUMPTION,LOW,Exterior entries (4) + apparatus bay entries (2) + PW bay entries (2) + server/electrical rooms (2)
+PP-29,Quantity,Security camera locations (if optional elected),16,each,ASSUMPTION,LOW,Exterior (8) + interior common areas (4) + apparatus bays (2) + entrances (2)

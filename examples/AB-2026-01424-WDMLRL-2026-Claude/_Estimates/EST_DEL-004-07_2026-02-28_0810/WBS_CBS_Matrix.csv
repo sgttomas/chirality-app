@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-004-07,Professional Services > Project Management,CAD,1530.00,2,100,PM + Cost Estimator hours fully sourced from LOE + rate table
+PKG-004,DEL-004-07,Professional Services > Design & Engineering,CAD,17280.00,5,80,BIM + Electrical Engineer hours priced (2 of 5 lines with non-zero amounts); 2 lines resolved to $0 (hardware refs); 1 line TBD pending scope confirmation

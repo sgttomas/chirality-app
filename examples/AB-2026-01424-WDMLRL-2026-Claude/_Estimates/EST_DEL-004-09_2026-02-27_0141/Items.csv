@@ -1,0 +1,37 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-004-09,Project Manager — electrical specification coordination and client interface,6,hr,UNIT_RATE,Procedure,Steps 1–9 (overall coordination),PM oversight across all procedure steps; from Level_of_Effort.csv R-01
+ITEM-002,DEL-004-09,Cost Estimator — electrical specification cost input and QTO support,4,hr,UNIT_RATE,Procedure,Steps 1–2 (scope and requirements extraction),Estimator support for pricing/scope alignment; from Level_of_Effort.csv R-08
+ITEM-003,DEL-004-09,BIM Technician — specification support drafting and figure preparation,18,hr,UNIT_RATE,Procedure,Steps 5–8 (design development and IFC finalization),CAD/BIM support for specification figures and cross-referencing; from Level_of_Effort.csv R-13
+ITEM-004,DEL-004-09,Electrical Engineer — electrical specification authoring (lead engineer),42,hr,UNIT_RATE,Procedure,Steps 1–9 (full specification workflow),"Lead engineer effort: requirements extraction; utility coordination; discipline coordination; design calculations; specification drafting; QA review; County submission; IFC finalization; permit coordination; from Level_of_Effort.csv R-16"
+ITEM-005,DEL-004-09,Three-phase power supply specification — service requirements and tie-in coordination,1,LS,LUMP_SUM,Specification,REQ-001 and REQ-002,"Included in Electrical Engineer effort (ITEM-004); scope verification line for three-phase service and utility tie-in"
+ITEM-006,DEL-004-09,Communications lines tie-in specification,1,LS,LUMP_SUM,Specification,REQ-003,Included in engineer effort; scope verification for communications tie-in
+ITEM-007,DEL-004-09,"Main shop lighting specification — 20 high bay LED fixtures (5x4, 150W, 22000 lm each)",1,LS,LUMP_SUM,Datasheet,Lighting — Main Shop,Design specification for 20 fixtures; included in engineer effort
+ITEM-008,DEL-004-09,"Wash bay lighting specification — 6 high bay LED fixtures (2x3)",1,LS,LUMP_SUM,Datasheet,Lighting — Wash Bay,"Fixture spec TBD (assumed same class as main shop per CONF-004-09-01); wet location requirements apply"
+ITEM-009,DEL-004-09,"Ancillary space lighting specification — Office (1), Utility (2), Parts/Tool (6) 8-ft LED fixtures",1,LS,LUMP_SUM,Datasheet,Lighting — Ancillary Spaces,9 ancillary fixtures total
+ITEM-010,DEL-004-09,Ceiling fan specification — 6 ceiling fans in main shop,1,LS,LUMP_SUM,Datasheet,Ceiling Fans,Fan specifications (diameter/motor/voltage) TBD pending engineer determination
+ITEM-011,DEL-004-09,"Receptacle specification — all five types (15A/120V, 20A/120V, 20A/240V, 30A/240V, 50A/240V)",1,LS,LUMP_SUM,Specification,REQ-008 and REQ-009,"50A/240V welding-grade per Decomp D-009; layout per App B (Electrical)"
+ITEM-012,DEL-004-09,Overhead crane power specification — two 5-tonne cranes,1,LS,LUMP_SUM,Specification,REQ-010,"Circuit ampacity/voltage TBD pending crane equipment specs; feeders, disconnects, and runway conductors"
+ITEM-013,DEL-004-09,Overhead door power specification,1,LS,LUMP_SUM,Specification,REQ-011,"Minimum 4 overhead doors expected; circuit rating TBD pending equipment selection"
+ITEM-014,DEL-004-09,Compressor circuit specification — dedicated 40A circuit,1,LS,LUMP_SUM,Specification,REQ-012,Per App B (Electrical)
+ITEM-015,DEL-004-09,Fire hose pump circuit specification — dedicated 70A circuit,1,LS,LUMP_SUM,Specification,REQ-013,Per App B (Electrical)
+ITEM-016,DEL-004-09,Pressure washer circuit specification — dedicated 70A circuit,1,LS,LUMP_SUM,Specification,REQ-014,Per App B (Electrical)
+ITEM-017,DEL-004-09,Exhaust fan specification,1,LS,LUMP_SUM,Specification,REQ-015,"Quantity, motor rating, circuit size TBD pending mechanical coordination (PKG-003)"
+ITEM-018,DEL-004-09,Security camera wiring specification,1,LS,LUMP_SUM,Specification,REQ-016,"Camera system spec TBD from Owner; low-voltage structured cable assumed"
+ITEM-019,DEL-004-09,2-way radio antenna wire specification,1,LS,LUMP_SUM,Specification,REQ-017,Antenna system spec TBD from Owner
+ITEM-020,DEL-004-09,P.Eng. stamp requirement specification,1,LS,LUMP_SUM,Specification,REQ-018,All IFC drawings stamped by Alberta-licensed P.Eng.
+ITEM-021,DEL-004-09,Alberta Safety Codes compliance specification,1,LS,LUMP_SUM,Specification,REQ-019,Compliance with Alberta Safety Codes; Safety Code permits required
+ITEM-022,DEL-004-09,County preliminary design approval coordination,1,LS,LUMP_SUM,Procedure,Step 7 — Submit Preliminary Design for County Approval,Written County approval required before IFC per SOW-0010d
+ITEM-023,DEL-004-09,Grounding and bonding system specification,1,LS,LUMP_SUM,Specification,REQ-021,"CEC-required; service entrance grounding, equipment grounding, bonding of metallic piping and steel"
+ITEM-024,DEL-004-09,Service voltage and capacity specification,1,LS,LUMP_SUM,Specification,REQ-022,Service voltage TBD pending utility confirmation
+ITEM-025,DEL-004-09,Wiring methods and conduit system specification,1,LS,LUMP_SUM,Specification,REQ-023,"Conduit type is a design decision; appropriate for industrial environment per CEC"
+ITEM-026,DEL-004-09,Emergency and egress lighting specification,1,LS,LUMP_SUM,Specification,REQ-024,Per CEC/Alberta Building Code/Fire Code requirements
+ITEM-027,DEL-004-09,Lighting control strategy specification,1,LS,LUMP_SUM,Specification,REQ-025,Control strategy TBD pending Owner preference
+ITEM-028,DEL-004-09,Minimum illumination levels specification,1,LS,LUMP_SUM,Specification,REQ-026,Lux values TBD pending Electrical Engineer calculation
+ITEM-029,DEL-004-09,Voltage drop compliance specification,1,LS,LUMP_SUM,Specification,REQ-027,"3% branch / 5% combined per CEC Appendix D assumption"
+ITEM-030,DEL-004-09,Standards and codes identification,1,LS,LUMP_SUM,Specification,Standards section,"CEC, Alberta Safety Codes, Building Code, Fire Code, OH&S Code editions to be confirmed"
+ITEM-031,DEL-004-09,Utility coordination — service confirmation and documentation,1,LS,LUMP_SUM,Procedure,Step 3 — Confirm Utility and Service Requirements,DESIGN-BLOCKING input per HOLD-05; three-phase availability at rural site
+ITEM-032,DEL-004-09,Interdisciplinary coordination — mechanical/structural/owner inputs,1,LS,LUMP_SUM,Procedure,Step 4 — Coordinate with Other Disciplines,"HOLD-01 through HOLD-05; exhaust fan data, crane specs, camera specs, antenna specs"
+ITEM-033,DEL-004-09,Electrical design and calculations support,1,LS,LUMP_SUM,Procedure,Step 5 — Develop Electrical Design and Calculations,"Load schedule, service sizing, branch circuits, lighting calculation, crane conductor design"
+ITEM-034,DEL-004-09,Specification document drafting and finalization,1,LS,LUMP_SUM,Procedure,Step 6 — Draft the Specification Document,Resolve TBDs; verify all REQs; update conflict table
+ITEM-035,DEL-004-09,IFC finalization and P.Eng. review,1,LS,LUMP_SUM,Procedure,Step 8 — Finalize IFC Drawings and Specification,Cross-document consistency; P.Eng. stamp per REQ-018
+ITEM-036,DEL-004-09,Safety Code permit coordination,1,LS,LUMP_SUM,Procedure,Step 9 — Submit for Safety Code Permit,"Coordinate with PKG-009; provide supplemental information"

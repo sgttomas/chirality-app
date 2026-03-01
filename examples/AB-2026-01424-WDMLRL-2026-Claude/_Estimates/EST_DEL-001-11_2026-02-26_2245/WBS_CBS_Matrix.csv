@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-001-11,Professional Services — Management,CAD,1530,3,100,DL-001 ($990) + DL-002 ($540) + DL-009 ($0 embedded)
+PKG-001,DEL-001-11,Professional Services — Design,CAD,8835,4,100,DL-003 ($4860) + DL-004 ($2835) + DL-005 ($1140) + DL-007 ($0 embedded) + DL-008 ($0 embedded)
+PKG-001,DEL-001-11,Professional Services — Specialty,CAD,TBD,1,0,DL-006 existing conditions survey — TBD
+PKG-001,DEL-001-11,Professional Services — Regulatory,CAD,TBD,1,0,DL-010 P.Eng./AAAL stamp fees — TBD
+PKG-001,DEL-001-11,Fees and Permits,CAD,TBD,1,0,DL-011 building permit application — TBD
+PKG-001,DEL-001-11,TOTAL (priced lines only),CAD,10365,11,73,Sum of priced lines; 3 TBD lines excluded from total

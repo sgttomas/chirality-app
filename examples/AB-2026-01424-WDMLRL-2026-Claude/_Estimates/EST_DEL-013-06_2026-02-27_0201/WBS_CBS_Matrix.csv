@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-06,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,4019.20,1,100,Commissioning and balancing — all 6 fans (16 hrs Cx agent + 16 hrs HVAC tech)
+PKG-013,DEL-013-06,Construction Labour > General Construction Labour,CAD,6105.60,2,100,Fan installation labour — mechanical contractor (per fan; 8 hrs at 35 ft elevation); Electrical connection at fan junction box (per fan; 3 hrs qualified electrician)
+PKG-013,DEL-013-06,Equipment > Process & Facility Equipment,CAD,44950.00,4,0,HVLS ceiling fan units — supply (industrial grade; 35 ft ceiling; CSA/UL certified); Mounting bracket and downrod assembly (per fan; extended for 35 ft ceiling); ... (+2 more)
+PKG-013,DEL-013-06,General Conditions > General Requirements & Indirect,CAD,1929.60,1,100,Documentation and handover (16 hrs doc control + 8 hrs HVAC tech)
+PKG-013,DEL-013-06,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1000.00,1,0,Safety code permits and inspections (electrical + mechanical)
+PKG-013,DEL-013-06,Professional Services > Design & Engineering,CAD,6640.00,3,100,Mechanical engineering — fan selection and layout design (24 hrs); Structural engineer review — ceiling attachment load verification (8 hrs); Electrical coordination — DEL-015 interface (4 hrs ME +...
+PKG-013,DEL-013-06,Professional Services > Project Management,CAD,5590.00,1,100,Project management and supervision LOE

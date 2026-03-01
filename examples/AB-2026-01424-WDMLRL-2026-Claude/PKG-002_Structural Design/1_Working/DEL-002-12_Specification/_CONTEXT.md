@@ -1,0 +1,17 @@
+# Context: DEL-002-12
+
+**Name:** Structural Specification
+**Package:** PKG-002 Structural Design
+**Discipline:** Structural Engineer
+**Type:** Specification
+**Responsible:** Structural Engineer
+
+## Description
+Structural Specification — Specification deliverable covering SOW-0012 as part of Structural Design package. Supports OBJ-001, OBJ-003.
+
+## Anticipated Artifacts
+- Specification documents per RFP requirements
+
+## Decomposition Reference
+- **Decomposition:** _Decomposition/WDMLRL_Decomposition_Claude.md
+- **Deliverable ID:** DEL-002-12

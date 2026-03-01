@@ -1,0 +1,14 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-021-03,Builders risk / course of construction insurance policy,1,LS,LUMP_SUM,Datasheet,Required Coverage Types and Limits,"Standard coverage for design-build; not explicitly listed in RFP §4.2 but standard for CCDC 14-2013 (Note B-002)"
+ITEM-002,DEL-021-03,Automobile / bodily injury / property damage (CGL) insurance — $5M inclusive,1,LS,LUMP_SUM,Specification,REQ-INS-001,"Includes 6 sub-coverages per §4.2.1.1–§4.2.1.6; treated as combined CGL+auto per CONF-INS-001"
+ITEM-003,DEL-021-03,Workers Compensation (WCB) coverage — Alberta statutory,1,LS,LUMP_SUM,Specification,REQ-INS-002,Per Province of Alberta statutory requirements; rates depend on Proponent WCB classification
+ITEM-004,DEL-021-03,Professional liability — Errors & Omissions (E&O) — $5M,1,LS,LUMP_SUM,Specification,REQ-INS-003,Claims-made basis; excludes additional insured endorsement per §4.2.6
+ITEM-005,DEL-021-03,Employers liability insurance — $5M per employee,1,LS,LUMP_SUM,Specification,REQ-INS-004,Per employee per accident / accidental injury / death
+ITEM-006,DEL-021-03,Contract Administrator — insurance coordination and administration,16,hr,UNIT_RATE,Procedure,Steps 1-14,"Broker engagement; quote review; package compilation; County submission; ongoing maintenance (from Level_of_Effort.csv R-25)"
+ITEM-007,DEL-021-03,Project Manager — insurance coordination,6,hr,UNIT_RATE,Procedure,Steps 1-14,"County coordination; compliance monitoring (from Level_of_Effort.csv R-01)"
+ITEM-008,DEL-021-03,Construction Project Manager — insurance support,8,hr,UNIT_RATE,Procedure,Steps 1-14,"Construction-phase insurance coordination (from Level_of_Effort.csv R-02)"
+ITEM-009,DEL-021-03,Site Superintendent — insurance support,10,hr,UNIT_RATE,Procedure,Steps 1-14,"Field-level compliance; subcontractor insurance monitoring (from Level_of_Effort.csv R-03)"
+ITEM-010,DEL-021-03,Cost Estimator — insurance estimate support,4,hr,UNIT_RATE,Procedure,Steps 1-14,"Estimate preparation for insurance component (from Level_of_Effort.csv R-08)"
+ITEM-011,DEL-021-03,QA/QC Lead — insurance compliance verification,6,hr,UNIT_RATE,Procedure,Steps 1-14,"Verify coverage completeness; sub-coverage checklist review (from Level_of_Effort.csv R-06)"
+ITEM-012,DEL-021-03,HSE Manager — WCB and safety insurance coordination,4,hr,UNIT_RATE,Procedure,Steps 1-14,"WCB compliance; safety program insurance interface (from Level_of_Effort.csv R-05)"
+ITEM-013,DEL-021-03,Document Controller — insurance records management,6,hr,UNIT_RATE,Procedure,Records,"Certificate filing; audit log maintenance; renewal tracking (from Level_of_Effort.csv R-09)"

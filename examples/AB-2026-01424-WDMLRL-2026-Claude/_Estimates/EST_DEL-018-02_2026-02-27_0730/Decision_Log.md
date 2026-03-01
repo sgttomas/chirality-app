@@ -1,0 +1,15 @@
+# Decision Log — EST_DEL-018-02_2026-02-27_0730
+
+| DecisionID | Decision | Rationale | Impact |
+|------------|----------|-----------|--------|
+| DEC-001 | Grading area estimated parametrically at 2,500 m2 | No explicit area stated in deliverable documents. Derived from PP-10 (13,000 sqft building footprint = ~1,208 m2) with ~2x multiplier for surrounding lot expansion area. Appendix C site maps show expansion area but no dimensions. | Affects ITM-007, ITM-008, ITM-009 unit-rate quantities. Actual area from DEL-005-02 IFC plan may differ significantly. |
+| DEC-002 | Granular fill volume estimated at 500 m3 (200mm avg depth x 2,500 m2) | Parametric assumption for fill volume. No fill design data available pending civil grading plan. | Affects ITM-010 quantity. County supplies aggregate; estimate covers placement only. |
+| DEC-003 | Granular fill rate reduced from EC-02 $55/m3 to $25/m3 for placement-only | EC-02 is supply + place. County supplies aggregate per Datasheet (RFP §3.3.1). Deducted ~$30/m3 material component. | Affects ITM-010 / DL-010 unit rate. Material deduction is an estimate. |
+| DEC-004 | Equipment operator hours estimated at 80 hours | Parametric estimate for a ~2,500 m2 grading operation including rough grading, fine grading, and compaction passes. | Affects ITM-011 / DL-011. |
+| DEC-005 | General labourer hours estimated at 120 hours | Parametric estimate for grade staking, hand grading, drainage verification support, and cleanup. | Affects ITM-012 / DL-012. |
+| DEC-006 | Landscape allowance set at $23,000 ($8,000 prep + $15,000 planting) | All landscape scope is TBD pending DEL-007-02/03 design. Parametric allowance based on rural Alberta small-lot landscape typical costs. | Affects ITM-017, ITM-018. This is the largest uncertainty in the estimate. |
+| DEC-007 | Compaction testing allowance set at $5,000 | Covers approximately 10-15 field density tests at ~$350-500 per test. Frequency TBD per DEL-005-07. | Affects ITM-014 / DL-014. |
+| DEC-008 | Rough grading rate derived as EC-01 $20/m3 x 0.4m avg depth = $8/m2 | EC-01 is excavation rate per m3. Converted to m2 rate using assumed 0.4m average cut depth for site grading (not bulk excavation). | Affects ITM-007 / DL-007. Depth assumption is parametric. |
+| DEC-009 | Fine grading and compaction rates both set at EC-03 $4.00/m2 | EC-03 (compaction/proof roll) rate used as proxy for both fine grading and compaction operations. | Affects ITM-008/DL-008 and ITM-009/DL-009. May understate fine grading if significant hand work required. |
+| DEC-010 | Fallback to PARAMETRIC allowances applied for all lump-sum items | Per FALLBACK_POLICY = ALLOW_PARAMETRIC. No quote or rate table evidence for drainage verification, erosion control, inspection coordination, etc. | Affects DL-013 through DL-023. All lump-sum items are LOW confidence. |
+| DEC-011 | Professional staff rates from Level_of_Effort.csv applied directly | Level_of_Effort.csv provides hours per role for DEL-018-02; Professional_Staff_Rates.csv provides hourly rates. Direct multiplication used. | DL-001 through DL-006. These are the highest-confidence line items. |

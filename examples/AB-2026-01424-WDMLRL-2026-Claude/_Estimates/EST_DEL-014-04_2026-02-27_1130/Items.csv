@@ -1,0 +1,28 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+I-01,DEL-014-04,Floor drain body and grate — repair bay (heavy-duty load-rated),4,EA,UNIT_RATE,Datasheet,Attributes — Floor Drain Locations,"4 drains in repair bay / main shop area per App B plumbing drawing; heavy-duty grate per REQ-014-04-06"
+I-02,DEL-014-04,Floor drain body and grate — wash bay (heavy-duty load-rated),1,EA,UNIT_RATE,Datasheet,Attributes — Floor Drain Locations,"1 drain in wash bay per App B plumbing drawing; heavy-duty grate per REQ-014-04-06"
+I-03,DEL-014-04,Floor drain body and grate — washroom (standard duty),1,EA,UNIT_RATE,Datasheet,Attributes — Floor Drain Locations,1 drain in renovated washroom per App B plumbing drawing
+I-04,DEL-014-04,Floor drain body and grate — emergency shower area (standard duty),1,EA,UNIT_RATE,Datasheet,Attributes — Floor Drain Locations,1 drain at emergency shower wash station per App B plumbing drawing; sized for 75.7 L/min per REQ-014-04-13
+I-05,DEL-014-04,Sump drain body and grate — repair bays (heavy-duty),2,EA,UNIT_RATE,Datasheet,Attributes — Sump Drains,"SOW-0045: sump drains in repair bays; assumed min 2 (1 per bay) per REQ-014-04-02; qty TBD per IFC"
+I-06,DEL-014-04,Trap assembly (P-trap or integral) per drain location,9,EA,UNIT_RATE,Specification,REQ-014-04-07,"One trap per drain location (7 floor + 2 sump = 9 total); type TBD per IFC design"
+I-07,DEL-014-04,Trap primer device (where required by code),3,EA,UNIT_RATE,Specification,REQ-014-04-07,"Assumed 3 locations at higher evaporation risk: emergency shower area, washroom, and 1 infrequently used bay drain"
+I-08,DEL-014-04,Underground drain piping — shop floor drains to building drain/vent system,25,m,UNIT_RATE,Procedure,Step 2.2,"Parametric estimate: ~25m total run for 4 repair bay drains + connections to main drain manifold"
+I-09,DEL-014-04,Underground drain piping — sump drains to building drain/vent system,12,m,UNIT_RATE,Procedure,Step 2.2,"Parametric estimate: ~12m total run for 2 sump drains to manifold"
+I-10,DEL-014-04,Underground drain piping — wash bay drain to building exterior stub,8,m,UNIT_RATE,Procedure,Step 2.2,"Parametric estimate: ~8m run from wash bay drain to exterior building wall connection to mud sump system (DEL-018-05)"
+I-11,DEL-014-04,Underground drain piping — washroom and emergency shower drains,10,m,UNIT_RATE,Procedure,Step 2.2,"Parametric estimate: ~10m combined run for washroom and emergency shower drains to manifold"
+I-12,DEL-014-04,Above-ground drain/vent piping and vent-through-roof,15,m,UNIT_RATE,Procedure,Step 4.1,"Parametric estimate: above-grade vent piping including vent stack and connections"
+I-13,DEL-014-04,Plumber labour — underground rough-in (Phase 2),40,hr,UNIT_RATE,Procedure,Phase 2,"Parametric: trenching coordination, pipe laying, drain body setting for 9 drain points"
+I-14,DEL-014-04,Plumber labour — above-ground rough-in and venting (Phase 4),16,hr,UNIT_RATE,Procedure,Phase 4,Parametric: above-ground vent piping and trap primer installation
+I-15,DEL-014-04,Plumber labour — grate installation and final connections (Phase 4),8,hr,UNIT_RATE,Procedure,Step 4.2,Parametric: grate installation and final trim for 9 drain points
+I-16,DEL-014-04,Plumber labour — testing and inspection support (Phase 5),12,hr,UNIT_RATE,Procedure,Phase 5,"Parametric: pressure test, functional water test, pipe slope verification, inspection attendance"
+I-17,DEL-014-04,Labourer — trench excavation and backfill support,24,hr,UNIT_RATE,Procedure,Step 2.2,Parametric: manual assist for trench excavation and backfill around drain piping
+I-18,DEL-014-04,Plumber labour — concrete pour monitoring (Phase 3),6,hr,UNIT_RATE,Procedure,Phase 3,"Parametric: on-site during slab pour to monitor drain body positions, protect openings"
+I-19,DEL-014-04,Plumber labour — closeout and as-built preparation (Phase 6),8,hr,UNIT_RATE,Procedure,Phase 6,"As-built mark-ups, documentation package assembly, commissioning coordination"
+I-20,DEL-014-04,Product submittals and coordination — lump sum,1,LS,LUMP_SUM,Procedure,Step 1.2,"Submittal preparation, scope boundary coordination (Step 1.3), oil/grease interceptor coordination (Step 1.4)"
+I-21,DEL-014-04,Plumbing permit and Safety Code inspection fees,1,LS,LUMP_SUM,Specification,REQ-014-04-09,Alberta Safety Code plumbing permit and inspection fees
+I-22,DEL-014-04,Project management — PM allocation,6,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-01 allocation for DEL-014-04
+I-23,DEL-014-04,Construction project management allocation,8,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-02 allocation for DEL-014-04
+I-24,DEL-014-04,Site superintendent allocation,10,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-03 allocation for DEL-014-04
+I-25,DEL-014-04,Cost estimator allocation,4,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-08 allocation for DEL-014-04
+I-26,DEL-014-04,QA/QC lead allocation,6,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-06 allocation for DEL-014-04
+I-27,DEL-014-04,HSE manager allocation,4,hr,UNIT_RATE,Procedure,Phase 1–6,Per Level_of_Effort.csv R-05 allocation for DEL-014-04

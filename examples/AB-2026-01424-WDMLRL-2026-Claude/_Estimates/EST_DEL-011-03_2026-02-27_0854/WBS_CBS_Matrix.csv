@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-03,Concrete > Concrete & Foundations,CAD,45324.00,4,100,Door frame structural elements -- jambs / sills / headers / ; Floor drainage slope provisions -- repair bay concrete slab ; Construction labour -- Carpenter crew (formwork for door fra; +1 more
+PKG-011,DEL-011-03,Electrical > Power Distribution & Equipment,CAD,1000.00,1,100,Conduit sleeves for overhead door operator wiring (4 locatio
+PKG-011,DEL-011-03,General Conditions > General Requirements & Indirect,CAD,16214.80,10,100,Door commissioning and functional testing (3 cycles per door; Inspection coordination and documentation; As-built markup and documentation package; +7 more
+PKG-011,DEL-011-03,"Openings > Doors, Windows & Glazing",CAD,105224.00,5,100,Overhead doors -- industrial sectional 24 ft class (supply +; Overhead door operators -- motorised industrial (supply + in; Door safety devices -- obstruction sensors and auto-reverse ; +2 more
+PKG-011,DEL-011-03,Structural Steel & Metals > Structural Steel & Fabrication,CAD,11924.00,2,100,Exhaust system structural provisions -- blocking / backing /; Construction labour -- Ironworker crew (door frame structura
+PKG-011,DEL-011-03,TOTAL,CAD,179686.80,22,100,Grand total -- all CBS categories

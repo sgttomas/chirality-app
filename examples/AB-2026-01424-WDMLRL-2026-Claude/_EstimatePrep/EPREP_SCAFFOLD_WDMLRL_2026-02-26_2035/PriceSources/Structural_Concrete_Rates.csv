@@ -1,0 +1,9 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+SC-01,Concrete,"Reinforced concrete slab-on-grade, heavy-duty",m2,160,260,210,PARAMETRIC,MEDIUM,Shop slab; excludes embedded steel plate
+SC-02,Concrete,Thickened slab edge / grade beam,m,180,320,250,PARAMETRIC,MEDIUM,Perimeter and localized thickening
+SC-03,Concrete,Strip footing / pad footing concrete,m3,520,780,650,PARAMETRIC,MEDIUM,Foundation concrete (pricing negotiated post-geotech)
+SC-04,Rebar,Reinforcing steel supply + place,kg,2.2,3.6,2.9,PARAMETRIC,MEDIUM,Typical shop slab and foundations
+SC-05,Formwork,Formwork for footings and walls,m2,85,140,110,PARAMETRIC,MEDIUM,Conventional formwork
+SC-06,Concrete,"Concrete wall (cast-in-place), incl. rebar allowance",m2,320,520,420,PARAMETRIC,MEDIUM,Service pit walls / localized walls
+SC-07,Concrete,Concrete stairs / landings (formed),each,6500,12000,9000,PARAMETRIC,MEDIUM,Allow for one stair system
+SC-08,Misc,Embedded steel plates in slab (supply + install),each,180,320,250,ALLOWANCE,LOW,Locations/size TBD; placeholder

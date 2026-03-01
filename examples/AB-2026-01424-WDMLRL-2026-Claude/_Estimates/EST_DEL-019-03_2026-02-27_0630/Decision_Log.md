@@ -1,0 +1,12 @@
+# Decision Log — EST_DEL-019-03_2026-02-27_0630
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | All line items priced using PARAMETRIC method | BASIS_OF_ESTIMATE = PARAMETRIC; all required data (hours and rates) are available from Level_of_Effort.csv and Professional_Staff_Rates.csv. FALLBACK_POLICY (ALLOW_PARAMETRIC) and ALLOW_MIXED_METHODS (TRUE) were not exercised because the primary basis was sufficient. | No fallback pricing needed; 100% basis consistency |
+| DEC-002 | Items ITM-007 through ITM-013 (process/activity items) are not separately priced in Detail.csv | These items represent work activities (framework establishment, qualification, onboarding, coordination, monitoring, escalation, close-out) whose labour cost is fully captured by the staff hour items ITM-001 through ITM-006. Pricing them separately would double-count the same labour. The Level_of_Effort.csv provides aggregate hours per role, not per activity. | 7 Items.csv rows with no corresponding Detail.csv row; documented in QA_Report.md |
+| DEC-003 | Fees_Permits_Insurance.csv not used for DEL-019-03 pricing | The 5 items in Fees_Permits_Insurance.csv (bonding, insurance, permits) are project-level overhead items that belong to PKG-021 (Bonding, Insurance & Warranty) or project-level cost accounts, not to the subcontractor management deliverable. | No impact on DEL-019-03 totals; noted in Source_Index.md |
+| DEC-004 | CBS categories assigned as LABOUR-MGMT, LABOUR-FIELD, LABOUR-QC, LABOUR-HSE | No CBS taxonomy was provided in the price sources or decomposition. CBS categories were assigned based on the role category in Professional_Staff_Rates.csv (Management, Construction, Admin) and the functional nature of each role's contribution to DEL-019-03. | CBS rollups in WBS_CBS_Matrix.csv use these categories |
+| DEC-005 | Scope resolved to single deliverable DEL-019-03 only | SCOPE parameter specified DEL-019-03. Other PKG-019 deliverables (DEL-019-01, DEL-019-02, DEL-019-04) are excluded from this run. | Single-deliverable estimate; PKG-019 total is partial |
+| DEC-006 | Currency confirmed as CAD | CURRENCY parameter = CAD; validated against Assumed_Project_Parameters.csv PP-17 (Currency = CAD). | All amounts in CAD |
+| DEC-007 | UPDATE_LATEST_POINTER = FALSE; no pointer file modified | Per brief instruction. | No _LATEST.md file created or modified |
+| DEC-008 | Rounding set to NONE (default) | No ROUNDING parameter provided in brief; default applied. | Amounts reported to two decimal places as computed |

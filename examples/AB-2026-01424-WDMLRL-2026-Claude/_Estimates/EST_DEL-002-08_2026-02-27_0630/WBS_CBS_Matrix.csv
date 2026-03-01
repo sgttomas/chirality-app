@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-08,Management,CAD,1530.00,2,100,LN-001 (PM $990) + LN-002 (Cost Estimator $540)
+PKG-002,DEL-002-08,Design,CAD,17700.00,4,75,LN-003 ($3420) + LN-004 ($14280) + LN-005 ($0 embedded) + LN-006 (TBD); 3 of 4 lines priced (75%)
+PKG-002,DEL-002-08,TOTAL,CAD,19230.00,6,83,5 of 6 lines fully priced; 1 line (LN-006 peer review) is TBD

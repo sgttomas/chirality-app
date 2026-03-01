@@ -1,0 +1,26 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-013-03,Makeup Air Unit (MUA) - supply and install,1,EA,UNIT_RATE,Datasheet,Equipment / Construction - Equipment procurement,Unit make/model TBD; sizing TBD per DEL-003-06; gas-fired assumed per Guidance C3
+ITM-002,DEL-013-03,Fresh air intake ductwork - exterior wall penetration to MUA unit,1,LS,LUMP_SUM,Datasheet,Ductwork & Distribution - Fresh air intake ductwork,Includes weather hood/bird screen; wall penetration; flexible connection; insulation
+ITM-003,DEL-013-03,Supply ductwork - main trunk and branch runs throughout facility,1208,m2,UNIT_RATE,Datasheet,Ductwork & Distribution - Supply ductwork,13000 sqft = 1208 m2 floor area; parametric rate per m2 from MS-06
+ITM-004,DEL-013-03,Dampers and control valves - intake/supply/zone,1,LS,LUMP_SUM,Datasheet,Ductwork & Distribution - Dampers and control valves,Motorized control dampers at intake and supply; volume control dampers at branch takeoffs
+ITM-005,DEL-013-03,Fire and smoke dampers at fire-rated assembly penetrations,4,EA,UNIT_RATE,Specification,REQ-013-03-13: Fire and Smoke Dampers,Qty estimated 4 EA (ASSUMPTION - actual qty TBD per fire separation drawings)
+ITM-006,DEL-013-03,Intake filtration - initial filter set and filter rack,1,LS,LUMP_SUM,Specification,Scope - Intake filtration,Filter type/MERV rating TBD per DEL-003-07 or manufacturer
+ITM-007,DEL-013-03,Ductwork insulation - supply ductwork per energy code,1,LS,LUMP_SUM,Specification,REQ-013-03-16: Ductwork Insulation,Type/thickness/vapor barrier TBD per DEL-003-07
+ITM-008,DEL-013-03,Electrical disconnect switch and lockout/tagout provisions,1,EA,UNIT_RATE,Specification,REQ-013-03-17: Electrical Disconnect and Lockout/Tagout,Per Alberta Electrical Code
+ITM-009,DEL-013-03,Condensate drain pan and drain line (if applicable),1,LS,LUMP_SUM,Specification,REQ-013-03-15: Condensate Management,Applicability per manufacturer manual; cold climate ASSUMPTION
+ITM-010,DEL-013-03,Controls integration - BAS wiring and programming,1,LS,LUMP_SUM,Specification,REQ-013-03-09: Controls Integration,Integration with DEL-013-01 (heating) and DEL-013-02 (air exchanger)
+ITM-011,DEL-013-03,Ductwork hangers/supports and structural attachments,1,LS,LUMP_SUM,Procedure,Phase 2 - Step 2.3: Install Ductwork Hangers and Supports,Includes coordination with crane travel zones
+ITM-012,DEL-013-03,Mechanical permit - AHJ application and fees,1,LS,LUMP_SUM,Specification,REQ-013-03-10: Code-Compliant Installation,Alberta Safety Codes permit
+ITM-013,DEL-013-03,Equipment submittals - preparation and review coordination,1,LS,LUMP_SUM,Procedure,Phase 1 - Step 1.1: Prepare Equipment Submittals,Product data sheets and shop drawings
+ITM-014,DEL-013-03,Test and balance (TAB) - qualified contractor,1,LS,LUMP_SUM,Procedure,Phase 5 - Step 5.5: Test and Balance,Airflow measurement at all supply terminals
+ITM-015,DEL-013-03,Duct leakage testing per SMACNA,1,LS,LUMP_SUM,Specification,REQ-013-03-14: Duct Leakage Testing,Leakage class TBD per DEL-003-07
+ITM-016,DEL-013-03,Commissioning - MUA start-up and controls functional test,1,LS,LUMP_SUM,Procedure,Phase 5 - Steps 5.3/5.4: MUA Start-Up and Controls Functional Test,Includes start-up and all control sequence tests
+ITM-017,DEL-013-03,Integrated system performance test,1,LS,LUMP_SUM,Specification,REQ-013-03-19: Integrated System Performance Test,MUA with DEL-013-01/-02/-04/-05 simultaneous operation
+ITM-018,DEL-013-03,Pressurization check at overhead doors,1,LS,LUMP_SUM,Procedure,Phase 5 - Step 5.6: Pressurization Check,Pressure differential measurement
+ITM-019,DEL-013-03,As-built documentation preparation,1,LS,LUMP_SUM,Procedure,Phase 6 - Step 6.1: Prepare As-Built Documentation,Marked-up drawings showing actual installation
+ITM-020,DEL-013-03,O&M manual compilation and submittal,1,LS,LUMP_SUM,Procedure,Phase 6 - Step 6.2: Compile O&M Manuals,Manufacturer manuals plus TAB/commissioning reports
+ITM-021,DEL-013-03,Owner/facilities staff training,1,LS,LUMP_SUM,Specification,REQ-013-03-18: Owner/Facilities Staff Training,Operation/maintenance/filter/troubleshooting/emergency training
+ITM-022,DEL-013-03,Project management - MUA deliverable coordination,38,hr,UNIT_RATE,Procedure,All Phases,LOE from Level_of_Effort.csv: PM 6h + CPM 8h + Supt 10h + Estimator 4h + QA/QC 6h + HSE 4h = 38h blended
+ITM-023,DEL-013-03,Delivery logistics and rigging/crane for MUA unit setting,1,LS,LUMP_SUM,Procedure,Phase 1 - Step 1.3 and Phase 3 - Step 3.1,Large/heavy unit; crane/rigging for setting into Utility Room
+ITM-024,DEL-013-03,Gas supply connection to MUA unit,1,LS,LUMP_SUM,Procedure,Phase 4 - Step 4.1: Connect Gas Supply,Licensed gas fitter; ASSUMPTION: gas-fired MUA
+ITM-025,DEL-013-03,AHJ inspections - rough-in and final,2,EA,UNIT_RATE,Procedure,Phase 5 - Step 5.2: AHJ Inspection,Hold points per Enrichment F-002; includes fire damper inspection

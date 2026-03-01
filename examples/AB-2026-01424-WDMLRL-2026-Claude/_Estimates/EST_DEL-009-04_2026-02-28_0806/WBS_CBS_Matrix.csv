@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,Method,ProvenanceCompletenessPct,Notes
+PKG-009,DEL-009-04,Professional Services > Project Management,CAD,10670.00,20,MIXED,100%,20 lines mapped to canonical CBS
+PKG-009,DEL-009-04,TOTAL,CAD,10670.00,20,MIXED,100%,All 20 lines; CBS codes normalized to canonical taxonomy

@@ -1,0 +1,17 @@
+# Assumptions Log — EST_DEL-015-02_2026-02-27_0848
+
+| AsmpID | Assumption | Basis | Affects | Confidence |
+|---|---|---|---|---|
+| A-001 | Wash Bay fixtures are high-bay LED type, consistent with Main Shop specification, but require wet/damp location rating (IP65 or equivalent) | Guidance P-4; Specification REQ-L-04; App B-Elec shows "High Bay Lights" for Wash Bay | DL-002 (Z-2 fixture pricing) | MED |
+| A-002 | Wet/damp-rated high-bay fixtures carry a 15% cost premium over standard high-bay fixtures ($520 base -> $600 wet-rated) | Industry parametric; no wet-rated rate in Electrical_System_Rates.csv | DL-002 | MED |
+| A-003 | 8-foot LED linear fixtures (installed) are priced at $280 CAD/EA | Industry parametric for commercial/industrial 8ft LED strip; no rate in Electrical_System_Rates.csv (ES-01 is high-bay only) | DL-003, DL-004, DL-005 | MED |
+| A-004 | High-bay mounting hardware (pendant/chain/cable) costs $65/fixture for standard environments, $75/fixture for wet environments | Industry parametric; mounting method TBD per IFC | DL-006, DL-007 | MED |
+| A-005 | 8-foot fixture mounting hardware (surface or suspended) costs $30/fixture for standard-height rooms | Industry parametric; standard mounting in rooms below 15ft | DL-008 | MED |
+| A-006 | Branch circuit wiring material costs estimated parametrically: $4,500 (Main Shop, 20 fixtures at 35ft), $1,800 (Wash Bay, 6 fixtures), $1,200 (Office/Utility/Parts, 9 fixtures in lower rooms). Includes conduit, conductors, junction boxes, and pull boxes. | Parametric model based on fixture count, ceiling height, and typical run lengths; conduit type TBD per IFC | DL-009, DL-010, DL-011 | MED |
+| A-007 | Switching/controls allowance of $2,500 assumes basic manual wall switches with zone grouping. If occupancy sensing or daylight harvesting is selected, this allowance is insufficient. | Controls strategy TBD per Specification REQ-L-14 and Guidance C-3 | DL-012 | LOW |
+| A-008 | Aerial work platform rental estimated at $3,500 for approximately 2 weeks. Assumes a 40ft+ articulating boom lift (per Procedure P-8) sufficient for 35ft ceiling work. | Industry rental rates for 40ft boom lift; duration based on fixture installation phases (Main Shop + Wash Bay) | DL-013 | MED |
+| A-009 | Electrician labour productivity for high-bay fixture installation at 35ft ceiling height: 4 hours per fixture (includes mount, wire connection, and termination at height using aerial platform) | Industry parametric for high-ceiling industrial LED fixture installation | DL-014, DL-015 | MED |
+| A-010 | Electrician labour productivity for 8-foot linear fixture installation in standard-height rooms: 2 hours per fixture | Industry parametric for standard-height commercial LED fixture installation | DL-016 | MED |
+| A-011 | Rough-in wiring labour: 80 hours total across all zones. Derived from parametric model: approximately 0.33 hr/linear-ft of conduit run plus pull time for 35 fixture circuits. | Parametric model; conduit type and routing TBD per IFC | DL-017 | MED |
+| A-012 | Emergency/exit lighting is OUT of scope for this estimate. If Owner/AHJ confirms inclusion in DEL-015-02, additional cost of $3,000-$8,000 is anticipated. | Specification REQ-L-15 status TBD; Guidance C-4; App B-Elec shows no emergency lighting | N/A (excluded) | N/A |
+| A-013 | Old North Shop lighting is excluded from this estimate, consistent with Specification scope exclusion (Enrichment X-001). | Specification §Scope - Out of Scope | N/A (excluded) | HIGH |

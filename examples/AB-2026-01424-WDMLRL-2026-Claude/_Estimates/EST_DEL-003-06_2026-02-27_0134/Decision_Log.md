@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-003-06_2026-02-27_0134
+
+| # | Decision | Rationale | Impact |
+|---|---|---|---|
+| D-01 | Used Level_of_Effort.csv as primary hour source rather than Professional_Design_Fees.csv percentage method | LOE provides deliverable-specific hour allocations per role; fee percentage method is an aggregate alternative that does not break down by deliverable or task. LOE is more granular and traceable for a single-deliverable estimate. | Estimate is $13,050 (LOE method). Fee method would yield a different figure based on construction value which is not established for this run. |
+| D-02 | Sub-allocated 56 Mechanical Engineer hours across 11 calculation tasks (ITEM-004 through ITEM-014) | Level_of_Effort.csv provides a single 56-hour block for R-15. Sub-allocation was derived from relative complexity of the 13 specification requirements and procedural steps described in the four deliverable documents. | Sub-allocation is an assumption logged in Assumptions_Log.md (A-01). Aggregate total of 56 hours and $9,240.00 is unchanged. |
+| D-03 | Classified CBS categories as Management and Design | R-01 (PM) and R-08 (Cost Estimator) classified as Management per Professional_Staff_Rates.csv Category column. R-13 (BIM Technician) and R-15 (Mechanical Engineer) classified as Design per the same source. | CBS rollup: Management $1,530 (11.7%); Design $11,520 (88.3%). |
+| D-04 | Did not apply contingency | No contingency policy was provided in the run brief. Source confidence is MEDIUM. | Estimate is base cost only. Contingency may be applied at portfolio level. |
+| D-05 | Did not price P.Eng. stamp as separate line item | P.Eng. review and stamp activity is assumed included in the 56-hour Mechanical Engineer allocation (ITEM-014 allocates 6 hours for review/stamp coordination). | If external P.Eng. is required, additional cost would be needed. |
+| D-06 | UPDATE_LATEST_POINTER = FALSE respected | Per run brief instruction. No pointer files modified. | _LATEST.md not created or updated. |

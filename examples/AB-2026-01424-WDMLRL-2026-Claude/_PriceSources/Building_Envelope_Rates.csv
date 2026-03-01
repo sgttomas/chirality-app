@@ -1,0 +1,16 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+BE-01,Wall,Insulated metal wall panels (R-20; factory-assembled),m2,165,210,185,PARAMETRIC,MEDIUM,Pre-finished exterior; includes fasteners + sealant; typical for institutional metal buildings
+BE-02,Wall,Pre-finished metal cladding (non-insulated; liner panel),m2,100,140,120,PARAMETRIC,MEDIUM,Interior liner or single-skin areas
+BE-03,Wall,Concrete masonry unit (200mm; reinforced; grouted),m2,155,195,175,PARAMETRIC,MEDIUM,For base course or impact-resistant areas; painted one side
+BE-04,Roof,Insulated metal roof panels (R-30; factory-assembled),m2,185,235,210,PARAMETRIC,MEDIUM,Standing seam or through-fastened; includes vapour barrier
+BE-05,Roof,Standing seam metal roof (non-insulated),m2,125,165,145,PARAMETRIC,MEDIUM,For cold storage building or canopy areas
+BE-06,Insulation,Batt insulation (R-20; installed in wall cavity),m2,28,42,35,PARAMETRIC,MEDIUM,Fiberglass or mineral wool; friction-fit
+BE-07,Insulation,Batt insulation (R-30; installed in roof/ceiling cavity),m2,38,55,46,PARAMETRIC,MEDIUM,Fiberglass or mineral wool
+BE-08,AirBarrier,Air/vapour barrier (self-adhered membrane),m2,14,22,18,PARAMETRIC,MEDIUM,Peel-and-stick; lapped + sealed at penetrations
+BE-09,Glazing,Commercial glazing (double-pane; thermally broken aluminum frame),m2,550,750,650,PARAMETRIC,MEDIUM,Fixed or operable; includes frame + hardware + installation
+BE-10,Glazing,Storefront entrance (double door; aluminum frame; glazed),each,6500,9500,8000,PARAMETRIC,MEDIUM,Automatic operator option +$3000-5000
+BE-11,Doors,Hollow metal door and frame (single; commercial),each,1500,2200,1800,PARAMETRIC,MEDIUM,18 ga door + 16 ga frame; hardware separate
+BE-12,Doors,Hollow metal door and frame (double; commercial),each,2800,4000,3400,PARAMETRIC,MEDIUM,Pair of 18 ga doors + frame; hardware separate
+BE-13,Hardware,Door hardware set (commercial; per opening),each,450,750,600,PARAMETRIC,MEDIUM,Lever handle + closer + hinges + weatherstrip; keyed
+BE-14,Sealant,Perimeter sealant (all openings and joints),lm,12,20,16,PARAMETRIC,MEDIUM,Polyurethane or silicone; includes backer rod
+BE-15,Flashing,Metal flashing and trim (pre-finished),lm,25,40,32,PARAMETRIC,MEDIUM,Corners; drip edges; window heads/sills; parapet cap
