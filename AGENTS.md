@@ -86,6 +86,7 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **AUDIT_AGENTS** | TASK | spawned | Agent state report |
 | **AUDIT_DECOMP** | TASK | spawned | `Decomp-Coverage_Report.md`, `Decomp-Coverage_IssueLog.csv`, `Decomp-Coverage_Matrix.csv`, and `coverage_summary.json` |
 | **AUDIT_DEP_CLOSURE** | TASK | spawned | Dependencies state report |
+| **AUDIT_HYPERGRAPH_CLOSURE** | TASK | INIT-TASK | Closure report, issue log CSV, JSON summary, analysis script (DOMAIN hypergraph) |
 | **CHANGE** | PERSONA | chat | Git state report; optional git actions after explicit approval |
 | **CHIRALITY_FRAMEWORK** | TASK | spawned | `_SEMANTIC.md`, `_STATUS.md` |
 | **CHIRALITY_LENS** | TASK | spawned | `_SEMANTIC_LENSING.md` |
@@ -93,6 +94,8 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **DECOMP_BASE** | PERSONA | chat | Decomposition base specification; defines the invariant protocol for conforming agents (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) |
 | **DEPENDENCIES** | TASK | spawned | `_DEPENDENCIES.md`, `Dependencies.csv` |
 | **DOMAIN_DECOMP** | PERSONA | chat | Domain decomposition document (conforms to DECOMP_BASE) |
+| **DOMAIN_DOCUMENTS** | TASK | spawned | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
+| **DOMAIN_HYPERGRAPH** | TASK | INIT-TASK | Hypergraph snapshot: `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json` |
 | **ESTIMATE_PREP** | TASK | INIT-TASK | Pricing CSVs, `INDEX.md`, BOE scaffold or full `BASIS_OF_ESTIMATE.md`, QA/provenance logs |
 | **ESTIMATING** | TASK | spawned | Estimate snapshots in `_Estimates/` |
 | **HELP_HUMAN** | PERSONA | chat | Briefs, checklists, interpretations, next-step recommendations |
@@ -149,6 +152,7 @@ The OPERATIVE row contains composite categories (marked with `*`). Each expands 
 **PREP**
 - PREPARATION
 - 4_DOCUMENTS
+- DOMAIN_DOCUMENTS
 - CHIRALITY_FRAMEWORK
 - CHIRALITY_LENS
 
@@ -160,6 +164,7 @@ The OPERATIVE row contains composite categories (marked with `*`). Each expands 
 - SCHEDULE_PREP
 - ESTIMATING
 - SCHEDULING
+- DOMAIN_HYPERGRAPH
 - "all deliverables" (for software development or project execution)
 - "all knowledge types" (for domain knowledge curation)
 
@@ -167,6 +172,7 @@ The OPERATIVE row contains composite categories (marked with `*`). Each expands 
 - AGENTS
 - DEPENDENCIES
 - ESTIMATES
+- HYPERGRAPH_CLOSURE
 - REFERENCES
 - SCHEDULES
 - SCOPE

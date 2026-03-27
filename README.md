@@ -129,8 +129,9 @@ Not all agents operate across all three decomposition variants. Agents fall into
 | Variant scope | Agents | Notes |
 |--------------|--------|-------|
 | **All variants** | DECOMP agents, PREPARATION, TASK, WORKING_ITEMS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, HELP_HUMAN, ORCHESTRATOR, CHANGE, REVIEW, AGGREGATION, RECONCILIATION | These agents are parameterized by `DECOMP_VARIANT` and use entity binding tables to map protocol terminology to domain-specific terms |
-| **PROJECT / SOFTWARE only** | DEPENDENCIES, AUDIT_DEP_CLOSURE, ESTIMATING, ESTIMATE_PREP, SCHEDULING | These agents rely on the dependency graph, scheduling, or estimation infrastructure that DOMAIN does not use |
-| **Variant-independent** | HELPS_HUMANS (Type 0), AUDIT_AGENTS | These agents operate on agent instruction files or framework standards, not on production unit content |
+| **PROJECT / SOFTWARE only** | DEPENDENCIES, AUDIT_DEP_CLOSURE, ESTIMATING, ESTIMATE_PREP, SCHEDULING, SCOPE_CHANGE | These agents rely on the dependency graph, scheduling, or estimation infrastructure that DOMAIN does not use |
+| **DOMAIN only** | DOMAIN_DOCUMENTS, DOMAIN_HYPERGRAPH, AUDIT_HYPERGRAPH_CLOSURE | These agents operate on Knowledge Type folders, DOMAIN hypergraph structures, or DOMAIN-specific artifacts |
+| **Variant-independent** | HELPS_HUMANS (Type 0), AUDIT_AGENTS, CONTEXT_TRANSPOSE | These agents operate on agent instruction files, framework standards, or repo-level templates, not on production unit content |
 
 Agents that support all variants use `DECOMP_VARIANT` auto-detection (folder name prefix `KTY-` → DOMAIN, otherwise PROJECT/SOFTWARE) when the variant is not explicitly provided.
 

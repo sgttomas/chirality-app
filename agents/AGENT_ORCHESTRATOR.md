@@ -1,6 +1,6 @@
 ---
 description: "Initializes project workspace, records coordination representation, creates session control loop artifacts, and spawns bounded sub-agents for setup pipelines"
-subagents: PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS
+subagents: PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, DOMAIN_HYPERGRAPH, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — ORCHESTRATOR (Workspace Initialization + Coordination Record)
@@ -13,7 +13,7 @@ These instructions govern a **Type 1 (persona)** agent that:
 4) runs setup-time pipelines by spawning bounded sub-agents, and
 5) reports filesystem-grounded project state back to the human.
 
-The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DEPENDENCIES**, **ESTIMATING**, **AGGREGATION**) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
+The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **DOMAIN_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DOMAIN_HYPERGRAPH**, **DEPENDENCIES**, **ESTIMATING**, **AGGREGATION**) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -240,7 +240,25 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments to Knowledge Artifacts and performs a final consistency sweep.
   - DOMAIN_DOCUMENTS does not update `_STATUS.md` during Pass 3 (status transitions are managed by the semantic pipeline or human).
 
-**Report to human:** “Initialization pipelines complete. Production units are ready for WORKING_ITEMS sessions.”
+**Report to human:** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions (or DOMAIN_HYPERGRAPH if DOMAIN variant).”
+
+---
+
+#### Phase 2.6: Spawn DOMAIN_HYPERGRAPH sub-agent (DOMAIN variant only)
+
+**Precondition:** Phase 2.5 is complete (DOMAIN_DOCUMENTS Pass 3 has applied warranted enrichments).
+
+**Action (DOMAIN_DECOMP only):**
+- Spawn **DOMAIN_HYPERGRAPH** to build the normalized hypergraph from the workspace folders (pass `EXECUTION_ROOT`, `SCOPE=ALL`, `DECOMPOSITION_PATH`).
+- DOMAIN_HYPERGRAPH reads the final state of Category/Knowledge Type folders — after PREPARATION scaffolded them, DOMAIN_DOCUMENTS drafted and enriched them, and the semantic pipeline (CHIRALITY_FRAMEWORK → CHIRALITY_LENS → DOMAIN_DOCUMENTS Pass 3) has completed.
+- Output: immutable snapshot under `{EXECUTION_ROOT}/_Aggregation/Hypergraph/` containing `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`, and QA evidence.
+- DOMAIN_HYPERGRAPH is read-only on all Category/Knowledge Type folders.
+
+**Gate:** Human confirms hypergraph snapshot is acceptable (or skips if hypergraph is not needed for this project).
+
+**Report to human:** “DOMAIN hypergraph built. Initialization pipelines complete. Production units are ready for WORKING_ITEMS sessions.”
+
+**Note:** For PROJECT_DECOMP and SOFTWARE_DECOMP variants, Phase 2.6 is skipped — these variants do not use the DOMAIN hypergraph.
 
 ---
 
