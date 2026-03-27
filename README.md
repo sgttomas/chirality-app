@@ -13,6 +13,10 @@ This repo ships:
 
 If you can choose a folder, you can run Chirality: pick a working directory, start a session, and let agents create/update the project structure under that root.
 
+### Why "Chirality"
+
+In chemistry, chirality is the property that makes a molecule and its mirror image fundamentally different despite being structurally identical. An LLM producing plausible engineering output and an LLM producing *trustworthy* engineering output are structurally similar — same model, same tokens, same capability. The difference is the governance architecture: invariant contracts, mandatory provenance, bounded write scopes, human gate authority, and immutable audit trails. That governance is the chirality — the handedness that makes two structurally identical outputs opposite in what you can rely on.
+
 ## Core Concepts
 
 ### Decomposition
