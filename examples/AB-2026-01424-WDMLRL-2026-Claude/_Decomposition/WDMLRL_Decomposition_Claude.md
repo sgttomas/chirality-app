@@ -5,7 +5,7 @@
 **Location:** SW 14–44–21–W4, near Ferintosh, Alberta  
 **Contract Form:** CCDC 14–2013 Design-Build Stipulated Price Contract  
 **Completion Deadline:** December 31, 2026  
-**Revision:** R1 — 2026-02-25  
+**Revision:** R2 — 2026-03-26 (SCA-001: Addenda 2, 3, 4)  
 **Perspective:** Proponent (Design-Builder)
 
 ---
@@ -37,6 +37,9 @@
 | R-05 | AB-2026-01424-Appendix_B__Electrical_.pdf | Conceptual drawing — Electrical layout, legend, and notes |
 | R-06 | AB-2026-01424-Appendix_B__Plumbing_.pdf | Conceptual drawing — Plumbing layout and notes |
 | R-07 | AB-2026-01424-Appendix_C_-_Site_Maps.pdf | Site location map and expansion area aerial |
+| R-08 | AB-2026-01424-Addendum_2.pdf | Addendum No. 2, dated Mar 5, 2026. County confirms full concrete structure required (no pre-engineered steel) |
+| R-09 | AB-2026-01424-Addendum_3.pdf | Addendum No. 3, dated Mar 5, 2026. Post site visit Q&A: crane hook height 26', budget $3.5M, power pole relocation (Contractor), gas line relocation (County), gas supply 2" PVC 50 PSI, 3-phase confirmed. Includes site visit log (FIGURE 1) and survey plan (FIGURE 2) |
+| R-10 | AB-2026-01424-Addendum_4.pdf | Addendum No. 4, dated Mar 12, 2026. Precast concrete walls + steel roof acceptable; max 25' runway bay spacing; corbel-supported crane; folding outward overhead doors; interior walls precast concrete; mezzanine railing (no walls) with 10' forklift gate |
 
 ---
 
@@ -62,6 +65,8 @@
 | Steel Plates | Steel plating | Embedded steel plates in concrete floor for heavy tracked/packer equipment |
 | Forced Air Makeup | Makeup air unit, MUA | Fresh/tempered air replacement system |
 | Gantry | Gantry crane | Per D-001: same equipment as the 5-tonne overhead cranes shown differently on drawings |
+| Corbel | Crane corbel, crane support bracket | Structural bracket cast or fixed into side walls to support crane runway beams (per Add. 4, Q3) |
+| Precast Concrete | Precast panels, precast walls | Factory-produced concrete panels used for exterior and interior walls (per Add. 2, Add. 4) |
 
 ---
 
@@ -102,8 +107,8 @@
 
 | ScopeItemID | Statement | InOut | SourceRef |
 |---|---|---|---|
-| SOW-0011 | Complete final architectural design for the addition (~13,000 sq ft useable area) | IN | §1.0, §3.1 |
-| SOW-0012 | Complete final structural design (concrete structure, 35' ceiling) | IN | §3.4, App B |
+| SOW-0011 | Complete final architectural design for the addition (~13,000 sq ft useable area); interior walls to be precast concrete (Add. 4, Q5) | IN | §1.0, §3.1, Add. 4 |
+| SOW-0012 | Complete final structural design (precast concrete walls, steel roof structure, 35' ceiling; interior walls precast concrete) (Add. 2, Add. 4) | IN | §3.4, App B, Add. 2, Add. 4 |
 | SOW-0013 | Complete final mechanical design (HVAC, ventilation, exhaust systems) | IN | §1.0, §3.4 |
 | SOW-0014 | Complete final electrical design (three-phase power distribution, lighting, receptacles) | IN | §1.0, §3.4, App B-Elec |
 | SOW-0015 | Complete final civil design including site grading plan with drainage features and components | IN | §3.3.2 |
@@ -118,10 +123,10 @@
 
 | ScopeItemID | Statement | InOut | SourceRef |
 |---|---|---|---|
-| SOW-0022 | Construct concrete structure with 35' ceiling height | IN | §3.4, App B |
+| SOW-0022 | Construct building with precast concrete walls and steel roof structure, 35' ceiling height (Add. 2 required full concrete; Add. 4 relaxed to precast walls + steel roof) | IN | §3.4, App B, Add. 2, Add. 4 |
 | SOW-0023 | Construct foundation (pricing negotiated post-geotech report) | IN | §4.8.2 |
 | SOW-0024 | Install steel plates in concrete floor at strategic locations for tracked/packer heavy equipment | IN | §3.4, App B |
-| SOW-0025 | Construct two drive-through repair bays with overhead doors (24' wide bays per drawing) | IN | §3.1, App B |
+| SOW-0025 | Construct two drive-through repair bays with folding outward overhead doors (24' wide bays per drawing); door type must not impede overhead crane function in open or closed position (Add. 4, Q4) | IN | §3.1, App B, Add. 4 |
 | SOW-0026 | Install separate entrance/exit doors for the addition | IN | §3.1 |
 | SOW-0027a | Construct enclosed wash bay structure (single bay, 24' wide, motor scraper-sized), including overhead door, walls, roof integration, steel plate floor | IN | §3.1, §3.4, App B |
 | SOW-0027b | Construct wash bay drainage infrastructure including floor drains, connection to mud sump, and exterior mud sump for excavator cleanout | IN | §3.4, App B |
@@ -129,7 +134,7 @@
 | SOW-0029 | Construct parts storage room (~400 sq ft secure area) with 6' wide roll-up door | IN | §3.4, App B |
 | SOW-0030 | Construct utility room | IN | §3.1, App B |
 | SOW-0031 | Construct office space | IN | §3.1, App B |
-| SOW-0032 | Construct mezzanine storage above parts room, utility room, and wash bay | IN | §3.4, App B |
+| SOW-0032 | Construct mezzanine storage above parts room, utility room, and wash bay; no perimeter walls — standard steel safety railing with 10-foot sliding gate for forklift access (Add. 4, Q6) | IN | §3.4, App B, Add. 4 |
 | SOW-0033 | Mezzanine structure to be load-bearing, capable of heavy items (oil totes, pumping equipment) | IN | §3.4, App B |
 | SOW-0034 | Construct stairs to mezzanine | IN | App B |
 
@@ -183,7 +188,7 @@
 
 | ScopeItemID | Statement | InOut | SourceRef | Notes |
 |---|---|---|---|---|
-| SOW-0067 | Supply and install two 5-tonne overhead cranes on trolley | IN | §3.4, App B | Per D-001, includes gantry references on drawings |
+| SOW-0067 | Supply and install two 5-tonne overhead cranes on trolley; hook height 26' (Add. 3, Q3); max 25' runway bay spacing (Add. 4, Q2); corbel-supported on side walls — crane supplier provides loading to contractor (Add. 4, Q3) | IN | §3.4, App B, Add. 3, Add. 4 | Per D-001, includes gantry references on drawings |
 
 ### I — Renovation of Existing Building (Old North Shop)
 
@@ -209,9 +214,10 @@
 
 | ScopeItemID | Statement | InOut | SourceRef |
 |---|---|---|---|
-| SOW-0080 | Coordinate and execute natural gas tie-in | IN | §3.3.2 |
+| SOW-0080 | Coordinate and execute natural gas tie-in; existing supply is 2-inch PVC pipe at 50 PSI constant pressure (Add. 3, Q8); gas pipeline relocation by County — see SOW-0206 (Add. 3, Q9) | IN | §3.3.2, Add. 3 |
 | SOW-0081 | Coordinate and execute electrical service tie-in | IN | §3.3.2 |
 | SOW-0082 | Coordinate and execute communication lines tie-in | IN | §3.3.2 |
+| SOW-0122 | Relocate electrical pole(s) and transformers as required and coordinate the move(s) with the local service provider(s) (Add. 3, Q7 — addition to RFP §3.3.2) | IN | §3.3.2, Add. 3 |
 
 ### L — Construction Management & OH&S
 
@@ -271,6 +277,7 @@
 | SOW-0203 | Supply of aggregate/gravel | §3.3.1, App B | County/Landfill responsibility |
 | SOW-0204 | Supply of welding equipment (County supplies specifications only) | §3.4 | County responsibility |
 | SOW-0205 | Relocation of existing septic tank to a new location on site | §3.4 | Per D-002 |
+| SOW-0206 | Relocation of natural gas pipeline to accommodate construction | Add. 3, Q9 | County responsibility; addition to RFP §3.3.1 |
 
 ### TBD / Uncertain (Remaining)
 
@@ -673,6 +680,7 @@
 | SOW-0080 | IN | PKG-018 | DEL-018-06 | OBJ-001 | FALSE | | |
 | SOW-0081 | IN | PKG-018 | DEL-018-06 | OBJ-001, OBJ-005 | FALSE | | |
 | SOW-0082 | IN | PKG-018 | DEL-018-06 | OBJ-001 | FALSE | | |
+| SOW-0122 | IN | PKG-018 | DEL-018-06 | OBJ-001 | FALSE | D-011 | Electrical pole relocation per Add. 3, Q7 |
 | SOW-0083 | IN | PKG-019 | DEL-019-01 | OBJ-007 | FALSE | | |
 | SOW-0084 | IN | PKG-009 | DEL-009-04 | OBJ-001, OBJ-007 | FALSE | | |
 | SOW-0085 | IN | PKG-009 | DEL-009-04 | OBJ-001, OBJ-007 | FALSE | | |
@@ -704,18 +712,18 @@
 
 | Metric | Value |
 |---|---|
-| ScopeItemCount (IN) | 91 |
-| ScopeItemCount (OUT) | 6 |
+| ScopeItemCount (IN) | 92 |
+| ScopeItemCount (OUT) | 7 |
 | ScopeItemCount (TBD) | 2 |
 | PackageCount | 21 |
-| DeliverableCount | 111 |
+| DeliverableCount | 117 |
 | ObjectiveCount | 8 |
 | UnassignedScopeItems | **0** |
 | ScopeItemsWithoutDeliverableMapping | **0** |
 | ScopeItemsAssignedToMultiplePackages | **0** |
 | UnmappedObjectives | **0** |
 | OpenIssueCount | **0** |
-| Revision | R1 — 2026-02-25 |
+| Revision | R2 — 2026-03-26 (SCA-001) |
 
 ### Objective Coverage Matrix
 
@@ -757,7 +765,18 @@
 | D-008 | SOW-0018 (P.Eng. stamping) treated as a quality attribute of each IFC drawing set deliverable; assigned to PKG-001 as coordinating discipline for tracking. | 5 | No structural change |
 | D-009 | Welding receptacles assumed to be 50A/240V industrial-grade, consistent with electrical drawing. If County-supplied welder specs differ, treated as scope change. OI-001 closed. | 6 | SOW-0302 resolved; open issue closed |
 | D-010 | Topsoil stripping (SOW-0075) assumed required regardless of whether Owner has completed it. OI-002 closed. | 6 | SOW-0301 resolved; open issue closed |
+| D-011 | Addenda 2, 3, and 4 incorporated as scope change SCA-001. New scope item SOW-0122 (electrical pole relocation) added to PKG-018/DEL-018-06. New OUT item SOW-0206 (gas pipeline relocation — County). Six existing scope items modified with design parameters from addenda Q&A. §9 DeliverableCount corrected from 111 to 117 (pre-existing documentation error). | SCA-001 | +1 IN scope item, +1 OUT scope item, 6 modifications |
+| D-012 | Structural system: Addendum 2 required full concrete; Addendum 4 relaxed to precast concrete walls + steel roof. Net constraint: precast walls mandatory, steel roof acceptable. SOW-0022 and SOW-0012 updated accordingly. | SCA-001 | Superseding clarification across two addenda |
+| D-013 | SOW-0122 mapped to existing DEL-018-06 (Utility Tie-Ins) rather than creating a new deliverable, because electrical pole relocation is a natural extension of the electrical service tie-in scope (SOW-0081) already covered by DEL-018-06. | SCA-001 | No new deliverable created |
 
 ---
 
-*End of Decomposition Document — R1*
+## 12. Change Log
+
+| AmendmentID | Date | Description | Requested By |
+|---|---|---|---|
+| SCA-001 | 2026-03-26 | Incorporate Addenda 2, 3, and 4: structural system updated (precast walls + steel roof), crane parameters established (26' hook, 25' bay spacing, corbel-supported), overhead doors specified (folding outward), mezzanine railing specified (no walls, steel railing + 10' forklift gate), interior walls specified (precast concrete), gas supply parameters added (2" PVC, 50 PSI), electrical pole relocation added (SOW-0122, Contractor), gas pipeline relocation added to OUT (SOW-0206, County). §9 DeliverableCount corrected 111→117. | Human (scope change request) |
+
+---
+
+*End of Decomposition Document — R2 (SCA-001)*

@@ -18,7 +18,7 @@
 - **Status:** COMPLETE
 - **Dependencies.csv:** Dependencies.csv (23 rows)
 - **Schema Version:** v3.1
-- **Run Date:** 2026-02-26
+- **Run Date:** 2026-03-26 (last refreshed)
 
 ### Summary
 
@@ -37,7 +37,7 @@
 
 | DependencyID | AnchorType | TargetRefID | TargetName | Confidence |
 |---|---|---|---|---|
-| DEP-011-03-001 | IMPLEMENTS_NODE | SOW-0025 | Construct two drive-through repair bays with overhead doors | HIGH |
+| DEP-011-03-001 | IMPLEMENTS_NODE | SOW-0025 | Construct two drive-through repair bays with folding outward overhead doors (Add. 4 Q4); crane clearance constraint | HIGH |
 | DEP-011-03-002 | TRACES_TO_REQUIREMENT | OBJ-001 | Deliver a code-compliant fully functional maintenance shop addition | HIGH |
 
 ### EXECUTION Edges -- UPSTREAM (13 rows)
@@ -83,20 +83,36 @@
 - MODE: UPDATE
 - STRICTNESS: CONSERVATIVE
 - CONSUMER_CONTEXT: TASK_ESTIMATING
-- DECOMPOSITION_PATH: /Users/ryan/ai-env/projects/chirality-project-test/test/AB-2026-01424-WDMLRL-2026-Claude/_Decomposition/WDMLRL_Decomposition_Claude.md (found; R1 2026-02-25)
+- DECOMPOSITION_PATH: Located (R1 2026-02-25)
 
-**Source Documents Scanned (DOC_ROLE_MAP = DEFAULT heuristic):**
-- ANCHOR_DOC: Datasheet.md (matched: "datasheet" keyword)
-- EXECUTION_DOCS (in order): Procedure.md, Guidance.md, Specification.md
-- Also read: _DEPENDENCIES.md (declared lists), _REFERENCES.md, _CONTEXT.md
-
-**Decomposition Status:** Available. All target deliverable IDs validated against Decomposition S7 deliverable tables. All SOW and OBJ identifiers validated against Decomposition S3 and S5.
+**Source Documents Scanned:**
+- ANCHOR_DOC: Datasheet.md
+- EXECUTION_DOCS: Procedure.md, Guidance.md, Specification.md
 
 **Warnings:** None.
 
-**Assumptions Logged:**
-- DEP-011-03-005 (Foundation prerequisite): Transitive dependency (via DEL-011-01) but also explicitly stated in Procedure prerequisites table and Guidance construction sequencing. Retained as a direct dependency because the source text explicitly states it.
-- DEP-011-03-023 (PKG-012 downstream): Declared dependency preserved from _DEPENDENCIES.md. Specific deliverable within PKG-012 not identified in source. TargetType set to PACKAGE rather than DELIVERABLE.
+### Run 2026-03-26 -- SCA-001 Refresh
+
+**Inputs and Defaults:**
+- SCOPE: DEL-011-03 (as part of PKG-011 batch)
+- RUN_ROOT: /Users/ryan/ai-env/projects/chirality-app/examples/AB-2026-01424-WDMLRL-2026-Claude/
+- DECOMPOSITION_PATH: _Decomposition/WDMLRL_Decomposition_Claude.md (R2 -- 2026-03-26, SCA-001)
+- MODE: UPDATE
+- STRICTNESS: CONSERVATIVE
+- CONSUMER_CONTEXT: NONE
+- SOURCE_DOCS: AUTO (Datasheet.md, Guidance.md, Procedure.md, Specification.md)
+
+**SCA-001 Changes Affecting This Deliverable:**
+- SOW-0025 updated: "Construct two drive-through repair bays with folding outward overhead doors (24' wide bays per drawing); door type must not impede overhead crane function in open or closed position (Add. 4, Q4)"
+- DEP-011-03-001 anchor statement updated to reflect folding outward door specification and crane clearance constraint.
+- The crane clearance constraint (doors must not impede crane function) reinforces the existing DEP-011-03-011 (crane support structure interface) and DEP-011-03-019 (crane clearance coordination). No new rows needed.
+
+**Changes Applied:**
+- Updated LastSeen to 2026-03-26 on all 23 ACTIVE rows.
+- Updated DEP-011-03-001 statement to reflect SCA-001 SOW-0025 text (folding outward doors; crane clearance).
+- No new rows added. No rows retired.
+
+**Warnings:** None.
 
 **Quality Check Results:**
 - Parent anchor check: PASS (exactly 1 ACTIVE IMPLEMENTS_NODE: DEP-011-03-001 -> SOW-0025)
@@ -105,8 +121,6 @@
 - Evidence completeness: PASS (all ACTIVE rows have EvidenceFile and SourceRef)
 - Schema version: PASS (all rows v3.1)
 - Referential integrity: PASS (FromDeliverableID = DEL-011-03 on all rows)
-- Target ID placement: PASS (non-deliverable targets have empty TargetDeliverableID; DELIVERABLE targets have populated TargetDeliverableID)
-- No duplicate extracted rows detected
 
 ---
 
@@ -115,6 +129,7 @@
 | Run Date | Mode | Strictness | Consumer | Decomp Status | Warnings | ACTIVE Anchor | ACTIVE Execution | Notes |
 |---|---|---|---|---|---|---|---|---|
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | Available (R1 2026-02-25) | None | 2 | 21 | Initial extraction. 23 total ACTIVE rows. |
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | Available (R2 2026-03-26 SCA-001) | None | 2 | 21 | SCA-001 refresh. SOW-0025 anchor updated (folding outward doors). |
 
 ---
 
@@ -132,11 +147,6 @@
 | SatisfactionStatus | Count |
 |---|---|
 | PENDING | 21 |
-| TBD | 0 |
-| IN_PROGRESS | 0 |
-| SATISFIED | 0 |
-| WAIVED | 0 |
-| NOT_APPLICABLE | 0 |
 
 ### EstimateImpactClass Breakdown (all ACTIVE rows)
 
@@ -145,20 +155,3 @@
 | BLOCKING | 11 |
 | ADVISORY | 8 |
 | INFO | 4 |
-
----
-
-## Downstream Handoff Notes (CONSUMER_CONTEXT = TASK_ESTIMATING)
-
-DEL-011-03 is a construction deliverable with a dense upstream dependency chain. Key observations for estimating:
-
-**Blocking Dependencies (11 rows):**
-- 10 UPSTREAM blockers: Foundation (DEL-010-01), Superstructure (DEL-011-01), Steel Embedments (DEL-011-02), Building Permit (DEL-009-02), Safety Code Permits (DEL-009-03), IFC structural drawings (DEL-002-03, DEL-002-04), IFC architectural plans (DEL-001-02), IFC door schedule (DEL-001-07). All are explicit prerequisites that gate construction commencement.
-- 2 DOWNSTREAM blockers: Exhaust system provisions (DEL-013-04) and sump drain provisions (DEL-014-04) require structural provisions from this deliverable before their mechanical/plumbing rough-in can proceed. These have formal coordination hold points.
-
-**Estimating Implications:**
-- This deliverable cannot be estimated in isolation. Its start date depends on superstructure completion, which in turn depends on foundation completion.
-- IFC drawings from 6 design deliverables (DEL-001-02, DEL-001-07, DEL-002-03, DEL-002-04, DEL-002-07, DEL-002-08) must be available before construction.
-- Overhead door procurement (4 doors) has an 8-16 week lead time (ASSUMPTION from Guidance/Procedure) that should be factored into schedule estimating.
-- Downstream MEP packages (PKG-013, PKG-014, PKG-015) depend on structural provisions from this deliverable. Delays here cascade to those packages.
-- The December 31, 2026 hard deadline (REQ-011-03-013) constrains the overall schedule chain.

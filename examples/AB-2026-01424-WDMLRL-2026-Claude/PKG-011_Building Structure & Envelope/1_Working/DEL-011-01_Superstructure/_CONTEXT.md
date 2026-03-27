@@ -7,7 +7,9 @@
 **Responsible:** General Contractor
 
 ## Description
-Concrete Superstructure — Construction deliverable covering SOW-0022 (Concrete structural frame and deck system) as part of Building Structure & Envelope package.
+Concrete Superstructure — Construction deliverable covering SOW-0022 (Precast concrete wall panels and steel roof structure, 35' ceiling height (Add. 2/4)) as part of Building Structure & Envelope package.
+
+**Last amended:** 2026-03-26 (SCA-001)
 
 ## Anticipated Artifacts
 - Concrete structural installation documentation

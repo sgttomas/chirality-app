@@ -57,6 +57,28 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- No addenda changes directly affect steel plate embedment scope. SOW-0024 is unchanged.
+- The precast wall system change does not directly alter floor slab embedment design.
+- No new dependency edges identified under CONSERVATIVE strictness.
+
+**Extraction result:**
+- All 14 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None.
+
+---
+
 ### Run 2026-02-26 (Initial full extraction)
 
 **Parameters:**
@@ -106,6 +128,7 @@
 
 | Timestamp | Mode | Strictness | Decomposition | Consumer | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | Available (R2, SCA-001) | NONE | None | 3 | 11 | 14 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | Available (R1 2026-02-25) | TASK_ESTIMATING | None | 3 | 11 | 14 |
 
 ---

@@ -59,6 +59,28 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0012 updated (precast concrete walls + steel roof, Add. 2/4). Foundation plan interface is unchanged: foundation type still TBD pending geotech. Superstructure system change (precast vs. cast-in-place) may change column loads but does not introduce new information-flow edges.
+- SOW-0019 unchanged in substance: variable-price foundation scope remains.
+- No new dependency edges identified under CONSERVATIVE strictness.
+
+**Extraction result:**
+- All 22 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- [WARNING] AMBIGUOUS_ANCHOR: Multiple ACTIVE parent anchors (IMPLEMENTS_NODE) found. DEP-002-02-A01 (SOW-0012) and DEP-002-02-A01b (SOW-0019). Retained from prior run -- both are FACT.
+
+---
+
 **Run timestamp:** 2026-02-26
 **Mode:** UPDATE
 **Strictness:** CONSERVATIVE
@@ -95,6 +117,7 @@
 
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | ACTIVE Total |
 |---|---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | Available (R2, SCA-001) | AMBIGUOUS_ANCHOR (2 IMPLEMENTS_NODE) | 5 | 17 | 22 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | Available (R1 2026-02-25) | AMBIGUOUS_ANCHOR (2 IMPLEMENTS_NODE) | 5 | 17 | 22 |
 
 ---

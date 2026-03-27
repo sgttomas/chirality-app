@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ## Dependency Framework
 
@@ -54,9 +54,9 @@ Deliverables that depend on completion of this deliverable:
 
 ## Extracted Dependency Register
 
-**Total rows**: 18 (18 ACTIVE, 0 RETIRED)
-**ANCHOR rows**: 6 (1 IMPLEMENTS_NODE, 5 TRACES_TO_REQUIREMENT)
-**EXECUTION rows**: 12
+**Total rows**: 21 (21 ACTIVE, 0 RETIRED)
+**ANCHOR rows**: 7 (1 IMPLEMENTS_NODE, 6 TRACES_TO_REQUIREMENT)
+**EXECUTION rows**: 14
 
 ### ANCHOR Edges (Tree -- Definition Traceability)
 
@@ -68,6 +68,7 @@ Deliverables that depend on completion of this deliverable:
 | DEP-018-06-004 | TRACES_TO_REQUIREMENT | REQUIREMENT | SOW-0082 | SOW-0082 -- Communication lines tie-in | HIGH |
 | DEP-018-06-005 | TRACES_TO_REQUIREMENT | REQUIREMENT | OBJ-001 | OBJ-001 -- Code-compliant maintenance shop | HIGH |
 | DEP-018-06-006 | TRACES_TO_REQUIREMENT | REQUIREMENT | OBJ-005 | OBJ-005 -- Electrical/low-voltage systems | HIGH |
+| DEP-018-06-019 | TRACES_TO_REQUIREMENT | REQUIREMENT | SOW-0122 | SOW-0122 -- Electrical pole relocation (Add. 3 Q7) | HIGH |
 
 ### EXECUTION Edges (DAG -- Information Flow)
 
@@ -85,6 +86,8 @@ Deliverables that depend on completion of this deliverable:
 | DEP-018-06-016 | UPSTREAM | INTERFACE | DOCUMENT | App C (Site Maps) | INFO | Site location context for utility routing |
 | DEP-018-06-017 | UPSTREAM | CONSTRAINT | DELIVERABLE | DEL-009-04 (Code Compliance Register) | ADVISORY | County must attend inspections; reports must be provided |
 | DEP-018-06-018 | UPSTREAM | INTERFACE | DELIVERABLE | DEL-018-05 (Wash Bay Drainage) | ADVISORY | Utility routing must avoid conflicts with drainage |
+| DEP-018-06-020 | UPSTREAM | CONSTRAINT | EXTERNAL | County Gas Pipeline Relocation (SOW-0206 OUT) | ADVISORY | County gas pipeline relocation timing coordination required |
+| DEP-018-06-021 | UPSTREAM | INTERFACE | EXTERNAL | Local Electrical Service Provider -- Pole Relocation | BLOCKING | Pole/transformer relocation coordination per SOW-0122 |
 
 ---
 
@@ -121,7 +124,39 @@ Deliverables that depend on completion of this deliverable:
 ### Assumptions Recorded
 - None elevated to dependency rows at CONSERVATIVE strictness. All emitted rows are evidence-backed FACT.
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+
+**Parameters:**
+- MODE: UPDATE
+- STRICTNESS: CONSERVATIVE
+- CONSUMER_CONTEXT: NONE
+- SOURCE_DOCS: AUTO (resolved to: Datasheet.md, Guidance.md, Procedure.md, Specification.md)
+- ANCHOR_DOC: Datasheet.md
+- EXECUTION_DOC_ORDER: Procedure.md, Guidance.md, Specification.md
+- DECOMPOSITION_PATH: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+
+**SCA-001 impact assessment:**
+- **SOW-0122 (NEW)**: Electrical pole(s) and transformer relocation added to DEL-018-06 scope per Addendum 3, Q7. Decomposition decision D-013 maps SOW-0122 to existing DEL-018-06 rather than creating a new deliverable. New ANCHOR trace row DEP-018-06-019 added. New EXECUTION INTERFACE row DEP-018-06-021 added for service provider coordination.
+- **SOW-0080 (MODIFIED)**: Gas supply parameters confirmed: 2-inch PVC pipe at 50 PSI constant pressure (Add. 3, Q8). These are parameter clarifications that do not change dependency structure. Existing DEP-018-06-002 (ANCHOR trace to SOW-0080) and DEP-018-06-010/014 (gas-related EXECUTION edges) remain valid.
+- **SOW-0206 (NEW OUT)**: Gas pipeline relocation is County responsibility (Add. 3, Q9). New EXECUTION CONSTRAINT row DEP-018-06-020 added -- Contractor must coordinate gas tie-in timing with County pipeline relocation schedule.
+- **_CONTEXT.md updated** to reflect SOW-0122 addition and gas parameter clarifications (Last amended: 2026-03-26).
+- All 18 existing rows confirmed ACTIVE with LastSeen updated. 3 new rows added.
+
+**Decomposition validation (R2):**
+- SOW-0122 confirmed in R2 scope ledger: IN, PKG-018, DEL-018-06, OBJ-001, D-011.
+- SOW-0206 confirmed in R2 scope boundaries: OUT, County responsibility.
+- SOW-0080 confirmed with updated parameters (2" PVC, 50 PSI).
+- D-011 and D-013 confirmed in R2 decision log.
+
+**New rows added:**
+1. DEP-018-06-019: ANCHOR TRACES_TO_REQUIREMENT -> SOW-0122 (electrical pole relocation)
+2. DEP-018-06-020: EXECUTION CONSTRAINT -> SOW-0206 County gas pipeline relocation (EXTERNAL)
+3. DEP-018-06-021: EXECUTION INTERFACE -> Local Electrical Service Provider pole relocation coordination (EXTERNAL, BLOCKING)
+
+**Warnings:**
+- None. Parent anchor (IMPLEMENTS_NODE) found: 1 row. No FLOATING_NODE or AMBIGUOUS_ANCHOR.
+
+### Warnings (Run 2026-02-26)
 - (none)
 
 ### Integrity Check Results
@@ -139,6 +174,7 @@ Deliverables that depend on completion of this deliverable:
 | Run | Date | Mode | Strictness | Consumer | Decomp Status | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |-----|------|------|------------|----------|---------------|----------|----------------|------------------|--------------|
 | 1 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | Loaded (WDMLRL_Decomposition_Claude.md R1) | None | 6 | 12 | 18 |
+| 2 | 2026-03-26 | UPDATE | CONSERVATIVE | NONE | Loaded (WDMLRL_Decomposition_Claude.md R2, SCA-001) | None | 7 | 14 | 21 |
 
 ---
 
@@ -146,22 +182,22 @@ Deliverables that depend on completion of this deliverable:
 
 | Metric | Count |
 |--------|-------|
-| Total rows | 18 |
-| ACTIVE | 18 |
+| Total rows | 21 |
+| ACTIVE | 21 |
 | RETIRED | 0 |
 
 ### Closure State Breakdown (ACTIVE rows)
 
 | SatisfactionStatus | Count |
 |--------------------|-------|
-| PENDING | 7 |
-| TBD | 11 |
+| PENDING | 9 |
+| TBD | 12 |
 
 ### Extraction Lifecycle
 
 | Origin | ACTIVE | RETIRED |
 |--------|--------|---------|
-| EXTRACTED | 18 | 0 |
+| EXTRACTED | 21 | 0 |
 | DECLARED | 0 | 0 |
 
 ---

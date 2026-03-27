@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ## Dependency Framework
 
@@ -110,7 +110,13 @@ Deliverables that depend on completion of this deliverable:
 - Declared downstream rows WASH-BAY-OPS-001 and ENVIRONMENTAL-001 from the original _DEPENDENCIES.md are preserved in the declared sections above but NOT re-emitted as extracted rows because they lack specific evidence of a concrete artifact/information handover in the source documents. They represent operational outcomes rather than information-flow edges.
 - The Geotechnical Report is recorded as TargetType=DOCUMENT with reference to SOW-0001 because it is a specific document input, not a deliverable in the decomposition.
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+- **MODE**: UPDATE | **STRICTNESS**: CONSERVATIVE | **CONSUMER_CONTEXT**: NONE
+- **DECOMPOSITION_PATH**: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- **SCA-001 impact**: No changes to DEL-018-05 scope or dependencies. SOW-0027b unchanged in R2 decomposition. All 14 existing rows confirmed ACTIVE with LastSeen updated.
+- **Warnings**: None.
+
+### Warnings (Run 2026-02-26)
 - None. Parent anchor (IMPLEMENTS_NODE) found: 1 row (DEP-018-05-001). No FLOATING_NODE or AMBIGUOUS_ANCHOR conditions.
 
 ---
@@ -120,6 +126,7 @@ Deliverables that depend on completion of this deliverable:
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ANCHOR Active | EXECUTION Active | Total Active |
 |---|---|---|---|---|---|---|---|---|
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | WDMLRL_Decomposition_Claude.md (R1) | None | 3 | 11 | 14 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | WDMLRL_Decomposition_Claude.md R2 (SCA-001) | None | 3 | 11 | 14 |
 
 ---
 

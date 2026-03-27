@@ -65,6 +65,31 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0012 updated: precast concrete walls + steel roof structure (Add. 2/4). Calculation package must now include: precast wall panel design calculations, steel roof framing calculations, corbel connection calculations, precast interior wall calculations. These are scope expansions within existing calculation categories.
+- SOW-0067 updated: corbel loads from crane runways on precast wall panels. Crane runway calculation scope now includes corbel design and panel capacity verification.
+- _CONTEXT.md updated (2026-03-26): "Calculation package must account for: precast concrete walls + steel roof structure, corbel loads from crane runways, precast interior wall loads (Add. 2/3/4)."
+- **Impact on existing dependencies:** All existing edges remain valid. The precast wall + steel roof system expands the scope of calculations but does not introduce new information-flow edges that aren't already captured (crane supplier data, geotech report, architectural coordination are all already represented).
+- **Potential new dependency signal:** Precast panel fabricator structural data (panel section properties, connection hardware capacities) may be a new input. Source documents not yet updated. Under CONSERVATIVE strictness, no new row emitted.
+- **Recommendation:** After source documents are updated to reflect SCA-001, a precast fabricator interface and potentially a steel roof joist/truss manufacturer interface may warrant new EXECUTION rows.
+
+**Extraction result:**
+- All 27 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None. Parent anchor present and unique.
+
+---
+
 ### Run: 2026-02-26
 
 **Parameters:**
@@ -110,6 +135,7 @@
 
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ANCHOR ACTIVE | EXECUTION ACTIVE | Total ACTIVE |
 |---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md R2 SCA-001 (available) | None | 6 | 21 | 27 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md R1 (available) | None | 6 | 21 | 27 |
 
 ---

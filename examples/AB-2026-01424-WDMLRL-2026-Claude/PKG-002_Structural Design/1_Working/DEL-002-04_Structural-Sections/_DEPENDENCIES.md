@@ -49,7 +49,32 @@
 
 ## Run Notes
 
-### Run Parameters
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0012 updated: "precast concrete walls, steel roof structure, interior walls precast concrete" (Add. 2/4). Major impact on DEL-002-04: structural sections must now show precast wall panel details and steel roof framing connections. _CONTEXT.md updated to reflect this.
+- SOW-0022 updated: precast walls + steel roof. Affects wall section details shown in DEL-002-04.
+- **Potential new dependency signal:** Precast wall panel fabricator/supplier data (panel dimensions, connection hardware, lifting inserts) may become a new EXTERNAL/DOCUMENT prerequisite for section detailing. Source documents (Datasheet, Procedure, Specification, Guidance) have not yet been updated to list precast supplier data as an explicit input. Under CONSERVATIVE strictness, no new row emitted.
+- **Potential new dependency signal:** Steel roof structure detailing may require steel joist/truss supplier data. Source docs not yet updated. No new row emitted under CONSERVATIVE.
+- Existing CON-004 note in Guidance (construction method decision) is now partially resolved: Add. 2/4 confirms precast walls + steel roof, removing the cast-in-place vs. tilt-up vs. precast uncertainty. However, this does not create a new dependency edge.
+- **Recommendation:** After source documents are updated to reflect SCA-001 addenda content, re-run extraction. Precast supplier interface and steel roof supplier interface may warrant new EXECUTION rows.
+
+**Extraction result:**
+- All 18 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None. Parent anchor present and unique.
+
+---
+
+### Run Parameters (2026-02-26)
 - **Run date:** 2026-02-26
 - **MODE:** UPDATE
 - **STRICTNESS:** CONSERVATIVE
@@ -93,6 +118,7 @@
 
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md (R2, SCA-001) | None | 3 | 15 | 18 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md (R1) | None | 3 | 15 | 18 |
 
 ---

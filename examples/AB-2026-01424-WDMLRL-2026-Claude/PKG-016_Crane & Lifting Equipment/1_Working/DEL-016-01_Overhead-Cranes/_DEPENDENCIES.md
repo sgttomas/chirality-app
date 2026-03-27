@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema Version**: v3.1
-**Last Extraction Run**: 2026-02-26
+**Last Extraction Run**: 2026-03-26
 
 ---
 
@@ -159,6 +159,31 @@ These provide context but are unlikely to change totals:
 - PKG-004 appears as both UPSTREAM interface (DEP-016-01-E05, voltage/amperage needed for crane selection) and DOWNSTREAM interface (DEP-016-01-E07, crane electrical data provided for circuit sizing). This bidirectional relationship is correct.
 - Cross-package references to PKG-017 and PKG-018 mentioned in the prior _DEPENDENCIES.md Interdependency Matrix were evaluated. The source documents do not state explicit information/asset transfer to/from PKG-017 or PKG-018. Per CONSERVATIVE strictness, these are excluded as coordination-only / structural adjacency.
 
+### Run 2026-03-26 (SCA-001 Refresh)
+
+**Parameters:**
+- MODE: UPDATE
+- STRICTNESS: CONSERVATIVE
+- CONSUMER_CONTEXT: NONE
+- SOURCE_DOCS: AUTO (resolved to: Datasheet.md, Guidance.md, Procedure.md, Specification.md)
+- ANCHOR_DOC: Datasheet.md
+- EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md, Datasheet.md
+- DECOMPOSITION_PATH: _Decomposition/WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- _REFERENCES.md: Present and used
+
+**SCA-001 impact assessment:**
+- SOW-0067 updated in decomposition with crane parameters from Addenda 3 and 4: hook height 26' (Add. 3, Q3), max 25' runway bay spacing (Add. 4, Q2), corbel-supported on side walls (Add. 4, Q3).
+- _CONTEXT.md updated to reflect these parameters.
+- These parameter changes refine existing interfaces but do not create new dependency edges. The structural interface with DEL-002-07 (DEP-016-01-E01, E04, E06) now explicitly includes corbel design; this was already captured as the crane support structure interface.
+- No new dependencies identified. All 17 existing rows confirmed ACTIVE.
+
+**Decomposition validation:**
+- SOW-0067 confirmed in R2 decomposition scope ledger with updated parameters.
+- All target IDs re-validated against R2 decomposition: no changes to target resolution.
+
+**Warnings:**
+- None. Parent anchor (IMPLEMENTS_NODE) found: 1 row. No FLOATING_NODE or AMBIGUOUS_ANCHOR.
+
 ---
 
 ## Run History
@@ -166,6 +191,7 @@ These provide context but are unlikely to change totals:
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchor | ACTIVE Execution | ACTIVE Total |
 |-----------|------|------------|---------------|----------|---------------|------------------|--------------|
 | 2026-02-26 | UPDATE | CONSERVATIVE | _Decomposition/WDMLRL_Decomposition_Claude.md (used) | None | 4 | 13 | 17 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | _Decomposition/WDMLRL_Decomposition_Claude.md R2 (used) | None | 4 | 13 | 17 |
 
 ---
 

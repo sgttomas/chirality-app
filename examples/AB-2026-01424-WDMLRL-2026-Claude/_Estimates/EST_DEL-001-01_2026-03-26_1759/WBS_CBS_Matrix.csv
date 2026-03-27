@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-001-01,CBS-01,CAD,9840,3,100%,Design & Engineering (Senior Architect + Architect + BIM Technician)
+PKG-001,DEL-001-01,CBS-02,CAD,1530,2,100%,Project Management (Project Manager + Cost Estimator)

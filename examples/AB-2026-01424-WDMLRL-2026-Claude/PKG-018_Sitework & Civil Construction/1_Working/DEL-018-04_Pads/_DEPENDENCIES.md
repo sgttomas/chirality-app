@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ## Dependency Framework
 
@@ -96,7 +96,13 @@ Deliverables that depend on completion of this deliverable:
 - County/Landfill gravel supply recorded as EXTERNAL target because it is an owner-supplied material, not a deliverable in the decomposition.
 - Gravel supply confidence set to MEDIUM due to unresolved ambiguity on whether County also supplies concrete aggregate (CONF-018-04-02 in Guidance.md).
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+- **MODE**: UPDATE | **STRICTNESS**: CONSERVATIVE | **CONSUMER_CONTEXT**: NONE
+- **DECOMPOSITION_PATH**: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- **SCA-001 impact**: No changes to DEL-018-04 scope or dependencies. SOW-0078 and SOW-0079 unchanged in R2 decomposition. All 11 existing rows confirmed ACTIVE with LastSeen updated.
+- **Warnings**: None.
+
+### Warnings (Run 2026-02-26)
 - None. All checks pass.
 
 ---
@@ -106,6 +112,7 @@ Deliverables that depend on completion of this deliverable:
 | Run Date | Mode | Strictness | Consumer | Decomposition | Warnings | ANCHOR Active | EXECUTION Active | Total Active |
 |----------|------|------------|----------|---------------|----------|---------------|------------------|--------------|
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | WDMLRL_Decomposition_Claude.md (loaded) | None | 4 | 7 | 11 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | WDMLRL_Decomposition_Claude.md R2 (SCA-001) | None | 4 | 7 | 11 |
 
 ---
 

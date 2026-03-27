@@ -1,0 +1,10 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-018,DEL-018-06,CBS-02,CAD,6470.00,6,100%,Project Management (PM + CPM + Supt + Cost Est + QA/QC + HSE)
+PKG-018,DEL-018-06,CBS-05,CAD,14755.20,6,100%,General Construction Labour (Plumber + Electrician + Operator + Labourer + SOW-0122 support)
+PKG-018,DEL-018-06,CBS-17,CAD,55000.00,1,100%,Power Distribution & Equipment (Electrical pole/transformer relocation SOW-0122)
+PKG-018,DEL-018-06,CBS-22,CAD,5625.00,2,100%,"Earthwork, Surfacing & Landscaping (Trenching + Backfill)"
+PKG-018,DEL-018-06,CBS-23,CAD,26250.00,4,100%,Underground Utilities & Site Services (Conduit + Piping + Penetrations)
+PKG-018,DEL-018-06,CBS-24,CAD,78000.00,3,100%,Utility Connections (Gas + Electrical + Communications)
+PKG-018,DEL-018-06,CBS-25,CAD,6500.00,1,100%,"Commissioning, Testing & Inspection"
+PKG-018,DEL-018-06,CBS-28,CAD,3000.00,2,100%,"Permits, Fees & Bonding"
+PKG-018,DEL-018-06,CBS-29,CAD,4500.00,1,100%,General Requirements & Indirect (As-built drawings)

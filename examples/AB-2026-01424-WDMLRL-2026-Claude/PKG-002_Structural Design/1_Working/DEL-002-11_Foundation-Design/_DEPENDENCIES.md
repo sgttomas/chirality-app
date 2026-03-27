@@ -43,7 +43,29 @@
 
 ## Run Notes
 
-### Run Configuration
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Specification.md, Procedure.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0019 unchanged: variable-price foundation scope remains as-is.
+- The precast wall system change (Add. 2/4) may change superstructure load distribution to foundations, but this is captured through the existing interfaces (DEL-002-10 calculation package, DEL-002-02 foundation plan). No new dependency edges.
+- No addenda changes directly affect foundation design variable-price scope.
+
+**Extraction result:**
+- All 13 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None.
+
+---
+
+### Run Configuration (2026-02-26)
 - **Run Date:** 2026-02-26
 - **MODE:** UPDATE
 - **STRICTNESS:** CONSERVATIVE
@@ -85,6 +107,7 @@
 
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ANCHOR Active | EXECUTION Active | Total Active |
 |---|---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | FOUND (R2, SCA-001) | None | 3 | 10 | 13 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | FOUND (R1, 2026-02-25) | None | 3 | 10 | 13 |
 
 ## Lifecycle Summary

@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ---
 
@@ -98,7 +98,13 @@ All four production documents were scanned:
 - **Procedure prerequisites SEASONAL-001, COUNTY-PROTOCOL, OH&S-PLAN, IFC-DRAWINGS:** These are operational/coordination prerequisites that do not represent distinct information/artifact transfers from identifiable source entities. SEASONAL-001 is a weather condition, COUNTY-PROTOCOL is a coordination setup, OH&S-PLAN is an internal document. IFC-DRAWINGS is already captured as DEP-018-01-007 (DEL-005-02). Per information-flow-only extraction rule, these are not emitted as separate dependency rows.
 - **EstimateImpactClass:** Set BLOCKING for SURVEY-001 (depth drives volume calculation -- core estimating input), UTILITIES-001 (safety-critical gate), and DEL-005-02 (defines stripping extent -- core estimating input). Set ADVISORY for SITE-ACCESS-001 and SOW-0200 (affect schedule but do not change scope/quantities). Set INFO for R-07 (informational context, low likelihood of changing estimating totals).
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+- **MODE**: UPDATE | **STRICTNESS**: CONSERVATIVE | **CONSUMER_CONTEXT**: NONE
+- **DECOMPOSITION_PATH**: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- **SCA-001 impact**: No changes to DEL-018-01 scope or dependencies. SOW-0075 unchanged in R2 decomposition. All 13 existing rows confirmed ACTIVE with LastSeen updated.
+- **Warnings**: None.
+
+### Warnings (Run 2026-02-26)
 None. All integrity checks passed:
 - Exactly 1 ACTIVE IMPLEMENTS_NODE anchor (no FLOATING_NODE or AMBIGUOUS_ANCHOR)
 - All DependencyIDs unique (13/13)
@@ -112,6 +118,7 @@ None. All integrity checks passed:
 | Run Date | Mode | Strictness | Consumer Context | Decomposition | Warnings | ANCHOR Active | EXECUTION Active | Total Active |
 |---|---|---|---|---|---|---|---|---|
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | WDMLRL_Decomposition_Claude.md (located) | None | 2 | 11 | 13 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | WDMLRL_Decomposition_Claude.md R2 (SCA-001) | None | 2 | 11 | 13 |
 
 ---
 

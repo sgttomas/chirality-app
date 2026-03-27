@@ -12,9 +12,9 @@
 
 ## Extracted Dependency Register
 
-- **Status:** COMPLETE
+- **Status:** POPULATED
 - **Dependencies.csv:** `Dependencies.csv` (v3.1, 15 rows, 15 ACTIVE / 0 RETIRED)
-- **Summary:** 3 ANCHOR + 12 EXECUTION edges extracted from 4 source documents.
+- **Summary:** 3 ANCHOR + 12 EXECUTION edges.
 
 ### ANCHOR Edges (3 ACTIVE)
 
@@ -26,68 +26,53 @@
 
 ### EXECUTION Edges -- UPSTREAM (7 ACTIVE)
 
-| DependencyID | DependencyType | TargetType | TargetName | EstimateImpactClass | Confidence |
-|---|---|---|---|---|---|
-| DEP-001-09-E01 | PREREQUISITE | DELIVERABLE | DEL-001-01 Preliminary Architectural Design | BLOCKING | HIGH |
-| DEP-001-09-E03 | PREREQUISITE | EXTERNAL | Old North Shop Field Survey Data | BLOCKING | HIGH |
-| DEP-001-09-E04 | PREREQUISITE | EXTERNAL | Old North Shop Existing As-Built Drawings | ADVISORY | MEDIUM |
-| DEP-001-09-E05 | INTERFACE | PACKAGE | PKG-002 Structural Engineering -- Mezzanine Coordination | BLOCKING | HIGH |
-| DEP-001-09-E06 | INTERFACE | PACKAGE | PKG-003/004/006 MEP Disciplines -- Demolition Scope Split | ADVISORY | HIGH |
-| DEP-001-09-E07 | CONSTRAINT | EXTERNAL | Hazardous Materials Assessment | BLOCKING | HIGH |
-| DEP-001-09-E08 | PREREQUISITE | DOCUMENT | R-04 Appendix B -- Shop Conceptual Floor Plan | INFO | HIGH |
+| DependencyID | DependencyType | TargetType | TargetName | Confidence |
+|---|---|---|---|---|
+| DEP-001-09-E01 | PREREQUISITE | DELIVERABLE | DEL-001-01 Preliminary Architectural Design | HIGH |
+| DEP-001-09-E03 | PREREQUISITE | EXTERNAL | Old North Shop Field Survey Data | HIGH |
+| DEP-001-09-E04 | PREREQUISITE | EXTERNAL | Old North Shop Existing As-Built Drawings | MEDIUM |
+| DEP-001-09-E05 | INTERFACE | PACKAGE | PKG-002 Structural Engineering -- Mezzanine Coordination | HIGH |
+| DEP-001-09-E06 | INTERFACE | PACKAGE | PKG-003/004/006 MEP Disciplines -- Demolition Scope Split | HIGH |
+| DEP-001-09-E07 | CONSTRAINT | EXTERNAL | Hazardous Materials Assessment | HIGH |
+| DEP-001-09-E08 | PREREQUISITE | DOCUMENT | R-04 Appendix B -- Shop Conceptual Floor Plan | HIGH |
 
 ### EXECUTION Edges -- DOWNSTREAM (5 ACTIVE)
 
-| DependencyID | DependencyType | TargetType | TargetName | EstimateImpactClass | Confidence |
-|---|---|---|---|---|---|
-| DEP-001-09-E02 | HANDOVER | DELIVERABLE | DEL-001-10 Old North Shop Renovation Plans | BLOCKING | HIGH |
-| DEP-001-09-E09 | HANDOVER | DELIVERABLE | DEL-017-01 Kitchenette Renovation | ADVISORY | HIGH |
-| DEP-001-09-E10 | HANDOVER | DELIVERABLE | DEL-017-02 Old North Shop Mezzanine Renovation | ADVISORY | HIGH |
-| DEP-001-09-E11 | HANDOVER | DELIVERABLE | DEL-017-03 Washroom Renovation & Expansion | ADVISORY | HIGH |
-| DEP-001-09-E12 | ENABLES | DELIVERABLE | DEL-009-02 Building Permit Application & Approval | ADVISORY | HIGH |
+| DependencyID | DependencyType | TargetType | TargetName | Confidence |
+|---|---|---|---|---|
+| DEP-001-09-E02 | HANDOVER | DELIVERABLE | DEL-001-10 Old North Shop Renovation Plans | HIGH |
+| DEP-001-09-E09 | HANDOVER | DELIVERABLE | DEL-017-01 Kitchenette Renovation | HIGH |
+| DEP-001-09-E10 | HANDOVER | DELIVERABLE | DEL-017-02 Old North Shop Mezzanine Renovation | HIGH |
+| DEP-001-09-E11 | HANDOVER | DELIVERABLE | DEL-017-03 Washroom Renovation & Expansion | HIGH |
+| DEP-001-09-E12 | ENABLES | DELIVERABLE | DEL-009-02 Building Permit Application & Approval | HIGH |
 
 ---
 
 ## Run Notes
 
-### Run: 2026-02-26
+### Run: 2026-03-26 (R2 refresh)
 
 **Parameters:**
-- SCOPE: DEL-001-09_Demolition-Plans
-- MODE: UPDATE
-- STRICTNESS: CONSERVATIVE
-- CONSUMER_CONTEXT: TASK_ESTIMATING
-- SOURCE_DOCS: AUTO (resolved to: Datasheet.md, Specification.md, Procedure.md, Guidance.md)
-- ANCHOR_DOC: AUTO (resolved to: Datasheet.md)
-- EXECUTION_DOC_ORDER: AUTO (resolved to: Procedure.md, Specification.md, Guidance.md, Datasheet.md)
-- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (available; R1 2026-02-25)
-- _REFERENCES.md: available (used for R-04 TargetLocation resolution)
+- SCOPE: DEL-001-09_Demolition-Plans (as part of PKG-001 full refresh)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: R2, 2026-03-26 (SCA-001)
 
-**Defaults applied:**
-- ANCHOR_DOC resolved to Datasheet.md (contains `Identification` table with explicit Scope Items and Objectives fields -- highest anchor-signal density).
-- EXECUTION_DOC_ORDER resolved by DOC_ROLE_MAP heuristic: Procedure.md (primary workflow/procedure), Specification.md (requirements/scope), Guidance.md (considerations/principles), Datasheet.md (downstream use context table).
+**Extraction Decisions:**
+- Pass 1: 3 ANCHOR rows confirmed. No changes. SOW-0070, SOW-0071, SOW-0072 unchanged in R2 decomposition.
+- Pass 2: 12 prior EXECUTION rows confirmed ACTIVE; LastSeen updated to 2026-03-26.
+- No new rows added. R2 changes (precast concrete walls, folding outward doors, mezzanine railing) apply to the new addition, not to the Old North Shop demolition scope. Demolition plans address the existing building interior, which is unaffected by these addenda.
 
-**Assumptions:**
-- None. All extracted rows are grounded in explicit source statements.
+**Warnings:** None.
 
-**Warnings:**
-- (none)
-
-**Integrity checks:**
-- Parent anchor (IMPLEMENTS_NODE): 1 ACTIVE row (DEP-001-09-A01) -- PASS.
-- All 15 ACTIVE rows have EvidenceFile and SourceRef -- PASS.
-- DependencyID uniqueness: 15 unique IDs -- PASS.
-- All enums canonical (v3.1 write-form) -- PASS.
-- TargetDeliverableID placement: correct for all rows (populated only for TargetType=DELIVERABLE) -- PASS.
-- Extension columns (EstimateImpactClass, ConsumerHint) populated for all EXECUTION rows per CONSUMER_CONTEXT=TASK_ESTIMATING -- PASS.
-
----
+### Run: 2026-02-26
+- 15 rows extracted. No warnings.
 
 ## Run History
 
-| Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
-|---|---|---|---|---|---|---|---|
-| 2026-02-26 | UPDATE | CONSERVATIVE | Available (R1 2026-02-25) | (none) | 3 | 12 | 15 |
+| Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE Count |
+|---|---|---|---|---|---|
+| 2026-02-26 | UPDATE | CONSERVATIVE | R1 (2026-02-25) | None | 15 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | R2, SCA-001 (2026-03-26) | None | 15 |
 
 ---
 
@@ -105,36 +90,4 @@
 | TBD | 14 |
 | SATISFIED | 1 |
 
-**Note:** DEP-001-09-E08 (R-04 Appendix B) is marked SATISFIED because the document is confirmed available per _REFERENCES.md. All other dependencies have SatisfactionStatus=TBD pending project execution.
-
----
-
-## Downstream Handoff Notes (CONSUMER_CONTEXT: TASK_ESTIMATING)
-
-### Estimating-Critical Dependencies
-
-The following dependencies are classified as **BLOCKING** for task estimating -- they gate meaningful scope definition or quantity takeoff for this deliverable:
-
-1. **DEP-001-09-E03 -- Field Survey Data (BLOCKING).** Mezzanine and washroom renovation areas have TBD dimensions pending field survey. Until survey data is obtained, the demolition scope cannot be quantified for these two areas. The kitchenette area (~250 sq ft) has a stated area from R-01.
-
-2. **DEP-001-09-E07 -- Hazardous Materials Assessment (BLOCKING).** If hazardous materials are present, demolition scope, method, and regulatory requirements may change materially. The Procedure includes a formal hold point (Step 1.3a) gating Phase 2 on this assessment.
-
-3. **DEP-001-09-E05 -- Structural Coordination with PKG-002 (BLOCKING).** The mezzanine renovation may involve structural elements. Until the Structural Engineer confirms structural vs. non-structural classification, the architectural demolition scope boundary for the mezzanine cannot be finalized.
-
-4. **DEP-001-09-E01 -- Preliminary Architectural Design Approval (BLOCKING).** County approval of preliminary design (DEL-001-01) is a contractual gate before IFC issue. This affects the overall timeline and milestone sequencing for estimating.
-
-5. **DEP-001-09-E02 -- Handover to DEL-001-10 Renovation Plans (BLOCKING downstream).** The renovation design cannot proceed without the demolition plans, making this a critical-path handover. Estimating for DEL-001-10 and downstream PKG-017 construction deliverables depends on this handover completing.
-
-### Advisory Dependencies
-
-- **DEP-001-09-E04 -- As-Built Drawings (ADVISORY).** If as-built drawings are available, they reduce field survey effort and improve base plan accuracy. If unavailable (likely), field survey serves as primary source. Low impact on estimating totals.
-- **DEP-001-09-E06 -- MEP Scope Split (ADVISORY).** The agreed scope division between architectural and MEP demolition drawings may shift quantities between disciplines. Does not block estimating for DEL-001-09 but may affect cross-discipline estimating.
-- **DEP-001-09-E09/E10/E11 -- Construction Handovers (ADVISORY).** These affect PKG-017 construction estimating more than DEL-001-09 design estimating.
-- **DEP-001-09-E12 -- Building Permit (ADVISORY).** Permit-readiness is a quality attribute of the drawing set; it does not change the estimating scope for producing the drawings.
-
-### Key Estimating Uncertainties
-
-- **Mezzanine area (SOW-0071):** TBD -- requires field survey. This is the largest dimensional unknown for demolition scope quantification.
-- **Washroom area (SOW-0072):** TBD -- requires field survey.
-- **Hazardous materials:** If present, may add abatement documentation requirements to the drawing set scope.
-- **SOW-0073/0074 scope boundary:** Guidance CONF-002 flags an unresolved question about whether demolition for SOW-0073 (locker room) and SOW-0074 (washroom expansion) should be shown in DEL-001-09 or DEL-001-10. This decision could increase the sheet count and scope of this deliverable.
+**Note:** DEP-001-09-E08 (R-04 Appendix B) is marked SATISFIED because the document is confirmed available.

@@ -48,6 +48,37 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment (significant for this deliverable):**
+- SOW-0067 updated: "hook height 26' (Add. 3, Q3); max 25' runway bay spacing (Add. 4, Q2); corbel-supported on side walls -- crane supplier provides loading to contractor (Add. 4, Q3)."
+- _CONTEXT.md updated (2026-03-26): "Crane support via corbels on side walls (not free-standing). Max 25' runway bay spacing. Hook height 26'. Crane supplier provides loading data to contractor (Add. 3 Q3, Add. 4 Q2-3)."
+- **Key resolutions from addenda:**
+  1. **Support type resolved:** Corbels on side walls confirmed (Add. 4, Q3). Prior run noted "Support configuration (corbels vs. dedicated crane columns) is TBD." This uncertainty is now resolved. The corbel support means crane loads transfer directly into precast wall panels, creating a tighter structural interface between crane support and wall panel design.
+  2. **25' max bay spacing:** New explicit dimensional constraint (Add. 4, Q2). Affects column/wall spacing shown on framing plans.
+  3. **26' hook height:** New explicit minimum (Add. 3, Q3). Constrains runway beam elevation relative to 35' ceiling.
+  4. **Crane supplier provides loading:** Confirms that crane loading data flows from supplier to contractor (design-builder). This aligns with existing DEP-002-07-E01 (crane supplier data prerequisite).
+- **Impact on existing dependencies:** All 13 existing rows remain valid. The crane supplier data prerequisite (E01) is reinforced by Add. 4 Q3 ("crane supplier provides loading to contractor"). The framing plans interface (E02) is reinforced by the 25' bay spacing constraint. No existing edges are invalidated.
+- **Potential new dependency signal:** Precast wall panel design data (corbel locations, panel dimensions, connection capacity) becomes a structural interface because corbels are cast into/attached to precast panels. This would be a new EXTERNAL or DELIVERABLE interface. However, source documents (Datasheet, Procedure, Specification, Guidance) have not yet been updated to list precast panel data as an explicit crane support input. Under CONSERVATIVE strictness, no new row emitted.
+- **Recommendation:** After source documents are updated, a precast wall panel interface dependency should be extracted. The corbel-to-precast-panel connection is a critical structural interface that warrants an explicit EXECUTION row.
+
+**Extraction result:**
+- All 13 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None. Parent anchor present and unique.
+
+**Note on prior Downstream Handoff Notes:** The prior run's note that "Support configuration (corbels vs. dedicated crane columns) is TBD" is now partially resolved by Add. 4, Q3 confirming corbel support. This reduces estimating uncertainty for crane support structural quantities.
+
+---
+
 ### Run 2026-02-26 (initial extraction)
 
 **Parameters:**
@@ -101,6 +132,7 @@
 
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ANCHOR Active | EXECUTION Active | Total Active |
 |---|---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | WDMLRL_Decomposition_Claude.md R2 SCA-001 (available) | None | 3 | 10 | 13 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | WDMLRL_Decomposition_Claude.md R1 (available) | None | 3 | 10 | 13 |
 
 ---

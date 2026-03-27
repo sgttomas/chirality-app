@@ -50,7 +50,31 @@
 
 ## Run Notes
 
-### Run Parameters
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0032 updated: "Construct mezzanine storage above parts room, utility room, and wash bay; no perimeter walls -- standard steel safety railing with 10-foot sliding gate for forklift access (Add. 4, Q6)." Key change: mezzanine perimeter is now defined as steel railing with forklift gate, not walls. This is a scope clarification that resolves a prior design uncertainty.
+- _CONTEXT.md updated (2026-03-26): "Mezzanine perimeter: steel safety railing with 10-foot sliding gate for forklift access, no walls (Add. 4, Q6)."
+- **Impact on existing dependencies:** The "no walls" clarification simplifies the mezzanine perimeter design (railing instead of walls reduces structural scope). The Owner Mezzanine Load Confirmation (E04) remains relevant for floor loading. No existing dependencies are invalidated.
+- **Potential new dependency signal:** The 10-foot forklift gate specification may require a gate supplier/manufacturer interface for structural loading data. Source documents not yet updated. Under CONSERVATIVE strictness, no new row emitted.
+- **Recommendation:** After source documents are updated to reflect SCA-001, a railing supplier/gate manufacturer interface may warrant a new EXECUTION row.
+
+**Extraction result:**
+- All 20 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None. Parent anchor present and unique.
+
+---
+
+### Run Parameters (2026-02-26)
 - **Run Date:** 2026-02-26
 - **MODE:** UPDATE
 - **STRICTNESS:** CONSERVATIVE
@@ -102,6 +126,7 @@
 
 | Run | Date | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|
+| 2 | 2026-03-26 | UPDATE | CONSERVATIVE | Available R2 SCA-001 (validated) | None | 6 | 14 | 20 |
 | 1 | 2026-02-26 | UPDATE | CONSERVATIVE | Available (validated) | None | 6 | 14 | 20 |
 
 ---

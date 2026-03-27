@@ -1,0 +1,36 @@
+{
+  "run_label": "PRE_SCA001",
+  "timestamp": "2026-03-26T17:24",
+  "decomp_variant": "PROJECT",
+  "decomposition_path": "_Decomposition/WDMLRL_Decomposition_Claude.md",
+  "decomposition_revision": "R1 -- 2026-02-25",
+  "scope": "ALL",
+  "partitions_declared": 21,
+  "partitions_found": 21,
+  "production_units_declared": 117,
+  "production_units_found": 117,
+  "forward_coverage_partitions_pct": 100.0,
+  "forward_coverage_production_units_pct": 100.0,
+  "reverse_coverage_pct": 100.0,
+  "context_fidelity_pct": 100.0,
+  "artifact_presence_pct": 100.0,
+  "objective_coverage_pct": 100.0,
+  "issues_blocker": 0,
+  "issues_warning": 1,
+  "issues_info": 0,
+  "lifecycle_distribution": {
+    "SEMANTIC_READY": 117,
+    "OPEN": 0,
+    "INITIALIZED": 0,
+    "IN_PROGRESS": 0,
+    "CHECKING": 0,
+    "ISSUED": 0,
+    "RETIRED": 0,
+    "UNKNOWN": 0
+  },
+  "overall_status": "WARNINGS",
+  "concrete_labels": {
+    "partition": "Package",
+    "production_unit": "Deliverable"
+  }
+}

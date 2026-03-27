@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ---
 
@@ -109,7 +109,13 @@ Deliverables that depend on completion of this deliverable:
 - TargetDeliverableID populated only for TargetType=DELIVERABLE. PASS.
 - TargetRefID used for non-deliverable anchor targets (SOW-0077, OBJ-001). PASS.
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+- **MODE**: UPDATE | **STRICTNESS**: CONSERVATIVE | **CONSUMER_CONTEXT**: NONE
+- **DECOMPOSITION_PATH**: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- **SCA-001 impact**: No changes to DEL-018-03 scope or dependencies. SOW-0077 unchanged in R2 decomposition. All 15 existing rows confirmed ACTIVE with LastSeen updated.
+- **Warnings**: None.
+
+### Warnings (Run 2026-02-26)
 - None.
 
 ### Assumptions Logged
@@ -123,6 +129,7 @@ Deliverables that depend on completion of this deliverable:
 | Run | Date | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 2026-02-26 | UPDATE (initial) | CONSERVATIVE | WDMLRL_Decomposition_Claude.md R1 (validated) | None | 2 | 13 | 15 |
+| 2 | 2026-03-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md R2 (SCA-001) | None | 2 | 13 | 15 |
 
 ---
 

@@ -9,6 +9,10 @@
 ## Description
 Door & Window Schedule — Schedule deliverable covering SOW-0011 (Complete final architectural design) and SOW-0026 (Install separate entrance/exit doors for the addition) as part of Architectural Design package.
 
+Overhead doors: folding outward type, must not impede overhead crane in open or closed position (Add. 4, Q4).
+
+**Last amended:** 2026-03-26 (SCA-001)
+
 ## Anticipated Artifacts
 - Door schedule with types, sizes, hardware
 - Window schedule (if applicable)

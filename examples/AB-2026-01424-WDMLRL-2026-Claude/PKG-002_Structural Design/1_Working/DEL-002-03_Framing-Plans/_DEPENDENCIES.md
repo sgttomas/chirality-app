@@ -56,7 +56,32 @@
 
 ## Run Notes
 
-### Run Parameters
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0012 updated: "precast concrete walls, steel roof structure, interior walls precast concrete" (Add. 2/4). This is a material change to the structural system that DEL-002-03 must show.
+- _CONTEXT.md updated (2026-03-26): "Structural system updated: precast concrete walls + steel roof (Add. 2/4). Interior walls precast concrete (Add. 4, Q5). Crane corbels integrated into side walls (Add. 4, Q3)."
+- SOW-0067 updated: 25' max bay spacing, corbel-supported. Affects crane runway framing shown on DEL-002-03.
+- **Potential new dependency signal:** Precast wall panel supplier/fabricator data may become a new EXTERNAL PREREQUISITE for framing plan coordination (panel dimensions, connection details, corbel locations). However, source documents (Datasheet.md, Procedure.md, Specification.md, Guidance.md) have not yet been updated to reference precast supplier data as an explicit input. Under CONSERVATIVE strictness, no new row emitted.
+- **Potential new dependency signal:** Addenda documents R-08, R-09, R-10 are now referenced in the decomposition. Source documents do not yet list these as explicit required inputs. Under CONSERVATIVE strictness, no new row emitted.
+- **Recommendation:** After source documents are updated to reflect SCA-001 addenda content, re-run dependency extraction. A precast panel supplier/fabricator interface and the addenda constraint documents may warrant new EXECUTION rows.
+
+**Extraction result:**
+- All 21 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None. Parent anchor (IMPLEMENTS_NODE) present and unique. No integrity issues.
+
+---
+
+### Run Parameters (2026-02-26)
 - **Run Date:** 2026-02-26
 - **MODE:** UPDATE
 - **STRICTNESS:** CONSERVATIVE
@@ -90,6 +115,7 @@
 
 | Run | Date | Mode | Strictness | Decomposition | Warnings | ACTIVE (Anchor) | ACTIVE (Execution) | RETIRED |
 |---|---|---|---|---|---|---|---|---|
+| 2 | 2026-03-26 | UPDATE | CONSERVATIVE | R2 2026-03-26 SCA-001 (validated) | None | 3 | 18 | 0 |
 | 1 | 2026-02-26 | UPDATE | CONSERVATIVE | R1 2026-02-25 (validated) | None | 3 | 18 | 0 |
 
 ---

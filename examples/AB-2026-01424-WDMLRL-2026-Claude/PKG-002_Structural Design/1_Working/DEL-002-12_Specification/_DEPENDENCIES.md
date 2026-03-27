@@ -53,7 +53,31 @@
 
 ## Run Notes
 
-### Defaults and Chosen Paths
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Specification.md, Procedure.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- SOW-0012 updated: "precast concrete walls, steel roof structure, interior walls precast concrete" (Add. 2/4). Structural Specification must now include: precast concrete panel specifications (exterior and interior walls), steel roof structure specifications, precast panel connection and erection requirements.
+- _CONTEXT.md updated (2026-03-26): "Specification must address precast concrete panel requirements (exterior and interior walls) and steel roof structure (Add. 2/4)."
+- **Impact on existing dependencies:** All existing edges remain valid. The specification's scope expands to include precast and steel roof material/performance requirements, but no new information-flow edges are required beyond what already exists (geotech, crane supplier, architectural coordination, MEP coordination are all represented).
+- **Potential new dependency signal:** Precast panel manufacturer specification data (panel properties, tolerances, connection hardware) and steel joist/truss manufacturer data may be needed as specification inputs. Source documents not yet updated. Under CONSERVATIVE strictness, no new row emitted.
+- **Recommendation:** After source documents are updated to reflect SCA-001, precast and steel roof supplier interfaces may warrant new EXECUTION rows.
+
+**Extraction result:**
+- All 17 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None.
+
+---
+
+### Defaults and Chosen Paths (2026-02-26)
 
 | Parameter | Value |
 |---|---|
@@ -88,6 +112,7 @@
 
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | Available R2 SCA-001 (validated) | None | 3 | 14 | 17 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | Available (validated) | None | 3 | 14 | 17 |
 
 ---

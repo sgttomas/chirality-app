@@ -9,6 +9,11 @@
 ## Description
 Structural Calculation Package — Calculation Package deliverable covering SOW-0012, SOW-0019 as part of Structural Design package. Supports OBJ-001, OBJ-003, OBJ-006.
 
+## Context Summary
+Calculation package must account for: precast concrete walls + steel roof structure, corbel loads from crane runways, precast interior wall loads (Add. 2/3/4).
+
+**Last amended:** 2026-03-26 (SCA-001)
+
 ## Anticipated Artifacts
 - Calculation Package documents per RFP requirements
 

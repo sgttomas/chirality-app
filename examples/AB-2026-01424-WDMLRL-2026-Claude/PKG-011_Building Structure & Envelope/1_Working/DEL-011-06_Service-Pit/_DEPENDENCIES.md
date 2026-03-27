@@ -28,7 +28,7 @@
 | DEP-011-06-A01 | IMPLEMENTS_NODE | SOW-0028 | SOW-0028 | HIGH |
 | DEP-011-06-A02 | TRACES_TO_REQUIREMENT | OBJ-001 | OBJ-001 | HIGH |
 
-### EXECUTION Dependencies -- UPSTREAM (10 ACTIVE)
+### EXECUTION Dependencies -- UPSTREAM (11 ACTIVE)
 
 | DependencyID | DependencyType | TargetType | Target | Statement (abridged) | Confidence | EstimateImpactClass |
 |---|---|---|---|---|---|---|
@@ -57,38 +57,33 @@
 
 ## Run Notes
 
-### Run 2026-02-26 (initial extraction)
+### Run 2026-02-26 (Initial Extraction)
 
-**Inputs and defaults:**
-- MODE: UPDATE
-- STRICTNESS: CONSERVATIVE
-- CONSUMER_CONTEXT: TASK_ESTIMATING
-- SOURCE_DOCS: AUTO -- scanned deliverable folder; identified Datasheet.md, Guidance.md, Procedure.md, Specification.md
-- DOC_ROLE_MAP: DEFAULT heuristic applied
-- ANCHOR_DOC: Datasheet.md (highest-confidence match for definition/traceability signal)
-- EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md (workflow clarity ordering)
-- DECOMPOSITION_PATH: _Decomposition/WDMLRL_Decomposition_Claude.md (R1 -- 2026-02-25)
-- _REFERENCES.md: read (2 references listed: R-01 RFP, R-04 Appendix B Shop)
+**Mode:** UPDATE | **Strictness:** CONSERVATIVE | **Consumer Context:** TASK_ESTIMATING
+**Decomposition Path:** `_Decomposition/WDMLRL_Decomposition_Claude.md` (R1 -- 2026-02-25)
+**Source Documents:** ANCHOR_DOC: Datasheet.md; EXECUTION_DOCS: Procedure.md, Specification.md, Guidance.md
+**Warnings:** None.
 
-**Decomposition validation:**
-- SOW-0028 confirmed in decomposition Scope Ledger (line 624): IN, PKG-011, DEL-011-06, OBJ-001
-- DEL-011-06 confirmed in decomposition Section 7 PKG-011 deliverable table (line 486)
-- OBJ-001 confirmed in decomposition Section 5 Objectives (line 302)
-- DEL-002-06 confirmed in decomposition Section 7 PKG-002 (line 385): Service Pit / Trench Structural Details
-- DEL-011-01 confirmed in decomposition Section 7 PKG-011 (line 481): Concrete Superstructure
-- PKG-010, PKG-003, PKG-004, PKG-006, PKG-009, PKG-012, PKG-013, PKG-014, PKG-015 all confirmed in decomposition Section 6
+### Run 2026-03-26 (SCA-001 Refresh)
+
+**Mode:** UPDATE | **Strictness:** CONSERVATIVE | **Consumer Context:** NONE
+**Decomposition Path:** `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+
+**SCA-001 Changes Affecting This Deliverable:**
+- SOW-0028 text unchanged in decomposition. No addendum changes directly affect service pit/trench scope.
+
+**Changes Applied:**
+- Updated LastSeen to 2026-03-26 on all 17 ACTIVE rows.
+- No new rows added. No rows retired. No statement changes.
 
 **Warnings:** None.
 
-**Assumptions:**
-- ASSUMPTION: PKG-013/PKG-014/PKG-015 interfaces are modeled as bidirectional (separate UPSTREAM and DOWNSTREAM rows) because sources explicitly describe both pre-concrete rough-in coordination (upstream) and post-construction commissioning handover (downstream).
-- ASSUMPTION: Owner equipment fleet dimensions dependency (DEP-011-06-E14) is modeled as EXTERNAL TargetType because Camrose County is not a deliverable or package in the decomposition.
-
-**Tree x DAG integrity:**
-- Parent anchor count (IMPLEMENTS_NODE, ACTIVE): 1 -- OK
-- Trace anchor count (TRACES_TO_REQUIREMENT, ACTIVE): 1 -- OK
-- No FLOATING_NODE warning.
-- No AMBIGUOUS_ANCHOR warning.
+**Integrity Check Results:**
+- Parent anchor (IMPLEMENTS_NODE): 1 ACTIVE row (DEP-011-06-A01 -> SOW-0028) -- PASS
+- DependencyID uniqueness: PASS (17 unique IDs)
+- All ACTIVE rows have EvidenceFile + SourceRef: PASS
+- FromDeliverableID consistency: PASS
+- Schema version: v3.1 on all rows -- PASS
 
 ---
 
@@ -97,6 +92,7 @@
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | WDMLRL_Decomposition_Claude.md (R1) | None | 2 | 15 | 17 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | WDMLRL_Decomposition_Claude.md (R2 SCA-001) | None | 2 | 15 | 17 |
 
 ---
 
@@ -114,39 +110,3 @@
 | PENDING | 11 |
 | TBD | 4 |
 | NOT_APPLICABLE | 2 |
-
-**Notes:**
-- PENDING: upstream prerequisites and interfaces not yet fulfilled (IFC drawings not produced, permits not obtained, MEP rough-in not confirmed, Owner data not received).
-- TBD: downstream handover rows where satisfaction depends on future construction completion.
-- NOT_APPLICABLE: anchor rows (traceability links, not satisfaction-trackable).
-
----
-
-## Downstream Handoff Notes (CONSUMER_CONTEXT: TASK_ESTIMATING)
-
-### Estimating-Critical Dependencies
-
-The following dependencies are classified as **BLOCKING** for estimating readiness. Until these are resolved, scope quantities and/or key specifications remain indeterminate for DEL-011-06:
-
-1. **DEP-011-06-E14 (Owner Equipment Dimensions)** -- The single most critical data dependency. Without confirmed fleet dimensions from Camrose County, the structural engineer cannot finalize DEL-002-06, and all pit dimensional requirements (depth, width, length) remain TBD. This gates accurate quantity takeoff for excavation, concrete, reinforcing, formwork, and finishing.
-
-2. **DEP-011-06-E01 (DEL-002-06 IFC Structural Drawings)** -- All structural construction details (concrete mix, reinforcing schedule, wall/floor thickness, waterproofing details) are TBD pending these drawings. No interim mandatory practice parameters exist. This gates the entire bill of materials.
-
-3. **DEP-011-06-E02 (PKG-010 Foundation)** -- Sequencing prerequisite. Does not block estimating of pit scope directly, but construction cannot commence until foundation is complete.
-
-4. **DEP-011-06-E04 (PKG-003 Ventilation Criteria)** -- Ventilation performance criteria TBD. May affect rough-in scope (duct size, sleeve quantity).
-
-5. **DEP-011-06-E07 / E08 (PKG-013 / PKG-015 Rough-In)** -- MEP rough-in requirements must be confirmed before concrete. Affects embedded conduit/sleeve quantities.
-
-6. **DEP-011-06-E15 (PKG-009 Permits)** -- Regulatory gate; does not affect scope quantities but gates construction start.
-
-### ADVISORY Dependencies (scope impact possible but not blocking)
-
-- DEP-011-06-E03 (DEL-011-01 superstructure sequencing)
-- DEP-011-06-E05 (PKG-004 lighting criteria)
-- DEP-011-06-E06 (PKG-006 plumbing design -- scope boundary unresolved per Conflict Table C-011-06-03/04)
-- DEP-011-06-E09 (PKG-014 drain rough-in -- scope boundary TBD)
-
-### Key Estimating Observation
-
-Pit dimensions are entirely TBD. The primary volume drivers (excavation quantity, concrete quantity, reinforcing quantity, formwork area, lining area) cannot be estimated with confidence until DEP-011-06-E14 (Owner fleet data) and DEP-011-06-E01 (IFC drawings) are resolved. An estimating approach based on parametric assumptions (typical heavy equipment service pit dimensions) may be necessary as an interim measure, with explicit risk allowance for dimensional variance.

@@ -44,6 +44,27 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- No addenda changes directly affect stair scope. SOW-0034 is unchanged.
+- No new dependency edges identified under CONSERVATIVE strictness.
+
+**Extraction result:**
+- All 14 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None.
+
+---
+
 ### Run 2026-02-26 (current)
 
 **Parameters:**
@@ -76,6 +97,7 @@
 
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ACTIVE Count |
 |---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | Available (R2, SCA-001) | None | 14 (3A + 11E) |
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | Available (WDMLRL_Decomposition_Claude.md R1) | None | 14 (3A + 11E) |
 
 ## Lifecycle Summary

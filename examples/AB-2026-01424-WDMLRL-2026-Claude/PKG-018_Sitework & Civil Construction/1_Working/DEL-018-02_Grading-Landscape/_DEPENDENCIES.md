@@ -3,7 +3,7 @@
 ## Dependency Tracking Status
 **Tracking Status**: TRACKED
 **Register Schema**: v3.1
-**Last Run**: 2026-02-26
+**Last Run**: 2026-03-26
 
 ## Dependency Framework
 
@@ -131,7 +131,13 @@ Deliverables that depend on completion of this deliverable:
 ### Assumptions Logged
 - DEP-018-02-018 (County Aggregate Supply): Confidence set to MEDIUM because aggregate is not directly consumed by DEL-018-02 but coordination is explicitly stated in Guidance C-02 as affecting downstream surface construction timing.
 
-### Warnings
+### Run 2026-03-26 (SCA-001 Refresh)
+- **MODE**: UPDATE | **STRICTNESS**: CONSERVATIVE | **CONSUMER_CONTEXT**: NONE
+- **DECOMPOSITION_PATH**: WDMLRL_Decomposition_Claude.md R2 (2026-03-26, SCA-001)
+- **SCA-001 impact**: No changes to DEL-018-02 scope or dependencies. SOW-0076 unchanged in R2 decomposition. All 18 existing rows confirmed ACTIVE with LastSeen updated.
+- **Warnings**: None.
+
+### Warnings (Run 2026-02-26)
 - None. Parent anchor (IMPLEMENTS_NODE) found: 1. No FLOATING_NODE or AMBIGUOUS_ANCHOR conditions.
 
 ---
@@ -141,6 +147,7 @@ Deliverables that depend on completion of this deliverable:
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ACTIVE ANCHOR | ACTIVE EXECUTION | Total ACTIVE |
 |---|---|---|---|---|---|---|---|
 | 2026-02-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md (R1, validated) | None | 4 | 14 | 18 |
+| 2026-03-26 | UPDATE | CONSERVATIVE | WDMLRL_Decomposition_Claude.md R2 (SCA-001) | None | 4 | 14 | 18 |
 
 ---
 

@@ -58,28 +58,25 @@
 
 ## Run Notes
 
-**Run Date:** 2026-02-26
-**MODE:** UPDATE
-**STRICTNESS:** CONSERVATIVE
-**CONSUMER_CONTEXT:** TASK_ESTIMATING
-**DECOMPOSITION_PATH:** `_Decomposition/WDMLRL_Decomposition_Claude.md` (R1 -- 2026-02-25) -- FOUND and used for anchor validation and target resolution.
+### Run 2026-02-26 (Initial Extraction)
 
-**Source Documents Scanned (AUTO resolution):**
-- **ANCHOR_DOC:** `Datasheet.md` (matched heuristic: `datasheet`)
-- **EXECUTION_DOCS (ordered):**
-  1. `Procedure.md` (matched heuristic: `procedure`)
-  2. `Specification.md` (matched heuristic: `spec`)
-  3. `Guidance.md` (matched heuristic: `guidance`)
+**Mode:** UPDATE | **Strictness:** CONSERVATIVE | **Consumer Context:** TASK_ESTIMATING
+**Decomposition Path:** `_Decomposition/WDMLRL_Decomposition_Claude.md` (R1 -- 2026-02-25) -- FOUND.
+**Source Documents:** ANCHOR_DOC: Datasheet.md; EXECUTION_DOCS: Procedure.md, Specification.md, Guidance.md
+**Warnings:** None.
 
-**Read-Only Inputs Used:**
-- `_REFERENCES.md` -- used for document pointer resolution (R-01, R-04 confirmed)
-- `_CONTEXT.md` -- used for deliverable identity confirmation
+### Run 2026-03-26 (SCA-001 Refresh)
 
-**Defaults Applied:**
-- SOURCE_DOCS=AUTO: all four source documents in deliverable folder scanned
-- DOC_ROLE_MAP=DEFAULT: Datasheet.md identified as ANCHOR_DOC; Procedure.md, Specification.md, Guidance.md identified as EXECUTION_DOCS
-- ANCHOR_DOC=AUTO: resolved to Datasheet.md (contains SOW Reference and Objective Supported fields)
-- EXECUTION_DOC_ORDER=AUTO: Procedure.md first (explicit prerequisites table), then Specification.md (requirements), then Guidance.md (considerations)
+**Mode:** UPDATE | **Strictness:** CONSERVATIVE | **Consumer Context:** NONE
+**Decomposition Path:** `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+
+**SCA-001 Changes Affecting This Deliverable:**
+- SOW-0027a text unchanged in substance. The wash bay enclosure scope (enclosed wash bay structure, single bay, 24' wide, motor scraper-sized, overhead door, walls, roof integration, steel plate floor) remains as previously decomposed.
+- The precast concrete walls clarification (Add. 2/4) may affect wash bay wall construction type (precast vs. other) but this is a design detail captured in the IFC drawing prerequisites (DEP-011-05-E05, E06), not a new dependency edge.
+
+**Changes Applied:**
+- Updated LastSeen to 2026-03-26 on all 18 ACTIVE rows.
+- No new rows added. No rows retired. No statement changes.
 
 **Warnings:** None.
 
@@ -87,20 +84,8 @@
 - Parent anchor (IMPLEMENTS_NODE): 1 ACTIVE row (DEP-011-05-A01 -> SOW-0027a) -- PASS
 - DependencyID uniqueness: PASS (18 unique IDs)
 - All ACTIVE rows have EvidenceFile + SourceRef: PASS
-- FromDeliverableID consistency: PASS (all rows = DEL-011-05)
-- CSV parseability: PASS (31 columns, 18 data rows)
+- FromDeliverableID consistency: PASS
 - Schema version: v3.1 on all rows -- PASS
-- Enum normalization: all values canonical -- PASS
-- _DEPENDENCIES.md counts consistent with Dependencies.csv: PASS
-
-**Assumptions Logged:**
-- None. All extracted rows are CONSERVATIVE/EXPLICIT -- no ASSUMPTION-grade rows emitted.
-
-**Observations for Estimating Consumer:**
-- 7 UPSTREAM dependencies are marked BLOCKING: these represent hard gates on construction start (superstructure, foundation, embedment plan, building permit, architectural IFC, structural IFC, plumbing design coordination).
-- 1 UPSTREAM CONSTRAINT (IFC drawing requirement) is a contractual hard gate reinforcing E05/E06.
-- 2 DOWNSTREAM dependencies are marked BLOCKING: DEL-018-05 (drainage) and DEL-011-07 (mezzanine) cannot proceed without this deliverable's outputs.
-- Key estimating risk: multiple TBD specifications (door height, steel plate dimensions, wall material, floor drainage slope) depend on IFC drawings that do not yet exist. Estimating should treat these as scope-uncertainty items.
 
 ---
 
@@ -109,6 +94,7 @@
 | Run | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | FOUND (R1 2026-02-25) | None | 2 | 16 | 18 |
+| 2 | 2026-03-26 | UPDATE | CONSERVATIVE | NONE | FOUND (R2 2026-03-26 SCA-001) | None | 2 | 16 | 18 |
 
 ---
 
@@ -123,45 +109,8 @@
 |---|---|
 | PENDING | 16 |
 | NOT_APPLICABLE | 2 |
-| TBD | 0 |
 
 | DependencyClass | ACTIVE | RETIRED |
 |---|---|---|
 | ANCHOR | 2 | 0 |
 | EXECUTION | 16 | 0 |
-
----
-
-## Downstream Handoff Notes
-
-**Consumer Context:** TASK_ESTIMATING
-
-**Blocking Dependencies for Estimating Readiness (EstimateImpactClass = BLOCKING):**
-
-UPSTREAM blockers (7 execution + 1 constraint):
-1. **DEP-011-05-E01** -- DEL-011-01 Concrete Superstructure must be in place. Estimating must account for superstructure completion as a predecessor activity.
-2. **DEP-011-05-E02** -- DEL-010-01 Foundation Construction must be complete at wash bay location. Foundation is a predecessor to superstructure, creating a chain: Foundation -> Superstructure -> Wash Bay Enclosure.
-3. **DEP-011-05-E03** -- DEL-002-08 Steel Plate Embedment Plan must be issued. Without this plan, steel plate dimensions/material/anchorage are TBD -- scope quantities for steel plates cannot be finalized.
-4. **DEP-011-05-E04** -- DEL-009-02 Building Permit must be obtained. Administrative prerequisite that gates all construction.
-5. **DEP-011-05-E05** -- PKG-001 Architectural IFC Drawings required. Wall construction type, door height, and layout details are TBD until IFC is issued.
-6. **DEP-011-05-E06** -- PKG-002 Structural IFC Drawings required. Structural framing, mezzanine support details, and steel plate specifications are TBD until IFC is issued.
-7. **DEP-011-05-E07** -- PKG-006 Plumbing Design must confirm drain sleeve locations and floor drainage slope. This information gates formwork layout and the concrete pour.
-8. **DEP-011-05-E15** -- Contractual constraint: all construction must follow P.Eng.-stamped IFC drawings (RFP S3.3.2).
-
-DOWNSTREAM blockers (2 execution):
-1. **DEP-011-05-E10** -- DEL-018-05 Wash Bay Drainage and Mud Sump depends on enclosure providing drain sleeves and wall penetrations.
-2. **DEP-011-05-E13** -- DEL-011-07 Mezzanine Structure and Stairs depends on structural provisions installed at wash bay walls.
-
-**Advisory Dependencies (may affect quantities/specs):**
-- DEP-011-05-E08 (Civil design -- floor drainage slope)
-- DEP-011-05-E09 (Electrical coordination -- conduit locations)
-- DEP-011-05-E11 (Lighting installation depends on enclosure)
-- DEP-011-05-E12 (Equipment power circuits depend on conduit stubs)
-- DEP-011-05-E16 (Mechanical/HVAC depends on roof blockouts)
-
-**Key Scope Uncertainty Items for Estimating:**
-- Overhead door height: TBD (ASSUMPTION 16-20 ft; pending IFC)
-- Steel plate dimensions, thickness, material grade: TBD (pending DEL-002-08)
-- Wall construction material: TBD (pending IFC -- concrete tilt-up / CMU / steel-stud unknown)
-- Wash bay clear ceiling height: TBD (pending structural design for mezzanine above)
-- Floor drainage slope: TBD (pending PKG-006 plumbing design)

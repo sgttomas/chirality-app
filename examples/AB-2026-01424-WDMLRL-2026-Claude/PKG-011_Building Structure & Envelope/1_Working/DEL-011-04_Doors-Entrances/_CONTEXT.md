@@ -9,6 +9,10 @@
 ## Description
 Entrance/Exit Doors — Construction deliverable covering SOW-0026 (Supply and installation of entrance and exit doors, frames, and hardware) as part of Building Structure & Envelope package.
 
+Overhead doors specified as folding outward type per Addendum 4, Q4 — crane clearance requirement.
+
+**Last amended:** 2026-03-26 (SCA-001)
+
 ## Anticipated Artifacts
 - Door and frame installation documentation
 - Hardware installation and adjustment records

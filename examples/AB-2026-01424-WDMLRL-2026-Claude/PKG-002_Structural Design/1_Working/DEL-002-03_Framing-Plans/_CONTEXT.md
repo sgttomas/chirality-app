@@ -9,6 +9,11 @@
 ## Description
 Structural Framing Plans — Drawing Set deliverable covering SOW-0012 as part of Structural Design package. Supports OBJ-001, OBJ-003.
 
+## Context Summary
+Structural system updated: precast concrete walls + steel roof (Add. 2/4). Interior walls precast concrete (Add. 4, Q5). Crane corbels integrated into side walls (Add. 4, Q3).
+
+**Last amended:** 2026-03-26 (SCA-001)
+
 ## Anticipated Artifacts
 - Drawing Set documents per RFP requirements
 

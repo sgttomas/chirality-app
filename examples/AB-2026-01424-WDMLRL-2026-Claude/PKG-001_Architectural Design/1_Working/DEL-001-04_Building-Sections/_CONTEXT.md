@@ -9,6 +9,10 @@
 ## Description
 Building Sections — Drawing Set deliverable covering SOW-0011 (Complete final architectural design for the addition) as part of Architectural Design package.
 
+Building sections must show precast concrete wall panels (exterior and interior) and steel roof structure (Add. 2/4).
+
+**Last amended:** 2026-03-26 (SCA-001)
+
 ## Anticipated Artifacts
 - Building section drawings showing structural relationships and spatial organization
 

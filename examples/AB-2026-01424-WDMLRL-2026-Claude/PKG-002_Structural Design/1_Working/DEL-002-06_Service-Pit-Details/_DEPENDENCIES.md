@@ -47,6 +47,28 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- MODE: UPDATE | STRICTNESS: CONSERVATIVE | CONSUMER_CONTEXT: NONE
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- SOURCE_DOCS: AUTO | ANCHOR_DOC: Datasheet.md | EXECUTION_DOC_ORDER: Procedure.md, Specification.md, Guidance.md
+
+**SCA-001 impact assessment:**
+- No direct addenda changes affect the service pit scope. SOW-0028 is unchanged.
+- The structural system change (precast walls + steel roof) does not directly alter service pit structural details, which are a below-grade concrete structure.
+- No new dependency edges identified under CONSERVATIVE strictness.
+
+**Extraction result:**
+- All 15 existing ACTIVE rows re-confirmed. LastSeen updated to 2026-03-26.
+- No new rows. No RETIRED rows.
+
+**Warnings:**
+- None.
+
+---
+
 ### Run: 2026-02-26
 
 **Parameters:**
@@ -84,6 +106,7 @@
 
 | Timestamp | Mode | Strictness | Decomposition | Warnings | ANCHOR ACTIVE | EXECUTION ACTIVE | Total ACTIVE |
 |---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | Available (R2, SCA-001) | None | 3 | 12 | 15 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | Available (R1 2026-02-25) | None | 3 | 12 | 15 |
 
 ---

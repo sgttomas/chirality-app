@@ -68,6 +68,40 @@
 
 ## Run Notes
 
+### Run: 2026-03-26 (SCA-001 refresh)
+
+**Parameters:**
+- SCOPE: PKG-002 (all deliverables DEL-002-01 through DEL-002-12)
+- RUN_ROOT: `examples/AB-2026-01424-WDMLRL-2026-Claude/`
+- DECOMPOSITION_PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md` (R2 -- 2026-03-26, SCA-001)
+- MODE: UPDATE
+- STRICTNESS: CONSERVATIVE
+- CONSUMER_CONTEXT: NONE
+- SOURCE_DOCS: AUTO (resolved: Datasheet.md, Procedure.md, Guidance.md, Specification.md)
+- ANCHOR_DOC: AUTO (resolved to `Datasheet.md`)
+- EXECUTION_DOC_ORDER: AUTO (resolved to `Procedure.md`, `Guidance.md`, `Specification.md`)
+
+**Decomposition:**
+- PATH: `_Decomposition/WDMLRL_Decomposition_Claude.md`
+- STATUS: Available, R2 -- 2026-03-26 (SCA-001: Addenda 2, 3, 4 incorporated). Validation and label resolution performed successfully.
+
+**SCA-001 impact assessment (post-addenda):**
+- SOW-0012 updated: now specifies "precast concrete walls, steel roof structure, interior walls precast concrete" (Add. 2/4). DEL-002-01 anchor to SOW-0012 is indirect (SOW-0010b is the direct anchor). No change to anchor rows.
+- SOW-0022 updated: precast walls + steel roof. Not directly covered by DEL-002-01.
+- SOW-0067 updated: 26' hook, 25' bay spacing, corbel-supported. No new dependency edges for this deliverable at preliminary stage.
+- SOW-0032 updated: mezzanine railing, 10' forklift gate, no walls. No new dependency edges at preliminary stage.
+- _CONTEXT.md not amended for DEL-002-01 (preliminary design predates addenda detail).
+
+**Extraction result:**
+- All 22 existing ACTIVE rows re-confirmed in source documents. LastSeen updated to 2026-03-26.
+- No new dependency edges identified under CONSERVATIVE strictness.
+- No rows RETIRED.
+
+**Warnings:**
+- None. Parent anchor (IMPLEMENTS_NODE) present and unique. No integrity issues detected.
+
+---
+
 ### Run: 2026-02-26
 
 **Parameters:**
@@ -121,6 +155,7 @@
 
 | Timestamp | Mode | Strictness | Consumer | Decomposition | Warnings | ACTIVE Anchors | ACTIVE Execution | Total ACTIVE |
 |---|---|---|---|---|---|---|---|---|
+| 2026-03-26 | UPDATE | CONSERVATIVE | NONE | Available (R2, SCA-001) | None | 3 | 19 | 22 |
 | 2026-02-26 | UPDATE | CONSERVATIVE | TASK_ESTIMATING | Available (R1) | None | 3 | 19 | 22 |
 
 ---

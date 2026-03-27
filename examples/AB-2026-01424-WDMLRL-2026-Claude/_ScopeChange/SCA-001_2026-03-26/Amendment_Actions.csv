@@ -1,0 +1,10 @@
+AmendmentID,ActionSeq,ActionType,EntityType,EntityID,Description,AffectedFiles,DownstreamReruns
+SCA-001,1,ADD,SCOPE_ITEM,SOW-0122,"Relocate electrical pole(s) and transformers — Contractor responsibility",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-018/.../DEL-018-06/_CONTEXT.md,DEPENDENCIES
+SCA-001,2,ADD,SCOPE_ITEM_OUT,SOW-0206,"Natural gas pipeline relocation — County responsibility",_Decomposition/WDMLRL_Decomposition_Claude.md,
+SCA-001,3,MODIFY,SCOPE_ITEM,SOW-0022,"Structural system: precast concrete walls + steel roof",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-011/.../DEL-011-01/_CONTEXT.md,"DEPENDENCIES,ESTIMATING"
+SCA-001,4,MODIFY,SCOPE_ITEM,SOW-0067,"Crane parameters: 26' hook height, 25' bay spacing, corbel-supported",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-016/.../DEL-016-01/_CONTEXT.md;PKG-002/.../DEL-002-07/_CONTEXT.md,"DEPENDENCIES,ESTIMATING"
+SCA-001,5,MODIFY,SCOPE_ITEM,SOW-0025,"Overhead doors: folding outward type",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-011/.../DEL-011-03/_CONTEXT.md;PKG-011/.../DEL-011-04/_CONTEXT.md,DEPENDENCIES
+SCA-001,6,MODIFY,SCOPE_ITEM,SOW-0032,"Mezzanine: steel railing + 10' forklift gate, no walls",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-011/.../DEL-011-07/_CONTEXT.md,DEPENDENCIES
+SCA-001,7,MODIFY,SCOPE_ITEM,"SOW-0011;SOW-0012","Interior walls: precast concrete",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-001/...multiple;PKG-002/...multiple,"DEPENDENCIES,ESTIMATING"
+SCA-001,8,MODIFY,SCOPE_ITEM,SOW-0080,"Natural gas supply: 2in PVC 50 PSI",_Decomposition/WDMLRL_Decomposition_Claude.md;PKG-018/.../DEL-018-06/_CONTEXT.md,DEPENDENCIES
+SCA-001,9,ADD,REFERENCE,"R-08;R-09;R-10","Three new addenda references",_Decomposition/WDMLRL_Decomposition_Claude.md,
