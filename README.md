@@ -1,13 +1,15 @@
 # Chirality App
 
-Chirality App is a desktop harness for running AI agents against a user-selected folder on your local filesystem.
+Chirality App is a formally specified agent operating system for deliverable-heavy professional work. It ships 29 agent instruction files governed by invariant contracts, write-scope quarantine, gate-controlled workflows, and evidence-first epistemology — systems engineering disciplines applied to multi-agent AI coordination.
 
-It bundles a release-managed “agent operating system” (instructions + framework docs) inside the app, and lets users point the runtime at any working directory (`projectRoot`) where agents read/write state as plain files. There is no separate database to install and no server to run: the filesystem is the state.
+The core architectural decision is **filesystem-as-state**: all project truth lives in git-tracked plain files. There is no database, no server state, no hidden context. Deliverable folders are nodes, dependency register rows are edges, and markdown files are properties. The filesystem IS the knowledge graph — and because it is, traceability, immutable snapshots, change propagation, content-addressed approval, and the full audit trail work natively through git.
+
+The system is designed for environments where deliverables are safety-significant, contractually binding, or subject to professional responsibility — EPC/design-build projects, software development, and domain knowledge curation. Agents accelerate production; humans retain authority at every gate. Agent outputs are structured drafts with mandatory provenance, not authoritative engineering judgment.
 
 This repo ships:
-- The desktop UI (session control + streaming logs).
-- A harness runtime (tool calling, permissions, and event streaming).
-- A structured, auditable “filesystem-as-state” project model intended for deliverable-heavy work across multiple domains: EPC/design-build projects, software development, and domain knowledge curation.
+- A **desktop app** (Electron + Next.js) providing session control, streaming logs, and agent matrix navigation.
+- A **harness runtime** (Claude Agent SDK) handling tool calling, permissions, and event streaming.
+- A **release-managed instruction architecture** — 29 agents organized in a Type 0/1/2 hierarchy with formal contracts (`R1–R9`, `I1–I10`, `K-*` invariants), structured briefs, and bounded write scopes. See `AGENTS.md` for the operator index; see `docs/DBM_Agent_Instruction_Architecture.md` for the full design basis.
 
 If you can choose a folder, you can run Chirality: pick a working directory, start a session, and let agents create/update the project structure under that root.
 
