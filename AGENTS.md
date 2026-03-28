@@ -110,6 +110,12 @@ Each agent instruction file also declares **AGENT_TYPE**:
 | **SOFTWARE_DECOMP** | PERSONA | chat | Software decomposition document with Context Envelope sizing (conforms to DECOMP_BASE) |
 | **TASK** | TASK | INIT-TASK | Proposals; optional edits to authorized deliverable-local files |
 | **WORKING_ITEMS** | PERSONA | chat | User defined output |
+| **EVALUATION** | PERSONA | chat | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`; spawns evaluation sub-agents |
+| **TOOLMAKER** | PERSONA | chat | Shell scripts, Python utilities, tool registry |
+| **CONTENT_DIGEST** | TASK | INIT-TASK | Per-deliverable structured content digest |
+| **EVALUATION_REPORT** | TASK | INIT-TASK | Scored dimension evaluation report |
+| **EVALUATION_STRUCTURE_AUDIT** | TASK | INIT-TASK | Structure audit report (file inventory, lifecycle states, violations) |
+| **EVALUATION_DEPENDENCY_AUDIT** | TASK | INIT-TASK | Dependency audit report (schema, anchors, evidence, graph analysis) |
 
 
 ---
@@ -176,6 +182,24 @@ The OPERATIVE row contains composite categories (marked with `*`). Each expands 
 - REFERENCES
 - SCHEDULES
 - SCOPE
+- EVALUATION
+
+---
+
+## 4) Deterministic Tools
+
+Agents invoke deterministic tools from `tools/` via Bash during pipeline execution. Tools are LLM-independent scripts that handle filesystem operations, schema validation, CSV math, and graph algorithms. The tool registry at `tools/REGISTRY.md` indexes all available tools.
+
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| **Scaffolding** | 6 tools | Package/deliverable/tool-root folder creation, snapshot folders, pointer updates, status writes |
+| **Query** | 2 tools | Workspace state summary, amendment ID scanning |
+| **Validation** | 5 tools | Enum validation (24 sets), ID format checking, Dependencies.csv v3.1 schema, minimum fileset, doc kit |
+| **Reporting** | 6 tools | CSV merge with provenance, WBS/CBS summarization, coverage generation, INDEX.md |
+| **Coordination** | 1 tool | Full dependency graph analysis (SCC, orphans, hubs, bidirectional pairs) |
+| **Evaluation** | 8 tools | Deliverable file inventory, lifecycle states, dependency checks, digest coverage |
+
+21 of 35 agent instruction files reference tools from the registry. The LLM boundary is explicit: tools handle mechanical operations; agents handle content reasoning.
 
 ---
 

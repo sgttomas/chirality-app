@@ -96,6 +96,22 @@ Three decomposition variants share a common 7-gate protocol (`DECOMP_BASE`):
 - **CHANGE** — Git state management with explicit approval gates
 - **AUDIT agents** — Conformance checking for decomposition, dependencies, agents, and hypergraph closure
 
+### Evaluation and Tooling Agents
+
+- **EVALUATION** — Orchestrates systematic project evaluation; dispatches collection and scoring subagents; synthesizes final report
+- **EVALUATION_REPORT** — Scores one evaluation dimension with evidence gathering and reasoning (Sonnet)
+- **CONTENT_DIGEST** — Reads one deliverable folder; produces structured content digest (Haiku)
+- **EVALUATION_STRUCTURE_AUDIT / EVALUATION_DEPENDENCY_AUDIT** — Deterministic structural and dependency validation
+- **TOOLMAKER** — Identifies, designs, and implements deterministic tools; maintains the tool registry
+
+---
+
+## Deterministic Tools
+
+The `tools/` directory contains 28 shell scripts and Python utilities that agents invoke via Bash during pipeline execution. These tools codify the LLM-independent operations — filesystem scaffolding, schema validation, CSV aggregation, graph analysis — so that agents reserve LLM reasoning for content that requires judgment.
+
+The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all available tools. 21 of 35 agent instruction files reference tools from the registry in their PROTOCOL sections.
+
 ---
 
 ## Governance Documents
@@ -151,7 +167,14 @@ The `frontend/` directory contains a Next.js + Electron desktop application with
 
 ```
 chirality-app/
-  agents/              29 agent instruction files (AGENT_*.md)
+  agents/              35 agent instruction files (AGENT_*.md)
+  tools/               28 deterministic tools + REGISTRY.md (shell scripts, Python utilities)
+    scaffolding/       Package, deliverable, tool root, snapshot folder creation
+    query/             Workspace state, amendment ID scanning
+    validation/        Enum, ID format, schema, fileset, doc kit checks
+    reporting/         CSV merge, WBS/CBS summarization, coverage, INDEX.md generation
+    coordination/      Dependency graph analysis (SCC, orphans, hubs)
+    evaluation/        Digest coverage, file inventory, lifecycle states, dependency checks
   docs/                Governance documents (DIRECTIVE, SPEC, TYPES, CONTRACT, PLAN, DBM, SE Analysis)
   frontend/            Next.js + Electron desktop application
   examples/            Execution-root samples for regression and conformance testing

@@ -34,8 +34,10 @@ When instructions conflict: **PROTOCOL** (how to run) > **SPEC** (what is correc
 
 | Path | Content |
 |------|---------|
-| `agents/AGENT_*.md` | Agent instruction files (29 total) |
+| `agents/AGENT_*.md` | Agent instruction files (35 total) |
 | `agents/AUDIT_AGENT.md` | Audit rubric (not an agent instruction) |
+| `tools/REGISTRY.md` | Deterministic tool index (28 tools across 6 categories) |
+| `tools/` | Shell scripts and Python utilities invoked by agents during pipeline execution |
 | `docs/DIRECTIVE.md` | Founding intent and design philosophy |
 | `docs/SPEC.md` | Physical structures, schemas, folder layouts |
 | `docs/TYPES.md` | Domain vocabulary, ID formats, enums |
