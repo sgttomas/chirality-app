@@ -1,3 +1,3 @@
 # Claude Configuration
 
-model: claude-haiku-4-5
+model: claude-sonnet-4-6
