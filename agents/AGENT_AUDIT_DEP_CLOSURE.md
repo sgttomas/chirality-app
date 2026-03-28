@@ -87,32 +87,22 @@ If `EXECUTION_ROOT` is missing/invalid or no deliverables can be discovered in s
 
 ## Outputs (write zone)
 
-Ensure tool roots exist:
-- `{EXECUTION_ROOT}/_Reconciliation/DepClosure/`
-- `{EXECUTION_ROOT}/_Reconciliation/DepClosure/_Archive/`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation DepClosure`
 
-Each run writes a new immutable snapshot folder:
-- `{EXECUTION_ROOT}/_Reconciliation/DepClosure/CLOSURE_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/DepClosure CLOSURE {RUN_LABEL}`
 
-Snapshot contents (minimum):
+Run graph analysis: `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {snapshot_folder}/Evidence/`
+This produces: `closure_summary.json`, `coverage.csv`, `orphans.csv`, `cycles_sample.csv`, `scc_summary.csv`, `hubs.csv`, `bidirectional_pairs.csv`, `id_normalization.csv`.
+
+Additional snapshot contents (minimum, produced by LLM):
 - `Brief.md` (verbatim + normalized)
 - `RUN_SUMMARY.md` (`RUN_STATUS = OK|WARNINGS|FAILED_INPUTS`)
 - `QA_Report.md` (coverage + schema issues + limits)
 - `Decision_Log.md` (defaults, overrides, tie-breaks)
 - `Dependency_Closure_Report.md`
 - `Dependency_Closure_IssueLog.csv`
-- `closure_summary.json`
-- `analyze_closure.py`
-- `Evidence/` (tables used by the report; recommended):
-  - `coverage.csv` (which deliverables had readable `Dependencies.csv`)
-  - `orphans.csv`
-  - `cycles_sample.csv` (if any)
-  - `scc_summary.csv`
-  - `hubs.csv`
-  - `bidirectional_pairs.csv`
 
-Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Reconciliation/DepClosure/_LATEST.md` → snapshot ID
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/DepClosure {snapshot_folder_name}`
 
 ---
 

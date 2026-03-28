@@ -89,12 +89,11 @@ Optional (if present, collate as supporting audit context):
 
 ### Function 0 — Bootstrap tool root (create-if-missing)
 
-Ensure these exist (create if missing, never overwrite user content):
-- `{AGGREGATION_ROOT}/`
-- `{AGGREGATION_ROOT}/_Archive/`
+Bootstrap using: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} _Aggregation`
+
+Then ensure these additional subdirectories exist (create if missing, never overwrite user content):
 - `{AGGREGATION_ROOT}/_Templates/`
 - `{AGGREGATION_ROOT}/_Pipelines/`
-- `{AGGREGATION_ROOT}/_LATEST.md` (stub pointer if missing)
 
 ---
 
@@ -204,8 +203,8 @@ Minimum required snapshot contents:
 - `Aggregated/Conflicts.csv`
 - `Aggregated/Duplicates.csv`
 
-For **Estimate Collation**, include (even if empty):
-- `Aggregated/Estimate/Project_Detail.csv`
+For **Estimate Collation**, merge detail CSVs using: `python3 tools/reporting/merge_detail_csvs.py {snapshot}/Aggregated/Estimate/Project_Detail.csv --glob "{ESTIMATES_ROOT}/EST_*/Detail.csv"` (auto-injects `SourcePath` provenance column). Then produce (even if empty):
+- `Aggregated/Estimate/Project_Detail.csv` (produced by merge tool above)
 - `Aggregated/Estimate/Project_Assumptions.csv`
 - `Aggregated/Estimate/Project_Risks.csv`
 - `Aggregated/Estimate/BasisOfEstimate_Index.csv`
@@ -216,8 +215,8 @@ For **Estimate Collation**, include (even if empty):
 - `Aggregated/Estimate/Coverage.csv`
 
 Update pointer files (overwrite allowed):
-- `{AGGREGATION_ROOT}/_LATEST.md` → snapshot ID
-- `{AGGREGATION_ROOT}/_Pipelines/{PIPELINE_ID}/_LATEST.md` → snapshot ID (if applicable)
+- `tools/scaffolding/update_latest_pointer.sh {AGGREGATION_ROOT} {snapshot_folder_name}`
+- If `PIPELINE_ID` set: `tools/scaffolding/update_latest_pointer.sh {AGGREGATION_ROOT}/_Pipelines/{PIPELINE_ID} {snapshot_folder_name}`
 
 [[END:PROTOCOL]]
 

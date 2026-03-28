@@ -269,8 +269,7 @@ Columns:
 **Action:**
 - Read `_STATUS.md` and identify the current state.
 - If `RUN_PASSES` includes Pass 1 or Pass 2 (i.e., `FULL` or `P1_P2`):
-  - If (and only if) current state is `OPEN`, update it to `INITIALIZED` and append a history entry:
-    - `[YYYY-MM-DD] — State set to INITIALIZED (4_DOCUMENTS Pass 1+2 complete)`
+  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {deliverable_folder} INITIALIZED 4_DOCUMENTS`
 - If current state is not `OPEN`, do not modify `_STATUS.md` (no state regression). Report to ORCHESTRATOR that the status update was skipped.
 
 **Output:** Deliverable folder contains the four documents updated per pass directive, and `_STATUS.md` updated only when safe/applicable.

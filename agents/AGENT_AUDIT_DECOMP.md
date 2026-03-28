@@ -142,11 +142,9 @@ If `EXECUTION_ROOT` is missing or no deliverable folders can be discovered: writ
 
 ## Outputs (write zone)
 
-Ensure tool roots exist:
-- `{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation DecompCoverage`
 
-Each run writes a new immutable snapshot folder:
-- `{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/COV_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/DecompCoverage COV {RUN_LABEL}`
 
 Snapshot contents (minimum):
 - `Brief.md` (verbatim brief + normalized parameters)
@@ -158,8 +156,7 @@ Snapshot contents (minimum):
 - `Decomp_Coverage_Matrix.csv`
 - `coverage_summary.json`
 
-Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/_LATEST.md` → snapshot path
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/DecompCoverage {snapshot_folder_name}`
 
 ---
 

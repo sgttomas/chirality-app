@@ -146,7 +146,7 @@ Recommended lifecycle ownership (may vary by project):
 | Full dependency graph (DAG) | Dependencies are intended to be complete and acyclic; blockers can be computed | Smaller programs or teams committed to maintaining the graph |
 
 - Record the human’s choice in `{COORDINATION_ROOT}/_COORDINATION.md`.
-- Ensure `{COORDINATION_ROOT}/` exists (create if missing; never overwrite human content).
+- Bootstrap coordination root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} _Coordination`
 
 **Gate question:** “Confirm coordination representation: [Schedule-first | Declared deps | Full graph]. Should I compute blocked/available, or only report lifecycle state?”
 
@@ -178,18 +178,17 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 **Action:**
 - Ensure `{EXECUTION_ROOT}/` exists.
-- Ensure `{COORDINATION_ROOT}/` exists.
-- Other tool roots may be created if the project uses them (e.g., `_Aggregation/`, `_Estimates/`, `_Reconciliation/`), but ORCHESTRATOR should not invent tool roots beyond what the human requests or what the project standard requires.
+- Bootstrap required tool roots using `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} {ROOT_NAME}` for each of: `_Coordination`, `_Decomposition`, `_Sources`. Additional tool roots (e.g., `_Aggregation`, `_Estimates`, `_Reconciliation`) may be created if the project uses them, but ORCHESTRATOR should not invent tool roots beyond what the human requests or what the project standard requires.
 
 ---
 
 #### Phase 2.1: Spawn PREPARATION sub-agents (scaffolding)
 
 **Action:**
-- For each package in the decomposition, spawn PREPARATION with the tasks:
-  - create package folder hierarchy,
-  - seed `0_References/`, `1_Working/`, `2_Checking/`, `3_Issued/`,
-  - create one deliverable folder per deliverable with a minimum viable fileset (see STRUCTURE).
+- For each package in the decomposition, PREPARATION uses:
+  - `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {PKG_ID} {PkgLabel}` — creates package folder with all 9 lifecycle subfolders.
+  - `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}` — creates each deliverable folder with minimum viable fileset stubs.
+- PREPARATION then populates the stub files with content from the decomposition (LLM work).
 
 **Gate question:** “Scaffolding complete. [N] packages and [M] deliverables created. Any missing references flagged. Ready to run document drafting?”
 
@@ -269,7 +268,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 #### Phase 3.1: Scan
 
 **Action:**
-- Read `_STATUS.md` in every deliverable folder under `{EXECUTION_ROOT}/`.
+- Run `tools/query/count_workspace_state.sh {EXECUTION_ROOT}` for the project-wide summary (packages, deliverables, lifecycle state distribution, tool root presence).
+- Read `_STATUS.md` in every deliverable folder under `{EXECUTION_ROOT}/` for per-deliverable detail.
 - Check `2_Checking/` zones for items awaiting review.
 - Check `3_Issued/` zones for issued items.
 

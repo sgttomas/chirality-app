@@ -282,17 +282,27 @@ Do not rename the declared dependency sections.
 
 ### Function 5 — Local quality checks (mandatory)
 
-Before finalizing files, run these checks:
+Before finalizing files, run these checks using deterministic tools where available:
 
-**Schema & lifecycle checks**
-- Required columns exist and CSV remains parseable.
+**Schema validation**
+- Validate schema: `python3 tools/validation/validate_dependencies_schema.py {deliverable_folder}/Dependencies.csv`
+  Confirms all 29 required v3.1 columns are present and CSV is parseable.
 - `DependencyID` is present and unique within the file.
+
+**Enum validation**
+- Validate enum fields on write using `python3 tools/validation/validate_enum.py`:
+  - `DEPENDENCY_CLASS`, `ANCHOR_TYPE`, `DIRECTION`, `DEPENDENCY_TYPE`, `TARGET_TYPE`, `EXPLICITNESS`, `CONFIDENCE`, `ORIGIN`, `STATUS`, `SATISFACTION_STATUS`
+- Normalize legacy values: `INBOUND`→`UPSTREAM`, `OUTBOUND`→`DOWNSTREAM` on write.
+
+**ID format validation**
+- Validate all ID fields: `tools/validation/validate_id_format.sh DEL {FromDeliverableID}`, `tools/validation/validate_id_format.sh PKG {FromPackageID}`, etc.
+
+**Evidence & provenance checks**
 - ACTIVE rows contain `EvidenceFile` and `SourceRef` (or explicit `location TBD`).
-- `Status` and `SatisfactionStatus` values are canonical.
 - `_DEPENDENCIES.md` counts do not contradict `Dependencies.csv`.
 - Obvious duplicate extracted rows are merged or explicitly justified in `Notes`.
 
-**Tree × DAG integrity checks**
+**Tree x DAG integrity checks**
 - Parent anchor check:
   - Count rows where `Status=ACTIVE`, `DependencyClass=ANCHOR`, `AnchorType=IMPLEMENTS_NODE`.
   - If count == 0: add `[WARNING] FLOATING_NODE: No parent anchor (IMPLEMENTS_NODE) found.` to Run Notes.

@@ -95,12 +95,9 @@ If hypergraph inputs are missing/unreadable: write `RUN_SUMMARY.md` with `RUN_ST
 
 ## Outputs (write zone)
 
-Ensure tool roots exist:
-- `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/`
-- `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_Archive/`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation HypergraphClosure`
 
-Each run writes a new immutable snapshot folder:
-- `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/CLOSURE_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/HypergraphClosure CLOSURE {RUN_LABEL}`
 
 Snapshot contents (minimum):
 - `Brief.md`
@@ -119,8 +116,7 @@ Snapshot contents (minimum):
   - `partition_violations.csv`
   - `workspace_vs_graph.csv`
 
-Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_LATEST.md` → snapshot ID
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/HypergraphClosure {snapshot_folder_name}`
 
 ---
 

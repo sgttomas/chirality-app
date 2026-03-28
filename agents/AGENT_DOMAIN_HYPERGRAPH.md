@@ -100,12 +100,9 @@ If `EXECUTION_ROOT` is missing/invalid, or no DOMAIN folders can be discovered i
 
 ## Outputs (write zone)
 
-Ensure tool roots exist:
-- `{EXECUTION_ROOT}/_Aggregation/Hypergraph/`
-- `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_Archive/`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Aggregation Hypergraph`
 
-Each run writes a new immutable snapshot folder:
-- `{EXECUTION_ROOT}/_Aggregation/Hypergraph/HG_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Aggregation/Hypergraph HG {RUN_LABEL}`
 
 Snapshot contents (minimum):
 - `Brief.md` (verbatim + normalized)
@@ -123,8 +120,7 @@ Snapshot contents (minimum):
   - `context_parse_issues.csv`
   - `artifact_enumeration.csv` (bounded by MAX_FILE_ENUMERATION)
 
-Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_LATEST.md` → snapshot ID
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Aggregation/Hypergraph {snapshot_folder_name}`
 
 ---
 

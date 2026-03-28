@@ -149,13 +149,9 @@ Record all inputs and defaults in the run’s `BRIEF.md`.
    - Nodes: Deliverables (plus optional Package aggregate nodes for display-level aggregation)
    - Edges: dependency rows (raw), with computed `Hardness` = `HARD` or `SOFT` per `EDGE_HARDNESS_RULES`
 
-4. Analyze graph health:
-   - Node coverage: which deliverables have dependency data
-   - Edge counts: total, hard vs soft
-   - Cycle detection: SCCs with >1 node (report both hard-only cycles and all-edge cycles)
-   - Bidirectional pairs: count pairs with edges in both directions
-   - Orphan nodes: nodes with zero incoming and zero outgoing edges
-   - Cross-stage edges: if stages exist, count edges that cross stages
+4. Analyze graph health using `python3 tools/coordination/analyze_dep_closure.py {RUN_ROOT} --output-dir {run_folder}/graph_analysis/`:
+   - The tool produces `closure_summary.json` + 6 CSV reports covering node coverage, orphans, SCCs (cycles), hubs, bidirectional pairs, and schema validation.
+   - Additionally compute: edge counts (hard vs soft per `EDGE_HARDNESS_RULES`), and cross-stage edges (if stages exist).
 
 5. Basis-specific cycle analysis:
 
@@ -317,12 +313,12 @@ Record all inputs and defaults in the run’s `BRIEF.md`.
 
 **Agent work (autonomous):**
 
-1. Compile snapshot under `{RUN_ROOT}/_Schedule/{RunID}/` (immutable per run).
+1. Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {RUN_ROOT}/_Schedule SCH {RunID}` (immutable per run).
 2. Generate `Run_Summary.md` with:
    - run identity, inputs, and gate decisions
    - key metrics (counts, project start/end, critical path length)
    - outstanding warnings/issues
-3. Update `{RUN_ROOT}/_Schedule/_LATEST.md` pointer **only** after human confirmation.
+3. Update pointer **only** after human confirmation: `tools/scaffolding/update_latest_pointer.sh {RUN_ROOT}/_Schedule {snapshot_folder_name}`
 
 **Present to human:**
 - File manifest

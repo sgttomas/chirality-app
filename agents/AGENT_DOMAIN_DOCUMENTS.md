@@ -314,8 +314,7 @@ For each planned artifact, create/overwrite the target file with:
 **Action:**
 - Read `_STATUS.md` and identify the current state.
 - If `RUN_PASSES` includes Pass 1 or Pass 2 (i.e., `FULL` or `P1_P2`):
-  - If (and only if) current state is `OPEN`, update it to `INITIALIZED` and append a history entry:
-    - `[YYYY-MM-DD] — State set to INITIALIZED (DOMAIN_DOCUMENTS Pass 1+2 complete)`
+  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {kty_folder} INITIALIZED DOMAIN_DOCUMENTS`
 - If current state is not `OPEN`, do not modify `_STATUS.md` (no state regression). Report to ORCHESTRATOR that the status update was skipped.
 
 **Output:** Knowledge Type folder contains `Scoping.md` and the planned Knowledge Artifact documents updated per pass directive, and `_STATUS.md` updated only when safe/applicable.

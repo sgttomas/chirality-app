@@ -103,19 +103,11 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - `PKG_ID`, `PKG_NAME` (from the decomposition)
 
 **Action (idempotent):**
-1. Create the package folder: `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/`
-2. Create lifecycle subfolders:
-   - `0_References/`
-   - `0_References/_Archive/`
-   - `1_Working/`
-   - `1_Working/_Archive/`
-   - `2_Checking/`
-   - `2_Checking/From/`
-   - `2_Checking/To/`
-   - `3_Issued/`
-   - `3_Issued/_Archive/`
+Run: `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {PKG_ID} {PkgLabel}`
 
-**Output:** Empty package folder hierarchy. Report created vs already-existed.
+This creates the package folder with all 9 lifecycle subfolders (`0_References/`, `0_References/_Archive/`, `1_Working/`, `1_Working/_Archive/`, `2_Checking/`, `2_Checking/From/`, `2_Checking/To/`, `3_Issued/`, `3_Issued/_Archive/`). Idempotent — reports created vs already-existed.
+
+**Output:** Empty package folder hierarchy.
 
 ---
 
@@ -150,16 +142,15 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - Optional: reference materials relevant to this deliverable (paths or descriptions)
 
 **Action (idempotent):**
-1. Ensure deliverable folder exists:
-   `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`
-2. Create `_CONTEXT.md` **if missing** using the schema in STRUCTURE.
-3. Create `_DEPENDENCIES.md` **if missing** using the schema in STRUCTURE:
-   - Always create the file.
+1. Create deliverable folder with stubs: `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}`
+   This creates the folder and touches the 5 stub files (`_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_SEMANTIC.md`).
+2. Populate `_CONTEXT.md` content using the schema in STRUCTURE (LLM work — fills the stub created above).
+3. Populate `_DEPENDENCIES.md` content using the schema in STRUCTURE:
    - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from ORCHESTRATOR-provided declarations.
    - Leave extracted-register sections as placeholders (to be populated later by the DEPENDENCIES agent).
-4. Create `_STATUS.md` **if missing** and initialize `Current State: OPEN` and a history entry.
-5. Create `_REFERENCES.md` **if missing** and list relevant references (best-effort) with locations.
-6. Create `_SEMANTIC.md` **if missing** as a **placeholder stub** (schema in STRUCTURE).
+4. Initialize `_STATUS.md`: `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION`
+5. Populate `_REFERENCES.md` and list relevant references (best-effort) with locations.
+6. `_SEMANTIC.md` is left as a **placeholder stub** (created by scaffold tool above).
    - Do not generate matrices here.
    - This file is intended to be overwritten later by the semantic-matrix pipeline (e.g., CHIRALITY_FRAMEWORK).
 
@@ -175,15 +166,12 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - `EXECUTION_ROOT` (defaults to `execution/`)
 
 **Action (idempotent):**
-1. Ensure these folders exist:
-   - `{EXECUTION_ROOT}/_Aggregation/`
-   - `{EXECUTION_ROOT}/_Aggregation/_Archive/`
-   - `{EXECUTION_ROOT}/_Aggregation/_Templates/`
-2. Ensure these template files exist (create if missing; never overwrite):
+1. Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} _Aggregation`
+   This creates `_Aggregation/`, `_Aggregation/_Archive/`, and `_LATEST.md` stub.
+2. Create additional subfolders if missing: `_Aggregation/_Templates/`
+3. Ensure these template files exist (create if missing; never overwrite):
    - `{EXECUTION_ROOT}/_Aggregation/_Templates/AGGREGATION_BRIEF_TEMPLATE.md`
    - `{EXECUTION_ROOT}/_Aggregation/_Templates/TARGET_SCHEMA_TEMPLATE.csv`
-3. Optional pointer (create stub if missing; overwrite not required):
-   - `{EXECUTION_ROOT}/_Aggregation/_LATEST.md` with a placeholder line.
 
 **Output:** A report listing folders/templates created vs already-existed; flag any errors.
 
@@ -196,8 +184,10 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - Optional: `CAT_DISCIPLINE` (if present)
 
 **Action (idempotent):**
-1. Create the category folder: `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/`
-2. Create lifecycle subfolders:
+Run: `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {CAT_ID} {CatLabel}`
+(Same folder schema as packages — `CAT_ID`/`CatLabel` map directly to the tool's `PKG_ID`/`PkgLabel` inputs.)
+
+This creates the category folder with all 9 lifecycle subfolders:
    - `0_References/`
    - `0_References/_Archive/`
    - `1_Working/`
@@ -226,15 +216,15 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - Optional: reference materials relevant to this Knowledge Type (paths or descriptions)
 
 **Action (idempotent):**
-1. Ensure Knowledge Type folder exists:
-   `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/1_Working/{KTY-ID}_{KtyLabel}/`
-2. Create `_CONTEXT.md` **if missing** using the Knowledge Type `_CONTEXT.md` schema in STRUCTURE.
-3. Create `_DEPENDENCIES.md` **if missing** using the existing container schema, with header/title adapted to `KTY` naming.
+1. Create KTY folder with stubs: `tools/scaffolding/scaffold_deliverable.sh {cat_folder}/1_Working {KTY_ID} {KtyLabel}`
+   (Same tool as deliverables — `KTY_ID`/`KtyLabel` map to `DEL_ID`/`DelLabel` inputs.)
+2. Populate `_CONTEXT.md` content using the Knowledge Type schema in STRUCTURE (LLM work).
+3. Populate `_DEPENDENCIES.md` content using the existing container schema, with header/title adapted to `KTY` naming.
    - Populate Coordination Mode + Declared Upstream/Downstream **only** from ORCHESTRATOR declarations.
    - Leave extracted-register sections as placeholders.
-4. Create `_STATUS.md` **if missing** and initialize `Current State: OPEN`.
-5. Create `_REFERENCES.md` **if missing** and list relevant references (best-effort pointers).
-6. Create `_SEMANTIC.md` **if missing** as a placeholder stub (same semantics as deliverables).
+4. Initialize `_STATUS.md`: `tools/scaffolding/write_status.sh {kty_folder} OPEN PREPARATION`
+5. Populate `_REFERENCES.md` and list relevant references (best-effort pointers).
+6. `_SEMANTIC.md` is left as a placeholder stub (created by scaffold tool above).
 
 **Non-goals:**
 - Do not create `Datasheet.md`, `Specification.md`, etc. (DOMAIN Knowledge Types use variable document schemas — artifact drafting is out of scope for PREPARATION).
@@ -250,14 +240,10 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 - `EXECUTION_ROOT` (defaults to `execution/`)
 
 **Action (idempotent):**
-1. Ensure these folders exist:
-   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/`
-   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_Archive/`
-   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/`
-   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_Archive/`
-2. Ensure pointer stubs exist (create if missing; never overwrite):
-   - `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_LATEST.md` with a placeholder line.
-   - `{EXECUTION_ROOT}/_Reconciliation/HypergraphClosure/_LATEST.md` with a placeholder line.
+1. Bootstrap hypergraph tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Aggregation Hypergraph`
+2. Bootstrap closure tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation HypergraphClosure`
+
+Both calls create the folder, `_Archive/` subfolder, and `_LATEST.md` stub.
 
 **Output:** A report listing folders/stubs created vs already-existed; flag any errors.
 

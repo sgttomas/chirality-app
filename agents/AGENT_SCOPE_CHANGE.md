@@ -151,13 +151,13 @@ When `DECOMP_VARIANT = SOFTWARE`, Objectives amendments update the Scope Ledger 
 1) Resolve `EXECUTION_ROOT`, `DECOMPOSITION_PATH`, and `DECOMP_VARIANT`. Parse the Change Log, Scope Ledger, Objectives, Packages, and Deliverables sections (resolved via variant section binding).
 2) Parse the human's request into one or more atomic actions (see Action Types table).
 3) For each action, validate:
-   - `ADD`: proposed ID does not already exist; parent package exists (or is also being added)
+   - `ADD`: proposed ID does not already exist; parent package exists (or is also being added). Validate ID format: `tools/validation/validate_id_format.sh DEL {proposed_id}` (or `PKG` for packages).
    - `REMOVE`: referenced entity exists in decomposition; is not already RETIRED
    - `MODIFY`: referenced entity exists; proposed changes are to valid fields
    - `RECLASSIFY`: source and target packages both exist
-   - `MERGE`: all source entities exist; proposed combined entity has a valid ID
-   - `SPLIT`: source entity exists; proposed fragment IDs do not collide
-4) Assign `AMENDMENT_ID` (next available SCA-{NNN}).
+   - `MERGE`: all source entities exist; proposed combined entity has a valid ID (validate with `tools/validation/validate_id_format.sh`)
+   - `SPLIT`: source entity exists; proposed fragment IDs do not collide (validate with `tools/validation/validate_id_format.sh`)
+4) Assign `AMENDMENT_ID` (next available SCA-{NNN}). Scan existing: `tools/query/scan_next_amendment_id.sh {SCOPE_CHANGE_ROOT}` (or inline `ls` + number extraction).
 5) Dispatch AUDIT_DECOMP to capture the **pre-change baseline** (scoped to affected packages/deliverables; pass `DECOMP_VARIANT` from this agent's brief). Store the `coverage_summary.json` path.
 6) Present to the human:
    - Parsed action list (structured table)
@@ -181,8 +181,8 @@ For each validated action, trace downstream impacts:
 - Note: "New deliverable will need DEPENDENCIES extraction after PREPARATION."
 
 **REMOVE:**
-- Scan all `Dependencies.csv` files in scope for rows where `TargetDeliverableID` matches the removed entity. List each referencing deliverable and row count.
-- Check if any estimates under `_Estimates/` reference this deliverable (search `Detail.csv`, `Scope_Resolved.csv`).
+- Run `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {temp_dir}` — the resulting `coverage.csv` and `closure_summary.json` identify all deliverables that reference the removed entity without manual scanning.
+- Additionally check if any estimates under `_Estimates/` reference this deliverable (search `Detail.csv`, `Scope_Resolved.csv`).
 - Check if any schedule under `_Schedule/` references this deliverable.
 - List all impacted downstream artifacts.
 
@@ -267,8 +267,7 @@ Based on the approved amendment, produce a propagation plan:
    - Note: "After PREPARATION completes, recommend running: DEPENDENCIES extraction, then ESTIMATING and SCHEDULE if applicable."
 
 2) **For REMOVE actions:**
-   - Specify `_STATUS.md` update: append history entry `{date} — RETIRED via {AMENDMENT_ID}. Scope change: {brief reason}.`
-   - Update `Current State` to `RETIRED`.
+   - Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} RETIRED SCOPE_CHANGE` — this appends the history entry and updates `Current State` automatically.
    - Do NOT delete the folder or any files.
 
 3) **For MODIFY actions:**

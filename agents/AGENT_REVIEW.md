@@ -278,14 +278,15 @@ Typical mechanical checks:
 
 4) Update `_REVIEW.md` with the summary section.
 
-5) Write review snapshot to `{REVIEWS_ROOT}/REV_{DeliverableID}_{YYYY-MM-DD}_{HHMM}/`:
+5) Create snapshot: `tools/scaffolding/create_snapshot_folder.sh {REVIEWS_ROOT} REV {DeliverableID}`
+   Write to snapshot folder:
    - `Brief.md` (deliverable, review type, reviewers)
    - `RUN_SUMMARY.md` (complete review summary)
    - `Review_Summary.md` (human-readable narrative)
    - `Decision_Log.md` (all gate decisions + finding dispositions)
    - `QA_Report.md` (checklist coverage, mechanical check results)
 
-6) Update `{REVIEWS_ROOT}/_LATEST.md` pointer.
+6) Update pointer: `tools/scaffolding/update_latest_pointer.sh {REVIEWS_ROOT} {snapshot_folder_name}`
 
 Present the review summary and transition readiness assessment. Ask: "Are all dispositions final?"
 
@@ -318,14 +319,8 @@ Present the review summary and transition readiness assessment. Ask: "Are all di
 
 **If human approves:**
 
-4) Update `_STATUS.md`:
-   - Change `Current State` to the target state
-   - Append history entry:
-     ```
-     {YYYY-MM-DD} — Transitioned to {STATE} via REVIEW ({REVIEW_TYPE}).
-     Review: REV_{DeliverableID}_{YYYY-MM-DD}_{HHMM}. Findings: {total} ({CRITICAL}C/{MAJOR}M/{MINOR}m/{OBSERVATION}o).
-     Open: {open_count}. (REVIEW)
-     ```
+4) Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} {TARGET_STATE} REVIEW`
+   This updates `Current State` and appends the history entry automatically.
 
 5) Present handoff to CHANGE:
    - Files modified: `_REVIEW.md`, `Review_Findings.csv`, `_STATUS.md`

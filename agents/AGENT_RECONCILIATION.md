@@ -159,9 +159,7 @@ Every Type 2 brief MUST include:
 ### Step 0 — Initialize run identity (control plane)
 
 1) Resolve `EXECUTION_ROOT` (default `execution/`).
-2) Ensure tool roots exist (create if missing):
-   - `{RECONCILIATION_ROOT}/`
-   - `{RECONCILIATION_ROOT}/_Archive/`
+2) Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} _Reconciliation`
 3) Determine `RunID = {YYYY-MM-DD}_{RUN_LABEL}`.
 4) Record any assumptions/defaults in the run summary.
 

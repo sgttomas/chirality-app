@@ -148,10 +148,9 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
 
 #### Step 0 — Resolve tool root + create snapshot folder
 - Determine tool root: `{EXECUTION_ROOT}/_EstimatePrep/`.
-- Create if missing: `{EXECUTION_ROOT}/_EstimatePrep/`, `{EXECUTION_ROOT}/_EstimatePrep/_Archive/`.
-- Create new immutable snapshot folder:
-
-`{EXECUTION_ROOT}/_EstimatePrep/EPREP_SCAFFOLD_{OUTPUT_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+- Validate input enum: `python3 tools/validation/validate_enum.py ESTIMATE_PREP_PHASE {PHASE}` — halt with `FAILED_INPUTS` if invalid.
+- Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} _EstimatePrep`
+- Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_EstimatePrep EPREP_SCAFFOLD {OUTPUT_LABEL}`
 
 #### Step 1 — Load decomposition (extract structure)
 - Read `DECOMPOSITION_PATH` to obtain:
@@ -257,7 +256,8 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
   - Overlay and upgrade as in prior steps; log overrides.
 
 #### Step 8 — Generate INDEX.md
-- Produce `PriceSources/INDEX.md` modeled on the canonical `_PriceSources/INDEX.md` structure. Required sections:
+- Generate the file inventory portion: `tools/reporting/generate_index_md.sh {snapshot}/PriceSources/`
+- Then augment `PriceSources/INDEX.md` with the following required sections (beyond the tool's file listing):
 
   1. **Header block:** execution root, BOE path, currency, base year, region, prepared date, status.
   2. **Data quality statement** with confidence level definitions:

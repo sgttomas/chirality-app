@@ -120,12 +120,11 @@ All resolved defaults and chosen paths MUST be recorded in the snapshot `Run_Con
 
 #### Step 0 — Resolve tool root + create snapshot folder
 - Determine tool root: `{RUN_ROOT}/_Estimates/` or `ESTIMATES_ROOT`.
-- Create a new immutable snapshot folder:
-
-`{ESTIMATES_ROOT}/EST_{OUTPUT_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+- Validate input enum: `python3 tools/validation/validate_enum.py BASIS_OF_ESTIMATE {BASIS_OF_ESTIMATE}` — halt with `FAILED_INPUTS` if invalid.
+- Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {ESTIMATES_ROOT} EST {OUTPUT_LABEL}`
 
 - Create/update pointer file (optional):
-  - If `UPDATE_LATEST_POINTER=TRUE`, `{ESTIMATES_ROOT}/_LATEST.md` MAY be overwritten to point to the latest snapshot.
+  - If `UPDATE_LATEST_POINTER=TRUE`: `tools/scaffolding/update_latest_pointer.sh {ESTIMATES_ROOT} {snapshot_folder_name}`
   - If `UPDATE_LATEST_POINTER=FALSE`, do not modify pointer files.
 
 #### Step 1 — Load decomposition (stable IDs + scope mapping)
