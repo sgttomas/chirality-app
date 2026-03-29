@@ -102,8 +102,8 @@ Route by **category × output type × stakes × posture**, then proceed.
 
 ## Revision
 
-- Version: v1.1
-- Date: 2026-01-30
+- Version: v1.2
+- Date: 2026-03-29
 
 ---
 
@@ -113,6 +113,8 @@ This standard applies when:
 - The primary interface is a **Large Language Model** with tools and file access, and
 - The system is defined primarily by **instruction documents** and **filesystem contracts**, and
 - The work requires **repeatability**, **traceability**, and **scale** (many items, many iterations, many contributors).
+
+When workflows are designed for regulated professional practice, this standard operates under the professional engineering governance defined in `PROFESSIONAL_ENGINEERING.md`.
 
 ---
 
@@ -221,7 +223,7 @@ For each agent you design or revise, you MUST include a header block:
 
 - `AGENT_CLASS: PERSONA | TASK`
 - `INTERACTION_SURFACE: chat | INIT-TASK | spawned | both`
-- `WRITE_SCOPE: repo-wide | project-level | deliverable-local | tool-root-only | repo-metadata-only | none`
+- `WRITE_SCOPE: repo-wide | project-level | deliverable-local | tool-root-only | workspace-scaffold-only | knowledge-type-local | repo-metadata-only | none`
 - `BLOCKING: never | allowed`
 - `PRIMARY_OUTPUTS: ...`
 
@@ -390,7 +392,7 @@ A workflow design is compliant when all of the following are true:
 | **AGENT_TYPE** | TYPE 0 | TYPE 1 | TYPE 2 |
 | **AGENT_CLASS** | PERSONA | TASK |
 | **INTERACTION_SURFACE** | chat | INIT-TASK | spawned | both |
-| **WRITE_SCOPE** | repo-wide | project-level | deliverable-local | tool-root-only | repo-metadata-only | none |
+| **WRITE_SCOPE** | repo-wide | project-level | deliverable-local | tool-root-only | workspace-scaffold-only | knowledge-type-local | repo-metadata-only | none |
 | **BLOCKING** | never | allowed |
 | **PRIMARY_OUTPUTS** | ... |
 ```
