@@ -6,6 +6,9 @@ engineering/
 next-session-prompt.md
 download/
 resumes/
+*.log
+*.zip
+relying-on-the-work-of-others-and-outsourcing.pdf
 
 # Harness runtime artifacts (keep scope precise; do not ignore all .chirality)
 .chirality/logs/
