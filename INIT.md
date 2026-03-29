@@ -9,7 +9,7 @@ Chirality is a formally specified agent operating system for deliverable-heavy p
 | `docs/DIRECTIVE.md` | Founding intent, design philosophy, professional responsibility model |
 | `docs/SPEC.md` | Physical structures, file formats, schemas, folder layouts |
 | `docs/TYPES.md` | Domain vocabulary, stable IDs, enums, lifecycle states, agent roles |
-| `docs/CONTRACT.md` | K-* invariant catalog (23 binding invariants) |
+| `docs/CONTRACT.md` | K-* invariant catalog (20 binding invariants) |
 | `docs/DBM_Agent_Instruction_Architecture.md` | Full design basis for the instruction architecture |
 | `docs/SE_Design_Analysis.md` | Systems engineering design analysis |
 | `AGENTS.md` | Agent index and matrix |

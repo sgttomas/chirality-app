@@ -275,16 +275,71 @@ The desktop frontend uses canonical UI terms for matrix routing and pipeline sel
 
 ---
 
-## 10. Epistemic Labels
+## 10. Epistemic Ontology
 
-Agents use these labels in `Notes` fields and dependency records to distinguish knowledge certainty:
+The epistemology pillar (see `DIRECTIVE.md` §2) operates on a set of formally defined entities. These entities constitute the ontology of the epistemic layer — the things that the epistemic mechanisms (mandatory provenance, no invention, conflict surfacing, epistemic labeling) act upon.
 
-| Label | Meaning |
-|-------|---------|
-| `FACT` | Directly observed in source text with citation |
-| `ASSUMPTION` | Reasonable inference not directly stated; requires validation |
-| `PROPOSAL` | Agent suggestion; requires human decision to become binding |
-| `TBD` | Unknown; placeholder requiring resolution |
+### 10.1 Epistemic Primitives
+
+| Primitive | Definition | Canonical Location |
+|-----------|-----------|-------------------|
+| **Claim** | An assertion that something is the case. The atomic unit of the epistemology. Every non-trivial assertion produced by an agent in a governed workflow is a claim. | Dependency rows, document content, agent outputs |
+| **Warrant** | The justification for believing a claim. Always extrinsic — a source citation (file + section + quote) — never intrinsic (model confidence or plausibility). | `EvidenceFile`, `SourceRef`, `EvidenceQuote` columns in `Dependencies.csv` (`SPEC.md` §6.5) |
+| **Status** | The epistemic classification of a claim's certainty, expressed as one of four labels. | `Notes` fields, dependency records, agent output prose |
+| **Gap** | The explicit, positive assertion that a warrant has not been found. A gap is not the absence of information — it is an entity representing that absence, making it visible and actionable. | `TBD` markers, `location TBD` in provenance fields, open issues |
+| **Conflict** | Two or more claims with incompatible warrants about the same key. The existence of a conflict is itself an epistemic entity that must be resolved before the deliverable can advance. | Conflict Tables (`ConflictID`, `Key`, `Contenders`, `ProposedAuthority`, `HumanRuling`) |
+| **Ruling** | A human decision that resolves a gap or conflict, transforming epistemic status. Rulings are binding and recorded in versioned files. | `HumanRuling` column in Conflict Tables, finding dispositions in REVIEW, gate decisions |
+
+### 10.2 Epistemic Relationships
+
+| Relationship | Description |
+|---|---|
+| A claim HAS a status | Exactly one of FACT, ASSUMPTION, PROPOSAL, or TBD |
+| A claim MAY HAVE a warrant | Source file + section reference + optional quote; absence is structurally visible |
+| A claim WITHOUT a warrant | Has status TBD or ASSUMPTION; the absence of warrant is itself a finding |
+| Two claims may be IN CONFLICT | Same key, incompatible values, different sources |
+| A conflict REQUIRES a ruling | HumanRuling = TBD until the licensed professional adjudicates |
+| A ruling TRANSFORMS status | Resolves gaps (TBD → FACT or ASSUMPTION) and conflicts (competing claims → one accepted) |
+
+### 10.3 Epistemic Labels
+
+The four epistemic labels classify the certainty status of claims:
+
+| Label | Meaning | Reviewer Action |
+|-------|---------|-----------------|
+| `FACT` | Directly observed in source text with citation | Verify citation; accept if source is authoritative |
+| `ASSUMPTION` | Reasonable inference not directly stated; requires validation | Validate or reject; document decision |
+| `PROPOSAL` | Agent suggestion; requires human decision to become binding | Decide; record rationale |
+| `TBD` | Unknown; placeholder requiring resolution | Resolve before reliance |
+
+### 10.4 Warrant Lifecycle
+
+Claims within a deliverable progress through a warrant lifecycle that tracks their epistemic state, interleaved with the deliverable lifecycle (`§5`) that tracks production state:
+
+```
+UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
+```
+
+| Warrant State | Meaning | Transition Mechanism |
+|---|---|---|
+| `UNWARRANTED` | Claim exists but has no source citation; status is TBD or PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking for unknowns |
+| `CITED` | Claim has a source citation; status is FACT or ASSUMPTION | Agent attaches provenance; K-PROV-1 enforces |
+| `REVIEWED` | Claim has been examined by a licensed professional; findings dispositioned | REVIEW gates; human rules on findings |
+| `AUTHENTICATED` | Claim is part of an authenticated PWP; the professional warrants it under duty of care | Authentication binds to git SHA; K-AUTH-2 enforces |
+
+The deliverable lifecycle asks: *what state is this work product in?* The warrant lifecycle asks: *what state is our knowledge about this work product in?* A deliverable is ready for issuance when its warrants are sufficient — when the licensed professional has determined that the epistemic state of the claims supports authentication under professional responsibility.
+
+The two lifecycles are correlated but not identical. A deliverable in `IN_PROGRESS` contains a mixture of warranted and unwarranted claims. The transition to `CHECKING` requires that critical claims have been warranted (all CRITICAL findings must have non-TBD human disposition). The transition to `ISSUED` requires that the professional has authenticated the work — the act of warranting the deliverable's claims under professional responsibility.
+
+### 10.5 Enforcing Invariants
+
+| Invariant | Epistemic Primitive Governed |
+|---|---|
+| K-PROV-1 (mandatory provenance) | Warrant — every claim must have an extrinsic warrant or explicit `location TBD` |
+| K-INVENT-1 (no invention) | Gap — missing data must be represented as a gap (TBD), not filled with a fabrication |
+| K-CONFLICT-1 (conflict surfacing) | Conflict — disagreements must be exposed as conflicts, not silently resolved |
+| K-AUTH-1 (human authority) | Ruling — only humans may author binding rulings and approval records |
+| K-AUTH-2 (SHA-bound approval) | Authentication — the warrant-to-content binding is mechanically verifiable |
 
 ---
 

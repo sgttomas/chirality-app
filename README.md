@@ -54,7 +54,7 @@ Stage gates (30/60/90/IFC) are human-managed milestones and are not lifecycle st
 
 ## Agent Suite
 
-The system ships 35 agent instruction files organized across a 3x4 matrix:
+The system ships 37 agent instruction files organized across a 3x4 matrix:
 
 |  | Guiding | Applying | Judging | Reviewing |
 |:---|:---|:---|:---|:---|
@@ -87,7 +87,7 @@ The `docs/` directory contains the formal specification hierarchy:
 | [`DIRECTIVE.md`](docs/DIRECTIVE.md) | Founding intent, design philosophy, professional responsibility model, scope, and structural constraints |
 | [`SPEC.md`](docs/SPEC.md) | Physical structures, file formats, schemas (Dependencies.csv v3.1), folder layout, and validation checklists |
 | [`TYPES.md`](docs/TYPES.md) | Domain vocabulary, stable identifier formats, enumerated types, agent roles, and lifecycle states |
-| [`CONTRACT.md`](docs/CONTRACT.md) | Invariant catalog (23 K-* invariants) with enforcement map |
+| [`CONTRACT.md`](docs/CONTRACT.md) | Invariant catalog (20 K-* invariants) with enforcement map |
 | [`PLAN.md`](docs/PLAN.md) | Development roadmap and future hardening candidates |
 | [`DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) | Design basis memorandum for the full instruction architecture |
 | [`SE_Design_Analysis.md`](docs/SE_Design_Analysis.md) | Systems engineering design analysis across eight SE disciplines |
@@ -100,7 +100,7 @@ The architecture is governed by three layers of formally stated invariants:
 
 - **R1–R9 (Workflow Design Requirements)** — Apply to all agents. Defined in `AGENT_HELPS_HUMANS.md`.
 - **I1–I10 (Decomposition Invariants)** — Apply to all decomposition agents. Defined in `AGENT_DECOMP_BASE.md`.
-- **K-\* (System-Wide Invariants)** — 23 named invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, and write scope. Defined in [`docs/CONTRACT.md`](docs/CONTRACT.md).
+- **K-\* (System-Wide Invariants)** — 20 named invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, and write scope. Defined in [`docs/CONTRACT.md`](docs/CONTRACT.md).
 
 ---
 
@@ -121,7 +121,7 @@ The `frontend/` directory contains a Next.js + Electron desktop application with
 
 ```
 chirality-app/
-  agents/              35 agent instruction files (AGENT_*.md)
+  agents/              37 agent instruction files (AGENT_*.md)
   tools/               28 deterministic tools + REGISTRY.md (shell scripts, Python utilities)
     scaffolding/       Package, deliverable, tool root, snapshot folder creation
     query/             Workspace state, amendment ID scanning

@@ -65,6 +65,8 @@ Rows describe epistemic posture; columns describe functional role. NORMATIVE and
 | AUDIT_DEP_CLOSURE | `AGENT_AUDIT_DEP_CLOSURE.md` | Dependency closure audit |
 | DOMAIN_HYPERGRAPH | `AGENT_DOMAIN_HYPERGRAPH.md` | Hypergraph snapshot generation |
 | AUDIT_HYPERGRAPH_CLOSURE | `AGENT_AUDIT_HYPERGRAPH_CLOSURE.md` | Hypergraph closure audit |
+| AUDIT_GOVERNANCE | `AGENT_AUDIT_GOVERNANCE.md` | Governance document consistency audit |
+| AUDIT_EPISTEMIC | `AGENT_AUDIT_EPISTEMIC.md` | Deliverable epistemic ontology audit |
 | CONTENT_DIGEST | `AGENT_CONTENT_DIGEST.md` | Per-deliverable structured content digest |
 | EVALUATION_REPORT | `AGENT_EVALUATION_REPORT.md` | Scored dimension evaluation |
 | EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |

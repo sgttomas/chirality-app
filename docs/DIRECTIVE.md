@@ -54,6 +54,34 @@ Two additional epistemic commitments complete the picture:
 
 *Content-addressed approval.* Approvals bind to a specific git SHA. If the content changes after approval, the approval is void. This makes the integrity of the approval relationship mechanically verifiable — not dependent on trust or process discipline alone.
 
+The epistemology has its own ontology — the set of entities that the epistemic mechanisms operate on. Six primitives constitute this layer:
+
+| Primitive | What It Is |
+|---|---|
+| **Claim** | An assertion that something is the case. The atomic unit of the epistemology. |
+| **Warrant** | The justification for believing a claim. Always extrinsic (source citation), never intrinsic (model confidence). |
+| **Status** | The epistemic classification of a claim's certainty: FACT, ASSUMPTION, PROPOSAL, or TBD. |
+| **Gap** | The explicit, positive assertion that a warrant has not been found. TBD is not "unknown" — it is an entity representing the absence of warrant. |
+| **Conflict** | Two or more claims with incompatible warrants about the same key. The existence of a conflict is itself an epistemic entity that must be resolved. |
+| **Ruling** | A human decision that resolves a gap or conflict, transforming epistemic status. |
+
+These primitives and their relationships are formalized in `TYPES.md` §10.
+
+The epistemic primitives give rise to a **warrant lifecycle** that tracks the epistemic state of claims within a deliverable, interleaved with the deliverable lifecycle that tracks production state:
+
+```
+UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
+```
+
+| Warrant State | Meaning | Transition Mechanism |
+|---|---|---|
+| `UNWARRANTED` | Claim exists but has no source citation; status is TBD or PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking |
+| `CITED` | Claim has a source citation; status is FACT or ASSUMPTION | Agent attaches provenance; K-PROV-1 enforces |
+| `REVIEWED` | Claim has been examined by a professional; findings dispositioned | REVIEW gates; human rules on findings |
+| `AUTHENTICATED` | Claim is part of an authenticated PWP; the professional warrants it | Authentication binds to git SHA; K-AUTH-2 enforces |
+
+The deliverable lifecycle asks: what state is this work product in? The warrant lifecycle asks: what state is our knowledge about this work product in? The deliverable is ready for issuance when its warrants are sufficient — when the licensed professional has determined that the epistemic state of the claims supports authentication under professional responsibility. The warrant lifecycle is formalized in `TYPES.md` §10.
+
 **Praxiology — how work is done.**
 
 The operational model separates three concerns: what the rules are (Type 0 — Architect), how work is orchestrated (Type 1 — Manager), and how bounded tasks are executed (Type 2 — Specialist). Authority flows downward; escalation flows upward. No type can exceed its authority — a Type 2 agent cannot modify rules set by Type 0, a Type 1 agent cannot approve deliverables for external reliance, and no agent of any type can bypass a human gate.
@@ -98,6 +126,19 @@ The praxiology enforces the epistemic architecture through gates and write quara
 The axiology anchors the epistemic architecture in professional responsibility — without the value commitment that evidence matters more than plausibility, the epistemic mechanisms would be overhead rather than protection.
 
 The epistemology is what makes Chirality a professional engineering tool rather than a productivity tool. Productivity tools optimize for output quality. Professional engineering tools optimize for knowing what you can rely on.
+
+### The Pillars as the Ontology of Professional Accountability
+
+The four pillars are not a classification scheme chosen for this project. They are the minimal complete ontology for any context in which a professional takes responsibility for work. At every level where accountability exists, the same four questions must be answered:
+
+- What exists? (ontology)
+- What is warranted? (epistemology)
+- How was the work done? (praxiology)
+- What values governed the decisions? (axiology)
+
+Missing any one creates a specific, identifiable accountability failure: without ontology, the professional does not know what they are responsible for; without epistemology, they do not know what to believe; without praxiology, they do not know how the work was performed; without axiology, they do not know why the decisions were made the way they were.
+
+This is why the fractal property exists. The four pillars appear at the governance level, at the agent instruction level, and at the document kit level not because the design was made to repeat itself, but because professional accountability requires the same four things at every level of abstraction. The fractal property is an ontological property of accountability itself.
 
 ### The Six Principles
 
