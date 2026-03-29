@@ -11,7 +11,7 @@ Referenced by the Chirality AI Ltd. Professional Practice Management Plan (PPMP)
 
 ## Preamble
 
-This document defines the professional practice standard for Chirality AI Ltd. governing the use of AI agent systems in regulated engineering practice. It establishes how the firm satisfies its professional obligations under the *Engineering and Geoscience Professions Act* (EGP Act), the *General Regulation*, and applicable APEGA practice standards when licensed professionals rely on work produced by AI agents.
+This document defines the professional practice standard for Chirality AI Ltd. governing the use of AI agent systems in regulated engineering practice. It establishes how the firm satisfies its professional obligations under the *Engineering and Geoscience Professions Act* (EGP Act), the *General Regulation*, and applicable APEGA practice standards when licensed professionals rely on work produced by AI agents. The theoretical foundation for this standard — including the nature of knowledge in professional practice and the structural relationship between AI output and professional accountability — is defined in `CHIRALITY_THEORY.md`.
 
 > AI can accelerate engineering work. It cannot inherit professional responsibility.
 
@@ -40,6 +40,8 @@ This standard applies whenever Chirality AI Ltd. licensed professionals use AI a
 AI agents that produce work under the direction of a licensed professional are "others" whose work the professional relies on, within the meaning of APEGA §3.0 (*Relying on the Work of Others*). The professional's obligations are defined by what the licensed professional must do — not by the nature of the entity producing the work. Whether the worker is a junior engineer, an engineering intern, a contractor, or an AI agent, the professional's obligations are the same.
 
 This framework applies directly — not by analogy — because AI agents assume no professional responsibility. The entire chain of responsibility flows to the licensed professional who authenticates the resulting professional work product. This is structurally identical to the case of an unlicensed individual working under direct supervision and control: the supervising professional bears full responsibility for the work.
+
+The APEGA practice standard requires no AI-specific amendment to govern this use. Its obligations were always defined in terms of what the professional must do — supervise, review, authenticate — not in terms of what the worker must be. The governance architecture described in this document is what makes those existing obligations satisfiable when the work is produced by AI agents whose outputs present a novel epistemic challenge: plausible by construction, with no intrinsic signal distinguishing grounded claims from fabricated ones.
 
 The firm's obligations therefore engage two mechanisms from the APEGA practice standard *Relying on the Work of Others and Outsourcing*:
 

@@ -53,7 +53,7 @@ The thesis is organized as follows:
 - **Chapter 2 (Literature Review)** surveys five domains — AI agent architectures, LLM reliability, formal methods and safety-critical SE, professional regulation, and epistemic frameworks — and identifies the gap that motivates this work.
 - **Chapter 3 (Philosophical Framework)** presents the four pillars, argues that the epistemology is load-bearing, and demonstrates the fractal property.
 - **Chapter 4 (Architecture)** presents the technical architecture: filesystem-as-state, entity model, lifecycle state machine, type hierarchy, write scope, invariant system, orchestration, and contracts.
-- **Chapter 5 (Epistemic Architecture)** develops the core novelty claim: the four epistemic mechanisms, worked examples, and comparison to alternative approaches.
+- **Chapter 5 (Epistemic Architecture)** develops the core novelty claim: the six epistemic primitives, the four enforcement mechanisms, the warrant lifecycle as operational model, worked examples, and comparison to alternative approaches.
 - **Chapter 6 (Professional Practice Integration)** presents the APEGA regulatory mapping and the argument that AI agents are "others" under §3.0.
 - **Chapter 7 (SE Design Analysis)** examines the architecture through eight SE disciplines.
 - **Chapter 8 (Implementation and Validation)** presents the working implementation: 37 agents, 28 tools, desktop application, and validation mechanisms.

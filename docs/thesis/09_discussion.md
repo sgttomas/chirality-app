@@ -73,6 +73,14 @@ The APEGA regulatory mapping generalizes in structure if not in specific citatio
 
 The ontology/epistemology/praxiology/axiology framework could serve as an evaluation instrument for other AI agent governance architectures. For any system, one could ask: Does it define a complete ontology? Does it enforce epistemic transparency? Does it bound agent praxis through formal constraints? Does it articulate and enforce values? A system missing any pillar has a specific, identifiable governance gap. This evaluation use extends beyond the Chirality architecture itself.
 
+The deeper insight — that the four pillars are the minimal complete ontology for professional accountability (Chapter 3, §3.5) — suggests that this evaluation framework is not arbitrary. It applies wherever a professional takes responsibility for work, because the four questions (what exists? what is warranted? how was it done? what values governed?) are inherent to accountability itself.
+
+### 9.3.4 The Epistemic Ontology and Warrant Lifecycle as Portable Concepts
+
+The six epistemic primitives (claim, warrant, status, gap, conflict, ruling) and the warrant lifecycle (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) are not Chirality-specific constructs. They formalize concepts that are implicit in any professional review process. An engineer reviewing a colleague's calculation already thinks in terms of claims (what is asserted), warrants (what evidence supports it), gaps (what is missing), and conflicts (where sources disagree). The Chirality contribution is to make these implicit concepts architecturally explicit and enforceable.
+
+Any AI agent framework that aims to support professional practice could adopt the epistemic ontology without adopting the full Chirality architecture. The primitives and the warrant lifecycle are modular — they require only that the system can attach provenance to claims, label epistemic status, surface gaps, and detect conflicts. The AUDIT_EPISTEMIC agent (`AGENT_AUDIT_EPISTEMIC.md`) demonstrates that these properties can be audited systematically.
+
 ---
 
 ## 9.4 Future Work
@@ -90,19 +98,23 @@ The highest-priority future work is a controlled study with licensed engineers e
 
 The "future tooling" enforcement layer should be implemented as automated checks: staleness calculation from the dependency graph and baseline SHAs, content validation against approved SHAs, merge policy enforcement, and approval integrity verification. This would close the gap between the specified invariant system and the implemented enforcement.
 
-### 9.4.3 Formal Verification of Invariant Preservation
+### 9.4.3 Empirical Validation of the Warrant Lifecycle
+
+The warrant lifecycle model (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) and the AUDIT_EPISTEMIC agent that operationalizes it should be empirically validated. Specific questions include: does the warrant state distribution correlate with deliverable quality? do deliverables with higher CITED/REVIEWED ratios produce fewer review findings? does the AUDIT_EPISTEMIC agent's conflict detection catch errors that manual review misses? These questions require data from real project executions.
+
+### 9.4.5 Formal Verification of Invariant Preservation
 
 The invariant system could be subjected to formal verification: given the write scope declarations, the gate structure, and the lifecycle state machine, can it be proven that no sequence of agent actions violates the K-* invariants? This is a formal methods contribution that would strengthen the safety argument.
 
-### 9.4.4 Multi-Jurisdiction Regulatory Mapping
+### 9.4.6 Multi-Jurisdiction Regulatory Mapping
 
 The APEGA mapping should be replicated for other jurisdictions (EGBC, PEO, NSPE, Engineers Australia, UK Engineering Council) to validate the generalizability claim and to identify jurisdiction-specific requirements that the architecture may need to accommodate.
 
-### 9.4.5 Multi-User Concurrent Execution
+### 9.4.7 Multi-User Concurrent Execution
 
 The current architecture assumes sequential agent execution within a single user session. Multi-user concurrent execution — multiple licensed professionals directing agents against the same project simultaneously — would require a lock mechanism (identified as a future hardening candidate in `PLAN.md` §3.5) and conflict resolution protocols for concurrent write operations.
 
-### 9.4.6 Extension to Other Agent Platforms
+### 9.4.8 Extension to Other Agent Platforms
 
 The governance architecture is currently coupled to the Chirality desktop application and its specific agent runtime. Demonstrating that the same invariant system, write scope model, and epistemic architecture can govern agents on other platforms (e.g., LangChain, AutoGen, Claude Code) would validate the claim that the contribution is architectural, not implementation-specific.
 

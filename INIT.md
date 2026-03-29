@@ -12,6 +12,8 @@ Chirality is a formally specified agent operating system for deliverable-heavy p
 | `docs/CONTRACT.md` | K-* invariant catalog (20 binding invariants) |
 | `docs/DBM_Agent_Instruction_Architecture.md` | Full design basis for the instruction architecture |
 | `docs/SE_Design_Analysis.md` | Systems engineering design analysis |
+| `CHIRALITY_THEORY.md` | The Chirality Theory: knowledge, accountability, and the four pillars |
+| `PROFESSIONAL_ENGINEERING.md` | Professional practice standard (APEGA regulatory mapping) |
 | `AGENTS.md` | Agent index and matrix |
 | `tools/REGISTRY.md` | Deterministic tool index (28 tools, 6 categories) |
 

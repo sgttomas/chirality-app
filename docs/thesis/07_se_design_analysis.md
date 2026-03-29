@@ -4,11 +4,13 @@
 
 ## 7.1 Introduction and Method
 
-This chapter examines the Chirality agent instruction architecture through the lens of eight recognized systems engineering (SE) disciplines. The analysis treats the agent instruction files, governance documents, and the contracts that bind them as a coherent engineered system, and demonstrates that the SE disciplines embedded in that system are not compliance artifacts applied after the fact but are, in each case, the operative mechanism by which the system achieves its objectives.
+This chapter examines the Chirality agent instruction architecture through the lens of eight recognized systems engineering (SE) disciplines. The analysis treats the agent instruction files, governance documents, and the contracts that bind them as a coherent engineered system.
 
-The reference framework for SE discipline definitions throughout this chapter is the INCOSE Systems Engineering Handbook [CITE:INCOSE2023]. The analytical method is systematic examination with evidence traced to specific files, governance sections, and invariant identifiers drawn from the Chirality Contract document (`CONTRACT.md`). The full invariant catalog is reproduced in Appendix A; the complete agent inventory is provided in Appendix B.
+Chapter 3 established the four-pillar philosophical framework — ontology, epistemology, praxiology, and axiology — and argued that the four pillars are generative: given a commitment to professional accountability in the context of AI agent systems, the SE disciplines are deductively necessary consequences of those commitments. This chapter provides the evidence for that claim. It demonstrates that each SE discipline is present in the architecture, that each traces to one or more pillars, and that no discipline is found that does not serve a pillar. The SE disciplines were not selected from a handbook and applied — they emerged as the only way to make the four-pillar commitments architecturally real.
 
-Chapter 3 of this thesis established the four-pillar philosophical framework — ontology, epistemology, praxiology, and axiology — that governs all design decisions in Chirality. A recurring observation of this chapter is that each SE discipline, when instantiated in the Chirality architecture, serves one or more of those four pillars, and that the epistemology pillar is served most densely: configuration management, verification and validation, formal methods, and the evidence-first epistemology pattern described in Section 7.10 all draw their functional justification from the same epistemic premise — that the grounds for professional reliance must be structurally visible and auditable.
+The reference framework for SE discipline definitions is the INCOSE Systems Engineering Handbook [CITE:INCOSE2023]. The analytical method is systematic examination with evidence traced to specific files, governance sections, and invariant identifiers drawn from the Chirality Contract document (`CONTRACT.md`). The full invariant catalog is reproduced in Appendix A; the complete agent inventory is provided in Appendix B.
+
+A recurring observation throughout this chapter is that the epistemology pillar is served most densely: configuration management, verification and validation, formal methods, and the evidence-first epistemology pattern described in Section 7.10 all draw their functional justification from the same epistemic premise — that the grounds for professional reliance must be structurally visible and auditable. This density is predicted by the load-bearing argument in Chapter 3 (§3.4): if the epistemology is the pillar whose removal most completely defeats the system's purpose, then it should be the pillar that the most SE disciplines serve.
 
 The scope of this analysis is the instruction architecture only: agent instruction files (`AGENT_*.md`), governance documents (`docs/`), and the invariant contracts that bind agent behavior. The analysis proceeds across eight disciplines — architecture and structural design, configuration management, verification and validation, safety and reliability engineering, requirements engineering, control theory, formal methods, and human factors — followed by a cross-cutting patterns synthesis and a concluding assessment.
 
@@ -539,9 +541,16 @@ Formal methods provide the specification precision that makes all of the above t
 
 Human factors engineering provides the design logic for the human-agent interface. Decision authority allocation prevents scope creep of agent authority; cognitive load management ensures that human reviewers can perform their gate functions without being overwhelmed by unstructured information; configurable rigor allows the system to scale to project requirements rather than imposing uniform overhead.
 
-### 7.11.2 Alignment with the Four-Pillar Framework
+### 7.11.2 The Generative Relationship
 
-Each SE discipline implemented in the Chirality architecture serves one or more of the four philosophical pillars established in Chapter 3. The alignment is not coincidental — the pillars define what the system must achieve, and the SE disciplines provide the mechanisms by which those achievements are implemented.
+Each SE discipline implemented in the Chirality architecture serves one or more of the four philosophical pillars established in Chapter 3. This alignment is not coincidental — it is deductive. The four pillars define commitments that require specific SE capabilities to fulfill. The SE disciplines are the formal expression of those commitments: the only mechanisms by which the commitments can be made architecturally real.
+
+| Pillar Commitment | SE Disciplines That Follow |
+|---|---|
+| Ontology (stable, inspectable state) | Architecture and structural design; configuration management |
+| Epistemology (evidence-first, auditable knowledge) | Verification and validation; formal methods; requirements traceability |
+| Praxiology (bounded, gate-controlled execution) | Safety and reliability engineering; control theory |
+| Axiology (non-delegable professional responsibility) | Human factors; decision authority allocation |
 
 **Ontology** is served primarily by architecture and structural design. The production unit folder as atomic module, the flat K-HIER-1 hierarchy, and the dual tree × DAG knowledge structure define the ontological model that the system operates on. The filesystem is the database, and the structural design defines what entities exist and how they are organized.
 
@@ -558,6 +567,8 @@ The Chirality instruction architecture is, in its entirety, a systems engineerin
 What distinguishes this architecture from a conventional agent system is that the SE disciplines are not bolted on as compliance artifacts. They are the mechanism by which agents coordinate, the means by which failures are contained, and the basis on which humans maintain authority. The Type 0/1/2 hierarchy, the write scope architecture, the invariant system, the gate-controlled workflows, and the evidence-first epistemology are all instantiations of classical SE patterns adapted to the specific challenge of governing LLM-based agents in professional and regulated environments.
 
 The practical implication is significant: the systems engineering content of this architecture is not incidental overhead. It is what makes the system capable of supporting professional reliance. A system without content-addressed approval cannot provide reliable baselines. A system without fault containment zones cannot bound agent failures. A system without the formal type system cannot enforce consistent behavior across agent instances. A system without human gates cannot maintain professional accountability. The SE disciplines are not qualities added to the system; they are the properties that define it.
+
+The deeper claim, developed in the generative mapping above (§7.11.2), is that these SE disciplines could not have been absent. They are deductively necessary consequences of the four-pillar commitments. Systems engineering, in the context of professional AI agent governance, is not a methodology choice — it is what accountability requires when the work is delegated to probabilistic agents. The four pillars predict which SE disciplines must be present; this analysis confirms the prediction across all eight disciplines examined.
 
 Chapter 8 will examine the deployment architecture and operational considerations that determine how these design properties are realized in practice.
 

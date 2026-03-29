@@ -1,6 +1,8 @@
 # Systems Engineering Design Analysis — Agent Instruction Architecture
 
-This document identifies, characterizes, and describes the systems engineering design aspects realized in the Chirality App agent instruction architecture. It treats the 29 agent instruction files and their governance documents as an engineered system and analyzes them through the lens of recognized SE disciplines.
+This document analyzes the Chirality agent instruction architecture through the lens of eight recognized systems engineering disciplines. The analysis treats the 37 agent instruction files and their governance documents as an engineered system and traces the SE content to specific files, sections, and invariant IDs.
+
+The architecture rests on four philosophical pillars — ontology, epistemology, praxiology, and axiology — formalized in `DIRECTIVE.md` §2. The claim developed in that section is that the four pillars are generative: given a commitment to professional accountability in the context of AI agent systems, the SE disciplines identified in this analysis are deductively necessary consequences of the four-pillar commitments. They could not be absent. This analysis provides the evidence for that claim by demonstrating that each SE discipline is present, that each traces to one or more pillars, and that no discipline is found that does not serve a pillar.
 
 **Scope:** The instruction architecture only — agent instruction files (`AGENT_*.md`), governance documents (`docs/`), and the contracts that bind them.
 
@@ -427,6 +429,25 @@ The systems engineering content of this architecture is not incidental — it is
 
 What distinguishes this from a conventional agent system is that the SE disciplines are not bolted on as compliance artifacts — they are the mechanism by which agents coordinate, the means by which failures are contained, and the basis on which humans maintain authority. The Type 0/1/2 hierarchy, the write scope architecture, the invariant system, the gate-controlled workflows, and the evidence-first epistemology are all instances of classical SE patterns adapted to the specific challenge of governing LLM-based agents in professional and regulated environments.
 
+### 10.1 The Generative Relationship
+
+The eight SE disciplines identified in this analysis were not selected from a handbook and applied to the architecture. They emerged as necessary consequences of the four-pillar commitments formalized in `DIRECTIVE.md` §2.
+
+When the architecture committed to stable, inspectable state in git-tracked files (ontology), configuration management and baseline control followed necessarily — there is no other way to maintain integrity over versioned state. When it committed to mandatory provenance and epistemic transparency (epistemology), verification and validation, formal methods, and the evidence-first patterns followed — there is no other way to make the grounds for reliance auditable. When it committed to bounded, gate-controlled execution (praxiology), safety engineering, control theory, and the fault containment architecture followed — there is no other way to contain the behavior of probabilistic agents. When it committed to non-delegable professional responsibility (axiology), human factors design and the decision authority allocation followed — there is no other way to preserve human accountability.
+
+The mapping is not coincidental:
+
+| Pillar Commitment | SE Disciplines That Follow |
+|---|---|
+| Ontology (stable, inspectable state) | Architecture and structural design; configuration management |
+| Epistemology (evidence-first, auditable knowledge) | Verification and validation; formal methods; requirements traceability |
+| Praxiology (bounded, gate-controlled execution) | Safety and reliability engineering; control theory |
+| Axiology (non-delegable professional responsibility) | Human factors; decision authority allocation |
+
+Each SE discipline serves one or more pillars. No SE discipline was found that does not serve a pillar. The SE disciplines are the formal expression of the philosophical commitments — the only way those commitments can be made architecturally real.
+
+This means that systems engineering, in the context of professional AI agent governance, is not a methodology choice. It is the deductive consequence of taking professional accountability seriously. The four pillars predict what SE disciplines must be present; this analysis confirms the prediction.
+
 ---
 
-*Produced by systematic analysis of all 29 agent instruction files and 5 governance documents in the Chirality App repository.*
+*Produced by systematic analysis of all 37 agent instruction files and 7 governance documents in the Chirality App repository.*

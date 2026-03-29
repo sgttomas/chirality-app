@@ -170,23 +170,23 @@ The new AUDIT_EPISTEMIC agent (`AGENT_AUDIT_EPISTEMIC.md`) operationalizes this 
 
 The epistemic architecture is complementary to, not competitive with, model-level improvements. This section positions the approach against the principal alternatives.
 
-### 5.5.1 Reinforcement Learning from Human Feedback (RLHF)
+### 5.6.1 Reinforcement Learning from Human Feedback (RLHF)
 
 RLHF [CITE:RLHF_reference] improves the model's average output quality by training it to produce outputs that human raters prefer. This reduces the base rate of errors but does not provide per-claim epistemic status. A model trained with RLHF may hallucinate less frequently, but when it does, the hallucination is indistinguishable from a correct claim. RLHF is a population-level improvement; the epistemic architecture is a per-claim annotation. They serve different functions and are fully compatible.
 
-### 5.5.2 Retrieval-Augmented Generation (RAG)
+### 5.6.2 Retrieval-Augmented Generation (RAG)
 
 RAG systems retrieve relevant documents and present them to the model alongside the prompt, grounding the model's output in specific sources [CITE:RAG_reference]. This is valuable but insufficient: the model may still interpolate beyond the retrieved content, and the boundary between retrieved-and-restated versus model-generated is not marked in the output. The epistemic architecture complements RAG by requiring that the boundary be marked — every claim must carry provenance to a specific source, and claims that go beyond the source must carry ASSUMPTION or PROPOSAL labels.
 
-### 5.5.3 Post-Hoc Factuality Checking
+### 5.6.3 Post-Hoc Factuality Checking
 
 Post-hoc systems verify model outputs against a reference corpus after generation [CITE:factuality_checking_reference]. These are useful as an additional quality layer but introduce their own reliability questions (the checker may also err) and do not produce the per-claim epistemic labels that enable efficient human review. The epistemic architecture produces these labels as part of the generation process, not as a post-hoc audit.
 
-### 5.5.4 Constitutional AI
+### 5.6.4 Constitutional AI
 
 Constitutional AI [CITE:Bai2022_constitutional_AI] trains models to self-critique against a set of principles. This improves alignment but does not provide extrinsic provenance — the model's self-assessment is still a model output, subject to the same absence of intrinsic warrant. The epistemic architecture requires extrinsic evidence (specific file paths and section references), not the model's own assessment of its reliability.
 
-### 5.5.5 Summary of Positioning
+### 5.6.5 Summary of Positioning
 
 | Approach | What It Improves | What It Does Not Provide |
 |---|---|---|
@@ -219,3 +219,5 @@ The Chirality epistemic architecture responds to the fundamental limitation of L
 The architecture is complementary to model-level improvements and grows more efficient as models improve: better models produce fewer uncertainties to flag, while the architecture ensures that every remaining uncertainty is visible. The approach addresses a gap in the existing literature: most work on LLM reliability focuses on reducing error rates, while Chirality focuses on making the epistemic status of individual claims transparent — a requirement that is necessary for professional practice regardless of model quality.
 
 The epistemic architecture is the pillar that makes the regulatory mapping in Chapter 6 tractable: without it, the professional obligations of thorough review and direct supervision cannot be efficiently satisfied for AI-assisted work. With it, these obligations can be met using the same mechanisms that govern human-produced work — with the added benefit that the evidence trail is more structured, more complete, and more auditable than manual practice typically achieves.
+
+The deeper philosophical foundation for the epistemic architecture — including the claim that knowledge in professional practice is constituted by the act of warranted accountability, not by information processing — is developed in `CHIRALITY_THEORY.md`.

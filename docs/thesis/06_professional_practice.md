@@ -142,6 +142,8 @@ The significance of the git history and immutable snapshot trail deserves emphas
 
 Thorough review applies to all AI agent outputs that will be incorporated into PWPs. The Chirality professional practice standard requires that thorough review be conducted before authentication even when the licensed professional has provided direct supervision and control throughout the work (`PROFESSIONAL_ENGINEERING.md` §5.1). This requirement reflects the additional risk created by LLM failure modes — specifically, the risk that plausible-sounding outputs may contain errors, omissions, or hallucinations that a professional exercising due diligence would identify and resolve. [CITE: LLM reliability and hallucination in professional contexts]
 
+In terms of the epistemic ontology formalized in Chapter 3 (§3.2.2) and developed in Chapter 5 (§5.5), thorough review is the process of auditing warrant sufficiency: the professional examines the claims within the deliverable, checks their warrants (provenance, epistemic labels), resolves gaps and conflicts through rulings, and determines whether the aggregate warrant state — the distribution of claims across the warrant lifecycle (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) — supports authentication. The epistemic architecture makes this assessment tractable by ensuring that every claim's warrant state is visible, enabling targeted rather than exhaustive review.
+
 ### 6.5.2 Reliability, Accuracy, and Validity (APEGA §3.1.2.1)
 
 APEGA §3.1.2.1 specifies ten substantive areas that thorough review must address. The Chirality REVIEW agent (`agents/AGENT_REVIEW.md`) implements a 5-gate protocol that structures the professional's review across each of these areas. The gates are:

@@ -166,6 +166,16 @@ Invariant K-STATUS-1 states: "`_STATUS.md` is the canonical, human-readable life
 
 The enforcement of K-STATUS-1 is distributed: it appears in the SPEC of every agent whose behavior varies by lifecycle state, and it is a first-order check in ORCHESTRATOR's context-sealing gate (K-SEAL-1).
 
+### 4.4.5 The Interleaved Warrant Lifecycle
+
+The deliverable lifecycle tracks production state. A second lifecycle — the **warrant lifecycle** — tracks the epistemic state of the claims within the deliverable. Chapter 3 (§3.2.2) defines six epistemic primitives (claim, warrant, status, gap, conflict, ruling) and a four-state warrant lifecycle:
+
+```
+UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
+```
+
+The two lifecycles are interleaved: a deliverable in `IN_PROGRESS` contains claims in varying warrant states. The transition to `CHECKING` requires that critical claims have been warranted. The transition to `ISSUED` requires that the professional has authenticated the work — declaring the aggregate warrant state sufficient for reliance. The warrant lifecycle is formalized in `TYPES.md` §10 and developed in full in Chapter 5 (§5.5).
+
 ---
 
 ## 4.5 Agent Type Hierarchy
