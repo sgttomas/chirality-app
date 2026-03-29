@@ -4,7 +4,7 @@ This document is the design basis memorandum for the agent instruction system sh
 
 **Audience:** Anyone who will work with, extend, audit, or maintain the agent instruction suite.
 
-**Scope:** The 29 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
+**Scope:** The 35 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
 
 **Relationship to other governance documents:**
 
@@ -16,12 +16,13 @@ This document is the design basis memorandum for the agent instruction system sh
 | `CONTRACT.md` | K-* invariant catalog | This DBM maps K-* invariants to the agents that enforce them |
 | `AGENTS.md` | Operator-facing index and rules of the road | AGENTS.md is the quick-reference; this DBM is the detailed basis |
 | `SE_Design_Analysis.md` | Systems engineering design analysis | Characterizes the SE disciplines realized in this architecture; this DBM defines the architecture that the SE analysis examines |
+| `PROFESSIONAL_ENGINEERING.md` | Professional practice standard (PPMP-referenced) | Traces the instruction architecture to APEGA regulatory obligations; maps direct supervision and control (§3.1.1) and thorough review (§3.1.2) to the governance mechanisms defined in this DBM |
 
 ---
 
 ## 1. Design Philosophy
 
-The agent instruction architecture is governed by eight foundational principles derived from `DIRECTIVE.md`. These are not independent guidelines — they form a structural dependency chain where foundational decisions enable downstream capabilities.
+The agent instruction architecture is governed by eight foundational principles derived from `DIRECTIVE.md`. These are not independent guidelines — they form a structural dependency chain where foundational decisions enable downstream capabilities. `DIRECTIVE.md` §2 frames these principles as instantiations of four philosophical pillars — ontology, epistemology, praxiology, and axiology — and identifies the epistemology (evidence-first knowledge architecture) as the system's most distinctive and load-bearing contribution. The eight principles below operationalize that framework into the instruction layer.
 
 ### 1.1 Filesystem Is the State
 
@@ -679,4 +680,4 @@ Per HELPS_HUMANS, any new workflow specification must produce these 8 design out
 
 ---
 
-*This document was produced by systematic research across all 29 agent instruction files and the governance documents in `docs/`. The systems engineering disciplines identified in this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied to an agent system. They are the mechanisms by which the agents coordinate, failures are contained, and humans maintain authority. See `SE_Design_Analysis.md` for the detailed characterization.*
+*This document was produced by systematic research across all 35 agent instruction files and the governance documents in `docs/`. The systems engineering disciplines identified in this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied to an agent system. They are the mechanisms by which the agents coordinate, failures are contained, and humans maintain authority. See `SE_Design_Analysis.md` for the detailed characterization.*

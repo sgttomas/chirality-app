@@ -132,9 +132,7 @@ chirality-app/
   docs/                Governance documents (DIRECTIVE, SPEC, TYPES, CONTRACT, PLAN, DBM, SE Analysis)
   frontend/            Next.js + Electron desktop application
   examples/            Execution-root samples for regression and conformance testing
-  design/              Design artifacts
-  init/                Initialization resources
-  AGENTS.md            Operator-facing agent index and rules of the road
+  AGENTS.md            Agent index and matrix
   INIT.md              Agent bootstrap context
   WHAT-IS-AN-AGENT.md  Conceptual primer on the Type 0/1/2 model
   PROFESSIONAL_ENGINEERING.md  Standard for AI in regulated engineering practice
@@ -145,11 +143,17 @@ chirality-app/
 
 ## Design Philosophy
 
-The systems engineering content of this architecture is not incidental — it is the architecture. The instruction files are formal specifications that define interfaces, state machines, invariants, preconditions, postconditions, containment zones, and authority boundaries.
+The architecture rests on four philosophical pillars: an **ontology** (what exists — the filesystem-as-graph where folders are nodes, dependency rows are edges, and markdown files carry properties), an **epistemology** (what can be known — mandatory provenance, no invention, conflict surfacing, and epistemic labeling that makes the certainty of every claim transparent), a **praxiology** (how work is done — gate-controlled workflows, write quarantine, brief-driven pipelines, and the Type 0/1/2 authority hierarchy), and an **axiology** (what the system values — public welfare first, professional responsibility non-transferable, evidence over plausibility).
 
-What distinguishes Chirality from a conventional agent system is that SE disciplines are not bolted on as compliance artifacts — they are the mechanism by which agents coordinate, the means by which failures are contained, and the basis on which humans maintain authority.
+The foundational decision is that the filesystem is the database. This is not a simplification. It is the mechanism that makes everything else work: V-model traceability, immutable snapshots, change propagation, content-addressed approval, and a complete audit trail that requires no infrastructure beyond version control.
 
-AI outputs are drafts and structured assistance, not authoritative engineering judgment. Human acceptance is what makes them engineering work product.
+The most distinctive pillar is the epistemology. The fundamental problem of using LLMs in professional practice is not that they produce bad outputs — it is that bad outputs are indistinguishable from good ones by inspection. Chirality's response is not to make the model more reliable, which cannot be guaranteed. It is to make the epistemic status of every claim transparent and auditable — provenance is mandatory, unknowns become TBD rather than guesses, conflicts are surfaced rather than silently resolved, and every claim carries an epistemic label (FACT, ASSUMPTION, PROPOSAL, TBD). The result: gaps in evidence are findings, not hidden failures.
+
+The systems engineering disciplines that govern this architecture are not a compliance layer applied to an agent system — they ARE the agent system. The instruction files are formal specifications that define interfaces, state machines, invariants, containment zones, and authority boundaries. The governance documents form a coherent specification hierarchy: intent, physical structures, vocabulary, and binding invariants.
+
+The four-document kit that agents produce for every deliverable — Datasheet (ontology), Specification (epistemology), Guidance (axiology), Procedure (praxiology) — mirrors the philosophical structure of the system itself. The system practices what it produces.
+
+The architecture exists so that a licensed professional can direct AI agents with the same rigor applied to managing any engineering team — and can authenticate the resulting work product under duty of care, backed by an auditable record. See [`docs/DIRECTIVE.md`](docs/DIRECTIVE.md) §2 for the full philosophical foundation.
 
 > AI can accelerate engineering work. It cannot inherit professional responsibility.
 

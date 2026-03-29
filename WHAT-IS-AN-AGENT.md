@@ -46,12 +46,14 @@ This is why you really only need three layers of nested agents. More complex arc
 
 **Trust through specialization.** By narrowing the scope of Agent 2, you reduce the probability of hallucination. It doesn't need to know the entire project history—it only needs to know how to execute the specific function Agent 1 handed it.
 
+**Human authority at every gate.** Agents propose; humans decide. No agent can approve deliverables, resolve conflicts, or issue work for reliance. The human stays in responsible charge throughout—the system accelerates the work, not the decisions.
+
 **Speed.** Smaller contexts and specialized instructions process faster and cheaper than massive, general-purpose prompts.
 
 **Debuggability.** If the output is wrong, you know exactly where to look:
 
 - Bad output → Fix Agent 2's tools
-- Wrong task attempted → Fix Agent 1's instructions  
+- Wrong task attempted → Fix Agent 1's instructions
 - Misunderstood goal → Fix Agent 0's alignment
 
 ---
@@ -86,12 +88,14 @@ All of this is done by Agent 2 types, orchestrated by Agent 1.
 
 ## Summary
 
-| Agent | Analogy | Function |
-|-------|---------|----------|
-| **Agent 0** | The Compiler | Writes the prompts |
-| **Agent 1** | The Runtime | Manages flow and state |
-| **Agent 2** | The Thread | Stateless execution |
+*Good agents do one thing well. Great agents are composed of good agents. The human decides what to rely on.*
 
 ---
 
-*Good agents do one thing well. Great agents are composed of good agents.*
+## In This Project
+
+Chirality implements this model with 35 agent instruction files, a formal invariant system, and governance documents that make the whole thing auditable. To go deeper:
+
+- [`README.md`](README.md) — Project overview and architecture
+- [`AGENTS.md`](AGENTS.md) — Agent index and matrix
+- [`docs/DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) — Full design basis
