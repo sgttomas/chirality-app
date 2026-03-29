@@ -52,7 +52,51 @@ Two additional epistemic commitments complete the architecture:
 
 **Content-addressed approval (K-AUTH-2).** Approvals bind to a specific git SHA. If the content changes after approval, the approval is void. This makes the integrity of the approval relationship mechanically verifiable — not dependent on trust or process discipline alone. The reviewer does not need to believe that the document has not changed since approval; they can verify it computationally.
 
-The epistemic architecture is the subject of Chapter 5, which develops the argument in full with worked examples and comparison to alternative approaches. The purpose of this section is to establish that the epistemology is a coherent philosophical commitment — not merely a collection of quality rules — and that it addresses a specific, identifiable limitation of LLM-based systems that other approaches do not address at the architectural level.
+#### The Ontology of the Epistemology
+
+The epistemology itself has an ontology — the set of entities that the epistemic mechanisms operate on. Six primitives constitute this layer:
+
+| Primitive | Definition |
+|---|---|
+| **Claim** | An assertion that something is the case. The atomic unit of the epistemology. Every non-trivial assertion produced by an agent in a governed workflow is a claim. |
+| **Warrant** | The justification for believing a claim. Always extrinsic — a source citation (file + section + quote) — never intrinsic (model confidence or plausibility). |
+| **Status** | The epistemic classification of a claim's certainty, expressed as one of the four labels: FACT, ASSUMPTION, PROPOSAL, TBD. |
+| **Gap** | The explicit, positive assertion that a warrant has not been found. A gap is not the absence of information — it is an entity representing that absence, making it visible and actionable. |
+| **Conflict** | Two or more claims with incompatible warrants about the same key. The existence of a conflict is itself an epistemic entity that must be resolved before the deliverable can advance. |
+| **Ruling** | A human decision that resolves a gap or conflict, transforming epistemic status. Rulings are binding and recorded in versioned files. |
+
+These primitives are not documentation constructs. They are the things that the invariants K-PROV-1, K-INVENT-1, K-CONFLICT-1, and K-AUTH-1 govern:
+
+| Invariant | Epistemic Primitive Governed |
+|---|---|
+| K-PROV-1 (mandatory provenance) | Warrant — every claim must have an extrinsic warrant or explicit `location TBD` |
+| K-INVENT-1 (no invention) | Gap — missing data must be represented as a gap, not filled with a fabrication |
+| K-CONFLICT-1 (conflict surfacing) | Conflict — disagreements must be exposed, not silently resolved |
+| K-AUTH-1 (human authority) | Ruling — only humans may author binding rulings and approval records |
+| K-AUTH-2 (SHA-bound approval) | The warrant-to-content binding is mechanically verifiable |
+
+The relationships between primitives are formal: a claim HAS a status; a claim MAY HAVE a warrant; a claim WITHOUT a warrant has status TBD or ASSUMPTION; two claims may be IN CONFLICT; a conflict REQUIRES a ruling; a ruling TRANSFORMS the status of claims. These relationships are formalized in `TYPES.md` §10.
+
+#### The Warrant Lifecycle
+
+The epistemic primitives give rise to a lifecycle that is distinct from, but interleaved with, the deliverable production lifecycle. Where the deliverable lifecycle (OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED) tracks the production state of a work product, the **warrant lifecycle** tracks the epistemic state of the claims within it:
+
+```
+UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
+```
+
+| Warrant State | Meaning | Transition Mechanism |
+|---|---|---|
+| UNWARRANTED | Claim exists but has no source citation; status is TBD or PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking for unknowns |
+| CITED | Claim has a source citation; status is FACT or ASSUMPTION | Agent attaches provenance; K-PROV-1 enforces |
+| REVIEWED | Claim has been examined by a licensed professional; findings dispositioned | REVIEW gates; human rules on findings |
+| AUTHENTICATED | Claim is part of an authenticated PWP; the professional warrants it under duty of care | Authentication binds to git SHA; K-AUTH-2 enforces |
+
+The two lifecycles are correlated but not identical. A deliverable in IN_PROGRESS contains a mixture of warranted and unwarranted claims. The transition to CHECKING requires that critical claims have been warranted — all CRITICAL findings must have non-TBD human disposition. The transition to ISSUED requires that the professional has authenticated the work: the act of declaring that the epistemic state of the claims is sufficient for reliance under professional responsibility.
+
+The warrant lifecycle reveals what thorough review (APEGA §3.1.2) actually is in operational terms: it is the process of auditing warrant sufficiency. The professional examines the claims, checks their warrants (provenance, epistemic labels), resolves gaps and conflicts through rulings, and ultimately decides whether the aggregate warrant state supports authentication. The epistemic architecture makes this process tractable by ensuring that the warrant state of every claim is visible, not hidden in the model's reasoning.
+
+The epistemic architecture is the subject of Chapter 5, which develops the argument in full with worked examples and comparison to alternative approaches. The purpose of this section is to establish that the epistemology is a coherent philosophical commitment with its own formal ontology — not merely a collection of quality rules — and that it addresses a specific, identifiable limitation of LLM-based systems that other approaches do not address at the architectural level.
 
 ### 3.2.3 Praxiology — How Work Is Done
 
@@ -132,7 +176,31 @@ The epistemology is what distinguishes an agent system that produces deliverable
 
 ---
 
-## 3.5 Relationship to Established Frameworks
+## 3.5 The Pillars as the Ontology of Professional Accountability
+
+The four pillars are situated within a higher-order ontological structure. They are not a classification scheme chosen for this project — they are the minimal complete ontology for any context in which a professional takes responsibility for work. At every level where accountability exists, the same four questions must be answered:
+
+- What exists? (ontology)
+- What is warranted? (epistemology)
+- How was the work done? (praxiology)
+- What values governed the decisions? (axiology)
+
+Missing any one creates a specific, identifiable accountability failure:
+
+| Missing Pillar | Accountability Failure |
+|---|---|
+| Ontology | The professional does not know what they are responsible for |
+| Epistemology | The professional does not know what to believe |
+| Praxiology | The professional does not know how the work was performed |
+| Axiology | The professional does not know why the decisions were made the way they were |
+
+This is the deeper reason the fractal property exists. The four pillars appear at the governance level, at the agent instruction level, and at the document kit level not because the design was made to repeat itself, but because professional accountability requires the same four things at every level of abstraction. The fractal property is an ontological property of accountability itself.
+
+This insight has a practical consequence: the four pillars serve as an evaluation framework for any governance architecture, not only Chirality's. For any system in which professionals delegate work to AI agents, one can ask: does the system define a complete ontology? does it enforce epistemic transparency? does it bound agent praxis through formal constraints? does it articulate and enforce values? A system missing any pillar has a specific, identifiable governance gap. The four pillars are not prescriptive about how each pillar should be implemented — only that each must be addressed.
+
+---
+
+## 3.6 Relationship to Established Frameworks
 
 The four-pillar framework relates to several established traditions in systems engineering and philosophy:
 
@@ -148,7 +216,7 @@ The four-pillar framework relates to several established traditions in systems e
 
 ---
 
-## 3.6 Summary
+## 3.7 Summary
 
 The Chirality architecture is philosophically complete in a way that most agent systems are not. Most agent systems define an ontology (entities and relationships) and a praxiology (how agents act). Some articulate an axiology (values and constraints). Almost none implement an explicit, architecturally enforced epistemology — a formal theory of what can be known and how certainty is tracked.
 

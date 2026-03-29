@@ -12,7 +12,7 @@ The preceding chapters presented a philosophical framework, a technical architec
 
 ### 9.2.1 No Controlled Empirical Validation
 
-The most significant limitation of this work is that the Chirality architecture has not been validated through a controlled empirical study with practicing engineers. The thesis demonstrates that the architecture satisfies the structural requirements of APEGA's professional practice standards, and that it has been implemented as working software with 35 agent instruction files and 28 deterministic tools. However, it does not present empirical evidence that:
+The most significant limitation of this work is that the Chirality architecture has not been validated through a controlled empirical study with practicing engineers. The thesis demonstrates that the architecture satisfies the structural requirements of APEGA's professional practice standards, and that it has been implemented as working software with 37 agent instruction files and 28 deterministic tools. However, it does not present empirical evidence that:
 
 - Licensed professionals find the epistemic labeling and provenance mechanisms effective for thorough review in practice
 - The review time for AI-assisted work products is measurably reduced compared to unstructured AI outputs

@@ -4,7 +4,9 @@
 
 ## 5.1 Introduction
 
-Chapter 3 established that the Chirality architecture rests on four philosophical pillars and argued that the epistemology — the system's theory of what can be known and how certainty is tracked — is the load-bearing pillar. This chapter develops that argument in full. It defines the epistemic architecture precisely, presents each mechanism with worked examples, compares the approach to alternative strategies for addressing LLM reliability, and demonstrates that the epistemic architecture is what makes professional reliance on AI-assisted work tractable under existing regulatory frameworks.
+Chapter 3 established that the Chirality architecture rests on four philosophical pillars, argued that the epistemology is the load-bearing pillar, and identified the epistemology's own ontology: six primitives (claim, warrant, status, gap, conflict, ruling) whose relationships constitute the formal substrate of the epistemic layer, and a warrant lifecycle (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) that tracks the epistemic state of claims interleaved with the deliverable production lifecycle.
+
+This chapter develops the argument in full. It defines the epistemic architecture precisely, grounds each mechanism in the epistemic primitives, presents worked examples, compares the approach to alternative strategies for addressing LLM reliability, and demonstrates that the epistemic architecture is what makes professional reliance on AI-assisted work tractable under existing regulatory frameworks.
 
 The claim is specific: the Chirality epistemic architecture does not improve LLM output quality. It makes the epistemic status of every claim transparent and auditable, so that a qualified professional can determine what to rely on. This is a fundamentally different response to the LLM reliability problem than model-level improvements, and it is complementary to them.
 
@@ -138,7 +140,33 @@ The common thread is **visibility**. Each mechanism makes a category of epistemi
 
 ---
 
-## 5.5 Comparison to Alternative Approaches
+## 5.5 The Warrant Lifecycle as Operational Model
+
+Chapter 3 (§3.2.2) introduced the warrant lifecycle as the epistemic counterpart to the deliverable production lifecycle. This section develops its operational significance.
+
+The deliverable lifecycle (OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED) is well-understood: it tracks what stage of production the work product is in. But it does not capture the epistemic state of the claims within the deliverable. A deliverable in IN_PROGRESS may contain hundreds of claims in varying states of epistemic warrant — some grounded in cited sources, some flagged as assumptions, some marked TBD, some potentially in conflict.
+
+The warrant lifecycle makes this epistemic state explicit:
+
+```
+UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
+```
+
+Each claim in the deliverable occupies a position in this lifecycle independently of the deliverable's production state. The aggregate warrant state of a deliverable — the distribution of its claims across warrant lifecycle states — is what determines whether the deliverable is ready for the next production transition.
+
+**UNWARRANTED → CITED.** When an agent produces a claim, it is initially unwarranted — it exists in the deliverable but has no extrinsic justification. The agent's task, under K-PROV-1, is to attach a warrant: a source file, a section reference, and ideally a supporting quote. If the agent cannot find a warrant, K-INVENT-1 requires that the claim be marked TBD — an explicit gap. The transition from UNWARRANTED to CITED is the agent's primary epistemic contribution.
+
+**CITED → REVIEWED.** A cited claim has provenance, but provenance alone is not sufficient for professional reliance. The licensed professional must review the claim: is the source authoritative? is the citation accurate? is the interpretation reasonable? The REVIEW agent's 5-gate protocol structures this assessment. A claim transitions from CITED to REVIEWED when the professional has examined it and dispositioned any findings.
+
+**REVIEWED → AUTHENTICATED.** Authentication is the professional's declaration that the aggregate warrant state of the deliverable — the totality of its reviewed claims — is sufficient for reliance under professional responsibility. This transitions not individual claims but the deliverable as a whole. Authentication binds to a specific git SHA (K-AUTH-2), making the warrant-to-content relationship mechanically verifiable.
+
+The warrant lifecycle reveals what thorough review (APEGA §3.1.2) actually is in operational terms: it is the process of auditing warrant sufficiency. The professional examines claims, checks their warrants, resolves gaps and conflicts through rulings, and ultimately decides whether the aggregate warrant state supports authentication. The epistemic architecture makes this tractable by ensuring that every claim's warrant state is visible — not hidden in the model's reasoning.
+
+The new AUDIT_EPISTEMIC agent (`AGENT_AUDIT_EPISTEMIC.md`) operationalizes this assessment. It reads a deliverable's document kit, classifies every non-trivial claim by warrant state, reports epistemic label coverage and provenance completeness rates, detects potential conflicts across documents, and produces a warrant state summary. This makes the warrant lifecycle not just a theoretical model but an auditable, measurable property of every deliverable.
+
+---
+
+## 5.6 Comparison to Alternative Approaches
 
 The epistemic architecture is complementary to, not competitive with, model-level improvements. This section positions the approach against the principal alternatives.
 
@@ -172,7 +200,7 @@ The positioning is clear: Chirality's contribution is not a better model. It is 
 
 ---
 
-## 5.6 Enabling Professional Reliance
+## 5.7 Enabling Professional Reliance
 
 The epistemic architecture is what makes the regulatory mapping described in Chapter 6 possible. Specifically:
 
@@ -184,7 +212,7 @@ The epistemic architecture is what makes the regulatory mapping described in Cha
 
 ---
 
-## 5.7 Summary
+## 5.8 Summary
 
 The Chirality epistemic architecture responds to the fundamental limitation of LLM-based systems — the absence of intrinsic epistemic warrant in model outputs — with four mechanisms that make epistemic status transparent and auditable: mandatory provenance, no invention, conflict surfacing, and epistemic labeling. These mechanisms do not improve the model. They make the model's limitations visible and manageable, transforming the professional's review task from exhaustive verification to targeted assessment.
 

@@ -94,7 +94,7 @@ All of this is done by Agent 2 types, orchestrated by Agent 1.
 
 ## In This Project
 
-Chirality implements this model with 35 agent instruction files, a formal invariant system, and governance documents that make the whole thing auditable. To go deeper:
+Chirality implements this model with 37 agent instruction files, a formal invariant system, and governance documents that make the whole thing auditable. To go deeper:
 
 - [`README.md`](README.md) — Project overview and architecture
 - [`AGENTS.md`](AGENTS.md) — Agent index and matrix

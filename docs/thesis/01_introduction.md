@@ -26,7 +26,7 @@ Agents are organized into three types: Type 0 (Architect) agents define invarian
 
 The architecture is governed by three layers of formally stated invariants — workflow design requirements (R1–R9), decomposition invariants (I1–I10), and system-wide invariants (K-*) — enforced through agent instructions, runtime orchestration, human gates, and deterministic tooling.
 
-The system has been implemented as a desktop application with 35 agent instruction files, 28 deterministic tools, and a formal governance document suite. It has been grounded in the APEGA regulatory framework through a professional practice standard that maps the architecture to the specific requirements of the *Relying on the Work of Others and Outsourcing* practice standard.
+The system has been implemented as a desktop application with 37 agent instruction files, 28 deterministic tools, and a formal governance document suite. It has been grounded in the APEGA regulatory framework through a professional practice standard that maps the architecture to the specific requirements of the *Relying on the Work of Others and Outsourcing* practice standard.
 
 ---
 
@@ -38,7 +38,7 @@ This thesis makes five novel contributions:
 
 **2. A regulatory mapping grounding AI agent governance in existing professional obligations.** The thesis demonstrates that APEGA's *Relying on the Work of Others and Outsourcing* standard applies directly to AI agent governance — not by analogy — because the professional's obligations are defined by what the professional must do, not by what the worker is. This shows that AI agent governance can be achieved within existing regulatory frameworks, without requiring new AI-specific regulation.
 
-**3. A four-pillar philosophical framework with fractal instantiation.** The architecture rests on ontology (what exists), epistemology (what can be known), praxiology (how work is done), and axiology (what the system values). The epistemology is identified as the load-bearing pillar. The four-document production kit (Datasheet, Specification, Guidance, Procedure) mirrors the philosophical structure — a fractal property indicating architectural coherence.
+**3. A four-pillar philosophical framework with fractal instantiation.** The architecture rests on ontology (what exists), epistemology (what can be known), praxiology (how work is done), and axiology (what the system values). The epistemology is identified as the load-bearing pillar, and it has its own formal ontology: six primitives (claim, warrant, status, gap, conflict, ruling) and a warrant lifecycle (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) that tracks the epistemic state of claims interleaved with the deliverable lifecycle. The four pillars are themselves the minimal complete ontology for professional accountability. The four-document production kit (Datasheet, Specification, Guidance, Procedure) mirrors the philosophical structure — a fractal property arising from the fact that accountability requires the same four things at every level of abstraction.
 
 **4. A fault containment architecture through write scope quarantine.** The Type 0/1/2 agent hierarchy combined with declared write scopes creates formal fault containment zones. A Type 2 agent failure cannot corrupt source truth. This adapts classical SE fault containment to the governance of probabilistic agents.
 
@@ -56,7 +56,7 @@ The thesis is organized as follows:
 - **Chapter 5 (Epistemic Architecture)** develops the core novelty claim: the four epistemic mechanisms, worked examples, and comparison to alternative approaches.
 - **Chapter 6 (Professional Practice Integration)** presents the APEGA regulatory mapping and the argument that AI agents are "others" under §3.0.
 - **Chapter 7 (SE Design Analysis)** examines the architecture through eight SE disciplines.
-- **Chapter 8 (Implementation and Validation)** presents the working implementation: 35 agents, 28 tools, desktop application, and validation mechanisms.
+- **Chapter 8 (Implementation and Validation)** presents the working implementation: 37 agents, 28 tools, desktop application, and validation mechanisms.
 - **Chapter 9 (Discussion)** assesses limitations, generalizability, and future work.
 - **Chapter 10 (Conclusion)** restates the contributions and answers the research question.
 
