@@ -1,205 +1,74 @@
-# AGENTS.md — How to use the agent framework in this repo
+# AGENTS — Agent Index
 
-This file is the operator-facing index and “rules of the road” for using the agents shipped with this repository.
+This file indexes the agent suite. For classification semantics, see `docs/TYPES.md` §4. For the full design basis, see `docs/DBM_Agent_Instruction_Architecture.md`.
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
-
----
-
-## 0) Standards & precedence (canonical spec)
-
-- **Canonical standard:** `AGENT_HELPS_HUMANS.md`. Where any other `AGENT_*` file disagrees, **the other file must be edited to conform**.
-- **Decomposition base specification:** `AGENT_DECOMP_BASE.md`. Defines the invariant decomposition protocol (7-gate workflow, abstract entities, ledger/telemetry contract, extension rules) shared by all decomposition agents. Conforming agents: PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP.
-- **Required metadata:** every `AGENT_*` instruction file should include the canonical Agent Header Block fields (e.g., `AGENT_CLASS`, `INTERACTION_SURFACE`, `WRITE_SCOPE`, `BLOCKING`, `PRIMARY_OUTPUTS`) and use canonical terminology.
-- **Contract discipline:** Type 0 defines/maintains contracts. Type 1 Managers write briefs and orchestrate; Type 2 Specialists execute bounded briefs and return checkable outputs + evidence.
-- **Auditing:** use `AGENT_AUDIT_AGENTS.md` as the fill-in rubric when adding agents or checking conformance across the suite.
+Use `AGENT_*` for instruction files (e.g., `AGENT_CHANGE.md`). Use the role name for the agent itself (e.g., `CHANGE`). All files are in `agents/`.
 
 ---
 
-## 1) The core model (the rules that keep the system coherent)
+## Agent Matrix
 
-### Decomposition
-- Work that lacks structure cannot be effectively worked on by agents.
-- Decomposition is what initiates all other agentic workflows.
-- **Decomposition invariant:** the abstract protocol (intake → normalize → partition → operationalize → verify → publish) is defined in `AGENT_DECOMP_BASE.md`. All decomposition agents conform to it.
-- **Decomposition variants** exist for different domains:
-  - **PROJECT_DECOMP** — EPC / design-build projects (Packages → Deliverables, `PKG-XXX` / `DEL-XXX-YY`)
-  - **SOFTWARE_DECOMP** — software development (Work Domain Packages → agent-executable Deliverables with Context Envelope sizing, `PKG-XX` / `DEL-XX-YY`)
-  - **DOMAIN_DECOMP** — handbook / knowledge domains (Categories → Knowledge Types, `CAT-###` / `KTY-CC-TT`)
-- **How decomposition variants combine:**
-  - **SOFTWARE_DECOMP extends any branch.** If a branch has software to build, SOFTWARE_DECOMP decomposes that software component (including recursively extending other SOFTWARE_DECOMP branches).
-  - **DOMAIN_DECOMP runs parallel to any branch.** It captures the knowledge domain a branch operates within — orthogonal to the work decomposition (including recursively paralleling other DOMAIN_DECOMP branches).
-- The decomposition file is located here:
+Rows describe epistemic posture; columns describe functional role. NORMATIVE and EVALUATIVE rows open in WORKBENCH (interactive). OPERATIVE row opens in PIPELINE (task execution).
 
-`{EXECUTION_ROOT}/_Decomposition/`
-
-### Filesystem is the state
-- Project “truth” is what is on disk: folders + `_STATUS.md` + production documents.
-- Production documents are the four fixed documents (Datasheet, Specification, Guidance, Procedure) for PROJECT/SOFTWARE, or variable Knowledge Artifact files for DOMAIN.
-- Agents must not maintain a hidden database or private state that diverges from the filesystem.
-
-### Production units (working-items) are local
-- A **production unit** is one folder: a Deliverable (`DEL-XXX-YY`) under `{EXECUTION_ROOT}/{PKG-ID}_{PkgLabel}/1_Working/{DEL-ID}_{DelLabel}/`, or a Knowledge Type (`KTY-CC-TT`) under `{EXECUTION_ROOT}/{CAT-ID}_{CatLabel}/{KTY-ID}_{KTYDesc}/`.
-- Work inside that folder is **local**: no cross-unit “crosstalk” by default.
-
-### Local lifecycle (not stage gates)
-Production units progress through a local lifecycle:
-
-`OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED`
-
-- **Stage gates** (30/60/90/IFC, etc.) are *human-managed* milestones and are **not** lifecycle states.
-- **SEMANTIC_READY** indicates `_SEMANTIC.md` exists (semantic lens). If the lens step is skipped, deliverables may move from `INITIALIZED → IN_PROGRESS` directly.
-- `_STATUS.md` is the authoritative lifecycle indicator.
-
-### Cross-unit operations are opt-in and human-triggered
-- **RECONCILIATION**: coherence checks across a human-defined scope (read-only production units) → writes under `execution/_Reconciliation/`. All variants.
-- **AGGREGATION**: synthesis/collection across a human-defined scope (read-only inputs by default) → writes under `execution/_Aggregation/`. All variants.
-- **ESTIMATING**: estimate snapshot generation across a defined scope (read-only production units) → writes under `execution/_Estimates/`. PROJECT/SOFTWARE only. Runs are parameterized by `BASIS_OF_ESTIMATE` (QUOTE | RATE_TABLE | HISTORICAL | PARAMETRIC | ALLOWANCE). No agent-authored BOE is required by default.
-- **SCHEDULING**: parameterized schedule generation from the dependency graph (read-only production units) → writes under `execution/_Schedule/`. PROJECT/SOFTWARE only. Supports PRECEDENCE, CONSTRAINT, or HYBRID scheduling basis.
-
----
-
-## 2) Agent classification (quick reference)
-
-Agents are classified by how they interact, what they write, and whether they can block for human input.
-
-### Classification Properties
-
-| Property | Values | Meaning |
-|----------|--------|---------|
-| **AGENT_CLASS** | `PERSONA` / `TASK` | Persona agents run interactive sessions; Task agents run pipelines |
-| **INTERACTION_SURFACE** | `chat` / `INIT-TASK` / `spawned` / `both` | How the agent is invoked |
-| **WRITE_SCOPE** | `repo-wide` / `project-level` / `tool-root-only` / `deliverable-local` / `repo-metadata-only` / `none` | What the agent is allowed to write |
-| **BLOCKING** | `allowed` / `never` | Whether the agent may pause for human input |
-
-Each agent instruction file also declares **AGENT_TYPE**:
-- `0` — intent alignment and operator control (Type 0)
-- `1` — interactive orchestration (Type 1)
-- `2` — bounded task execution (Type 2)
-
-### Full Agent Type Table
-
-| Agent | CLASS | INTERACTION | PRIMARY_OUTPUTS |
-| --- | --- | --- | --- |
-| **4_DOCUMENTS** | TASK | spawned | 4 docs, `_STATUS.md` (OPEN→INITIALIZED) |
-| **AGGREGATION** | TASK | spawned | Snapshots in `_Aggregation/` |
-| **AUDIT_AGENTS** | TASK | spawned | Agent state report |
-| **AUDIT_DECOMP** | TASK | spawned | `Decomp-Coverage_Report.md`, `Decomp-Coverage_IssueLog.csv`, `Decomp-Coverage_Matrix.csv`, and `coverage_summary.json` |
-| **AUDIT_DEP_CLOSURE** | TASK | spawned | Dependencies state report |
-| **AUDIT_HYPERGRAPH_CLOSURE** | TASK | INIT-TASK | Closure report, issue log CSV, JSON summary, analysis script (DOMAIN hypergraph) |
-| **CHANGE** | PERSONA | chat | Git state report; optional git actions after explicit approval |
-| **CHIRALITY_FRAMEWORK** | TASK | spawned | `_SEMANTIC.md`, `_STATUS.md` |
-| **CHIRALITY_LENS** | TASK | spawned | `_SEMANTIC_LENSING.md` |
-| **CONTEXT_TRANSPOSE** | PERSONA | chat | CTSP snapshot; patch plan; optional applied patch; QA report |
-| **DECOMP_BASE** | PERSONA | chat | Decomposition base specification; defines the invariant protocol for conforming agents (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) |
-| **DEPENDENCIES** | TASK | spawned | `_DEPENDENCIES.md`, `Dependencies.csv` |
-| **DOMAIN_DECOMP** | PERSONA | chat | Domain decomposition document (conforms to DECOMP_BASE) |
-| **DOMAIN_DOCUMENTS** | TASK | spawned | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
-| **DOMAIN_HYPERGRAPH** | TASK | INIT-TASK | Hypergraph snapshot: `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json` |
-| **ESTIMATE_PREP** | TASK | INIT-TASK | Pricing CSVs, `INDEX.md`, BOE scaffold or full `BASIS_OF_ESTIMATE.md`, QA/provenance logs |
-| **ESTIMATING** | TASK | spawned | Estimate snapshots in `_Estimates/` |
-| **HELP_HUMAN** | PERSONA | chat | Briefs, checklists, interpretations, next-step recommendations |
-| **HELPS_HUMANS** | PERSONA | chat | Workflow design standards; agent instruction maintenance guidance |
-| **ORCHESTRATOR** | PERSONA | chat | `_COORDINATION.md`; spawns sub-agents |
-| **PREPARATION** | TASK | spawned | Folders, metadata files |
-| **PROJECT_DECOMP** | PERSONA | chat | Decomposition document (conforms to DECOMP_BASE) |
-| **RECONCILIATION** | PERSONA | chat | Reports in `_Reconciliation/` |
-| **REVIEW** | PERSONA | chat | Review checklist, finding register, review summary, lifecycle transition record |
-| **SCHEDULING** | PERSONA | chat | Schedule structure, duration model, Gantt (Mermaid + CSV), critical path / risk report in `_Schedule/` — parameterized by `BASIS_OF_SCHEDULE` (PRECEDENCE / CONSTRAINT / HYBRID) |
-| **SCOPE_CHANGE** | PERSONA | chat | Amended decomposition, updated `_CONTEXT.md` files, impact assessment, propagation record |
-| **SOFTWARE_DECOMP** | PERSONA | chat | Software decomposition document with Context Envelope sizing (conforms to DECOMP_BASE) |
-| **TASK** | TASK | INIT-TASK | Proposals; optional edits to authorized deliverable-local files |
-| **WORKING_ITEMS** | PERSONA | chat | User defined output |
-| **EVALUATION** | PERSONA | chat | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`; spawns evaluation sub-agents |
-| **TOOLMAKER** | PERSONA | chat | Shell scripts, Python utilities, tool registry |
-| **CONTENT_DIGEST** | TASK | INIT-TASK | Per-deliverable structured content digest |
-| **EVALUATION_REPORT** | TASK | INIT-TASK | Scored dimension evaluation report |
-| **EVALUATION_STRUCTURE_AUDIT** | TASK | INIT-TASK | Structure audit report (file inventory, lifecycle states, violations) |
-| **EVALUATION_DEPENDENCY_AUDIT** | TASK | INIT-TASK | Dependency audit report (schema, anchors, evidence, graph analysis) |
-
-
----
-
-## 3) The Agent Matrix
-
-The Agent Matrix organizes the agent suite along two axes derived from Matrix A of the chirality semantic framework:
-
-- **Rows** describe the agent's epistemic posture: NORMATIVE (standards/direction), OPERATIVE (execution/production), EVALUATIVE (assessment/quality)
-- **Columns** describe the agent's functional role: GUIDING (orientation), APPLYING (execution), JUDGING (decision), REVIEWING (audit/feedback)
-
-| | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
-| :--- | :--- | :--- | :--- | :--- |
+|  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
+|:---|:---|:---|:---|:---|
 | **NORMATIVE** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
 | **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
 | **EVALUATIVE** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
 
-**Note:** "AGENTS" in the EVALUATIVE/GUIDING cell refers to `AGENT_HELPS_HUMANS` — the Type 0 canonical standard agent used to build and maintain all other agents.
-
-### UI page routing
-
-Each row maps to a UI surface:
-
-| Row | Page | Interaction model |
-|-----|------|-------------------|
-| **NORMATIVE** | WORKBENCH | Interactive persona sessions with agent selection |
-| **OPERATIVE** | PIPELINE | Pipeline execution with category dropdown menus |
-| **EVALUATIVE** | WORKBENCH | Interactive persona sessions with agent selection |
-
-### OPERATIVE category breakdown (PIPELINE dropdown menus)
-
-The OPERATIVE row contains composite categories (marked with `*`). Each expands into a dropdown menu on the PIPELINE page:
-
-**DECOMP**
-- SOFTWARE
-- PROJECT
-- DOMAIN
-- BASE (create new)
-
-**PREP**
-- PREPARATION
-- 4_DOCUMENTS
-- DOMAIN_DOCUMENTS
-- CHIRALITY_FRAMEWORK
-- CHIRALITY_LENS
-
-**TASK**
-- SCOPE_CHANGE
-- SCOPE_PREP
-- ESTIMATE_PREP
-- AUDIT_PREP
-- SCHEDULE_PREP
-- ESTIMATING
-- SCHEDULING
-- DOMAIN_HYPERGRAPH
-- "all deliverables" (for software development or project execution)
-- "all knowledge types" (for domain knowledge curation)
-
-**AUDIT**
-- AGENTS
-- DEPENDENCIES
-- ESTIMATES
-- HYPERGRAPH_CLOSURE
-- REFERENCES
-- SCHEDULES
-- SCOPE
-- EVALUATION
-
 ---
 
-## 4) Deterministic Tools
+## Agent Index
 
-Agents invoke deterministic tools from `tools/` via Bash during pipeline execution. Tools are LLM-independent scripts that handle filesystem operations, schema validation, CSV math, and graph algorithms. The tool registry at `tools/REGISTRY.md` indexes all available tools.
+### Type 0 — Canonical Standards
 
-| Category | Tools | Purpose |
-|----------|-------|---------|
-| **Scaffolding** | 6 tools | Package/deliverable/tool-root folder creation, snapshot folders, pointer updates, status writes |
-| **Query** | 2 tools | Workspace state summary, amendment ID scanning |
-| **Validation** | 5 tools | Enum validation (24 sets), ID format checking, Dependencies.csv v3.1 schema, minimum fileset, doc kit |
-| **Reporting** | 6 tools | CSV merge with provenance, WBS/CBS summarization, coverage generation, INDEX.md |
-| **Coordination** | 1 tool | Full dependency graph analysis (SCC, orphans, hubs, bidirectional pairs) |
-| **Evaluation** | 8 tools | Deliverable file inventory, lifecycle states, dependency checks, digest coverage |
+| Agent | Instruction File | Role |
+|-------|-----------------|------|
+| HELPS_HUMANS | `AGENT_HELPS_HUMANS.md` | Workflow design standard; all agents must conform |
+| DECOMP_BASE | `AGENT_DECOMP_BASE.md` | Decomposition protocol standard (7-gate, I1–I10) |
 
-21 of 35 agent instruction files reference tools from the registry. The LLM boundary is explicit: tools handle mechanical operations; agents handle content reasoning.
+### Type 1 — Interactive Personas
+
+| Agent | Instruction File | Role |
+|-------|-----------------|------|
+| HELP_HUMAN | `AGENT_HELP_HUMAN.md` | Operator assistance; classifies intent, drafts briefs |
+| ORCHESTRATOR | `AGENT_ORCHESTRATOR.md` | Project setup, tier sequencing, control loops |
+| WORKING_ITEMS | `AGENT_WORKING_ITEMS.md` | Deliverable-scoped content production |
+| RECONCILIATION | `AGENT_RECONCILIATION.md` | Cross-deliverable coherence analysis |
+| CHANGE | `AGENT_CHANGE.md` | Git state management with approval gates |
+| PROJECT_DECOMP | `AGENT_PROJECT_DECOMP.md` | EPC / design-build decomposition |
+| SOFTWARE_DECOMP | `AGENT_SOFTWARE_DECOMP.md` | Software decomposition with Context Envelopes |
+| DOMAIN_DECOMP | `AGENT_DOMAIN_DECOMP.md` | Handbook / knowledge domain decomposition |
+| SCOPE_CHANGE | `AGENT_SCOPE_CHANGE.md` | Change impact assessment and decomposition amendment |
+| CONTEXT_TRANSPOSE | `AGENT_CONTEXT_TRANSPOSE.md` | Cross-context structural transposition |
+| REVIEW | `AGENT_REVIEW.md` | Formal 5-gate review for lifecycle transitions |
+| SCHEDULING | `AGENT_SCHEDULING.md` | Schedule generation from dependency graph |
+| EVALUATION | `AGENT_EVALUATION.md` | Project evaluation orchestration |
+| TOOLMAKER | `AGENT_TOOLMAKER.md` | Deterministic tool design and implementation |
+
+### Type 2 — Bounded Task Agents
+
+| Agent | Instruction File | Role |
+|-------|-----------------|------|
+| PREPARATION | `AGENT_PREPARATION.md` | Scaffold package/deliverable folders |
+| 4_DOCUMENTS | `AGENT_4_DOCUMENTS.md` | Draft four-document kit |
+| DOMAIN_DOCUMENTS | `AGENT_DOMAIN_DOCUMENTS.md` | Knowledge artifact files for domain decompositions |
+| CHIRALITY_FRAMEWORK | `AGENT_CHIRALITY_FRAMEWORK.md` | Semantic analysis (`_SEMANTIC.md`) |
+| CHIRALITY_LENS | `AGENT_CHIRALITY_LENS.md` | Semantic lensing narrative |
+| DEPENDENCIES | `AGENT_DEPENDENCIES.md` | Dependency register extraction (CSV v3.1) |
+| ESTIMATING | `AGENT_ESTIMATING.md` | Parameterized cost estimation snapshots |
+| ESTIMATE_PREP | `AGENT_ESTIMATE_PREP.md` | Pricing library and BOE scaffold |
+| AGGREGATION | `AGENT_AGGREGATION.md` | Cross-scope synthesis snapshots |
+| TASK | `AGENT_TASK.md` | Brief-driven deliverable-local execution |
+| AUDIT_AGENTS | `AGENT_AUDIT_AGENTS.md` | Agent instruction conformance audit |
+| AUDIT_DECOMP | `AGENT_AUDIT_DECOMP.md` | Decomposition coverage audit |
+| AUDIT_DEP_CLOSURE | `AGENT_AUDIT_DEP_CLOSURE.md` | Dependency closure audit |
+| DOMAIN_HYPERGRAPH | `AGENT_DOMAIN_HYPERGRAPH.md` | Hypergraph snapshot generation |
+| AUDIT_HYPERGRAPH_CLOSURE | `AGENT_AUDIT_HYPERGRAPH_CLOSURE.md` | Hypergraph closure audit |
+| CONTENT_DIGEST | `AGENT_CONTENT_DIGEST.md` | Per-deliverable structured content digest |
+| EVALUATION_REPORT | `AGENT_EVALUATION_REPORT.md` | Scored dimension evaluation |
+| EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |
+| EVALUATION_DEPENDENCY_AUDIT | `AGENT_EVALUATION_DEPENDENCY_AUDIT.md` | Dependency validation |
 
 ---
 

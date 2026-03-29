@@ -54,7 +54,7 @@ Stage gates (30/60/90/IFC) are human-managed milestones and are not lifecycle st
 
 ## Agent Suite
 
-The system ships 29 agent instruction files organized across a 3x4 matrix:
+The system ships 35 agent instruction files organized across a 3x4 matrix:
 
 |  | Guiding | Applying | Judging | Reviewing |
 |:---|:---|:---|:---|:---|
@@ -64,45 +64,9 @@ The system ships 29 agent instruction files organized across a 3x4 matrix:
 
 Normative and Evaluative agents open interactive workbench sessions. Operative agents run as pipelines.
 
-### Decomposition Agents
+The suite covers decomposition (3 domain variants sharing a common 7-gate protocol), workspace scaffolding, document drafting, dependency extraction, semantic analysis, cost estimation, scheduling, review, change management, reconciliation, and project evaluation.
 
-Three decomposition variants share a common 7-gate protocol (`DECOMP_BASE`):
-
-- **PROJECT_DECOMP** — EPC / design-build projects (Packages / Deliverables)
-- **SOFTWARE_DECOMP** — Software development (Work Domain Packages / Deliverables with Context Envelope sizing)
-- **DOMAIN_DECOMP** — Handbook / knowledge domains (Categories / Knowledge Types)
-
-### Preparation and Document Agents
-
-- **PREPARATION** — Scaffolds package and deliverable folders with minimum viable fileset
-- **4_DOCUMENTS** — Drafts the standard four-document kit (Datasheet, Specification, Guidance, Procedure)
-- **DOMAIN_DOCUMENTS** — Produces scoping and knowledge artifact files for domain decompositions
-- **CHIRALITY_FRAMEWORK / CHIRALITY_LENS** — Semantic analysis and enrichment
-
-### Execution Agents
-
-- **WORKING_ITEMS** — Interactive deliverable-scoped content production
-- **TASK** — Brief-driven execution against authorized deliverable-local files
-- **DEPENDENCIES** — Extracts and maintains structured dependency registers (29-column CSV v3.1 schema)
-- **ESTIMATING / ESTIMATE_PREP** — Parameterized cost estimation
-- **SCHEDULING** — Schedule generation from the dependency graph
-- **SCOPE_CHANGE** — Change impact assessment and decomposition amendment
-
-### Quality and Coordination Agents
-
-- **ORCHESTRATOR** — Coordinates project setup, tier sequencing, and control loops
-- **RECONCILIATION** — Cross-deliverable coherence analysis
-- **REVIEW** — Formal 5-gate review process for lifecycle transitions
-- **CHANGE** — Git state management with explicit approval gates
-- **AUDIT agents** — Conformance checking for decomposition, dependencies, agents, and hypergraph closure
-
-### Evaluation and Tooling Agents
-
-- **EVALUATION** — Orchestrates systematic project evaluation; dispatches collection and scoring subagents; synthesizes final report
-- **EVALUATION_REPORT** — Scores one evaluation dimension with evidence gathering and reasoning (Sonnet)
-- **CONTENT_DIGEST** — Reads one deliverable folder; produces structured content digest (Haiku)
-- **EVALUATION_STRUCTURE_AUDIT / EVALUATION_DEPENDENCY_AUDIT** — Deterministic structural and dependency validation
-- **TOOLMAKER** — Identifies, designs, and implements deterministic tools; maintains the tool registry
+See [`AGENTS.md`](AGENTS.md) for the full agent index and classification. See [`docs/DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) for the design basis.
 
 ---
 
@@ -134,19 +98,9 @@ The `docs/` directory contains the formal specification hierarchy:
 
 The architecture is governed by three layers of formally stated invariants:
 
-**R1-R9 (Workflow Design Requirements)** — Apply to all agents: human decision rights, straight-through tasks, write quarantine, immutable snapshots, mandatory provenance, no invention, conflict surfacing, brief-driven execution, hygienic publication.
-
-**I1-I10 (Decomposition Invariants)** — Apply to all decomposition agents: human-validated decomposition, no invention, flat partitions, no overlap / no gaps, stable identifiers, deterministic ID coupling, objective mapping, traceable rationale, ledger + telemetry, vocabulary discipline.
-
-**K-* (System-Wide Invariants)** — 23 named invariants defined in `CONTRACT.md` covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, invention, conflicts, write scope, and snapshots.
-
-Key invariants:
-
-- **K-AUTH-1** — Only humans author binding approval records
-- **K-GHOST-1** — Type 2 context is limited to folder contents + declared references
-- **K-INVENT-1** — Unknown values become `TBD`, not guessed
-- **K-PROV-1** — Every extracted dependency row must cite evidence
-- **K-WRITE-1** — Every agent has an explicit write scope; no agent writes outside its declared zone
+- **R1–R9 (Workflow Design Requirements)** — Apply to all agents. Defined in `AGENT_HELPS_HUMANS.md`.
+- **I1–I10 (Decomposition Invariants)** — Apply to all decomposition agents. Defined in `AGENT_DECOMP_BASE.md`.
+- **K-\* (System-Wide Invariants)** — 23 named invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, and write scope. Defined in [`docs/CONTRACT.md`](docs/CONTRACT.md).
 
 ---
 
