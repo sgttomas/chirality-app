@@ -22,6 +22,7 @@
 | Appendix A — Invariant Catalog | `appendix_a_invariant_catalog.md` | Draft (Sonnet) |
 | Appendix B — Agent Inventory | `appendix_b_agent_inventory.md` | Draft (Sonnet) |
 | Appendix C — APEGA Mapping | `appendix_c_apega_mapping.md` | Draft (Sonnet) |
+| Appendix D — Framework with Respect to S | `appendix_d_framework_s.md` | Draft (Opus) |
 | References | `references.md` | Scaffold (Sonnet) |
 | Glossary | `glossary.md` | Draft (Sonnet) |
 

@@ -53,3 +53,5 @@ Both questions are valid. Both approaches are complementary. But only the second
 The Chirality architecture is an answer to the question of how to reconcile these two facts. It engineers a harness that allows judgment to scale — widening and organizing the field of consideration while preserving the human professional's authority to narrow, accept, and issue. What comes out the other end of that process still means what professional work outputs have always meant: a competent person warrants this under duty of care, backed by an auditable record.
 
 If we cannot make it auditable, we cannot rely on it. This system makes it auditable.
+
+The deeper question — whether the architecture, consistently practiced, produces something beyond its measurable outputs — is addressed not by proof but by the lived consistency of commitment and response. Appendix D develops the formal existential conditions under which that question can be asked. The answer, if it comes, emerges from practice.

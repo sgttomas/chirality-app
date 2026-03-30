@@ -100,6 +100,8 @@ References are organized by category. Citations marked [PLACEHOLDER] require ver
 
 [Polanyi1966] M. Polanyi, *The Tacit Dimension*, Garden City, NY, USA: Doubleday, 1966. (Repr. Chicago: University of Chicago Press, 2009, ISBN: 978-0-226-67298-4.)
 
+[Polanyi1975] M. Polanyi and H. Prosch, *Meaning*, Chicago, IL, USA: University of Chicago Press, 1975. ISBN: 978-0-226-67294-6.
+
 [Sellars1956] W. Sellars, "Empiricism and the Philosophy of Mind," in *Minnesota Studies in the Philosophy of Science*, vol. 1, H. Feigl and M. Scriven, Eds., Minneapolis, MN, USA: University of Minnesota Press, 1956, pp. 253–329.
 
 [Brandom1994] R. B. Brandom, *Making It Explicit: Reasoning, Representing, and Discursive Commitment*, Cambridge, MA, USA: Harvard University Press, 1994. ISBN: 978-0-674-54319-5.

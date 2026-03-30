@@ -45,6 +45,7 @@ The system has been implemented with 38 agent instruction files, 28 deterministi
 - [A — Invariant Catalog](appendix_a_invariant_catalog.md)
 - [B — Agent Inventory](appendix_b_agent_inventory.md)
 - [C — APEGA Regulatory Mapping](appendix_c_apega_mapping.md)
+- [D — A Conjecture on the Nature of Being and Knowing](appendix_d_framework_s.md)
 
 **Reference Material**
 
