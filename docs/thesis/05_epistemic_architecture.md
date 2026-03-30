@@ -220,4 +220,4 @@ The architecture is complementary to model-level improvements and grows more eff
 
 The epistemic architecture is the pillar that makes the regulatory mapping in Chapter 6 tractable: without it, the professional obligations of thorough review and direct supervision cannot be efficiently satisfied for AI-assisted work. With it, these obligations can be met using the same mechanisms that govern human-produced work — with the added benefit that the evidence trail is more structured, more complete, and more auditable than manual practice typically achieves.
 
-The deeper philosophical foundation for the epistemic architecture — including the claim that knowledge in professional practice is constituted by the act of warranted accountability, not by information processing — is developed in `CHIRALITY_THEORY.md`.
+The deeper philosophical foundation for the epistemic architecture — including the claim that knowledge in professional practice is constituted by the act of warranted accountability, not by information processing — is developed in `CHIRALITY_FRAMEWORK.md`.

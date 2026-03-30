@@ -91,7 +91,7 @@ The `docs/` directory contains the formal specification hierarchy:
 | [`PLAN.md`](docs/PLAN.md) | Development roadmap and future hardening candidates |
 | [`DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) | Design basis memorandum for the full instruction architecture |
 | [`SE_Design_Analysis.md`](docs/SE_Design_Analysis.md) | Systems engineering design analysis across eight SE disciplines |
-| [`CHIRALITY_THEORY.md`](CHIRALITY_THEORY.md) | The Chirality Theory: knowledge as warranted accountability, four pillars, epistemic ontology |
+| [`CHIRALITY_FRAMEWORK.md`](CHIRALITY_FRAMEWORK.md) | The Chirality Theory: knowledge as warranted accountability, four pillars, epistemic ontology |
 | [`PROFESSIONAL_ENGINEERING.md`](PROFESSIONAL_ENGINEERING.md) | Professional practice standard for AI agent governance under APEGA |
 
 ---

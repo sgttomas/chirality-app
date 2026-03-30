@@ -11,7 +11,7 @@ Referenced by the Chirality AI Ltd. Professional Practice Management Plan (PPMP)
 
 ## Preamble
 
-This document defines the professional practice standard for Chirality AI Ltd. governing the use of AI agent systems in regulated engineering practice. It establishes how the firm satisfies its professional obligations under the *Engineering and Geoscience Professions Act* (EGP Act), the *General Regulation*, and applicable APEGA practice standards when licensed professionals rely on work produced by AI agents. The theoretical foundation for this standard — including the nature of knowledge in professional practice and the structural relationship between AI output and professional accountability — is defined in `CHIRALITY_THEORY.md`.
+This document defines the professional practice standard for Chirality AI Ltd. governing the use of AI agent systems in regulated engineering practice. It establishes how the firm satisfies its professional obligations under the *Engineering and Geoscience Professions Act* (EGP Act), the *General Regulation*, and applicable APEGA practice standards when licensed professionals rely on work produced by AI agents. The theoretical foundation for this standard — including the nature of knowledge in professional practice and the structural relationship between AI output and professional accountability — is defined in `CHIRALITY_FRAMEWORK.md`.
 
 > AI can accelerate engineering work. It cannot inherit professional responsibility.
 
