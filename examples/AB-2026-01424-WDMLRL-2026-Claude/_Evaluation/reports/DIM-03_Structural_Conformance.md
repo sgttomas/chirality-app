@@ -167,3 +167,13 @@ Five of eight checks pass fully (T-3.1, T-3.2, T-3.3, T-3.5, T-3.6, T-3.7). T-3.
 - The project would score EXEMPLARY on this dimension if `_Estimates/_LATEST.md` were present pointing to the latest snapshot per deliverable (or a master pointer listing all 117 latest snapshots).
 
 **Path to EXEMPLARY:** Create a `_Estimates/_LATEST.md` file that either points to the most recent snapshot per deliverable or references the ESTIMATION_SUMMARY as the canonical pointer registry.
+
+---
+
+## Remediation Addendum — 2026-03-29
+
+**T-3.8 updated to PASS.** `_Estimates/_LATEST.md` was created on 2026-03-29, pointing to `ESTIMATION_SUMMARY_2026-02-27.md` with GrandTotal_CAD $7,238,510.24, RUN_STATUS OK, and SCA-001 aggregation cross-reference. All _LATEST.md pointers across tool roots are now present and correctly referencing their most recent snapshots.
+
+**Revised Dimension Score: EXEMPLARY**
+
+All eight checks now pass fully. The path-to-EXEMPLARY condition (T-3.8) has been satisfied. See `REMEDIATION_LOG.md` for details.

@@ -1,4 +1,4 @@
-# Status: DEL-001-01 Preliminary Architectural Design
+# Status: DEL-001-01 Preliminary Design
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

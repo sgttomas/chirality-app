@@ -1,17 +1,8 @@
-# DEL-005-01 Status
+# Status: DEL-005-01 Preliminary Design
 
-## Current Status
-**SEMANTIC_READY**
-
-## Status Date
-2026-02-26
-
-## Progress
-- Deliverable initialized
-- Metadata scaffolding completed
-- Ready for engineering content development
-- Semantic matrices generated (_SEMANTIC.md written)
+**Current State:** SEMANTIC_READY
+**Last Updated:** 2026-02-26
 
 ## History
-- [2026-02-25] — State set to INITIALIZED (4_DOCUMENTS Pass 1+2 complete)
-- [2026-02-26] — State set to SEMANTIC_READY (CHIRALITY_FRAMEWORK)
+- 2026-02-25 — State set to INITIALIZED (4_DOCUMENTS Pass 1+2 complete)
+- 2026-02-26 — State set to SEMANTIC_READY (CHIRALITY_FRAMEWORK)

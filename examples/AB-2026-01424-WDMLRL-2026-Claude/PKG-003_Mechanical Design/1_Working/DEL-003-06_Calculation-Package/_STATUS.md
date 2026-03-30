@@ -1,4 +1,5 @@
-# Status: DEL-003-06 Mechanical Calculation Package
+# Status: DEL-003-06 Calculation Package
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

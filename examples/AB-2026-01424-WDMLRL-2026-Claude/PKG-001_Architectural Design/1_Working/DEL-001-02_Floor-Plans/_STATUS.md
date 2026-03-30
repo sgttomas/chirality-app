@@ -1,4 +1,4 @@
-# Status: DEL-001-02 Architectural Floor Plans
+# Status: DEL-001-02 Floor Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

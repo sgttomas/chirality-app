@@ -1,4 +1,4 @@
-# Status: DEL-002-05 Mezzanine Framing Details
+# Status: DEL-002-05 Mezzanine Details
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

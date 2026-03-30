@@ -1,4 +1,5 @@
-# Status: DEL-003-07 Mechanical Specification
+# Status: DEL-003-07 Specification
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

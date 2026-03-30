@@ -54,7 +54,7 @@ Stage gates (30/60/90/IFC) are human-managed milestones and are not lifecycle st
 
 ## Agent Suite
 
-The system ships 37 agent instruction files organized across a 3x4 matrix:
+The system ships 38 agent instruction files organized across a 3x4 matrix:
 
 |  | Guiding | Applying | Judging | Reviewing |
 |:---|:---|:---|:---|:---|
@@ -74,7 +74,7 @@ See [`AGENTS.md`](AGENTS.md) for the full agent index and classification. See [`
 
 The `tools/` directory contains 28 shell scripts and Python utilities that agents invoke via Bash during pipeline execution. These tools codify the LLM-independent operations — filesystem scaffolding, schema validation, CSV aggregation, graph analysis — so that agents reserve LLM reasoning for content that requires judgment.
 
-The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all available tools. 21 of 37 agent instruction files reference tools from the registry in their PROTOCOL sections.
+The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all available tools. 21 of 38 agent instruction files reference tools from the registry in their PROTOCOL sections.
 
 ---
 
@@ -123,7 +123,7 @@ The `frontend/` directory contains a Next.js + Electron desktop application with
 
 ```
 chirality-app/
-  agents/              37 agent instruction files (AGENT_*.md)
+  agents/              38 agent instruction files (AGENT_*.md)
   tools/               28 deterministic tools + REGISTRY.md (shell scripts, Python utilities)
     scaffolding/       Package, deliverable, tool root, snapshot folder creation
     query/             Workspace state, amendment ID scanning

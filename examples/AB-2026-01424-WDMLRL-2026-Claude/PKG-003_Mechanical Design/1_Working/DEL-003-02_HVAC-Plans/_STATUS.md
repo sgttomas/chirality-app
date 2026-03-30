@@ -1,4 +1,5 @@
-# Status: DEL-003-02 HVAC Layout Plans
+# Status: DEL-003-02 HVAC Plans
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

@@ -1,4 +1,4 @@
-# Status: DEL-011-01 Concrete Superstructure
+# Status: DEL-011-01 Superstructure
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

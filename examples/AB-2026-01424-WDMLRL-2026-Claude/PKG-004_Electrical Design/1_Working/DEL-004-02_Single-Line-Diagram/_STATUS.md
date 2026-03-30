@@ -1,4 +1,4 @@
-# Status: DEL-004-02 Single-Line Diagram
+# Status: DEL-004-02 Single Line Diagram
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

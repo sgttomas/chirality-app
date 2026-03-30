@@ -1,4 +1,5 @@
-# Status: DEL-003-01 Preliminary Mechanical Design
+# Status: DEL-003-01 Preliminary Design
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

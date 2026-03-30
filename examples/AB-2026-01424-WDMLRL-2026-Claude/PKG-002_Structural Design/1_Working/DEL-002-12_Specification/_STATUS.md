@@ -1,4 +1,4 @@
-# Status: DEL-002-12 Structural Specification
+# Status: DEL-002-12 Specification
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

@@ -1,4 +1,4 @@
-# Status: DEL-002-08 Steel Plate Embedment Plan
+# Status: DEL-002-08 Embedment Plan
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

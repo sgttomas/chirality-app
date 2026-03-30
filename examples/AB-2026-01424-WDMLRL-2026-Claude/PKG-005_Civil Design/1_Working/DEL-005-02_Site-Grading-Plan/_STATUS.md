@@ -1,14 +1,7 @@
-# DEL-005-02 Status
+# Status: DEL-005-02 Site Grading Plan
 
-## Current Status
-**SEMANTIC_READY**
+**Current State:** SEMANTIC_READY
+**Last Updated:** 2026-02-26
 
-## Status Date
-2026-02-26
-
-## Progress
-- Deliverable initialized
-- Metadata scaffolding completed
-- Ready for engineering content development
-- [2026-02-25] — State set to INITIALIZED (4_DOCUMENTS Pass 1+2 complete)
-- [2026-02-26] — State set to SEMANTIC_READY (CHIRALITY_FRAMEWORK) — _SEMANTIC.md generated, audit PASS (68/68 cells clean)
+## History
+- 2026-02-26 — State set to Date (normalized)

@@ -1,4 +1,4 @@
-# Status: DEL-001-11 Architectural Specification
+# Status: DEL-001-11 Specification
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

@@ -227,3 +227,29 @@ Neither observation warrants a downgrade below CONFORMANT. The dimension does no
 | `DEL-006-01/_STATUS.md` | L-6.5 sample |
 | `DEL-009-01/_STATUS.md` | L-6.5 sample |
 | `DEL-021-01/_STATUS.md` | L-6.5 sample |
+
+---
+
+## Remediation Addendum — 2026-03-29
+
+### Observation 1 Resolved: _STATUS.md Format Heterogeneity
+
+All 117 _STATUS.md files were normalized to a single canonical format on 2026-03-29 using a Python normalization script. The five distinct formatting patterns documented in L-6.1 (bold Current State, bold Status, table cells, etc.) have been unified to:
+
+```
+# Status: [DEL-ID] [Name]
+**Current State:** SEMANTIC_READY
+**Last Updated:** [DATE]
+## History
+- [DATE] — [Entry text]
+```
+
+Field labels, date formats, and history section layouts are now consistent across all 117 files. The format heterogeneity observation no longer applies.
+
+### Observation 2 Resolved: Coordination Label Divergence
+
+The _COORDINATION.md `Representation` field was updated from "Declared critical dependencies" to the canonical TYPES.md §6 enum value `DEPENDENCY_TRACKED` on 2026-03-29. The `Dependency tracking mode` field retains `DECLARED` as a sub-mode descriptor, which is semantically correct (dependencies are declared by DEPENDENCIES agents, tracked within the DEPENDENCY_TRACKED representation).
+
+### Revised Dimension Score: EXEMPLARY
+
+Both observations that prevented an EXEMPLARY rating have been resolved. All five checks pass, and the template inconsistency and vocabulary divergence are no longer present. See `REMEDIATION_LOG.md` for full details.

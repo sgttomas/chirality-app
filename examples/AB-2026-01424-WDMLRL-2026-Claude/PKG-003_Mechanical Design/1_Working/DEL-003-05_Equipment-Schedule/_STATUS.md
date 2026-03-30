@@ -1,4 +1,5 @@
-# Status: DEL-003-05 Mechanical Equipment Schedule
+# Status: DEL-003-05 Equipment Schedule
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

@@ -65,7 +65,7 @@ This procedure covers the **production** of the drawing set deliverable, not the
 
 If any of the above items are unavailable, the Structural Engineer shall document the missing items and either (a) use conservative ASSUMPTION values marked as TBD for preliminary design only, or (b) defer crane runway framing design until data is received. The choice between (a) and (b) shall be documented.
 
-1.4 Review conceptual floor plan (R-04) and County-approved preliminary architectural drawings (DEL-001-02 or DEL-002-01) to understand room layout, repair bay widths (24 ft per R-04), wash bay width (24 ft per R-04), service trench location, mezzanine extents, and building overall dimensions (130 ft × 100 ft per R-04).
+1.4 Review conceptual floor plan (R-04) and County-approved preliminary architectural drawings (DEL-001-02 or DEL-002-01) to understand room layout, repair bay widths (24 ft per R-04), wash bay width (24 ft per R-04), service pit location, mezzanine extents, and building overall dimensions (130 ft × 100 ft per R-04).
 
 1.5 Review the Structural Specification (DEL-002-12) and Foundation Plan (DEL-002-02) for any constraints that affect framing member selection or column locations.
 
@@ -73,12 +73,12 @@ If any of the above items are unavailable, the Structural Engineer shall documen
 
 ### Step 2 — Establish Structural System and Column Grid
 
-2.1 Select the structural framing system consistent with the RFP requirement for a "concrete structure" (R-01, §3.4). If a hybrid system (e.g., concrete columns with steel roof framing) is proposed, confirm acceptability with the County.
+2.1 The structural system is confirmed per SCA-001 (Addenda 2 and 4): precast concrete walls + steel roof structure, with interior walls precast concrete (Add. 4, Q5) and corbel-supported cranes in precast side walls at max 25 ft bay spacing (Add. 4, Q3). Coordinate with precast wall panel supplier/fabricator for panel dimensions, connection details, and corbel locations.
 
 2.2 Develop the column grid layout. The grid must:
 - Provide minimum 24 ft clear width in repair bays (per R-04 bay dimension annotation).
 - Provide minimum 24 ft clear width in the wash bay (per R-04 annotation).
-- Not obstruct the service trench opening or the drive-through access paths.
+- Not obstruct the service pit opening or the drive-through access paths.
 - Accommodate the crane runway beam spans without intermediate columns within the crane aisle.
 
 2.3 Establish the crane runway beam elevation. Calculate the required bottom-of-rail elevation from:
@@ -95,7 +95,7 @@ If any of the above items are unavailable, the Structural Engineer shall documen
 3.1 Produce schematic framing plans at each level (main floor, mezzanine, roof) showing:
 - Column grid with dimensions
 - Primary framing members (beams, girders, roof framing type) — without full connection details
-- Crane runway beam location and elevation
+- Corbel locations in precast side walls and crane rail elevation
 - Mezzanine extents and framing direction
 - Service pit/trench opening with header framing
 - Wash bay boundary framing
@@ -109,7 +109,7 @@ If any of the above items are unavailable, the Structural Engineer shall documen
 4.1 Upon County approval of preliminary design, advance each framing plan to IFC level. IFC plans shall include:
 - Fully dimensioned column grid
 - All primary members designated with member marks (e.g., W-shapes, HSS designations, concrete column marks, beam marks)
-- Crane runway beams designated and elevation noted
+- Corbel locations designated in precast wall panels and crane rail elevation noted
 - Mezzanine framing plan with member designations and design live load stated
 - Roof framing plan showing framing direction, member designations, roof slope (if applicable), and framing at openings
 - Service pit header framing shown at ground level plan
@@ -173,7 +173,7 @@ The following checks confirm that the Structural Framing Plans (DEL-002-03) are 
 | V-02 — Column grid dimensioned | All column grid lines are dimensioned in both directions on each plan level | Drawing review |
 | V-03 — Member designations | All structural members have member mark designations | Drawing review |
 | V-04 — 35 ft clear height noted | A clear height dimension or note of ≥35 ft is shown in the main shop area | Drawing review |
-| V-05 — Crane runway shown | Crane runway beams are shown on the appropriate plan level with elevation notation | Drawing review |
+| V-05 — Crane support shown | Corbel locations in precast walls are shown on the appropriate plan level with crane rail elevation notation | Drawing review |
 | V-06 — Mezzanine load noted | Mezzanine design live load is stated on the mezzanine framing plan | Drawing review |
 | V-07 — P.Eng. stamp | IFC drawings are signed and stamped by a P.Eng. licensed in Alberta | Stamp verification |
 | V-08 — County preliminary approval | Written County approval of preliminary design on record before IFC issuance | Approval record review |
@@ -201,6 +201,7 @@ The following records shall result from execution of this procedure:
 
 *Procedure generated by 4_DOCUMENTS agent — Pass 1. Date: 2026-02-25.*
 *Enriched by 4_DOCUMENTS agent — Pass 3 (Semantic Lensing). Date: 2026-02-26.*
+*SCA-001 cascade applied: 2026-03-29 (WORKING_ITEMS session — precast walls + steel roof + corbel cranes per Add. 2/4; terminology: "service pit" per Vocabulary Map).*
 *Lensing items applied: A-004, D-002, E-001, E-003.*
 *ASSUMPTION labels indicate inferred content not explicitly stated in sources.*
 *TBD entries require additional information before the relevant step can be completed.*

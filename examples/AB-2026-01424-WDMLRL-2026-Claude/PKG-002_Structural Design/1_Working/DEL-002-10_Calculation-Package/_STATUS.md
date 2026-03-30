@@ -1,4 +1,4 @@
-# Status: DEL-002-10 Structural Calculation Package
+# Status: DEL-002-10 Calculation Package
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

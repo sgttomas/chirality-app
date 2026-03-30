@@ -1,4 +1,4 @@
-# Status: DEL-011-03 Drive-Through Repair Bays
+# Status: DEL-011-03 Repair Bays
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

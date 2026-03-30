@@ -1,4 +1,4 @@
-# Status: DEL-004-09 Electrical Specification
+# Status: DEL-004-09 Specification
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

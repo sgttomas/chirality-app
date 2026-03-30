@@ -1,4 +1,4 @@
-# Status: DEL-011-02 Steel Plate Floor Embedments
+# Status: DEL-011-02 Steel Embedments
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

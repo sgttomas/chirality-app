@@ -1,4 +1,5 @@
-# Status: DEL-003-03 Ductwork & Distribution Plans
+# Status: DEL-003-03 Ductwork Plans
+
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26
 

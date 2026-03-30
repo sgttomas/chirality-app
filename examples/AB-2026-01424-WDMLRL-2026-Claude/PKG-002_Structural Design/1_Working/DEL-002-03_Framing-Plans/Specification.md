@@ -9,12 +9,12 @@
 DEL-002-03 is a Drawing Set produced by the Structural Engineer (P.Eng., licensed in Alberta) constituting the Structural Framing Plans for the New North Shop Addition at the West Dried Meat Lake Regional Landfill. It covers the final structural design of the above-grade building frame (superstructure) under SOW-0012 and supports OBJ-001 (code-compliant, fully functional addition) and OBJ-003 (complete P.Eng.-stamped IFC documentation).
 
 The framing plans must depict and define:
-- The primary structural framing system for the concrete superstructure (130 ft × 100 ft, 35 ft clear ceiling height)
-- Framing at roof level (roof framing plan)
+- The primary structural framing system: precast concrete walls + steel roof structure (SCA-001: Add. 2/4), 130 ft × 100 ft, 35 ft clear ceiling height
+- Framing at roof level (steel roof framing plan)
 - Framing at each elevated level: mezzanine framing plan (above parts room, utility room, and wash bay)
-- Column grid layout and column schedule references
-- Crane runway beam / girder framing supporting two 5-tonne overhead cranes on trolley
-- Framing at the service pit / trench (below-grade structural walls and cover framing as applicable)
+- Column grid layout and column schedule references; precast wall panel layout and connection points
+- Corbel-supported crane framing in precast side walls for two 5-tonne overhead cranes, max 25 ft bay spacing (SCA-001: Add. 4, Q3)
+- Framing at the service pit (below-grade structural walls and cover framing as applicable)
 - Framing at the wash bay enclosure (integration with roof and wall structure)
 - Coordination notation with steel plate embedment plan (DEL-002-08) and foundation plan (DEL-002-02)
 
@@ -25,7 +25,7 @@ The framing plans must depict and define:
 | Foundation design and foundation plan | DEL-002-02 (Foundation Plan) |
 | Structural sections and connection details | DEL-002-04 (Structural Sections & Details) |
 | Mezzanine connection details | DEL-002-05 (Mezzanine Framing Details) |
-| Service pit/trench structural details | DEL-002-06 (Service Pit / Trench Structural Details) |
+| Service pit structural details | DEL-002-06 (Service Pit / Trench Structural Details) |
 | Crane support structure details | DEL-002-07 (Crane Support Structure Details) |
 | Steel plate embedment layout plan | DEL-002-08 (Steel Plate Embedment Plan) |
 | Stair details | DEL-002-09 (Stair Details) |
@@ -44,11 +44,11 @@ The framing plans must depict and define:
 | REQ-FP-01 | Framing plans shall depict the complete structural framing at each plan level: at minimum, ground/main floor level (or floor framing as applicable), mezzanine level, and roof level. | R-01, §3.4; R-04 |
 | REQ-FP-02 | Framing plans shall show a dimensioned column grid with column locations and designations. | ASSUMPTION: standard structural drawing practice for concrete/steel buildings |
 | REQ-FP-03 | Framing plans shall identify all primary beams, girders, joists, and roof framing members with member designation references. | ASSUMPTION: standard structural drawing practice |
-| REQ-FP-04 | Framing plans shall show crane runway framing (runway beams/girders) for both 5-tonne overhead cranes, including crane span, runway elevation, and runway beam designation. | R-01, §3.4; R-04 |
+| REQ-FP-04 | Framing plans shall show corbel-supported crane framing in precast side walls for both 5-tonne overhead cranes, including corbel locations, crane rail elevation, and max 25 ft bay spacing (SCA-001: Add. 4, Q3). | R-01, §3.4; R-04; Addendum 4, Q3 |
 | REQ-FP-05 | Framing plans shall show the mezzanine framing extents above the parts room, utility room, and wash bay, with member designations and loading notation. | R-01, §3.4; R-04 |
 | REQ-FP-06 | The mezzanine structure shall be designed as load-bearing for heavy items including oil totes and oil pumping equipment; the mezzanine design live load shall be stated on the drawings. | R-01, §3.4 |
 | REQ-FP-07 | Framing plans shall show framing at the wash bay enclosure boundary and roof integration with the main shop structure. | R-01, §3.1, §3.4; R-04 |
-| REQ-FP-08 | Framing plans shall show structural framing at the service pit/trench opening, including the pit header framing and any pit cover framing (if applicable). | R-01, §3.4; R-04 |
+| REQ-FP-08 | Framing plans shall show structural framing at the service pit opening, including the pit header framing and any pit cover framing (if applicable). | R-01, §3.4; R-04 |
 | REQ-FP-09 | Framing plans shall include cross-reference notes to structural detail sheets (DEL-002-04 through DEL-002-09), section cuts, and detail bubbles. | ASSUMPTION: standard structural drawing coordination practice |
 | REQ-FP-10 | Framing plans shall include a general notes block referencing applicable standards and design loads (dead load, live load, snow load, wind load, seismic, crane loads). | ASSUMPTION: standard structural drawing practice |
 | REQ-FP-11 | All plan dimensions shall be in metric or imperial units, used consistently throughout the drawing set, consistent with the architectural drawing set. **TBD: Unit convention (metric vs. imperial) must be confirmed by the project team (Architect + Structural Engineer) before drawing production can begin.** The drawing set cannot be produced until this decision is made. (Lensing ref: A-002) | ASSUMPTION: unit convention to be confirmed with project team |
@@ -150,6 +150,7 @@ The following drawing sheets are anticipated within DEL-002-03 (final sheet coun
 
 *Specification generated by 4_DOCUMENTS agent — Pass 1. Date: 2026-02-25.*
 *Enriched by 4_DOCUMENTS agent — Pass 3 (Semantic Lensing). Date: 2026-02-26.*
+*SCA-001 cascade applied: 2026-03-29 (WORKING_ITEMS session — precast walls + steel roof + corbel cranes per Add. 2/4; terminology: "service pit" per Vocabulary Map).*
 *Lensing items applied: A-001, A-002, A-003, C-001, C-002, D-001, D-003, F-002, X-002, X-003.*
 *ASSUMPTION labels indicate inferred content not explicitly stated in sources.*
 *TBD entries require additional information (geotechnical report, detailed design, County confirmation, Building Code consultant).*

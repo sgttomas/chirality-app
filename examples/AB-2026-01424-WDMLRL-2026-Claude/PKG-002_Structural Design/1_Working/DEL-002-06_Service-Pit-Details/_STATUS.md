@@ -1,4 +1,4 @@
-# Status: DEL-002-06 Service Pit / Trench Structural Details
+# Status: DEL-002-06 Service Pit Details
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

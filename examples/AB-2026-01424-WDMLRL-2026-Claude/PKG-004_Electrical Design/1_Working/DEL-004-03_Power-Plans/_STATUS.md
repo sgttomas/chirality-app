@@ -1,4 +1,4 @@
-# Status: DEL-004-03 Power Distribution Plans
+# Status: DEL-004-03 Power Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

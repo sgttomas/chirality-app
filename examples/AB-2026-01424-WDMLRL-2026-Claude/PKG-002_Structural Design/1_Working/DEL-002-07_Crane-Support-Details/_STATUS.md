@@ -1,4 +1,4 @@
-# Status: DEL-002-07 Crane Support Structure Details
+# Status: DEL-002-07 Crane Support Details
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

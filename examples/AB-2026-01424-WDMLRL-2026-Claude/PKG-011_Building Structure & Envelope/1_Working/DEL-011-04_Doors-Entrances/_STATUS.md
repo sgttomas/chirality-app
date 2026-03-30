@@ -1,4 +1,4 @@
-# Status: DEL-011-04 Entrance/Exit Doors
+# Status: DEL-011-04 Doors Entrances
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

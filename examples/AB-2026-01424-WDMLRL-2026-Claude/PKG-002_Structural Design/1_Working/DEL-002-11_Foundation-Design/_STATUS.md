@@ -1,4 +1,4 @@
-# Status: DEL-002-11 Foundation Design Package (Variable-Price)
+# Status: DEL-002-11 Foundation Design
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

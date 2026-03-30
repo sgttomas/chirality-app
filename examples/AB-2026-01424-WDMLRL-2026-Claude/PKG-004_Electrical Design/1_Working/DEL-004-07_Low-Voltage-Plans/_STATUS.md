@@ -1,4 +1,4 @@
-# Status: DEL-004-07 Low-Voltage System Plans
+# Status: DEL-004-07 Low Voltage Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

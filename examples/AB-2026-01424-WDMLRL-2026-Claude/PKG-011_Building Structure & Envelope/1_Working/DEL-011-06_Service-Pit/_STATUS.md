@@ -1,4 +1,4 @@
-# Status: DEL-011-06 Service Pit/Trench
+# Status: DEL-011-06 Service Pit
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

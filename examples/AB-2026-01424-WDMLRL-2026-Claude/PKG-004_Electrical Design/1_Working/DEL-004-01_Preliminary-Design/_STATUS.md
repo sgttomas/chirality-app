@@ -1,4 +1,4 @@
-# Status: DEL-004-01 Preliminary Electrical Design
+# Status: DEL-004-01 Preliminary Design
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

@@ -1,4 +1,4 @@
-# Status: DEL-001-09 Old North Shop Demolition Plans
+# Status: DEL-001-09 Demolition Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

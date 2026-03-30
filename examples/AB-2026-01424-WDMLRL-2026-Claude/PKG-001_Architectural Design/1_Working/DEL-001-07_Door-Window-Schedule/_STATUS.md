@@ -1,4 +1,4 @@
-# Status: DEL-001-07 Door & Window Schedule
+# Status: DEL-001-07 Door Window Schedule
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

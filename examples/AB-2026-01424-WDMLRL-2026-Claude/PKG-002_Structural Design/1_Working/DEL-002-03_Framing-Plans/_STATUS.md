@@ -1,4 +1,4 @@
-# Status: DEL-002-03 Structural Framing Plans
+# Status: DEL-002-03 Framing Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

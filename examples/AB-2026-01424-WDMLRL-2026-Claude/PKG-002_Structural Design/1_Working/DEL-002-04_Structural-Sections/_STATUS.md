@@ -1,4 +1,4 @@
-# Status: DEL-002-04 Structural Sections & Details
+# Status: DEL-002-04 Structural Sections
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

@@ -1,4 +1,4 @@
-# Status: DEL-011-07 Mezzanine Structure & Stairs
+# Status: DEL-011-07 Mezzanine
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

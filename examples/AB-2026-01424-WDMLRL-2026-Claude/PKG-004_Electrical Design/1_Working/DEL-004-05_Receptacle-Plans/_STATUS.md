@@ -1,4 +1,4 @@
-# Status: DEL-004-05 Receptacle Layout Plans
+# Status: DEL-004-05 Receptacle Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

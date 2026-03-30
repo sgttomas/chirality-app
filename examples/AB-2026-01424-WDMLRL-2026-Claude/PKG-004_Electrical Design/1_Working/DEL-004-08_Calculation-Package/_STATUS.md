@@ -1,4 +1,4 @@
-# Status: DEL-004-08 Electrical Calculation Package
+# Status: DEL-004-08 Calculation Package
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

@@ -4,7 +4,7 @@ This document is the design basis memorandum for the agent instruction system sh
 
 **Audience:** Anyone who will work with, extend, audit, or maintain the agent instruction suite.
 
-**Scope:** The 37 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
+**Scope:** The 38 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
 
 **Relationship to other governance documents:**
 
@@ -306,6 +306,7 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **AUDIT_HYPERGRAPH_CLOSURE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/HypergraphClosure/`) | never | Closure report, issue log, JSON summary, analysis script |
 | **AUDIT_GOVERNANCE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/GovernanceAudit/`) | never | Governance audit report, issue log CSV, summary JSON, QA report |
 | **AUDIT_EPISTEMIC** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/EpistemicAudit/`) | never | Epistemic audit report, issue log CSV, summary JSON, QA report |
+| **AUDIT_SCOPE_CLOSURE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/ScopeClosureAudit/`) | never | Scope closure report, issue log CSV, summary JSON, QA report |
 
 ### 5.2 The Agent Matrix
 
@@ -682,4 +683,4 @@ Per HELPS_HUMANS, any new workflow specification must produce these 8 design out
 
 ---
 
-*This document was produced by systematic research across all 37 agent instruction files and the governance documents in `docs/`. The operational architecture described here is what results when the four philosophical pillars — ontology, epistemology, praxiology, and axiology (`DIRECTIVE.md` §2) — are implemented as an agent instruction system. The systems engineering disciplines that pervade this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied after the fact. They are the necessary consequences of the four-pillar commitments: the only way those commitments can be made architecturally real. See `SE_Design_Analysis.md` for the detailed characterization and the generative mapping from pillars to SE disciplines.*
+*This document was produced by systematic research across all 38 agent instruction files and the governance documents in `docs/`. The operational architecture described here is what results when the four philosophical pillars — ontology, epistemology, praxiology, and axiology (`DIRECTIVE.md` §2) — are implemented as an agent instruction system. The systems engineering disciplines that pervade this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied after the fact. They are the necessary consequences of the four-pillar commitments: the only way those commitments can be made architecturally real. See `SE_Design_Analysis.md` for the detailed characterization and the generative mapping from pillars to SE disciplines.*

@@ -1,4 +1,4 @@
-# Status: DEL-001-10 Old North Shop Renovation Plans
+# Status: DEL-001-10 Renovation Plans
 
 **Current State:** SEMANTIC_READY
 **Last Updated:** 2026-02-26

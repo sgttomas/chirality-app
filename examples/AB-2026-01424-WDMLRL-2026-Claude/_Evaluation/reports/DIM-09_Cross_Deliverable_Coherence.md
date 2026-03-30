@@ -325,3 +325,26 @@ All five checks pass at a level consistent with conformance. Cross-deliverable c
 *Report generated: 2026-03-28*
 *Evaluator: Evaluation Agent (claude-sonnet-4-6)*
 *Protocol: EVALUATION_PROTOCOL.md Dimension 9*
+
+---
+
+## Remediation Addendum — 2026-03-29
+
+### Observation 1 Resolved: "Service Trench" Vocabulary Residual (C-9.3-A)
+
+All instances of "service trench" and "service pit/trench" in DEL-002-03 source documents (Datasheet, Specification, Guidance, Procedure) were standardized to the canonical term "service pit" per Vocabulary Map §2 on 2026-03-29. Conflict Table CONF-FP-02 retains reference to original source plan terminology for provenance. The vocabulary drift observation no longer applies.
+
+### Observation 2 Resolved: Incomplete SCA-001 Cascade in DEL-002-03 (C-9.2-A)
+
+All four DEL-002-03 source documents were updated on 2026-03-29 to reflect the SCA-001 structural system change:
+
+- **Datasheet:** Building structural type, construction method, and crane support updated for precast concrete walls + steel roof + corbel-supported cranes
+- **Specification:** Scope and REQ-FP-04 updated for precast/steel system and corbel framing
+- **Guidance:** Structural System Selection section rewritten; Crane Support Coordination updated; trade-off table reflects resolved system
+- **Procedure:** Step 2.1 confirmed per SCA-001; crane verification references corbel locations
+
+All four documents carry SCA-001 cascade footer notes. The "Why not EXEMPLARY" condition cited in this report (source documents not yet updated for addenda changes) has been fully addressed.
+
+### Revised Dimension Score: EXEMPLARY
+
+Both observations that prevented an EXEMPLARY rating have been resolved. All five checks pass without caveats. Cross-deliverable coherence is now fully synchronized with SCA-001 and the canonical vocabulary. See `REMEDIATION_LOG.md` for full details.
