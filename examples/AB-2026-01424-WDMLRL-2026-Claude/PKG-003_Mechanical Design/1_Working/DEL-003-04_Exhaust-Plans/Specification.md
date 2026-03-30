@@ -90,7 +90,7 @@ This drawing set shall document the complete exhaust and ventilation systems for
 
 **Notes:** Airflow rates, fan sizing, and supply/exhaust arrangement for the service pit are TBD pending mechanical calculations and applicable confined-space/safety code requirements. **ASSUMPTION:** A mechanical supply-and-exhaust arrangement serving the service pit is required; confirm against Alberta Safety Codes and ASHRAE requirements (location TBD).
 
-> **Terminology note (X-005):** This document adopts "service pit" as the primary term. The RFP source text (R-01 §3.4) uses both "service pit area" and "service trench." For consistency across all four production documents, "service pit" is used; "service trench" is treated as an alias. Source: R-01 §3.4; _SEMANTIC_LENSING.md item X-005.
+> **Terminology note (X-005):** This document adopts "service pit" as the primary term. The RFP source text (R-01 §3.4) uses both "service pit area" and "Service Pit." For consistency across all four production documents, "service pit" is used; "Service Pit" is treated as an alias. Source: R-01 §3.4; _SEMANTIC_LENSING.md item X-005.
 
 ---
 

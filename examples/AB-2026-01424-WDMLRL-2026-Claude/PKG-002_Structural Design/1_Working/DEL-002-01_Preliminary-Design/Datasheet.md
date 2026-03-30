@@ -115,7 +115,7 @@
 | Ref # | Document | Relevance to DEL-002-01 |
 |---|---|---|
 | R-01 | AB-2026-01424-WDMLRL RFP.pdf | §3.1 (project background), §3.3.2 (scope of work), §3.4 (design requirements including concrete structure, 35 ft ceiling, cranes, service pit, mezzanine, steel plates) |
-| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan: 130 ft × 100 ft building, bay widths, crane rail locations, service trench, steel plate locations, mezzanine, wash bay, parts room, utility room |
+| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan: 130 ft × 100 ft building, bay widths, crane rail locations, Service Pit, steel plate locations, mezzanine, wash bay, parts room, utility room |
 | — | WDMLRL_Decomposition_Claude.md | §3 SSOW (SOW-0010b, SOW-0012, SOW-0019, SOW-0022–SOW-0034), §5 Objectives (OBJ-001, OBJ-003), §7 PKG-002 deliverable table |
 
 ### Source Citation Convention (E-001)

@@ -29,7 +29,7 @@ This procedure describes the steps required to produce the Structural Sections &
 | Reference | Role |
 |---|---|
 | R-01 — AB-2026-01424-WDMLRL RFP.pdf (§3.3.2, §3.4) | Governing scope and IFC stamp requirements |
-| R-04 — AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — bay widths, steel plate locations, service trench, mezzanine |
+| R-04 — AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — bay widths, steel plate locations, Service Pit, mezzanine |
 | Applicable Alberta Building Code (current edition) | Code compliance — specific edition to be confirmed with AHJ |
 | CSA A23.3 (current edition) | Concrete design standard (ASSUMPTION: applicable) |
 | CSA S16 (current edition) | Steel design standard for crane runway, embedments, mezzanine (ASSUMPTION: applicable) |

@@ -39,7 +39,7 @@ The anchors connecting the steel plate to the concrete slab (headed studs, defor
 Source: ASSUMPTION — structural engineering principle; consistent with REQ-009 in Specification.md. CSA A23.3 anchor design provisions are likely applicable (location TBD).
 
 ### P-05: Coordinate with All Floor Penetrations
-The floor plan contains multiple competing elements: service trench, floor drains, sump connections, gantry crane runway column bases, and the 50,000 L water storage footprint. The Structural Engineer must confirm that plate positions do not conflict with any of these elements before issuing IFC drawings.
+The floor plan contains multiple competing elements: Service Pit, floor drains, sump connections, gantry crane runway column bases, and the 50,000 L water storage footprint. The Structural Engineer must confirm that plate positions do not conflict with any of these elements before issuing IFC drawings.
 
 Source: R-04 (App B floor plan); consistent with Specification REQ-006.
 
@@ -53,9 +53,9 @@ The Appendix B conceptual drawing shows two steel plates in the wash bay zone. T
 Source: R-04 (App B — "Wash Bay Mud Sump," "Steel Plate" locations in wash bay); RFP §3.4 ("Single enclosed bay dedicated for washing large equipment such as a motor scraper").
 
 ### C-02: Main Repair Bay — Multiple Plates in Crane Zone
-The conceptual drawing shows approximately four steel plate bands in the main repair bay area, which is also served by two 5-tonne overhead cranes. The gantry crane runway column base locations (DEL-002-07) must be confirmed before finalizing plate positions to avoid column base interference. Plates must also remain clear of the service trench structural walls (DEL-002-06).
+The conceptual drawing shows approximately four steel plate bands in the main repair bay area, which is also served by two 5-tonne overhead cranes. The gantry crane runway column base locations (DEL-002-07) must be confirmed before finalizing plate positions to avoid column base interference. Plates must also remain clear of the Service Pit structural walls (DEL-002-06).
 
-Source: R-04 (App B — "5 Ton Crane," "Service Trench," multiple "Steel Plate" labels in main bay).
+Source: R-04 (App B — "5 Ton Crane," "Service Pit," multiple "Steel Plate" labels in main bay).
 
 ### C-03: Plate Dimensions Not Specified in Sources
 The RFP and Appendix B do not specify steel plate dimensions (length, width, or thickness). The Structural Engineer must determine these based on equipment load analysis. Typical industrial shop floor embedded plates range from 10mm to 25mm thick, but this is provided as industry context only and must not be used as a design value without engineering justification.
@@ -129,7 +129,7 @@ The Appendix B (Shop) conceptual floor plan (R-04) provides the primary referenc
 
 - Steel plates appear as rectangular bands spanning the full width of the repair bay (approximately 24' bay widths per dimension callouts on drawing)
 - Two gantry crane runway pairs are shown in the wash bay — the steel plates in that zone appear adjacent to the gantry positions
-- The service trench is shown as a distinct element separate from the steel plate zones in the main bay
+- The Service Pit is shown as a distinct element separate from the steel plate zones in the main bay
 
 These observations are interpretations of the conceptual drawing only and should not be treated as final design dimensions.
 

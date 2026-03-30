@@ -56,10 +56,10 @@ The embedment plan shall be coordinated with the concrete floor slab design (thi
 
 Source: ASSUMPTION — inter-deliverable coordination requirement within PKG-002; consistent with decomposition structure.
 
-### REQ-006 — Service Trench Conflict Avoidance
-Steel plate locations shall not conflict with the service trench/pit as designed in DEL-002-06. Any steel plates adjacent to the service trench shall show clearance dimensions and edge conditions.
+### REQ-006 — Service Pit Conflict Avoidance
+Steel plate locations shall not conflict with the Service Pit/pit as designed in DEL-002-06. Any steel plates adjacent to the Service Pit shall show clearance dimensions and edge conditions.
 
-Source: ASSUMPTION — coordination requirement inferred from Appendix B floor plan showing service trench and adjacent steel plates in the same zone.
+Source: ASSUMPTION — coordination requirement inferred from Appendix B floor plan showing Service Pit and adjacent steel plates in the same zone.
 
 ### REQ-007 — P.Eng. Stamp
 All drawings forming this deliverable that are issued for construction (IFC) shall be signed and stamped by a Professional Engineer licensed to practice structural engineering in the Province of Alberta.
@@ -125,7 +125,7 @@ Source: ASSUMPTION — standard IFC drawing requirements consistent with RFP §3
 | REQ-003 — Plan dimensions | Drawing check: all plates have dimensions to grid or reference lines; no undimensioned locations |
 | REQ-004 — Embedment detail sections | Drawing check: detail section exists for each plate type; required information items present |
 | REQ-005 — Slab coordination | Cross-reference check: slab thickness and rebar layout in DEL-002-02 are consistent with plate embedment depths |
-| REQ-006 — Service trench clearance | Drawing check: no steel plate encroaches on service trench as designed in DEL-002-06 |
+| REQ-006 — Service Pit clearance | Drawing check: no steel plate encroaches on Service Pit as designed in DEL-002-06 |
 | REQ-007 — P.Eng. stamp | IFC drawing set: stamp and signature present on each sheet |
 | REQ-008 — Code compliance | Engineering review: design basis references applicable Alberta codes with confirmed editions and clause-level provisions (see A-003 enrichment in REQ-008 text) |
 | REQ-009 — Load basis documented | Check DEL-002-10 contains plate loading calculations referencing equipment types |

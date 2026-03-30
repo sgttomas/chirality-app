@@ -141,7 +141,7 @@ The following key risks may affect the power distribution plan IFC timeline. The
 
 Examples of power distribution plan content consistent with source materials:
 
-- App B (Electrical) conceptual drawing shows the relative locations of: welding station (north wall, top of plan), work benches (north wall), 5-tonne crane positions (mid-building, north-south orientation), service trench (east zone), wash bay (east, 24' wide), parts room, utility room (center-south), and office (west-center). The power distribution IFC drawing will use this spatial arrangement as a baseline for circuit routing. (Source: App B Electrical, conceptual layout)
+- App B (Electrical) conceptual drawing shows the relative locations of: welding station (north wall, top of plan), work benches (north wall), 5-tonne crane positions (mid-building, north-south orientation), Service Pit (east zone), wash bay (east, 24' wide), parts room, utility room (center-south), and office (west-center). The power distribution IFC drawing will use this spatial arrangement as a baseline for circuit routing. (Source: App B Electrical, conceptual layout)
 
 - App B (Electrical) legend identifies the following symbols in use: L (Lights), E (Exhaust Fan), 15 (15A/120V), 20 (20A/120V or 20A/240V — differentiated by fill/line style), 30 (30A/240V), 50 (50A/240V). The IFC drawing set must use a consistent, code-compliant legend. (Source: App B Electrical, legend)
 

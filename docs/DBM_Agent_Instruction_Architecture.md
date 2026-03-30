@@ -96,7 +96,7 @@ Type 1 agents are human-facing. They run conversational, gate-controlled workflo
 - Own orchestration decisions but not engineering content
 - Produce guidance, run plans, briefs, and structured cards
 
-**Count:** 12 agents (see §5 for inventory).
+**Count:** 14 agents (see §5 for inventory).
 
 ### 2.3 Type 2 — Bounded Task Agents (Specialist)
 
@@ -109,7 +109,7 @@ Type 2 agents are brief-driven specialists that run straight-through without hum
 - Never spawn other agents
 - If inputs are invalid: `FAILED_INPUTS` (halt). If data missing: `TBD` (continue conservatively)
 
-**Count:** 15 agents (see §5 for inventory).
+**Count:** 19 agents (see §5 for inventory).
 
 **Note:** The `agents/` directory also contains supporting template files (`MEMORY_TEMPLATE.md`, `TASK_ESTIMATING_TEMPLATE.md`) that are not agent instructions but are consumed by agents at runtime.
 
@@ -289,6 +289,8 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **CONTEXT_TRANSPOSE** | 1 | PERSONA | chat | repo-metadata-only | allowed (7 gates) | CTSP snapshot, patch plan |
 | **REVIEW** | 1 | PERSONA | chat | deliverable-local + tool-root | allowed (5 gates) | Review checklist, finding register, lifecycle transition record |
 | **SCHEDULING** | 1 | PERSONA | chat | tool-root (`_Schedule/`) | allowed (5 gates) | Schedule structure, Gantt, critical path report |
+| **EVALUATION** | 1 | PERSONA | chat | tool-root (`_Evaluation/`) | allowed | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`, pointers to Type 2 outputs |
+| **TOOLMAKER** | 1 | PERSONA | chat | repo-wide | allowed | Shell scripts, Python utilities, skill templates, tool registry |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
 | **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
@@ -307,6 +309,10 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **AUDIT_GOVERNANCE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/GovernanceAudit/`) | never | Governance audit report, issue log CSV, summary JSON, QA report |
 | **AUDIT_EPISTEMIC** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/EpistemicAudit/`) | never | Epistemic audit report, issue log CSV, summary JSON, QA report |
 | **AUDIT_SCOPE_CLOSURE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/ScopeClosureAudit/`) | never | Scope closure report, issue log CSV, summary JSON, QA report |
+| **CONTENT_DIGEST** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/content-digests/`) | never | `{DEL-ID}.md` — structured content digest for one deliverable |
+| **EVALUATION_REPORT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | `DIM-{NN}_{DimensionName}.md` — scored dimension evaluation report |
+| **EVALUATION_STRUCTURE_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Structure audit report with file counts, lifecycle state distribution, violation list |
+| **EVALUATION_DEPENDENCY_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Dependency audit report with per-deliverable schema check, anchor check, evidence check |
 
 ### 5.2 The Agent Matrix
 
@@ -346,12 +352,18 @@ RECONCILIATION (Type 1) ──spawns──┬── AUDIT_DEP_CLOSURE (Type 2)
                                   ├── AUDIT_DECOMP (Type 2)
                                   └── AUDIT_HYPERGRAPH_CLOSURE (Type 2) [DOMAIN only]
 
+EVALUATION (Type 1) ──spawns──┬── CONTENT_DIGEST (Type 2)
+                              ├── EVALUATION_REPORT (Type 2)
+                              ├── EVALUATION_STRUCTURE_AUDIT (Type 2)
+                              └── EVALUATION_DEPENDENCY_AUDIT (Type 2)
+
 CHANGE (Type 1) ── leaf agent (spawns nothing; implements approved edits)
 
 REVIEW (Type 1) ── triggers AUDIT_DECOMP as precondition check
 SCOPE_CHANGE (Type 1) ── hands off to ORCHESTRATOR (for PREPARATION) + CHANGE (for commits)
 CONTEXT_TRANSPOSE (Type 1) ── hands off to CHANGE (for publication)
 SCHEDULING (Type 1) ── standalone (reads dependency graph; produces schedule artifacts)
+TOOLMAKER (Type 1) ── standalone (designs and implements deterministic tools; hands off to CHANGE for publication)
 ```
 
 ### 6.2 Control Loop (Session Handoff)
@@ -390,7 +402,8 @@ NONE (read-only; may draft content for human to apply)
 
 REPO-METADATA-ONLY (instruction files, README, templates — not execution truth)
 ├── DOMAIN_DECOMP
-└── CONTEXT_TRANSPOSE
+├── CONTEXT_TRANSPOSE
+└── TOOLMAKER
 
 PROJECT-LEVEL (decomposition documents, metadata files, folder scaffolding)
 ├── PROJECT_DECOMP
@@ -410,17 +423,22 @@ DELIVERABLE-LOCAL (single production unit folder only)
 └── REVIEW (+tool-root for snapshots)
 
 TOOL-ROOT-ONLY (derived outputs under execution tool roots)
-├── ORCHESTRATOR         → _Coordination/
-├── RECONCILIATION       → _Reconciliation/
-├── CHANGE               → _Change/ (+repo files with approval gate)
-├── SCHEDULING           → _Schedule/
-├── ESTIMATING           → _Estimates/
-├── AGGREGATION          → _Aggregation/
-├── AUDIT_AGENTS         → _Reconciliation/AgentAudit/
-├── AUDIT_DECOMP         → _Reconciliation/DecompCoverage/
-├── AUDIT_DEP_CLOSURE    → _Reconciliation/DepClosure/
+├── ORCHESTRATOR           → _Coordination/
+├── RECONCILIATION         → _Reconciliation/
+├── CHANGE                 → _Change/ (+repo files with approval gate)
+├── SCHEDULING             → _Schedule/
+├── ESTIMATING             → _Estimates/
+├── AGGREGATION            → _Aggregation/
+├── EVALUATION             → _Evaluation/
+├── AUDIT_AGENTS           → _Reconciliation/AgentAudit/
+├── AUDIT_DECOMP           → _Reconciliation/DecompCoverage/
+├── AUDIT_DEP_CLOSURE      → _Reconciliation/DepClosure/
 ├── AUDIT_HYPERGRAPH_CLOSURE → _Reconciliation/HypergraphClosure/
-└── DOMAIN_HYPERGRAPH    → _Aggregation/Hypergraph/
+├── DOMAIN_HYPERGRAPH      → _Aggregation/Hypergraph/
+├── CONTENT_DIGEST         → _Evaluation/content-digests/
+├── EVALUATION_REPORT      → _Evaluation/reports/
+├── EVALUATION_STRUCTURE_AUDIT → _Evaluation/reports/
+└── EVALUATION_DEPENDENCY_AUDIT → _Evaluation/reports/
 ```
 
 ### 7.2 Write Scope Rules

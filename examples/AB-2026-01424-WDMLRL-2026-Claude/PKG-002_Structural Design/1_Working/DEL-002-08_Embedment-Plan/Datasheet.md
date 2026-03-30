@@ -41,8 +41,8 @@ Based on the Appendix B floor plan, steel plates are indicated at the following 
 |---|---|
 | SP-01 | Main repair bay area, north band (near Work Bench / Welding Station end) |
 | SP-02 | Main repair bay area, second band (between crane bays) |
-| SP-03 | Main repair bay area, third band (near service trench zone) |
-| SP-04 | Main repair bay area, fourth band (south of service trench) |
+| SP-03 | Main repair bay area, third band (near Service Pit zone) |
+| SP-04 | Main repair bay area, fourth band (south of Service Pit) |
 | SP-05 | Wash bay, north band (near Gantry / Work Bench) |
 | SP-06 | Wash bay, south band (near second Gantry) |
 
@@ -90,7 +90,7 @@ TBD — embedment details (plate anchoring, rebar interaction, edge treatment, l
 
 ### Interface Conditions
 - Steel plates interface with concrete floor slab — coordinate with DEL-002-02 (Foundation Plan) for slab design.
-- Steel plate locations must be coordinated with the Service Trench / Pit (DEL-002-06) to avoid interference.
+- Steel plate locations must be coordinated with the Service Pit / Pit (DEL-002-06) to avoid interference.
 - Plates in the Wash Bay zone must be coordinated with wash bay drainage and floor drains (DEL-006-03 / DEL-014-04). **Note (E-003):** Verify correct deliverable IDs — Procedure Step 3.2 references DEL-006-04 for water storage coordination; confirm whether DEL-006-03, DEL-006-04, and DEL-014-04 are distinct deliverables or a reference error. Proposed authority: Decomposition document.
 - 50,000 L water storage footprint — TBD whether in scope for conflict avoidance coordination. **Note (E-002):** Procedure Step 3.2 lists 50,000 L water storage as a coordination item (referencing DEL-001-02 and DEL-006-04), but this element does not appear in Specification REQ-006 or previous Datasheet Interface Conditions. If this is a real coordination constraint for embedded plates, Specification should be updated accordingly. Proposed authority: Specification (normative document) should govern.
 - Crane runway beam column base locations (DEL-002-07) must be confirmed to avoid plan conflicts.

@@ -42,7 +42,7 @@
 | Mezzanine | Overhead mezzanine above parts room, utility room, and wash bay | R-01 §3.4, R-04 App B |
 | Overhead cranes | Two 5-tonne overhead cranes on trolley in main shop area | R-01 §3.4, R-04 App B, SOW-0067 |
 
-> **Terminology note (X-005):** The term "service pit" is adopted as the primary term for this deliverable. The RFP (R-01 §3.4) uses both "service pit area" and "service trench." This Datasheet uses "service pit" consistently; "service trench" is treated as an alias. Source: R-01 §3.4; _SEMANTIC_LENSING.md item X-005.
+> **Terminology note (X-005):** The term "service pit" is adopted as the primary term for this deliverable. The RFP (R-01 §3.4) uses both "service pit area" and "Service Pit." This Datasheet uses "service pit" consistently; "Service Pit" is treated as an alias. Source: R-01 §3.4; _SEMANTIC_LENSING.md item X-005.
 
 > **Note (D-002):** Overhead crane data has been added. Crane runway heights and hook heights are TBD -- to be sourced from DEL-002-07 (Structural Steel Details). Crane clearance is a design constraint for exhaust duct and hose routing (see Procedure Verification table). Source: R-01 §3.4; SOW-0067; Decomposition §7 DEL-002-07; _SEMANTIC_LENSING.md item D-002.
 

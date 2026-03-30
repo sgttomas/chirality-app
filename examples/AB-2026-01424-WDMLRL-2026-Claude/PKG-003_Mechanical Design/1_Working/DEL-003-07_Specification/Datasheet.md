@@ -34,7 +34,7 @@
 | Occupancy use | Heavy equipment repair, welding, vehicle washing, storage | RFP §3.1, §3.4 |
 | Number of drive-through bays | 2 (main repair bays) | App B (Shop), floor plan |
 | Wash bay | 1 enclosed (dedicated for large equipment, e.g., motor scraper) | RFP §3.4; App B (Shop) |
-| Service pit/trench | 1 ventilated service trench (for under-equipment servicing) | RFP §3.4; App B (Shop) |
+| Service pit/trench | 1 ventilated Service Pit (for under-equipment servicing) | RFP §3.4; App B (Shop) |
 | Parts room | ~400 sq ft secure area | RFP §3.4 |
 | Utility room | Present (cistern/pump equipment) | App B (Shop) |
 | Mezzanine | Load-bearing over parts room, utility room, and wash bay; capable of heavy items (oil totes, pump equipment) | RFP §3.4; App B (Shop) |
@@ -50,7 +50,7 @@
 | Air Exchange | High-volume air exchanger | RFP §3.4 |
 | Equipment Exhaust | Exhaust hoses and fans for heavy equipment in repair bays | RFP §3.4 |
 | Welding Exhaust | Welding station exhaust/ventilation system | RFP §3.4; App B (Shop) |
-| Service Pit Ventilation | Ventilated service trench/pit area | RFP §3.4 |
+| Service Pit Ventilation | Ventilated Service Pit/pit area | RFP §3.4 |
 | Ceiling Fans | 6 ceiling fans in main shop area (ASSUMPTION: count per App B-Elec; location TBD per MEP coordination) | App B-Elec (as noted in Decomposition, SOW-0040) |
 | General Building Exhaust Fan(s) | General building exhaust fan(s) for overall shop air exhaust, per electrical/mechanical coordination (see Guidance CONF-M-02 for scope boundary discussion) | Decomposition SOW-0066 |
 | Mechanical Controls and Interlocks | Thermostats, CO sensors, VFDs, and interlock systems for mechanical equipment control and safety (ASSUMPTION: required per standard industrial practice; specific devices TBD by design) | Procedure Step 1 checklist; standard engineering practice |

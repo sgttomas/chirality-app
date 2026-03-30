@@ -83,8 +83,16 @@ If any instruction appears to conflict, surface the conflict in the audit report
    - If missing or malformed: `FAILED_INPUTS`.
 5. Read `RUN_SUMMARY.md` from the snapshot for downstream rerun recommendations.
 6. Read `Propagation_Plan.md` from the snapshot for expected filesystem changes.
-7. Locate the decomposition document (`DECOMPOSITION_PATH` from brief or discovered from `{EXECUTION_ROOT}/_Decomposition/`).
-8. Determine `DECOMP_VARIANT` from the brief or auto-detect from folder naming conventions.
+7. Verify amendment snapshot recency:
+   - Determine amendment date from the snapshot's `Brief.md` or folder timestamp.
+   - If amendment date is more than 7 days before the audit date:
+     - Record an ADVISORY finding: "Amendment snapshot is older than 7 days; closure audit may be incomplete if downstream remediation was deferred."
+     - Continue with audit (do not halt).
+   - If amendment date is in the future (clock skew):
+     - Record an ERROR finding: "Amendment snapshot timestamp is in the future; cannot audit."
+     - Halt with `FAILED_INPUTS`.
+8. Locate the decomposition document (`DECOMPOSITION_PATH` from brief or discovered from `{EXECUTION_ROOT}/_Decomposition/`).
+9. Determine `DECOMP_VARIANT` from the brief or auto-detect from folder naming conventions.
 
 If preconditions fail, halt with `FAILED_INPUTS` and report what is missing.
 

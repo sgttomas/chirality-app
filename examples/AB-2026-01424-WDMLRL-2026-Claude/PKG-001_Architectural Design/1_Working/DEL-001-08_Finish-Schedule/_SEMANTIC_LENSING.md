@@ -112,13 +112,13 @@
 
 | LensKey | RowLabel | ColLabel | LensValue | ItemCount | CoverageStatus | Notes |
 |---|---|---|---|---:|---|---|
-| C:normative:necessity | normative | necessity | Obligatory Compliance Threshold | 1 | HAS_ITEMS | Service trench cover not specified |
+| C:normative:necessity | normative | necessity | Obligatory Compliance Threshold | 1 | HAS_ITEMS | Service Pit cover not specified |
 | C:normative:sufficiency | normative | sufficiency | Certified Regulatory Adequacy | 0 | NO_ITEMS | Regulatory adequacy framework in place via REQ-DS-007 |
 | C:normative:completeness | normative | completeness | Exhaustive Regulatory Coverage | 0 | NO_ITEMS | Coverage of code requirements addressed, pending occupancy classification (captured in A-001) |
 | C:normative:consistency | normative | consistency | Harmonized Compliance Standard | 0 | NO_ITEMS | Standards table in Specification is consistent |
 | C:operative:necessity | operative | necessity | Critical Operational Prerequisite | 0 | NO_ITEMS | Prerequisites in Procedure P-PRE-01 are comprehensive |
 | C:operative:sufficiency | operative | sufficiency | Competent Procedural Method | 0 | NO_ITEMS | Seven-step procedure is methodically sufficient |
-| C:operative:completeness | operative | completeness | Comprehensive Execution Coverage | 1 | HAS_ITEMS | Service trench cover type missing from execution steps |
+| C:operative:completeness | operative | completeness | Comprehensive Execution Coverage | 1 | HAS_ITEMS | Service Pit cover type missing from execution steps |
 | C:operative:consistency | operative | consistency | Stable Procedural Reliability | 0 | NO_ITEMS | Procedure steps are internally consistent |
 | C:evaluative:necessity | evaluative | necessity | Intrinsic Merit Recognition | 0 | NO_ITEMS | Merit recognition present in Guidance principles |
 | C:evaluative:sufficiency | evaluative | sufficiency | Defensible Value Judgment | 0 | NO_ITEMS | Trade-offs provide defensible judgments |
@@ -129,8 +129,8 @@
 
 | ItemID | LensKey | Type | AppliesToDoc | SuggestedEditDoc | CandidateInfo | WhyWarranted | SourcePath | SectionRef | Contenders | ProposedAuthority (PROPOSAL) | HumanRuling |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| C-001 | C:normative:necessity | MissingSlot | Specification | Specification | Add a requirement addressing service trench cover type and finish (e.g., steel plate cover, grating, or concrete lid) and its interaction with the Main Shop floor finish | Guidance C-02 identifies that the service trench cover type and finish must be specified, but no corresponding requirement exists in the Specification. The Datasheet lists A-03 Service Pit with floor and wall finish but does not address the cover that interfaces with the Main Shop floor plane. This is an obligatory compliance threshold: the service trench cover is a walking/driving surface in a heavy industrial shop. | Specification.md, Guidance.md, Datasheet.md | Specification: REQ-DS-003 (industrial durability, does not mention trench cover); Guidance: C-02; Datasheet: A-03 row | | PROPOSAL: Add REQ-DS-003a or separate requirement for trench cover | TBD |
-| C-002 | C:operative:completeness | MissingSlot | Procedure | Procedure | Add a sub-step under Step 3 addressing service trench cover selection (material, finish, load rating) and coordination with structural (DEL-002) | Guidance C-02 raises the service trench cover as a detail requiring specification, but the Procedure does not include a step for selecting and coordinating the trench cover finish. Comprehensive execution coverage requires this operational step. | Procedure.md, Guidance.md | Procedure: Step 3 (no mention of trench cover); Guidance: C-02 | | PROPOSAL: Add sub-step 3.7 for trench cover specification | TBD |
+| C-001 | C:normative:necessity | MissingSlot | Specification | Specification | Add a requirement addressing Service Pit cover type and finish (e.g., steel plate cover, grating, or concrete lid) and its interaction with the Main Shop floor finish | Guidance C-02 identifies that the Service Pit cover type and finish must be specified, but no corresponding requirement exists in the Specification. The Datasheet lists A-03 Service Pit with floor and wall finish but does not address the cover that interfaces with the Main Shop floor plane. This is an obligatory compliance threshold: the Service Pit cover is a walking/driving surface in a heavy industrial shop. | Specification.md, Guidance.md, Datasheet.md | Specification: REQ-DS-003 (industrial durability, does not mention trench cover); Guidance: C-02; Datasheet: A-03 row | | PROPOSAL: Add REQ-DS-003a or separate requirement for trench cover | TBD |
+| C-002 | C:operative:completeness | MissingSlot | Procedure | Procedure | Add a sub-step under Step 3 addressing Service Pit cover selection (material, finish, load rating) and coordination with structural (DEL-002) | Guidance C-02 raises the Service Pit cover as a detail requiring specification, but the Procedure does not include a step for selecting and coordinating the trench cover finish. Comprehensive execution coverage requires this operational step. | Procedure.md, Guidance.md | Procedure: Step 3 (no mention of trench cover); Guidance: C-02 | | PROPOSAL: Add sub-step 3.7 for trench cover specification | TBD |
 
 ---
 

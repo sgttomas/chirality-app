@@ -100,8 +100,8 @@ The December 31, 2026 deadline (RFP ss3.1) creates schedule pressure, but the fl
 
 ## Vocabulary Notes
 
-### V-1 — "Service pit" vs. "service trench"
-The below-grade service element in the main shop area is referred to variably across documents as "service pit," "service trench," and "service pit/trench." The RFP ss3.4 and Appendix B (R-04) use both terms. For cross-document consistency and traceability, the primary term adopted across this deliverable document set is **"service pit"** with "service trench" as a parenthetical alternative on first use. References: Specification.md REQ-012; Datasheet.md Spatial Program; Procedure.md Step 3.5.
+### V-1 — "Service pit" vs. "Service Pit"
+The below-grade service element in the main shop area is referred to variably across documents as "service pit," "Service Pit," and "service pit/trench." The RFP ss3.4 and Appendix B (R-04) use both terms. For cross-document consistency and traceability, the primary term adopted across this deliverable document set is **"service pit"** with "Service Pit" as a parenthetical alternative on first use. References: Specification.md REQ-012; Datasheet.md Spatial Program; Procedure.md Step 3.5.
 > Source: Lensing item E-002.
 
 ### V-2 — "Concrete structure" (structural system type)
@@ -135,7 +135,7 @@ The conceptual drawing provides the following spatial arrangement (Architect to 
 - Parts room and utility room in the southeast zone; mezzanine above
 - Office in the central-south zone
 - Washroom adjacent to the parts room / office zone
-- Service trench running east-west in the main shop area
+- Service Pit running east-west in the main shop area
 - 50,000 L cistern located at the east end, adjacent to utility room
 - Stairs to mezzanine at the utility room / cistern zone
 - Welding station at the north end of the main shop

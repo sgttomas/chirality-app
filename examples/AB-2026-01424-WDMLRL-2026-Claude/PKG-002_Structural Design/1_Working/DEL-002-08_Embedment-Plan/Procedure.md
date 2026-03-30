@@ -64,11 +64,11 @@ Source: Decomposition §7 (DEL-008-01); RFP §3.3.2.
 
 1.1 Obtain the final architectural floor plan (DEL-001-02) to establish the column grid, bay dimensions, and exact room/bay boundaries for the New North Shop addition.
 
-1.2 Confirm bay dimensions with the Architect: repair bays (2 drive-through bays), wash bay, and service trench zone.
+1.2 Confirm bay dimensions with the Architect: repair bays (2 drive-through bays), wash bay, and Service Pit zone.
 
 1.3 Obtain or confirm the following from other PKG-002 deliverables in progress:
    - Slab thickness and reinforcement layout (DEL-002-02)
-   - Service trench plan extents and structural walls (DEL-002-06)
+   - Service Pit plan extents and structural walls (DEL-002-06)
    - Crane runway column base locations (DEL-002-07)
 
 1.4 Obtain equipment load data from the project team or County: axle/track loads, contact patch dimensions, and vehicle operating patterns for tracked and packer-type equipment (motor scraper class and similar) intended to use the new shop. **TBD (A-004):** Identify specific source for equipment load data (County fleet records, manufacturer specifications, or Owner-provided data) and confirm availability timeline. The data source must be named before Step 2 can proceed.
@@ -102,12 +102,12 @@ Source: Specification REQ-002, REQ-004, REQ-009; Guidance P-01, P-04, C-05.
 ### Step 3 — Determine Final Plate Locations
 
 3.1 Using the Appendix B conceptual floor plan as reference, determine final plate locations:
-   - Confirm which areas require protection (repair bays, wash bay; confirm service trench approach zones if applicable)
+   - Confirm which areas require protection (repair bays, wash bay; confirm Service Pit approach zones if applicable)
    - Adjust indicative locations from Appendix B based on engineering judgment and equipment path analysis
    - Identify all plates by plan reference (e.g., SP-01 through SP-n, or per drawing numbering convention)
 
 3.2 Confirm no conflicts with:
-   - Service trench/pit walls and openings (DEL-002-06)
+   - Service Pit/pit walls and openings (DEL-002-06)
    - Crane runway column base plates (DEL-002-07)
    - Floor drain and sump drain locations (coordinate with plumbing discipline)
    - 50,000 L water storage footprint (confirm with DEL-001-02 and DEL-006-04)
@@ -129,7 +129,7 @@ Source: Specification REQ-001, REQ-003, REQ-006; Guidance §C-01, §C-02, P-05.
    - Reference to relevant detail drawings (e.g., "See Detail 1/S-XX")
 
 4.3 Show and label adjacent floor elements for coordination context:
-   - Service trench/pit extent
+   - Service Pit/pit extent
    - Floor drains (for reference only — coordinate with plumbing drawings)
    - Column centerlines and bay lines
 
@@ -158,7 +158,7 @@ Source: Specification REQ-003, REQ-010; Guidance P-02.
 
 5.2 If the wash bay plate embedment differs from the main repair bay (e.g., due to drain slope requirement or different equipment loading), prepare separate details for each condition.
 
-5.3 If any plates are adjacent to the service trench wall, prepare a detail showing the edge condition at the trench interface.
+5.3 If any plates are adjacent to the Service Pit wall, prepare a detail showing the edge condition at the trench interface.
 
 Source: Specification REQ-004; Guidance §C-01, §C-02, P-03.
 
@@ -191,7 +191,7 @@ Source: Specification REQ-004; Guidance §C-01, §C-02, P-03.
 | REQ-003 — Plan dimensions | | | |
 | REQ-004 — Embedment detail sections | | | |
 | REQ-005 — Slab coordination | | | |
-| REQ-006 — Service trench clearance | | | |
+| REQ-006 — Service Pit clearance | | | |
 | REQ-007 — P.Eng. stamp | | (completed at Step 8) | |
 | REQ-008 — Code compliance | | | |
 | REQ-008A — Thermal/frost considerations | | | |
@@ -262,7 +262,7 @@ Source: Specification REQ-007; RFP §3.3.2.
 | All Appendix B plate zones represented | Compare final plan to App B conceptual and engineering location study | All zones accounted for; any additions or deletions documented with rationale |
 | Plan dimensions complete | Drawing check | Every plate has dimensions to grid; no undimensioned plates |
 | Detail sections complete | Drawing check | Each plate type has a cross-section detail with all required elements (thickness, anchor, flush condition, etc.) |
-| Conflict clearance confirmed | Coordination mark-up check | No plate overlaps service trench, column bases, or drain locations |
+| Conflict clearance confirmed | Coordination mark-up check | No plate overlaps Service Pit, column bases, or drain locations |
 | Load calculations in DEL-002-10 | Cross-reference check | Calculation package references the embedment drawings by drawing number |
 | P.Eng. stamp present | Review IFC set | Stamp and signature on each sheet |
 | Geotech assumption flagged (if applicable) | Drawing note check | If geotech not yet available, drawings carry a noted assumed parameter and revision commitment |

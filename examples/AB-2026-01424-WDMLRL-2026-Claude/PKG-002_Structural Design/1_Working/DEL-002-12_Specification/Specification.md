@@ -60,7 +60,7 @@ Steel plates shall be embedded in the concrete floor slab at strategic locations
 
 The structural design shall include a service pit (trench) for mechanics to perform servicing under equipment.
 
-- **Source:** RFP §3.4 ("Ventilated and lighted service pit area for mechanics to perform servicing under equipment"), Appendix B (service trench shown on floor plan, 24 ft dimension).
+- **Source:** RFP §3.4 ("Ventilated and lighted service pit area for mechanics to perform servicing under equipment"), Appendix B (Service Pit shown on floor plan, 24 ft dimension).
 - **Constraint:** The pit shall be structurally designed to carry applicable equipment loads at the edges. Ventilation and lighting penetrations through the pit structure shall be coordinated with the Mechanical and Electrical Engineers.
 - **Performance criterion (TBD):** The specific edge load case (vehicle surcharge, equipment wheel loads, impact factors) and required factor of safety for the service pit structure must be established by the Structural Engineer. The verification approach shall include a quantitative pass/fail criterion, not merely dimensional confirmation on IFC drawings. [Source: RFP §3.4; Guidance Consideration 6; Lensing: E-003]
 

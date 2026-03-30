@@ -46,7 +46,7 @@
 | DEP-002-03-E06 | HANDOVER | DELIVERABLE | Concrete Superstructure (DEL-011-01) | HIGH | BLOCKING |
 | DEP-002-03-E10 | HANDOVER | DELIVERABLE | Structural Sections & Details (DEL-002-04) | HIGH | ADVISORY |
 | DEP-002-03-E11 | HANDOVER | DELIVERABLE | Mezzanine Framing Details (DEL-002-05) | HIGH | ADVISORY |
-| DEP-002-03-E12 | HANDOVER | DELIVERABLE | Service Pit / Trench Structural Details (DEL-002-06) | HIGH | ADVISORY |
+| DEP-002-03-E12 | HANDOVER | DELIVERABLE | Service Pit Structural Details (DEL-002-06) | HIGH | ADVISORY |
 | DEP-002-03-E13 | HANDOVER | DELIVERABLE | Crane Support Structure Details (DEL-002-07) | HIGH | ADVISORY |
 | DEP-002-03-E14 | INTERFACE | DELIVERABLE | Steel Plate Embedment Plan (DEL-002-08) | HIGH | ADVISORY |
 | DEP-002-03-E15 | INTERFACE | DELIVERABLE | Structural Calculation Package (DEL-002-10) | HIGH | ADVISORY |

@@ -54,7 +54,7 @@ Source the confirmed architectural floor plan (DEL-001-02) as the base file for 
 
 **A-02. Identify all spaces requiring RCP coverage.**
 Using RFP §3.1, §3.4, and App B (Shop), confirm the full list of spaces to be covered:
-- New addition: Main Shop (two bays), Wash Bay, Service Trench/Pit, Parts Room, Utility Room, Office, Washroom, Overhead Mezzanine level
+- New addition: Main Shop (two bays), Wash Bay, Service Pit/Pit, Parts Room, Utility Room, Office, Washroom, Overhead Mezzanine level
 - Old North Shop renovation: Washroom below mezzanine, new Locker/Change Room, 2nd-level Mezzanine/Coffee Room
 
 Record any spaces not covered and document the reason.

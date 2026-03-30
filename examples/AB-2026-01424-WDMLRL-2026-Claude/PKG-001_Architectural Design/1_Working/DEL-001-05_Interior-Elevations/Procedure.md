@@ -65,7 +65,7 @@ The following TBD items must be resolved before the corresponding Procedure step
 - Office — all four walls
 - Washroom / locker / change room — all four walls (new scope and Old North Shop renovation area)
 - Welding station zone — relevant walls (if not covered in main bay elevation)
-- Service trench — both long walls and end walls
+- Service Pit — both long walls and end walls
 - Mezzanine level — perimeter guardrail elevation and storage area walls (as applicable)
 
 1.2 Identify which rooms have repetitive conditions and prepare a repetition matrix to reduce redundant sheets while maintaining full documentation.
@@ -83,7 +83,7 @@ The following TBD items must be resolved before the corresponding Procedure step
 2.2 Obtain from structural engineer (PKG-002):
 - Underside of crane rail elevation (repair bays and wash bay) — reference to DEL-002-07.
 - Mezzanine deck top-of-slab elevation — reference to DEL-002-05.
-- Service trench depth below FFE — reference to DEL-002-06.
+- Service Pit depth below FFE — reference to DEL-002-06.
 - Steel plate top-of-plate elevation at floor — reference to DEL-002-08.
 
 2.3 Obtain from mechanical engineer (PKG-003):
@@ -136,7 +136,7 @@ The following TBD items must be resolved before the corresponding Procedure step
 **Readiness Gate (added per lensing item D-002):** Before proceeding to Step 4, confirm that the following critical coordination inputs from Step 2 have been received or have a documented expected date:
 - Crane rail underside elevation from PKG-002 / DEL-002-07 (critical for repair bay and wash bay elevations)
 - Mezzanine deck top-of-slab elevation from PKG-002 / DEL-002-05 (critical for mezzanine-level elevations)
-- Service trench depth from PKG-002 / DEL-002-06 (critical for service trench wall elevations)
+- Service Pit depth from PKG-002 / DEL-002-06 (critical for Service Pit wall elevations)
 
 If any of these three critical inputs are still TBD with no expected resolution date, the Architect should escalate to the project manager before proceeding to drafting. Non-critical inputs (finish selections, receptacle locations) may remain TBD at drafting start and be added during coordination review (Step 5).
 
@@ -150,7 +150,7 @@ If any of these three critical inputs are still TBD with no expected resolution 
 - Penetration locations (MEP) shown as dashed circles/rectangles with discipline cross-reference.
 - Section cut reference symbols where building sections cross the elevation view.
 
-4.2 For service trench walls: show trench depth, ventilation penetration zones, light fixture rough-in zones (shown as coordination reference), and drain locations.
+4.2 For Service Pit walls: show trench depth, ventilation penetration zones, light fixture rough-in zones (shown as coordination reference), and drain locations.
 
 4.3 For mezzanine perimeter: show guardrail height reference (building code minimum — ASSUMPTION: 1,070 mm per NBC; confirm with AHJ), stair opening, and deck edge condition.
 
@@ -260,7 +260,7 @@ Record the confirmed approach in the project record. Source: R-01 §3.3.2; Speci
 | All rooms from room list are covered | At least one interior elevation view per space |
 | Vertical datum consistent | All elevations reference same project FFE datum |
 | Crane rail elevation annotated | Shown in repair bays and wash bay; cross-referenced to DEL-002-07 |
-| Service trench walls shown | Trench depth dimensioned; penetrations noted |
+| Service Pit walls shown | Trench depth dimensioned; penetrations noted |
 | Parts room roll-up door complete | 6 ft wide door shown; head height dimensioned |
 | Mezzanine elevation present | Deck height, guardrail height, and stair opening shown |
 | Washroom/locker elevations complete | Fixture rough-in references noted for plumbing coordination |

@@ -63,8 +63,8 @@ Security camera wiring and 2-way radio antenna wiring are called out in App B (E
 Source: App B (Electrical) notes.
 ASSUMPTION: Low-voltage systems are addressed primarily in DEL-004-07; panel schedule includes power circuits for associated equipment only.
 
-### C5 — Service Trench / Service Pit Lighting and Ventilation
-Appendix B (Electrical) shows a service trench in the New North Shop Addition layout. The RFP §3.4 references a "ventilated and lighted service pit area for mechanics to perform servicing under equipment." Circuits for service pit lighting and ventilation should be included in the panel schedule. The Appendix B drawing shows lights ("L" symbols) near the service trench area.
+### C5 — Service Pit / Service Pit Lighting and Ventilation
+Appendix B (Electrical) shows a Service Pit in the New North Shop Addition layout. The RFP §3.4 references a "ventilated and lighted service pit area for mechanics to perform servicing under equipment." Circuits for service pit lighting and ventilation should be included in the panel schedule. The Appendix B drawing shows lights ("L" symbols) near the Service Pit area.
 Source: RFP §3.4; App B (Electrical) drawing.
 ASSUMPTION: Service pit lighting circuits are included in the scope of DEL-004-06.
 

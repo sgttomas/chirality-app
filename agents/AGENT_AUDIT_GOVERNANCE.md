@@ -70,7 +70,7 @@ This agent is **read-only** on all governance documents: it produces findings; i
 - **K-SNAP-1** — Each run writes a new immutable snapshot folder. Never overwrite prior snapshots. `_LATEST.md` is the only mutable file.
 - **K-INVENT-1** — Unknown values become `TBD`, not guessed. If a cross-reference cannot be resolved, report it as unresolvable rather than inferring intent.
 - **K-CONFLICT-1** — Conflicts between documents must be surfaced with pointers to both sides. Do not silently resolve discrepancies.
-- **K-PROV-1** — Every finding must cite the specific file, section, and relevant excerpt (≤30 words). Findings without provenance are invalid.
+- **K-PROV-1** — Every finding must cite the specific file, section, and relevant excerpt (≤25 words). Findings without provenance are invalid.
 - **K-GHOST-1** — Context is limited to the files enumerated in the brief plus declared governance documents. No ghost inputs.
 - **Evidence-first.** Every issue in the issue log must include file path, section reference, and a concrete excerpt demonstrating the problem.
 - **No silent resolution.** When two documents disagree, report both values with locations. Do not pick a winner.
@@ -270,7 +270,7 @@ A run is valid when ALL of the following are true:
 - Every pass listed in the `PASSES` parameter (or all six if omitted) was executed and reported.
 
 ### V2 — Every finding has provenance
-- Every issue in the issue log includes: `File` (path), `Section` (heading or line reference), and `Description` with a concrete excerpt (≤30 words) demonstrating the problem.
+- Every issue in the issue log includes: `File` (path), `Section` (heading or line reference), and `Description` with a concrete excerpt (≤25 words) demonstrating the problem.
 
 ### V3 — No governance document modified
 - No file outside `_Reconciliation/GovernanceAudit/` was created, modified, or deleted.
@@ -325,6 +325,7 @@ GOVERNANCE_DOCS:
   - {path to AGENTS.md}
   - {path to INIT.md}
   - {path to DBM_Agent_Instruction_Architecture.md}
+  - {path to tools/REGISTRY.md}  # optional — include when available
 AGENT_DIR: {path to agents/ directory}
 TOOL_REGISTRY: {path to tools/REGISTRY.md}
 RUN_LABEL: {optional label, default GOV}
@@ -431,7 +432,7 @@ Verbatim reproduction of the INIT-TASK brief as received, followed by normalized
 | `Severity` | enum | MUST | `BLOCKER`, `WARNING`, `INFO` |
 | `File` | string | MUST | Path to the file containing the issue |
 | `Section` | string | SHOULD | Section heading or line reference |
-| `Description` | string | MUST | Concise description including concrete excerpt (≤30 words) |
+| `Description` | string | MUST | Concise description including concrete excerpt (≤25 words) |
 | `ExpectedValue` | string | SHOULD | What the audit expected |
 | `ActualValue` | string | SHOULD | What the audit found |
 | `Recommendation` | string | MUST | Minimal fix recommendation |

@@ -17,7 +17,7 @@ DEL-001-05 Interior Elevations is a drawing set produced by the Architect under 
 - Parts room interior elevations (including the 6 ft wide roll-up door location and head height).
 - Utility room interior elevations (including water storage area and stair-to-mezzanine interface).
 - Wash bay interior elevations (including mud sump reference, ventilation penetrations, and crane rail height reference).
-- Service trench/pit interior elevations (trench walls, ventilation penetrations; structural detail reference to DEL-002-06).
+- Service Pit/pit interior elevations (trench walls, ventilation penetrations; structural detail reference to DEL-002-06).
 - Welding station area interior elevations (including exhaust ventilation penetration locations for coordination with mechanical PKG-003).
 
 This deliverable covers the addition (New North Shop) and includes renovation scope for the Old North Shop washroom and locker room area where interior elevations are required (coordination with DEL-001-10 Renovation Plans).
@@ -44,7 +44,7 @@ This deliverable covers the addition (New North Shop) and includes renovation sc
 ## Requirements
 
 ### REQ-001 — Coverage of All Interior Spaces
-**Statement:** Interior elevation drawings shall be provided for all principal interior spaces in the addition and for the Old North Shop washroom/locker renovation area, including: main repair bays, wash bay, parts room, utility room, office, washroom/locker/change room, welding station area, service trench walls, and mezzanine-level storage area.
+**Statement:** Interior elevation drawings shall be provided for all principal interior spaces in the addition and for the Old North Shop washroom/locker renovation area, including: main repair bays, wash bay, parts room, utility room, office, washroom/locker/change room, welding station area, Service Pit walls, and mezzanine-level storage area.
 **Source:** R-01 §3.1, §3.4; R-04 (App B); Decomp SOW-0011.
 **Verification:** Drawing set includes at least one interior elevation view per principal space.
 
@@ -68,10 +68,10 @@ This deliverable covers the addition (New North Shop) and includes renovation sc
 **Source:** R-01 §3.4 (2 × 5-tonne overhead cranes; 35 ft ceiling); R-04 (App B).
 **Verification:** Elevation view in repair bay area includes annotated crane rail underside elevation; cross-referenced to DEL-002-07 (Crane Support Structure Details).
 
-### REQ-006 — Service Trench Wall Elevations
-**Statement:** Interior elevation of service trench (service pit) walls shall be provided, showing trench depth, ventilation penetrations, and lighting penetration locations (lighting and ventilation design by others — shown for coordination).
-**Source:** R-01 §3.4 (ventilated and lighted service pit); R-04 (App B, service trench notation).
-**Verification:** Service trench wall interior elevation included in drawing set; cross-referenced to DEL-002-06.
+### REQ-006 — Service Pit Wall Elevations
+**Statement:** Interior elevation of Service Pit (service pit) walls shall be provided, showing trench depth, ventilation penetrations, and lighting penetration locations (lighting and ventilation design by others — shown for coordination).
+**Source:** R-01 §3.4 (ventilated and lighted service pit); R-04 (App B, Service Pit notation).
+**Verification:** Service Pit wall interior elevation included in drawing set; cross-referenced to DEL-002-06.
 
 ### REQ-007 — Parts Room Roll-Up Door
 **Statement:** Interior elevations of the parts room shall include the 6 ft wide roll-up door: door head height, sill, jamb condition, and clearances.
@@ -145,7 +145,7 @@ This deliverable covers the addition (New North Shop) and includes renovation sc
 | REQ-003 IFC stamp | Visual inspection of each IFC sheet for valid Alberta P.Eng. stamp and signature | Architect / County |
 | REQ-004 Preliminary approval | Documented County approval record (approval form: TBD — letter, sign-off form, or meeting minutes — to be confirmed with County; evidence filed in project record under PKG-001) | County / Architect |
 | REQ-005 Crane rail elevation | Drawing annotation check; cross-reference to DEL-002-07 | Architect / Structural Engineer |
-| REQ-006 Service trench elevations | Drawing set completeness review | Architect |
+| REQ-006 Service Pit elevations | Drawing set completeness review | Architect |
 | REQ-007 Parts room roll-up door | Drawing annotation check; cross-reference to DEL-001-07 | Architect |
 | REQ-008 Mezzanine elevations | Drawing set completeness review; cross-reference to DEL-002-05 | Architect |
 | REQ-009 Washroom/locker elevations | Drawing set completeness review; coordination with PKG-006 | Architect / Plumbing Engineer |

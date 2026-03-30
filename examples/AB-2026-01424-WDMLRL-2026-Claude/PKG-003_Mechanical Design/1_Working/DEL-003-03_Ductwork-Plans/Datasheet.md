@@ -117,7 +117,7 @@ This drawing set addresses supply air distribution ductwork and general ventilat
 | Ref | Document | Relevance | Accessibility |
 |---|---|---|---|
 | R-01 | AB-2026-01424-WDMLRL RFP.pdf | Main RFP — §3.4 HVAC and ventilation requirements; §3.3.2 IFC requirements | Accessible |
-| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — mechanical equipment locations (welding station, forced air makeup, wash bay, service trench, mezzanine) | Accessible |
+| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — mechanical equipment locations (welding station, forced air makeup, wash bay, Service Pit, mezzanine) | Accessible |
 | R-05 | AB-2026-01424-Appendix B (Electrical).pdf | Conceptual electrical — ceiling fans location (6 fans in main shop) | Available in _Sources/ |
 | Decomposition | WDMLRL_Decomposition_Claude.md | PKG-003 package and DEL-003-03 entry; SOW-0013 scope; objectives | Accessible |
 | Alberta Building Code | TBD — edition applicable at time of permit (Lensing: A-001 — specific edition must be confirmed by Mechanical Engineer to establish prescriptive direction) | HVAC/ventilation code compliance | Not accessible — location TBD; **action required: obtain applicable edition** (Lensing: B-002) |

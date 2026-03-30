@@ -62,7 +62,7 @@ The procedure is oriented to the Mechanical Engineer responsible for this delive
 
 **Output:** Confirmed source location list and design basis memo (internal).
 
-> **Terminology note (X-005):** This Procedure uses "service pit" as the primary term. "Service trench" is treated as an alias. See Specification REQ-003 terminology note.
+> **Terminology note (X-005):** This Procedure uses "service pit" as the primary term. "Service Pit" is treated as an alias. See Specification REQ-003 terminology note.
 
 ---
 

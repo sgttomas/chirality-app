@@ -70,7 +70,7 @@ ASSUMPTION: Standard practice for concrete slab construction with embedded drain
 
 ### Service Pit Drain
 
-The service pit/trench (SOW-0028; App B-Plumb shows "Service Trench") is below-grade. Provisions for draining the pit (potential oil/water accumulation from under-equipment servicing) need to be addressed. The connection method and whether it routes to septic or a separate collection requires engineering judgment and may involve regulatory requirements for oil-water separation.
+The service pit/trench (SOW-0028; App B-Plumb shows "Service Pit") is below-grade. Provisions for draining the pit (potential oil/water accumulation from under-equipment servicing) need to be addressed. The connection method and whether it routes to septic or a separate collection requires engineering judgment and may involve regulatory requirements for oil-water separation.
 
 ASSUMPTION: service pit drain provision is required; routing and treatment TBD — the Plumbing Engineer should assess applicable requirements (Alberta Environmental Protection requirements for shop drainage may apply; location TBD in regulations).
 

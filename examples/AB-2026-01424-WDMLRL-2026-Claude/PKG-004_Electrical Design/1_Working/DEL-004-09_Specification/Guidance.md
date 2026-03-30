@@ -57,7 +57,7 @@ The wash bay involves water use (washing large equipment), drainage to a mud sum
 *(Source: App B (Electrical); RFP §3.4; Decomp SOW-0027a)*
 
 ### Consideration 3: Service Pit Lighting and Ventilation
-The service pit/trench is described as ventilated and lighted (RFP §3.4; Decomp SOW-0028). The electrical drawing (App B) shows light symbols in the service trench area. The Electrical Engineer should consider the confined-space electrical classification of the service pit and apply appropriate wiring methods and fixture ratings.
+The service pit/trench is described as ventilated and lighted (RFP §3.4; Decomp SOW-0028). The electrical drawing (App B) shows light symbols in the Service Pit area. The Electrical Engineer should consider the confined-space electrical classification of the service pit and apply appropriate wiring methods and fixture ratings.
 *(Source: RFP §3.4; App B (Electrical); Decomp SOW-0028)*
 
 ### Consideration 4: Welding Station Ventilation — Electrical Interface

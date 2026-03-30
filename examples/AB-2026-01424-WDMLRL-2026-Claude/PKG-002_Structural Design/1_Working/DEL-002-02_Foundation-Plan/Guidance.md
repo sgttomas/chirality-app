@@ -62,7 +62,7 @@ Two 5-tonne overhead cranes impose dynamic loads (vertical wheel loads, horizont
 Source: RFP §3.4 ("2 – 5-tonne overhead cranes on a trolley"); App B (Shop) — crane bay layout; ASSUMPTION (crane load design practice).
 
 ### C-3: Service Pit Coordination with Mechanical, Plumbing, and Electrical
-The service pit (also referred to as "service trench" in some source documents; see Decomposition §2 Vocabulary Map for canonical terminology) requires coordination with: (a) the mechanical engineer for ventilation (RFP §3.4 — "ventilated and lighted service pit"), (b) the plumbing engineer for any sump drain within the pit, (c) the electrical engineer for lighting and power in the pit, and (d) the structural engineer for pit walls, floor slab, and cover/grating system. The pit structure must be designed before concrete is placed in that zone.
+The service pit (also referred to as "Service Pit" in some source documents; see Decomposition §2 Vocabulary Map for canonical terminology) requires coordination with: (a) the mechanical engineer for ventilation (RFP §3.4 — "ventilated and lighted service pit"), (b) the plumbing engineer for any sump drain within the pit, (c) the electrical engineer for lighting and power in the pit, and (d) the structural engineer for pit walls, floor slab, and cover/grating system. The pit structure must be designed before concrete is placed in that zone.
 
 Source: RFP §3.4; App B (Shop) — service pit shown on floor plan.
 

@@ -182,7 +182,7 @@ ASSUMPTION: A coordination log maintained by the Architect (see Step 1.5) serves
 - [ ] Design departures from conceptual drawing flagged with rationale (Guidance P-1, Departure Log)
 - [ ] Assumptions listed in design narrative match Assumption Register (Guidance)
 - [ ] Interdisciplinary coordination items resolved or documented as TBD (Step 5)
-- [ ] Terminology consistent (service pit, not service trench -- see Guidance VN-001)
+- [ ] Terminology consistent (service pit, not Service Pit -- see Guidance VN-001)
 
 6a.2 Record the internal review date, reviewer(s), and any items requiring correction. Correct identified issues before proceeding to Step 7.
 

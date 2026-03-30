@@ -9,7 +9,7 @@
 DEL-002-02 is the Foundation Plan drawing set for the New North Shop addition at the West Dried Meat Lake Regional Landfill, Camrose County, Alberta. It provides all Issued for Construction (IFC) foundation drawings required to support:
 
 - Construction of the building foundation system (footings, grade beams, slab-on-grade, and related elements) for the ~13,000 sq ft concrete-structure maintenance shop addition with a 35 ft clear ceiling height.
-- Foundation accommodation of: two 5-tonne overhead cranes, below-grade service pit (also referred to as "service trench" in some sources), mezzanine structure (over Parts Room, Utility Room, and Wash Bay), steel plate embedments at indicated floor locations, wash bay mud sump, and 50,000 L cistern.
+- Foundation accommodation of: two 5-tonne overhead cranes, below-grade service pit (also referred to as "Service Pit" in some sources), mezzanine structure (over Parts Room, Utility Room, and Wash Bay), steel plate embedments at indicated floor locations, wash bay mud sump, and 50,000 L cistern.
 - Variable-price scope: the foundation design must be compatible with post-geotechnical pricing reconciliation under the CCDC 14–2013 contractual framework (SOW-0019, OBJ-006).
 
 Source: RFP §3.1, §3.3.2, §3.4, §4.8.2; App B (Shop); Decomposition §7 PKG-002.
@@ -70,7 +70,7 @@ Source: RFP §3.1, §3.3.2, §3.4, §4.8.2; App B (Shop); Decomposition §7 PKG-
 
 ### R-006 — Service Pit Structural Design
 **Statement:** The foundation plan must include structural provisions for the below-grade service pit (for mechanics to work under equipment) shown in the conceptual floor plan. The pit must be ventilated and lit; structural design must accommodate pit walls, floor, and any cover/grating system.
-**Terminology note:** The canonical term for this element is "service pit" per the project vocabulary (Decomposition §2). Some source documents use "service trench" interchangeably; both refer to the same below-grade structure.
+**Terminology note:** The canonical term for this element is "service pit" per the project vocabulary (Decomposition §2). Some source documents use "Service Pit" interchangeably; both refer to the same below-grade structure.
 **Source:** RFP §3.4 ("Ventilated and lighted service pit area for mechanics to perform servicing under equipment"); App B (Shop) — floor plan shows service pit
 **Priority:** Mandatory
 **Verification:** Service pit structural elements shown on foundation plan and confirmed in DEL-002-06 (Service Pit / Trench Structural Details).

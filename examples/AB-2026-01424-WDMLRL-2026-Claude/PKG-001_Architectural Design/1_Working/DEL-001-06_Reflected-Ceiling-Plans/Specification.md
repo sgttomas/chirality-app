@@ -27,7 +27,7 @@ The RCP drawings are part of the Issued For Construction (IFC) drawing package a
 The RCP drawing set shall include reflected ceiling plans for all spaces within the new addition footprint (~13,000 sq ft, 130' × 100' plan) and for all Old North Shop renovation areas identified in the conceptual drawings, including:
 - Main Shop Bay (two drive-through bays)
 - Wash Bay
-- Service Trench / Pit Area
+- Service Pit / Pit Area
 - Parts Room (~400 sq ft)
 - Utility Room
 - Office
@@ -109,9 +109,9 @@ The RCP drawings shall indicate overhead door headers and associated ceiling con
 
 ### REQ-RCP-011 — Service Pit / Trench Indication
 
-The RCP drawings shall indicate the ceiling/structural conditions above the service trench (pit) area, including lighting and ventilation provisions.
+The RCP drawings shall indicate the ceiling/structural conditions above the Service Pit (pit) area, including lighting and ventilation provisions.
 
-*Source: RFP §3.4 ("Ventilated and lighted service pit area for mechanics to perform servicing under equipment"); App B (Shop) — "SERVICE TRENCH" annotation*
+*Source: RFP §3.4 ("Ventilated and lighted service pit area for mechanics to perform servicing under equipment"); App B (Shop) — "SERVICE TRENCH" annotation (canonical: service pit)*
 
 ### REQ-RCP-012 — Coordination with Electrical Drawings
 

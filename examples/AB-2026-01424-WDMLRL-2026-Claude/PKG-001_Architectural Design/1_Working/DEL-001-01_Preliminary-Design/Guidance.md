@@ -146,10 +146,10 @@ The building will contain oil totes (mezzanine), oil pumping equipment, a wash b
 ### VN-001: Service Pit (canonical term)
 
 The below-grade service access feature is referred to inconsistently across documents:
-- Datasheet originally used "Service trench / pit"
+- Datasheet originally used "Service Pit / pit"
 - Specification uses "ventilated/lighted service pit" (REQ-003)
-- Procedure uses "service pit" and "service trench/pit"
-- Decomposition Vocabulary Map establishes **"Service Pit"** as the canonical term, with "Service trench" as a synonym
+- Procedure uses "service pit" and "Service Pit/pit"
+- Decomposition Vocabulary Map establishes **"Service Pit"** as the canonical term, with "Service Pit" as a synonym
 
 **Resolution:** Adopt **"service pit"** as the single canonical term across all four documents, consistent with the Decomposition Vocabulary Map. Where the conceptual drawing (R-04, App B) labels it as "SERVICE TRENCH," note this as a drawing-specific label.
 

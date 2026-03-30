@@ -1,1 +1,1 @@
-id:8ab74540  |  Thesis was conceived, researched, written, and edited - prime for discussions about the systems engineering core of Chirality
+id:8ab74540 | Thesis was conceived, researched, written, and edited - prime for discussions about the systems engineering core of Chirality - continued discussion produced the CHIRALITY_FRAMEWORK.md and much discussion around (and small but important revisions to documentation made) to explore the meanings and implications.

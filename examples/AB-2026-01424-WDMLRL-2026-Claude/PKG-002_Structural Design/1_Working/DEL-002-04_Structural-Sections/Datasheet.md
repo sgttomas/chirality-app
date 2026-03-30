@@ -36,7 +36,7 @@
 | Clear ceiling height | 35 ft | R-01 §3.4, App B notes |
 | Drive-through repair bay width | 24 ft each (2 bays) | R-04 (App B floor plan) |
 | Wash bay width | 24 ft (single enclosed bay, motor scraper-sized) | R-01 §3.1, §3.4; R-04 App B |
-| Service pit / trench dimensions | 24 ft wide × 100 ft long; **depth TBD — not stated in RFP or App B; to be confirmed by County operations team and validated against geotechnical report** (see CON-002 in Guidance.md) | R-04 (App B floor plan — labeled "Service Trench"); lensing item B-001 |
+| Service pit / trench dimensions | 24 ft wide × 100 ft long; **depth TBD — not stated in RFP or App B; to be confirmed by County operations team and validated against geotechnical report** (see CON-002 in Guidance.md) | R-04 (App B floor plan — labeled "Service Pit"); lensing item B-001 |
 | Parts storage room | ~400 sq ft | R-01 §3.4 |
 | Mezzanine | Above parts room, utility room, and wash bay | R-01 §3.4, App B notes |
 | Mezzanine load rating | Heavy items (oil totes, pumping equipment) — load capacity TBD by structural calculation | R-01 §3.4 |
@@ -108,7 +108,7 @@
 | Ref # | Document | Relevance |
 |---|---|---|
 | R-01 | AB-2026-01424-WDMLRL RFP.pdf | §3.4 structural design requirements; §3.3.2 IFC stamp and approval requirements; §4.8.2 foundation pricing |
-| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — building geometry, bay widths, steel plate locations, crane positions, service trench, mezzanine |
+| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan — building geometry, bay widths, steel plate locations, crane positions, Service Pit, mezzanine |
 | Decomposition | WDMLRL_Decomposition_Claude.md | PKG-002 deliverable definitions; SOW-0012; OBJ-001, OBJ-003 |
 | R-02 | AB-2026-01424-Addendum 1.pdf | Adds §4.11 Bid Security; no structural changes noted (location TBD — addendum not read in full) |
 

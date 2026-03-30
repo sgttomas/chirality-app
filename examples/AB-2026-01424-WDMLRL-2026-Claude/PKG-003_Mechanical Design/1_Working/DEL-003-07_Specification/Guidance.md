@@ -199,7 +199,7 @@ No directly applicable example projects were accessible in the source documents.
 
 **System layout notes from App B (Shop):**
 - Welding station is shown at the northeast corner of the main shop area.
-- The service trench runs along the east side of the main shop bays.
+- The Service Pit runs along the east side of the main shop bays.
 - The wash bay is at the southeast corner, separated by a partition.
 - The utility room houses the 50,000L water storage cistern (plumbing system — coordination interface for the mechanical designer).
 - Mezzanine is above parts room, utility room, and wash bay; mechanical equipment access and penetrations must account for this mezzanine level.

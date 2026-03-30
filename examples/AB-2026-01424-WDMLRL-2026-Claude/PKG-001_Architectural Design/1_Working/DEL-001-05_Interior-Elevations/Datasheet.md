@@ -39,7 +39,7 @@
 | Office | Present; dimensions TBD — Architect to determine at final design (R-04 shows office location between parts room and main bay entrance; no dimensions given on conceptual drawing) | R-01 §3.1, R-04 |
 | Washroom / Locker / Laundry | Expanded washroom with urinal and locker change room including laundry services | R-01 §3.4 |
 | Mezzanine | Overhead mezzanine over Parts Room, Utility Room, and Wash Bay; capable of handling heavy items (oil totes, oil pumping equipment) | R-01 §3.4, R-04 |
-| Service Trench | Ventilated and lighted service pit area for mechanics working under equipment; trench depth TBD — Structural Engineer (DEL-002-06) to confirm at final design | R-01 §3.4, R-04 |
+| Service Pit | Ventilated and lighted service pit area for mechanics working under equipment; trench depth TBD — Structural Engineer (DEL-002-06) to confirm at final design | R-01 §3.4, R-04 |
 | Welding Station | Dedicated welding station with ventilation exhaust system | R-01 §3.4, R-04 |
 | Work Benches | Multiple; locations per Appendix B layout | R-04 |
 | Cranes | 2 × 5-tonne overhead cranes on trolley | R-01 §3.4, R-04 |
@@ -72,7 +72,7 @@
 |---|---|---|
 | Building Structure | Concrete structure with steel elements; 35 ft ceiling | R-01 §3.4, R-04 |
 | Overhead Cranes | Two 5-tonne cranes on trolley; structural supports by structural engineer (DEL-002-07) | R-01 §3.4, R-04 |
-| Service Trench | Ventilated and lighted; structural details by structural engineer (DEL-002-06) | R-01 §3.4, R-04 |
+| Service Pit | Ventilated and lighted; structural details by structural engineer (DEL-002-06) | R-01 §3.4, R-04 |
 | Mezzanine | Load-bearing mezzanine above parts room, utility room, and wash bay; structural details by structural engineer (DEL-002-05) | R-01 §3.4, R-04 |
 | Steel Plates | Embedded in concrete floor at strategic locations; embedment plan by structural engineer (DEL-002-08) | R-01 §3.4, R-04 |
 | Wash Bay | Single enclosed bay, 24 ft wide (per floor plan); mud sump on building exterior | R-04 |

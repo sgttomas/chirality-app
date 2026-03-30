@@ -42,7 +42,7 @@
 |---|---|---|
 | Main Shop Bay (new) | Two drive-through bays; overhead cranes; high bay lighting; ceiling fans; exhaust fans | RFP §3.1, §3.4; App B (Shop); App B (Electrical) |
 | Wash Bay | Single enclosed wash bay; high bay lighting; exhaust; mud sump exterior | RFP §3.1, §3.4; App B (Shop); App B (Electrical) |
-| Service Trench / Pit Area | Lighted and ventilated service pit for under-equipment servicing | RFP §3.4 |
+| Service Pit / Pit Area | Lighted and ventilated service pit for under-equipment servicing | RFP §3.4 |
 | Parts Room | 400 sq ft; 6-foot wide roll-up door; 8' LED lighting | RFP §3.4; App B (Electrical) |
 | Utility Room | Includes 50,000 L water storage stair access; 8' LED lighting | App B (Shop); App B (Electrical) |
 | Office | 8' LED single fixture | App B (Electrical) |

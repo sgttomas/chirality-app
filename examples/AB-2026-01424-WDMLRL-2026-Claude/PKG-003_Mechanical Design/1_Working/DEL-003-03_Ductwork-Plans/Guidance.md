@@ -108,7 +108,7 @@ Source: ASSUMPTION — standard energy performance reasoning for heating-dominat
 
 ## Examples
 
-> No design examples from accessible sources. The Appendix B (Shop) conceptual drawing (R-04) shows the spatial layout of mechanical elements (forced air makeup notation, wash bay, service trench, welding station) but does not contain ductwork routing details. Ductwork routing examples and design methodology are TBD pending Mechanical Engineer's preliminary design work.
+> No design examples from accessible sources. The Appendix B (Shop) conceptual drawing (R-04) shows the spatial layout of mechanical elements (forced air makeup notation, wash bay, Service Pit, welding station) but does not contain ductwork routing details. Ductwork routing examples and design methodology are TBD pending Mechanical Engineer's preliminary design work.
 
 ---
 

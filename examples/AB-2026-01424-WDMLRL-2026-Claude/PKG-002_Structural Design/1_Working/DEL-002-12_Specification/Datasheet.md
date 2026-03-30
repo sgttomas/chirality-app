@@ -44,7 +44,7 @@
 | Element | Description | Source |
 |---|---|---|
 | Overhead cranes | 2 × 5-tonne cranes on trolley | RFP §3.4, App B |
-| Service pit / trench | Ventilated and lighted service trench for underbody mechanics work | RFP §3.4, App B |
+| Service pit / trench | Ventilated and lighted Service Pit for underbody mechanics work | RFP §3.4, App B |
 | Steel plate embedments | Steel plates in concrete floor at strategic locations (to accommodate track and packer type heavy equipment) | RFP §3.4, App B |
 | Mezzanine structure | Load-bearing mezzanine over Parts Room / Utility Room / Wash Bay (capable of handling heavy items such as oil totes and oil pumping equipment) | RFP §3.4, App B |
 | Stair | Stairs to mezzanine | RFP App B |

@@ -52,7 +52,7 @@ This deliverable covers:
 
 ### R-005 — Service Pit / Trench Structural Details
 **Requirement:** Structural sections and details shall define the below-grade service pit/trench structure including retaining walls, floor slab, and any structural provisions for ventilation and lighting penetrations. Pit dimensions (width annotated ~24 ft, length ~100 ft per App B) shall be confirmed by design.
-**Source:** R-01 §3.4; R-04 Appendix B ("Service Trench" annotation)
+**Source:** R-01 §3.4; R-04 Appendix B ("Service Pit" annotation)
 **Priority:** Mandatory
 **Note:** Exact depth of service pit is TBD — not stated in RFP or App B. Depth shall be determined by the Structural Engineer based on functional requirements and geotech report.
 

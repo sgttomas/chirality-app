@@ -26,7 +26,7 @@
 
 ### Functional Description
 
-The service pit (also referred to as service trench) is a below-grade, in-floor structural element located within the New North Shop addition. It provides a working cavity allowing mechanics to access the underside of heavy equipment (e.g., motor scrapers, tracked equipment) at floor level without requiring a hoist. The pit must be ventilated and lighted per RFP §3.4.
+The service pit (also referred to as Service Pit) is a below-grade, in-floor structural element located within the New North Shop addition. It provides a working cavity allowing mechanics to access the underside of heavy equipment (e.g., motor scrapers, tracked equipment) at floor level without requiring a hoist. The pit must be ventilated and lighted per RFP §3.4.
 
 **Source:** RFP §3.4 (SOW-0028); Appendix B (Shop) conceptual floor plan; Decomposition vocabulary map ("Service Pit / Trench: Below-grade pit/trench for under-equipment servicing").
 
@@ -34,8 +34,8 @@ The service pit (also referred to as service trench) is a below-grade, in-floor 
 
 | Parameter | Value | Source | Confidence |
 |---|---|---|---|
-| Width (approximate) | 24 ft | App B floor plan (labeled dimension on Service Trench) | Conceptual — subject to structural design |
-| Length (approximate) | 100 ft | App B floor plan (labeled dimension on Service Trench) | Conceptual — subject to structural design |
+| Width (approximate) | 24 ft | App B floor plan (labeled dimension on Service Pit) | Conceptual — subject to structural design |
+| Length (approximate) | 100 ft | App B floor plan (labeled dimension on Service Pit) | Conceptual — subject to structural design |
 | Depth | TBD | Not stated in RFP or App B | **Critical missing essential fact.** Pit depth governs structural wall design, excavation scope, waterproofing extent, and cost. Sources required: Owner equipment clearance requirement + geotech frost depth (DEL-008-01). (Lensing ref: B-001) |
 | Position within building | Right (east) side of New North Shop, central zone | App B floor plan | Conceptual |
 
@@ -130,7 +130,7 @@ The service pit (also referred to as service trench) is a below-grade, in-floor 
 | Ref | Document | Relevance |
 |---|---|---|
 | R-01 | AB-2026-01424-WDMLRL RFP.pdf | §3.4 Design Requirements: service pit specification (ventilated, lighted); §3.3.2: IFC stamp requirements |
-| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan: service trench shown at approx. 24' × 100' in New North Shop |
+| R-04 | AB-2026-01424-Appendix B (Shop).pdf | Conceptual floor plan: Service Pit shown at approx. 24' × 100' in New North Shop |
 | DECOMP | WDMLRL_Decomposition_Claude.md | DEL-002-06 entry; SOW-0028; PKG-002 scope; OBJ-001, OBJ-003 definitions |
 | TBD | CSA A23.3 — Design of Concrete Structures | ASSUMPTION: governing structural standard (location TBD — not directly accessible) |
 | TBD | CSA S16 — Design of Steel Structures | ASSUMPTION: governing standard for any steel cover elements (location TBD) |

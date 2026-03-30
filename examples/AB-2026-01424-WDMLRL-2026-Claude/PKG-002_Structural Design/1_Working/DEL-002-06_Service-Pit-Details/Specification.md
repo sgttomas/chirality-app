@@ -6,7 +6,7 @@
 
 ### What This Deliverable Covers
 
-DEL-002-06 is a structural drawing set providing complete engineering detail for the service pit / service trench to be constructed within the New North Shop addition at the West Dried Meat Lake Regional Landfill, SW 14–44–21–W4, near Ferintosh, Alberta.
+DEL-002-06 is a structural drawing set providing complete engineering detail for the service pit / Service Pit to be constructed within the New North Shop addition at the West Dried Meat Lake Regional Landfill, SW 14–44–21–W4, near Ferintosh, Alberta.
 
 The drawing set shall include sufficient structural detail to:
 - Define the geometry and dimensions of the below-grade pit/trench structure.
@@ -60,7 +60,7 @@ The drawing set shall include sufficient structural detail to:
 
 ### R-003 — Dimensional Requirement: Pit Geometry
 
-**Requirement:** The pit dimensions shall be determined by the Structural Engineer to meet the operational program. The conceptual floor plan (App B) indicates a service trench of approximately 24 ft wide by 100 ft long within the 130' × 100' New North Shop footprint. Final dimensions are subject to structural design.
+**Requirement:** The pit dimensions shall be determined by the Structural Engineer to meet the operational program. The conceptual floor plan (App B) indicates a Service Pit of approximately 24 ft wide by 100 ft long within the 130' × 100' New North Shop footprint. Final dimensions are subject to structural design.
 
 **Note:** The 24' x 100' dimensions are read from the App B conceptual drawing and are design targets only. The Structural Engineer shall confirm or adjust these dimensions based on structural analysis, geotech findings, and coordination with the Architect and other disciplines.
 

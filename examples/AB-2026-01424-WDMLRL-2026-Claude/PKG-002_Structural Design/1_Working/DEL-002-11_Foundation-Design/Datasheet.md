@@ -79,7 +79,7 @@
 | Floor loads — general | Must accommodate heavy tracked and packer equipment; steel plate embedments in concrete floor at strategic locations (see Appendix B for locations) | RFP §3.4, Appendix B (Shop) |
 | Floor loads — mezzanine | Load-bearing mezzanine capable of heavy items (oil totes, pumping equipment) above parts room, utility room, and wash bay | RFP §3.4, Appendix B (Shop) |
 | Crane loads | Two 5-tonne overhead cranes on trolley; crane support structure details in DEL-002-07 | RFP §3.4, Appendix B (Shop) |
-| Service pit / trench | Below-grade service trench for under-equipment servicing; structural details in DEL-002-06 | RFP §3.4, Appendix B (Shop) |
+| Service pit / trench | Below-grade Service Pit for under-equipment servicing; structural details in DEL-002-06 | RFP §3.4, Appendix B (Shop) |
 | Wash bay | Single enclosed bay (24 ft wide) for large equipment (motor scraper class); integrated with floor slab and mud sump connection | RFP §3.1, §3.4, Appendix B (Shop) |
 | Foundation system | TBD — pending geotechnical investigation; ASSUMPTION: spread footings or continuous strip footings consistent with normal ground conditions for this region |  |
 | Steel plate embedments | Steel plate embedments in concrete floor at locations shown on Appendix B (Shop) drawing | RFP §3.4, Appendix B (Shop) |

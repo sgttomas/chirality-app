@@ -10,6 +10,35 @@ Invariant IDs (`K-*`) are **stable and never reused**. Retired invariants are mo
 
 ## 1. Invariant Catalog
 
+### K-* Invariant Index
+
+All K-* identifiers defined in this section are listed below with their definition locations. There are **20 stable invariants** across 10 subsections.
+
+| K-* ID | Subsection | Topic |
+|--------|------------|-------|
+| K-HIER-1 | 1.1 | Hierarchy and Identity |
+| K-ID-1 | 1.1 | Hierarchy and Identity |
+| K-AUTH-1 | 1.2 | Authority and Approval |
+| K-AUTH-2 | 1.2 | Authority and Approval |
+| K-BIND-1 | 1.2 | Authority and Approval |
+| K-SEAL-1 | 1.3 | Sealing and Context |
+| K-GHOST-1 | 1.3 | Sealing and Context |
+| K-DEP-1 | 1.4 | Dependencies |
+| K-DEP-2 | 1.4 | Dependencies |
+| K-STATUS-1 | 1.5 | Status and Lifecycle |
+| K-STALE-1 | 1.6 | Staleness and Change Propagation |
+| K-STALE-2 | 1.6 | Staleness and Change Propagation |
+| K-VAL-1 | 1.6 | Staleness and Change Propagation |
+| K-GATE-1 | 1.7 | Gates |
+| K-MERGE-1 | 1.8 | Merge and Publication |
+| K-PROV-1 | 1.9 | Provenance and Epistemic Integrity |
+| K-INVENT-1 | 1.9 | Provenance and Epistemic Integrity |
+| K-CONFLICT-1 | 1.9 | Provenance and Epistemic Integrity |
+| K-WRITE-1 | 1.10 | Write Scope and Snapshots |
+| K-SNAP-1 | 1.10 | Write Scope and Snapshots |
+
+---
+
 ### 1.1 Hierarchy and Identity
 
 | ID | Invariant | Enforcement |

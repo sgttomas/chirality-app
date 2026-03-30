@@ -31,7 +31,7 @@ Before beginning the Finish Schedule, the following must be available or underwa
 | Applicable Alberta Building Code edition | ASSUMPTION: NBC 2019 Alberta Edition | Must be confirmed at time of permit application | Required for Step 4 |
 | Occupancy classification determination | Architect (REQ-DS-007a) | TBD — to be determined early in design development | Required before Step 4 can populate numeric flame spread thresholds |
 | Site investigation results (for Old North Shop renovation areas) | Site meeting per RFP S3.2 (mandatory, March 3, 2026) and post-award investigation | Required to confirm existing substrate conditions for B-01 through B-04. **Sequencing (per lensing item X-001):** Site investigation is required before Step 3.6 (renovation finish selection) can be completed, but Steps 1-3.5 and Step 4 for New North Shop areas (A-series) may proceed in parallel while awaiting site investigation results. The Architect may advance to Step 4 (code review) and Step 5 (coordination) for all A-series areas without waiting for site investigation. B-series areas shall remain at preliminary category (Step 2) until site investigation is complete. | Gate for Step 3.6 (B-series only); A-series steps may proceed in parallel |
-| Structural design input (mezzanine and slab) | DEL-002 Structural Design deliverables | Required for mezzanine floor finish dead load coordination (REQ-DS-010) and service trench cover coordination (REQ-DS-003a) | Gate for Step 3.5 and Step 3.7 |
+| Structural design input (mezzanine and slab) | DEL-002 Structural Design deliverables | Required for mezzanine floor finish dead load coordination (REQ-DS-010) and Service Pit cover coordination (REQ-DS-003a) | Gate for Step 3.5 and Step 3.7 |
 | Plumbing coordination (floor drain locations, Wash Bay drain) | PKG-006 Plumbing deliverables | Required for Wash Bay and wet area floor finish slope/drain coordination | Gate for Step 3.3 |
 
 ### P-PRE-02: Required References
@@ -108,7 +108,7 @@ The following references must be accessible during production:
 3.6 For Old North Shop renovation areas: following site investigation (see Sequencing Notes in P-PRE-01), confirm substrate conditions and update finish selections. If existing substrate requires remediation (crack repair, leveling, moisture treatment) before new finishes can be applied, note remediation requirement in the Finish Schedule remarks column. The site investigation shall follow the defined evidence standard per REQ-DS-011 acceptance criteria (visual inspection, moisture testing, condition ratings).
 - Source: REQ-DS-011; RFP S3.2.
 
-3.7 For the Service Trench cover (A-03): select cover type (steel plate, grating, or concrete lid), finish treatment, and confirm load rating classification in coordination with the structural engineer (DEL-002). Note the trench cover specification in the Finish Schedule as a distinct element within the A-03 row or as a sub-row, consistent with REQ-DS-003a.
+3.7 For the Service Pit cover (A-03): select cover type (steel plate, grating, or concrete lid), finish treatment, and confirm load rating classification in coordination with the structural engineer (DEL-002). Note the trench cover specification in the Finish Schedule as a distinct element within the A-03 row or as a sub-row, consistent with REQ-DS-003a.
 - Source: REQ-DS-003a; Guidance C-02; lensing item C-002.
 
 > **Output of Step 3:** Draft Finish Schedule with specific product or system identified per area per element (floor/wall/ceiling), including trench cover specification.
@@ -163,7 +163,7 @@ The following checklist shall be completed and signed off by the Architect befor
 | Product specifications correspond | DEL-001-11 Architectural Specification | | | |
 | Flame spread ratings consistent | DEL-001-11 Architectural Specification | | | |
 | Mezzanine finish dead load confirmed | DEL-002 Structural (written sign-off) | | | |
-| Service trench cover coordinated | DEL-002 Structural (written sign-off) | | | |
+| Service Pit cover coordinated | DEL-002 Structural (written sign-off) | | | |
 | Steel plate treatment coordinated | DEL-002 Structural | | | |
 | Wash Bay slope and drain coordinated | PKG-006 Plumbing | | | |
 | Wet area waterproofing coordinated | DEL-001-11 Architectural Specification | | | |
@@ -219,7 +219,7 @@ The following checklist shall be completed and signed off by the Architect befor
 | Step 1 | Room list count in Finish Schedule equals room count on DEL-001-02; all room IDs match |
 | Step 2 | All rooms have an assigned finish category; all ASSUMPTIONs flagged |
 | Step 3 | Each area has a specific product/system identified for floor, wall, and ceiling; steel plate zones, trench cover, and drain slopes noted |
-| Step 3.7 | Service trench cover type, finish, and load rating specified; structural coordination documented |
+| Step 3.7 | Service Pit cover type, finish, and load rating specified; structural coordination documented |
 | Step 4 | Code review documented; occupancy classification determined (REQ-DS-007a); flame spread ratings with numeric thresholds noted where required; non-combustible zones confirmed; waterproofing membrane noted for wet areas |
 | Step 5 | Cross-coordination checklist completed and signed off; no unresolved discrepancies |
 | Step 6 | County approval obtained or outstanding comments documented and addressed |
@@ -238,7 +238,7 @@ The following records shall be retained as evidence that this procedure was comp
 | Code compliance review notes | Architect's recorded code check against ABC for flame spread, wet areas, non-combustible requirements, including occupancy classification determination | Project file |
 | Cross-coordination checklist (completed) | Signed-off checklist per Step 5.6 template, documenting all coordination points with DEL-001-02, -05, -06, -11, DEL-002, and PKG-006 | Project file |
 | Structural engineer sign-off — mezzanine finish dead load | Written confirmation from structural engineer per REQ-DS-010 | Project file |
-| Structural engineer sign-off — service trench cover | Written confirmation from structural engineer per REQ-DS-003a | Project file |
+| Structural engineer sign-off — Service Pit cover | Written confirmation from structural engineer per REQ-DS-003a | Project file |
 | IFC Finish Schedule (stamped) | Final issued-for-construction version, bearing Architect's stamp | Drawing record set; County submission; as-built file |
 | Site investigation report (Old North Shop) | Documented evidence of existing substrate conditions for renovation areas, per defined investigation scope (REQ-DS-011 acceptance criteria) | Project file |
 
@@ -247,7 +247,7 @@ The following records shall be retained as evidence that this procedure was comp
 | Lensing Item | Incorporation |
 |---|---|
 | X-001 | Added sequencing notes to P-PRE-01 clarifying parallel/serial relationship between A-series and B-series steps relative to site investigation |
-| C-002 | Added Step 3.7 for service trench cover specification |
+| C-002 | Added Step 3.7 for Service Pit cover specification |
 | D-002 | Added aesthetic selection points table to Step 6.2 |
 | X-004 | Added cross-coordination checklist template to Step 5.6 |
 | F-002 | Normalized terminology to canonical "Washroom / Locker-Change Room" throughout |

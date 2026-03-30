@@ -8,6 +8,21 @@ All agents, tools, and governance documents reference this specification. Where 
 
 ---
 
+## 0.1 Fractal Property: SPEC Sections Map to DIRECTIVE Pillars
+
+This specification embodies the four-pillar philosophy defined in `DIRECTIVE.md` §2. The sections of this document instantiate those pillars:
+
+| DIRECTIVE Pillar | SPEC Sections | What the Section Governs |
+|---|---|---|
+| **Ontology** — what exists? | §1–2, §10 | Execution root layout, deliverable structure, filesystem-safe naming |
+| **Epistemology** — what can be known? | §5–6, §14–15 | Dependency tracking, provenance requirements, evidence schema, conflict resolution mechanisms |
+| **Praxiology** — how do we execute? | §3–4, §9, §11–12 | Lifecycle state machine, context and authority, agent instruction structure, validation checklist |
+| **Axiology** — what do we value? | §7–8, §13 | Reference and memory management, coordination representation, and the values embedded in schema structure |
+
+This alignment ensures that project execution state (the filesystem) reflects the same philosophical commitments as the governance framework itself.
+
+---
+
 ## 1. Execution Root Layout
 
 An execution instance is a self-contained project workspace rooted at `{EXECUTION_ROOT}/`. The execution root contains packages (work partitions) and tool roots (derived/operational outputs).
@@ -437,7 +452,15 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 
 ### 6.7 Legacy Compatibility
 
-- `Direction`: `INBOUND` normalizes to `UPSTREAM`; `OUTBOUND` normalizes to `DOWNSTREAM`
+**Direction normalization:**
+- `INBOUND` (legacy) → `UPSTREAM` (canonical)
+- `OUTBOUND` (legacy) → `DOWNSTREAM` (canonical)
+
+**DependencyType normalization (see §6.3):**
+- `COORDINATION` (legacy) → `OTHER` (canonical, used for ANCHOR rows and catch-all)
+- `INFORMATION` (legacy) → Interpret context and map to `PREREQUISITE`, `INTERFACE`, `HANDOVER`, `CONSTRAINT`, or `ENABLES` as appropriate
+
+**SchemaVersion handling:**
 - If `RegisterSchemaVersion` is missing from an existing file, add it on write and set to `v3.1`
 
 ### 6.8 Identity Rules

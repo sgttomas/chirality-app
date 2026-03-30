@@ -56,10 +56,10 @@ The Alberta Building Code (NBC 2019 Alberta Edition, or as amended at time of pe
 The single most common cause of finish schedule disputes during construction is inconsistent room numbering between the floor plan and the finish schedule. The Architect should establish room IDs on DEL-001-02 first and then use those same IDs verbatim in the Finish Schedule. Any subsequent floor plan revision that changes room IDs must trigger a Finish Schedule revision.
 
 ### C-02: Concrete Slab Specification Complexity — Main Shop
-The Main Shop slab is not a simple polished concrete situation. It has embedded steel plates (per RFP S3.4 and App B), a service trench, and sump drains (RFP S3.4). The Finish Schedule must clearly delineate:
+The Main Shop slab is not a simple polished concrete situation. It has embedded steel plates (per RFP S3.4 and App B), a Service Pit, and sump drains (RFP S3.4). The Finish Schedule must clearly delineate:
 - Slab areas with sealed/epoxy finish
 - Steel plate zones (annotate as "steel plate — no finish coating" or "steel plate — specify weld pattern/edge treatment per structural," per REQ-DS-004 clarification)
-- Service trench cover (specify cover type, finish, and load rating per REQ-DS-003a — this is a walking/driving surface in a heavy industrial shop and must be addressed as a distinct schedule element)
+- Service Pit cover (specify cover type, finish, and load rating per REQ-DS-003a — this is a walking/driving surface in a heavy industrial shop and must be addressed as a distinct schedule element)
 - Sump drain locations (typically coordinated with mechanical/plumbing — Finish Schedule only notes floor finish around drains)
 This level of detail prevents conflicts during construction.
 
@@ -139,7 +139,7 @@ The following items are flagged as ambiguities or conflicts requiring human inpu
 | F-002 | Normalized terminology to canonical "Washroom / Locker-Change Room" throughout; added terminology note to C-06 |
 | F-003 | Added rationale and action required to P-03 for 20+ year lifecycle assumption |
 | A-001 | Added C-09 consideration for occupancy classification priority |
-| C-001 | Strengthened C-02 with service trench cover detail (REQ-DS-003a reference) |
+| C-001 | Strengthened C-02 with Service Pit cover detail (REQ-DS-003a reference) |
 | X-002 | Strengthened C-05 with site investigation evidence standard reference |
 | X-003 | Strengthened C-04 with structural engineer sign-off requirement |
 | B-003 | Updated C-07 with minimum 2% slope reference (REQ-DS-005a) |

@@ -17,7 +17,7 @@ This procedure governs production of the design drawing set artifact. The constr
 | Item | Source | Status |
 |---|---|---|
 | Geotechnical Investigation Report (DEL-008-01) | PKG-008 — Geotechnical Engineer | Required before finalizing depth, wall thickness, waterproofing. If not available at design start, proceed with stated assumptions (see Step 3). |
-| Conceptual floor plan (App B) | _Sources/AB-2026-01424-Appendix B (Shop).pdf | Available — conceptual dimensions 24' × 100' for service trench |
+| Conceptual floor plan (App B) | _Sources/AB-2026-01424-Appendix B (Shop).pdf | Available — conceptual dimensions 24' × 100' for Service Pit |
 | RFP design requirements (§3.4, §3.3.2) | _Sources/AB-2026-01424-WDMLRL RFP.pdf | Available |
 | Equipment load specification (governing axle load, track footprint, contact pressure) | Camrose County / Owner | TBD — must be obtained before cover system design (see CON-002 in Guidance.md) |
 | Mechanical penetration requirements (ventilation duct routing, size, locations) | PKG-003 Mechanical Engineer | TBD — must be coordinated before structural drawings are issued IFC |
@@ -50,12 +50,12 @@ This procedure governs production of the design drawing set artifact. The constr
 
 ### Step 1 — Confirm Pit Geometry and Program with Owner/Architect
 
-1.1 Review the conceptual floor plan (App B) and note the service trench labeled dimensions (approximately 24' wide × 100' long).
+1.1 Review the conceptual floor plan (App B) and note the Service Pit labeled dimensions (approximately 24' wide × 100' long).
 
 1.2 Confirm with the Architect (PKG-001) and Camrose County whether:
 - The 24' and 100' dimensions represent interior clear dimensions or overall dimensions.
 - The pit's position relative to the building column grid is confirmed.
-- The pit is intended to serve one or both repair bays, or is a dedicated service trench bay.
+- The pit is intended to serve one or both repair bays, or is a dedicated Service Pit bay.
 - There are any Owner preferences for pit depth or access configuration.
 
 1.3 Document confirmed geometry in the project coordination log. If confirmation is not available, state the assumption in writing (see CON-001 in Guidance.md — treat App B dimensions as interior clear until confirmed).

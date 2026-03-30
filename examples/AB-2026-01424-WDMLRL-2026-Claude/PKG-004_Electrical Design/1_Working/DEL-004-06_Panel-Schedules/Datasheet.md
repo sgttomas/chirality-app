@@ -64,7 +64,7 @@ The following loads are explicitly identified in the sources and must appear in 
 | Security Camera Wiring | TBD (low-voltage) | TBD | TBD | App B (Electrical) notes |
 | Antenna Wire — 2-Way Radios | TBD (low-voltage) | TBD | TBD | App B (Electrical) notes |
 | Welding Station Receptacles | High-voltage (50A 240V shown at welding area) | 240V | Multiple | App B drawing |
-| Service Pit Lighting | TBD (lighting for ventilated and lighted service pit area) | TBD | TBD | RFP §3.4; App B (Electrical) drawing — "L" symbols near service trench area; see also Guidance C5 |
+| Service Pit Lighting | TBD (lighting for ventilated and lighted service pit area) | TBD | TBD | RFP §3.4; App B (Electrical) drawing — "L" symbols near Service Pit area; see also Guidance C5 |
 | Service Pit Ventilation | TBD (ventilation fan for service pit area) | TBD | TBD | RFP §3.4 ("ventilated and lighted service pit area"); see also Guidance C5 |
 
 **Note:** Exact circuit counts, circuit numbers, wire sizes, breaker ratings, and load calculations are TBD and will be established by the Electrical Engineer during final design. The load list above reflects the minimum loads identified in the RFP and Appendix B (Electrical).

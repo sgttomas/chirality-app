@@ -47,7 +47,7 @@
 | Office | TBD (exact dimensions — Architect to size per program; confirm whether Owner input is needed on anticipated occupancy/furnishing) | RFP §3.1; R-04; Decomp SOW-0031 |
 | Washroom | Present in addition | RFP §3.1 |
 | Industrial wash station (wash sink) | Separate unit | RFP §3.1; Decomp SOW-0050 |
-| Service pit (service trench) | Ventilated and lighted; below-grade | RFP §3.4; R-04; Decomp SOW-0028 |
+| Service pit (Service Pit) | Ventilated and lighted; below-grade | RFP §3.4; R-04; Decomp SOW-0028 |
 | Mezzanine | Over parts room, utility room, and wash bay; load-bearing for heavy items (oil totes, pumping equipment) | RFP §3.4; R-04; Decomp SOW-0032, SOW-0033 |
 | Stairs to mezzanine | Present | R-04; Decomp SOW-0034 |
 | 50,000 L cistern / water storage | Located within addition | RFP §3.4; R-04; Decomp SOW-0041 |

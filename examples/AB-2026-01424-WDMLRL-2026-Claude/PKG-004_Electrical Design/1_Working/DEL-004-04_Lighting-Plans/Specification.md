@@ -59,8 +59,8 @@ The lighting plan shall show 6 × 8-foot LED strip fixtures in the parts/tool ro
 ### REQ-LT-006 — Service Pit/Trench Lighting
 
 The service pit/trench shall be lighted (and ventilated, per mechanical).
-- Fixture type, count, and circuit: TBD (RFP §3.4 states requirement; App B-Elec does not specify pit lighting detail beyond the "L" symbol appearing near the service trench on the conceptual layout).
-- Source: RFP §3.4; App B-Elec (layout symbol — location: service trench area).
+- Fixture type, count, and circuit: TBD (RFP §3.4 states requirement; App B-Elec does not specify pit lighting detail beyond the "L" symbol appearing near the Service Pit on the conceptual layout).
+- Source: RFP §3.4; App B-Elec (layout symbol — location: Service Pit area).
 
 ### REQ-LT-007 — IFC Drawing Quality and P.Eng. Stamp
 

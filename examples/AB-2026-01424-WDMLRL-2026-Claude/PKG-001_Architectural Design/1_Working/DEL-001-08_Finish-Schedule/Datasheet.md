@@ -51,7 +51,7 @@ The Finish Schedule covers interior finishes (floor, wall, ceiling) for all room
 |---|---|---|---|
 | A-01 | Main Shop — Repair Bays (2 drive-through bays, 24' wide each) | TBD (balance of 130'x100' less sub-rooms; estimated ~8,500-9,500 sq ft — ASSUMPTION based on App B proportions) | RFP S3.1, App B |
 | A-02 | Wash Bay (single enclosed bay, 24' wide) | ~2,400 sq ft (estimated: 24' wide x ~100' deep per App B layout — ASSUMPTION, actual depth TBD) | RFP S3.1, S3.4, App B |
-| A-03 | Service Pit / Service Trench Area | TBD (length and width per structural design; shown as linear element on App B) | RFP S3.4, App B |
+| A-03 | Service Pit / Service Pit Area | TBD (length and width per structural design; shown as linear element on App B) | RFP S3.4, App B |
 | A-04 | Parts Storage Room | ~400 sq ft | RFP S3.4, App B |
 | A-05 | Utility Room | TBD (houses cistern and pumps; shown adjacent to Parts Room on App B) | RFP S3.1, App B |
 | A-06 | Office | TBD (shown as ~16' wide zone on App B; area dependent on depth — ASSUMPTION) | RFP S3.1, App B |
@@ -114,7 +114,7 @@ The Finish Schedule is a design-build deliverable. The following are anticipated
 
 | Room / Area | Floor Finish | Wall Finish | Ceiling Finish | Notes |
 |---|---|---|---|---|
-| A-01 Main Shop / Repair Bays | Concrete slab — sealed or painted (ASSUMPTION: industrial epoxy or hardener) with embedded steel plates at strategic locations | Concrete masonry or tilt-up concrete (exposed or painted) — ASSUMPTION | Exposed structure (underside of roof deck) — 35' clear height; no suspended ceiling anticipated (ASSUMPTION) | Steel plates in floor per RFP S3.4, App B. Service trench cover at A-03 interface — see separate row. |
+| A-01 Main Shop / Repair Bays | Concrete slab — sealed or painted (ASSUMPTION: industrial epoxy or hardener) with embedded steel plates at strategic locations | Concrete masonry or tilt-up concrete (exposed or painted) — ASSUMPTION | Exposed structure (underside of roof deck) — 35' clear height; no suspended ceiling anticipated (ASSUMPTION) | Steel plates in floor per RFP S3.4, App B. Service Pit cover at A-03 interface — see separate row. |
 | A-02 Wash Bay | Concrete slab — sealed/epoxy with floor drains and connection to mud sump; minimum 2% slope to drain (per lensing item B-003, promoted from Procedure Step 3.3) | Moisture-resistant (concrete masonry — sealed or epoxy-coated — ASSUMPTION) | Exposed structure or moisture-resistant painted (ASSUMPTION) | High-moisture environment; drainage requirements per RFP S3.4, App B |
 | A-03 Service Pit | Concrete — sealed or epoxy | Concrete — sealed or epoxy | Open to shop above | Below-grade; liquid exposure. Trench cover type and finish TBD — see lensing item C-001 (walking/driving surface in heavy industrial shop; cover material, finish, and load rating to be specified per structural coordination with DEL-002) |
 | A-04 Parts Storage Room | Concrete slab — sealed (ASSUMPTION) | Painted masonry or drywall (ASSUMPTION) | Exposed structure or painted (ASSUMPTION) | ~400 sq ft; 6' roll-up door per RFP S3.4 |
@@ -151,6 +151,6 @@ The Finish Schedule is a design-build deliverable. The following are anticipated
 | B-002 | Populated ceiling finish column with category-level entries for rooms previously showing TBD |
 | A-001 | Added occupancy classification as TBD in Building Parameters table |
 | B-003 | Added minimum 2% slope to drain notation for A-02 Wash Bay floor |
-| C-001 | Added service trench cover notation in A-03 row |
+| C-001 | Added Service Pit cover notation in A-03 row |
 | F-001 | Added waterproofing membrane notation for wet-area floors (A-07, B-03) |
 | E-001 | Cross-referenced CF-DS-002 in B-04 row for location ambiguity |

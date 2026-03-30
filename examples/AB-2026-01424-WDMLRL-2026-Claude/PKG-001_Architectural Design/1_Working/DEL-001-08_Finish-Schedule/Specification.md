@@ -57,12 +57,12 @@ The Finish Schedule shall include every enclosed room and functional area in the
 
 ### REQ-DS-003: Industrial Durability — Main Shop, Wash Bay, Service Pit
 Finish selections for the Main Shop repair bays, Wash Bay, and Service Pit shall be appropriate for heavy industrial use, including resistance to vehicular traffic, oil, grease, and hydraulic fluid exposure, and impact from tracked and packer-type heavy equipment.
-- **Source:** RFP S3.4 (steel plates for tracked/packer equipment, sump drains in repair bays); App B (steel plate locations, service trench)
+- **Source:** RFP S3.4 (steel plates for tracked/packer equipment, sump drains in repair bays); App B (steel plate locations, Service Pit)
 - ASSUMPTION: The Architect shall select products with demonstrated performance in comparable industrial maintenance environments. Specific product requirements TBD at design development.
 
-### REQ-DS-003a: Service Trench Cover — Type and Finish
-The Finish Schedule shall specify the service trench (A-03) cover type (e.g., steel plate cover, grating, or concrete lid), its finish treatment, and its load rating classification. The trench cover is a walking and driving surface within the Main Shop floor plane and shall meet the same industrial durability requirements as the surrounding floor (REQ-DS-003). Cover type and finish shall be coordinated with the structural design (DEL-002).
-- **Source:** Lensing item C-001; App B (service trench shown as linear element within Main Shop); Guidance C-02 (service trench cover detail identified as requiring specification).
+### REQ-DS-003a: Service Pit Cover — Type and Finish
+The Finish Schedule shall specify the Service Pit (A-03) cover type (e.g., steel plate cover, grating, or concrete lid), its finish treatment, and its load rating classification. The trench cover is a walking and driving surface within the Main Shop floor plane and shall meet the same industrial durability requirements as the surrounding floor (REQ-DS-003). Cover type and finish shall be coordinated with the structural design (DEL-002).
+- **Source:** Lensing item C-001; App B (Service Pit shown as linear element within Main Shop); Guidance C-02 (Service Pit cover detail identified as requiring specification).
 - TBD: Specific cover type and load rating to be determined at design development in coordination with structural engineer.
 
 ### REQ-DS-004: Steel Floor Plates — Main Shop
@@ -150,7 +150,7 @@ The Finish Schedule, as part of the IFC drawing set for PKG-001, shall be signed
 | REQ-DS-001a (Drawing number) | Drawing index cross-check: confirm drawing number and sheet number per PKG-001 convention | Drawing number assigned and consistent with PKG-001 drawing index |
 | REQ-DS-002 (Complete room coverage) | Checklist comparison: every room/area on DEL-001-02 appears in the Finish Schedule | Room count in Finish Schedule equals room count on DEL-001-02; no omissions |
 | REQ-DS-003 (Industrial durability — heavy areas) | Design review: product data sheets confirm performance ratings for heavy industrial use | Product data sheets on file demonstrating industrial-grade performance |
-| REQ-DS-003a (Service trench cover) | Coordination review: trench cover type, finish, and load rating documented; structural sign-off from DEL-002 | Trench cover specified with load rating; structural engineer written confirmation on file |
+| REQ-DS-003a (Service Pit cover) | Coordination review: trench cover type, finish, and load rating documented; structural sign-off from DEL-002 | Trench cover specified with load rating; structural engineer written confirmation on file |
 | REQ-DS-004 (Steel floor plates noted) | Drawing/schedule cross-check: steel plate locations in App B and DEL-001-02 are noted in the Finish Schedule remarks; finish treatment statement present | Steel plate locations noted; explicit finish treatment statement (coated or uncoated) present |
 | REQ-DS-005 (Wash Bay wet area) | Design review: confirm floor drain compatibility and moisture-resistant finish specification | Floor drain compatibility confirmed; moisture-resistant finish specified |
 | REQ-DS-005a (Wash Bay floor slope) | Drawing/schedule review: slope notation present (minimum 2% to drain); coordination with PKG-006 documented | Slope >= 2% noted; plumbing coordination documented |
@@ -183,7 +183,7 @@ The Finish Schedule shall be coordinated with:
 - DEL-001-05 Interior Elevations — wall finish extents and heights
 - DEL-001-06 Reflected Ceiling Plans — ceiling finish types and heights
 - DEL-001-11 Architectural Specification — product specifications, standards, and flame spread ratings
-- DEL-002 Structural Design deliverables — mezzanine and slab structural requirements affecting finish selections; service trench cover coordination
+- DEL-002 Structural Design deliverables — mezzanine and slab structural requirements affecting finish selections; Service Pit cover coordination
 
 ### Lensing Items Incorporated at Pass 3
 
@@ -193,7 +193,7 @@ The Finish Schedule shall be coordinated with:
 | A-002 | Strengthened REQ-DS-004 with explicit steel plate finish treatment requirement |
 | A-003 | Added measurable acceptance criteria to REQ-DS-008 verification (numeric FSR/SDC) |
 | B-003 | Added REQ-DS-005a (Wash Bay floor slope minimum 2%) |
-| C-001 | Added REQ-DS-003a (service trench cover type and finish) |
+| C-001 | Added REQ-DS-003a (Service Pit cover type and finish) |
 | D-001 | Added specific clause reference column to Standards table (TBD pending occupancy) |
 | F-001 | Added REQ-DS-006a (waterproofing membrane for wet areas) |
 | F-002 | Normalized terminology in REQ-DS-006 to canonical "Washroom / Locker-Change Room" |

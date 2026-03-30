@@ -104,7 +104,7 @@ The service pit is a below-grade concrete structure that must:
 - Accommodate mechanics working under large equipment (motor-scraper scale)
 - Provide structural support for vehicles driving over it
 - Include mechanical provisions (ventilation) and electrical provisions (lighting) coordinated with other disciplines
-- The conceptual drawing (App B Shop) shows the service trench at approximately 24 ft wide × 100 ft long on the east side of the main shop (ASSUMPTION — scale-read from conceptual drawing)
+- The conceptual drawing (App B Shop) shows the Service Pit at approximately 24 ft wide × 100 ft long on the east side of the main shop (ASSUMPTION — scale-read from conceptual drawing)
 
 The pit walls and slab must resist lateral earth pressure and any hydrostatic pressure depending on local groundwater conditions (TBD from geotech).
 

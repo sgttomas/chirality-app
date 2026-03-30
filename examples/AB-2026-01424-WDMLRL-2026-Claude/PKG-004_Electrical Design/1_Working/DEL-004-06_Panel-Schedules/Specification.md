@@ -64,7 +64,7 @@ Verification: Six ceiling fan units accounted for in panel schedule circuit entr
 
 ### REQ-004-06-05B — Service Pit Lighting and Ventilation Circuits
 The Panel Schedules shall include circuit(s) for service pit lighting and service pit ventilation. The RFP requires a "ventilated and lighted service pit area for mechanics to perform servicing under equipment." Wattage and circuit count are TBD.
-Source: RFP §3.4; App B (Electrical) drawing ("L" symbols near service trench area); Guidance C5.
+Source: RFP §3.4; App B (Electrical) drawing ("L" symbols near Service Pit area); Guidance C5.
 ASSUMPTION: Service pit lighting and ventilation circuits are in scope for DEL-004-06. Electrical Engineer to confirm.
 Verification: Service pit lighting and ventilation circuits present in panel schedule; consistent with Lighting Plans (DEL-004-04) and Mechanical Design (PKG-003).
 
