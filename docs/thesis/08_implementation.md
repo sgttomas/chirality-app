@@ -4,7 +4,7 @@
 
 ## 8.1 Introduction
 
-The preceding chapters of this thesis establish the philosophical commitments (Chapter 3), architectural decisions (Chapter 4), contract framework (Chapter 5), decomposition system (Chapter 6), and professional practice model (Chapter 7) that together define the Chirality project execution system at the specification level. The purpose of this chapter is to demonstrate that these specifications have been realized as working software. The theoretical framework is not an aspirational model; it has been instantiated in a deployable desktop application, a suite of 37 agent instruction files, a registry of 28 deterministic tools, and a governance hierarchy of formal documents that remain in active use on professional projects.
+The preceding chapters of this thesis establish the philosophical commitments (Chapter 3), architectural decisions (Chapter 4), contract framework (Chapter 5), decomposition system (Chapter 6), and professional practice model (Chapter 7) that together define the Chirality project execution system at the specification level. The purpose of this chapter is to demonstrate that these specifications have been realized as working software. The theoretical framework is not an aspirational model; it has been instantiated in a deployable desktop application, a suite of 38 agent instruction files, a registry of 28 deterministic tools, and a governance hierarchy of formal documents that remain in active use on professional projects.
 
 The chapter is organized as follows. Section 8.2 surveys the agent suite quantitatively, covering type distribution, class distribution, write scope distribution, and the orchestration graph that coordinates multi-agent workflows. Section 8.3 describes the deterministic tool layer — the LLM-independent operations that agents invoke during pipeline execution. Section 8.4 describes the desktop application that provides the runtime harness. Section 8.5 presents the validation mechanisms: internal conformance audits, harness SDK validation, and worked project examples. Section 8.6 provides an honest accounting of what is fully implemented versus what remains as specified-but-not-yet-automated future hardening. Section 8.7 summarizes the quantitative evidence for the claim that the architectural commitments are realizable.
 
@@ -14,7 +14,7 @@ Throughout this chapter, references to Appendix A (invariant catalog) and Append
 
 ## 8.2 Agent Suite
 
-The Chirality system ships 37 agent instruction files organized according to the Type 0/1/2 hierarchy defined in Chapter 4 (§4.5) and catalogued in full in Appendix B. This section provides a quantitative characterization of that suite.
+The Chirality system ships 38 agent instruction files organized according to the Type 0/1/2 hierarchy defined in Chapter 4 (§4.5) and catalogued in full in Appendix B. This section provides a quantitative characterization of that suite.
 
 ### 8.2.1 Type Distribution
 
@@ -24,14 +24,14 @@ The suite is distributed across three types as follows:
 |------|-------|------|
 | Type 0 — Canonical Standards | 2 | Constitutional layer; defines invariant protocols |
 | Type 1 — Interactive Personas | 14 | Gate-controlled, human-facing orchestrators |
-| Type 2 — Bounded Task Agents | 21 | Brief-driven, straight-through specialists |
-| **Total** | **37** | |
+| Type 2 — Bounded Task Agents | 22 | Brief-driven, straight-through specialists |
+| **Total** | **38** | |
 
 The Type 0 agents — HELPS_HUMANS and DECOMP_BASE — function as the architectural constitution. HELPS_HUMANS defines the nine workflow design requirements (R1–R9) and the universal structural template that every other agent must conform to. DECOMP_BASE defines the seven-gate decomposition protocol and the ten decomposition invariants (I1–I10) that all decomposition agents inherit. Neither agent writes project state; both exist solely to define the standards against which all downstream agents are validated.
 
 The 14 Type 1 agents are interactive personas. They execute gate-controlled, multi-phase workflows in which humans make consequential decisions at each phase boundary. Type 1 agents may spawn Type 2 specialists and maintain orchestration state, but they may not approve deliverables for reliance or override Type 0 constraints.
 
-The 21 Type 2 agents are brief-driven specialists. They accept structured INIT-TASK briefs, execute straight-through without mid-run gates, and produce auditable outputs consisting of either deliverable-local file writes or immutable snapshots in designated tool roots. Type 2 agents never spawn other agents. Invalid inputs cause a `FAILED_INPUTS` halt; missing data is marked `TBD` and execution continues conservatively.
+The 22 Type 2 agents are brief-driven specialists. They accept structured INIT-TASK briefs, execute straight-through without mid-run gates, and produce auditable outputs consisting of either deliverable-local file writes or immutable snapshots in designated tool roots. Type 2 agents never spawn other agents. Invalid inputs cause a `FAILED_INPUTS` halt; missing data is marked `TBD` and execution continues conservatively.
 
 ### 8.2.2 Class and Write Scope Distribution
 
@@ -53,7 +53,7 @@ This distribution reflects the system's core invariant K-WRITE-1 (Appendix A): e
 
 ### 8.2.3 The 3×4 Agent Matrix
 
-The 37 agents are organized within a 3×4 matrix that maps epistemic posture (rows) to functional role (columns):
+The 38 agents are organized within a 3×4 matrix that maps epistemic posture (rows) to functional role (columns):
 
 |  | **Guiding** | **Applying** | **Judging** | **Reviewing** |
 |:---|:---|:---|:---|:---|
@@ -160,7 +160,7 @@ The tool registry makes explicit a design principle stated in Chapter 4 (§4.3):
 
 This boundary is consequential for reliability and auditability. Deterministic tool outputs are reproducible: given identical inputs, the same tool will produce the same output. LLM reasoning is not reproducible in this sense. By pushing all reproducible operations into deterministic tools, the architecture concentrates non-determinism in the places where it is unavoidable (content judgment) and eliminates it from the places where it is unacceptable (schema validation, scaffolding, graph analysis).
 
-As of the current implementation, 21 of the 37 agent instruction files reference tools from the registry in their PROTOCOL sections. The remaining 14 either operate entirely through LLM reasoning (content-producing agents such as WORKING_ITEMS, 4_DOCUMENTS, and CHIRALITY_FRAMEWORK) or reference tools indirectly through RECONCILIATION orchestration.
+As of the current implementation, 21 of the 38 agent instruction files reference tools from the registry in their PROTOCOL sections. The remaining 17 either operate entirely through LLM reasoning (content-producing agents such as WORKING_ITEMS, 4_DOCUMENTS, and CHIRALITY_FRAMEWORK) or reference tools indirectly through RECONCILIATION orchestration.
 
 ### 8.3.3 Backlog
 
@@ -242,7 +242,7 @@ An honest assessment of the implementation requires distinguishing between three
 
 The following capabilities are fully implemented and demonstrated in the example projects:
 
-- The 37-agent instruction suite (all agent files present, conformance verified by AUDIT_AGENTS)
+- The 38-agent instruction suite (all agent files present, conformance verified by AUDIT_AGENTS)
 - The 28-tool registry (all tools present, registered, and referenced in agent PROTOCOL sections where applicable)
 - The three-variant decomposition system (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) sharing the DECOMP_BASE 7-gate protocol
 - The orchestration spawning graph and session handoff mechanism
@@ -305,7 +305,7 @@ This chapter has presented the concrete implementation of the architectural comm
 
 | Dimension | Count |
 |-----------|-------|
-| Agent instruction files | 37 |
+| Agent instruction files | 38 |
 | Deterministic tools (REGISTRY.md) | 28 |
 | K-* invariants (CONTRACT.md) | 20 |
 | Workflow design requirements (R1–R9) | 9 |

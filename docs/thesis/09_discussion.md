@@ -12,7 +12,7 @@ The preceding chapters presented a philosophical framework, a technical architec
 
 ### 9.2.1 No Controlled Empirical Validation
 
-The most significant limitation of this work is that the Chirality architecture has not been validated through a controlled empirical study with practicing engineers. The thesis demonstrates that the architecture satisfies the structural requirements of APEGA's professional practice standards, and that it has been implemented as working software with 37 agent instruction files and 28 deterministic tools. However, it does not present empirical evidence that:
+The most significant limitation of this work is that the Chirality architecture has not been validated through a controlled empirical study with practicing engineers. The thesis demonstrates that the architecture satisfies the structural requirements of APEGA's professional practice standards, and that it has been implemented as working software with 38 agent instruction files and 28 deterministic tools. However, it does not present empirical evidence that:
 
 - Licensed professionals find the epistemic labeling and provenance mechanisms effective for thorough review in practice
 - The review time for AI-assisted work products is measurably reduced compared to unstructured AI outputs
@@ -102,19 +102,19 @@ The "future tooling" enforcement layer should be implemented as automated checks
 
 The warrant lifecycle model (UNWARRANTED → CITED → REVIEWED → AUTHENTICATED) and the AUDIT_EPISTEMIC agent that operationalizes it should be empirically validated. Specific questions include: does the warrant state distribution correlate with deliverable quality? do deliverables with higher CITED/REVIEWED ratios produce fewer review findings? does the AUDIT_EPISTEMIC agent's conflict detection catch errors that manual review misses? These questions require data from real project executions.
 
-### 9.4.5 Formal Verification of Invariant Preservation
+### 9.4.4 Formal Verification of Invariant Preservation
 
 The invariant system could be subjected to formal verification: given the write scope declarations, the gate structure, and the lifecycle state machine, can it be proven that no sequence of agent actions violates the K-* invariants? This is a formal methods contribution that would strengthen the safety argument.
 
-### 9.4.6 Multi-Jurisdiction Regulatory Mapping
+### 9.4.5 Multi-Jurisdiction Regulatory Mapping
 
 The APEGA mapping should be replicated for other jurisdictions (EGBC, PEO, NSPE, Engineers Australia, UK Engineering Council) to validate the generalizability claim and to identify jurisdiction-specific requirements that the architecture may need to accommodate.
 
-### 9.4.7 Multi-User Concurrent Execution
+### 9.4.6 Multi-User Concurrent Execution
 
 The current architecture assumes sequential agent execution within a single user session. Multi-user concurrent execution — multiple licensed professionals directing agents against the same project simultaneously — would require a lock mechanism (identified as a future hardening candidate in `PLAN.md` §3.5) and conflict resolution protocols for concurrent write operations.
 
-### 9.4.8 Extension to Other Agent Platforms
+### 9.4.7 Extension to Other Agent Platforms
 
 The governance architecture is currently coupled to the Chirality desktop application and its specific agent runtime. Demonstrating that the same invariant system, write scope model, and epistemic architecture can govern agents on other platforms (e.g., LangChain, AutoGen, Claude Code) would validate the claim that the contribution is architectural, not implementation-specific.
 

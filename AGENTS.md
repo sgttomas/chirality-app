@@ -11,10 +11,22 @@ Use `AGENT_*` for instruction files (e.g., `AGENT_CHANGE.md`). Use the role name
 Rows describe epistemic posture; columns describe functional role. NORMATIVE and EVALUATIVE rows open in WORKBENCH (interactive). OPERATIVE row opens in PIPELINE (task execution).
 
 |  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
-|:---|:---|:---|:---|:---|
-| **NORMATIVE** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
+| --- | --- | --- | --- | --- |
+| **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **EVALUATIVE** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+| **EVALUATIVE** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
+
+### Operative Row — Pipeline Categories
+
+The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands to the agents listed below, grouped by `PipelineCategory` (see `TYPES.md` §9.2).
+
+**DECOMP\*:** PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP, SCOPE_CHANGE
+
+**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, ESTIMATE_PREP
+
+**TASK\*:** TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, ESTIMATING, AGGREGATION, DOMAIN_HYPERGRAPH, CONTENT_DIGEST
+
+**AUDIT\*:** AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, AUDIT_HYPERGRAPH_CLOSURE, AUDIT_GOVERNANCE, AUDIT_EPISTEMIC, AUDIT_SCOPE_CLOSURE, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT
 
 ---
 
@@ -23,14 +35,14 @@ Rows describe epistemic posture; columns describe functional role. NORMATIVE and
 ### Type 0 — Canonical Standards
 
 | Agent | Instruction File | Role |
-|-------|-----------------|------|
+| --- | --- | --- |
 | HELPS_HUMANS | `AGENT_HELPS_HUMANS.md` | Workflow design standard; all agents must conform |
 | DECOMP_BASE | `AGENT_DECOMP_BASE.md` | Decomposition protocol standard (7-gate, I1–I10) |
 
 ### Type 1 — Interactive Personas
 
 | Agent | Instruction File | Role |
-|-------|-----------------|------|
+| --- | --- | --- |
 | HELP_HUMAN | `AGENT_HELP_HUMAN.md` | Operator assistance; classifies intent, drafts briefs |
 | ORCHESTRATOR | `AGENT_ORCHESTRATOR.md` | Project setup, tier sequencing, control loops |
 | WORKING_ITEMS | `AGENT_WORKING_ITEMS.md` | Deliverable-scoped content production |
@@ -49,7 +61,7 @@ Rows describe epistemic posture; columns describe functional role. NORMATIVE and
 ### Type 2 — Bounded Task Agents
 
 | Agent | Instruction File | Role |
-|-------|-----------------|------|
+| --- | --- | --- |
 | PREPARATION | `AGENT_PREPARATION.md` | Scaffold package/deliverable folders |
 | 4_DOCUMENTS | `AGENT_4_DOCUMENTS.md` | Draft four-document kit |
 | DOMAIN_DOCUMENTS | `AGENT_DOMAIN_DOCUMENTS.md` | Knowledge artifact files for domain decompositions |

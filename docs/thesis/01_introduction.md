@@ -26,7 +26,7 @@ Agents are organized into three types: Type 0 (Architect) agents define invarian
 
 The architecture is governed by three layers of formally stated invariants — workflow design requirements (R1–R9), decomposition invariants (I1–I10), and system-wide invariants (K-*) — enforced through agent instructions, runtime orchestration, human gates, and deterministic tooling.
 
-The system has been implemented as a desktop application with 37 agent instruction files, 28 deterministic tools, and a formal governance document suite. It has been grounded in the APEGA regulatory framework through a professional practice standard that maps the architecture to the specific requirements of the *Relying on the Work of Others and Outsourcing* practice standard.
+The system has been implemented as a desktop application with 38 agent instruction files, 28 deterministic tools, and a formal governance document suite. It has been grounded in the APEGA regulatory framework through a professional practice standard that maps the architecture to the specific requirements of the *Relying on the Work of Others and Outsourcing* practice standard.
 
 ---
 
@@ -56,7 +56,7 @@ The thesis is organized as follows:
 - **Chapter 5 (Epistemic Architecture)** develops the core novelty claim: the six epistemic primitives, the four enforcement mechanisms, the warrant lifecycle as operational model, worked examples, and comparison to alternative approaches.
 - **Chapter 6 (Professional Practice Integration)** presents the APEGA regulatory mapping and the argument that AI agents are "others" under §3.0.
 - **Chapter 7 (SE Design Analysis)** examines the architecture through eight SE disciplines.
-- **Chapter 8 (Implementation and Validation)** presents the working implementation: 37 agents, 28 tools, desktop application, and validation mechanisms.
+- **Chapter 8 (Implementation and Validation)** presents the working implementation: 38 agents, 28 tools, desktop application, and validation mechanisms.
 - **Chapter 9 (Discussion)** assesses limitations, generalizability, and future work.
 - **Chapter 10 (Conclusion)** restates the contributions and answers the research question.
 

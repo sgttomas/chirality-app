@@ -44,6 +44,26 @@ The inner commitment is about the work. The outer commitment is about the profes
 
 The architecture exists to make both commitments possible with integrity: the inner commitment requires that every claim's warrant state be inspectable; the outer commitment requires that the professional's act of acceptance bind to specific, identified content.
 
+### 2.4 The Chirality of Knowledge
+
+The framework is named for a structural property of knowledge itself.
+
+In chemistry, chirality is the property of a molecule whose mirror image cannot be superimposed on the original. The left hand and the right hand have the same components, the same connections, the same structure — but they are irreducibly distinct.
+
+Knowledge, in professional practice, has this property. It is composed of complementary, non-superimposable components whose pairing is constitutive:
+
+- **Claim and warrant** are chiral. A claim asserts; a warrant justifies. They appear in the same documents, carry the same content format, and are both text — but they are structurally distinct. A claim without a warrant is assertion. A warrant without a claim is evidence. Neither is knowledge. Both are required. Neither can be derived from the other.
+
+- **Meaning and commitment** are chiral. Meaning is given — the professional encounters it in the work. Commitment is enacted — the professional supplies it through the act of authentication. No amount of meaning produces commitment. No amount of commitment compensates for absent meaning. Both are required. Neither can be superimposed on the other.
+
+- **Content and accountability** are chiral. The informational structure of a work product (its claims, warrants, and epistemic state) is one hand. The professional who takes responsibility for that structure is the other. They cannot be collapsed into a single thing. The content exists without the professional (as information). The professional exists without the content (as capability). Knowledge exists only when both are present and bound together.
+
+This chirality is not a limitation to be resolved. It is the structure that makes professional knowledge possible. If claim and warrant could be collapsed, there would be no distinction between grounded and ungrounded assertions. If meaning and commitment could be derived from each other, there would be no need for a professional to decide. If content and accountability could be superimposed, there would be no space for the act of warranting.
+
+The architecture makes both hands visible. The professional holds them together. The seal is the act that binds the chiral pair — declaring that the content has been inspected, the warrant has been assessed, and the professional takes responsibility for both.
+
+The semantic algebra that generates the system's deliverable-level semantic structures formalizes this chirality: Matrix A (how the system is organized) and Matrix B (what adequate knowledge means) are the two non-superimposable inputs. Neither alone generates the semantic space. The algebra brings both hands together.
+
 ---
 
 ## 3. What the Architecture Must Provide
@@ -71,6 +91,8 @@ These pillars are not a classification scheme selected for this project. They ar
 - Without epistemology: the professional does not know what to believe
 - Without praxiology: the professional does not know how the work was performed
 - Without axiology: the professional does not know why the decisions were made the way they were
+
+The four pillars form two chiral pairs. Ontology and epistemology are the structural pair — what exists and what is warranted about what exists. Praxiology and axiology are the action pair — how work is done and what values govern it. Each pair is internally chiral: ontology without epistemology is structure without knowledge of what the structure means; epistemology without ontology has nothing to attach warrants to. Praxiology without axiology is execution without purpose; axiology without praxiology is values without enactment. The complete framework requires both pairs, and neither pair can be superimposed on the other.
 
 ### 3.3 The Epistemic Architecture
 
@@ -136,6 +158,8 @@ The four pillars appear at every level of the system:
 | **Production documents** | Datasheet | Specification | Guidance | Procedure |
 
 This self-similarity arises because professional accountability requires the same four things at every level of abstraction. The fractal property is not a design choice. It is a structural property of accountability itself.
+
+More precisely, the fractal property is the chirality of knowledge (§2.4) recurring at every level. Wherever knowledge exists in the system — in a deliverable, in an agent instruction, in a governance document — it is composed of complementary, non-superimposable components whose pairing is constitutive. The same chiral structure — claim and warrant, structure and value, content and accountability — appears at every level because knowledge at every level has the same structural property.
 
 ### 3.5 The Generative Relationship to Systems Engineering
 

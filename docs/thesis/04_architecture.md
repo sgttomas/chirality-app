@@ -186,9 +186,9 @@ The agent system is organized into three types with strictly partitioned respons
 
 **Type 0 — Canonical Standards (Architect).** Type 0 agents define the invariant protocols and design standards that all downstream agents must conform to. They do not write project state. They are, in the DBM's terminology, the "constitutional layer" of the system. There are two Type 0 agents: HELPS_HUMANS, which defines the workflow design standard (R1–R9, the four-section agent structure, brief formats, and QA contracts), and DECOMP_BASE, which defines the decomposition protocol standard (the seven-gate protocol, I1–I10 invariants, and the extension contract for decomposition variants). Where any agent instruction disagrees with a Type 0 standard, the agent instruction must be edited to conform — not the standard.
 
-**Type 1 — Interactive Personas (Manager).** Type 1 agents are human-facing orchestrators. They run conversational, gate-controlled workflows where humans make consequential decisions and agents handle routing, structural output, and brief preparation. Type 1 agents may spawn Type 2 agents. They own orchestration decisions but do not own engineering content. The system contains 12 Type 1 agents (see Appendix B for the complete inventory).
+**Type 1 — Interactive Personas (Manager).** Type 1 agents are human-facing orchestrators. They run conversational, gate-controlled workflows where humans make consequential decisions and agents handle routing, structural output, and brief preparation. Type 1 agents may spawn Type 2 agents. They own orchestration decisions but do not own engineering content. The system contains 14 Type 1 agents (see Appendix B for the complete inventory).
 
-**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven specialists operating in straight-through execution mode. They receive structured inputs (INIT-TASK briefs), produce auditable outputs, and return to their invoking agent without mid-run human interaction. Type 2 agents never spawn other agents. The system contains 15 Type 2 agents (see Appendix B).
+**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven specialists operating in straight-through execution mode. They receive structured inputs (INIT-TASK briefs), produce auditable outputs, and return to their invoking agent without mid-run human interaction. Type 2 agents never spawn other agents. The system contains 22 Type 2 agents (see Appendix B).
 
 [COMPARE: Multi-agent frameworks such as AutoGen and CrewAI support role differentiation among agents but do not enforce a strict constitutional hierarchy with write-scope enforcement and non-bypassable human gates; compare authority isolation properties]
 
@@ -264,6 +264,9 @@ DELIVERABLE-LOCAL
 ├── TASK
 └── REVIEW (+tool-root for snapshots)
 
+REPO-WIDE
+└── TOOLMAKER
+
 TOOL-ROOT-ONLY
 ├── ORCHESTRATOR         → _Coordination/
 ├── RECONCILIATION       → _Reconciliation/
@@ -275,7 +278,15 @@ TOOL-ROOT-ONLY
 ├── AUDIT_DECOMP         → _Reconciliation/DecompCoverage/
 ├── AUDIT_DEP_CLOSURE    → _Reconciliation/DepClosure/
 ├── AUDIT_HYPERGRAPH_CLOSURE → _Reconciliation/HypergraphClosure/
-└── DOMAIN_HYPERGRAPH    → _Aggregation/Hypergraph/
+├── AUDIT_GOVERNANCE     → _Reconciliation/GovernanceAudit/
+├── AUDIT_EPISTEMIC      → _Reconciliation/EpistemicAudit/
+├── AUDIT_SCOPE_CLOSURE  → _Reconciliation/ScopeClosureAudit/
+├── DOMAIN_HYPERGRAPH    → _Aggregation/Hypergraph/
+├── EVALUATION           → _Evaluation/
+├── CONTENT_DIGEST       → _Evaluation/content-digests/
+├── EVALUATION_REPORT    → _Evaluation/reports/
+├── EVALUATION_STRUCTURE_AUDIT → _Evaluation/reports/
+└── EVALUATION_DEPENDENCY_AUDIT → _Evaluation/reports/
 ```
 
 ### 4.6.3 The Six Write Scope Rules
@@ -370,9 +381,18 @@ WORKING_ITEMS (Type 1) ──spawns──── TASK
 RECONCILIATION (Type 1) ──spawns──┬── AUDIT_DEP_CLOSURE
                                   ├── AUDIT_AGENTS
                                   ├── AUDIT_DECOMP
+                                  ├── AUDIT_EPISTEMIC
+                                  ├── AUDIT_GOVERNANCE
+                                  ├── AUDIT_SCOPE_CLOSURE
                                   └── AUDIT_HYPERGRAPH_CLOSURE (DOMAIN variant)
 
+EVALUATION (Type 1) ──spawns──┬── CONTENT_DIGEST
+                              ├── EVALUATION_REPORT
+                              ├── EVALUATION_STRUCTURE_AUDIT
+                              └── EVALUATION_DEPENDENCY_AUDIT
+
 CHANGE (Type 1) — leaf agent; implements approved edits; spawns nothing
+TOOLMAKER (Type 1) — standalone; designs and implements deterministic tools
 
 REVIEW (Type 1) — triggers AUDIT_DECOMP as a precondition check
 SCOPE_CHANGE (Type 1) — hands off to ORCHESTRATOR + CHANGE

@@ -1,6 +1,6 @@
 # INIT — Agent Bootstrap
 
-Chirality is a formally specified agent operating system for deliverable-heavy professional work. All project truth lives in git-tracked plain files. Agents operate under invariant contracts, bounded write scopes, and human gate authority.
+Chirality is a formally specified agent operating system for deliverable-heavy professional work. All project truth lives in git-tracked plain files. Agents operate under invariant contracts, bounded write scopes, and human gate authority. The theoretical foundation, the regulatory grounding, and the argument for why this architecture takes the form it does are developed in `docs/thesis/`.
 
 ## Authoritative Documents
 

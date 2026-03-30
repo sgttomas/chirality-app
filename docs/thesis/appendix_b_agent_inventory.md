@@ -1,6 +1,6 @@
 # Appendix B — Agent Inventory
 
-This appendix provides the complete classification of the 37 agent instruction files in the Chirality agent suite. The inventory is organized across four sections: the two-dimensional agent matrix that positions agents by epistemic posture and functional role; the complete classification table enumerating each agent's type, class, interaction surface, write scope, blocking behavior, and primary outputs; the spawning graph showing orchestration dependencies among Type 1 and Type 2 agents; and the variant coverage matrix showing which agents operate across the PROJECT, SOFTWARE, and DOMAIN decomposition variants.
+This appendix provides the complete classification of the 38 agent instruction files in the Chirality agent suite. The inventory is organized across four sections: the two-dimensional agent matrix that positions agents by epistemic posture and functional role; the complete classification table enumerating each agent's type, class, interaction surface, write scope, blocking behavior, and primary outputs; the spawning graph showing orchestration dependencies among Type 1 and Type 2 agents; and the variant coverage matrix showing which agents operate across the PROJECT, SOFTWARE, and DOMAIN decomposition variants.
 
 ---
 
@@ -22,7 +22,7 @@ The two interaction modes follow from row membership: the NORMATIVE and EVALUATI
 
 ## B.2 Complete Classification Table
 
-The following table enumerates all 37 agent instruction files in the `agents/` directory. Each row records the agent's position in the type hierarchy (Type 0 = canonical standard, Type 1 = interactive persona, Type 2 = bounded task agent), its class (PERSONA for conversational agents; TASK for straight-through execution agents), its interaction surface (how the agent is invoked), its declared write scope (the filesystem area the agent may write to), whether the agent may block for human input, and its primary outputs. The write scope declaration is a formal architectural constraint: no agent may write outside its declared scope, enforcing fault containment across the suite.
+The following table enumerates all 38 agent instruction files in the `agents/` directory. Each row records the agent's position in the type hierarchy (Type 0 = canonical standard, Type 1 = interactive persona, Type 2 = bounded task agent), its class (PERSONA for conversational agents; TASK for straight-through execution agents), its interaction surface (how the agent is invoked), its declared write scope (the filesystem area the agent may write to), whether the agent may block for human input, and its primary outputs. The write scope declaration is a formal architectural constraint: no agent may write outside its declared scope, enforcing fault containment across the suite.
 
 The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGEST, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT) were added to the suite subsequent to the initial publication of the DBM and are included here for completeness.
 
@@ -64,7 +64,7 @@ The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGES
 | **EVALUATION_STRUCTURE_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Structure audit report with file counts, lifecycle state distribution, violation list |
 | **EVALUATION_DEPENDENCY_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Dependency audit report with per-deliverable schema check, anchor check, evidence check |
 
-**Type counts:** 2 Type 0 agents · 14 Type 1 agents · 21 Type 2 agents · **37 total**
+**Type counts:** 2 Type 0 agents · 14 Type 1 agents · 22 Type 2 agents · **38 total**
 
 ---
 

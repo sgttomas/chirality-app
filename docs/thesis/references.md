@@ -84,9 +84,31 @@ References are organized by category. Citations marked [PLACEHOLDER] require ver
 
 [Sowa2000] J. F. Sowa, *Knowledge Representation: Logical, Philosophical, and Computational Foundations*, Brooks/Cole, Pacific Grove, CA, USA, 2000. ISBN: 978-0-534-94965-5.
 
-[SEARCH: "Wand Weber ontological framework information systems Bunge" — Wand & Weber's application of Bunge's ontology to information systems modeling; key paper likely Wand & Weber (1993) MIS Quarterly or (1995) Communications of the ACM]
+[Wand_Weber_ontology] Y. Wand and R. Weber, "An Ontological Model of an Information System," *IEEE Trans. Software Eng.*, vol. 16, no. 11, pp. 1282–1292, Nov. 1990. doi: 10.1109/32.60316
 
-[SEARCH: "Goldman epistemology social cognition reliabilism" — Alvin Goldman's social epistemology and reliabilist foundations; key works include *Epistemology and Cognition* (1986) and *Knowledge in a Social World* (1999)]
+[Toulmin1958] S. E. Toulmin, *The Uses of Argument*, Cambridge, UK: Cambridge University Press, 1958. (Updated ed. 2003, ISBN: 978-0-521-53483-3.)
+
+---
+
+## Philosophy of Knowledge (Chirality of Knowledge Precedents)
+
+[Bohr1958] N. Bohr, *Atomic Physics and Human Knowledge*, New York, NY, USA: Wiley, 1958. (Collected essays from 1934–1958 extending complementarity to epistemology, psychology, and biology. The Como Lecture of 1927 appears in the earlier volume *Atomic Theory and the Description of Nature*, Cambridge: Cambridge University Press, 1934.)
+
+[Plotnitsky1994] A. Plotnitsky, *Complementarity: Anti-Epistemology after Bohr and Derrida*, Durham, NC, USA: Duke University Press, 1994. ISBN: 978-0-8223-1437-0.
+
+[Polanyi1958] M. Polanyi, *Personal Knowledge: Towards a Post-Critical Philosophy*, Chicago, IL, USA: University of Chicago Press, 1958. (Repr. 2015, ISBN: 978-0-226-23262-1.)
+
+[Polanyi1966] M. Polanyi, *The Tacit Dimension*, Garden City, NY, USA: Doubleday, 1966. (Repr. Chicago: University of Chicago Press, 2009, ISBN: 978-0-226-67298-4.)
+
+[Sellars1956] W. Sellars, "Empiricism and the Philosophy of Mind," in *Minnesota Studies in the Philosophy of Science*, vol. 1, H. Feigl and M. Scriven, Eds., Minneapolis, MN, USA: University of Minnesota Press, 1956, pp. 253–329.
+
+[Brandom1994] R. B. Brandom, *Making It Explicit: Reasoning, Representing, and Discursive Commitment*, Cambridge, MA, USA: Harvard University Press, 1994. ISBN: 978-0-674-54319-5.
+
+[Nonaka1995] I. Nonaka and H. Takeuchi, *The Knowledge-Creating Company: How Japanese Companies Create the Dynamics of Innovation*, New York, NY, USA: Oxford University Press, 1995. ISBN: 978-0-195-09269-1.
+
+[McDowell1994] J. McDowell, *Mind and World*, Cambridge, MA, USA: Harvard University Press, 1994. (2nd ed. with new introduction, 1996. ISBN: 978-0-674-57610-5.)
+
+[Nishida1945] K. Nishida, "The Logic of the Place of Nothingness and the Religious Worldview" (1945), in *Last Writings: Nothingness and the Religious Worldview*, D. A. Dilworth, Trans., Honolulu, HI, USA: University of Hawaii Press, 1987. (Nishida's concept of "absolutely contradictory self-identity" was formulated in a 1939 essay of that name and developed through his final 1945 essay.)
 
 ---
 
