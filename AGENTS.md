@@ -22,7 +22,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 
 **DECOMP\*:** PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP, SCOPE_CHANGE
 
-**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, ESTIMATE_PREP
+**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, ESTIMATE_PREP, PDF2MD_PAGE
 
 **TASK\*:** TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, ESTIMATING, AGGREGATION, DOMAIN_HYPERGRAPH, CONTENT_DIGEST
 
@@ -57,6 +57,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | SCHEDULING | `AGENT_SCHEDULING.md` | Schedule generation from dependency graph |
 | EVALUATION | `AGENT_EVALUATION.md` | Project evaluation orchestration |
 | TOOLMAKER | `AGENT_TOOLMAKER.md` | Deterministic tool design and implementation |
+| PDF2MD | `AGENT_PDF2MD.md` | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
 
 ### Type 2 — Bounded Task Agents
 
@@ -84,6 +85,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | EVALUATION_REPORT | `AGENT_EVALUATION_REPORT.md` | Scored dimension evaluation |
 | EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |
 | EVALUATION_DEPENDENCY_AUDIT | `AGENT_EVALUATION_DEPENDENCY_AUDIT.md` | Dependency validation |
+| PDF2MD_PAGE | `AGENT_PDF2MD_PAGE.md` | Single-page PDF-to-Markdown via multimodal vision; spawned per page by PDF2MD |
 
 ---
 

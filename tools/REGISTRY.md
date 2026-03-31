@@ -29,7 +29,7 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | Name | Language | Purpose | Inputs | Outputs |
 |------|----------|---------|--------|---------|
 | `validate_enum.py` | Python 3 | Validate a value against 24 named enum sets | enum_name, value | VALID/INVALID (exit code) |
-| `validate_id_format.sh` | zsh | Validate ID against format pattern (PKG, DEL, DEP, SOW, OBJ, CAT, KTY) | ID_TYPE, ID_VALUE | VALID/INVALID (exit code) |
+| `validate_id_format.sh` | zsh | Validate ID against format pattern (PKG, DEL, DEP, SOW, OBJ, CAT, KTY, SUB) | ID_TYPE, ID_VALUE | VALID/INVALID (exit code) |
 | `validate_dependencies_schema.py` | Python 3 | Validate Dependencies.csv against v3.1 schema (29 columns) | csv_path | VALID/INVALID + column counts |
 | `check_min_viable_fileset.sh` | zsh | Verify 5 required metadata files in a deliverable folder | DELIVERABLE_PATH | PASS/FAIL (exit code) + missing list |
 | `check_four_documents.sh` | zsh | Verify 4 document kit files in a deliverable folder | DELIVERABLE_PATH | PASS/FAIL (exit code) + missing list |
@@ -44,6 +44,15 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | `summarize_by_cbs.py` | Python 3 | Group and sum Amount by CBS category | input_csv, output_csv | Project_Summary_CBS.csv |
 | `generate_wbs_cbs_matrix.py` | Python 3 | Pivot detail data into WBS x CBS cost matrix | input_csv, output_csv | Project_WBS_CBS_Matrix.csv |
 | `generate_coverage_csv.py` | Python 3 | Cross-reference deliverables vs found artifacts (deps, estimates, doc kit) | EXECUTION_ROOT, output_csv | Coverage.csv with per-deliverable presence flags |
+| `clean_pdf2md_output.py` | Python 3 | Remove repeating page headers, separators, and boilerplate from PDF-to-markdown conversion output | file.md [file2.md ...] | Cleaned files in-place + line removal counts |
+
+## PDF-to-Markdown
+
+| Name | Language | Purpose | Inputs | Outputs |
+|------|----------|---------|--------|---------|
+| `rasterize_pdf.py` | Python 3 | Render PDF pages to numbered PNG files via pymupdf (idempotent — skips existing PNGs) | pdf_path, output_dir, [--dpi 300], [--pages 1-5,7] | `page_{NNNN}.png` files + `manifest.json` |
+| `postprocess_page.py` | Python 3 | Apply 10-rule deterministic cleanup to VLM-generated markdown (strip fences, fix tables, remove hallucinations, normalise whitespace) | input.md, [output.md] | Cleaned markdown file |
+| `assemble_markdown.py` | Python 3 | Join per-page markdown files into a single assembled document with page separators | pages_dir, output_file, [--separator "---"] | Assembled `.md` file |
 
 ## Coordination
 

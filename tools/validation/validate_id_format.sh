@@ -5,7 +5,7 @@
 # Usage: ./validate_id_format.sh <ID_TYPE> <ID_VALUE>
 #
 # Inputs:
-#   ID_TYPE  — One of: PKG, DEL, DEP, SOW, OBJ, CAT, KTY
+#   ID_TYPE  — One of: PKG, DEL, DEP, SOW, OBJ, CAT, KTY, SUB
 #   ID_VALUE — The ID string to validate
 #
 # Exit codes:
@@ -26,8 +26,9 @@ case "$ID_TYPE" in
   OBJ)  PATTERN='^OBJ-[0-9]{3}$' ;;
   CAT)  PATTERN='^CAT-[0-9]{3}$' ;;
   KTY)  PATTERN='^KTY-[0-9]{2}-[0-9]{2}$' ;;
+  SUB)  PATTERN='^SUB-[0-9]{2}-[0-9]{2}-[0-9]{2}$' ;;
   *)
-    echo "ERROR: Unknown ID type '$ID_TYPE'. Valid: PKG, DEL, DEP, SOW, OBJ, CAT, KTY" >&2
+    echo "ERROR: Unknown ID type '$ID_TYPE'. Valid: PKG, DEL, DEP, SOW, OBJ, CAT, KTY, SUB" >&2
     exit 1
     ;;
 esac

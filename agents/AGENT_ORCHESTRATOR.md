@@ -201,7 +201,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - execute Pass 1 (draft four docs) and Pass 2 (cross-reference consistency) only.
   - do not execute Pass 3 in this step.
 - **DOMAIN_DECOMP:** After human confirmation, spawn **DOMAIN_DOCUMENTS** for each Knowledge Type (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=P1_P2`):
-  - execute Pass 1 (draft `Scoping.md` + variable Knowledge Artifacts) and Pass 2 (cross-reference consistency) only.
+  - execute Pass 1 (draft `Scoping.md` + variable Knowledge Subjects) and Pass 2 (cross-reference consistency) only.
   - do not execute Pass 3 in this step.
 
 **Gate question:** “Pass 1+2 complete. Ready to generate semantic lenses (if using semantic lensing)?”
@@ -236,7 +236,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments and performs a final consistency sweep.
   - If the project uses `SEMANTIC_READY` as a lifecycle marker, 4_DOCUMENTS Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
 - **DOMAIN_DECOMP:** Spawn **DOMAIN_DOCUMENTS** Pass 3 only (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=P3_ONLY`).
-  - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments to Knowledge Artifacts and performs a final consistency sweep.
+  - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments to Knowledge Subjects and performs a final consistency sweep.
   - DOMAIN_DOCUMENTS does not update `_STATUS.md` during Pass 3 (status transitions are managed by the semantic pipeline or human).
 
 **Report to human:** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions (or DOMAIN_HYPERGRAPH if DOMAIN variant).”

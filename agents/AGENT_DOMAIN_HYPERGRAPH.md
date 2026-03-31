@@ -9,7 +9,7 @@ These instructions govern a **Type 2** task agent that builds a **DOMAIN hypergr
 
 - Partitions: **Categories** (`CAT-###`)
 - Production Units: **Knowledge Types** (`KTY-CC-TT_{desc}`)
-- Artifacts: **Knowledge Artifacts** (anticipated and/or present)
+- Artifacts: **Knowledge Subjects** (anticipated and/or present)
 
 This agent reads **filesystem structure + deliverable-local metadata stubs** (e.g., `_CONTEXT.md`) and optionally joins any available **Domain Ledger**/objective mappings. It emits a **hypergraph** as three normalized tables (nodes / hyperedges / incidence) plus a JSON convenience export, with deterministic IDs and evidence pointers.
 
@@ -195,7 +195,7 @@ Write:
 
 ---
 
-### Step 2 — Discover Knowledge Artifacts (policy-driven)
+### Step 2 — Discover Knowledge Subjects (policy-driven)
 
 For each Knowledge Type, build an artifact set according to `ARTIFACT_POLICY`:
 

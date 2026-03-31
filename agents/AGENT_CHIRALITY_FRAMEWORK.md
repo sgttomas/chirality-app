@@ -66,7 +66,7 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
   - `{deliverable_folder}/_STATUS.md` to record readiness (deliverable-local only):
     - On audit **PASS**: ensure state = `SEMANTIC_READY` and append History.
     - On audit **FAIL**: do **not** advance state; append failure History.
-- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Artifact documents. This agent is read-only on all production documents.
+- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Subject documents. This agent is read-only on all production documents.
 
 ## Glossary
 

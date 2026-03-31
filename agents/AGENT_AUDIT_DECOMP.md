@@ -93,7 +93,7 @@ This protocol uses **Package / Deliverable / Scope Ledger / Scope Item** termino
 | Deliverable | Deliverable | Deliverable | Knowledge Type |
 | Scope Item | Scope Item | Scope Item | Handbook Unit |
 | Scope Ledger | Scope Ledger | Scope Ledger | Domain Ledger |
-| Artifact | Artifact | Artifact | Knowledge Artifact |
+| Artifact | Artifact | Artifact | Knowledge Subject |
 
 ### Variant Section Binding
 
@@ -131,7 +131,7 @@ When `DECOMP_VARIANT = SOFTWARE`, Check 7 (Objective Mapping) resolves objective
 
 **DOMAIN_DECOMP:**
 - Step 5 (Context Fidelity): also compare `CanonicalSchema`, `IntendedUsers`, `WhenUsed` fields
-- Step 6 (Artifact Presence): check against the Knowledge Type's anticipated Knowledge Artifacts instead of the standard four-doc set
+- Step 6 (Artifact Presence): check against the Knowledge Type's anticipated Knowledge Subjects instead of the standard four-doc set
 - Step 8 (Ledger Integrity): the ledger is named "Domain Ledger" and uses `UnitID` / `CategoryID` / `KnowledgeTypeID(s)` columns
 
 If `DECOMPOSITION_PATH` is missing, unreadable, or cannot be parsed (Partitions/Production Units sections not found per Variant Section Binding): write `RUN_SUMMARY.md` with `RUN_STATUS = FAILED_INPUTS` and return.
@@ -168,7 +168,7 @@ Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Re
 1) Resolve `EXECUTION_ROOT` and `DECOMPOSITION_PATH`.
 2) Parse the decomposition document. Extract:
    - Partitions section (per Variant Section Binding) → list of `{PartitionID, PartitionName}`
-   - Production Units section (per Variant Section Binding) → list of `{ProductionUnitID, ParentPartitionID, Name, Type, ResponsibleParty, AnticipatedArtifacts, CoversAtomicUnits, SupportsObjectives}`
+   - Production Units section (per Variant Section Binding) → list of `{ProductionUnitID, ParentPartitionID, Name, Type, ResponsibleParty, AnticipatedArtifacts, CoversAtomicUnits, SupportsObjectives}` (for DOMAIN_DECOMP, `AnticipatedArtifacts` maps to the Knowledge Type's anticipated Knowledge Subjects)
    - Objectives → list of `{ObjectiveID, Statement}` (from dedicated section or Ledger `ObjectiveID(s)` column, per variant binding)
    - Ledger → In-scope items with IDs
 3) If parsing fails (sections not found, table format unrecognizable): `FAILED_INPUTS`.
@@ -246,7 +246,7 @@ For each deliverable with a matched folder:
 - Read the `AnticipatedArtifacts` list from the Production Units section
 - Scan the folder for files matching each anticipated artifact name (fuzzy filename match)
 - For PROJECT_DECOMP and SOFTWARE_DECOMP: also check for the standard four-doc set (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
-- For DOMAIN_DECOMP: check against the Knowledge Type's anticipated Knowledge Artifacts (no standard four-doc set assumed)
+- For DOMAIN_DECOMP: check against the Knowledge Type's anticipated Knowledge Subjects (no standard four-doc set assumed)
 - Record: `DeliverableID, ArtifactName, Present (true/false), MatchedFile`
 - If absent: issue `INFO` — "Anticipated artifact '{name}' not found in {folder}"
 

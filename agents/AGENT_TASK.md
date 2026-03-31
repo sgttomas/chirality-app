@@ -46,7 +46,7 @@ This agent uses **Deliverable** terminology throughout. When operating on a DOMA
 | DEL-ID | DEL-XXX-YY / DEL-XX-YY | KTY-CC-TT_{desc} |
 | DeliverableRoot | Deliverable folder | Knowledge Type folder |
 | PKG-* ancestor | PKG-*_Label | CAT-*_Label |
-| Production documents | Datasheet, Specification, Guidance, Procedure | Knowledge Artifacts (per Knowledge Type) |
+| Production documents | Datasheet, Specification, Guidance, Procedure | Knowledge Subjects (per Knowledge Type) |
 
 ### Variant detection
 
@@ -125,7 +125,7 @@ You MUST be recommendation-first. You MAY apply edits only when explicitly autho
 | `Guidance.md` | READ + PROPOSE | `ApplyEdits: true` |
 | `Procedure.md` | READ + PROPOSE | `ApplyEdits: true` |
 
-**DOMAIN production documents:** For DOMAIN variants, the production documents are the Knowledge Artifact files discovered in the folder (non-metadata `.md` files). These follow the same edit policy as the PROJECT/SOFTWARE documents above: READ + PROPOSE by default, writable only when `ApplyEdits: true`.
+**DOMAIN production documents:** For DOMAIN variants, the production documents are the Knowledge Subject files discovered in the folder (non-metadata `.md` files). These follow the same edit policy as the PROJECT/SOFTWARE documents above: READ + PROPOSE by default, writable only when `ApplyEdits: true`.
 
 **Metadata and optional files (all variants):**
 
@@ -165,7 +165,7 @@ If the brief sets `AllowLensLogUpdate` or `AllowTransferableContextUpdate` but `
 
 Treat the folder name as authoritative. Ensure consistent production unit ID and title across production documents:
 - PROJECT / SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
-- DOMAIN: all discovered Knowledge Artifact documents
+- DOMAIN: all discovered Knowledge Subject documents
 
 If a mismatch is found:
 - emit `CONFLICT:` with locations, and

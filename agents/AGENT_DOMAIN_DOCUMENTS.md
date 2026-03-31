@@ -1,5 +1,5 @@
 ---
-description: "Drafts schema-driven, variable Knowledge Artifact set for DOMAIN Knowledge Types (typed scoping documents)"
+description: "Drafts schema-driven, variable Knowledge Artifact set for DOMAIN Knowledge Types by deriving artifact plans from decomposition Knowledge Subjects (typed scoping documents)"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DOMAIN_DOCUMENTS (Knowledge Type Drafting Sub-agent)
@@ -7,11 +7,11 @@ AGENT_TYPE: 2
 
 These instructions govern a sub-agent that drafts and iteratively enriches a **schema-driven, variable document set** for **DOMAIN_DECOMP** production units (**Knowledge Types**).
 
-This agent is the DOMAIN replacement for `4_DOCUMENTS` (PROJECT/SOFTWARE), which generates a fixed four-document kit. DOMAIN Knowledge Types instead produce **variable Knowledge Artifacts** whose names and count depend on the topic. This agent creates those artifacts **from decomposition metadata** and prepares them for downstream semantic processing.
+This agent is the DOMAIN replacement for `4_DOCUMENTS` (PROJECT/SOFTWARE), which generates a fixed four-document kit. DOMAIN Knowledge Types instead produce **variable Knowledge Artifacts** whose names and count depend on the topic. This agent derives those artifacts **from decomposition Knowledge Subjects** and prepares them for downstream semantic processing.
 
 **Primary inputs (from the decomposition):**
 - `CanonicalSchema` (Reference | Guidance | Checklist | Procedure)
-- `AnticipatedArtifacts` (semicolon-delimited list of artifact specs)
+- `KnowledgeSubjects` (the ordered list of Knowledge Subjects within this Knowledge Type; each Subject drives one or more artifact files)
 - `ExampleUnitIDs` (HBK unit IDs used as the bounded evidence set)
 
 **The human does not directly interact with this agent. The human has a conversation with ORCHESTRATOR and/or WORKING_ITEMS. You follow these instructions.**
@@ -53,10 +53,10 @@ DOMAIN_DOCUMENTS is responsible only for the **OPEN → INITIALIZED** transition
 | `DECOMPOSITION_REF` | Path to DOMAIN decomposition folder or doc(s) | **Required** |
 | `DECOMP_VARIANT` | Must be `DOMAIN` | `DOMAIN` |
 | `RUN_PASSES` | Which enrichment passes to run | `FULL` |
-| `ALLOW_OVERWRITE_STATES` | Which `_STATUS.md` states permit overwrite of Knowledge Artifacts | `OPEN, INITIALIZED, SEMANTIC_READY` |
+| `ALLOW_OVERWRITE_STATES` | Which `_STATUS.md` states permit overwrite of Knowledge Artifact files | `OPEN, INITIALIZED, SEMANTIC_READY` |
 | `UNIT_SCOPE` | Which handbook units to use as the bounded evidence set | `EXAMPLES_ONLY` |
 | `ARTIFACT_NAMING` | How to name artifact files | `PREFIXED_TYPED_SLUG` |
-| `MAX_ARTIFACTS` | Hard cap on artifacts created from AnticipatedArtifacts | `25` |
+| `MAX_ARTIFACTS` | Hard cap on artifact files created from Knowledge Subjects | `25` |
 | `REPORT_TO` | Where to report run outcome | ORCHESTRATOR |
 
 ### `RUN_PASSES` allowed values
@@ -120,7 +120,7 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
 
 **Action:**
 1. Read `{KTY_PATH}/_CONTEXT.md` (best-effort).
-   - Extract: KnowledgeType ID, name, parent category, description, anticipated artifacts (if present), decomposition pointer (if present).
+   - Extract: KnowledgeType ID, name, parent category, description, decomposition pointer (if present).
 2. Locate and read decomposition tables (best-effort; do not fail if absent):
    - `KnowledgeTypes.csv` (expected at `{DECOMPOSITION_REF}/_Decomposition/Data/KnowledgeTypes.csv` or nearby)
    - `HandbookUnits.csv` (expected at `{DECOMPOSITION_REF}/_Decomposition/Data/HandbookUnits.csv` or nearby)
@@ -131,7 +131,7 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - If multiple rows match, return `RUN_STATUS=FAILED_INPUTS` (ambiguous identity) with evidence.
 4. Extract these KTY fields (do not infer):
    - `CanonicalSchema`
-   - `AnticipatedArtifacts`
+   - `KnowledgeSubjects` (the ordered set of Knowledge Subjects belonging to this KTY; used to derive the artifact plan)
    - `ExampleUnitIDs`
    - `Description`, `IntendedUsers`, `WhenUsed`
    - `ParentCategoryID`, `ParentCategoryName`
@@ -146,11 +146,10 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
 ### Step 2 — Parse Draft Plan (Pass 1 only)
 
 **Action:**
-1. Parse `AnticipatedArtifacts` into an ordered artifact spec list:
-   - Primary split: semicolon (`;`)
-   - Trim whitespace; drop empty entries.
-   - Keep ordering stable (ordering is meaningful).
-   - If the field is empty/missing:
+1. Parse the `KnowledgeSubjects` for this KTY into an ordered subject list:
+   - Each Knowledge Subject (from the decomposition) represents one discrete domain topic and drives one artifact file.
+   - Keep ordering stable (ordering is meaningful; use SubjectID order when available).
+   - If no Knowledge Subjects are found in the decomposition data:
      - Create a single fallback artifact spec: `Overview (TBD)`.
 2. Parse `ExampleUnitIDs` into a unit list:
    - Accept JSON list, Python list string, or semicolon-delimited string; best-effort.
@@ -163,7 +162,7 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - If a unit cannot be found: record it as missing and include `TBD` placeholders.
 5. Determine the **document archetype** for each artifact:
    - Default: `CanonicalSchema` from the KTY row.
-   - Additive “artifact-specific add-ons” (structural only) based on artifact spec keywords:
+   - Additive “artifact-specific add-ons” (structural only) based on keywords in the Subject name or description:
      - if contains `checklist` → add `CHECKLIST_BLOCK`
      - if contains `template` or `log` or `form` → add `TEMPLATE_BLOCK`
      - if contains `procedure` or `steps` → add `PROCEDURE_BLOCK`
@@ -171,12 +170,12 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - Record any add-ons in `Scoping.md` and `Decision_Log` section inside `Scoping.md`.
    - Do not treat add-ons as evidence; they are scaffolding conveniences.
 6. Determine output filenames using `ARTIFACT_NAMING` policy:
-   - `Slug` = filesystem-safe slug from the artifact spec (letters/numbers/hyphen; collapse whitespace).
+   - `Slug` = filesystem-safe slug from the Knowledge Subject name (letters/numbers/hyphen; collapse whitespace).
    - `Type` = the base archetype (`Reference|Guidance|Checklist|Procedure`) from `CanonicalSchema`.
    - If the slug is empty, use `TBD`.
    - Apply a stable ordinal prefix when policy includes `PREFIXED_*`.
 
-**Output:** A deterministic artifact plan: ordered list of `{ArtifactID, ArtifactSpec, BaseType, AddOns, Filename}` plus evidence unit table.
+**Output:** A deterministic artifact plan: ordered list of `{ArtifactID, SubjectID, SubjectName, BaseType, AddOns, Filename}` plus evidence unit table.
 
 ---
 
@@ -214,7 +213,7 @@ Create/overwrite `Scoping.md` with:
 - `CanonicalSchema`
 - Intended users and when-used context
 - Evidence set table (UnitID → AtomicStatement → SourceRef)
-- Artifact plan table (ArtifactID → Spec → BaseType → AddOns → Filename)
+- Artifact plan table (ArtifactID → SubjectID → SubjectName → BaseType → AddOns → Filename)
 - Open questions / `TBD` list
 - Conflict Table (for human ruling)
 
@@ -239,6 +238,7 @@ For each planned artifact, create/overwrite the target file with:
 2) Artifact Metadata block:
    - Knowledge Type: ID + Name
    - Category: ID + Name
+   - Knowledge Subject: SubjectID + Name
    - Artifact ID: `KA-##`
    - Base Type: `{Reference|Guidance|Checklist|Procedure}`
    - Add-ons: list (if any)
@@ -376,7 +376,7 @@ Invalid when:
 ### Knowledge Artifact filename contract (recommended default)
 - `KA-01_{Type}__{Slug}.md` where:
   - `Type` = `{Reference|Guidance|Checklist|Procedure}` (from `CanonicalSchema`)
-  - `Slug` = safe slug from `AnticipatedArtifacts` item
+  - `Slug` = safe slug derived from the Knowledge Subject name
 
 This is a recommendation, not a global invariant. If the workspace already has established naming conventions, ORCHESTRATOR may override `ARTIFACT_NAMING`.
 
@@ -387,14 +387,15 @@ This is a recommendation, not a global invariant. If the workspace already has e
 [[BEGIN:RATIONALE]]
 ## RATIONALE
 
-PROJECT and SOFTWARE decompositions have a stable “deliverable interface”: a fixed four-document kit. DOMAIN decompositions do not; the production documents are **topic-dependent** Knowledge Artifacts.
+PROJECT and SOFTWARE decompositions have a stable “deliverable interface”: a fixed four-document kit. DOMAIN decompositions do not; the production documents are **topic-dependent** Knowledge Artifacts whose count and scope vary by Knowledge Type.
 
 DOMAIN_DOCUMENTS transposes the “deliverable interface” concept into the DOMAIN context by:
-- making the **schema type explicit** (Reference/Guidance/Checklist/Procedure),
+- reading **Knowledge Subjects** from the decomposition (the unit of decomposition below Knowledge Type) and deriving one artifact file per Subject,
+- making the **schema type explicit** (Reference/Guidance/Checklist/Procedure) via `CanonicalSchema`,
 - generating a **bounded, auditable evidence set** from handbook units,
-- producing a **stable entrypoint** (`Scoping.md`) that normalizes variable artifacts into a predictable operator experience,
+- producing a **stable entrypoint** (`Scoping.md`) that maps Knowledge Subjects → artifact files into a predictable operator experience,
 - preserving safety and provenance rules from `4_DOCUMENTS` (no invention, safe overwrite gating, multi-pass enrichment).
 
-This keeps downstream semantic processing tractable while respecting the DOMAIN variant’s inherent variability.
+The Subject-driven model ensures the artifact set is grounded in the decomposition structure rather than inferred from unstructured artifact spec strings. Each `KA-*.md` file is traceable back to a specific Knowledge Subject (`SubjectID`) in the decomposition. This keeps downstream semantic processing tractable while respecting the DOMAIN variant’s inherent variability.
 
 [[END:RATIONALE]]

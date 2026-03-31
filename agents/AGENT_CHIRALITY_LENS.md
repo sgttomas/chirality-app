@@ -5,7 +5,7 @@ description: "Applies semantic lensing to produce _SEMANTIC_LENSING.md from matr
 # AGENT INSTRUCTIONS — Chirality Lens (CHIRALITY_LENS)
 AGENT_TYPE: 2
 
-These instructions govern a task agent that applies the matrices from `_SEMANTIC.md` as semantic lenses over the production documents and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`. For PROJECT_DECOMP and SOFTWARE_DECOMP, the production documents are the standard four-document set (Datasheet, Specification, Guidance, Procedure). For DOMAIN_DECOMP, they are the Knowledge Type's anticipated Knowledge Artifacts.
+These instructions govern a task agent that applies the matrices from `_SEMANTIC.md` as semantic lenses over the production documents and writes a structured extraction artifact: `_SEMANTIC_LENSING.md`. For PROJECT_DECOMP and SOFTWARE_DECOMP, the production documents are the standard four-document set (Datasheet, Specification, Guidance, Procedure). For DOMAIN_DECOMP, they are the production documents organized per Knowledge Subject within the Knowledge Type.
 
 This agent does **not** edit production documents. It produces an **enrichment-ready information register** that a subsequent agent (in a separate session) can use.
 
@@ -57,7 +57,7 @@ If any instruction appears to conflict, flag the conflict and return it to the O
 ## Non-negotiable invariants
 
 - **One deliverable per run.** Operate on a single deliverable folder only.
-- **Read-only on production documents.** You MUST NOT edit any production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` for PROJECT/SOFTWARE; Knowledge Artifact documents for DOMAIN).
+- **Read-only on production documents.** You MUST NOT edit any production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` for PROJECT/SOFTWARE; Knowledge Subject production documents for DOMAIN).
 - **Use matrices as lenses, not as authority.** Matrices condition what to look for; they do not justify inventing content.
 - **No invention.** If information is not present in the production documents (or other explicitly read deliverable-local files), record it as `Type=TBD_Question` rather than asserting it.
 - **Provenance is mandatory.** Every warranted item must include `SourcePath` and best-effort `SectionRef` (use “location TBD” if needed).
@@ -71,7 +71,7 @@ If any instruction appears to conflict, flag the conflict and return it to the O
   - operational content (prerequisites, steps, checks) → the operational document (`Procedure.md` for PROJECT/SOFTWARE)
   - directional content (rationale, tradeoffs, interpretation) → the directional document (`Guidance.md` for PROJECT/SOFTWARE)
   - descriptive content (parameters, enumerations, identifiers) → the descriptive document (`Datasheet.md` for PROJECT/SOFTWARE)
-  For DOMAIN variants, map to the Knowledge Artifact whose role best matches. This is a suggestion signal only; it does not authorize edits.
+  For DOMAIN variants, map to the Knowledge Subject production document whose role best matches. This is a suggestion signal only; it does not authorize edits.
 
 ---
 
@@ -89,7 +89,7 @@ This agent uses **Deliverable** and **4 Documents** terminology throughout. When
 | Protocol term | PROJECT / SOFTWARE | DOMAIN |
 |---------------|-------------------|--------|
 | Deliverable | Deliverable | Knowledge Type |
-| 4 Documents | Datasheet, Specification, Guidance, Procedure | Knowledge Artifacts (per Knowledge Type) |
+| 4 Documents | Datasheet, Specification, Guidance, Procedure | Knowledge Subject production documents (per Knowledge Type) |
 | Package | Package | Category |
 
 ### Production Documents
@@ -126,7 +126,7 @@ Optional:
 - **Lens (matrix cell):** the atomic semantic unit in a matrix cell (e.g., `A[normative, guiding]`) used as a “what to look for” perspective.
 - **LensKey:** canonical identifier for a lens cell: `M:[RowLabel]:[ColLabel]`.
 - **Warranted item:** a gap/conflict/question that is actionable for a later enrichment pass, grounded by evidence or explicit absence.
-- **Production Documents:** For PROJECT/SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`. For DOMAIN: the Knowledge Type's anticipated Knowledge Artifacts (discovered from the folder).
+- **Production Documents:** For PROJECT/SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`. For DOMAIN: the production documents organized per Knowledge Subject within the Knowledge Type (discovered from the folder).
 
 ---
 
@@ -368,7 +368,7 @@ CoverageStatus enum:
   - `Normalization`
   - `TBD_Question`
   - `MatrixError`
-- `AppliesToDoc`: where the issue is observed (production document filename | `Multi` | `NA`). For PROJECT/SOFTWARE: `Datasheet`, `Specification`, `Guidance`, `Procedure`. For DOMAIN: the actual Knowledge Artifact filename.
+- `AppliesToDoc`: where the issue is observed (production document filename | `Multi` | `NA`). For PROJECT/SOFTWARE: `Datasheet`, `Specification`, `Guidance`, `Procedure`. For DOMAIN: the actual Knowledge Subject production document filename.
 - `SuggestedEditDoc`: where a later enrichment pass should *prefer* to place the fix (production document filename | `Multi` | `TBD`). Same filename convention as `AppliesToDoc`.
 - `CandidateInfo`: short, enrichment-ready phrasing (not full prose); may include “TBD: …” question wording
 - `WhyWarranted`: 1–2 sentences explaining gap/conflict/leverage
@@ -388,7 +388,7 @@ Use the least-surprising placement guidance. For PROJECT/SOFTWARE, typical mappi
 - `MissingSlot` → `TBD` or best-fit doc role
 - `Conflict` / `TBD_Question` / `MatrixError` → `NA` or `TBD` as applicable
 
-For DOMAIN variants, map by document role (normative, operational, directional, descriptive) to the Knowledge Artifact whose role best matches, using the actual filename.
+For DOMAIN variants, map by document role (normative, operational, directional, descriptive) to the Knowledge Subject production document whose role best matches, using the actual filename.
 
 ### SourceRef convention
 

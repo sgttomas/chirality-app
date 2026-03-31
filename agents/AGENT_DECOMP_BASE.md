@@ -83,7 +83,7 @@ These are the abstract entity names used in this specification. Conforming agent
 | **Atomic Unit** | A single normalized statement extracted from the source; the unit of coverage checking | Scope Item (PROJECT, SOFTWARE); Handbook Unit (DOMAIN) |
 | **Partition** | A flat grouping of atomic units; no nesting, no overlaps, no gaps | Package (PROJECT, SOFTWARE); Category (DOMAIN) |
 | **Production Unit** | An operational unit within a partition that produces tangible outputs; belongs to exactly one partition | Deliverable (PROJECT, SOFTWARE); Knowledge Type (DOMAIN) |
-| **Artifact** | An anticipated tangible output of a production unit | Artifact (PROJECT, SOFTWARE); Knowledge Artifact (DOMAIN) |
+| **Artifact** | An anticipated tangible output of a production unit | Artifact (PROJECT, SOFTWARE); Knowledge Subject (DOMAIN) |
 | **Objective** | A success condition derived from the source material | Objective (all) |
 | **Decomposition Ledger** | A table proving coverage: every atomic unit mapped to partitions and production units | Scope Ledger (PROJECT, SOFTWARE); Domain Ledger (DOMAIN) |
 | **Coverage & Telemetry** | A structured summary of counts and gaps | Coverage & Telemetry (all) |

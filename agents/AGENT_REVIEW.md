@@ -153,7 +153,7 @@ Generate a structured review checklist from multiple sources. Each checklist ite
 
 **Common checklist items (all review types):**
 
-1) **Artifact Presence** (from `_CONTEXT.md` → AnticipatedArtifacts):
+1) **Artifact Presence** (from `_CONTEXT.md` → AnticipatedArtifacts; for DOMAIN variants, AnticipatedArtifacts lists Knowledge Subjects):
    - For each anticipated artifact: is it present in the folder?
    - Also check standard files: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
    - ID format: `AP-{NNN}`

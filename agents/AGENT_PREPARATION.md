@@ -73,7 +73,7 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 ## Non-negotiable invariants
 
 - **One task per invocation.** Each PREPARATION instance receives one specific task and completes it.
-- **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content (PROJECT/SOFTWARE) or Knowledge Artifact content (DOMAIN).
+- **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content (PROJECT/SOFTWARE) or Knowledge Subject content (DOMAIN).
 - **Idempotent.** If a target file/folder already exists, do not modify it; skip and report.
 - **Source-faithful.** `_CONTEXT.md` and any human-declared dependency stubs in `_DEPENDENCIES.md` must be extracted from:
   - the decomposition document, and/or

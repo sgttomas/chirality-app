@@ -1,5 +1,5 @@
 ---
-description: "Transforms handbooks into structured domain decompositions with categories, knowledge types, and coverage verification"
+description: "Transforms handbooks into structured domain decompositions with categories, knowledge types, knowledge subjects, and coverage verification"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DOMAIN_DECOMP (Handbook / Domain Decomposition)
@@ -47,6 +47,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 - **No overlap / no gaps at the Category level.** Every **IN-scope Handbook Unit** must be assigned to exactly one Category (forced decision if ambiguous; user resolves at gates).
 - **Stable identifiers.** Once assigned, IDs must remain stable across revisions unless the user explicitly requests renumbering.
 - **Knowledge Type IDs follow the hyphen pattern.** Use `KTY-CC-TT_{shortDescription}` (two-digit Category index, two-digit Type index, underscore before the descriptive suffix). Do not use alternate separators or legacy styles.
+- **Subject IDs extend the Type pattern.** Use `SUB-CC-TT-SS_{shortDescription}` (two-digit Category, Type, and Subject indices). Every Subject belongs to exactly one Knowledge Type.
 - **Objective mapping is best-effort.** Objectives are derived from the sources. Unmapped objectives must be surfaced as open issues.
 - **Traceable rationale.** Non-trivial assignment decisions must be recorded as explicit decisions in the decomposition output.
 
@@ -59,7 +60,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 - **Handbook Unit**: an atomic instruction/concept extracted from sources; the unit of coverage checking.
 - **Category**: a flat partition of IN-scope Handbook Units (no nesting; no overlaps; no gaps).
 - **Knowledge Type**: a discrete, reusable “kind of knowledge object” within a Category (e.g., Procedure, Checklist, Template, Guidance, Reference entry), intended to later be instantiated as structured knowledge.
-- **Knowledge Artifact**: an anticipated tangible output that instantiates a Knowledge Type (e.g., a specific checklist markdown file).
+- **Knowledge Subject**: a specific domain topic within a Knowledge Type (e.g., "Onboarding" within a Checklist type); the unit of decomposition below Type.
 - **Domain Ledger**: a table enumerating all Handbook Units with stable IDs and explicit mappings.
 - **Coverage & Telemetry**: a summary of counts and gaps that makes decomposition quality measurable and comparable over iterations.
 
@@ -187,8 +188,12 @@ For each Knowledge Type:
 - Intended users / roles (TBD allowed)
 - When used / triggers (TBD allowed)
 - **Canonical schema** (best-effort; may be one of the standard schemas below or custom; `TBD` allowed)
-- Anticipated knowledge artifacts (one or many; `TBD` allowed)
 - Best-effort objective linkage (`SupportsObjectives`)
+
+For each Knowledge Subject (within its parent Knowledge Type):
+- Stable ID: `SUB-CC-TT-SS_{shortDescription}` (stable; extends parent KTY index with two-digit subject index)
+- Name
+- Description (the specific domain topic this subject addresses)
 - Best-effort unit linkage (`CoversUnits`)
 
 **Standard schema options (recommended, not mandatory):**
@@ -200,11 +205,12 @@ For each Knowledge Type:
 
 **Output (in draft):**
 - Knowledge Type list grouped by Category
-- Knowledge Type attribute tables
-- Unit→Type mapping in the Domain Ledger (best-effort; gaps surfaced)
+- Knowledge Subject list grouped by Knowledge Type
+- Knowledge Type and Subject attribute tables
+- Unit→Subject mapping in the Domain Ledger (best-effort; gaps surfaced)
 
 **Gate 5 (confirm Knowledge Types):**
-User confirms: “Yes, Knowledge Types, schemas, and responsibilities are acceptable.”
+User confirms: “Yes, Knowledge Types, Knowledge Subjects, schemas, and responsibilities are acceptable.”
 
 ---
 
@@ -223,7 +229,7 @@ User confirms: “Yes, Knowledge Types, schemas, and responsibilities are accept
 
 **Output (in draft):**
 - Coverage & Telemetry section with counts and open issues
-- Open Issues list referencing stable IDs (HBK-####, OBJ-###, CAT-###, KTY-CC-TT_*)
+- Open Issues list referencing stable IDs (HBK-####, OBJ-###, CAT-###, KTY-CC-TT_*, SUB-CC-TT-SS_*)
 
 **Gate 6 (confirm verification):**
 User confirms: “Coverage and mappings are acceptable; open issues list is correct.”
@@ -239,7 +245,7 @@ User confirms: “Coverage and mappings are acceptable; open issues list is corr
   - Domain Ledger (required),
   - Coverage & Telemetry (required),
   - Vocabulary Map (required),
-  - Categories, Knowledge Types, Knowledge Artifacts, Objectives,
+  - Categories, Knowledge Types, Knowledge Subjects, Objectives,
   - Decision log / change log (required).
 - Summarize what changed since last revision.
 
@@ -269,7 +275,8 @@ A decomposition is complete when:
 | Category coverage | Every IN-scope Handbook Unit is assigned to exactly one Category |
 | Knowledge Types defined | Knowledge Types exist within each Category with IDs and (best-effort) schemas |
 | Type assignment | Every Knowledge Type belongs to exactly one Category |
-| Artifacts anticipated | Each Knowledge Type lists anticipated knowledge artifacts (TBD allowed) |
+| Subjects defined | Each Knowledge Type contains at least one Knowledge Subject (TBD allowed) |
+| Subject assignment | Every Knowledge Subject belongs to exactly one Knowledge Type |
 | Domain Ledger present | Domain Ledger table exists with stable IDs and mappings |
 | Coverage & Telemetry present | Summary metrics and open issue taxonomy exist |
 | Vocabulary Map present | Canonical terms ↔ synonyms table exists |
@@ -336,15 +343,14 @@ This section defines the entities and required tables in the decomposition outpu
 - `IntendedUsers` (`TBD` allowed)
 - `WhenUsed` (`TBD` allowed)
 - `CanonicalSchema` (best-effort; may be `TBD`)
-- `AnticipatedArtifacts` (list; `TBD` allowed)
-- `CoversUnits` (best-effort; HBK IDs)
 - `SupportsObjectives` (best-effort; OBJ IDs)
 
-#### Knowledge Artifact
-- `ArtifactID` (optional stable ID if helpful)
+#### Knowledge Subject
+- `SubjectID` (stable; e.g., `SUB-03-02-01_{shortDescription}`)
 - `Name`
 - `ParentKnowledgeTypeID`
-- `Format` (e.g., markdown doc, checklist, template)
+- `Description` (the specific domain topic this subject addresses)
+- `CoversUnits` (best-effort; HBK IDs)
 - `Notes`
 
 ---
@@ -365,6 +371,7 @@ Minimum columns:
 - `SourceRef`
 - `CategoryID` (required for IN; optional/blank for OUT)
 - `KnowledgeTypeID(s)` (one or many; or `TBD`)
+- `SubjectID(s)` (one or many; or `TBD`)
 - `ObjectiveID(s)` (zero or many; or `TBD`)
 - `DecisionRef` (optional; points to Decision Log entry)
 - `OpenIssue` (`TRUE|FALSE`)
@@ -377,6 +384,7 @@ Minimum fields:
 - `UnitCount`
 - `CategoryCount`
 - `KnowledgeTypeCount`
+- `SubjectCount`
 - `ObjectiveCount`
 - `UnassignedINUnits` (must be 0 for acceptance)
 - `UnitsWithoutKnowledgeTypeMapping` (count)
@@ -386,7 +394,7 @@ Minimum fields:
 
 #### 4) Open Issues list
 - A list of unresolved items referencing stable IDs:
-  - `HBK-####`, `OBJ-###`, `CAT-###`, `KTY-CC-TT_{shortDescription}`
+  - `HBK-####`, `OBJ-###`, `CAT-###`, `KTY-CC-TT_{shortDescription}`, `SUB-CC-TT-SS_{shortDescription}`
 
 #### 5) Decision Log / Change Log
 - A small section where non-trivial choices are recorded so later work can trace why boundaries were set.
@@ -401,7 +409,7 @@ Minimum fields:
 - Durable knowledge systems require stable referents. Stable IDs + a Domain Ledger keep referents stable as handbooks evolve.
 - The Domain Ledger turns “coverage” from a narrative into a machine-checkable artifact. This enables auditing, reconciliation, and longitudinal tracking without rereading prose.
 - Coverage & Telemetry makes the process antifragile: each revision produces measurable signals (gaps, conflicts, open issues) that guide the next improvement.
-- Categories + Knowledge Types create a usable “address space” for structured knowledge production: downstream agents can generate artifacts per type, and humans can reliably find, review, and reuse them.
+- Categories + Knowledge Types + Knowledge Subjects create a usable “address space” for structured knowledge production: downstream agents can generate artifacts per subject, and humans can reliably find, review, and reuse them.
 - The Vocabulary Map reduces semantic drift and makes later cross-type work cheaper and more consistent.
 
 [[END:RATIONALE]]
