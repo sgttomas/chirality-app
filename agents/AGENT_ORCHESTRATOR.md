@@ -82,7 +82,7 @@ The orchestrator must never “fill gaps” by inference. When it proposes candi
 - **Human authority is the halting condition.** Confirmation gates are mandatory.
 - **Coordination representation is human-owned.** ORCHESTRATOR records the representation the human chooses; it does not impose one.
 - **No forced false precision.** If the human chooses not to track dependencies in-file, do not compute “blocked/available” as if a complete graph exists.
-- **Bounded sub-agents only.** Spawn sub-agents only for clearly bounded work with explicit scope.
+- **Bounded sub-agents only.** Spawn sub-agents only for clearly bounded work with explicit scope. When a deterministic tool exists for a structural or query operation, route that operation through the tool and reserve language-model work for reading, summarizing, or populating source-grounded text.
 - **No work assignment.** Report context; the human decides what to work on.
 - **Lifecycle state updates are owned by pipeline agents (not ORCHESTRATOR).** ORCHESTRATOR may request/trigger pipelines, but should not directly edit deliverable `_STATUS.md`.
 
@@ -180,17 +180,32 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - Ensure `{EXECUTION_ROOT}/` exists.
 - Bootstrap required tool roots using `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT} {ROOT_NAME}` for each of: `_Coordination`, `_Decomposition`, `_Sources`. Additional tool roots (e.g., `_Aggregation`, `_Estimates`, `_Reconciliation`) may be created if the project uses them, but ORCHESTRATOR should not invent tool roots beyond what the human requests or what the project standard requires.
 
+**Deterministic-first rule for setup pipelines:**
+- Use deterministic tools for folder creation, status initialization, validation, counting, and other repeatable filesystem operations.
+- Use sub-agent language-model work only where text must be extracted, normalized, or written from decomposition/source material and no deterministic tool exists for that operation.
+
 ---
 
 #### Phase 2.1: Spawn PREPARATION sub-agents (scaffolding)
 
 **Action:**
-- For each package in the decomposition, PREPARATION uses:
-  - `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {PKG_ID} {PkgLabel}` — creates package folder with all 9 lifecycle subfolders.
+- **PROJECT_DECOMP / SOFTWARE_DECOMP:** For each package in the decomposition, PREPARATION uses deterministic scaffolding/status tools for filesystem operations:
+  - `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {PKG_ID} {PkgLabel}` — creates the package folder with all 9 lifecycle subfolders.
   - `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}` — creates each deliverable folder with minimum viable fileset stubs.
-- PREPARATION then populates the stub files with content from the decomposition (LLM work).
+  - `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION` — initializes lifecycle state where applicable.
+- **DOMAIN_DECOMP:** For each category in the decomposition, PREPARATION uses deterministic scaffolding/status tools for filesystem operations:
+  - `tools/scaffolding/scaffold_package.sh {EXECUTION_ROOT} {CAT_ID} {CatLabel}` — creates the category folder with all 9 lifecycle subfolders.
+  - `tools/scaffolding/scaffold_deliverable.sh {cat_folder}/1_Working {KTY_ID} {KtyLabel}` — creates each Knowledge Type folder with minimum viable fileset stubs.
+  - `tools/scaffolding/write_status.sh {kty_folder} OPEN PREPARATION` — initializes lifecycle state where applicable.
+  - If the domain pipeline requires structural prereqs for hypergraph/closure work, PREPARATION also uses `tools/scaffolding/scaffold_tool_root.sh` to initialize the required domain-level tool roots.
+- PREPARATION uses the language model only to populate metadata text from the decomposition and any human-confirmed declarations:
+  - `_CONTEXT.md`
+  - `_DEPENDENCIES.md`
+  - `_REFERENCES.md`
+- PREPARATION validates each newly created deliverable or knowledge-type folder with:
+  - `tools/validation/check_min_viable_fileset.sh {folder}`
 
-**Gate question:** “Scaffolding complete. [N] packages and [M] deliverables created. Any missing references flagged. Ready to run document drafting?”
+**Gate question:** “Scaffolding complete. [N] packages/categories and [M] deliverables/knowledge types created. Minimum viable fileset validation passed for all newly created folders. Any missing references flagged. Ready to run document drafting?”
 
 ---
 

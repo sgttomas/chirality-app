@@ -142,19 +142,27 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 - Optional: reference materials relevant to this deliverable (paths or descriptions)
 
 **Action (idempotent):**
-1. Create deliverable folder with stubs: `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}`
+1. Optionally validate the deliverable ID before creating paths:
+   - `tools/validation/validate_id_format.sh DEL {DEL_ID}`
+   - If invalid, do not scaffold; report the invalid ID to ORCHESTRATOR.
+2. Create deliverable folder with stubs using the deterministic scaffolding tool:
+   - `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}`
    This creates the folder and touches the 5 stub files (`_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_SEMANTIC.md`).
-2. Populate `_CONTEXT.md` content using the schema in STRUCTURE (LLM work — fills the stub created above).
-3. Populate `_DEPENDENCIES.md` content using the schema in STRUCTURE:
+3. Populate `_CONTEXT.md` content using the schema in STRUCTURE (LLM work — fills the stub created above).
+4. Populate `_DEPENDENCIES.md` content using the schema in STRUCTURE:
    - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from ORCHESTRATOR-provided declarations.
    - Leave extracted-register sections as placeholders (to be populated later by the DEPENDENCIES agent).
-4. Initialize `_STATUS.md`: `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION`
-5. Populate `_REFERENCES.md` and list relevant references (best-effort) with locations.
-6. `_SEMANTIC.md` is left as a **placeholder stub** (created by scaffold tool above).
+5. Initialize `_STATUS.md` using the deterministic status tool:
+   - `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION`
+6. Populate `_REFERENCES.md` and list relevant references (best-effort) with locations.
+7. `_SEMANTIC.md` is left as a **placeholder stub** (created by the scaffold tool above).
    - Do not generate matrices here.
    - This file is intended to be overwritten later by the semantic-matrix pipeline (e.g., CHIRALITY_FRAMEWORK).
+8. Verify the result with the deterministic validator:
+   - `tools/validation/check_min_viable_fileset.sh {deliverable_folder}`
+   - If the check fails, report the missing files and mark the task invalid.
 
-**Output:** Deliverable folder contains a complete minimum viable fileset. Report created vs skipped.
+**Output:** Deliverable folder contains a complete minimum viable fileset validated by the deterministic checker. Report created vs skipped.
 
 ---
 
@@ -216,15 +224,23 @@ This creates the category folder with all 9 lifecycle subfolders:
 - Optional: reference materials relevant to this Knowledge Type (paths or descriptions)
 
 **Action (idempotent):**
-1. Create KTY folder with stubs: `tools/scaffolding/scaffold_deliverable.sh {cat_folder}/1_Working {KTY_ID} {KtyLabel}`
+1. Optionally validate the Knowledge Type ID before creating paths:
+   - `tools/validation/validate_id_format.sh KTY {KTY_ID}`
+   - If invalid, do not scaffold; report the invalid ID to ORCHESTRATOR.
+2. Create KTY folder with stubs using the deterministic scaffolding tool:
+   - `tools/scaffolding/scaffold_deliverable.sh {cat_folder}/1_Working {KTY_ID} {KtyLabel}`
    (Same tool as deliverables — `KTY_ID`/`KtyLabel` map to `DEL_ID`/`DelLabel` inputs.)
-2. Populate `_CONTEXT.md` content using the Knowledge Type schema in STRUCTURE (LLM work).
-3. Populate `_DEPENDENCIES.md` content using the existing container schema, with header/title adapted to `KTY` naming.
+3. Populate `_CONTEXT.md` content using the Knowledge Type schema in STRUCTURE (LLM work).
+4. Populate `_DEPENDENCIES.md` content using the existing container schema, with header/title adapted to `KTY` naming.
    - Populate Coordination Mode + Declared Upstream/Downstream **only** from ORCHESTRATOR declarations.
    - Leave extracted-register sections as placeholders.
-4. Initialize `_STATUS.md`: `tools/scaffolding/write_status.sh {kty_folder} OPEN PREPARATION`
-5. Populate `_REFERENCES.md` and list relevant references (best-effort pointers).
-6. `_SEMANTIC.md` is left as a placeholder stub (created by scaffold tool above).
+5. Initialize `_STATUS.md` using the deterministic status tool:
+   - `tools/scaffolding/write_status.sh {kty_folder} OPEN PREPARATION`
+6. Populate `_REFERENCES.md` and list relevant references (best-effort pointers).
+7. `_SEMANTIC.md` is left as a placeholder stub (created by scaffold tool above).
+8. Verify the result with the deterministic validator:
+   - `tools/validation/check_min_viable_fileset.sh {kty_folder}`
+   - If the check fails, report the missing files and mark the task invalid.
 
 **Non-goals:**
 - Do not create `Datasheet.md`, `Specification.md`, etc. (DOMAIN Knowledge Types use variable document schemas — artifact drafting is out of scope for PREPARATION).
@@ -254,7 +270,7 @@ Both calls create the folder, `_Archive/` subfolder, and `_LATEST.md` stub.
 | Rule | Meaning |
 |------|---------|
 | Idempotent | Never overwrite existing files; skip and report |
-| Structural only | No engineering content; no inference |
+| Structural only | Use deterministic tools for filesystem/state operations; use the language model only to populate metadata text from provided sources; no engineering content; no inference |
 | No cross-deliverable coordination | Only scaffold the requested item |
 | Flag missing inputs | If ORCHESTRATOR input is incomplete, report what is missing rather than inventing |
 | Exact extraction | `_CONTEXT.md` fields must match decomposition exactly |
@@ -288,7 +304,7 @@ After completing the assigned task, PREPARATION verifies:
 
 | Check | Validation |
 |-------|-----------|
-| Minimum viable fileset complete | All required metadata files exist for created deliverables/knowledge types |
+| Minimum viable fileset complete | Run `tools/validation/check_min_viable_fileset.sh` for each created deliverable/knowledge-type folder and require PASS |
 | `_CONTEXT.md` faithful | Header fields match decomposition exactly (deliverable or knowledge type variant) |
 | No overwrites | Existing files were skipped, not modified |
 | No invention | No dependency, content, or scope information was fabricated |
@@ -306,9 +322,10 @@ After completing the assigned task, PREPARATION verifies:
 A PREPARATION run is valid when:
 - It completes exactly one assigned task type (A/B/C/D/E/F/G).
 - It creates only missing files/folders (no overwrites).
+- It uses deterministic scaffolding/status tools for filesystem and lifecycle operations.
 - It does not create engineering content.
 - `_CONTEXT.md` is exact to the decomposition for the deliverable (Task C) or knowledge type (Task F).
-- Minimum viable fileset exists for any created deliverable or knowledge-type folder.
+- Minimum viable fileset exists for any created deliverable or knowledge-type folder and passes `tools/validation/check_min_viable_fileset.sh`.
 
 ### Invalid states (examples)
 
