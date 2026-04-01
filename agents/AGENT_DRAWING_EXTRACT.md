@@ -24,7 +24,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | WORK_DIR + OUTPUT_PATHS |
 | **BLOCKING** | allowed |
-| **PRIMARY_OUTPUTS** | Combined `.md` and `.csv` extraction outputs; per-page stub files; work manifest |
+| **PRIMARY_OUTPUTS** | Combined `.md` and `.csv` extraction outputs; duplicate-flags `.csv`; per-page stub files; work manifest |
 | **SUB-AGENTS** | DRAWING_EXTRACT_PAGE |
 
 ---
@@ -53,7 +53,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 - Failed pages MUST be reported explicitly. They MUST NOT be silently omitted.
 - Combined outputs MUST be assembled only from page outputs generated for the current extraction scope.
 - This agent MUST preserve provenance by carrying forward `DWG NO.` and `source_page`.
-- Combined outputs and dedupe MUST be produced by deterministic tools, not assembled ad hoc in free-form reasoning.
+- Combined outputs and duplicate reporting MUST be produced by deterministic tools, not assembled ad hoc in free-form reasoning.
 
 ---
 
@@ -136,7 +136,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 1. Write combined outputs to `SOURCE_DIR` using the filename pattern:
    - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.md`
    - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.csv`
-   - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}_dedup_by_equipment_number.csv`
+   - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}_duplicate_flags.csv`
 2. Build the combined CSV deterministically:
    ```sh
    python3 tools/drawing_extract/assemble_equipment_csv.py {SOURCE_DIR} {COMBINED_CSV} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
@@ -145,11 +145,13 @@ This agent is used when the goal is **not** full-page transcription, but selecti
    ```sh
    python3 tools/drawing_extract/assemble_equipment_markdown.py {SOURCE_DIR} {COMBINED_MD} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --source-pdf-name {PDF_BASENAME}
    ```
-4. Build the deduped CSV deterministically:
+4. Build the duplicate-flags CSV deterministically:
    ```sh
-   python3 tools/drawing_extract/dedupe_equipment_csv.py {COMBINED_CSV} {DEDUPED_CSV} --key equipment_number
+   python3 tools/drawing_extract/flag_duplicate_equipment_csv.py {COMBINED_CSV} {DUPLICATE_FLAGS_CSV} --key equipment_number
    ```
-5. Read the deterministic tool outputs and build the final no-findings / failed-page report.
+5. Treat duplicate flags as QA candidates. Do not collapse or remove duplicate rows from the combined CSV by default.
+6. `tools/drawing_extract/dedupe_equipment_csv.py` MAY be used later for optional/manual downstream workflows, but MUST NOT be the default production output.
+7. Read the deterministic tool outputs and build the final no-findings / failed-page report.
 
 ### Phase 4 — Final report
 
@@ -158,8 +160,8 @@ This agent is used when the goal is **not** full-page transcription, but selecti
    - total pages processed
    - pages with `NO_FINDINGS`
    - failed pages
-   - total extracted rows before dedupe
-   - total rows after dedupe
+   - total extracted rows
+   - duplicate-flag count
 2. If any pages failed, identify them explicitly.
 
 [[END:PROTOCOL]]
@@ -178,7 +180,7 @@ Every page in scope is classified as `SUCCESS`, `NO_FINDINGS`, or `FAILED`.
 Per-page image interpretation is performed by `DRAWING_EXTRACT_PAGE`.
 
 ### S3 — Combined outputs written
-The combined Markdown, combined CSV, and deduped CSV all exist and are non-empty unless every page failed.
+The combined Markdown, combined CSV, and duplicate-flags CSV all exist unless every page failed.
 
 ### S4 — No-findings pages preserved
 Pages with no matching extraction targets are recorded explicitly and reported to the human.
@@ -211,7 +213,7 @@ Existing page images and page outputs are reused by default where valid.
   ...
   {PDF_STEM}_equipment_combined_pages_0007_0061.md
   {PDF_STEM}_equipment_combined_pages_0007_0061.csv
-  {PDF_STEM}_equipment_combined_pages_0007_0061_dedup_by_equipment_number.csv
+  {PDF_STEM}_equipment_combined_pages_0007_0061_duplicate_flags.csv
 ```
 
 ### Tool dependencies
@@ -221,7 +223,8 @@ Existing page images and page outputs are reused by default where valid.
 | Rasterize | `tools/pdf2md/rasterize_pdf.py` |
 | Assemble Markdown | `tools/drawing_extract/assemble_equipment_markdown.py` |
 | Assemble CSV | `tools/drawing_extract/assemble_equipment_csv.py` |
-| Dedupe CSV | `tools/drawing_extract/dedupe_equipment_csv.py` |
+| Duplicate Flags | `tools/drawing_extract/flag_duplicate_equipment_csv.py` |
+| Dedupe CSV (optional) | `tools/drawing_extract/dedupe_equipment_csv.py` |
 | Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` |
 
 ### Sub-agent

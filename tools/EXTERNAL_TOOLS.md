@@ -144,7 +144,7 @@ Orchestrates PDF-to-Markdown conversion (Step 0). Rasterizes PDF pages to PNGs v
 
 ### DRAWING_EXTRACT
 
-Orchestrates structured extraction from engineering drawing PDFs. Rasterizes pages via `tools/pdf2md/rasterize_pdf.py`, dispatches `DRAWING_EXTRACT_PAGE` workers for page-scoped extraction, assembles combined Markdown and CSV outputs via `tools/drawing_extract/assemble_equipment_markdown.py` and `tools/drawing_extract/assemble_equipment_csv.py`, deduplicates via `tools/drawing_extract/dedupe_equipment_csv.py`, and may optionally cross-check title-block text via `tools/drawing_extract/extract_pdf_titleblock_text.py` when `pdftotext` is available.
+Orchestrates structured extraction from engineering drawing PDFs. Rasterizes pages via `tools/pdf2md/rasterize_pdf.py`, dispatches `DRAWING_EXTRACT_PAGE` workers for page-scoped extraction, assembles combined Markdown and CSV outputs via `tools/drawing_extract/assemble_equipment_markdown.py` and `tools/drawing_extract/assemble_equipment_csv.py`, flags repeated equipment numbers via `tools/drawing_extract/flag_duplicate_equipment_csv.py`, and may optionally cross-check title-block text via `tools/drawing_extract/extract_pdf_titleblock_text.py` when `pdftotext` is available. Deduplication remains available only as an optional/manual downstream utility.
 
 ---
 

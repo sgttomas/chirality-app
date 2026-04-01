@@ -60,7 +60,8 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 |------|----------|---------|--------|---------|
 | `assemble_equipment_markdown.py` | Python 3 | Assemble per-page drawing extraction outputs into a combined Markdown table | source_dir, output_md, --pdf-stem, --start-page, --end-page, [--source-pdf-name] | Combined equipment Markdown + no-findings page list |
 | `assemble_equipment_csv.py` | Python 3 | Assemble per-page drawing extraction outputs into a combined CSV with provenance | source_dir, output_csv, --pdf-stem, --start-page, --end-page | Combined equipment CSV with `source_page` |
-| `dedupe_equipment_csv.py` | Python 3 | Deduplicate a combined equipment CSV by key while preserving first occurrence order | input_csv, output_csv, [--key equipment_number] | Deduped equipment CSV |
+| `flag_duplicate_equipment_csv.py` | Python 3 | Flag repeated equipment numbers in a combined equipment CSV without collapsing rows | input_csv, output_csv, [--key equipment_number] | Duplicate-flags CSV with conflict classification |
+| `dedupe_equipment_csv.py` | Python 3 | Deduplicate a combined equipment CSV by key while preserving first occurrence order | input_csv, output_csv, [--key equipment_number] | Deduped equipment CSV (optional/manual use) |
 | `extract_pdf_titleblock_text.py` | Python 3 | Extract drawing-number candidates and title-block text snippets from PDF pages using external `pdftotext` | pdf_path, output_csv, --pages 7-61 | CSV with page, `dwg_no`, status, titleblock text excerpt |
 
 ## Coordination
