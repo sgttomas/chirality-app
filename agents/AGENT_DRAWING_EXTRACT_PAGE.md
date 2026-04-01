@@ -63,6 +63,7 @@ This agent MUST fail inputs for any extraction mode not explicitly supported by 
 - If no relevant extraction target is present, the agent MUST still write a valid output artifact and return `RUN_STATUS=NO_FINDINGS`.
 - The agent MUST NOT infer equipment from repeated in-body references if the extraction mode is scoped to the separated top-of-sheet header region.
 - Each invocation writes exactly one file: `OUTPUT_PATH`.
+- This agent relies on the orchestrator for any deterministic PDF-level cross-checking such as `tools/drawing_extract/extract_pdf_titleblock_text.py`. It does not invoke PDF-level tools itself.
 
 ---
 

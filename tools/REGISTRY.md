@@ -54,6 +54,15 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | `postprocess_page.py` | Python 3 | Apply 10-rule deterministic cleanup to VLM-generated markdown (strip fences, fix tables, remove hallucinations, normalise whitespace) | input.md, [output.md] | Cleaned markdown file |
 | `assemble_markdown.py` | Python 3 | Join per-page markdown files into a single assembled document with page separators | pages_dir, output_file, [--separator "---"] | Assembled `.md` file |
 
+## Drawing Extraction
+
+| Name | Language | Purpose | Inputs | Outputs |
+|------|----------|---------|--------|---------|
+| `assemble_equipment_markdown.py` | Python 3 | Assemble per-page drawing extraction outputs into a combined Markdown table | source_dir, output_md, --pdf-stem, --start-page, --end-page, [--source-pdf-name] | Combined equipment Markdown + no-findings page list |
+| `assemble_equipment_csv.py` | Python 3 | Assemble per-page drawing extraction outputs into a combined CSV with provenance | source_dir, output_csv, --pdf-stem, --start-page, --end-page | Combined equipment CSV with `source_page` |
+| `dedupe_equipment_csv.py` | Python 3 | Deduplicate a combined equipment CSV by key while preserving first occurrence order | input_csv, output_csv, [--key equipment_number] | Deduped equipment CSV |
+| `extract_pdf_titleblock_text.py` | Python 3 | Extract drawing-number candidates and title-block text snippets from PDF pages using external `pdftotext` | pdf_path, output_csv, --pages 7-61 | CSV with page, `dwg_no`, status, titleblock text excerpt |
+
 ## Coordination
 
 | Name | Language | Purpose | Inputs | Outputs |

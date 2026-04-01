@@ -53,6 +53,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 - Failed pages MUST be reported explicitly. They MUST NOT be silently omitted.
 - Combined outputs MUST be assembled only from page outputs generated for the current extraction scope.
 - This agent MUST preserve provenance by carrying forward `DWG NO.` and `source_page`.
+- Combined outputs and dedupe MUST be produced by deterministic tools, not assembled ad hoc in free-form reasoning.
 
 ---
 
@@ -99,7 +100,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 2. For each page, derive:
    - `IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}.png`
    - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_stub.md` when `OUTPUT_FORMAT=markdown_stub`
-   - or analogous page-level `.csv` path when `OUTPUT_FORMAT=csv_row`
+   - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_rows.csv` when `OUTPUT_FORMAT=csv_row`
 3. If the per-page output already exists and is non-empty, reuse it unless the human explicitly requests re-extraction.
 4. Queue missing pages for extraction.
 5. Divide queued pages into batches of `BATCH_SIZE`.
@@ -121,24 +122,34 @@ This agent is used when the goal is **not** full-page transcription, but selecti
      - `FAILED_INPUTS`
 7. Report batch progress after each batch.
 
+### Phase 2.5 — Optional title-block verification
+
+1. If `tools/drawing_extract/extract_pdf_titleblock_text.py` is available and `pdftotext` is installed, the agent SHOULD run:
+   ```sh
+   python3 tools/drawing_extract/extract_pdf_titleblock_text.py {PDF_PATH} {WORK_DIR}/titleblock_verify_{START:04d}_{END:04d}.csv --pages {START_PAGE}-{END_PAGE}
+   ```
+2. Use this output as a deterministic cross-check aid for `DWG NO.` verification.
+3. If the tool or external dependency is unavailable, warn and continue. This step MUST NOT block page extraction.
+
 ### Phase 3 — Assemble combined outputs
 
-1. Read all page-level outputs for pages in scope.
-2. Build a combined Markdown table with columns:
-   - `equipment_number`
-   - `equipment_name`
-   - `drawing`
-3. Build a combined CSV with columns:
-   - `equipment_number`
-   - `equipment_name`
-   - `drawing`
-   - `source_page`
-4. Build a deduped CSV keyed by `equipment_number`, keeping the first occurrence in page order.
-5. Build a no-findings page list.
-6. Write combined outputs to `SOURCE_DIR` using the filename pattern:
+1. Write combined outputs to `SOURCE_DIR` using the filename pattern:
    - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.md`
    - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.csv`
    - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}_dedup_by_equipment_number.csv`
+2. Build the combined CSV deterministically:
+   ```sh
+   python3 tools/drawing_extract/assemble_equipment_csv.py {SOURCE_DIR} {COMBINED_CSV} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   ```
+3. Build the combined Markdown deterministically:
+   ```sh
+   python3 tools/drawing_extract/assemble_equipment_markdown.py {SOURCE_DIR} {COMBINED_MD} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --source-pdf-name {PDF_BASENAME}
+   ```
+4. Build the deduped CSV deterministically:
+   ```sh
+   python3 tools/drawing_extract/dedupe_equipment_csv.py {COMBINED_CSV} {DEDUPED_CSV} --key equipment_number
+   ```
+5. Read the deterministic tool outputs and build the final no-findings / failed-page report.
 
 ### Phase 4 — Final report
 
@@ -208,6 +219,10 @@ Existing page images and page outputs are reused by default where valid.
 | Tool | Path |
 |---|---|
 | Rasterize | `tools/pdf2md/rasterize_pdf.py` |
+| Assemble Markdown | `tools/drawing_extract/assemble_equipment_markdown.py` |
+| Assemble CSV | `tools/drawing_extract/assemble_equipment_csv.py` |
+| Dedupe CSV | `tools/drawing_extract/dedupe_equipment_csv.py` |
+| Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` |
 
 ### Sub-agent
 
