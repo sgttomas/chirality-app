@@ -13,6 +13,8 @@ This document defines the Chirality Framework — the theoretical foundation for
 
 The framework is referenced by the firm's governance documents, agent instruction architecture, and professional practice standard (`PROFESSIONAL_ENGINEERING.md`). It is the "why beneath the why" — the foundation on which the four-pillar design philosophy, the epistemic architecture, and the regulatory integration rest.
 
+The framework is also practice-grounded: it was developed to explain, organize, and discipline an architecture shaped by recurrent failure modes in real deliverable work, not to claim that the architecture was derived from theory alone.
+
 ---
 
 ## 2. The Nature of Knowledge in Professional Practice
