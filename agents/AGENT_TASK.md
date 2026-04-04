@@ -168,6 +168,24 @@ If `TaskSkill` is provided:
   - `{resolved skill folder}/TOOL_POLICY.md`
   - `{resolved skill folder}/QA_CHECKS.md`
 
+### Skill frontmatter resolution (MUST when skill is loaded)
+
+After resolving the skill folder, parse `SKILL.md` YAML frontmatter and resolve these fields:
+
+1. **`name`** — confirm it matches the resolved folder name. If it does not match, emit `WARNING: skill name '<name>' does not match folder '<folder>'` in the run report and continue. (The skill metadata validator enforces this separately.)
+
+2. **`allowed-tools`** — if present, parse as a comma-space (`, `) delimited list of command specs. Each spec must be exactly `<interpreter> <repo-relative-tool-path>:<scope_glob>` with no flags or extra arguments. The tool path (second token of each spec) must resolve to an existing file under `tools/`. If `allowed-tools` is malformed or any tool path does not resolve, return `ERROR: Skill allowed-tools is malformed or contains unresolvable paths` — do not proceed. If `allowed-tools` is absent, no skill-level tool restriction applies.
+
+3. **Effective tool allowlist merge** — when both the brief `AllowedTools` and the skill `allowed-tools` are present, the effective allowlist is their intersection: the brief cannot grant tools the skill forbids, and the skill cannot grant tools the brief forbids. When only one source provides a list, that list is the effective allowlist. When neither provides a list, no tool restriction applies.
+
+4. **`metadata.chirality-task-profile`** — if present, validate compatibility with the active `TaskProfile`. If the skill declares a specific profile (e.g., `DELIVERABLE_TASK`) and the active profile does not match, return `ERROR: Skill requires TaskProfile=<X> but active profile is <Y>`. If absent, treat as `NONE` (compatible with any profile).
+
+5. **`metadata.chirality-skill-version`** — record in the run report. If absent, record as `UNKNOWN`.
+
+6. **`description`** and **`compatibility`** — remain descriptive. Do not machine-consume.
+
+### Skill behavior contract
+
 Skills may define:
 - preferred tool usage,
 - expected output structures,
@@ -230,6 +248,14 @@ Always return a structured run report with these headings:
 - `MISSING:` bullets or `none`
 - `NEEDS_HUMAN_RULING:` bullets or `none`
 - `DEPENDENCY_NOTES:` bullets or `none`
+
+When a skill is loaded, also include:
+- `ResolvedSkillPath:` `<absolute path to resolved skill folder>`
+- `ResolvedSkillVersion:` `<chirality-skill-version from frontmatter, or UNKNOWN>`
+- `ResolvedTaskProfileRequirement:` `<chirality-task-profile from frontmatter, or NONE>`
+- `CompanionFiles:` `<list of companion files found, or none>`
+- `AllowedTools:` `<effective merged allowlist, or unrestricted>`
+- `RuntimeOverrides:` `<effective overrides in effect, or none>`
 
 If writes were authorized and applied, include:
 - `AppliedChanges:` bullets

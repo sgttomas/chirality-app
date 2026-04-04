@@ -9,7 +9,7 @@ Use this template when creating a new repo-native skill under `skills/`.
 name: <skill-name>
 description: <what the skill does and when to use it>
 compatibility: <optional; shell/profile compatibility note>
-allowed-tools: <optional; concise allowlist summary>
+allowed-tools: <optional; comma-space delimited command specs — see format below>
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: <NONE or profile token>
@@ -73,6 +73,29 @@ Document:
 - minimum output validity checks
 - failure reporting expectations
 - any required evidence or logs
+
+## `allowed-tools` format
+
+The `allowed-tools` frontmatter field is machine-consumed by TASK during skill resolution. It must follow this canonical format exactly:
+
+- Comma-space (`, `) delimited list of command specs
+- Each spec: `<interpreter> <repo-relative-tool-path>:<scope_glob>`
+- No flags, no extra arguments, no commas inside a spec
+- `<interpreter>` is a single token (e.g., `python3`)
+- `<repo-relative-tool-path>` is a single token relative to repo root (e.g., `tools/validation/scan_deliverable_consistency.py`)
+- `<scope_glob>` follows the final `:` (e.g., `*`)
+
+Example (single tool):
+```
+allowed-tools: python3 tools/validation/scan_deliverable_consistency.py:*
+```
+
+Example (multiple tools):
+```
+allowed-tools: python3 tools/pdf2md/rasterize_pdf.py:*, python3 tools/pdf2md/postprocess_page.py:*
+```
+
+If `allowed-tools` is malformed, TASK will reject the skill with an error. Omit the field entirely if the skill has no deterministic tool requirements.
 
 ## Naming
 
