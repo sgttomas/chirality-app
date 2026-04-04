@@ -414,7 +414,7 @@ Together, these prevent the most common failure mode in LLM-assisted systems: pl
 
 | Layer | Timing | Invariants Checked |
 |-------|--------|-------------------|
-| Agent instructions (compile-time) | When instruction files are written | K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, K-DEP-2 |
+| Agent instructions (design-time; constrains intent, not guaranteed behavior) | When instruction files are written | K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, K-DEP-2 |
 | ORCHESTRATOR (runtime) | During workspace initialization and pipeline execution | K-SEAL-1, K-GATE-1, K-HIER-1 |
 | Human review (gate) | At every gate decision | K-AUTH-1, K-AUTH-2, K-BIND-1, K-STALE-2, K-MERGE-1, K-VAL-1, K-STATUS-1 |
 | Future tooling (automated) | Continuous/on-demand | K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, K-DEP-2 |
