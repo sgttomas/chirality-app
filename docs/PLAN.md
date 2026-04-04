@@ -130,6 +130,8 @@ Ordered by priority (highest first):
 
 ### 3.2 Dependencies.csv Schema Linter
 
+**Status:** Implemented. `tools/validation/validate_dependencies_schema.py` validates against the v3.1 schema (29 columns). Registered in `tools/REGISTRY.md`.
+
 **What:** A validation script that reads `Dependencies.csv` files and checks them against the v3.1 schema defined in `docs/SPEC.md` Section 6.
 
 **Why:** Schema violations are currently caught only by agent-internal quality checks. An external linter would enable CI-level validation and catch drift across deliverables.
@@ -138,6 +140,8 @@ Ordered by priority (highest first):
 
 ### 3.3 Automated Folder Structure Validator
 
+**Status:** Partially implemented. `tools/validation/check_min_viable_fileset.sh` and `tools/validation/check_four_documents.sh` verify core file presence per deliverable. Full execution-root walkthrough against SPEC §12 is not yet a standalone tool.
+
 **What:** A script that walks the execution root and validates each deliverable folder against the checklist in `docs/SPEC.md` Section 12.
 
 **Why:** Missing files or unexpected structures are currently detected only during agent runs. A standalone validator enables pre-run checks and CI integration.
@@ -145,6 +149,8 @@ Ordered by priority (highest first):
 **Effort:** Low. The validation rules are fully defined.
 
 ### 3.4 On-Demand Dependency Graph Generation
+
+**Status:** Substantially implemented. `tools/coordination/analyze_dep_closure.py` aggregates Dependencies.csv files and produces closure analysis (JSON summary + 6 CSV reports covering orphans, cycles/SCC, hubs, bidirectional pairs, and coverage). Visualization-oriented export (e.g., Mermaid) is not yet built.
 
 **What:** A tool that aggregates deliverable-local `Dependencies.csv` files into a project-level dependency graph (JSON or Mermaid).
 
@@ -161,6 +167,8 @@ Ordered by priority (highest first):
 **Effort:** Medium-high. Requires lock acquisition/release protocol, orphan recovery, and integration into agent instructions.
 
 ### 3.6 Run Record Persistence
+
+**Status:** Core implemented. `agents/AGENT_TASK.md` defines a persistent run-record contract: YAML frontmatter schema (13 fields), Markdown body (9 headings), storage at `{ScopePath}/_run_records/TASK_RUN_*.md`, two-phase lifecycle (PENDING at normalization, final status at completion). Downstream audit trail queries and rerun management tooling remain future work.
 
 **What:** Formalize a unified pipeline run record schema.
 

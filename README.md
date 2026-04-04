@@ -54,27 +54,27 @@ Stage gates (30/60/90/IFC) are human-managed milestones and are not lifecycle st
 
 ## Agent Suite
 
-The system ships 38 agent instruction files organized across a 3x4 matrix:
+The system ships agent instruction files organized across a 3x4 matrix (see [`AGENTS.md`](AGENTS.md) for the full index and current count):
 
-|  | Guiding | Applying | Judging | Reviewing |
+|  | **Guiding** | **Applying** | **Judging** | **Reviewing** |
 |:---|:---|:---|:---|:---|
-| **Normative** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
-| **Operative** | DECOMP | PREP | TASK | AUDIT |
-| **Evaluative** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+| **Normative** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
+| **Operative** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
+| **Evaluative** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
 
 Normative and Evaluative agents open interactive workbench sessions. Operative agents run as pipelines.
 
-The suite covers decomposition (3 domain variants sharing a common 7-gate protocol), workspace scaffolding, document drafting, dependency extraction, semantic analysis, cost estimation, scheduling, review, change management, reconciliation, and project evaluation.
+The suite covers decomposition (3 domain variants sharing a common 7-gate protocol), workspace scaffolding, document drafting, dependency extraction, semantic analysis, cost estimation, scheduling, review, change management, reconciliation, and project evaluation. Reusable bounded-task methods are codified as repo-native skills under `skills/`.
 
-See [`AGENTS.md`](AGENTS.md) for the full agent index and classification. See [`docs/DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) for the design basis.
+See [`AGENTS.md`](AGENTS.md) for the full agent index and classification. See [`docs/DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) for the design basis. See [`docs/REPO_INVENTORY.md`](docs/REPO_INVENTORY.md) for current governed counts.
 
 ---
 
 ## Deterministic Tools
 
-The `tools/` directory contains 28 shell scripts and Python utilities that agents invoke via Bash during pipeline execution. These tools codify the LLM-independent operations — filesystem scaffolding, schema validation, CSV aggregation, graph analysis — so that agents reserve LLM reasoning for content that requires judgment.
+The `tools/` directory contains deterministic tools that agents invoke during pipeline execution. These tools codify LLM-independent operations — filesystem scaffolding, schema validation, CSV aggregation, graph analysis, PDF conversion, drawing extraction — so that agents reserve LLM reasoning for content that requires judgment.
 
-The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all available tools. 21 of 38 agent instruction files reference tools from the registry in their PROTOCOL sections.
+The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all available tools. Many agent instructions reference tools from the registry in their PROTOCOL sections. See [`docs/REPO_INVENTORY.md`](docs/REPO_INVENTORY.md) for the current tool count.
 
 ---
 
@@ -123,20 +123,13 @@ The `frontend/` directory contains a Next.js + Electron desktop application with
 
 ```
 chirality-app/
-  agents/              38 agent instruction files (AGENT_*.md)
-  tools/               28 deterministic tools + REGISTRY.md (shell scripts, Python utilities)
-    scaffolding/       Package, deliverable, tool root, snapshot folder creation
-    query/             Workspace state, amendment ID scanning
-    validation/        Enum, ID format, schema, fileset, doc kit checks
-    reporting/         CSV merge, WBS/CBS summarization, coverage, INDEX.md generation
-    coordination/      Dependency graph analysis (SCC, orphans, hubs)
-    evaluation/        Digest coverage, file inventory, lifecycle states, dependency checks
+  agents/              Agent instruction files (AGENT_*.md)
+  skills/              Repo-native skills (reusable bounded-task methods)
+  tools/               Deterministic tools + REGISTRY.md (organized by category)
   docs/                Governance documents (DIRECTIVE, SPEC, TYPES, CONTRACT, PLAN, DBM, SE Analysis)
   frontend/            Next.js + Electron desktop application
-  examples/            Execution-root samples for regression and conformance testing
   AGENTS.md            Agent index and matrix
   INIT.md              Agent bootstrap context
-  WHAT-IS-AN-AGENT.md  Conceptual primer on the Type 0/1/2 model
   PROFESSIONAL_ENGINEERING.md  Standard for AI in regulated engineering practice
   LICENSE.md           MIT License + Professional Engineering Clause
 ```

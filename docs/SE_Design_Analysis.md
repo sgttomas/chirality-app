@@ -1,6 +1,6 @@
 # Systems Engineering Design Analysis — Agent Instruction Architecture
 
-This document analyzes the Chirality agent instruction architecture through the lens of eight recognized systems engineering disciplines. The analysis treats the 37 agent instruction files and their governance documents as an engineered system and traces the SE content to specific files, sections, and invariant IDs.
+This document analyzes the Chirality agent instruction architecture through the lens of eight recognized systems engineering disciplines. The analysis treats the governed agent instruction suite (see [`AGENTS.md`](../AGENTS.md) for the current index; [`REPO_INVENTORY.md`](REPO_INVENTORY.md) for current counts) and their governance documents as an engineered system and traces the SE content to specific files, sections, and invariant IDs.
 
 The architecture rests on four philosophical pillars — ontology, epistemology, praxiology, and axiology — formalized in `DIRECTIVE.md` §2. The claim developed in that section is that the four pillars are generative: given a commitment to professional accountability in the context of AI agent systems, the SE disciplines identified in this analysis are deductively necessary consequences of the four-pillar commitments. They could not be absent. This analysis provides the evidence for that claim by demonstrating that each SE discipline is present, that each traces to one or more pillars, and that no discipline is found that does not serve a pillar.
 
@@ -450,4 +450,4 @@ This means that systems engineering, in the context of professional AI agent gov
 
 ---
 
-*Produced by systematic analysis of all 37 agent instruction files and 7 governance documents in the Chirality App repository.*
+*Produced by systematic analysis of the governed agent instruction suite and governance documents in the Chirality App repository. See `AGENTS.md` for the current agent index.*

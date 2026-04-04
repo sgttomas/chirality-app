@@ -15,7 +15,7 @@ Chirality is a formally specified agent operating system for deliverable-heavy p
 | `CHIRALITY_FRAMEWORK.md` | The Chirality Theory: knowledge, accountability, and the four pillars |
 | `PROFESSIONAL_ENGINEERING.md` | Professional practice standard (APEGA regulatory mapping) |
 | `AGENTS.md` | Agent index and matrix |
-| `tools/REGISTRY.md` | Deterministic tool index (28 tools, 6 categories) |
+| `tools/REGISTRY.md` | Deterministic tool index |
 
 ## Naming Convention
 
