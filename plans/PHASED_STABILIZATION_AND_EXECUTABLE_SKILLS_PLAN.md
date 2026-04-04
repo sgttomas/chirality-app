@@ -537,6 +537,8 @@ The phase is successful when:
 
 ## Phase 6 — Commit Discipline And Release Hardening
 
+**Status: Done** (2026-04-03)
+
 ## Goal
 
 Turn the architecture shift into a durable maintained baseline rather than an
@@ -567,22 +569,24 @@ The phase is successful when:
 2. validation runs are attached to the relevant change set
 3. the repo baseline is easier to maintain after the shift than before it
 
-## Delegation And Parallelization
+## Implementation
 
-Candidate delegated subtasks:
+Commit conventions applied across Phases 0–5:
 
-- **Commit-plan subagent**
-  Propose commit boundaries and messages for the architecture changes.
-
-- **Policy-promotion subagent**
-  Review which current plans should remain plans and which should graduate
-  into canonical docs or implemented behavior.
-
-Local critical-path work that should stay in the main thread:
-
-- final commit selection
-- final adoption of any policy note
-- final decision on what constitutes the new stable baseline
+1. **Validation gate**: `validate_skill_metadata.py skills` run before each
+   architecture commit. All 3 skills pass.
+2. **Two-commit convention**: canonical governance changes (agent instructions)
+   committed separately from tracking artifacts (plans, handoff).
+3. **Commit history** (Phases 0–5):
+   - `fe989d4` — Phase 0 stabilization
+   - `f19050a` — EQUIPMENT_EXTRACT → skill conversion
+   - `417559d` — Phase 1 resolved-skill model
+   - `ce1929f` — Phases 2–5 agent instruction changes
+   - `ca2c759` — plan and handoff status updates
+4. **Release review**: all architecture changes are now committed. Indexes
+   (`AGENTS.md`, `tools/REGISTRY.md`) unchanged by Phases 2–5 (no new agents
+   or tools). Skill template unchanged. Master plan reflects all phase
+   completions.
 
 ---
 

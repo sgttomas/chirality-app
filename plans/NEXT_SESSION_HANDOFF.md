@@ -5,59 +5,60 @@
 1. Read `INIT.md`, then `AGENTS.md`.
 2. Read `agents/AGENT_HELPS_HUMANS.md` (Type 0) — adopt this design posture first.
 3. Read this handoff prompt through to the end.
-4. Then adopt `agents/AGENT_WORKING_ITEMS.md` as your working persona for the implementation session — evidence-first, bounded increments, conflict surfacing, human authority.
+4. Then adopt `agents/AGENT_WORKING_ITEMS.md` as your working persona.
 
 You are collaborating with the human on architecture work in `plans/`.
 
 ## What Just Happened
 
-Phase 2 (standard run records) was designed and implemented in this session:
+The full phased stabilization and executable skills plan is complete (Phases 0–6):
 
-1. `417559d` — Phase 1 resolved-skill model (prior session)
-2. *(uncommitted)* — Phase 2 run-record persistence: TASK now produces a durable Markdown run record (`_run_records/TASK_RUN_*.md`) with YAML frontmatter for every Type 2 run. Two-phase lifecycle: written at normalization with `PENDING`, updated at completion with final status. All changes in `agents/AGENT_TASK.md`.
+| Commit | Phase | Summary |
+|---|---|---|
+| `fe989d4` | 0 | Stabilization: `.gitignore`, registered tools, fixed counts |
+| `f19050a` | — | EQUIPMENT_EXTRACT agent → repo-native skill |
+| `417559d` | 1 | Resolved-skill model: frontmatter parsing, tool allowlist intersection |
+| `ce1929f` | 2–5 | Run records, structural validation, tool-use auditing, profile/skill separation |
+| `ca2c759` | 6 | Plan/handoff updates, commit discipline applied |
 
-Design decisions resolved:
-- **Format:** Markdown with YAML frontmatter (13 machine-consumed fields + 9 body headings)
-- **Location:** `{ScopePath}/_run_records/` — stays within deliverable-local write scope
-- **Lifecycle:** Two-phase (PENDING at normalization, final status at completion, immutable after)
-- **Interaction:** Independent from MEMORY.md and NEXT_INSTANCE_STATE.md
+Key architectural additions to `agents/AGENT_TASK.md`:
+- **Run record persistence** — `{ScopePath}/_run_records/TASK_RUN_*.md`, Markdown with YAML frontmatter, two-phase lifecycle
+- **Structural validation** — named checklist of pre-execution and post-execution checks
+- **Tool policy compliance** — `ToolsUsed` entries in `allowed-tools` format, `ToolPolicyCompliance` field
+- **Profile/skill separation** — documented principle: profiles own structure, skills own method
 
 ## Where You Are On The Roadmap
 
-The governing roadmap is `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md`.
+The governing roadmap `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md` is **complete**.
 
 | Phase | Status |
 |---|---|
 | 0 — Stabilize | **Done** |
 | 1 — Executable skill resolution | **Done** |
 | 2 — Standard run records | **Done** |
-| 3 — Light validation around resolved state | **Next** |
-| 4 — Tool-use auditing | Queued |
-| 5 — Profile/skill separation | Queued |
-| 6 — Commit discipline | Queued |
+| 3 — Light validation around resolved state | **Done** |
+| 4 — Tool-use auditing | **Done** |
+| 5 — Profile/skill separation | **Done** |
+| 6 — Commit discipline | **Done** |
 
-The source-grounding supporting work package is now eligible (see rulings below).
+## What's Next
 
-## Phase 3 — What To Do Next
+With the executable-skill substrate complete, the following work is eligible:
 
-Read `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md` §Phase 3.
+### Source-grounding updates (ready)
 
-**Goal:** Validate the new execution substrate without overreaching into heavy auditing too early.
+Plan: `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`
+Targets: `agents/AGENT_DOMAIN_DOCUMENTS.md`, `agents/AGENT_4_DOCUMENTS.md`
 
-**Validate now:**
-- resolved skill folder exists
-- referenced companion files are either present or explicitly absent
-- allowed tools resolve to real paths
-- write targets stay within normalized scope
-- required run-record fields are present
+**Important caveat for DOMAIN_DOCUMENTS:** The current `AGENT_DOMAIN_DOCUMENTS.md` Pass 3 has a strict failure mode for unreadable sources (see lines ~150 and ~319). The "continue with TBD" ruling may conflict with that existing contract. Resolve this design tension before implementing.
 
-**Defer until later:**
-- strict proof that the first-declared tool was used first
-- deep semantic validation of skill content
-- cross-run analytics
-- strict tool-policy auditing across all task types
+### Other potential next steps
 
-## Carried-Forward Human Rulings (for source-grounding work, now eligible)
+- Promote any remaining plan-level policies into canonical docs
+- Build additional skills using the now-stable skill substrate
+- Validate the run-record mechanism with a real Type 2 run
+
+## Carried-Forward Human Rulings
 
 | Decision | Ruling |
 |---|---|
@@ -66,23 +67,18 @@ Read `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md` §Phase 3.
 | `_REFERENCES.md` source type distinction | Mention the distinction exists but don't enforce yet |
 | Named standards as governing authority | Governing only when their actual text is locally accessible |
 
-These apply to `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md` which targets `agents/AGENT_DOMAIN_DOCUMENTS.md` and `agents/AGENT_4_DOCUMENTS.md`.
-
-**Important caveat for DOMAIN_DOCUMENTS:** The current `AGENT_DOMAIN_DOCUMENTS.md` Pass 3 already has a strict failure mode for unreadable sources (see lines ~150 and ~319). The "continue with TBD" ruling may conflict with that existing contract. Resolve this design tension before implementing the source-grounding updates.
-
 ## Current Repo State
 
 - 44 indexed agents (`AGENTS.md`)
 - 3 repo-native skills (`skills/`: pdf2md, deliverable-consistency, equipment-extract)
 - 55 registered tools (`tools/REGISTRY.md`)
-- `agents/AGENT_EQUIPMENT_EXTRACT.md` exists on disk but is NOT indexed — kept as reference
-- Working tree has uncommitted Phase 2 changes; branch is `main`
+- Working tree clean; branch is `main`, 8 commits ahead of origin
 
 ## Key Files To Read
 
 | File | Why |
 |---|---|
-| `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md` | Master roadmap — read Phase 3 |
-| `agents/AGENT_TASK.md` | The execution shell — now includes run-record persistence (§Run record persistence, §Run-record file format, PROTOCOL steps 1/5/6) |
-| `skills/SKILL_TEMPLATE.md` | Canonical `allowed-tools` format locked in Phase 1 |
+| `agents/AGENT_TASK.md` | The execution shell — now includes run records, structural validation, tool compliance, profile/skill separation |
+| `agents/AGENT_DELIVERABLE_TASK.md` | Profile with structural/method classification in RATIONALE |
+| `skills/SKILL_TEMPLATE.md` | Canonical skill format |
 | `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md` | Source-grounding work package — now eligible |
