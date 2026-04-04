@@ -31,7 +31,7 @@ If another document needs to mention how many agents, skills, or tools the proje
 |---|---:|---|
 | Indexed agents | 44 | [`AGENTS.md`](../AGENTS.md) |
 | Repo-native skills | 2 | [`skills/`](../skills/) |
-| Registered deterministic tools | 30 | [`tools/REGISTRY.md`](../tools/REGISTRY.md) |
+| Registered deterministic tools | 55 | [`tools/REGISTRY.md`](../tools/REGISTRY.md) |
 
 ---
 

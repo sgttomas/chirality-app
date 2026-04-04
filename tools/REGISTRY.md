@@ -65,6 +65,21 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | `flag_duplicate_equipment_csv.py` | Python 3 | Flag repeated equipment numbers in a combined equipment CSV without collapsing rows | input_csv, output_csv, [--key equipment_number] | Duplicate-flags CSV with conflict classification |
 | `dedupe_equipment_csv.py` | Python 3 | Deduplicate a combined equipment CSV by key while preserving first occurrence order | input_csv, output_csv, [--key equipment_number] | Deduped equipment CSV (optional/manual use) |
 | `extract_pdf_titleblock_text.py` | Python 3 | Extract drawing-number candidates and title-block text snippets from PDF pages using external `pdftotext` | pdf_path, output_csv, --pages 7-61 | CSV with page, `dwg_no`, status, titleblock text excerpt |
+| `backfill_stub_system_names.py` | Python 3 | Insert or update `system_name` metadata and normalize findings tables in page-level equipment stubs | source_dir, system_names_csv, --pdf-stem, --start-page, --end-page | Updated stub `.md` files in-place + summary counts |
+| `normalize_equipment_stub_layout.py` | Python 3 | Rewrite page-level equipment stubs into one canonical Markdown layout | source_dir, --pdf-stem, --start-page, --end-page | Normalized stub `.md` files in-place + summary counts |
+| `prepare_header_crops.py` | Python 3 | Create deterministic top-header and titleblock crops from rasterized drawing pages | work_dir, --pages, [--header-height-ratio], [--titleblock-width-ratio], [--header-slices] | Header/titleblock PNGs per page |
+| `reconcile_west_doe_comp_and_liquids_packages.py` | Python 3 | Add `package_name` column to a PFD equipment CSV using manual package inference rules | source_csv | Updated CSV in-place with `package_name` column + appended master rows |
+| `recover_deepcut_multiblock_headers.py` | Python 3 | Deterministically backfill known undercounted multi-block header pages from verified fixtures | source_dir, [--pdf-stem], [--report-csv] | Updated stub `.md` files in-place + optional recovery report CSV |
+| `report_stub_counts.py` | Python 3 | Produce per-page coverage report from page-level equipment stubs as a QA gate before assembly | source_dir, output_csv, --pdf-stem, --start-page, --end-page | Coverage report CSV |
+| `report_west_doe_comp_and_liquids_package_matches.py` | Python 3 | Generate package-match provenance reports from final and master equipment CSVs | final_csv, master_csv, output_dir | Package match report CSV + master row disposition CSV |
+| `sanitize_equipment_stubs.py` | Python 3 | Apply deterministic post-extraction QC to page-level equipment stubs | source_dir, --pdf-stem, --start-page, --end-page, [--report-csv] | Sanitized stub `.md` files in-place + optional QC report CSV |
+| `vision_ocr.swift` | Swift | Run macOS Vision framework OCR on an image and output recognized text lines with bounding boxes | image_path | JSON to stdout with lines, confidence, bounding boxes |
+
+## Domain Extraction
+
+| Name | Language | Purpose | Inputs | Outputs |
+|------|----------|---------|--------|---------|
+| `assemble_equipment_master_csv.py` | Python 3 | Assemble per-KTY Equipment Extract markdown files into a single consolidated master list CSV | source_dir, output_csv | CSV with Source_KTY, Source_KA, Equipment_Tag, Equipment_Name, Package_Name, Notes |
 
 ## Coordination
 
