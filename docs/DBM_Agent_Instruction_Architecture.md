@@ -96,7 +96,7 @@ Type 1 agents are human-facing. They run conversational, gate-controlled workflo
 - Own orchestration decisions but not engineering content
 - Produce guidance, run plans, briefs, and structured cards
 
-**Count:** 14 agents (see §5 for inventory).
+**Count:** See §5 for inventory; current governed count maintained in [`REPO_INVENTORY.md`](REPO_INVENTORY.md).
 
 ### 2.3 Type 2 — Bounded Task Agents (Specialist)
 
@@ -109,7 +109,7 @@ Type 2 agents are brief-driven specialists that run straight-through without hum
 - Never spawn other agents
 - If inputs are invalid: `FAILED_INPUTS` (halt). If data missing: `TBD` (continue conservatively)
 
-**Count:** 19 agents (see §5 for inventory).
+**Count:** See §5 for inventory; current governed count maintained in [`REPO_INVENTORY.md`](REPO_INVENTORY.md).
 
 **Note:** The `agents/` directory also contains supporting template files (`MEMORY_TEMPLATE.md`, `TASK_ESTIMATING_TEMPLATE.md`) that are not agent instructions but are consumed by agents at runtime.
 
@@ -292,6 +292,8 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **EVALUATION** | 1 | PERSONA | chat | tool-root (`_Evaluation/`) | allowed | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`, pointers to Type 2 outputs |
 | **TOOLMAKER** | 1 | PERSONA | chat | repo-wide | allowed | Shell scripts, Python utilities, tool registry |
 | **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
+| **PDF2MD** | 1 | PERSONA | chat | project-level | allowed | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
+| **DRAWING_EXTRACT** | 1 | PERSONA | chat | project-level | allowed | Drawing extraction pipeline; orchestrates rasterization, crop-first multiblock page extraction, deterministic QA, and structured output assembly |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
 | **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
@@ -315,6 +317,8 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **EVALUATION_REPORT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | `DIM-{NN}_{DimensionName}.md` — scored dimension evaluation report |
 | **EVALUATION_STRUCTURE_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Structure audit report with file counts, lifecycle state distribution, violation list |
 | **EVALUATION_DEPENDENCY_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Dependency audit report with per-deliverable schema check, anchor check, evidence check |
+| **PDF2MD_PAGE** | 2 | TASK | spawned | deliverable-local | never | Single-page PDF-to-Markdown via multimodal vision; spawned per page by PDF2MD |
+| **DRAWING_EXTRACT_PAGE** | 2 | TASK | spawned | deliverable-local | never | Single-page drawing extraction via multimodal vision; spawned per page by DRAWING_EXTRACT |
 
 ### 5.2 The Agent Matrix
 
@@ -322,9 +326,9 @@ Agents are organized along two axes from the chirality semantic framework (Matri
 
 | | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 |:---|:---|:---|:---|:---|
-| **NORMATIVE** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
+| **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **EVALUATIVE** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+| **EVALUATIVE** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
 
 - **NORMATIVE** and **EVALUATIVE** rows → **WORKBENCH** page (interactive persona sessions)
 - **OPERATIVE** row → **PIPELINE** page (pipeline execution with category dropdowns)
@@ -367,6 +371,9 @@ CONTEXT_TRANSPOSE (Type 1) ── hands off to CHANGE (for publication)
 SCHEDULING (Type 1) ── standalone (reads dependency graph; produces schedule artifacts)
 TOOLMAKER (Type 1) ── standalone (designs and implements deterministic tools; hands off to CHANGE for publication)
 SKILLMAKER (Type 1) ── standalone (designs and governs skills; coordinates with TOOLMAKER for deterministic helpers)
+
+PDF2MD (Type 1) ──spawns──── PDF2MD_PAGE (Type 2) [per page]
+DRAWING_EXTRACT (Type 1) ──spawns──── DRAWING_EXTRACT_PAGE (Type 2) [per page]
 ```
 
 ### 6.2 Control Loop (Session Handoff)
@@ -635,6 +642,15 @@ Not all agents operate across all decomposition variants.
 | **DECOMP_BASE** | — | — | — | yes |
 | **AUDIT_AGENTS** | — | — | — | yes |
 | **CONTEXT_TRANSPOSE** | — | — | — | yes |
+| **TOOLMAKER** | — | — | — | yes |
+| **SKILLMAKER** | — | — | — | yes |
+| **PDF2MD** | — | — | — | yes |
+| **DRAWING_EXTRACT** | — | — | — | yes |
+| **PDF2MD_PAGE** | — | — | — | yes |
+| **DRAWING_EXTRACT_PAGE** | — | — | — | yes |
+| **AUDIT_GOVERNANCE** | — | — | — | yes |
+| **AUDIT_EPISTEMIC** | — | — | — | yes |
+| **AUDIT_SCOPE_CLOSURE** | — | — | — | yes |
 
 Agents that support multiple variants use `DECOMP_VARIANT` auto-detection: folder name prefix `KTY-` → DOMAIN; otherwise PROJECT/SOFTWARE.
 
