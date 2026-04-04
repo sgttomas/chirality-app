@@ -116,9 +116,9 @@ Option policy:
 
 ---
 
-## 3. Future Hardening Candidates
+## 3. Hardening Status and Remaining Gaps
 
-Ordered by priority (highest first):
+Ordered by priority (highest first). Some items below are now implemented or partially implemented; the status line records the current state and any remaining gap.
 
 ### 3.1 Content Hash Implementation for `_REFERENCES.md`
 
@@ -132,31 +132,31 @@ Ordered by priority (highest first):
 
 **Status:** Implemented. `tools/validation/validate_dependencies_schema.py` validates against the v3.1 schema (29 columns). Registered in `tools/REGISTRY.md`.
 
-**What:** A validation script that reads `Dependencies.csv` files and checks them against the v3.1 schema defined in `docs/SPEC.md` Section 6.
+**What:** Deterministic validation of `Dependencies.csv` files against the v3.1 schema defined in `docs/SPEC.md` Section 6.
 
-**Why:** Schema violations are currently caught only by agent-internal quality checks. An external linter would enable CI-level validation and catch drift across deliverables.
+**Why:** This closes a previously identified gap and enables CI-level validation and drift detection across deliverables.
 
-**Effort:** Low. The schema is fully specified. Implementation is a Python script that validates column presence, enum values, identity rules, and provenance requirements.
+**Remaining gap:** None identified for the core capability. Future follow-on work in this area would be broader aggregation or reporting, not basic schema validation.
 
 ### 3.3 Automated Folder Structure Validator
 
 **Status:** Partially implemented. `tools/validation/check_min_viable_fileset.sh` and `tools/validation/check_four_documents.sh` verify core file presence per deliverable. Full execution-root walkthrough against SPEC §12 is not yet a standalone tool.
 
-**What:** A script that walks the execution root and validates each deliverable folder against the checklist in `docs/SPEC.md` Section 12.
+**What:** Deliverable-level structural validation against the core required files, with a remaining gap for a full execution-root walkthrough against the checklist in `docs/SPEC.md` Section 12.
 
-**Why:** Missing files or unexpected structures are currently detected only during agent runs. A standalone validator enables pre-run checks and CI integration.
+**Why:** Core file presence is now checkable outside agent runs, but a single execution-root validator would simplify pre-run checks and CI integration.
 
-**Effort:** Low. The validation rules are fully defined.
+**Remaining effort:** Low. The remaining validation rules are fully defined; the missing piece is consolidation into one standalone execution-root walk.
 
 ### 3.4 On-Demand Dependency Graph Generation
 
 **Status:** Substantially implemented. `tools/coordination/analyze_dep_closure.py` aggregates Dependencies.csv files and produces closure analysis (JSON summary + 6 CSV reports covering orphans, cycles/SCC, hubs, bidirectional pairs, and coverage). Visualization-oriented export (e.g., Mermaid) is not yet built.
 
-**What:** A tool that aggregates deliverable-local `Dependencies.csv` files into a project-level dependency graph (JSON or Mermaid).
+**What:** Project-level dependency aggregation and closure analysis from deliverable-local `Dependencies.csv` files, with a remaining gap for visualization-oriented export (e.g., Mermaid).
 
-**Why:** The system intentionally avoids a central dependency graph to prevent sync burden. However, on-demand generation from the authoritative local registers would enable visualization, critical path analysis, and cycle detection without maintaining a separate artifact.
+**Why:** The analytical closure capability now exists without introducing a maintained central graph artifact. Additional export formats would improve visualization and critical-path-oriented review.
 
-**Effort:** Medium. Requires traversal of all `Dependencies.csv` files, ID resolution, and graph output format.
+**Remaining effort:** Medium. The remaining work is graph-export formatting rather than core traversal or closure analysis.
 
 ### 3.5 Lock Mechanism Formalization
 
@@ -168,13 +168,13 @@ Ordered by priority (highest first):
 
 ### 3.6 Run Record Persistence
 
-**Status:** Core implemented. `agents/AGENT_TASK.md` defines a persistent run-record contract: YAML frontmatter schema (13 fields), Markdown body (9 headings), storage at `{ScopePath}/_run_records/TASK_RUN_*.md`, two-phase lifecycle (PENDING at normalization, final status at completion). Downstream audit trail queries and rerun management tooling remain future work.
+**Status:** Core implemented. `agents/AGENT_TASK.md` defines a persistent run-record contract: YAML frontmatter schema (13 fields), Markdown body (10 headings), storage at `{ScopePath}/_run_records/TASK_RUN_*.md`, two-phase lifecycle (PENDING at normalization, final status at completion). Downstream audit trail queries and rerun management tooling remain future work.
 
-**What:** Formalize a unified pipeline run record schema.
+**What:** Unified persistent run records for `TASK` executions, with remaining gaps in downstream audit-trail query and rerun-management tooling.
 
-**Why:** Currently, pipeline runs are tracked in `_STATUS.md` history and `_DEPENDENCIES.md` run history, but there is no unified run record per Agent 2 execution. Formal run records would enable better audit trails and rerun management.
+**Why:** Core persistence now exists at the task-shell level. Follow-on tooling would improve retrieval, cross-run reporting, and rerun operations.
 
-**Effort:** Medium. Requires schema definition, storage location decision, and integration into task agent protocols.
+**Remaining effort:** Medium. The remaining work is downstream tooling on top of the established run-record contract.
 
 ### 3.7 Staleness Calculation Tooling
 
@@ -188,14 +188,14 @@ Ordered by priority (highest first):
 
 ## 4. Sequencing Rationale
 
-The future candidates are ordered to build on each other:
+The remaining gaps build on the currently available capabilities in this order:
 
-1. **Schema linter + folder validator** (3.2, 3.3) — low effort, high immediate value, no dependencies.
-2. **Content hashes** (3.1) — enables no-ghost-inputs enforcement.
-3. **Dependency graph generation** (3.4) — enables visualization and analysis.
+1. **Content hashes** (3.1) — enables no-ghost-inputs enforcement.
+2. **Full execution-root folder walkthrough** (remaining gap in 3.3) — extends existing per-deliverable checks into one standalone validator.
+3. **Visualization-oriented dependency export** (remaining gap in 3.4) — builds on existing closure analysis.
 4. **Lock mechanism** (3.5) — enables safe parallel execution.
-5. **Run records** (3.6) — enables audit trails.
-6. **Staleness calculation** (3.7) — depends on graph + run records; completes the governance loop.
+5. **Audit-trail query + rerun tooling** (remaining gap in 3.6) — builds on the existing run-record contract.
+6. **Staleness calculation** (3.7) — depends on dependency analysis plus run-record/baseline machinery; completes the governance loop.
 
 ---
 
