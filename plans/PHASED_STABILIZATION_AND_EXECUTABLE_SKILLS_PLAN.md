@@ -296,6 +296,8 @@ Local critical-path work that should stay in the main thread:
 
 ## Phase 2 — Persist Standard Run Records
 
+**Status: Done** (2026-04-03)
+
 ## Goal
 
 Make every bounded Type 2 run produce one durable run artifact with a stable
@@ -307,6 +309,25 @@ The run record should extend the existing run-report headings in
 [`agents/AGENT_TASK.md`](/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_TASK.md)
 rather than inventing an unrelated second reporting model.
 
+## Design Decisions Resolved
+
+1. **Format:** Markdown with YAML frontmatter. YAML carries machine-parseable
+   fields (run-id, timestamps, resolved state). Markdown body carries the same
+   headings TASK already emits in conversation.
+
+2. **Location:** `{ScopePath}/_run_records/TASK_RUN_{YYYY-MM-DD}_{HHmm}.md`.
+   Stays within TASK's existing `deliverable-local` WRITE_SCOPE (K-WRITE-1).
+   The `_` prefix convention marks it as metadata, consistent with `_STATUS.md`,
+   `_CONTEXT.md`, etc.
+
+3. **Lifecycle:** Two-phase write. Created at normalization with
+   `run-status: PENDING`. Updated at completion with final status and results.
+   Immutable after the owning run completes.
+
+4. **Interaction with existing state files:** Independent from `MEMORY.md`
+   (working memory) and `NEXT_INSTANCE_STATE.md` (control-loop handoff).
+   No coupling needed.
+
 ## Concrete Work
 
 1. Define one first-pass run-record schema.
@@ -316,7 +337,7 @@ rather than inventing an unrelated second reporting model.
 3. Update the same record at completion with execution outcomes.
 
 4. Keep the first version simple.
-   - JSON or Markdown is acceptable
+   - Markdown with YAML frontmatter
    - one artifact per run
    - generic-shell runs and skill-driven runs use the same overall shape
 
@@ -349,28 +370,24 @@ The phase is successful when:
 3. later audits can reason about what happened without reconstructing the run
    from chat alone
 
-## Delegation And Parallelization
+## Implementation
 
-Candidate delegated subtasks:
+All changes landed in `agents/AGENT_TASK.md` (five additive edits):
 
-- **Schema drafting subagent**
-  Propose a first-version run-record schema that reuses current run-report
-  headings.
+1. Agent header: PRIMARY_OUTPUTS updated to reference run record
+2. SPEC "In scope": run record creation added
+3. SPEC: new "Run record persistence" subsection (lifecycle, location, edge cases)
+4. STRUCTURE: new "Run-record file format" subsection (YAML frontmatter schema + Markdown body headings)
+5. PROTOCOL: steps 1, 5, and 6 extended with run-record creation and update
 
-- **Location policy subagent**
-  Compare candidate persistence locations inside bounded scope and recommend
-  one that fits the filesystem governance model.
-
-Local critical-path work that should stay in the main thread:
-
-- choosing the canonical run-record shape
-- deciding where the artifact belongs
-- deciding how this interacts with existing deliverable-local memory and
-  control-loop files
+No other files changed. WRITE_SCOPE remains `deliverable-local`. No new
+K-* invariants introduced.
 
 ---
 
 ## Phase 3 — Add Light Validation Around Resolved State
+
+**Status: Done** (2026-04-03)
 
 ## Goal
 
@@ -402,20 +419,29 @@ The phase is successful when:
 2. run records are structurally complete
 3. validation load remains small enough to adopt quickly
 
-## Delegation And Parallelization
+## Implementation
 
-Candidate delegated subtasks:
+Added a "Structural validation" subsection to `agents/AGENT_TASK.md` SPEC
+section collecting all five checks into a named, auditable checklist:
 
-- **Validation-rule subagent**
-  Propose the minimal structural checks worth enforcing immediately.
+- **Pre-execution checks** (4 items): skill folder existence, tool path
+  resolution, profile compatibility, write target scope — all were already
+  enforced as hard errors; now formalized in a table.
+- **Post-execution checks** (4 items): scope violation, tool allowlist
+  compliance, run-record frontmatter completeness, run-record heading
+  completeness.
+- **Companion file reporting** tightened: all three slots are now explicitly
+  checked and reported as `found` or `absent` (previously only listed what
+  was found).
 
-- **False-positive review subagent**
-  Review whether any proposed validation rule is likely to be too strict for
-  generic-shell runs or legacy-compatible deliverable runs.
+No new validation tooling introduced. The validation load is minimal — it
+formalizes existing error paths and adds two lightweight post-execution checks.
 
 ---
 
 ## Phase 4 — Strengthen Tool-Use Auditing
+
+**Status: Done** (2026-04-03)
 
 ## Goal
 
@@ -438,20 +464,27 @@ The phase is successful when:
 2. obvious tool-policy violations are detectable after the run
 3. skill tool policies have more than documentary force
 
-## Delegation And Parallelization
+## Implementation
 
-Candidate delegated subtasks:
+Changes to `agents/AGENT_TASK.md`:
 
-- **Tool-policy mapping subagent**
-  Review current skill tool policies and propose the smallest normalized model
-  that fits them.
+1. **Conversational output format**: `ToolsUsed` entries now use
+   `<interpreter> <tool-path>` format matching the `allowed-tools` spec.
+   Added `ToolPolicyCompliance: PASS | VIOLATION | N/A` field.
+2. **Run-record body**: added `## Tool Policy Compliance` heading alongside
+   the structured `## Tools Used` format.
+3. **Structural validation**: added three post-execution checks — tool format
+   compliance, declared-first tool ordering, write-path scope enforcement.
+4. **PROTOCOL step 5**: tool-policy comparison is now an explicit QA sub-step.
 
-- **Audit-shape subagent**
-  Propose a post-run comparison shape for declared versus actual tool use.
+Declared and actual tool usage are now in the same format and compared
+explicitly in every run.
 
 ---
 
 ## Phase 5 — Tighten Profile / Skill Separation
+
+**Status: Done** (2026-04-03)
 
 ## Goal
 
@@ -482,16 +515,23 @@ The phase is successful when:
 3. future task methods no longer pressure `TASK` or profiles to grow new
    role-like prose
 
-## Delegation And Parallelization
+## Implementation
 
-Candidate delegated subtasks:
+1. Added "Profile / skill separation" guidance subsection to
+   `agents/AGENT_TASK.md` SPEC section defining the principle: profiles own
+   *where and what* (scope, truth set, write discipline, artifact discipline);
+   skills own *how* (method, tools, overrides, QA).
 
-- **Profile audit subagent**
-  Identify which parts of `DELIVERABLE_TASK` are structural versus method-like.
+2. Added classification note to `agents/AGENT_DELIVERABLE_TASK.md` RATIONALE
+   section identifying structural sections (scope, initialization, file edit
+   policy, variant awareness, identity normalization, working memory) and
+   method-like sections (semantic lensing, proposal format, baseline scan
+   defaults). Method-like sections are retained for continuity but marked as
+   skill-extractable.
 
-- **Skill-gap subagent**
-  Identify which recurring deliverable-local methods would most benefit from
-  becoming explicit skills.
+3. No refactoring performed — the existing separation is already mostly clean.
+   The principle is documented so future additions follow it rather than
+   growing the profile.
 
 ---
 
