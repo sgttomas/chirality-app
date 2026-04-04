@@ -96,6 +96,25 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 ---
 
+## Authority hierarchy (for source-grounded drafting)
+
+When drafting or revising Knowledge Artifact content, consult sources in this order of authority:
+
+1. **Authoritative source material** — the original source file(s) referenced by `SourceSpan` in the decomposition and/or listed in `_REFERENCES.md`, located under `{SOURCES_ROOT}` or local `_Sources/`
+2. **KTY-local reference pointers** — `_REFERENCES.md` (additional cited sources relevant to this Knowledge Type)
+3. **Decomposition data** — `KnowledgeTypes.csv`, `HandbookUnits.csv`, `DomainLedger.csv` (scope, structure, evidence pointers)
+4. **Existing drafted files** — prior versions of Knowledge Artifacts and `Scoping.md` (context only, not authority)
+
+When source material and decomposition data disagree, source material is authoritative. Decomposition scopes and routes; source determines what the artifact must say. Record discrepancies in the Conflict Table.
+
+Do not treat decomposition summaries, atomic statements, or prior draft wording as if they were the source. When the source file is accessible, ground artifact content in the actual source text.
+
+### Source slice
+
+A **source slice** is the smallest local source region that preserves meaning for a cited claim. Includes: the cited heading or section, its opening prose, embedded tables or lists, and the immediate parent heading when it frames scope. Adjacent exception or exclusion material should be included when it qualifies the claim.
+
+---
+
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
@@ -223,6 +242,8 @@ Add-ons are **additive** and do not change the base type.
 
 **Action:** Using the draft plan + evidence set, generate documents in `{KTY_PATH}`.
 
+**Source-grounding rule:** When the authoritative source file is accessible, artifact prose MUST be grounded in the relevant source slices — not only in decomposition summaries, atomic statements, or prior draft wording. Decomposition scopes and structures; the source determines what the artifact must say.
+
 #### 4a) `Scoping.md` (stable entrypoint; always generated in Pass 1)
 Create/overwrite `Scoping.md` with:
 
@@ -309,7 +330,12 @@ For each planned artifact, create/overwrite the target file with:
    - Flag synonym drift (e.g., "inlet separator" vs "inlet knock-out drum") as Conflict Table entries unless resolved by VocabularyMap.
 
 7. Fix inconsistencies when resolvable from the generated documents themselves or from the decomposition data.
-8. If not resolvable:
+8. Re-open authoritative source slices when:
+   - values differ across artifacts and the correct value is not obvious from drafts alone,
+   - identity or terminology inconsistencies cannot be resolved from draft text,
+   - claims appear to overstate what the decomposition supports and may need source verification,
+   - contradictions between Scoping.md and artifact content cannot be resolved locally.
+9. If not resolvable:
    - prefer `TBD` over guessing,
    - add Conflict Table entries in `Scoping.md` with pointers to both artifacts.
 
@@ -348,6 +374,7 @@ For each non-TBD, non-ASSUMPTION claim in the generated artifacts:
   - Corrections made (artifact, section, what changed, source evidence)
   - Gaps found (source content not captured, with source location)
   - Unverified claims (artifact content that could not be traced to source)
+  - **Source reread evidence:** for each correction or enrichment, record which source slice was re-read before the change was applied
 - Update the Conflict Table if source-artifact contradictions require human ruling.
 
 #### 6f) Final structural sweep
@@ -374,11 +401,15 @@ After completing the pass directive, DOMAIN_DOCUMENTS verifies:
 | Scoping exists | `Scoping.md` present |
 | Artifacts exist | All artifacts listed in Scoping exist as `.md` files |
 | Default sections present | All default schema headings exist in each Knowledge Artifact |
+| Authoritative source read | Source file(s) referenced by `SourceSpan` were successfully accessed and read |
+| Substantive claims source-grounded | Artifact content grounded in source slices, not only decomposition summaries |
 | TBDs for unknowns | Missing information is `TBD`, not invented |
 | Assumptions labeled | Inferred content is labeled ASSUMPTION |
 | Sources cited | Non-trivial values/requirements cite sources (or are marked `location TBD`) |
+| Decomposition not overstated | Decomposition-derived claims do not exceed what the source material supports |
 | Cross-doc consistency | Identity/evidence pointers consistent, or conflicts recorded |
 | Source fidelity verified (Pass 3) | Every substantive source claim compared against artifact; corrections logged in Source-Fidelity Log |
+| Pass 3 source rereads evidenced | Each correction/enrichment records which source slice was re-read |
 | Status update safe | `_STATUS.md` only modified per safe-update rules |
 
 [[END:PROTOCOL]]
@@ -403,7 +434,9 @@ Invalid when:
 - `_CONTEXT.md` or `_REFERENCES.md` or `_SEMANTIC.md` are modified,
 - identity is ambiguous and not reported as `FAILED_INPUTS`,
 - content is invented rather than marked `TBD` / ASSUMPTION,
-- or Pass 3 ran but the source file was not actually read (source fidelity cannot be claimed without source access).
+- no authoritative source file was read for any pass (run should have returned `FAILED_INPUTS`),
+- Pass 3 ran but the source file was not actually read (source fidelity cannot be claimed without source access),
+- or Pass 3 corrections were applied without recording source reread evidence in the Source-Fidelity Log.
 
 [[END:SPEC]]
 

@@ -71,6 +71,22 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 ---
 
+## Authority hierarchy (for source-grounded drafting)
+
+When drafting or revising content, consult sources in this order of authority:
+
+1. **Authoritative source materials** — locally accessible documents explicitly referenced in `_REFERENCES.md` (standards, specifications, design basis documents, vendor data)
+2. **Deliverable-local reference pointers** — `_REFERENCES.md` and `_CONTEXT.md` (scope, identity, constraints)
+3. **Decomposition narrative** — the deliverable’s entry in the decomposition (context, downstream use, objectives)
+4. **Existing drafted files** — prior versions of the four documents (context only, not authority)
+5. **`_SEMANTIC_LENSING.md`** — candidate worklist only, never authority
+
+When source material and decomposition narrative disagree, source material is authoritative. Record the discrepancy in the Conflict Table.
+
+Do not treat decomposition summaries, prior draft wording, or generic convention as if they were source material. Do not create requirements, design values, or procedural steps from decomposition prose when the actual source text is locally available.
+
+---
+
 ## Non-negotiable invariants
 
 - **One deliverable per invocation.** This agent receives one deliverable folder and produces documents for that deliverable only.
@@ -91,6 +107,7 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 - **DOMAIN**: Domain/disciplined context (discipline, standards, schemas) inferred from folder contents and accessible references.
 - **TASK**: The deliverable’s subject, constraints, and objectives extracted from `_CONTEXT.md` and the decomposition (with conservative inference rules).
 - **Dependency information**: `_DEPENDENCIES.md` is a container that may include (a) human-declared upstream/downstream lists and (b) extracted info-flow summaries. Treat declared lists as constraints; treat extracted summaries as context unless explicitly stated as requirements in evidence sources.
+- **Source slice**: the smallest local source region that preserves meaning for a cited claim or requirement. Includes: the cited section or clause, its immediate parent heading (for scope framing), and any embedded tables, acceptance criteria, notes, or exceptions within that section. Adjacent exclusion or applicability material should be included when it qualifies the claim.
 
 ---
 
@@ -135,8 +152,12 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - If `OBJECTIVE_ASSOCIATION_MODE = PACKAGE_HEURISTIC` (default), apply the original **package‑grouping heuristic**:
      - If the decomposition’s *Objective‑to‑Deliverable Mapping* lists **deliverable ranges grouped by parent package**, treat any objective row that mentions this deliverable’s **package ID** (e.g., `PKG-014` for PROJECT_DECOMP, `PKG-14` for SOFTWARE_DECOMP) as *directionally relevant context*.
      - Record the association as **ASSUMPTION (best‑effort mapping)** and do **not** treat it as a hard requirement unless the human confirms.
-4. Read `{DELIVERABLE_PATH}/_REFERENCES.md` to identify accessible reference materials.
-5. Read any accessible reference materials listed (best-effort). If a listed reference cannot be accessed, record it as missing and treat content as `TBD` (do not guess).
+4. Read `{DELIVERABLE_PATH}/_REFERENCES.md` to identify reference materials.
+5. Read locally accessible reference materials listed in `_REFERENCES.md`. These are the authoritative source set for this deliverable.
+   - If `_REFERENCES.md` is absent or lists no sources: return `RUN_STATUS=FAILED_INPUTS` (no authoritative sources to ground in).
+   - If NO listed reference materials are locally accessible: return `RUN_STATUS=FAILED_INPUTS` (source fidelity cannot be established without source access).
+   - If some references are accessible and others are not: proceed with accessible sources; record inaccessible sources as missing. Content that depends solely on inaccessible sources becomes `TBD`.
+   - For each accessible source, read the source slices relevant to this deliverable's scope (see Glossary: source slice).
 6. Read `{DELIVERABLE_PATH}/_DEPENDENCIES.md` (best-effort):
    - Use only the **human-declared Upstream/Downstream** lists as constraints (if present).
    - Treat extracted summaries, run notes, and consumer notes as context only (unless supported by evidence sources).
@@ -178,6 +199,8 @@ You may add sections if the deliverable type requires it, but do not remove the 
 ### Step 4 — Generate Four Documents (Pass 1)
 
 **Action:** Using DOMAIN + TASK, generate the four documents in `{DELIVERABLE_PATH}`.
+
+**Source-grounding rule:** When authoritative source material is locally accessible, draft content MUST be grounded in the relevant source slices — not only in decomposition summaries, `_CONTEXT.md`, or generic convention. Decomposition scopes and routes; sources determine what the deliverable must say.
 
 #### 4a: `Datasheet.md`
 - Identification: populate from `_CONTEXT.md`.
@@ -221,8 +244,14 @@ You may add sections if the deliverable type requires it, but do not remove the 
 | Terminology | Same terms used consistently across all four documents |
 | Values | Numeric values/units consistent across documents |
 
-2. Fix inconsistencies when resolvable from sources.
-3. If not resolvable from available info:
+2. Fix inconsistencies when resolvable from the drafted documents themselves.
+3. Re-open authoritative source slices when:
+   - values differ across documents and the correct value is not obvious from drafts alone,
+   - requirements and verification approaches do not align,
+   - guidance rationale appears to overstate what the source supports,
+   - procedure steps imply actions not warranted by source,
+   - standards or code references may be mismatched or overclaimed.
+4. If not resolvable from available info:
    - prefer `TBD` over guessing,
    - add a Conflict Table in `Guidance.md`:
 
@@ -251,14 +280,19 @@ Columns:
 
 **Action:**
 1. Read `_SEMANTIC_LENSING.md` and treat each row as a **candidate improvement**, not evidence.
-2. Incorporate only when you can cite underlying sources (`SourcePath` + `SectionRef`) or explicitly mark `location TBD`.
-3. If underlying evidence is unavailable/insufficient:
+2. For every warranted item that would change artifact content, **re-read before changing**:
+   - the target document section(s) being modified,
+   - the authoritative source slice(s) that the change depends on,
+   - sibling document sections implicated by the same topic.
+3. Incorporate only when the source slice supports the change. Cite the source (`SourcePath` + `SectionRef`) or explicitly mark `location TBD`.
+4. If underlying evidence is unavailable/insufficient:
    - convert to `TBD` or add to the Conflict Table,
    - avoid introducing new “facts.”
+5. Record evidence of source rereads in the run report: for each substantive change, note which source slice was consulted.
 
 **Completion condition:**
 - Each warranted item has been either:
-  - incorporated with provenance, or
+  - incorporated with provenance and source reread evidence, or
   - converted into `TBD`/Conflict Table entries with provenance,
 - then perform a final mini consistency sweep (Step 5 checks).
 
@@ -282,10 +316,14 @@ After completing the pass directive, 4_DOCUMENTS verifies:
 |-------|-----------|
 | Four docs exist | `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md` all present |
 | Default sections present | All default schema headings exist in each document |
+| Authoritative source set identified | At least one locally accessible source was read from `_REFERENCES.md` |
+| Substantive claims source-grounded | Non-trivial values, requirements, and rationale grounded in locally accessible authority where available |
 | TBDs for unknowns | Missing information is `TBD`, not invented |
 | Assumptions labeled | Inferred content is labeled ASSUMPTION |
-| Sources cited | Non-trivial values/requirements cite sources |
+| Sources cited | Non-trivial values/requirements cite sources (`SourcePath` + `SectionRef` or `location TBD`) |
+| Decomposition not overstated | Decomposition-derived claims do not exceed what the source material supports |
 | Cross-doc consistency | Terminology/values consistent, or conflicts in Conflict Table |
+| Pass 3 source rereads evidenced | Each substantive Pass 3 change records which source slice was consulted |
 | Status update safe | `_STATUS.md` only modified per safe-update rules |
 
 [[END:PROTOCOL]]
@@ -312,6 +350,8 @@ A 4_DOCUMENTS run is valid when:
 Invalid when:
 - fewer than four docs exist after a successful run,
 - content is asserted as fact without sources/ASSUMPTION labeling,
+- no locally accessible authoritative source was read (run should have returned `FAILED_INPUTS`),
+- Pass 3 changes were applied without re-reading the implicated source slice,
 - `_STATUS.md` regresses or is modified outside the safe rule,
 - metadata files other than `_STATUS.md` are modified.
 
