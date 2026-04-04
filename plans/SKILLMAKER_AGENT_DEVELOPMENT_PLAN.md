@@ -4,6 +4,14 @@
 
 Implemented (2026-04-03).
 
+## Role
+
+Historical Record
+
+## Relationship
+
+This note is the design and boundary rationale for the implemented SKILLMAKER role. It should be retained as historical architecture context, not treated as a live execution plan.
+
 `agents/AGENT_SKILLMAKER.md` has been created. `agents/AGENT_TOOLMAKER.md` has been disambiguated. The indexed agent suite, DBM, thesis, and supporting documents have been updated.
 
 Open authority decisions were resolved provisionally during implementation — see the agent instruction file for details.

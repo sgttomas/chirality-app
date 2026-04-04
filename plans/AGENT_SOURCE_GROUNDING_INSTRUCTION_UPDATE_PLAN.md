@@ -2,15 +2,23 @@
 
 ## Status
 
-Planning note only. No agent instruction files have been updated by this plan.
+Queued under the active master plan. No agent instruction files have yet been updated by this plan.
+
+## Role
+
+Supporting Work Package
+
+## Relationship
+
+This is the next bounded instruction-revision package for source-grounding behavior. It is subordinate to [`plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md) and should not be treated as an independent active roadmap.
 
 This note defines the plan for converting the proposed source-grounding
 policies into concrete agent-instruction revisions.
 
 Related policy notes:
 
-- [DOMAIN_DOCUMENTS Source-Grounding Policy](/Users/ryan/ai-env/projects/chirality-app/agents/plans/DOMAIN_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
-- [4_DOCUMENTS Source-Grounding Review And Policy Plan](/Users/ryan/ai-env/projects/chirality-app/agents/plans/FOUR_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
+- [DOMAIN_DOCUMENTS Source-Grounding Policy](/Users/ryan/ai-env/projects/chirality-app/plans/DOMAIN_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
+- [4_DOCUMENTS Source-Grounding Review And Policy Plan](/Users/ryan/ai-env/projects/chirality-app/plans/FOUR_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
 
 ## Goal
 

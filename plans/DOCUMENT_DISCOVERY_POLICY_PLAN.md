@@ -2,9 +2,15 @@
 
 ## Status
 
-Planning note only.
+Reference. Not yet adopted as active documentation policy.
 
-No documentation files have been changed by this plan.
+## Role
+
+Policy Input
+
+## Relationship
+
+This note is a candidate policy basis for future documentation-governance updates. It is not currently the active implementation focus.
 
 This note captures a proposed documentation policy and a small example patch
 set before any actual edits are made.

@@ -2,7 +2,15 @@
 
 ## Status
 
-Planning note only.
+Reference. This plan is no longer the active execution roadmap.
+
+## Role
+
+Architectural Rationale
+
+## Relationship
+
+This note preserves the retrospective assessment and architectural reasoning behind the recent skills/tools changes. Active execution sequencing now lives in [`plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md).
 
 This document captures:
 
@@ -774,6 +782,8 @@ fully operational substrate:
 - deterministic validation of the indexed agent suite
 
 ---
+
+The SKILLMAKER work described below is completed baseline context, not an active plan branch.
 
 ## Part VII — SKILLMAKER Agent Created (2026-04-03)
 

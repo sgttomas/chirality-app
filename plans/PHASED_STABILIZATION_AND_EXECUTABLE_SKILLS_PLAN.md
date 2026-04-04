@@ -2,7 +2,15 @@
 
 ## Status
 
-Planning note only.
+Active. This is the single carried-forward master plan for post-SKILLMAKER architecture work.
+
+## Role
+
+Master Execution Plan
+
+## Relationship
+
+This is the governing roadmap for stabilization, executable skill resolution, standard run records, validation, and related follow-on work. Other plan files in `plans/` should be treated as supporting work packages, policy inputs, historical records, or deferred concepts unless explicitly promoted back into active execution.
 
 This plan is intentionally written before further architecture code changes.
 
@@ -40,6 +48,27 @@ surface area:
    narrative method guidance
 
 This plan gives a concrete implementation sequence for both.
+
+## Plan Hierarchy
+
+Use this file as the single active master plan.
+
+Related plan roles:
+
+- Supporting work package:
+  - [`plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md)
+
+- Policy inputs:
+  - [`plans/DOMAIN_DOCUMENTS_SOURCE_GROUNDING_POLICY.md`](/Users/ryan/ai-env/projects/chirality-app/plans/DOMAIN_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
+  - [`plans/FOUR_DOCUMENTS_SOURCE_GROUNDING_POLICY.md`](/Users/ryan/ai-env/projects/chirality-app/plans/FOUR_DOCUMENTS_SOURCE_GROUNDING_POLICY.md)
+  - [`plans/DOCUMENT_DISCOVERY_POLICY_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/DOCUMENT_DISCOVERY_POLICY_PLAN.md)
+
+- Architectural rationale / historical record:
+  - [`plans/AGENT_OPERATING_SYSTEM_SKILLS_TOOLS_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_OPERATING_SYSTEM_SKILLS_TOOLS_PLAN.md)
+  - [`plans/SKILLMAKER_AGENT_DEVELOPMENT_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/SKILLMAKER_AGENT_DEVELOPMENT_PLAN.md)
+
+- Deferred concept:
+  - [`plans/DOMAIN_KNOWLEDGE_INDEXING_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/DOMAIN_KNOWLEDGE_INDEXING_PLAN.md)
 
 ---
 

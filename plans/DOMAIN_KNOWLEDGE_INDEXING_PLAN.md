@@ -4,6 +4,14 @@
 
 Deferred for later design and implementation.
 
+## Role
+
+Deferred Concept
+
+## Relationship
+
+This note remains deferred until DOMAIN decomposition outputs and production documents are stable enough to justify structural and semantic indexing work.
+
 This note captures the current intent so the idea can be resumed without
 reconstructing the discussion.
 
