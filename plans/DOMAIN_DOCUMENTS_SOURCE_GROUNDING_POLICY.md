@@ -2,7 +2,7 @@
 
 ## Status
 
-Reference. Not yet applied to agent instructions.
+Reference. Reflected in `agents/AGENT_DOMAIN_DOCUMENTS.md` via the completed source-grounding work package.
 
 ## Role
 
@@ -10,7 +10,7 @@ Policy Input
 
 ## Relationship
 
-This note provides policy input for [`plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md), which is itself a supporting work package under the active master plan [`plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md).
+This note provided policy input for [`plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md), which has now been completed. It is retained as the policy basis and rationale record for the implemented `DOMAIN_DOCUMENTS` source-grounding redlines.
 
 This note defines a clean source-grounding policy for `DOMAIN_DOCUMENTS`
 so the agent remains faithful to original domain material without requiring

@@ -35,6 +35,24 @@ If another document needs to mention how many agents, skills, or tools the proje
 
 ---
 
+## Discovery Guidance
+
+This file is for aggregate governed counts only. It is not the place to enumerate the members of those sets.
+
+Use these sources for discovery:
+
+- Indexed agents: [`AGENTS.md`](../AGENTS.md)
+- Repo-native skills: inspect [`skills/`](../skills/) directly using the folder rule defined in [`skills/README.md`](../skills/README.md)
+- Registered deterministic tools: [`tools/REGISTRY.md`](../tools/REGISTRY.md)
+
+When canonical indexes and live filesystem contents differ:
+
+- use the canonical index first for governed membership and official inclusion
+- use the live filesystem second for current local presence and file contents
+- surface the discrepancy explicitly rather than silently reconciling it
+
+---
+
 ## Update Policy
 
 Update this file when any of the following change:

@@ -2,7 +2,7 @@
 
 ## Status
 
-Reference. Not yet applied to AGENT_4_DOCUMENTS.md.
+Reference. Reflected in `agents/AGENT_4_DOCUMENTS.md` via the completed source-grounding work package.
 
 ## Role
 
@@ -10,7 +10,7 @@ Policy Input
 
 ## Relationship
 
-This note provides policy input for [`plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md), which is itself a supporting work package under the active master plan [`plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md).
+This note provided policy input for [`plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`](/Users/ryan/ai-env/projects/chirality-app/plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md), which has now been completed. It is retained as the policy basis and rationale record for the implemented `4_DOCUMENTS` source-grounding redlines.
 
 This note reviews the current `4_DOCUMENTS` instruction contract with source
 fidelity in mind and proposes a clean source-grounding policy that matches the

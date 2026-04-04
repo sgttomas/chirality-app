@@ -2,7 +2,7 @@
 
 ## Status
 
-Reference. Not yet adopted as active documentation policy.
+Partially adopted (2026-04-03). Narrow discovery-guidance patterns were promoted into canonical orientation docs; broader repository-wide adoption remains optional.
 
 ## Role
 
@@ -10,10 +10,9 @@ Policy Input
 
 ## Relationship
 
-This note is a candidate policy basis for future documentation-governance updates. It is not currently the active implementation focus.
+This note is a policy basis for documentation-governance updates. Its narrowest high-value recommendations have been adopted in canonical orientation docs; the broader doc sweep remains optional rather than active.
 
-This note captures a proposed documentation policy and a small example patch
-set before any actual edits are made.
+This note captures the proposed documentation policy, its rationale, and the example patch patterns that informed the adopted updates.
 
 ## Purpose
 

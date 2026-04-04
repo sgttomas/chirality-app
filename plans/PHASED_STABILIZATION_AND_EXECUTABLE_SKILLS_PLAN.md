@@ -2,15 +2,15 @@
 
 ## Status
 
-Active. This is the single carried-forward master plan for post-SKILLMAKER architecture work.
+Completed (2026-04-03). This master plan has been fully implemented and is retained as the execution record for post-SKILLMAKER architecture work.
 
 ## Role
 
-Master Execution Plan
+Master Execution Record
 
 ## Relationship
 
-This is the governing roadmap for stabilization, executable skill resolution, standard run records, validation, and related follow-on work. Other plan files in `plans/` should be treated as supporting work packages, policy inputs, historical records, or deferred concepts unless explicitly promoted back into active execution.
+This was the governing roadmap for stabilization, executable skill resolution, standard run records, validation, and related follow-on work. Other plan files in `plans/` should be treated as supporting work packages, policy inputs, historical records, or deferred concepts unless explicitly promoted back into active execution.
 
 This plan is intentionally written before further architecture code changes.
 
@@ -51,7 +51,7 @@ This plan gives a concrete implementation sequence for both.
 
 ## Plan Hierarchy
 
-Use this file as the single active master plan.
+Use this file as the completed execution record for the single carried-forward master plan.
 
 Related plan roles:
 
@@ -150,6 +150,8 @@ mechanically inspectable operating substrate.
 
 ## Phase 0 — Stabilize The Current Architecture Shift
 
+**Status: Done** (2026-04-03)
+
 ## Goal
 
 Create a clean, validated baseline for the recent architecture changes before
@@ -225,9 +227,23 @@ Local critical-path work that should stay in the main thread:
 - final judgment on which governance mismatches are acceptable versus blocking
 - final sequencing of the post-stabilization phases
 
+## Implementation
+
+- `fe989d4` stabilized the baseline:
+  - removed accidental runtime artifacts and added `__pycache__/` to `.gitignore`
+  - registered the missing drawing-extract and domain-extract tools in [`tools/REGISTRY.md`](/Users/ryan/ai-env/projects/chirality-app/tools/REGISTRY.md)
+  - updated canonical counts in [`docs/REPO_INVENTORY.md`](/Users/ryan/ai-env/projects/chirality-app/docs/REPO_INVENTORY.md)
+- The acceptance criteria were met:
+  - accidental runtime byproducts are absent
+  - `validate_skill_metadata.py skills` passes
+  - registry / inventory / indexed-suite drift was reviewed and corrected
+  - the architecture shift is committed in coherent units rather than left in one mixed working tree
+
 ---
 
 ## Phase 1 — Make Skill Resolution Executable
+
+**Status: Done** (2026-04-03)
 
 ## Goal
 
@@ -291,6 +307,15 @@ Local critical-path work that should stay in the main thread:
 - final resolved-skill shape
 - precedence rules between brief fields, profiles, and skills
 - decision on whether frontmatter grows machine-consumed fields now or later
+
+## Implementation
+
+- `f19050a` converted `EQUIPMENT_EXTRACT` into the repo-native [`equipment-extract` skill](/Users/ryan/ai-env/projects/chirality-app/skills/equipment-extract/SKILL.md) with an explicit brief schema, read/write boundary, and QA contract.
+- `417559d` made skill resolution executable in [`agents/AGENT_TASK.md`](/Users/ryan/ai-env/projects/chirality-app/agents/AGENT_TASK.md):
+  - skill frontmatter is parsed and partially machine-consumed
+  - effective tool policy is merged from brief + skill
+  - resolved skill path, version, profile requirement, companion files, and runtime overrides are surfaced in run state
+- [`skills/SKILL_TEMPLATE.md`](/Users/ryan/ai-env/projects/chirality-app/skills/SKILL_TEMPLATE.md) now defines the canonical `allowed-tools` serialization format consumed by `TASK`.
 
 ---
 
@@ -616,29 +641,20 @@ Recommended order:
 
 ## Immediate Next Recommended Task
 
-If work resumes from this plan, the next best concrete step is:
+No remaining implementation work remains under this plan.
 
-**Perform Phase 0 as a short stabilization pass, then begin Phase 1 by
-designing the resolved-skill model and the first-version run-record schema
-together.**
-
-That sequence preserves the current architecture shift and turns it into a
-more executable operating substrate with the least wasted motion.
+Subsequent work should be tracked in separate plans, handoffs, or operational
+tasks rather than reopening this roadmap.
 
 ---
 
 ## Short Summary
 
-The repository should proceed down both paths that were previously identified:
+This repository proceeded down both paths that were previously identified:
 
 - stabilization with validation and commit discipline
 - executable skill resolution with standard run records
 
 They should be executed in sequence, not treated as alternatives.
 
-The best next move is:
-
-1. stabilize the recent architecture shift
-2. add resolved skill state to `TASK`
-3. persist standard run records
-4. build enforcement and cleanup on top of that substrate
+Those steps have now been completed and committed.

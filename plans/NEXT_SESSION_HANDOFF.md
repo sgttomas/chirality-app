@@ -7,62 +7,62 @@
 3. Read this handoff prompt through to the end.
 4. Then adopt `agents/AGENT_WORKING_ITEMS.md` as your working persona.
 
-You are collaborating with the human on architecture work in `plans/`.
+You are collaborating with the human on architecture work.
 
 ## What Just Happened
 
-The full phased stabilization and executable skills plan is complete (Phases 0–6):
+The phased stabilization plan, source-grounding work, and initial skill extraction are all complete. Two runtime validation runs confirmed the substrate works end-to-end.
 
-| Commit | Phase | Summary |
-|---|---|---|
-| `fe989d4` | 0 | Stabilization: `.gitignore`, registered tools, fixed counts |
-| `f19050a` | — | EQUIPMENT_EXTRACT agent → repo-native skill |
-| `417559d` | 1 | Resolved-skill model: frontmatter parsing, tool allowlist intersection |
-| `ce1929f` | 2–5 | Run records, structural validation, tool-use auditing, profile/skill separation |
-| `ca2c759` | 6 | Plan/handoff updates, commit discipline applied |
-
-Key architectural additions to `agents/AGENT_TASK.md`:
-- **Run record persistence** — `{ScopePath}/_run_records/TASK_RUN_*.md`, Markdown with YAML frontmatter, two-phase lifecycle
-- **Structural validation** — named checklist of pre-execution and post-execution checks
-- **Tool policy compliance** — `ToolsUsed` entries in `allowed-tools` format, `ToolPolicyCompliance` field
-- **Profile/skill separation** — documented principle: profiles own structure, skills own method
-
-## Where You Are On The Roadmap
-
-The governing roadmap `plans/PHASED_STABILIZATION_AND_EXECUTABLE_SKILLS_PLAN.md` is **complete**.
-
-| Phase | Status |
+| Commit | Summary |
 |---|---|
-| 0 — Stabilize | **Done** |
-| 1 — Executable skill resolution | **Done** |
-| 2 — Standard run records | **Done** |
-| 3 — Light validation around resolved state | **Done** |
-| 4 — Tool-use auditing | **Done** |
-| 5 — Profile/skill separation | **Done** |
-| 6 — Commit discipline | **Done** |
+| `fe989d4` | Phase 0 stabilization |
+| `f19050a` | EQUIPMENT_EXTRACT → repo-native skill |
+| `417559d` | Phase 1 resolved-skill model |
+| `ce1929f` | Phases 2–5: run records, structural validation, tool auditing, profile/skill separation |
+| `ca2c759`–`816523c` | Phase 6 commit discipline, plan/handoff finalization |
+| `1df5787` | Source-access ruling: hard fail for all passes |
+| `39205ab` | Source-grounding redlines for `4_DOCUMENTS` and `DOMAIN_DOCUMENTS` |
+| `7be6ada` | Source-grounding plan marked done |
+| `eaa3f44` | Extracted semantic-lensing skill from DELIVERABLE_TASK |
 
-## What's Next
+**Runtime validation (two runs exercised, not committed):**
+1. `deliverable-consistency` against `DEL-02.01_Pipeline-Design-Basis` — tool-backed, profile-coupled, tool policy PASS
+2. `semantic-lensing` against `DEL-08.01_Steam-line-design-supply-install-tie-in` — reasoning-only, profile-coupled, lens tags produced
 
-With the executable-skill substrate complete, the following work is eligible:
+Both runs produced valid `_run_records/TASK_RUN_*.md` artifacts with correct two-phase lifecycle.
 
-### Source-grounding updates (ready)
+**Policy sweep (user-completed, included in this changeset):**
+- Source-grounding policy notes marked as reflected in implementation
+- Document-discovery policy partially adopted into `skills/README.md` and `docs/REPO_INVENTORY.md`
+- Validator enhanced
 
-Plan: `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`
-Targets: `agents/AGENT_DOMAIN_DOCUMENTS.md`, `agents/AGENT_4_DOCUMENTS.md`
+## Where You Are
 
-**Design tension resolved (2026-04-03):** DOMAIN_DOCUMENTS hard-fails for all passes when source files are inaccessible — not just Pass 3. "Continue with TBD" applies to missing information within accessible sources, not to missing source files. Step 1 item 6 updated accordingly. All four open decisions in the source-grounding plan are now settled.
+The master plan is **complete**. No queued work packages remain.
 
-### Other potential next steps
+Current focus: **skill extraction from DELIVERABLE_TASK** (Phase 5 continuation).
 
-- Promote any remaining plan-level policies into canonical docs
-- Build additional skills using the now-stable skill substrate
-- Validate the run-record mechanism with a real Type 2 run
+### Skill extraction status
+
+From `agents/AGENT_DELIVERABLE_TASK.md` RATIONALE §Profile / skill classification:
+
+| Method-like behavior | Status |
+|---|---|
+| Semantic lensing mode | **Extracted** → `skills/semantic-lensing/` |
+| Proposal output format (PROPOSAL: blocks) | **Next** |
+| Baseline scan defaults (top 5 / top 5 / deps) | Reassess after proposal-format lands |
+
+### Recommended sequence
+
+1. Build `proposal-format` skill — the PROPOSAL: block output pattern
+2. Validate with one real TASK run
+3. Reassess baseline-scan defaults — may be better as generic fallback than a named skill
 
 ## Carried-Forward Human Rulings
 
 | Decision | Ruling |
 |---|---|
-| Missing local source *files* | Hard fail (`FAILED_INPUTS`) for all passes — no pass proceeds without source access |
+| Missing local source *files* | Hard fail (`FAILED_INPUTS`) for all passes |
 | Missing information *within* accessible sources | Continue with `TBD`; do not fail the run |
 | Pass 3 source re-read evidence | Require explicit evidence in the run report |
 | `_REFERENCES.md` source type distinction | Mention the distinction exists but don't enforce yet |
@@ -71,15 +71,15 @@ Targets: `agents/AGENT_DOMAIN_DOCUMENTS.md`, `agents/AGENT_4_DOCUMENTS.md`
 ## Current Repo State
 
 - 44 indexed agents (`AGENTS.md`)
-- 3 repo-native skills (`skills/`: pdf2md, deliverable-consistency, equipment-extract)
+- 4 repo-native skills (`skills/`: pdf2md, deliverable-consistency, equipment-extract, semantic-lensing)
 - 55 registered tools (`tools/REGISTRY.md`)
-- Working tree clean; branch is `main`, 8 commits ahead of origin
+- Branch is `main`
 
 ## Key Files To Read
 
 | File | Why |
 |---|---|
-| `agents/AGENT_TASK.md` | The execution shell — now includes run records, structural validation, tool compliance, profile/skill separation |
-| `agents/AGENT_DELIVERABLE_TASK.md` | Profile with structural/method classification in RATIONALE |
+| `agents/AGENT_TASK.md` | Execution shell with run records, validation, tool compliance, profile/skill separation |
+| `agents/AGENT_DELIVERABLE_TASK.md` | Profile with structural/method classification — proposal format is the next extraction target |
 | `skills/SKILL_TEMPLATE.md` | Canonical skill format |
-| `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md` | Source-grounding work package — now eligible |
+| `skills/README.md` | Skill discovery guidance (newly promoted from policy) |

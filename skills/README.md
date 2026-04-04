@@ -97,6 +97,22 @@ or:
 Current example:
 - `deliverable-consistency` should normally begin with `tools/validation/scan_deliverable_consistency.py`, then read only the flagged files and nearby context.
 
+## Discovery guidance
+
+Treat `skills/` as a live skill root rather than relying on hard-coded skill lists in narrative documents.
+
+Agent guidance:
+- Treat each immediate subfolder of `skills/` that contains `SKILL.md` as one repo-native skill.
+- Read this file first for the shared contract.
+- When a specific skill is requested, inspect that skill folder directly:
+  - `SKILL.md`
+  - `BRIEF_SCHEMA.md` if present
+  - `TOOL_POLICY.md` if present
+  - `QA_CHECKS.md` if present
+- Use [`docs/REPO_INVENTORY.md`](../docs/REPO_INVENTORY.md) for canonical aggregate counts, not skill membership details.
+- Do not assume any other document's embedded skill list is current.
+- If live folder contents and a canonical index disagree, surface the discrepancy explicitly.
+
 ## Authoring rule of thumb
 
 If a human or persona agent can say:
@@ -118,3 +134,5 @@ python3 tools/validation/validate_skill_metadata.py skills
 ```
 
 This validator scans every immediate skill folder under `skills/`, not any one skill in particular. For example, it validates both `skills/pdf2md/` and `skills/deliverable-consistency/` using the same rules.
+
+It validates both the basic authoring contract (`name`, `description`, folder alignment) and the machine-consumed runtime contract (`metadata.chirality-*`, canonical `allowed-tools` syntax, and tool-path resolution under `tools/`).
