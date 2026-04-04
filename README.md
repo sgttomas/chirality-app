@@ -14,6 +14,10 @@ Chirality accelerates deliverable-heavy work — EPC, design-build, proposals, d
 
 Agents decompose scope into packages and deliverables, scaffold workspaces, draft document kits, extract and track dependencies, perform semantic analysis, reconcile across deliverables, generate cost estimates and schedules, and manage change — all under human authority at every decision gate.
 
+Chirality is intentionally opinionated. Its controls were shaped by recurrent failure modes in real deliverable work: unclear authority, undocumented decisions, broken traceability, overwritten state, silent contradictions, and plausible but weakly grounded claims. Each major constraint exists to make one of those failures harder to repeat.
+
+It is presented here as one rigorous, governance-first implementation for AI-assisted deliverable work, not as the only possible model.
+
 ---
 
 ## Architecture
