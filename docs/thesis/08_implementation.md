@@ -4,9 +4,9 @@
 
 ## 8.1 Introduction
 
-The preceding chapters of this thesis establish the philosophical commitments (Chapter 3), architectural decisions (Chapter 4), contract framework (Chapter 5), decomposition system (Chapter 6), and professional practice model (Chapter 7) that together define the Chirality project execution system at the specification level. The purpose of this chapter is to demonstrate that these specifications have been realized as working software. The theoretical framework is not an aspirational model; it has been instantiated in a deployable desktop application, a suite of 38 agent instruction files, a registry of 28 deterministic tools, and a governance hierarchy of formal documents that remain in active use on professional projects.
+The preceding chapters of this thesis establish the philosophical commitments (Chapter 3), architectural decisions (Chapter 4), contract framework (Chapter 5), decomposition system (Chapter 6), and professional practice model (Chapter 7) that together define the Chirality project execution system at the specification level. The purpose of this chapter is to demonstrate that these specifications have been realized as working software. The theoretical framework is not an aspirational model; it has been instantiated in a deployable desktop application, an indexed agent suite, a registered deterministic toolset, and a governance hierarchy of formal documents that remain in active use on professional projects. Current mutable inventory counts are maintained in `docs/REPO_INVENTORY.md`.
 
-The chapter is organized as follows. Section 8.2 surveys the agent suite quantitatively, covering type distribution, class distribution, write scope distribution, and the orchestration graph that coordinates multi-agent workflows. Section 8.3 describes the deterministic tool layer — the LLM-independent operations that agents invoke during pipeline execution. Section 8.4 describes the desktop application that provides the runtime harness. Section 8.5 presents the validation mechanisms: internal conformance audits, harness SDK validation, and worked project examples. Section 8.6 provides an honest accounting of what is fully implemented versus what remains as specified-but-not-yet-automated future hardening. Section 8.7 summarizes the quantitative evidence for the claim that the architectural commitments are realizable.
+The chapter is organized as follows. Section 8.2 surveys the agent suite structurally, covering type distribution, class distribution, write scope distribution, and the orchestration graph that coordinates multi-agent workflows. Section 8.3 describes the deterministic tool layer — the LLM-independent operations that agents invoke during pipeline execution. Section 8.4 describes the desktop application that provides the runtime harness. Section 8.5 presents the validation mechanisms: internal conformance audits, harness SDK validation, and worked project examples. Section 8.6 provides an honest accounting of what is fully implemented versus what remains as specified-but-not-yet-automated future hardening. Section 8.7 summarizes the remaining quantitative evidence for the claim that the architectural commitments are realizable.
 
 Throughout this chapter, references to Appendix A (invariant catalog) and Appendix B (agent inventory) provide the detailed backing for summary claims made in the text.
 
@@ -14,28 +14,27 @@ Throughout this chapter, references to Appendix A (invariant catalog) and Append
 
 ## 8.2 Agent Suite
 
-The Chirality system ships 38 agent instruction files organized according to the Type 0/1/2 hierarchy defined in Chapter 4 (§4.5) and catalogued in full in Appendix B. This section provides a quantitative characterization of that suite.
+The Chirality system ships an indexed agent suite organized according to the Type 0/1/2 hierarchy defined in Chapter 4 (§4.5) and catalogued in full in Appendix B. This section provides a structural characterization of that suite. Current aggregate counts are maintained in `docs/REPO_INVENTORY.md`.
 
 ### 8.2.1 Type Distribution
 
 The suite is distributed across three types as follows:
 
-| Type | Count | Role |
-|------|-------|------|
-| Type 0 — Canonical Standards | 2 | Constitutional layer; defines invariant protocols |
-| Type 1 — Interactive Personas | 14 | Gate-controlled, human-facing orchestrators |
-| Type 2 — Bounded Task Agents | 22 | Brief-driven, straight-through specialists |
-| **Total** | **38** | |
+| Type | Role |
+|------|------|
+| Type 0 — Canonical Standards | Constitutional layer; defines invariant protocols |
+| Type 1 — Interactive Personas | Gate-controlled, human-facing orchestrators |
+| Type 2 — Bounded Task Agents | Brief-driven, straight-through specialists |
 
 The Type 0 agents — HELPS_HUMANS and DECOMP_BASE — function as the architectural constitution. HELPS_HUMANS defines the nine workflow design requirements (R1–R9) and the universal structural template that every other agent must conform to. DECOMP_BASE defines the seven-gate decomposition protocol and the ten decomposition invariants (I1–I10) that all decomposition agents inherit. Neither agent writes project state; both exist solely to define the standards against which all downstream agents are validated.
 
-The 14 Type 1 agents are interactive personas. They execute gate-controlled, multi-phase workflows in which humans make consequential decisions at each phase boundary. Type 1 agents may spawn Type 2 specialists and maintain orchestration state, but they may not approve deliverables for reliance or override Type 0 constraints.
+Type 1 agents are interactive personas. They execute gate-controlled, multi-phase workflows in which humans make consequential decisions at each phase boundary. Type 1 agents may spawn Type 2 specialists and maintain orchestration state, but they may not approve deliverables for reliance or override Type 0 constraints.
 
-The 22 Type 2 agents are brief-driven specialists. They accept structured INIT-TASK briefs, execute straight-through without mid-run gates, and produce auditable outputs consisting of either deliverable-local file writes or immutable snapshots in designated tool roots. Type 2 agents never spawn other agents. Invalid inputs cause a `FAILED_INPUTS` halt; missing data is marked `TBD` and execution continues conservatively.
+Type 2 agents are brief-driven specialists. They accept structured INIT-TASK briefs, execute straight-through without mid-run gates, and produce auditable outputs consisting of either deliverable-local file writes or immutable snapshots in designated tool roots. Type 2 agents never spawn other agents. Invalid inputs cause a `FAILED_INPUTS` halt; missing data is marked `TBD` and execution continues conservatively.
 
 ### 8.2.2 Class and Write Scope Distribution
 
-Agent classification along the AGENT_CLASS dimension divides the suite into PERSONA agents (conversational, gate-controlled interface) and TASK agents (brief-driven, straight-through execution). By design, all Type 1 agents carry AGENT_CLASS: PERSONA and all Type 2 agents carry AGENT_CLASS: TASK. The two Type 0 agents are also classed as PERSONA but carry WRITE_SCOPE: none — they produce standards, not project state.
+Agent classification along the AGENT_CLASS dimension divides the suite into PERSONA agents (conversational, gate-controlled interface) and TASK agents (brief-driven, straight-through execution). By design, all Type 1 agents carry AGENT_CLASS: PERSONA and all Type 2 agents carry AGENT_CLASS: TASK. The Type 0 agents are also classed as PERSONA but carry WRITE_SCOPE: none — they produce standards, not project state.
 
 Write scope distribution across the suite reflects the fault containment architecture described in Chapter 4 (§4.6). The eight declared write scope categories and their agent populations are:
 
@@ -44,7 +43,7 @@ Write scope distribution across the suite reflects the fault containment archite
 | `none` | HELPS_HUMANS, DECOMP_BASE, HELP_HUMAN |
 | `repo-metadata-only` | DOMAIN_DECOMP, CONTEXT_TRANSPOSE |
 | `project-level` | PROJECT_DECOMP, SOFTWARE_DECOMP, SCOPE_CHANGE, PREPARATION, ESTIMATE_PREP |
-| `deliverable-local` | WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, REVIEW |
+| `deliverable-local` | WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, DELIVERABLE_TASK, REVIEW |
 | `tool-root-only` | ORCHESTRATOR, RECONCILIATION, CHANGE, SCHEDULING, ESTIMATING, AGGREGATION, AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, DOMAIN_HYPERGRAPH, AUDIT_HYPERGRAPH_CLOSURE |
 | `workspace-scaffold-only` | PREPARATION (primary scaffold variant) |
 | `knowledge-type-local` | DOMAIN_DOCUMENTS (knowledge artifact variant) |
@@ -53,7 +52,7 @@ This distribution reflects the system's core invariant K-WRITE-1 (Appendix A): e
 
 ### 8.2.3 The 3×4 Agent Matrix
 
-The 38 agents are organized within a 3×4 matrix that maps epistemic posture (rows) to functional role (columns):
+The indexed agent suite is organized within a 3×4 matrix that maps epistemic posture (rows) to functional role (columns):
 
 |  | **Guiding** | **Applying** | **Judging** | **Reviewing** |
 |:---|:---|:---|:---|:---|
@@ -121,7 +120,7 @@ Four distinct spawning mechanisms govern how Type 1 agents invoke Type 2 agents.
 
 ### 8.2.6 Evaluation Subsystem
 
-The EVALUATION agent (Type 1) provides a structured project evaluation capability introduced in the most recent development cycle. EVALUATION is an orchestrator: it dispatches four Type 2 subagents across an execution root and synthesizes their findings into a scored assessment.
+The EVALUATION agent (Type 1) provides a structured project evaluation capability introduced in the most recent development cycle. EVALUATION is an orchestrator: it dispatches a bounded evaluation subagent set across an execution root and synthesizes their findings into a scored assessment.
 
 | Subagent | Function |
 |----------|----------|
@@ -134,21 +133,26 @@ The evaluation subsystem operates against a dedicated `_Evaluation/` tool root w
 
 ---
 
+### 8.2.7 Skill Subsystem
+
+The SKILLMAKER agent (Type 1, `AGENT_SKILLMAKER.md`) is the design-time governor of the repo-native skill layer under `skills/`. SKILLMAKER owns skill design, contract evolution, and subsystem governance — deciding when recurring methods should become skills, what the skill contract should contain, and how skills compose with task profiles and deterministic tools. It does not participate in runtime skill execution; that remains the domain of TASK. When a skill requires a new deterministic helper, SKILLMAKER identifies the need and coordinates with TOOLMAKER for implementation. SKILLMAKER is a standalone Type 1 agent that does not spawn Type 2 agents.
+
+---
+
 ## 8.3 Deterministic Tools
 
-The `tools/` directory contains 28 deterministic tools — shell scripts and Python utilities — that agents invoke during pipeline execution. These tools are indexed in `tools/REGISTRY.md` and maintained by the TOOLMAKER agent (Type 1, AGENT_TOOLMAKER.md).
+The `tools/` directory contains the deterministic toolset — shell scripts and Python utilities — that agents invoke during pipeline execution. These tools are indexed in `tools/REGISTRY.md` and maintained by the TOOLMAKER agent (Type 1, AGENT_TOOLMAKER.md). Current aggregate counts are maintained in `docs/REPO_INVENTORY.md`.
 
 ### 8.3.1 Category Distribution
 
-| Category | Count | Representative Operations |
-|----------|-------|--------------------------|
-| Scaffolding | 6 | Package/deliverable folder creation; status file writes; snapshot folder creation |
-| Query | 2 | Workspace state counts; scope change ID scanning |
-| Validation | 5 | Enum value checking; ID format validation; Dependencies.csv schema validation; fileset checks |
-| Reporting | 6 | CSV merge with provenance; INDEX.md generation; WBS/CBS summarization; coverage matrices |
-| Coordination | 1 | Full dependency graph analysis (SCC, orphans, hubs, bidirectional pairs) |
-| Evaluation | 8 | Digest coverage verification; lifecycle state extraction; dependency schema checks; agent output extraction |
-| **Total** | **28** | |
+| Category | Representative Operations |
+|----------|--------------------------|
+| Scaffolding | Package/deliverable folder creation; status file writes; snapshot folder creation |
+| Query | Workspace state counts; scope change ID scanning |
+| Validation | Enum value checking; ID format validation; Dependencies.csv schema validation; fileset checks; deliverable consistency scanning; skill metadata validation |
+| Reporting | CSV merge with provenance; INDEX.md generation; WBS/CBS summarization; coverage matrices |
+| Coordination | Full dependency graph analysis (SCC, orphans, hubs, bidirectional pairs) |
+| Evaluation | Digest coverage verification; lifecycle state extraction; dependency schema checks; agent output extraction |
 
 The validation category is architecturally significant. `validate_enum.py` checks a value against 24 named enumeration sets defined in TYPES.md, enforcing schema discipline across all agent writes. `validate_dependencies_schema.py` validates a Dependencies.csv file against the v3.1 schema — all 29 required columns — providing deterministic schema compliance checking without requiring LLM reasoning. `check_min_viable_fileset.sh` verifies the five required metadata files are present in a deliverable folder. These three tools together instantiate a substantial portion of the validation criteria defined in SPEC.md §12.
 
@@ -156,15 +160,15 @@ The coordination category contains a single but structurally important tool: `an
 
 ### 8.3.2 The LLM Boundary
 
-The tool registry makes explicit a design principle stated in Chapter 4 (§4.3): the system separates operations that require language model reasoning from operations that do not. The 28 tools handle the mechanical side — filesystem traversal, schema validation, CSV aggregation, dependency graph construction, lifecycle state extraction. Agents handle content reasoning — interpreting source documents, extracting semantic dependencies, drafting document kits, synthesizing findings.
+The tool registry makes explicit a design principle stated in Chapter 4 (§4.3): the system separates operations that require language model reasoning from operations that do not. The registered toolset handles the mechanical side — filesystem traversal, schema validation, CSV aggregation, dependency graph construction, lifecycle state extraction, deliverable-local consistency scanning, and skill metadata validation. Agents handle content reasoning — interpreting source documents, extracting semantic dependencies, drafting document kits, synthesizing findings.
 
 This boundary is consequential for reliability and auditability. Deterministic tool outputs are reproducible: given identical inputs, the same tool will produce the same output. LLM reasoning is not reproducible in this sense. By pushing all reproducible operations into deterministic tools, the architecture concentrates non-determinism in the places where it is unavoidable (content judgment) and eliminates it from the places where it is unacceptable (schema validation, scaffolding, graph analysis).
 
-As of the current implementation, 21 of the 38 agent instruction files reference tools from the registry in their PROTOCOL sections. The remaining 17 either operate entirely through LLM reasoning (content-producing agents such as WORKING_ITEMS, 4_DOCUMENTS, and CHIRALITY_FRAMEWORK) or reference tools indirectly through RECONCILIATION orchestration.
+As of the current implementation, a substantial subset of the indexed agent suite references tools from the registry in their PROTOCOL sections. The remainder either operate primarily through LLM reasoning (content-producing agents such as WORKING_ITEMS, 4_DOCUMENTS, and CHIRALITY_FRAMEWORK) or reference tools indirectly through orchestration.
 
 ### 8.3.3 Backlog
 
-The REGISTRY.md maintains an explicit backlog of six tools identified as useful but deferred. Deferral criteria are formally stated: a backlog tool is promoted when either a second agent needs the same operation, or an existing agent's inline implementation diverges across runs and requires standardization. This discipline prevents premature abstraction while providing a traceable record of known gaps. [TODO: verify backlog promotion criteria are being applied consistently as new agents are added]
+The REGISTRY.md maintains an explicit backlog of deferred tools identified as useful but not yet promoted into the registered toolset. Deferral criteria are formally stated: a backlog tool is promoted when either a second agent needs the same operation, or an existing agent's inline implementation diverges across runs and requires standardization. This discipline prevents premature abstraction while providing a traceable record of known gaps. [TODO: verify backlog promotion criteria are being applied consistently as new agents are added]
 
 ---
 
@@ -242,11 +246,11 @@ An honest assessment of the implementation requires distinguishing between three
 
 The following capabilities are fully implemented and demonstrated in the example projects:
 
-- The 38-agent instruction suite (all agent files present, conformance verified by AUDIT_AGENTS)
-- The 28-tool registry (all tools present, registered, and referenced in agent PROTOCOL sections where applicable)
+- The indexed agent instruction suite (conformance verified by AUDIT_AGENTS)
+- The registered deterministic toolset (registered and referenced in agent PROTOCOL sections where applicable)
 - The three-variant decomposition system (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) sharing the DECOMP_BASE 7-gate protocol
 - The orchestration spawning graph and session handoff mechanism
-- The evaluation subsystem (EVALUATION + 4 subagents, with example execution traces)
+- The evaluation subsystem (EVALUATION with its supporting subagents, and example execution traces)
 - The dependency graph analysis pipeline (AUDIT_DEP_CLOSURE + `analyze_dep_closure.py`)
 - The decomposition coverage audit (AUDIT_DECOMP)
 - The agent conformance audit (AUDIT_AGENTS)
@@ -301,12 +305,10 @@ This gap is honest and deliberate. DIRECTIVE.md §2.8 (Least Structure That Work
 
 ## 8.7 Summary
 
-This chapter has presented the concrete implementation of the architectural commitments described in Chapters 3 through 7. The quantitative evidence for realizability is as follows:
+This chapter has presented the concrete implementation of the architectural commitments described in Chapters 3 through 7. Current mutable inventory counts for agents, skills, and tools are maintained in `docs/REPO_INVENTORY.md`. The remaining quantitative evidence for realizability is as follows:
 
 | Dimension | Count |
 |-----------|-------|
-| Agent instruction files | 38 |
-| Deterministic tools (REGISTRY.md) | 28 |
 | K-* invariants (CONTRACT.md) | 20 |
 | Workflow design requirements (R1–R9) | 9 |
 | Decomposition invariants (I1–I10) | 10 |

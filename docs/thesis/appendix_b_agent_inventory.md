@@ -1,6 +1,6 @@
 # Appendix B — Agent Inventory
 
-This appendix provides the complete classification of the 38 agent instruction files in the Chirality agent suite. The inventory is organized across four sections: the two-dimensional agent matrix that positions agents by epistemic posture and functional role; the complete classification table enumerating each agent's type, class, interaction surface, write scope, blocking behavior, and primary outputs; the spawning graph showing orchestration dependencies among Type 1 and Type 2 agents; and the variant coverage matrix showing which agents operate across the PROJECT, SOFTWARE, and DOMAIN decomposition variants.
+This appendix provides the complete classification of the indexed agent suite in Chirality. The inventory is organized across four sections: the two-dimensional agent matrix that positions agents by epistemic posture and functional role; the complete classification table enumerating each agent's type, class, interaction surface, write scope, blocking behavior, and primary outputs; the spawning graph showing orchestration dependencies among Type 1 and Type 2 agents; and the variant coverage matrix showing which agents operate across the PROJECT, SOFTWARE, and DOMAIN decomposition variants. Current mutable inventory counts are maintained in `docs/REPO_INVENTORY.md`.
 
 ---
 
@@ -22,9 +22,9 @@ The two interaction modes follow from row membership: the NORMATIVE and EVALUATI
 
 ## B.2 Complete Classification Table
 
-The following table enumerates all 38 agent instruction files in the `agents/` directory. Each row records the agent's position in the type hierarchy (Type 0 = canonical standard, Type 1 = interactive persona, Type 2 = bounded task agent), its class (PERSONA for conversational agents; TASK for straight-through execution agents), its interaction surface (how the agent is invoked), its declared write scope (the filesystem area the agent may write to), whether the agent may block for human input, and its primary outputs. The write scope declaration is a formal architectural constraint: no agent may write outside its declared scope, enforcing fault containment across the suite.
+The following table enumerates the indexed agent instruction files in the suite. Each row records the agent's position in the type hierarchy (Type 0 = canonical standard, Type 1 = interactive persona, Type 2 = bounded task agent), its class (PERSONA for conversational agents; TASK for straight-through execution agents), its interaction surface (how the agent is invoked), its declared write scope (the filesystem area the agent may write to), whether the agent may block for human input, and its primary outputs. The write scope declaration is a formal architectural constraint: no agent may write outside its declared scope, enforcing fault containment across the suite.
 
-The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGEST, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT) were added to the suite subsequent to the initial publication of the DBM and are included here for completeness.
+The evaluation subsystem agents (EVALUATION, TOOLMAKER, SKILLMAKER, CONTENT_DIGEST, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT) were added to the suite subsequent to the initial publication of the DBM and are included here for completeness.
 
 | Agent | Type | Class | Surface | Write Scope | Blocking | Primary Outputs |
 |-------|:----:|-------|---------|-------------|:--------:|-----------------|
@@ -43,7 +43,8 @@ The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGES
 | **REVIEW** | 1 | PERSONA | chat | deliverable-local + tool-root | allowed (5 gates) | Review checklist, finding register, lifecycle transition record |
 | **SCHEDULING** | 1 | PERSONA | chat | tool-root (`_Schedule/`) | allowed (5 gates) | Schedule structure, Gantt, critical path report |
 | **EVALUATION** | 1 | PERSONA | chat | tool-root (`_Evaluation/`) | allowed | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`, pointers to Type 2 outputs |
-| **TOOLMAKER** | 1 | PERSONA | chat | repo-wide (tools directory + agent instruction updates) | allowed | Shell scripts, Python utilities, skill templates, tool registry |
+| **TOOLMAKER** | 1 | PERSONA | chat | repo-wide (tools directory + agent instruction updates) | allowed | Shell scripts, Python utilities, tool registry |
+| **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
 | **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
@@ -53,7 +54,8 @@ The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGES
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
 | **AGGREGATION** | 2 | TASK | INIT-TASK | tool-root (`_Aggregation/`) | never | Aggregation snapshot (indexes, registers, rollups) |
-| **TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Proposals; optional authorized edits |
+| **TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Generic bounded-task shell; optional profile/skill-driven outputs |
+| **DELIVERABLE_TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Proposals; optional authorized edits |
 | **AUDIT_AGENTS** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/AgentAudit/`) | never | Audit report, issue log, patch plan |
 | **AUDIT_DECOMP** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/DecompCoverage/`) | never | Coverage report, issue log CSV, coverage matrix, summary JSON |
 | **AUDIT_DEP_CLOSURE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/DepClosure/`) | never | Closure report, issue log, JSON summary, analysis script |
@@ -63,8 +65,6 @@ The six agents in the evaluation subsystem (EVALUATION, TOOLMAKER, CONTENT_DIGES
 | **EVALUATION_REPORT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | `DIM-{NN}_{DimensionName}.md` — scored dimension evaluation report |
 | **EVALUATION_STRUCTURE_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Structure audit report with file counts, lifecycle state distribution, violation list |
 | **EVALUATION_DEPENDENCY_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Dependency audit report with per-deliverable schema check, anchor check, evidence check |
-
-**Type counts:** 2 Type 0 agents · 14 Type 1 agents · 22 Type 2 agents · **38 total**
 
 ---
 
@@ -105,6 +105,7 @@ SCOPE_CHANGE (Type 1) ── hands off to ORCHESTRATOR (for PREPARATION) + CHANG
 CONTEXT_TRANSPOSE (Type 1) ── hands off to CHANGE (for publication)
 SCHEDULING (Type 1) ── standalone (reads dependency graph; produces schedule artifacts)
 TOOLMAKER (Type 1) ── standalone (produces tools directly; no Type 2 delegation)
+SKILLMAKER (Type 1) ── standalone (designs and governs skills; coordinates with TOOLMAKER for deterministic helpers)
 ```
 
 ---
@@ -135,6 +136,7 @@ Agents that support multiple variants use `DECOMP_VARIANT` auto-detection at run
 | **AUDIT_DECOMP** | yes | yes | yes | — |
 | **WORKING_ITEMS** | yes | yes | yes | — |
 | **TASK** | yes | yes | yes | — |
+| **DELIVERABLE_TASK** | yes | yes | yes | — |
 | **REVIEW** | yes | yes | yes | — |
 | **SCOPE_CHANGE** | yes | yes | — | — |
 | **RECONCILIATION** | yes | yes | yes | — |
@@ -146,6 +148,7 @@ Agents that support multiple variants use `DECOMP_VARIANT` auto-detection at run
 | **CHANGE** | — | — | — | yes |
 | **HELP_HUMAN** | — | — | — | yes |
 | **TOOLMAKER** | — | — | — | yes |
+| **SKILLMAKER** | — | — | — | yes |
 | **HELPS_HUMANS** | — | — | — | yes |
 | **DECOMP_BASE** | — | — | — | yes |
 | **AUDIT_AGENTS** | — | — | — | yes |

@@ -184,11 +184,11 @@ The two lifecycles are interleaved: a deliverable in `IN_PROGRESS` contains clai
 
 The agent system is organized into three types with strictly partitioned responsibilities. The hierarchy is defined in DBM §2 and summarized in TYPES.md §4. It is not merely a labeling convention — it is the mechanism by which the system's authority model is enforced.
 
-**Type 0 — Canonical Standards (Architect).** Type 0 agents define the invariant protocols and design standards that all downstream agents must conform to. They do not write project state. They are, in the DBM's terminology, the "constitutional layer" of the system. There are two Type 0 agents: HELPS_HUMANS, which defines the workflow design standard (R1–R9, the four-section agent structure, brief formats, and QA contracts), and DECOMP_BASE, which defines the decomposition protocol standard (the seven-gate protocol, I1–I10 invariants, and the extension contract for decomposition variants). Where any agent instruction disagrees with a Type 0 standard, the agent instruction must be edited to conform — not the standard.
+**Type 0 — Canonical Standards (Architect).** Type 0 agents define the invariant protocols and design standards that all downstream agents must conform to. They do not write project state. They are, in the DBM's terminology, the "constitutional layer" of the system. The Type 0 layer is composed of HELPS_HUMANS, which defines the workflow design standard (R1–R9, the four-section agent structure, brief formats, and QA contracts), and DECOMP_BASE, which defines the decomposition protocol standard (the seven-gate protocol, I1–I10 invariants, and the extension contract for decomposition variants). Where any agent instruction disagrees with a Type 0 standard, the agent instruction must be edited to conform — not the standard.
 
-**Type 1 — Interactive Personas (Manager).** Type 1 agents are human-facing orchestrators. They run conversational, gate-controlled workflows where humans make consequential decisions and agents handle routing, structural output, and brief preparation. Type 1 agents may spawn Type 2 agents. They own orchestration decisions but do not own engineering content. The system contains 14 Type 1 agents (see Appendix B for the complete inventory).
+**Type 1 — Interactive Personas (Manager).** Type 1 agents are human-facing orchestrators. They run conversational, gate-controlled workflows where humans make consequential decisions and agents handle routing, structural output, and brief preparation. Type 1 agents may spawn Type 2 agents. They own orchestration decisions but do not own engineering content. See Appendix B for the complete inventory and `docs/REPO_INVENTORY.md` for current aggregate counts.
 
-**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven specialists operating in straight-through execution mode. They receive structured inputs (INIT-TASK briefs), produce auditable outputs, and return to their invoking agent without mid-run human interaction. Type 2 agents never spawn other agents. The system contains 22 Type 2 agents (see Appendix B).
+**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven specialists operating in straight-through execution mode. They receive structured inputs (INIT-TASK briefs), produce auditable outputs, and return to their invoking agent without mid-run human interaction. Type 2 agents never spawn other agents. See Appendix B for the complete inventory and `docs/REPO_INVENTORY.md` for current aggregate counts.
 
 [COMPARE: Multi-agent frameworks such as AutoGen and CrewAI support role differentiation among agents but do not enforce a strict constitutional hierarchy with write-scope enforcement and non-bypassable human gates; compare authority isolation properties]
 
@@ -230,7 +230,7 @@ The five categories, from most to least restrictive, are:
 - **NONE** — Read-only. The agent may draft content but may not write to any location. The human applies any output. Applies to: HELPS_HUMANS, DECOMP_BASE, HELP_HUMAN.
 - **REPO-METADATA-ONLY** — May write to instruction files, README, and templates — not to execution truth. Applies to: DOMAIN_DECOMP, CONTEXT_TRANSPOSE.
 - **PROJECT-LEVEL** — May write to decomposition documents, project metadata files, and folder scaffolding. Applies to: PROJECT_DECOMP, SOFTWARE_DECOMP, SCOPE_CHANGE, PREPARATION, ESTIMATE_PREP.
-- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, REVIEW.
+- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, DELIVERABLE_TASK, REVIEW.
 - **TOOL-ROOT-ONLY** — May write only to a specific designated tool root under `{EXECUTION_ROOT}/`. Applies to: ORCHESTRATOR (`_Coordination/`), RECONCILIATION (`_Reconciliation/`), CHANGE (`_Change/` plus repo files with approval gate), SCHEDULING (`_Schedule/`), ESTIMATING (`_Estimates/`), AGGREGATION (`_Aggregation/`), and the four audit agents.
 
 ### 4.6.2 The Write Scope Tree
@@ -265,7 +265,8 @@ DELIVERABLE-LOCAL
 └── REVIEW (+tool-root for snapshots)
 
 REPO-WIDE
-└── TOOLMAKER
+├── TOOLMAKER
+└── SKILLMAKER
 
 TOOL-ROOT-ONLY
 ├── ORCHESTRATOR         → _Coordination/
@@ -393,6 +394,7 @@ EVALUATION (Type 1) ──spawns──┬── CONTENT_DIGEST
 
 CHANGE (Type 1) — leaf agent; implements approved edits; spawns nothing
 TOOLMAKER (Type 1) — standalone; designs and implements deterministic tools
+SKILLMAKER (Type 1) — standalone; designs and governs repo-native skills
 
 REVIEW (Type 1) — triggers AUDIT_DECOMP as a precondition check
 SCOPE_CHANGE (Type 1) — hands off to ORCHESTRATOR + CHANGE
@@ -449,7 +451,7 @@ The progressive reduction in per-action authorization overhead is deliberate: OR
 
 ### 4.9.1 The INIT-TASK Brief Format
 
-DBM §9.1 defines the standard input contract for all Type 2 agents. The INIT-TASK brief is a structured parameter table, not natural language. It contains:
+DBM §9.1 defines the standard input contract for all Type 2 agents. The INIT-TASK brief is a structured parameter table, not natural language. It may be supplied inline or through a file-based `INIT-TASK.md` surface, with inline fields taking precedence when both exist. It contains:
 
 ```
 PURPOSE:           <what the run is for>
