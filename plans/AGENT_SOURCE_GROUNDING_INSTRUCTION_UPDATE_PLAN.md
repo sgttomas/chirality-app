@@ -2,7 +2,7 @@
 
 ## Status
 
-Queued under the active master plan. No agent instruction files have yet been updated by this plan.
+**Done** (2026-04-03). Both drafting agents updated with source-grounding redlines.
 
 ## Role
 
