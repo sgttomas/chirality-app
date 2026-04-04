@@ -257,23 +257,27 @@ The revision is acceptable when:
 4. Letting decomposition remain de facto authority despite new language
 5. Adding too much process burden for trivial or low-risk edits
 
-## Open Decisions Before Applying The Revisions
+## Resolved Decisions
 
-These should be settled before converting this plan into redlines or patches:
+Settled 2026-04-03 before converting to redlines:
 
-1. If required local source files are missing, should Pass 1:
-   - continue with warnings and `TBD`, or
-   - fail as `FAILED_INPUTS`?
+1. If required local source files are missing, should Pass 1 continue or fail?
+   **→ Hard fail (`FAILED_INPUTS`) for all passes.** No pass should proceed
+   without source access. "Continue with TBD" applies to missing information
+   *within* accessible sources, not to missing source files.
 
-2. Should `_REFERENCES.md` later distinguish:
-   - governing authority sources
-   - background/context sources
+2. Should `_REFERENCES.md` later distinguish governing vs background sources?
+   **→ Mention the distinction exists but don't enforce yet.** (Ruling carried
+   forward from prior session.)
 
-3. Should Pass 3 require explicit run-report evidence that the cited source
-   slices were re-read before a change was made?
+3. Should Pass 3 require explicit run-report evidence of source reread?
+   **→ Yes.** Require explicit evidence in the run report that cited source
+   slices were re-read before substantive changes.
 
-4. Should standards named in decomposition or references be treated as
-   governing only when their actual text is locally accessible?
+4. Should named standards be governing only when locally accessible?
+   **→ Yes.** Governing only when their actual text is locally accessible.
+   A standard named in decomposition or references has no governing force
+   if the agent cannot read it.
 
 ## Deliverable Of The Next Step
 

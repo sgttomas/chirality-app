@@ -150,8 +150,7 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - Extract `SourceSpan` from the KTY row in `KnowledgeTypes.csv` (format: `{filename}:{startLine}-{startLine} -> {filename}:{endLine}-{endLine}`).
    - Parse the source filename and line ranges.
    - Locate the source file under `{SOURCES_ROOT}` or the path specified in `_REFERENCES.md`.
-   - For Pass 2: source file access is best-effort (used to resolve ambiguities).
-   - For Pass 3 / FULL: read the source file section(s) bounded by `SourceSpan`. If the source file cannot be accessed, return `RUN_STATUS=FAILED_INPUTS` (source fidelity cannot be verified without the source).
+   - For all passes: read the source file section(s) bounded by `SourceSpan`. If the source file cannot be accessed, return `RUN_STATUS=FAILED_INPUTS` (no pass should proceed without source access).
 
 **Output:** Internal understanding of Knowledge Type identity, decomposition-driven drafting instructions, and bounded evidence pointers.
 

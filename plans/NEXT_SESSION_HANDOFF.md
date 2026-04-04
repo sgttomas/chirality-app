@@ -50,7 +50,7 @@ With the executable-skill substrate complete, the following work is eligible:
 Plan: `plans/AGENT_SOURCE_GROUNDING_INSTRUCTION_UPDATE_PLAN.md`
 Targets: `agents/AGENT_DOMAIN_DOCUMENTS.md`, `agents/AGENT_4_DOCUMENTS.md`
 
-**Important caveat for DOMAIN_DOCUMENTS:** The current `AGENT_DOMAIN_DOCUMENTS.md` Pass 3 has a strict failure mode for unreadable sources (see lines ~150 and ~319). The "continue with TBD" ruling may conflict with that existing contract. Resolve this design tension before implementing.
+**Design tension resolved (2026-04-03):** DOMAIN_DOCUMENTS hard-fails for all passes when source files are inaccessible — not just Pass 3. "Continue with TBD" applies to missing information within accessible sources, not to missing source files. Step 1 item 6 updated accordingly. All four open decisions in the source-grounding plan are now settled.
 
 ### Other potential next steps
 
@@ -62,7 +62,8 @@ Targets: `agents/AGENT_DOMAIN_DOCUMENTS.md`, `agents/AGENT_4_DOCUMENTS.md`
 
 | Decision | Ruling |
 |---|---|
-| Missing local sources during drafting | Continue with `TBD`; do not fail the run |
+| Missing local source *files* | Hard fail (`FAILED_INPUTS`) for all passes — no pass proceeds without source access |
+| Missing information *within* accessible sources | Continue with `TBD`; do not fail the run |
 | Pass 3 source re-read evidence | Require explicit evidence in the run report |
 | `_REFERENCES.md` source type distinction | Mention the distinction exists but don't enforce yet |
 | Named standards as governing authority | Governing only when their actual text is locally accessible |
