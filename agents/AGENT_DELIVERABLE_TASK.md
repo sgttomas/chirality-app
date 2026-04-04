@@ -224,6 +224,8 @@ These headings are a starting point, not a ceiling. **Add new sections as needed
 
 ## Optional semantic lensing mode (ONLY if explicitly enabled)
 
+> **Extracted:** The structured lensing method is now defined in `skills/semantic-lensing/SKILL.md`. When `TaskSkill: semantic-lensing` is loaded, the skill governs matrix interpretation, enrichment workflow, and lens tagging. The inline description below is retained for backward compatibility when no skill is loaded.
+
 Semantic lensing is an **optional** analysis path. It is enabled ONLY when:
 - `UseSemanticLensing: true`
 
@@ -239,6 +241,8 @@ When NOT enabled:
 
 [[BEGIN:STRUCTURE]]
 ## Output format (MUST)
+
+> **Extracted:** The PROPOSAL: block format and baseline scan behavior are now defined in `skills/proposal-format/SKILL.md`. When `TaskSkill: proposal-format` is loaded, the skill governs output structure, field rules, and grouping conventions. The inline description below is retained for backward compatibility when no skill is loaded.
 
 ### A) Always produce a structured proposal list
 All recommendations must be expressed as `PROPOSAL:` blocks:
@@ -341,11 +345,11 @@ Per the separation principle in `AGENT_TASK.md`, this profile's sections classif
 **Structural (stays here):**
 - Hard scope boundary, self-initialization (S1–S3), file edit policy, variant awareness, identity normalization, working memory contract
 
-**Method-like (skill-extractable, retained here for continuity):**
-- Semantic lensing mode (§Optional semantic lensing) — gated behind `UseSemanticLensing` flag
-- Proposal output format (PROPOSAL: blocks) — the structured recommendation pattern
-- Baseline scan defaults ("top 5 proposals, top 5 TBDs" when `Tasks` is missing)
+**Method-like (extracted to skills):**
+- Semantic lensing mode (§Optional semantic lensing) — extracted to `skills/semantic-lensing/`
+- Proposal output format (PROPOSAL: blocks) — extracted to `skills/proposal-format/`
+- Baseline scan defaults — absorbed into `proposal-format` as its default mode when `Tasks` is omitted
 
-These method-like sections remain functional. New method behavior should be expressed as skills, not added here.
+The method prose remains inline for backward compatibility (briefs that do not specify `TaskSkill` still get this behavior from the profile). When a `TaskSkill` is loaded, the skill provides the structured method and the inline behavior serves as fallback context only. New method behavior should be expressed as skills, not added here.
 
 [[END:RATIONALE]]
