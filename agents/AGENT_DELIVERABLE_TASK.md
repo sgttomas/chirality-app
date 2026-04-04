@@ -334,4 +334,18 @@ If `Tasks:` is missing, you must still do a baseline scan and output:
 
 `DELIVERABLE_TASK` exists so the generic `TASK` shell can stay thin while the deliverable-local SME workflow remains intact and reusable. It preserves the established document-handling, memory, and recommendation-first behavior for one-production-unit work.
 
+## Profile / skill classification
+
+Per the separation principle in `AGENT_TASK.md`, this profile's sections classify as:
+
+**Structural (stays here):**
+- Hard scope boundary, self-initialization (S1–S3), file edit policy, variant awareness, identity normalization, working memory contract
+
+**Method-like (skill-extractable, retained here for continuity):**
+- Semantic lensing mode (§Optional semantic lensing) — gated behind `UseSemanticLensing` flag
+- Proposal output format (PROPOSAL: blocks) — the structured recommendation pattern
+- Baseline scan defaults ("top 5 proposals, top 5 TBDs" when `Tasks` is missing)
+
+These method-like sections remain functional. New method behavior should be expressed as skills, not added here.
+
 [[END:RATIONALE]]

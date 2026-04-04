@@ -45,7 +45,7 @@ Legacy compatibility is preserved:
 | **INTERACTION_SURFACE** | INIT-TASK |
 | **WRITE_SCOPE** | deliverable-local |
 | **BLOCKING** | never |
-| **PRIMARY_OUTPUTS** | run report; optional profile/skill-defined outputs within authorized scope |
+| **PRIMARY_OUTPUTS** | run record (`_run_records/TASK_RUN_*.md`); optional profile/skill-defined outputs within authorized scope |
 
 ---
 
@@ -73,6 +73,7 @@ If an unsupported `TaskProfile` is requested:
 - Read files needed to satisfy the brief inside the normalized local scope.
 - Use only the tools permitted by the brief or the active task profile / skill contract.
 - Write only within the normalized scope, and only when explicitly authorized by the brief or active profile.
+- Create and update a run record file within `{ScopePath}/_run_records/`.
 
 ### Out of scope (MUST NOT)
 - Edit files outside the normalized scope.
@@ -197,6 +198,66 @@ Skills MUST NOT widen write scope beyond this shell's normalized scope.
 
 ---
 
+## Run record persistence (MUST)
+
+Every run MUST produce a durable run record at `{ScopePath}/_run_records/TASK_RUN_{YYYY-MM-DD}_{HHmm}.md`.
+
+The run record is a Markdown file with YAML frontmatter. It captures:
+- **input echo:** what was requested (control surface, scope, profile, skill, tasks, expected outputs)
+- **resolved state:** what was loaded (resolved skill path, version, companion files, effective tool policy, effective overrides)
+- **execution results:** what happened (status, tools used, outputs, missing items, rulings needed, changes)
+
+### Run-record lifecycle
+
+1. **Write at normalization** (PROTOCOL step 1 complete): create the file with `run-status: PENDING`, all input-echo and resolved-state fields populated, and completion headings present but marked `(pending)`.
+2. **Update at completion** (PROTOCOL step 5 complete): set `run-status` to final value (`SUCCESS`, `FAILED`, or `FAILED_INPUTS`), populate all completion headings with actual results.
+3. After the owning run completes, the file is **never modified**.
+
+### Edge cases
+
+- If normalization itself fails before `ScopePath` is resolved (e.g., ScopePath does not exist), no run record is written. The error is returned in conversation only.
+- If the `_run_records/` directory does not exist, create it.
+- If a file with the same timestamp already exists, append a sequence number (`_001`, `_002`, etc.).
+
+---
+
+## Structural validation (MUST)
+
+The following checks are enforced at the points indicated. Most are already defined in earlier sections; this subsection collects them as a named checklist for auditability.
+
+### Pre-execution checks (during normalization and method loading)
+
+| Check | When | Failure mode |
+|---|---|---|
+| Resolved skill folder exists | Skill loading | `ERROR: TaskSkill not found` — run stops |
+| Skill `allowed-tools` paths resolve to existing files under `tools/` | Skill frontmatter resolution | `ERROR: Skill allowed-tools is malformed or contains unresolvable paths` — run stops |
+| Skill `chirality-task-profile` is compatible with active `TaskProfile` | Skill frontmatter resolution | `ERROR: Skill requires TaskProfile=<X> but active profile is <Y>` — run stops |
+| `AllowedWriteTargets` resolve within `ScopePath` | Normalization rule 10 | Error — run stops |
+| Companion files explicitly checked | Skill loading | Report each file as `found` or `absent` in `CompanionFiles` — no error on absence |
+
+### Post-execution checks (during QA, PROTOCOL step 5)
+
+| Check | Failure mode |
+|---|---|
+| No files outside `ScopePath` were modified | `FAILED` — report violation in run record |
+| Tool usage stayed within declared allowlist (when one was provided) | `FAILED` — report violation in `## Tool Policy Compliance` |
+| Each tool used is reported in `<interpreter> <tool-path>` format | Warning if format cannot be determined |
+| Declared-first tool was invoked first (when skill specifies a preferred-first tool) | Warning in `## Tool Policy Compliance` |
+| No write paths outside `ScopePath` (except `_run_records/`) | `FAILED` — report in run record |
+| Run record contains all required YAML frontmatter fields | Warning in run report if any field is missing |
+| Run record contains all required Markdown body headings | Warning in run report if any heading is missing |
+
+### Companion file reporting
+
+When a skill is loaded, check all three companion file slots and report each one explicitly:
+- `{resolved skill folder}/BRIEF_SCHEMA.md`
+- `{resolved skill folder}/TOOL_POLICY.md`
+- `{resolved skill folder}/QA_CHECKS.md`
+
+Report in `CompanionFiles` as: `BRIEF_SCHEMA.md (found), TOOL_POLICY.md (absent), QA_CHECKS.md (found)` — or `none checked` when no skill is loaded.
+
+---
+
 ## Profile loading (MUST when requested)
 
 If `TaskProfile = DELIVERABLE_TASK`:
@@ -224,6 +285,28 @@ Generic shell mode does NOT imply any special memory file, document set, or deli
 
 ---
 
+## Profile / skill separation (guidance)
+
+Profiles and skills serve different roles in the method stack. When designing or extending either, apply this separation:
+
+**Profiles** define structural contracts:
+- scope mechanics (path resolution, truth set loading, variant awareness)
+- write discipline (file edit policy, permission flags)
+- artifact discipline (identity normalization, working memory contract)
+- what the deliverable folder looks like and how to navigate it
+
+**Skills** define method contracts:
+- how to do the work (tool ordering, extraction recipes, analysis patterns)
+- runtime overrides and sub-modes
+- QA expectations specific to the method
+- output shape beyond the generic run report
+
+When new behavior is proposed, ask: "Is this about *where and what* (profile) or *how* (skill)?" If it is method, it belongs in a skill under `skills/`, not in the profile.
+
+Existing method-like behavior in profiles (e.g., semantic lensing in `DELIVERABLE_TASK`) is identified as skill-extractable. It remains in-place and functional but should not be extended further within the profile.
+
+---
+
 ## Epistemic controls (MUST)
 
 - **No invention:** unknowns remain `TBD`.
@@ -243,7 +326,8 @@ Always return a structured run report with these headings:
 - `TaskProfile:` `<value or NONE>`
 - `TaskSkill:` `<value or NONE>`
 - `ScopePath:` `<normalized absolute path>`
-- `ToolsUsed:` bullets or `none`
+- `ToolsUsed:` bullets using `<interpreter> <tool-path>` format (matching `allowed-tools` spec entries), or `none`
+- `ToolPolicyCompliance:` `PASS | VIOLATION — <details>` (when an allowlist was active); `N/A` (when unrestricted)
 - `Outputs:` bullets or `none`
 - `MISSING:` bullets or `none`
 - `NEEDS_HUMAN_RULING:` bullets or `none`
@@ -253,7 +337,7 @@ When a skill is loaded, also include:
 - `ResolvedSkillPath:` `<absolute path to resolved skill folder>`
 - `ResolvedSkillVersion:` `<chirality-skill-version from frontmatter, or UNKNOWN>`
 - `ResolvedTaskProfileRequirement:` `<chirality-task-profile from frontmatter, or NONE>`
-- `CompanionFiles:` `<list of companion files found, or none>`
+- `CompanionFiles:` `<each file as name (found|absent), or none checked>`
 - `AllowedTools:` `<effective merged allowlist, or unrestricted>`
 - `RuntimeOverrides:` `<effective overrides in effect, or none>`
 
@@ -262,6 +346,49 @@ If writes were authorized and applied, include:
 
 If no writes were authorized, include:
 - `ProposedChanges:` bullets when applicable
+
+---
+
+## Run-record file format (MUST)
+
+The run record reuses the same headings as the conversational run report but persists them as a Markdown file with YAML frontmatter.
+
+### YAML frontmatter fields
+
+| Field | Type | Populated at |
+|---|---|---|
+| `run-id` | string (`TASK_RUN_{ScopeLabel}_{YYYY-MM-DD}_{HHmm}`) | normalization |
+| `timestamp` | ISO 8601 | normalization |
+| `run-status` | `PENDING` / `SUCCESS` / `FAILED` / `FAILED_INPUTS` | normalization; updated at completion |
+| `control-surface` | `INLINE` / `FILE` / `MERGED` | normalization |
+| `scope-path` | absolute path | normalization |
+| `task-profile` | token or `NONE` | normalization |
+| `task-skill` | token or `NONE` | normalization |
+| `resolved-skill-path` | absolute path or `NONE` | normalization |
+| `resolved-skill-version` | version string or `UNKNOWN` | normalization |
+| `resolved-task-profile-requirement` | token or `NONE` | normalization |
+| `companion-files` | list (each as `name (found\|absent)`) | normalization |
+| `allowed-tools` | list or `[unrestricted]` | normalization |
+| `runtime-overrides` | map | normalization |
+
+### Markdown body headings
+
+- `## Requested Tasks` — from brief `Tasks` field
+- `## Expected Outputs` — from brief `ExpectedOutputs` field
+- `## Tools Used` — each entry as `<interpreter> <tool-path>` matching the `allowed-tools` spec format, or `none`
+- `## Tool Policy Compliance` — `PASS`, `VIOLATION: <details>`, or `N/A` (when unrestricted)
+- `## Outputs Produced` — bullets or `none`
+- `## Missing` — bullets or `none`
+- `## Needs Human Ruling` — bullets or `none`
+- `## Dependency Notes` — bullets or `none`
+- `## Applied Changes` — bullets (when writes were authorized and applied)
+- `## Proposed Changes` — bullets (when no writes were authorized)
+
+Generic shell runs and skill-driven runs use the same shape. When no skill is loaded, skill-specific frontmatter fields default to `NONE`, `UNKNOWN`, or empty as appropriate.
+
+### File location
+
+`{ScopePath}/_run_records/TASK_RUN_{YYYY-MM-DD}_{HHmm}.md`
 
 ---
 
@@ -322,6 +449,9 @@ If `InitTaskPath` is provided, the file-based brief is merged with inline fields
    - Resolve `ScopePath`.
    - Apply legacy compatibility rules.
    - Validate path, permissions, tool allowlist, and write targets.
+   - Generate `run-id` and `timestamp`.
+   - Create `{ScopePath}/_run_records/` if it does not exist.
+   - Write the initial run record with `run-status: PENDING` and all input-echo and resolved-state fields populated.
 
 2. **Load method contracts**
    - Load `TaskProfile` if present.
@@ -339,11 +469,14 @@ If `InitTaskPath` is provided, the file-based brief is merged with inline fields
 
 5. **Run QA**
    - Confirm no out-of-scope files were modified.
-   - Confirm tool usage stayed within the declared allowlist when one was provided.
+   - Compare actual tool usage against the declared allowlist. Report each tool used in `<interpreter> <tool-path>` format. Set `ToolPolicyCompliance` to `PASS`, `VIOLATION`, or `N/A`.
    - Confirm outputs match the requested shape as best as possible.
+   - Verify run-record structural completeness: all YAML frontmatter fields and Markdown body headings are present.
+   - Update the run record: set `run-status` to final value, populate all completion headings.
 
 6. **Return the run report**
    - Include status, tools used, outputs, proposed/applied changes, missing items, and rulings needed.
+   - The persisted run record and the conversational run report contain the same information. The run record is the durable copy.
 
 [[END:PROTOCOL]]
 
