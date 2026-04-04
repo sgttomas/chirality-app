@@ -113,7 +113,7 @@ Each deliverable occupies a folder at:
 | `Guidance.md` | MUST | 4_DOCUMENTS | Design guidance, rationale, and best practices |
 | `Procedure.md` | MUST | 4_DOCUMENTS | Step-by-step execution workflow |
 | `Dependencies.csv` | SHOULD | DEPENDENCIES | Structured dependency register (v3.1 schema) |
-| `_MEMORY.md` | SHOULD | PREPARATION | Working memory (shared by WORKING_ITEMS and TASK agents) |
+| `_MEMORY.md` | SHOULD | PREPARATION | Working memory (shared by WORKING_ITEMS and deliverable-local task agents) |
 | `_SEMANTIC.md` | MAY | CHIRALITY_FRAMEWORK | Semantic lens with derivation work |
 | `_SEMANTIC_LENSING.md` | MAY | CHIRALITY_LENS | Semantic analysis narrative |
 | `MEMORY.md` | MAY | PREPARATION | Compatibility pointer to `_MEMORY.md` |
@@ -519,7 +519,7 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 ### 8.2 Rules
 
 - Created by PREPARATION as an empty structured template.
-- Used by WORKING_ITEMS and TASK agents to record working context.
+- Used by WORKING_ITEMS and deliverable-local task agents to record working context.
 - Sections MAY be added as needed; the above are the minimum schema.
 - `MEMORY.md` (without underscore prefix) MAY exist as a compatibility pointer containing: `See _MEMORY.md (canonical deliverable memory).`
 

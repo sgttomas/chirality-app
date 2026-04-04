@@ -2,7 +2,7 @@
 
 Deterministic tools for the Chirality agent operating system. These tools codify repeatable, LLM-independent operations that agents invoke during pipeline execution.
 
-**Maintained by:** AGENT_TOOLMAKER (Type 1)
+**Maintained by:** TOOLMAKER (Type 1). Deterministic tools only — skill governance is owned by SKILLMAKER.
 
 ---
 
@@ -33,6 +33,8 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | `validate_dependencies_schema.py` | Python 3 | Validate Dependencies.csv against v3.1 schema (29 columns) | csv_path | VALID/INVALID + column counts |
 | `check_min_viable_fileset.sh` | zsh | Verify 5 required metadata files in a deliverable folder | DELIVERABLE_PATH | PASS/FAIL (exit code) + missing list |
 | `check_four_documents.sh` | zsh | Verify 4 document kit files in a deliverable folder | DELIVERABLE_PATH | PASS/FAIL (exit code) + missing list |
+| `scan_deliverable_consistency.py` | Python 3 | Scan one deliverable for missing files, unresolved markers, simple identity mismatches, and candidate unsourced numeric lines | deliverable_path, [--output-json], [--focus-doc], [--strictness], [--max-findings], [--check-identity], [--check-unsourced-numerics] | JSON report to stdout or file |
+| `validate_skill_metadata.py` | Python 3 | Validate repo-native skill folders for required `SKILL.md` frontmatter, folder/name alignment, and single-line descriptions | [skills_root], [--json] | PASS/FAIL summary or JSON report |
 
 ## Reporting
 

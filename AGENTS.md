@@ -28,7 +28,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 
 **DRAWING_EXTRACT\*:** DRAWING_EXTRACT, DRAWING_EXTRACT_PAGE
 
-**TASK\*:** TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, ESTIMATING, AGGREGATION, DOMAIN_HYPERGRAPH, CONTENT_DIGEST
+**TASK\*:** TASK, DELIVERABLE_TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, ESTIMATING, AGGREGATION, DOMAIN_HYPERGRAPH, CONTENT_DIGEST
 
 **AUDIT\*:** AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, AUDIT_HYPERGRAPH_CLOSURE, AUDIT_GOVERNANCE, AUDIT_EPISTEMIC, AUDIT_SCOPE_CLOSURE, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT
 
@@ -61,8 +61,9 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | SCHEDULING | `AGENT_SCHEDULING.md` | Schedule generation from dependency graph |
 | EVALUATION | `AGENT_EVALUATION.md` | Project evaluation orchestration |
 | TOOLMAKER | `AGENT_TOOLMAKER.md` | Deterministic tool design and implementation |
+| SKILLMAKER | `AGENT_SKILLMAKER.md` | Skill design, governance, and subsystem ownership |
 | PDF2MD | `AGENT_PDF2MD.md` | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
-| DRAWING_EXTRACT | `AGENT_DRAWING_EXTRACT.md` | Drawing extraction pipeline; orchestrates rasterization, page extraction dispatch, and structured output assembly |
+| DRAWING_EXTRACT | `AGENT_DRAWING_EXTRACT.md` | Drawing extraction pipeline; orchestrates rasterization, crop-first multiblock page extraction, deterministic QA, and structured output assembly |
 
 ### Type 2 — Bounded Task Agents
 
@@ -77,7 +78,8 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | ESTIMATING | `AGENT_ESTIMATING.md` | Parameterized cost estimation snapshots |
 | ESTIMATE_PREP | `AGENT_ESTIMATE_PREP.md` | Pricing library and BOE scaffold |
 | AGGREGATION | `AGENT_AGGREGATION.md` | Cross-scope synthesis snapshots |
-| TASK | `AGENT_TASK.md` | Brief-driven deliverable-local execution |
+| TASK | `AGENT_TASK.md` | Generic bounded-task shell; loads profile/skill and executes within explicit scope |
+| DELIVERABLE_TASK | `AGENT_DELIVERABLE_TASK.md` | Preserved deliverable-local SME helper workflow |
 | AUDIT_AGENTS | `AGENT_AUDIT_AGENTS.md` | Agent instruction conformance audit |
 | AUDIT_DECOMP | `AGENT_AUDIT_DECOMP.md` | Decomposition coverage audit |
 | AUDIT_DEP_CLOSURE | `AGENT_AUDIT_DEP_CLOSURE.md` | Dependency closure audit |
@@ -91,7 +93,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |
 | EVALUATION_DEPENDENCY_AUDIT | `AGENT_EVALUATION_DEPENDENCY_AUDIT.md` | Dependency validation |
 | PDF2MD_PAGE | `AGENT_PDF2MD_PAGE.md` | Single-page PDF-to-Markdown via multimodal vision; spawned per page by PDF2MD |
-| DRAWING_EXTRACT_PAGE | `AGENT_DRAWING_EXTRACT_PAGE.md` | Single-page drawing extraction via multimodal vision; spawned per page by DRAWING_EXTRACT |
+| DRAWING_EXTRACT_PAGE | `AGENT_DRAWING_EXTRACT_PAGE.md` | Single-page drawing extraction via multimodal vision using bounded helper crops and multiblock header review; spawned per page by DRAWING_EXTRACT |
 
 ---
 

@@ -215,9 +215,9 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - **PROJECT_DECOMP / SOFTWARE_DECOMP:** After human confirmation, spawn **4_DOCUMENTS** for each deliverable (pass `DECOMP_VARIANT`):
   - execute Pass 1 (draft four docs) and Pass 2 (cross-reference consistency) only.
   - do not execute Pass 3 in this step.
-- **DOMAIN_DECOMP:** After human confirmation, spawn **DOMAIN_DOCUMENTS** for each Knowledge Type (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=P1_P2`):
-  - execute Pass 1 (draft `Scoping.md` + variable Knowledge Subjects) and Pass 2 (cross-reference consistency) only.
-  - do not execute Pass 3 in this step.
+- **DOMAIN_DECOMP:** After human confirmation, spawn **DOMAIN_DOCUMENTS** for each Knowledge Type (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=FULL`):
+  - execute Pass 1 (draft `Scoping.md` + variable `KA-*.md` Knowledge Artifacts derived one-per-Subject), Pass 2 (cross-artifact consistency), and Pass 3 (source-fidelity verification against the authoritative source document).
+  - DOMAIN_DOCUMENTS does not use the semantic lensing pipeline; Phases 2.3, 2.4, and 2.5 are skipped for DOMAIN variants.
 
 **Gate question:** “Pass 1+2 complete. Ready to generate semantic lenses (if using semantic lensing)?”
 
@@ -226,6 +226,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 #### Phase 2.3: Spawn CHIRALITY_FRAMEWORK sub-agents (semantic matrices)
 
 **Action:**
+- **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline; source-fidelity verification is handled by DOMAIN_DOCUMENTS Pass 3.
 - If the project uses semantic lensing, spawn CHIRALITY_FRAMEWORK for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC.md`.
 - Do not treat `_SEMANTIC.md` as an engineering authority; it is a lens scaffold.
 - For DOMAIN variants: CHIRALITY_FRAMEWORK reads whatever production documents exist in the folder (see AGENT_CHIRALITY_FRAMEWORK.md Production Documents).
@@ -237,6 +238,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 #### Phase 2.4: Spawn CHIRALITY_LENS sub-agents (semantic lensing register)
 
 **Action:**
+- **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline.
 - Spawn CHIRALITY_LENS for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC_LENSING.md`.
 - CHIRALITY_LENS does not edit production documents; it produces a read-only enrichment register.
 
@@ -250,11 +252,10 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - **PROJECT_DECOMP / SOFTWARE_DECOMP:** Spawn **4_DOCUMENTS** Pass 3 only (pass `DECOMP_VARIANT`).
   - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments and performs a final consistency sweep.
   - If the project uses `SEMANTIC_READY` as a lifecycle marker, 4_DOCUMENTS Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
-- **DOMAIN_DECOMP:** Spawn **DOMAIN_DOCUMENTS** Pass 3 only (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=P3_ONLY`).
-  - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments to Knowledge Subjects and performs a final consistency sweep.
-  - DOMAIN_DOCUMENTS does not update `_STATUS.md` during Pass 3 (status transitions are managed by the semantic pipeline or human).
+- **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants run Pass 3 (source-fidelity verification) as part of the `RUN_PASSES=FULL` directive in Phase 2.2. There is no separate Pass 3 enrichment phase for DOMAIN.
 
-**Report to human:** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions (or DOMAIN_HYPERGRAPH if DOMAIN variant).”
+**Report to human (PROJECT/SOFTWARE):** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions.”
+**Report to human (DOMAIN):** Phase 2.5 skipped for DOMAIN variant — source-fidelity verification was completed in Phase 2.2. Production units are ready for DOMAIN_HYPERGRAPH (Phase 2.6).
 
 ---
 

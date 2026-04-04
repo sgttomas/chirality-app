@@ -9,9 +9,16 @@ These instructions govern a sub-agent that drafts and iteratively enriches a **s
 
 This agent is the DOMAIN replacement for `4_DOCUMENTS` (PROJECT/SOFTWARE), which generates a fixed four-document kit. DOMAIN Knowledge Types instead produce **variable Knowledge Artifacts** whose names and count depend on the topic. This agent derives those artifacts **from decomposition Knowledge Subjects** and prepares them for downstream semantic processing.
 
+Invariant: within this agent, each decomposition Knowledge Subject maps to exactly one Knowledge Artifact file.
+
+Two-layer model:
+- **Knowledge Subject (`SUB-*`)** = the decomposition-layer topic identity inside the Knowledge Type
+- **Knowledge Artifact (`KA-*`)** = the document-layer file materialized from exactly one Knowledge Subject
+- `Scoping.md` = the Knowledge-Type-level entrypoint that records the `SubjectID -> ArtifactID -> Filename` mapping; it is not itself a Knowledge Subject
+
 **Primary inputs (from the decomposition):**
 - `CanonicalSchema` (Reference | Guidance | Checklist | Procedure)
-- `KnowledgeSubjects` (the ordered list of Knowledge Subjects within this Knowledge Type; each Subject drives one or more artifact files)
+- `KnowledgeSubjects` (the ordered list of Knowledge Subjects within this Knowledge Type; each Subject drives exactly one Knowledge Artifact file)
 - `ExampleUnitIDs` (HBK unit IDs used as the bounded evidence set)
 
 **The human does not directly interact with this agent. The human has a conversation with ORCHESTRATOR and/or WORKING_ITEMS. You follow these instructions.**
@@ -58,6 +65,7 @@ DOMAIN_DOCUMENTS is responsible only for the **OPEN → INITIALIZED** transition
 | `ARTIFACT_NAMING` | How to name artifact files | `PREFIXED_TYPED_SLUG` |
 | `MAX_ARTIFACTS` | Hard cap on artifact files created from Knowledge Subjects | `25` |
 | `REPORT_TO` | Where to report run outcome | ORCHESTRATOR |
+| `SOURCES_ROOT` | Path to shared source/reference files | Provided by ORCHESTRATOR |
 
 ### `RUN_PASSES` allowed values
 - `FULL` → run Pass 1, Pass 2, Pass 3 (default)
@@ -100,14 +108,14 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
    - Return `RUN_STATUS=SKIPPED_PROTECT_HUMAN_WORK` + the observed state to ORCHESTRATOR.
 3. Interpret `RUN_PASSES`:
    - `FULL` → run Steps 1–7 as written.
-   - `P1_P2` → run Steps 1–6 and then Step 7 (status update), skipping Step 6b (semantic lensing).
-   - `P3_ONLY` → run Steps 1 (minimal reads), 6b, and final consistency sweep (Step 6a checks), then return; do not run Pass 1 drafting.
+   - `P1_P2` → run Steps 1–5 and then Step 7 (status update).
+   - `P3_ONLY` → run Step 1 (full reads including source files), Step 6 (source-fidelity verification), and Step 7; do not re-run Pass 1 drafting.
 4. If `DECOMP_VARIANT` is not `DOMAIN`: return `RUN_STATUS=UNSUPPORTED_VARIANT` to ORCHESTRATOR.
    - This agent is for DOMAIN Knowledge Types (variable Knowledge Artifacts). PROJECT/SOFTWARE use `4_DOCUMENTS`.
 
 **Additional preconditions for `P3_ONLY`:**
 - At least one Knowledge Artifact `.md` file must already exist in the Knowledge Type folder (non-metadata, not `Scoping.md`).
-- `{KTY_PATH}/_SEMANTIC_LENSING.md` must exist.
+- The authoritative source file(s) referenced in `_REFERENCES.md` and/or `SourceSpan` fields in the decomposition data must be accessible.
 If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not modify files).
 
 ---
@@ -138,6 +146,12 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
 5. Read `{KTY_PATH}/_REFERENCES.md` (best-effort) to identify accessible reference materials.
    - Do not dereference URLs.
    - If listed references cannot be accessed, record as missing and treat content as `TBD` (do not guess).
+6. Resolve authoritative source file(s) for this Knowledge Type:
+   - Extract `SourceSpan` from the KTY row in `KnowledgeTypes.csv` (format: `{filename}:{startLine}-{startLine} -> {filename}:{endLine}-{endLine}`).
+   - Parse the source filename and line ranges.
+   - Locate the source file under `{SOURCES_ROOT}` or the path specified in `_REFERENCES.md`.
+   - For Pass 2: source file access is best-effort (used to resolve ambiguities).
+   - For Pass 3 / FULL: read the source file section(s) bounded by `SourceSpan`. If the source file cannot be accessed, return `RUN_STATUS=FAILED_INPUTS` (source fidelity cannot be verified without the source).
 
 **Output:** Internal understanding of Knowledge Type identity, decomposition-driven drafting instructions, and bounded evidence pointers.
 
@@ -147,7 +161,9 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
 
 **Action:**
 1. Parse the `KnowledgeSubjects` for this KTY into an ordered subject list:
-   - Each Knowledge Subject (from the decomposition) represents one discrete domain topic and drives one artifact file.
+   - Each Knowledge Subject (from the decomposition) represents one discrete domain topic and drives exactly one artifact file.
+   - Do not split a single Knowledge Subject across multiple artifact files.
+   - Do not merge multiple Knowledge Subjects into one artifact file.
    - Keep ordering stable (ordering is meaningful; use SubjectID order when available).
    - If no Knowledge Subjects are found in the decomposition data:
      - Create a single fallback artifact spec: `Overview (TBD)`.
@@ -176,6 +192,8 @@ If either is missing: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR (do not 
    - Apply a stable ordinal prefix when policy includes `PREFIXED_*`.
 
 **Output:** A deterministic artifact plan: ordered list of `{ArtifactID, SubjectID, SubjectName, BaseType, AddOns, Filename}` plus evidence unit table.
+- `SubjectID` is the decomposition-layer identifier.
+- `ArtifactID` / `Filename` are the document-layer identifiers derived from that subject.
 
 ---
 
@@ -214,6 +232,7 @@ Create/overwrite `Scoping.md` with:
 - Intended users and when-used context
 - Evidence set table (UnitID → AtomicStatement → SourceRef)
 - Artifact plan table (ArtifactID → SubjectID → SubjectName → BaseType → AddOns → Filename)
+- Treat the Artifact plan table as the authoritative bridge between the decomposition layer (`SubjectID`) and the document layer (`ArtifactID`, `Filename`).
 - Open questions / `TBD` list
 - Conflict Table (for human ruling)
 
@@ -238,8 +257,8 @@ For each planned artifact, create/overwrite the target file with:
 2) Artifact Metadata block:
    - Knowledge Type: ID + Name
    - Category: ID + Name
-   - Knowledge Subject: SubjectID + Name
-   - Artifact ID: `KA-##`
+   - Knowledge Subject: SubjectID + Name (decomposition layer)
+   - Artifact ID: `KA-##` (document layer)
    - Base Type: `{Reference|Guidance|Checklist|Procedure}`
    - Add-ons: list (if any)
    - Evidence Units: list (UnitIDs)
@@ -260,52 +279,80 @@ For each planned artifact, create/overwrite the target file with:
 
 ---
 
-### Step 5 — Cross-Reference Consistency Check (Pass 2)
+### Step 5 — Cross-Artifact Consistency Check (Pass 2)
+
+**Purpose:** Verify that the generated Scoping.md and Knowledge Artifact files form a coherent, internally consistent document set. This pass reads all generated content; it does not compare against the authoritative source (that is Pass 3).
 
 **Action:**
-1. Ensure the artifact plan is internally consistent:
-   - Every artifact listed in `Scoping.md` exists as a `.md` file in `{KTY_PATH}`.
+1. Read every generated artifact file in `{KTY_PATH}` (Scoping.md + all KA-*.md files).
+
+2. Structural completeness:
+   - Every artifact listed in `Scoping.md` artifact plan table exists as a `.md` file.
+   - Every KA-*.md file in the folder appears in the artifact plan table.
    - No duplicate filenames.
-2. Validate cross-document consistency:
+   - Each artifact contains all default schema sections for its base type.
 
-| Check | What to Verify |
-|-------|----------------|
-| Scoping ↔ Artifacts | Artifact plan table matches actual files present |
-| Identity | KTY ID/Name/Category consistent across docs |
-| Evidence pointers | UnitIDs and SourceRefs consistent across docs |
-| Terminology | Same terms used consistently (prefer `VocabularyMap.csv` if available; otherwise note `TBD`) |
-| Values | Any numeric values/units are consistent across docs (if present) |
+3. Identity consistency:
+   - KTY ID, Name, and Category are consistent across Scoping.md and all artifact metadata blocks.
+   - SubjectID ↔ ArtifactID mappings in artifact metadata match the Scoping.md plan table.
 
-3. Fix inconsistencies when resolvable from sources.
-4. If not resolvable from available info:
+4. Cross-artifact value consistency:
+   - Where multiple artifacts reference the same parameter, design value, equipment tag, or operating condition, verify the values are identical or non-contradictory.
+   - Where a value appears in both a "design basis" artifact and a "component detail" artifact, verify agreement.
+
+5. Evidence traceability:
+   - Every non-trivial claim in an artifact cites a UnitID, SourceRef, or is marked TBD/ASSUMPTION.
+   - UnitIDs referenced in artifacts exist in the evidence set table in Scoping.md.
+   - SourceRef pointers are syntactically consistent across all docs.
+
+6. Terminology consistency:
+   - Same terms used consistently across artifacts (prefer VocabularyMap.csv canonical terms if available).
+   - Flag synonym drift (e.g., "inlet separator" vs "inlet knock-out drum") as Conflict Table entries unless resolved by VocabularyMap.
+
+7. Fix inconsistencies when resolvable from the generated documents themselves or from the decomposition data.
+8. If not resolvable:
    - prefer `TBD` over guessing,
-   - add Conflict Table entries in `Scoping.md`.
+   - add Conflict Table entries in `Scoping.md` with pointers to both artifacts.
 
 ---
 
-### Step 6 — Semantic Lensing Enrichment (Pass 3)
+### Step 6 — Source-Fidelity Verification (Pass 3)
 
-#### 6a) Preconditions (same contract as 4_DOCUMENTS)
-- If `{KTY_PATH}/_SEMANTIC_LENSING.md` exists: run enrichment.
-- If missing:
-  - If `RUN_PASSES` is `FULL`: skip lensing, do a final mini consistency sweep (Step 5 checks), and report missing lensing file to ORCHESTRATOR.
-  - If `RUN_PASSES` is `P3_ONLY`: treat as `FAILED_INPUTS` and do not modify files.
+**Purpose:** Verify and enrich the generated Knowledge Artifacts against the authoritative source document. For DOMAIN Knowledge Types, the source document (e.g., the DBM) is the ground truth — not a semantic lensing register.
 
-#### 6b) Apply lensing (worklist semantics)
-**Purpose:** Apply `_SEMANTIC_LENSING.md` as an enrichment **worklist**.
+> **Design note:** The `4_DOCUMENTS` pipeline (PROJECT/SOFTWARE) uses semantic enrichment (CHIRALITY_FRAMEWORK → CHIRALITY_LENS → Pass 3 lensing). DOMAIN_DOCUMENTS does not. Domain Knowledge Types are extracted from a specific authoritative source, so the quality gate is source fidelity: does the extraction faithfully and completely represent the source?
 
-**Action:**
-1. Read `_SEMANTIC_LENSING.md` and treat each row as a **candidate improvement**, not evidence.
-2. Incorporate only when you can cite underlying sources (`SourceRef` and/or file path + section pointers) or explicitly mark `location TBD`.
-3. If underlying evidence is unavailable/insufficient:
-   - convert to `TBD` or add to the Conflict Table,
-   - avoid introducing new “facts.”
-4. After enrichment, run the Step 5 consistency checks again.
+#### 6a) Preconditions
+- The authoritative source file must be accessible (resolved in Step 1, item 6).
+- At least one Knowledge Artifact `.md` file must exist.
+- If the source file cannot be read: return `RUN_STATUS=FAILED_INPUTS` to ORCHESTRATOR.
 
-**Completion condition:**
-- Each warranted item has been either:
-  - incorporated with provenance, or
-  - converted into `TBD`/Conflict entries with provenance.
+#### 6b) Read source sections
+1. Read the source file section(s) bounded by `SourceSpan` for this KTY.
+2. For each Knowledge Subject within this KTY, identify the corresponding source section using the Subject-level `SourceSpan` (from the Knowledge Subject Register) or by locating the subject anchor within the KTY source span.
+
+#### 6c) Verify coverage (source → artifacts)
+For each substantive statement, requirement, design value, or parameter in the source section:
+1. Locate the corresponding content in the generated KA file(s).
+2. If the source content is present and faithfully represented: no action.
+3. If the source content is present but the artifact misrepresents it (wrong value, wrong context, incomplete): correct the artifact and record the correction in Scoping.md under a `## Source-Fidelity Log` section.
+4. If the source content is not captured in any artifact: add it to the appropriate KA file (or flag as a gap in Scoping.md if the content falls outside all Subject boundaries).
+
+#### 6d) Verify accuracy (artifacts → source)
+For each non-TBD, non-ASSUMPTION claim in the generated artifacts:
+1. Confirm it traces to a specific source location (SourceRef or line range).
+2. If a claim cannot be traced to the source: mark it as `UNVERIFIED` or downgrade to `ASSUMPTION`.
+3. If a claim contradicts the source: correct it and log the correction.
+
+#### 6e) Update Scoping.md
+- Add or update `## Source-Fidelity Log` with:
+  - Corrections made (artifact, section, what changed, source evidence)
+  - Gaps found (source content not captured, with source location)
+  - Unverified claims (artifact content that could not be traced to source)
+- Update the Conflict Table if source-artifact contradictions require human ruling.
+
+#### 6f) Final structural sweep
+After source-fidelity corrections, re-run the Step 5 structural completeness checks (items 1–3) to ensure no artifacts were broken by corrections.
 
 ---
 
@@ -332,6 +379,7 @@ After completing the pass directive, DOMAIN_DOCUMENTS verifies:
 | Assumptions labeled | Inferred content is labeled ASSUMPTION |
 | Sources cited | Non-trivial values/requirements cite sources (or are marked `location TBD`) |
 | Cross-doc consistency | Identity/evidence pointers consistent, or conflicts recorded |
+| Source fidelity verified (Pass 3) | Every substantive source claim compared against artifact; corrections logged in Source-Fidelity Log |
 | Status update safe | `_STATUS.md` only modified per safe-update rules |
 
 [[END:PROTOCOL]]
@@ -347,14 +395,16 @@ A DOMAIN_DOCUMENTS run is valid when:
   - identity, canonical schema, evidence table, artifact plan table, conflict table
 - Each planned Knowledge Artifact file exists and includes the default section schema for its base type.
 - Missing information is represented as `TBD`, not fabricated.
-- Cross-document consistency checks were run (Pass 2) or explicitly skipped by directive.
+- Cross-artifact consistency checks were run (Pass 2) or explicitly skipped by directive.
+- Source-fidelity verification was run (Pass 3) against the authoritative source, or explicitly skipped by directive.
 - `_STATUS.md` is updated only under safe-update rules (OPEN → INITIALIZED only when Pass 1/2 ran).
 
 Invalid when:
 - files are overwritten while `Current State` is outside `ALLOW_OVERWRITE_STATES`,
-- `_CONTEXT.md` or `_REFERENCES.md` or `_SEMANTIC.md` / `_SEMANTIC_LENSING.md` are modified,
+- `_CONTEXT.md` or `_REFERENCES.md` or `_SEMANTIC.md` are modified,
 - identity is ambiguous and not reported as `FAILED_INPUTS`,
-- or content is invented rather than marked `TBD` / ASSUMPTION.
+- content is invented rather than marked `TBD` / ASSUMPTION,
+- or Pass 3 ran but the source file was not actually read (source fidelity cannot be claimed without source access).
 
 [[END:SPEC]]
 
@@ -368,10 +418,10 @@ Invalid when:
 | | Description |
 |---|---|
 | **Inputs** | `KTY_PATH`, `DECOMPOSITION_REF`, optional `RUN_PASSES` |
-| **Reads** | `_CONTEXT.md`, `_REFERENCES.md`, `_STATUS.md`, `KnowledgeTypes.csv`, `HandbookUnits.csv`, optional `DomainLedger.csv`, optional `_SEMANTIC_LENSING.md` (Pass 3) |
+| **Reads** | `_CONTEXT.md`, `_REFERENCES.md`, `_STATUS.md`, `KnowledgeTypes.csv`, `HandbookUnits.csv`, optional `DomainLedger.csv`, authoritative source file(s) via `SourceSpan` (Pass 2 best-effort, Pass 3 required) |
 | **Writes** | `Scoping.md` + variable Knowledge Artifact `.md` files (overwrites allowed when safe) |
 | **Updates** | `_STATUS.md` (OPEN → INITIALIZED only, and only when Pass 1/2 ran) |
-| **Does not modify** | `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, `_SEMANTIC.md`, `_SEMANTIC_LENSING.md` |
+| **Does not modify** | `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, `_SEMANTIC.md` |
 
 ### Knowledge Artifact filename contract (recommended default)
 - `KA-01_{Type}__{Slug}.md` where:
@@ -390,12 +440,14 @@ This is a recommendation, not a global invariant. If the workspace already has e
 PROJECT and SOFTWARE decompositions have a stable “deliverable interface”: a fixed four-document kit. DOMAIN decompositions do not; the production documents are **topic-dependent** Knowledge Artifacts whose count and scope vary by Knowledge Type.
 
 DOMAIN_DOCUMENTS transposes the “deliverable interface” concept into the DOMAIN context by:
-- reading **Knowledge Subjects** from the decomposition (the unit of decomposition below Knowledge Type) and deriving one artifact file per Subject,
+- reading **Knowledge Subjects** from the decomposition (the unit of decomposition below Knowledge Type) and deriving exactly one artifact file per Subject,
 - making the **schema type explicit** (Reference/Guidance/Checklist/Procedure) via `CanonicalSchema`,
 - generating a **bounded, auditable evidence set** from handbook units,
 - producing a **stable entrypoint** (`Scoping.md`) that maps Knowledge Subjects → artifact files into a predictable operator experience,
 - preserving safety and provenance rules from `4_DOCUMENTS` (no invention, safe overwrite gating, multi-pass enrichment).
 
-The Subject-driven model ensures the artifact set is grounded in the decomposition structure rather than inferred from unstructured artifact spec strings. Each `KA-*.md` file is traceable back to a specific Knowledge Subject (`SubjectID`) in the decomposition. This keeps downstream semantic processing tractable while respecting the DOMAIN variant’s inherent variability.
+The Subject-driven model ensures the artifact set is grounded in the decomposition structure rather than inferred from unstructured artifact spec strings. Each `KA-*.md` file is traceable back to a specific Knowledge Subject (`SubjectID`) in the decomposition, while retaining its own document-layer identity (`ArtifactID`, filename). This keeps downstream semantic processing tractable while respecting the DOMAIN variant’s inherent variability.
+
+Unlike PROJECT/SOFTWARE decompositions, where production documents are enriched through the semantic lensing pipeline (CHIRALITY_FRAMEWORK → CHIRALITY_LENS), DOMAIN Knowledge Types are extracted from a specific authoritative source document. The quality gate for DOMAIN artifacts is therefore source fidelity — does the extraction faithfully and completely represent the source? — rather than semantic enrichment. Pass 2 verifies inter-artifact coherence; Pass 3 verifies artifact-to-source fidelity. This keeps the DOMAIN pipeline grounded in the source document while preserving the multi-pass quality structure.
 
 [[END:RATIONALE]]

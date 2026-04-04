@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 extract_pdf_titleblock_text.py
-Extract drawing-number candidates and title-block text snippets from PDF pages
+Extract drawing-number candidates, title-block system-name candidates, and title-block text snippets from PDF pages
 using the external `pdftotext` utility.
 
 Usage:
@@ -19,6 +19,8 @@ from pathlib import Path
 
 
 DWG_NO_RE = re.compile(r"\b[A-Z]{2,12}-\d{3,8}-\d{3,8}-\d{3,8}\b")
+PROJECT_TITLE_RE = re.compile(r"4-25\s+WEST\s+DOE\s+300\s+MMSCFD\s+DEEPCUT\s+GAS\s+PLANT", re.IGNORECASE)
+TITLE_SUFFIX_RE = re.compile(r"PROCESS\s+FLOW\s+DIAGRAM", re.IGNORECASE)
 
 
 def parse_pages(spec: str) -> list[int]:
@@ -67,6 +69,29 @@ def compact_excerpt(text: str, max_lines: int = 8) -> str:
     return " || ".join(excerpt)
 
 
+def normalize_spaces(value: str) -> str:
+    return " ".join(value.split())
+
+
+def extract_system_name_candidate(text: str) -> str:
+    lines = [normalize_spaces(line) for line in text.splitlines()]
+    lines = [line for line in lines if line]
+
+    project_index = next((i for i, line in enumerate(lines) if PROJECT_TITLE_RE.search(line)), None)
+    if project_index is None:
+        return ""
+
+    for line in lines[project_index + 1: project_index + 6]:
+        upper_line = line.upper()
+        if "DATE" in upper_line or "SCALE" in upper_line or "CLIENT DWG" in upper_line:
+            break
+        if TITLE_SUFFIX_RE.search(line):
+            return ""
+        if line and not line.endswith(":"):
+            return line
+    return ""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Extract title-block text and drawing-number candidates from PDF pages.")
     parser.add_argument("pdf_path")
@@ -89,16 +114,17 @@ def main() -> int:
 
     with output_csv.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["page", "dwg_no", "status", "titleblock_text"])
+        writer.writerow(["page", "dwg_no", "system_name_candidate", "status", "titleblock_text"])
         for page_num in pages:
             try:
                 text = extract_page_text(pdf_path, page_num)
                 match = DWG_NO_RE.search(text)
                 dwg_no = match.group(0) if match else ""
+                system_name = extract_system_name_candidate(text)
                 status = "FOUND" if dwg_no else "NOT_FOUND"
-                writer.writerow([page_num, dwg_no, status, compact_excerpt(text)])
+                writer.writerow([page_num, dwg_no, system_name, status, compact_excerpt(text)])
             except Exception as exc:  # noqa: BLE001
-                writer.writerow([page_num, "", "ERROR", str(exc)])
+                writer.writerow([page_num, "", "", "ERROR", str(exc)])
 
     print(f"pages={len(pages)}")
     print(f"output={output_csv}")

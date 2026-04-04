@@ -52,8 +52,14 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 - `NO_FINDINGS` is a valid page outcome and MUST be preserved in reporting.
 - Failed pages MUST be reported explicitly. They MUST NOT be silently omitted.
 - Combined outputs MUST be assembled only from page outputs generated for the current extraction scope.
-- This agent MUST preserve provenance by carrying forward `DWG NO.` and `source_page`.
+- This agent MUST preserve provenance by carrying forward `DWG NO.`, `system_name`, and `source_page`.
 - Combined outputs and duplicate reporting MUST be produced by deterministic tools, not assembled ad hoc in free-form reasoning.
+- For `top_equipment_header_with_dwg`, this agent MUST use the robust crop-first path by default:
+  - generate deterministic top-header and title-block crops
+  - generate overlapping top-header slices for multiblock review
+  - dispatch page workers with current-page helper crop paths
+  - run deterministic stub-count reporting and deterministic stub sanitization before assembly
+- `NO_FINDINGS` and very low-count pages MUST be treated skeptically until the helper crops and stub-count report support that result.
 
 ---
 
@@ -94,11 +100,27 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 3. Confirm all requested pages have corresponding PNG files.
 4. Report how many pages were rendered and how many were reused.
 
+### Phase 1.5 — Prepare deterministic crops
+
+1. For extraction modes that rely on top-of-sheet header content, the agent MUST generate cropped helper images:
+   ```sh
+   python3 tools/drawing_extract/prepare_header_crops.py {WORK_DIR} --pages {START_PAGE}-{END_PAGE}
+   ```
+2. These crops are QA/extraction aids only:
+   - `page_{NNNN}_top_header.png` isolates the likely top-header band and excludes the right-side notes area.
+   - `page_{NNNN}_top_header_slice_{K}.png` isolates overlapping segments of the top-header band for multiblock review.
+   - `page_{NNNN}_titleblock.png` isolates the title block.
+3. Confirm the helper crops exist for every page in scope.
+4. If helper crops cannot be generated for a page, report that page explicitly and continue with caution; do not silently treat the crop step as optional.
+
 ### Phase 2 — Dispatch page extractors
 
 1. Build the ordered page list from `START_PAGE` through `END_PAGE`.
 2. For each page, derive:
    - `IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}.png`
+   - `HEADER_IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}_top_header.png`
+   - `TITLEBLOCK_IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}_titleblock.png`
+   - `HEADER_SLICE_PATHS`: ordered paths matching `{WORK_DIR}/page_{NNNN}_top_header_slice_*.png`
    - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_stub.md` when `OUTPUT_FORMAT=markdown_stub`
    - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_rows.csv` when `OUTPUT_FORMAT=csv_row`
 3. If the per-page output already exists and is non-empty, reuse it unless the human explicitly requests re-extraction.
@@ -108,6 +130,9 @@ This agent is used when the goal is **not** full-page transcription, but selecti
    - spawn `DRAWING_EXTRACT_PAGE` workers in parallel
    - pass:
      - `IMAGE_PATH`
+     - `HEADER_IMAGE_PATH`
+     - `TITLEBLOCK_IMAGE_PATH`
+     - `HEADER_SLICE_PATHS`
      - `OUTPUT_PATH`
      - `PAGE_NUM`
      - `TOTAL_PAGES`
@@ -129,7 +154,52 @@ This agent is used when the goal is **not** full-page transcription, but selecti
    python3 tools/drawing_extract/extract_pdf_titleblock_text.py {PDF_PATH} {WORK_DIR}/titleblock_verify_{START:04d}_{END:04d}.csv --pages {START_PAGE}-{END_PAGE}
    ```
 2. Use this output as a deterministic cross-check aid for `DWG NO.` verification.
+   - when available, it SHOULD also be used as a deterministic cross-check aid for title-block `system_name` candidates
 3. If the tool or external dependency is unavailable, warn and continue. This step MUST NOT block page extraction.
+
+### Phase 2.6 — Deterministic stub-count coverage report
+
+1. After page extraction and before sanitization, the agent MUST write a per-page coverage report:
+   ```sh
+   python3 tools/drawing_extract/report_stub_counts.py {SOURCE_DIR} {WORK_DIR}/stub_counts_raw_{START:04d}_{END:04d}.csv --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   ```
+2. Use this report as a deterministic skepticism gate.
+3. Pages are QA-flagged when any of the following hold:
+   - `status=NO_FINDINGS`
+   - `row_count <= 2`
+   - `blank_tag_count > 0`
+4. A QA-flagged page is not automatically wrong, but it MUST be scrutinized against the generated helper crops before the run is treated as production-ready.
+
+### Phase 2.7 — Deterministic stub sanitization
+
+1. For `top_equipment_header_with_dwg`, the agent MUST run:
+   ```sh
+   python3 tools/drawing_extract/sanitize_equipment_stubs.py {SOURCE_DIR} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --report-csv {WORK_DIR}/stub_sanitize_{START:04d}_{END:04d}.csv
+   ```
+2. This sanitization step MAY:
+   - drop blank-tag rows
+   - drop obvious instrument/control/note rows
+   - trim `equipment_name` values to the primary equipment label
+   - convert pages to `NO_FINDINGS` when no valid tagged header rows remain
+3. Sanitization is deterministic QA. It MUST NOT invent new equipment rows.
+
+### Phase 2.8 — Targeted deterministic page-family recovery
+
+1. If the drawing set contains a repeated header family that is known to undercount after page extraction plus sanitization, the agent MAY run a targeted deterministic recovery tool before assembly.
+2. This recovery step is only valid when the replacement rows are derived from verified rendered page crops for a known repeated layout.
+3. Recovery MUST overwrite only the affected page stubs and MUST preserve page-level provenance fields already present in those stubs.
+4. For the Deepcut PFD set, the reference tool is:
+   ```sh
+   python3 tools/drawing_extract/recover_deepcut_multiblock_headers.py {SOURCE_DIR} --pdf-stem {PDF_STEM} --report-csv {WORK_DIR}/multiblock_recovery_{START:04d}_{END:04d}.csv
+   ```
+
+### Phase 2.9 — Final stub-count coverage report
+
+1. After sanitization and any deterministic page-family recovery, the agent MUST refresh the per-page coverage report:
+   ```sh
+   python3 tools/drawing_extract/report_stub_counts.py {SOURCE_DIR} {WORK_DIR}/stub_counts_final_{START:04d}_{END:04d}.csv --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   ```
+2. Use this final report for no-findings reporting and to identify any residual low-count or blank-tag pages that still warrant page-specific cleanup.
 
 ### Phase 3 — Assemble combined outputs
 
@@ -152,6 +222,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 5. Treat duplicate flags as QA candidates. Do not collapse or remove duplicate rows from the combined CSV by default.
 6. `tools/drawing_extract/dedupe_equipment_csv.py` MAY be used later for optional/manual downstream workflows, but MUST NOT be the default production output.
 7. Read the deterministic tool outputs and build the final no-findings / failed-page report.
+8. Prefer the final stub-count report as the authoritative per-page row-count summary for the run.
 
 ### Phase 4 — Final report
 
@@ -186,10 +257,13 @@ The combined Markdown, combined CSV, and duplicate-flags CSV all exist unless ev
 Pages with no matching extraction targets are recorded explicitly and reported to the human.
 
 ### S5 — Provenance preserved
-Combined outputs preserve `drawing` and `source_page` fields derived from page outputs.
+Combined outputs preserve `drawing`, `system_name`, and `source_page` fields derived from page outputs.
 
 ### S6 — Resume behavior holds
 Existing page images and page outputs are reused by default where valid.
+
+### S7 — Robust crop-first path applied
+For `top_equipment_header_with_dwg`, helper crops, slice generation, stub-count reporting, and deterministic sanitization all ran unless the run failed before extraction.
 
 [[END:SPEC]]
 
@@ -204,6 +278,9 @@ Existing page images and page outputs are reused by default where valid.
 {WORK_DIR}/
   manifest.json
   page_0007.png
+  page_0007_top_header.png
+  page_0007_top_header_slice_1.png
+  page_0007_titleblock.png
   page_0008.png
   ...
 
@@ -221,11 +298,14 @@ Existing page images and page outputs are reused by default where valid.
 | Tool | Path |
 |---|---|
 | Rasterize | `tools/pdf2md/rasterize_pdf.py` |
+| Prepare Header Crops | `tools/drawing_extract/prepare_header_crops.py` |
+| Stub Count Report | `tools/drawing_extract/report_stub_counts.py` |
 | Assemble Markdown | `tools/drawing_extract/assemble_equipment_markdown.py` |
 | Assemble CSV | `tools/drawing_extract/assemble_equipment_csv.py` |
 | Duplicate Flags | `tools/drawing_extract/flag_duplicate_equipment_csv.py` |
 | Dedupe CSV (optional) | `tools/drawing_extract/dedupe_equipment_csv.py` |
 | Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` |
+| Stub Sanitizer (default QC) | `tools/drawing_extract/sanitize_equipment_stubs.py` |
 
 ### Sub-agent
 
@@ -246,6 +326,9 @@ DRAWING_EXTRACT exists to separate **drawing-aware structured extraction** from 
 2. **Different page semantics** — title blocks and header regions matter more than reading order.
 3. **Different success model** — `NO_FINDINGS` is a normal, expected page outcome.
 4. **Repeatable field extraction** — the workflow is intended to be reused across drawing sets with the same extraction mode.
+5. **Robustness over optimistic first-pass speed** — crop-first multiblock review plus deterministic QC is the default because undercounted pages create more downstream work than a slower first pass.
+
+In practice, engineering drawing headers often look uniform to a human while still violating the assumptions of a one-pass extractor: valid equipment blocks can be staggered, split across multiple clusters, or mixed with dense spec text and note text. The robust default path exists because crop-first bounded review, multiblock slice inspection, and skepticism toward low-count or `NO_FINDINGS` pages consistently outperform optimistic single-band extraction on production drawing sets.
 
 This keeps `PDF2MD` focused on transcription while giving drawing workflows a dedicated orchestration contract.
 

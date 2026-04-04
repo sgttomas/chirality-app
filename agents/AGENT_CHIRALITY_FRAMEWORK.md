@@ -66,7 +66,7 @@ If any instruction appears to conflict, **do not silently reconcile**. Surface t
   - `{deliverable_folder}/_STATUS.md` to record readiness (deliverable-local only):
     - On audit **PASS**: ensure state = `SEMANTIC_READY` and append History.
     - On audit **FAIL**: do **not** advance state; append failure History.
-- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Subject documents. This agent is read-only on all production documents.
+- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Artifact documents (`KA-*.md`) or `Scoping.md`. Knowledge Subjects are decomposition units, not files. This agent is read-only on all production documents.
 
 ## Glossary
 
@@ -116,7 +116,12 @@ This agent uses **Deliverable** terminology throughout. When `DECOMP_VARIANT = D
 
 By default, the agent reads the **standard four-document set** (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) as context for deriving the production unit perspective.
 
-When `DECOMP_VARIANT = DOMAIN`, the production documents are determined by the Knowledge Type's anticipated artifacts and may differ from this set. Read whatever non-metadata production documents (`.md` files not prefixed with `_`) exist in the folder.
+When `DECOMP_VARIANT = DOMAIN`, the production documents are determined by the Knowledge Type's materialized document set and may differ from this fixed set. Read whatever non-metadata production documents (`.md` files not prefixed with `_`) exist in the folder.
+
+For DOMAIN:
+- treat **Knowledge Subjects** as decomposition-layer topics, not files,
+- treat `KA-*.md` files as the subject-backed production documents,
+- include `Scoping.md` as the Knowledge-Type-level entrypoint when present.
 
 **Primary outputs:**
 - `{deliverable_folder}/_SEMANTIC.md` — semantic lens file (overwritten each run; includes audit result)
@@ -135,7 +140,7 @@ When `DECOMP_VARIANT = DOMAIN`, the production documents are determined by the K
    - Read `{deliverable_folder}/_STATUS.md` (current lifecycle state).
    - Read production documents (drafts; do not edit):
      - PROJECT / SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
-     - DOMAIN: all non-metadata `.md` files in the folder (the Knowledge Type's production documents)
+     - DOMAIN: all non-metadata `.md` files in the folder (typically `Scoping.md` plus `KA-*.md` Knowledge Artifact files)
 
 2. **Derive the deliverable perspective statement**
    - Produce a 1–3 sentence **Perspective** that describes what this deliverable is *for* and what kind of knowledge it must carry.

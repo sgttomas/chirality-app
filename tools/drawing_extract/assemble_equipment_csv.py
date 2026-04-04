@@ -18,10 +18,22 @@ from pathlib import Path
 
 
 def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], bool]:
+    lines = path.read_text(encoding="utf-8").splitlines()
     rows: list[list[str]] = []
-    in_table = False
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
+    system_name = ""
+    for raw_line in lines:
         line = raw_line.rstrip("\n")
+        if line.startswith("- System name: "):
+            parts = line.split("`")
+            if len(parts) >= 2:
+                system_name = parts[1].strip()
+
+    in_table = False
+    for raw_line in lines:
+        line = raw_line.rstrip("\n")
+        if line.startswith("| equipment_number | equipment_name | system_name | drawing |"):
+            in_table = True
+            continue
         if line.startswith("| equipment_number | equipment_name | drawing |"):
             in_table = True
             continue
@@ -29,8 +41,12 @@ def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], boo
             continue
         if in_table and line.startswith("| "):
             parts = [part.strip() for part in line.strip("|").split("|")]
-            if len(parts) == 3 and any(parts):
-                rows.append([parts[0], parts[1], parts[2], str(page_num)])
+            if len(parts) == 4 and any(parts):
+                if not parts[0] and not parts[1] and not parts[3]:
+                    continue
+                rows.append([parts[0], parts[1], parts[2], parts[3], str(page_num)])
+            elif len(parts) == 3 and any(parts):
+                rows.append([parts[0], parts[1], system_name, parts[2], str(page_num)])
             continue
         if in_table and not line.startswith("| "):
             break
@@ -50,6 +66,7 @@ def parse_csv_rows(path: Path) -> tuple[list[list[str]], bool]:
             rows.append([
                 (record.get("equipment_number") or "").strip(),
                 (record.get("equipment_name") or "").strip(),
+                (record.get("system_name") or "").strip(),
                 (record.get("drawing") or "").strip(),
                 (record.get("source_page") or "").strip(),
             ])
@@ -96,7 +113,7 @@ def main() -> int:
 
     with output_csv.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["equipment_number", "equipment_name", "drawing", "source_page"])
+        writer.writerow(["equipment_number", "equipment_name", "system_name", "drawing", "source_page"])
         writer.writerows(combined_rows)
 
     print(f"rows={len(combined_rows)}")

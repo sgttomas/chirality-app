@@ -9,9 +9,15 @@ These instructions govern a **Type 2** task agent that builds a **DOMAIN hypergr
 
 - Partitions: **Categories** (`CAT-###`)
 - Production Units: **Knowledge Types** (`KTY-CC-TT_{desc}`)
-- Artifacts: **Knowledge Subjects** (anticipated and/or present)
+- Decomposition topics: **Knowledge Subjects** (`SUB-*`) when discoverable
+- Document artifacts: **Knowledge Artifacts** (`KA-*` / materialized files) when discoverable
 
-This agent reads **filesystem structure + deliverable-local metadata stubs** (e.g., `_CONTEXT.md`) and optionally joins any available **Domain Ledger**/objective mappings. It emits a **hypergraph** as three normalized tables (nodes / hyperedges / incidence) plus a JSON convenience export, with deterministic IDs and evidence pointers.
+This agent reads **filesystem structure + deliverable-local metadata/scoping files** (e.g., `_CONTEXT.md`, `Scoping.md`) and optionally joins any available **Domain Ledger**/objective mappings. It emits a **hypergraph** as three normalized tables (nodes / hyperedges / incidence) plus a JSON convenience export, with deterministic IDs and evidence pointers.
+
+Two-layer model:
+- **Knowledge Subject** = decomposition-layer topic identity inside a Knowledge Type
+- **Knowledge Artifact** = document-layer file materialized from a Knowledge Subject
+- `Scoping.md` = Knowledge-Type-level entrypoint that may expose the `SubjectID -> ArtifactID -> Filename` bridge; it is not itself a Knowledge Subject
 
 **Important:** This agent is **read-only** on Category/Knowledge Type folders. It analyzes what exists; it does not “fix” folder content.
 
@@ -91,7 +97,7 @@ Optional:
 - `MAX_FILE_ENUMERATION`: integer (default `5000`) — safety cap for enumerating present files as artifacts
 - `ARTIFACT_POLICY`: `ANTICIPATED_PLUS_PRESENT` (default) | `ANTICIPATED_ONLY` | `PRESENT_ONLY`
 - `EDGESET`: `DEFAULT` (default) | explicit list of hyperedge types to emit
-  - `DEFAULT` includes: `IN_CATEGORY`, `HAS_ARTIFACT`, `LEDGER_ROW`, and (when objectives are loaded independently of the ledger) `KTY_SUPPORTS_OBJ`
+  - `DEFAULT` includes: `IN_CATEGORY`, `HAS_SUBJECT`, `HAS_ARTIFACT`, `SUBJECT_MATERIALIZED_AS`, `LEDGER_ROW`, and (when objectives are loaded independently of the ledger) `KTY_SUPPORTS_OBJ`
 - `PRIOR_RUN_LABEL`: optional label for comparison mode (load prior `hypergraph.json` and compute deltas)
 
 If `EXECUTION_ROOT` is missing/invalid, or no DOMAIN folders can be discovered in scope: write `RUN_SUMMARY.md` with `RUN_STATUS = FAILED_INPUTS` and return.
@@ -118,6 +124,7 @@ Snapshot contents (minimum):
   - `discovered_categories.csv`
   - `discovered_knowledge_types.csv`
   - `context_parse_issues.csv`
+  - `subject_artifact_mapping.csv`
   - `artifact_enumeration.csv` (bounded by MAX_FILE_ENUMERATION)
 
 Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Aggregation/Hypergraph {snapshot_folder_name}`
@@ -182,6 +189,7 @@ Extract best-effort fields (do not infer):
 Also read (best-effort, for evidence pointers only):
 - `{KTY}/_REFERENCES.md` (do not dereference URLs; record as text pointers)
 - `{KTY}/_STATUS.md` (state is not an authority; may be used as metadata only)
+- `{KTY}/Scoping.md` (if present; preferred bridge source for `SubjectID -> ArtifactID -> Filename`)
 
 Write:
 - `Evidence/discovered_knowledge_types.csv`
@@ -195,17 +203,31 @@ Write:
 
 ---
 
-### Step 2 — Discover Knowledge Subjects (policy-driven)
+### Step 2 — Discover Knowledge Subjects and Knowledge Artifacts (policy-driven)
 
-For each Knowledge Type, build an artifact set according to `ARTIFACT_POLICY`:
+For each Knowledge Type, build the decomposition layer and document layer separately, then bridge them where evidence allows:
 
-1) **ANTICIPATED artifacts** (preferred semantic list):
+1) **Preferred bridge source: `Scoping.md` Artifact Plan**
+   - If `{KTY}/Scoping.md` exists, parse the Artifact Plan table.
+   - Treat each row as the authoritative bridge between:
+     - `SubjectID` / `SubjectName` (decomposition layer), and
+     - `ArtifactID` / `Filename` (document layer).
+   - For each valid row:
+     - create a Knowledge Subject candidate,
+     - create a Knowledge Artifact candidate,
+     - record a mapping row in `Evidence/subject_artifact_mapping.csv`.
+   - `Scoping.md` itself is evidence for the bridge, but is not a Knowledge Subject node and is not a `KNOWLEDGE_ARTIFACT` node.
+
+2) **ANTICIPATED artifact hints** (fallback only when no `Scoping.md` Artifact Plan is available):
    - From `_CONTEXT.md` under “Anticipated Artifacts”
-   - Treat each bullet as an artifact candidate string.
+   - Treat each bullet as an artifact- or section-level hint only.
+   - Do not synthesize Knowledge Subject nodes from this field.
+   - If used to create artifact candidates, set `SourceRef = CONTEXT#Anticipated Artifacts` and record in `Decision_Log.md` that the subject layer was unavailable.
 
-2) **PRESENT artifacts** (filesystem enumeration):
+3) **PRESENT artifacts** (filesystem enumeration):
    - Enumerate non-directory files in the KTY folder excluding:
      - files starting with `_` (metadata stubs)
+     - `Scoping.md` (KTY entrypoint; not a subject-backed artifact)
      - `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`
      - `*.py` files that match known analysis scripts (if present)
    - Cap enumeration using `MAX_FILE_ENUMERATION` across the run; if cap exceeded:
@@ -213,11 +235,19 @@ For each Knowledge Type, build an artifact set according to `ARTIFACT_POLICY`:
      - record a warning in `QA_Report.md`,
      - record the truncated list in `Evidence/artifact_enumeration.csv`.
 
-For each artifact candidate:
-- Create an Artifact Node (NodeType = `KNOWLEDGE_ARTIFACT`) with:
-  - `Label`: artifact string (anticipated) or filename (present)
-  - `SourcePath`: the KTY folder (anticipated) or the file path (present)
-  - `SourceRef`: `CONTEXT#Anticipated Artifacts` or `FILE_ENUMERATION`
+4) **Create nodes (evidence-first):**
+   - For each Knowledge Subject candidate:
+     - Create a Subject Node (NodeType = `KNOWLEDGE_SUBJECT`) with:
+       - `NodeID`: `SubjectID` when available; otherwise do not invent a subject node
+       - `Label`: `SubjectName`
+       - `SourcePath`: `Scoping.md` or other authoritative source path
+       - `SourceRef`: `SCOPING#Artifact Plan` or equivalent evidence pointer
+   - For each Knowledge Artifact candidate:
+     - Create an Artifact Node (NodeType = `KNOWLEDGE_ARTIFACT`) with:
+       - `NodeID`: `ArtifactID` when available; otherwise a deterministic fallback derived from `{KTY_ID}:{filename_or_hint}`
+       - `Label`: filename or artifact label
+       - `SourcePath`: the file path (present) or the source file carrying the artifact plan/hint
+       - `SourceRef`: `SCOPING#Artifact Plan`, `FILE_ENUMERATION`, or `CONTEXT#Anticipated Artifacts`
 
 ---
 
@@ -258,7 +288,7 @@ If `INCLUDE_OBJECTIVES ≠ FALSE`:
 5) If not found and `INCLUDE_OBJECTIVES = AUTO`: skip silently, record in `Decision_Log.md`.
 
 When objectives are loaded but ledger is not:
-- `KTY_SUPPORTS_OBJ` edges are derived from KTY `_CONTEXT.md` (see Step 5D).
+- `KTY_SUPPORTS_OBJ` edges are derived from KTY `_CONTEXT.md` (see Step 5F).
 - `LEDGER_ROW` edges will not contain objective roles (no ledger data).
 
 ---
@@ -268,6 +298,7 @@ When objectives are loaded but ledger is not:
 Create `nodes.csv` with at least these NodeTypes:
 - `CATEGORY`
 - `KNOWLEDGE_TYPE`
+- `KNOWLEDGE_SUBJECT`
 - `KNOWLEDGE_ARTIFACT`
 Optional NodeTypes (only when discovered):
 - `ATOMIC_UNIT`
@@ -294,13 +325,29 @@ If Category is missing/unresolved:
 - Do not invent a Category edge.
 - Record `KTY_WITHOUT_CATEGORY` as a WARNING in QA.
 
-#### 5B) `HAS_ARTIFACT` (KTY owns artifact)
+#### 5B) `HAS_SUBJECT` (KTY owns decomposition topic)
+For each Knowledge Subject candidate belonging to a KTY:
+- Create a hyperedge `HAS_SUBJECT` with:
+  - Role `OWNER_KNOWLEDGE_TYPE` → KTY NodeID
+  - Role `SUBJECT` → Knowledge Subject NodeID
+
+#### 5C) `HAS_ARTIFACT` (KTY owns document artifact)
 For each artifact candidate belonging to a KTY:
 - Create a hyperedge `HAS_ARTIFACT` with:
   - Role `OWNER_KNOWLEDGE_TYPE` → KTY NodeID
   - Role `ARTIFACT` → Artifact NodeID
 
-#### 5C) `LEDGER_ROW` (unit + coverage bindings) — optional
+#### 5D) `SUBJECT_MATERIALIZED_AS` (bridge decomposition topic -> document artifact)
+For each mapping row where both a Subject node and an Artifact node exist:
+- Create a hyperedge `SUBJECT_MATERIALIZED_AS` with:
+  - Role `SUBJECT` → Knowledge Subject NodeID
+  - Role `ARTIFACT` → Knowledge Artifact NodeID
+
+If a mapping row is partial or inconsistent:
+- Do not invent the missing node.
+- Record `SUBJECT_ARTIFACT_MAPPING_INCOMPLETE` as a WARNING in QA with evidence.
+
+#### 5E) `LEDGER_ROW` (unit + coverage bindings) — optional
 When ledger data is available, emit one hyperedge per ledger row using the nodes discovered:
 - Role `UNIT` → ATOMIC_UNIT node
 - Role `CATEGORY` → CATEGORY node (if present in row)
@@ -311,7 +358,7 @@ If a row references a Category/KTY/Objective ID not present in nodes:
 - Do not invent nodes.
 - Record as `LEDGER_REF_MISSING_NODE` with evidence.
 
-#### 5D) `KTY_SUPPORTS_OBJ` (objective support — independent of ledger)
+#### 5F) `KTY_SUPPORTS_OBJ` (objective support — independent of ledger)
 When objective nodes are loaded (from ledger or independently via Step 3B):
 - For each Knowledge Type whose `_CONTEXT.md` lists `SupportsObjectives` (or equivalent field):
   - For each referenced ObjectiveID:
@@ -352,21 +399,33 @@ Run these checks and report PASS/WARNING/BLOCKER in `QA_Report.md`:
      - `>1` is a BLOCKER (partition ambiguity).
      - `0` is a WARNING (missing category mapping).
 
-4) **Artifact attachment**
+4) **Subject attachment**
+   - Each `KNOWLEDGE_SUBJECT` participates in ≥1 `HAS_SUBJECT`.
+     - Otherwise WARNING (orphan subject).
+
+5) **Artifact attachment**
    - Each `KNOWLEDGE_ARTIFACT` participates in ≥1 `HAS_ARTIFACT`.
      - Otherwise WARNING (orphan artifact).
 
-5) **Ledger integrity (only if ledger ingested)**
+6) **Subject/artifact bridge integrity**
+   - Each `KNOWLEDGE_SUBJECT` discovered from `Scoping.md` participates in exactly one `SUBJECT_MATERIALIZED_AS`.
+     - `0` is a WARNING (missing materialized artifact bridge).
+     - `>1` is a BLOCKER (split-subject ambiguity).
+   - Each `KNOWLEDGE_ARTIFACT` with a `SubjectID` mapping participates in exactly one `SUBJECT_MATERIALIZED_AS`.
+     - `0` is a WARNING (missing subject bridge).
+     - `>1` is a BLOCKER (merged-artifact ambiguity).
+
+7) **Ledger integrity (only if ledger ingested)**
    - Each `ATOMIC_UNIT` appears in ≥1 `LEDGER_ROW`.
    - Each `ATOMIC_UNIT` maps to exactly one Category **if** the ledger provides CategoryID per row.
      - Multiple categories for one unit is a BLOCKER.
      - Missing category for IN-scope units is a WARNING (unless human elevates to gate).
 
-6) **ID collisions**
+8) **ID collisions**
    - Duplicate NodeIDs → BLOCKER
    - If `NORMALIZE_IDS=true`, duplicate NormalizedIDs → WARNING (report; do not merge)
 
-7) **Evidence completeness**
+9) **Evidence completeness**
    - Nodes/hyperedges missing `SourcePath` or `SourceRef` → WARNING
 
 Write supporting evidence tables under `Evidence/`.
@@ -445,6 +504,7 @@ Invalid when:
       discovered_categories.csv
       discovered_knowledge_types.csv
       context_parse_issues.csv
+      subject_artifact_mapping.csv
       artifact_enumeration.csv
 ```
 
@@ -455,7 +515,7 @@ All three CSVs MUST include a constant `SchemaVersion` column.
 #### `nodes.csv` — core columns (required)
 - `SchemaVersion` (write `HG.v1.0`)
 - `NodeID`
-- `NodeType` (`CATEGORY|KNOWLEDGE_TYPE|KNOWLEDGE_ARTIFACT|ATOMIC_UNIT|OBJECTIVE`)
+- `NodeType` (`CATEGORY|KNOWLEDGE_TYPE|KNOWLEDGE_SUBJECT|KNOWLEDGE_ARTIFACT|ATOMIC_UNIT|OBJECTIVE`)
 - `Label`
 - `SourcePath`
 - `SourceRef`
@@ -469,7 +529,7 @@ Optional (non-breaking) columns:
 #### `hyperedges.csv` — core columns (required)
 - `SchemaVersion` (write `HG.v1.0`)
 - `HyperedgeID`
-- `HyperedgeType` (`IN_CATEGORY|HAS_ARTIFACT|LEDGER_ROW|KTY_SUPPORTS_OBJ`)
+- `HyperedgeType` (`IN_CATEGORY|HAS_SUBJECT|HAS_ARTIFACT|SUBJECT_MATERIALIZED_AS|LEDGER_ROW|KTY_SUPPORTS_OBJ`)
 - `SourcePath`
 - `SourceRef`
 - `Notes`
@@ -507,9 +567,10 @@ Must include:
     "incidence_count": 0,
     "categories_discovered": 0,
     "knowledge_types_discovered": 0,
+    "knowledge_subjects_discovered": 0,
+    "knowledge_artifacts_discovered": 0,
     "objectives_loaded": 0,
     "atomic_units_loaded": 0,
-    "artifacts_discovered": 0,
     "unresolved_references": 0,
     "qa_blockers": 0,
     "qa_warnings": 0
@@ -548,6 +609,12 @@ The outputs are normalized tables to:
 - enable stable merges across runs,
 - preserve provenance and auditability,
 - and keep downstream tools independent of markdown formats.
+
+For DOMAIN specifically, the graph needs to preserve both layers:
+- the **Knowledge Subject** as the decomposition topic,
+- and the **Knowledge Artifact** as the materialized document file.
+
+Keeping those layers distinct preserves traceability from decomposition intent to rendered operator-facing documents.
 
 Determinism and immutable snapshots preserve trust: a run is a reproducible measurement, not a mutable opinion.
 

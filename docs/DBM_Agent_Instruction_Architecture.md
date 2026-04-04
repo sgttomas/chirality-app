@@ -4,7 +4,7 @@ This document is the design basis memorandum for the agent instruction system sh
 
 **Audience:** Anyone who will work with, extend, audit, or maintain the agent instruction suite.
 
-**Scope:** The 38 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
+**Scope:** The 39 agent instruction files (`AGENT_*.md`) in `agents/`, the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
 
 **Relationship to other governance documents:**
 
@@ -290,7 +290,8 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **REVIEW** | 1 | PERSONA | chat | deliverable-local + tool-root | allowed (5 gates) | Review checklist, finding register, lifecycle transition record |
 | **SCHEDULING** | 1 | PERSONA | chat | tool-root (`_Schedule/`) | allowed (5 gates) | Schedule structure, Gantt, critical path report |
 | **EVALUATION** | 1 | PERSONA | chat | tool-root (`_Evaluation/`) | allowed | `EVALUATION_PROTOCOL.md`, `EVALUATION_REPORT.md`, pointers to Type 2 outputs |
-| **TOOLMAKER** | 1 | PERSONA | chat | repo-wide | allowed | Shell scripts, Python utilities, skill templates, tool registry |
+| **TOOLMAKER** | 1 | PERSONA | chat | repo-wide | allowed | Shell scripts, Python utilities, tool registry |
+| **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
 | **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
@@ -300,7 +301,8 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
 | **AGGREGATION** | 2 | TASK | INIT-TASK | tool-root (`_Aggregation/`) | never | Aggregation snapshot (indexes, registers, rollups) |
-| **TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Proposals; optional authorized edits |
+| **TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Generic bounded-task shell; optional profile/skill-driven outputs |
+| **DELIVERABLE_TASK** | 2 | TASK | INIT-TASK | deliverable-local | never | Proposals; optional authorized edits to deliverable-local files |
 | **AUDIT_AGENTS** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/AgentAudit/`) | never | Audit report, issue log, patch plan |
 | **AUDIT_DECOMP** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/DecompCoverage/`) | never | Coverage report, issue log CSV, coverage matrix, summary JSON |
 | **AUDIT_DEP_CLOSURE** | 2 | TASK | INIT-TASK | tool-root (`_Reconciliation/DepClosure/`) | never | Closure report, issue log, JSON summary, analysis script |
@@ -364,6 +366,7 @@ SCOPE_CHANGE (Type 1) ── hands off to ORCHESTRATOR (for PREPARATION) + CHANG
 CONTEXT_TRANSPOSE (Type 1) ── hands off to CHANGE (for publication)
 SCHEDULING (Type 1) ── standalone (reads dependency graph; produces schedule artifacts)
 TOOLMAKER (Type 1) ── standalone (designs and implements deterministic tools; hands off to CHANGE for publication)
+SKILLMAKER (Type 1) ── standalone (designs and governs skills; coordinates with TOOLMAKER for deterministic helpers)
 ```
 
 ### 6.2 Control Loop (Session Handoff)
@@ -402,8 +405,11 @@ NONE (read-only; may draft content for human to apply)
 
 REPO-METADATA-ONLY (instruction files, README, templates — not execution truth)
 ├── DOMAIN_DECOMP
-├── CONTEXT_TRANSPOSE
-└── TOOLMAKER
+└── CONTEXT_TRANSPOSE
+
+REPO-WIDE (tools, skills, and related contract docs)
+├── TOOLMAKER             → tools/ + agent instruction updates
+└── SKILLMAKER            → skills/ + related contract docs
 
 PROJECT-LEVEL (decomposition documents, metadata files, folder scaffolding)
 ├── PROJECT_DECOMP
@@ -420,6 +426,7 @@ DELIVERABLE-LOCAL (single production unit folder only)
 ├── CHIRALITY_LENS
 ├── DEPENDENCIES (dep artifacts only)
 ├── TASK
+├── DELIVERABLE_TASK
 └── REVIEW (+tool-root for snapshots)
 
 TOOL-ROOT-ONLY (derived outputs under execution tool roots)
@@ -526,10 +533,11 @@ A conforming decomposition agent must provide:
 
 ### 9.1 INIT-TASK Brief Format (Type 2 Standard)
 
-All Type 2 agents accept a structured brief. The recommended template:
+All Type 2 agents accept a structured brief. The brief may be supplied inline or via a file-based `INIT-TASK.md` control surface. When both are present, inline fields are authoritative and file-derived values fill omissions only. The recommended template:
 
 ```
 PURPOSE: <what the run is for>
+INIT_TASK_PATH: <optional path to INIT-TASK.md>
 SCOPE: <deliverable IDs / package IDs / paths>
 WHERE_TO_LOOK: <roots / patterns>
 OUTPUT_LABEL: <optional>
@@ -552,7 +560,8 @@ NOTES: <anything else>
 | **ESTIMATING** | BASIS_OF_ESTIMATE (QUOTE/RATE_TABLE/HISTORICAL/PARAMETRIC/ALLOWANCE), CURRENCY, PRICE_SOURCES |
 | **ESTIMATE_PREP** | PHASE (SCAFFOLD/BOE), PROJECT_CONTEXT, HUMAN_PRICING |
 | **AGGREGATION** | PURPOSE, PIPELINE_ID, currency normalization policy |
-| **TASK** | DeliverablePath, ApplyEdits, UseSemanticLensing, permission flags |
+| **TASK** | InitTaskPath, ScopePath or DeliverablePath, TaskProfile, TaskSkill, AllowedTools, RuntimeOverrides, CustomInstructions |
+| **DELIVERABLE_TASK** | DeliverablePath, ApplyEdits, UseSemanticLensing, permission flags |
 | **AUDIT_AGENTS** | FILES_TO_AUDIT, CANON_FILE, RUBRIC_FILE |
 | **AUDIT_DECOMP** | DECOMPOSITION_PATH, DECOMP_VARIANT, SCOPE |
 | **AUDIT_DEP_CLOSURE** | SCOPE, EDGE_FILTER, HUB_THRESHOLD |
@@ -616,6 +625,7 @@ Not all agents operate across all decomposition variants.
 | **AUDIT_DECOMP** | yes | yes | yes | — |
 | **WORKING_ITEMS** | yes | yes | yes | — |
 | **TASK** | yes | yes | yes | — |
+| **DELIVERABLE_TASK** | yes | yes | yes | — |
 | **REVIEW** | yes | yes | yes | — |
 | **SCOPE_CHANGE** | yes | yes | — | — |
 | **RECONCILIATION** | yes | yes | yes | — |
@@ -701,4 +711,4 @@ Per HELPS_HUMANS, any new workflow specification must produce these 8 design out
 
 ---
 
-*This document was produced by systematic research across all 38 agent instruction files and the governance documents in `docs/`. The operational architecture described here is what results when the four philosophical pillars — ontology, epistemology, praxiology, and axiology (`DIRECTIVE.md` §2) — are implemented as an agent instruction system. The systems engineering disciplines that pervade this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied after the fact. They are the necessary consequences of the four-pillar commitments: the only way those commitments can be made architecturally real. See `SE_Design_Analysis.md` for the detailed characterization and the generative mapping from pillars to SE disciplines.*
+*This document was produced by systematic research across all 39 agent instruction files and the governance documents in `docs/`. The operational architecture described here is what results when the four philosophical pillars — ontology, epistemology, praxiology, and axiology (`DIRECTIVE.md` §2) — are implemented as an agent instruction system. The systems engineering disciplines that pervade this architecture — formal interface contracts, invariant systems, fault containment zones, V-model traceability, gate-controlled workflows, and evidence-first epistemology — are not compliance artifacts applied after the fact. They are the necessary consequences of the four-pillar commitments: the only way those commitments can be made architecturally real. See `SE_Design_Analysis.md` for the detailed characterization and the generative mapping from pillars to SE disciplines.*

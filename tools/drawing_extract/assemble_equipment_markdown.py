@@ -15,16 +15,28 @@ import sys
 from pathlib import Path
 
 
-def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], bool, str]:
+def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], bool, str, str]:
+    lines = path.read_text(encoding="utf-8").splitlines()
     rows: list[list[str]] = []
     drawing = ""
+    system_name = ""
     in_table = False
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
+    for raw_line in lines:
         line = raw_line.rstrip("\n")
         if line.startswith("- DWG NO.: "):
             parts = line.split("`")
             if len(parts) >= 2:
                 drawing = parts[1].strip()
+        if line.startswith("- System name: "):
+            parts = line.split("`")
+            if len(parts) >= 2:
+                system_name = parts[1].strip()
+
+    for raw_line in lines:
+        line = raw_line.rstrip("\n")
+        if line.startswith("| equipment_number | equipment_name | system_name | drawing |"):
+            in_table = True
+            continue
         if line.startswith("| equipment_number | equipment_name | drawing |"):
             in_table = True
             continue
@@ -32,22 +44,28 @@ def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], boo
             continue
         if in_table and line.startswith("| "):
             parts = [part.strip() for part in line.strip("|").split("|")]
-            if len(parts) == 3 and any(parts):
-                rows.append([parts[0], parts[1], parts[2], str(page_num)])
+            if len(parts) == 4 and any(parts):
+                if not parts[0] and not parts[1] and not parts[3]:
+                    continue
+                rows.append([parts[0], parts[1], parts[2], parts[3], str(page_num)])
+            elif len(parts) == 3 and any(parts):
+                rows.append([parts[0], parts[1], system_name, parts[2], str(page_num)])
             continue
         if in_table and not line.startswith("| "):
             break
-    return rows, len(rows) == 0, drawing
+    return rows, len(rows) == 0, drawing, system_name
 
 
-def parse_csv_rows(path: Path) -> tuple[list[list[str]], bool, str]:
+def parse_csv_rows(path: Path) -> tuple[list[list[str]], bool, str, str]:
     rows: list[list[str]] = []
     no_findings = False
     drawing = ""
+    system_name = ""
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         for record in reader:
             drawing = (record.get("drawing") or drawing).strip()
+            system_name = (record.get("system_name") or system_name).strip()
             status = (record.get("status") or "").strip()
             if status == "NO_FINDINGS":
                 no_findings = True
@@ -55,10 +73,11 @@ def parse_csv_rows(path: Path) -> tuple[list[list[str]], bool, str]:
             rows.append([
                 (record.get("equipment_number") or "").strip(),
                 (record.get("equipment_name") or "").strip(),
+                (record.get("system_name") or "").strip(),
                 (record.get("drawing") or "").strip(),
                 (record.get("source_page") or "").strip(),
             ])
-    return rows, no_findings and len(rows) == 0, drawing
+    return rows, no_findings and len(rows) == 0, drawing, system_name
 
 
 def main() -> int:
@@ -81,7 +100,7 @@ def main() -> int:
     output_md.parent.mkdir(parents=True, exist_ok=True)
 
     combined_rows: list[list[str]] = []
-    no_findings_pages: list[tuple[int, str]] = []
+    no_findings_pages: list[tuple[int, str, str]] = []
     missing_pages: list[int] = []
 
     for page_num in range(args.start_page, args.end_page + 1):
@@ -89,15 +108,15 @@ def main() -> int:
         csv_path = source_dir / f"{args.pdf_stem}_page_{page_num:04d}_equipment_rows.csv"
 
         if md_path.is_file():
-            page_rows, no_findings, drawing = parse_markdown_stub(md_path, page_num)
+            page_rows, no_findings, drawing, system_name = parse_markdown_stub(md_path, page_num)
         elif csv_path.is_file():
-            page_rows, no_findings, drawing = parse_csv_rows(csv_path)
+            page_rows, no_findings, drawing, system_name = parse_csv_rows(csv_path)
         else:
             missing_pages.append(page_num)
             continue
 
         if no_findings:
-            no_findings_pages.append((page_num, drawing))
+            no_findings_pages.append((page_num, system_name, drawing))
         combined_rows.extend(page_rows)
 
     lines = ["# Combined Equipment Table", ""]
@@ -108,21 +127,21 @@ def main() -> int:
         f"- Equipment rows extracted: `{len(combined_rows)}`",
         f"- Pages without separated top-of-sheet equipment headers: `{len(no_findings_pages)}`",
         "",
-        "| equipment_number | equipment_name | drawing |",
-        "| --- | --- | --- |",
+        "| equipment_number | equipment_name | system_name | drawing |",
+        "| --- | --- | --- | --- |",
     ])
-    for equipment_number, equipment_name, drawing, _source_page in combined_rows:
-        lines.append(f"| {equipment_number} | {equipment_name} | {drawing} |")
+    for equipment_number, equipment_name, system_name, drawing, _source_page in combined_rows:
+        lines.append(f"| {equipment_number} | {equipment_name} | {system_name} | {drawing} |")
 
     lines.extend([
         "",
         "## Pages Without Top Equipment Headers",
         "",
-        "| page | drawing |",
-        "| --- | --- |",
+        "| page | system_name | drawing |",
+        "| --- | --- | --- |",
     ])
-    for page_num, drawing in no_findings_pages:
-        lines.append(f"| {page_num} | {drawing} |")
+    for page_num, system_name, drawing in no_findings_pages:
+        lines.append(f"| {page_num} | {system_name} | {drawing} |")
 
     if missing_pages:
         lines.extend([
@@ -138,7 +157,7 @@ def main() -> int:
     output_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"rows={len(combined_rows)}")
-    print(f"no_findings_pages={','.join(str(p) for p, _ in no_findings_pages) or 'none'}")
+    print(f"no_findings_pages={','.join(str(p) for p, _, _ in no_findings_pages) or 'none'}")
     print(f"missing_pages={','.join(str(p) for p in missing_pages) or 'none'}")
     print(f"output={output_md}")
     return 0

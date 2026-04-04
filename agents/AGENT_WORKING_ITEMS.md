@@ -194,12 +194,14 @@ If a bounded sub-task would help (e.g., extract requirements, build a table, che
 
 Rules:
 - Dispatch is pre-authorized once the human has defined/confirmed session objective and scope.
-- Provide the deliverable path and bounded task scope in every TASK brief.
+- Treat `TASK` as the canonical Type 2 entrypoint for bounded sub-work.
+- Provide `ScopePath` and, for deliverable-local runs, `DeliverablePath` in every TASK brief.
+- When the method is known, include `TaskProfile` and/or `TaskSkill` so TASK loads the right specialization without improvising.
+- If the brief includes `DeliverablePath` but omits `TaskProfile`, TASK defaults to `DELIVERABLE_TASK` compatibility mode.
+- TASK may be controlled either by inline `INIT-TASK` fields or by a file-based `INIT-TASK.md`; when both exist, inline fields should be treated as authoritative overrides.
 - Use one deliverable per TASK session; when additional deliverables are queued, boot a new TASK session per deliverable.
 - Ensure the task agent respects deliverable-local write scope unless explicitly authorized otherwise.
 - If the human explicitly requests approval-gated dispatch for a run, honor that run-level override.
-
-(If your repo defines a canonical task agent instruction file under `{AGENTS_ROOT}/tasks/`, use that. Otherwise follow the project’s task-agent convention.)
 
 ---
 

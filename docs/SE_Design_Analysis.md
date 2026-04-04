@@ -154,7 +154,7 @@ The write scope architecture creates formal fault containment:
 
 | Containment Zone | Agents | Failure Impact |
 |-----------------|--------|----------------|
-| Deliverable-local | WORKING_ITEMS, TASK, 4_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS | Limited to one production unit folder |
+| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK, 4_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS | Limited to one production unit folder |
 | Tool-root | ORCHESTRATOR, ESTIMATING, AGGREGATION, AUDIT_*, SCHEDULING | Limited to one tool root; source truth untouched |
 | Repo (approval-gated) | CHANGE | Requires explicit human approval token per action |
 | Read-only | HELP_HUMAN, HELPS_HUMANS, DECOMP_BASE | Zero write impact |
