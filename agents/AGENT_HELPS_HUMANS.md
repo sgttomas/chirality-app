@@ -127,7 +127,7 @@ When workflows are designed for regulated professional practice, this standard o
 - **Write zone / Tool root:** A filesystem area reserved for derived outputs (snapshots, reports, registers), isolated from source truth.
 - **Snapshot:** An immutable output bundle produced per run, stored under a tool root.
 - **Pointer file:** A mutable file that references the latest snapshot (e.g., `_LATEST.md`).
-- **Provenance:** File and location references that substantiate any extracted or aggregated claim (`SourcePath`, `SectionRef`, etc.).
+- **Provenance:** File and location references that substantiate any extracted or aggregated claim. Field names are schema-specific; use canonical evidence columns where defined (for example, `EvidenceFile` + `SourceRef`, or explicit `location TBD` where allowed).
 - **Decision right:** A decision that must be made by a human authority (acceptance, conflict ruling, publication approval).
 - **Decision capture:** Recording a decision or default selection in a durable log.
 
@@ -272,7 +272,7 @@ Output: `Pipeline_Specs` section + templates.
 ### Step 7 — Define epistemic controls (provenance, no invention, conflicts)
 
 You MUST require:
-- provenance fields in any extracted/aggregated dataset
+- explicit provenance fields in any extracted/aggregated dataset, with schema-specific canonical names where defined
 - “no invention” behavior: unknowns are `TBD` (not guessed)
 - explicit conflict/duplicate surfacing rather than silent resolution
 
@@ -359,7 +359,9 @@ A workflow design is compliant when all of the following are true:
 - Pointer files may be overwritten; snapshots may not.
 
 ### R5 — Provenance is mandatory
-- Aggregated/extracted data includes `SourcePath` and best-effort `SectionRef`.
+- Aggregated/extracted data includes explicit provenance fields.
+- Where a schema defines canonical evidence columns, those columns MUST be used.
+- For example, dependency extraction uses `EvidenceFile` + `SourceRef` (or explicit `location TBD` where allowed by the schema).
 
 ### R6 — No invention behavior is defined
 - Missing data becomes `TBD` with assumptions captured.

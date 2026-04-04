@@ -80,7 +80,7 @@ The tool registry at [`tools/REGISTRY.md`](tools/REGISTRY.md) indexes all availa
 
 ## Governance Documents
 
-The `docs/` directory contains the formal specification hierarchy:
+The repo's governance and specification documents include:
 
 | Document | Purpose |
 |----------|---------|
@@ -88,10 +88,11 @@ The `docs/` directory contains the formal specification hierarchy:
 | [`SPEC.md`](docs/SPEC.md) | Physical structures, file formats, schemas (Dependencies.csv v3.1), folder layout, and validation checklists |
 | [`TYPES.md`](docs/TYPES.md) | Domain vocabulary, stable identifier formats, enumerated types, agent roles, and lifecycle states |
 | [`CONTRACT.md`](docs/CONTRACT.md) | Invariant catalog (20 K-* invariants) with enforcement map |
-| [`PLAN.md`](docs/PLAN.md) | Development roadmap and future hardening candidates |
+| [`PLAN.md`](docs/PLAN.md) | Development roadmap, hardening status, and remaining gaps |
 | [`DBM_Agent_Instruction_Architecture.md`](docs/DBM_Agent_Instruction_Architecture.md) | Design basis memorandum for the full instruction architecture |
 | [`SE_Design_Analysis.md`](docs/SE_Design_Analysis.md) | Systems engineering design analysis across eight SE disciplines |
-| [`CHIRALITY_FRAMEWORK.md`](CHIRALITY_FRAMEWORK.md) | The Chirality Theory: knowledge as warranted accountability, four pillars, epistemic ontology |
+| [`REPO_INVENTORY.md`](docs/REPO_INVENTORY.md) | Canonical mutable counts for indexed agents, repo-native skills, and registered deterministic tools |
+| [`CHIRALITY_FRAMEWORK.md`](CHIRALITY_FRAMEWORK.md) | Philosophical framework: knowledge as warranted accountability, four pillars, epistemic ontology |
 | [`PROFESSIONAL_ENGINEERING.md`](PROFESSIONAL_ENGINEERING.md) | Professional practice standard for AI agent governance under APEGA |
 
 ---

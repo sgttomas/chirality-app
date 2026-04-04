@@ -129,7 +129,7 @@ The epistemology is what makes Chirality a professional engineering tool rather 
 
 ### The Pillars as the Ontology of Professional Accountability
 
-The four pillars are not a classification scheme chosen for this project. They are the minimal complete ontology for any context in which a professional takes responsibility for work. At every level where accountability exists, the same four questions must be answered:
+The four pillars are not merely a classification scheme chosen for this project. In Chirality, they function as a compact and coherent framework for professional accountability. At every level where accountability must be made inspectable in this architecture, the same four questions must be answered:
 
 - What exists? (ontology)
 - What is warranted? (epistemology)
@@ -138,7 +138,7 @@ The four pillars are not a classification scheme chosen for this project. They a
 
 Missing any one creates a specific, identifiable accountability failure: without ontology, the professional does not know what they are responsible for; without epistemology, they do not know what to believe; without praxiology, they do not know how the work was performed; without axiology, they do not know why the decisions were made the way they were.
 
-This is why the fractal property exists. The four pillars appear at the governance level, at the agent instruction level, and at the document kit level not because the design was made to repeat itself, but because professional accountability requires the same four things at every level of abstraction. The fractal property is an ontological property of accountability itself.
+This is why the fractal property appears in Chirality. The four pillars recur at the governance level, at the agent instruction level, and at the document kit level because this architecture must answer the same four accountability questions at each level of abstraction. In Chirality, the fractal property is evidence of architectural coherence rather than proof that every possible accountability system must take exactly this form.
 
 ### The Six Principles
 

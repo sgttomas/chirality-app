@@ -85,7 +85,7 @@ Professional accountability requires that four questions be answered at every le
 | **Praxiology** | How was the work done? | The processes, boundaries, authorities, and execution history |
 | **Axiology** | What values governed? | The principles, constraints, and professional obligations that shaped decisions |
 
-These pillars are not a classification scheme selected for this project. They are the minimal complete structure for professional accountability — the necessary and sufficient dimensions that any system must address for a professional to take informed responsibility. Missing any one creates a specific accountability failure:
+These pillars are not merely a classification scheme selected for this project. In Chirality, they form a compact and coherent structure for professional accountability, and they provide a useful evaluative lens for other systems that aim to support informed professional responsibility. Missing any one creates a specific accountability failure:
 
 - Without ontology: the professional does not know what they are responsible for
 - Without epistemology: the professional does not know what to believe
@@ -157,13 +157,13 @@ The four pillars appear at every level of the system:
 | **Agent instructions** | Header block, write scope | Invariants, provenance rules | Non-negotiable constraints | Protocol sections |
 | **Production documents** | Datasheet | Specification | Guidance | Procedure |
 
-This self-similarity arises because professional accountability requires the same four things at every level of abstraction. The fractal property is not a design choice. It is a structural property of accountability itself.
+This self-similarity arises because Chirality must answer the same four accountability questions at every level of abstraction. In this architecture, the fractal property is not arbitrary repetition; it is evidence that the same accountability logic is being carried through governance documents, agent instructions, and production documents.
 
 More precisely, the fractal property is the chirality of knowledge (§2.4) recurring at every level. Wherever knowledge exists in the system — in a deliverable, in an agent instruction, in a governance document — it is composed of complementary, non-superimposable components whose pairing is constitutive. The same chiral structure — claim and warrant, structure and value, content and accountability — appears at every level because knowledge at every level has the same structural property.
 
 ### 3.5 The Generative Relationship to Systems Engineering
 
-Given the four-pillar commitments, classical systems engineering disciplines emerge as necessary consequences:
+Given the four-pillar commitments, classical systems engineering disciplines emerge as the principal architectural mechanisms by which those commitments are made operational in Chirality:
 
 | Pillar Commitment | SE Disciplines That Follow |
 |---|---|
@@ -172,7 +172,7 @@ Given the four-pillar commitments, classical systems engineering disciplines eme
 | Praxiology (bounded, gate-controlled execution) | Safety and reliability engineering; control theory |
 | Axiology (non-delegable professional responsibility) | Human factors; decision authority allocation |
 
-Systems engineering, in the context of AI agent governance for professional practice, is not a methodology choice. It is the deductive consequence of the four-pillar commitments. The SE disciplines are the only way to make those commitments architecturally real.
+In Chirality, systems engineering is not incidental decoration or a post hoc compliance layer. It is the principal means by which the four-pillar commitments are made architecturally real. The SE disciplines identified here are not claimed to be the only possible implementation, but they are a coherent and defensible implementation of those commitments in this architecture.
 
 ---
 
@@ -208,7 +208,7 @@ Professional accountability tools optimize for knowing what you can rely on — 
 
 Both approaches are valid. Both are complementary. But only the second supports the act that constitutes knowledge: a qualified person committing to a claim on inspectable grounds under duty of care.
 
-The Chirality Framework provides the complete structural implementation of the conditions that make this act possible when the claims are produced by AI agents.
+The Chirality Framework provides one rigorous structural implementation of the conditions that make this act possible when the claims are produced by AI agents.
 
 ---
 
