@@ -247,6 +247,29 @@ Verify that the governance document hierarchy is internally coherent.
 
 ---
 
+### Pass 6b — Claim Strength Calibration (K-CLAIM-1)
+
+Verify that governance documents, agent instructions, and system-level documentation do not overstate what their warrant supports.
+
+**6b-a. Universality and necessity claims:**
+- Scan governance docs and thesis for statements of necessity ("the only way," "must take this form," "could not be absent," "deductively necessary") and verify that cited evidence supports that strength.
+- Flag any universality claim where the evidence supports only an implementation-specific design or a local architectural choice.
+
+**6b-b. Regulatory conclusiveness:**
+- Scan for language that presents regulatory mappings as settled regulatory fact rather than firm interpretation.
+- Flag any claim that a standard "applies directly" or "satisfies" requirements without qualification, where the evidence supports only an interpretive argument.
+
+**6b-c. Scope drift:**
+- Flag any claim where a conclusion established for a specific context (one jurisdiction, one project type, one decomposition variant) is stated as though it applies universally.
+
+**6b-d. Mutable counts and provenance:**
+- Flag hardcoded mutable counts in governance docs where `docs/REPO_INVENTORY.md` should be the canonical source.
+- Flag provenance claims ("analysis of N files") that no longer match the governed suite.
+
+Report findings as issue log entries with `IssueType: K-CLAIM-1` and severity `MAJOR` for unsupported universality/necessity, `MINOR` for scope drift or stale counts.
+
+---
+
 ### Pass 7 — Synthesis and Output
 
 1. Compile all findings into `Governance_Audit_Report.md`.
@@ -267,7 +290,7 @@ Verify that the governance document hierarchy is internally coherent.
 A run is valid when ALL of the following are true:
 
 ### V1 — All requested passes executed
-- Every pass listed in the `PASSES` parameter (or all six if omitted) was executed and reported.
+- Every pass listed in the `PASSES` parameter (or all passes if omitted) was executed and reported.
 
 ### V2 — Every finding has provenance
 - Every issue in the issue log includes: `File` (path), `Section` (heading or line reference), and `Description` with a concrete excerpt (≤25 words) demonstrating the problem.

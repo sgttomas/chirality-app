@@ -162,7 +162,7 @@ APEGA requires that the licensed professional demonstrate active involvement thr
 **Identifying and rectifying gaps in competencies.**
 
 - Agent audit system (AUDIT_AGENTS) verifies conformance of agent instructions against the canonical standard (`agents/AGENT_HELPS_HUMANS.md`). Structural requirements for instruction files defined in `docs/SPEC.md` §9.
-- Three layers of contracts govern agent behavior: R1–R9 workflow design requirements (defined in `agents/AGENT_HELPS_HUMANS.md`), I1–I10 decomposition invariants (defined in `agents/AGENT_DECOMP_BASE.md`), and 20 K-* system-wide invariants (defined in `docs/CONTRACT.md`).
+- Three layers of contracts govern agent behavior: R1–R9 workflow design requirements (defined in `agents/AGENT_HELPS_HUMANS.md`), I1–I10 decomposition invariants (defined in `agents/AGENT_DECOMP_BASE.md`), and 21 K-* system-wide invariants (defined in `docs/CONTRACT.md`).
 - Evaluation framework provides systematic assessment of agent output quality.
 - Agent instruction governance follows release engineering discipline: versioned, reviewed, no silent behavior changes (see §6.2 of this standard).
 - Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §4 (Contract Framework).
@@ -276,7 +276,7 @@ The firm's quality control and assurance for AI-assisted work is implemented thr
 | Document | QC/QA Function |
 |----------|----------------|
 | `docs/DIRECTIVE.md` | Founding constraints: filesystem-as-state, human authority, evidence-first, no hidden memory |
-| `docs/CONTRACT.md` | 20 binding invariants (K-*) with enforcement map |
+| `docs/CONTRACT.md` | 21 binding invariants (K-*) with enforcement map |
 | `docs/SPEC.md` | Physical structures, file formats, schema validation checklists |
 | `docs/TYPES.md` | Controlled vocabulary, enumerated types, lifecycle state machine |
 | `agents/AGENT_HELPS_HUMANS.md` | Workflow design requirements (R1–R9) binding on all agents |
@@ -310,7 +310,7 @@ The firm exercises due diligence on the LLM technology consistent with APEGA §3
 - Assessment of model safety practices, alignment research, and responsible deployment policies
 - Testing of agent behavior within the firm's instruction architecture before adopting model updates
 - Documented assessment of material model changes and their impact on agent behavior
-- The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: R1–R9 workflow requirements (`agents/AGENT_HELPS_HUMANS.md`), 20 K-* system invariants (`docs/CONTRACT.md`), write scope quarantine (`docs/DBM_Agent_Instruction_Architecture.md` §7), and deterministic tool validation (`tools/REGISTRY.md`). The firm does not rely solely on the model provider's safety measures
+- The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: R1–R9 workflow requirements (`agents/AGENT_HELPS_HUMANS.md`), 21 K-* system invariants (`docs/CONTRACT.md`), write scope quarantine (`docs/DBM_Agent_Instruction_Architecture.md` §7), and deterministic tool validation (`tools/REGISTRY.md`). The firm does not rely solely on the model provider's safety measures
 
 ### 6.5 Evidence and Auditability
 

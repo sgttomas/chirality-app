@@ -15,7 +15,7 @@ The working system has been codified into formal governance documents and aligne
 | `docs/SPEC.md` | Physical structures, file formats, Dependencies.csv v3.1 schema, folder layout, validation checklist | Complete |
 | `docs/TYPES.md` | Domain vocabulary, hierarchy, stable IDs, dependency vocabulary, agent roles, lifecycle states | Complete |
 | `docs/DIRECTIVE.md` | Founding intent, design philosophy, professional responsibility model, scope, constraints | Complete |
-| `docs/CONTRACT.md` | Invariant catalog (20 K-* invariants), change policy, enforcement map | Complete |
+| `docs/CONTRACT.md` | Invariant catalog (21 K-* invariants), change policy, enforcement map | Complete |
 | `docs/PLAN.md` | This document | Complete |
 
 ### Governance Alignment

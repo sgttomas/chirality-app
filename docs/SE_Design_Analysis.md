@@ -265,7 +265,7 @@ The architecture defines three layers of formally stated invariants:
 
 **R1–R9 (Workflow design requirements):** Behavioral constraints on all agents (human decision rights, straight-through tasks, write quarantine, immutable snapshots, provenance, no invention, conflict surfacing, brief-driven execution, hygienic publication). Enforced by agent instructions.
 
-**K-* (System-wide invariants):** 20 named, stable invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, invention, conflicts, write scope, and snapshots. Defined in `CONTRACT.md` with enforcement points.
+**K-* (System-wide invariants):** 21 named, stable invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, invention, conflicts, claim strength, write scope, and snapshots. Defined in `CONTRACT.md` with enforcement points.
 
 ### 7.2 Preconditions and Postconditions
 

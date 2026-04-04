@@ -243,13 +243,13 @@ The firm's QC/QA framework for AI-assisted work is implemented through the agent
 | Document | QC/QA Function |
 |----------|----------------|
 | `docs/DIRECTIVE.md` | Founding constraints: filesystem-as-state, human authority, evidence-first, no hidden memory |
-| `docs/CONTRACT.md` | 20 binding invariants (K-*) with four-layer enforcement map |
+| `docs/CONTRACT.md` | 21 binding invariants (K-*) with four-layer enforcement map |
 | `docs/SPEC.md` | Physical structures, file formats, schema validation |
 | `docs/TYPES.md` | Controlled vocabulary, enumerated types, lifecycle state machine |
 | `agents/AGENT_HELPS_HUMANS.md` | Workflow design requirements (R1–R9) binding on all agents |
 | `agents/AGENT_DECOMP_BASE.md` | Decomposition invariants (I1–I10) binding on all decomposition agents |
 
-The three-layer invariant system — R1–R9 workflow requirements, I1–I10 decomposition invariants, and 20 K-* system-wide invariants — and its four-layer enforcement map are described in Chapter 4. The significance for QC/QA purposes is that compliance is verified at multiple independent levels: at compile time through agent instruction constraints, at runtime through orchestrator enforcement, at human gates through professional review, and through automated tooling for specific invariants (K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, K-DEP-2). No single point of failure can disable the entire control system.
+The three-layer invariant system — R1–R9 workflow requirements, I1–I10 decomposition invariants, and 21 K-* system-wide invariants — and its four-layer enforcement map are described in Chapter 4. The significance for QC/QA purposes is that compliance is verified at multiple independent levels: at compile time through agent instruction constraints, at runtime through orchestrator enforcement, at human gates through professional review, and through automated tooling for specific invariants (K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, K-DEP-2). No single point of failure can disable the entire control system.
 
 ### 6.7.2 Instruction Governance as Release Engineering
 
@@ -272,7 +272,7 @@ The firm uses LLMs provided by technology vendors as the cognitive engine within
 - Testing of agent behavior within the firm's instruction architecture before adopting model updates
 - Documented assessment of material model changes and their impact on agent behavior
 
-Critically, the firm does not rely solely on the technology provider's safety measures. The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: R1–R9 workflow requirements, 20 K-* system invariants, write scope quarantine, and deterministic tool validation. This independence is essential: the professional's obligation is to exercise due diligence on the tools used in PWP preparation, and that obligation cannot be satisfied by deferring to the vendor's quality assurance practices.
+Critically, the firm does not rely solely on the technology provider's safety measures. The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: R1–R9 workflow requirements, 21 K-* system invariants, write scope quarantine, and deterministic tool validation. This independence is essential: the professional's obligation is to exercise due diligence on the tools used in PWP preparation, and that obligation cannot be satisfied by deferring to the vendor's quality assurance practices.
 
 ### 6.7.5 Evidence and Auditability
 

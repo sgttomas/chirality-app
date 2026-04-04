@@ -189,6 +189,7 @@ Engineering does not accept "sounds right." The system requires:
 - Assumptions explicitly labeled (not hidden in prose).
 - Conflicts surfaced, not silently resolved.
 - Unknown values become `TBD`, not guessed.
+- Claims calibrated to their warrant, scope, and jurisdiction. Where evidence supports only an interpretation, local implementation, or hypothesis, the claim must be framed that way.
 
 ### 2.5 No Hidden Memory
 

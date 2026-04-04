@@ -12,7 +12,7 @@ Invariant IDs (`K-*`) are **stable and never reused**. Retired invariants are mo
 
 ### K-* Invariant Index
 
-All K-* identifiers defined in this section are listed below with their definition locations. There are **20 stable invariants** across 10 subsections.
+All K-* identifiers defined in this section are listed below with their definition locations. There are **21 stable invariants** across 10 subsections.
 
 | K-* ID | Subsection | Topic |
 |--------|------------|-------|
@@ -34,6 +34,7 @@ All K-* identifiers defined in this section are listed below with their definiti
 | K-PROV-1 | 1.9 | Provenance and Epistemic Integrity |
 | K-INVENT-1 | 1.9 | Provenance and Epistemic Integrity |
 | K-CONFLICT-1 | 1.9 | Provenance and Epistemic Integrity |
+| K-CLAIM-1 | 1.9 | Provenance and Epistemic Integrity |
 | K-WRITE-1 | 1.10 | Write Scope and Snapshots |
 | K-SNAP-1 | 1.10 | Write Scope and Snapshots |
 
@@ -101,6 +102,7 @@ All K-* identifiers defined in this section are listed below with their definiti
 | **K-PROV-1** | Every extracted dependency row must cite evidence: **`EvidenceFile` + `SourceRef`** (or explicit `location TBD`). | DEPENDENCIES agent (Function 5 quality checks); SPEC.md Section 6.5 |
 | **K-INVENT-1** | Unknown values become **`TBD`**, not guessed. Agents must not invent scope items, dependency targets, parameter values, or engineering content. | All agent instruction invariants; human review |
 | **K-CONFLICT-1** | Conflicts between sources must be **surfaced, not silently resolved**. Agents expose disagreements with pointers to the conflicting sources. | Agent instruction invariants (HELPS_HUMANS R7); human adjudication |
+| **K-CLAIM-1** | Claims, conclusions, and characterizations must not **overstate what the available warrant supports**. Statements of necessity, sufficiency, universality, completeness, exclusivity, or direct regulatory conclusiveness may be used only when the cited evidence supports that strength; otherwise they must be framed as interpretation, implementation-specific design, or proposal. | Agent instruction constraints; governance audits (AUDIT_GOVERNANCE); human review |
 
 ### 1.10 Write Scope and Snapshots
 
@@ -115,7 +117,7 @@ All K-* identifiers defined in this section are listed below with their definiti
 
 | Enforcement Point | Invariants Checked |
 |-------------------|-------------------|
-| **Agent instructions** (design-time; constrains intent, not guaranteed behavior) | K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, K-DEP-2 |
+| **Agent instructions** (design-time; constrains intent, not guaranteed behavior) | K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-CLAIM-1, K-DEP-1, K-DEP-2 |
 | **ORCHESTRATOR** (runtime) | K-SEAL-1, K-GATE-1, K-HIER-1 |
 | **Human review** (gate) | K-AUTH-1, K-AUTH-2, K-BIND-1, K-STALE-2, K-MERGE-1, K-VAL-1, K-STATUS-1 |
 | **Future tooling** (automated) | K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, K-DEP-2 |
