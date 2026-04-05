@@ -89,6 +89,16 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 
 ---
 
+## Aggregation
+
+| Name | Language | Purpose | Inputs | Outputs |
+|------|----------|---------|--------|---------|
+| `build_hypergraph.py` | Python 3 | Build DOMAIN hypergraph from staging CSVs: deterministic SHA1-based HyperedgeID generation, 9 QA checks, optional delta vs prior snapshot. Reads 8 Evidence CSVs (2 required, 6 conditional); writes nodes/hyperedges/incidence tables + hypergraph.json + QA_Report.md | `--staging-dir`, `--output-dir`, `--run-label`, `--execution-root`, `--scope`, [`--normalize-ids`], [`--edgeset`], [`--variant`], [`--prior-snapshot`] | `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`, `QA_Report.md` |
+
+**Determinism:** same staging inputs → byte-identical CSVs + canonical JSON (excluding `generated_at` timestamp).
+
+---
+
 ## Evaluation
 
 Canonical versions at `tools/evaluation/`. Project-specific variants may also exist at `{EXECUTION_ROOT}/_Evaluation/tools/`.

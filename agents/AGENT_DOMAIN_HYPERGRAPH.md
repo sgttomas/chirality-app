@@ -288,168 +288,138 @@ If `INCLUDE_OBJECTIVES ≠ FALSE`:
 5) If not found and `INCLUDE_OBJECTIVES = AUTO`: skip silently, record in `Decision_Log.md`.
 
 When objectives are loaded but ledger is not:
-- `KTY_SUPPORTS_OBJ` edges are derived from KTY `_CONTEXT.md` (see Step 5F).
+- `KTY_SUPPORTS_OBJ` edges are derived from KTY `_CONTEXT.md` (see Step 5).
 - `LEDGER_ROW` edges will not contain objective roles (no ledger data).
 
 ---
 
-### Step 4 — Build Nodes Table (normalized)
+### Evidence CSV Contracts (tool input)
 
-Create `nodes.csv` with at least these NodeTypes:
-- `CATEGORY`
-- `KNOWLEDGE_TYPE`
-- `KNOWLEDGE_SUBJECT`
-- `KNOWLEDGE_ARTIFACT`
-Optional NodeTypes (only when discovered):
-- `ATOMIC_UNIT`
-- `OBJECTIVE`
+After Steps 0-3 complete discovery, the agent emits the following CSV files to `{snapshot}/Evidence/`. These files are the contract consumed by `tools/aggregation/build_hypergraph.py` in Steps 4-7. Column ordering is flexible; column names MUST match exactly.
 
-For each node:
-- Include `NodeID`, `NodeType`, `Label`, `SourcePath`, `SourceRef`, `Notes`
-- If `NORMALIZE_IDS=true`, include `NormalizedID` (analysis-only)
-- Do not invent missing labels; use `TBD` in `Notes`.
+| File | Status | Columns |
+|---|---|---|
+| `discovered_categories.csv` | **required** | `CategoryID`, `CategoryName`, `SourcePath`, `SourceRef`, `Notes` |
+| `discovered_knowledge_types.csv` | **required** | `KnowledgeTypeID`, `Name`, `CategoryID`, `Discipline`, `Type`, `Responsible`, `Description`, `AnticipatedArtifacts`, `DecompositionRef`, `SourcePath`, `SourceRef`, `Notes` |
+| `discovered_knowledge_subjects.csv` | conditional | `SubjectID`, `SubjectName`, `KnowledgeTypeID`, `SourcePath`, `SourceRef`, `Notes` |
+| `artifact_enumeration.csv` | conditional | `ArtifactID`, `ArtifactLabel`, `KnowledgeTypeID`, `Filename`, `ArtifactSource`, `SourcePath`, `SourceRef`, `Notes` |
+| `subject_artifact_mapping.csv` | conditional | `SubjectID`, `ArtifactID`, `KnowledgeTypeID`, `SourcePath`, `SourceRef`, `Notes` |
+| `discovered_ledger_rows.csv` | optional | `AtomicUnitID`, `UnitStatement`, `CategoryID`, `KnowledgeTypeIDs`, `ObjectiveIDs`, `SourcePath`, `SourceRef`, `Notes` |
+| `discovered_objectives.csv` | optional | `ObjectiveID`, `Label`, `SourcePath`, `SourceRef`, `Notes` |
+| `kty_supports_obj.csv` | optional | `KnowledgeTypeID`, `ObjectiveID`, `SourcePath`, `SourceRef`, `Notes` |
 
----
+**Semi-colon list fields** (`KnowledgeTypeIDs`, `ObjectiveIDs` in `discovered_ledger_rows.csv`): the tool trims, dedupes, and sorts each list ascending before edge construction. Source ordering does not affect output.
 
-### Step 5 — Build Hyperedges + Incidence (the hypergraph)
+**`ArtifactSource` values** (in `artifact_enumeration.csv`): `SCOPING_PLAN` | `ANTICIPATED` | `PRESENT`. The tool records this in node `Notes` but does not alter construction logic by source. The `AnticipatedArtifacts` field in `discovered_knowledge_types.csv` is **informational metadata only**; the tool does NOT use it for artifact node construction.
 
-Emit hyperedges according to `EDGESET` (default emits the following when data is available):
+**Conditional/optional file absence behavior:**
+- If `discovered_knowledge_subjects.csv` absent → no KNOWLEDGE_SUBJECT nodes, no HAS_SUBJECT edges.
+- If `artifact_enumeration.csv` absent → no KNOWLEDGE_ARTIFACT nodes, no HAS_ARTIFACT edges.
+- If `subject_artifact_mapping.csv` absent → no SUBJECT_MATERIALIZED_AS edges.
+- If `discovered_ledger_rows.csv` absent → no ATOMIC_UNIT nodes, no LEDGER_ROW edges.
+- If `discovered_objectives.csv` absent → OBJECTIVE nodes derived from ledger rows only (if ledger present).
+- If `kty_supports_obj.csv` absent → no KTY_SUPPORTS_OBJ edges (ledger-derived objective roles still emitted via LEDGER_ROW).
 
-#### 5A) `IN_CATEGORY` (Category membership)
-For each Knowledge Type that has a resolved Category:
-- Create a hyperedge `IN_CATEGORY` with exactly two incidences:
-  - Role `PARENT_CATEGORY` → Category NodeID
-  - Role `CHILD_KNOWLEDGE_TYPE` → Knowledge Type NodeID
-
-If Category is missing/unresolved:
-- Do not invent a Category edge.
-- Record `KTY_WITHOUT_CATEGORY` as a WARNING in QA.
-
-#### 5B) `HAS_SUBJECT` (KTY owns decomposition topic)
-For each Knowledge Subject candidate belonging to a KTY:
-- Create a hyperedge `HAS_SUBJECT` with:
-  - Role `OWNER_KNOWLEDGE_TYPE` → KTY NodeID
-  - Role `SUBJECT` → Knowledge Subject NodeID
-
-#### 5C) `HAS_ARTIFACT` (KTY owns document artifact)
-For each artifact candidate belonging to a KTY:
-- Create a hyperedge `HAS_ARTIFACT` with:
-  - Role `OWNER_KNOWLEDGE_TYPE` → KTY NodeID
-  - Role `ARTIFACT` → Artifact NodeID
-
-#### 5D) `SUBJECT_MATERIALIZED_AS` (bridge decomposition topic -> document artifact)
-For each mapping row where both a Subject node and an Artifact node exist:
-- Create a hyperedge `SUBJECT_MATERIALIZED_AS` with:
-  - Role `SUBJECT` → Knowledge Subject NodeID
-  - Role `ARTIFACT` → Knowledge Artifact NodeID
-
-If a mapping row is partial or inconsistent:
-- Do not invent the missing node.
-- Record `SUBJECT_ARTIFACT_MAPPING_INCOMPLETE` as a WARNING in QA with evidence.
-
-#### 5E) `LEDGER_ROW` (unit + coverage bindings) — optional
-When ledger data is available, emit one hyperedge per ledger row using the nodes discovered:
-- Role `UNIT` → ATOMIC_UNIT node
-- Role `CATEGORY` → CATEGORY node (if present in row)
-- Role `KNOWLEDGE_TYPE` → one or many KTY nodes (if present in row)
-- Role `OBJECTIVE` → zero or many OBJECTIVE nodes (if present and enabled)
-
-If a row references a Category/KTY/Objective ID not present in nodes:
-- Do not invent nodes.
-- Record as `LEDGER_REF_MISSING_NODE` with evidence.
-
-#### 5F) `KTY_SUPPORTS_OBJ` (objective support — independent of ledger)
-When objective nodes are loaded (from ledger or independently via Step 3B):
-- For each Knowledge Type whose `_CONTEXT.md` lists `SupportsObjectives` (or equivalent field):
-  - For each referenced ObjectiveID:
-    - Create a binary hyperedge `KTY_SUPPORTS_OBJ` with:
-      - Role `KNOWLEDGE_TYPE` → KTY NodeID
-      - Role `OBJECTIVE` → Objective NodeID
-    - If the objective node does not exist: record as `OBJ_REF_MISSING_NODE` with evidence.
-
-Note: when the ledger is loaded, `LEDGER_ROW` edges already carry objective roles. `KTY_SUPPORTS_OBJ` edges complement these by providing a direct KTY→OBJ link that does not require traversing through unit nodes. Both edge types may coexist.
-
-#### Hyperedge ID generation (deterministic)
-For each hyperedge:
-1) Construct a canonical string:
-   - `HyperedgeType|`
-   - `sorted(NodeID + ':' + Role)` pairs joined by `|`
-   - `SourcePath|SourceRef`
-2) Compute `hash = SHA1(canonical_string)` and take first 12 hex chars.
-3) Set:
-   - `HyperedgeID = HGE-{HyperedgeType}-{hash}`
-
-**Hard rule:** Sorting uses `(Role, NodeID)` ascending to stabilize incidence order across runs.
+The required files (`discovered_categories.csv`, `discovered_knowledge_types.csv`) establish the workspace's skeletal structure; absence of either → tool returns FAILED_INPUTS.
 
 ---
 
-### Step 6 — QA checks (mandatory)
+### Step 4 — Invoke build_hypergraph.py (deterministic graph construction)
 
-Run these checks and report PASS/WARNING/BLOCKER in `QA_Report.md`:
+Steps 4-7 are executed by the deterministic tool `tools/aggregation/build_hypergraph.py`. Invoke:
 
-1) **Schema presence**
-   - `nodes.csv`, `hyperedges.csv`, `incidence.csv` exist and are parseable CSV.
+```sh
+python3 tools/aggregation/build_hypergraph.py \
+  --staging-dir {snapshot}/Evidence/ \
+  --output-dir {snapshot}/ \
+  --run-label {RUN_LABEL} \
+  --execution-root {EXECUTION_ROOT} \
+  --scope {SCOPE} \
+  --normalize-ids {NORMALIZE_IDS} \
+  --edgeset {EDGESET} \
+  --variant DOMAIN \
+  [--prior-snapshot {prior_snapshot_path}]
+```
 
-2) **Referential integrity**
-   - Every `incidence.NodeID` exists in `nodes.csv`
-   - Every `incidence.HyperedgeID` exists in `hyperedges.csv`
+The tool reads the Evidence CSV contracts above, constructs `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`, and `QA_Report.md` in `{snapshot}/`, runs the 9 QA checks (see Step 6), and optionally computes deltas vs a prior snapshot.
 
-3) **Category membership integrity (DOMAIN)**
-   - Each `KNOWLEDGE_TYPE` has **≤1** `IN_CATEGORY` hyperedge.
-     - `>1` is a BLOCKER (partition ambiguity).
-     - `0` is a WARNING (missing category mapping).
+**Node construction (Step 4 deterministic detail):** The tool emits nodes of type `CATEGORY`, `KNOWLEDGE_TYPE`, `KNOWLEDGE_SUBJECT`, `KNOWLEDGE_ARTIFACT`; plus `ATOMIC_UNIT` and `OBJECTIVE` when optional staging files are present. Rows with blank primary IDs are skipped (no invention). Each node row carries `NodeID`, `NodeType`, `Label`, `SourcePath`, `SourceRef`, `Notes`, and `Variant=DOMAIN`. When `NORMALIZE_IDS=true`, a `NormalizedID` column is populated (strip trailing `_suffix` after last underscore, analysis-only; never replaces `NodeID`).
 
-4) **Subject attachment**
-   - Each `KNOWLEDGE_SUBJECT` participates in ≥1 `HAS_SUBJECT`.
-     - Otherwise WARNING (orphan subject).
+---
 
-5) **Artifact attachment**
-   - Each `KNOWLEDGE_ARTIFACT` participates in ≥1 `HAS_ARTIFACT`.
-     - Otherwise WARNING (orphan artifact).
+### Step 5 — Hyperedge + incidence construction (tool-emitted; hashing algorithm locked)
 
-6) **Subject/artifact bridge integrity**
-   - Each `KNOWLEDGE_SUBJECT` discovered from `Scoping.md` participates in exactly one `SUBJECT_MATERIALIZED_AS`.
-     - `0` is a WARNING (missing materialized artifact bridge).
-     - `>1` is a BLOCKER (split-subject ambiguity).
-   - Each `KNOWLEDGE_ARTIFACT` with a `SubjectID` mapping participates in exactly one `SUBJECT_MATERIALIZED_AS`.
-     - `0` is a WARNING (missing subject bridge).
-     - `>1` is a BLOCKER (merged-artifact ambiguity).
+The tool emits hyperedges per `EDGESET` (default emits all 6 types when data is available):
 
-7) **Ledger integrity (only if ledger ingested)**
-   - Each `ATOMIC_UNIT` appears in ≥1 `LEDGER_ROW`.
-   - Each `ATOMIC_UNIT` maps to exactly one Category **if** the ledger provides CategoryID per row.
-     - Multiple categories for one unit is a BLOCKER.
-     - Missing category for IN-scope units is a WARNING (unless human elevates to gate).
+- `IN_CATEGORY`: `PARENT_CATEGORY` → Category, `CHILD_KNOWLEDGE_TYPE` → KTY (from `discovered_knowledge_types.csv.CategoryID`)
+- `HAS_SUBJECT`: `OWNER_KNOWLEDGE_TYPE` → KTY, `SUBJECT` → Subject (from `discovered_knowledge_subjects.csv.KnowledgeTypeID`)
+- `HAS_ARTIFACT`: `OWNER_KNOWLEDGE_TYPE` → KTY, `ARTIFACT` → Artifact (from `artifact_enumeration.csv.KnowledgeTypeID`)
+- `SUBJECT_MATERIALIZED_AS`: `SUBJECT` → Subject, `ARTIFACT` → Artifact (from `subject_artifact_mapping.csv`)
+- `LEDGER_ROW`: `UNIT` → AtomicUnit, `CATEGORY` → Category, `KNOWLEDGE_TYPE` → KTY (0..N), `OBJECTIVE` → Objective (0..N) (from `discovered_ledger_rows.csv`)
+- `KTY_SUPPORTS_OBJ`: `KNOWLEDGE_TYPE` → KTY, `OBJECTIVE` → Objective (from `kty_supports_obj.csv`)
 
-8) **ID collisions**
-   - Duplicate NodeIDs → BLOCKER
-   - If `NORMALIZE_IDS=true`, duplicate NormalizedIDs → WARNING (report; do not merge)
+**Missing-node references** (e.g., KTY references `CategoryID=CAT-999` with no CATEGORY node) are NOT silently dropped — the tool records a `*_REF_MISSING_NODE` WARNING and skips only that edge.
 
-9) **Evidence completeness**
-   - Nodes/hyperedges missing `SourcePath` or `SourceRef` → WARNING
+**Hyperedge ID generation (locked algorithm):**
+```python
+canonical = HyperedgeType + "|" + "|".join(sorted(f"{Role}:{NodeID}" for (NodeID, Role) in incidences)) + "|" + SourcePath + "|" + SourceRef
+HyperedgeID = f"HGE-{HyperedgeType}-{sha1(canonical.encode('utf-8')).hexdigest()[:12]}"
+```
 
-Write supporting evidence tables under `Evidence/`.
+**Sort keys:** Incidence sorted by `(Role, NodeID)` ascending to assign `Ordinal` deterministically. Output CSVs sorted by `(NodeType, NodeID)` for `nodes.csv`, `(HyperedgeType, HyperedgeID)` for `hyperedges.csv`, and `(HyperedgeID, Role, NodeID, Ordinal)` for `incidence.csv`.
+
+**Determinism guarantee:** Same staging CSVs → byte-identical `nodes.csv`, `hyperedges.csv`, `incidence.csv`, and canonical `hypergraph.json` (excluding `generated_at` timestamp).
+
+---
+
+### Step 6 — QA checks (tool-emitted, 9 checks)
+
+The tool writes findings to `QA_Report.md` with PASS / WARNING / BLOCKER per check:
+
+1. **Schema presence** — CSVs exist and have `SchemaVersion` headers.
+2. **Referential integrity** — every incidence NodeID exists in `nodes.csv`; every incidence HyperedgeID exists in `hyperedges.csv`. BLOCKER on failure.
+3. **Category membership integrity** — each `KNOWLEDGE_TYPE` has ≤1 `IN_CATEGORY` edge. `>1` = BLOCKER (partition ambiguity); `0` = WARNING.
+4. **Subject attachment** — each `KNOWLEDGE_SUBJECT` participates in ≥1 `HAS_SUBJECT` edge. Otherwise WARNING (orphan subject).
+5. **Artifact attachment** — each `KNOWLEDGE_ARTIFACT` participates in ≥1 `HAS_ARTIFACT` edge. Otherwise WARNING (orphan artifact).
+6. **Bridge integrity** — each SUBJECT and each ARTIFACT participates in ≤1 `SUBJECT_MATERIALIZED_AS` edge. `>1` on SUBJECT = BLOCKER (split-subject); `>1` on ARTIFACT = BLOCKER (merged-artifact).
+7. **Ledger integrity** (when `discovered_ledger_rows.csv` present) — each `ATOMIC_UNIT` appears in ≥1 `LEDGER_ROW` (WARNING otherwise); each unit maps to ≤1 category via ledger rows (`>1` = BLOCKER).
+8. **ID collisions** — duplicate NodeIDs = BLOCKER. Duplicate NormalizedIDs (when enabled) = WARNING.
+9. **Evidence completeness** — nodes/hyperedges missing `SourcePath` or `SourceRef` = WARNING.
+
+The tool also records reference-miss warnings during edge construction (`CATEGORY_REF_MISSING_NODE`, `LEDGER_REF_MISSING_NODE`, etc.) to preserve provenance for unresolved references.
 
 ---
 
 ### Step 7 — Optional comparison mode
 
-If `PRIOR_RUN_LABEL` is provided:
-- Load the prior run's `hypergraph.json`.
-- Produce a delta section in `QA_Report.md`:
-  - nodes added/removed by type,
-  - hyperedges added/removed by type,
-  - metric changes,
-  - note any parameter changes between runs.
-- Include delta metrics in the `hypergraph.json` output (see STRUCTURE).
+If `PRIOR_RUN_LABEL` is set in the brief:
+1. Resolve `{prior_snapshot_path}` from the prior label (e.g., `{EXECUTION_ROOT}/_Aggregation/Hypergraph/HG_{PRIOR_RUN_LABEL}_*/`).
+2. Pass `--prior-snapshot {prior_snapshot_path}` to the tool invocation in Step 4.
+
+The tool loads the prior run's `hypergraph.json`, computes node/edge adds/removes by type, and writes:
+- `delta` block in the new `hypergraph.json`
+- "Delta vs prior run" section in `QA_Report.md`
 
 ---
 
-### Step 8 — Publish snapshot
+### Step 8 — Publish snapshot + record provenance
 
-1) Write all artifacts to a new snapshot folder.
-2) Write/overwrite pointer file `{EXECUTION_ROOT}/_Aggregation/Hypergraph/_LATEST.md`.
-3) Return to the invoking manager:
+After the tool invocation (Step 4) completes:
+
+1. **Copy tool file for reproducibility** (required by STRUCTURE):
+   ```sh
+   cp tools/aggregation/build_hypergraph.py {snapshot}/build_hypergraph.py
+   ```
+2. **Record tool provenance** in `{snapshot}/Decision_Log.md`:
+   - Absolute path of tool invoked: `tools/aggregation/build_hypergraph.py`
+   - Git commit SHA at invocation time: `git rev-parse HEAD`
+   - Full command line used (including all flags)
+3. **Write `RUN_SUMMARY.md`** with `RUN_STATUS = OK|WARNINGS|FAILED_INPUTS` based on `QA_Report.md` blocker/warning counts.
+4. **Update pointer:**
+   ```sh
+   tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Aggregation/Hypergraph {snapshot_folder_name}
+   ```
+5. **Return to the invoking manager:**
    - snapshot path,
    - key counts (nodes/edges/incidences),
    - QA verdict summary (≤10 top issues),

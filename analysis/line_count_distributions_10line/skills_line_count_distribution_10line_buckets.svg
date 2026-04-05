@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-label="skills/ line-count distribution">
+<rect width="100%" height="100%" fill="#f8fafc" />
+<text x="70" y="24" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">skills/ line-count distribution</text>
+<text x="70" y="42" font-family="Menlo, Consolas, monospace" font-size="11" fill="#475569">Bucket size: 10 lines</text>
+<line x1="70" y1="290.00" x2="960" y2="290.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="294.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">0</text>
+<line x1="70" y1="240.00" x2="960" y2="240.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="244.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">1</text>
+<line x1="70" y1="190.00" x2="960" y2="190.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="194.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">3</text>
+<line x1="70" y1="140.00" x2="960" y2="140.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="144.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">4</text>
+<line x1="70" y1="90.00" x2="960" y2="90.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="94.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">6</text>
+<line x1="70" y1="40.00" x2="960" y2="40.00" stroke="#cbd5e1" stroke-width="1" />
+<text x="62" y="44.00" text-anchor="end" font-family="Menlo, Consolas, monospace" font-size="10" fill="#334155">7</text>
+<line x1="70" y1="290" x2="960" y2="290" stroke="#0f172a" stroke-width="1.5" />
+<line x1="70" y1="40" x2="70" y2="290" stroke="#0f172a" stroke-width="1.5" />
+<rect x="70.00" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>0-9: 0 files</title></rect>
+<text x="74.28" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 74.28 308.00)">0-9</text>
+<rect x="79.57" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>10-19: 0 files</title></rect>
+<rect x="89.14" y="147.14" width="8.57" height="142.86" fill="#2563eb"><title>20-29: 4 files</title></rect>
+<rect x="98.71" y="254.29" width="8.57" height="35.71" fill="#2563eb"><title>30-39: 1 files</title></rect>
+<rect x="108.28" y="182.86" width="8.57" height="107.14" fill="#2563eb"><title>40-49: 3 files</title></rect>
+<rect x="117.85" y="182.86" width="8.57" height="107.14" fill="#2563eb"><title>50-59: 3 files</title></rect>
+<rect x="127.42" y="254.29" width="8.57" height="35.71" fill="#2563eb"><title>60-69: 1 files</title></rect>
+<rect x="136.99" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>70-79: 0 files</title></rect>
+<text x="141.27" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 141.27 308.00)">70-79</text>
+<rect x="146.56" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>80-89: 0 files</title></rect>
+<rect x="156.13" y="218.57" width="8.57" height="71.43" fill="#2563eb"><title>90-99: 2 files</title></rect>
+<rect x="165.70" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>100-109: 0 files</title></rect>
+<rect x="175.27" y="218.57" width="8.57" height="71.43" fill="#2563eb"><title>110-119: 2 files</title></rect>
+<rect x="184.84" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>120-129: 0 files</title></rect>
+<rect x="194.41" y="218.57" width="8.57" height="71.43" fill="#2563eb"><title>130-139: 2 files</title></rect>
+<rect x="203.98" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>140-149: 0 files</title></rect>
+<text x="208.26" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 208.26 308.00)">140-149</text>
+<rect x="213.55" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>150-159: 0 files</title></rect>
+<rect x="223.12" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>160-169: 0 files</title></rect>
+<rect x="232.69" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>170-179: 0 files</title></rect>
+<rect x="242.26" y="254.29" width="8.57" height="35.71" fill="#2563eb"><title>180-189: 1 files</title></rect>
+<rect x="251.83" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>190-199: 0 files</title></rect>
+<rect x="261.40" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>200-209: 0 files</title></rect>
+<rect x="270.97" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>210-219: 0 files</title></rect>
+<text x="275.25" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 275.25 308.00)">210-219</text>
+<rect x="280.54" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>220-229: 0 files</title></rect>
+<rect x="290.11" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>230-239: 0 files</title></rect>
+<rect x="299.68" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>240-249: 0 files</title></rect>
+<rect x="309.25" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>250-259: 0 files</title></rect>
+<rect x="318.82" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>260-269: 0 files</title></rect>
+<rect x="328.39" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>270-279: 0 files</title></rect>
+<rect x="337.96" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>280-289: 0 files</title></rect>
+<text x="342.24" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 342.24 308.00)">280-289</text>
+<rect x="347.53" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>290-299: 0 files</title></rect>
+<rect x="357.10" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>300-309: 0 files</title></rect>
+<rect x="366.67" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>310-319: 0 files</title></rect>
+<rect x="376.24" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>320-329: 0 files</title></rect>
+<rect x="385.81" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>330-339: 0 files</title></rect>
+<rect x="395.38" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>340-349: 0 files</title></rect>
+<rect x="404.95" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>350-359: 0 files</title></rect>
+<text x="409.23" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 409.23 308.00)">350-359</text>
+<rect x="414.52" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>360-369: 0 files</title></rect>
+<rect x="424.09" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>370-379: 0 files</title></rect>
+<rect x="433.66" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>380-389: 0 files</title></rect>
+<rect x="443.23" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>390-399: 0 files</title></rect>
+<rect x="452.80" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>400-409: 0 files</title></rect>
+<rect x="462.37" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>410-419: 0 files</title></rect>
+<rect x="471.94" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>420-429: 0 files</title></rect>
+<text x="476.22" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 476.22 308.00)">420-429</text>
+<rect x="481.51" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>430-439: 0 files</title></rect>
+<rect x="491.08" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>440-449: 0 files</title></rect>
+<rect x="500.65" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>450-459: 0 files</title></rect>
+<rect x="510.22" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>460-469: 0 files</title></rect>
+<rect x="519.78" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>470-479: 0 files</title></rect>
+<rect x="529.35" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>480-489: 0 files</title></rect>
+<rect x="538.92" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>490-499: 0 files</title></rect>
+<text x="543.21" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 543.21 308.00)">490-499</text>
+<rect x="548.49" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>500-509: 0 files</title></rect>
+<rect x="558.06" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>510-519: 0 files</title></rect>
+<rect x="567.63" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>520-529: 0 files</title></rect>
+<rect x="577.20" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>530-539: 0 files</title></rect>
+<rect x="586.77" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>540-549: 0 files</title></rect>
+<rect x="596.34" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>550-559: 0 files</title></rect>
+<rect x="605.91" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>560-569: 0 files</title></rect>
+<text x="610.20" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 610.20 308.00)">560-569</text>
+<rect x="615.48" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>570-579: 0 files</title></rect>
+<rect x="625.05" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>580-589: 0 files</title></rect>
+<rect x="634.62" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>590-599: 0 files</title></rect>
+<rect x="644.19" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>600-609: 0 files</title></rect>
+<rect x="653.76" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>610-619: 0 files</title></rect>
+<rect x="663.33" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>620-629: 0 files</title></rect>
+<rect x="672.90" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>630-639: 0 files</title></rect>
+<text x="677.19" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 677.19 308.00)">630-639</text>
+<rect x="682.47" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>640-649: 0 files</title></rect>
+<rect x="692.04" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>650-659: 0 files</title></rect>
+<rect x="701.61" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>660-669: 0 files</title></rect>
+<rect x="711.18" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>670-679: 0 files</title></rect>
+<rect x="720.75" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>680-689: 0 files</title></rect>
+<rect x="730.32" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>690-699: 0 files</title></rect>
+<rect x="739.89" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>700-709: 0 files</title></rect>
+<text x="744.18" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 744.18 308.00)">700-709</text>
+<rect x="749.46" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>710-719: 0 files</title></rect>
+<rect x="759.03" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>720-729: 0 files</title></rect>
+<rect x="768.60" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>730-739: 0 files</title></rect>
+<rect x="778.17" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>740-749: 0 files</title></rect>
+<rect x="787.74" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>750-759: 0 files</title></rect>
+<rect x="797.31" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>760-769: 0 files</title></rect>
+<rect x="806.88" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>770-779: 0 files</title></rect>
+<text x="811.17" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 811.17 308.00)">770-779</text>
+<rect x="816.45" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>780-789: 0 files</title></rect>
+<rect x="826.02" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>790-799: 0 files</title></rect>
+<rect x="835.59" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>800-809: 0 files</title></rect>
+<rect x="845.16" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>810-819: 0 files</title></rect>
+<rect x="854.73" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>820-829: 0 files</title></rect>
+<rect x="864.30" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>830-839: 0 files</title></rect>
+<rect x="873.87" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>840-849: 0 files</title></rect>
+<text x="878.16" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 878.16 308.00)">840-849</text>
+<rect x="883.44" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>850-859: 0 files</title></rect>
+<rect x="893.01" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>860-869: 0 files</title></rect>
+<rect x="902.58" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>870-879: 0 files</title></rect>
+<rect x="912.15" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>880-889: 0 files</title></rect>
+<rect x="921.72" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>890-899: 0 files</title></rect>
+<rect x="931.29" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>900-909: 0 files</title></rect>
+<rect x="940.86" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>910-919: 0 files</title></rect>
+<text x="945.15" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 945.15 308.00)">910-919</text>
+<rect x="950.43" y="290.00" width="8.57" height="0.00" fill="#2563eb"><title>920-929: 0 files</title></rect>
+<text x="954.72" y="308.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="9" fill="#475569" transform="rotate(45 954.72 308.00)">920-929</text>
+<text x="515.00" y="348" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="11" fill="#334155">Line-count bucket</text>
+<text x="18" y="165.00" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="11" fill="#334155" transform="rotate(-90 18 165.00)">Files in bucket</text>
+</svg>

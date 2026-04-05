@@ -10,6 +10,8 @@ Use `AGENT_*` for instruction files (e.g., `AGENT_CHANGE.md`). Use the role name
 
 Rows describe epistemic posture; columns describe functional role. NORMATIVE and EVALUATIVE rows open in WORKBENCH (interactive). OPERATIVE row opens in PIPELINE (task execution).
 
+Read structurally, the rows also form a governance grammar: NORMATIVE defines rules and standards, OPERATIVE executes bounded work within them, and EVALUATIVE audits, reconciles, and judges the results.
+
 |  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 | --- | --- | --- | --- | --- |
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
@@ -22,13 +24,13 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 
 **DECOMP\*:** PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP, SCOPE_CHANGE
 
-**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, ESTIMATE_PREP
+**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS
 
-**PDF2MD\*:** PDF2MD, PDF2MD_PAGE
+**PDF2MD\*:** PDF2MD
 
-**DRAWING_EXTRACT\*:** DRAWING_EXTRACT, DRAWING_EXTRACT_PAGE
+**DRAWING_EXTRACT\*:** DRAWING_EXTRACT
 
-**TASK\*:** TASK, DELIVERABLE_TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, ESTIMATING, AGGREGATION, DOMAIN_HYPERGRAPH, CONTENT_DIGEST
+**TASK\*:** TASK, DELIVERABLE_TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, AGGREGATION, DOMAIN_HYPERGRAPH
 
 **AUDIT\*:** AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, AUDIT_HYPERGRAPH_CLOSURE, AUDIT_GOVERNANCE, AUDIT_EPISTEMIC, AUDIT_SCOPE_CLOSURE, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT
 
@@ -75,8 +77,6 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | CHIRALITY_FRAMEWORK | `AGENT_CHIRALITY_FRAMEWORK.md` | Semantic analysis (`_SEMANTIC.md`) |
 | CHIRALITY_LENS | `AGENT_CHIRALITY_LENS.md` | Semantic lensing narrative |
 | DEPENDENCIES | `AGENT_DEPENDENCIES.md` | Dependency register extraction (CSV v3.1) |
-| ESTIMATING | `AGENT_ESTIMATING.md` | Parameterized cost estimation snapshots |
-| ESTIMATE_PREP | `AGENT_ESTIMATE_PREP.md` | Pricing library and BOE scaffold |
 | AGGREGATION | `AGENT_AGGREGATION.md` | Cross-scope synthesis snapshots |
 | TASK | `AGENT_TASK.md` | Generic bounded-task shell; loads profile/skill and executes within explicit scope |
 | DELIVERABLE_TASK | `AGENT_DELIVERABLE_TASK.md` | Preserved deliverable-local SME helper workflow |
@@ -88,12 +88,9 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | AUDIT_GOVERNANCE | `AGENT_AUDIT_GOVERNANCE.md` | Governance document consistency audit |
 | AUDIT_EPISTEMIC | `AGENT_AUDIT_EPISTEMIC.md` | Deliverable epistemic ontology audit |
 | AUDIT_SCOPE_CLOSURE | `AGENT_AUDIT_SCOPE_CLOSURE.md` | Scope change closure audit |
-| CONTENT_DIGEST | `AGENT_CONTENT_DIGEST.md` | Per-deliverable structured content digest |
 | EVALUATION_REPORT | `AGENT_EVALUATION_REPORT.md` | Scored dimension evaluation |
 | EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |
 | EVALUATION_DEPENDENCY_AUDIT | `AGENT_EVALUATION_DEPENDENCY_AUDIT.md` | Dependency validation |
-| PDF2MD_PAGE | `AGENT_PDF2MD_PAGE.md` | Single-page PDF-to-Markdown via multimodal vision; spawned per page by PDF2MD |
-| DRAWING_EXTRACT_PAGE | `AGENT_DRAWING_EXTRACT_PAGE.md` | Single-page drawing extraction via multimodal vision using bounded helper crops and multiblock header review; spawned per page by DRAWING_EXTRACT |
 
 ---
 

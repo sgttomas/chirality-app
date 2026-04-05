@@ -82,7 +82,7 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **PREPARATION (Type 2)** owns creating new deliverable folders and metadata files. SCOPE_CHANGE hands off via ORCHESTRATOR.
 - **CHANGE (Type 1)** owns git staging and commits. SCOPE_CHANGE hands off with a file list and recommended commit message.
 - **DEPENDENCIES (Type 2)** owns dependency re-extraction. SCOPE_CHANGE recommends reruns; does not execute them.
-- **ESTIMATING (Type 2)** and **SCHEDULE (Type 1)** own estimate/schedule updates. SCOPE_CHANGE recommends reruns; does not execute them.
+- The **`estimate-snapshot` skill (dispatched via TASK)** and **SCHEDULING (Type 1)** own estimate/schedule updates. SCOPE_CHANGE recommends reruns; does not execute them.
 
 ---
 
@@ -264,7 +264,7 @@ Based on the approved amendment, produce a propagation plan:
 1) **For ADD actions:**
    - Draft an INIT-TASK brief for PREPARATION (via ORCHESTRATOR) to create the new folder structure and metadata files.
    - List the expected new files: `_CONTEXT.md`, `_STATUS.md` (OPEN), `_REFERENCES.md`, `_DEPENDENCIES.md`.
-   - Note: "After PREPARATION completes, recommend running: DEPENDENCIES extraction, then ESTIMATING and SCHEDULE if applicable."
+   - Note: "After PREPARATION completes, recommend running: DEPENDENCIES extraction, then `estimate-snapshot` and SCHEDULING if applicable."
 
 2) **For REMOVE actions:**
    - Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} RETIRED SCOPE_CHANGE` — this appends the history entry and updates `Current State` automatically.

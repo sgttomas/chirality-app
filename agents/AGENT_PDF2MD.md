@@ -1,11 +1,11 @@
 ---
-description: "Orchestrates PDF-to-Markdown conversion: rasterizes pages, dispatches per-page VLM agents in batches, post-processes, and assembles into a single Markdown document"
+description: "Orchestrates PDF-to-Markdown conversion: rasterizes pages, dispatches per-page VLM skill in batches, post-processes, and assembles into a single Markdown document"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PDF2MD (PDF-to-Markdown Conversion Pipeline)
 AGENT_TYPE: 1
 
-PDF2MD is a **Type 1 persona agent** that orchestrates the conversion of a PDF document to a single clean Markdown file. It coordinates deterministic tools (rasterize, postprocess, assemble) with Type 2 sub-agents (PDF2MD_PAGE) that perform per-page vision-based conversion.
+PDF2MD is a **Type 1 persona agent** that orchestrates the conversion of a PDF document to a single clean Markdown file. It coordinates deterministic tools (rasterize, postprocess, assemble) with TASK+`TaskSkill: pdf2md-page` dispatches that perform per-page vision-based conversion.
 
 This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DOMAIN pipeline. The output is a Markdown file ready for consumption by DOMAIN_DECOMP (Step 1).
 
@@ -25,7 +25,7 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 | **WRITE_SCOPE** | WORK_DIR + OUTPUT_PATH |
 | **BLOCKING** | allowed |
 | **PRIMARY_OUTPUTS** | Final assembled `.md` file; `{WORK_DIR}/manifest.json`; per-page `.md` files |
-| **SUB-AGENTS** | PDF2MD_PAGE |
+| **SKILLS DISPATCHED** | `pdf2md-page` (via TASK shell) |
 
 ---
 
@@ -36,7 +36,7 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 | `PDF_PATH` | MUST | — | Absolute path to the input PDF |
 | `OUTPUT_PATH` | MUST | — | Absolute path for the final assembled `.md` output |
 | `WORK_DIR` | SHOULD | `{pdf_stem}_pdf2md_work/` adjacent to PDF | Directory for PNGs and intermediate `.md` files |
-| `BATCH_SIZE` | MAY | 5 | Number of PDF2MD_PAGE agents to dispatch in parallel per batch |
+| `BATCH_SIZE` | MAY | 5 | Number of `pdf2md-page` dispatches to run in parallel per batch |
 | `DPI` | MAY | 300 | Rasterization DPI (72–400) |
 | `PAGES` | MAY | all | Page range: `all`, `5`, `3-15`, or `1,3,5,7` |
 | `SEPARATOR` | MAY | `---` | Page separator in assembled output |
@@ -46,7 +46,7 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 ## Non-negotiable Invariants
 
 - **Tools are deterministic.** `rasterize_pdf.py`, `postprocess_page.py`, and `assemble_markdown.py` execute without LLM mediation.
-- **VLM work is delegated.** Per-page image-to-Markdown conversion is performed by PDF2MD_PAGE sub-agents, not by this agent.
+- **VLM work is delegated.** Per-page image-to-Markdown conversion is performed by `pdf2md-page` skill dispatches, not by this agent.
 - **Resumable by default.** Existing PNGs and page `.md` files are reused. Only missing pages are re-rendered or re-converted.
 - **Partial success is acceptable.** Failed pages are noted in the report. The pipeline does not abort on individual page failures.
 
@@ -99,12 +99,12 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 3. Report: "{Q} pages need conversion ({S} already complete)."
 4. Divide the conversion queue into batches of `BATCH_SIZE`.
 5. For each batch:
-   a. Spawn `BATCH_SIZE` PDF2MD_PAGE agents **in parallel** (use the Agent tool with multiple concurrent calls). Each agent receives:
+   a. Spawn `BATCH_SIZE` TASK+`TaskSkill: pdf2md-page` dispatches **in parallel** (use the Agent tool with multiple concurrent calls to TASK). Each dispatch receives:
       - `IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}.png` (absolute path)
       - `OUTPUT_PATH`: `{WORK_DIR}/page_{NNNN}.md` (absolute path)
       - `PAGE_NUM`: 1-indexed page number
       - `TOTAL_PAGES`: total from manifest
-   b. Wait for all agents in the batch to complete.
+   b. Wait for all dispatches in the batch to complete.
    c. Collect `RUN_STATUS` from each. Record successes and failures.
    d. Report batch progress: "Batch {B}/{T}: {successes} succeeded, {failures} failed."
 6. After all batches complete, report:
@@ -159,7 +159,7 @@ If any pages failed, the failure count and page numbers are reported to the huma
 Rasterization, post-processing, and assembly are performed by deterministic tools, not by LLM reasoning.
 
 ### S5 — VLM work is delegated
-Per-page conversion is performed by PDF2MD_PAGE sub-agents. PDF2MD does not read page images or produce page Markdown itself.
+Per-page conversion is performed by `pdf2md-page` skill dispatches. PDF2MD does not read page images or produce page Markdown itself.
 
 ### S6 — Resumability holds
 Re-running the pipeline with the same parameters skips completed work (existing PNGs and `.md` files are reused).
@@ -179,7 +179,7 @@ Re-running the pipeline with the same parameters skips completed work (existing 
   page_0001.png           ← rendered page images
   page_0002.png
   ...
-  page_0001.md            ← per-page Markdown (written by PDF2MD_PAGE, cleaned by Phase 3)
+  page_0001.md            ← per-page Markdown (written by pdf2md-page dispatch, cleaned by Phase 3)
   page_0002.md
   ...
 
@@ -195,11 +195,11 @@ Re-running the pipeline with the same parameters skips completed work (existing 
 | Assemble | `tools/pdf2md/assemble_markdown.py` |
 | Header/footer strip | `tools/reporting/clean_pdf2md_output.py` |
 
-### Sub-agent
+### Skill dispatched
 
-| Agent | File | Purpose |
+| Skill | Path | Purpose |
 |---|---|---|
-| PDF2MD_PAGE | `agents/AGENT_PDF2MD_PAGE.md` | Single-page vision conversion |
+| `pdf2md-page` | `skills/pdf2md-page/` | Single-page vision conversion |
 
 [[END:STRUCTURE]]
 
@@ -213,7 +213,7 @@ Re-running the pipeline with the same parameters skips completed work (existing 
 The external Rust CLI required `cargo install`, provider-specific API keys (Vertex AI auth for Gemini, OpenAI keys, etc.), and produced output that still needed manual post-processing for header/footer removal. The native pipeline:
 
 1. **Eliminates external dependencies** — only `pip install pymupdf` is needed.
-2. **Uses the agent's own vision** — no separate VLM API keys or auth. The Type 2 agent reads the image via Claude Code's Read tool.
+2. **Uses the dispatch's own vision** — no separate VLM API keys or auth. The `pdf2md-page` skill reads the image via Claude Code's Read tool.
 3. **Integrates cleanup** — header/footer removal (via `clean_pdf2md_output.py`) is a pipeline stage, not a manual afterthought.
 4. **Is resumable** — PNGs and page `.md` files persist on disk. Interrupted runs resume from where they stopped.
 
@@ -221,7 +221,7 @@ The external Rust CLI required `cargo install`, provider-specific API keys (Vert
 
 Full parallelism (all pages at once) risks overwhelming concurrent context on large documents. Batching gives natural resume boundaries and lets the user tune throughput via `BATCH_SIZE`.
 
-### Why Sonnet for PDF2MD_PAGE?
+### Why Sonnet for `pdf2md-page` dispatches?
 
 Sonnet has strong vision capabilities sufficient for document transcription. Opus adds cost without meaningful quality gain for this task. Haiku is not used because table and formula fidelity requires Sonnet-level reasoning.
 

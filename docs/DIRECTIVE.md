@@ -38,13 +38,13 @@ The fundamental problem of using LLMs in professional practice is not that they 
 
 Four architectural mechanisms enforce this:
 
-*Mandatory provenance.* Every extracted or aggregated claim must cite its source file and section reference, or carry an explicit `location TBD` marker. A claim without provenance is structurally visible as ungrounded. Enforced by invariant K-PROV-1.
+*Mandatory provenance.* Every non-trivial governed claim must cite its source file and section reference, or carry an explicit `location TBD` marker. A claim without provenance is structurally visible as ungrounded. Enforced by invariant K-PROV-1.
 
 *No invention.* When required information is missing, agents label it `TBD` and surface the gap as an open issue. They do not guess, default-fill, or silently infer. Missing data is a finding, not a problem to solve. Enforced by invariant K-INVENT-1.
 
 *Conflict surfacing.* When sources disagree, agents produce a Conflict Table with the competing claims, pointers to their sources, and a `HumanRuling = TBD` column. Agents never silently resolve contradictions — the human owns the ruling. Enforced by invariant K-CONFLICT-1.
 
-*Epistemic labeling.* Every non-trivial claim is classified: FACT (directly observed in source text with citation), ASSUMPTION (reasonable inference not directly stated, requiring validation), PROPOSAL (agent suggestion requiring human decision), or TBD (unknown, placeholder requiring resolution). The licensed professional does not need to guess whether a value is grounded or inferred — the label tells them.
+*Epistemic labeling.* Every non-trivial claim is classified: FACT (directly observed in source text with citation), ASSUMPTION (reasonable inference grounded in cited material and requiring validation), PROPOSAL (suggestion requiring human decision), or TBD (unknown or unwarranted placeholder requiring resolution). The licensed professional does not need to guess whether a value is grounded or inferred — the label tells them.
 
 Together, these mechanisms mean that gaps in evidence are findings, not hidden failures. The system does not try to prevent hallucination — it requires provenance, making unsupported claims structurally visible. This is what makes thorough review tractable in professional practice: the evidence trail is not a byproduct of the workflow, it is the workflow.
 
@@ -54,33 +54,7 @@ Two additional epistemic commitments complete the picture:
 
 *Content-addressed approval.* Approvals bind to a specific git SHA. If the content changes after approval, the approval is void. This makes the integrity of the approval relationship mechanically verifiable — not dependent on trust or process discipline alone.
 
-The epistemology has its own ontology — the set of entities that the epistemic mechanisms operate on. Six primitives constitute this layer:
-
-| Primitive | What It Is |
-|---|---|
-| **Claim** | An assertion that something is the case. The atomic unit of the epistemology. |
-| **Warrant** | The justification for believing a claim. Always extrinsic (source citation), never intrinsic (model confidence). |
-| **Status** | The epistemic classification of a claim's certainty: FACT, ASSUMPTION, PROPOSAL, or TBD. |
-| **Gap** | The explicit, positive assertion that a warrant has not been found. TBD is not "unknown" — it is an entity representing the absence of warrant. |
-| **Conflict** | Two or more claims with incompatible warrants about the same key. The existence of a conflict is itself an epistemic entity that must be resolved. |
-| **Ruling** | A human decision that resolves a gap or conflict, transforming epistemic status. |
-
-These primitives and their relationships are formalized in `TYPES.md` §10.
-
-The epistemic primitives give rise to a **warrant lifecycle** that tracks the epistemic state of claims within a deliverable, interleaved with the deliverable lifecycle that tracks production state:
-
-```
-UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
-```
-
-| Warrant State | Meaning | Transition Mechanism |
-|---|---|---|
-| `UNWARRANTED` | Claim exists but has no source citation; status is TBD or PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking |
-| `CITED` | Claim has a source citation; status is FACT or ASSUMPTION | Agent attaches provenance; K-PROV-1 enforces |
-| `REVIEWED` | Claim has been examined by a professional; findings dispositioned | REVIEW gates; human rules on findings |
-| `AUTHENTICATED` | Claim is part of an authenticated PWP; the professional warrants it | Authentication binds to git SHA; K-AUTH-2 enforces |
-
-The deliverable lifecycle asks: what state is this work product in? The warrant lifecycle asks: what state is our knowledge about this work product in? The deliverable is ready for issuance when its warrants are sufficient — when the licensed professional has determined that the epistemic state of the claims supports authentication under professional responsibility. The warrant lifecycle is formalized in `TYPES.md` §10.
+The formal epistemic ontology and warrant lifecycle are defined in `CHIRALITY_FRAMEWORK.md` §3.3 and `TYPES.md` §10. In summary: the epistemic layer operates on claims, warrants, statuses, gaps, conflicts, and rulings; a claim without warrant is a visible gap rather than a hidden omission; and claims progress through `UNWARRANTED → CITED → REVIEWED → AUTHENTICATED` as professionals assess and then bind themselves to specific content. The deliverable lifecycle tracks production state; the warrant lifecycle tracks the epistemic state of the claims within that work.
 
 **Praxiology — how work is done.**
 

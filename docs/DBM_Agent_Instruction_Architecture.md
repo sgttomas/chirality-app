@@ -36,7 +36,7 @@ Humans own acceptance, rulings, conflict resolution, scope boundary changes, and
 
 ### 1.3 Evidence-First Epistemology
 
-Every non-trivial claim includes a source path and best-effort section reference (or explicit `location TBD`). Epistemic labels — `FACT`, `ASSUMPTION`, `PROPOSAL`, `TBD` — are used to distinguish what is known from what is inferred.
+Every non-trivial claim includes a source path and best-effort section reference (or explicit `location TBD`). Epistemic labels — `FACT`, `ASSUMPTION`, `PROPOSAL`, `TBD` — are used to distinguish what is directly observed, what is inferred from cited material, what is proposed for decision, and what remains unresolved.
 
 This is the system's primary response to the fundamental limitation of LLM-based agents: hallucination. Rather than attempting to prevent unsupported claims (which is not reliably possible), the architecture requires provenance for every claim and makes unsupported claims structurally visible. K-PROV-1 (mandatory provenance), K-INVENT-1 (no invention), and K-CONFLICT-1 (conflict surfacing) enforce this collectively. The result is that gaps in evidence are findings — not hidden failures.
 
@@ -111,7 +111,7 @@ Type 2 agents are brief-driven specialists that run straight-through without hum
 
 **Count:** See §5 for inventory; current governed count maintained in [`REPO_INVENTORY.md`](REPO_INVENTORY.md).
 
-**Note:** The `agents/` directory also contains supporting template files (`MEMORY_TEMPLATE.md`, `TASK_ESTIMATING_TEMPLATE.md`) that are not agent instructions but are consumed by agents at runtime.
+**Note:** Supporting template files consumed by agents at runtime live outside `agents/`: e.g., `docs/templates/MEMORY_TEMPLATE.md`.
 
 ---
 
@@ -251,7 +251,7 @@ The `K-*` invariants are defined in `CONTRACT.md`. Their enforcement is distribu
 | Staleness & Validation | K-STALE-1, K-STALE-2, K-VAL-1 | AUDIT_DEP_CLOSURE, RECONCILIATION; future tooling (SHA comparison) |
 | Gates | K-GATE-1 | ORCHESTRATOR, SCHEDULING |
 | Merge | K-MERGE-1 | CHANGE |
-| Provenance | K-PROV-1 | DEPENDENCIES (every row must cite evidence) |
+| Provenance | K-PROV-1 | Universal (all claim-producing agents); DEPENDENCIES applies row schema for `Dependencies.csv` |
 | Invention | K-INVENT-1 | Universal (all agents) |
 | Conflicts | K-CONFLICT-1 | Universal (all agents) |
 | Write scope | K-WRITE-1 | Universal (WRITE_SCOPE declaration per agent) |
@@ -666,7 +666,7 @@ All Type 2 agents that produce analysis outputs write to a timestamped snapshot 
 
 ### 11.2 Evidence-First Epistemology
 
-Every non-trivial claim includes `SourcePath` + `SectionRef` (or explicit `location TBD`). Epistemic labels distinguish known facts from inferences: `FACT`, `ASSUMPTION`, `PROPOSAL`, `TBD`. No agent may claim certainty without evidence.
+Every non-trivial claim includes `SourcePath` + `SectionRef` (or explicit `location TBD`). Epistemic labels distinguish observed facts, cited inferences, proposals for decision, and unresolved gaps: `FACT`, `ASSUMPTION`, `PROPOSAL`, `TBD`. No agent may claim certainty without evidence.
 
 ### 11.3 Conflict Table
 

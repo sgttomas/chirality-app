@@ -114,7 +114,7 @@ Engineering does not accept "sounds right." The firm's practice requires:
 - Verification evidence traceable to specific checks
 - Uncertainty and limitations stated
 
-This is enforced by invariants K-PROV-1 (mandatory provenance), K-INVENT-1 (no invention — unknown values become TBD), and K-CONFLICT-1 (conflicts surfaced, not silently resolved). See `docs/CONTRACT.md`.
+This is enforced by invariants K-PROV-1 (mandatory provenance for governed claims), K-INVENT-1 (no invention — unknown values become TBD), and K-CONFLICT-1 (conflicts surfaced, not silently resolved). See `docs/CONTRACT.md`.
 
 ### 3.5 Hierarchy of Authority
 
@@ -319,8 +319,8 @@ The firm's evidence trail is maintained through:
 - **Filesystem as state.** All project truth lives in git-tracked plain files. There is no external database or hidden state. If a decision is not in a versioned file, it does not exist for purposes of reliance. See `docs/DIRECTIVE.md` §2.1 (Filesystem Is the Database), §2.5 (No Hidden Memory).
 - **Git as development record.** Version control provides meaningful diffs for review, reproducibility, rollback, and audits that do not depend on vendor systems or transient context. See `docs/DIRECTIVE.md` §2.2 (Git Is the Event Store).
 - **Immutable snapshots.** Task agent analysis outputs are written to timestamped folders that are never modified after creation. The snapshot trail is the audit trail. Enforced by K-SNAP-1 (`docs/CONTRACT.md` §1.10); format defined in `docs/SPEC.md` §11 (Snapshot and Pointer Conventions).
-- **Provenance tracking.** Every extraction, dependency, and parameter value cites its source file and section reference, or carries an explicit `location TBD` marker. Enforced by K-PROV-1 (`docs/CONTRACT.md` §1.9); dependency provenance schema defined in `docs/SPEC.md` §6.5.
-- **Epistemic labeling.** All claims are labeled: FACT (observed in source), ASSUMPTION (inferred), PROPOSAL (agent suggestion), or TBD (unknown). The licensed professional does not need to guess whether a value is grounded or inferred. Labels defined in `docs/TYPES.md` §10 (Epistemic Labels).
+- **Provenance tracking.** Every non-trivial governed claim cites its source file and section reference, or carries an explicit `location TBD` marker. Dependency rows are a schema-specific instance of this rule. Enforced by K-PROV-1 (`docs/CONTRACT.md` §1.9); dependency provenance schema defined in `docs/SPEC.md` §6.5.
+- **Epistemic labeling.** All claims are labeled: FACT (observed in source), ASSUMPTION (inferred from cited material), PROPOSAL (agent suggestion requiring decision), or TBD (unknown or unwarranted placeholder). The licensed professional does not need to guess whether a value is grounded or inferred. Labels defined in `docs/TYPES.md` §10 (Epistemic Labels).
 
 ---
 

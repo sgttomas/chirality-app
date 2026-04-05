@@ -15,6 +15,8 @@ Apply semantic lensing analysis to deliverable-local production documents using 
 
 This skill provides the structured method for semantic lensing that DELIVERABLE_TASK identifies as an optional analysis path. When loaded, it supplies the matrix interpretation, tagging conventions, and enrichment workflow.
 
+This skill is the **interactive, proposal-producing** contract in the semantic-lensing family. Its setup-time counterpart is `skills/lens-register/`, which generates the matrix-organized register (`_SEMANTIC_LENSING.md`) that this skill consumes as a candidate worklist. Both skills are documented in `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
+
 ## Suitable agent shells
 
 - `TASK` with `TaskProfile: DELIVERABLE_TASK`

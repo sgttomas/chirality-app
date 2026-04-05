@@ -59,12 +59,15 @@ Run: `find {EXECUTION_ROOT} -name "Dependencies.csv" -path "*/1_Working/*" | sor
 Run `tools/validation/validate_dependencies_schema.py {csv_path}` for each file found.
 Record per file: path, column count, schema status (VALID/INVALID), extension columns.
 
+> Tool invocation: `python3 tools/validation/validate_dependencies_schema.py {csv_path}`
+> Tool invocation (shell wrapper, optional): `tools/evaluation/check_dependency_schema.sh {EXECUTION_ROOT}`
+
 ### Step 3 — Check IMPLEMENTS_NODE anchor
-Run: `tools/query/check_implements_node.sh {EXECUTION_ROOT}` (or inline equivalent)
+Run: `tools/evaluation/check_implements_node.sh {EXECUTION_ROOT}` (or inline equivalent)
 Record per file: anchor count, has-at-least-one (Y/N).
 
 ### Step 4 — Check EvidenceFile population
-Run: `tools/query/check_evidence_coverage.sh {EXECUTION_ROOT}` (or inline equivalent)
+Run: `tools/evaluation/check_evidence_coverage.sh {EXECUTION_ROOT}` (or inline equivalent)
 Record per file: total rows, evidence-populated count, coverage percentage.
 
 ### Step 5 — Validate enum values
@@ -78,9 +81,14 @@ For a representative sample (10-15 files across packages), use `tools/validation
 
 No legacy values (COORDINATION, INFORMATION) should appear.
 
+> Tool invocation: `python3 tools/validation/validate_enum.py {ENUM_FIELD} {value}`
+> Tool invocation (ID format spot-check, optional): `tools/validation/validate_id_format.sh {ID_TYPE} {ID_VALUE}`
+
 ### Step 6 — Run full graph analysis (if feasible)
 Run: `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {SNAPSHOT_DIR}`
 This produces: `closure_summary.json`, `orphans.csv`, `scc_summary.csv`, `hubs.csv`, `bidirectional_pairs.csv`, `coverage.csv`, `id_normalization.csv`.
+
+> Tool invocation: `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {SNAPSHOT_DIR}`
 
 If the full analysis tool is unavailable, fall back to reading existing reconciliation reports at `_Reconciliation/DepClosure/`.
 

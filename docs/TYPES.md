@@ -296,10 +296,10 @@ The epistemology pillar (see `DIRECTIVE.md` §2) operates on a set of formally d
 |---|---|
 | A claim HAS a status | Exactly one of FACT, ASSUMPTION, PROPOSAL, or TBD |
 | A claim MAY HAVE a warrant | Source file + section reference + optional quote; absence is structurally visible |
-| A claim WITHOUT a warrant | Has status TBD or ASSUMPTION; the absence of warrant is itself a finding |
+| A claim WITHOUT a warrant | Is a gap; status is TBD or uncited PROPOSAL; the absence of warrant is itself a finding |
 | Two claims may be IN CONFLICT | Same key, incompatible values, different sources |
 | A conflict REQUIRES a ruling | HumanRuling = TBD until the licensed professional adjudicates |
-| A ruling TRANSFORMS status | Resolves gaps (TBD → FACT or ASSUMPTION) and conflicts (competing claims → one accepted) |
+| A ruling TRANSFORMS status | Resolves gaps (TBD → FACT or ASSUMPTION), accepts or rejects proposals, and resolves conflicts (competing claims → one accepted) |
 
 ### 10.3 Epistemic Labels
 
@@ -308,8 +308,8 @@ The four epistemic labels classify the certainty status of claims:
 | Label | Meaning | Reviewer Action |
 |-------|---------|-----------------|
 | `FACT` | Directly observed in source text with citation | Verify citation; accept if source is authoritative |
-| `ASSUMPTION` | Reasonable inference not directly stated; requires validation | Validate or reject; document decision |
-| `PROPOSAL` | Agent suggestion; requires human decision to become binding | Decide; record rationale |
+| `ASSUMPTION` | Reasonable inference grounded in cited material; not directly stated and still requiring validation | Validate or reject; document decision |
+| `PROPOSAL` | Suggested interpretation, action, or design move; may cite supporting context, but requires human decision to become binding | Decide; record rationale |
 | `TBD` | Unknown; placeholder requiring resolution | Resolve before reliance |
 
 ### 10.4 Warrant Lifecycle
@@ -322,8 +322,8 @@ UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
 
 | Warrant State | Meaning | Transition Mechanism |
 |---|---|---|
-| `UNWARRANTED` | Claim exists but has no source citation; status is TBD or PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking for unknowns |
-| `CITED` | Claim has a source citation; status is FACT or ASSUMPTION | Agent attaches provenance; K-PROV-1 enforces |
+| `UNWARRANTED` | Claim exists but has no source citation; status is TBD or uncited PROPOSAL | Agent produces claim; K-INVENT-1 requires TBD marking for gaps |
+| `CITED` | Claim has a source citation; status is FACT, ASSUMPTION, or cited PROPOSAL | Agent attaches provenance; K-PROV-1 enforces |
 | `REVIEWED` | Claim has been examined by a licensed professional; findings dispositioned | REVIEW gates; human rules on findings |
 | `AUTHENTICATED` | Claim is part of an authenticated PWP; the professional warrants it under duty of care | Authentication binds to git SHA; K-AUTH-2 enforces |
 

@@ -144,6 +144,9 @@ For each readable `Dependencies.csv`:
 
 ### Step 3 — Build the graph (analysis-only)
 
+> Tool invocation: steps 1–4 are performed by a single deterministic call to `tools/coordination/analyze_dep_closure.py`, which handles register discovery, schema validation, graph construction, and core-check outputs.
+> `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {snapshot_folder}/Evidence/`
+
 Nodes:
 - All deliverables discovered in scope.
 
@@ -218,6 +221,8 @@ If `PRIOR_RUN_LABEL` is provided:
 ---
 
 ### Step 6 — Publish snapshot and return summary
+
+> Tool invocation: snapshot bootstrap and pointer updates use `tools/scaffolding/scaffold_tool_root.sh`, `tools/scaffolding/create_snapshot_folder.sh`, and `tools/scaffolding/update_latest_pointer.sh` (see Outputs section for concrete command lines).
 
 1) Write all artifacts into the run snapshot folder.
 2) Update `_LATEST.md` pointer.

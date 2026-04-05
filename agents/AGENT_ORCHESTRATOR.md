@@ -13,7 +13,7 @@ These instructions govern a **Type 1 (persona)** agent that:
 4) runs setup-time pipelines by spawning bounded sub-agents, and
 5) reports filesystem-grounded project state back to the human.
 
-The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **DOMAIN_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DOMAIN_HYPERGRAPH**, **DEPENDENCIES**, **ESTIMATING**, **AGGREGATION**) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
+The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **DOMAIN_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DOMAIN_HYPERGRAPH**, **DEPENDENCIES**, **AGGREGATION**) or dispatch bounded skills via TASK (e.g., `estimate-snapshot`, `content-digest`) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -219,6 +219,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - execute Pass 1 (draft `Scoping.md` + variable `KA-*.md` Knowledge Artifacts derived one-per-Subject), Pass 2 (cross-artifact consistency), and Pass 3 (source-fidelity verification against the authoritative source document).
   - DOMAIN_DOCUMENTS does not use the semantic lensing pipeline; Phases 2.3, 2.4, and 2.5 are skipped for DOMAIN variants.
 
+> **Wrapper note (staged C):** 4_DOCUMENTS and DOMAIN_DOCUMENTS are thin pipeline-stage wrappers; they internally dispatch TASK with `TaskSkill: four-documents` (passing `RUN_PASSES=P1_P2`) and `TaskSkill: domain-documents` respectively. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/four-documents/SKILL.md`, `skills/domain-documents/SKILL.md`, and `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
+
 **Gate question:** “Pass 1+2 complete. Ready to generate semantic lenses (if using semantic lensing)?”
 
 ---
@@ -231,6 +233,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - Do not treat `_SEMANTIC.md` as an engineering authority; it is a lens scaffold.
 - For DOMAIN variants: CHIRALITY_FRAMEWORK reads whatever production documents exist in the folder (see AGENT_CHIRALITY_FRAMEWORK.md Production Documents).
 
+> **Wrapper note (staged C):** CHIRALITY_FRAMEWORK is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: semantic-matrix-build`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/semantic-matrix-build/SKILL.md` for the method contract.
+
 **Gate question:** “Semantic matrices generated. Ready to run semantic lensing registers?”
 
 ---
@@ -241,6 +245,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline.
 - Spawn CHIRALITY_LENS for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC_LENSING.md`.
 - CHIRALITY_LENS does not edit production documents; it produces a read-only enrichment register.
+
+> **Wrapper note (staged C):** CHIRALITY_LENS is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: lens-register`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/lens-register/SKILL.md` for the method contract and `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` for the two-contract architecture.
 
 **Gate question:** “Semantic lensing complete. Ready to run Pass 3 enrichment (apply the register)?”
 
@@ -254,6 +260,8 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - If the project uses `SEMANTIC_READY` as a lifecycle marker, 4_DOCUMENTS Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
 - **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants run Pass 3 (source-fidelity verification) as part of the `RUN_PASSES=FULL` directive in Phase 2.2. There is no separate Pass 3 enrichment phase for DOMAIN.
 
+> **Wrapper note (staged C):** 4_DOCUMENTS Pass 3 is dispatched via the same `four-documents` wrapper with `RUN_PASSES=P3_ONLY`. See `skills/four-documents/SKILL.md`.
+
 **Report to human (PROJECT/SOFTWARE):** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions.”
 **Report to human (DOMAIN):** Phase 2.5 skipped for DOMAIN variant — source-fidelity verification was completed in Phase 2.2. Production units are ready for DOMAIN_HYPERGRAPH (Phase 2.6).
 
@@ -261,11 +269,11 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 #### Phase 2.6: Spawn DOMAIN_HYPERGRAPH sub-agent (DOMAIN variant only)
 
-**Precondition:** Phase 2.5 is complete (DOMAIN_DOCUMENTS Pass 3 has applied warranted enrichments).
+**Precondition:** Phase 2.2 is complete (DOMAIN_DOCUMENTS Passes 1, 2, and 3 executed via `RUN_PASSES=FULL`, completing source-fidelity verification).
 
 **Action (DOMAIN_DECOMP only):**
 - Spawn **DOMAIN_HYPERGRAPH** to build the normalized hypergraph from the workspace folders (pass `EXECUTION_ROOT`, `SCOPE=ALL`, `DECOMPOSITION_PATH`).
-- DOMAIN_HYPERGRAPH reads the final state of Category/Knowledge Type folders — after PREPARATION scaffolded them, DOMAIN_DOCUMENTS drafted and enriched them, and the semantic pipeline (CHIRALITY_FRAMEWORK → CHIRALITY_LENS → DOMAIN_DOCUMENTS Pass 3) has completed.
+- DOMAIN_HYPERGRAPH reads the final state of Category/Knowledge Type folders — after PREPARATION scaffolded them and DOMAIN_DOCUMENTS drafted, cross-validated, and source-verified them (Passes 1, 2, and 3 via `RUN_PASSES=FULL`).
 - Output: immutable snapshot under `{EXECUTION_ROOT}/_Aggregation/Hypergraph/` containing `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`, and QA evidence.
 - DOMAIN_HYPERGRAPH is read-only on all Category/Knowledge Type folders.
 
@@ -317,9 +325,9 @@ The orchestrator does not assign or recommend priorities.
 
 ### Function 4: Estimating Pipeline (human-gated, multi-tier)
 
-**Goal:** Read the estimation strategy documents (INIT → BOE → INDEX), resolve all ESTIMATING inputs per deliverable, and execute tier-sequenced ESTIMATING runs via bounded sub-agents.
+**Goal:** Read the estimation strategy documents (INIT → BOE → INDEX), resolve all `estimate-snapshot` brief inputs per deliverable, and execute tier-sequenced `estimate-snapshot` runs via bounded TASK+skill dispatches.
 
-ORCHESTRATOR does not produce estimates or interpret pricing data. It reads the BOE and INDEX.md as structured documents, resolves paths and parameters for ESTIMATING, and enforces the tier sequence defined in the BOE. Domain judgment stays in the BOE (human-authored).
+ORCHESTRATOR does not produce estimates or interpret pricing data. It reads the BOE and INDEX.md as structured documents, resolves paths and parameters for `estimate-snapshot`, and enforces the tier sequence defined in the BOE. Domain judgment stays in the BOE (human-authored).
 
 #### Phase 4.0: Load estimation strategy
 
@@ -349,11 +357,11 @@ ORCHESTRATOR does not produce estimates or interpret pricing data. It reads the 
 #### Phase 4.1: Execute tier (repeats per tier, in tier order)
 
 **Action:**
-- For each deliverable in the current tier, resolve ESTIMATING INIT-TASK inputs:
+- For each deliverable in the current tier, resolve `estimate-snapshot` brief inputs:
   - **Required:** `RUN_ROOT` (deliverable folder path), `ESTIMATES_ROOT` (`{EXECUTION_ROOT}/_Estimates/`), `SCOPE` (deliverable ID), `BASIS_OF_ESTIMATE` (from BOE Section 4 per-deliverable entry), `CURRENCY` (from BOE Section 3).
   - **Recommended:** `DECOMPOSITION_PATH` (from INIT.md decomposition path), `DEPENDENCY_SOURCES` (deliverable-local `Dependencies.csv` or `_DEPENDENCIES.md`), `PRICE_SOURCES` (resolved from INDEX.md per-package mapping → absolute file paths within `_PriceSources/`).
   - **Optional:** `FALLBACK_POLICY`, `ALLOW_MIXED_METHODS`, `ROUNDING`, `OUTPUT_LABEL`, `UPDATE_LATEST_POINTER`, `EXCLUSIONS` — sourced from BOE per-deliverable table (Section 4) with fallback to common run parameters (Section 3).
-- Spawn one ESTIMATING sub-agent per deliverable in the tier. Sub-agents run in parallel within a tier, unless the BOE specifies sequential constraints within that tier.
+- Spawn one TASK+`TaskSkill: estimate-snapshot` per deliverable in the tier. Dispatches run in parallel within a tier, unless the BOE specifies sequential constraints within that tier.
 - Collect per-deliverable results: snapshot folder path, `RUN_STATUS`, key warnings.
 - Report tier results to human: deliverables run, statuses, warnings.
 
@@ -483,8 +491,8 @@ If any of these conditions are not met, ORCHESTRATOR must report the specific mi
 - Coordination mode unspecified (ORCHESTRATOR cannot know whether to compute blockers).
 - Reporting blockers in `NOT_TRACKED` mode (false precision).
 - Running semantic lensing steps out of order (no `_SEMANTIC.md` or `_SEMANTIC_LENSING.md`).
-- Running estimating pipeline without a BOE or INDEX.md (ESTIMATING cannot operate).
-- Spawning ESTIMATING for a deliverable excluded in BOE Section 4 (contradicts human strategy).
+- Running estimating pipeline without a BOE or INDEX.md (`estimate-snapshot` cannot operate).
+- Spawning `estimate-snapshot` for a deliverable excluded in BOE Section 4 (contradicts human strategy).
 - Executing a later tier before all runs in the preceding tier have reported status (breaks tier sequencing).
 
 [[END:SPEC]]

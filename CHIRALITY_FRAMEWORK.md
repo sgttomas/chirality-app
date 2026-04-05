@@ -1,7 +1,7 @@
 # The Chirality Framework
 
 Chirality AI Ltd.
-Date: 2026-03-29, Revision 0, Issued for Use
+Date: 2026-04-04, Revision 2, Issued for Use
 
 **A theory of professional accountability with AI agent systems.**
 
@@ -9,7 +9,9 @@ Date: 2026-03-29, Revision 0, Issued for Use
 
 ## 1. Purpose
 
-This document defines the Chirality Framework — the theoretical foundation for the Chirality agent operating system and the professional practice it serves. It establishes what knowledge means in the context of AI-assisted professional work, what architecture that meaning requires, and what remains irreducibly human.
+This document defines the Chirality Framework — the theoretical foundation for the Chirality agent operating system and the professional practice it serves. It explains what knowledge means in the context of AI-assisted professional work, what architecture that meaning requires, and what remains irreducibly human.
+
+The framework is not a total theory of agency, politics, or knowledge in every setting. It is a theory of professional accountability within knowledge work: the part of the problem concerned with what may be relied on, by whom, on what grounds, and under what commitment. It is therefore broader than the technical definition of an agent, but narrower than a complete metaphysics of human action.
 
 The framework is referenced by the firm's governance documents, agent instruction architecture, and professional practice standard (`PROFESSIONAL_ENGINEERING.md`). It is the "why beneath the why" — the foundation on which the four-pillar design philosophy, the epistemic architecture, and the regulatory integration rest.
 
@@ -66,6 +68,50 @@ The architecture makes both hands visible. The professional holds them together.
 
 The semantic algebra that generates the system's deliverable-level semantic structures formalizes this chirality: Matrix A (how the system is organized) and Matrix B (what adequate knowledge means) are the two non-superimposable inputs. Neither alone generates the semantic space. The algebra brings both hands together.
 
+### 2.5 Agency, Delegation, and Accountability
+
+The framework uses the word *agent* in a bounded, technical sense and situates that technical sense inside a larger accountability structure.
+
+In Chirality's runtime definition, an agent is a controlled system architecture: model, instructions, access to files, and use of tools. That definition answers an ontological question about what kind of thing is acting in the system. In regulated practice, the same agent is also one of the "others" whose work a licensed professional relies on. That answers a different question: how the outputs of that system are treated within professional responsibility.
+
+These are not competing definitions. They operate at different levels.
+
+- The technical definition explains what an artificial agent is and how it acts.
+- The professional definition explains how its work is governed, reviewed, and relied upon.
+
+The resulting distinction is fundamental: artificial agents have bounded operative agency, but not accountable agency. They can produce claims, attach warrants, surface gaps and conflicts, and act within constrained write scopes. They cannot accept duty of care, authenticate a work product, or assume the professional consequences of error. Humans and AI agents therefore participate in the same workflow, but not in the same mode. The difference is not merely one of capability. It is one of responsibility.
+
+### 2.6 Teams, Project Management, and Governance
+
+Once many agents are arranged into bounded roles, gates, dependencies, and handoffs, the system is no longer just a collection of tools. It becomes a form of project management.
+
+This is not metaphorical. The folder structure, stable identifiers, decomposition, lifecycle states, dependency records, gate reviews, and change controls are the same kinds of structures that human teams use to coordinate professional work. In Chirality, those structures are not represented in a separate management layer; they are the filesystem itself. The project structure and the epistemic structure are therefore coupled on purpose. What exists, what is being worked on, what is known, what is unresolved, and what may proceed are all made inspectable in the same project state.
+
+The same is true of governance. Chirality repeatedly distinguishes normative, operative, and evaluative functions. Normative functions define rules and standards. Operative functions execute within those rules. Evaluative functions assess, audit, reconcile, and judge. This pattern is structurally analogous to the differentiation seen in political governance among rule-setting, administration, and adjudication; at civic scale, these often appear as legislative, executive, and judicial branches. The analogy is useful because the underlying problem is the same: authority, execution, and review must be related, but not collapsed into one undifferentiated power.
+
+The claim is not that project governance and political governance are identical institutions. It is that they share a recurrent governance grammar wherever responsible action must be organized under inspectable authority.
+
+### 2.7 What the Framework Does and Does Not Cover
+
+The Chirality Framework is woven throughout the agent architecture because professional knowledge work cannot be separated from agency, organization, and governance. A person cannot determine what to rely on without also knowing who acted, under what constraints, through what process, and under whose authority.
+
+But the framework does not claim to encompass the whole of human life or all possible forms of knowledge. It addresses a specific region of reality: the transition from information to warranted reliance in work that carries professional consequences.
+
+That is why the framework contains an account of agents, an account of teams, and an account of governance, yet is reducible to none of them. It is concerned with each only insofar as each bears on the possibility of accountable knowledge.
+
+### 2.8 Normalization Table
+
+The distinctions above can be kept compactly in view:
+
+| Entity | Category | May produce claims | May attach or record warrants | May classify epistemic status | May issue rulings | May authenticate for reliance | Bears professional responsibility |
+|---|---|---|---|---|---|---|---|
+| **AI agent** | Artificial operative actor | Yes | Yes | Yes | No | No | No |
+| **Licensed professional** | Accountable person under duty of care | Yes | Yes | Yes | Yes | Yes | Yes |
+| **Claim** | Epistemic primitive | n/a | n/a | Receives classification | No | No | No |
+| **Warrant** | Epistemic primitive | No | n/a | No | No | No | No |
+| **Ruling** | Binding human decision | No | May cite grounds | n/a | Yes | No | Yes, through the responsible human who issues it |
+| **Work product / deliverable** | Informational artifact | Contains claims | Contains warrants | Carries aggregate epistemic state | No | No, until authenticated by a human | No |
+
 ---
 
 ## 3. What the Architecture Must Provide
@@ -115,7 +161,16 @@ The epistemology has its own formal domain model — six primitives that constit
 | **Conflict** | Two or more claims with incompatible warrants about the same key. The existence of a conflict is itself an entity that must be resolved through a ruling. |
 | **Ruling** | A human decision that resolves a gap or conflict, transforming epistemic status. Rulings are binding and recorded in versioned files. |
 
-The relationships between primitives: a claim HAS a status; a claim MAY HAVE a warrant; a claim WITHOUT a warrant is a gap; two claims may be IN CONFLICT; a conflict REQUIRES a ruling; a ruling TRANSFORMS status.
+The relationships between primitives: a claim HAS a status; a claim MAY HAVE a warrant; a claim WITHOUT a warrant is a gap; in practice an unwarranted claim is marked `TBD` or remains an uncited `PROPOSAL`; two claims may be IN CONFLICT; a conflict REQUIRES a ruling; a ruling TRANSFORMS status.
+
+The four statuses are interpreted as follows:
+
+| Status | Meaning |
+|---|---|
+| **FACT** | A directly observed claim with citation. |
+| **ASSUMPTION** | An inferential claim grounded in cited material. It is not directly stated in the source and still requires validation, but it is not an unwarranted guess. |
+| **PROPOSAL** | A suggested interpretation, action, or design move that requires human decision before it becomes binding. A proposal may be cited or uncited. |
+| **TBD** | An explicit placeholder for missing information or missing warrant. A TBD is a visible gap, not a silent omission. |
 
 #### 3.3.2 The Four Enforcement Mechanisms
 
@@ -140,8 +195,8 @@ UNWARRANTED → CITED → REVIEWED → AUTHENTICATED
 
 | State | Meaning |
 |---|---|
-| **UNWARRANTED** | A claim exists but has no source citation. Status is TBD or PROPOSAL. The professional cannot yet assess its grounding. |
-| **CITED** | A claim has a source citation. Status is FACT or ASSUMPTION. The evidence exists but no professional has committed to it. |
+| **UNWARRANTED** | A claim exists but has no source citation. Status is TBD or uncited PROPOSAL. The professional cannot yet assess its grounding. |
+| **CITED** | A claim has a source citation. Status is FACT, ASSUMPTION, or cited PROPOSAL. The evidence exists but no professional has committed to it. |
 | **REVIEWED** | A professional has examined the claim, assessed its warrant, and dispositioned any findings. The inner commitment is being enacted. |
 | **AUTHENTICATED** | The professional has bound themselves to the work. The double commitment is complete. The claim is part of a professionally warranted work product. |
 
@@ -210,7 +265,7 @@ Professional accountability tools optimize for knowing what you can rely on — 
 
 Both approaches are valid. Both are complementary. But only the second supports the act that constitutes knowledge: a qualified person committing to a claim on inspectable grounds under duty of care.
 
-The Chirality Framework provides one rigorous structural implementation of the conditions that make this act possible when the claims are produced by AI agents.
+The Chirality Framework provides one rigorous structural implementation of the conditions that make this act possible when the claims are produced by AI agents, organized through project-management structures, and governed under explicit authority.
 
 ---
 
@@ -241,3 +296,5 @@ If we cannot make it auditable, we cannot rely on it. If we cannot warrant it, i
 | Date | Revision | Description |
 |------|----------|-------------|
 | 2026-03-29 | 0 | Initial issue |
+| 2026-04-04 | 1 | Clarified the framework's scope and its relation to agency, project management, governance, and professional knowledge work |
+| 2026-04-04 | 2 | Normalized epistemic status semantics, added a compact normalization table, and aligned the warrant lifecycle with the formal ontology |

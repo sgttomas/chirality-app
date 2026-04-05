@@ -75,15 +75,14 @@ _Sources/ (handbooks, reference materials — typically PDFs)
   DOMAIN_DOCUMENTS (Step 3)
   (reads source Markdown, produces Knowledge Artifacts per KTY)
       |
-      +--→ CHIRALITY_FRAMEWORK (Step 4) → CHIRALITY_LENS (Step 5)
+      v
+  DOMAIN_HYPERGRAPH (Step 4)
       |
-      +--→ DOMAIN_HYPERGRAPH (Step 6)
-              |
-              v
-           AUDIT_HYPERGRAPH_CLOSURE (Step 7)
+      v
+  AUDIT_HYPERGRAPH_CLOSURE (Step 5)
 ```
 
-The pipeline is a single path from source documents through to an audited structural hypergraph. Steps 4–5 (semantic pipeline) and Step 6 (structural hypergraph) are independent after Step 3 and can run in parallel.
+The pipeline is a single linear path from source documents through to an audited structural hypergraph.
 
 ### What runs when
 
@@ -93,10 +92,8 @@ The pipeline is a single path from source documents through to an audited struct
 | 1 | DOMAIN_DECOMP | Human input (+ Markdown sources from step 0) | — |
 | 2 | PREPARATION | Decomposition | — |
 | 3 | DOMAIN_DOCUMENTS | Preparation + Markdown sources | — |
-| 4 | CHIRALITY_FRAMEWORK | DOMAIN_DOCUMENTS | DOMAIN_HYPERGRAPH |
-| 5 | CHIRALITY_LENS | CHIRALITY_FRAMEWORK | DOMAIN_HYPERGRAPH |
-| 6 | DOMAIN_HYPERGRAPH | PREPARATION (reads folder structure) | CHIRALITY_FRAMEWORK, CHIRALITY_LENS |
-| 7 | AUDIT_HYPERGRAPH_CLOSURE | DOMAIN_HYPERGRAPH | — |
+| 4 | DOMAIN_HYPERGRAPH | PREPARATION (reads folder structure) | — |
+| 5 | AUDIT_HYPERGRAPH_CLOSURE | DOMAIN_HYPERGRAPH | — |
 
 Step 0 (PDF2MD agent) runs first when source materials are PDFs — it produces the Markdown that the content path consumes. The native PDF2MD agent replaces edgequake-pdf2md; it uses pymupdf for rasterization and Claude Code's multimodal vision for per-page conversion.
 

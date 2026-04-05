@@ -56,12 +56,14 @@ OUTPUT_FILE: {path to write report}
 Run: `find {EXECUTION_ROOT} -path "*/1_Working/DEL-*" -maxdepth 4 -type d | sort`
 
 ### Step 2 — Count file inventory
-Run: `tools/query/count_deliverable_files.sh {EXECUTION_ROOT}` (or inline equivalent)
+Run: `tools/evaluation/count_deliverable_files.sh {EXECUTION_ROOT}` (or inline equivalent)
 This produces per-file counts for: `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, `Dependencies.csv`, `_MEMORY.md`, `_SEMANTIC.md`, `_SEMANTIC_LENSING.md`.
 
 ### Step 3 — Extract lifecycle states
-Run: `tools/query/extract_lifecycle_states.sh {EXECUTION_ROOT}` (or inline equivalent)
+Run: `tools/evaluation/extract_lifecycle_states.sh {EXECUTION_ROOT}` (or inline equivalent)
 Validates each state against the canonical enum. Use `tools/validation/validate_enum.py LIFECYCLE_STATE {value}` for any ambiguous values.
+
+> Tool invocation: `python3 tools/validation/validate_enum.py LIFECYCLE_STATE {value}` for any ambiguous values.
 
 ### Step 4 — Check MUST files for each deliverable
 For each deliverable folder, verify existence of:
@@ -92,6 +94,8 @@ For each `PKG-*` folder, verify existence of:
 ### Step 7 — Check tool root presence
 Run: `tools/query/count_workspace_state.sh {EXECUTION_ROOT}` (tool root section)
 Verify existence of required tool roots: `_Aggregation/`, `_Coordination/`, `_Decomposition/`, `_Estimates/`, `_Reconciliation/`, `_Sources/`.
+
+> Tool invocation: `bash tools/query/count_workspace_state.sh {EXECUTION_ROOT}`
 
 ### Step 8 — Compile report
 Produce summary tables and violation list. Write to `OUTPUT_FILE`.

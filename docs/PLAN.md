@@ -199,4 +199,34 @@ The remaining gaps build on the currently available capabilities in this order:
 
 ---
 
+## 5. Completed: Agent Suite Classification and Migration
+
+**Status:** Complete (2026-04-04). 48/48 agents classified and ruled; 6 slices executed; 5 B-conversions + 5 C-pattern wrappers live; 1 new deterministic tool created (`tools/aggregation/build_hypergraph.py`); shared-file cross-references integrated; inventory reconciled.
+
+**Intent (achieved):** Clarified boundaries between persona agents, bounded task agents, repo-native skills, and deterministic tools. Factored method logic downward into skills/tools while preserving pipeline-stage identities. Consistent with the compositional model: shell + profile + skill + tool + brief.
+
+**Outcomes:**
+- **Slice 1** (archives + non-agent relocations): 2 archived (EQUIPMENT_EXTRACT, TASK_ESTIMATING_TEMPLATE); 2 relocated (`docs/rubrics/AUDIT_AGENT.md`, `docs/templates/MEMORY_TEMPLATE.md`).
+- **Slice 2** (F-case rulings + ORCHESTRATOR DOMAIN contradiction): DOMAIN_HYPERGRAPH → D, ESTIMATE_PREP → B. DOMAIN pipeline simplified — skips CHIRALITY_FRAMEWORK/LENS (Direction b). 6 files updated for consistency.
+- **Slice 3** (B-conversions): 5 new skills created (`content-digest`, `estimate-snapshot`, `pdf2md-page`, `drawing-extract-page`, `estimate-prep`); 5 source agents archived. Companion docs for `estimate-prep` (SCHEMA_ANNEX, BOE_STRUCTURE, INDEX_MD_CONTRACT). Shared-file dispatches updated.
+- **Slice 4** (C-pattern extractions): 5 new skills created (`semantic-matrix-build`, `lens-register`, `four-documents`, `domain-documents`, `dependency-extract`); 5 wrapper agents rewrote as thin dispatch shims (headers byte-identical). Cross-references integrated in ORCHESTRATOR, DELIVERABLE_TASK, `skills/semantic-lensing/SKILL.md`.
+- **Slice 5a** (D-pattern additive notes): 4 audit agents annotated with explicit tool invocations (+37 lines, 0 deletions). Closure fix: reconciled stale `tools/query/` → `tools/evaluation/` path drift (6 references across 3 files) + fixed `validate_id_format.sh` signature bug.
+- **Slice 5b** (DOMAIN_HYPERGRAPH-D refactor): created `tools/aggregation/build_hypergraph.py` (deterministic SHA1-based hypergraph construction + 9 QA checks + delta computation); rewrote AGENT_DOMAIN_HYPERGRAPH.md PROTOCOL Steps 4-8 as tool-invocation blocks. Steps 0-3 + SPEC + STRUCTURE + RATIONALE byte-identical.
+- **Slice 6** (reconciliation + inventory): REPO_INVENTORY updated (39 agents / 15 skills / 50 tools); docs/PLAN.md marked complete.
+
+**Final repo state:** 39 live agents (down from 48); 15 repo-native skills (up from 5); 50 registered tools (up from 49).
+
+**Companion artifacts:**
+- `plans/AGENT_SUITE_CLASSIFICATION.md` — ruled per-agent classification matrix (48/48, zero provisional)
+- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract semantic-lensing model + ORCHESTRATOR contradiction ruling
+- `plans/AGENT_SUITE_EXECUTION_PLAN.md` — slice mechanics, file ownership, parallelization, verification (all slices marked complete)
+- `plans/CHIRALITY_LENS_MIGRATION.md` — detailed Slice 4 migration (staged C end state with path to full normalization)
+
+**Deferred items (not in migration scope):**
+- Full normalization (B end state) of C-pattern wrappers — requires whole-pipeline unit migration decision.
+- Frontend dispatch logic for archived ESTIMATE_PREP UI references (`frontend/app/page.tsx`, `frontend/components/PipelineView.tsx`) — requires separate frontend work.
+- CONFIDENCE enum mismatch reconciliation (`validate_enum.py` uses MEDIUM vs Detail.csv uses MED) — out of scope.
+
+---
+
 EOF

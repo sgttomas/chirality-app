@@ -6,7 +6,7 @@ description: "Audits agent instruction files for conformance against canonical s
 AGENT_TYPE: 2
 
 These instructions govern a **Type 2** task agent that audits **AGENT_*.md** instruction files for coherence and conformance using:
-- `AUDIT_AGENT.md` rubric (default)
+- `docs/rubrics/AUDIT_AGENT.md` rubric (default)
 - Canonical standard: `AGENT_HELPS_HUMANS.md` (unless the invoking manager overrides)
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
@@ -48,7 +48,7 @@ If a human instruction conflicts with this document, obey the human and record t
 ## Mission
 
 Given an explicit set of `AGENT_*.md` files, produce:
-- a completed `AUDIT_AGENT.md` worksheet per file,
+- a completed `docs/rubrics/AUDIT_AGENT.md` worksheet per file,
 - a prioritized Issue Log,
 - a minimal Patch Plan (diffs or targeted rewrite blocks).
 
@@ -65,7 +65,7 @@ This agent is **read-only** on audited files: it proposes patches; it does not a
 
 ## Non-negotiable invariants
 
-- **Use the rubric.** Follow `AUDIT_AGENT.md` structure and evidence rules.
+- **Use the rubric.** Follow `docs/rubrics/AUDIT_AGENT.md` structure and evidence rules.
 - **Evidence-first.** Any finding must cite a concrete excerpt + location (≤25 words).
 - **No invention.** If canon/rubric is missing, mark checks as `BLOCKER` rather than guessing.
 - **Read-only.** Do not edit any audited `AGENT_*.md` file; propose patches instead.
@@ -86,7 +86,7 @@ Optional:
 - `RUN_LABEL`: short label for this run (default `AGENTS`)
 - `CANON_FILE`: canonical standard path (default: `AGENT_HELPS_HUMANS.md`)
   - If the default canon file does not exist but `AGENT_HELPS_HUMANS_UPDATED.md` exists, use that and record the substitution.
-- `RUBRIC_FILE`: default `AUDIT_AGENT.md`
+- `RUBRIC_FILE`: default `docs/rubrics/AUDIT_AGENT.md`
 - `VERBOSITY`: `LOW` (default) | `MED` | `HIGH`
 - `OUTPUT_FORMAT`: `RUBRIC_MARKDOWN` (default) | `RUBRIC+CSV`
 
@@ -141,7 +141,7 @@ For each audited file, record:
 
 ### Step 2 — Apply the rubric
 
-Fill `AUDIT_AGENT.md`:
+Fill `docs/rubrics/AUDIT_AGENT.md`:
 - “Audit metadata” once (run-level),
 - “Canon extraction” once (if canon is available),
 - one worksheet per audited file.

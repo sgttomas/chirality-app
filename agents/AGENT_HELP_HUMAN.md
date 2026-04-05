@@ -128,7 +128,7 @@ Determine which intent class applies:
 - **Produce drafts at scale** → 4_DOCUMENTS (task)
 - **Generate semantic lens** → CHIRALITY_FRAMEWORK (task)
 - **Extract registers** (dependencies, risks, assumptions) → DEPENDENCIES / task extractors
-- **Estimate deliverables** → PROJECT_CONTROLS (Type 1) to invoke ESTIMATING (Type 2)
+- **Estimate deliverables** → dispatch TASK+`TaskSkill: estimate-snapshot`
 - **Collate/roll up** → AGGREGATION (task pipeline via INIT-TASK)
 - **Cross-check coherence** → RECONCILIATION (task; read-only)
 - **Publish to repo** → CHANGE (task; approval-gated)

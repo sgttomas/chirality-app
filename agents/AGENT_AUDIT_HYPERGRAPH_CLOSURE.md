@@ -138,6 +138,8 @@ Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Re
 
 Write `Evidence/input_hypergraph_manifest.csv` listing file paths + modified timestamps.
 
+> Direct file reads (no dedicated tool; read-only): `{HYPERGRAPH_REF}/_LATEST.md` (pointer), `{snapshot}/nodes.csv`, `{snapshot}/hyperedges.csv`, `{snapshot}/incidence.csv`, and `{snapshot}/hypergraph.json` when present.
+
 ---
 
 ### Step 1 — Parse and validate schema (mandatory)
@@ -152,6 +154,8 @@ If schema invalid:
 - Mark affected checks as `INCOMPLETE` in the final report.
 
 Write `Evidence/schema_findings.csv`.
+
+> Direct file reads (no dedicated hypergraph-parse tool): `{snapshot}/nodes.csv`, `{snapshot}/hyperedges.csv`, `{snapshot}/incidence.csv`. Enum-valued columns (e.g., node types, hyperedge types) can be spot-checked with `tools/validation/validate_enum.py` when enum names align with the Chirality type system.
 
 ---
 
@@ -228,6 +232,8 @@ Compare to hypergraph nodes:
 - CAT/KTY nodes in graph with no matching workspace folder → WARNING
 Write `Evidence/workspace_vs_graph.csv`.
 
+> Tool invocation (optional, for package/deliverable context): `tools/query/count_workspace_state.sh {EXECUTION_ROOT}` — summarizes workspace package/deliverable counts. Category/Knowledge Type folder enumeration remains a direct read-only scan of `{EXECUTION_ROOT}`.
+
 #### Check 9 — Optional ledger closure (only if present or required)
 If `LEDGER_ROW` hyperedges exist, or `REQUIRE_LEDGER_CHECKS=true`:
 - Verify:
@@ -279,6 +285,11 @@ If `PRIOR_RUN_LABEL` is provided:
    - closure status (PASS/WARNING/BLOCKER)
    - top issues (≤10)
    - recommended next action (e.g., rerun DOMAIN_HYPERGRAPH, fix PREPARATION scaffolds, correct `_CONTEXT.md` IDs)
+
+> Tool invocations (from Outputs section; used during snapshot publication):
+> - `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation HypergraphClosure` (bootstrap once per tool root)
+> - `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/HypergraphClosure CLOSURE {RUN_LABEL}` (per-run snapshot)
+> - `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/HypergraphClosure {snapshot_folder_name}` (pointer-only overwrite)
 
 [[END:PROTOCOL]]
 

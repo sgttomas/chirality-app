@@ -73,8 +73,8 @@ Read `PROTOCOL_PATH` to understand the dimension definition, checks, and pass/fa
 For each check in the dimension:
 1. Read the specified data sources (deliverable files, tool root files, content digests, reconciliation reports, PDFs).
 2. Execute deterministic queries using available tools where applicable:
-   - File counts: `tools/query/count_deliverable_files.sh {EXECUTION_ROOT}`
-   - Lifecycle states: `tools/query/extract_lifecycle_states.sh {EXECUTION_ROOT}`
+   - File counts: `tools/evaluation/count_deliverable_files.sh {EXECUTION_ROOT}`
+   - Lifecycle states: `tools/evaluation/extract_lifecycle_states.sh {EXECUTION_ROOT}`
    - Workspace summary: `tools/query/count_workspace_state.sh {EXECUTION_ROOT}`
    - Schema validation: `python3 tools/validation/validate_dependencies_schema.py {csv_path}`
    - Enum validation: `python3 tools/validation/validate_enum.py {ENUM_NAME} {value}`

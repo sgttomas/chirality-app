@@ -475,7 +475,7 @@ This section defines the file schemas PREPARATION writes.
 
 `_MEMORY.md` is the deliverable’s working memory. PREPARATION creates it as a structured empty template for later use by WORKING_ITEMS and deliverable-local task sub-agents. It is intentionally **non-normative** and may grow over time.
 
-Create with this minimum schema (adapted from `MEMORY_TEMPLATE.md`):
+Create with this minimum schema (adapted from `docs/templates/MEMORY_TEMPLATE.md`):
 
 ```markdown
 # Memory — {{DEL-ID}}

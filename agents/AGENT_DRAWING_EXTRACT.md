@@ -1,11 +1,11 @@
 ---
-description: "Orchestrates engineering drawing extraction across PDF page images by rasterizing pages, dispatching DRAWING_EXTRACT_PAGE workers, and assembling structured outputs"
+description: "Orchestrates engineering drawing extraction across PDF page images by rasterizing pages, dispatching drawing-extract-page skill workers, and assembling structured outputs"
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DRAWING_EXTRACT (Drawing Extraction Pipeline)
 AGENT_TYPE: 1
 
-DRAWING_EXTRACT is a **Type 1 persona agent** that orchestrates structured extraction from engineering drawing PDFs. It coordinates deterministic page rasterization with Type 2 `DRAWING_EXTRACT_PAGE` sub-agents that perform bounded page-level extraction.
+DRAWING_EXTRACT is a **Type 1 persona agent** that orchestrates structured extraction from engineering drawing PDFs. It coordinates deterministic page rasterization with TASK+`TaskSkill: drawing-extract-page` dispatches that perform bounded page-level extraction.
 
 This agent is used when the goal is **not** full-page transcription, but selective extraction of structured data from drawing pages.
 
@@ -25,7 +25,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 | **WRITE_SCOPE** | WORK_DIR + OUTPUT_PATHS |
 | **BLOCKING** | allowed |
 | **PRIMARY_OUTPUTS** | Combined `.md` and `.csv` extraction outputs; duplicate-flags `.csv`; per-page stub files; work manifest |
-| **SUB-AGENTS** | DRAWING_EXTRACT_PAGE |
+| **SKILLS DISPATCHED** | `drawing-extract-page` (via TASK shell) |
 
 ---
 
@@ -39,16 +39,16 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 | `START_PAGE` | MUST | — | First page in scope, inclusive |
 | `END_PAGE` | MUST | — | Last page in scope, inclusive |
 | `DPI` | MAY | 400 | Rasterization DPI |
-| `BATCH_SIZE` | MAY | 5 | Number of `DRAWING_EXTRACT_PAGE` workers to dispatch in parallel |
-| `EXTRACTION_MODE` | MUST | — | Passed through to `DRAWING_EXTRACT_PAGE` |
-| `OUTPUT_FORMAT` | MAY | `markdown_stub` | Per-page output format passed to `DRAWING_EXTRACT_PAGE` |
+| `BATCH_SIZE` | MAY | 5 | Number of `drawing-extract-page` dispatches to run in parallel |
+| `EXTRACTION_MODE` | MUST | — | Passed through to the `drawing-extract-page` skill brief |
+| `OUTPUT_FORMAT` | MAY | `markdown_stub` | Per-page output format passed to the `drawing-extract-page` skill brief |
 
 ---
 
 ## Non-negotiable Invariants
 
 - Rasterization is deterministic and resumable.
-- Page-level extraction is delegated to `DRAWING_EXTRACT_PAGE`, not performed directly by this agent.
+- Page-level extraction is delegated to the `drawing-extract-page` skill (via TASK), not performed directly by this agent.
 - `NO_FINDINGS` is a valid page outcome and MUST be preserved in reporting.
 - Failed pages MUST be reported explicitly. They MUST NOT be silently omitted.
 - Combined outputs MUST be assembled only from page outputs generated for the current extraction scope.
@@ -127,7 +127,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 4. Queue missing pages for extraction.
 5. Divide queued pages into batches of `BATCH_SIZE`.
 6. For each batch:
-   - spawn `DRAWING_EXTRACT_PAGE` workers in parallel
+   - spawn TASK+`TaskSkill: drawing-extract-page` dispatches in parallel
    - pass:
      - `IMAGE_PATH`
      - `HEADER_IMAGE_PATH`
@@ -248,7 +248,7 @@ A DRAWING_EXTRACT run is valid when:
 Every page in scope is classified as `SUCCESS`, `NO_FINDINGS`, or `FAILED`.
 
 ### S2 — Page extraction delegated
-Per-page image interpretation is performed by `DRAWING_EXTRACT_PAGE`.
+Per-page image interpretation is performed by `drawing-extract-page` skill dispatches.
 
 ### S3 — Combined outputs written
 The combined Markdown, combined CSV, and duplicate-flags CSV all exist unless every page failed.
@@ -307,11 +307,11 @@ For `top_equipment_header_with_dwg`, helper crops, slice generation, stub-count 
 | Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` |
 | Stub Sanitizer (default QC) | `tools/drawing_extract/sanitize_equipment_stubs.py` |
 
-### Sub-agent
+### Skill dispatched
 
-| Agent | File | Purpose |
+| Skill | Path | Purpose |
 |---|---|---|
-| DRAWING_EXTRACT_PAGE | `agents/AGENT_DRAWING_EXTRACT_PAGE.md` | Single-page drawing extraction |
+| `drawing-extract-page` | `skills/drawing-extract-page/` | Single-page drawing extraction |
 
 [[END:STRUCTURE]]
 

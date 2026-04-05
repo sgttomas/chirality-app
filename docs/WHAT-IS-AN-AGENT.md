@@ -4,6 +4,8 @@
 
 That's it. Nine words.
 
+That definition is operational, not metaphysical. It tells you what kind of runtime system Chirality is talking about. It does not mean that an AI agent is a responsible person or a bearer of professional duty.
+
 ---
 
 ## What Is a *Good* Agent?
@@ -42,6 +44,19 @@ This is why you really only need three layers of nested agents. More complex arc
 
 ---
 
+## What This Does and Does Not Mean
+
+In Chirality, an AI agent is a bounded artificial actor. It can read files, use tools, generate claims, and modify project state within its write scope. In regulated practice, that same agent is treated as one of the "others" whose work a human professional supervises and reviews before relying on it.
+
+So there are two different questions:
+
+- What kind of system is this? An agent in the technical sense above.
+- How is its work treated? As delegated work under human supervision, review, and accountability.
+
+The human remains the accountable party. The agent contributes content and action inside a governed workflow; the human decides what to rely on.
+
+---
+
 ## Why This Works
 
 **Trust through specialization.** By narrowing the scope of Agent 2, you reduce the probability of hallucination. It doesn't need to know the entire project history—it only needs to know how to execute the specific function Agent 1 handed it.
@@ -55,6 +70,16 @@ This is why you really only need three layers of nested agents. More complex arc
 - Bad output → Fix Agent 2's tools
 - Wrong task attempted → Fix Agent 1's instructions
 - Misunderstood goal → Fix Agent 0's alignment
+
+---
+
+## Teams and Project Management
+
+A team of agents is not just a software pattern. In Chirality it is a project-management structure.
+
+The decomposition, folder hierarchy, stable IDs, lifecycle states, dependencies, gates, reviews, and change controls are the same organizational devices that a human team would use to structure work. The difference is that Chirality makes that structure directly inspectable in the filesystem rather than hiding it in meetings, dashboards, and memory.
+
+This is why many-agent orchestration matters. It is not only about parallelism. It is about making delegated work legible enough that a human can supervise it, review it, and accept responsibility for the result.
 
 ---
 
@@ -98,4 +123,6 @@ Chirality implements this model with a governed agent instruction suite (see [`d
 
 - [`README.md`](../README.md) — Project overview and architecture
 - [`AGENTS.md`](../AGENTS.md) — Agent index and matrix
+- [`CHIRALITY_FRAMEWORK.md`](../CHIRALITY_FRAMEWORK.md) — Why agents, teams, governance, and professional knowledge fit together the way they do
+- [`PROFESSIONAL_ENGINEERING.md`](../PROFESSIONAL_ENGINEERING.md) — Why AI agents are treated as "others" under professional supervision and review
 - [`DBM_Agent_Instruction_Architecture.md`](DBM_Agent_Instruction_Architecture.md) — Full design basis

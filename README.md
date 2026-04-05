@@ -44,6 +44,14 @@ Agents are organized into three types with distinct responsibilities:
 
 Authority flows downward; escalation flows upward. A Type 2 agent cannot modify rules set by Type 0. A Type 1 agent cannot approve deliverables for external reliance. Human gates cannot be bypassed by any type.
 
+### Agents, Teams, and Governance
+
+In Chirality, "agent" first has a narrow technical meaning: `LLM + instructions + access to files + use of tools`. In regulated practice, those same agents are also treated as "others" whose work a human professional supervises, reviews, and decides whether to rely on.
+
+Once those agents are arranged into Type 0 / 1 / 2 roles, decomposition trees, lifecycle states, dependency links, reviews, and change controls, the system becomes a form of project management. This is not an accidental resemblance. The folder structure is the project structure, and the project structure is part of the epistemic architecture.
+
+The same pattern appears in governance. Chirality distinguishes normative, operative, and evaluative roles so that rule-setting, execution, and review are related but not collapsed. This is one reason the system's matrix and hierarchy feel closer to an organization than to a loose collection of prompts.
+
 ### Deliverable Lifecycle
 
 Production units progress through a local lifecycle tracked in `_STATUS.md`:
@@ -147,13 +155,11 @@ The architecture rests on four philosophical pillars: an **ontology** (what exis
 
 The foundational decision is that the filesystem is the database. This is not a simplification. It is the mechanism that enables the system's approach to V-model traceability, immutable snapshots, change propagation, content-addressed approval, and a complete audit trail that requires no infrastructure beyond version control.
 
-The most distinctive pillar is the epistemology. The fundamental problem of using LLMs in professional practice is not that they produce bad outputs — it is that bad outputs are indistinguishable from good ones by inspection. Chirality's response is not to make the model more reliable, which cannot be guaranteed. It is to make the epistemic status of every claim structurally visible — provenance is mandatory, unknowns become TBD rather than guesses, conflicts are surfaced rather than silently resolved, and every claim carries an epistemic label (FACT, ASSUMPTION, PROPOSAL, TBD). The labeling is performed by the same probabilistic substrate it governs, so it reduces the rate of undetected failures rather than eliminating the category. But the result is that gaps in evidence become findings rather than hidden failures.
+The most distinctive pillar is the epistemology. Chirality does not assume model output is trustworthy by inspection. Instead, it makes the status of claims structurally visible: provenance is mandatory, unknowns become `TBD` rather than guesses, conflicts are surfaced rather than silently resolved, and claims are labeled as `FACT`, `ASSUMPTION`, `PROPOSAL`, or `TBD`.
 
-The systems engineering disciplines that govern this architecture are integral to the agent system, not a compliance layer applied after the fact. The instruction files are formal specifications that define interfaces, state machines, invariants, containment zones, and authority boundaries. The governance documents form a coherent specification hierarchy: intent, physical structures, vocabulary, and binding invariants.
+The systems engineering disciplines that govern this architecture are integral to the agent system, not a compliance layer applied after the fact. The four-document kit that agents produce for every deliverable — Datasheet (ontology), Specification (epistemology), Guidance (axiology), Procedure (praxiology) — mirrors the same structure. The system practices what it produces.
 
-The four-document kit that agents produce for every deliverable — Datasheet (ontology), Specification (epistemology), Guidance (axiology), Procedure (praxiology) — mirrors the philosophical structure of the system itself. The system practices what it produces.
-
-The architecture exists so that a licensed professional can direct AI agents with the same rigor applied to managing any engineering team — and can authenticate the resulting work product under duty of care, backed by an auditable record. See [`docs/DIRECTIVE.md`](docs/DIRECTIVE.md) §2 for the full philosophical foundation.
+The architecture exists so that a licensed professional can direct AI agents with the same rigor applied to managing any engineering team — and can authenticate the resulting work product under duty of care, backed by an auditable record. See [`CHIRALITY_FRAMEWORK.md`](CHIRALITY_FRAMEWORK.md) for the philosophical account of knowledge, agency, project management, and governance, and [`docs/DIRECTIVE.md`](docs/DIRECTIVE.md) §2 for the system design principles derived from it.
 
 > AI can accelerate engineering work. It cannot inherit professional responsibility.
 
