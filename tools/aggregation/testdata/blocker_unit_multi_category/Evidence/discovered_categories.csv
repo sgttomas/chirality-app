@@ -1,0 +1,3 @@
+CategoryID,CategoryName,SourcePath,SourceRef,Notes
+CAT-001,Operations,execution/CAT-001_Operations,FOLDER_DISCOVERY,
+CAT-002,Engineering,execution/CAT-002_Engineering,FOLDER_DISCOVERY,

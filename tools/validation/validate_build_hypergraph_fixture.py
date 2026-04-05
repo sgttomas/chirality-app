@@ -2,7 +2,7 @@
 """
 validate_build_hypergraph_fixture.py — Regression check for tools/aggregation/build_hypergraph.py.
 
-Runs the hypergraph builder against two bundled fixtures and verifies:
+Runs the hypergraph builder against four bundled fixtures and verifies:
 
 1. Determinism: two runs on clean_minimal produce byte-identical nodes.csv,
    hyperedges.csv, incidence.csv; and identical hypergraph.json after
@@ -11,6 +11,12 @@ Runs the hypergraph builder against two bundled fixtures and verifies:
    in QA_Report.md, and LEDGER_INTEGRITY does NOT appear (no ledger data).
 3. Warning fixture: the missing-category fixture produces the expected
    warning codes AND still emits PASS rows for the unaffected checks.
+4. Clean ledger fixture: 9 PASS codes (including LEDGER_INTEGRITY); expected
+   node/edge counts; one OBJECTIVE node with `#LEDGER_DERIVED` SourceRef;
+   semicolon-list normalization cross-check (re-running with reversed +
+   deduplicated list orderings produces byte-identical outputs).
+5. Blocker fixture: UNIT_MULTIPLE_CATEGORIES BLOCKER fires; LEDGER_INTEGRITY
+   NOT in PASS; other 8 checks still PASS; ATOMIC_UNIT dedup verified.
 
 Usage:
     python3 tools/validation/validate_build_hypergraph_fixture.py [--keep-tmp]
@@ -24,6 +30,7 @@ Exit codes:
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -62,6 +69,9 @@ WARNING_FIXTURE_EXPECTED_WARNINGS: Set[str] = {
     "CATEGORY_REF_MISSING_NODE",
     "KTY_WITHOUT_CATEGORY",
 }
+
+# Expected PASS codes when ledger data is present (adds LEDGER_INTEGRITY).
+LEDGER_CLEAN_PASS_CODES: Set[str] = CLEAN_PASS_CODES | {"LEDGER_INTEGRITY"}
 
 
 def run_tool(staging_dir: Path, output_dir: Path, run_label: str) -> subprocess.CompletedProcess:
@@ -180,6 +190,132 @@ def check_warning_missing_category(tmp_root: Path, failures: List[str]) -> None:
         failures.append("warning_missing_category: CATEGORY_MEMBERSHIP_INTEGRITY spuriously PASSed despite missing-category fixture")
 
 
+def parse_metrics(json_path: Path) -> dict:
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    return data.get("metrics", {})
+
+
+def check_ledger_with_objectives(tmp_root: Path, failures: List[str]) -> None:
+    staging = FIXTURES_ROOT / "ledger_with_objectives" / "Evidence"
+    if not staging.is_dir():
+        failures.append(f"fixture missing: {staging}")
+        return
+    out = tmp_root / "ledger_with_objectives_run"
+    out.mkdir(parents=True, exist_ok=True)
+
+    run_label = "LEDGER_TEST"
+    result = run_tool(staging, out, run_label)
+    if result.returncode != 0:
+        failures.append(f"ledger_with_objectives run failed: {result.stderr.strip()}")
+        return
+
+    by_level = parse_qa_codes_by_level(out / "QA_Report.md")
+
+    missing_passes = LEDGER_CLEAN_PASS_CODES - by_level["PASS"]
+    if missing_passes:
+        failures.append(f"ledger_with_objectives: missing PASS rows for checks: {sorted(missing_passes)}")
+    if by_level["WARNING"]:
+        failures.append(f"ledger_with_objectives: unexpected warnings emitted: {sorted(by_level['WARNING'])}")
+    if by_level["BLOCKER"]:
+        failures.append(f"ledger_with_objectives: unexpected blockers emitted: {sorted(by_level['BLOCKER'])}")
+
+    # Metric assertions
+    metrics = parse_metrics(out / "hypergraph.json")
+    node_counts = metrics.get("node_counts_by_type", {})
+    edge_counts = metrics.get("hyperedge_counts_by_type", {})
+    if node_counts.get("ATOMIC_UNIT") != 2:
+        failures.append(f"ledger_with_objectives: expected 2 ATOMIC_UNIT nodes, got {node_counts.get('ATOMIC_UNIT')}")
+    if node_counts.get("OBJECTIVE") != 2:
+        failures.append(f"ledger_with_objectives: expected 2 OBJECTIVE nodes, got {node_counts.get('OBJECTIVE')}")
+    if edge_counts.get("LEDGER_ROW") != 2:
+        failures.append(f"ledger_with_objectives: expected 2 LEDGER_ROW edges, got {edge_counts.get('LEDGER_ROW')}")
+    if edge_counts.get("KTY_SUPPORTS_OBJ") != 1:
+        failures.append(f"ledger_with_objectives: expected 1 KTY_SUPPORTS_OBJ edge, got {edge_counts.get('KTY_SUPPORTS_OBJ')}")
+
+    # At least one OBJECTIVE node must carry #LEDGER_DERIVED (proves ledger-derived synthesis fired)
+    nodes_text = (out / "nodes.csv").read_text(encoding="utf-8")
+    derived_objective_present = any(
+        "OBJECTIVE" in line and "#LEDGER_DERIVED" in line
+        for line in nodes_text.splitlines()[1:]
+    )
+    if not derived_objective_present:
+        failures.append("ledger_with_objectives: no OBJECTIVE node has SourceRef ending in #LEDGER_DERIVED (ledger-derived branch did not fire)")
+
+    # Normalization cross-check: rewrite semicolon lists (different strings, same canonical set)
+    # then assert byte-identical outputs. Proves trim + dedupe + sort actually runs.
+    variant_staging = tmp_root / "ledger_with_objectives_variant_staging"
+    shutil.copytree(staging, variant_staging)
+    ledger_csv = variant_staging / "discovered_ledger_rows.csv"
+    original_text = ledger_csv.read_text(encoding="utf-8")
+    rewritten_text = original_text.replace(
+        "KTY-02-01_Piping;KTY-01-01_Pumps;KTY-02-01_Piping",
+        "KTY-01-01_Pumps;KTY-02-01_Piping",
+    ).replace(
+        "OBJ-002;OBJ-001;OBJ-002",
+        "OBJ-001;OBJ-002",
+    )
+    if rewritten_text == original_text:
+        failures.append("ledger_with_objectives normalization cross-check: fixture did not match expected semicolon strings (fixture drift)")
+        return
+    ledger_csv.write_text(rewritten_text, encoding="utf-8")
+
+    variant_out = tmp_root / "ledger_with_objectives_variant_run"
+    variant_out.mkdir(parents=True, exist_ok=True)
+    variant_result = run_tool(variant_staging, variant_out, run_label)
+    if variant_result.returncode != 0:
+        failures.append(f"ledger_with_objectives normalization variant run failed: {variant_result.stderr.strip()}")
+        return
+
+    for name in ("nodes.csv", "hyperedges.csv", "incidence.csv"):
+        if (out / name).read_bytes() != (variant_out / name).read_bytes():
+            failures.append(
+                f"normalization cross-check: {name} differs between original and reordered-semicolon variant "
+                "(trim/dedupe/sort logic may have regressed)"
+            )
+
+    json_orig = strip_generated_at(out / "hypergraph.json")
+    json_variant = strip_generated_at(variant_out / "hypergraph.json")
+    if json_orig != json_variant:
+        failures.append(
+            "normalization cross-check: hypergraph.json differs between original and reordered-semicolon variant "
+            "(after stripping generated_at)"
+        )
+
+
+def check_blocker_unit_multi_category(tmp_root: Path, failures: List[str]) -> None:
+    staging = FIXTURES_ROOT / "blocker_unit_multi_category" / "Evidence"
+    if not staging.is_dir():
+        failures.append(f"fixture missing: {staging}")
+        return
+    out = tmp_root / "blocker_unit_multi_category_run"
+    out.mkdir(parents=True, exist_ok=True)
+
+    result = run_tool(staging, out, "BLOCKER_TEST")
+    if result.returncode != 0:
+        failures.append(f"blocker_unit_multi_category run failed: {result.stderr.strip()}")
+        return
+
+    by_level = parse_qa_codes_by_level(out / "QA_Report.md")
+
+    if "UNIT_MULTIPLE_CATEGORIES" not in by_level["BLOCKER"]:
+        failures.append(f"blocker_unit_multi_category: expected UNIT_MULTIPLE_CATEGORIES BLOCKER, got blockers={sorted(by_level['BLOCKER'])}")
+    if "LEDGER_INTEGRITY" in by_level["PASS"]:
+        failures.append("blocker_unit_multi_category: LEDGER_INTEGRITY spuriously PASSed despite UNIT_MULTIPLE_CATEGORIES blocker")
+
+    # All 8 non-ledger checks should still PASS
+    missing_passes = CLEAN_PASS_CODES - by_level["PASS"]
+    if missing_passes:
+        failures.append(f"blocker_unit_multi_category: unaffected PASS rows missing: {sorted(missing_passes)}")
+    if by_level["WARNING"]:
+        failures.append(f"blocker_unit_multi_category: unexpected warnings emitted: {sorted(by_level['WARNING'])}")
+
+    # Atomic-unit dedup assertion: 2 ledger rows with same AtomicUnitID produce 1 node
+    metrics = parse_metrics(out / "hypergraph.json")
+    node_counts = metrics.get("node_counts_by_type", {})
+    if node_counts.get("ATOMIC_UNIT") != 1:
+        failures.append(f"blocker_unit_multi_category: expected 1 ATOMIC_UNIT node (dedup across ledger rows), got {node_counts.get('ATOMIC_UNIT')}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Regression check for build_hypergraph.py")
     parser.add_argument("--keep-tmp", action="store_true", help="Keep temporary output directories for inspection")
@@ -197,6 +333,8 @@ def main() -> int:
         tmp_root = Path(tmp_dir)
         check_clean_minimal(tmp_root, failures)
         check_warning_missing_category(tmp_root, failures)
+        check_ledger_with_objectives(tmp_root, failures)
+        check_blocker_unit_multi_category(tmp_root, failures)
         if args.keep_tmp:
             print(f"(kept temp outputs at {tmp_root})", file=sys.stderr)
 
@@ -206,7 +344,7 @@ def main() -> int:
             print(f"  - {f}", file=sys.stderr)
         return 1
 
-    print("PASS build_hypergraph fixture regression check: determinism + clean-run PASS coverage + warning detection verified")
+    print("PASS build_hypergraph fixture regression check: 5 assertion groups verified (determinism, clean-run PASS coverage, warning detection, ledger/objectives + list normalization, BLOCKER detection)")
     return 0
 
 
