@@ -1,4 +1,6 @@
-# Agent Suite Migration — Session Handoff
+# Agent Suite Migration — Session Handoff (HISTORICAL / CLOSED)
+
+> **STATUS: CLOSED (2026-04-04).** The Agent Suite Classification and Migration workstream is complete. All 6 slices executed; all tasks closed. See `docs/PLAN.md` §5 for the completed-state summary. This file is preserved for historical reference only — **do not use it as live guidance for new work.** Content below describes the state partway through the migration and is now stale.
 
 ## Context
 

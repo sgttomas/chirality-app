@@ -563,6 +563,7 @@ def run_qa_checks(
         })
 
     # Check 3: Category membership integrity (<=1 IN_CATEGORY per KTY)
+    pre_count = len(qa_findings)
     kty_to_in_category_count: Dict[str, int] = {}
     for edge in edges:
         if edge["HyperedgeType"] != "IN_CATEGORY":
@@ -584,8 +585,15 @@ def run_qa_checks(
                 "code": "KTY_WITHOUT_CATEGORY",
                 "detail": f"KnowledgeType {kty_id} has 0 IN_CATEGORY edges (missing category mapping)",
             })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "CATEGORY_MEMBERSHIP_INTEGRITY",
+            "detail": "Every KNOWLEDGE_TYPE has exactly 1 IN_CATEGORY edge",
+        })
 
     # Check 4: Subject attachment (each SUBJECT participates in >=1 HAS_SUBJECT)
+    pre_count = len(qa_findings)
     subjects_with_edges: Set[str] = set()
     for edge in edges:
         if edge["HyperedgeType"] != "HAS_SUBJECT":
@@ -600,8 +608,15 @@ def run_qa_checks(
                 "code": "ORPHAN_SUBJECT",
                 "detail": f"KnowledgeSubject {subject_id} has no HAS_SUBJECT edge (orphan subject)",
             })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "SUBJECT_ATTACHMENT",
+            "detail": "Every KNOWLEDGE_SUBJECT has >=1 HAS_SUBJECT edge" if subjects_with_edges else "No KNOWLEDGE_SUBJECT nodes to check",
+        })
 
     # Check 5: Artifact attachment
+    pre_count = len(qa_findings)
     artifacts_with_edges: Set[str] = set()
     for edge in edges:
         if edge["HyperedgeType"] != "HAS_ARTIFACT":
@@ -616,8 +631,15 @@ def run_qa_checks(
                 "code": "ORPHAN_ARTIFACT",
                 "detail": f"KnowledgeArtifact {artifact_id} has no HAS_ARTIFACT edge (orphan artifact)",
             })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "ARTIFACT_ATTACHMENT",
+            "detail": "Every KNOWLEDGE_ARTIFACT has >=1 HAS_ARTIFACT edge" if artifacts_with_edges else "No KNOWLEDGE_ARTIFACT nodes to check",
+        })
 
     # Check 6: Subject/artifact bridge integrity
+    pre_count = len(qa_findings)
     subject_bridge_count: Dict[str, int] = {}
     artifact_bridge_count: Dict[str, int] = {}
     for edge in edges:
@@ -643,9 +665,16 @@ def run_qa_checks(
                 "code": "ARTIFACT_MERGE_AMBIGUITY",
                 "detail": f"KnowledgeArtifact {artifact_id} has {count} SUBJECT_MATERIALIZED_AS edges (>1 = merged-artifact ambiguity)",
             })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "BRIDGE_INTEGRITY",
+            "detail": "Every SUBJECT and every ARTIFACT participates in <=1 SUBJECT_MATERIALIZED_AS edge",
+        })
 
     # Check 7: Ledger integrity (only if ledger ingested)
     if has_ledger:
+        pre_count = len(qa_findings)
         units_in_ledger_rows: Set[str] = set()
         unit_categories: Dict[str, Set[str]] = {}
         for edge in edges:
@@ -672,8 +701,15 @@ def run_qa_checks(
                     "code": "UNIT_MULTIPLE_CATEGORIES",
                     "detail": f"AtomicUnit {unit_id} maps to {len(cats)} categories via ledger rows: {sorted(cats)}",
                 })
+        if len(qa_findings) == pre_count:
+            qa_findings.append({
+                "level": "PASS",
+                "code": "LEDGER_INTEGRITY",
+                "detail": "Every ATOMIC_UNIT appears in >=1 LEDGER_ROW and maps to <=1 category",
+            })
 
     # Check 8: ID collisions
+    pre_count = len(qa_findings)
     node_id_counts: Dict[str, int] = {}
     for n in nodes:
         node_id_counts[n["NodeID"]] = node_id_counts.get(n["NodeID"], 0) + 1
@@ -697,8 +733,15 @@ def run_qa_checks(
                     "code": "DUPLICATE_NORMALIZED_ID",
                     "detail": f"NormalizedID {norm_id} collides across NodeIDs: {sorted(originals)}",
                 })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "ID_COLLISIONS",
+            "detail": "No duplicate NodeIDs" + (" or NormalizedIDs" if normalize_ids else ""),
+        })
 
     # Check 9: Evidence completeness
+    pre_count = len(qa_findings)
     missing_evidence_nodes = [n["NodeID"] for n in nodes if not n.get("SourcePath") or not n.get("SourceRef")]
     missing_evidence_edges = [e["HyperedgeID"] for e in edges if not e.get("SourcePath") or not e.get("SourceRef")]
     if missing_evidence_nodes:
@@ -712,6 +755,12 @@ def run_qa_checks(
             "level": "WARNING",
             "code": "EVIDENCE_MISSING_ON_EDGES",
             "detail": f"{len(missing_evidence_edges)} hyperedges missing SourcePath or SourceRef (first 5: {missing_evidence_edges[:5]})",
+        })
+    if len(qa_findings) == pre_count:
+        qa_findings.append({
+            "level": "PASS",
+            "code": "EVIDENCE_COMPLETENESS",
+            "detail": "All nodes and hyperedges have SourcePath and SourceRef populated",
         })
 
 

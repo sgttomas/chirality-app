@@ -108,7 +108,7 @@ It does **not** perform evaluation work itself. It:
 3. Dispatch TASK+`TaskSkill: content-digest` (batched by package) for all deliverables.
 4. Monitor completion. Write outputs to `_Evaluation/content-digests/`.
 5. Create digest output directories using `mkdir -p {EXECUTION_ROOT}/_Evaluation/content-digests/{PKG-ID}/` for each package.
-6. Verify coverage using `tools/verify_digest_coverage.sh {EXECUTION_ROOT}` (from `_Evaluation/tools/` or repo `tools/`). Must return exit code 0 (all 1:1).
+6. Verify coverage using `tools/evaluation/verify_digest_coverage.sh {EXECUTION_ROOT}` (from `_Evaluation/tools/` or repo `tools/`). Must return exit code 0 (all 1:1).
 
 ### Phase 3 — Evaluation Protocol Synthesis
 
