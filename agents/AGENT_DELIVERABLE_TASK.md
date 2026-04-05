@@ -226,7 +226,7 @@ These headings are a starting point, not a ceiling. **Add new sections as needed
 
 > **Extracted:** The structured lensing method is now defined in `skills/semantic-lensing/SKILL.md`. When `TaskSkill: semantic-lensing` is loaded, the skill governs matrix interpretation, enrichment workflow, and lens tagging. The inline description below is retained for backward compatibility when no skill is loaded.
 >
-> **Family context:** `skills/semantic-lensing/` is the interactive proposal-producing path. Its setup-time counterpart is `skills/lens-register/` (invoked by CHIRALITY_LENS in ORCHESTRATOR Phase 2.4), which produces the `_SEMANTIC_LENSING.md` register that this skill consumes as a candidate worklist. See `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
+> **Family context:** `skills/semantic-lensing/` is the interactive proposal-producing path. Its setup-time counterpart is `skills/lens-register/` (dispatched by ORCHESTRATOR in Phase 2.4 via TASK), which produces the `_SEMANTIC_LENSING.md` register that this skill consumes as a candidate worklist. See `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
 
 Semantic lensing is an **optional** analysis path. It is enabled ONLY when:
 - `UseSemanticLensing: true`

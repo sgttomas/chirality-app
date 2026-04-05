@@ -8,13 +8,13 @@
 # Inputs:
 #   DEL_PATH — Path to deliverable folder
 #   STATE    — Lifecycle state (OPEN|INITIALIZED|SEMANTIC_READY|IN_PROGRESS|CHECKING|ISSUED)
-#   ACTOR    — Who triggered the transition (e.g., PREPARATION, 4_DOCUMENTS, human)
+#   ACTOR    — Who triggered the transition (e.g., PREPARATION, TASK+four-documents, human)
 #
 # Outputs:
 #   Written/updated _STATUS.md in the deliverable folder.
 #
 # Example:
-#   ./write_status.sh ./execution/PKG-001_.../1_Working/DEL-001-01_... INITIALIZED 4_DOCUMENTS
+#   ./write_status.sh ./execution/PKG-001_.../1_Working/DEL-001-01_... INITIALIZED TASK+four-documents
 
 DEL_PATH="${1:?Usage: $0 <DEL_PATH> <STATE> <ACTOR>}"
 STATE="${2:?Usage: $0 <DEL_PATH> <STATE> <ACTOR>}"

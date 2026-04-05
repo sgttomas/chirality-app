@@ -71,8 +71,8 @@ The system ships agent instruction files organized across a 3x4 matrix (see [`AG
 |  | **Guiding** | **Applying** | **Judging** | **Reviewing** |
 |:---|:---|:---|:---|:---|
 | **Normative** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
-| **Operative** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **Evaluative** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
+| **Operative** | DECOMP\* | PREPARATION | TASK | AUDIT\* |
+| **Evaluative** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
 
 Normative and Evaluative agents open interactive workbench sessions. Operative agents run as pipelines.
 
@@ -113,7 +113,7 @@ The repo's governance and specification documents include:
 
 The architecture is governed by three layers of formally stated invariants:
 
-- **R1–R9 (Workflow Design Requirements)** — Apply to all agents. Defined in `AGENT_HELPS_HUMANS.md`.
+- **R1–R12 (Workflow-Component Design Requirements)** — Apply to all agents, skills, and tools. Defined in `AGENT_HELPS_HUMANS.md`.
 - **I1–I10 (Decomposition Invariants)** — Apply to all decomposition agents. Defined in `AGENT_DECOMP_BASE.md`.
 - **K-\* (System-Wide Invariants)** — 21 named invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, claim strength, and write scope. Defined in [`docs/CONTRACT.md`](docs/CONTRACT.md).
 

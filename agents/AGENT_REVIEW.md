@@ -125,7 +125,7 @@ REVIEW supports four review types. The human selects the type at Gate 1. Each ty
 2) Read `_STATUS.md`. Validate lifecycle state:
    - For `IN_PROGRESS → CHECKING` review: state must be `IN_PROGRESS` (or `SEMANTIC_READY` / `INITIALIZED` if the human explicitly overrides)
    - For `CHECKING → ISSUED` review: state must be `CHECKING`
-   - If state is `OPEN`: warn — "Deliverable has not been initialized; consider running PREPARATION and 4_DOCUMENTS first"
+   - If state is `OPEN`: warn — "Deliverable has not been initialized; consider running PREPARATION and TASK+four-documents (Phase 2.2) first"
    - If state is `ISSUED`: warn — "Deliverable is already ISSUED; this would be a re-review"
 3) Read `_CONTEXT.md`. Extract: deliverable name, package, type, responsible party, anticipated artifacts, mapped objectives.
 4) If `DECOMPOSITION_PATH` is available: dispatch AUDIT_DECOMP scoped to this single deliverable (pass `DECOMP_VARIANT` if known; otherwise infer from the decomposition document's entity names). Report context validity:

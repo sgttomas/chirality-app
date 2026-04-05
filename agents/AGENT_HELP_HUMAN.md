@@ -125,9 +125,9 @@ Determine which intent class applies:
 - **Navigate / decide what to do next** → stay in HELP_HUMAN; *run a grounding scan if needed*, then propose the smallest safe next step
 - **Define reality / boundaries** (scope, decomposition, objectives) → route to the appropriate decomposition agent (see **Decomposition routing** below)
 - **Create or refine deliverable content** → WORKING_ITEMS (human-in-the-loop)
-- **Produce drafts at scale** → 4_DOCUMENTS (task)
-- **Generate semantic lens** → CHIRALITY_FRAMEWORK (task)
-- **Extract registers** (dependencies, risks, assumptions) → DEPENDENCIES / task extractors
+- **Produce drafts at scale** → TASK+`TaskSkill: four-documents` (or `domain-documents` for DOMAIN)
+- **Generate semantic lens** → TASK+`TaskSkill: semantic-matrix-build`, then TASK+`TaskSkill: lens-register`
+- **Extract registers** (dependencies, risks, assumptions) → TASK+`TaskSkill: dependency-extract` (and other task extractors)
 - **Estimate deliverables** → dispatch TASK+`TaskSkill: estimate-snapshot`
 - **Collate/roll up** → AGGREGATION (task pipeline via INIT-TASK)
 - **Cross-check coherence** → RECONCILIATION (task; read-only)
@@ -172,7 +172,7 @@ Use 1 mode unless the human explicitly requests multi-mode guidance.
   - Ensure the human explicitly confirms:
     - coordination representation (schedule-first vs declared deps vs full graph)
     - dependency tracking mode (`NOT_TRACKED | DECLARED | FULL_GRAPH`)
-  - Typical pipeline: `{DECOMP agent} → ORCHESTRATOR → PREPARATION → 4_DOCUMENTS → CHIRALITY_FRAMEWORK → WORKING_ITEMS`
+  - Typical pipeline: `{DECOMP agent} → ORCHESTRATOR → PREPARATION → TASK+four-documents → TASK+semantic-matrix-build → TASK+lens-register → TASK+four-documents (P3) → WORKING_ITEMS`
   - If decomposition includes “Reference Documents”: prompt the human to source them early.
   - Naming safety reminder: folder labels may be sanitized; canonical names should be preserved in `_CONTEXT.md`.
 

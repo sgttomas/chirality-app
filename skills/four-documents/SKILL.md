@@ -1,7 +1,7 @@
 ---
 name: four-documents
 description: Draft and iteratively enrich the four-document kit (Datasheet, Specification, Guidance, Procedure) for a PROJECT or SOFTWARE deliverable. Dispatched with RUN_PASSES parameter.
-compatibility: Chirality TASK; invoked by 4_DOCUMENTS wrapper during ORCHESTRATOR setup pipeline (Phases 2.2 and 2.5).
+compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (Phases 2.2 and 2.5).
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: NONE
@@ -24,13 +24,13 @@ This skill runs up to three passes within a single invocation, selected by the `
 2. **Pass 2** — cross-reference consistency check; Conflict Table where needed.
 3. **Pass 3** — semantic lensing enrichment using `_SEMANTIC_LENSING.md` as a candidate worklist.
 
-The ORCHESTRATOR setup pipeline dispatches this skill twice via the 4_DOCUMENTS wrapper:
-- **Phase 2.2** with `RUN_PASSES=P1_P2` (before `_SEMANTIC_LENSING.md` exists)
-- **Phase 2.5** with `RUN_PASSES=P3_ONLY` (after CHIRALITY_LENS produces `_SEMANTIC_LENSING.md`)
+The ORCHESTRATOR setup pipeline dispatches this skill twice via TASK:
+- **Phase 2.2** with `TaskSkill: four-documents`, `RUN_PASSES: P1_P2` (before `_SEMANTIC_LENSING.md` exists)
+- **Phase 2.5** with `TaskSkill: four-documents`, `RUN_PASSES: P3_ONLY` (after the `lens-register` skill produces `_SEMANTIC_LENSING.md`)
 
 A single `FULL` run is supported for ad-hoc re-runs when the lensing register already exists.
 
-**Non-goal:** this skill does NOT modify metadata files other than `_STATUS.md` (safe state update only); it does NOT produce `_SEMANTIC_LENSING.md` (that is the output of CHIRALITY_LENS / `skills/lens-register/`).
+**Non-goal:** this skill does NOT modify metadata files other than `_STATUS.md` (safe state update only); it does NOT produce `_SEMANTIC_LENSING.md` (that is the output of `skills/lens-register/`).
 
 ## Suitable agent shells
 
@@ -257,7 +257,7 @@ Columns:
 
 - Read `_STATUS.md` and identify the current state.
 - If `RUN_PASSES` includes Pass 1 or Pass 2 (i.e., `FULL` or `P1_P2`):
-  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {DELIVERABLE_PATH} INITIALIZED 4_DOCUMENTS`
+  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {DELIVERABLE_PATH} INITIALIZED TASK+four-documents`
 - If current state is not `OPEN`, do not modify `_STATUS.md` (no state regression). Report that the status update was skipped.
 
 **Output:** Deliverable folder contains the four documents updated per pass directive, and `_STATUS.md` updated only when safe/applicable.

@@ -114,6 +114,14 @@ This standard applies when:
 - The system is defined primarily by **instruction documents** and **filesystem contracts**, and
 - The work requires **repeatability**, **traceability**, and **scale** (many items, many iterations, many contributors).
 
+This standard governs the design of **three workflow-component layers**:
+
+1. **Agent instructions** (persona + task agents) — Type 0/1/2 hierarchy. Agents have decision rights, interaction surfaces, and write scopes.
+2. **Skill contracts** (repo-native method packs under `skills/`) — bounded, reusable methods dispatched through TASK. Skills are not agents; they are method contracts loaded at runtime.
+3. **Deterministic tools** (scripts, Python utilities under `tools/`) — LLM-independent helpers codifying repeatable operations.
+
+SKILLMAKER (Type 1) governs the skill layer and TOOLMAKER (Type 1) governs the tool layer, both as subordinate managers operating under this top-level standard. The skill/tool boundary is preserved: skills identify tool needs; tools implement deterministic helpers.
+
 When workflows are designed for regulated professional practice, this standard operates under the professional engineering governance defined in `PROFESSIONAL_ENGINEERING.md`.
 
 ---
@@ -144,16 +152,40 @@ The keywords **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, **MAY** indicat
 
 ## Design Outcomes
 
-When you complete a workflow design task, you MUST produce a **Workflow Specification Package** that includes:
+### For agent workflows
 
-1) A **system map** (agents, tool roots, lifecycle states, key artifacts)  
-2) A **human agency map** (what humans decide vs what agents execute)  
-3) A **permission map** (write zones; which agents may write where)  
-4) A **brief format** (INIT-TASK-style) for each straight-through pipeline  
-5) A **snapshot contract** (what each run writes; how `_LATEST` pointers behave)  
-6) **schemas** for registers/tables (required columns; keys; enums)  
-7) **QA contract** (coverage reporting; conflict surfacing; provenance requirements)  
+When you complete a workflow design task for agents, you MUST produce a **Workflow Specification Package** that includes:
+
+1) A **system map** (agents, tool roots, lifecycle states, key artifacts)
+2) A **human agency map** (what humans decide vs what agents execute)
+3) A **permission map** (write zones; which agents may write where)
+4) A **brief format** (INIT-TASK-style) for each straight-through pipeline
+5) A **snapshot contract** (what each run writes; how `_LATEST` pointers behave)
+6) **schemas** for registers/tables (required columns; keys; enums)
+7) **QA contract** (coverage reporting; conflict surfacing; provenance requirements)
 8) **runbooks** (minimal human steps + rerun loop)
+
+### For skill contracts
+
+When you design a new skill contract under `skills/`, SKILLMAKER MUST produce:
+
+1) A **`SKILL.md`** with YAML frontmatter (`name`, `description`, `compatibility`, `metadata.chirality-skill-version`, `metadata.chirality-task-profile`, optional `allowed-tools`) and a method body (Purpose, Suitable agent shells, Typical dispatcher, Inputs, PROTOCOL, SPEC, STRUCTURE, RATIONALE).
+2) A **`BRIEF_SCHEMA.md`** (required/optional brief fields with types + defaults + examples).
+3) A **`TOOL_POLICY.md`** (preferred tools, optional tools, disallowed tools, fall-back conditions — implicit tool assumptions are a design defect).
+4) A **`QA_CHECKS.md`** (invariants and validity requirements specific to the method).
+5) **Frontmatter + naming conformance** (skill folder name matches `name` field; passes `tools/validation/validate_skill_metadata.py`).
+6) **Actor-attribution clarity** (examples use dispatching persona in `RequestedBy` and name acting surface as `TASK+<skill-name>`).
+
+### For tool contracts
+
+When you design a new deterministic tool under `tools/`, TOOLMAKER MUST produce:
+
+1) A **registry entry** in `tools/REGISTRY.md` (name, language, purpose, inputs, outputs — one row in the appropriate category table).
+2) **Input/output contract** documented as script-header comments (arguments, file format, exit codes).
+3) An **idempotence posture** (idempotent / one-shot / stateful) stated or implied by behavior.
+4) A **scope boundary** (which folders/files the tool may write to; never outside declared scope).
+5) **Error handling** (fail-fast with exit code + stderr message; never silently swallow failures).
+6) **No LLM dependency** (tools execute deterministically; if LLM reasoning is needed, it belongs in a skill).
 
 ---
 
@@ -226,6 +258,13 @@ For each agent you design or revise, you MUST include a header block:
 - `WRITE_SCOPE: repo-wide | project-level | deliverable-local | tool-root-only | workspace-scaffold-only | knowledge-type-local | repo-metadata-only | none`
 - `BLOCKING: never | allowed`
 - `PRIMARY_OUTPUTS: ...`
+
+**Before minting a new agent, classify the method at the correct layer:**
+- Does it need its own write scope, interaction surface, or decision rights? → **agent** (use this standard).
+- Is it a recurring bounded method with variable toolchain, running inside the TASK shell? → **skill** (route to SKILLMAKER; design against "Design Outcomes for Skill Contracts" above).
+- Is it a deterministic, LLM-independent operation? → **tool** (route to TOOLMAKER; design against "Design Outcomes for Tool Contracts" above).
+
+Do not create a new agent just because a bounded task has a different tool recipe.
 
 Output: `Agent_Taxonomy` section + standardized headers in agent instruction files.
 
@@ -374,6 +413,22 @@ A workflow design is compliant when all of the following are true:
 
 ### R9 — Publication is hygienic
 - Version control publishing is reviewable and non-destructive by default.
+
+### R10 — Skill tool policy is explicit
+- Every skill declares its tool policy — preferred tools, optional tools, disallowed tools, and the conditions under which the skill should fall back from tool execution to direct LLM reasoning.
+- Implicit tool assumptions are a design defect.
+- When present, `allowed-tools` in skill frontmatter is authoritative and machine-enforced by TASK.
+
+### R11 — Tool contract is explicit
+- Every deterministic tool declares its input/output contract, scope boundary, and idempotence posture.
+- Tools fail fast with explicit exit codes; they do not silently swallow errors.
+- A tool never writes outside its declared scope; if it needs broader scope, that is a design defect.
+
+### R12 — Skill/tool boundary is preserved
+- Skills identify tool needs; TOOLMAKER implements deterministic helpers; SKILLMAKER integrates the result.
+- A skill MUST NOT embed inline deterministic logic that should be a standalone tool.
+- A tool MUST NOT contain method-level guidance that should be a skill.
+- When a skill needs a new deterministic helper, SKILLMAKER hands the requirement to TOOLMAKER.
 
 [[END:SPEC]]
 

@@ -103,7 +103,7 @@ SPEC.md §2 defines the complete file inventory for a deliverable folder. The mi
 - `_REFERENCES.md` — Source document pointers
 - `_SEMANTIC.md` (placeholder) — Semantic lens scaffold
 
-The full initialized state adds the four-document kit produced by the 4_DOCUMENTS agent: `Datasheet.md`, `Specification.md`, `Guidance.md`, and `Procedure.md`. Optional files — `Dependencies.csv`, `_MEMORY.md`, `_SEMANTIC_LENSING.md` — are added by subsequent agents as work proceeds.
+The full initialized state adds the four-document kit produced by the TASK+four-documents agent: `Datasheet.md`, `Specification.md`, `Guidance.md`, and `Procedure.md`. Optional files — `Dependencies.csv`, `_MEMORY.md`, `_SEMANTIC_LENSING.md` — are added by subsequent agents as work proceeds.
 
 ### 4.3.4 The Dual-Graph Model
 
@@ -130,8 +130,8 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 | State | Entry Condition |
 |-------|----------------|
 | `OPEN` | PREPARATION has created the folder and minimum viable fileset; no substantive content |
-| `INITIALIZED` | 4_DOCUMENTS agent has generated the four-document kit (Datasheet, Specification, Guidance, Procedure) |
-| `SEMANTIC_READY` | CHIRALITY_FRAMEWORK agent has generated `_SEMANTIC.md` |
+| `INITIALIZED` | TASK+four-documents agent has generated the four-document kit (Datasheet, Specification, Guidance, Procedure) |
+| `SEMANTIC_READY` | TASK+semantic-matrix-build agent has generated `_SEMANTIC.md` |
 | `IN_PROGRESS` | Human or WORKING_ITEMS agent has commenced active substantive work |
 | `CHECKING` | Human has moved the deliverable to the review staging area |
 | `ISSUED` | Human has approved the deliverable and released it for use |
@@ -143,8 +143,8 @@ SPEC.md §3.3 defines transition authorization as follows:
 | Transition | Authorized Actor |
 |------------|-----------------|
 | `→ OPEN` | PREPARATION only |
-| `OPEN → INITIALIZED` | 4_DOCUMENTS only |
-| `INITIALIZED → SEMANTIC_READY` | CHIRALITY_FRAMEWORK only |
+| `OPEN → INITIALIZED` | TASK+four-documents only |
+| `INITIALIZED → SEMANTIC_READY` | TASK+semantic-matrix-build only |
 | `INITIALIZED → IN_PROGRESS` | Human or WORKING_ITEMS (when semantic step is skipped) |
 | `SEMANTIC_READY → IN_PROGRESS` | Human or WORKING_ITEMS |
 | `IN_PROGRESS → CHECKING` | Human only |
@@ -230,7 +230,7 @@ The five categories, from most to least restrictive, are:
 - **NONE** — Read-only. The agent may draft content but may not write to any location. The human applies any output. Applies to: HELPS_HUMANS, DECOMP_BASE, HELP_HUMAN.
 - **REPO-METADATA-ONLY** — May write to instruction files, README, and templates — not to execution truth. Applies to: DOMAIN_DECOMP, CONTEXT_TRANSPOSE.
 - **PROJECT-LEVEL** — May write to decomposition documents, project metadata files, and folder scaffolding. Applies to: PROJECT_DECOMP, SOFTWARE_DECOMP, SCOPE_CHANGE, PREPARATION, ESTIMATE_PREP.
-- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, DELIVERABLE_TASK, REVIEW.
+- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: WORKING_ITEMS, TASK+four-documents, TASK+domain-documents, TASK+semantic-matrix-build, TASK+lens-register, TASK+dependency-extract, TASK, DELIVERABLE_TASK, REVIEW.
 - **TOOL-ROOT-ONLY** — May write only to a specific designated tool root under `{EXECUTION_ROOT}/`. Applies to: ORCHESTRATOR (`_Coordination/`), RECONCILIATION (`_Reconciliation/`), CHANGE (`_Change/` plus repo files with approval gate), SCHEDULING (`_Schedule/`), ESTIMATING (`_Estimates/`), AGGREGATION (`_Aggregation/`), and the four audit agents.
 
 ### 4.6.2 The Write Scope Tree
@@ -256,11 +256,11 @@ PROJECT-LEVEL
 
 DELIVERABLE-LOCAL
 ├── WORKING_ITEMS (+NEXT_INSTANCE_STATE.md standing exception)
-├── 4_DOCUMENTS
-├── DOMAIN_DOCUMENTS
-├── CHIRALITY_FRAMEWORK
-├── CHIRALITY_LENS
-├── DEPENDENCIES (dependency artifacts only)
+├── TASK+four-documents
+├── TASK+domain-documents
+├── TASK+semantic-matrix-build
+├── TASK+lens-register
+├── TASK+dependency-extract (dependency artifacts only)
 ├── TASK
 └── REVIEW (+tool-root for snapshots)
 
@@ -298,7 +298,7 @@ DBM §7.2 states six rules that govern write scope enforcement across the agent 
 2. Deliverable-local agents cannot write outside their assigned production unit folder.
 3. Tool-root agents write only to their designated tool root under `{EXECUTION_ROOT}/`.
 4. Source truth (deliverable production documents) is never modified by tool-root agents.
-5. `_STATUS.md` updates are restricted to designated agents (PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, REVIEW) and only for forward lifecycle transitions.
+5. `_STATUS.md` updates are restricted to designated agents (PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW) and only for forward lifecycle transitions.
 6. Cross-deliverable scanning or editing is prohibited inside WORKING_ITEMS sessions unless the human explicitly requests a cross-check.
 
 ### 4.6.4 Write Scope as Fault Containment
@@ -330,12 +330,12 @@ The Chirality system maintains agent behavior through three distinct layers of c
 | Hierarchy & Identity | K-HIER-1, K-ID-1 | PROJECT_DECOMP, PREPARATION |
 | Authority & Approval | K-AUTH-1, K-AUTH-2, K-BIND-1 | REVIEW, CHANGE (approval gates) |
 | Sealing & Context | K-SEAL-1, K-GHOST-1 | ORCHESTRATOR, Type 2 agents |
-| Dependencies | K-DEP-1, K-DEP-2 | DEPENDENCIES, AUDIT_DEP_CLOSURE |
-| Status | K-STATUS-1 | PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, REVIEW |
+| Dependencies | K-DEP-1, K-DEP-2 | TASK+dependency-extract, AUDIT_DEP_CLOSURE |
+| Status | K-STATUS-1 | PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW |
 | Staleness & Validation | K-STALE-1, K-STALE-2, K-VAL-1 | AUDIT_DEP_CLOSURE, RECONCILIATION; future tooling |
 | Gates | K-GATE-1 | ORCHESTRATOR, SCHEDULING |
 | Merge | K-MERGE-1 | CHANGE |
-| Provenance | K-PROV-1 | DEPENDENCIES (every row must cite evidence) |
+| Provenance | K-PROV-1 | TASK+dependency-extract (every row must cite evidence) |
 | Invention | K-INVENT-1 | Universal (all agents) |
 | Conflicts | K-CONFLICT-1 | Universal (all agents) |
 | Write Scope | K-WRITE-1 | Universal (declared per agent) |
@@ -345,7 +345,7 @@ The Chirality system maintains agent behavior through three distinct layers of c
 
 CONTRACT.md §2 defines the enforcement map. The K-* invariants are not enforced by a single centralized mechanism; they are distributed across four enforcement layers at different points in the system's operation:
 
-**Compile-time (agent instructions).** The invariants K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, and K-DEP-2 are enforced by the content of the agent instruction files themselves. When an agent instruction is written to conform with these invariants, the agent's behavior is constrained at the point of instruction — before any runtime invocation. This is "compile-time" in the sense that the constraint is baked into the specification the agent operates from.
+**Design-time (agent instructions).** The invariants K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, and K-DEP-2 are enforced by the content of the agent instruction files themselves. When an agent instruction is written to conform with these invariants, the agent's behavior is constrained at the point of instruction — before any runtime invocation. This is "design-time" in the sense that the constraint is baked into the specification the agent operates from.
 
 **Runtime (ORCHESTRATOR).** The invariants K-SEAL-1, K-GATE-1, and K-HIER-1 are enforced by ORCHESTRATOR during active session management. ORCHESTRATOR checks that context is sealed and gate-approved before dispatching any Type 2 agent, and that gate structure conforms to the project's configured gate map.
 
@@ -369,10 +369,10 @@ DBM §6.1 defines the spawning graph — the complete map of which agents may in
 HELP_HUMAN (Type 1) — classifies intent and routes; does not spawn
 
 ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION
-                                ├── 4_DOCUMENTS
-                                ├── DOMAIN_DOCUMENTS
-                                ├── CHIRALITY_FRAMEWORK
-                                ├── CHIRALITY_LENS
+                                ├── TASK+four-documents
+                                ├── TASK+domain-documents
+                                ├── TASK+semantic-matrix-build
+                                ├── TASK+lens-register
                                 ├── DOMAIN_HYPERGRAPH (DOMAIN variant; Phase 2.6)
                                 ├── ESTIMATING
                                 └── AGGREGATION
@@ -423,7 +423,7 @@ The operational control loop in a running project follows the sequence:
 
 1. **ORCHESTRATOR** initializes the workspace and session handoff artifacts; manages gate sequence.
 2. **WORKING_ITEMS** reads session state and executes deliverable-level work; dispatches TASK agents pre-authorizedly.
-3. **DEPENDENCIES** reruns are triggered after content changes to keep dependency registers current.
+3. **TASK+dependency-extract** reruns are triggered after content changes to keep dependency registers current.
 4. **RECONCILIATION** aggregates and audits across the project; dispatches audit agents to produce closure reports and coverage analyses.
 5. **CHANGE** receives approved commit instructions and applies them to the repository, requiring explicit approval tokens before any state-changing action.
 6. The loop returns to WORKING_ITEMS for the next session, with updated state in `NEXT_INSTANCE_STATE.md`.
@@ -464,7 +464,7 @@ EXCLUSIONS:        <paths / patterns>
 NOTES:             <anything else>
 ```
 
-Individual agents extend this base template with domain-specific parameters. The DEPENDENCIES agent, for example, adds `MODE` (UPDATE vs. RESET_EXTRACTED), `STRICTNESS` (CONSERVATIVE vs. AGGRESSIVE), and `SOURCE_DOCS`. The 4_DOCUMENTS agent adds `RUN_PASSES` (FULL, P1_P2, or P3_ONLY), `ALLOW_OVERWRITE_STATES`, and `DECOMP_VARIANT`.
+Individual agents extend this base template with domain-specific parameters. The TASK+dependency-extract agent, for example, adds `MODE` (UPDATE vs. RESET_EXTRACTED), `STRICTNESS` (CONSERVATIVE vs. AGGRESSIVE), and `SOURCE_DOCS`. The TASK+four-documents agent adds `RUN_PASSES` (FULL, P1_P2, or P3_ONLY), `ALLOW_OVERWRITE_STATES`, and `DECOMP_VARIANT`.
 
 The brief format serves three functions. First, it makes agent inputs deterministic and repeatable: two invocations with identical briefs on identical filesystem state should produce equivalent outputs. Second, it enables pre-flight validation: an agent that receives an incomplete or structurally invalid brief halts with a `FAILED_INPUTS` status rather than proceeding with partial information. Third, it creates an auditable record: the brief is written verbatim into the snapshot's `Brief.md` file, so the exact inputs to any run are preserved alongside its outputs.
 

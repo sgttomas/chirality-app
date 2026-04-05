@@ -43,10 +43,10 @@ Write scope distribution across the suite reflects the fault containment archite
 | `none` | HELPS_HUMANS, DECOMP_BASE, HELP_HUMAN |
 | `repo-metadata-only` | DOMAIN_DECOMP, CONTEXT_TRANSPOSE |
 | `project-level` | PROJECT_DECOMP, SOFTWARE_DECOMP, SCOPE_CHANGE, PREPARATION, ESTIMATE_PREP |
-| `deliverable-local` | WORKING_ITEMS, 4_DOCUMENTS, DOMAIN_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, TASK, DELIVERABLE_TASK, REVIEW |
+| `deliverable-local` | WORKING_ITEMS, TASK, DELIVERABLE_TASK, REVIEW (also TASK+four-documents, TASK+domain-documents, TASK+semantic-matrix-build, TASK+lens-register, TASK+dependency-extract via TASK shell) |
 | `tool-root-only` | ORCHESTRATOR, RECONCILIATION, CHANGE, SCHEDULING, ESTIMATING, AGGREGATION, AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, DOMAIN_HYPERGRAPH, AUDIT_HYPERGRAPH_CLOSURE |
 | `workspace-scaffold-only` | PREPARATION (primary scaffold variant) |
-| `knowledge-type-local` | DOMAIN_DOCUMENTS (knowledge artifact variant) |
+| `knowledge-type-local` | TASK+domain-documents (knowledge artifact variant) |
 
 This distribution reflects the system's core invariant K-WRITE-1 (Appendix A): every agent's write zone is declared in its header block, and no agent may write outside that declared zone. The separation between source truth (deliverable-local agents) and derived outputs (tool-root agents) creates the fault containment boundary discussed in Chapter 4 (§4.6.2): a failing Type 2 tool-root agent cannot corrupt source truth because its write scope physically excludes deliverable folders.
 
@@ -56,9 +56,9 @@ The indexed agent suite is organized within a 3×4 matrix that maps epistemic po
 
 |  | **Guiding** | **Applying** | **Judging** | **Reviewing** |
 |:---|:---|:---|:---|:---|
-| **Normative** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
+| **Normative** | HELP | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **Operative** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **Evaluative** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+| **Evaluative** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
 
 The matrix serves a dual purpose. Architecturally, it ensures that every agent has a clear position within the system's epistemic and functional coordinate space, preventing role ambiguity as the suite grows. Operationally, it drives the desktop application's navigation routing: NORMATIVE and EVALUATIVE rows open interactive WORKBENCH sessions; the OPERATIVE row opens PIPELINE sessions with category selectors for the four pipeline taxonomies (DECOMP\*, PREP\*, TASK\*, AUDIT\*). The full per-agent classification with write scope, blocking policy, and primary outputs is provided in Appendix B.
 
@@ -94,10 +94,10 @@ The spawning graph defines which Type 1 agents may invoke which Type 2 agents an
 
 ```
 ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION
-                                ├── 4_DOCUMENTS
-                                ├── DOMAIN_DOCUMENTS
-                                ├── CHIRALITY_FRAMEWORK
-                                ├── CHIRALITY_LENS
+                                ├── TASK+four-documents
+                                ├── TASK+domain-documents
+                                ├── TASK+semantic-matrix-build
+                                ├── TASK+lens-register
                                 ├── DOMAIN_HYPERGRAPH [DOMAIN variant only]
                                 ├── ESTIMATING
                                 └── AGGREGATION
@@ -164,7 +164,7 @@ The tool registry makes explicit a design principle stated in Chapter 4 (§4.3):
 
 This boundary is consequential for reliability and auditability. Deterministic tool outputs are reproducible: given identical inputs, the same tool will produce the same output. LLM reasoning is not reproducible in this sense. By pushing all reproducible operations into deterministic tools, the architecture concentrates non-determinism in the places where it is unavoidable (content judgment) and eliminates it from the places where it is unacceptable (schema validation, scaffolding, graph analysis).
 
-As of the current implementation, a substantial subset of the indexed agent suite references tools from the registry in their PROTOCOL sections. The remainder either operate primarily through LLM reasoning (content-producing agents such as WORKING_ITEMS, 4_DOCUMENTS, and CHIRALITY_FRAMEWORK) or reference tools indirectly through orchestration.
+As of the current implementation, a substantial subset of the indexed agent suite references tools from the registry in their PROTOCOL sections. The remainder either operate primarily through LLM reasoning (content-producing agents such as WORKING_ITEMS, TASK+four-documents, and TASK+semantic-matrix-build) or reference tools indirectly through orchestration.
 
 ### 8.3.3 Backlog
 

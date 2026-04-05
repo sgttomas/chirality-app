@@ -66,7 +66,7 @@ These invariants MUST hold for every run. Violating any of them makes the run in
 
 ## SPEC-level validity
 
-A DOMAIN_DOCUMENTS run is **valid** when:
+A `domain-documents` skill run is **valid** when:
 - `Scoping.md` exists and contains identity, canonical schema, evidence table, artifact plan table, conflict table.
 - Each planned Knowledge Artifact file exists and includes the default section schema for its base type.
 - Missing information is represented as `TBD`, not fabricated.
@@ -74,7 +74,7 @@ A DOMAIN_DOCUMENTS run is **valid** when:
 - Source-fidelity verification was run (Pass 3) against the authoritative source, or explicitly skipped by directive.
 - `_STATUS.md` is updated only under safe-update rules (`OPEN → INITIALIZED` only when Pass 1/2 ran).
 
-A DOMAIN_DOCUMENTS run is **invalid** when:
+A `domain-documents` skill run is **invalid** when:
 - Files are overwritten while `Current State` is outside `ALLOW_OVERWRITE_STATES`.
 - `_CONTEXT.md`, `_REFERENCES.md`, or `_SEMANTIC.md` are modified.
 - Identity is ambiguous and not reported as `FAILED_INPUTS`.

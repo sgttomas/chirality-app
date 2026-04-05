@@ -1,7 +1,7 @@
 ---
 name: lens-register
 description: Generate a matrix-organized, coverage-complete semantic lensing register (_SEMANTIC_LENSING.md) from _SEMANTIC.md + production documents. Setup-pipeline companion to the interactive semantic-lensing skill.
-compatibility: Chirality TASK; invoked by CHIRALITY_LENS wrapper during ORCHESTRATOR setup pipeline.
+compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (Phase 2.4).
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: NONE
@@ -28,7 +28,7 @@ This is the **setup-pipeline, coverage-complete** contract in the semantic-lensi
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: `CHIRALITY_LENS` wrapper, invoked by ORCHESTRATOR Phase 2.4 (one dispatch per deliverable).
+Typical dispatcher: ORCHESTRATOR Phase 2.4 dispatches TASK with `TaskSkill: lens-register` (one dispatch per deliverable).
 
 ## Inputs
 
@@ -121,7 +121,7 @@ If any instruction appears to conflict, flag the conflict and return it to the i
 1. Confirm `{deliverable_folder}` exists and is readable.
 2. If `DECOMP_VARIANT=DOMAIN` is passed: refuse gracefully (see QA_CHECKS.md for refusal behavior). DOMAIN pipelines skip the semantic lensing step.
 3. Confirm `_SEMANTIC.md` exists.
-   - If missing: write `_SEMANTIC_LENSING.md` with a blocking header ("Missing _SEMANTIC.md; run CHIRALITY_FRAMEWORK first") and stop.
+   - If missing: write `_SEMANTIC_LENSING.md` with a blocking header ("Missing _SEMANTIC.md; run `semantic-matrix-build` skill first (ORCHESTRATOR Phase 2.3)") and stop.
 4. Confirm production documents exist.
    - If one or more are missing: do **not** fail the run. Record `[WARNING] MISSING_DOC: <filename>` in the output header and proceed with available docs.
 
@@ -268,7 +268,7 @@ The output must be:
 - Procedure.md — [SourceRef or "missing"]
 - _REFERENCES.md — [SourceRef or "not present / not read"]
 
-**Purpose:** Apply CHIRALITY_FRAMEWORK matrix cells as lenses over the production documents, capturing warranted enrichment inputs for a later enrichment pass.
+**Purpose:** Apply `semantic-matrix-build` matrix cells as lenses over the production documents, capturing warranted enrichment inputs for a later enrichment pass.
 ```
 
 ### Summary block (required)
@@ -379,5 +379,5 @@ See `QA_CHECKS.md` for the full invariant list and refusal behavior.
 ## See also
 
 - `skills/semantic-lensing/SKILL.md` — interactive proposal workflow consuming the register
-- `agents/AGENT_CHIRALITY_LENS.md` — wrapper dispatching this skill via ORCHESTRATOR Phase 2.4
+- `agents/AGENT_ORCHESTRATOR.md` — dispatches this skill via TASK during Phase 2.4
 - `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture

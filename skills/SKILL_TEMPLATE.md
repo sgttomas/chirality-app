@@ -2,6 +2,8 @@
 
 Use this template when creating a new repo-native skill under `skills/`.
 
+Skill contracts conform to the design outcomes specified in `AGENT_HELPS_HUMANS.md` (Type 0) under its "Design Outcomes for Skill Contracts" section and compliance requirements R10 + R12. `AGENT_SKILLMAKER.md` (Type 1 manager) owns skill contract evolution and subsystem governance. New skills must pass `tools/validation/validate_skill_metadata.py`.
+
 ## `SKILL.md`
 
 ```md
@@ -61,11 +63,22 @@ Document:
 
 ## `TOOL_POLICY.md`
 
-Document:
-- which tools are allowed
-- which tools are preferred first
-- when to use tools vs direct reasoning
-- any write restrictions
+**Required.** Every skill must include this file. Implicit tool assumptions are a design defect (see `AGENT_HELPS_HUMANS.md` Design Outcomes for Skill Contracts).
+
+Use these canonical section headings (exact-string-match; case-sensitive):
+
+H2 headings:
+- `## Preferred tool order`
+- `## Allowed deterministic tools`
+- `## Expected use of reasoning`
+- `## Disallowed use`
+- `## Write boundary`
+
+H3 subheadings under `## Allowed deterministic tools`:
+- `### TASK-enforced` — tools from the `allowed-tools` frontmatter; enforced by TASK shell at load time
+- `### Operationally invoked` — tools named in `## Tool usage` body; agent-guided, not TASK-enforced
+
+Content floor: `## Allowed deterministic tools` (with both H3 subsections), `## Disallowed use`, and `## Write boundary` must be present on every skill. `## Preferred tool order` and `## Expected use of reasoning` may be skipped when no content applies.
 
 ## `QA_CHECKS.md`
 

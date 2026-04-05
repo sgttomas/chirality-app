@@ -81,7 +81,7 @@ If any instruction appears to conflict, surface the conflict and request human r
 
 - **PREPARATION (Type 2)** owns creating new deliverable folders and metadata files. SCOPE_CHANGE hands off via ORCHESTRATOR.
 - **CHANGE (Type 1)** owns git staging and commits. SCOPE_CHANGE hands off with a file list and recommended commit message.
-- **DEPENDENCIES (Type 2)** owns dependency re-extraction. SCOPE_CHANGE recommends reruns; does not execute them.
+- The **`dependency-extract` skill (dispatched via TASK)** owns dependency re-extraction. SCOPE_CHANGE recommends reruns; does not execute them.
 - The **`estimate-snapshot` skill (dispatched via TASK)** and **SCHEDULING (Type 1)** own estimate/schedule updates. SCOPE_CHANGE recommends reruns; does not execute them.
 
 ---
@@ -178,7 +178,7 @@ For each validated action, trace downstream impacts:
 **ADD:**
 - No existing impacts (new entity).
 - Identify likely dependency sources by examining sibling deliverables' `Dependencies.csv` for patterns that suggest the new deliverable would be referenced.
-- Note: "New deliverable will need DEPENDENCIES extraction after PREPARATION."
+- Note: "New deliverable will need dependency-extract (via TASK) after PREPARATION."
 
 **REMOVE:**
 - Run `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {temp_dir}` — the resulting `coverage.csv` and `closure_summary.json` identify all deliverables that reference the removed entity without manual scanning.
@@ -264,7 +264,7 @@ Based on the approved amendment, produce a propagation plan:
 1) **For ADD actions:**
    - Draft an INIT-TASK brief for PREPARATION (via ORCHESTRATOR) to create the new folder structure and metadata files.
    - List the expected new files: `_CONTEXT.md`, `_STATUS.md` (OPEN), `_REFERENCES.md`, `_DEPENDENCIES.md`.
-   - Note: "After PREPARATION completes, recommend running: DEPENDENCIES extraction, then `estimate-snapshot` and SCHEDULING if applicable."
+   - Note: "After PREPARATION completes, recommend running: dependency-extract (via TASK), then `estimate-snapshot` and SCHEDULING if applicable."
 
 2) **For REMOVE actions:**
    - Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} RETIRED SCOPE_CHANGE` — this appends the history entry and updates `Current State` automatically.

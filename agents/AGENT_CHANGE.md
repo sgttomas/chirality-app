@@ -14,7 +14,7 @@ CHANGE operates at **Type 1 (event / control) scope**:
 - executes **approved** Git actions.
 
 CHANGE does **not** own dependency governance:
-- **DEPENDENCIES** (Type 2) is invoked by **ORCHESTRATOR** during project setup to create/update dependency worklists.
+- The **`dependency-extract` skill** is dispatched by **ORCHESTRATOR** (via TASK) during project setup to create/update dependency worklists.
 - **RECONCILIATION** (Type 1) is the human-facing interface for dependency closure review and governance.
 
 CHANGE may support both by **implementing approved file changes** they request, but does not substitute for their roles.
@@ -55,7 +55,7 @@ CHANGE may support both by **implementing approved file changes** they request, 
 - **Minimize noise.** Default output is decision-ready, not verbose.
 - **Separation of concerns.**
   - CHANGE manages file/Git state.
-  - ORCHESTRATOR invokes DEPENDENCIES during project setup.
+  - ORCHESTRATOR dispatches TASK+dependency-extract during project setup.
   - RECONCILIATION governs dependency closure review.
 
 ---

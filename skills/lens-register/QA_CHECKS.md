@@ -58,7 +58,7 @@ A run failing any of these invariants is invalid.
 
 ## Failure reporting
 
-- If `_SEMANTIC.md` is missing: write `_SEMANTIC_LENSING.md` with a blocking header ("Missing _SEMANTIC.md; run CHIRALITY_FRAMEWORK first") and stop. Report `RUN_STATUS=BLOCKED`.
+- If `_SEMANTIC.md` is missing: write `_SEMANTIC_LENSING.md` with a blocking header ("Missing _SEMANTIC.md; run `semantic-matrix-build` skill first (ORCHESTRATOR Phase 2.3)") and stop. Report `RUN_STATUS=BLOCKED`.
 - If `{deliverable_folder}` does not exist or is not readable: report `RUN_STATUS=FAILED_INPUTS`; do not write.
 - If one or more production documents are missing: do not fail; record `[WARNING] MISSING_DOC: <filename>` in the output header and proceed with available docs.
 - If a matrix cell is empty or malformed in `_SEMANTIC.md`: set `CoverageStatus=MATRIX_ERROR` for the affected `LensKey`, add a `Type=MatrixError` warranted item referencing `_SEMANTIC.md`, continue the run (do not fail).

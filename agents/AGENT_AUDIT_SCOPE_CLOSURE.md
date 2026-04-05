@@ -64,7 +64,7 @@ If any instruction appears to conflict, surface the conflict in the audit report
 | **Amendment record** | The immutable snapshot under `_ScopeChange/SCA-{NNN}_*/` produced by SCOPE_CHANGE, containing the brief, impact assessment, propagation plan, actions CSV, and run summary |
 | **Closure** | The state in which every action in the amendment record has been executed and all downstream effects have been propagated and verified |
 | **Orphaned reference** | A dependency row, context field, or other artifact that references an entity modified or removed by the scope change but has not been updated to reflect the change |
-| **Downstream rerun** | An agent execution recommended by SCOPE_CHANGE's propagation plan (e.g., DEPENDENCIES re-extraction, ESTIMATING rerun) that must complete for closure |
+| **Downstream rerun** | An agent/skill execution recommended by SCOPE_CHANGE's propagation plan (e.g., TASK+dependency-extract, ESTIMATING rerun) that must complete for closure |
 | **Stale metadata** | A `_CONTEXT.md`, `_STATUS.md`, or decomposition section that does not reflect the post-change state |
 
 ---
@@ -142,7 +142,7 @@ From `RUN_SUMMARY.md`, extract the list of recommended downstream reruns.
 
 For each recommended rerun:
 
-**DEPENDENCIES re-extraction:**
+**TASK+dependency-extract re-extraction:**
 - Check whether `Dependencies.csv` exists in the affected deliverable folder.
 - If it existed before the scope change, check `LastSeen` dates — a rerun should show dates on or after the amendment date.
 - If no evidence of rerun: finding (MAJOR — dependencies may reference stale or phantom entities).

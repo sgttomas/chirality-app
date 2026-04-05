@@ -1,7 +1,7 @@
 ---
 name: domain-documents
 description: Draft knowledge-artifact document set for a DOMAIN Knowledge Type deliverable. Produces KA-* files per the variable artifact schema. DOMAIN pipeline only.
-compatibility: Chirality TASK; invoked by DOMAIN_DOCUMENTS wrapper during ORCHESTRATOR setup pipeline for DOMAIN variant.
+compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline for DOMAIN variant (Phase 2.2).
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: NONE
@@ -20,13 +20,13 @@ Invariant: each decomposition Knowledge Subject maps to exactly one Knowledge Ar
 - **Knowledge Artifact (`KA-*`)** = the document-layer file materialized from exactly one Knowledge Subject
 - `Scoping.md` = the Knowledge-Type-level entrypoint that records the `SubjectID -> ArtifactID -> Filename` mapping; it is not itself a Knowledge Subject
 
-**DOMAIN pipeline only.** This skill is NOT called by PROJECT or SOFTWARE variants. The DOMAIN pipeline chain is `PREPARATION → DOMAIN_DOCUMENTS → WORKING_ITEMS` (no CHIRALITY_FRAMEWORK, no CHIRALITY_LENS, no 4_DOCUMENTS). The quality gate is **source fidelity** (does the extraction faithfully represent the authoritative source?), not semantic enrichment.
+**DOMAIN pipeline only.** This skill is NOT called by PROJECT or SOFTWARE variants. The DOMAIN pipeline chain is `PREPARATION → TASK+domain-documents → WORKING_ITEMS` (no `semantic-matrix-build`, no `lens-register`, no `four-documents`). The quality gate is **source fidelity** (does the extraction faithfully represent the authoritative source?), not semantic enrichment.
 
 ## Suitable agent shells
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: `DOMAIN_DOCUMENTS` wrapper (invoked by ORCHESTRATOR during DOMAIN setup pipeline).
+Typical dispatcher: ORCHESTRATOR Phase 2.2 (DOMAIN variant) dispatches TASK with `TaskSkill: domain-documents`.
 
 ## Inputs
 
@@ -287,7 +287,7 @@ For each planned artifact, create/overwrite the target file with:
 
 **Purpose:** Verify and enrich the generated Knowledge Artifacts against the authoritative source document. For DOMAIN Knowledge Types, the source document (e.g., the DBM) is the ground truth — not a semantic lensing register.
 
-> **Design note:** The `four-documents` skill (PROJECT/SOFTWARE) uses semantic enrichment (CHIRALITY_FRAMEWORK → CHIRALITY_LENS → Pass 3 lensing). `domain-documents` does not. Domain Knowledge Types are extracted from a specific authoritative source, so the quality gate is source fidelity: does the extraction faithfully and completely represent the source?
+> **Design note:** The `four-documents` skill (PROJECT/SOFTWARE) uses semantic enrichment (`semantic-matrix-build` → `lens-register` → Pass 3 lensing). `domain-documents` does not. Domain Knowledge Types are extracted from a specific authoritative source, so the quality gate is source fidelity: does the extraction faithfully and completely represent the source?
 
 #### 6a) Preconditions
 - The authoritative source file must be accessible (resolved in Step 1, item 6).
@@ -326,7 +326,7 @@ After source-fidelity corrections, re-run the Step 5 structural completeness che
 
 - Read `_STATUS.md` and identify the current state.
 - If `RUN_PASSES` includes Pass 1 or Pass 2 (i.e., `FULL` or `P1_P2`):
-  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {kty_folder} INITIALIZED DOMAIN_DOCUMENTS`
+  - If (and only if) current state is `OPEN`, update: `tools/scaffolding/write_status.sh {kty_folder} INITIALIZED TASK+domain-documents`
 - If current state is not `OPEN`, do not modify `_STATUS.md` (no state regression). Report that the status update was skipped.
 
 **Output:** Knowledge Type folder contains `Scoping.md` and the planned Knowledge Artifact documents updated per pass directive, and `_STATUS.md` updated only when safe/applicable.
@@ -362,7 +362,7 @@ See `QA_CHECKS.md` for the full invariant set. Summary:
 
 ## See also
 
-- `agents/AGENT_DOMAIN_DOCUMENTS.md` — thin wrapper that dispatches this skill
+- `agents/AGENT_ORCHESTRATOR.md` — dispatches this skill via TASK during Phase 2.2 (DOMAIN variant)
 - `agents/AGENT_DOMAIN_DECOMP.md` — DOMAIN decomposition (upstream; produces KnowledgeSubjects)
 - `agents/AGENT_PREPARATION.md` — creates Knowledge Type folders this skill populates
 - `skills/four-documents/` — PROJECT/SOFTWARE counterpart (fixed 4-doc kit)

@@ -4,7 +4,7 @@ Use this skill with a generic TASK shell (no profile) like this:
 
 ```md
 PURPOSE: Draft Knowledge Artifacts for KTY-01 (Pressure Vessel Design)
-RequestedBy: DOMAIN_DOCUMENTS
+RequestedBy: ORCHESTRATOR
 
 ScopePath: /abs/path/to/KTY-01_Pressure-Vessel-Design
 TaskSkill: domain-documents

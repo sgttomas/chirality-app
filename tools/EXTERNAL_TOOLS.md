@@ -27,9 +27,9 @@ For the authoritative pipeline specification — entity type registry, ID namesp
 
 **chirality-domain-test agents produce:**
 - Structural hypergraph (DOMAIN_HYPERGRAPH): `nodes.csv`, `hyperedges.csv`, `incidence.csv` — Categories, Knowledge Types, Artifacts, Ledger bindings, Objectives and their n-ary relationships
-- Knowledge Artifacts (DOMAIN_DOCUMENTS): Reference.md, Standard.md, Procedure.md, Guidance.md per Knowledge Type — the actual domain content
-- Semantic matrices (CHIRALITY_FRAMEWORK): `_SEMANTIC.md` — conceptual coordinate system per Knowledge Type
-- Semantic lensing (CHIRALITY_LENS): `_SEMANTIC_LENSING.md` — enrichment register identifying gaps and conflicts
+- Knowledge Artifacts (TASK+domain-documents): Reference.md, Standard.md, Procedure.md, Guidance.md per Knowledge Type — the actual domain content
+- Semantic matrices (TASK+semantic-matrix-build): `_SEMANTIC.md` — conceptual coordinate system per Knowledge Type
+- Semantic lensing (TASK+lens-register): `_SEMANTIC_LENSING.md` — enrichment register identifying gaps and conflicts
 
 **PDF2MD agent produces:**
 - Clean, structured Markdown from PDF source documents — preserving tables, headings, lists, formulas, and reading order
@@ -72,7 +72,7 @@ _Sources/ (handbooks, reference materials — typically PDFs)
   DOMAIN_DECOMP (Step 1) → PREPARATION (Step 2)
       |
       v
-  DOMAIN_DOCUMENTS (Step 3)
+  TASK+domain-documents (Step 3)
   (reads source Markdown, produces Knowledge Artifacts per KTY)
       |
       v
@@ -91,7 +91,7 @@ The pipeline is a single linear path from source documents through to an audited
 | 0 | PDF2MD (native agent) | PDF source documents in `_Sources/` | — |
 | 1 | DOMAIN_DECOMP | Human input (+ Markdown sources from step 0) | — |
 | 2 | PREPARATION | Decomposition | — |
-| 3 | DOMAIN_DOCUMENTS | Preparation + Markdown sources | — |
+| 3 | TASK+domain-documents | Preparation + Markdown sources | — |
 | 4 | DOMAIN_HYPERGRAPH | PREPARATION (reads folder structure) | — |
 | 5 | AUDIT_HYPERGRAPH_CLOSURE | DOMAIN_HYPERGRAPH | — |
 

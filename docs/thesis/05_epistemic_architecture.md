@@ -38,7 +38,7 @@ The epistemic architecture of Chirality is designed to resolve this problem. It 
 - `SourceRef` (column 18): path + heading/section within the evidence file, or `location TBD`
 - `EvidenceQuote` (column 19): short quote from source (recommended, max 30 words)
 
-These columns are not optional metadata. They are required by the schema definition and checked by agent-internal quality controls (DEPENDENCIES agent, Function 5). A row without provenance is flagged as a quality finding.
+These columns are not optional metadata. They are required by the schema definition and checked by agent-internal quality controls (TASK+dependency-extract, Function 5). A row without provenance is flagged as a quality finding.
 
 Beyond the dependency register, the provenance requirement extends to all agent outputs through the R5 workflow design requirement: "Aggregated/extracted data includes `SourcePath` and best-effort `SectionRef`." This is defined in `AGENT_HELPS_HUMANS.md` and binding on all agents.
 

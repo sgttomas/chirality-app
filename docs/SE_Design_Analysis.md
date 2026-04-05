@@ -128,7 +128,7 @@ Three forms of coverage verification exist:
 
 **Decomposition coverage** (DECOMP_BASE Phase 6): Every IN-scope atomic unit mapped to exactly one partition and at least one production unit. Gaps are open issues with stable IDs.
 
-**Dependency coverage** (DEPENDENCIES Function 5): Every active dependency row has evidence (EvidenceFile + SourceRef). Floating nodes (deliverables without an IMPLEMENTS_NODE anchor) generate warnings.
+**Dependency coverage** (TASK+dependency-extract Function 5): Every active dependency row has evidence (EvidenceFile + SourceRef). Floating nodes (deliverables without an IMPLEMENTS_NODE anchor) generate warnings.
 
 **Review coverage** (REVIEW Gate 2): Checklists are derived from acceptance criteria, objectives, cross-document consistency, dependency satisfaction, and TBD inventory. Each item has a stable ID (AP-NNN, AC-NNN, OC-NNN, XD-NNN, DS-NNN, TB-001).
 
@@ -154,7 +154,7 @@ The write scope architecture creates formal fault containment:
 
 | Containment Zone | Agents | Failure Impact |
 |-----------------|--------|----------------|
-| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK, 4_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS | Limited to one production unit folder |
+| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK (also TASK+four-documents, TASK+dependency-extract, TASK+semantic-matrix-build, TASK+lens-register via TASK shell) | Limited to one production unit folder |
 | Tool-root | ORCHESTRATOR, ESTIMATING, AGGREGATION, AUDIT_*, SCHEDULING | Limited to one tool root; source truth untouched |
 | Repo (approval-gated) | CHANGE | Requires explicit human approval token per action |
 | Read-only | HELP_HUMAN, HELPS_HUMANS, DECOMP_BASE | Zero write impact |
@@ -170,8 +170,8 @@ The system makes failures explicit rather than preventing them:
 | Missing data | Mark `TBD`; surface as open issue | K-INVENT-1 |
 | Conflicting sources | Produce Conflict Table; human rules | K-CONFLICT-1 |
 | Invalid inputs | `FAILED_INPUTS` (halt, don't guess) | Type 2 agent convention |
-| Unresolvable dependency target | `TargetType=UNKNOWN`; preserve raw reference | DEPENDENCIES Function 2 |
-| Missing decomposition | `[WARNING] MISSING_DECOMPOSITION`; skip validation | DEPENDENCIES Pass 1 |
+| Unresolvable dependency target | `TargetType=UNKNOWN`; preserve raw reference | TASK+dependency-extract Function 2 |
+| Missing decomposition | `[WARNING] MISSING_DECOMPOSITION`; skip validation | TASK+dependency-extract Pass 1 |
 | Lifecycle state violation | Warn, don't block (human decides) | REVIEW Gate 1 |
 
 The pattern: failures are visible findings, not hidden recovery attempts. Every uncertainty is labeled (`FACT`, `ASSUMPTION`, `PROPOSAL`, `TBD`) per `TYPES.md` §10.
@@ -225,7 +225,7 @@ The system implements a closed-loop feedback control system across sessions:
 ```
 ORCHESTRATOR (Plant Setup)
   → WORKING_ITEMS (Actuator — produces content)
-    → DEPENDENCIES rerun (Sensor — updates dependency state)
+    → TASK+dependency-extract rerun (Sensor — updates dependency state)
       → RECONCILIATION (Comparator — surfaces deviations)
         → CHANGE (Output — commits to baseline)
           → ORCHESTRATOR scan (Feedback — reports new state)
@@ -245,7 +245,7 @@ ORCHESTRATOR (Plant Setup)
 
 **Open-loop (within a session):** WORKING_ITEMS produces content within a single deliverable without cross-deliverable feedback. Bounded by deliverable scope and session objective.
 
-**Closed-loop (across sessions):** The handoff mechanism (`NEXT_INSTANCE_STATE.md`) carries state between sessions. DEPENDENCIES rerun after content changes updates the dependency graph. RECONCILIATION detects integration defects. ORCHESTRATOR scan computes work availability for the next tier.
+**Closed-loop (across sessions):** The handoff mechanism (`NEXT_INSTANCE_STATE.md`) carries state between sessions. TASK+dependency-extract rerun after content changes updates the dependency graph. RECONCILIATION detects integration defects. ORCHESTRATOR scan computes work availability for the next tier.
 
 ### 6.3 Human Authority as the Halting Condition
 
@@ -327,8 +327,8 @@ These types are not merely documentation — they constrain agent behavior throu
 The deliverable lifecycle is a formal state machine with authorized transition actors:
 
 ```
-OPEN ──[PREPARATION]──→ INITIALIZED ──[4_DOCUMENTS/DOMAIN_DOCUMENTS]──→
-  SEMANTIC_READY ──[CHIRALITY_FRAMEWORK]──→ IN_PROGRESS ──[human]──→
+OPEN ──[PREPARATION]──→ INITIALIZED ──[TASK+four-documents/domain-documents]──→
+  SEMANTIC_READY ──[TASK+semantic-matrix-build]──→ IN_PROGRESS ──[human]──→
     CHECKING ──[REVIEW + human approval]──→ ISSUED ──[human]──→
 ```
 

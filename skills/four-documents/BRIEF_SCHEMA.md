@@ -7,8 +7,8 @@ This skill runs up to three passes within one invocation, selected by the `RUN_P
 | Value | Meaning | Pipeline phase |
 |---|---|---|
 | `FULL` | Run Pass 1 + Pass 2 + Pass 3 | Ad-hoc re-runs when `_SEMANTIC_LENSING.md` already exists |
-| `P1_P2` | Run Pass 1 + Pass 2 only (skip Step 6) | ORCHESTRATOR Phase 2.2 (before CHIRALITY_LENS) |
-| `P3_ONLY` | Run Pass 3 only (requires existing drafts + `_SEMANTIC_LENSING.md`) | ORCHESTRATOR Phase 2.5 (after CHIRALITY_LENS) |
+| `P1_P2` | Run Pass 1 + Pass 2 only (skip Step 6) | ORCHESTRATOR Phase 2.2 (before lens-register skill runs) |
+| `P3_ONLY` | Run Pass 3 only (requires existing drafts + `_SEMANTIC_LENSING.md`) | ORCHESTRATOR Phase 2.5 (after lens-register skill runs) |
 
 Any other value produces `RUN_STATUS=FAILED_INPUTS`.
 
@@ -71,7 +71,7 @@ AllowedWriteTargets:
 
 ```markdown
 PURPOSE: Draft four documents for production unit (Pass 1 + Pass 2, pre-lensing)
-RequestedBy: 4_DOCUMENTS
+RequestedBy: ORCHESTRATOR
 ScopePath: {DELIVERABLE_PATH}
 TaskSkill: four-documents
 
@@ -89,7 +89,7 @@ RuntimeOverrides:
 
 ```markdown
 PURPOSE: Apply semantic lensing enrichment (Pass 3, post-lensing)
-RequestedBy: 4_DOCUMENTS
+RequestedBy: ORCHESTRATOR
 ScopePath: {DELIVERABLE_PATH}
 TaskSkill: four-documents
 
@@ -126,6 +126,6 @@ RuntimeOverrides:
 ## Notes
 
 - `DELIVERABLE_PATH` is the canonical brief field name; `deliverable_folder` is accepted as an alias.
-- The 4_DOCUMENTS wrapper agent passes `RUN_PASSES` through from ORCHESTRATOR; invokers that call the skill directly must provide `RUN_PASSES` explicitly or accept the `FULL` default.
-- `ALLOW_OVERWRITE_STATES` default reflects the standard PREPARATION → 4_DOCUMENTS Phase 2.2 → CHIRALITY_LENS → 4_DOCUMENTS Phase 2.5 lifecycle (`OPEN` after PREPARATION, `INITIALIZED` after Pass 1/2, `SEMANTIC_READY` after lensing).
-- A single invocation operates on ONE deliverable; the wrapper is responsible for per-deliverable dispatch across a decomposition set.
+- ORCHESTRATOR dispatches TASK with `TaskSkill: four-documents` and passes `RUN_PASSES` per-phase (`P1_P2` in Phase 2.2, `P3_ONLY` in Phase 2.5); invokers that call the skill directly must provide `RUN_PASSES` explicitly or accept the `FULL` default.
+- `ALLOW_OVERWRITE_STATES` default reflects the standard lifecycle: `OPEN` after PREPARATION → `INITIALIZED` after four-documents Pass 1/2 (Phase 2.2) → `SEMANTIC_READY` after lens-register + four-documents Pass 3 (Phases 2.4 + 2.5).
+- A single invocation operates on ONE deliverable; ORCHESTRATOR is responsible for per-deliverable dispatch across a decomposition set.

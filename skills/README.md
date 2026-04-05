@@ -12,7 +12,7 @@ Skills are **not agents**. They do not have their own decision rights, write sco
 
 The canonical loader for these skills is [`AGENT_TASK.md`](../agents/AGENT_TASK.md).
 
-**Governed by:** SKILLMAKER (Type 1, `agents/AGENT_SKILLMAKER.md`). SKILLMAKER owns skill design, contract evolution, and subsystem governance.
+**Governed by:** SKILLMAKER (Type 1, `agents/AGENT_SKILLMAKER.md`), operating under the Type 0 standard `AGENT_HELPS_HUMANS.md` which governs workflow-component design across agents, skills, and tools. SKILLMAKER owns skill design, contract evolution, and subsystem governance; its outcomes conform to HELPS_HUMANS R10 + R12 and the "Design Outcomes for Skill Contracts" section.
 
 ## Why skills exist
 
@@ -45,7 +45,7 @@ skills/
   <skill_name>/
     SKILL.md           # required; YAML frontmatter + Markdown body
     BRIEF_SCHEMA.md    # optional but recommended
-    TOOL_POLICY.md     # optional but recommended
+    TOOL_POLICY.md     # required
     QA_CHECKS.md       # optional but recommended
 ```
 
@@ -68,7 +68,7 @@ Every `SKILL.md` should state:
 - whether the skill is safe for generic `TASK`
 - any important non-negotiable constraints
 
-The frontmatter is the portable discovery surface. The Markdown body is the Chirality execution guidance. Companion files such as `BRIEF_SCHEMA.md`, `TOOL_POLICY.md`, and `QA_CHECKS.md` are Chirality-specific extensions layered on top of that core.
+The frontmatter is the portable discovery surface. The Markdown body is the Chirality execution guidance. `TOOL_POLICY.md` is a required Chirality-specific companion file; `BRIEF_SCHEMA.md` and `QA_CHECKS.md` are recommended Chirality-specific extensions layered on top of that core.
 
 ## Relationship to tools
 
@@ -107,7 +107,7 @@ Agent guidance:
 - When a specific skill is requested, inspect that skill folder directly:
   - `SKILL.md`
   - `BRIEF_SCHEMA.md` if present
-  - `TOOL_POLICY.md` if present
+  - `TOOL_POLICY.md`
   - `QA_CHECKS.md` if present
 - Use [`docs/REPO_INVENTORY.md`](../docs/REPO_INVENTORY.md) for canonical aggregate counts, not skill membership details.
 - Do not assume any other document's embedded skill list is current.
@@ -135,4 +135,4 @@ python3 tools/validation/validate_skill_metadata.py skills
 
 This validator scans every immediate skill folder under `skills/`, not any one skill in particular. For example, it validates both `skills/pdf2md/` and `skills/deliverable-consistency/` using the same rules.
 
-It validates both the basic authoring contract (`name`, `description`, folder alignment) and the machine-consumed runtime contract (`metadata.chirality-*`, canonical `allowed-tools` syntax, and tool-path resolution under `tools/`).
+It validates both the basic authoring contract (`name`, `description`, folder alignment, required `TOOL_POLICY.md` presence) and the machine-consumed runtime contract (`metadata.chirality-*`, canonical `allowed-tools` syntax, and tool-path resolution under `tools/`).

@@ -30,7 +30,7 @@ Current governance documents are internally aligned on the core model:
 
 | Change | Agents Affected |
 |--------|-----------------|
-| QA Contract sections added | PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS |
+| QA Contract sections added | PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, CHIRALITY_LENS (wrappers since archived — see §6) |
 | Output Persistence notes added | ORCHESTRATOR, RECONCILIATION |
 
 Agent instruction consistency: 92% → estimated 95%+ after hardening.
@@ -75,6 +75,8 @@ Next.js + Electron desktop app with:
   - Header brand tile uses the macOS app icon asset with rounded-square treatment
 
 ### Matrix Navigation + Pipeline Taxonomy
+
+> **Note:** This section describes the current desktop UI. After the full-normalization work recorded in §6, the canonical architecture matrix (in `AGENTS.md` and the three-layer HELPS_HUMANS governance) has diverged from the UI — the UI still shows UI labels (`HELP`, `ORCHESTRATE`, `AGENTS`, `DEPENDENCIES`, `RECONCILING`) and the `PREP*`/`TASK*` wildcards, whereas the canonical matrix uses agent role names and collapsed cells (`PREPARATION`, `TASK`, empty `EVALUATIVE × APPLYING`). UI normalization is deferred to a separate frontend slice (see §6 "Deferred").
 
 The desktop UI uses a 3x4 matrix to route operator intent into WORKBENCH or PIPELINE.
 
@@ -201,7 +203,7 @@ The remaining gaps build on the currently available capabilities in this order:
 
 ## 5. Completed: Agent Suite Classification and Migration
 
-**Status:** Complete (2026-04-04). 48/48 agents classified and ruled; 6 slices executed; 5 B-conversions + 5 C-pattern wrappers live; 1 new deterministic tool created (`tools/aggregation/build_hypergraph.py`); shared-file cross-references integrated; inventory reconciled.
+**Status:** Complete (2026-04-04). 48/48 agents classified and ruled; 6 slices executed; 5 B-conversions + 5 C-pattern wrappers live (C-pattern wrappers subsequently normalized and archived — see §6); 1 new deterministic tool created (`tools/aggregation/build_hypergraph.py`); shared-file cross-references integrated; inventory reconciled.
 
 **Intent (achieved):** Clarified boundaries between persona agents, bounded task agents, repo-native skills, and deterministic tools. Factored method logic downward into skills/tools while preserving pipeline-stage identities. Consistent with the compositional model: shell + profile + skill + tool + brief.
 
@@ -209,12 +211,12 @@ The remaining gaps build on the currently available capabilities in this order:
 - **Slice 1** (archives + non-agent relocations): 2 archived (EQUIPMENT_EXTRACT, TASK_ESTIMATING_TEMPLATE); 2 relocated (`docs/rubrics/AUDIT_AGENT.md`, `docs/templates/MEMORY_TEMPLATE.md`).
 - **Slice 2** (F-case rulings + ORCHESTRATOR DOMAIN contradiction): DOMAIN_HYPERGRAPH → D, ESTIMATE_PREP → B. DOMAIN pipeline simplified — skips CHIRALITY_FRAMEWORK/LENS (Direction b). 6 files updated for consistency.
 - **Slice 3** (B-conversions): 5 new skills created (`content-digest`, `estimate-snapshot`, `pdf2md-page`, `drawing-extract-page`, `estimate-prep`); 5 source agents archived. Companion docs for `estimate-prep` (SCHEMA_ANNEX, BOE_STRUCTURE, INDEX_MD_CONTRACT). Shared-file dispatches updated.
-- **Slice 4** (C-pattern extractions): 5 new skills created (`semantic-matrix-build`, `lens-register`, `four-documents`, `domain-documents`, `dependency-extract`); 5 wrapper agents rewrote as thin dispatch shims (headers byte-identical). Cross-references integrated in ORCHESTRATOR, DELIVERABLE_TASK, `skills/semantic-lensing/SKILL.md`.
+- **Slice 4** (C-pattern extractions): 5 new skills created (`semantic-matrix-build`, `lens-register`, `four-documents`, `domain-documents`, `dependency-extract`); 5 wrapper agents rewrote as thin dispatch shims (headers byte-identical). Cross-references integrated in ORCHESTRATOR, DELIVERABLE_TASK, `skills/semantic-lensing/SKILL.md`. **Superseded by §6:** C-pattern wrappers archived; skills now dispatched directly through TASK.
 - **Slice 5a** (D-pattern additive notes): 4 audit agents annotated with explicit tool invocations (+37 lines, 0 deletions). Closure fix: reconciled stale `tools/query/` → `tools/evaluation/` path drift (6 references across 3 files) + fixed `validate_id_format.sh` signature bug.
 - **Slice 5b** (DOMAIN_HYPERGRAPH-D refactor): created `tools/aggregation/build_hypergraph.py` (deterministic SHA1-based hypergraph construction + 9 QA checks + delta computation); rewrote AGENT_DOMAIN_HYPERGRAPH.md PROTOCOL Steps 4-8 as tool-invocation blocks. Steps 0-3 + SPEC + STRUCTURE + RATIONALE byte-identical.
-- **Slice 6** (reconciliation + inventory): REPO_INVENTORY updated (39 agents / 15 skills / 50 tools); docs/PLAN.md marked complete.
+- **Slice 6** (reconciliation + inventory): `docs/REPO_INVENTORY.md` updated and reconciled to the governed repo state at slice close; `docs/PLAN.md` marked complete.
 
-**Final repo state:** 39 live agents (down from 48); 15 repo-native skills (up from 5); 50 registered tools (up from 49).
+**Final repo state:** See `docs/REPO_INVENTORY.md` for current governed counts. The migration reduced the live indexed agent suite, expanded the repo-native skill set, and added new deterministic tooling.
 
 **Companion artifacts** (archived to `.Archive/` after completion):
 - `.Archive/AGENT_SUITE_CLASSIFICATION.md` — ruled per-agent classification matrix (48/48, zero provisional)
@@ -224,12 +226,44 @@ The remaining gaps build on the currently available capabilities in this order:
 - `.Archive/AGENT_SUITE_SESSION_HANDOFF.md` — session handoff (marked HISTORICAL / CLOSED)
 
 **Deferred items (not in migration scope):**
-- Full normalization (B end state) of C-pattern wrappers — requires whole-pipeline unit migration decision.
-- Frontend dispatch logic for archived ESTIMATE_PREP UI references (`frontend/app/page.tsx`, `frontend/components/PipelineView.tsx`) — requires separate frontend work.
+- Full normalization (B end state) of C-pattern wrappers — **Completed in §6.** See §6 for outcomes.
+- Frontend dispatch logic for archived ESTIMATE_PREP UI references (`frontend/app/page.tsx`, `frontend/components/PipelineView.tsx`) — requires separate frontend work (see §6 for expanded scope after wrapper archival).
+- Residual `build_hypergraph.py` regression-hardening gaps — tracked in `plans/BUILD_HYPERGRAPH_DELTA_FIXTURE_PLAN.md` (delta-path fixture) and `plans/KTY_SUPPORTS_OBJ_LEDGER_ABSENT_FIXTURE_PLAN.md` (ledger-absent `KTY_SUPPORTS_OBJ` independence fixture).
 
 **Follow-ups resolved after migration close:**
 - CONFIDENCE enum reconciled to `{HIGH, MEDIUM, LOW}` canonical across validator + all skills (commit 676a907).
 - Post-migration review fixes (commit 45bd9a1): `build_hypergraph.py` QA checks now emit explicit PASS rows per agent contract; `AGENT_EVALUATION.md` path drift fixed; session-handoff artifact marked CLOSED.
+- Regression guard expansion (commits 71ecaae, ce673be): `validate_build_hypergraph_fixture.py` now covers determinism, clean-run PASS coverage, warning detection, ledger/objectives path coverage, semicolon-list normalization equivalence, and `UNIT_MULTIPLE_CATEGORIES` blocker detection.
+
+---
+
+## 6. Completed: Full Normalization of C-Pattern Wrappers + HELPS_HUMANS Governance Extension
+
+**Status:** Complete (2026-04-04). 5 C-pattern wrappers archived; ORCHESTRATOR phases rewritten to dispatch TASK+skill directly; matrix normalized in AGENTS.md; HELPS_HUMANS extended to govern agents, skills, and tools as a single top-level standard.
+
+**Intent (achieved):** Closed the deferred item from §5 — collapsed the staged C-pattern wrappers into the canonical dispatch path (ORCHESTRATOR → TASK + TaskSkill → skill contract), dropping one layer of indirection. In the same slice, made the implicit Type 0 → Type 1 governance hierarchy explicit across three workflow-component layers (agents, skills, tools).
+
+**Outcomes:**
+- **Archival:** 5 wrapper agents moved to `.Archive/agents/` with timestamp suffix (all 4 collisions with pre-migration fat-agent archives resolved via `.archived_2026-04-04` suffix; `AGENT_DOMAIN_DOCUMENTS.md` had no collision).
+- **ORCHESTRATOR rewrite:** Phases 2.2, 2.3, 2.4, 2.5 rewritten as direct TASK+skill dispatch blocks; 5 "Wrapper note (staged C)" paragraphs removed; subagents frontmatter updated to `PREPARATION, DOMAIN_HYPERGRAPH, TASK`; Phase 2.6 DOMAIN_DOCUMENTS references updated to `domain-documents` skill.
+- **Variant-rejection relocation:** Verified `four-documents` and `domain-documents` skills already contain authoritative `DECOMP_VARIANT` rejection (returning `UNSUPPORTED_VARIANT`); defense-in-depth preserved.
+- **Actor-attribution policy:** Established canonical rule — `RequestedBy:` = dispatching persona; acting surface = `TASK+<skill-name>`; historical run records unchanged. Applied across all 5 skill folders' SKILL.md + BRIEF_SCHEMA.md + QA_CHECKS.md.
+- **Matrix normalization (AGENTS.md):** `PREP*` → `PREPARATION`, `TASK*` → `TASK`, `EVALUATIVE × APPLYING` empty; wildcard expansion lines removed for collapsed cells; new "TASK Skill Capabilities" section added listing 11 canonical skills.
+- **Cross-reference updates:** Wrapper role names replaced with TASK+skill equivalents across agents (AGENT_ORCHESTRATOR, AGENT_PREPARATION, AGENT_DELIVERABLE_TASK, AGENT_SCHEDULING, AGENT_REVIEW, AGENT_CHANGE, AGENT_SCOPE_CHANGE, AGENT_AUDIT_DEP_CLOSURE, AGENT_AUDIT_SCOPE_CLOSURE, AGENT_HELP_HUMAN), governance docs (SPEC.md, TYPES.md, CONTRACT.md, SE_Design_Analysis.md, REPO_INVENTORY.md count decrement 39→34), skill internal docs (all 5 skill folders), and tool docs (EXTERNAL_TOOLS.md, write_status.sh comments).
+- **HELPS_HUMANS governance extension (Part 6):** Applicability extended to three workflow-component layers; "Design Outcomes for Skill Contracts" and "Design Outcomes for Tool Contracts" subsections added; PROTOCOL Step 4 extended with skill/tool classification routing; SPEC extended with R10 (skill tool policy), R11 (tool contract), R12 (skill/tool boundary).
+- **SKILLMAKER + TOOLMAKER subordination:** Both Type 1 managers now cite HELPS_HUMANS as parent Type 0 standard explicitly; DBM §2.1 Type 0 table updated to list both managers as subordinate to HELPS_HUMANS.
+- **DBM scope broadened:** Retitled to "Workflow-Component Architecture"; §1 scope expanded to three layers; §4 R1–R9 → R1–R12.
+- **Supporting governance chain updated:** skills/README.md, skills/SKILL_TEMPLATE.md, tools/REGISTRY.md preamble, README.md architecture matrix + HELPS_HUMANS scope, AGENTS.md Type 0 row text.
+
+**Final repo state:** 5 Type 2 wrappers archived; indexed agent count 39 → 34; matrix cells `PREPARATION` and `TASK` name canonical shells directly; `EVALUATIVE × APPLYING` cell intentionally empty. HELPS_HUMANS is now the single Type 0 standard governing agents + skills + tools. See `docs/REPO_INVENTORY.md` for current governed counts.
+
+**Deferred items (not in slice scope):**
+- **Frontend wrapper-reference cleanup** — `frontend/components/PipelineView.tsx`, `frontend/components/WorkbenchView.tsx`, `frontend/app/page.tsx` still list archived wrapper names. Mirrors Slice 3's ESTIMATE_PREP frontend deferral. The UI matrix in `docs/PLAN.md:77` (Matrix Navigation + Pipeline Taxonomy) diverges from the canonical architecture matrix until this frontend slice closes.
+- **Structural TOOL_POLICY.md validator + R11 tool-contract** — TOOL_POLICY.md **presence** is machine-enforced (slice closed 2026-04-04). Remaining enforcement is tiered: Tier 1 deterministic structural checks (scoped in `plans/TOOL_POLICY_TIER1_VALIDATOR_PLAN.md`, ready to execute); Tier 2 LLM-based semantic audit (deferred until drift evidence surfaces); Tier 3 human judgment (already in place via gate review); R11 tool-contract extensions remain deferred as separate tool-layer scope.
+
+**Follow-ups resolved after slice close:**
+- **Thesis corpus normalization** — 3 parallel Haiku subagents + manual corrections replaced wrapper agent references in `docs/thesis/04_architecture.md`, `07_se_design_analysis.md`, `08_implementation.md`, `05_epistemic_architecture.md`, `appendix_a_invariant_catalog.md`, `appendix_b_agent_inventory.md` with canonical `TASK+<skill>` forms. Archived-wrapper table rows removed from `appendix_b_agent_inventory.md`. Only remaining wrapper-name matches in `docs/thesis/` are the philosophical `CHIRALITY_FRAMEWORK.md` methodology-document reference (false positive, preserved).
+- **TOOL_POLICY.md constitutional conformance** (2026-04-04). HELPS_HUMANS's "Design Outcomes for Skill Contracts" declared TOOL_POLICY.md required but subsystem documentation (`skills/README.md`, `AGENT_SKILLMAKER.md`, `SKILL_TEMPLATE.md`) described it as optional, the validator did not check for it, and 13 of 15 skills lacked the file. Resolved by: (a) backfilling TOOL_POLICY.md for the 13 missing skills via 4 parallel general-purpose subagents (each file uses canonical 5 H2 + 2 H3 headings and applies the two-part tool derivation rule distinguishing TASK-enforced `allowed-tools` frontmatter from operationally invoked helpers), (b) normalizing the 2 pre-existing TOOL_POLICY.md files (`deliverable-consistency`, `pdf2md`) to canonical headings, (c) updating subsystem documentation (`skills/README.md`, `agents/AGENT_SKILLMAKER.md`, `skills/SKILL_TEMPLATE.md`) to declare TOOL_POLICY.md required + specify canonical heading schema, (d) extending `tools/validation/validate_skill_metadata.py` to enforce TOOL_POLICY.md presence (check #11). The HELPS_HUMANS → SKILLMAKER → skill-corpus hierarchy is now actually enforced, not just declared.
 
 ---
 

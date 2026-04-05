@@ -14,6 +14,7 @@ Checks:
   8. metadata.chirality-task-profile is present and valid
   9. allowed-tools, when present, follows the canonical TASK-consumed format
  10. allowed-tools tool paths resolve to existing files under tools/
+ 11. TOOL_POLICY.md is present in the skill folder
 
 Usage:
     python3 validate_skill_metadata.py
@@ -192,6 +193,10 @@ def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
             "valid": False,
             "issues": ["SKILL.md is missing"],
         }
+
+    tool_policy_md = skill_dir / "TOOL_POLICY.md"
+    if not tool_policy_md.is_file():
+        issues.append("TOOL_POLICY.md is missing (required by AGENT_HELPS_HUMANS Design Outcomes for Skill Contracts)")
 
     data, fm_issues = extract_frontmatter(skill_md)
     issues.extend(fm_issues)

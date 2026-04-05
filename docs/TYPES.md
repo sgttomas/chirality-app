@@ -48,7 +48,7 @@ Identifiers are assigned once and persist across renames, path changes, and rest
 |--------|--------|---------|-------------|
 | Package | `PKG-XX` | `PKG-01` | PROJECT_DECOMP |
 | Deliverable | `DEL-XX-YY` | `DEL-01-01` | PROJECT_DECOMP |
-| Dependency | `DEP-XX-YY-NNN` | `DEP-01-01-001` | DEPENDENCIES |
+| Dependency | `DEP-XX-YY-NNN` | `DEP-01-01-001` | TASK+dependency-extract |
 | Scope Item | `SOW-NNN` | `SOW-003` | PROJECT_DECOMP |
 | Objective | `OBJ-NNN` | `OBJ-001` | PROJECT_DECOMP |
 

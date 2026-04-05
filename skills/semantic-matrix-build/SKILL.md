@@ -1,7 +1,7 @@
 ---
 name: semantic-matrix-build
 description: Generate the deliverable-local semantic lens (_SEMANTIC.md) by adopting canonical matrices A and B and deriving matrices C, F, D, K, G, X, T, E via semantic algebra, showing all interpretation work.
-compatibility: Chirality TASK; invoked by CHIRALITY_FRAMEWORK wrapper during ORCHESTRATOR setup pipeline.
+compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (Phase 2.3).
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: NONE
@@ -15,13 +15,13 @@ Apply semantic algebra to generate structured "semantic matrices" for knowledge 
 
 The skill does **not** specify particulars—it identifies semantic partitions. Particulars are addresses within those partitions, resolved in subsequent stages beyond this skill's scope.
 
-Each invocation is dispatched by CHIRALITY_FRAMEWORK (Type 2) with a brief specifying one deliverable folder. One `_SEMANTIC.md` file is produced per run.
+Each invocation is dispatched by ORCHESTRATOR via TASK with a brief specifying one deliverable folder. One `_SEMANTIC.md` file is produced per run.
 
 ## Suitable agent shells
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: `CHIRALITY_FRAMEWORK` (one dispatch per deliverable during ORCHESTRATOR Phase 2.3).
+Typical dispatcher: ORCHESTRATOR Phase 2.3 dispatches TASK with `TaskSkill: semantic-matrix-build` (one dispatch per deliverable).
 
 ## Foundations: Ontology, Epistemology, Praxeology, Axiology
 
@@ -175,7 +175,7 @@ This section defines the procedure for semantic matrix generation: adopting cano
      - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY`.
      - If current state is already `SEMANTIC_READY`, keep it as-is.
      - Append a History entry:
-       - `YYYY-MM-DD — State set/verified as SEMANTIC_READY (CHIRALITY_FRAMEWORK)`
+       - `YYYY-MM-DD — State set/verified as SEMANTIC_READY (TASK+semantic-matrix-build)`
    - If the audit in step 5 **failed**, the run ends in step 5 and `_STATUS.md` must **not** be advanced.
 
 7. **Report completion**

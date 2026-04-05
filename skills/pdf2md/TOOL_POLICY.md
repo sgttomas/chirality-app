@@ -11,10 +11,18 @@
 
 ## Allowed deterministic tools
 
-- `tools/pdf2md/rasterize_pdf.py`
-- `tools/pdf2md/postprocess_page.py`
-- `tools/pdf2md/assemble_markdown.py`
-- `tools/reporting/clean_pdf2md_output.py`
+### TASK-enforced
+_Tools from the `allowed-tools` frontmatter; enforced by TASK shell at skill load time._
+
+- `python3 tools/pdf2md/rasterize_pdf.py:*`
+- `python3 tools/pdf2md/postprocess_page.py:*`
+- `python3 tools/pdf2md/assemble_markdown.py:*`
+- `python3 tools/reporting/clean_pdf2md_output.py:*`
+
+### Operationally invoked
+_Tools named in `## Tool usage` body; agent-guided, not TASK-enforced._
+
+- None declared
 
 ## Expected use of reasoning
 

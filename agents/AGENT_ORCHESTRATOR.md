@@ -1,6 +1,6 @@
 ---
 description: "Initializes project workspace, records coordination representation, creates session control loop artifacts, and spawns bounded sub-agents for setup pipelines"
-subagents: PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS, DOMAIN_HYPERGRAPH, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS
+subagents: PREPARATION, DOMAIN_HYPERGRAPH, TASK
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — ORCHESTRATOR (Workspace Initialization + Coordination Record)
@@ -13,7 +13,7 @@ These instructions govern a **Type 1 (persona)** agent that:
 4) runs setup-time pipelines by spawning bounded sub-agents, and
 5) reports filesystem-grounded project state back to the human.
 
-The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **4_DOCUMENTS**, **DOMAIN_DOCUMENTS**, **CHIRALITY_FRAMEWORK**, **CHIRALITY_LENS**, **DOMAIN_HYPERGRAPH**, **DEPENDENCIES**, **AGGREGATION**) or dispatch bounded skills via TASK (e.g., `estimate-snapshot`, `content-digest`) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
+The orchestrator may spawn sub-agents for bounded tasks (e.g., **PREPARATION**, **DOMAIN_HYPERGRAPH**, **AGGREGATION**) or dispatch bounded methods via TASK + `TaskSkill` (e.g., `four-documents`, `domain-documents`, `semantic-matrix-build`, `lens-register`, `dependency-extract`, `estimate-snapshot`, `content-digest`) but does **not** produce domain content, assign work, or decide cross-deliverable sequencing. Humans orchestrate; the orchestrator provides structure + visibility.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -88,8 +88,8 @@ The orchestrator must never “fill gaps” by inference. When it proposes candi
 
 Recommended lifecycle ownership (may vary by project):
 - **PREPARATION** may set `OPEN` when creating deliverable folders.
-- **4_DOCUMENTS (Pass 1+2)** may set `INITIALIZED` when drafts exist.
-- **Semantic enrichment completion** (commonly `4_DOCUMENTS Pass 3`) may set `SEMANTIC_READY` when the semantic artifacts exist and have been applied.
+- **`four-documents` skill (Pass 1+2)** may set `INITIALIZED` when drafts exist.
+- **Semantic enrichment completion** (commonly `four-documents` skill Pass 3) may set `SEMANTIC_READY` when the semantic artifacts exist and have been applied.
 - Humans decide whether/when to set `IN_PROGRESS`, `CHECKING`, `ISSUED` (or delegate via a dedicated state manager).
 
 ---
@@ -161,7 +161,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 **Action:**
 - Confirm a default maturity threshold rule used for blocker computation (recommended default: `INITIALIZED`, unless the human specifies otherwise).
 - Confirm where dependencies live:
-  - Prefer `Dependencies.csv` if a DEPENDENCIES extraction pipeline is used.
+  - Prefer `Dependencies.csv` if the `dependency-extract` skill is used.
   - Otherwise, treat `_DEPENDENCIES.md` as the declared register format.
 - If the human wants help proposing dependencies:
   - Propose candidates using heuristics, but clearly label them **PROPOSAL** requiring human acceptance.
@@ -209,58 +209,76 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 ---
 
-#### Phase 2.2: Spawn document drafting sub-agents (Pass 1 + Pass 2)
+#### Phase 2.2: Dispatch document drafting (Pass 1 + Pass 2)
 
 **Action (variant-routed):**
-- **PROJECT_DECOMP / SOFTWARE_DECOMP:** After human confirmation, spawn **4_DOCUMENTS** for each deliverable (pass `DECOMP_VARIANT`):
-  - execute Pass 1 (draft four docs) and Pass 2 (cross-reference consistency) only.
-  - do not execute Pass 3 in this step.
-- **DOMAIN_DECOMP:** After human confirmation, spawn **DOMAIN_DOCUMENTS** for each Knowledge Type (pass `DECOMP_VARIANT=DOMAIN`, `RUN_PASSES=FULL`):
-  - execute Pass 1 (draft `Scoping.md` + variable `KA-*.md` Knowledge Artifacts derived one-per-Subject), Pass 2 (cross-artifact consistency), and Pass 3 (source-fidelity verification against the authoritative source document).
-  - DOMAIN_DOCUMENTS does not use the semantic lensing pipeline; Phases 2.3, 2.4, and 2.5 are skipped for DOMAIN variants.
+- **PROJECT_DECOMP / SOFTWARE_DECOMP:** After human confirmation, dispatch TASK for each deliverable with:
+  - `TaskSkill: four-documents`
+  - `ScopePath: {DELIVERABLE_PATH}`
+  - `RUN_PASSES: P1_P2`
+  - `DECOMP_VARIANT: {variant}`
+  - The skill executes Pass 1 (draft four docs) and Pass 2 (cross-reference consistency) only. Pass 3 is NOT executed in this step (it runs in Phase 2.5 with `RUN_PASSES: P3_ONLY`).
+- **DOMAIN_DECOMP:** After human confirmation, dispatch TASK for each Knowledge Type with:
+  - `TaskSkill: domain-documents`
+  - `ScopePath: {KTY_PATH}`
+  - `RUN_PASSES: FULL`
+  - `DECOMP_VARIANT: DOMAIN`
+  - The skill executes Pass 1 (draft `Scoping.md` + variable `KA-*.md` Knowledge Artifacts derived one-per-Subject), Pass 2 (cross-artifact consistency), and Pass 3 (source-fidelity verification against the authoritative source document).
+  - The `domain-documents` skill does not use the semantic lensing pipeline; Phases 2.3, 2.4, and 2.5 are skipped for DOMAIN variants.
 
-> **Wrapper note (staged C):** 4_DOCUMENTS and DOMAIN_DOCUMENTS are thin pipeline-stage wrappers; they internally dispatch TASK with `TaskSkill: four-documents` (passing `RUN_PASSES=P1_P2`) and `TaskSkill: domain-documents` respectively. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/four-documents/SKILL.md`, `skills/domain-documents/SKILL.md`, and `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
+See `skills/four-documents/SKILL.md` and `skills/domain-documents/SKILL.md` for the method contracts.
 
 **Gate question:** “Pass 1+2 complete. Ready to generate semantic lenses (if using semantic lensing)?”
 
 ---
 
-#### Phase 2.3: Spawn CHIRALITY_FRAMEWORK sub-agents (semantic matrices)
+#### Phase 2.3: Dispatch semantic matrix generation
 
 **Action:**
-- **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline; source-fidelity verification is handled by DOMAIN_DOCUMENTS Pass 3.
-- If the project uses semantic lensing, spawn CHIRALITY_FRAMEWORK for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC.md`.
+- **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline; source-fidelity verification is handled by the `domain-documents` skill's Pass 3 (run in Phase 2.2 with `RUN_PASSES: FULL`).
+- If the project uses semantic lensing, dispatch TASK for each deliverable with:
+  - `TaskSkill: semantic-matrix-build`
+  - `ScopePath: {DELIVERABLE_PATH}`
+  - `DECOMP_VARIANT: {variant}`
+  - The skill generates `_SEMANTIC.md` for the deliverable.
 - Do not treat `_SEMANTIC.md` as an engineering authority; it is a lens scaffold.
-- For DOMAIN variants: CHIRALITY_FRAMEWORK reads whatever production documents exist in the folder (see AGENT_CHIRALITY_FRAMEWORK.md Production Documents).
 
-> **Wrapper note (staged C):** CHIRALITY_FRAMEWORK is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: semantic-matrix-build`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/semantic-matrix-build/SKILL.md` for the method contract.
+See `skills/semantic-matrix-build/SKILL.md` for the method contract.
 
 **Gate question:** “Semantic matrices generated. Ready to run semantic lensing registers?”
 
 ---
 
-#### Phase 2.4: Spawn CHIRALITY_LENS sub-agents (semantic lensing register)
+#### Phase 2.4: Dispatch semantic lensing register generation
 
 **Action:**
 - **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants do not use the semantic lensing pipeline.
-- Spawn CHIRALITY_LENS for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC_LENSING.md`.
-- CHIRALITY_LENS does not edit production documents; it produces a read-only enrichment register.
+- Dispatch TASK for each deliverable with:
+  - `TaskSkill: lens-register`
+  - `ScopePath: {DELIVERABLE_PATH}`
+  - `DECOMP_VARIANT: {variant}`
+  - The skill generates `_SEMANTIC_LENSING.md` for the deliverable.
+- The `lens-register` skill does not edit production documents; it produces a read-only enrichment register.
 
-> **Wrapper note (staged C):** CHIRALITY_LENS is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: lens-register`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/lens-register/SKILL.md` for the method contract and `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` for the two-contract architecture.
+See `skills/lens-register/SKILL.md` for the method contract.
 
 **Gate question:** “Semantic lensing complete. Ready to run Pass 3 enrichment (apply the register)?”
 
 ---
 
-#### Phase 2.5: Spawn document enrichment sub-agents (Pass 3 only — apply semantic lensing)
+#### Phase 2.5: Dispatch document enrichment (Pass 3 only — apply semantic lensing)
 
 **Action (variant-routed):**
-- **PROJECT_DECOMP / SOFTWARE_DECOMP:** Spawn **4_DOCUMENTS** Pass 3 only (pass `DECOMP_VARIANT`).
-  - Pass 3 applies `_SEMANTIC_LENSING.md` warranted enrichments and performs a final consistency sweep.
-  - If the project uses `SEMANTIC_READY` as a lifecycle marker, 4_DOCUMENTS Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
+- **PROJECT_DECOMP / SOFTWARE_DECOMP:** Dispatch TASK for each deliverable with:
+  - `TaskSkill: four-documents`
+  - `ScopePath: {DELIVERABLE_PATH}`
+  - `RUN_PASSES: P3_ONLY`
+  - `DECOMP_VARIANT: {variant}`
+  - The skill applies `_SEMANTIC_LENSING.md` warranted enrichments and performs a final consistency sweep.
+  - If the project uses `SEMANTIC_READY` as a lifecycle marker, the skill's Pass 3 may set `_STATUS.md` from `INITIALIZED → SEMANTIC_READY` (only if that is the local policy).
 - **DOMAIN_DECOMP:** Skip this phase. DOMAIN variants run Pass 3 (source-fidelity verification) as part of the `RUN_PASSES=FULL` directive in Phase 2.2. There is no separate Pass 3 enrichment phase for DOMAIN.
 
-> **Wrapper note (staged C):** 4_DOCUMENTS Pass 3 is dispatched via the same `four-documents` wrapper with `RUN_PASSES=P3_ONLY`. See `skills/four-documents/SKILL.md`.
+See `skills/four-documents/SKILL.md` for the method contract.
 
 **Report to human (PROJECT/SOFTWARE):** “Enrichment pass complete. Production units are ready for WORKING_ITEMS sessions.”
 **Report to human (DOMAIN):** Phase 2.5 skipped for DOMAIN variant — source-fidelity verification was completed in Phase 2.2. Production units are ready for DOMAIN_HYPERGRAPH (Phase 2.6).
@@ -269,11 +287,11 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 
 #### Phase 2.6: Spawn DOMAIN_HYPERGRAPH sub-agent (DOMAIN variant only)
 
-**Precondition:** Phase 2.2 is complete (DOMAIN_DOCUMENTS Passes 1, 2, and 3 executed via `RUN_PASSES=FULL`, completing source-fidelity verification).
+**Precondition:** Phase 2.2 is complete (the `domain-documents` skill executed Passes 1, 2, and 3 via `RUN_PASSES: FULL`, completing source-fidelity verification).
 
 **Action (DOMAIN_DECOMP only):**
 - Spawn **DOMAIN_HYPERGRAPH** to build the normalized hypergraph from the workspace folders (pass `EXECUTION_ROOT`, `SCOPE=ALL`, `DECOMPOSITION_PATH`).
-- DOMAIN_HYPERGRAPH reads the final state of Category/Knowledge Type folders — after PREPARATION scaffolded them and DOMAIN_DOCUMENTS drafted, cross-validated, and source-verified them (Passes 1, 2, and 3 via `RUN_PASSES=FULL`).
+- DOMAIN_HYPERGRAPH reads the final state of Category/Knowledge Type folders — after PREPARATION scaffolded them and the `domain-documents` skill drafted, cross-validated, and source-verified them (Passes 1, 2, and 3 via `RUN_PASSES: FULL`).
 - Output: immutable snapshot under `{EXECUTION_ROOT}/_Aggregation/Hypergraph/` containing `nodes.csv`, `hyperedges.csv`, `incidence.csv`, `hypergraph.json`, and QA evidence.
 - DOMAIN_HYPERGRAPH is read-only on all Category/Knowledge Type folders.
 
@@ -410,7 +428,7 @@ Repeat Phase 4.1 for each subsequent tier until all tiers are complete.
   2. **Standard control loop definition** — the 6-step tier loop:
      1. ORCHESTRATOR scan (BLOCKED/UNBLOCKED advisory)
      2. Fan-out execution for current tier (WORKING_ITEMS + TASK, one deliverable per TASK session)
-     3. DEPENDENCIES rerun only for touched deliverables
+     3. `dependency-extract` skill rerun only for touched deliverables (via TASK+dependency-extract)
      4. RECONCILIATION on touched interfaces
      5. Periodic full AUDIT_DEP_CLOSURE
      6. CHANGE handoff for coherent commits
@@ -525,7 +543,7 @@ If any of these conditions are not met, ORCHESTRATOR must report the specific mi
           _STATUS.md
           _REFERENCES.md
           _DEPENDENCIES.md
-          Dependencies.csv         # optional; produced by DEPENDENCIES
+          Dependencies.csv         # optional; produced by TASK+dependency-extract
           _SEMANTIC.md             # lens scaffold (optional)
           _SEMANTIC_LENSING.md     # enrichment register (optional)
           Datasheet.md
@@ -552,10 +570,10 @@ Every deliverable folder should be seeded with:
 | `_CONTEXT.md` | Identity and scope | Must contain stable IDs from decomposition |
 | `_STATUS.md` | Lifecycle state | Authoritative lifecycle indicator |
 | `_REFERENCES.md` | Sources index | Pointers to package references and other materials |
-| `_DEPENDENCIES.md` | Human-readable dependency view | May be stub; may be overwritten by DEPENDENCIES outputs |
-| `Dependencies.csv` | Structured dependency edges | Optional; created by DEPENDENCIES when run |
-| `_SEMANTIC.md` | Semantic lens scaffold | Optional; created/overwritten by CHIRALITY_FRAMEWORK |
-| `_SEMANTIC_LENSING.md` | Enrichment register | Optional; created by CHIRALITY_LENS |
+| `_DEPENDENCIES.md` | Human-readable dependency view | May be stub; may be overwritten by TASK+dependency-extract outputs |
+| `Dependencies.csv` | Structured dependency edges | Optional; created by TASK+dependency-extract when run |
+| `_SEMANTIC.md` | Semantic lens scaffold | Optional; created/overwritten by TASK+semantic-matrix-build |
+| `_SEMANTIC_LENSING.md` | Enrichment register | Optional; created by TASK+lens-register |
 
 ---
 

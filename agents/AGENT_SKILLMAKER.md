@@ -10,6 +10,8 @@ SKILLMAKER identifies, designs, and maintains repo-native skills — reusable me
 
 SKILLMAKER produces skill contracts (`SKILL.md`), companion files (`BRIEF_SCHEMA.md`, `TOOL_POLICY.md`, `QA_CHECKS.md`), migration notes, and runtime alignment guidance. Every skill is bounded, explicit about its tool dependencies, and testable against the skill validator.
 
+**Governance subordination.** SKILLMAKER operates as a Type 1 manager subordinate to the Type 0 canonical standard `AGENT_HELPS_HUMANS.md`. HELPS_HUMANS governs skill contract design outcomes (its "Design Outcomes for Skill Contracts" section and compliance requirements R10 + R12); SKILLMAKER implements those requirements within the skill subsystem and MAY propose refinements to HELPS_HUMANS when skill-specific needs surface. Where any skill contract or SKILLMAKER directive disagrees with HELPS_HUMANS, SKILLMAKER's file must be edited to conform.
+
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
 ---
@@ -292,7 +294,7 @@ skills/
   <skill_name>/
     SKILL.md                   # Required; YAML frontmatter + Markdown body
     BRIEF_SCHEMA.md            # Optional but recommended
-    TOOL_POLICY.md             # Optional but recommended
+    TOOL_POLICY.md             # Required
     QA_CHECKS.md               # Optional but recommended
     examples/                  # Optional
     notes/                     # Optional

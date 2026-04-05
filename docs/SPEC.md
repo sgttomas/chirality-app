@@ -108,19 +108,19 @@ Each deliverable occupies a folder at:
 | `_CONTEXT.md` | MUST | PREPARATION | Identity, decomposition pointer, traceability |
 | `_DEPENDENCIES.md` | MUST | PREPARATION | Dependency summary (human declarations + agent extractions) |
 | `_REFERENCES.md` | MUST | PREPARATION | Source document pointers |
-| `Datasheet.md` | MUST | 4_DOCUMENTS | Key parameters and structured metadata |
-| `Specification.md` | MUST | 4_DOCUMENTS | Technical requirements and scope definition |
-| `Guidance.md` | MUST | 4_DOCUMENTS | Design guidance, rationale, and best practices |
-| `Procedure.md` | MUST | 4_DOCUMENTS | Step-by-step execution workflow |
-| `Dependencies.csv` | SHOULD | DEPENDENCIES | Structured dependency register (v3.1 schema) |
+| `Datasheet.md` | MUST | TASK+four-documents | Key parameters and structured metadata |
+| `Specification.md` | MUST | TASK+four-documents | Technical requirements and scope definition |
+| `Guidance.md` | MUST | TASK+four-documents | Design guidance, rationale, and best practices |
+| `Procedure.md` | MUST | TASK+four-documents | Step-by-step execution workflow |
+| `Dependencies.csv` | SHOULD | TASK+dependency-extract | Structured dependency register (v3.1 schema) |
 | `_MEMORY.md` | SHOULD | PREPARATION | Working memory (shared by WORKING_ITEMS and deliverable-local task agents) |
-| `_SEMANTIC.md` | MAY | CHIRALITY_FRAMEWORK | Semantic lens with derivation work |
-| `_SEMANTIC_LENSING.md` | MAY | CHIRALITY_LENS | Semantic analysis narrative |
+| `_SEMANTIC.md` | MAY | TASK+semantic-matrix-build | Semantic lens with derivation work |
+| `_SEMANTIC_LENSING.md` | MAY | TASK+lens-register | Semantic analysis narrative |
 | `MEMORY.md` | MAY | PREPARATION | Compatibility pointer to `_MEMORY.md` |
 
 **Minimum viable fileset (PREPARATION):** `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholder).
 
-**Document kit (4_DOCUMENTS):** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
+**Document kit (TASK+four-documents):** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
 
 ---
 
@@ -147,8 +147,8 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 | State | Meaning | Typical Trigger |
 |-------|---------|-----------------|
 | `OPEN` | Folder exists, no content yet | PREPARATION creates folder |
-| `INITIALIZED` | Draft documents generated | 4_DOCUMENTS completes document kit |
-| `SEMANTIC_READY` | Semantic lens generated | CHIRALITY_FRAMEWORK writes `_SEMANTIC.md` |
+| `INITIALIZED` | Draft documents generated | TASK+four-documents completes document kit |
+| `SEMANTIC_READY` | Semantic lens generated | TASK+semantic-matrix-build writes `_SEMANTIC.md` |
 | `IN_PROGRESS` | Active human + agent work | Human or WORKING_ITEMS begins work |
 | `CHECKING` | Under review | Human moves to review |
 | `ISSUED` | Released | Human approves and issues |
@@ -158,8 +158,8 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 | Transition | Authorized Actor |
 |------------|-----------------|
 | `→ OPEN` | PREPARATION |
-| `OPEN → INITIALIZED` | 4_DOCUMENTS |
-| `INITIALIZED → SEMANTIC_READY` | CHIRALITY_FRAMEWORK |
+| `OPEN → INITIALIZED` | TASK+four-documents |
+| `INITIALIZED → SEMANTIC_READY` | TASK+semantic-matrix-build |
 | `INITIALIZED → IN_PROGRESS` | Human, WORKING_ITEMS (when semantic step is skipped) |
 | `SEMANTIC_READY → IN_PROGRESS` | Human, WORKING_ITEMS |
 | `IN_PROGRESS → CHECKING` | Human |
@@ -221,7 +221,7 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 - Declared Upstream
 - Declared Downstream
 
-**Agent-owned sections** (DEPENDENCIES agent populates):
+**Agent-owned sections** (TASK+dependency-extract populates):
 - Extracted Dependency Register
 - Run Notes & History
 - Lifecycle Summary
@@ -280,7 +280,7 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 |------|---------|
 | `NOT_TRACKED` | Dependencies coordinated externally by humans |
 | `DECLARED` | Human-declared upstream/downstream only; no agent extraction |
-| `TRACKED` | Full agent extraction via DEPENDENCIES agent; `Dependencies.csv` present |
+| `TRACKED` | Full extraction via TASK+dependency-extract; `Dependencies.csv` present |
 
 ---
 
@@ -492,7 +492,7 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 - References are listed as relative paths (preferred) or absolute paths to source documents.
 - Each reference includes a brief relevance statement.
 - `_REFERENCES.md` is created by PREPARATION and MAY be updated by human or ORCHESTRATOR.
-- DEPENDENCIES agent reads `_REFERENCES.md` but MUST NOT modify it.
+- TASK+dependency-extract reads `_REFERENCES.md` but MUST NOT modify it.
 
 ---
 
@@ -762,6 +762,8 @@ The coordination representation is chosen per project instance and recorded once
 ## 14. UI Navigation and Selector Contract
 
 This section defines deterministic frontend behavior for matrix launch routing and work mode selectors.
+
+**Note:** This section describes what the desktop frontend currently implements. UI labels (e.g., `HELP`, `ORCHESTRATE`, `DEPENDENCIES`, `RECONCILING`) are abbreviated variants of canonical agent/role names, and the selector list currently includes `DEPENDENCIES` — an archived wrapper name pointing to `skills/dependency-extract/` (see `AGENTS.md` "TASK Skill Capabilities"). Full normalization of UI labels to canonical agent/role names and removal of archived wrapper references is deferred to a separate frontend slice.
 
 ### 14.1 PORTAL Matrix Routing
 

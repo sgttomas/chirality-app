@@ -146,7 +146,7 @@ Three complementary forms of coverage verification exist in the Chirality system
 
 **Decomposition coverage** (DECOMP_BASE Phase 6) verifies that every in-scope atomic unit is mapped to exactly one partition and at least one production unit. Gaps are recorded as open issues with stable identifiers. Coverage is reported as a machine-checkable metric across the decomposition ledger.
 
-**Dependency coverage** (DEPENDENCIES Function 5) verifies that every active dependency row has associated evidence — an `EvidenceFile` field and a `SourceRef` field, or an explicit `location TBD` marker. Floating nodes, deliverables without an `IMPLEMENTS_NODE` anchor row, generate structured warnings. This form of coverage serves K-PROV-1: the provenance of every dependency claim must be traceable to a source.
+**Dependency coverage** (TASK+dependency-extract Function 5) verifies that every active dependency row has associated evidence — an `EvidenceFile` field and a `SourceRef` field, or an explicit `location TBD` marker. Floating nodes, deliverables without an `IMPLEMENTS_NODE` anchor row, generate structured warnings. This form of coverage serves K-PROV-1: the provenance of every dependency claim must be traceable to a source.
 
 **Review coverage** (REVIEW Gate 2) verifies that the review checklist addresses acceptance criteria, objectives, cross-document consistency, dependency satisfaction, and TBD inventory. Each checklist item carries a stable identifier from one of six namespaces (AP-NNN, AC-NNN, OC-NNN, XD-NNN, DS-NNN, TB-001), enabling traceability of review findings to specific checklist items and therefore to the requirements or criteria they address.
 
@@ -176,7 +176,7 @@ The write scope architecture creates formal fault containment zones with precise
 
 | Containment Zone | Assigned Agents | Maximum Failure Impact |
 |---|---|---|
-| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK, 4_DOCUMENTS, DEPENDENCIES, CHIRALITY_FRAMEWORK, CHIRALITY_LENS | Limited to one production unit folder |
+| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK, TASK+four-documents, TASK+dependency-extract, TASK+semantic-matrix-build, TASK+lens-register | Limited to one production unit folder |
 | Tool-root | ORCHESTRATOR, ESTIMATING, AGGREGATION, AUDIT_*, SCHEDULING | Limited to one tool root; source truth untouched |
 | Repository (approval-gated) | CHANGE | Requires explicit human approval token per action |
 | Read-only | HELP_HUMAN, HELPS_HUMANS, DECOMP_BASE | Zero write impact |
@@ -194,8 +194,8 @@ The Chirality safety architecture makes failures explicit rather than attempting
 | Missing data | Mark `TBD`; surface as open issue | K-INVENT-1 |
 | Conflicting sources | Produce Conflict Table; human rules | K-CONFLICT-1 |
 | Invalid inputs | `FAILED_INPUTS` (halt, do not guess) | Type 2 agent convention |
-| Unresolvable dependency target | `TargetType=UNKNOWN`; preserve raw reference | DEPENDENCIES Function 2 |
-| Missing decomposition | `[WARNING] MISSING_DECOMPOSITION`; skip validation | DEPENDENCIES Pass 1 |
+| Unresolvable dependency target | `TargetType=UNKNOWN`; preserve raw reference | TASK+dependency-extract Function 2 |
+| Missing decomposition | `[WARNING] MISSING_DECOMPOSITION`; skip validation | TASK+dependency-extract Pass 1 |
 | Lifecycle state violation | Warn, do not block (human decides) | REVIEW Gate 1 |
 
 The consistent pattern is that failures are visible findings, not hidden recovery attempts. Every form of uncertainty is labeled — FACT, ASSUMPTION, PROPOSAL, or TBD — per the epistemic label system defined in `TYPES.md` §10 and described further in Section 7.8.3 of this chapter. An agent that encounters missing data does not default-fill or infer; it marks the gap and surfaces it as an open issue. This behavior is enforced by K-INVENT-1 as a structural constraint across all agent types.
@@ -266,13 +266,13 @@ The system implements a closed-loop feedback control architecture spanning the c
 ```
 ORCHESTRATOR (Plant Setup)
   → WORKING_ITEMS (Actuator — produces content)
-    → DEPENDENCIES rerun (Sensor — updates dependency state)
+    → TASK+dependency-extract rerun (Sensor — updates dependency state)
       → RECONCILIATION (Comparator — surfaces deviations)
         → CHANGE (Output — commits to baseline)
           → ORCHESTRATOR scan (Feedback — reports new state)
 ```
 
-Each element of this loop has a defined control function. The ORCHESTRATOR initializes the plant state — the workspace configuration and coordination representation — and provides the periodic scan that closes the loop by reporting current system state. WORKING_ITEMS is the primary actuator, producing content that advances deliverables toward their set points. The DEPENDENCIES rerun after content changes functions as a sensor, updating the dependency state to reflect the new system state. RECONCILIATION is the comparator, differencing actual dependency state against expected dependency state and surfacing deviations as findings. CHANGE commits accepted states to baseline, making the output permanent. The ORCHESTRATOR scan then reports the new baseline state as feedback to the next iteration.
+Each element of this loop has a defined control function. The ORCHESTRATOR initializes the plant state — the workspace configuration and coordination representation — and provides the periodic scan that closes the loop by reporting current system state. WORKING_ITEMS is the primary actuator, producing content that advances deliverables toward their set points. The TASK+dependency-extract rerun after content changes functions as a sensor, updating the dependency state to reflect the new system state. RECONCILIATION is the comparator, differencing actual dependency state against expected dependency state and surfacing deviations as findings. CHANGE commits accepted states to baseline, making the output permanent. The ORCHESTRATOR scan then reports the new baseline state as feedback to the next iteration.
 
 ### 7.7.2 Control Variables and Set Points
 
@@ -296,7 +296,7 @@ The control architecture includes both open-loop and closed-loop segments, servi
 
 **Open-loop (within a session):** WORKING_ITEMS produces content within a single deliverable without cross-deliverable feedback. The agent is bounded by its deliverable scope and session objective. There is no real-time sensor reading from the broader project state. This open-loop characteristic is intentional — it prevents agents from being distracted by or making decisions based on the state of other deliverables during focused production work.
 
-**Closed-loop (across sessions):** The handoff mechanism (`NEXT_INSTANCE_STATE.md`) carries state between sessions. DEPENDENCIES reruns after content changes update the dependency graph with current evidence. RECONCILIATION detects integration defects by comparing the updated dependency graph against expected satisfaction states. ORCHESTRATOR scans compute work availability for the next tier. The closed loop operates at the session boundary, not within a session.
+**Closed-loop (across sessions):** The handoff mechanism (`NEXT_INSTANCE_STATE.md`) carries state between sessions. TASK+dependency-extract reruns after content changes update the dependency graph with current evidence. RECONCILIATION detects integration defects by comparing the updated dependency graph against expected satisfaction states. ORCHESTRATOR scans compute work availability for the next tier. The closed loop operates at the session boundary, not within a session.
 
 This architectural choice — confining closed-loop feedback to session boundaries — is consistent with a broader safety principle: feedback should be deferred to a point at which it can be evaluated with appropriate scope and authority. Real-time feedback within a production session would require the agent to make scope decisions it is not authorized to make.
 
@@ -402,8 +402,8 @@ The deliverable lifecycle is a formal state machine with defined states, authori
 ```
 OPEN
   ─[PREPARATION]─→ INITIALIZED
-  ─[4_DOCUMENTS / DOMAIN_DOCUMENTS]─→ SEMANTIC_READY
-  ─[CHIRALITY_FRAMEWORK]─→ IN_PROGRESS
+  ─[TASK+four-documents / TASK+domain-documents]─→ SEMANTIC_READY
+  ─[TASK+semantic-matrix-build]─→ IN_PROGRESS
   ─[human]─→ CHECKING
   ─[REVIEW + human approval]─→ ISSUED
   ─[human]─→ (re-open or archive)

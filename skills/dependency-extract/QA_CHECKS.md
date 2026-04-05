@@ -1,8 +1,8 @@
 # dependency-extract — QA Checks
 
-This file enumerates the mandatory invariants and local quality checks that must hold for a `dependency-extract` run to be considered valid. These are migrated verbatim from `AGENT_DEPENDENCIES.md` Non-negotiable invariants, PROTOCOL Function 5 (local quality checks), and SPEC validity requirements.
+This file enumerates the mandatory invariants and local quality checks that must hold for a `dependency-extract` run to be considered valid.
 
-## Non-negotiable invariants (migrated from source agent)
+## Non-negotiable invariants
 
 1. **Evidence-first.** Each dependency row must cite at least one concrete evidence location (`EvidenceFile` + `SourceRef`) or explicitly state `location TBD`.
 2. **Do not modify source documents.** Never edit deliverable docs, `_REFERENCES.md`, or decomposition outputs.

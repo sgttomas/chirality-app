@@ -1,7 +1,7 @@
 ---
 name: dependency-extract
-description: Extract dependency register (Dependencies.csv v3.1) from deliverable source documents using Anchor x Execution edge typing with evidence-first provenance. Setup-pipeline skill invoked by the DEPENDENCIES wrapper during project setup.
-compatibility: Chirality TASK; invoked by DEPENDENCIES wrapper during ORCHESTRATOR setup pipeline.
+description: Extract dependency register (Dependencies.csv v3.1) from deliverable source documents using Anchor x Execution edge typing with evidence-first provenance. Setup-pipeline skill dispatched by ORCHESTRATOR during project setup.
+compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (and control-loop refresh runs).
 allowed-tools: python3 tools/validation/validate_dependencies_schema.py:*, python3 tools/validation/validate_enum.py:*
 metadata:
   chirality-skill-version: "1"
@@ -25,7 +25,7 @@ This skill does **not** build project-level graphs. It produces only deliverable
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: `DEPENDENCIES` wrapper during ORCHESTRATOR project setup, or later for explicit refresh runs. Runs straight-through; never blocks on human decisions.
+Typical dispatcher: ORCHESTRATOR dispatches TASK with `TaskSkill: dependency-extract` during project setup, or later for explicit refresh runs during the tier control loop. Runs straight-through; never blocks on human decisions.
 
 ## Inputs
 

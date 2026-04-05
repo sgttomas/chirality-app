@@ -15,24 +15,22 @@ Read structurally, the rows also form a governance grammar: NORMATIVE defines ru
 |  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 | --- | --- | --- | --- | --- |
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
-| **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **EVALUATIVE** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
+| **OPERATIVE** | DECOMP\* | PREPARATION | TASK | AUDIT\* |
+| **EVALUATIVE** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
 
 ### Operative Row — Pipeline Categories
 
-The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands to the agents listed below, grouped by `PipelineCategory` (see `TYPES.md` §9.2).
+The OPERATIVE row opens in PIPELINE (task execution). The `PREPARATION` and `TASK` cells name canonical shells directly. Wildcard cells (`DECOMP*`, `AUDIT*`, `PDF2MD*`, `DRAWING_EXTRACT*`) still expand to agent groups, grouped by `PipelineCategory` (see `TYPES.md` §9.2).
 
 **DECOMP\*:** PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP, SCOPE_CHANGE
-
-**PREP\*:** PREPARATION, 4_DOCUMENTS, DOMAIN_DOCUMENTS
 
 **PDF2MD\*:** PDF2MD
 
 **DRAWING_EXTRACT\*:** DRAWING_EXTRACT
 
-**TASK\*:** TASK, DELIVERABLE_TASK, CHIRALITY_FRAMEWORK, CHIRALITY_LENS, DEPENDENCIES, AGGREGATION, DOMAIN_HYPERGRAPH
-
 **AUDIT\*:** AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_DEP_CLOSURE, AUDIT_HYPERGRAPH_CLOSURE, AUDIT_GOVERNANCE, AUDIT_EPISTEMIC, AUDIT_SCOPE_CLOSURE, EVALUATION_REPORT, EVALUATION_STRUCTURE_AUDIT, EVALUATION_DEPENDENCY_AUDIT
+
+Other live task-family agents (DELIVERABLE_TASK, AGGREGATION, DOMAIN_HYPERGRAPH) are indexed below by type. Canonical methods previously exposed through archived wrapper agents are now dispatched via `TASK` + `TaskSkill: <name>` (see "TASK Skill Capabilities" below).
 
 ---
 
@@ -42,7 +40,7 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 
 | Agent | Instruction File | Role |
 | --- | --- | --- |
-| HELPS_HUMANS | `AGENT_HELPS_HUMANS.md` | Workflow design standard; all agents must conform |
+| HELPS_HUMANS | `AGENT_HELPS_HUMANS.md` | Workflow design standard governing agents, skills, and tools; all workflow components must conform |
 | DECOMP_BASE | `AGENT_DECOMP_BASE.md` | Decomposition protocol standard (7-gate, I1–I10) |
 
 ### Type 1 — Interactive Personas
@@ -72,11 +70,6 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | Agent | Instruction File | Role |
 | --- | --- | --- |
 | PREPARATION | `AGENT_PREPARATION.md` | Scaffold package/deliverable folders |
-| 4_DOCUMENTS | `AGENT_4_DOCUMENTS.md` | Draft four-document kit |
-| DOMAIN_DOCUMENTS | `AGENT_DOMAIN_DOCUMENTS.md` | Knowledge artifact files for domain decompositions |
-| CHIRALITY_FRAMEWORK | `AGENT_CHIRALITY_FRAMEWORK.md` | Semantic analysis (`_SEMANTIC.md`) |
-| CHIRALITY_LENS | `AGENT_CHIRALITY_LENS.md` | Semantic lensing narrative |
-| DEPENDENCIES | `AGENT_DEPENDENCIES.md` | Dependency register extraction (CSV v3.1) |
 | AGGREGATION | `AGENT_AGGREGATION.md` | Cross-scope synthesis snapshots |
 | TASK | `AGENT_TASK.md` | Generic bounded-task shell; loads profile/skill and executes within explicit scope |
 | DELIVERABLE_TASK | `AGENT_DELIVERABLE_TASK.md` | Preserved deliverable-local SME helper workflow |
@@ -91,6 +84,26 @@ The OPERATIVE row opens in PIPELINE (task execution). Each wildcard cell expands
 | EVALUATION_REPORT | `AGENT_EVALUATION_REPORT.md` | Scored dimension evaluation |
 | EVALUATION_STRUCTURE_AUDIT | `AGENT_EVALUATION_STRUCTURE_AUDIT.md` | Structural validation |
 | EVALUATION_DEPENDENCY_AUDIT | `AGENT_EVALUATION_DEPENDENCY_AUDIT.md` | Dependency validation |
+
+### TASK Skill Capabilities
+
+Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounded methods. These methods were previously exposed as thin wrapper agents; they are now routed directly through the canonical TASK shell.
+
+| Skill | Folder | Purpose | Typical dispatcher |
+|---|---|---|---|
+| four-documents | `skills/four-documents/` | Draft + enrich Datasheet/Specification/Guidance/Procedure | ORCHESTRATOR Phase 2.2 + 2.5 |
+| domain-documents | `skills/domain-documents/` | Draft + verify Knowledge Artifacts for DOMAIN variants | ORCHESTRATOR Phase 2.2 |
+| semantic-matrix-build | `skills/semantic-matrix-build/` | Generate `_SEMANTIC.md` semantic matrix | ORCHESTRATOR Phase 2.3 |
+| lens-register | `skills/lens-register/` | Generate `_SEMANTIC_LENSING.md` enrichment register | ORCHESTRATOR Phase 2.4 |
+| dependency-extract | `skills/dependency-extract/` | Extract `Dependencies.csv` v3.1 + `_DEPENDENCIES.md` | ORCHESTRATOR setup + control-loop refresh |
+| semantic-lensing | `skills/semantic-lensing/` | Apply lensing register during content enrichment | DELIVERABLE_TASK, WORKING_ITEMS |
+| content-digest | `skills/content-digest/` | Produce content digest snapshots | EVALUATION and others |
+| estimate-snapshot | `skills/estimate-snapshot/` | Run per-deliverable estimate snapshots | ORCHESTRATOR Phase 4 (Estimating) |
+| estimate-prep | `skills/estimate-prep/` | Prepare estimation inputs (BOE, INDEX.md) | ORCHESTRATOR pre-Phase-4 |
+| pdf2md-page | `skills/pdf2md-page/` | Per-page VLM markdown extraction | PDF2MD orchestrator |
+| drawing-extract-page | `skills/drawing-extract-page/` | Per-page equipment drawing extraction | DRAWING_EXTRACT orchestrator |
+
+See `skills/README.md` for the full skill inventory and folder contract.
 
 ---
 

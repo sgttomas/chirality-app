@@ -99,7 +99,7 @@ The `_SEMANTIC.md` file must NOT contain:
 - Recommendations or authority claims
 - Evaluative language about the deliverable's fitness
 
-Those belong elsewhere in the pipeline (CHIRALITY_LENS enrichment register; human engineering authority).
+Those belong elsewhere in the pipeline (`lens-register` skill enrichment register; human engineering authority).
 
 ## Failure reporting
 

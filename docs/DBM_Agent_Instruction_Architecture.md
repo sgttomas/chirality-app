@@ -1,10 +1,16 @@
-# DBM — Agent Instruction Architecture
+# DBM — Workflow-Component Architecture
 
-This document is the design basis memorandum for the agent instruction system shipped with the Chirality App. It establishes the architectural basis — the principles, contracts, structures, and relationships — that govern how agent instruction files are designed, how agents relate to each other, and how the system maintains coherence at scale.
+This document is the design basis memorandum for the governed workflow-component system shipped with the Chirality App. It establishes the architectural basis — the principles, contracts, structures, and relationships — that govern how agents, skills, and tools are designed, how they relate to each other, and how the system maintains coherence at scale.
 
-**Audience:** Anyone who will work with, extend, audit, or maintain the agent instruction suite.
+**Audience:** Anyone who will work with, extend, audit, or maintain the agent instruction suite, the skill subsystem, or the deterministic tool layer.
 
-**Scope:** The governed indexed agent suite described in [`AGENTS.md`](../AGENTS.md) (current count maintained in [`docs/REPO_INVENTORY.md`](REPO_INVENTORY.md)), the two Type 0 canonical standards, and the governance contracts that bind them. This document does not cover the desktop application runtime, the harness SDK, or the UI — only the instruction architecture.
+**Scope:** The three governed workflow-component layers:
+
+1. The **indexed agent suite** described in [`AGENTS.md`](../AGENTS.md) (current count maintained in [`docs/REPO_INVENTORY.md`](REPO_INVENTORY.md)), including the two Type 0 canonical standards.
+2. The **repo-native skill subsystem** under [`skills/`](../skills/) (governed by SKILLMAKER under HELPS_HUMANS).
+3. The **deterministic tool layer** under [`tools/`](../tools/) (governed by TOOLMAKER under HELPS_HUMANS).
+
+This document does not cover the desktop application runtime, the harness SDK, or the UI — only the workflow-component architecture.
 
 **Relationship to other governance documents:**
 
@@ -72,17 +78,23 @@ Type 0 agents define the invariant protocols and design standards that all downs
 
 | Agent | Role | What It Defines |
 |-------|------|-----------------|
-| **HELPS_HUMANS** | Workflow design standard | Agent Header Block, R1–R9 compliance requirements, 4-section structure, brief formats, QA contract, publication hygiene |
+| **HELPS_HUMANS** | Workflow-component design standard (agents, skills, tools) | Agent Header Block, R1–R12 compliance requirements, 4-section structure, brief formats, QA contract, publication hygiene, skill-contract and tool-contract design outcomes |
 | **DECOMP_BASE** | Decomposition protocol standard | 7-gate protocol, I1–I10 invariants, entity schemas, extension contract, ledger/telemetry contracts |
 
-**Key constraint:** Where any `AGENT_*` file disagrees with a Type 0 standard, the other file must be edited to conform.
+**Key constraint:** Where any `AGENT_*` file, skill contract, or tool contract disagrees with a Type 0 standard, the other file must be edited to conform.
+
+**Subordinate managers under HELPS_HUMANS:**
+- **SKILLMAKER** (Type 1, `agents/AGENT_SKILLMAKER.md`) governs the repo-native skill subsystem under `skills/`. Skill contracts conform to HELPS_HUMANS "Design Outcomes for Skill Contracts" and R10 + R12.
+- **TOOLMAKER** (Type 1, `agents/AGENT_TOOLMAKER.md`) governs the deterministic-tool layer under `tools/`. Tool contracts conform to HELPS_HUMANS "Design Outcomes for Tool Contracts" and R11 + R12.
+
+These are not parallel Type 0 standards; they are subordinate Type 1 managers implementing HELPS_HUMANS requirements within their respective subsystems. The skill/tool boundary is preserved: skills identify tool needs; tools implement deterministic helpers.
 
 ### Formal Authority Properties
 
 The type hierarchy enforces three authority invariants that the entire system depends on:
 
 1. **Type 2 cannot escalate to Type 1 authority.** Specialists execute bounded briefs and return outputs — they cannot initiate gate reviews, spawn other agents, or make scope decisions.
-2. **Type 1 cannot override Type 0 constraints.** Managers orchestrate within the rules defined by canonical standards — they cannot relax R1–R9, I1–I10, or K-* invariants.
+2. **Type 1 cannot override Type 0 constraints.** Managers orchestrate within the rules defined by canonical standards — they cannot relax R1–R12, I1–I10, or K-* invariants.
 3. **Human gates cannot be bypassed by any type.** No agent — regardless of type — can approve deliverables, issue work for reliance, resolve conflicts authoritatively, or commit to the baseline without explicit human authorization.
 
 ### 2.2 Type 1 — Interactive Personas (Manager)
@@ -204,9 +216,9 @@ All sections are bounded by `[[BEGIN:X]]...[[END:X]]` delimiters for machine par
 
 Three layers of contracts govern agent behavior. They are complementary and non-overlapping.
 
-### 4.1 R1–R9: Workflow Design Requirements (from HELPS_HUMANS)
+### 4.1 R1–R12: Workflow-Component Design Requirements (from HELPS_HUMANS)
 
-These requirements apply to all agents and to the design of new agent workflows.
+These requirements apply to all agents, skills, and tools, and to the design of new workflow components.
 
 | ID | Requirement | Rule |
 |----|-------------|------|
@@ -219,6 +231,9 @@ These requirements apply to all agents and to the design of new agent workflows.
 | **R7** | Conflicts/duplicates are surfaced | The system does not hide or silently resolve discrepancies |
 | **R8** | Brief-driven execution exists | Pipelines have a defined brief format (INIT-TASK) and deterministic outputs |
 | **R9** | Publication is hygienic | Version control publishing is reviewable and non-destructive by default |
+| **R10** | Skill tool policy is explicit | Every skill declares preferred, optional, disallowed tools, and fall-back conditions |
+| **R11** | Tool contract is explicit | Every deterministic tool declares input/output contract, scope boundary, and idempotence posture |
+| **R12** | Skill/tool boundary is preserved | Skills identify tool needs; tools implement deterministic helpers; no cross-mixing of concerns |
 
 ### 4.2 I1–I10: Decomposition Invariants (from DECOMP_BASE)
 
@@ -246,12 +261,12 @@ The `K-*` invariants are defined in `CONTRACT.md`. Their enforcement is distribu
 | Hierarchy & Identity | K-HIER-1, K-ID-1 | PROJECT_DECOMP, PREPARATION |
 | Authority & Approval | K-AUTH-1, K-AUTH-2, K-BIND-1 | REVIEW, CHANGE (approval gates) |
 | Sealing & Context | K-SEAL-1, K-GHOST-1 | Type 2 agents (check lifecycle state before writes) |
-| Dependencies | K-DEP-1, K-DEP-2 | DEPENDENCIES, AUDIT_DEP_CLOSURE |
-| Status | K-STATUS-1 | PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, REVIEW |
+| Dependencies | K-DEP-1, K-DEP-2 | TASK+dependency-extract, AUDIT_DEP_CLOSURE |
+| Status | K-STATUS-1 | PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW |
 | Staleness & Validation | K-STALE-1, K-STALE-2, K-VAL-1 | AUDIT_DEP_CLOSURE, RECONCILIATION; future tooling (SHA comparison) |
 | Gates | K-GATE-1 | ORCHESTRATOR, SCHEDULING |
 | Merge | K-MERGE-1 | CHANGE |
-| Provenance | K-PROV-1 | Universal (all claim-producing agents); DEPENDENCIES applies row schema for `Dependencies.csv` |
+| Provenance | K-PROV-1 | Universal (all claim-producing agents); TASK+dependency-extract applies row schema for `Dependencies.csv` |
 | Invention | K-INVENT-1 | Universal (all agents) |
 | Conflicts | K-CONFLICT-1 | Universal (all agents) |
 | Write scope | K-WRITE-1 | Universal (WRITE_SCOPE declaration per agent) |
@@ -295,11 +310,6 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **PDF2MD** | 1 | PERSONA | chat | project-level | allowed | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
 | **DRAWING_EXTRACT** | 1 | PERSONA | chat | project-level | allowed | Drawing extraction pipeline; orchestrates rasterization, crop-first multiblock page extraction, deterministic QA, and structured output assembly |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
-| **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
-| **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
-| **CHIRALITY_FRAMEWORK** | 2 | TASK | spawned/INIT | deliverable-local | never | `_SEMANTIC.md`; `_STATUS.md` → SEMANTIC_READY |
-| **CHIRALITY_LENS** | 2 | TASK | spawned/INIT | deliverable-local | never | `_SEMANTIC_LENSING.md` |
-| **DEPENDENCIES** | 2 | TASK | INIT-TASK | deliverable-local (dep artifacts only) | never | `Dependencies.csv`, `_DEPENDENCIES.md` |
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
 | **AGGREGATION** | 2 | TASK | INIT-TASK | tool-root (`_Aggregation/`) | never | Aggregation snapshot (indexes, registers, rollups) |
@@ -327,8 +337,8 @@ Agents are organized along two axes from the chirality semantic framework (Matri
 | | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 |:---|:---|:---|:---|:---|
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
-| **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **EVALUATIVE** | HELPS_HUMANS | DEPENDENCIES | CHANGE | RECONCILIATION |
+| **OPERATIVE** | DECOMP\* | PREPARATION | TASK | AUDIT\* |
+| **EVALUATIVE** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
 
 - **NORMATIVE** and **EVALUATIVE** rows → **WORKBENCH** page (interactive persona sessions)
 - **OPERATIVE** row → **PIPELINE** page (pipeline execution with category dropdowns)
@@ -343,13 +353,15 @@ Agents are organized along two axes from the chirality semantic framework (Matri
 HELP_HUMAN (Type 1 — classifies intent, routes to agents; does not spawn)
 
 ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION (Type 2)
-                                ├── 4_DOCUMENTS (Type 2)
-                                ├── DOMAIN_DOCUMENTS (Type 2)
-                                ├── CHIRALITY_FRAMEWORK (Type 2)
-                                ├── CHIRALITY_LENS (Type 2)
                                 ├── DOMAIN_HYPERGRAPH (Type 2) [DOMAIN only; Phase 2.6]
                                 ├── ESTIMATING (Type 2)
                                 └── AGGREGATION (Type 2)
+                  ──dispatches TASK+skill──┬── four-documents [Phases 2.2 + 2.5]
+                                           ├── domain-documents [Phase 2.2; DOMAIN]
+                                           ├── semantic-matrix-build [Phase 2.3]
+                                           ├── lens-register [Phase 2.4]
+                                           ├── dependency-extract [setup + refresh]
+                                           └── estimate-snapshot, estimate-prep [Phase 4]
 
 WORKING_ITEMS (Type 1) ──spawns──── TASK (Type 2)
 
@@ -427,14 +439,12 @@ PROJECT-LEVEL (decomposition documents, metadata files, folder scaffolding)
 
 DELIVERABLE-LOCAL (single production unit folder only)
 ├── WORKING_ITEMS (+NEXT_INSTANCE_STATE.md standing exception)
-├── 4_DOCUMENTS
-├── DOMAIN_DOCUMENTS
-├── CHIRALITY_FRAMEWORK
-├── CHIRALITY_LENS
-├── DEPENDENCIES (dep artifacts only)
-├── TASK
+├── TASK  (shell; skill-driven writes bounded by TASK's hard scope)
 ├── DELIVERABLE_TASK
 └── REVIEW (+tool-root for snapshots)
+
+  Dispatched skills write under TASK's deliverable-local scope:
+  four-documents, domain-documents, semantic-matrix-build, lens-register, dependency-extract
 
 TOOL-ROOT-ONLY (derived outputs under execution tool roots)
 ├── ORCHESTRATOR           → _Coordination/
@@ -461,7 +471,7 @@ TOOL-ROOT-ONLY (derived outputs under execution tool roots)
 2. Deliverable-local agents cannot write outside their assigned production unit folder.
 3. Tool-root agents write only to their designated tool root under `{EXECUTION_ROOT}/`.
 4. Source truth (deliverable production documents) is never modified by tool-root agents.
-5. `_STATUS.md` updates are restricted to designated agents (PREPARATION, 4_DOCUMENTS, CHIRALITY_FRAMEWORK, REVIEW) and only for forward lifecycle transitions.
+5. `_STATUS.md` updates are restricted to designated actors (PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW) and only for forward lifecycle transitions.
 6. Cross-deliverable scanning/editing is prohibited inside WORKING_ITEMS sessions unless the human explicitly requests a cross-check.
 
 ---
@@ -559,11 +569,11 @@ NOTES: <anything else>
 | Agent | Key Additional Parameters |
 |-------|--------------------------|
 | **PREPARATION** | Task type (A–G), PKG_ID, DEL_ID, CAT_ID, KTY_ID |
-| **4_DOCUMENTS** | DELIVERABLE_PATH, DECOMPOSITION_REF, RUN_PASSES (FULL/P1_P2/P3_ONLY), ALLOW_OVERWRITE_STATES, DECOMP_VARIANT |
-| **DOMAIN_DOCUMENTS** | KTY_PATH, UNIT_SCOPE (EXAMPLES_ONLY/ALL_MAPPED), ARTIFACT_NAMING, MAX_ARTIFACTS |
-| **DEPENDENCIES** | MODE (UPDATE/RESET_EXTRACTED), STRICTNESS (CONSERVATIVE/AGGRESSIVE), CONSUMER_CONTEXT, SOURCE_DOCS |
-| **CHIRALITY_FRAMEWORK** | deliverable_folder, decomposition_path, DECOMP_VARIANT |
-| **CHIRALITY_LENS** | deliverable_folder, DECOMP_VARIANT |
+| **TASK+four-documents** | DELIVERABLE_PATH, DECOMPOSITION_REF, RUN_PASSES (FULL/P1_P2/P3_ONLY), ALLOW_OVERWRITE_STATES, DECOMP_VARIANT |
+| **TASK+domain-documents** | KTY_PATH, UNIT_SCOPE (EXAMPLES_ONLY/ALL_MAPPED), ARTIFACT_NAMING, MAX_ARTIFACTS |
+| **TASK+dependency-extract** | MODE (UPDATE/RESET_EXTRACTED), STRICTNESS (CONSERVATIVE/AGGRESSIVE), CONSUMER_CONTEXT, SOURCE_DOCS |
+| **TASK+semantic-matrix-build** | deliverable_folder, decomposition_path, DECOMP_VARIANT |
+| **TASK+lens-register** | deliverable_folder, DECOMP_VARIANT |
 | **ESTIMATING** | BASIS_OF_ESTIMATE (QUOTE/RATE_TABLE/HISTORICAL/PARAMETRIC/ALLOWANCE), CURRENCY, PRICE_SOURCES |
 | **ESTIMATE_PREP** | PHASE (SCAFFOLD/BOE), PROJECT_CONTEXT, HUMAN_PRICING |
 | **AGGREGATION** | PURPOSE, PIPELINE_ID, currency normalization policy |
@@ -617,11 +627,11 @@ Not all agents operate across all decomposition variants.
 | **DECOMP agents** | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP | — |
 | **ORCHESTRATOR** | yes | yes | yes | — |
 | **PREPARATION** | yes | yes | yes | — |
-| **4_DOCUMENTS** | yes | yes | — | — |
-| **DOMAIN_DOCUMENTS** | — | — | yes | — |
-| **CHIRALITY_FRAMEWORK** | yes | yes | yes | — |
-| **CHIRALITY_LENS** | yes | yes | yes | — |
-| **DEPENDENCIES** | yes | yes | — | — |
+| **TASK+four-documents** | yes | yes | — | — |
+| **TASK+domain-documents** | — | — | yes | — |
+| **TASK+semantic-matrix-build** | yes | yes | yes | — |
+| **TASK+lens-register** | yes | yes | yes | — |
+| **TASK+dependency-extract** | yes | yes | — | — |
 | **ESTIMATING** | yes | yes | — | — |
 | **ESTIMATE_PREP** | yes | yes | — | — |
 | **SCHEDULING** | yes | yes | — | — |

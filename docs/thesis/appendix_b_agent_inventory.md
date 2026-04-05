@@ -14,9 +14,9 @@ The two interaction modes follow from row membership: the NORMATIVE and EVALUATI
 
 |  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 |:---|:---|:---|:---|:---|
-| **NORMATIVE** | HELP | ORCHESTRATE | WORKING_ITEMS | AGGREGATE |
+| **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **OPERATIVE** | DECOMP\* | PREP\* | TASK\* | AUDIT\* |
-| **EVALUATIVE** | AGENTS | DEPENDENCIES | CHANGE | RECONCILING |
+| **EVALUATIVE** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
 
 ---
 
@@ -46,11 +46,6 @@ The evaluation subsystem agents (EVALUATION, TOOLMAKER, SKILLMAKER, CONTENT_DIGE
 | **TOOLMAKER** | 1 | PERSONA | chat | repo-wide (tools directory + agent instruction updates) | allowed | Shell scripts, Python utilities, tool registry |
 | **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
-| **4_DOCUMENTS** | 2 | TASK | spawned | deliverable-local | never | Datasheet, Specification, Guidance, Procedure; `_STATUS.md` update |
-| **DOMAIN_DOCUMENTS** | 2 | TASK | spawned | knowledge-type-local | never | `Scoping.md` + variable `KA-*.md` Knowledge Artifacts |
-| **CHIRALITY_FRAMEWORK** | 2 | TASK | spawned/INIT | deliverable-local | never | `_SEMANTIC.md`; `_STATUS.md` → SEMANTIC_READY |
-| **CHIRALITY_LENS** | 2 | TASK | spawned/INIT | deliverable-local | never | `_SEMANTIC_LENSING.md` |
-| **DEPENDENCIES** | 2 | TASK | INIT-TASK | deliverable-local (dep artifacts only) | never | `Dependencies.csv`, `_DEPENDENCIES.md` |
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
 | **AGGREGATION** | 2 | TASK | INIT-TASK | tool-root (`_Aggregation/`) | never | Aggregation snapshot (indexes, registers, rollups) |
@@ -78,10 +73,10 @@ Agents annotated with `[DOMAIN only]` are dispatched exclusively when the active
 HELP_HUMAN (Type 1 — classifies intent, routes to agents; does not spawn)
 
 ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION (Type 2)
-                                ├── 4_DOCUMENTS (Type 2)
-                                ├── DOMAIN_DOCUMENTS (Type 2)
-                                ├── CHIRALITY_FRAMEWORK (Type 2)
-                                ├── CHIRALITY_LENS (Type 2)
+                                ├── TASK+four-documents (Type 2)
+                                ├── TASK+domain-documents (Type 2)
+                                ├── TASK+semantic-matrix-build (Type 2)
+                                ├── TASK+lens-register (Type 2)
                                 ├── DOMAIN_HYPERGRAPH (Type 2) [DOMAIN only; Phase 2.6]
                                 ├── ESTIMATING (Type 2)
                                 └── AGGREGATION (Type 2)
@@ -114,18 +109,13 @@ SKILLMAKER (Type 1) ── standalone (designs and governs skills; coordinates w
 
 The variant coverage matrix records which agents operate within each of the three decomposition variants — PROJECT (EPC/design-build), SOFTWARE (software development), and DOMAIN (handbook/knowledge domain) — and which agents are variant-independent. Variant-independent agents either operate at a layer above any specific decomposition context (e.g., CHANGE, which manages git state regardless of project type) or define the standards to which all variants conform (e.g., HELPS_HUMANS, DECOMP_BASE).
 
-Agents that support multiple variants use `DECOMP_VARIANT` auto-detection at runtime: a folder name prefix of `KTY-` indicates DOMAIN variant; otherwise PROJECT or SOFTWARE is inferred from the decomposition structure. Cells marked `yes` indicate the agent is designed and tested to operate correctly within that variant. Cells marked `—` indicate the agent does not apply to that variant, either because the artifact types it consumes do not exist in that variant (e.g., DEPENDENCIES does not operate in DOMAIN, which has no dependency graph) or because the agent is variant-agnostic.
+Agents that support multiple variants use `DECOMP_VARIANT` auto-detection at runtime: a folder name prefix of `KTY-` indicates DOMAIN variant; otherwise PROJECT or SOFTWARE is inferred from the decomposition structure. Cells marked `yes` indicate the agent is designed and tested to operate correctly within that variant. Cells marked `—` indicate the agent does not apply to that variant, either because the artifact types it consumes do not exist in that variant (e.g., TASK+dependency-extract does not operate in DOMAIN, which has no dependency graph) or because the agent is variant-agnostic.
 
 | Agent | PROJECT | SOFTWARE | DOMAIN | Variant-Independent |
 |-------|:-------:|:--------:|:------:|:-------------------:|
 | **DECOMP agents** | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP | — |
 | **ORCHESTRATOR** | yes | yes | yes | — |
 | **PREPARATION** | yes | yes | yes | — |
-| **4_DOCUMENTS** | yes | yes | — | — |
-| **DOMAIN_DOCUMENTS** | — | — | yes | — |
-| **CHIRALITY_FRAMEWORK** | yes | yes | yes | — |
-| **CHIRALITY_LENS** | yes | yes | yes | — |
-| **DEPENDENCIES** | yes | yes | — | — |
 | **ESTIMATING** | yes | yes | — | — |
 | **ESTIMATE_PREP** | yes | yes | — | — |
 | **SCHEDULING** | yes | yes | — | — |

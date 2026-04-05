@@ -151,13 +151,13 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 3. Populate `_CONTEXT.md` content using the schema in STRUCTURE (LLM work — fills the stub created above).
 4. Populate `_DEPENDENCIES.md` content using the schema in STRUCTURE:
    - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from ORCHESTRATOR-provided declarations.
-   - Leave extracted-register sections as placeholders (to be populated later by the DEPENDENCIES agent).
+   - Leave extracted-register sections as placeholders (to be populated later by the `dependency-extract` skill via TASK).
 5. Initialize `_STATUS.md` using the deterministic status tool:
    - `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION`
 6. Populate `_REFERENCES.md` and list relevant references (best-effort) with locations.
 7. `_SEMANTIC.md` is left as a **placeholder stub** (created by the scaffold tool above).
    - Do not generate matrices here.
-   - This file is intended to be overwritten later by the semantic-matrix pipeline (e.g., CHIRALITY_FRAMEWORK).
+   - This file is intended to be overwritten later by the semantic-matrix pipeline (the `semantic-matrix-build` skill, dispatched via TASK).
 8. Verify the result with the deterministic validator:
    - `tools/validation/check_min_viable_fileset.sh {deliverable_folder}`
    - If the check fails, report the missing files and mark the task invalid.
@@ -400,7 +400,7 @@ This section defines the file schemas PREPARATION writes.
 
 > PREPARATION creates `_DEPENDENCIES.md` as a **durable container**.
 > - Humans/ORCHESTRATOR may add declared upstream/downstream items.
-> - The **DEPENDENCIES** task agent may later populate extracted-register summaries and run history.
+> - The **`dependency-extract` skill** (dispatched via TASK) may later populate extracted-register summaries and run history.
 > PREPARATION itself must not infer edges.
 
 ```markdown
@@ -422,15 +422,15 @@ This section defines the file schemas PREPARATION writes.
   - Required maturity: [state they need from me]
   - Location: [path if known, else TBD]
 
-## Extracted Dependency Register (populated by DEPENDENCIES agent)
+## Extracted Dependency Register (populated by TASK+dependency-extract)
 - **Status:** NOT_RUN_YET
 - **Dependencies.csv:** TBD
 - **Summary:** TBD
 
-## Run Notes & History (populated by DEPENDENCIES agent)
+## Run Notes & History (populated by TASK+dependency-extract)
 - (placeholder)
 
-## Lifecycle Summary (populated by DEPENDENCIES agent)
+## Lifecycle Summary (populated by TASK+dependency-extract)
 - (placeholder)
 
 ## Consumer Handoff Notes (optional)

@@ -5,7 +5,7 @@ description: "Audits dependency closure across deliverables — detects orphans,
 # AGENT INSTRUCTIONS — AUDIT_DEP_CLOSURE (Type 2 Task • Cross‑deliverable dependency graph closure)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that performs **cross‑deliverable dependency graph closure analysis** over all deliverable-local `Dependencies.csv` registers. This agent operates on dependency graphs produced by DEPENDENCIES, which supports PROJECT_DECOMP and SOFTWARE_DECOMP only. DOMAIN Knowledge Type folders are expected to have no dependency registers and will be recorded as `MISSING_DEPENDENCIES_CSV` in coverage.
+These instructions govern a **Type 2** task agent that performs **cross‑deliverable dependency graph closure analysis** over all deliverable-local `Dependencies.csv` registers. This agent operates on dependency graphs produced by the `dependency-extract` skill (dispatched via TASK), which supports PROJECT_DECOMP and SOFTWARE_DECOMP only. DOMAIN Knowledge Type folders are expected to have no dependency registers and will be recorded as `MISSING_DEPENDENCIES_CSV` in coverage.
 
 It validates topological integrity, detects orphans and cycles, and produces decision‑ready findings with evidence.
 
@@ -15,7 +15,7 @@ It validates topological integrity, detects orphans and cycles, and produces dec
 
 ---
 
-**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_DEPENDENCIES.md`); use the role name (e.g., `DEPENDENCIES`) when referring to the agent itself.
+**Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself.
 
 ## Agent Type
 
@@ -134,7 +134,7 @@ For each deliverable in scope:
 ### Step 2 — Parse and validate schema
 
 For each readable `Dependencies.csv`:
-- Verify required columns for the declared `RegisterSchemaVersion` (default expected: `v3.1` as specified by `AGENT_DEPENDENCIES.md`).
+- Verify required columns for the declared `RegisterSchemaVersion` (default expected: `v3.1` as specified by `docs/SPEC.md` §6 and `skills/dependency-extract/`).
 - If schema is invalid:
   - record `SCHEMA_INVALID` for that deliverable,
   - exclude its edges from the graph (do not guess missing columns),
@@ -230,7 +230,7 @@ If `PRIOR_RUN_LABEL` is provided:
    - snapshot path,
    - closure status (PASS/WARNING/BLOCKER),
    - top issues (≤10),
-   - recommended next action (e.g., dispatch CHANGE for fixes; rerun DEPENDENCIES extraction; rerun closure).
+   - recommended next action (e.g., dispatch CHANGE for fixes; rerun TASK+dependency-extract; rerun closure).
 
 [[END:PROTOCOL]]
 
@@ -287,6 +287,6 @@ A run is valid when:
 Dependency closure analysis is a **reconciliation aid**:
 - It makes structural issues visible (orphans/cycles/isolates),
 - preserves auditability (evidence + reproducible script),
-- and routes fixes to the proper owner (typically CHANGE or a rerun of DEPENDENCIES), without silently rewriting the world.
+- and routes fixes to the proper owner (typically CHANGE or a rerun of TASK+dependency-extract), without silently rewriting the world.
 
 [[END:RATIONALE]]
