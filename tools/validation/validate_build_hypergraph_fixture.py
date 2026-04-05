@@ -247,11 +247,13 @@ def check_ledger_with_objectives(tmp_root: Path, failures: List[str]) -> None:
     shutil.copytree(staging, variant_staging)
     ledger_csv = variant_staging / "discovered_ledger_rows.csv"
     original_text = ledger_csv.read_text(encoding="utf-8")
+    # Variant drops whitespace AND duplicates AND reverses order — canonical form.
+    # If any of trim/dedupe/sort regresses, the cross-check fails.
     rewritten_text = original_text.replace(
-        "KTY-02-01_Piping;KTY-01-01_Pumps;KTY-02-01_Piping",
+        "KTY-02-01_Piping; KTY-01-01_Pumps ;KTY-02-01_Piping",
         "KTY-01-01_Pumps;KTY-02-01_Piping",
     ).replace(
-        "OBJ-002;OBJ-001;OBJ-002",
+        "OBJ-002 ;OBJ-001; OBJ-002",
         "OBJ-001;OBJ-002",
     )
     if rewritten_text == original_text:
