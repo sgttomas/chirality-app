@@ -50,4 +50,4 @@ Invoked by ORCHESTRATOR Phase 2.4. Produces `_SEMANTIC_LENSING.md` which is cons
 ## See also
 - `skills/lens-register/SKILL.md` — method contract
 - `skills/semantic-lensing/SKILL.md` — interactive proposal workflow consuming the register
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture

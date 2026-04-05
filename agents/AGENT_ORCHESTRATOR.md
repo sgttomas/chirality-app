@@ -219,7 +219,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
   - execute Pass 1 (draft `Scoping.md` + variable `KA-*.md` Knowledge Artifacts derived one-per-Subject), Pass 2 (cross-artifact consistency), and Pass 3 (source-fidelity verification against the authoritative source document).
   - DOMAIN_DOCUMENTS does not use the semantic lensing pipeline; Phases 2.3, 2.4, and 2.5 are skipped for DOMAIN variants.
 
-> **Wrapper note (staged C):** 4_DOCUMENTS and DOMAIN_DOCUMENTS are thin pipeline-stage wrappers; they internally dispatch TASK with `TaskSkill: four-documents` (passing `RUN_PASSES=P1_P2`) and `TaskSkill: domain-documents` respectively. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/four-documents/SKILL.md`, `skills/domain-documents/SKILL.md`, and `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
+> **Wrapper note (staged C):** 4_DOCUMENTS and DOMAIN_DOCUMENTS are thin pipeline-stage wrappers; they internally dispatch TASK with `TaskSkill: four-documents` (passing `RUN_PASSES=P1_P2`) and `TaskSkill: domain-documents` respectively. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/four-documents/SKILL.md`, `skills/domain-documents/SKILL.md`, and `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md`.
 
 **Gate question:** “Pass 1+2 complete. Ready to generate semantic lenses (if using semantic lensing)?”
 
@@ -246,7 +246,7 @@ Run this phase **only if** the human selects `DECLARED` or `FULL_GRAPH`.
 - Spawn CHIRALITY_LENS for each deliverable (pass `DECOMP_VARIANT`) to generate `_SEMANTIC_LENSING.md`.
 - CHIRALITY_LENS does not edit production documents; it produces a read-only enrichment register.
 
-> **Wrapper note (staged C):** CHIRALITY_LENS is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: lens-register`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/lens-register/SKILL.md` for the method contract and `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` for the two-contract architecture.
+> **Wrapper note (staged C):** CHIRALITY_LENS is a thin pipeline-stage wrapper; it internally dispatches TASK with `TaskSkill: lens-register`. Dispatch chain from ORCHESTRATOR is unchanged. See `skills/lens-register/SKILL.md` for the method contract and `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` for the two-contract architecture.
 
 **Gate question:** “Semantic lensing complete. Ready to run Pass 3 enrichment (apply the register)?”
 

@@ -216,16 +216,20 @@ The remaining gaps build on the currently available capabilities in this order:
 
 **Final repo state:** 39 live agents (down from 48); 15 repo-native skills (up from 5); 50 registered tools (up from 49).
 
-**Companion artifacts:**
-- `plans/AGENT_SUITE_CLASSIFICATION.md` — ruled per-agent classification matrix (48/48, zero provisional)
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract semantic-lensing model + ORCHESTRATOR contradiction ruling
-- `plans/AGENT_SUITE_EXECUTION_PLAN.md` — slice mechanics, file ownership, parallelization, verification (all slices marked complete)
-- `plans/CHIRALITY_LENS_MIGRATION.md` — detailed Slice 4 migration (staged C end state with path to full normalization)
+**Companion artifacts** (archived to `.Archive/` after completion):
+- `.Archive/AGENT_SUITE_CLASSIFICATION.md` — ruled per-agent classification matrix (48/48, zero provisional)
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract semantic-lensing model + ORCHESTRATOR contradiction ruling
+- `.Archive/AGENT_SUITE_EXECUTION_PLAN.md` — slice mechanics, file ownership, parallelization, verification
+- `.Archive/CHIRALITY_LENS_MIGRATION.md` — detailed Slice 4 migration (staged C end state; path to full normalization B documented)
+- `.Archive/AGENT_SUITE_SESSION_HANDOFF.md` — session handoff (marked HISTORICAL / CLOSED)
 
 **Deferred items (not in migration scope):**
 - Full normalization (B end state) of C-pattern wrappers — requires whole-pipeline unit migration decision.
 - Frontend dispatch logic for archived ESTIMATE_PREP UI references (`frontend/app/page.tsx`, `frontend/components/PipelineView.tsx`) — requires separate frontend work.
-- CONFIDENCE enum mismatch reconciliation (`validate_enum.py` uses MEDIUM vs Detail.csv uses MED) — out of scope.
+
+**Follow-ups resolved after migration close:**
+- CONFIDENCE enum reconciled to `{HIGH, MEDIUM, LOW}` canonical across validator + all skills (commit 676a907).
+- Post-migration review fixes (commit 45bd9a1): `build_hypergraph.py` QA checks now emit explicit PASS rows per agent contract; `AGENT_EVALUATION.md` path drift fixed; session-handoff artifact marked CLOSED.
 
 ---
 

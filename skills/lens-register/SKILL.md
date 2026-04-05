@@ -380,4 +380,4 @@ See `QA_CHECKS.md` for the full invariant list and refusal behavior.
 
 - `skills/semantic-lensing/SKILL.md` — interactive proposal workflow consuming the register
 - `agents/AGENT_CHIRALITY_LENS.md` — wrapper dispatching this skill via ORCHESTRATOR Phase 2.4
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture

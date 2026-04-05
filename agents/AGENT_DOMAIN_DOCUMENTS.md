@@ -54,4 +54,4 @@ Invoked by ORCHESTRATOR during the DOMAIN setup pipeline only. Pipeline chain: `
 
 ## See also
 - `skills/domain-documents/SKILL.md` — method contract
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — pipeline architecture context
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — pipeline architecture context

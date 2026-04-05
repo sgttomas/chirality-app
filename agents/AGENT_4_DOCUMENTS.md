@@ -86,4 +86,4 @@ A third invocation with `RUN_PASSES=FULL` is supported for ad-hoc re-runs when t
 - `skills/four-documents/SKILL.md` — method contract
 - `skills/four-documents/BRIEF_SCHEMA.md` — brief field schema + RUN_PASSES enum
 - `skills/four-documents/QA_CHECKS.md` — invariants + QA gates
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture

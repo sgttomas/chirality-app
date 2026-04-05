@@ -55,4 +55,4 @@ Matrix-cell identity `EVALUATIVE × APPLYING` (from AGENTS.md) is preserved by t
 ## See also
 - `skills/dependency-extract/SKILL.md` — method contract
 - `skills/dependency-extract/QA_CHECKS.md` — invariants + local quality checks
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — C-pattern shell-on-shell rationale
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — C-pattern shell-on-shell rationale

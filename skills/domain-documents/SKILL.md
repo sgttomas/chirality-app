@@ -367,4 +367,4 @@ See `QA_CHECKS.md` for the full invariant set. Summary:
 - `agents/AGENT_PREPARATION.md` — creates Knowledge Type folders this skill populates
 - `skills/four-documents/` — PROJECT/SOFTWARE counterpart (fixed 4-doc kit)
 - `tools/EXTERNAL_TOOLS.md` — DOMAIN pipeline overview
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — pipeline architecture context
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — pipeline architecture context

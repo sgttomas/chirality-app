@@ -62,4 +62,4 @@ Invoked by ORCHESTRATOR Phase 2.3. Produces `_SEMANTIC.md` which is consumed dow
 ## See also
 - `skills/semantic-matrix-build/SKILL.md` — method contract
 - `skills/semantic-matrix-build/QA_CHECKS.md` — invariants and validation checks
-- `plans/SEMANTIC_PIPELINE_ARCHITECTURE.md` — semantic-pipeline architecture
+- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — semantic-pipeline architecture
