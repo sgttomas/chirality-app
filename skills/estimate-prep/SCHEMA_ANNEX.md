@@ -147,8 +147,6 @@ Hardened against the canonical `_PriceSources/` library **as of 2026-02-18**.
 | `MEDIUM` | Parametric market rate or comparable-project benchmark | Market data, industry benchmarks, comparable project data |
 | `LOW` | Allowance or assumption-based placeholder | Rules of thumb, unvalidated allowances |
 
-> **Note:** The Detail.csv schema (consumed by ESTIMATING) uses the spelling `MED` for `MEDIUM`. This is a known pre-existing inconsistency in the repo tracked separately.
-
 ---
 
 ## Override_Log.csv schema (ENRICH mode)

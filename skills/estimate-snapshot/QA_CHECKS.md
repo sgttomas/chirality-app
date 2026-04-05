@@ -44,7 +44,7 @@ All of the following must exist in the snapshot folder:
 Enum checks:
 
 - `Method` ∈ `{QUOTE, RATE_TABLE, HISTORICAL, ALLOWANCE, PARAMETRIC}`
-- `Confidence` ∈ `{LOW, MED, HIGH}` (Detail.csv schema convention)
+- `Confidence` ∈ `{LOW, MEDIUM, HIGH}` (canonical per `tools/validation/validate_enum.py`)
 - `Currency` matches the brief's `CURRENCY`
 
 Allowance/parametric convention:
@@ -62,7 +62,7 @@ Allowance/parametric convention:
 | Confidence | When to assign |
 |---|---|
 | `HIGH` | Human-confirmed values; vendor-quoted values (`Method=QUOTE`) |
-| `MED` / `MEDIUM` | Published rate-table derivations with stable references; normalized historical data; approved parametric model outputs |
+| `MEDIUM` | Published rate-table derivations with stable references; normalized historical data; approved parametric model outputs |
 | `LOW` | Allowance-table values; sparse historical analogs; parametric outputs with weak parameter grounding |
 
 - Never assign `HIGH` to allowance or parametric-derived amounts.

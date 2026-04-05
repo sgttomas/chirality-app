@@ -201,7 +201,7 @@ For each in-scope deliverable:
 Mandatory columns: `LineID`, `CBS`, `WBS_PackageID`, `WBS_DeliverableID`, `Description`, `Qty`, `Unit`, `UnitRate`, `Amount`, `Currency`, `Method`, `SourceRef`, `Confidence`, `Notes`.
 
 - `Method` ∈ `{QUOTE, RATE_TABLE, HISTORICAL, ALLOWANCE, PARAMETRIC}`
-- `Confidence` ∈ `{LOW, MED, HIGH}` (Detail.csv schema convention; see QA_CHECKS for confidence rules)
+- `Confidence` ∈ `{LOW, MEDIUM, HIGH}` (see QA_CHECKS for confidence rules)
 - Allowance/parametric convention: `Qty=1`, `Unit=LS`, `UnitRate=Amount`
 
 ### `WBS_CBS_Matrix.csv` (minimum columns)
@@ -219,7 +219,7 @@ Mandatory columns: `LineID`, `CBS`, `WBS_PackageID`, `WBS_DeliverableID`, `Descr
 - **Write quarantine (tool-root-only).** Write ONLY under `{ESTIMATES_ROOT}`. Never modify deliverable content, `_STATUS.md` or other lifecycle files, decomposition outputs, or dependency registers.
 - **Provenance-first.** Every priced row in `Detail.csv` MUST carry a `SourceRef` (file + section/row ID, or an entry in `Decision_Log.md`/`Assumptions_Log.md`) OR explicitly `location TBD` with a QA warning. Every row also carries `Method` and `Confidence`.
 - **No invention.** If a quantity, rate, currency, scope boundary, or dependency claim cannot be substantiated by provided sources, record `TBD` and surface it in QA. Do not guess.
-- **Confidence rules.** Human-confirmed and vendor-quoted values earn `HIGH`. Parametric values are `MEDIUM` (enum spelling) or `MED` (Detail.csv convention) or `LOW`. Never assign `HIGH` to values derived from a parametric model or allowance table.
+- **Confidence rules.** Human-confirmed and vendor-quoted values earn `HIGH`. Parametric values are `MEDIUM` or `LOW`. Never assign `HIGH` to values derived from a parametric model or allowance table.
 - **Dependencies are not pricing evidence.** Dependency registers inform readiness/blockers only. Unit rates must come from `PRICE_SOURCES`.
 - **Avoid recursive ingestion.** Do not treat prior `_Estimates/` snapshots as pricing sources unless explicitly listed in `PRICE_SOURCES`.
 - **Deterministic outputs.** Given identical inputs (scope + sources + brief), artifacts should be stable apart from timestamps and ordering normalizations.
