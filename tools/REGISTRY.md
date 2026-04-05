@@ -35,6 +35,7 @@ Deterministic tools for the Chirality agent operating system. These tools codify
 | `check_four_documents.sh` | zsh | Verify 4 document kit files in a deliverable folder | DELIVERABLE_PATH | PASS/FAIL (exit code) + missing list |
 | `scan_deliverable_consistency.py` | Python 3 | Scan one deliverable for missing files, unresolved markers, simple identity mismatches, and candidate unsourced numeric lines | deliverable_path, [--output-json], [--focus-doc], [--strictness], [--max-findings], [--check-identity], [--check-unsourced-numerics] | JSON report to stdout or file |
 | `validate_skill_metadata.py` | Python 3 | Validate repo-native skill folders for required `SKILL.md` frontmatter, folder/name alignment, single-line descriptions, machine-consumed metadata fields, and canonical `allowed-tools` syntax/path resolution | [skills_root], [--json] | PASS/FAIL summary or JSON report |
+| `validate_build_hypergraph_fixture.py` | Python 3 | Regression check for `tools/aggregation/build_hypergraph.py` using bundled fixtures at `tools/aggregation/testdata/`. Verifies determinism (two runs produce byte-identical CSVs + canonical JSON), clean-run PASS coverage (8 non-ledger QA checks), and warning detection (missing-category fixture) | [--keep-tmp] | PASS/FAIL summary (exit 0/1) |
 
 ## Reporting
 
