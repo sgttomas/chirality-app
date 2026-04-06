@@ -5,6 +5,16 @@ Apply deterministic post-extraction QC to page-level equipment stubs.
 
 Designed primarily for drawing sets like the Deepcut PFDs where the page worker
 can misread notes/spec text as top-of-sheet equipment findings.
+
+Reads/writes v2 target-aware stubs at
+``{source_dir}/{drawing_type}/{extraction_target}/{pdf_stem}_page_{NNNN}_stub.md``
+via the frozen W1 API (``parse_stub`` / ``render_stub`` / ``resolve_stub_path``).
+
+Sanitization rules operate on the BASE 4 columns (equipment_number,
+equipment_name, system_name, drawing). For the detailed target, any detail
+columns present on kept rows are preserved verbatim. Detail columns do NOT
+influence filtering decisions; rows that fail the base-column filter are
+dropped regardless of detail values.
 """
 
 from __future__ import annotations
@@ -15,7 +25,12 @@ import re
 import sys
 from pathlib import Path
 
-from normalize_equipment_stub_layout import parse_stub, render_stub
+from normalize_equipment_stub_layout import (
+    BASE_COLUMNS,
+    parse_stub,
+    render_stub,
+    resolve_stub_path,
+)
 
 
 INSTRUMENT_PREFIXES = {
@@ -121,9 +136,24 @@ def is_note_like_name(name: str) -> bool:
 
 
 def sanitize_rows(rows: list[list[str]]) -> tuple[list[list[str]], list[dict[str, str]]]:
+    """Sanitize findings rows using the base-column filters.
+
+    Rows may carry extra detail columns after the base 4; those are preserved
+    verbatim on kept rows and ignored for filtering decisions. Filter rules
+    operate solely on ``equipment_number`` (idx 0) and ``equipment_name``
+    (idx 1); ``system_name`` (idx 2) and ``drawing`` (idx 3) pass through.
+    """
     kept: list[list[str]] = []
     actions: list[dict[str, str]] = []
-    for equipment_number, equipment_name, system_name, drawing in rows:
+    base_len = len(BASE_COLUMNS)
+    for row in rows:
+        padded = list(row) + [""] * max(0, base_len - len(row))
+        equipment_number = padded[0]
+        equipment_name = padded[1]
+        system_name = padded[2]
+        drawing = padded[3]
+        detail_tail = padded[base_len:]
+
         original_tag = (equipment_number or "").strip()
         original_name = " ".join((equipment_name or "").split())
 
@@ -171,14 +201,16 @@ def sanitize_rows(rows: list[list[str]]) -> tuple[list[list[str]], list[dict[str
                 }
             )
 
-        kept.append([original_tag, cleaned_name, system_name, drawing])
+        kept.append([original_tag, cleaned_name, system_name, drawing] + detail_tail)
 
     return kept, actions
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sanitize page-level equipment stubs.")
-    parser.add_argument("source_dir")
+    parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--drawing-type", required=True)
+    parser.add_argument("--extraction-target", required=True)
     parser.add_argument("--pdf-stem", required=True)
     parser.add_argument("--start-page", required=True, type=int)
     parser.add_argument("--end-page", required=True, type=int)
@@ -190,6 +222,10 @@ def main() -> int:
         return 2
 
     source_dir = Path(args.source_dir).resolve()
+    if not source_dir.is_dir():
+        print(f"ERROR: source directory not found: {source_dir}", file=sys.stderr)
+        return 2
+
     report_csv = Path(args.report_csv).resolve() if args.report_csv else None
 
     report_rows: list[dict[str, str]] = []
@@ -198,13 +234,26 @@ def main() -> int:
     missing_pages: list[int] = []
 
     for page_num in range(args.start_page, args.end_page + 1):
-        stub_path = source_dir / f"{args.pdf_stem}_page_{page_num:04d}_equipment_stub.md"
+        stub_path = resolve_stub_path(
+            source_dir,
+            args.drawing_type,
+            args.extraction_target,
+            args.pdf_stem,
+            page_num,
+        )
         if not stub_path.is_file():
             missing_pages.append(page_num)
             continue
 
         parsed = parse_stub(stub_path, page_num)
-        meaningful_rows = [row for row in parsed["rows"] if row[0] or row[1] or row[3]]
+        original_status = str(parsed.get("status", ""))
+        if original_status in ("FAILED", "FAILED_INPUTS"):
+            # Preserve failure status — sanitization does not apply to failed pages.
+            continue
+        meaningful_rows = [
+            row for row in parsed["rows"]
+            if (len(row) >= 4 and (row[0] or row[1] or row[3]))
+        ]
         sanitized_rows, actions = sanitize_rows(meaningful_rows)
 
         for action in actions:
@@ -218,12 +267,16 @@ def main() -> int:
                 }
             )
 
+        columns = list(parsed.get("columns") or list(BASE_COLUMNS))
         if sanitized_rows:
             parsed["rows"] = sanitized_rows
             parsed["status"] = "SUCCESS"
             parsed["note"] = "Top-of-sheet equipment header present after deterministic QC."
         else:
-            parsed["rows"] = [["", "", parsed["system_name"], ""]]
+            empty_row = [""] * len(columns)
+            if len(empty_row) >= 3:
+                empty_row[2] = parsed.get("system_name", "")
+            parsed["rows"] = [empty_row]
             parsed["status"] = "NO_FINDINGS"
             parsed["note"] = "No valid tagged top-of-sheet equipment header remained after deterministic QC."
             pages_no_findings.append(page_num)

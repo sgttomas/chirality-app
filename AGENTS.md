@@ -63,7 +63,7 @@ Other live task-family agents (DELIVERABLE_TASK, AGGREGATION, DOMAIN_HYPERGRAPH)
 | TOOLMAKER | `AGENT_TOOLMAKER.md` | Deterministic tool design and implementation |
 | SKILLMAKER | `AGENT_SKILLMAKER.md` | Skill design, governance, and subsystem ownership |
 | PDF2MD | `AGENT_PDF2MD.md` | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
-| DRAWING_EXTRACT | `AGENT_DRAWING_EXTRACT.md` | Drawing extraction pipeline; orchestrates rasterization, crop-first multiblock page extraction, deterministic QA, and structured output assembly |
+| DRAWING_EXTRACT | `AGENT_DRAWING_EXTRACT.md` | Drawing-type-aware extraction pipeline; core-vs-repertoire split orchestrates rasterization, target-appropriate crops, drawing-extract-page skill dispatch per (drawing_type × extraction_target), deterministic QA, target-driven assembly, and optional PFD-equipment merge. PFD implemented; P_AND_ID/ISOMETRIC/GA stubbed fail-fast |
 
 ### Type 2 — Bounded Task Agents
 
@@ -101,7 +101,7 @@ Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounde
 | estimate-snapshot | `skills/estimate-snapshot/` | Run per-deliverable estimate snapshots | ORCHESTRATOR Phase 4 (Estimating) |
 | estimate-prep | `skills/estimate-prep/` | Prepare estimation inputs (BOE, INDEX.md) | ORCHESTRATOR pre-Phase-4 |
 | pdf2md-page | `skills/pdf2md-page/` | Per-page VLM markdown extraction | PDF2MD orchestrator |
-| drawing-extract-page | `skills/drawing-extract-page/` | Per-page equipment drawing extraction | DRAWING_EXTRACT orchestrator |
+| drawing-extract-page | `skills/drawing-extract-page/` | Per-page drawing-type-aware bounded extraction (v2: PFD basic + detailed targets; P_AND_ID/ISOMETRIC/GA stubbed fail-fast) | DRAWING_EXTRACT orchestrator |
 
 See `skills/README.md` for the full skill inventory and folder contract.
 

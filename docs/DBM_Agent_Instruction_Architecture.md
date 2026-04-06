@@ -308,7 +308,7 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **TOOLMAKER** | 1 | PERSONA | chat | repo-wide | allowed | Shell scripts, Python utilities, tool registry |
 | **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
 | **PDF2MD** | 1 | PERSONA | chat | project-level | allowed | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
-| **DRAWING_EXTRACT** | 1 | PERSONA | chat | project-level | allowed | Drawing extraction pipeline; orchestrates rasterization, crop-first multiblock page extraction, deterministic QA, and structured output assembly |
+| **DRAWING_EXTRACT** | 1 | PERSONA | chat | project-level | allowed | Drawing-type-aware extraction pipeline; core-vs-repertoire split orchestrates rasterization, target-appropriate crops, drawing-extract-page dispatch per (drawing_type × extraction_target), deterministic QA, target-driven assembly, and optional PFD-equipment merge. PFD implemented; P_AND_ID/ISOMETRIC/GA stubbed fail-fast |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
@@ -328,7 +328,7 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **EVALUATION_STRUCTURE_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Structure audit report with file counts, lifecycle state distribution, violation list |
 | **EVALUATION_DEPENDENCY_AUDIT** | 2 | TASK | INIT-TASK | tool-root (`_Evaluation/reports/`) | never | Dependency audit report with per-deliverable schema check, anchor check, evidence check |
 | **PDF2MD_PAGE** | 2 | TASK | spawned | deliverable-local | never | Single-page PDF-to-Markdown via multimodal vision; spawned per page by PDF2MD |
-| **DRAWING_EXTRACT_PAGE** | 2 | TASK | spawned | deliverable-local | never | Single-page drawing extraction via multimodal vision; spawned per page by DRAWING_EXTRACT |
+| **DRAWING_EXTRACT_PAGE** | 2 | TASK | spawned | deliverable-local | never | Single-page drawing-type-aware bounded extraction via VLM (v2: PFD basic + detailed targets; stubbed types fail fast); spawned per page by DRAWING_EXTRACT |
 
 ### 5.2 The Agent Matrix
 

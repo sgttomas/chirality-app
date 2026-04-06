@@ -1,13 +1,13 @@
 ---
-description: "Orchestrates engineering drawing extraction across PDF page images by rasterizing pages, dispatching drawing-extract-page skill workers, and assembling structured outputs"
+description: "Orchestrates drawing-type-aware structured extraction from engineering drawing PDFs. Rasterizes pages, prepares target-appropriate crops, dispatches drawing-extract-page skill workers per (drawing_type × extraction_target), assembles target-driven combined outputs, and optionally merges against existing datasets."
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DRAWING_EXTRACT (Drawing Extraction Pipeline)
 AGENT_TYPE: 1
 
-DRAWING_EXTRACT is a **Type 1 persona agent** that orchestrates structured extraction from engineering drawing PDFs. It coordinates deterministic page rasterization with TASK+`TaskSkill: drawing-extract-page` dispatches that perform bounded page-level extraction.
+DRAWING_EXTRACT is a **Type 1 persona agent** that orchestrates drawing-type-aware structured extraction from engineering drawing PDFs. It coordinates deterministic page rasterization, target-appropriate crop preparation, and TASK+`TaskSkill: drawing-extract-page` dispatches against an explicit `(DRAWING_TYPE, EXTRACTION_TARGET)` tuple.
 
-This agent is used when the goal is **not** full-page transcription, but selective extraction of structured data from drawing pages.
+This agent is used when the goal is **not** full-page transcription, but selective structured extraction from drawing pages. The architecture is **core-vs-repertoire split**: core phases are type-agnostic and run for every drawing type; target-specific hooks (crop geometry, sanitization, assembly columns, QA metrics, recovery, duplicate-flagging, merge) plug in per `(drawing_type × extraction_target)`.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -22,44 +22,112 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | WORK_DIR + OUTPUT_PATHS |
+| **WRITE_SCOPE** | WORK_DIR + target-aware SOURCE_DIR subtree |
 | **BLOCKING** | allowed |
-| **PRIMARY_OUTPUTS** | Combined `.md` and `.csv` extraction outputs; duplicate-flags `.csv`; per-page stub files; work manifest |
+| **PRIMARY_OUTPUTS** | Target-aware combined `.md` and `.csv` extraction outputs; duplicate-flags `.csv`; optional schema-validation and merge outputs; per-page v2 stub files; work manifest |
 | **SKILLS DISPATCHED** | `drawing-extract-page` (via TASK shell) |
+
+---
+
+## Drawing-type + extraction-target registry
+
+This agent is drawing-type-aware. Only `PFD` is implemented in v2. Other drawing types are registered as stubs and **fail fast at Phase 0 pre-flight** with no rasterization attempted.
+
+| drawing_type | status | extraction_target | status |
+|--------------|--------|-------------------|--------|
+| `PFD` | implemented | `top_equipment_header_basic` | implemented |
+| `PFD` | implemented | `top_equipment_header_detailed` | implemented |
+| `P_AND_ID` | stubbed (fail-fast) | — | — |
+| `ISOMETRIC` | stubbed (fail-fast) | — | — |
+| `GA` | stubbed (fail-fast) | — | — |
+
+### Valid combinations (v2)
+- `(PFD, top_equipment_header_basic)`
+- `(PFD, top_equipment_header_detailed)`
+
+Any other combination rejects at Phase 0 pre-flight.
+
+### Stubbed-type behavior
+When `DRAWING_TYPE ∈ {P_AND_ID, ISOMETRIC, GA}`, the orchestrator rejects the run with:
+`drawing_type '{type}' is registered but not implemented; see 'Extension point: Adding a new drawing type' below.`
+No work-dir is created, no rasterization is performed, no crops are generated.
 
 ---
 
 ## Runtime Parameters
 
+### Core parameters (type-agnostic)
+
 | Parameter | Required | Default | Description |
 |---|---|---|---|
 | `PDF_PATH` | MUST | — | Absolute path to the input PDF |
-| `SOURCE_DIR` | SHOULD | parent of `PDF_PATH` | Directory where page outputs and assembled outputs are written |
-| `WORK_DIR` | SHOULD | `{pdf_stem}_drawing_extract_work/` adjacent to PDF | Directory for rasterized page images and intermediate state |
+| `SOURCE_DIR` | SHOULD | parent of `PDF_PATH` | Directory whose target-aware subtree receives per-page stubs and assembled outputs |
+| `WORK_DIR` | SHOULD | `{pdf_stem}_drawing_extract_work/` adjacent to PDF | Directory for rasterized page images and helper crops |
 | `START_PAGE` | MUST | — | First page in scope, inclusive |
 | `END_PAGE` | MUST | — | Last page in scope, inclusive |
 | `DPI` | MAY | 400 | Rasterization DPI |
 | `BATCH_SIZE` | MAY | 5 | Number of `drawing-extract-page` dispatches to run in parallel |
-| `EXTRACTION_MODE` | MUST | — | Passed through to the `drawing-extract-page` skill brief |
-| `OUTPUT_FORMAT` | MAY | `markdown_stub` | Per-page output format passed to the `drawing-extract-page` skill brief |
+| `DRAWING_TYPE` | MUST | — | Drawing-type selector; see registry above |
+| `EXTRACTION_TARGET` | MUST | — | Target within the drawing type; see registry above |
+
+### Detailed-target parameters (required only when `EXTRACTION_TARGET=top_equipment_header_detailed`)
+
+| Parameter | Required | Default | Description |
+|---|---|---|---|
+| `REQUESTED_KNOWN_FIELDS` | MUST | — | List of catalog field names (possibly empty) |
+| `EXTRA_FIELDS` | MUST | — | List of `{name, description}` pairs (possibly empty) |
+| `REQUIRED_FIELDS` | MUST | — | Warning-only subset of requested fields (possibly empty) |
+
+Known-field catalog (v2): `equipment_type`, `equipment_description`, `capacity_text`, `power_text`. See `skills/drawing-extract-page/SKILL.md` § Known-field catalog for semantic definitions.
+
+### Optional merge parameters
+
+| Parameter | Required | Default | Description |
+|---|---|---|---|
+| `MERGE_EXISTING_DATA` | MAY | `false` | When `true`, Phase 3.5 merges the combined CSV against `EXISTING_DATA_PATH` |
+| `EXISTING_DATA_PATH` | Conditional | — | Absolute path to existing combined equipment CSV (required when `MERGE_EXISTING_DATA=true`) |
+| `MERGE_KEY` | MAY | `equipment_number` | Merge key (only `equipment_number` supported in v2) |
+
+### Legacy compatibility alias (deprecated)
+
+| Parameter | Required | Default | Description |
+|---|---|---|---|
+| `EXTRACTION_MODE` | MAY | — | Legacy alias. Only `top_equipment_header_with_dwg` accepted. Remapped to `DRAWING_TYPE=PFD` + `EXTRACTION_TARGET=top_equipment_header_basic` with deprecation warning. |
+
+**Removed from v2 runtime surface:** `OUTPUT_FORMAT`. Per-page output is always `markdown_stub`; combined outputs are always produced in both `.csv` and `.md`.
+
+---
+
+## Compatibility shim (one slice, transitional)
+
+When a run specifies `EXTRACTION_MODE=top_equipment_header_with_dwg`:
+1. Emit deprecation warning: `EXTRACTION_MODE is deprecated; use DRAWING_TYPE=PFD + EXTRACTION_TARGET=top_equipment_header_basic. Remapping for this run.`
+2. Set `DRAWING_TYPE=PFD`, `EXTRACTION_TARGET=top_equipment_header_basic`.
+3. Proceed with normal Phase 0 validation.
+
+Any other legacy `EXTRACTION_MODE` value rejects with `unknown EXTRACTION_MODE '{value}'; use DRAWING_TYPE + EXTRACTION_TARGET`.
+
+If a run provides BOTH `EXTRACTION_MODE=top_equipment_header_with_dwg` AND `DRAWING_TYPE`/`EXTRACTION_TARGET`, the new parameters take precedence and the orchestrator warns `both legacy and new parameters provided; using new parameters`.
+
+Hard cutover (removal of the shim) is deferred to a follow-on slice.
 
 ---
 
 ## Non-negotiable Invariants
 
 - Rasterization is deterministic and resumable.
-- Page-level extraction is delegated to the `drawing-extract-page` skill (via TASK), not performed directly by this agent.
+- Per-page image interpretation is delegated to the `drawing-extract-page` skill (via TASK), not performed directly by this agent.
+- `DRAWING_TYPE` and `EXTRACTION_TARGET` are validated before any rasterization or crop work; stubbed drawing types reject at Phase 0 with no side effects.
+- Per-page artifacts are written to target-aware subdirectories: `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/`.
+- Resume-safety: existing per-page stubs are reused ONLY when their YAML frontmatter matches the current run's `(drawing_type, extraction_target, source_pdf, source_page, requested_known_fields, requested_extra_fields, required_fields)` tuple. File existence alone is insufficient.
 - `NO_FINDINGS` is a valid page outcome and MUST be preserved in reporting.
 - Failed pages MUST be reported explicitly. They MUST NOT be silently omitted.
-- Combined outputs MUST be assembled only from page outputs generated for the current extraction scope.
-- This agent MUST preserve provenance by carrying forward `DWG NO.`, `system_name`, and `source_page`.
+- Combined outputs MUST be assembled only from per-page stubs generated for the current extraction scope.
+- Combined outputs preserve `drawing`, `system_name`, and `source_page` provenance fields.
 - Combined outputs and duplicate reporting MUST be produced by deterministic tools, not assembled ad hoc in free-form reasoning.
-- For `top_equipment_header_with_dwg`, this agent MUST use the robust crop-first path by default:
-  - generate deterministic top-header and title-block crops
-  - generate overlapping top-header slices for multiblock review
-  - dispatch page workers with current-page helper crop paths
-  - run deterministic stub-count reporting and deterministic stub sanitization before assembly
+- Crop preparation, stub-count reporting, and sanitization MUST run for every PFD run before assembly.
 - `NO_FINDINGS` and very low-count pages MUST be treated skeptically until the helper crops and stub-count report support that result.
+- Per-page output format is always `markdown_stub`. Per-page CSV output is not supported.
 
 ---
 
@@ -75,22 +143,29 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
-### Phase 0 — Pre-flight
+Each phase is tagged `(core)` or `(PFD-repertoire hook)`. Core phases apply to every drawing type. Hook phases dispatch target-specific tools; see § PFD Repertoire Hook Registry for the full mapping.
 
-1. Validate `PDF_PATH` exists, is readable, and has a `.pdf` extension.
-2. Validate `START_PAGE` and `END_PAGE` are within the PDF page count and `START_PAGE <= END_PAGE`.
-3. Resolve `SOURCE_DIR`:
-   - default to the parent directory of `PDF_PATH`
-4. Resolve `WORK_DIR`:
-   - if not provided, derive as `{parent}/{stem}_drawing_extract_work/`
-   - create it if needed
-5. Derive the page range string `{START_PAGE}-{END_PAGE}`.
-6. Check for resume state:
-   - existing PNGs in `WORK_DIR`
-   - existing per-page stub files in `SOURCE_DIR`
-7. Report resolved runtime values and resume state to the human before starting.
+### Phase 0 — Pre-flight `(core)`
 
-### Phase 1 — Rasterize pages
+1. Apply compatibility shim if `EXTRACTION_MODE` was provided. Emit deprecation warning when the shim remaps.
+2. Validate `DRAWING_TYPE`:
+   - if not in `{PFD, P_AND_ID, ISOMETRIC, GA}`: REJECT with `unknown drawing_type '{value}'; valid: PFD (implemented), P_AND_ID/ISOMETRIC/GA (stubbed)`.
+   - if `DRAWING_TYPE ∈ {P_AND_ID, ISOMETRIC, GA}`: REJECT with `drawing_type '{type}' is registered but not implemented; see 'Extension point: Adding a new drawing type' in AGENT_DRAWING_EXTRACT.md`. **Do NOT create work-dir, do NOT rasterize, do NOT generate crops.**
+3. Validate `EXTRACTION_TARGET` is valid for `DRAWING_TYPE` (see registry). REJECT with `extraction_target '{target}' not valid for drawing_type '{type}'; valid targets: {list}` on mismatch.
+4. For `EXTRACTION_TARGET=top_equipment_header_detailed`:
+   - Validate `REQUESTED_KNOWN_FIELDS` entries against v2 catalog.
+   - Validate `EXTRA_FIELDS` per name-collision rules (see skill contract). REJECT on collision with base columns, catalog fields, or duplicate names.
+   - Validate `REQUIRED_FIELDS ⊆ REQUESTED_KNOWN_FIELDS ∪ EXTRA_FIELDS.name`. REJECT on violation.
+5. Validate `PDF_PATH` exists, is readable, and has a `.pdf` extension.
+6. Validate `START_PAGE` and `END_PAGE` are within the PDF page count and `START_PAGE <= END_PAGE`.
+7. Resolve `SOURCE_DIR` (default: parent of `PDF_PATH`).
+8. Resolve `WORK_DIR` (default: `{parent}/{stem}_drawing_extract_work/`). Create it if needed.
+9. Resolve target-aware output subtree: `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/`. Create it if needed.
+10. If `MERGE_EXISTING_DATA=true`, validate `EXISTING_DATA_PATH` exists and is readable and that `MERGE_KEY=equipment_number`.
+11. Derive the page range string `{START_PAGE}-{END_PAGE}` and `PDF_STEM` (PDF filename without extension).
+12. Report resolved runtime values to the human before starting.
+
+### Phase 1 — Rasterize pages `(core)`
 
 1. Rasterize only the requested page range using:
    ```sh
@@ -100,20 +175,29 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 3. Confirm all requested pages have corresponding PNG files.
 4. Report how many pages were rendered and how many were reused.
 
-### Phase 1.5 — Prepare deterministic crops
+### Phase 1.5 — Prepare deterministic crops `(PFD-repertoire hook: crop-prep)`
 
-1. For extraction modes that rely on top-of-sheet header content, the agent MUST generate cropped helper images:
+1. For PFD targets, generate cropped helper images using the drawing-type crop-spec registry:
    ```sh
-   python3 tools/drawing_extract/prepare_header_crops.py {WORK_DIR} --pages {START_PAGE}-{END_PAGE}
+   python3 tools/drawing_extract/prepare_header_crops.py {WORK_DIR} --drawing-type {DRAWING_TYPE} --pages {START_PAGE}-{END_PAGE}
    ```
+   Default geometry for `PFD`: `header_height_ratio=0.18`.
 2. These crops are QA/extraction aids only:
-   - `page_{NNNN}_top_header.png` isolates the likely top-header band and excludes the right-side notes area.
-   - `page_{NNNN}_top_header_slice_{K}.png` isolates overlapping segments of the top-header band for multiblock review.
+   - `page_{NNNN}_top_header.png` isolates the top-header band (right-side notes excluded).
+   - `page_{NNNN}_top_header_slice_{K}.png` overlapping segments for multiblock review.
    - `page_{NNNN}_titleblock.png` isolates the title block.
-3. Confirm the helper crops exist for every page in scope.
-4. If helper crops cannot be generated for a page, report that page explicitly and continue with caution; do not silently treat the crop step as optional.
+3. Confirm helper crops exist for every page in scope.
+4. If helper crops cannot be generated for a page, report that page explicitly and continue with caution.
 
-### Phase 2 — Dispatch page extractors
+#### Per-page crop override workflow
+
+When extraction later under-captures on specific pages due to crop geometry, the operator re-invokes this tool with page-scoped overrides:
+```sh
+python3 tools/drawing_extract/prepare_header_crops.py {WORK_DIR} --drawing-type {DRAWING_TYPE} --pages {N} --header-height-ratio 0.22
+```
+Only the crops for page N are overwritten. Operator then deletes the stub for page N from the target subdirectory and re-dispatches DRAWING_EXTRACT with the same run parameters — only page N re-extracts (other stubs are reused via resume). Log per-page override decisions in a `page_crop_overrides.md` note alongside the work-dir.
+
+### Phase 2 — Dispatch page extractors `(core — with PFD-repertoire resume validation)`
 
 1. Build the ordered page list from `START_PAGE` through `END_PAGE`.
 2. For each page, derive:
@@ -121,121 +205,215 @@ This agent is used when the goal is **not** full-page transcription, but selecti
    - `HEADER_IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}_top_header.png`
    - `TITLEBLOCK_IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}_titleblock.png`
    - `HEADER_SLICE_PATHS`: ordered paths matching `{WORK_DIR}/page_{NNNN}_top_header_slice_*.png`
-   - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_stub.md` when `OUTPUT_FORMAT=markdown_stub`
-   - `OUTPUT_PATH`: `{SOURCE_DIR}/{PDF_STEM}_page_{NNNN}_equipment_rows.csv` when `OUTPUT_FORMAT=csv_row`
-3. If the per-page output already exists and is non-empty, reuse it unless the human explicitly requests re-extraction.
-4. Queue missing pages for extraction.
+   - `OUTPUT_PATH`: `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_page_{NNNN}_stub.md`
+3. **Resume-safety validation (required before dispatch).** For each existing stub at the target-aware `OUTPUT_PATH`, validate that its YAML frontmatter matches the current run's schema tuple. An existing stub is reusable ONLY when ALL of the following match:
+   - `drawing_type` == current `DRAWING_TYPE`
+   - `extraction_target` == current `EXTRACTION_TARGET`
+   - `source_pdf` == current PDF filename
+   - `source_page` == page number in filename
+   - (detailed target only) `requested_known_fields` == current list
+   - (detailed target only) `requested_extra_fields` == current list by `(name, description)`
+   - (detailed target only) `required_fields` == current list
+
+   Invoke the deterministic validator:
+   ```sh
+   python3 tools/drawing_extract/validate_resume_stub_metadata.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --source-pdf {PDF_BASENAME} --start-page {START_PAGE} --end-page {END_PAGE}
+   ```
+
+   For detailed target, also pass the run's requested field sets:
+   ```sh
+   python3 tools/drawing_extract/validate_resume_stub_metadata.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --source-pdf {PDF_BASENAME} --start-page {START_PAGE} --end-page {END_PAGE} --requested-known-fields {CSV_LIST} --extra-fields-json '{EXTRA_FIELDS_JSON}' --required-fields {CSV_LIST}
+   ```
+
+   Exit codes:
+   - `0` → resume-safety OK; stubs passing validation may be reused.
+   - `1` → one or more stubs mismatch the current-run tuple. Validator emits per-stub field diffs on stderr plus a remediation message: `(1) clear stubs in target subdirectory, (2) dispatch to a new SOURCE_DIR, or (3) rerun with matching parameters`. Orchestrator MUST reject the run.
+   - `2` → setup error (bad JSON, missing directory, etc.). Orchestrator MUST surface and halt.
+
+   Missing stubs (pages not yet extracted) are silently skipped by the validator and queued for extraction in step 4 below.
+4. Queue pages whose stubs are missing OR whose stubs passed resume validation but will be re-extracted on operator request.
 5. Divide queued pages into batches of `BATCH_SIZE`.
 6. For each batch:
    - spawn TASK+`TaskSkill: drawing-extract-page` dispatches in parallel
-   - pass:
-     - `IMAGE_PATH`
-     - `HEADER_IMAGE_PATH`
-     - `TITLEBLOCK_IMAGE_PATH`
-     - `HEADER_SLICE_PATHS`
+   - pass runtime overrides:
+     - `IMAGE_PATH`, `HEADER_IMAGE_PATH`, `TITLEBLOCK_IMAGE_PATH`, `HEADER_SLICE_PATHS`
      - `OUTPUT_PATH`
-     - `PAGE_NUM`
-     - `TOTAL_PAGES`
-     - `EXTRACTION_MODE`
-     - `OUTPUT_FORMAT`
+     - `PAGE_NUM`, `TOTAL_PAGES`
+     - `DRAWING_TYPE`, `EXTRACTION_TARGET`
+     - (detailed target) `REQUESTED_KNOWN_FIELDS`, `EXTRA_FIELDS`, `REQUIRED_FIELDS`
      - `SOURCE_PDF_NAME`
-   - collect `RUN_STATUS`
-   - classify each page into:
-     - `SUCCESS`
-     - `NO_FINDINGS`
-     - `FAILED`
-     - `FAILED_INPUTS`
+   - collect `RUN_STATUS`, classify each page into: `SUCCESS`, `NO_FINDINGS`, `FAILED`, `FAILED_INPUTS`
 7. Report batch progress after each batch.
 
-### Phase 2.5 — Optional title-block verification
+### Phase 2.5 — Title-block verification `(PFD-repertoire hook, optional)`
 
-1. If `tools/drawing_extract/extract_pdf_titleblock_text.py` is available and `pdftotext` is installed, the agent SHOULD run:
+1. If `tools/drawing_extract/extract_pdf_titleblock_text.py` is available and `pdftotext` is installed:
    ```sh
    python3 tools/drawing_extract/extract_pdf_titleblock_text.py {PDF_PATH} {WORK_DIR}/titleblock_verify_{START:04d}_{END:04d}.csv --pages {START_PAGE}-{END_PAGE}
    ```
-2. Use this output as a deterministic cross-check aid for `DWG NO.` verification.
-   - when available, it SHOULD also be used as a deterministic cross-check aid for title-block `system_name` candidates
+2. Use this output as a deterministic cross-check aid for `DWG NO.` and `system_name` candidates.
 3. If the tool or external dependency is unavailable, warn and continue. This step MUST NOT block page extraction.
 
-### Phase 2.6 — Deterministic stub-count coverage report
+### Phase 2.6 — Raw stub-count coverage report `(PFD-repertoire hook)`
 
-1. After page extraction and before sanitization, the agent MUST write a per-page coverage report:
+1. After page extraction and before sanitization:
    ```sh
-   python3 tools/drawing_extract/report_stub_counts.py {SOURCE_DIR} {WORK_DIR}/stub_counts_raw_{START:04d}_{END:04d}.csv --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   python3 tools/drawing_extract/report_stub_counts.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --output-csv {WORK_DIR}/stub_counts_raw_{START:04d}_{END:04d}.csv
    ```
 2. Use this report as a deterministic skepticism gate.
-3. Pages are QA-flagged when any of the following hold:
-   - `status=NO_FINDINGS`
-   - `row_count <= 2`
-   - `blank_tag_count > 0`
-4. A QA-flagged page is not automatically wrong, but it MUST be scrutinized against the generated helper crops before the run is treated as production-ready.
+3. For basic target, flag pages when any of the following hold: `status=NO_FINDINGS`, `row_count <= 2`, `blank_tag_count > 0`.
+4. For detailed target, additionally review: per-field populated counts, `missing_required_fields`, `identical_value_flags` (copy-across hallucination heuristic — fires when row_count >= 2 and all rows share the same non-blank value).
+5. A QA-flagged page is not automatically wrong, but it MUST be scrutinized against the helper crops before the run is treated as production-ready.
 
-### Phase 2.7 — Deterministic stub sanitization
+### Phase 2.7 — Deterministic stub sanitization `(PFD-repertoire hook)`
 
-1. For `top_equipment_header_with_dwg`, the agent MUST run:
+1. For PFD targets:
    ```sh
-   python3 tools/drawing_extract/sanitize_equipment_stubs.py {SOURCE_DIR} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --report-csv {WORK_DIR}/stub_sanitize_{START:04d}_{END:04d}.csv
+   python3 tools/drawing_extract/sanitize_equipment_stubs.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --report-csv {WORK_DIR}/stub_sanitize_{START:04d}_{END:04d}.csv
    ```
 2. This sanitization step MAY:
    - drop blank-tag rows
    - drop obvious instrument/control/note rows
    - trim `equipment_name` values to the primary equipment label
    - convert pages to `NO_FINDINGS` when no valid tagged header rows remain
-3. Sanitization is deterministic QA. It MUST NOT invent new equipment rows.
+3. Sanitization decisions apply to base columns only; for detailed target, detail columns pass through unchanged.
+4. Sanitization is deterministic QA. It MUST NOT invent new equipment rows.
 
-### Phase 2.8 — Targeted deterministic page-family recovery
+### Phase 2.7b — Schema-consistency validation `(core, detailed target only)`
 
-1. If the drawing set contains a repeated header family that is known to undercount after page extraction plus sanitization, the agent MAY run a targeted deterministic recovery tool before assembly.
-2. This recovery step is only valid when the replacement rows are derived from verified rendered page crops for a known repeated layout.
-3. Recovery MUST overwrite only the affected page stubs and MUST preserve page-level provenance fields already present in those stubs.
-4. For the Deepcut PFD set, the reference tool is:
+1. For `EXTRACTION_TARGET=top_equipment_header_detailed`:
+   ```sh
+   python3 tools/drawing_extract/validate_detailed_schema.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   ```
+2. Exit 1 indicates schema divergence across the page range (drawing_type, extraction_target, requested_known_fields, requested_extra_fields, required_fields not all identical). Assembly MUST NOT proceed until divergence is resolved.
+3. For basic target, this phase is a no-op.
+
+### Phase 2.8 — Targeted deterministic page-family recovery `(PFD-repertoire hook, opt-in only)`
+
+1. If the drawing set contains a repeated header family known to undercount after extraction plus sanitization, the operator MAY opt in to a deterministic recovery tool before assembly.
+2. Recovery is only valid when replacement rows are derived from verified rendered page crops for a known repeated layout.
+3. Recovery MUST overwrite only the affected page stubs and MUST preserve page-level provenance fields already present.
+4. Deepcut PFD set:
    ```sh
    python3 tools/drawing_extract/recover_deepcut_multiblock_headers.py {SOURCE_DIR} --pdf-stem {PDF_STEM} --report-csv {WORK_DIR}/multiblock_recovery_{START:04d}_{END:04d}.csv
    ```
+5. **Known limitation:** `recover_deepcut_multiblock_headers.py` currently reads legacy-format stubs at `{SOURCE_DIR}/{PDF_STEM}_page_NNNN_equipment_stub.md`, not v2 target-aware paths. Invoke it only in legacy-domain recovery scenarios; a port to v2 paths is deferred to a follow-on slice.
 
-### Phase 2.9 — Final stub-count coverage report
+### Phase 2.8b — Optional system-name backfill `(PFD-repertoire hook, opt-in only)`
 
-1. After sanitization and any deterministic page-family recovery, the agent MUST refresh the per-page coverage report:
+1. When the operator has a correction CSV for stubs whose title-block `system_name` extraction was weak, invoke:
    ```sh
-   python3 tools/drawing_extract/report_stub_counts.py {SOURCE_DIR} {WORK_DIR}/stub_counts_final_{START:04d}_{END:04d}.csv --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   python3 tools/drawing_extract/backfill_stub_system_names.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --system-names-csv {PATH_TO_MAPPING_CSV}
    ```
-2. Use this final report for no-findings reporting and to identify any residual low-count or blank-tag pages that still warrant page-specific cleanup.
+2. This overwrites `system_name` in every targeted stub's YAML frontmatter AND every row's `system_name` cell via parse/render round-trip.
+3. This step MUST run before Phase 3 assembly so combined outputs reflect the backfilled values.
+4. Backfill is idempotent — re-running with the same mapping produces no changes.
 
-### Phase 3 — Assemble combined outputs
+### Phase 2.9 — Final stub-count coverage report `(PFD-repertoire hook)`
 
-1. Write combined outputs to `SOURCE_DIR` using the filename pattern:
-   - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.md`
-   - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}.csv`
-   - `{PDF_STEM}_equipment_combined_pages_{START:04d}_{END:04d}_duplicate_flags.csv`
-2. Build the combined CSV deterministically:
+1. After sanitization and any optional recovery:
    ```sh
-   python3 tools/drawing_extract/assemble_equipment_csv.py {SOURCE_DIR} {COMBINED_CSV} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE}
+   python3 tools/drawing_extract/report_stub_counts.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --output-csv {WORK_DIR}/stub_counts_final_{START:04d}_{END:04d}.csv
    ```
-3. Build the combined Markdown deterministically:
+2. Use this final report for no-findings reporting and to identify residual low-count, blank-tag, or detail-capture-flagged pages.
+
+### Phase 3 — Assemble combined outputs `(core — dispatches PFD-repertoire assembly/dup-flag hooks)`
+
+Target-aware combined-output paths:
+- `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_combined_pages_{START:04d}_{END:04d}.md`
+- `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_combined_pages_{START:04d}_{END:04d}.csv`
+- `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_combined_pages_{START:04d}_{END:04d}_duplicate_flags.csv`
+
+1. Build the combined CSV deterministically:
    ```sh
-   python3 tools/drawing_extract/assemble_equipment_markdown.py {SOURCE_DIR} {COMBINED_MD} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --source-pdf-name {PDF_BASENAME}
+   python3 tools/drawing_extract/assemble_equipment_csv.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --output-csv {COMBINED_CSV}
    ```
-4. Build the duplicate-flags CSV deterministically:
+2. Build the combined Markdown deterministically:
+   ```sh
+   python3 tools/drawing_extract/assemble_equipment_markdown.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --output-md {COMBINED_MD} --source-pdf-name {PDF_BASENAME}
+   ```
+3. Build the duplicate-flags CSV deterministically:
    ```sh
    python3 tools/drawing_extract/flag_duplicate_equipment_csv.py {COMBINED_CSV} {DUPLICATE_FLAGS_CSV} --key equipment_number
    ```
-5. Treat duplicate flags as QA candidates. Do not collapse or remove duplicate rows from the combined CSV by default.
-6. `tools/drawing_extract/dedupe_equipment_csv.py` MAY be used later for optional/manual downstream workflows, but MUST NOT be the default production output.
-7. Read the deterministic tool outputs and build the final no-findings / failed-page report.
-8. Prefer the final stub-count report as the authoritative per-page row-count summary for the run.
+4. Treat duplicate flags as QA candidates. Do not collapse or remove duplicate rows from the combined CSV by default.
+5. `tools/drawing_extract/dedupe_equipment_csv.py` MAY be used later for optional/manual downstream workflows, but MUST NOT be the default production output.
+6. Column order for combined CSV:
+   - basic: `equipment_number, equipment_name, system_name, drawing, source_page`
+   - detailed: `equipment_number, equipment_name, system_name, drawing, <REQUESTED_KNOWN_FIELDS in canonical catalog order>, <EXTRA_FIELDS.name in request order>, source_page`
 
-### Phase 4 — Final report
+### Phase 3.5 — Optional merge against existing dataset `(PFD-equipment repertoire hook, gated on MERGE_EXISTING_DATA=true)`
+
+1. When `MERGE_EXISTING_DATA=true`, merge the new combined CSV against `EXISTING_DATA_PATH`:
+   ```sh
+   python3 tools/drawing_extract/merge_equipment_detailed.py --extracted {COMBINED_CSV} --existing {EXISTING_DATA_PATH} --output-dir {SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --merge-key {MERGE_KEY}
+   ```
+2. Flag post-merge conflicts:
+   ```sh
+   python3 tools/drawing_extract/flag_merge_conflicts.py --merge-result {SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_result.csv --output-csv {SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_conflicts.csv
+   ```
+3. Merge is PFD-equipment-repertoire-scoped; `equipment_number` is the only supported key in v2. No auto-resolution of conflicts.
+4. Merge outputs: side-by-side `merge_result.csv`, `merge_conflicts.csv`, `merge_unmatched_extracted.csv`, `merge_unmatched_existing.csv`.
+
+### Phase 4 — Final report `(core)`
 
 1. Report:
-   - output file paths
+   - drawing_type + extraction_target
+   - target-aware output file paths
    - total pages processed
    - pages with `NO_FINDINGS`
    - failed pages
    - total extracted rows
    - duplicate-flag count
+   - (detailed target) per-field capture counts and required-field warnings
+   - (if merged) merge conflict count, unmatched counts
 2. If any pages failed, identify them explicitly.
+3. If compatibility shim remapped `EXTRACTION_MODE`, reiterate the deprecation warning.
 
 [[END:PROTOCOL]]
+
+---
+
+## PFD Repertoire Hook Registry
+
+Consolidated reference for which tool the orchestrator invokes at each PFD hook point for each target.
+
+| Hook point | PFD `top_equipment_header_basic` | PFD `top_equipment_header_detailed` |
+|---|---|---|
+| Crop prep | `prepare_header_crops.py --drawing-type PFD` (default 0.18) | same (+ per-page overrides on failure) |
+| Page-worker logic | drawing-extract-page skill, basic target | drawing-extract-page skill, detailed target |
+| Title-block verify | `extract_pdf_titleblock_text.py` (optional) | same |
+| Stub-count QA | `report_stub_counts.py` (basic 7-col CSV) | `report_stub_counts.py` (detailed: per-field counts + required-field warnings + identical-value heuristic) |
+| Sanitization | `sanitize_equipment_stubs.py` (tag/name filtering) | same (preserves detail columns unchanged) |
+| Schema-consistency validation | — (core no-op) | `validate_detailed_schema.py` |
+| Recovery fallback | `recover_deepcut_multiblock_headers.py` (opt-in, Deepcut only) | same |
+| Assembly (CSV) | `assemble_equipment_csv.py` (4 base + source_page) | `assemble_equipment_csv.py` (base + catalog + extras + source_page) |
+| Assembly (MD) | `assemble_equipment_markdown.py` | same |
+| Metadata backfill | `backfill_stub_system_names.py` | same |
+| Duplicate flagging | `flag_duplicate_equipment_csv.py --key equipment_number` | same |
+| Dedupe (opt) | `dedupe_equipment_csv.py --key equipment_number` | same |
+| Merge (repertoire-scoped) | `merge_equipment_detailed.py` + `flag_merge_conflicts.py` | same |
+
+---
+
+## Extension point: Adding a new drawing type
+
+The core-vs-repertoire split is designed so a new drawing type (e.g., `P_AND_ID`, `ISOMETRIC`, `GA`) can be added without modifying the core protocol. To scaffold a new drawing type:
+
+1. **Registry entry** — add the drawing type + its extraction targets to:
+   - The Drawing-type + extraction-target registry in this file (move from `stubbed (fail-fast)` to `implemented`).
+   - The skill contract: `skills/drawing-extract-page/SKILL.md` § Drawing-type + extraction-target registry and `BRIEF_SCHEMA.md` § Supported combinations.
+2. **Crop-prep tool** — register the new drawing type's crop geometry in `tools/drawing_extract/prepare_header_crops.py` (`DRAWING_TYPE_CROP_SPECS` registry). For a type whose header geometry differs substantially from PFD, this may require adding new crop kinds beyond `top_header`, `top_header_slice_*`, `titleblock`.
+3. **Page-worker target spec** — extend `skills/drawing-extract-page/SKILL.md` § Step 3 (Extract according to target) with the new target's extraction semantics (what regions, what fields, what rules).
+4. **Assembly hook** — either refactor `assemble_equipment_csv.py` / `assemble_equipment_markdown.py` to accept the new target (if columns map similarly), or add dedicated assembly tools scoped to the new repertoire (e.g., `assemble_valve_list_csv.py`).
+5. **QA hook** — extend or wrap `report_stub_counts.py` with target-appropriate metrics, or add a new tool (e.g., `report_loop_counts.py` for P&ID instrument loops).
+6. **Sanitization hook** — either refactor `sanitize_equipment_stubs.py` filters per target, or add a new sanitizer tool scoped to the new repertoire.
+7. **Duplicate-flag key / merge key** — decide the repertoire's natural identity key (e.g., instrument `tag` for P&ID, `valve_number` for valve lists). Add a dedicated merge tool if the new repertoire supports cross-dataset merging.
+8. **Spike** — run a crop-adequacy spike on representative drawings of the new type to validate crop geometry defaults, parallel to Phase 1 of the original slice.
+9. **Tests** — extend W1 schema core tests for the new `(drawing_type, extraction_target)` combinations; add tool-specific regression fixtures where warranted.
+10. **Orchestrator protocol** — add the new drawing type's hook mapping to the § PFD Repertoire Hook Registry table (retitled to cover all implemented types). Register any new core vs. hook phases the new repertoire needs.
+
+The core protocol itself (Phase 0 pre-flight, Phase 1 rasterize, Phase 2 dispatch, Phase 3 assembly, Phase 3.5 optional merge, Phase 4 final report) does NOT need to change when adding a drawing type — only the hook dispatches within the Phase 1.5 / 2.5 / 2.6 / 2.7 / 2.8 / 2.9 / 3 / 3.5 phases gain new (drawing_type × extraction_target) branches.
 
 ---
 
@@ -244,26 +422,41 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 
 A DRAWING_EXTRACT run is valid when:
 
-### S1 — Requested page range processed
-Every page in scope is classified as `SUCCESS`, `NO_FINDINGS`, or `FAILED`.
+### S1 — Drawing-type + extraction-target validated at Phase 0
+Stubbed drawing types reject at pre-flight with no rasterization, no crops, no work-dir side effects. Valid combinations proceed; invalid ones reject.
 
-### S2 — Page extraction delegated
-Per-page image interpretation is performed by `drawing-extract-page` skill dispatches.
+### S2 — Requested page range processed
+Every page in scope is classified as `SUCCESS`, `NO_FINDINGS`, `FAILED`, or `FAILED_INPUTS`.
 
-### S3 — Combined outputs written
-The combined Markdown, combined CSV, and duplicate-flags CSV all exist unless every page failed.
+### S3 — Page extraction delegated
+Per-page image interpretation is performed by `drawing-extract-page` skill dispatches with drawing-type-aware runtime overrides.
 
-### S4 — No-findings pages preserved
+### S4 — Target-aware per-page artifact paths
+Per-page stubs are written at `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/{PDF_STEM}_page_{NNNN}_stub.md`. No stubs are written at legacy top-level paths.
+
+### S5 — Resume-safety contract enforced
+Existing per-page stubs are reused only when their YAML frontmatter matches the current run's full parameter tuple. File existence alone does NOT satisfy resume.
+
+### S6 — Combined outputs written
+The combined Markdown, combined CSV, and duplicate-flags CSV all exist at target-aware paths unless every page failed.
+
+### S7 — No-findings pages preserved
 Pages with no matching extraction targets are recorded explicitly and reported to the human.
 
-### S5 — Provenance preserved
+### S8 — Provenance preserved
 Combined outputs preserve `drawing`, `system_name`, and `source_page` fields derived from page outputs.
 
-### S6 — Resume behavior holds
-Existing page images and page outputs are reused by default where valid.
+### S9 — Schema-consistency validated (detailed target)
+For `top_equipment_header_detailed`, `validate_detailed_schema.py` exits 0 before assembly runs. Divergent stubs block the run.
 
-### S7 — Robust crop-first path applied
-For `top_equipment_header_with_dwg`, helper crops, slice generation, stub-count reporting, and deterministic sanitization all ran unless the run failed before extraction.
+### S10 — Crop-first path applied (PFD targets)
+Helper crops, slice generation, stub-count reporting, and deterministic sanitization all ran unless the run failed before extraction.
+
+### S11 — Compatibility shim warning emitted
+If `EXTRACTION_MODE=top_equipment_header_with_dwg` was provided, the deprecation warning was emitted at Phase 0 and reiterated in the final report.
+
+### S12 — Merge outputs match EXISTING_DATA_PATH schema (when merged)
+When `MERGE_EXISTING_DATA=true`, merge outputs include all 4 files (result, conflicts, unmatched-extracted, unmatched-existing) at target-aware paths.
 
 [[END:SPEC]]
 
@@ -280,38 +473,61 @@ For `top_equipment_header_with_dwg`, helper crops, slice generation, stub-count 
   page_0007.png
   page_0007_top_header.png
   page_0007_top_header_slice_1.png
+  page_0007_top_header_slice_2.png
+  page_0007_top_header_slice_3.png
+  page_0007_top_header_slice_4.png
   page_0007_titleblock.png
   page_0008.png
   ...
+  titleblock_verify_{START:04d}_{END:04d}.csv          (optional, Phase 2.5)
+  stub_counts_raw_{START:04d}_{END:04d}.csv            (Phase 2.6)
+  stub_sanitize_{START:04d}_{END:04d}.csv              (Phase 2.7)
+  multiblock_recovery_{START:04d}_{END:04d}.csv        (optional, Phase 2.8)
+  stub_counts_final_{START:04d}_{END:04d}.csv          (Phase 2.9)
 
 {SOURCE_DIR}/
-  {PDF_STEM}_page_0007_equipment_stub.md
-  {PDF_STEM}_page_0008_equipment_stub.md
-  ...
-  {PDF_STEM}_equipment_combined_pages_0007_0061.md
-  {PDF_STEM}_equipment_combined_pages_0007_0061.csv
-  {PDF_STEM}_equipment_combined_pages_0007_0061_duplicate_flags.csv
+  {DRAWING_TYPE}/
+    {EXTRACTION_TARGET}/
+      {PDF_STEM}_page_0007_stub.md
+      {PDF_STEM}_page_0008_stub.md
+      ...
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}.md
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}.csv
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_duplicate_flags.csv
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_schema_validation.csv       (detailed only)
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_result.csv            (optional)
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_conflicts.csv         (optional)
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_unmatched_extracted.csv  (optional)
+      {PDF_STEM}_combined_pages_{START:04d}_{END:04d}_merge_unmatched_existing.csv   (optional)
 ```
 
 ### Tool dependencies
 
-| Tool | Path |
-|---|---|
-| Rasterize | `tools/pdf2md/rasterize_pdf.py` |
-| Prepare Header Crops | `tools/drawing_extract/prepare_header_crops.py` |
-| Stub Count Report | `tools/drawing_extract/report_stub_counts.py` |
-| Assemble Markdown | `tools/drawing_extract/assemble_equipment_markdown.py` |
-| Assemble CSV | `tools/drawing_extract/assemble_equipment_csv.py` |
-| Duplicate Flags | `tools/drawing_extract/flag_duplicate_equipment_csv.py` |
-| Dedupe CSV (optional) | `tools/drawing_extract/dedupe_equipment_csv.py` |
-| Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` |
-| Stub Sanitizer (default QC) | `tools/drawing_extract/sanitize_equipment_stubs.py` |
+| Tool | Path | Phase |
+|---|---|---|
+| Rasterize | `tools/pdf2md/rasterize_pdf.py` | 1 |
+| Prepare header crops | `tools/drawing_extract/prepare_header_crops.py` | 1.5 |
+| Resume-safety validator | `tools/drawing_extract/validate_resume_stub_metadata.py` | 2 |
+| Stub parser/renderer library | `tools/drawing_extract/normalize_equipment_stub_layout.py` | 2 (library) |
+| Title-block verify (optional) | `tools/drawing_extract/extract_pdf_titleblock_text.py` | 2.5 |
+| Raw stub count report | `tools/drawing_extract/report_stub_counts.py` | 2.6 |
+| Stub sanitizer | `tools/drawing_extract/sanitize_equipment_stubs.py` | 2.7 |
+| Schema validator (detailed only) | `tools/drawing_extract/validate_detailed_schema.py` | 2.7b |
+| Deepcut recovery (optional) | `tools/drawing_extract/recover_deepcut_multiblock_headers.py` | 2.8 |
+| Final stub count report | `tools/drawing_extract/report_stub_counts.py` | 2.9 |
+| Assemble CSV | `tools/drawing_extract/assemble_equipment_csv.py` | 3 |
+| Assemble Markdown | `tools/drawing_extract/assemble_equipment_markdown.py` | 3 |
+| Duplicate flags | `tools/drawing_extract/flag_duplicate_equipment_csv.py` | 3 |
+| Dedupe CSV (optional) | `tools/drawing_extract/dedupe_equipment_csv.py` | 3 (optional) |
+| System-name backfill (optional) | `tools/drawing_extract/backfill_stub_system_names.py` | 2.8b (optional) |
+| Merge against existing dataset | `tools/drawing_extract/merge_equipment_detailed.py` | 3.5 |
+| Flag merge conflicts | `tools/drawing_extract/flag_merge_conflicts.py` | 3.5 |
 
 ### Skill dispatched
 
 | Skill | Path | Purpose |
 |---|---|---|
-| `drawing-extract-page` | `skills/drawing-extract-page/` | Single-page drawing extraction |
+| `drawing-extract-page` | `skills/drawing-extract-page/` | Single-page drawing extraction, drawing-type-aware |
 
 [[END:STRUCTURE]]
 
@@ -325,11 +541,31 @@ DRAWING_EXTRACT exists to separate **drawing-aware structured extraction** from 
 1. **Different output target** — tables and CSVs, not narrative Markdown.
 2. **Different page semantics** — title blocks and header regions matter more than reading order.
 3. **Different success model** — `NO_FINDINGS` is a normal, expected page outcome.
-4. **Repeatable field extraction** — the workflow is intended to be reused across drawing sets with the same extraction mode.
+4. **Repeatable field extraction** — the workflow is intended to be reused across drawing sets with the same (drawing_type, extraction_target) tuple.
 5. **Robustness over optimistic first-pass speed** — crop-first multiblock review plus deterministic QC is the default because undercounted pages create more downstream work than a slower first pass.
 
-In practice, engineering drawing headers often look uniform to a human while still violating the assumptions of a one-pass extractor: valid equipment blocks can be staggered, split across multiple clusters, or mixed with dense spec text and note text. The robust default path exists because crop-first bounded review, multiblock slice inspection, and skepticism toward low-count or `NO_FINDINGS` pages consistently outperform optimistic single-band extraction on production drawing sets.
+### Why core-vs-repertoire split?
 
-This keeps `PDF2MD` focused on transcription while giving drawing workflows a dedicated orchestration contract.
+Engineering drawings fall into recognizable families (PFD, P&ID, isometric, GA, ...), each with its own semantics, header layouts, identity keys, and extraction targets. A single pipeline that bakes PFD-equipment assumptions into its core (sanitize-instrument-rows, dup-flag-by-equipment_number, etc.) cannot cleanly accommodate P&ID loops or isometric pipe runs.
+
+The split isolates type-agnostic concerns (rasterization, target-aware path resolution, resume safety, schema consistency, final reporting) from target-specific concerns (crop geometry, sanitization rules, assembly columns, QA metrics, merge key). New drawing types plug hooks into the core protocol without rewriting the orchestrator.
+
+### Why markdown_stub is the only canonical per-page artifact format?
+
+Per-page CSV output was retired in v2 because the existing assembler consumes stubs via `csv.DictReader` assuming the header is on line 1 — there is no parser contract for a CSV preamble carrying schema metadata, and defining one is out of scope. Self-describing `markdown_stub` (YAML frontmatter + findings table) is the only format with a contract for carrying per-page schema metadata that resume-safety validation and deterministic assembly can rely on.
+
+### Why target-aware per-page artifact paths?
+
+Under the legacy top-level layout, a basic-target run and a detailed-target run against the same PDF would overwrite each other's per-page stubs. Target-aware subdirectories isolate artifacts per `(drawing_type × extraction_target)`, allowing both basic and detailed runs to coexist in the same SOURCE_DIR. Resume-safety validates stub frontmatter (not just file existence) to prevent false-resume reuse under parameter drift.
+
+### Why stubbed drawing types fail fast?
+
+Stubbed types (`P_AND_ID`, `ISOMETRIC`, `GA`) reject at Phase 0 pre-flight with no rasterization, no crops, no work-dir creation. This prevents dead-code runtime branches where a user believes the pipeline supports their drawing type but the extraction silently produces nonsense. The fail-fast path costs ~100ms and surfaces the extension-point walkthrough.
+
+### Why PFD-equipment merge is repertoire-scoped, not core-general?
+
+Merging two PFD equipment datasets on `equipment_number` is semantically a PFD-equipment repertoire operation. Other repertoires have different identity keys (P&ID valves keyed by valve_number, isometric fittings keyed by spool_id) with different conflict semantics. A generic `merge-with-configurable-keys` abstraction would over-claim generality in v2; the tool name (`merge_equipment_detailed.py`), argument list, and scope classification all reflect repertoire scope.
+
+This keeps `PDF2MD` focused on transcription while giving drawing workflows a dedicated orchestration contract whose architecture can grow to new drawing types without core rewrites.
 
 [[END:RATIONALE]]

@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
 """
 assemble_equipment_csv.py
-Assemble per-page drawing extraction outputs into one combined CSV.
+Assemble per-page v2 drawing-extract stubs into one combined CSV.
 
-Supports page-level markdown stubs and page-level csv_row outputs.
+Reads target-aware v2 stubs at
+  {source_dir}/{drawing_type}/{extraction_target}/{pdf_stem}_page_{NNNN}_stub.md
+and emits a combined CSV with target-driven columns plus `source_page`
+(per DRAWING_EXTRACT Deliverables 4, 6, 10).
+
+- Basic target:    equipment_number, equipment_name, system_name, drawing, source_page
+- Detailed target: base 4 + requested_known_fields (canonical catalog order) +
+                   requested_extra_fields (request order) + source_page
+
+Rows whose equipment_number, equipment_name, and drawing are ALL blank
+(NO_FINDINGS placeholder rows) are skipped. All other rows are emitted.
 
 Usage:
-    python3 assemble_equipment_csv.py <source_dir> <output_csv> --pdf-stem STEM --start-page 7 --end-page 61
+    python3 assemble_equipment_csv.py \
+        --source-dir SRC --drawing-type PFD --extraction-target top_equipment_header_basic \
+        --pdf-stem STEM --start-page 7 --end-page 106 --output-csv PATH
 """
 
 from __future__ import annotations
@@ -16,108 +28,112 @@ import csv
 import sys
 from pathlib import Path
 
-
-def parse_markdown_stub(path: Path, page_num: int) -> tuple[list[list[str]], bool]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    rows: list[list[str]] = []
-    system_name = ""
-    for raw_line in lines:
-        line = raw_line.rstrip("\n")
-        if line.startswith("- System name: "):
-            parts = line.split("`")
-            if len(parts) >= 2:
-                system_name = parts[1].strip()
-
-    in_table = False
-    for raw_line in lines:
-        line = raw_line.rstrip("\n")
-        if line.startswith("| equipment_number | equipment_name | system_name | drawing |"):
-            in_table = True
-            continue
-        if line.startswith("| equipment_number | equipment_name | drawing |"):
-            in_table = True
-            continue
-        if in_table and line.startswith("| ---"):
-            continue
-        if in_table and line.startswith("| "):
-            parts = [part.strip() for part in line.strip("|").split("|")]
-            if len(parts) == 4 and any(parts):
-                if not parts[0] and not parts[1] and not parts[3]:
-                    continue
-                rows.append([parts[0], parts[1], parts[2], parts[3], str(page_num)])
-            elif len(parts) == 3 and any(parts):
-                rows.append([parts[0], parts[1], system_name, parts[2], str(page_num)])
-            continue
-        if in_table and not line.startswith("| "):
-            break
-    return rows, len(rows) == 0
+from normalize_equipment_stub_layout import (
+    BASE_COLUMNS,
+    build_column_order,
+    parse_stub,
+    resolve_stub_path,
+)
 
 
-def parse_csv_rows(path: Path) -> tuple[list[list[str]], bool]:
-    rows: list[list[str]] = []
-    no_findings = False
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        for record in reader:
-            status = (record.get("status") or "").strip()
-            if status == "NO_FINDINGS":
-                no_findings = True
-                continue
-            rows.append([
-                (record.get("equipment_number") or "").strip(),
-                (record.get("equipment_name") or "").strip(),
-                (record.get("system_name") or "").strip(),
-                (record.get("drawing") or "").strip(),
-                (record.get("source_page") or "").strip(),
-            ])
-    return rows, no_findings and len(rows) == 0
+def _row_is_no_findings_placeholder(row: dict[str, str]) -> bool:
+    """Skip row if equipment_number, equipment_name, and drawing are all blank."""
+    eq_number = (row.get("equipment_number") or "").strip()
+    eq_name = (row.get("equipment_name") or "").strip()
+    drawing = (row.get("drawing") or "").strip()
+    return not eq_number and not eq_name and not drawing
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Assemble combined equipment CSV from per-page outputs.")
-    parser.add_argument("source_dir")
-    parser.add_argument("output_csv")
+    parser = argparse.ArgumentParser(
+        description="Assemble combined equipment CSV from v2 per-page stubs."
+    )
+    parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--drawing-type", required=True)
+    parser.add_argument("--extraction-target", required=True)
     parser.add_argument("--pdf-stem", required=True)
     parser.add_argument("--start-page", required=True, type=int)
     parser.add_argument("--end-page", required=True, type=int)
+    parser.add_argument("--output-csv", required=True)
     args = parser.parse_args()
-
-    source_dir = Path(args.source_dir).resolve()
-    output_csv = Path(args.output_csv).resolve()
 
     if args.start_page > args.end_page:
         print("ERROR: --start-page must be <= --end-page", file=sys.stderr)
         return 2
 
+    source_dir = Path(args.source_dir).resolve()
+    if not source_dir.is_dir():
+        print(f"ERROR: source directory not found: {source_dir}", file=sys.stderr)
+        return 2
+
+    output_csv = Path(args.output_csv).resolve()
     output_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    combined_rows: list[list[str]] = []
+    columns: list[str] | None = None
+    combined_rows: list[dict[str, str]] = []
     no_findings_pages: list[int] = []
+    failed_pages: list[int] = []
     missing_pages: list[int] = []
 
     for page_num in range(args.start_page, args.end_page + 1):
-        md_path = source_dir / f"{args.pdf_stem}_page_{page_num:04d}_equipment_stub.md"
-        csv_path = source_dir / f"{args.pdf_stem}_page_{page_num:04d}_equipment_rows.csv"
-
-        if md_path.is_file():
-            page_rows, no_findings = parse_markdown_stub(md_path, page_num)
-        elif csv_path.is_file():
-            page_rows, no_findings = parse_csv_rows(csv_path)
-        else:
+        stub_path = resolve_stub_path(
+            source_dir,
+            args.drawing_type,
+            args.extraction_target,
+            args.pdf_stem,
+            page_num,
+        )
+        if not stub_path.is_file():
             missing_pages.append(page_num)
             continue
 
-        if no_findings:
+        parsed = parse_stub(stub_path, page_num)
+        stub_status = str(parsed.get("status", ""))
+        if stub_status in ("FAILED", "FAILED_INPUTS"):
+            failed_pages.append(page_num)
+            continue
+
+        if columns is None:
+            columns = build_column_order(
+                args.extraction_target,
+                parsed.get("requested_known_fields"),
+                parsed.get("requested_extra_fields"),
+            )
+
+        page_columns = list(parsed.get("columns") or BASE_COLUMNS)
+        page_rows = list(parsed.get("rows") or [])
+
+        kept_rows = 0
+        for row in page_rows:
+            record: dict[str, str] = {}
+            for col_idx, col in enumerate(page_columns):
+                value = row[col_idx] if col_idx < len(row) else ""
+                record[col] = value
+            if _row_is_no_findings_placeholder(record):
+                continue
+            record["source_page"] = str(page_num)
+            combined_rows.append(record)
+            kept_rows += 1
+
+        if kept_rows == 0:
             no_findings_pages.append(page_num)
-        combined_rows.extend(page_rows)
+
+    if columns is None:
+        # No stubs found at all — still write a header-only CSV derived from target.
+        columns = build_column_order(args.extraction_target, [], [])
+
+    fieldnames = list(columns) + ["source_page"]
 
     with output_csv.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["equipment_number", "equipment_name", "system_name", "drawing", "source_page"])
-        writer.writerows(combined_rows)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for record in combined_rows:
+            # DictWriter will emit empty strings for missing keys when restval set.
+            writer.writerow({key: record.get(key, "") for key in fieldnames})
 
     print(f"rows={len(combined_rows)}")
     print(f"no_findings_pages={','.join(str(p) for p in no_findings_pages) or 'none'}")
+    print(f"failed_pages={','.join(str(p) for p in failed_pages) or 'none'}")
     print(f"missing_pages={','.join(str(p) for p in missing_pages) or 'none'}")
     print(f"output={output_csv}")
     return 0

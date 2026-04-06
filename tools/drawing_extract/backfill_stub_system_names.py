@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 backfill_stub_system_names.py
-Insert or update `- System name:` metadata in page-level drawing extraction stubs
-and normalize findings tables to include the `system_name` column.
+Update the ``system_name`` metadata field in v2 target-aware equipment stubs
+and propagate the value to the ``system_name`` cell of every finding row so
+every row's system_name matches the title-block system_name.
 
-Usage:
-    python3 backfill_stub_system_names.py <source_dir> <system_names_csv> --pdf-stem STEM --start-page 7 --end-page 61
+Reads/writes v2 target-aware stubs at
+``{source_dir}/{drawing_type}/{extraction_target}/{pdf_stem}_page_{NNNN}_stub.md``
+via the frozen W1 API (``parse_stub`` / ``render_stub`` / ``resolve_stub_path``).
+
+Uses a full parse -> mutate -> render round-trip; no text-level editing.
 """
 
 from __future__ import annotations
@@ -14,6 +18,17 @@ import argparse
 import csv
 import sys
 from pathlib import Path
+
+from normalize_equipment_stub_layout import (
+    BASE_COLUMNS,
+    parse_stub,
+    render_stub,
+    resolve_stub_path,
+)
+
+
+# system_name is the 3rd base column (index 2)
+_SYSTEM_NAME_COL_IDX = BASE_COLUMNS.index("system_name")
 
 
 def load_system_names(path: Path) -> dict[int, str]:
@@ -32,81 +47,17 @@ def load_system_names(path: Path) -> dict[int, str]:
         return result
 
 
-def upsert_system_name(stub_text: str, system_name: str) -> str:
-    lines = stub_text.splitlines()
-    system_line = f"- System name: `{system_name}`"
-
-    for index, line in enumerate(lines):
-        if line.startswith("- System name: "):
-            lines[index] = system_line
-            return "\n".join(lines) + "\n"
-
-    for index, line in enumerate(lines):
-        if line.startswith("- DWG NO.: "):
-            lines.insert(index + 1, system_line)
-            return "\n".join(lines) + "\n"
-
-    for index, line in enumerate(lines):
-        if line.startswith("- Source page: "):
-            lines.insert(index + 1, system_line)
-            return "\n".join(lines) + "\n"
-
-    lines.append(system_line)
-    return "\n".join(lines) + "\n"
-
-
-def normalize_table(stub_text: str, system_name: str) -> str:
-    lines = stub_text.splitlines()
-    normalized: list[str] = []
-    index = 0
-
-    while index < len(lines):
-        line = lines[index]
-
-        if line.startswith("| equipment_number | equipment_name | system_name | drawing |"):
-            normalized.append(line)
-            index += 1
-            continue
-
-        if line.startswith("| equipment_number | equipment_name | drawing |"):
-            normalized.append("| equipment_number | equipment_name | system_name | drawing |")
-            index += 1
-            continue
-
-        if line.startswith("| --- | --- | --- | --- |"):
-            normalized.append(line)
-            index += 1
-            continue
-
-        if line.startswith("| --- | --- | --- |"):
-            normalized.append("| --- | --- | --- | --- |")
-            index += 1
-            continue
-
-        if line.startswith("| "):
-            parts = [part.strip() for part in line.strip("|").split("|")]
-            if len(parts) == 4:
-                normalized.append(line)
-                index += 1
-                continue
-            if len(parts) == 3:
-                normalized.append(f"| {parts[0]} | {parts[1]} | {system_name} | {parts[2]} |")
-                index += 1
-                continue
-
-        normalized.append(line)
-        index += 1
-
-    return "\n".join(normalized) + "\n"
-
-
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Backfill system-name metadata into page-level equipment stubs.")
-    parser.add_argument("source_dir")
-    parser.add_argument("system_names_csv")
+    parser = argparse.ArgumentParser(
+        description="Backfill system-name metadata into v2 equipment stubs."
+    )
+    parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--drawing-type", required=True)
+    parser.add_argument("--extraction-target", required=True)
     parser.add_argument("--pdf-stem", required=True)
     parser.add_argument("--start-page", required=True, type=int)
     parser.add_argument("--end-page", required=True, type=int)
+    parser.add_argument("--system-names-csv", required=True)
     args = parser.parse_args()
 
     if args.start_page > args.end_page:
@@ -134,7 +85,13 @@ def main() -> int:
     blank_system_pages: list[int] = []
 
     for page_num in range(args.start_page, args.end_page + 1):
-        stub_path = source_dir / f"{args.pdf_stem}_page_{page_num:04d}_equipment_stub.md"
+        stub_path = resolve_stub_path(
+            source_dir,
+            args.drawing_type,
+            args.extraction_target,
+            args.pdf_stem,
+            page_num,
+        )
         if not stub_path.is_file():
             missing_pages.append(page_num)
             continue
@@ -144,11 +101,21 @@ def main() -> int:
             blank_system_pages.append(page_num)
             continue
 
+        parsed = parse_stub(stub_path, page_num)
+        parsed["system_name"] = system_name
+        updated_rows: list[list[str]] = []
+        for row in parsed.get("rows", []):
+            padded = list(row)
+            while len(padded) <= _SYSTEM_NAME_COL_IDX:
+                padded.append("")
+            padded[_SYSTEM_NAME_COL_IDX] = system_name
+            updated_rows.append(padded)
+        parsed["rows"] = updated_rows
+
+        rendered = render_stub(page_num, parsed)
         original = stub_path.read_text(encoding="utf-8")
-        revised = upsert_system_name(original, system_name)
-        revised = normalize_table(revised, system_name)
-        if revised != original:
-            stub_path.write_text(revised, encoding="utf-8")
+        if rendered != original:
+            stub_path.write_text(rendered, encoding="utf-8")
             updated += 1
 
     print(f"updated={updated}")
