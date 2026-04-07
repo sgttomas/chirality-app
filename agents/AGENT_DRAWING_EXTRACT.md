@@ -244,6 +244,15 @@ Only the crops for page N are overwritten. Operator then deletes the stub for pa
      - `SOURCE_PDF_NAME`
    - collect `RUN_STATUS`, classify each page into: `SUCCESS`, `NO_FINDINGS`, `FAILED`, `FAILED_INPUTS`
 7. Report batch progress after each batch.
+8. Post-dispatch format validation. After each batch completes, invoke the deterministic validator:
+   ```sh
+   python3 tools/drawing_extract/validate_stub_format.py --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} --start-page {START_PAGE} --end-page {END_PAGE} --pages {BATCH_PAGES}
+   ```
+   For the pages just written in the batch, a `SUCCESS` stub must:
+   - include `finding_count` in its frontmatter, and
+   - parse to exactly `finding_count` meaningful rows.
+
+   Missing `finding_count` on a SUCCESS stub, or a mismatch between `finding_count` and parsed row count (total or partial row loss), is a format failure. The affected page must be re-dispatched. Phase 2.5 and later phases are blocked until all SUCCESS stubs pass validation.
 
 ### Phase 2.5 — Title-block verification `(PFD-repertoire hook, optional)`
 
@@ -262,8 +271,9 @@ Only the crops for page N are overwritten. Operator then deletes the stub for pa
    ```
 2. Use this report as a deterministic skepticism gate.
 3. For basic target, flag pages when any of the following hold: `status=NO_FINDINGS`, `row_count <= 2`, `blank_tag_count > 0`.
-4. For detailed target, additionally review: per-field populated counts, `missing_required_fields`, `identical_value_flags` (copy-across hallucination heuristic — fires when row_count >= 2 and all rows share the same non-blank value).
-5. A QA-flagged page is not automatically wrong, but it MUST be scrutinized against the helper crops before the run is treated as production-ready.
+4. For detailed target, additionally review: per-field populated counts, `missing_required_fields`, `identical_value_flags` (copy-across hallucination heuristic — fires when row_count >= 2 and all rows share the same non-blank value), and `round_trip_row_loss`.
+5. Any non-empty `round_trip_row_loss` is a blocking QA signal before sanitization and must be treated as a format defect, not a benign warning.
+6. A QA-flagged page is not automatically wrong, but it MUST be scrutinized against the helper crops before the run is treated as production-ready.
 
 ### Phase 2.7 — Deterministic stub sanitization `(PFD-repertoire hook)`
 
@@ -273,11 +283,17 @@ Only the crops for page N are overwritten. Operator then deletes the stub for pa
    ```
 2. This sanitization step MAY:
    - drop blank-tag rows
-   - drop obvious instrument/control/note rows
+   - drop obvious instrument/control/note rows (deny-list based on ISA instrument prefixes and known note patterns)
    - trim `equipment_name` values to the primary equipment label
    - convert pages to `NO_FINDINGS` when no valid tagged header rows remain
 3. Sanitization decisions apply to base columns only; for detailed target, detail columns pass through unchanged.
 4. Sanitization is deterministic QA. It MUST NOT invent new equipment rows.
+5. **Row-count guard:** The sanitizer refuses to overwrite a `SUCCESS` stub when:
+   - `finding_count` is missing from frontmatter, or
+   - the parsed meaningful row count does not equal `finding_count`.
+   Guard violations are reported in stdout (`guard_violations=<pages>`) and logged in the audit CSV. The original stub is preserved unchanged.
+6. **Backup bundle:** Every stub overwritten by the sanitizer is recorded in a run-scoped JSONL file (`stub_sanitize_backup_{START}_{END}.jsonl` in the report directory). Each record contains the page number, original status, SHA-256 hash, and full original content. Repeated runs for the same range append a numeric suffix to avoid overwriting prior backups.
+7. **Audit CSV:** When `--report-csv` is provided, the sanitizer also writes a `{report_stem}_audit.csv` with per-page columns: `page, original_status, finding_count, pre_parse_row_count, meaningful_row_count, sanitized_row_count, guard_triggered`.
 
 ### Phase 2.7b — Schema-consistency validation `(core, detailed target only)`
 
@@ -482,6 +498,8 @@ When `MERGE_EXISTING_DATA=true`, merge outputs include all 4 files (result, conf
   titleblock_verify_{START:04d}_{END:04d}.csv          (optional, Phase 2.5)
   stub_counts_raw_{START:04d}_{END:04d}.csv            (Phase 2.6)
   stub_sanitize_{START:04d}_{END:04d}.csv              (Phase 2.7)
+  stub_sanitize_{START:04d}_{END:04d}_audit.csv        (Phase 2.7, per-page audit)
+  stub_sanitize_backup_{START:04d}_{END:04d}.jsonl     (Phase 2.7, rollback bundle)
   multiblock_recovery_{START:04d}_{END:04d}.csv        (optional, Phase 2.8)
   stub_counts_final_{START:04d}_{END:04d}.csv          (Phase 2.9)
 
@@ -567,5 +585,38 @@ Stubbed types (`P_AND_ID`, `ISOMETRIC`, `GA`) reject at Phase 0 pre-flight with 
 Merging two PFD equipment datasets on `equipment_number` is semantically a PFD-equipment repertoire operation. Other repertoires have different identity keys (P&ID valves keyed by valve_number, isometric fittings keyed by spool_id) with different conflict semantics. A generic `merge-with-configurable-keys` abstraction would over-claim generality in v2; the tool name (`merge_equipment_detailed.py`), argument list, and scope classification all reflect repertoire scope.
 
 This keeps `PDF2MD` focused on transcription while giving drawing workflows a dedicated orchestration contract whose architecture can grow to new drawing types without core rewrites.
+
+### Why VLM for page extraction and deterministic tools for everything else?
+
+The equipment header region on a PFD is not a table — it is a spatially arranged collection of underlined tag/name clusters with subordinate descriptor lines, arranged in staggered rows across the page width, with no consistent grid alignment. Extracting structured data from this region requires solving several spatial-semantic judgment problems simultaneously:
+
+- Which text fragments are equipment tags vs. instrument tags vs. notes vs. setpoints
+- Which descriptor lines belong to which parent equipment block (spatial association)
+- Where one equipment block ends and the next begins (no explicit delimiters)
+- Whether a value like "3 x 33%" is a capacity rating, a sparing configuration, or part of a name
+
+These judgments vary by drawing style, equipment type, and layout density. Deterministic text extraction tools (pdftotext, OCR + heuristics) can pull raw text from the page, but associating that text with the correct parent equipment block and classifying it correctly requires visual-spatial reasoning that heuristic approaches cannot sustain across drawing sets without continuous rule maintenance. The core difficulty is semantic association, not glyph recognition.
+
+The VLM handles these judgments implicitly — it sees the visual layout and makes the association decisions a human would make. The deterministic tools in the pipeline then operate on the VLM's structured output, which is a clean surface for rule-based processing:
+
+- **Title-block text extraction** (`extract_pdf_titleblock_text.py`) uses pdftotext as an optional cross-check because the title block is more regular and text-centric than the equipment header — deterministic extraction is useful there as a validation aid, though the VLM page worker remains the authoritative source for `DWG NO.` and `system_name`.
+- **Sanitization** applies deny-list filters (ISA instrument prefixes, note-like name patterns) to the VLM's output — these are closed-vocabulary checks that do not require visual reasoning.
+- **Assembly, validation, duplicate flagging, and merge** are pure data operations on structured rows — no image input needed.
+
+The boundary is: VLM for visual-spatial interpretation of drawing content; deterministic tools for everything that can be expressed as rules on structured data.
+
+### Why crop-first with full-page context as fallback?
+
+Crops serve three purposes:
+
+1. **Resolution preservation.** Full-page inputs dilute effective resolution and attention across the entire drawing — process flow body, notes columns, legend — when the extraction only needs the top header band. A crop of just the header region preserves legibility of the extraction region by concentrating the available resolution budget on the content that matters. On dense compressor pages with 12–22 equipment blocks, this is the difference between legible and ambiguous tag/descriptor text, particularly for the smaller detail lines (capacity, power, equipment description) below each tag.
+
+2. **Region discipline enforcement.** The extraction contract says "extract only from the top-of-sheet separated equipment header region" and "ignore the right-side notes area." Giving the VLM a full page and relying on instructions to enforce region boundaries is unreliable — it will sometimes read equipment tags from the process flow body or pull descriptor text from a notes column. The crop physically removes those regions, making the boundary architectural rather than instructional.
+
+3. **Multiblock completeness via overlapping slices.** The header slices (4 overlapping segments across the page width) address a specific failure mode: on wide headers with many equipment blocks, the VLM reads left-to-right and can stop extracting before reaching the right side. The slices force independent inspection of each quarter of the header. Items at the far right or in lower rows (e.g., packing vent/drain separation pots, air cooler frames) are prominent in their slice but easy to miss in the full header image.
+
+The full-page image is not excluded — the skill contract permits it as secondary context for resolving spatial ambiguity that a crop alone cannot answer (e.g., which parent item a descriptor visible in a crop belongs to). But detail discovery must come from the crops, not from the full page.
+
+The tradeoff is that crops can miss items below the crop line — which is why `header_height_ratio` is a tunable parameter with a per-page override workflow (Phase 1.5). The default 0.18 ratio captures most headers; dense pages may require 0.22 or higher.
 
 [[END:RATIONALE]]

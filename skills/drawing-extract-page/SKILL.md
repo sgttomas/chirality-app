@@ -137,6 +137,7 @@ No other files are written. `OUTPUT_PATH`'s parent directory must already exist;
 - No deterministic tools. This skill is VLM-reasoning-only (the agent reads image files directly via the Read tool).
 - The `allowed-tools` frontmatter field is intentionally omitted.
 - The orchestrator (parent `DRAWING_EXTRACT` agent) is responsible for any deterministic PDF-level cross-checking, header/title-block crop preparation, schema-consistency validation, and stub assembly. This skill does not invoke PDF-level tools itself.
+- See `AGENT_DRAWING_EXTRACT.md` § RATIONALE ("Why VLM for page extraction" and "Why crop-first with full-page context as fallback") for the design rationale behind the VLM/deterministic split and the crop-first workflow.
 
 Disallowed behavior:
 - No deterministic tool invocation; no shell commands.
@@ -159,6 +160,7 @@ source_page: <integer>
 drawing: <DWG NO.>
 system_name: <title-block system name>
 status: SUCCESS | NO_FINDINGS | FAILED_INPUTS | FAILED
+finding_count: <integer>
 ---
 ```
 
@@ -178,8 +180,11 @@ required_fields: [<required subset>]
 drawing: <DWG NO.>
 system_name: <title-block system name>
 status: SUCCESS | NO_FINDINGS | FAILED_INPUTS | FAILED
+finding_count: <integer>
 ---
 ```
+
+`finding_count` is the number of meaningful equipment rows in the findings table (rows with a non-empty `equipment_number`, `equipment_name`, or `drawing`). For `NO_FINDINGS` stubs, `finding_count` is `0`. The post-dispatch validator and sanitizer both require `finding_count` on SUCCESS stubs and reject the stub if the parsed row count does not match.
 
 Empty lists are represented as `[]`. All required keys must be present even when values are empty.
 
@@ -320,13 +325,93 @@ If a page's descriptor text is not captured by the current helper crops (crop ge
 
 Write a single `markdown_stub` artifact at `OUTPUT_PATH`:
 
-1. **YAML frontmatter** per the self-describing schema above (fields depend on extraction_target).
+1. **YAML frontmatter** per the self-describing schema above (fields depend on extraction_target). Must include `finding_count` set to the number of meaningful equipment rows written to the table.
 2. **H1 page title** (e.g., `# Page 7 — PFD top_equipment_header_detailed`).
 3. **Findings table** with target-appropriate columns:
    - basic: `equipment_number | equipment_name | system_name | drawing` (4 columns)
    - detailed: `equipment_number | equipment_name | system_name | drawing | <requested_known_fields in canonical order> | <requested_extra_fields.name in request order>` (variable columns)
-4. **NO_FINDINGS narrative** (when applicable): an empty-row table plus a note stating that no separated top-of-sheet equipment header was identified.
+4. **NO_FINDINGS narrative** (when applicable): an empty-row table plus a note stating that no separated top-of-sheet equipment header was identified. `finding_count` must be `0`.
 5. **Extraction status line** at bottom (e.g., `- Extraction status: SUCCESS`).
+
+### Canonical output template
+
+Use the exact byte-level shapes below. These are the canonical `render_stub()` outputs for the detailed target.
+
+SUCCESS:
+
+```text
+---
+drawing_type: PFD
+extraction_target: top_equipment_header_detailed
+source_pdf: <SOURCE_PDF_NAME>
+source_page: 7
+requested_known_fields:
+  - equipment_type
+  - equipment_description
+  - capacity_text
+  - power_text
+requested_extra_fields: []
+required_fields:
+  - equipment_type
+  - equipment_description
+  - capacity_text
+  - power_text
+drawing: <DWG_NO>
+system_name: <SYSTEM_NAME>
+status: SUCCESS
+finding_count: 1
+---
+
+# Page 7 — PFD top_equipment_header_detailed
+
+| equipment_number | equipment_name | system_name | drawing | equipment_type | equipment_description | capacity_text | power_text |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| <TAG> | <NAME> | <SYSTEM_NAME> | <DWG_NO> | <type or empty> | <desc or empty> | <cap or empty> | <power or empty> |
+
+-
+- Extraction status: `SUCCESS`
+```
+
+NO_FINDINGS:
+
+```text
+---
+drawing_type: PFD
+extraction_target: top_equipment_header_detailed
+source_pdf: <SOURCE_PDF_NAME>
+source_page: 7
+requested_known_fields:
+  - equipment_type
+  - equipment_description
+  - capacity_text
+  - power_text
+requested_extra_fields: []
+required_fields:
+  - equipment_type
+  - equipment_description
+  - capacity_text
+  - power_text
+drawing: <DWG_NO>
+system_name: <SYSTEM_NAME>
+status: NO_FINDINGS
+finding_count: 0
+---
+
+# Page 7 — PFD top_equipment_header_detailed
+
+| equipment_number | equipment_name | system_name | drawing | equipment_type | equipment_description | capacity_text | power_text |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |  |  |
+
+- No separated top-of-sheet equipment header was identified.
+- Extraction status: `NO_FINDINGS`
+```
+
+The format-sensitive elements are fixed:
+- YAML lists must use block style in the places shown above.
+- The table separator must be the spaced `| --- | --- | ... |` form.
+- `status` must be exactly one of `SUCCESS`, `NO_FINDINGS`, `FAILED`, or `FAILED_INPUTS`.
+- `finding_count` must equal the number of meaningful equipment rows in the table. The post-dispatch validator and sanitizer both enforce this.
 
 ### Step 6 — Return status
 
@@ -375,6 +460,7 @@ Also return: `PAGE_NUM`, `FINDING_COUNT`, `DWG_NO` (if available), `SYSTEM_NAME`
 - Detailed target: requested-but-not-visible detail fields are blank (not "NO_VALUE", not null).
 - `RUN_STATUS` is one of: `SUCCESS`, `NO_FINDINGS`, `FAILED`, `FAILED_INPUTS`.
 - `FINDING_COUNT` matches the number of populated rows in the output artifact.
+- Frontmatter `finding_count` is present and equals the number of meaningful rows in the findings table. The post-dispatch validator and sanitizer both enforce this; a mismatch blocks downstream processing.
 
 ## Relationship to DRAWING_EXTRACT
 

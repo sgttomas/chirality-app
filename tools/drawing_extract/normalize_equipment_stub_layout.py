@@ -207,6 +207,11 @@ def parse_stub(path: Path, page_num: int) -> dict:
         extraction_mode: str  (legacy alias for back-compat; empty for native v2)
     """
     text = Path(path).read_text(encoding="utf-8")
+    return parse_stub_text(text, page_num)
+
+
+def parse_stub_text(text: str, page_num: int) -> dict:
+    """Parse either a v2 or legacy stub from text and return a canonical dict."""
     if _is_v2_stub(text):
         return _parse_stub_v2(text, page_num)
     return _parse_stub_legacy(text, page_num)
@@ -219,6 +224,15 @@ def _is_v2_stub(text: str) -> bool:
             continue
         return stripped == "---"
     return False
+
+
+def _is_markdown_separator(line: str) -> bool:
+    """Return True if a line is a markdown table separator row."""
+    stripped = line.strip()
+    if not stripped.startswith("|"):
+        return False
+    content = stripped.replace("|", "").replace("-", "").replace(" ", "").replace(":", "")
+    return content == "" and "---" in stripped
 
 
 def _extract_backticked(line: str) -> str:
@@ -266,7 +280,7 @@ def _parse_stub_legacy(text: str, page_num: int) -> dict:
         if line.startswith("| equipment_number | equipment_name | drawing |"):
             in_table = True
             continue
-        if in_table and line.startswith("| ---"):
+        if in_table and _is_markdown_separator(line):
             continue
         if in_table and line.startswith("| "):
             parts = [part.strip() for part in line.strip("|").split("|")]
@@ -336,6 +350,8 @@ def _parse_stub_v2(text: str, page_num: int) -> dict:
     drawing = str(frontmatter.get("drawing", "") or "")
     system_name = str(frontmatter.get("system_name", "") or "")
     status = str(frontmatter.get("status", "SUCCESS") or "SUCCESS")
+    finding_count_raw = frontmatter.get("finding_count")
+    finding_count: int | None = int(finding_count_raw) if finding_count_raw is not None else None
 
     requested_known_fields = [str(x) for x in (frontmatter.get("requested_known_fields") or [])]
     requested_extra_fields_raw = frontmatter.get("requested_extra_fields") or []
@@ -363,7 +379,7 @@ def _parse_stub_v2(text: str, page_num: int) -> dict:
         if line.strip() == expected_header.strip():
             in_table = True
             continue
-        if in_table and line.startswith("| ---"):
+        if in_table and _is_markdown_separator(line):
             continue
         if in_table and line.startswith("| "):
             parts = [p.strip() for p in line.strip("|").split("|")]
@@ -388,6 +404,7 @@ def _parse_stub_v2(text: str, page_num: int) -> dict:
         "drawing": drawing,
         "system_name": system_name,
         "status": status,
+        "finding_count": finding_count,
         "note": note,
         "columns": columns,
         "rows": rows,
@@ -596,6 +613,15 @@ def _render_stub_v2(page_num: int, data: dict) -> str:
     frontmatter.append(f"drawing: {_emit_yaml_scalar(drawing)}")
     frontmatter.append(f"system_name: {_emit_yaml_scalar(system_name)}")
     frontmatter.append(f"status: {status}")
+    # finding_count: page worker's declared row count. Used by post-dispatch
+    # validation to detect partial parse loss. Computed from meaningful rows
+    # (non-empty equipment_number or equipment_name or drawing).
+    rows_source_preview = list(data.get("rows") or [])
+    meaningful_count = sum(
+        1 for row in rows_source_preview
+        if len(row) >= 4 and (row[0] or row[1] or row[3])
+    )
+    frontmatter.append(f"finding_count: {meaningful_count}")
     frontmatter.append("---")
 
     title = f"# Page {page_num} \u2014 {drawing_type} {extraction_target}"

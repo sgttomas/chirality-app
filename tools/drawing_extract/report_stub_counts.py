@@ -32,6 +32,8 @@ from pathlib import Path
 from normalize_equipment_stub_layout import (
     BASE_COLUMNS,
     parse_stub,
+    parse_stub_text,
+    render_stub,
     resolve_stub_path,
 )
 
@@ -113,7 +115,16 @@ def main() -> int:
             break
 
     # Build CSV fieldnames
-    base_fields = ["page", "status", "row_count", "blank_tag_count", "drawing", "system_name", "note"]
+    base_fields = [
+        "page",
+        "status",
+        "row_count",
+        "blank_tag_count",
+        "drawing",
+        "system_name",
+        "note",
+        "round_trip_row_loss",
+    ]
     detail_field_list: list[str] = []
     for field in detail_columns:
         detail_field_list.append(f"{field}_populated_count")
@@ -127,6 +138,7 @@ def main() -> int:
     missing_pages: list[int] = []
     required_field_warnings: list[str] = []  # "page:field" entries
     identical_value_flag_entries: list[str] = []  # "page:field" entries
+    round_trip_row_loss_entries: list[str] = []  # "page:before->after" entries
 
     base_len = len(BASE_COLUMNS)
 
@@ -141,6 +153,7 @@ def main() -> int:
                 "drawing": "",
                 "system_name": "",
                 "note": "stub_missing",
+                "round_trip_row_loss": "",
             }
             for field in detail_columns:
                 entry[f"{field}_populated_count"] = "0"
@@ -167,7 +180,18 @@ def main() -> int:
             "drawing": str(parsed["drawing"]),
             "system_name": str(parsed["system_name"]),
             "note": str(parsed["note"]),
+            "round_trip_row_loss": "",
         }
+
+        rendered = render_stub(page_num, parsed)
+        reparsed = parse_stub_text(rendered, page_num)
+        parsed_row_count = len(parsed["rows"])
+        reparsed_row_count = len(reparsed["rows"])
+        if reparsed_row_count != parsed_row_count:
+            entry["round_trip_row_loss"] = f"{parsed_row_count} -> {reparsed_row_count}"
+            round_trip_row_loss_entries.append(
+                f"{page_num}:{parsed_row_count}->{reparsed_row_count}"
+            )
 
         # Per-field counts (detailed only)
         page_missing_required: list[str] = []
@@ -213,6 +237,7 @@ def main() -> int:
     if is_detailed:
         print(f"required_field_warnings={','.join(required_field_warnings) or 'none'}")
         print(f"identical_value_flags={','.join(identical_value_flag_entries) or 'none'}")
+    print(f"round_trip_row_loss={','.join(round_trip_row_loss_entries) or 'none'}")
     return 0
 
 

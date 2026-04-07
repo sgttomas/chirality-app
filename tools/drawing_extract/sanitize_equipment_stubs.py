@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -39,25 +41,30 @@ INSTRUMENT_PREFIXES = {
     "PSV", "PSH", "PSL", "PT", "PV", "SDV", "TE", "TI", "TIC", "TSH", "XV",
 }
 
-EQUIPMENT_PREFIX_STOP_WORDS = {
+# Name-trimming hints: used by clean_name_for_tag() to truncate equipment names
+# at the first recognized class word (e.g., "INLET 1ST STAGE SUCTION SCRUBBER
+# c/w CYCLONIC ELEMENT" → "INLET 1ST STAGE SUCTION SCRUBBER"). This is a
+# cosmetic trim, not a validity filter — items whose names don't contain any of
+# these words are kept as-is, not dropped.
+EQUIPMENT_NAME_TRIM_WORDS = {
     "P": ["PUMP", "PUMPS"],
-    "AC": ["INTERCOOLER", "AFTERCOOLER", "COOLER"],
+    "AC": ["INTERCOOLER", "AFTERCOOLER", "COOLER", "CONDENSER", "CONDENSERS"],
     "ACF": ["FRAME", "COOLER"],
     "K": ["COMPRESSOR"],
     "KD": ["DRIVER"],
     "KM": ["MOTOR", "DRIVER"],
     "C": ["CYLINDER"],
     "TK": ["POT", "TANK", "TANKS", "BULLETS", "BULLET"],
-    "V": ["SCRUBBER", "SEPARATOR", "DRUM", "VESSEL", "REACTOR", "BULLETS", "BULLET"],
-    "E": ["PREHEATER", "EXCHANGER", "EXCH", "REBOILER", "HEATER", "CONDENSER", "COOLER"],
+    "V": ["SCRUBBER", "SEPARATOR", "DRUM", "VESSEL", "REACTOR", "BULLETS", "BULLET", "POT", "TANK", "ACCUMULATOR", "DRYER", "DRIER", "RECEIVER", "STORAGE", "REMOVAL"],
+    "E": ["PREHEATER", "EXCHANGER", "EXCH", "REBOILER", "HEATER", "CONDENSER", "COOLER", "BAHX"],
     "ST": ["STRAINER"],
-    "F": ["COALESCER", "FILTER", "FILTERS"],
+    "F": ["COALESCER", "FILTER", "DRYER"],
     "H": ["HEATER"],
-    "T": ["COLUMN", "TOWER", "CONTACTOR", "STABILIZER"],
+    "T": ["COLUMN", "TOWER", "CONTACTOR", "STABILIZER", "ABSORBER", "ABSORBERS", "DEHYDRATOR", "REGENERATOR", "DEETHANIZER", "DEBUTANIZER"],
     "L": ["COLUMN", "STILL", "DEHYDRATOR"],
     "FC": ["CONTACTOR"],
     "TC": ["COALESCER", "FILTER"],
-    "MX": ["MIXER"],
+    "MX": ["MIXER", "MIXERS"],
     "B": ["BLOWER"],
     "AE": ["ANALYZER"],
     "ASP": ["PANEL", "ANALYZER"],
@@ -106,7 +113,7 @@ def clean_name_for_tag(equipment_number: str, equipment_name: str) -> str:
         return ""
 
     prefix = tag_prefix(equipment_number)
-    stop_words = EQUIPMENT_PREFIX_STOP_WORDS.get(prefix, [])
+    stop_words = EQUIPMENT_NAME_TRIM_WORDS.get(prefix, [])
     if stop_words:
         tokens = name.split()
         for index, token in enumerate(tokens):
@@ -114,12 +121,6 @@ def clean_name_for_tag(equipment_number: str, equipment_name: str) -> str:
             if token in stop_words or normalized in [word.rstrip("S") for word in stop_words]:
                 return " ".join(tokens[: index + 1]).strip()
     return name
-
-
-def has_expected_class(prefix: str, name: str) -> bool:
-    stop_words = EQUIPMENT_PREFIX_STOP_WORDS.get(prefix, [])
-    upper_name = name.upper()
-    return any(f" {word} " in f" {upper_name} " for word in stop_words)
 
 
 def is_note_like_name(name: str) -> bool:
@@ -169,17 +170,6 @@ def sanitize_rows(rows: list[list[str]]) -> tuple[list[list[str]], list[dict[str
             continue
 
         cleaned_name = clean_name_for_tag(original_tag, original_name)
-        prefix = tag_prefix(original_tag)
-        if prefix in EQUIPMENT_PREFIX_STOP_WORDS and not has_expected_class(prefix, cleaned_name):
-            actions.append(
-                {
-                    "action": "dropped",
-                    "equipment_number": original_tag,
-                    "equipment_name": original_name,
-                    "reason": "name_missing_expected_equipment_class",
-                }
-            )
-            continue
         if is_note_like_name(cleaned_name):
             actions.append(
                 {
@@ -229,9 +219,37 @@ def main() -> int:
     report_csv = Path(args.report_csv).resolve() if args.report_csv else None
 
     report_rows: list[dict[str, str]] = []
+    audit_rows: list[dict[str, str]] = []
     updated = 0
     pages_no_findings: list[int] = []
+    guard_violations: list[int] = []
     missing_pages: list[int] = []
+
+    # Run-scoped rollback bundle: one JSONL file per sanitizer run, containing
+    # the original content of every stub that is actually overwritten. Allows
+    # deterministic restore without per-page backup file proliferation.
+    backup_dir = report_csv.parent if report_csv else source_dir
+    backup_base = f"stub_sanitize_backup_{args.start_page:04d}_{args.end_page:04d}"
+    backup_path = backup_dir / f"{backup_base}.jsonl"
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    # If a backup for this range already exists, add a numeric suffix to avoid
+    # silently truncating the prior rollback bundle.
+    suffix = 1
+    while backup_path.exists():
+        backup_path = backup_dir / f"{backup_base}_{suffix}.jsonl"
+        suffix += 1
+    # Verify writable before touching any stubs
+    try:
+        with backup_path.open("a", encoding="utf-8") as _test_handle:
+            pass
+        # Remove the empty test file; real backup is lazy-opened on first overwrite
+        if backup_path.stat().st_size == 0:
+            backup_path.unlink()
+    except OSError as exc:
+        print(f"ERROR: cannot write backup at {backup_path}: {exc}", file=sys.stderr)
+        return 2
+
+    backup_handle = None
 
     for page_num in range(args.start_page, args.end_page + 1):
         stub_path = resolve_stub_path(
@@ -247,13 +265,47 @@ def main() -> int:
 
         parsed = parse_stub(stub_path, page_num)
         original_status = str(parsed.get("status", ""))
-        if original_status in ("FAILED", "FAILED_INPUTS"):
-            # Preserve failure status — sanitization does not apply to failed pages.
+        pre_parse_row_count = len(parsed["rows"])
+        finding_count = parsed.get("finding_count")
+        if original_status in ("FAILED", "FAILED_INPUTS", "NO_FINDINGS"):
+            # Preserve failure and existing no-findings statuses unchanged.
             continue
         meaningful_rows = [
             row for row in parsed["rows"]
             if (len(row) >= 4 and (row[0] or row[1] or row[3]))
         ]
+        meaningful_row_count = len(meaningful_rows)
+
+        # Row-count guard: SUCCESS stubs must carry finding_count, and the
+        # parsed meaningful row count must match it. Missing finding_count on
+        # a SUCCESS stub is treated as untrusted — refuse to overwrite.
+        if original_status == "SUCCESS" and (
+            finding_count is None or meaningful_row_count != finding_count
+        ):
+            guard_reason = (
+                "missing_finding_count" if finding_count is None
+                else "row_count_mismatch"
+            )
+            guard_violations.append(page_num)
+            audit_rows.append(
+                {
+                    "page": str(page_num),
+                    "original_status": original_status,
+                    "finding_count": str(finding_count) if finding_count is not None else "",
+                    "pre_parse_row_count": str(pre_parse_row_count),
+                    "meaningful_row_count": str(meaningful_row_count),
+                    "sanitized_row_count": "",
+                    "guard_triggered": guard_reason,
+                }
+            )
+            print(
+                f"WARNING: page {page_num} finding_count={finding_count} "
+                f"meaningful_rows={meaningful_row_count} ({guard_reason}). "
+                "Stub NOT overwritten.",
+                file=sys.stderr,
+            )
+            continue
+
         sanitized_rows, actions = sanitize_rows(meaningful_rows)
 
         for action in actions:
@@ -266,6 +318,21 @@ def main() -> int:
                     "detail": action["reason"],
                 }
             )
+
+        sanitized_row_count = len(sanitized_rows)
+
+        # Per-page audit record for the report CSV
+        audit_rows.append(
+            {
+                "page": str(page_num),
+                "original_status": original_status,
+                "finding_count": str(finding_count) if finding_count is not None else "",
+                "pre_parse_row_count": str(pre_parse_row_count),
+                "meaningful_row_count": str(meaningful_row_count),
+                "sanitized_row_count": str(sanitized_row_count),
+                "guard_triggered": "",
+            }
+        )
 
         columns = list(parsed.get("columns") or list(BASE_COLUMNS))
         if sanitized_rows:
@@ -284,6 +351,18 @@ def main() -> int:
         rendered = render_stub(page_num, parsed)
         original = stub_path.read_text(encoding="utf-8")
         if rendered != original:
+            # Backup original before overwriting
+            if backup_handle is None:
+                backup_handle = backup_path.open("w", encoding="utf-8")
+            backup_record = {
+                "page": page_num,
+                "stub_path": str(stub_path),
+                "original_status": original_status,
+                "original_sha256": hashlib.sha256(original.encode("utf-8")).hexdigest(),
+                "original_content": original,
+            }
+            backup_handle.write(json.dumps(backup_record) + "\n")
+            backup_handle.flush()
             stub_path.write_text(rendered, encoding="utf-8")
             updated += 1
 
@@ -297,9 +376,31 @@ def main() -> int:
             writer.writeheader()
             writer.writerows(report_rows)
 
+        # Per-page audit CSV: makes row-count anomalies visible without reading stubs
+        audit_csv = report_csv.with_name(report_csv.stem + "_audit.csv")
+        with audit_csv.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=[
+                    "page", "original_status", "finding_count",
+                    "pre_parse_row_count", "meaningful_row_count",
+                    "sanitized_row_count", "guard_triggered",
+                ],
+            )
+            writer.writeheader()
+            writer.writerows(audit_rows)
+
+    if backup_handle is not None:
+        backup_handle.close()
+
     print(f"updated={updated}")
     print(f"qc_no_findings_pages={','.join(str(p) for p in pages_no_findings) or 'none'}")
+    print(f"guard_violations={','.join(str(p) for p in guard_violations) or 'none'}")
     print(f"missing_pages={','.join(str(p) for p in missing_pages) or 'none'}")
+    if backup_handle is not None:
+        print(f"backup={backup_path}")
+    else:
+        print("backup=none")
     if report_csv:
         print(f"report={report_csv}")
     return 0
