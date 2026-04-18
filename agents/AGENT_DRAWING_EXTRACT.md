@@ -232,16 +232,39 @@ Only the crops for page N are overwritten. Operator then deletes the stub for pa
 
    Missing stubs (pages not yet extracted) are silently skipped by the validator and queued for extraction in step 4 below.
 4. Queue pages whose stubs are missing OR whose stubs passed resume validation but will be re-extracted on operator request.
+
+#### Dispatch contract
+
+Page-worker dispatches MUST use the TASK shell with `TaskSkill: drawing-extract-page`. The TASK shell guarantees skill hydration: it loads `SKILL.md`, `BRIEF_SCHEMA.md`, and companion files (`QA_CHECKS.md`, `TOOL_POLICY.md` if present). This ensures the worker has the full extraction contract, canonical output templates, and format requirements without the orchestrator needing to reconstruct them in the dispatch prompt. See `AGENT_TASK.md` § Skill loading.
+
+Each dispatch brief MUST follow the INIT-TASK shape documented in `AGENT_TASK.md` § INIT-TASK brief format, with:
+- `TaskSkill: drawing-extract-page`
+- `RuntimeOverrides` per `BRIEF_SCHEMA.md` § Required fields
+- `AllowedWriteTargets: [OUTPUT_PATH]`
+- `ExpectedOutputs: [OUTPUT_PATH]`
+
+The orchestrator SHOULD include `CustomInstructions` containing the format reminders and completion checklist from `BRIEF_SCHEMA.md` § CustomInstructions as a defense-in-depth measure.
+
+If using the deterministic brief-builder tool:
+```sh
+python3 tools/drawing_extract/build_page_worker_brief.py \
+  --source-dir {SOURCE_DIR} --drawing-type {DRAWING_TYPE} \
+  --extraction-target {EXTRACTION_TARGET} --pdf-stem {PDF_STEM} \
+  --work-dir {WORK_DIR} --page {PAGE_NUM} --total-pages {TOTAL_PAGES} \
+  --source-pdf-name {PDF_BASENAME} \
+  [--requested-known-fields {CSV_LIST}] \
+  [--extra-fields-json '{JSON}'] \
+  [--required-fields {CSV_LIST}]
+```
+The tool emits a valid INIT-TASK brief with `TaskSkill`, `RuntimeOverrides`, recommended `CustomInstructions` (format reminders + checklist), a dispatch appendix with canonical templates generated from `render_stub()`, and `ExpectedOutputs`.
+
+Only if a non-TASK dispatch surface is used (e.g., a generic agent without TASK shell) should the orchestrator inline the full contract-critical content from `BRIEF_SCHEMA.md` § CustomInstructions and the canonical templates from `SKILL.md` § Canonical output template directly in the dispatch prompt. This is a fallback, not the standard path.
+
 5. Divide queued pages into batches of `BATCH_SIZE`.
 6. For each batch:
-   - spawn TASK+`TaskSkill: drawing-extract-page` dispatches in parallel
-   - pass runtime overrides:
-     - `IMAGE_PATH`, `HEADER_IMAGE_PATH`, `TITLEBLOCK_IMAGE_PATH`, `HEADER_SLICE_PATHS`
-     - `OUTPUT_PATH`
-     - `PAGE_NUM`, `TOTAL_PAGES`
-     - `DRAWING_TYPE`, `EXTRACTION_TARGET`
-     - (detailed target) `REQUESTED_KNOWN_FIELDS`, `EXTRA_FIELDS`, `REQUIRED_FIELDS`
-     - `SOURCE_PDF_NAME`
+   - spawn TASK+`TaskSkill: drawing-extract-page` dispatches in parallel using the INIT-TASK brief shape
+   - pass runtime overrides per `BRIEF_SCHEMA.md` § Required fields
+   - include recommended CustomInstructions per `BRIEF_SCHEMA.md` § CustomInstructions
    - collect `RUN_STATUS`, classify each page into: `SUCCESS`, `NO_FINDINGS`, `FAILED`, `FAILED_INPUTS`
 7. Report batch progress after each batch.
 8. Post-dispatch format validation. After each batch completes, invoke the deterministic validator:
@@ -473,6 +496,25 @@ If `EXTRACTION_MODE=top_equipment_header_with_dwg` was provided, the deprecation
 
 ### S12 — Merge outputs match EXISTING_DATA_PATH schema (when merged)
 When `MERGE_EXISTING_DATA=true`, merge outputs include all 4 files (result, conflicts, unmatched-extracted, unmatched-existing) at target-aware paths.
+
+### Spec-satisfaction matrix
+
+Evidence types: **hard** = deterministic tool exit code or file existence proves the condition; **process** = the phase ran and produced output consistent with the condition, but does not constitute independent proof.
+
+| Spec | Phase / Step | Tool or action | Evidence | Type | Blocking if unsatisfied |
+|------|-------------|----------------|----------|------|------------------------|
+| S1 | Phase 0, steps 2-3 | Pre-flight validation | Reject message; no work-dir created | hard | Run does not start |
+| S2 | Phase 2, step 6 | Dispatch + status collection | Per-page status in batch report | process | Failed pages reported in Phase 4 |
+| S3 | Phase 2, step 6 | TASK+`drawing-extract-page` with `TaskSkill` | Stub files at target-aware paths + `validate_stub_format.py` exit 0 | process | Validator blocks Phase 2.5+ on format failure |
+| S4 | Phase 2, step 6 | `resolve_stub_path()` in all tools | Stubs at `{SOURCE_DIR}/{DRAWING_TYPE}/{EXTRACTION_TARGET}/` | hard | Tools fail on wrong paths |
+| S5 | Phase 2, step 3 | `validate_resume_stub_metadata.py` | Exit 0 + `resume_safety=OK` | hard | Exit 1 = run rejected |
+| S6 | Phase 3, steps 1-3 | Assembly tools | Combined CSV, MD, dup-flags CSV exist at target paths | hard | Orchestrator verifies file existence and row count > 0 |
+| S7 | Phase 4, step 1 | Final report | `no_findings_pages` in assembler output | process | Orchestrator must enumerate NO_FINDINGS pages |
+| S8 | Phase 3, step 1 | `assemble_equipment_csv.py` | Combined CSV contains `drawing`, `system_name`, `source_page` columns | hard | Assembler enforces column schema |
+| S9 | Phase 2.7b | `validate_detailed_schema.py` | Exit 0 + `schema_consistent=true` | hard | Exit 1 = assembly blocked |
+| S10 | Phase 1.5 + 2.6 + 2.7 | Crop prep + stub-count + sanitizer | Crop files exist; report CSVs produced | process | Orchestrator must not skip PFD hook phases |
+| S11 | Phase 0 + Phase 4 | Compatibility shim | Deprecation warning emitted | process | Warning only |
+| S12 | Phase 3.5 | Merge + conflict-flag tools | 4 merge output files at target paths | hard | Merge tool exits non-zero on errors |
 
 [[END:SPEC]]
 

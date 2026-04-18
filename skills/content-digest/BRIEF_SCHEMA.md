@@ -1,66 +1,34 @@
-# content-digest — Brief Schema
+# BRIEF SCHEMA — content-digest
 
-Use this skill with a generic TASK shell (no profile) like this:
+This file defines the INIT-TASK dispatch contract for `TASK + content-digest`.
 
-```md
-PURPOSE: Create content digest for DEL-02.01
-RequestedBy: EVALUATION
+## Purpose
 
-ScopePath: {EXECUTION_ROOT}
-TaskSkill: content-digest
+Use this skill when EVALUATION needs one structured digest for one deliverable folder.
 
-AllowedWriteTargets:
-  - "{EXECUTION_ROOT}/_Evaluation/content-digests/"
+## Scope model
 
-RuntimeOverrides:
-  DELIVERABLE_PATH: /abs/path/to/DEL-02.01_Pipeline-Design-Basis
-  OUTPUT_PATH: "{EXECUTION_ROOT}/_Evaluation/content-digests/PKG-02/DEL-02.01.md"
-```
+- `ScopePath` should normally be the execution root.
+- `AllowedWriteTargets` should be limited to the intended digest output path under `_Evaluation/content-digests/`.
 
-## Required fields
+## Required brief fields
 
-| Field | Value | Notes |
-|---|---|---|
-| `ScopePath` | `{EXECUTION_ROOT}` | Top-level execution root |
-| `TaskSkill` | `content-digest` | Must match skill folder name |
-| `AllowedWriteTargets` | `["{EXECUTION_ROOT}/_Evaluation/content-digests/"]` | Exactly this path prefix |
-| `RuntimeOverrides.DELIVERABLE_PATH` | Absolute path to the deliverable folder | Must contain `_CONTEXT.md` |
-| `RuntimeOverrides.OUTPUT_PATH` | Absolute path to the output digest file | Parent directory must already exist |
+| Field | Type | Meaning | Example |
+|---|---|---|---|
+| `PURPOSE` | string | Why this digest run exists | `Produce a content digest for DEL-014-03.` |
+| `ScopePath` | path | Execution root | `/repo/execution/` |
+| `TaskSkill` | string | Must equal the skill folder/name | `content-digest` |
+| `AllowedWriteTargets` | list[path] | Digest output path | `[/repo/execution/_Evaluation/content-digests/PKG-014/DEL-014-03.md]` |
+| `RuntimeOverrides.DELIVERABLE_PATH` | path | Target deliverable folder | `/repo/execution/PKG-014/DEL-014-03_Compressor-Controls/` |
+| `RuntimeOverrides.OUTPUT_PATH` | path | Digest output file | `/repo/execution/_Evaluation/content-digests/PKG-014/DEL-014-03.md` |
+| `ExpectedOutputs` | list[path] | Expected single digest file | `[/repo/execution/_Evaluation/content-digests/PKG-014/DEL-014-03.md]` |
 
-## Optional fields
+## Optional brief fields
 
-None. This skill has no optional brief fields.
+This skill currently defines no optional runtime overrides.
 
-## TaskProfile
+## Runtime-override guidance
 
-`NONE` — this skill runs in generic TASK shell mode without a profile.
-
-## Read boundary
-
-The skill reads only files within `{DELIVERABLE_PATH}`:
-
-- `_CONTEXT.md` (full)
-- `_DEPENDENCIES.md` (full)
-- `_REFERENCES.md` (full)
-- `Datasheet.md` (first 80 lines)
-- `Specification.md` (first 80 lines)
-- `Guidance.md` (first 80 lines)
-- `Procedure.md` (first 80 lines)
-- `_SEMANTIC.md` (first 40 lines)
-
-It must NOT read files outside the specified deliverable folder.
-
-## Write boundary
-
-The skill writes only:
-
-- `{OUTPUT_PATH}` — exactly one file per run
-
-The parent directory of `OUTPUT_PATH` must already exist. The skill does not create the directory.
-
-## Notes
-
-- `DEL-ID`, `DEL Name`, and `PKG-ID` are derived at runtime from `_CONTEXT.md` or inferred from the folder name when `_CONTEXT.md` is ambiguous.
-- One invocation processes one deliverable folder. EVALUATION dispatches one task per in-scope deliverable, typically batched by package for manageability.
-- The brief does not include `AllowedTools` because this is a reasoning-only, semantic-matching extraction skill with no deterministic tool dependencies.
-- Output files are conventionally written to `{EXECUTION_ROOT}/_Evaluation/content-digests/{PKG-ID}/{DEL-ID}.md` when dispatched by EVALUATION.
+- `DELIVERABLE_PATH` must identify exactly one deliverable folder.
+- `OUTPUT_PATH` must already have an existing parent directory under `_Evaluation/content-digests/`.
+- The run must remain single-deliverable and read-only on production files.

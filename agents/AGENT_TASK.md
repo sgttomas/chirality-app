@@ -164,10 +164,12 @@ If `TaskSkill` is provided:
   3. explicit human brief instructions
 - if it does not exist, return `ERROR: TaskSkill not found`
 - once resolved, use the resolved skill folder for all companion-file lookups
-- if companion files exist, also load them:
+- canonical repo-native skills MUST also contain these companion files:
   - `{resolved skill folder}/BRIEF_SCHEMA.md`
   - `{resolved skill folder}/TOOL_POLICY.md`
   - `{resolved skill folder}/QA_CHECKS.md`
+- if any required companion file is missing, return `ERROR: TaskSkill companion files missing`
+- otherwise load them alongside `SKILL.md`
 
 ### Skill frontmatter resolution (MUST when skill is loaded)
 
