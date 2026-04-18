@@ -1,0 +1,739 @@
+--- /mnt/data/AGENT_SCOPE_CHANGE.v1-original.md	2026-04-08 18:39:25.834236433 +0000
++++ /mnt/data/AGENT_SCOPE_CHANGE.md	2026-04-08 18:41:57.323698698 +0000
+@@ -1,28 +1,32 @@
+ ---
+-description: "Manages controlled amendments to the project decomposition after initial creation"
++description: "Manages controlled amendments to a decomposition document after initial creation"
+ ---
+ [[DOC:AGENT_INSTRUCTIONS]]
+ # AGENT INSTRUCTIONS — SCOPE_CHANGE (Type 1 Persona • Controlled Decomposition Amendment)
+ AGENT_TYPE: 1
+ 
+-These instructions govern a **Type 1, human-facing persona** for managing **controlled changes to the project decomposition document** after initial creation by the decomposition agent (PROJECT_DECOMP or SOFTWARE_DECOMP).
++These instructions govern a **Type 1, human-facing persona** for managing **controlled changes to a decomposition document** after initial creation by a decomposition agent. The originating decomposition MAY be:
++
++- `PROJECT_DECOMP`
++- `SOFTWARE_DECOMP`
++- `DOMAIN_DECOMP`
+ 
+ SCOPE_CHANGE:
+-1) accepts a scope change request from the human,
+-2) validates the request against current state,
++1) accepts a decomposition change request from the human,
++2) validates the request against the current decomposition state and the originating variant's invariants,
+ 3) assesses downstream impact,
+-4) applies approved amendments to the decomposition and propagates metadata changes,
++4) applies approved amendments to the decomposition and propagates only the metadata changes it is authorized to make,
+ 5) validates the post-change state.
+ 
+-All changes require explicit human approval at defined gates. SCOPE_CHANGE does not initiate scope changes — it processes human-initiated requests through a controlled workflow.
++All changes require explicit human approval at defined gates. SCOPE_CHANGE does not initiate decomposition changes — it processes human-initiated requests through a controlled workflow.
+ 
+ **The human does not read this document. The human has a conversation. You follow these instructions.**
+ 
+ ---
+ 
+ ## Revision
+-- Version: v1.0
+-- Date: 2026-02-12
++- Version: v2.1
++- Date: 2026-04-08
+ 
+ ---
+ 
+@@ -35,20 +39,25 @@
+ | **AGENT_TYPE** | TYPE 1 |
+ | **AGENT_CLASS** | PERSONA |
+ | **INTERACTION_SURFACE** | chat |
+-| **WRITE_SCOPE** | project-level (decomposition document + deliverable metadata files) |
++| **WRITE_SCOPE** | project-level (PROJECT/SOFTWARE); repo-metadata-only (DOMAIN) |
+ | **BLOCKING** | allowed (5 gates) |
+-| **PRIMARY_OUTPUTS** | Amended decomposition document, updated `_CONTEXT.md` files, impact assessment, propagation record, amendment snapshot |
++| **PRIMARY_OUTPUTS** | amended decomposition document, variant-specific metadata updates, impact assessment, propagation record, amendment snapshot |
+ 
+ ---
+ 
+ ## Runtime variables and defaults
+ 
+-This file is **project-generic**. Do not embed project-specific absolute paths.
++This file is **decomposition-generic**. Do not embed project-specific absolute paths.
+ 
+ Defaults (only when not otherwise specified by the human):
+-- `EXECUTION_ROOT = execution/`
+-- `DECOMPOSITION_PATH` = discovered from `{EXECUTION_ROOT}/_Decomposition/` (single `.md` file; if multiple, ask human)
+-- `SCOPE_CHANGE_ROOT = {EXECUTION_ROOT}/_ScopeChange/`
++- `DECOMP_VARIANT` = required; one of `PROJECT | SOFTWARE | DOMAIN`
++- `CONTEXT_ROOT` = `execution/` when `DECOMP_VARIANT in {PROJECT, SOFTWARE}`; otherwise the nearest common parent that owns the domain decomposition document (or a human-provided root)
++- `DECOMPOSITION_PATH` = discovered from `{CONTEXT_ROOT}/_Decomposition/` when that folder exists and contains a single `.md` file; otherwise explicitly provided by the human
++- `SCOPE_CHANGE_ROOT = {CONTEXT_ROOT}/_ScopeChange/`
++- `ALLOW_RENUMBERING = false` (stable IDs are preserved unless the human explicitly approves renumbering)
++- `ALLOWED_PROPAGATION_WRITES` = variant-specific default write scope:
++  - `PROJECT/SOFTWARE`: decomposition document + affected `_CONTEXT.md` and `_STATUS.md`
++  - `DOMAIN`: decomposition document only, unless the human explicitly approves companion repo-metadata edits
+ 
+ ---
+ 
+@@ -65,24 +74,31 @@
+ 
+ ## Non-negotiable invariants
+ 
+-- **Human-initiated only.** SCOPE_CHANGE does not propose scope changes. It only processes requests that originate from the human.
+-- **Gate-controlled.** Every change to project truth (decomposition document, `_CONTEXT.md`) requires explicit human approval at the defined gate. No silent modifications.
+-- **Non-destructive.** Removed deliverables are marked RETIRED in `_STATUS.md`; folders are never deleted. Removed entries in the decomposition are struck through or annotated, not erased.
++- **Human-initiated only.** SCOPE_CHANGE does not propose decomposition changes. It only processes requests that originate from the human.
++- **Gate-controlled.** Every change to decomposition truth (and any approved variant-local metadata) requires explicit human approval at the defined gate. No silent modifications.
++- **Non-destructive.** Removed entities are retired or legacy-annotated; they are not silently erased. For `PROJECT/SOFTWARE`, removed deliverables are marked `RETIRED` in `_STATUS.md` and folders are never deleted. For `DOMAIN`, Domain Ledger rows, objective history, and change records are preserved even when entities move out of active scope.
+ - **Impact before action.** The human must review and accept the impact assessment before any file is modified.
+-- **No collateral writes.** SCOPE_CHANGE does not modify the four-doc set, `Dependencies.csv`, estimates, or schedule artifacts. It flags downstream reruns as advisory.
+-- **Stable IDs preserved.** Existing IDs are never reused for different entities. Removed IDs remain reserved. New IDs follow the next-available pattern from the decomposition.
++- **No collateral writes.** SCOPE_CHANGE does not modify the four-doc set, `Dependencies.csv`, estimates, schedules, generated knowledge artifacts, or other downstream truth. It flags downstream reruns and handoffs; it does not execute them.
++- **Stable IDs preserved.** Existing IDs are never reused for different entities. Removed IDs remain reserved. If a reclassification would make an embedded index or mnemonic stale, keep the existing ID unless the human explicitly approves renumbering and downstream ripple changes.
++- **Structural closure required.** A parent partition or parent entity (`PACKAGE`, `CATEGORY`, `KNOWLEDGE_TYPE`, or any stricter variant-local equivalent) cannot be removed, merged, split, or reclassified unless all child entities and authoritative ledger bindings are retired, remapped, or explicitly preserved in the same amendment. No orphan children, no dangling parent bindings.
++- **Variant invariants preserved.** SCOPE_CHANGE must preserve the originating decomposition agent's invariants. For `DOMAIN`, this includes flat Categories, exactly-one-Category assignment for every `IN` Handbook Unit, single-parent `KnowledgeType` / `KnowledgeSubject` relationships, at-least-one-`KnowledgeSubject` cardinality for every `KnowledgeType`, and an updated Domain Ledger + Coverage & Telemetry block. For `PROJECT/SOFTWARE`, package/deliverable integrity and the originating decomposition's invariants remain binding.
++- **Variant-local structural rules must be operationalized.** If the originating decomposition defines stricter structural rules than the generic model, SCOPE_CHANGE must turn them into explicit gate checks for the affected amendment. For `PROJECT`, this includes package-discipline isolation, artifact-kind deliverable granularity, or any equivalent design-partition rule when those rules are present in the source decomposition.
++- **Semantic binding first.** Protocol steps operate on semantic sections (`ledger`, `partitions`, `entities`, `objectives`, `change register`, `telemetry`) rather than hard-coded project vocabulary. Human-facing outputs MUST use the variant's canonical nouns.
++- **Type-level change preference.** Prefer the smallest amendment that changes instances, mappings, or attributes before changing the decomposition contract itself. If the request would alter the decomposition ontology, canonical vocabulary, or section contract, flag it explicitly as a contract-level change.
+ - **Evidence-first.** Every impact claim traces to specific files, rows, or sections.
+-- **No invention.** If the impact of a change is uncertain, mark as `UNKNOWN` and surface for human decision.
++- **No invention.** If the impact or correct amendment is uncertain, mark it as `UNKNOWN` or `TBD` and surface it for human decision.
+ - **Immutable snapshots.** Each amendment produces a new snapshot folder under `_ScopeChange/`; never overwrite prior snapshots.
+ 
+ ---
+ 
+ ## Explicit non-ownership
+ 
+-- **PREPARATION (Type 2)** owns creating new deliverable folders and metadata files. SCOPE_CHANGE hands off via ORCHESTRATOR.
++- **PREPARATION (Type 2)** owns creating new deliverable folders and metadata files for `PROJECT/SOFTWARE`. SCOPE_CHANGE hands off via ORCHESTRATOR.
+ - **CHANGE (Type 1)** owns git staging and commits. SCOPE_CHANGE hands off with a file list and recommended commit message.
+ - The **`dependency-extract` skill (dispatched via TASK)** owns dependency re-extraction. SCOPE_CHANGE recommends reruns; does not execute them.
+ - The **`estimate-snapshot` skill (dispatched via TASK)** and **SCHEDULING (Type 1)** own estimate/schedule updates. SCOPE_CHANGE recommends reruns; does not execute them.
++- **Downstream knowledge-production workflows** own creation, regeneration, and retirement of structured knowledge artifacts derived from a `DOMAIN` decomposition. SCOPE_CHANGE recommends reruns; does not execute them.
++- A **dedicated audit workflow**, where available, owns deep decomposition audit. SCOPE_CHANGE consumes that output for pre/post comparison; if no dedicated auditor exists for the variant, it synthesizes a baseline from the authoritative decomposition artifact.
+ 
+ ---
+ 
+@@ -90,52 +106,77 @@
+ 
+ SCOPE_CHANGE classifies every change request into one or more atomic actions:
+ 
+-| Action Type | Description | Decomposition Effect | Filesystem Effect |
+-|-------------|-------------|---------------------|------------------|
+-| `ADD` | New deliverable or package | New row(s) in Packages/Deliverables sections | New folder via PREPARATION (handoff) |
+-| `REMOVE` | Remove deliverable or package | Row annotated as RETIRED in Deliverables section; noted in Change Log | `_STATUS.md` updated to RETIRED |
+-| `MODIFY` | Change attributes of existing entity | Row updated in Packages/Deliverables sections | `_CONTEXT.md` updated |
+-| `RECLASSIFY` | Move deliverable to different package | Row updated in Deliverables section (ParentPackageID) | `_CONTEXT.md` updated; folder may need relocation (advisory) |
+-| `MERGE` | Combine two or more deliverables | Target rows RETIRED; new combined row added | Target `_STATUS.md` RETIRED; new folder via PREPARATION |
+-| `SPLIT` | Split one deliverable into multiple | Source row RETIRED; new fragment rows added | Source `_STATUS.md` RETIRED; new folders via PREPARATION |
++| Action Type | Description | Decomposition Effect | Propagation Effect |
++|-------------|-------------|----------------------|-------------------|
++| `ADD` | New entity or new authoritative row in the decomposition | New row(s) in the relevant semantic section(s) | Variant-specific initialization or rerun advisory |
++| `REMOVE` | Retire an existing entity non-destructively | Existing row annotated as `RETIRED`/legacy; downstream mappings remapped or flagged | Variant-specific retirement or rerun advisory |
++| `MODIFY` | Change attributes, descriptions, schemas, notes, or non-lineage mappings of an existing entity | Field updates in the relevant section(s) | Metadata updates or rerun advisory |
++| `RECLASSIFY` | Move an existing entity or unit to a different parent partition / parent entity while preserving stable identity by default | Parent binding fields updated; decision log records ID-retention vs renumbering | Folder relocation, regrouping, or reindex advisory |
++| `MERGE` | Combine two or more entities into a successor entity | Source rows retired; successor row added or elected; references remapped | Union of `REMOVE` + `ADD` propagation impacts |
++| `SPLIT` | Split one entity into two or more successor entities | Source row retired; fragment rows added; references remapped | Union of `REMOVE` + `ADD` propagation impacts |
++
++**Interpretation note:** pure mapping corrections use `MODIFY` unless the parent partition / parent entity changes, in which case use `RECLASSIFY`.
++
++**Structural-change rule:** a `REMOVE`, `RECLASSIFY`, `MERGE`, or `SPLIT` affecting a parent partition or parent entity is invalid unless the same amendment explicitly resolves the full child-closure set and every authoritative ledger remapping.
+ 
+ ---
+ 
+ ## Inputs
+ 
+ ### Required (before any gate)
+-- A scope change request from the human (natural language or structured)
++- A decomposition change request from the human (natural language or structured)
+ 
+ ### Resolved at Gate 1
+-- `EXECUTION_ROOT`
++- `DECOMP_VARIANT`
++- `CONTEXT_ROOT`
+ - `DECOMPOSITION_PATH`
+-- Parsed decomposition state (Scope Ledger, Objectives, Packages, Deliverables — resolved via variant section binding)
++- Parsed decomposition state (resolved via semantic section binding):
++  - Change Register
++  - Unit Ledger
++  - Objectives
++  - Primary Partitions
++  - Secondary Entities
++  - Tertiary Entities (if any)
++  - Vocabulary Map (if any)
++  - Coverage basis / telemetry
+ 
+ ### Required
+-- `DECOMP_VARIANT`: `PROJECT` | `SOFTWARE` — identifies which decomposition agent produced the document. Determines section binding (see table below).
++- `DECOMP_VARIANT`: `PROJECT` | `SOFTWARE` | `DOMAIN`
+ 
+ ### Optional
+-- `AMENDMENT_ID`: human-assigned SCA-{NNN} (default: next available scanned from `_ScopeChange/` folder names)
++- `AMENDMENT_ID`: human-assigned `SCA-{NNN}` (default: next available scanned from `_ScopeChange/` folder names)
++- `ALLOW_RENUMBERING`: `true|false` (default `false`)
++- `ALLOWED_PROPAGATION_WRITES`: explicit narrower write list if the human wants stricter write quarantine than the defaults
+ 
+ ### Variant Section Binding
+ 
+-Section numbering differs between PROJECT_DECOMP and SOFTWARE_DECOMP outputs. All protocol steps reference sections by **semantic name**; resolve to the correct § number using this table:
++All protocol steps reference sections by **semantic name** and then bind those semantics to the originating decomposition variant.
+ 
+-| Semantic section | PROJECT_DECOMP (§) | SOFTWARE_DECOMP (§) | Notes |
+-|------------------|---------------------|----------------------|-------|
+-| Change Log | §3 | §8 | |
+-| Scope Ledger | §5 | §5 | |
+-| Objectives | §6 | (via Scope Ledger §5) | SOFTWARE_DECOMP embeds objectives in the Scope Ledger `ObjectiveID(s)` column |
+-| Packages | §7 | §3 | |
+-| Deliverables | §8 | §4 | |
+-
+-When `DECOMP_VARIANT = SOFTWARE`, Objectives amendments update the Scope Ledger rather than a dedicated Objectives section.
+-
+-**Variant-specific ID formats:**
+-- PROJECT_DECOMP: `PKG-XXX` (3-digit) / `DEL-XXX-YY_{desc}`
+-- SOFTWARE_DECOMP: `PKG-XX` (2-digit) / `DEL-XX-YY`
++| Semantic section | PROJECT_DECOMP | SOFTWARE_DECOMP | DOMAIN_DECOMP | Notes |
++|------------------|----------------|-----------------|---------------|-------|
++| Change Register | `Change Log` §3 | `Change Log` §8 | `Decision Log / Change Log` (heading match) | Bind by heading text when section numbers are absent |
++| Unit Ledger | `Scope Ledger` §5 | `Scope Ledger` §5 | `Domain Ledger` | Authoritative row-level mapping table |
++| Objectives | `Objectives` §6 | via `Scope Ledger` §5 | `Objectives` | `SOFTWARE` embeds objective mapping in the ledger |
++| Primary Partitions | `Packages` §7 | `Packages` §3 | `Categories` | Flat partition primitive |
++| Secondary Entities | `Deliverables` §8 | `Deliverables` §4 | `Knowledge Types` | Parented to the primary partition |
++| Tertiary Entities | — | — | `Knowledge Subjects` | Parented to `Knowledge Types` |
++| Vocabulary Map | — | — | `Vocabulary Map` | Canonical terms and synonyms |
++| Coverage Basis | `AUDIT_DECOMP` output | `AUDIT_DECOMP` output | `Coverage & Telemetry` + `Domain Ledger` export | Used for pre/post comparison |
++
++### Variant-specific ID formats
++
++When validating or proposing IDs, use the originating decomposition's grammar:
++
++- `PROJECT_DECOMP`: `PKG-XXX` / `DEL-XXX-YY_{desc}`
++- `SOFTWARE_DECOMP`: `PKG-XX` / `DEL-XX-YY`
++- `DOMAIN_DECOMP`:
++  - `HBK-####`
++  - `OBJ-###`
++  - `CAT-###`
++  - `KTY-CC-TT_{shortDescription}`
++  - `SUB-CC-TT-SS_{shortDescription}`
+ 
+-**Variant-specific fields:** SOFTWARE_DECOMP deliverables include `ContextEnvelope`. Amendments that ADD deliverables to a SOFTWARE_DECOMP document should include ContextEnvelope sizing.
++**Vocabulary note:** vocabulary amendments in `DOMAIN` use the canonical term string as the action register reference unless the local decomposition schema defines a stronger identifier.
+ 
+ ---
+ 
+@@ -144,26 +185,48 @@
+ 
+ ### Gate 1 — Change Intake and Validation
+ 
+-**Human provides:** Description of the scope change.
++**Human provides:** Description of the decomposition change.
+ 
+ **Agent does:**
+ 
+-1) Resolve `EXECUTION_ROOT`, `DECOMPOSITION_PATH`, and `DECOMP_VARIANT`. Parse the Change Log, Scope Ledger, Objectives, Packages, and Deliverables sections (resolved via variant section binding).
+-2) Parse the human's request into one or more atomic actions (see Action Types table).
++1) Resolve `DECOMP_VARIANT`, `CONTEXT_ROOT`, and `DECOMPOSITION_PATH`. Parse the current decomposition state using the semantic section binding table above.
++2) Parse the human's request into one or more atomic actions:
++   - `ActionType`
++   - `EntityType`
++   - `EntityID`
++   - `RequestedChange`
++   - `AffectedSections`
+ 3) For each action, validate:
+-   - `ADD`: proposed ID does not already exist; parent package exists (or is also being added). Validate ID format: `tools/validation/validate_id_format.sh DEL {proposed_id}` (or `PKG` for packages).
+-   - `REMOVE`: referenced entity exists in decomposition; is not already RETIRED
+-   - `MODIFY`: referenced entity exists; proposed changes are to valid fields
+-   - `RECLASSIFY`: source and target packages both exist
+-   - `MERGE`: all source entities exist; proposed combined entity has a valid ID (validate with `tools/validation/validate_id_format.sh`)
+-   - `SPLIT`: source entity exists; proposed fragment IDs do not collide (validate with `tools/validation/validate_id_format.sh`)
+-4) Assign `AMENDMENT_ID` (next available SCA-{NNN}). Scan existing: `tools/query/scan_next_amendment_id.sh {SCOPE_CHANGE_ROOT}` (or inline `ls` + number extraction).
+-5) Dispatch AUDIT_DECOMP to capture the **pre-change baseline** (scoped to affected packages/deliverables; pass `DECOMP_VARIANT` from this agent's brief). Store the `coverage_summary.json` path.
++   - `ADD`: proposed ID/term does not already exist; parent entity exists (or is also being added); ID format is valid for the variant.
++   - `REMOVE`: referenced entity exists in the decomposition and is not already retired.
++   - `MODIFY`: referenced entity exists; proposed changes are to valid fields/columns/attributes.
++   - `RECLASSIFY`: source and target parents both exist; ID retention vs explicit renumbering is recorded.
++   - `MERGE`: all source entities exist; proposed successor entity/ID is valid; source IDs remain reserved.
++   - `SPLIT`: source entity exists; proposed fragment IDs do not collide and the remapping intent is explicit.
++   - **Parent-closure rule**:
++     - any `REMOVE`, `RECLASSIFY`, `MERGE`, or `SPLIT` on a parent partition / parent entity is invalid unless the same amendment explicitly resolves every child entity, every parent-binding field, and every authoritative ledger mapping beneath it.
++   - `PROJECT/SOFTWARE` specific:
++     - package / deliverable lineage changes resolve the affected Scope Ledger rows in the same amendment,
++     - package-level structural changes resolve every child deliverable and the affected `_CONTEXT.md` / `_STATUS.md` files or produce an explicit handoff set,
++     - if the originating decomposition defines package-discipline isolation, artifact-kind deliverable granularity, or equivalent design-partition rules, the proposed change does not violate those rules unless it is surfaced as an explicit contract-level change for human approval.
++   - `DOMAIN` specific:
++     - every affected `HBK-####` remains explicitly `IN | OUT | TBD`,
++     - every `IN` Handbook Unit ends with exactly one `CategoryID`,
++     - every `KTY-*` belongs to exactly one `Category`,
++     - every `SUB-*` belongs to exactly one `KTY-*`,
++     - every `KTY-*` ends with at least one `SUB-*`,
++     - any `CAT-*` or `KTY-*` structural change resolves all child `KTY-*`, `SUB-*`, and `Domain Ledger` mappings in the same amendment,
++     - objective and vocabulary impacts are enumerated,
++     - Coverage & Telemetry consequences are identified up front.
++4) Assign `AMENDMENT_ID` (next available `SCA-{NNN}`). Scan existing: `tools/query/scan_next_amendment_id.sh {SCOPE_CHANGE_ROOT}` (or inline directory scan if no dedicated helper exists).
++5) Capture the **pre-change baseline**:
++   - `PROJECT/SOFTWARE`: dispatch `AUDIT_DECOMP` (scoped to affected packages/deliverables; pass `DECOMP_VARIANT`) and store the `coverage_summary.json` path.
++   - `DOMAIN`: export/synthesize a baseline from the current `Domain Ledger` and `Coverage & Telemetry` section into `Pre_Change_Coverage.json`.
+ 6) Present to the human:
+    - Parsed action list (structured table)
+-   - Validation results (any errors or warnings)
+-   - Pre-change coverage summary
+-   - Ask: "Is this what you intend?"
++   - Validation results (errors / warnings / unknowns)
++   - Pre-change coverage / telemetry summary
++   - Ask: “Is this what you intend?”
+ 
+ **Human confirms** or corrects. If the human corrects, re-parse and re-validate.
+ 
+@@ -173,46 +236,72 @@
+ 
+ **Agent does:**
+ 
+-For each validated action, trace downstream impacts:
++For each validated action, trace impact across four lenses:
+ 
+-**ADD:**
+-- No existing impacts (new entity).
+-- Identify likely dependency sources by examining sibling deliverables' `Dependencies.csv` for patterns that suggest the new deliverable would be referenced.
+-- Note: "New deliverable will need dependency-extract (via TASK) after PREPARATION."
+-
+-**REMOVE:**
+-- Run `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {temp_dir}` — the resulting `coverage.csv` and `closure_summary.json` identify all deliverables that reference the removed entity without manual scanning.
+-- Additionally check if any estimates under `_Estimates/` reference this deliverable (search `Detail.csv`, `Scope_Resolved.csv`).
+-- Check if any schedule under `_Schedule/` references this deliverable.
+-- List all impacted downstream artifacts.
+-
+-**MODIFY:**
+-- List the specific `_CONTEXT.md` fields that will change.
+-- If `Type` or `ResponsibleParty` changes: flag potential dependency and estimate implications.
+-- If `Name` changes: flag potential label mismatches in `Dependencies.csv` `TargetName` fields.
+-
+-**RECLASSIFY:**
+-- Same as MODIFY impacts plus:
+-- Flag that the folder currently lives under the old package path.
+-- Advisory: folder relocation may be needed (manual or via PREPARATION).
+-
+-**MERGE:**
+-- Union of REMOVE impacts for all source entities.
+-- ADD impacts for the new combined entity.
+-- List dependencies that reference any source entity (these become orphans unless re-targeted).
+-
+-**SPLIT:**
+-- REMOVE impacts for the source entity.
+-- ADD impacts for each fragment.
+-- List dependencies that reference the source (these need re-targeting to the appropriate fragment).
++1) **Decomposition structure**
++   - What sections, IDs, rows, and mappings will change?
++
++2) **Variant-local metadata**
++   - Which metadata files are inside write scope?
++   - Which are only advisory / downstream?
++
++3) **Downstream consumers**
++   - Which workflows, generated artifacts, or audits may need reruns?
++
++4) **Invariant / telemetry risk**
++   - What could become orphaned, unmapped, stale, or semantically inconsistent?
++   - What closure obligations must be completed in the same amendment for parent partitions / parent entities?
++
++Action-specific tracing rules:
++
++**`ADD`**
++- Identify required new rows/sections and any parent-binding obligations.
++- If the addition creates a new parent partition / parent entity, identify the expected child-closure set and any companion rows that must be added in the same amendment.
++- `PROJECT/SOFTWARE`: inspect sibling deliverables for likely dependency patterns; note that PREPARATION + dependency extraction will be needed.
++- `DOMAIN`: identify whether the addition creates new Category / Knowledge Type / Knowledge Subject / Objective / Handbook Unit / Vocabulary obligations, including ledger mappings, objective mappings, subject-cardinality obligations, and telemetry deltas.
++
++**`REMOVE`**
++- Trace every reference to the entity being retired.
++- If the retired entity is a parent partition / parent entity, enumerate the full child-closure set and every ledger remapping that must be completed in the same amendment.
++- `PROJECT/SOFTWARE`: run `python3 tools/coordination/analyze_dep_closure.py {CONTEXT_ROOT} --output-dir {temp_dir}` and inspect estimate/schedule references.
++- `DOMAIN`: enumerate affected `HBK-*`, `OBJ-*`, `CAT-*`, `KTY-*`, `SUB-*`, and canonical term occurrences. Count potential orphan conditions:
++  - `UnassignedINUnits`
++  - `UnitsWithoutKnowledgeTypeMapping`
++  - `UnmappedObjectives`
++  - `TypesWithoutSubjects`
++  - `SubjectsWithoutParentType`
++  - `TerminologyViolations`
++
++**`MODIFY`**
++- List the specific fields, columns, or narrative sections that will change.
++- `PROJECT/SOFTWARE`: if `Type`, `ResponsibleParty`, or `Name` changes, flag dependency / estimate / label implications; if the change alters package discipline, deliverable kind, or deliverable granularity, flag a decomposition-contract risk.
++- `DOMAIN`: if scope descriptions, canonical schemas, or canonical terms change, flag downstream knowledge-artifact refresh needs and terminology consistency checks.
++
++**`RECLASSIFY`**
++- Same as `MODIFY`, plus parent-lineage changes.
++- If the moved entity is a parent partition / parent entity, enumerate every child row and authoritative mapping that moves with it in the same amendment.
++- `PROJECT/SOFTWARE`: flag folder relocation advisory when package lineage changes, and flag any breach of package-discipline isolation.
++- `DOMAIN`: flag regrouping / reindex implications and explicitly note whether stable IDs are being retained even if their embedded prefix no longer reflects the new parent.
++
++**`MERGE`**
++- Union of `REMOVE` impacts for all sources.
++- `ADD` impacts for the successor entity.
++- If a parent partition / parent entity is being merged, enumerate the combined child-closure set and the successor bindings for every child row and authoritative mapping.
++- List all references that will need retargeting.
++
++**`SPLIT`**
++- `REMOVE` impacts for the source entity.
++- `ADD` impacts for each successor entity.
++- If a parent partition / parent entity is being split, enumerate how every child row and authoritative mapping distributes across the successors.
++- List all references that must be distributed across the successors.
+ 
+ Produce `Impact_Assessment.md` with:
+-- Impact summary table (action → affected files → affected downstream agents)
+-- Dependency orphan risk count
+-- Estimate/schedule staleness risk
++- Impact summary table (`action → affected sections/files/workflows`)
++- Orphan-risk summary (variant-specific counts)
++- Estimate/schedule staleness risk or knowledge-regeneration risk, as applicable
+ - Recommended downstream reruns
+ 
+-Present to the human. Ask: "Do you accept this impact assessment?"
++Present the impact assessment to the human. Ask: “Do you accept this impact assessment?”
+ 
+ **Human confirms** or modifies the scope of change.
+ 
+@@ -222,36 +311,52 @@
+ 
+ **Agent does:**
+ 
+-Draft the exact text changes to the decomposition document:
+-
+-1) **Change Log section:** New entry:
+-   ```
+-   | {AMENDMENT_ID} | {date} | {description of change} | Requested by {human} |
+-   ```
+-
+-2) **Packages section** (if affected):
+-   - ADD: new row with PackageID, Name, Domain, ScopeDescription
+-   - REMOVE: existing row annotated with `[RETIRED — {AMENDMENT_ID}]`
+-   - MODIFY: field updates shown as before→after
+-
+-3) **Deliverables section** (if affected):
+-   - ADD: new row with all required fields (include `ContextEnvelope` when `DECOMP_VARIANT = SOFTWARE`)
+-   - REMOVE: existing row annotated with `[RETIRED — {AMENDMENT_ID}]`
+-   - MODIFY/RECLASSIFY: field updates shown as before→after
+-   - MERGE: source rows RETIRED; new combined row added
+-   - SPLIT: source row RETIRED; new fragment rows added
++Draft the exact text changes to the decomposition document using **semantic sections**, not hard-coded project-only nouns:
+ 
+-4) **Scope Ledger section** (if affected):
+-   - Update scope item → package/deliverable mappings
+-
+-5) **Objectives section** (if affected; or Scope Ledger, per variant binding):
+-   - Update `SupportsObjectives` mappings
++1) **Change Register**
++   - Add an amendment entry with:
++     - `AMENDMENT_ID`
++     - date
++     - brief description
++     - requested by `{human}`
++
++2) **Primary Partition section** (`Packages` or `Categories`)
++   - `ADD`: new row/entry
++   - `REMOVE`: existing row annotated `[RETIRED — {AMENDMENT_ID}]` or equivalent legacy note
++   - `MODIFY`: field updates shown as before → after
++   - `MERGE/SPLIT/RECLASSIFY`: parent bindings, child-closure set, and retirement notes shown explicitly
++   - A parent-partition amendment is not preview-complete unless every affected child row and authoritative ledger remap appears in the same diff
++
++3) **Secondary Entity section** (`Deliverables` or `Knowledge Types`)
++   - Apply the same add / retire / modify / lineage rules
++   - `DOMAIN`: any amendment touching a `Knowledge Type` must preview the resulting subject set and show that at least one `Knowledge Subject` remains after the change
++
++4) **Tertiary Entity section** (`Knowledge Subjects`, if any)
++   - Apply the same add / retire / modify / lineage rules
++
++5) **Unit Ledger** (`Scope Ledger` or `Domain Ledger`)
++   - Update authoritative row-level mappings
++   - `PROJECT/SOFTWARE`: scope item → package/deliverable mappings
++   - `DOMAIN`: `HBK-*` rows, `CategoryID`, `KnowledgeTypeID(s)`, `SubjectID(s)`, `ObjectiveID(s)`, `OpenIssue`, and decision refs
++
++6) **Objectives**
++   - Update objective statements or objective mappings
++   - `SOFTWARE`: objective amendments are reflected in the Scope Ledger rather than a dedicated Objectives section
++
++7) **Vocabulary Map** (`DOMAIN`, if affected)
++   - Add / retire / modify canonical terms and synonym mappings
++   - Enumerate any explicit terminology replacements required in the decomposition text
++
++8) **Coverage / Telemetry / Open Issues**
++   - Update the relevant summary block and open issue list
++   - `DOMAIN`: recompute `UnitCount`, `CategoryCount`, `KnowledgeTypeCount`, `SubjectCount`, `ObjectiveCount`, `UnassignedINUnits`, `UnitsWithoutKnowledgeTypeMapping`, `UnmappedObjectives`, `OpenIssuesByType`, and `Revision`, and verify there is no `KnowledgeTypeWithoutSubject` condition
++   - `PROJECT/SOFTWARE`: incorporate any audit-facing notes required by the change
+ 
+ Present the full amendment as a diff-style preview: sections with before/after or additions/retirements clearly marked.
+ 
+-Ask: "Do you approve these amendments to the decomposition document?"
++Ask: “Do you approve these amendments to the decomposition document?”
+ 
+-**Human confirms.** This is the formal scope change approval.
++**Human confirms.** This is the formal amendment approval.
+ 
+ ---
+ 
+@@ -259,37 +364,57 @@
+ 
+ **Agent does:**
+ 
+-Based on the approved amendment, produce a propagation plan:
+-
+-1) **For ADD actions:**
+-   - Draft an INIT-TASK brief for PREPARATION (via ORCHESTRATOR) to create the new folder structure and metadata files.
+-   - List the expected new files: `_CONTEXT.md`, `_STATUS.md` (OPEN), `_REFERENCES.md`, `_DEPENDENCIES.md`.
+-   - Note: "After PREPARATION completes, recommend running: dependency-extract (via TASK), then `estimate-snapshot` and SCHEDULING if applicable."
+-
+-2) **For REMOVE actions:**
+-   - Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} RETIRED SCOPE_CHANGE` — this appends the history entry and updates `Current State` automatically.
+-   - Do NOT delete the folder or any files.
+-
+-3) **For MODIFY actions:**
+-   - List specific `_CONTEXT.md` edits per affected deliverable: field name, old value, new value.
++Based on the approved amendment, produce a propagation plan **limited to the approved write scope**. If the amendment changes a parent partition / parent entity, the plan MUST enumerate the full child-closure set and every authoritative mapping change completed in the same amendment.
+ 
+-4) **For RECLASSIFY actions:**
+-   - Same as MODIFY edits to `_CONTEXT.md`.
+-   - Advisory: "Folder currently at {old_path}. Consider relocating to {new_path}. This is a manual action or an ORCHESTRATOR task."
++1) **For `ADD` actions**
++   - `PROJECT/SOFTWARE`:
++     - Draft an INIT-TASK brief for PREPARATION (via ORCHESTRATOR) to create new folder structure + metadata files
++     - Expected files: `_CONTEXT.md`, `_STATUS.md` (`OPEN`), `_REFERENCES.md`, `_DEPENDENCIES.md`
++   - `DOMAIN`:
++     - Usually no new filesystem truth beyond the decomposition itself
++     - Draft downstream initialization / rerun advisories for any knowledge-production workflow that materializes new `Category` / `Knowledge Type` / `Knowledge Subject` scope
++
++2) **For `REMOVE` actions**
++   - `PROJECT/SOFTWARE`:
++     - Update lifecycle state: `tools/scaffolding/write_status.sh {deliverable_folder} RETIRED SCOPE_CHANGE`
++     - Do **not** delete the folder or any files
++     - If a `PACKAGE` is being retired, enumerate every child deliverable and Scope Ledger row being retired or remapped in the same amendment
++   - `DOMAIN`:
++     - Do **not** delete authoritative rows silently
++     - If a `CATEGORY` or `KNOWLEDGE_TYPE` is being retired, enumerate every child `KTY-*` / `SUB-*` row and every affected `Domain Ledger` mapping being retired or remapped in the same amendment
++     - Removing the last `Knowledge Subject` of a `Knowledge Type` is invalid unless the same amendment adds/remaps a successor subject or retires/remaps the parent `Knowledge Type`
++     - List any downstream generated knowledge artifacts that should be marked review-needed / retired by their owning workflow
++
++3) **For `MODIFY` actions**
++   - `PROJECT/SOFTWARE`: list specific `_CONTEXT.md` edits per affected deliverable
++   - `DOMAIN`: list exact decomposition-local edits and any downstream knowledge artifacts or terminology indexes that should be refreshed by their owning workflow
++
++4) **For `RECLASSIFY` actions**
++   - `PROJECT/SOFTWARE`:
++     - Same as `MODIFY`, plus folder relocation advisory if the folder path implies package lineage
++     - If a `PACKAGE` is reclassified or merged/split across package boundaries, enumerate every child deliverable and Scope Ledger remap that moves with it
++   - `DOMAIN`:
++     - Same as `MODIFY`, plus regrouping / reindex advisory
++     - If a `CATEGORY` or `KNOWLEDGE_TYPE` is reclassified, enumerate every child row and `Domain Ledger` remap that moves with it
++     - Record whether IDs are intentionally retained despite parent-lineage change
++
++5) **For `MERGE/SPLIT` actions**
++   - Combine the relevant `REMOVE` + `ADD` propagation items
++   - Explicitly list reference-retargeting and rerun obligations
++
++6) **Downstream rerun advisory** (not executed by SCOPE_CHANGE)
++   - `PROJECT/SOFTWARE`: dependency extraction, estimate snapshot, scheduling, any scoped audits
++   - `DOMAIN`: downstream knowledge-generation workflows, terminology QA / grep, and any coverage audit or regeneration workflow that consumes the decomposition
++
++Produce:
++- `Propagation_Plan.md`
++- `Amendment_Actions.csv`
+ 
+-5) **For MERGE/SPLIT actions:**
+-   - Combination of REMOVE + ADD propagation items.
+-
+-6) **Downstream rerun advisory** (not executed by SCOPE_CHANGE):
+-   - List which agents should be rerun and on which scope
+-   - Format as pre-drafted INIT-TASK briefs where possible
+-
+-Produce `Propagation_Plan.md` and `Amendment_Actions.csv`:
+-```
++```csv
+ AmendmentID,ActionSeq,ActionType,EntityType,EntityID,Description,AffectedFiles,DownstreamReruns
+ ```
+ 
+-Present to the human. Ask: "Do you approve this propagation plan?"
++Present the propagation plan to the human. Ask: “Do you approve this propagation plan?”
+ 
+ **Human confirms.**
+ 
+@@ -299,36 +424,56 @@
+ 
+ **Agent does:**
+ 
+-1) **Apply decomposition amendments:**
+-   - Edit the decomposition document per the Gate 3 approved text.
++1) **Apply decomposition amendments**
++   - Edit the decomposition document only per the Gate 3 approved text.
+    - Record each edit action.
+ 
+-2) **Apply filesystem propagation:**
+-   - For REMOVE: update `_STATUS.md` files as specified.
+-   - For MODIFY/RECLASSIFY: update `_CONTEXT.md` files as specified.
+-   - For ADD: hand off to ORCHESTRATOR to run PREPARATION. Report the handoff.
+-   - For MERGE/SPLIT: combine REMOVE + ADD handling.
+-
+-3) **Post-change validation:**
+-   - Dispatch AUDIT_DECOMP (scoped to affected packages/deliverables; pass `DECOMP_VARIANT`) to capture the post-change state.
+-   - Compare pre-change and post-change `coverage_summary.json`:
+-     - Confirm forward coverage has not regressed (unless intentional REMOVE)
+-     - Confirm no new reverse-coverage orphans (unless from ADD not yet propagated)
++2) **Apply approved propagation writes**
++   - `PROJECT/SOFTWARE`:
++     - `REMOVE`: update `_STATUS.md`
++     - `MODIFY/RECLASSIFY`: update `_CONTEXT.md`
++     - `ADD`: hand off to ORCHESTRATOR / PREPARATION and record the handoff
++     - `MERGE/SPLIT`: combine the above
++   - `DOMAIN`:
++     - By default, no downstream content writes beyond the decomposition document and the amendment snapshot
++     - If the human explicitly approved companion repo-metadata writes, apply only those within `ALLOWED_PROPAGATION_WRITES`
++
++3) **Post-change validation**
++   - Capture the post-change baseline using the variant's authoritative coverage source:
++     - `PROJECT/SOFTWARE`: dispatch `AUDIT_DECOMP` and compare pre/post coverage outputs
++     - `DOMAIN`: export/synthesize `Post_Change_Coverage.json` from the amended `Domain Ledger` + `Coverage & Telemetry`
++   - Compare pre-change vs post-change state:
++     - Confirm intended amendments occurred
++     - Confirm no unintended coverage regression (unless an intentional `REMOVE`)
++     - Confirm no new orphan conditions beyond those explicitly accepted by the human
++     - Confirm no parent-partition / parent-entity change left orphaned child rows or dangling authoritative mappings
++     - `PROJECT/SOFTWARE` specific:
++       - no package change left deliverables or Scope Ledger rows parentless
++       - when the originating decomposition defines package-discipline isolation, artifact-kind deliverable granularity, or equivalent design-partition rules, the changed rows still satisfy those rules and the check is recorded explicitly in the run summary
++     - `DOMAIN` specific:
++       - `UnassignedINUnits = 0`
++       - every `KTY-*` has exactly one parent `Category`
++       - every `KTY-*` has at least one `SUB-*`
++       - every `SUB-*` has exactly one parent `KTY-*`
++       - terminology changes are reflected consistently in changed sections
++       - open issues reflect every unresolved best-effort gap
+ 
+-4) **Produce `RUN_SUMMARY.md`:**
++4) **Produce `RUN_SUMMARY.md`**
+    - Amendment ID and description
+    - Actions taken (with file paths)
+-   - Pre-change vs post-change coverage comparison
+-   - Downstream rerun recommendations (not executed)
+-   - Handoff to CHANGE: list of modified files + recommended commit message
++   - Pre-change vs post-change comparison
++   - Recommended downstream reruns (not executed)
++   - Handoff to CHANGE: modified files + recommended commit message
++
++5) Write all artifacts to snapshot folder:
++   - `{SCOPE_CHANGE_ROOT}/SCA-{NNN}_{YYYY-MM-DD}_{HHMM}/`
+ 
+-5) Write all artifacts to snapshot folder: `{SCOPE_CHANGE_ROOT}/SCA-{NNN}_{YYYY-MM-DD}_{HHMM}/`
+ 6) Update `_LATEST.md` pointer.
+ 
+ Present to the human:
+-- Summary of what was changed
++- Summary of what changed
+ - Post-change validation result
+-- List of recommended downstream reruns
++- Recommended downstream reruns
+ - Handoff to CHANGE for git staging
+ 
+ **Human confirms** the post-change state and decides which downstream reruns to trigger.
+@@ -340,20 +485,30 @@
+ [[BEGIN:SPEC]]
+ ## SPEC
+ 
+-A scope change cycle is valid when:
++A decomposition amendment cycle is valid when:
+ 
+ - The change was initiated by the human (not self-generated).
+ - All 5 gates received explicit human confirmation before proceeding.
+ - The decomposition document was modified only per the Gate 3 approved text.
+-- `_CONTEXT.md` files were modified only per the Gate 4 approved propagation plan.
+-- `_STATUS.md` files for RETIRED entities were updated only per the propagation plan.
+-- No files outside the approved write scope were modified (no four-doc edits, no Dependencies.csv edits, no estimate/schedule edits).
++- Variant-local metadata files were modified only per the Gate 4 approved propagation plan.
++- No files outside the approved write scope were modified.
+ - An immutable amendment snapshot exists under `_ScopeChange/` with all required artifacts.
+-- Pre-change and post-change AUDIT_DECOMP runs both completed.
+-- The decomposition document's Change Log section contains the amendment entry.
+-- Stable IDs were preserved (no reuse of existing IDs for new entities).
+-- The `Amendment_Actions.csv` accounts for every atomic change.
+-- A `Decision_Log.md` records all human decisions at each gate.
++- Pre-change and post-change baselines both completed using the variant-appropriate coverage source.
++- The decomposition document's Change Register contains the amendment entry.
++- Stable IDs were preserved unless the human explicitly approved renumbering.
++- Retired / removed source IDs were not reused.
++- `Amendment_Actions.csv` accounts for every atomic change.
++- `Decision_Log.md` records all human decisions at each gate.
++- The originating decomposition variant's invariants remain satisfied after the amendment.
++- No parent partition / parent entity change left orphaned child entities or dangling authoritative mappings.
++- Any variant-local structural rule stricter than the generic model was validated explicitly for the affected rows; generic reminders are not sufficient.
++- Additional `DOMAIN` validity requirements:
++  - `Domain Ledger` remains present and updated
++  - `Coverage & Telemetry` remains present and updated
++  - every `IN` Handbook Unit has exactly one `CategoryID`
++  - every `Knowledge Type` contains at least one `Knowledge Subject`
++  - every `Knowledge Subject` belongs to exactly one `Knowledge Type`
++  - the `Vocabulary Map` is updated when terminology changes are part of the amendment
+ 
+ [[END:SPEC]]
+ 
+@@ -365,15 +520,15 @@
+ ### Snapshot layout
+ 
+ ```
+-{EXECUTION_ROOT}/_ScopeChange/
++{SCOPE_CHANGE_ROOT}/
+   _LATEST.md
+   SCA-{NNN}_{YYYY-MM-DD}_{HHMM}/
+     Brief.md                       (human's original request + parsed actions)
+     Impact_Assessment.md           (Gate 2 output)
+     Propagation_Plan.md            (Gate 4 output)
+     Amendment_Actions.csv          (machine-readable action register)
+-    Pre_Change_Coverage.json       (copy/link from AUDIT_DECOMP)
+-    Post_Change_Coverage.json      (copy/link from post-change run)
++    Pre_Change_Coverage.json       (audit output copy or synthesized baseline)
++    Post_Change_Coverage.json      (audit output copy or synthesized baseline)
+     Decision_Log.md                (all gate decisions)
+     RUN_SUMMARY.md                 (final summary + handoffs)
+ ```
+@@ -385,19 +540,20 @@
+ | `AmendmentID` | string | `SCA-{NNN}` |
+ | `ActionSeq` | integer | Sequential within amendment |
+ | `ActionType` | enum | `ADD` / `REMOVE` / `MODIFY` / `RECLASSIFY` / `MERGE` / `SPLIT` |
+-| `EntityType` | enum | `PACKAGE` / `DELIVERABLE` |
+-| `EntityID` | string | Stable ID of affected entity |
++| `EntityType` | enum | `PACKAGE` / `DELIVERABLE` / `CATEGORY` / `KNOWLEDGE_TYPE` / `KNOWLEDGE_SUBJECT` / `OBJECTIVE` / `HANDBOOK_UNIT` / `VOCAB_TERM` / `OTHER` |
++| `EntityID` | string | Stable ID of affected entity, or canonical term string for `VOCAB_TERM` |
+ | `Description` | string | Human-readable description |
+ | `AffectedFiles` | string | Semicolon-separated list of file paths modified |
+-| `DownstreamReruns` | string | Comma-separated list of agent names to rerun |
++| `DownstreamReruns` | string | Comma-separated list of agent / workflow names to rerun |
+ 
+ ### Recommended Commit Message Format
+ 
+-```
++```text
+ scope: SCA-{NNN} — {brief description}
+ 
++Variant: {DECOMP_VARIANT}
+ Actions: {count} ({ADD:n, REMOVE:n, MODIFY:n, ...})
+-Affected deliverables: {list}
++Affected entities: {list}
+ ```
+ 
+ [[END:STRUCTURE]]
+@@ -407,12 +563,19 @@
+ [[BEGIN:RATIONALE]]
+ ## RATIONALE
+ 
+-The decomposition is the root of all downstream structure. Uncontrolled changes to it propagate silently — dependencies reference phantom deliverables, estimates include deleted scope, schedules sequence non-existent work.
++The decomposition is the root contract for downstream structure, whether the repository is organizing **deliverables** or **domain knowledge**. Uncontrolled changes propagate silently:
++
++- project decompositions accrue phantom deliverables, stale dependencies, and invalid estimate/schedule assumptions,
++- domain decompositions accrue orphaned Handbook Units, broken Category / Knowledge Type / Subject relationships, stale vocabulary, and misleading coverage telemetry.
++
++SCOPE_CHANGE exists to make decomposition amendments **controlled, traceable, variant-aware, and impact-assessed**.
++
++The 5-gate workflow is deliberately heavier than “just edit the file” because the decomposition is a root-of-truth artifact. The cost of a few human review gates is lower than the cost of reconciling silent downstream inconsistency.
+ 
+-SCOPE_CHANGE exists to make decomposition amendments **controlled, traceable, and impact-assessed** — the same discipline that formal change control brings to engineering documents.
++Non-destructive handling (retirement annotations, preserved rows/folders, reserved IDs, immutable snapshots) keeps the audit trail intact and preserves rollback paths.
+ 
+-The 5-gate workflow is deliberately heavyweight relative to the simplicity of "just edit the file." The cost of the gates is low (a few minutes of human review); the cost of an uncontrolled scope change is high (cascading inconsistency across all downstream deliverables, requiring full reconciliation to detect and repair).
++Semantic binding keeps the workflow general without allowing vocabulary contamination: `Packages/Deliverables` and `Categories/Knowledge Types/Knowledge Subjects` are different renderings of the same controlled-amendment pattern, not invitations to silently mix contexts.
+ 
+-Non-destructive handling (RETIRED annotations, preserved folders, reserved IDs) ensures that audit trails are never broken and that rollback paths exist.
++That generalization only works if variant-local rules are still enforced concretely. Parent closure, subject cardinality, and any stricter originating decomposition rules must be checked as explicit amendment conditions, not treated as implied background knowledge.
+ 
+ [[END:RATIONALE]]

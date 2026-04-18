@@ -36,6 +36,18 @@ When a skill is loaded by `TASK`, precedence is:
 
 A skill must never widen scope beyond what the agent shell and brief allow.
 
+## Skill dispatch and hydration
+
+When a persona agent dispatches a TASK with `TaskSkill`, TASK automatically loads the skill's `SKILL.md` and companion files. This is the skill hydration guarantee — the worker gets the full contract without the orchestrator needing to reconstruct it in the dispatch prompt.
+
+The authority split between companion files:
+- **`SKILL.md`** — the authoritative method and output contract (extraction rules, format specs, canonical templates, non-negotiable constraints).
+- **`BRIEF_SCHEMA.md`** — the dispatch contract (what the orchestrator must provide in the INIT-TASK brief to invoke this skill through TASK).
+- **`TOOL_POLICY.md`** — the tool allowlist and preferences.
+- **`QA_CHECKS.md`** — output validity checks.
+
+The orchestrator provides runtime parameters via `RuntimeOverrides` and optional run-specific reinforcement via `CustomInstructions`. It does not duplicate the skill contract. See `AGENT_HELPS_HUMANS.md` § Skill dispatch principle.
+
 ## Folder contract
 
 Each skill lives in its own folder:
@@ -44,9 +56,9 @@ Each skill lives in its own folder:
 skills/
   <skill_name>/
     SKILL.md           # required; YAML frontmatter + Markdown body
-    BRIEF_SCHEMA.md    # optional but recommended
+    BRIEF_SCHEMA.md    # required; dispatch contract for TASK invocation
     TOOL_POLICY.md     # required
-    QA_CHECKS.md       # optional but recommended
+    QA_CHECKS.md       # required
 ```
 
 Optional extras are allowed, such as:
@@ -68,7 +80,7 @@ Every `SKILL.md` should state:
 - whether the skill is safe for generic `TASK`
 - any important non-negotiable constraints
 
-The frontmatter is the portable discovery surface. The Markdown body is the Chirality execution guidance. `TOOL_POLICY.md` is a required Chirality-specific companion file; `BRIEF_SCHEMA.md` and `QA_CHECKS.md` are recommended Chirality-specific extensions layered on top of that core.
+The frontmatter is the portable discovery surface. The Markdown body is the Chirality execution guidance. `BRIEF_SCHEMA.md`, `TOOL_POLICY.md`, and `QA_CHECKS.md` are required Chirality-specific companion files layered on top of that core.
 
 ## Relationship to tools
 
@@ -106,9 +118,9 @@ Agent guidance:
 - Read this file first for the shared contract.
 - When a specific skill is requested, inspect that skill folder directly:
   - `SKILL.md`
-  - `BRIEF_SCHEMA.md` if present
+  - `BRIEF_SCHEMA.md`
   - `TOOL_POLICY.md`
-  - `QA_CHECKS.md` if present
+  - `QA_CHECKS.md`
 - Use [`docs/REPO_INVENTORY.md`](../docs/REPO_INVENTORY.md) for canonical aggregate counts, not skill membership details.
 - Do not assume any other document's embedded skill list is current.
 - If live folder contents and a canonical index disagree, surface the discrepancy explicitly.

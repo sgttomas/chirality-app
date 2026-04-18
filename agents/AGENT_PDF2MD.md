@@ -45,10 +45,10 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 
 ## Non-negotiable Invariants
 
-- **Tools are deterministic.** `rasterize_pdf.py`, `postprocess_page.py`, and `assemble_markdown.py` execute without LLM mediation.
-- **VLM work is delegated.** Per-page image-to-Markdown conversion is performed by `pdf2md-page` skill dispatches, not by this agent.
-- **Resumable by default.** Existing PNGs and page `.md` files are reused. Only missing pages are re-rendered or re-converted.
-- **Partial success is acceptable.** Failed pages are noted in the report. The pipeline does not abort on individual page failures.
+- **Tools are deterministic; violation is a design defect.** Rasterization (`rasterize_pdf.py`), post-processing (`postprocess_page.py`, `clean_pdf2md_output.py`), and assembly (`assemble_markdown.py`) are Python scripts with no LLM API calls. If a pipeline stage requires LLM reasoning, it belongs in a skill dispatch, not in a tool invocation.
+- **VLM work is delegated via TASK+skill dispatch.** Per-page image-to-Markdown conversion is performed by `pdf2md-page` skill dispatches through the TASK shell, not by this agent directly. PDF2MD does not read page images or produce page Markdown itself.
+- **Resume-safety requires manifest-parameter match, not just file existence.** WORK_DIR belongs to one `(pdf_path, dpi)` tuple. Existing PNGs and page `.md` files are reusable only when the current run's `PDF_PATH` and `DPI` match the manifest that produced them. Mismatches are rejected at Phase 0. See Phase 0 step 4 for the mismatch policy. **Known limitation:** the manifest records `pdf_path` but not a content hash; if the PDF at the same path is replaced with a different document, the mismatch is undetectable. A future TOOLMAKER enhancement (recording a PDF hash in `manifest.json`) would close this gap.
+- **Partial success produces a degraded artifact that requires human review.** Failed pages are noted in the report. The pipeline does not abort on individual page failures; the assembler inserts placeholder text (`*[Page N: conversion unavailable]*` or `*[Page N: empty]*`) for missing or empty pages. A placeholder-containing assembly is a degraded artifact. It MUST NOT be passed to downstream consumers (DOMAIN_DECOMP) without explicit human acknowledgment. The Phase 4 report MUST list affected pages and recommend rerun before downstream use.
 
 ---
 
@@ -72,9 +72,12 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
    - Create the directory if it does not exist.
 3. Resolve `OUTPUT_PATH`:
    - Confirm the parent directory exists and is writable.
-4. Check for resume state:
-   - If `{WORK_DIR}/manifest.json` exists, read it and report how many pages are already rasterized.
-   - Scan for existing `page_NNNN.md` files and report how many pages are already converted.
+4. Check for resume state and enforce manifest-parameter match:
+   - If `{WORK_DIR}/manifest.json` exists, read it.
+   - Compare the manifest's `pdf_path` and `dpi` against the current run's `PDF_PATH` and `DPI`.
+   - **Mismatch policy:** If `dpi` differs, or `pdf_path` differs, the work-dir may contain stale artifacts. REJECT reuse: report the mismatch and require the human to either clear the work-dir (`rm -rf {WORK_DIR}`) or specify a new one. Do not silently mix stale and fresh artifacts.
+   - **Known limitation:** If the PDF at the same path has been replaced with a different document, this check cannot detect the change. When in doubt, the human should clear the work-dir.
+   - If parameters match (or no manifest exists — fresh run): report how many PNGs and `page_NNNN.md` files already exist.
 5. **Gate (human confirmation):**
    > "PDF: `{PDF_PATH}` ({N} total pages). Work directory: `{WORK_DIR}`. Output: `{OUTPUT_PATH}`.
    > DPI: {DPI}. Batch size: {BATCH_SIZE}. Pages: {PAGES}.
@@ -94,21 +97,49 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 
 1. From `manifest.json`, build the ordered list of pages to convert.
 2. For each page, check if `{WORK_DIR}/page_{NNNN}.md` already exists:
-   - If yes and non-empty: skip (resume — do not re-run the VLM call).
+   - If yes and non-empty AND Phase 0 confirmed source-identity match: skip (resume).
+   - If the page .md exists but Phase 0 identity check was not satisfied: this state should not occur (Phase 0 rejects the run on mismatch). If it does, treat as a bug and do not reuse.
    - If no: add to the conversion queue.
 3. Report: "{Q} pages need conversion ({S} already complete)."
 4. Divide the conversion queue into batches of `BATCH_SIZE`.
-5. For each batch:
-   a. Spawn `BATCH_SIZE` TASK+`TaskSkill: pdf2md-page` dispatches **in parallel** (use the Agent tool with multiple concurrent calls to TASK). Each dispatch receives:
-      - `IMAGE_PATH`: `{WORK_DIR}/page_{NNNN}.png` (absolute path)
-      - `OUTPUT_PATH`: `{WORK_DIR}/page_{NNNN}.md` (absolute path)
-      - `PAGE_NUM`: 1-indexed page number
-      - `TOTAL_PAGES`: total from manifest
-   b. Wait for all dispatches in the batch to complete.
-   c. Collect `RUN_STATUS` from each. Record successes and failures.
-   d. Report batch progress: "Batch {B}/{T}: {successes} succeeded, {failures} failed."
-6. After all batches complete, report:
+5. For each batch, spawn TASK+`TaskSkill: pdf2md-page` dispatches in parallel per the dispatch contract below.
+6. Wait for all dispatches in the batch to complete. Collect `RUN_STATUS` from each. Record successes and failures.
+7. Report batch progress: "Batch {B}/{T}: {successes} succeeded, {failures} failed."
+8. After all batches complete, report:
    > "Page conversion complete: {success}/{total} pages. Failed: {list or 'none'}."
+
+#### Dispatch contract
+
+Page-worker dispatches MUST use the TASK shell with `TaskSkill: pdf2md-page`. The TASK shell guarantees skill hydration: it loads `SKILL.md`, `BRIEF_SCHEMA.md`, and companion files (`QA_CHECKS.md`, `TOOL_POLICY.md` if present). This ensures the worker has the full conversion contract and format requirements without the orchestrator reconstructing them. See `AGENT_TASK.md` § Skill loading.
+
+Each dispatch brief MUST follow the INIT-TASK shape documented in `AGENT_TASK.md` § INIT-TASK brief format. The orchestrator composes the following envelope; detailed field semantics are documented in `skills/pdf2md-page/BRIEF_SCHEMA.md`:
+
+```md
+PURPOSE: Convert one PDF page image to raw Markdown
+RequestedBy: PDF2MD
+
+ScopePath: {WORK_DIR}
+TaskSkill: pdf2md-page
+
+Tasks:
+  - Read the page image and transcribe its contents to Markdown per the 7 conversion rules
+
+ApplyEdits: true
+
+AllowedWriteTargets:
+  - "{WORK_DIR}/page_{NNNN}.md"
+
+RuntimeOverrides:
+  IMAGE_PATH: {WORK_DIR}/page_{NNNN}.png
+  OUTPUT_PATH: {WORK_DIR}/page_{NNNN}.md
+  PAGE_NUM: {N}
+  TOTAL_PAGES: {total from manifest}
+
+ExpectedOutputs:
+  - {WORK_DIR}/page_{NNNN}.md
+```
+
+Omit `AllowedTools` — this is a VLM-reasoning-only skill with no deterministic tool dependencies.
 
 ### Phase 3 — Post-process
 
@@ -136,6 +167,10 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 3. Report:
    > "Assembly complete. Output: `{OUTPUT_PATH}` ({bytes} bytes, {pages} pages assembled)."
    > "Failed/missing pages: {list or 'none'}."
+4. **Degraded-output guidance.** If any pages are failed, empty, or contain only placeholder text:
+   - List each affected page number and its failure mode (`FAILED`, `FAILED_INPUTS`, `empty`).
+   - State: "This assembly contains placeholder pages and is a degraded artifact. Recommend rerunning failed pages before passing to DOMAIN_DECOMP."
+   - The human must explicitly acknowledge the degraded state before downstream use. Automatic pipeline transition to DOMAIN_DECOMP with placeholder-containing output is not a valid workflow.
 
 [[END:PROTOCOL]]
 
@@ -158,11 +193,28 @@ If any pages failed, the failure count and page numbers are reported to the huma
 ### S4 — Tools are invoked correctly
 Rasterization, post-processing, and assembly are performed by deterministic tools, not by LLM reasoning.
 
-### S5 — VLM work is delegated
-Per-page conversion is performed by `pdf2md-page` skill dispatches. PDF2MD does not read page images or produce page Markdown itself.
+### S5 — VLM work is delegated via compliant TASK dispatch
+Per-page conversion is performed by `pdf2md-page` skill dispatches using the INIT-TASK brief shape. PDF2MD does not read page images or produce page Markdown itself.
 
-### S6 — Resumability holds
-Re-running the pipeline with the same parameters skips completed work (existing PNGs and `.md` files are reused).
+### S6 — Resumability holds with manifest-parameter validation
+Re-running the pipeline with matching `pdf_path` and `dpi` skips completed work. Mismatched work-dirs are rejected at Phase 0. File existence alone does not satisfy resume. Known limitation: same-path PDF replacement is undetectable without a content hash (see invariants).
+
+### S7 — Degraded output is gated
+If the assembled output contains placeholder pages, the Phase 4 report identifies them and recommends rerun. Downstream pipeline transition requires human acknowledgment.
+
+### Spec-satisfaction matrix
+
+Evidence types: **hard** = deterministic tool exit code or file existence proves the condition; **process** = the phase ran and produced output consistent with the condition.
+
+| Spec | Phase / Step | Tool or action | Evidence | Type | Blocking if unsatisfied |
+|------|-------------|----------------|----------|------|------------------------|
+| S1 | Phase 4, step 1 | `assemble_markdown.py` | `OUTPUT_PATH` exists and is non-empty | hard | Assembly tool exits non-zero |
+| S2 | Phase 1, step 2 | `rasterize_pdf.py` | `manifest.json` exists with parameters | hard | Phase 2 cannot build page list |
+| S3 | Phase 4, step 4 | Final report | Failed pages listed in report | process | Orchestrator must enumerate failures |
+| S4 | Phase 1 + 3 + 4 | Tool invocations | Tools invoked via `python3` CLI | process | Design defect if LLM reasoning used |
+| S5 | Phase 2 | TASK+`pdf2md-page` dispatch | INIT-TASK brief shape used; per-page `.md` files at `WORK_DIR` | process | Dispatch contract violation |
+| S6 | Phase 0, step 4 | Manifest comparison | `pdf_path` + `dpi` match confirmed or mismatch rejected | hard | Run rejected on mismatch |
+| S7 | Phase 4, step 4 | Final report | Placeholder pages listed; rerun recommended | process | Human must acknowledge before downstream use |
 
 [[END:SPEC]]
 
@@ -186,14 +238,14 @@ Re-running the pipeline with the same parameters skips completed work (existing 
 {OUTPUT_PATH}             ← final assembled Markdown (written by assemble_markdown.py)
 ```
 
-### Tool paths
+### Tool dependencies
 
-| Tool | Path |
-|---|---|
-| Rasterize | `tools/pdf2md/rasterize_pdf.py` |
-| Post-process | `tools/pdf2md/postprocess_page.py` |
-| Assemble | `tools/pdf2md/assemble_markdown.py` |
-| Header/footer strip | `tools/reporting/clean_pdf2md_output.py` |
+| Tool | Path | Phase |
+|---|---|---|
+| Rasterize | `tools/pdf2md/rasterize_pdf.py` | 1 |
+| Post-process (10-rule cleanup) | `tools/pdf2md/postprocess_page.py` | 3 |
+| Header/footer strip | `tools/reporting/clean_pdf2md_output.py` | 3, 4 |
+| Assemble | `tools/pdf2md/assemble_markdown.py` | 4 |
 
 ### Skill dispatched
 
@@ -221,9 +273,28 @@ The external Rust CLI required `cargo install`, provider-specific API keys (Vert
 
 Full parallelism (all pages at once) risks overwhelming concurrent context on large documents. Batching gives natural resume boundaries and lets the user tune throughput via `BATCH_SIZE`.
 
+### Why DPI 300?
+
+300 DPI is the standard resolution for document scanning and OCR workflows. It provides sufficient fidelity for body text, headings, and most tables without generating excessively large PNG files. Higher DPI (e.g., 400) improves legibility of fine detail — subscripts, small-font footnotes, dense tables — but doubles file size and increases VLM token cost per page. For most document transcription, 300 is the right default; the `DPI` parameter allows override when finer detail is needed.
+
 ### Why Sonnet for `pdf2md-page` dispatches?
 
 Sonnet has strong vision capabilities sufficient for document transcription. Opus adds cost without meaningful quality gain for this task. Haiku is not used because table and formula fidelity requires Sonnet-level reasoning.
+
+### Why two-stage post-processing?
+
+Post-processing runs two separate tools in sequence:
+
+1. **`postprocess_page.py`** applies 10 deterministic cleanup rules to raw VLM output: normalizing heading levels, collapsing excessive blank lines, fixing broken table syntax, and similar structural repairs. These are VLM-output-specific corrections that address known transcription artifacts.
+2. **`clean_pdf2md_output.py`** strips repeated page headers and footers — content that the VLM was instructed to ignore (RULE 6) but sometimes captures anyway. This tool operates on content patterns, not VLM artifacts.
+
+The separation exists because header/footer stripping is also run a second time on the assembled document (Phase 4, step 2) to catch cross-page patterns visible only after assembly. Keeping the tools separate allows the assembly-level pass to reuse the same tool without pulling in VLM-artifact-specific logic.
+
+### Why partial success with explicit degradation?
+
+A 200-page PDF with 2 failed pages should not require a full rerun. The pipeline assembles what it can and inserts deterministic placeholder text for failed pages. This makes the failure visible (not silent) and preserves the ability to resume — the human can rerun only the failed pages.
+
+However, the assembled output with placeholders is a degraded artifact. Placeholder text like `*[Page 5: conversion unavailable]*` would likely produce gaps in any downstream consumer that expects continuous prose. The degraded-output policy therefore requires human review: the Phase 4 report lists affected pages and recommends rerun before downstream use.
 
 ### Pipeline position
 

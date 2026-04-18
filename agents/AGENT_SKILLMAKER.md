@@ -116,7 +116,14 @@ SKILLMAKER does not observe live sessions. It relies on evidence: session logs, 
 
 ### TASK consumes skills at runtime
 
-TASK is the canonical runtime shell. When a brief includes `TaskSkill`, TASK loads the skill's `SKILL.md` and companion files and follows them as a method contract subordinate to the shell's hard boundaries. SKILLMAKER designs skills so that TASK can load and execute them without ambiguity.
+TASK is the canonical runtime shell. When a brief includes `TaskSkill`, TASK loads the skill's `SKILL.md` and companion files (`BRIEF_SCHEMA.md`, `TOOL_POLICY.md`, `QA_CHECKS.md`) and follows them as a method contract subordinate to the shell's hard boundaries. This is the skill hydration guarantee: the worker has the full contract without the orchestrator needing to reconstruct it in the dispatch prompt.
+
+SKILLMAKER designs skills so that TASK can load and execute them without ambiguity. The authority split between skill files:
+- **`SKILL.md`** is the authoritative method and output contract — extraction rules, format specifications, non-negotiable constraints, canonical output templates.
+- **`BRIEF_SCHEMA.md`** is the dispatch contract — the required, recommended, and optional brief fields the orchestrator must provide to invoke the skill through TASK, plus recommended `CustomInstructions` content for format-critical defense-in-depth.
+- **`CustomInstructions`** in the dispatch brief carry run-specific reinforcement. They do not replace skill hydration. The skill contract in `SKILL.md` remains authoritative; `CustomInstructions` are a defense-in-depth layer for requirements that are especially format-sensitive or that have caused downstream failures.
+
+If dispatch payloads for a skill become repetitive or fragile across orchestrators, SKILLMAKER SHOULD recommend (in `BRIEF_SCHEMA.md` or the Phase 5 runtime alignment note) that a deterministic brief-builder tool be used to render INIT-TASK briefs from runtime parameters. Brief-builders derive from the authoritative sources (`render_stub()`, `SKILL.md` templates) rather than duplicating contract text.
 
 SKILLMAKER does not execute skills. It does not load `TaskSkill` into its own context. It does not participate in TASK runs.
 
@@ -187,10 +194,11 @@ For each approved skill candidate:
 1. Write `SKILL.md` using the template at `skills/SKILL_TEMPLATE.md`:
    - YAML frontmatter (`name`, `description`, `compatibility`, `allowed-tools`, `metadata`).
    - Markdown body (purpose, suitable shells, inputs, runtime overrides, tool usage, outputs, non-negotiable constraints, QA expectations).
-2. Write companion files as needed:
-   - `BRIEF_SCHEMA.md` — required and optional brief fields, examples.
-   - `TOOL_POLICY.md` — explicit tool allowlist, preferences, and fallback rules.
-   - `QA_CHECKS.md` — minimum output validity checks and failure reporting expectations.
+2. Write the four canonical skill documents:
+   - `SKILL.md` — required core method and output contract.
+   - `BRIEF_SCHEMA.md` — required dispatch contract: required and optional brief fields, `RuntimeOverrides` guidance, recommended `CustomInstructions` content for format-critical reinforcement, and examples. This is what orchestrators read to compose valid INIT-TASK briefs.
+   - `TOOL_POLICY.md` — required explicit tool allowlist, preferences, and fallback rules.
+   - `QA_CHECKS.md` — required minimum output validity checks and failure reporting expectations.
 3. Run the skill validator:
    ```sh
    python3 tools/validation/validate_skill_metadata.py skills
@@ -293,9 +301,9 @@ skills/
   SKILL_TEMPLATE.md            # Authoring template (owned by SKILLMAKER)
   <skill_name>/
     SKILL.md                   # Required; YAML frontmatter + Markdown body
-    BRIEF_SCHEMA.md            # Optional but recommended
+    BRIEF_SCHEMA.md            # Required; dispatch contract for TASK invocation
     TOOL_POLICY.md             # Required
-    QA_CHECKS.md               # Optional but recommended
+    QA_CHECKS.md               # Required
     examples/                  # Optional
     notes/                     # Optional
 ```
@@ -305,9 +313,9 @@ skills/
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | Core skill contract — purpose, inputs, outputs, tool usage, constraints, QA expectations |
-| `BRIEF_SCHEMA.md` | Documents the brief fields the skill expects — required, optional, examples, and `RuntimeOverrides` guidance |
+| `BRIEF_SCHEMA.md` | Required dispatch contract — documents the brief fields the skill expects, examples, and `RuntimeOverrides` guidance |
 | `TOOL_POLICY.md` | Explicit tool allowlist, preference ordering, fallback rules, and write restrictions |
-| `QA_CHECKS.md` | Minimum output validity checks, failure reporting expectations, and required evidence or logs |
+| `QA_CHECKS.md` | Required QA contract — minimum output validity checks, failure reporting expectations, and required evidence or logs |
 
 ### Naming conventions
 

@@ -55,11 +55,16 @@ What recurring bounded task this skill supports.
 
 ## `BRIEF_SCHEMA.md`
 
+**Required.** Every skill must include this file.
+
+This is the dispatch contract — what the orchestrator must provide in the INIT-TASK brief to invoke this skill through TASK. When TASK loads a skill via `TaskSkill`, it also loads `BRIEF_SCHEMA.md`.
+
 Document:
-- required brief fields
+- required brief fields (with types, defaults, examples)
 - optional fields
-- examples of `RuntimeOverrides`
-- examples of `CustomInstructions`
+- `RuntimeOverrides` guidance (what each override means, allowed values)
+- recommended `CustomInstructions` content for format-critical defense-in-depth (format reminders, completion checklists, canonical output references)
+- `CustomInstructions` carry run-specific reinforcement; they do not replace skill hydration. The contract in `SKILL.md` remains authoritative.
 
 ## `TOOL_POLICY.md`
 
@@ -81,6 +86,8 @@ H3 subheadings under `## Allowed deterministic tools`:
 Content floor: `## Allowed deterministic tools` (with both H3 subsections), `## Disallowed use`, and `## Write boundary` must be present on every skill. `## Preferred tool order` and `## Expected use of reasoning` may be skipped when no content applies.
 
 ## `QA_CHECKS.md`
+
+**Required.** Every skill must include this file.
 
 Document:
 - minimum output validity checks

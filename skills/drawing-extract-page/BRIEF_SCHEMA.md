@@ -203,7 +203,30 @@ The skill writes only:
 
 ## CustomInstructions
 
-CustomInstructions are not used by this skill. The extraction contract is fully determined by `DRAWING_TYPE` + `EXTRACTION_TARGET` + (for detailed) the requested field lists. Any page-specific interpretation hints from the orchestrator should be attached as separate narrative context in the brief body, not through structured overrides.
+The extraction contract is fully determined by `DRAWING_TYPE` + `EXTRACTION_TARGET` + (for detailed) the requested field lists. When dispatching through TASK with `TaskSkill: drawing-extract-page`, the TASK shell loads `SKILL.md` and companion files automatically — the orchestrator does not need to inline the full contract.
+
+The orchestrator SHOULD include the following as CustomInstructions to reinforce format-critical requirements as a defense-in-depth measure:
+
+### Format reminders (recommended)
+
+1. YAML lists use block style (`  - item`) for multi-element lists. Empty lists use inline `[]`.
+2. Table separator MUST be the spaced form: `| --- | --- | ... |`
+3. `status` MUST be exactly one of: `SUCCESS`, `NO_FINDINGS`, `FAILED`, `FAILED_INPUTS`.
+4. `finding_count` MUST equal the number of meaningful equipment rows (non-empty `equipment_number` or `equipment_name` or `drawing`). For `NO_FINDINGS`, `finding_count` MUST be `0`.
+5. Data rows MUST have exactly as many columns as the table header (base columns + requested known fields + extra fields).
+6. Detail field values must be visible in helper crops. Not visible = blank. Do not invent.
+
+### Completion checklist (recommended)
+
+- Output file written at OUTPUT_PATH
+- YAML frontmatter has all required keys including `finding_count`
+- `finding_count` matches the number of meaningful data rows
+- Table separator uses spaced form
+- All data rows match the column count of the header
+- Status is one of the four legal tokens
+- No instrument tags (PSV, PCV, FIC, etc.) in findings
+
+Any page-specific interpretation hints from the orchestrator (e.g., "this page is a dense compressor layout, expect 12+ items") should also be attached as CustomInstructions.
 
 ## Compatibility shim (one slice, transitional)
 

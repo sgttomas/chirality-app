@@ -170,9 +170,9 @@ When you complete a workflow design task for agents, you MUST produce a **Workfl
 When you design a new skill contract under `skills/`, SKILLMAKER MUST produce:
 
 1) A **`SKILL.md`** with YAML frontmatter (`name`, `description`, `compatibility`, `metadata.chirality-skill-version`, `metadata.chirality-task-profile`, optional `allowed-tools`) and a method body (Purpose, Suitable agent shells, Typical dispatcher, Inputs, PROTOCOL, SPEC, STRUCTURE, RATIONALE).
-2) A **`BRIEF_SCHEMA.md`** (required/optional brief fields with types + defaults + examples).
-3) A **`TOOL_POLICY.md`** (preferred tools, optional tools, disallowed tools, fall-back conditions — implicit tool assumptions are a design defect).
-4) A **`QA_CHECKS.md`** (invariants and validity requirements specific to the method).
+2) A **`BRIEF_SCHEMA.md`** (required dispatch contract: required/optional brief fields with types + defaults + examples).
+3) A **`TOOL_POLICY.md`** (required tool contract: preferred tools, optional tools, disallowed tools, fall-back conditions — implicit tool assumptions are a design defect).
+4) A **`QA_CHECKS.md`** (required QA contract: invariants and validity requirements specific to the method).
 5) **Frontmatter + naming conformance** (skill folder name matches `name` field; passes `tools/validation/validate_skill_metadata.py`).
 6) **Actor-attribution clarity** (examples use dispatching persona in `RequestedBy` and name acting surface as `TASK+<skill-name>`).
 
@@ -454,22 +454,22 @@ A workflow design is compliant when all of the following are true:
 | **PRIMARY_OUTPUTS** | ... |
 ```
 
-### INIT-TASK Brief Block (recommended)
+### Skill dispatch principle
 
-```markdown
-PURPOSE: <...>
-SCOPE: <deliverables/packages/paths>
-WHERE_TO_LOOK: <roots/patterns>
-OUTPUT_LABEL: <optional>
-CONFIG: <optional; validated parameters/enums driving automated behavior>
-  - <e.g., BASIS_OF_ESTIMATE: QUOTE|RATE_TABLE|HISTORICAL|PARAMETRIC|ALLOWANCE>
-CONSTRAINTS:
-  - <schema, naming, maturity>
-EXCLUSIONS:
-  - <paths/patterns>
-NOTES:
-  - <anything else>
-```
+When a Type 1 persona agent delegates bounded work to a repo-native skill, it dispatches through the TASK shell with `TaskSkill` set to the skill folder name. This is what guarantees the worker loads `SKILL.md`, `BRIEF_SCHEMA.md`, and companion files automatically — the skill hydration contract defined in `AGENT_TASK.md` § Skill loading.
+
+The consequence: contract-critical worker guidance (output format, extraction rules, format-sensitive constraints) belongs in the skill layer — `SKILL.md` and `BRIEF_SCHEMA.md` — not in the orchestrator's dispatch prompt. The orchestrator's dispatch brief provides runtime parameters (paths, page numbers, field lists) via `RuntimeOverrides` and optional `CustomInstructions` for run-specific reinforcement. It does not reconstruct the skill contract.
+
+If a workflow bypasses TASK (e.g., dispatching to a generic agent without `TaskSkill`), that worker is not consuming a Chirality skill contract and needs its own first-class contract. This is the fallback path, not the standard path.
+
+If an orchestrator finds itself hand-composing worker prompts that duplicate the skill contract, that is a design defect. The remedies, in order:
+1. Ensure dispatch uses TASK with `TaskSkill` (skill hydration is automatic).
+2. Move format-critical guidance into the skill's `BRIEF_SCHEMA.md` § CustomInstructions as recommended content for orchestrators to include.
+3. If dispatch payloads are still repetitive or fragile, build a deterministic brief-builder tool that renders valid INIT-TASK briefs from runtime parameters.
+
+### INIT-TASK Brief Block
+
+The INIT-TASK brief is the standard dispatch payload for TASK. See `AGENT_TASK.md` § INIT-TASK brief format for the full field reference. The brief shape includes `PURPOSE`, `ScopePath`, `TaskSkill`, `AllowedWriteTargets`, `RuntimeOverrides`, `CustomInstructions`, and `ExpectedOutputs`. When dispatching a repo-native skill, the orchestrator composes the brief according to that skill's `BRIEF_SCHEMA.md`.
 
 ### Snapshot Output Block (required for task agents)
 

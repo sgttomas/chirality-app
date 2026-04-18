@@ -2,11 +2,11 @@
 
 ## Context
 
-The TOOL_POLICY.md Constitutional Conformance slice (closed 2026-04-04, recorded in `docs/PLAN.md` §6) added TOOL_POLICY.md presence check (#11) to `tools/validation/validate_skill_metadata.py`. The slice declared canonical section headings (5 H2 + 2 H3) and applied the two-part tool derivation rule across all 15 live skills.
+The TOOL_POLICY.md Constitutional Conformance slice (closed 2026-04-04, recorded in `plans/PLAN_HISTORY_AND_COMPLETED_NORMALIZATION_RECORD.md` §6) added TOOL_POLICY.md presence check (#11) to `tools/validation/validate_skill_metadata.py`. The slice declared canonical section headings (5 H2 + 2 H3) and applied the two-part tool derivation rule across all 15 live skills.
 
 During that slice, 2 of 4 parallel backfill subagents diverged on how to handle tools appearing in both the `allowed-tools` frontmatter and the `## Tool usage` body (dependency-extract, estimate-snapshot) — both produced TOOL_POLICY.md files where tools were duplicated across the two H3 subsections. Main-thread consolidation caught it and applied manual corrections. A deterministic validator check would have flagged the divergence before review.
 
-This slice extends the validator with 4 additional TOOL_POLICY.md structural checks (Tier 1) that catch drift deterministically. It closes the R10 machine-enforcement piece for the skill-contract layer. It does NOT address Tier 2 (agent-based semantic fidelity auditing) or R11 (tool-contract validator) — both remain deferred per `docs/PLAN.md` §6.
+This slice extends the validator with 4 additional TOOL_POLICY.md structural checks (Tier 1) that catch drift deterministically. It closes the R10 machine-enforcement piece for the skill-contract layer. It does NOT address Tier 2 (agent-based semantic fidelity auditing) or R11 (tool-contract validator) — both remain deferred per `plans/PLAN_HISTORY_AND_COMPLETED_NORMALIZATION_RECORD.md` §6.
 
 **Outcome:** TOOL_POLICY.md structural conformance is machine-enforced on every validator run; drift between SKILL.md `allowed-tools` frontmatter and TOOL_POLICY.md TASK-enforced subsection is caught automatically.
 
@@ -247,6 +247,6 @@ python3 tools/validation/validate_skill_metadata.py skills 2>&1 | grep -E "(pdf2
 ## Out of Scope / Deferred
 
 - **H3 position check** — verifying `### TASK-enforced` / `### Operationally invoked` are under `## Allowed deterministic tools` specifically. Presence check is sufficient for Tier 1.
-- **Tier 2 semantic fidelity audit** — LLM-based checks that TOOL_POLICY.md prose (Operationally invoked, Disallowed use, Write boundary, Expected use of reasoning) accurately reflects SKILL.md (`audit-tool-policy` TASK skill pattern). Deferred per `docs/PLAN.md` §6.
-- **R11 tool-contract validator** — `tools/REGISTRY.md` schema, idempotence posture, scope boundary. Separate tool-layer scope; deferred per `docs/PLAN.md` §6.
+- **Tier 2 semantic fidelity audit** — LLM-based checks that TOOL_POLICY.md prose (Operationally invoked, Disallowed use, Write boundary, Expected use of reasoning) accurately reflects SKILL.md (`audit-tool-policy` TASK skill pattern). Deferred per `plans/PLAN_HISTORY_AND_COMPLETED_NORMALIZATION_RECORD.md` §6.
+- **R11 tool-contract validator** — `tools/REGISTRY.md` schema, idempotence posture, scope boundary. Separate tool-layer scope; deferred per `plans/PLAN_HISTORY_AND_COMPLETED_NORMALIZATION_RECORD.md` §6.
 - **Content structure beyond floor** — specific subsection formatting, list-item structure within sections. Not warranted at this tier.
