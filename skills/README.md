@@ -109,6 +109,9 @@ or:
 Current example:
 - `deliverable-consistency` should normally begin with `tools/validation/scan_deliverable_consistency.py`, then read only the flagged files and nearby context.
 
+Publication example:
+- `DBM_PUBLISHER` dispatches `TASK + dbm-section-publish` once per approved publication section, then dispatches `TASK + dbm-publish` for package assembly and readiness review. Both skills remain publication-local and should be confined to `_Publication/DBM/` scopes rather than mutating KTY-local truth.
+
 ## Discovery guidance
 
 Treat `skills/` as a live skill root rather than relying on hard-coded skill lists in narrative documents.

@@ -16,7 +16,7 @@ Read structurally, the rows also form a governance grammar: NORMATIVE defines ru
 | --- | --- | --- | --- | --- |
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **OPERATIVE** | DECOMP\* | PREPARATION | TASK | AUDIT\* |
-| **EVALUATIVE** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
+| **EVALUATIVE** | HELPS_HUMANS | DBM_PUBLISHER | CHANGE | RECONCILIATION |
 
 ### Operative Row — Pipeline Categories
 
@@ -64,6 +64,7 @@ Other live task-family agents (DELIVERABLE_TASK, AGGREGATION, DOMAIN_HYPERGRAPH)
 | SKILLMAKER | `AGENT_SKILLMAKER.md` | Skill design, governance, and subsystem ownership |
 | PDF2MD | `AGENT_PDF2MD.md` | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
 | DRAWING_EXTRACT | `AGENT_DRAWING_EXTRACT.md` | Drawing-type-aware extraction pipeline; core-vs-repertoire split orchestrates rasterization, target-appropriate crops, drawing-extract-page skill dispatch per (drawing_type × extraction_target), deterministic QA, target-driven assembly, and optional PFD-equipment merge. PFD implemented; P_AND_ID/ISOMETRIC/GA stubbed fail-fast |
+| DBM_PUBLISHER | `AGENT_DBM_PUBLISHER.md` | Publish one rewritten DBM from approved DOMAIN state using frozen planning artifacts, direct section dispatch, and concordance-gated package review |
 
 ### Type 2 — Bounded Task Agents
 
@@ -93,11 +94,13 @@ Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounde
 |---|---|---|---|
 | four-documents | `skills/four-documents/` | Draft + enrich Datasheet/Specification/Guidance/Procedure | ORCHESTRATOR Phase 2.2 + 2.5 |
 | domain-documents | `skills/domain-documents/` | Draft + verify Knowledge Artifacts for DOMAIN variants | ORCHESTRATOR Phase 2.2 |
+| dbm-section-publish | `skills/dbm-section-publish/` | Publish one approved rewritten DBM section from mapped KTY-local inputs with fixed QA + assertions outputs | DBM_PUBLISHER section dispatch |
 | semantic-matrix-build | `skills/semantic-matrix-build/` | Generate `_SEMANTIC.md` semantic matrix | ORCHESTRATOR Phase 2.3 |
 | lens-register | `skills/lens-register/` | Generate `_SEMANTIC_LENSING.md` enrichment register | ORCHESTRATOR Phase 2.4 |
 | dependency-extract | `skills/dependency-extract/` | Extract `Dependencies.csv` v3.1 + `_DEPENDENCIES.md` | ORCHESTRATOR setup + control-loop refresh |
 | semantic-lensing | `skills/semantic-lensing/` | Apply lensing register during content enrichment | DELIVERABLE_TASK, WORKING_ITEMS |
 | content-digest | `skills/content-digest/` | Produce content digest snapshots | EVALUATION and others |
+| dbm-publish | `skills/dbm-publish/` | Assemble the rewritten DBM package, invoke deterministic QA/concordance helpers, and emit publication readiness + rerun guidance | DBM_PUBLISHER package gate |
 | estimate-snapshot | `skills/estimate-snapshot/` | Run per-deliverable estimate snapshots | ORCHESTRATOR Phase 4 (Estimating) |
 | estimate-prep | `skills/estimate-prep/` | Prepare estimation inputs (BOE, INDEX.md) | ORCHESTRATOR pre-Phase-4 |
 | pdf2md-page | `skills/pdf2md-page/` | Per-page VLM markdown extraction | PDF2MD orchestrator |

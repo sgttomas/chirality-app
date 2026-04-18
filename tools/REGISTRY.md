@@ -126,6 +126,16 @@ Canonical versions at `tools/evaluation/`. Project-specific variants may also ex
 
 ---
 
+## Publication
+
+| Name | Language | Purpose | Inputs | Outputs |
+|------|----------|---------|--------|---------|
+| `build_section_map.py` | Python 3 | Generate candidate `Section_Map.csv` from approved `Publication_Schema.md` selectors and the frozen `Publication_Input_Manifest.md`; validates selector coverage, duplicate artifact rows, and section load against `MaxKAFiles` without interpreting free-text inclusion/exclusion prose | `--schema`, `--manifest`, `--output-csv`, `--report-md` | Candidate `Section_Map.csv` + coverage report markdown |
+| `render_dispatch_briefs.py` | Python 3 | Render deterministic INIT-TASK briefs for approved publication sections and the package gate, validate each rendered brief against the target skill `BRIEF_SCHEMA.md`, pre-create section/package output directories, and emit `DISPATCH_INDEX.csv`; supports targeted section rerender via explicit SectionID list | `--publication-root`, `--input-manifest`, `--schema`, `--section-map`, `--rules`, `--concordance-register`, `--dispatch-root`, `--sections-root`, `--package-root`, `--package-snapshot-name`, `[--skills-root]`, `[--section-ids]`, `[--render-package yes|no]` | Section/package INIT-TASK briefs + `DISPATCH_INDEX.csv` |
+| `assemble_publication.py` | Python 3 | Assemble approved section outputs into package-level publication artifacts, including deterministic completeness checks, trace appendix generation, package manifest generation, and package QA reporting; optional `_LATEST.md` pointer update is opt-in only | `--publication-root`, `--input-manifest`, `--schema`, `--section-map`, `--rules`, `--sections-root`, `--output-dir`, `[--latest-pointer]` | `Rewritten_DBM.md`, `Trace_Appendix.md`, `Publication_Manifest.md`, `Publication_QA.md`, optional `_LATEST.md` |
+| `check_concordance.py` | Python 3 | Perform deterministic cross-section concordance checks from the frozen `Publication_Concordance_Register.csv` and the current section assertion CSVs; blocks missing authority assertions, missing required section assertions, invalid statuses, unresolved conflicts, and normalized value mismatches under the configured comparison rule | `--register`, `--sections-root`, `--output-report`, `--output-findings` | `Publication_Concordance_Report.md` + `Publication_Concordance_Findings.csv` |
+
+
 ## Backlog (CREATE LATER)
 
 Tools identified as useful but not yet needed — either used by only one agent, already handled inline by existing tools, or the agent currently manages the operation via LLM reasoning with an adequate fallback.

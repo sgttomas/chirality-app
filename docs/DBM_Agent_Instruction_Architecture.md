@@ -309,6 +309,7 @@ Per HELPS_HUMANS, agent instructions use these keywords with defined meaning:
 | **SKILLMAKER** | 1 | PERSONA | chat | repo-wide (skills/ + related contract docs) | allowed | Skill contracts, companion docs, migration notes, runtime alignment guidance |
 | **PDF2MD** | 1 | PERSONA | chat | project-level | allowed | Native PDF-to-Markdown conversion pipeline; orchestrates rasterization, batch VLM dispatch, post-processing, assembly |
 | **DRAWING_EXTRACT** | 1 | PERSONA | chat | project-level | allowed | Drawing-type-aware extraction pipeline; core-vs-repertoire split orchestrates rasterization, target-appropriate crops, drawing-extract-page dispatch per (drawing_type × extraction_target), deterministic QA, target-driven assembly, and optional PFD-equipment merge. PFD implemented; P_AND_ID/ISOMETRIC/GA stubbed fail-fast |
+| **DBM_PUBLISHER** | 1 | PERSONA | chat | tool-root (`_Publication/DBM/`) | allowed (7 gates) | frozen publication planning artifacts, section-dispatch set, publication readiness judgments, accepted package pointer |
 | **PREPARATION** | 2 | TASK | spawned | workspace-scaffold-only | never | Package/deliverable/category/KT folders with minimum viable fileset |
 | **ESTIMATING** | 2 | TASK | INIT-TASK | tool-root (`_Estimates/`) | never | Estimate snapshot (Summary, Detail.csv, QA, logs) |
 | **ESTIMATE_PREP** | 2 | TASK | INIT-TASK | tool-root (`_EstimatePrep/`) | never | 18-file pricing library, BOE scaffold/full |
@@ -338,10 +339,12 @@ Agents are organized along two axes from the chirality semantic framework (Matri
 |:---|:---|:---|:---|:---|
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
 | **OPERATIVE** | DECOMP\* | PREPARATION | TASK | AUDIT\* |
-| **EVALUATIVE** | HELPS_HUMANS | — | CHANGE | RECONCILIATION |
+| **EVALUATIVE** | HELPS_HUMANS | DBM_PUBLISHER | CHANGE | RECONCILIATION |
 
 - **NORMATIVE** and **EVALUATIVE** rows → **WORKBENCH** page (interactive persona sessions)
 - **OPERATIVE** row → **PIPELINE** page (pipeline execution with category dropdowns)
+
+`DBM_PUBLISHER` is a standalone peer persona to `ORCHESTRATOR` for v1 publication work. The handoff is sequential: ORCHESTRATOR prepares accepted DOMAIN state, then DBM_PUBLISHER publishes from that state without becoming a new ORCHESTRATOR phase.
 
 ---
 
@@ -374,6 +377,9 @@ EVALUATION (Type 1) ──spawns──┬── CONTENT_DIGEST (Type 2)
                               ├── EVALUATION_REPORT (Type 2)
                               ├── EVALUATION_STRUCTURE_AUDIT (Type 2)
                               └── EVALUATION_DEPENDENCY_AUDIT (Type 2)
+
+DBM_PUBLISHER (Type 1) ──dispatches TASK+skill──┬── dbm-section-publish [one approved section per run]
+                                                └── dbm-publish [package assembly + readiness gate]
 
 CHANGE (Type 1) ── leaf agent (spawns nothing; implements approved edits)
 
@@ -443,7 +449,7 @@ DELIVERABLE-LOCAL (single production unit folder only)
 ├── DELIVERABLE_TASK
 └── REVIEW (+tool-root for snapshots)
 
-  Dispatched skills write under TASK's deliverable-local scope:
+  Dispatched skills that normally write under TASK's deliverable-local scope:
   four-documents, domain-documents, semantic-matrix-build, lens-register, dependency-extract
 
 TOOL-ROOT-ONLY (derived outputs under execution tool roots)
@@ -454,6 +460,7 @@ TOOL-ROOT-ONLY (derived outputs under execution tool roots)
 ├── ESTIMATING             → _Estimates/
 ├── AGGREGATION            → _Aggregation/
 ├── EVALUATION             → _Evaluation/
+├── DBM_PUBLISHER          → _Publication/DBM/
 ├── AUDIT_AGENTS           → _Reconciliation/AgentAudit/
 ├── AUDIT_DECOMP           → _Reconciliation/DecompCoverage/
 ├── AUDIT_DEP_CLOSURE      → _Reconciliation/DepClosure/
@@ -463,6 +470,10 @@ TOOL-ROOT-ONLY (derived outputs under execution tool roots)
 ├── EVALUATION_REPORT      → _Evaluation/reports/
 ├── EVALUATION_STRUCTURE_AUDIT → _Evaluation/reports/
 └── EVALUATION_DEPENDENCY_AUDIT → _Evaluation/reports/
+
+  Publication-local TASK skills use publication-bounded scopes under `_Publication/DBM/`:
+  dbm-section-publish → `sections/{SectionID}/`
+  dbm-publish         → `package/RUN-YYYYMMDD-HHMMSS/`
 ```
 
 ### 7.2 Write Scope Rules
@@ -566,11 +577,15 @@ NOTES: <anything else>
 
 ### 9.2 Agent-Specific Brief Extensions
 
+Publication-local TASK dispatches should use `ScopePath` and `AllowedWriteTargets` inside `{EXECUTION_ROOT}/_Publication/DBM/`. Section runs should point at `sections/{SectionID}/`; package runs should point at `package/` snapshots.
+
 | Agent | Key Additional Parameters |
 |-------|--------------------------|
 | **PREPARATION** | Task type (A–G), PKG_ID, DEL_ID, CAT_ID, KTY_ID |
 | **TASK+four-documents** | DELIVERABLE_PATH, DECOMPOSITION_REF, RUN_PASSES (FULL/P1_P2/P3_ONLY), ALLOW_OVERWRITE_STATES, DECOMP_VARIANT |
 | **TASK+domain-documents** | KTY_PATH, UNIT_SCOPE (EXAMPLES_ONLY/ALL_MAPPED), ARTIFACT_NAMING, MAX_ARTIFACTS |
+| **TASK+dbm-section-publish** | SECTION_ID, SECTION_TITLE, SECTION_TYPE, SECTION_PURPOSE, PUBLICATION_INPUT_MANIFEST, PUBLICATION_SCHEMA_PATH, SECTION_MAP_PATH, PUBLICATION_RULES_PATH, PUBLICATION_CONCORDANCE_REGISTER_PATH, MAX_KA_FILES |
+| **TASK+dbm-publish** | PUBLICATION_ROOT, PUBLICATION_INPUT_MANIFEST, PUBLICATION_SCHEMA_PATH, SECTION_MAP_PATH, PUBLICATION_RULES_PATH, PUBLICATION_CONCORDANCE_REGISTER_PATH, SECTIONS_ROOT, PACKAGE_OUTPUT_ROOT |
 | **TASK+dependency-extract** | MODE (UPDATE/RESET_EXTRACTED), STRICTNESS (CONSERVATIVE/AGGRESSIVE), CONSUMER_CONTEXT, SOURCE_DOCS |
 | **TASK+semantic-matrix-build** | deliverable_folder, decomposition_path, DECOMP_VARIANT |
 | **TASK+lens-register** | deliverable_folder, DECOMP_VARIANT |
