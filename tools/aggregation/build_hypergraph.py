@@ -1008,6 +1008,20 @@ def main() -> int:
     kty_supports_obj_rows = read_csv_rows(args.staging_dir / "kty_supports_obj.csv")
     has_ledger = len(ledger_rows) > 0
 
+    # Qualify artifact IDs with parent KTY to prevent cross-KTY node collisions.
+    # Discovery emits bare ordinals (KA-01, KA-02) which collide across KTY folders.
+    for row in artifact_rows:
+        kty = row.get("KnowledgeTypeID", "").strip()
+        aid = row.get("ArtifactID", "").strip()
+        if kty and aid:
+            row["ArtifactID"] = f"{kty}/{aid}"
+
+    for row in mapping_rows:
+        kty = row.get("KnowledgeTypeID", "").strip()
+        aid = row.get("ArtifactID", "").strip()
+        if kty and aid:
+            row["ArtifactID"] = f"{kty}/{aid}"
+
     qa_findings: List[Dict[str, str]] = []
 
     # Build nodes
