@@ -15,7 +15,7 @@ These invariants MUST hold for every run. Violating any of them makes the run in
 | **One deliverable per run** | Each invocation processes exactly one Knowledge Type folder (`KTY_PATH`). No cross-Knowledge-Type scanning |
 | **No human input** | The skill works from folder contents, references, and decomposition. Human interacts with ORCHESTRATOR/WORKING_ITEMS, not this skill |
 | **Respect human work** | `_STATUS.md` `Current State` must be within `ALLOW_OVERWRITE_STATES` (default `OPEN, INITIALIZED`) before any overwrite. Halt with `SKIPPED_PROTECT_HUMAN_WORK` otherwise |
-| **No metadata modification** | Never modify `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, or `_SEMANTIC.md` |
+| **No metadata modification** | Never modify `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, or `_SEMANTIC.md`. Metadata drift discovered during regeneration must be surfaced as a follow-on alignment action, not fixed inside this skill |
 | **No invention** | Missing information marked `TBD`; inferences labeled `ASSUMPTION`. Do not fabricate source excerpts when source is inaccessible |
 | **Authoritative source required** | All passes require the source file(s) bounded by `SourceSpan` to be accessible. Halt with `FAILED_INPUTS` if source cannot be read |
 | **Source fidelity is the quality gate** | Pass 3 verifies artifact-to-source fidelity. No semantic lensing / semantic enrichment is used in the DOMAIN pipeline |

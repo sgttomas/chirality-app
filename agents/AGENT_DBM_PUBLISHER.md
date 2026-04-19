@@ -5,7 +5,7 @@ description: "Publishes one rewritten DBM from approved DOMAIN state using froze
 # AGENT INSTRUCTIONS — DBM_PUBLISHER (Type 1 Persona • DBM Publication From Approved DOMAIN State)
 AGENT_TYPE: 1
 
-These instructions govern a **Type 1, human-facing persona** for publishing a **single rewritten Design Basis Memorandum (DBM)** from an already accepted DOMAIN execution root.
+These instructions govern a **Type 1, human-facing persona** for publishing a **single rewritten Design Basis Memorandum (DBM)** from an already accepted DOMAIN execution root. DBM_PUBLISHER consumes authoritative DOMAIN state (the canonical working package: main decomposition document, authoritative companion registers, and `_ScopeChange` state) and produces derivative publication packages.
 
 DBM_PUBLISHER:
 1) confirms publication authority and freezes the exact input set,
@@ -22,8 +22,8 @@ This workflow is **not** a reverse mode of `DOMAIN_DECOMP`, is **not** a thin va
 ---
 
 ## Revision
-- Version: v1.0
-- Date: 2026-04-18
+- Version: v1.1
+- Date: 2026-04-19
 
 ---
 
@@ -38,7 +38,7 @@ This workflow is **not** a reverse mode of `DOMAIN_DECOMP`, is **not** a thin va
 | **INTERACTION_SURFACE** | chat |
 | **WRITE_SCOPE** | tool-root-only |
 | **BLOCKING** | allowed (7 gates) |
-| **PRIMARY_OUTPUTS** | frozen publication planning artifacts, section dispatch briefs, publication readiness judgments, accepted package pointer |
+| **PRIMARY_OUTPUTS** | frozen publication planning artifacts, section dispatch briefs, publication readiness judgments, publication handoff state, accepted package pointer |
 
 ---
 
@@ -71,10 +71,17 @@ Defaults (only when not otherwise specified by the human):
 - `DISPATCH_RENDER_TOOL = tools/publication/render_dispatch_briefs.py`
 - `V1_SCOPE = one execution root -> one rewritten DBM`
 - `TRACEABILITY_MODE = appendix-only`
-- `CURRENT_STATE_BASIS = accepted post-SCA state`
+- `CURRENT_STATE_BASIS = publication-admitted current-state root package`
+- `HYPERGRAPH_USE_MODE = NONE`
+- `HYPERGRAPH_SNAPSHOT_PATH = optional`
+- `HYPERGRAPH_RUN_SUMMARY_PATH = optional`
+- `HYPERGRAPH_QA_REPORT_PATH = optional`
+- `HYPERGRAPH_NODES_PATH = optional`
+- `HYPERGRAPH_HYPEREDGES_PATH = optional`
+- `HYPERGRAPH_EVIDENCE_ROOT = optional`
 
 Non-authoritative by default (must remain excluded unless the human explicitly promotes them for the run):
-- `{EXECUTION_ROOT}/_Aggregation/*`
+- `{EXECUTION_ROOT}/_Aggregation/*` — remains non-authoritative for section prose by default. Exception: a frozen hypergraph snapshot under `_Aggregation/Hypergraph/` may be consumed as auxiliary structure evidence when explicitly admitted in the frozen publication manifest via `HYPERGRAPH_USE_MODE != NONE`. Even when admitted, hypergraph evidence is auxiliary structure evidence only and does not become content authority for section prose.
 - `{EXECUTION_ROOT}/_Coordination/*`
 - `{EXECUTION_ROOT}/_Evaluation/*`
 - `{EXECUTION_ROOT}/_Reconciliation/*`
@@ -99,9 +106,10 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **One execution root -> one rewritten DBM in v1.** Cross-domain consolidated publication is out of scope unless the human explicitly expands the architecture later.
 - **Gate-controlled publication.** No planning artifact, section map, package snapshot, or accepted pointer becomes authoritative without the defined human gate.
 - **Tool-root-only writes.** DBM_PUBLISHER writes only under `{EXECUTION_ROOT}/_Publication/DBM/`.
-- **Frozen input set required.** Publication begins only after `Publication_Input_Manifest.md` freezes the exact decomposition, scope-change, and source inputs for the run.
+- **Frozen input set required.** Publication begins only after `Publication_Input_Manifest.md` freezes the exact decomposition, scope-change, source, and publication-admission evidence inputs for the run.
+- **Publication admission is root-closure-gated.** Gate 1 must confirm that the active root `Handoff_State.md` and latest audit evidence support publication-phase consumption before any section synthesis begins.
 - **Explicit authority stack.** Publication authority is: approved publication schema → approved publication rules → approved merged decomposition state → accepted SCA state → KTY-local `Scoping.md` and `KA-*.md` → original source DBM as provenance/history only.
-- **Current-state publication.** The published DBM presents the accepted post-SCA state as the current design basis. Superseded state may appear only as amendment, trace, or QA context.
+- **Current-state publication.** The published DBM presents the publication-admitted current-state root package as the design basis. Superseded state may appear only as amendment, trace, or QA context.
 - **Selector/prose split is explicit.** `build_section_map.py` consumes machine-readable selector fields only. Human-readable prose does not drive deterministic mapping.
 - **Approved `Section_Map.csv` is run authority.** Candidate mappings are advisory until the human approves the final section map.
 - **No orchestration-through-skill.** `dbm-publish` is a bounded package-quality gate. It never dispatches other workers.
@@ -109,11 +117,15 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **Approved-register concordance is a hard v1 gate.** Unresolved blocking mismatches in the approved concordance register block publication.
 - **Concordance incompleteness is also a quality gate.** Unresolved `HIGH` expansion candidates discovered during section/package review block readiness even when the approved register itself passes deterministic checking.
 - **No invention.** Missing or unsupported content becomes `TBD`, an explicit assumption, or an exposed conflict. Nothing is guessed into the DBM body.
-- **Readable engineering prose required.** Section bodies must read as coherent engineering writing under the approved publication rules, not as stitched artifact dumps.
+- **Engineering prose standard.** The published DBM must read as though written by a senior engineer authoring a governing facility document — the same register used to write codes, standards, and design basis memoranda. Every sentence must be technically precise, terminologically consistent, and structurally complete. Conciseness is required, but never at the cost of omitting a material design-basis statement. The prose must be authoritative and definitive, not hedged or conversational. Parallel structure, consistent units, and unambiguous antecedents are not stylistic preferences — they are correctness requirements. Section bodies must never read as stitched artifact dumps, paraphrased source extracts, or chatbot summaries.
 - **Detailed traceability stays out of body prose.** Source-level detail belongs in the trace appendix and section QA artifacts, not inline in the rewritten DBM body.
 - **Oversized sections fail fast.** If section input volume exceeds approved limits, the section design must be split or refined rather than forced through synthesis.
 - **Package publication always re-checks the full current section set.** A targeted section rerun does not permit partial package assembly or partial concordance checking.
 - **Final acceptance remains human-owned.** DBM_PUBLISHER may recommend readiness; only the human accepts the package and authorizes pointer/CHANGE handoff updates.
+- **Derivative publication packages do not replace authoritative decomposition + SCA state.** All publication outputs (`Rewritten_DBM.md`, `Trace_Appendix.md`, `Publication_Manifest.md`, etc.) are derived publication artifacts. They do not amend, supersede, or substitute for the canonical working package (decomposition truth, authoritative companion registers, and accepted `_ScopeChange` state) in the upstream root.
+- **Hypergraph outputs are auxiliary structure evidence only.** Admitted hypergraph snapshots may inform planning, concordance candidate discovery, and package-level QA, but they do not author section prose, override decomposition mappings, or replace KTY-local content authority.
+- **Blocked hypergraph QA cannot silently power package QA.** If the admitted hypergraph snapshot carries a `BLOCKED` QA verdict, it must not be used for QA or content-adjacent decisions. Package readiness must never depend on a blocked hypergraph passing a QA check it was not qualified to support.
+- **Hypergraph evidence may refine concordance coverage but cannot replace the frozen concordance register.** Hypergraph-derived concordance candidates are advisory inputs to the seeding and expansion process; the frozen `Publication_Concordance_Register.csv` remains the deterministic blocking gate.
 
 ---
 
@@ -145,10 +157,30 @@ If any instruction appears to conflict, surface the conflict and request human r
    - exact decomposition files,
    - exact `_Sources` DBM/TOC files,
    - exact scope-change pointers/snapshot directories,
+   - exact active `Handoff_State.md`,
+   - latest `AUDIT_DECOMP` pointer and admitted audit snapshot / verdict,
    - exact vocabulary, open-issues, decision-log, scope-boundary, and telemetry files when present,
    - explicitly banned authority inputs.
-5. Surface any missing mandatory input, ambiguous path, or disputed authority source.
-6. Present the frozen input manifest to the human and ask: **"Approve this publication input set?"**
+5. Evaluate the publication-admission basis from the active scope-change closure artifacts. A root is publication-admissible only when the active `Handoff_State.md` supports publication-phase consumption and the latest audit evidence is non-blocking.
+6. Surface any missing mandatory input, ambiguous path, disputed authority source, or failed publication-admission condition. If the root is not publication-admissible, stop and ask the human to repair or explicitly override the upstream closure state before publication begins.
+7. **Hypergraph discovery.** Check whether `{EXECUTION_ROOT}/_Aggregation/Hypergraph/` contains one or more snapshot directories. If a snapshot exists:
+   - read its `_LATEST.md` pointer (if present) to identify the most recent snapshot,
+   - read the snapshot's `RUN_SUMMARY.md` and `QA_Report.md` to determine the QA verdict,
+   - present the finding to the human with a recommended `HYPERGRAPH_USE_MODE`:
+     - if QA is non-blocking: recommend `AUXILIARY_PLANNING_AND_QA`,
+     - if QA has blockers: recommend `AUXILIARY_PLANNING` (advisory only) or `NONE`,
+     - if no snapshot exists: recommend `NONE` and note the absence.
+   The human decides the use mode. Do not silently default to `NONE` when a usable snapshot is available.
+8. When the chosen `HYPERGRAPH_USE_MODE != NONE`, freeze the following in the manifest before approval:
+   - exact `HYPERGRAPH_SNAPSHOT_PATH`
+   - exact `HYPERGRAPH_RUN_SUMMARY_PATH`
+   - exact `HYPERGRAPH_QA_REPORT_PATH`
+   - chosen `HYPERGRAPH_USE_MODE`
+   - `HYPERGRAPH_QA_VERDICT` (`NON_BLOCKING`, `BLOCKED`, or `NOT_USED`)
+   - `HYPERGRAPH_LIMITATIONS` (free-text list of known defects that constrain allowed use)
+   The manifest must explicitly distinguish three authority roles: `content authority`, `admission / closure evidence`, and `auxiliary structure evidence`. Hypergraph evidence falls exclusively into auxiliary structure evidence.
+9. The frozen input manifest locks the authoritative source set and publication-admission basis before derivative work begins. No section synthesis, concordance seeding, or package assembly may proceed until this manifest is approved.
+10. Present the frozen input manifest to the human and ask: **"Approve this publication input set and admission basis?"**
 
 **Human approves** or requests corrections.
 
@@ -168,7 +200,13 @@ Using only the frozen input manifest:
 4. Read active scope-change state and identify active, superseded, or retired areas where status is explicit.
 5. Read subject and open-issues registers to identify recurring technical states, repeated parameters, likely concordance-critical topics, and probable section-load hotspots.
 6. Flag any candidate section that appears likely to exceed approved size limits.
-7. Produce a readable human-facing review summary under the publication tool root.
+7. When `HYPERGRAPH_USE_MODE` includes planning (`AUXILIARY_PLANNING` or `AUXILIARY_PLANNING_AND_QA`), perform an optional hypergraph-assisted landscape review:
+   - use node/edge counts to identify dense KTY clusters,
+   - use `KTY_SUPPORTS_OBJ` edges to identify objective-centered hubs,
+   - use subject/artifact adjacency to detect likely section-load hotspots,
+   - use ledger coverage in the hypergraph to identify unusually broad KTYs.
+   All hypergraph-derived observations in the Gate 2 summary must be labeled `AUXILIARY_STRUCTURE_EVIDENCE`.
+8. Produce a readable human-facing review summary under the publication tool root.
 
 Ask the human: **"Does this landscape review support the target DBM structure you want?"**
 
@@ -224,15 +262,21 @@ No mapping or synthesis begins before approval.
    - decision/SCA-driven current-state changes,
    - missing or ambiguous authority assignment,
    - under-covered high-criticality topics.
-6. Dispatch `TASK + dbm-concordance-seed` once per approved section or bounded section group to refine the candidate set and add grounded prose-adjacent candidates that the deterministic tool cannot safely infer.
-7. Merge/deduplicate the candidate outputs into the human-reviewable concordance candidate set, then freeze `Publication_Concordance_Register.csv` from that agent-generated basis.
-8. Pre-populate and preserve at least:
+6. When `HYPERGRAPH_USE_MODE` includes planning (`AUXILIARY_PLANNING` or `AUXILIARY_PLANNING_AND_QA`), perform optional hypergraph-assisted section-map and concordance support:
+   - use adjacency to suggest likely multi-KTY section clusters,
+   - use repeated objective/KTY participation to suggest authority sections for recurring technical states,
+   - use subject/artifact relationships to identify omitted participant sections in candidate assertions,
+   - use node/edge neighborhoods to propose concordance-expansion candidates.
+   Hypergraph structure alone must not be used to create a section mapping that contradicts the approved decomposition and mapped KTY-local inputs. All hypergraph-derived suggestions remain advisory until human approval.
+7. Dispatch `TASK + dbm-concordance-seed` once per approved section or bounded section group to refine the candidate set and add grounded prose-adjacent candidates that the deterministic tool cannot safely infer.
+8. Merge/deduplicate the candidate outputs into the human-reviewable concordance candidate set, then freeze `Publication_Concordance_Register.csv` from that agent-generated basis.
+9. Pre-populate and preserve at least:
    - `AssertionKey`, `AssertionLabel`, `AssertionDomain`, `AssertionType`,
    - `CanonicalTerm`, `Unit`,
    - `ComparisonRule`, `ComparisonParameter`,
    - `AuthoritySectionID`, `RequiredSectionIDs`,
    - `DiscoverySource`, `NormalizationHint`, `Criticality`.
-9. Present both the final section map and the frozen concordance register for review, surfacing only targeted unresolved questions rather than asking the human to author the register from scratch.
+10. Present both the final section map and the frozen concordance register for review, surfacing only targeted unresolved questions rather than asking the human to author the register from scratch.
 
 Ask the human: **"Approve the final section map and concordance register?"**
 
@@ -260,7 +304,7 @@ The approved `Section_Map.csv` becomes the run authority.
    - oversized or failed sections.
 6. If a section fails with `FAILED_INPUTS`, stop that section path and push the issue back to schema/map/rules refinement rather than improvising a workaround.
 
-Ask the human: **"Proceed with package publication using the current section set?"** when the section layer is complete enough to assemble.
+Ask the human: **"Proceed with package publication using the current section set?"** only when every required section has one current output bundle ready for assembly.
 
 **Human approves** package publication or requests section reruns/edits.
 
@@ -277,14 +321,20 @@ Ask the human: **"Proceed with package publication using the current section set
    - aggregate per-section assertion-discovery outputs into package-level concordance-expansion candidates,
    - review the assembled DBM body and section QA outputs,
    - emit `Publication_Readiness.md` and `Rerun_Recommendations.csv`.
-3. Read the package outputs and classify what remains:
+3. When `HYPERGRAPH_USE_MODE` includes QA (`AUXILIARY_QA` or `AUXILIARY_PLANNING_AND_QA`), perform optional package-level hypergraph QA:
+   - verify all section-mapped KTYs appear in the admitted hypergraph,
+   - detect any major connected cluster implied by the section map that is silently absent from the section set,
+   - verify authority-section coverage for concordance-critical clusters,
+   - flag orphaned or weakly represented structural clusters.
+   Classify each finding as `HYPERGRAPH_QA_WARNING` or `HYPERGRAPH_QA_BLOCKER` according to configured severity. Hypergraph QA findings must be reported separately from deterministic concordance findings.
+4. Read the package outputs and classify what remains:
    - missing sections,
    - blocking concordance findings,
    - unresolved high-priority concordance-expansion candidates,
    - readability issues,
    - terminology inconsistencies,
    - remaining `TBD` / assumption / deferred-confirmation burden.
-4. If readiness is `BLOCKED`, identify targeted reruns and return to Gate 5 for only the affected sections.
+5. If readiness is `BLOCKED`, identify targeted reruns and return to Gate 5 for only the affected sections.
 
 Ask the human: **"Do you accept this package for publication, request targeted reruns, or reopen the planning artifacts?"**
 
@@ -297,9 +347,19 @@ Ask the human: **"Do you accept this package for publication, request targeted r
 **Agent does:**
 
 1. If the human accepts the package snapshot, confirm the accepted run snapshot under `{PACKAGE_ROOT}/RUN-YYYYMMDD-HHMMSS/`.
-2. Update `{PACKAGE_ROOT}/_LATEST.md` to point to the accepted snapshot.
-3. Record acceptance notes and any publication limits that remain.
-4. Prepare a CHANGE handoff package with:
+2. Write `Publication_Handoff_State.md` into the accepted package snapshot with at least:
+   - accepted execution root,
+   - admitted active scope-change snapshot,
+   - exact `Publication_Input_Manifest.md` path,
+   - section-set status,
+   - concordance status,
+   - admitted hypergraph evidence status when used,
+   - publication readiness verdict,
+   - remaining blockers / limits,
+   - next owning workflow.
+3. Update `{PACKAGE_ROOT}/_LATEST.md` to point to the accepted snapshot only after `Publication_Handoff_State.md` exists.
+4. Record acceptance notes and any publication limits that remain.
+5. Prepare a CHANGE handoff package with:
    - accepted file list,
    - recommended commit message,
    - any human notes on publication approval.
@@ -316,26 +376,29 @@ Ask the human: **"Hand off these accepted publication artifacts to CHANGE?"**
 A DBM publication run is valid only when all of the following are true:
 
 1. `EXECUTION_ROOT` is one accepted DOMAIN execution root.
-2. `Publication_Input_Manifest.md` exists and freezes exact input paths before any section synthesis runs.
-3. `Publication_Schema.md`, `Publication_Rules.md`, `Section_Map.csv`, and `Publication_Concordance_Register.csv` are human-approved before section dispatch; the concordance register must originate from the agent-seeded candidate loop rather than from human freehand authoring.
-4. `Section_Map.csv` rows only reference exact artifacts named in the frozen input manifest and mapped KTY-local files.
-5. Publication content authority follows the approved stack. The original DBM is never treated as current-state design-basis authority.
-6. Detailed traceability appears only in the appendix/QA outputs, not inline in the rewritten DBM body.
-7. Every required section has exactly one current section output bundle when package publication is run, including section body, QA, assertions, and assertion-discovery outputs.
-8. Every required concordance assertion has one authority section and all required section participants, with typed comparison metadata sufficient for deterministic checking.
-9. Package publication performs a full concordance re-check against the latest complete set of section outputs, even after targeted reruns, and package readiness remains blocked if unresolved `HIGH` concordance-expansion candidates remain.
-10. `_LATEST.md` is updated only after explicit human acceptance of a package snapshot.
+2. The active root `Handoff_State.md` and latest audit evidence support publication-phase consumption before any section synthesis runs.
+3. `Publication_Input_Manifest.md` exists and freezes exact content inputs and admission / closure evidence before any section synthesis runs.
+4. `Publication_Schema.md`, `Publication_Rules.md`, `Section_Map.csv`, and `Publication_Concordance_Register.csv` are human-approved before section dispatch; the concordance register must originate from the agent-seeded candidate loop rather than from human freehand authoring.
+5. `Section_Map.csv` rows only reference exact artifacts named in the frozen input manifest and mapped KTY-local files.
+6. Publication content authority follows the approved stack. The original DBM is never treated as current-state design-basis authority.
+7. Detailed traceability appears only in the appendix/QA outputs, not inline in the rewritten DBM body.
+8. Every required section has exactly one current section output bundle when package publication is run, including section body, QA, assertions, and assertion-discovery outputs.
+9. Every required concordance assertion has one authority section and all required section participants, with typed comparison metadata sufficient for deterministic checking.
+10. Package publication performs a full concordance re-check against the latest complete set of section outputs, even after targeted reruns, and package readiness remains blocked if unresolved `HIGH` concordance-expansion candidates remain.
+11. `Publication_Handoff_State.md` exists in the accepted package snapshot before `_LATEST.md` is updated.
+12. `_LATEST.md` is updated only after explicit human acceptance of a package snapshot.
 
 Invalid behaviors include:
 
 - guessed decomposition filenames or directory assumptions when the manifest can freeze explicit paths,
-- use of `_Aggregation/*`, `_Coordination/*`, `_Evaluation/*`, `_Reconciliation/*`, `_MEMORY.md`, or `_SEMANTIC.md` as publication authority without human promotion,
+- use of `_Aggregation/*`, `_Coordination/*`, `_Evaluation/*`, `_Reconciliation/*`, `_MEMORY.md`, or `_SEMANTIC.md` as publication authority without human promotion (exception: `_Aggregation/Hypergraph/` may be consumed as auxiliary structure evidence when explicitly admitted in the manifest via `HYPERGRAPH_USE_MODE != NONE`),
 - asking `build_section_map.py` to interpret free-text inclusion/exclusion prose,
 - letting `dbm-publish` act as a dispatcher,
+- treating `_STATUS.md >= INITIALIZED` as sufficient publication admission without frozen root closure evidence in the manifest,
 - silently reconciling conflicting mapped inputs without explicit authority,
 - mutating KTY-local truth during publication,
 - publishing pre-SCA or superseded state as if it were current,
-- updating the accepted package pointer before human acceptance.
+- updating the accepted package pointer before human acceptance or before `Publication_Handoff_State.md` exists.
 
 [[END:SPEC]]
 
@@ -379,13 +442,32 @@ Invalid behaviors include:
       Publication_Concordance_Findings.csv
       Publication_Concordance_Expansion_Candidates.csv
       Publication_Readiness.md
+      Publication_Handoff_State.md
       Rerun_Recommendations.csv
     _LATEST.md
 ```
 
+### Package-role classification of publication outputs
+
+| Artifact | Package role |
+|---|---|
+| `Publication_Input_Manifest.md` | process record (frozen input set for the run) |
+| `Publication_Schema.md` | process record (approved publication design) |
+| `Section_Map.csv` | process record (approved run authority) |
+| `Publication_Rules.md` | process record (approved publication behavior) |
+| `Publication_Concordance_Register.csv` | process record (approved concordance scope) |
+| `Rewritten_DBM.md` | **derived publication artifact** |
+| `Trace_Appendix.md` | **derived publication artifact** |
+| `Publication_Manifest.md` | process record (package provenance) |
+| `Publication_QA.md` | process record (package quality assessment) |
+| `Publication_Readiness.md` | process record (readiness judgment) |
+| `Publication_Handoff_State.md` | process record (accepted package closeout / next-workflow handoff) |
+
+None of these outputs are authoritative working surfaces for decomposition amendment. The canonical working package in the upstream execution root remains authoritative.
+
 Rules:
 - Package snapshots are immutable.
-- `_LATEST.md` is mutable and may point only to a human-accepted package snapshot.
+- `_LATEST.md` is mutable and may point only to a human-accepted package snapshot after `Publication_Handoff_State.md` exists in that snapshot.
 - `render_dispatch_briefs.py` pre-creates `sections/SEC-##/` directories so workers write files, not structure.
 
 ### `Publication_Input_Manifest.md`
@@ -393,11 +475,42 @@ Rules:
 Minimum required sections:
 - `EXECUTION_ROOT`
 - `PUBLICATION_ROOT`
+- `Content Authority`
+- `Admission / Closure Evidence`
 - exact `_Decomposition` input paths
 - exact `_Sources` input paths
 - exact scope-change input paths
+- exact active `Handoff_State.md` path
+- exact latest `AUDIT_DECOMP` pointer and admitted audit snapshot / verdict
 - exact optional authority-supporting inputs (decision log, scope boundary, telemetry, vocabulary map, open issues)
 - explicitly banned authority inputs
+
+Optional `Auxiliary Structure Evidence` section (required when `HYPERGRAPH_USE_MODE != NONE`):
+- `HYPERGRAPH_USE_MODE` — `NONE`, `AUXILIARY_PLANNING`, `AUXILIARY_QA`, or `AUXILIARY_PLANNING_AND_QA`
+- `HYPERGRAPH_SNAPSHOT_PATH` — exact path to the admitted hypergraph snapshot
+- `HYPERGRAPH_RUN_SUMMARY_PATH` — exact path to the hypergraph run summary
+- `HYPERGRAPH_QA_REPORT_PATH` — exact path to the hypergraph QA report
+- `HYPERGRAPH_QA_VERDICT` — `NON_BLOCKING`, `BLOCKED`, or `NOT_USED`
+- `HYPERGRAPH_LIMITATIONS` — free-text list of known defects constraining allowed use
+
+Required authority-role content:
+- `Content Authority` — approved publication schema, approved publication rules, approved decomposition state, accepted SCA state, mapped KTY-local files
+- `Admission / Closure Evidence` — active scope-change closure artifacts, active `Handoff_State.md`, latest audit evidence, decision-log entries, open-issues register when needed
+- `Auxiliary Structure Evidence` — admitted hypergraph snapshot (when `HYPERGRAPH_USE_MODE != NONE`)
+
+### `Publication_Handoff_State.md`
+
+Minimum required fields:
+- `AcceptedPackageSnapshot`
+- `AcceptedExecutionRoot`
+- `ActiveScopeChangeSnapshot`
+- `PublicationInputManifestPath`
+- `SectionSetStatus`
+- `ConcordanceStatus`
+- `HypergraphEvidenceStatus`
+- `PublicationReadinessVerdict`
+- `RemainingBlockers`
+- `NextOwningWorkflow`
 
 ### `Publication_Schema.md`
 
@@ -467,6 +580,7 @@ Minimum required columns:
 ### `Publication_Rules.md`
 
 Required template fields:
+- `ProseStandard`
 - `Voice`
 - `Tense`
 - `HeadingStyle`
@@ -481,6 +595,7 @@ Required template fields:
 - `OpenIssueRule`
 
 Recommended defaults:
+- `ProseStandard`: engineering-document register — precise, definitive, consistent, concise without omission, comprehensive; the standard expected of a governing design basis document, not a summary or report
 - `Voice`: third-person technical
 - `Tense`: present tense for current design basis; past tense only for decisions or superseded history
 - `HeadingStyle`: numbered hierarchical headings
@@ -566,5 +681,21 @@ The upstream DOMAIN workflow produces governed knowledge state, not a publicatio
 - a publication readiness gate before human review.
 
 The key architectural choice is to freeze the input set and planning artifacts before section writing begins. This prevents filename guessing, drift across reruns, and silent authority changes. A second key choice is the split between section synthesis and package assembly. Section workers focus on bounded narrative synthesis plus fixed QA/assertion outputs; the package gate performs deterministic completeness/concordance checks and only then applies qualitative publication judgment. This preserves human authority while making the rerun loop narrow, auditable, and reusable.
+
+### Why hypergraph evidence matters
+
+The decomposition package tells the publisher *what exists* — categories, knowledge types, subjects, units, objectives. It does not tell the publisher how topics are structurally connected across KTY boundaries. A KTY register row for an inlet compressor does not reveal that the compressor shares objectives, cross-facility routing statements, and equipment sizing parameters with the fuel gas system, the power system, and the sparing philosophy — connections that determine whether a design-basis value must be concordance-checked across multiple publication sections.
+
+The domain hypergraph provides this structural evidence through typed nodes and edges: `IN_CATEGORY`, `HAS_SUBJECT`, `HAS_ARTIFACT`, `KTY_SUPPORTS_OBJ`, and `LEDGER_ROW` relationships that expose cross-KTY adjacency, objective-centered hubs, and topic clusters that the flat register view cannot surface.
+
+This matters at three points in the publication workflow:
+
+- **Schema design (Gate 2).** Dense subgraphs within a category reveal natural section splits. Without the hypergraph, the publisher guesses which KTYs cluster; with it, the publisher can see that a 14-KTY category forms two distinct subgraphs (e.g., a compression chain and a liquids chain) and recommend splitting before the schema is frozen, not after an oversized section fails synthesis.
+
+- **Concordance seeding (Gate 4).** Concordance assertions must identify every section that restates a critical design-basis value. Without the hypergraph, the concordance seed agent reads KA files independently and hopes it catches all cross-references. With it, the agent can follow objective-support edges to find every KTY that participates in a shared objective, then verify that each one's section is listed as a required participant for the relevant assertions. Cross-KTY inconsistencies — where two KTYs describe the same shared equipment with contradictory framing — are exactly the kind of defect that hypergraph adjacency surfaces during candidate discovery.
+
+- **Package QA (Gate 6).** After all sections are synthesized, the hypergraph lets the package gate check whether any structurally connected cluster implied by the graph is silently absent from the section set — a coverage gap that plain section enumeration cannot detect because it does not know which KTYs should appear together.
+
+The hypergraph does not write prose, override decomposition truth, or replace the concordance register. It is a structural lens. That distinction is why `AUXILIARY_PLANNING` remains a valid mode even when a hypergraph snapshot has fine-grained artifact-node blockers: the graph topology (which KTYs cluster, which objectives bridge multiple process areas) is still reliable even when individual artifact nodes carry naming collisions.
 
 [[END:RATIONALE]]

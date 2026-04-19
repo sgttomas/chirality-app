@@ -12,6 +12,17 @@ Writes:
   Candidate Section_Map.csv with explicit artifact-path rows.
   Coverage / validation report describing selector results, duplicates, and load findings.
 
+Optional hypergraph diagnostics (AUXILIARY_STRUCTURE_EVIDENCE):
+  When the frozen manifest admits a hypergraph snapshot with a planning-
+  compatible use mode (AUXILIARY_PLANNING or AUXILIARY_PLANNING_AND_QA),
+  the tool emits advisory diagnostics in the coverage report covering:
+    - likely overloaded section clusters
+    - likely omitted supporting KTYs
+    - likely cross-section adjacency hotspots
+  These diagnostics remain advisory until the human approves the final
+  section map.  They do NOT modify the deterministic selector-based
+  mapping or the candidate CSV output.
+
 Determinism:
   Same schema + manifest + execution-root contents -> byte-identical CSV/report output.
   Free-text InclusionRule / ExclusionRule prose is NEVER interpreted by this tool.
@@ -723,12 +734,182 @@ def _row_sort_key(row: Dict[str, str]) -> Tuple[str, int, str, str]:
     return (row["SectionID"], artifact_order, row["KnowledgeTypeID"], row["ArtifactPath"])
 
 
+# ---------------------------------------------------------------------------
+# Hypergraph use-mode constants and advisory diagnostic helpers.
+#
+# Hypergraph evidence is AUXILIARY ONLY for section-map generation.  The
+# diagnostics emitted here are advisory until the human approves the final
+# section map.  They must never override the deterministic selector-based
+# mapping.  See plan section "Publication Tooling Changes / Tool 3".
+# ---------------------------------------------------------------------------
+HYPERGRAPH_PLANNING_MODES = {
+    "AUXILIARY_PLANNING",
+    "AUXILIARY_PLANNING_AND_QA",
+}
+
+
+def _read_hypergraph_manifest_fields(manifest: Dict[str, object]) -> Dict[str, str]:
+    """Extract hypergraph-related fields from the parsed manifest explicit dict."""
+    explicit = manifest.get("explicit", {})
+    if not isinstance(explicit, dict):
+        return {}
+    return {
+        "use_mode": explicit.get("HYPERGRAPH_USE_MODE", ""),
+        "snapshot_path": explicit.get("HYPERGRAPH_SNAPSHOT_PATH", ""),
+        "evidence_root": explicit.get("HYPERGRAPH_EVIDENCE_ROOT", ""),
+        "nodes_path": explicit.get("HYPERGRAPH_NODES_PATH", ""),
+        "hyperedges_path": explicit.get("HYPERGRAPH_HYPEREDGES_PATH", ""),
+        "qa_verdict": explicit.get("HYPERGRAPH_QA_VERDICT", ""),
+    }
+
+
+def _hypergraph_planning_allowed(hg_fields: Dict[str, str]) -> bool:
+    """Return True only when the manifest admits hypergraph evidence for
+    planning-stage use."""
+    return hg_fields.get("use_mode", "").strip().upper() in HYPERGRAPH_PLANNING_MODES
+
+
+def _load_hypergraph_evidence_for_diagnostics(
+    hg_fields: Dict[str, str], manifest_dir: Path
+) -> Dict[str, object]:
+    """Load minimal hypergraph evidence for advisory diagnostics.
+
+    Returns a dict with keys: nodes, hyperedges (lists of dicts).
+    Missing / unreadable files yield empty lists.
+    """
+    result: Dict[str, object] = {"nodes": [], "hyperedges": []}
+
+    def _resolve(raw: str) -> Optional[Path]:
+        if not raw:
+            return None
+        p = Path(raw.strip())
+        if not p.is_absolute():
+            p = (manifest_dir / p).resolve()
+        return p if p.exists() else None
+
+    nodes_path = _resolve(hg_fields.get("nodes_path", ""))
+    if nodes_path:
+        result["nodes"] = read_csv_rows(nodes_path)
+
+    hyperedges_path = _resolve(hg_fields.get("hyperedges_path", ""))
+    if hyperedges_path:
+        result["hyperedges"] = read_csv_rows(hyperedges_path)
+
+    return result
+
+
+def build_hypergraph_advisory_diagnostics(
+    hg_evidence: Dict[str, object],
+    csv_rows: List[Dict[str, str]],
+    section_stats: Dict[str, Dict[str, object]],
+) -> List[str]:
+    """Emit advisory diagnostics using hypergraph structural evidence.
+
+    Diagnostics are informational only — they remain advisory until the
+    human approves the final section map.
+
+    Three diagnostic types:
+      1. Likely overloaded section clusters — sections whose mapped KTYs
+         form dense subgraphs in the hypergraph.
+      2. Likely omitted supporting KTYs — KTYs that appear in hyperedges
+         adjacent to mapped KTYs but are not mapped themselves.
+      3. Likely cross-section adjacency hotspots — KTY pairs that share
+         multiple hyperedges and land in different sections.
+    """
+    diagnostics: List[str] = []
+    hyperedges: List[Dict[str, str]] = list(hg_evidence.get("hyperedges", []))
+    if not hyperedges:
+        return diagnostics
+
+    # Collect all mapped KTY IDs and their section assignments
+    kty_to_sections: Dict[str, set] = defaultdict(set)
+    all_mapped_ktys: set = set()
+    for row in csv_rows:
+        kty_id = row.get("KnowledgeTypeID", "")
+        section_id = row.get("SectionID", "")
+        if kty_id and section_id:
+            kty_to_sections[kty_id].add(section_id)
+            all_mapped_ktys.add(kty_id)
+
+    # Build KTY adjacency from hyperedges
+    kty_adjacency: Dict[str, set] = defaultdict(set)
+    for edge in hyperedges:
+        source = edge.get("Source", "") or edge.get("SourceID", "")
+        target = edge.get("Target", "") or edge.get("TargetID", "")
+        if source.startswith("KTY-") and target.startswith("KTY-"):
+            kty_adjacency[source].add(target)
+            kty_adjacency[target].add(source)
+
+    # 1. Overloaded section clusters
+    for section_id, stats in section_stats.items():
+        selected_ktys = set(stats.get("selected_ktys", []))
+        if len(selected_ktys) < 2:
+            continue
+        # Count intra-section edges
+        intra_edges = 0
+        for kty_id in selected_ktys:
+            for neighbor in kty_adjacency.get(kty_id, set()):
+                if neighbor in selected_ktys:
+                    intra_edges += 1
+        intra_edges //= 2  # undirected
+        max_edges = len(selected_ktys) * (len(selected_ktys) - 1) // 2
+        if max_edges > 0 and intra_edges > 0:
+            density = intra_edges / max_edges
+            if density > 0.5 and len(selected_ktys) >= 3:
+                diagnostics.append(
+                    f"[ADVISORY:HYPERGRAPH] [{section_id}] Likely overloaded section cluster: "
+                    f"{len(selected_ktys)} KTYs with {intra_edges}/{max_edges} intra-section edges "
+                    f"(density {density:.2f}).  Consider splitting."
+                )
+
+    # 2. Omitted supporting KTYs
+    omitted: Dict[str, set] = defaultdict(set)
+    for kty_id in all_mapped_ktys:
+        for neighbor in kty_adjacency.get(kty_id, set()):
+            if neighbor not in all_mapped_ktys:
+                omitted[neighbor].add(kty_id)
+    for unmapped_kty, adjacent_mapped in sorted(omitted.items()):
+        if len(adjacent_mapped) >= 2:
+            diagnostics.append(
+                f"[ADVISORY:HYPERGRAPH] Likely omitted supporting KTY: {unmapped_kty} "
+                f"is adjacent to {len(adjacent_mapped)} mapped KTYs "
+                f"({', '.join(sorted(adjacent_mapped))}) but is not mapped to any section."
+            )
+
+    # 3. Cross-section adjacency hotspots
+    hotspot_pairs: List[str] = []
+    seen_pairs: set = set()
+    for kty_a in all_mapped_ktys:
+        for kty_b in kty_adjacency.get(kty_a, set()):
+            if kty_b not in all_mapped_ktys:
+                continue
+            pair_key = tuple(sorted((kty_a, kty_b)))
+            if pair_key in seen_pairs:
+                continue
+            seen_pairs.add(pair_key)
+            sections_a = kty_to_sections.get(kty_a, set())
+            sections_b = kty_to_sections.get(kty_b, set())
+            if sections_a and sections_b and not sections_a & sections_b:
+                hotspot_pairs.append(
+                    f"{kty_a} ({', '.join(sorted(sections_a))}) <-> {kty_b} ({', '.join(sorted(sections_b))})"
+                )
+    if hotspot_pairs:
+        diagnostics.append(
+            f"[ADVISORY:HYPERGRAPH] Cross-section adjacency hotspots ({len(hotspot_pairs)} pairs): "
+            + "; ".join(hotspot_pairs[:10])
+            + ("..." if len(hotspot_pairs) > 10 else "")
+        )
+
+    return diagnostics
+
+
 def build_report(
     report_path: Path,
     schema_rows: List[Dict[str, str]],
     csv_rows: List[Dict[str, str]],
     findings: List[str],
     section_stats: Dict[str, Dict[str, object]],
+    hypergraph_diagnostics: Optional[List[str]] = None,
 ) -> None:
     artifact_to_sections: Dict[str, set] = defaultdict(set)
     for row in csv_rows:
@@ -819,6 +1000,19 @@ def build_report(
         lines.append("- None")
     lines.append("")
 
+    # --- Advisory hypergraph diagnostics (AUXILIARY_STRUCTURE_EVIDENCE) ----
+    # These diagnostics are advisory only and remain non-authoritative until
+    # the human approves the final section map.
+    if hypergraph_diagnostics is not None:
+        lines.append("## Hypergraph Advisory Diagnostics (AUXILIARY_STRUCTURE_EVIDENCE)")
+        lines.append("")
+        if hypergraph_diagnostics:
+            for diag in hypergraph_diagnostics:
+                lines.append(f"- {diag}")
+        else:
+            lines.append("- No advisory diagnostics from hypergraph evidence.")
+        lines.append("")
+
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
@@ -868,12 +1062,37 @@ def main() -> int:
         current_state_basis=current_state_basis,
     )
 
+    # ------------------------------------------------------------------
+    # Optional hypergraph-assisted advisory diagnostics
+    # (AUXILIARY_STRUCTURE_EVIDENCE — see plan Phase 2, Tool 3).
+    #
+    # When the manifest admits a hypergraph snapshot for planning, emit
+    # advisory diagnostics covering:
+    #   - likely overloaded section clusters
+    #   - likely omitted supporting KTYs
+    #   - likely cross-section adjacency hotspots
+    #
+    # These diagnostics remain advisory until the human approves the
+    # final section map.  They do NOT modify the deterministic
+    # selector-based mapping.
+    # ------------------------------------------------------------------
+    hg_fields = _read_hypergraph_manifest_fields(manifest)
+    hypergraph_diagnostics: Optional[List[str]] = None
+    if _hypergraph_planning_allowed(hg_fields):
+        hg_evidence = _load_hypergraph_evidence_for_diagnostics(hg_fields, manifest_path.parent)
+        if hg_evidence.get("hyperedges"):
+            hypergraph_diagnostics = build_hypergraph_advisory_diagnostics(
+                hg_evidence, csv_rows, section_stats,
+            )
+
     write_csv(output_csv, SECTION_MAP_COLUMNS, csv_rows)
-    build_report(report_md, schema_rows, csv_rows, findings, section_stats)
+    build_report(report_md, schema_rows, csv_rows, findings, section_stats, hypergraph_diagnostics)
 
     print(f"Wrote candidate section map: {output_csv}")
     print(f"Wrote coverage report: {report_md}")
     print(f"Rows: {len(csv_rows)}")
+    if hypergraph_diagnostics:
+        print(f"Hypergraph advisory diagnostics: {len(hypergraph_diagnostics)}")
     if findings:
         print(f"Validation findings: {len(findings)}", file=sys.stderr)
         return 2

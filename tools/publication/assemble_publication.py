@@ -8,6 +8,13 @@ Writes:
   - Publication_Manifest.md
   - Publication_QA.md
 
+Optional hypergraph metadata (AUXILIARY_STRUCTURE_EVIDENCE):
+  When the frozen input manifest declares a non-NONE hypergraph use mode,
+  the publication manifest includes a supplementary metadata section
+  recording: whether hypergraph evidence was used, which snapshot was
+  admitted, and whether hypergraph QA was binding or advisory.  No
+  authority change is implied — the assembler's write scope is unchanged.
+
 Scope boundary:
   Reads: publication-root, input-manifest, schema, section-map, rules, sections-root
   Writes: only files under --output-dir, plus optional _LATEST.md when explicitly requested
@@ -48,13 +55,13 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from build_section_map import parse_schema, read_csv_rows  # type: ignore
+from build_section_map import parse_manifest, parse_schema, read_csv_rows  # type: ignore
 
 
 TOP_SOURCE_RE = re.compile(r"^\s*(?:\*\*Source:\*\*|Source:)\s*(.+?)\s*$")
@@ -451,6 +458,46 @@ def build_trace_appendix(
     return "\n".join(summary_lines + detail_lines).rstrip() + "\n"
 
 
+# ---------------------------------------------------------------------------
+# Hypergraph metadata helpers.
+#
+# The assembler does not change authority — it only records whether
+# hypergraph evidence was used, which snapshot was admitted, and whether
+# the QA was binding or advisory.  See plan section "Publication Tooling
+# Changes / Tool 4".
+# ---------------------------------------------------------------------------
+
+
+def _read_hypergraph_manifest_fields(input_manifest: Path) -> Dict[str, str]:
+    """Extract hypergraph-related fields from the frozen input manifest.
+
+    Uses the manifest parser from build_section_map and pulls the explicit
+    key-value fields.
+    """
+    manifest = parse_manifest(input_manifest)
+    explicit = manifest.get("explicit", {})
+    if not isinstance(explicit, dict):
+        return {}
+    return {
+        "use_mode": explicit.get("HYPERGRAPH_USE_MODE", "NONE"),
+        "snapshot_path": explicit.get("HYPERGRAPH_SNAPSHOT_PATH", ""),
+        "binding_policy": explicit.get("HYPERGRAPH_QA_BINDING_POLICY", "ADVISORY_ONLY"),
+        "qa_verdict": explicit.get("HYPERGRAPH_QA_VERDICT", ""),
+        "limitations": explicit.get("HYPERGRAPH_LIMITATIONS", ""),
+    }
+
+
+def _hypergraph_was_used(hg_fields: Dict[str, str]) -> bool:
+    """Return True if the manifest declares any non-NONE hypergraph use mode."""
+    mode = hg_fields.get("use_mode", "NONE").strip().upper()
+    return mode != "" and mode != "NONE"
+
+
+def _hypergraph_qa_is_binding(hg_fields: Dict[str, str]) -> bool:
+    """Return True if hypergraph QA is configured as binding for this run."""
+    return hg_fields.get("binding_policy", "").strip().upper() == "BLOCK_ON_BINDING_FAILURE"
+
+
 def build_publication_manifest(
     publication_root: Path,
     input_manifest: Path,
@@ -459,6 +506,7 @@ def build_publication_manifest(
     rules_path: Path,
     sections_root: Path,
     output_dir: Path,
+    hg_fields: Optional[Dict[str, str]] = None,
 ) -> str:
     files_to_hash = [input_manifest, schema_path, section_map_path, rules_path]
     lines = [
@@ -485,6 +533,29 @@ def build_publication_manifest(
     for name in ASSEMBLY_OUTPUT_NAMES:
         lines.append(f"- `{(output_dir / name).resolve()}`")
     lines.append("")
+
+    # --- Hypergraph evidence metadata (AUXILIARY_STRUCTURE_EVIDENCE) -------
+    # Records whether hypergraph evidence was used, which snapshot was
+    # admitted, and whether QA was binding or advisory.  No authority
+    # change is implied.
+    if hg_fields is not None and _hypergraph_was_used(hg_fields):
+        lines.append("## Auxiliary Structure Evidence — Hypergraph")
+        lines.append("")
+        lines.append(f"- HypergraphEvidenceUsed: YES")
+        lines.append(f"- HypergraphUseMode: {hg_fields.get('use_mode', 'NONE')}")
+        lines.append(f"- HypergraphSnapshotPath: `{hg_fields.get('snapshot_path', '')}`")
+        lines.append(f"- HypergraphQAVerdict: {hg_fields.get('qa_verdict', '')}")
+        binding = "BINDING" if _hypergraph_qa_is_binding(hg_fields) else "ADVISORY_ONLY"
+        lines.append(f"- HypergraphQABindingPolicy: {binding}")
+        limitations = hg_fields.get("limitations", "")
+        lines.append(f"- HypergraphLimitations: {limitations if limitations else 'None disclosed'}")
+        lines.append("")
+    else:
+        lines.append("## Auxiliary Structure Evidence — Hypergraph")
+        lines.append("")
+        lines.append("- HypergraphEvidenceUsed: NO")
+        lines.append("")
+
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -592,6 +663,13 @@ def main() -> int:
     schema_rows = parse_schema(schema_path)
     section_map = load_section_map(section_map_path)
 
+    # ------------------------------------------------------------------
+    # Read optional hypergraph metadata from the input manifest.
+    # This is used only to record package-level metadata about whether
+    # hypergraph evidence was used.  No authority change.
+    # ------------------------------------------------------------------
+    hg_fields = _read_hypergraph_manifest_fields(input_manifest)
+
     rewritten_dbm, missing_sections = build_rewritten_dbm(schema_rows, sections_root)
     trace_appendix = build_trace_appendix(schema_rows, section_map, sections_root)
     publication_manifest = build_publication_manifest(
@@ -602,6 +680,7 @@ def main() -> int:
         rules_path=rules_path,
         sections_root=sections_root,
         output_dir=output_dir,
+        hg_fields=hg_fields,
     )
     publication_qa, findings = build_publication_qa(schema_rows, section_map, sections_root, missing_sections)
 

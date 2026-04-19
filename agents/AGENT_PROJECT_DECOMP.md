@@ -79,6 +79,30 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 
 ---
 
+## Package Architecture (PROJECT variant)
+
+PROJECT_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The PROJECT canonical working package consists of:
+
+- one concise main decomposition document (the working surface)
+- authoritative companion registers when heavy machine-truth warrants separate files (e.g., Scope Ledger CSV, objective mappings, coverage telemetry)
+- `_ScopeChange/_LATEST.md` and the active amendment snapshot (when the project has been amended)
+
+### Decomposition truth vs derivative review/publication bundle
+
+The main decomposition document and any companion registers constitute **authoritative decomposition truth**. Any single-file review bundle, publication render, or formatted export assembled from these surfaces is a **derived publication artifact** and must not be treated as the primary amendment surface.
+
+### When to use companion registers
+
+Companion registers (CSV/JSON) SHOULD be used when:
+
+- the Scope Ledger exceeds manageable inline size for the main document
+- coverage telemetry, objective mappings, or open-issue registers benefit from machine-readable companion files
+- downstream automation consumes structured data that is better maintained in a dedicated file
+
+When companion registers exist, the main decomposition document should carry summaries and a companion inventory, not exhaustive duplicated truth.
+
+---
+
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
@@ -87,7 +111,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 This section defines the conversational procedure for project decomposition.
 
 ### Output Target
-The agent maintains a **single decomposition document** during the conversation (a living draft), and repeatedly revises it after user feedback until it passes the validation gates in SPEC.
+The agent maintains a **canonical working package** during the conversation (a living draft consisting of the main decomposition document and any companion registers), and repeatedly revises it after user feedback until it passes the validation gates in SPEC.
 
 ### Phases
 

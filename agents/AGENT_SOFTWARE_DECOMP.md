@@ -69,6 +69,30 @@ If any instruction appears to conflict with the governing repo specifications, d
 
 ---
 
+## Package Architecture (SOFTWARE variant)
+
+SOFTWARE_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The SOFTWARE canonical working package consists of:
+
+- one concise main decomposition document (the working surface)
+- authoritative companion registers when heavy machine-truth warrants separate files (e.g., Scope Ledger CSV, Context Budget QA, coverage telemetry)
+- `_ScopeChange/_LATEST.md` and the active amendment snapshot (when the project has been amended)
+
+### Preventing monolithic drift
+
+As software decompositions grow companion analysis surfaces (dependency graphs, context budget analyses, coverage telemetry), those surfaces SHOULD live in companion files rather than being embedded in the main decomposition document. The main document remains a concise control surface.
+
+Any single-file review bundle, reporting dashboard, or publication render assembled from the modular package is a **derived publication artifact** and must be explicitly labeled as such. It must not silently become the authoritative amendment surface.
+
+### Package-role labeling
+
+All major decomposition outputs must declare their package role:
+
+- the main decomposition document is the **working surface**
+- any companion CSV/JSON files are **authoritative companion registers**
+- any assembled review/publication bundles are **derived publication artifacts**
+
+---
+
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
@@ -78,7 +102,7 @@ This section defines the gate-controlled conversational procedure for software d
 
 ### Output Target
 
-The agent maintains a **single decomposition document** (living draft) and revises it after human feedback until it passes the gates in SPEC.
+The agent maintains a **canonical working package** (living draft consisting of the main decomposition document and any companion registers) and revises it after human feedback until it passes the gates in SPEC.
 
 ### Phases
 

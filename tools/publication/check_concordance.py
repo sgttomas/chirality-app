@@ -35,6 +35,15 @@ Example:
     --output-findings /repo/.../_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Findings.csv
 
 All assertions listed in the register are treated as concordance-blocking in v1.
+
+Optional hypergraph QA (AUXILIARY_STRUCTURE_EVIDENCE):
+  When the manifest declares a hypergraph use mode that includes QA
+  (AUXILIARY_QA or AUXILIARY_PLANNING_AND_QA), the tool runs a supplementary
+  block of hypergraph-specific checks and reports them SEPARATELY from
+  deterministic concordance findings.  Hypergraph QA findings may be
+  ADVISORY_ONLY or BLOCK_ON_BINDING_FAILURE depending on the configured
+  binding policy.  The core concordance engine is never modified by
+  hypergraph inputs.
 """
 
 from __future__ import annotations
@@ -45,7 +54,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 FINDING_COLUMNS = [
     "AssertionKey",
@@ -62,6 +71,19 @@ FINDING_COLUMNS = [
 
 
 ALLOWED_ASSERTION_STATUS = {"ASSERTED", "REFERRED", "NOT_APPLICABLE", "CONFLICT_UNRESOLVED"}
+
+# ---------------------------------------------------------------------------
+# Hypergraph use-mode and binding-policy constants.
+#
+# Hypergraph QA is supplementary — it never replaces deterministic
+# concordance checking.  See plan section "Publication Tooling Changes /
+# Tool 2".
+# ---------------------------------------------------------------------------
+HYPERGRAPH_QA_MODES = {
+    "AUXILIARY_QA",
+    "AUXILIARY_PLANNING_AND_QA",
+}
+HYPERGRAPH_BINDING_POLICIES = {"ADVISORY_ONLY", "BLOCK_ON_BINDING_FAILURE"}
 
 
 def fatal(message: str) -> None:
@@ -416,7 +438,113 @@ def evaluate_register(
     return findings, metrics
 
 
-def build_report(findings: List[Dict[str, str]], metrics: Dict[str, int]) -> str:
+def _read_hypergraph_manifest_fields(manifest_path: Path) -> Dict[str, str]:
+    """Read the frozen manifest and extract hypergraph-related explicit fields.
+
+    This function intentionally re-reads the manifest rather than importing the
+    full manifest parser from build_section_map, to keep check_concordance.py
+    self-contained.  Only the explicit key-value fields are needed.
+    """
+    fields: Dict[str, str] = {}
+    if not manifest_path.exists():
+        return fields
+    try:
+        text = manifest_path.read_text(encoding="utf-8")
+    except Exception:
+        return fields
+
+    kv_re = re.compile(r"^\s*(?:-\s*)?(?:\*\*)?([A-Za-z0-9_ /-]+?)(?:\*\*)?\s*:\s*(.+?)\s*$")
+    kv_bold_re = re.compile(r"^\s*(?:-\s*)?\*\*([A-Za-z0-9_ /-]+?):\*\*\s*(.+?)\s*$")
+    for line in text.splitlines():
+        match = kv_bold_re.match(line) or kv_re.match(line)
+        if match:
+            key = re.sub(r"\s+", " ", match.group(1).strip()).rstrip(":").upper().replace(" ", "_").replace("/", "_")
+            value = match.group(2).strip().strip("`")
+            fields[key] = value
+
+    return {
+        "use_mode": fields.get("HYPERGRAPH_USE_MODE", ""),
+        "binding_policy": fields.get("HYPERGRAPH_QA_BINDING_POLICY", "ADVISORY_ONLY"),
+        "snapshot_path": fields.get("HYPERGRAPH_SNAPSHOT_PATH", ""),
+        "qa_verdict": fields.get("HYPERGRAPH_QA_VERDICT", ""),
+        "limitations": fields.get("HYPERGRAPH_LIMITATIONS", ""),
+    }
+
+
+def _hypergraph_qa_allowed(hg_fields: Dict[str, str]) -> bool:
+    """Return True only when the manifest admits hypergraph evidence for QA use."""
+    return hg_fields.get("use_mode", "").strip().upper() in HYPERGRAPH_QA_MODES
+
+
+def _hypergraph_qa_is_binding(hg_fields: Dict[str, str]) -> bool:
+    """Return True if hypergraph QA findings are configured as blocking."""
+    return hg_fields.get("binding_policy", "").strip().upper() == "BLOCK_ON_BINDING_FAILURE"
+
+
+def evaluate_hypergraph_qa(
+    register_rows: List[Dict[str, str]],
+    hg_fields: Dict[str, str],
+) -> List[Dict[str, str]]:
+    """Run supplementary hypergraph QA checks.
+
+    These checks are reported SEPARATELY from deterministic concordance
+    findings.  The core concordance engine is untouched.
+
+    Current checks:
+      - HYPERGRAPH_QA_BLOCKED_SNAPSHOT: the admitted snapshot has a BLOCKED
+        QA verdict but was used for QA anyway.
+      - HYPERGRAPH_QA_LIMITATIONS_PRESENT: limitations are disclosed in the
+        manifest.
+
+    Returns a list of finding rows using the same FINDING_COLUMNS schema
+    but with FindingType prefixed by HYPERGRAPH_QA_.
+    """
+    findings: List[Dict[str, str]] = []
+    is_binding = _hypergraph_qa_is_binding(hg_fields)
+    blocking_label = "TRUE" if is_binding else "FALSE"
+
+    qa_verdict = hg_fields.get("qa_verdict", "").strip().upper()
+    if qa_verdict == "BLOCKED":
+        findings.append({
+            "AssertionKey": "HYPERGRAPH_SNAPSHOT_QA",
+            "AssertionLabel": "Hypergraph snapshot QA verdict",
+            "AuthoritySectionID": "",
+            "SectionID": "",
+            "FindingType": "HYPERGRAPH_QA_BLOCKED_SNAPSHOT",
+            "ExpectedNormalizedValue": "NON_BLOCKING",
+            "ObservedNormalizedValue": "BLOCKED",
+            "ComparisonRule": "",
+            "Blocking": blocking_label,
+            "Notes": (
+                "The admitted hypergraph snapshot has a BLOCKED QA verdict.  "
+                "Hypergraph-derived QA results should be treated with caution."
+            ),
+        })
+
+    limitations = hg_fields.get("limitations", "").strip()
+    if limitations:
+        findings.append({
+            "AssertionKey": "HYPERGRAPH_LIMITATIONS",
+            "AssertionLabel": "Hypergraph limitations",
+            "AuthoritySectionID": "",
+            "SectionID": "",
+            "FindingType": "HYPERGRAPH_QA_LIMITATIONS_PRESENT",
+            "ExpectedNormalizedValue": "",
+            "ObservedNormalizedValue": limitations[:200],
+            "ComparisonRule": "",
+            "Blocking": blocking_label,
+            "Notes": "The manifest declares known hypergraph limitations.",
+        })
+
+    return findings
+
+
+def build_report(
+    findings: List[Dict[str, str]],
+    metrics: Dict[str, int],
+    hypergraph_findings: Optional[List[Dict[str, str]]] = None,
+    hg_fields: Optional[Dict[str, str]] = None,
+) -> str:
     implicated_sections = sorted({row.get("SectionID", "") for row in findings if row.get("SectionID", "")})
     lines = [
         "# Publication Concordance Report",
@@ -444,6 +572,30 @@ def build_report(findings: List[Dict[str, str]], metrics: Dict[str, int]) -> str
     else:
         lines.append("- None")
     lines.append("")
+
+    # --- Supplementary hypergraph QA block (reported separately) ----------
+    if hypergraph_findings is not None:
+        lines.append("## Hypergraph QA (Supplementary)")
+        lines.append("")
+        binding_policy = (hg_fields or {}).get("binding_policy", "ADVISORY_ONLY")
+        use_mode = (hg_fields or {}).get("use_mode", "NONE")
+        lines.append(f"- Hypergraph use mode: {use_mode}")
+        lines.append(f"- Binding policy: {binding_policy}")
+        lines.append(f"- Hypergraph QA findings: {len(hypergraph_findings)}")
+        lines.append("")
+        if hypergraph_findings:
+            lines.append("| FindingType | Expected | Observed | Blocking | Notes |")
+            lines.append("|---|---|---|---|---|")
+            for row in hypergraph_findings:
+                lines.append(
+                    "| {FindingType} | {ExpectedNormalizedValue} | {ObservedNormalizedValue} | {Blocking} | {Notes} |".format(
+                        **{key: value.replace("|", "\\|") for key, value in row.items() if isinstance(value, str)}
+                    )
+                )
+        else:
+            lines.append("- None")
+        lines.append("")
+    lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -453,6 +605,11 @@ def main() -> int:
     parser.add_argument("--sections-root", required=True)
     parser.add_argument("--output-report", required=True)
     parser.add_argument("--output-findings", required=True)
+    # Optional: path to the frozen publication manifest for hypergraph QA.
+    # When provided and the manifest admits hypergraph evidence for QA,
+    # supplementary hypergraph QA checks are run and reported separately
+    # from core concordance findings.
+    parser.add_argument("--manifest", default="")
     args = parser.parse_args()
 
     register_path = Path(args.register).resolve()
@@ -473,15 +630,50 @@ def main() -> int:
     assertions_by_section = load_section_assertions(sections_root)
     findings, metrics = evaluate_register(register_rows, assertions_by_section)
 
+    # ------------------------------------------------------------------
+    # Optional supplementary hypergraph QA
+    # (AUXILIARY_STRUCTURE_EVIDENCE — see plan Phase 2, Tool 2).
+    #
+    # When the manifest admits hypergraph evidence for QA, run a
+    # supplementary block of hypergraph-specific checks.  These are
+    # reported SEPARATELY from concordance findings and do not modify the
+    # core concordance engine.  The binding policy determines whether
+    # hypergraph QA findings can block the package.
+    # ------------------------------------------------------------------
+    hypergraph_findings: Optional[List[Dict[str, str]]] = None
+    hg_fields: Optional[Dict[str, str]] = None
+    manifest_path = Path(args.manifest).resolve() if args.manifest else None
+    if manifest_path and manifest_path.exists():
+        hg_fields = _read_hypergraph_manifest_fields(manifest_path)
+        if _hypergraph_qa_allowed(hg_fields):
+            hypergraph_findings = evaluate_hypergraph_qa(register_rows, hg_fields)
+
     output_report.parent.mkdir(parents=True, exist_ok=True)
     output_findings.parent.mkdir(parents=True, exist_ok=True)
-    output_report.write_text(build_report(findings, metrics), encoding="utf-8")
-    write_csv(output_findings, FINDING_COLUMNS, findings)
+    output_report.write_text(
+        build_report(findings, metrics, hypergraph_findings=hypergraph_findings, hg_fields=hg_fields),
+        encoding="utf-8",
+    )
+
+    # Write core concordance findings.  Hypergraph QA findings, if any,
+    # are appended with distinct FindingType prefixes so downstream
+    # consumers can filter them independently.
+    all_findings = list(findings)
+    if hypergraph_findings:
+        all_findings.extend(hypergraph_findings)
+    write_csv(output_findings, FINDING_COLUMNS, all_findings)
 
     print(f"Wrote concordance report: {output_report}")
     print(f"Wrote concordance findings: {output_findings}")
-    print(f"Blocking findings: {len(findings)}")
+    print(f"Blocking concordance findings: {len(findings)}")
+    if hypergraph_findings is not None:
+        binding_hg = [f for f in hypergraph_findings if f.get("Blocking") == "TRUE"]
+        print(f"Hypergraph QA findings: {len(hypergraph_findings)} ({len(binding_hg)} binding)")
+
     if findings:
+        return 2
+    # Hypergraph binding findings can also trigger exit code 2
+    if hypergraph_findings and any(f.get("Blocking") == "TRUE" for f in hypergraph_findings):
         return 2
     return 0
 

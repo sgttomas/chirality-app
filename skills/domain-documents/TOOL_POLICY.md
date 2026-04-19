@@ -24,7 +24,7 @@ This is a reasoning-first extraction + authoring skill. No deterministic tools a
 
 ## Disallowed use
 
-- No modification of metadata files: `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, `_SEMANTIC.md`.
+- No modification of metadata files: `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, `_SEMANTIC.md`. Metadata drift discovered during regeneration must be surfaced as a follow-on alignment action, not fixed inside this skill.
 - No overwriting Knowledge Artifact files when `Current State` is outside `ALLOW_OVERWRITE_STATES`.
 - No cross-Knowledge-Type scanning — one Knowledge Type folder per run.
 - No fabrication of source excerpts when the source file is inaccessible.

@@ -49,6 +49,11 @@ The brief must not grant broader publication-root or KTY-folder write access.
 | `RuntimeOverrides.SOURCE_DOMAIN` | string | Domain label for the run | `West_Doe_Deepcut_DBM` |
 | `RuntimeOverrides.SECTION_ORDER` | integer | Display/assembly order | `3` |
 | `RuntimeOverrides.ALLOW_CONTEXT_ONLY_DECOMP_FALLBACK` | boolean | Allow decomposition fallback for unready `CONTEXT_ONLY` inputs | `true` |
+| `RuntimeOverrides.HYPERGRAPH_USE_MODE` | enum | Whether hypergraph evidence is admitted for this run | `AUXILIARY_PLANNING` |
+| `RuntimeOverrides.HYPERGRAPH_SNAPSHOT_PATH` | path | Exact path to the admitted hypergraph snapshot | `/.../_Aggregation/Hypergraph/snapshot/` |
+| `RuntimeOverrides.HYPERGRAPH_NODES_PATH` | path | Exact path to the hypergraph nodes CSV | `/.../_Aggregation/Hypergraph/nodes.csv` |
+| `RuntimeOverrides.HYPERGRAPH_HYPEREDGES_PATH` | path | Exact path to the hypergraph hyperedges CSV | `/.../_Aggregation/Hypergraph/hyperedges.csv` |
+| `RuntimeOverrides.HYPERGRAPH_EVIDENCE_ROOT` | path | Root folder containing hypergraph evidence CSVs | `/.../_Aggregation/Hypergraph/evidence/` |
 | `CustomInstructions` | string | Run-specific reinforcement only; must not restate the skill contract | `Keep amendment notes especially brief in this run.` |
 | `EXCLUSIONS` | list[string] | Extra run-local exclusions inside already-mapped artifacts | `Ignore superseded historical table under heading X.` |
 

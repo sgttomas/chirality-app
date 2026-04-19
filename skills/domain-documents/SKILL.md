@@ -337,7 +337,7 @@ After source-fidelity corrections, re-run the Step 5 structural completeness che
 - **One deliverable per run.** Each invocation processes exactly one Knowledge Type folder (`KTY_PATH`). No cross-Knowledge-Type scanning.
 - **No human input.** The skill works from folder contents, references, and decomposition data. The human does not directly interact with this skill.
 - **Respect human work.** `_STATUS.md` state must be within `ALLOW_OVERWRITE_STATES` (default: `OPEN, INITIALIZED`) before overwriting any Knowledge Artifact file. Otherwise halt with `SKIPPED_PROTECT_HUMAN_WORK`.
-- **No metadata modification.** Never modify `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, or `_SEMANTIC.md`.
+- **No metadata modification.** Never modify `_CONTEXT.md`, `_REFERENCES.md`, `_MEMORY.md`/`MEMORY.md`, or `_SEMANTIC.md`. If regenerated content reveals metadata drift (e.g., `_CONTEXT.md` name or description no longer matches the regenerated `Scoping.md`), surface it as a follow-on alignment action in the skill output — do not fix it inside this skill.
 - **Subject-to-Artifact bijection.** Each Knowledge Subject maps to exactly one Knowledge Artifact file. No splitting or merging.
 - **Variable artifact schema.** The artifact set is topic-dependent (no fixed 4-doc kit). Count and names derive from `KnowledgeSubjects`.
 - **`KA-*` naming convention.** Default is `KA-01_{Type}__{Slug}.md`; configurable via `ARTIFACT_NAMING`. Stable ordinal prefix when policy includes `PREFIXED_*`.

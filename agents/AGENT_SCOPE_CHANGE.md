@@ -25,8 +25,8 @@ All changes require explicit human approval at defined gates. SCOPE_CHANGE does 
 ---
 
 ## Revision
-- Version: v2.1
-- Date: 2026-04-08
+- Version: v2.2
+- Date: 2026-04-19
 
 ---
 
@@ -39,7 +39,7 @@ All changes require explicit human approval at defined gates. SCOPE_CHANGE does 
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | project-level (PROJECT/SOFTWARE); repo-metadata-only (DOMAIN) |
+| **WRITE_SCOPE** | project-level (PROJECT/SOFTWARE); decomposition-package-level (DOMAIN) |
 | **BLOCKING** | allowed (5 gates) |
 | **PRIMARY_OUTPUTS** | amended decomposition document, variant-specific metadata updates, impact assessment, propagation record, amendment snapshot |
 
@@ -49,6 +49,13 @@ All changes require explicit human approval at defined gates. SCOPE_CHANGE does 
 
 This file is **decomposition-generic**. Do not embed project-specific absolute paths.
 
+Working definitions used throughout this protocol:
+- `AUTHORITATIVE_TRUTH` = the decomposition document plus any variant-owned authoritative annex/register files that the originating decomposition defines as part of decomposition truth. This is the **canonical working package**: main decomposition document + authoritative companion registers + `_ScopeChange` state.
+- `AUTHORITATIVE_COMPANION_REGISTER` = a CSV, JSON, or structured markdown file that holds heavy machine-truth as the primary working surface for that data (e.g., Domain Ledger, Knowledge Type Register, coverage telemetry). When a companion register exists, it is authoritative for machine-truth; the main document carries summaries, not exhaustive duplicates.
+- `DERIVATIVE_PACKAGES` = any downstream package assembled from accepted authoritative truth but not itself authoritative truth, including regenerated KTY-local artifacts, `_Aggregation` outputs, hypergraph snapshots, audit snapshots, concordance packages, publication packages, and any single-file monolithic render of the decomposition. These are **derived publication artifacts** and must never be the default amendment target.
+- `HANDOFF_STATE` = an explicit state record emitted at the end of the amendment run naming the accepted snapshot, derivative-package rerun status, closure verdict, remaining blockers, and next owning workflow
+- `PACKAGE_ROLE_LABEL` = the explicit declaration of a file's role in the canonical working package: `working surface`, `authoritative companion register`, `snapshot / handoff artifact`, or `derived publication artifact`. SCOPE_CHANGE must classify every touched surface by package role.
+
 Defaults (only when not otherwise specified by the human):
 - `DECOMP_VARIANT` = required; one of `PROJECT | SOFTWARE | DOMAIN`
 - `CONTEXT_ROOT` = `execution/` when `DECOMP_VARIANT in {PROJECT, SOFTWARE}`; otherwise the nearest common parent that owns the domain decomposition document (or a human-provided root)
@@ -57,7 +64,7 @@ Defaults (only when not otherwise specified by the human):
 - `ALLOW_RENUMBERING = false` (stable IDs are preserved unless the human explicitly approves renumbering)
 - `ALLOWED_PROPAGATION_WRITES` = variant-specific default write scope:
   - `PROJECT/SOFTWARE`: decomposition document + affected `_CONTEXT.md` and `_STATUS.md`
-  - `DOMAIN`: decomposition document only, unless the human explicitly approves companion repo-metadata edits
+  - `DOMAIN`: decomposition document + decomposition annex CSVs under `_Decomposition/` + amendment snapshot and `_LATEST.md` under `_ScopeChange/`
 
 ---
 
@@ -79,15 +86,22 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **Non-destructive.** Removed entities are retired or legacy-annotated; they are not silently erased. For `PROJECT/SOFTWARE`, removed deliverables are marked `RETIRED` in `_STATUS.md` and folders are never deleted. For `DOMAIN`, Domain Ledger rows, objective history, and change records are preserved even when entities move out of active scope.
 - **Impact before action.** The human must review and accept the impact assessment before any file is modified.
 - **No collateral writes.** SCOPE_CHANGE does not modify the four-doc set, `Dependencies.csv`, estimates, schedules, generated knowledge artifacts, or other downstream truth. It flags downstream reruns and handoffs; it does not execute them.
+- **Derivative packages are downstream only.** `DERIVATIVE_PACKAGES` may consume accepted decomposition truth, but they do not redefine it and they are never updated in place by SCOPE_CHANGE except for the amendment snapshot artifacts SCOPE_CHANGE itself owns.
 - **Stable IDs preserved.** Existing IDs are never reused for different entities. Removed IDs remain reserved. If a reclassification would make an embedded index or mnemonic stale, keep the existing ID unless the human explicitly approves renumbering and downstream ripple changes.
 - **Structural closure required.** A parent partition or parent entity (`PACKAGE`, `CATEGORY`, `KNOWLEDGE_TYPE`, or any stricter variant-local equivalent) cannot be removed, merged, split, or reclassified unless all child entities and authoritative ledger bindings are retired, remapped, or explicitly preserved in the same amendment. No orphan children, no dangling parent bindings.
+- **Closure is stateful.** An amendment is not closed when edits finish. Closure requires accepted authoritative truth, recorded downstream rerun obligations for every affected derivative package, explicit blocker disclosure, and a `HANDOFF_STATE` artifact that tells the next workflow what is current versus stale.
 - **Variant invariants preserved.** SCOPE_CHANGE must preserve the originating decomposition agent's invariants. For `DOMAIN`, this includes flat Categories, exactly-one-Category assignment for every `IN` Handbook Unit, single-parent `KnowledgeType` / `KnowledgeSubject` relationships, at-least-one-`KnowledgeSubject` cardinality for every `KnowledgeType`, and an updated Domain Ledger + Coverage & Telemetry block. For `PROJECT/SOFTWARE`, package/deliverable integrity and the originating decomposition's invariants remain binding.
+- **Full package truth for `DOMAIN`.** For `DOMAIN`, `AUTHORITATIVE_TRUTH` is the full active decomposition package: the main decomposition document, active decomposition-local annex / derivative surfaces under `_Decomposition/`, `_ScopeChange/_LATEST.md`, and the active snapshot state describing the amendment and its current handoff position.
 - **Variant-local structural rules must be operationalized.** If the originating decomposition defines stricter structural rules than the generic model, SCOPE_CHANGE must turn them into explicit gate checks for the affected amendment. For `PROJECT`, this includes package-discipline isolation, artifact-kind deliverable granularity, or any equivalent design-partition rule when those rules are present in the source decomposition.
 - **Semantic binding first.** Protocol steps operate on semantic sections (`ledger`, `partitions`, `entities`, `objectives`, `change register`, `telemetry`) rather than hard-coded project vocabulary. Human-facing outputs MUST use the variant's canonical nouns.
 - **Type-level change preference.** Prefer the smallest amendment that changes instances, mappings, or attributes before changing the decomposition contract itself. If the request would alter the decomposition ontology, canonical vocabulary, or section contract, flag it explicitly as a contract-level change.
+- **Amendments operate on the canonical working package.** The amendment surface is the main decomposition document, authoritative companion registers, and `_ScopeChange` state. Derived publication artifacts (monolithic renders, publication bundles, review documents) must never be the default amendment target. If a derived artifact must be updated, it is regenerated from the amended canonical working package, not edited directly.
+- **Package-role classification required.** Every surface touched or affected by an amendment must be classified by package role (`working surface`, `authoritative companion register`, `snapshot / handoff artifact`, or `derived publication artifact`). This classification must appear in the Impact Assessment and Propagation Plan.
 - **Evidence-first.** Every impact claim traces to specific files, rows, or sections.
 - **No invention.** If the impact or correct amendment is uncertain, mark it as `UNKNOWN` or `TBD` and surface it for human decision.
 - **Immutable snapshots.** Each amendment produces a new snapshot folder under `_ScopeChange/`; never overwrite prior snapshots.
+- **Snapshot before handoff.** No handoff to downstream reruns, audits, or publication planning is valid until the new immutable amendment snapshot exists and the `HANDOFF_STATE` points to it.
+- **Active snapshot integrity matters.** `_LATEST.md` must point to exactly one active snapshot. The active snapshot must contain every required artifact. Historical incomplete snapshots may remain as residue, but they must not be treated as current truth.
 
 ---
 
@@ -97,7 +111,8 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **CHANGE (Type 1)** owns git staging and commits. SCOPE_CHANGE hands off with a file list and recommended commit message.
 - The **`dependency-extract` skill (dispatched via TASK)** owns dependency re-extraction. SCOPE_CHANGE recommends reruns; does not execute them.
 - The **`estimate-snapshot` skill (dispatched via TASK)** and **SCHEDULING (Type 1)** own estimate/schedule updates. SCOPE_CHANGE recommends reruns; does not execute them.
-- **Downstream knowledge-production workflows** own creation, regeneration, and retirement of structured knowledge artifacts derived from a `DOMAIN` decomposition. SCOPE_CHANGE recommends reruns; does not execute them.
+- **Downstream knowledge-production workflows** own creation, regeneration, and retirement of structured knowledge artifacts derived from a `DOMAIN` decomposition, including KTY-local documents (`Scoping.md`, `KA-*.md`, `_CONTEXT.md`, `_STATUS.md`), `_Aggregation` outputs, hypergraph outputs, and publication outputs. SCOPE_CHANGE recommends reruns; does not execute them.
+- **Downstream owners close derivative packages.** The owning downstream workflow is responsible for regenerating, validating, and closing any derivative package that SCOPE_CHANGE marks stale. SCOPE_CHANGE records required closure state; it does not satisfy it on their behalf.
 - A **dedicated audit workflow**, where available, owns deep decomposition audit. SCOPE_CHANGE consumes that output for pre/post comparison; if no dedicated auditor exists for the variant, it synthesizes a baseline from the authoritative decomposition artifact.
 
 ---
@@ -247,10 +262,12 @@ For each validated action, trace impact across four lenses:
 
 3) **Downstream consumers**
    - Which workflows, generated artifacts, or audits may need reruns?
+   - Which derivative packages become stale, and which owning workflow must close each one?
 
 4) **Invariant / telemetry risk**
    - What could become orphaned, unmapped, stale, or semantically inconsistent?
    - What closure obligations must be completed in the same amendment for parent partitions / parent entities?
+   - What closure obligations are deferred to downstream derivative-package owners and therefore must appear in `HANDOFF_STATE`?
 
 Action-specific tracing rules:
 
@@ -297,8 +314,11 @@ Action-specific tracing rules:
 
 Produce `Impact_Assessment.md` with:
 - Impact summary table (`action → affected sections/files/workflows`)
+- Derivative-package status table (`package → owner → status after amendment → required rerun/closure action`)
+- Derivative-surface classification table (`surface → DIRECT_EDIT|RECOMPUTE|NO_CHANGE → authority basis`)
 - Orphan-risk summary (variant-specific counts)
 - Estimate/schedule staleness risk or knowledge-regeneration risk, as applicable
+- Active snapshot / handoff-state impact notes
 - Recommended downstream reruns
 
 Present the impact assessment to the human. Ask: “Do you accept this impact assessment?”
@@ -352,6 +372,13 @@ Draft the exact text changes to the decomposition document using **semantic sect
    - `DOMAIN`: recompute `UnitCount`, `CategoryCount`, `KnowledgeTypeCount`, `SubjectCount`, `ObjectiveCount`, `UnassignedINUnits`, `UnitsWithoutKnowledgeTypeMapping`, `UnmappedObjectives`, `OpenIssuesByType`, and `Revision`, and verify there is no `KnowledgeTypeWithoutSubject` condition
    - `PROJECT/SOFTWARE`: incorporate any audit-facing notes required by the change
 
+9) **Derivative package / active snapshot state** (`DOMAIN`, if affected)
+   - Preview every affected decomposition-local derivative surface with one of:
+     - `DIRECT_EDIT`
+     - `RECOMPUTE`
+     - `NO_CHANGE`
+   - Show the expected active snapshot state after Gate 5, including the required handoff-state values
+
 Present the full amendment as a diff-style preview: sections with before/after or additions/retirements clearly marked.
 
 Ask: “Do you approve these amendments to the decomposition document?”
@@ -371,8 +398,8 @@ Based on the approved amendment, produce a propagation plan **limited to the app
      - Draft an INIT-TASK brief for PREPARATION (via ORCHESTRATOR) to create new folder structure + metadata files
      - Expected files: `_CONTEXT.md`, `_STATUS.md` (`OPEN`), `_REFERENCES.md`, `_DEPENDENCIES.md`
    - `DOMAIN`:
-     - Usually no new filesystem truth beyond the decomposition itself
-     - Draft downstream initialization / rerun advisories for any knowledge-production workflow that materializes new `Category` / `Knowledge Type` / `Knowledge Subject` scope
+     - Add new rows to the relevant decomposition annex CSVs (Domain Ledger, Knowledge Type Register, Knowledge Subject Register, Vocabulary Map, etc.)
+     - Draft downstream initialization / rerun advisories for any knowledge-production workflow that materializes new `Category` / `Knowledge Type` / `Knowledge Subject` scope as KTY-local artifacts
 
 2) **For `REMOVE` actions**
    - `PROJECT/SOFTWARE`:
@@ -387,7 +414,7 @@ Based on the approved amendment, produce a propagation plan **limited to the app
 
 3) **For `MODIFY` actions**
    - `PROJECT/SOFTWARE`: list specific `_CONTEXT.md` edits per affected deliverable
-   - `DOMAIN`: list exact decomposition-local edits and any downstream knowledge artifacts or terminology indexes that should be refreshed by their owning workflow
+   - `DOMAIN`: list exact edits to the decomposition document and affected annex CSVs, and list any downstream KTY-local artifacts or terminology indexes that should be refreshed by their owning workflow
 
 4) **For `RECLASSIFY` actions**
    - `PROJECT/SOFTWARE`:
@@ -405,6 +432,21 @@ Based on the approved amendment, produce a propagation plan **limited to the app
 6) **Downstream rerun advisory** (not executed by SCOPE_CHANGE)
    - `PROJECT/SOFTWARE`: dependency extraction, estimate snapshot, scheduling, any scoped audits
    - `DOMAIN`: downstream knowledge-generation workflows, terminology QA / grep, and any coverage audit or regeneration workflow that consumes the decomposition
+   - For every affected derivative package, record whether the amendment leaves it `CURRENT`, `STALE_REBUILD_REQUIRED`, or `DEFERRED_BY_HUMAN`
+
+7) **Derivative surface classification** (`DOMAIN`)
+   - For every affected decomposition-local derivative surface, record:
+     - surface path
+     - classification: `DIRECT_EDIT` / `RECOMPUTE` / `NO_CHANGE`
+     - upstream authority
+   - Explicitly list active snapshot artifacts and handoff-state fields that must change
+
+8) **Closure validation lane**
+   - Separate the plan into:
+     - direct authoritative package writes executed at Gate 5,
+     - downstream reruns not executed by SCOPE_CHANGE,
+     - closure validation steps required before the root can claim a later phase
+   - Do not describe downstream reruns as already satisfied by the Gate 5 write pass
 
 Produce:
 - `Propagation_Plan.md`
@@ -425,7 +467,7 @@ Present the propagation plan to the human. Ask: “Do you approve this propagati
 **Agent does:**
 
 1) **Apply decomposition amendments**
-   - Edit the decomposition document only per the Gate 3 approved text.
+   - Apply decomposition document amendments per the Gate 3 approved text.
    - Record each edit action.
 
 2) **Apply approved propagation writes**
@@ -435,8 +477,10 @@ Present the propagation plan to the human. Ask: “Do you approve this propagati
      - `ADD`: hand off to ORCHESTRATOR / PREPARATION and record the handoff
      - `MERGE/SPLIT`: combine the above
    - `DOMAIN`:
-     - By default, no downstream content writes beyond the decomposition document and the amendment snapshot
-     - If the human explicitly approved companion repo-metadata writes, apply only those within `ALLOWED_PROPAGATION_WRITES`
+     - Update the decomposition document and all affected decomposition annex / derivative surfaces under `_Decomposition/` (Domain Ledger, Knowledge Type Register, Knowledge Subject Register, Vocabulary Map, Coverage & Telemetry, Open Issues Register, mapping tables, validation tables, telemetry derivatives, etc.)
+     - Every derivative surface classified as `DIRECT_EDIT` or `RECOMPUTE` in Gate 4 must be handled explicitly; contradictory or missing active derivatives are blockers, not advisory notes
+     - Write the amendment snapshot to `_ScopeChange/` and update `_LATEST.md`
+     - Do not write to KTY-local folders, `_Aggregation`, hypergraph, or publication outputs — flag those as downstream reruns
 
 3) **Post-change validation**
    - Capture the post-change baseline using the variant's authoritative coverage source:
@@ -451,11 +495,16 @@ Present the propagation plan to the human. Ask: “Do you approve this propagati
        - no package change left deliverables or Scope Ledger rows parentless
        - when the originating decomposition defines package-discipline isolation, artifact-kind deliverable granularity, or equivalent design-partition rules, the changed rows still satisfy those rules and the check is recorded explicitly in the run summary
      - `DOMAIN` specific:
+       - validate the full active decomposition package, not only the main markdown
        - `UnassignedINUnits = 0`
        - every `KTY-*` has exactly one parent `Category`
        - every `KTY-*` has at least one `SUB-*`
        - every `SUB-*` has exactly one parent `KTY-*`
+       - objective support claims reconcile across the Objectives section/register, `Domain Ledger`, `SupportsObjectives` fields, and `ObjectiveCount`
+       - no active objective is supported only by retired `KTY-*`
        - terminology changes are reflected consistently in changed sections
+       - `_LATEST.md` points to exactly one active snapshot
+       - the active snapshot contains every required artifact
        - open issues reflect every unresolved best-effort gap
 
 4) **Produce `RUN_SUMMARY.md`**
@@ -463,17 +512,35 @@ Present the propagation plan to the human. Ask: “Do you approve this propagati
    - Actions taken (with file paths)
    - Pre-change vs post-change comparison
    - Recommended downstream reruns (not executed)
+   - Explicit handoff-state fields:
+     - `DecompositionTruthState`
+     - `DerivativePackageState`
+     - `DownstreamRerunState`
+     - `MetadataAlignmentState`
+     - `AuditState`
+     - `ReadyForNextPhase`
    - Handoff to CHANGE: modified files + recommended commit message
 
-5) Write all artifacts to snapshot folder:
+5) **Produce `Handoff_State.md`**
+   - Accepted amendment snapshot path
+   - Authoritative truth changed in this run
+   - Derivative-package state table (`package`, `owner`, `status`, `evidence`, `next required action`)
+   - Active derivative-surface state table (`surface`, `classification`, `status`, `evidence`)
+   - Active snapshot state (`snapshot`, `artifact completeness`, `_LATEST.md` parity)
+   - Closure verdict: `CLOSED_FOR_SCOPE_CHANGE_ONLY` or `OPEN_PENDING_DERIVATIVE_CLOSURE`
+   - Remaining blockers / human decisions
+   - Next owning workflow(s)
+
+6) Write all artifacts to snapshot folder:
    - `{SCOPE_CHANGE_ROOT}/SCA-{NNN}_{YYYY-MM-DD}_{HHMM}/`
 
-6) Update `_LATEST.md` pointer.
+7) Update `_LATEST.md` pointer.
 
 Present to the human:
 - Summary of what changed
 - Post-change validation result
 - Recommended downstream reruns
+- Handoff-state / closure verdict
 - Handoff to CHANGE for git staging
 
 **Human confirms** the post-change state and decides which downstream reruns to trigger.
@@ -493,22 +560,34 @@ A decomposition amendment cycle is valid when:
 - Variant-local metadata files were modified only per the Gate 4 approved propagation plan.
 - No files outside the approved write scope were modified.
 - An immutable amendment snapshot exists under `_ScopeChange/` with all required artifacts.
+- For `DOMAIN`, the full active decomposition package is internally consistent: main markdown, affected decomposition-local derivatives, `_LATEST.md`, and active snapshot state all agree.
 - Pre-change and post-change baselines both completed using the variant-appropriate coverage source.
 - The decomposition document's Change Register contains the amendment entry.
 - Stable IDs were preserved unless the human explicitly approved renumbering.
 - Retired / removed source IDs were not reused.
 - `Amendment_Actions.csv` accounts for every atomic change.
 - `Decision_Log.md` records all human decisions at each gate.
+- `Handoff_State.md` exists and names the accepted snapshot, derivative-package status, closure verdict, blockers, and next owning workflow.
+- Every affected `DOMAIN` derivative surface was classified as `DIRECT_EDIT`, `RECOMPUTE`, or `NO_CHANGE`, and the active state matches that classification.
+- `_LATEST.md` points to exactly one active snapshot.
+- The active snapshot contains every required artifact.
+- Historical incomplete snapshots may remain only as explicitly non-current residue; they are not treated as active truth.
+- `RUN_SUMMARY.md` and `Handoff_State.md` do not imply a later phase than the artifacts support.
 - The originating decomposition variant's invariants remain satisfied after the amendment.
 - No parent partition / parent entity change left orphaned child entities or dangling authoritative mappings.
 - Any variant-local structural rule stricter than the generic model was validated explicitly for the affected rows; generic reminders are not sufficient.
+- Any derivative package left stale by the amendment is explicitly recorded as open work in `Handoff_State.md`; no stale downstream state is represented as closed.
 - Additional `DOMAIN` validity requirements:
   - `Domain Ledger` remains present and updated
   - `Coverage & Telemetry` remains present and updated
   - every `IN` Handbook Unit has exactly one `CategoryID`
   - every `Knowledge Type` contains at least one `Knowledge Subject`
   - every `Knowledge Subject` belongs to exactly one `Knowledge Type`
+  - objective support counts reconcile across the Objectives section/register, `Domain Ledger`, `SupportsObjectives`, and `ObjectiveCount`
+  - no active objective is supported only by retired `KTY-*`
   - the `Vocabulary Map` is updated when terminology changes are part of the amendment
+  - a Phase-5-only closeout may set `ReadyForNextPhase = REGEN_ONLY` but must not imply downstream regeneration complete
+  - a post-regeneration closeout may set `ReadyForNextPhase = PHASE7_REVIEW` only when downstream reruns, metadata alignment, audit, and terminology checks are all recorded non-blocking
 
 [[END:SPEC]]
 
@@ -530,8 +609,22 @@ A decomposition amendment cycle is valid when:
     Pre_Change_Coverage.json       (audit output copy or synthesized baseline)
     Post_Change_Coverage.json      (audit output copy or synthesized baseline)
     Decision_Log.md                (all gate decisions)
+    Handoff_State.md               (closure + downstream ownership state)
     RUN_SUMMARY.md                 (final summary + handoffs)
 ```
+
+### `RUN_SUMMARY.md` / `Handoff_State.md` state fields
+
+The active snapshot must expose these fixed state fields across `RUN_SUMMARY.md` and/or `Handoff_State.md`:
+
+| Field | Allowed values | Meaning |
+|---|---|---|
+| `DecompositionTruthState` | `INCOMPLETE` / `COMPLETE` | Whether the main decomposition document amendments are complete |
+| `DerivativePackageState` | `INCOMPLETE` / `COMPLETE` | Whether affected decomposition-local derivative surfaces are in parity |
+| `DownstreamRerunState` | `NOT_REQUIRED` / `FROZEN` / `IN_PROGRESS` / `COMPLETE` / `BLOCKED` | Whether downstream reruns are pending or complete |
+| `MetadataAlignmentState` | `NOT_REQUIRED` / `NOT_STARTED` / `IN_PROGRESS` / `COMPLETE` / `BLOCKED` | Whether post-regeneration metadata alignment is complete |
+| `AuditState` | `NOT_RUN` / `WARNINGS` / `NON_BLOCKING_PASS` / `BLOCKED` | Current audit / verification state |
+| `ReadyForNextPhase` | `NO` / `REGEN_ONLY` / `PHASE7_REVIEW` / `PUBLICATION_GATED` | Highest phase the current artifact state actually supports |
 
 ### Amendment Actions Schema
 

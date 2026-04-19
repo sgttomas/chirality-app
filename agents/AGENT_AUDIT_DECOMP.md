@@ -5,9 +5,11 @@ description: "Audits decomposition quality and coverage — validates filesystem
 # AGENT INSTRUCTIONS — AUDIT_DECOMP (Type 2 Task • Decomposition‑vs‑Filesystem Validation)
 AGENT_TYPE: 2
 
-These instructions govern a **Type 2** task agent that validates whether the **decomposition document** (produced by PROJECT_DECOMP, SOFTWARE_DECOMP, or DOMAIN_DECOMP) and the **actual filesystem state** are in sync.
+These instructions govern a **Type 2** task agent that validates whether the **decomposition package** (produced by PROJECT_DECOMP, SOFTWARE_DECOMP, or DOMAIN_DECOMP) and the **actual filesystem state** are in sync.
 
-It checks forward coverage (every declared entity has a folder), reverse coverage (every folder traces to a declaration), context fidelity, artifact presence, objective mapping, and scope ledger integrity.
+It checks forward coverage (every declared entity has a folder), reverse coverage (every folder traces to a declaration), context fidelity, artifact presence, objective mapping, scope ledger integrity, derivative-package parity, and active snapshot / handoff-state consistency.
+
+AUDIT_DECOMP may be used as closure evidence for a later handoff, but its own snapshot is still a derivative package: it reports on authoritative truth and filesystem state; it does not replace either one.
 
 **Important:** This agent is **read‑only** on deliverables and on the decomposition document. It analyzes what exists; it does not fix discrepancies.
 
@@ -16,9 +18,9 @@ It checks forward coverage (every declared entity has a folder), reverse coverag
 ---
 
 ## Revision
-- Version: v2.0
-- Date: 2026-02-21
-- Changes: Generalized for PROJECT_DECOMP, SOFTWARE_DECOMP, and DOMAIN_DECOMP. Added DECOMP_VARIANT input, variant binding tables, abstract schema terms.
+- Version: v2.1
+- Date: 2026-04-19
+- Changes: Added derivative-package parity, active snapshot completeness, handoff-state consistency, and objective-evidence integrity checks for DOMAIN_DECOMP.
 
 ---
 
@@ -52,7 +54,7 @@ If a human instruction conflicts with this document, obey the human and record t
 
 Parse the decomposition document (Ledger, Objectives, Partitions, and Production Units sections — resolved via Variant Section Binding) and compare its declarations against the actual filesystem state under `{EXECUTION_ROOT}`. Produce:
 
-- a coverage report with PASS/WARNING/BLOCKER outcomes for 9 core checks,
+- a coverage report with PASS/WARNING/BLOCKER outcomes for 12 core checks (including package-shape conformance),
 - a per-deliverable coverage matrix,
 - machine-readable metrics (JSON),
 - an actionable issue log.
@@ -67,6 +69,8 @@ Parse the decomposition document (Ledger, Objectives, Partitions, and Production
 - **Deterministic.** Same inputs → same outputs.
 - **Immutable snapshots.** Each run writes a new snapshot folder; never overwrite prior snapshots.
 - **Pointer-only overwrite allowed.** `_LATEST.md` may be overwritten as a pointer; snapshots remain immutable.
+- **Audit snapshot is derivative evidence.** The audit snapshot is evidence for closure and handoff-state, not decomposition truth. It must identify the authoritative inputs it evaluated.
+- **Package-aware for `DOMAIN`.** When `DECOMP_VARIANT = DOMAIN`, the audit must treat active decomposition-local derivatives and active `_ScopeChange` artifacts as auditable package state, not background residue.
 
 ---
 
@@ -82,6 +86,8 @@ Optional:
 - `RUN_LABEL`: short label for this run (default `DECOMP_COV`)
 - `REQUESTED_BY`: invoking agent name (default `RECONCILIATION`)
 - `PRIOR_RUN_LABEL`: optional label for comparison mode (load prior JSON and compute deltas)
+- `EXPECTED_SOURCE_SNAPSHOT`: optional accepted upstream snapshot path that this audit run is expected to evaluate and cite in outputs
+- `EXPECTED_HANDOFF_PHASE`: optional phase or handoff label so the run can state which closure boundary it supports
 
 ### Variant Entity Binding
 
@@ -171,11 +177,16 @@ Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Re
    - Production Units section (per Variant Section Binding) → list of `{ProductionUnitID, ParentPartitionID, Name, Type, ResponsibleParty, AnticipatedArtifacts, CoversAtomicUnits, SupportsObjectives}` (for DOMAIN_DECOMP, `AnticipatedArtifacts` maps to the Knowledge Type's anticipated Knowledge Subjects)
    - Objectives → list of `{ObjectiveID, Statement}` (from dedicated section or Ledger `ObjectiveID(s)` column, per variant binding)
    - Ledger → In-scope items with IDs
-3) If parsing fails (sections not found, table format unrecognizable): `FAILED_INPUTS`.
-4) Discover filesystem deliverables in scope:
+3) When `DECOMP_VARIANT = DOMAIN`, also inventory the active decomposition package:
+   - enumerate active decomposition-local derivative surfaces under `{EXECUTION_ROOT}/_Decomposition/`
+   - resolve `{EXECUTION_ROOT}/_ScopeChange/_LATEST.md` if it exists
+   - resolve the active snapshot if `_LATEST.md` points to one
+   - record whether the active snapshot contains the required artifact set
+4) If parsing fails (sections not found, table format unrecognizable): `FAILED_INPUTS`.
+5) Discover filesystem deliverables in scope:
    - Scan folder pattern per Variant Folder Patterns table
    - Build a map of `{FolderPath → extracted PartitionID, ProductionUnitID}`
-5) If `SCOPE` is a subset: filter both parsed lists and discovered folders to the specified scope.
+6) If `SCOPE` is a subset: filter both parsed lists and discovered folders to the specified scope.
 
 ---
 
@@ -263,8 +274,10 @@ Resolve Objectives per DECOMP_VARIANT:
 For each Objective:
 - Collect all Production Units (in the Production Units section) that list this ObjectiveID in `SupportsObjectives`
 - For each such Production Unit, confirm the folder exists (from Check 2)
+- Compare the support count implied by the enumerated Production Units against any objective-count or support-count surface carried by the active decomposition package
 - If an objective has zero supporting Production Units with existing folders: issue `WARNING` — "Objective {OBJ-ID} has no active supporting Production Units"
-- If an objective's only supporting Production Units are all RETIRED (check `_STATUS.md`): issue `WARNING` — "Objective {OBJ-ID} supported only by RETIRED Production Units"
+- If an objective's only supporting Production Units are all RETIRED (check `_STATUS.md`): issue `BLOCKER` — "Objective {OBJ-ID} supported only by RETIRED Production Units"
+- If the objective's support count disagrees with the enumerated supporting Production Units or with active decomposition-local objective-count surfaces: issue `BLOCKER` — "Objective {OBJ-ID} support-count evidence is internally inconsistent"
 
 ---
 
@@ -282,7 +295,63 @@ If no Ledger is found: issue `INFO` — "No Ledger found in decomposition; Check
 
 ---
 
-### Step 9 — Lifecycle Distribution (Check 9)
+### Step 9 — Derivative Package Parity (Check 9)
+
+When `DECOMP_VARIANT = DOMAIN`:
+- Audit active decomposition-local derivative surfaces under `_Decomposition/`
+- Include any active local surface that duplicates authoritative counts,
+  mappings, validation evidence, objective support, open issues, or status
+  state (for example telemetry tables, validation tables, mapping tables,
+  unit-category or unit-subject tables, inventory / manifest derivatives, and
+  equivalent local summaries)
+- Compare those surfaces against the main decomposition document and the active
+  authoritative package state
+- If an active derivative surface is missing, contradictory, or materially
+  stale: issue `BLOCKER` — "Active derivative surface {path} is missing or out
+  of parity with authoritative package truth"
+- If a historical residue surface is incomplete but clearly non-current: issue
+  `WARNING` — "Historical derivative surface {path} is incomplete residue and
+  not treated as active truth"
+
+When `DECOMP_VARIANT != DOMAIN`:
+- Record `SKIPPED` with reason: "Derivative-package parity not variant-owned by
+  this audit"
+
+### Step 9b — Package-Shape Conformance (Check 9b)
+
+Assess whether the decomposition package conforms to the preferred modular package shape defined in `AGENT_DECOMP_BASE.md`:
+
+1. **Package-role labeling.** Does the package clearly label authoritative vs derived surfaces? Check for an explicit companion inventory section in the main decomposition document. If absent: issue `WARNING` — "Main decomposition document lacks a companion inventory section; package roles are not discoverable for downstream agents"
+
+2. **Monolithic duplication.** Does the main decomposition document embed heavy truth that already exists in companion registers (e.g., full Domain Ledger duplicated inline, exhaustive derivative tables duplicated from companion CSVs)? If heavy companion truth is duplicated in the main document without explicit justification: issue `WARNING` — "Main decomposition document duplicates heavy companion truth from {companion_path}; consider whether the main document should carry summaries instead"
+
+3. **Derived artifact authority confusion.** Is any derived monolithic artifact (single-file render, publication bundle) being treated as if it were authoritative for amendment work? If a derived artifact appears to be the de facto amendment surface while a modular package also exists: issue `BLOCKER` — "Derived publication artifact {path} appears to be treated as authoritative; amendments should target the canonical working package"
+
+4. **Package-role discoverability.** Are package roles discoverable enough for future agents to amend the root safely? If a new agent would have difficulty determining which surfaces are authoritative vs derived: issue `WARNING` — "Package roles are not sufficiently discoverable; consider adding explicit package-role labels or a companion inventory"
+
+When `DECOMP_VARIANT != DOMAIN`:
+- Checks 1 and 4 apply to all variants.
+- Checks 2 and 3 are advisory (`INFO`) for `PROJECT` and `SOFTWARE` unless companion registers are present, in which case they apply at full severity.
+
+### Step 10 — Active Snapshot And Handoff State (Check 10)
+
+When `{EXECUTION_ROOT}/_ScopeChange/_LATEST.md` exists:
+- Verify `_LATEST.md` points to exactly one active snapshot
+- Verify that snapshot exists
+- Verify the active snapshot contains the required artifact set expected by the
+  current `SCOPE_CHANGE` contract
+- Verify `RUN_SUMMARY.md` and `Handoff_State.md`, when present, do not claim a
+  later phase or a cleaner closure state than the actual package evidence
+  supports
+- If the active snapshot is incomplete or `_LATEST.md` is wrong/ambiguous:
+  issue `BLOCKER` — "Active snapshot contract failed"
+- If a historical snapshot is incomplete but clearly non-current: issue
+  `WARNING` — "Historical snapshot residue is incomplete but not active truth"
+
+When `_LATEST.md` does not exist:
+- Record `SKIPPED` unless the brief or variant requires snapshot-aware audit
+
+### Step 11 — Lifecycle Distribution (Check 11)
 
 For each deliverable with a matched folder:
 - Read `{folder}/_STATUS.md`
@@ -295,7 +364,7 @@ This check has no BLOCKER/WARNING conditions — it is informational context for
 
 ---
 
-### Step 10 — Optional comparison mode
+### Step 12 — Optional comparison mode
 
 If `PRIOR_RUN_LABEL` is provided:
 - Load the prior run's `coverage_summary.json`
@@ -307,20 +376,20 @@ If `PRIOR_RUN_LABEL` is provided:
 
 ---
 
-### Step 11 — Assemble outputs and publish snapshot
+### Step 13 — Assemble outputs and publish snapshot
 
 1) Compile `Decomp_Coverage_Report.md`:
    - Per-check narrative with PASS/WARNING/BLOCKER verdict
    - Evidence references for each finding
-   - Summary table of all 9 checks
+   - Summary table of all 12 checks
    - "What to fix for a cleaner rerun" section
 
 2) Compile `Decomp_Coverage_IssueLog.csv`:
    ```
-   IssueID,CheckNumber,Severity,EntityType,EntityID,Description,DecompositionRef,FilesystemRef
+   IssueID,CheckNumber,Severity,EntityType,ConcreteLabel,EntityID,Description,DecompositionRef,FilesystemRef
    ```
 
-3) Compile `Decomp-Coverage_Matrix.csv`:
+3) Compile `Decomp_Coverage_Matrix.csv`:
    ```
    DeliverableID,PackageID,FolderExists,ContextPresent,ContextMatch,ArtifactCoverage,ObjectivesMapped,LifecycleState,IssueCount
    ```
@@ -333,6 +402,8 @@ If `PRIOR_RUN_LABEL` is provided:
      "run_label": "...",
      "timestamp": "...",
      "decomp_variant": "PROJECT|SOFTWARE|DOMAIN",
+     "expected_source_snapshot": "...",
+     "expected_handoff_phase": "...",
      "decomposition_path": "...",
      "decomposition_revision": "...",
      "scope": "...",
@@ -346,11 +417,18 @@ If `PRIOR_RUN_LABEL` is provided:
      "context_fidelity_pct": 0.0,
      "artifact_presence_pct": 0.0,
      "objective_coverage_pct": 0.0,
+     "package_shape_conformance": "PASS|WARN|FAIL|SKIPPED",
+    "derivative_package_status": "PASS|WARN|FAIL|SKIPPED",
+     "active_snapshot_status": "PASS|WARN|FAIL|SKIPPED",
+     "handoff_state_status": "PASS|WARN|FAIL|SKIPPED",
+     "objective_evidence_integrity": "PASS|FAIL|SKIPPED",
      "issues_blocker": 0,
      "issues_warning": 0,
      "issues_info": 0,
+     "check_count": 12,
      "lifecycle_distribution": {},
      "overall_status": "OK|WARNINGS|BLOCKERS",
+     "closure_readiness": "PASS|WARN|FAIL",
      "concrete_labels": {
        "partition": "Package|Category",
        "production_unit": "Deliverable|Knowledge Type"
@@ -375,9 +453,11 @@ If `PRIOR_RUN_LABEL` is provided:
 
 A run is valid when:
 - Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/`.
-- `Decomp-Coverage_Report.md`, `Decomp-Coverage_IssueLog.csv`, `Decomp-Coverage_Matrix.csv`, and `coverage_summary.json` exist.
-- The report includes verdicts for all 9 checks (or marks them `SKIPPED` / `INCOMPLETE` with reasons).
+- `Decomp_Coverage_Report.md`, `Decomp_Coverage_IssueLog.csv`, `Decomp_Coverage_Matrix.csv`, and `coverage_summary.json` exist.
+- The report includes verdicts for all 12 checks (or marks them `SKIPPED` / `INCOMPLETE` with reasons).
 - Every BLOCKER/WARNING finding includes evidence pointers (decomposition reference + filesystem path or absence).
+- If `EXPECTED_SOURCE_SNAPSHOT` was provided, the report and `coverage_summary.json` cite it explicitly so the audit snapshot can serve as derivative closure evidence.
+- When `DECOMP_VARIANT = DOMAIN`, active derivative-package parity, active snapshot completeness, handoff-state consistency, and objective-evidence integrity are explicitly evaluated and surfaced.
 - No file outside the write zone is modified.
 - The decomposition document is not modified.
 - No deliverable file is modified.
@@ -410,9 +490,9 @@ A run is valid when:
 | Column | Type | Description |
 |--------|------|-------------|
 | `IssueID` | string | `COV-{NNN}` sequential within run |
-| `CheckNumber` | integer | 1–9 (maps to check name) |
+| `CheckNumber` | integer | 1–11 (maps to check name) |
 | `Severity` | enum | `BLOCKER` / `WARNING` / `INFO` |
-| `EntityType` | enum | `PARTITION` / `PRODUCTION_UNIT` / `OBJECTIVE` / `ATOMIC_UNIT` / `CONTEXT` / `ARTIFACT` |
+| `EntityType` | enum | `PARTITION` / `PRODUCTION_UNIT` / `OBJECTIVE` / `ATOMIC_UNIT` / `CONTEXT` / `ARTIFACT` / `DERIVATIVE_SURFACE` / `SNAPSHOT` / `HANDOFF_STATE` |
 | `ConcreteLabel` | string | Variant-specific name for the entity (e.g., `Package`, `Category`, `Deliverable`, `Knowledge Type`) |
 | `EntityID` | string | The stable ID of the affected entity |
 | `Description` | string | Human-readable description of the issue |
@@ -448,5 +528,19 @@ This audit catches that divergence early and cheaply. It is designed to be:
 - **Rerunnable** after any scope change (SCOPE_CHANGE invokes it pre- and post-amendment)
 - **Composable** with existing reconciliation toolbelt (RECONCILIATION dispatches it alongside AUDIT_DEP_CLOSURE and AUDIT_AGENTS)
 - **Non-destructive** (read-only analysis; surfaces issues for humans and other agents to act on)
+
+For `DOMAIN`, the audit now treats the active decomposition package, not just
+the main markdown, as the object being judged. That means duplicated local
+derivatives, active snapshot completeness, handoff-state honesty, and
+objective-evidence integrity are first-class audit concerns rather than
+campaign-specific cleanup notes.
+
+The package-shape conformance check (9b) enforces the preferred modular package
+architecture defined in `AGENT_DECOMP_BASE.md`. It surfaces cases where the main
+decomposition document has grown monolithic by embedding heavy companion truth,
+where derived publication artifacts are being confused with authoritative working
+surfaces, or where package roles are insufficiently discoverable for future
+agents. This check is the audit enforcement point for preventing drift away from
+the preferred modular package shape.
 
 [[END:RATIONALE]]

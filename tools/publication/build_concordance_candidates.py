@@ -18,9 +18,19 @@ Writes:
   - Publication_Concordance_Candidates.csv
   - Publication_Concordance_Coverage.md
 
+Optional hypergraph inputs (AUXILIARY_STRUCTURE_EVIDENCE):
+  When the frozen manifest admits a hypergraph snapshot with a planning-
+  compatible use mode (AUXILIARY_PLANNING or AUXILIARY_PLANNING_AND_QA),
+  the tool reads nodes, hyperedges, and evidence CSVs to suggest additional
+  concordance candidates tagged DiscoverySource = HYPERGRAPH_AUXILIARY.
+  Hypergraph evidence must NOT generate canonical assertion values from
+  graph topology or override candidates already grounded in mapped source
+  content.  The tool works identically when no hypergraph inputs are present.
+
 Scope boundary:
   Reads: manifest, schema, section map, mapped KA markdown, open-issues CSVs,
-  decision-log CSVs, and active SCA amendment CSVs named by the manifest
+  decision-log CSVs, active SCA amendment CSVs named by the manifest, and
+  optionally admitted hypergraph evidence files
   Writes: only --output-csv and --coverage-md
   Does not mutate section outputs, package snapshots, or KTY-local truth
 
@@ -109,6 +119,20 @@ ALLOWED_DISCOVERY_SOURCES = {
     "SCOPE_CHANGE",
     "HUMAN_ADDED",
     "SECTION_DISCOVERY",
+    "HYPERGRAPH_AUXILIARY",
+}
+
+# ---------------------------------------------------------------------------
+# Hypergraph use-mode constants.
+#
+# Hypergraph evidence is AUXILIARY ONLY.  It must never generate canonical
+# assertion values from graph topology or override candidates already
+# grounded in mapped source content.  See the plan section
+# "Core Policy / Hypergraphs become auxiliary structure evidence".
+# ---------------------------------------------------------------------------
+HYPERGRAPH_PLANNING_MODES = {
+    "AUXILIARY_PLANNING",
+    "AUXILIARY_PLANNING_AND_QA",
 }
 
 ALLOWED_CRITICALITY = {"HIGH", "NORMAL", "LOW"}
@@ -746,11 +770,250 @@ def load_sca_candidates(
     return result
 
 
+def _read_hypergraph_manifest_fields(manifest: Dict[str, object]) -> Dict[str, str]:
+    """Extract hypergraph-related fields from the parsed manifest explicit dict.
+
+    Returns a dict with normalised keys.  Missing keys map to empty strings.
+    """
+    explicit = manifest.get("explicit", {})
+    if not isinstance(explicit, dict):
+        return {}
+    return {
+        "use_mode": explicit.get("HYPERGRAPH_USE_MODE", ""),
+        "snapshot_path": explicit.get("HYPERGRAPH_SNAPSHOT_PATH", ""),
+        "evidence_root": explicit.get("HYPERGRAPH_EVIDENCE_ROOT", ""),
+        "nodes_path": explicit.get("HYPERGRAPH_NODES_PATH", ""),
+        "hyperedges_path": explicit.get("HYPERGRAPH_HYPEREDGES_PATH", ""),
+        "qa_verdict": explicit.get("HYPERGRAPH_QA_VERDICT", ""),
+    }
+
+
+def _hypergraph_planning_allowed(hg_fields: Dict[str, str]) -> bool:
+    """Return True only when the manifest explicitly admits hypergraph evidence
+    for planning-stage use (Gate 2 / Gate 4).
+
+    The tool must work identically when this returns False — all hypergraph
+    code paths are gated behind this check.
+    """
+    mode = hg_fields.get("use_mode", "").strip().upper()
+    if mode not in HYPERGRAPH_PLANNING_MODES:
+        return False
+    # Even when the mode permits planning use, a BLOCKED QA verdict limits
+    # the evidence to non-authoritative clustering only.  The candidate
+    # builder still emits suggestions, but the caller must treat them as
+    # advisory.
+    return True
+
+
+def _load_hypergraph_evidence(hg_fields: Dict[str, str], manifest_dir: Path) -> Dict[str, object]:
+    """Load hypergraph nodes, hyperedges, and evidence CSVs when available.
+
+    All loading is best-effort: missing files are silently skipped and the
+    caller receives an empty collection for that evidence type.
+
+    Returns a dict with keys:
+      nodes            List[Dict[str, str]]
+      hyperedges       List[Dict[str, str]]
+      discovered_ktys  List[Dict[str, str]]
+      subjects         List[Dict[str, str]]
+      objectives       List[Dict[str, str]]
+      artifact_map     List[Dict[str, str]]
+    """
+    result: Dict[str, object] = {
+        "nodes": [],
+        "hyperedges": [],
+        "discovered_ktys": [],
+        "subjects": [],
+        "objectives": [],
+        "artifact_map": [],
+    }
+
+    def _resolve(raw: str) -> Optional[Path]:
+        if not raw:
+            return None
+        p = Path(raw.strip())
+        if not p.is_absolute():
+            p = (manifest_dir / p).resolve()
+        return p if p.exists() else None
+
+    nodes_path = _resolve(hg_fields.get("nodes_path", ""))
+    if nodes_path:
+        result["nodes"] = read_csv_rows(nodes_path)
+
+    hyperedges_path = _resolve(hg_fields.get("hyperedges_path", ""))
+    if hyperedges_path:
+        result["hyperedges"] = read_csv_rows(hyperedges_path)
+
+    evidence_root = _resolve(hg_fields.get("evidence_root", ""))
+    if evidence_root and evidence_root.is_dir():
+        for csv_path in sorted(evidence_root.glob("*.csv")):
+            rows = read_csv_rows(csv_path)
+            name_lower = csv_path.stem.lower()
+            if "kty" in name_lower or "knowledge_type" in name_lower:
+                result["discovered_ktys"] = rows
+            elif "subject" in name_lower:
+                result["subjects"] = rows
+            elif "objective" in name_lower:
+                result["objectives"] = rows
+            elif "artifact" in name_lower:
+                result["artifact_map"] = rows
+
+    return result
+
+
+def _identify_repeated_patterns(
+    hg_evidence: Dict[str, object],
+    section_map_rows: Sequence[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Identify repeated structural patterns across mapped sections using
+    hypergraph evidence.
+
+    This is an AUXILIARY discovery step only.  The returned candidate rows
+    are tagged with DiscoverySource = HYPERGRAPH_AUXILIARY and must be
+    reviewed before freeze.
+    """
+    candidates: List[Dict[str, str]] = []
+
+    # Build a set of KTY IDs already present in the section map so we
+    # can detect objective / subject participation that spans multiple KTYs.
+    mapped_kty_ids = {row.get("KnowledgeTypeID", "") for row in section_map_rows if row.get("KnowledgeTypeID", "")}
+
+    # --- Repeated objective participation ---------------------------------
+    # If two or more mapped KTYs share the same objective in the hypergraph,
+    # that objective is a candidate for a cross-section concordance assertion.
+    objectives: List[Dict[str, str]] = list(hg_evidence.get("objectives", []))
+    hyperedges: List[Dict[str, str]] = list(hg_evidence.get("hyperedges", []))
+
+    # Build objective -> set of supporting KTY IDs from hyperedges
+    obj_to_ktys: Dict[str, set] = defaultdict(set)
+    for edge in hyperedges:
+        edge_type = edge.get("EdgeType", "") or edge.get("Type", "")
+        if edge_type != "KTY_SUPPORTS_OBJ":
+            continue
+        source = edge.get("Source", "") or edge.get("SourceID", "")
+        target = edge.get("Target", "") or edge.get("TargetID", "")
+        if source in mapped_kty_ids:
+            obj_to_ktys[target].add(source)
+
+    for obj_id, supporting_ktys in obj_to_ktys.items():
+        if len(supporting_ktys) < 2:
+            continue
+        # Look up objective label
+        obj_label = obj_id
+        for obj_row in objectives:
+            if obj_row.get("ObjectiveID", "") == obj_id or obj_row.get("ID", "") == obj_id:
+                obj_label = obj_row.get("Name", "") or obj_row.get("ObjectiveName", "") or obj_id
+                break
+        label = canonicalize_label(f"Cross-KTY objective — {obj_label}")
+        candidates.append({
+            "AssertionKey": make_assertion_key(["XOBJ", obj_id]),
+            "AssertionLabel": label,
+            "AssertionDomain": "PROCESS_CONDITION",
+            "AssertionType": "STATE",
+            "CanonicalTerm": label,
+            "Unit": "",
+            "ComparisonRule": "TOKEN_MATCH",
+            "ComparisonParameter": "",
+            "AuthoritySectionID": "",
+            "RequiredSectionIDs": "",
+            "FacilityScope": "",
+            "CurrentStateBasis": "",
+            "DecisionRefs": "",
+            "DiscoverySource": "HYPERGRAPH_AUXILIARY",
+            "SourceKTYIDs": "; ".join(sorted(supporting_ktys)),
+            "SourceSectionIDs": "",
+            "NormalizationHint": "Normalize to canonical uppercase tokens with stable terminology.",
+            "Criticality": "NORMAL",
+            "CandidateValueExample": "",
+            "SourceArtifact": "HYPERGRAPH_SNAPSHOT",
+            "SourceRef": obj_id,
+            "Notes": f"Hypergraph auxiliary: objective {obj_id} is supported by {len(supporting_ktys)} mapped KTYs; likely cross-section concordance candidate.",
+            "ResolutionStatus": "NEEDS_REVIEW",
+        })
+
+    return candidates
+
+
+def _identify_omitted_participants(
+    hg_evidence: Dict[str, object],
+    section_map_rows: Sequence[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Use hypergraph subject/artifact adjacency to identify likely omitted
+    participant sections for existing section-map entries.
+
+    Returns advisory candidate rows tagged HYPERGRAPH_AUXILIARY.
+    """
+    candidates: List[Dict[str, str]] = []
+    hyperedges: List[Dict[str, str]] = list(hg_evidence.get("hyperedges", []))
+    mapped_kty_ids = {row.get("KnowledgeTypeID", "") for row in section_map_rows if row.get("KnowledgeTypeID", "")}
+
+    # Build subject -> KTY adjacency from HAS_SUBJECT edges
+    subject_to_ktys: Dict[str, set] = defaultdict(set)
+    for edge in hyperedges:
+        edge_type = edge.get("EdgeType", "") or edge.get("Type", "")
+        if edge_type != "HAS_SUBJECT":
+            continue
+        source = edge.get("Source", "") or edge.get("SourceID", "")
+        target = edge.get("Target", "") or edge.get("TargetID", "")
+        if source.startswith("KTY-"):
+            subject_to_ktys[target].add(source)
+        elif target.startswith("KTY-"):
+            subject_to_ktys[source].add(target)
+
+    for subject_id, adjacent_ktys in subject_to_ktys.items():
+        mapped_adjacent = adjacent_ktys & mapped_kty_ids
+        unmapped_adjacent = adjacent_ktys - mapped_kty_ids
+        if mapped_adjacent and unmapped_adjacent:
+            # Subject is partially covered — the unmapped KTYs are potential
+            # omitted participants.
+            subjects: List[Dict[str, str]] = list(hg_evidence.get("subjects", []))
+            subject_label = subject_id
+            for subj_row in subjects:
+                if subj_row.get("SubjectID", "") == subject_id or subj_row.get("ID", "") == subject_id:
+                    subject_label = subj_row.get("Name", "") or subj_row.get("SubjectName", "") or subject_id
+                    break
+            label = canonicalize_label(f"Omitted participant — {subject_label}")
+            candidates.append({
+                "AssertionKey": make_assertion_key(["OMIT_PART", subject_id]),
+                "AssertionLabel": label,
+                "AssertionDomain": "SCOPE_STATE",
+                "AssertionType": "STATE",
+                "CanonicalTerm": label,
+                "Unit": "",
+                "ComparisonRule": "TOKEN_MATCH",
+                "ComparisonParameter": "",
+                "AuthoritySectionID": "",
+                "RequiredSectionIDs": "",
+                "FacilityScope": "",
+                "CurrentStateBasis": "",
+                "DecisionRefs": "",
+                "DiscoverySource": "HYPERGRAPH_AUXILIARY",
+                "SourceKTYIDs": "; ".join(sorted(unmapped_adjacent)),
+                "SourceSectionIDs": "",
+                "NormalizationHint": "Normalize to canonical uppercase tokens with stable terminology.",
+                "Criticality": "NORMAL",
+                "CandidateValueExample": "",
+                "SourceArtifact": "HYPERGRAPH_SNAPSHOT",
+                "SourceRef": subject_id,
+                "Notes": (
+                    f"Hypergraph auxiliary: subject {subject_id} is adjacent to mapped KTYs "
+                    f"({', '.join(sorted(mapped_adjacent))}) but also to unmapped KTYs "
+                    f"({', '.join(sorted(unmapped_adjacent))}); likely omitted participant sections."
+                ),
+                "ResolutionStatus": "NEEDS_REVIEW",
+            })
+
+    return candidates
+
+
 def build_coverage_report(
     coverage_path: Path,
     merged_rows: Sequence[Dict[str, str]],
     artifact_contexts: Dict[Path, Dict[str, object]],
     skipped_artifacts: Sequence[str],
+    hypergraph_used: bool = False,
+    hypergraph_use_mode: str = "",
+    hypergraph_snapshot: str = "",
 ) -> int:
     by_source = Counter(row.get("DiscoverySource", "") for row in merged_rows)
     by_domain = Counter(row.get("AssertionDomain", "") for row in merged_rows)
@@ -769,6 +1032,15 @@ def build_coverage_report(
     lines.append(f"- Candidate rows written: {len(merged_rows)}")
     lines.append(f"- Candidate source artifacts scanned: {len(artifact_contexts)}")
     lines.append(f"- Skipped mapped artifacts: {len(skipped_artifacts)}")
+    # --- Hypergraph coverage summary (AUXILIARY_STRUCTURE_EVIDENCE) --------
+    if hypergraph_used:
+        hg_candidate_count = sum(1 for r in merged_rows if r.get("DiscoverySource") == "HYPERGRAPH_AUXILIARY")
+        lines.append(f"- Hypergraph evidence used: YES")
+        lines.append(f"- Hypergraph use mode: {hypergraph_use_mode}")
+        lines.append(f"- Hypergraph snapshot: {hypergraph_snapshot}")
+        lines.append(f"- Hypergraph-suggested candidates: {hg_candidate_count}")
+    else:
+        lines.append(f"- Hypergraph evidence used: NO")
     lines.append("")
     lines.append("## By Discovery Source")
     lines.append("")
@@ -858,6 +1130,29 @@ def main() -> int:
     candidate_rows.extend(load_decision_candidates(decision_log_path, decision_to_sections, schema_index))
     candidate_rows.extend(load_sca_candidates(sca_dirs, sca_to_sections, schema_index))
 
+    # ------------------------------------------------------------------
+    # Optional hypergraph-assisted candidate enrichment
+    # (AUXILIARY_STRUCTURE_EVIDENCE — see plan Phase 2, Tool 1).
+    #
+    # When the frozen manifest admits a hypergraph snapshot with a
+    # planning-compatible use mode, load the graph evidence and generate
+    # supplementary candidates tagged DiscoverySource = HYPERGRAPH_AUXILIARY.
+    #
+    # Constraints enforced here:
+    #   - Must NOT generate canonical assertion values from graph topology.
+    #   - Must NOT override candidates already grounded in mapped source
+    #     content (the merge step handles dedup, so we simply append).
+    # ------------------------------------------------------------------
+    hg_fields = _read_hypergraph_manifest_fields(manifest)
+    hypergraph_used = False
+    if _hypergraph_planning_allowed(hg_fields):
+        hg_evidence = _load_hypergraph_evidence(hg_fields, manifest_path.parent)
+        hg_has_data = any(hg_evidence.get(k) for k in ("nodes", "hyperedges", "discovered_ktys", "subjects", "objectives", "artifact_map"))
+        if hg_has_data:
+            hypergraph_used = True
+            candidate_rows.extend(_identify_repeated_patterns(hg_evidence, section_map_rows))
+            candidate_rows.extend(_identify_omitted_participants(hg_evidence, section_map_rows))
+
     if not candidate_rows:
         fatal("No concordance candidates could be harvested from the structured sources.", code=1)
 
@@ -873,9 +1168,17 @@ def main() -> int:
             fatal(f"Invalid ResolutionStatus produced: {row['ResolutionStatus']}")
 
     write_csv(output_csv, CANDIDATE_COLUMNS, merged_rows)
-    exit_code = build_coverage_report(coverage_md, merged_rows, artifact_contexts, skipped_artifacts)
+    exit_code = build_coverage_report(
+        coverage_md, merged_rows, artifact_contexts, skipped_artifacts,
+        hypergraph_used=hypergraph_used,
+        hypergraph_use_mode=hg_fields.get("use_mode", "NONE"),
+        hypergraph_snapshot=hg_fields.get("snapshot_path", ""),
+    )
     print(f"Candidate rows written: {len(merged_rows)}")
     print(f"Skipped mapped artifacts: {len(skipped_artifacts)}")
+    if hypergraph_used:
+        hg_count = sum(1 for r in merged_rows if r.get("DiscoverySource") == "HYPERGRAPH_AUXILIARY")
+        print(f"Hypergraph-suggested candidates: {hg_count}")
     return exit_code
 
 

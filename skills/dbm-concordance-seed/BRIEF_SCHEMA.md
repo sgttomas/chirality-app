@@ -45,6 +45,10 @@ The brief must not grant write access to section output folders, package folders
 | `RuntimeOverrides.SOURCE_DOMAIN` | string | Domain label for the run | `West_Doe_Deepcut_DBM` |
 | `RuntimeOverrides.ALLOW_PROSE_ONLY_DISCOVERY` | boolean | Permit semantically grounded prose-only candidate additions | `true` |
 | `RuntimeOverrides.STRICT_REQUIRED_SECTION_MATCH` | boolean | Refuse candidates that cannot be tied cleanly to the approved scope sections | `true` |
+| `RuntimeOverrides.HYPERGRAPH_USE_MODE` | enum | Whether hypergraph evidence is admitted for this run | `AUXILIARY_PLANNING` |
+| `RuntimeOverrides.HYPERGRAPH_SNAPSHOT_PATH` | path | Exact path to the admitted hypergraph snapshot | `/.../_Aggregation/Hypergraph/snapshot/` |
+| `RuntimeOverrides.HYPERGRAPH_QA_REPORT_PATH` | path | Exact path to the hypergraph QA report | `/.../_Aggregation/Hypergraph/QA_Report.md` |
+| `RuntimeOverrides.HYPERGRAPH_EVIDENCE_ROOT` | path | Root folder containing hypergraph evidence CSVs | `/.../_Aggregation/Hypergraph/evidence/` |
 | `CustomInstructions` | string | Run-specific reinforcement only; must not restate the skill contract | `Be conservative about authority-section assignment for shared utility values.` |
 | `EXCLUSIONS` | list[string] | Run-local exclusions inside already-mapped artifacts | `Ignore superseded historical value table under heading X.` |
 

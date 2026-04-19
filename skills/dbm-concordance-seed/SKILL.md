@@ -45,6 +45,10 @@ Typical dispatcher: `DBM_PUBLISHER` during the concordance seeding / freeze phas
 - `SOURCE_DOMAIN`
 - `ALLOW_PROSE_ONLY_DISCOVERY`
 - `STRICT_REQUIRED_SECTION_MATCH`
+- `HYPERGRAPH_USE_MODE`
+- `HYPERGRAPH_SNAPSHOT_PATH`
+- `HYPERGRAPH_QA_REPORT_PATH`
+- `HYPERGRAPH_EVIDENCE_ROOT`
 
 ## Runtime overrides
 
@@ -65,6 +69,10 @@ Typical dispatcher: `DBM_PUBLISHER` during the concordance seeding / freeze phas
 | `SOURCE_DOMAIN` | Source domain label for reporting | inferred | Non-empty string |
 | `ALLOW_PROSE_ONLY_DISCOVERY` | Permit semantically grounded candidates discovered from prose when no structured row exists | `true` | `true`, `false` |
 | `STRICT_REQUIRED_SECTION_MATCH` | Require every emitted candidate to map cleanly to the approved scope sections | `true` | `true`, `false` |
+| `HYPERGRAPH_USE_MODE` | Whether hypergraph evidence is admitted for this run | `NONE` | `NONE`, `AUXILIARY_PLANNING`, `AUXILIARY_QA`, `AUXILIARY_PLANNING_AND_QA` |
+| `HYPERGRAPH_SNAPSHOT_PATH` | Exact path to the admitted hypergraph snapshot | unset | Path under `_Aggregation/Hypergraph/` |
+| `HYPERGRAPH_QA_REPORT_PATH` | Exact path to the hypergraph QA report | unset | Path |
+| `HYPERGRAPH_EVIDENCE_ROOT` | Root folder containing hypergraph evidence CSVs | unset | Path under `_Aggregation/Hypergraph/` |
 
 ## Tool usage
 
@@ -77,8 +85,8 @@ Disallowed behavior:
 - No mutation of any frozen planning artifact besides the two scope-local outputs named in the brief.
 - No direct freezing of `Publication_Concordance_Register.csv`.
 - No modification of any `CAT-* / 1_Working / KTY-*` source files.
-- No use of `_Aggregation/*`, `_Coordination/*`, `_Evaluation/*`, `_Reconciliation/*`, `_MEMORY.md`, or `_SEMANTIC.md` as authority.
-- No guessed assertions that are unsupported by explicit mapped content.
+- No use of `_Aggregation/*`, `_Coordination/*`, `_Evaluation/*`, `_Reconciliation/*`, `_MEMORY.md`, or `_SEMANTIC.md` as authority (exception: admitted hypergraph evidence under `_Aggregation/Hypergraph/` may be consumed as auxiliary structure evidence when `HYPERGRAPH_USE_MODE != NONE`).
+- No guessed assertions that are unsupported by explicit mapped content. Hypergraph evidence may suggest candidates but cannot supply assertion values.
 
 ## Outputs
 
@@ -99,6 +107,21 @@ When refining or adding candidates, consult inputs in this order of authority:
 8. exact mapped KTY-local files named by the section map for the assigned sections
 9. vocabulary map, open-issues register, and decision log named in the manifest when required for typing, normalization, or state selection
 10. original DBM source markdown as provenance/history only
+
+## Hypergraph evidence policy
+
+**Authority statement:** Hypergraph evidence is auxiliary structure evidence only. It does not replace the content authority hierarchy defined above.
+
+When `HYPERGRAPH_USE_MODE` includes planning (`AUXILIARY_PLANNING` or `AUXILIARY_PLANNING_AND_QA`) and `HYPERGRAPH_SNAPSHOT_PATH` and `HYPERGRAPH_EVIDENCE_ROOT` are provided, the skill may use hypergraph evidence to:
+- suggest repeated-value/assertion clusters by identifying structural patterns across KTYs,
+- identify additional participant sections that the deterministic tool may have missed,
+- identify likely missing concordance candidates implied by graph adjacency.
+
+The skill must not:
+- invent assertion values from graph topology (e.g., deriving a numeric value from node/edge counts or labels),
+- prefer graph structure over mapped source content when the two conflict.
+
+When a candidate row is discovered or strengthened by hypergraph evidence, it must be tagged with `DiscoverySource = HYPERGRAPH_AUXILIARY`. The seed QA output should note which candidates were influenced by hypergraph evidence and what structural pattern motivated the suggestion.
 
 ## Typed concordance fields
 
@@ -149,6 +172,7 @@ Every emitted candidate row must preserve or fill these typed fields:
   - `SCOPE_CHANGE`
   - `HUMAN_ADDED`
   - `SECTION_DISCOVERY`
+  - `HYPERGRAPH_AUXILIARY`
 - `Criticality` should be one of:
   - `HIGH`
   - `NORMAL`

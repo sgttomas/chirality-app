@@ -66,6 +66,59 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 
 ---
 
+## Package Architecture (DOMAIN variant)
+
+DOMAIN_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The DOMAIN canonical working package consists of:
+
+- one concise main decomposition document (the control surface)
+- authoritative companion registers for heavy machine-truth
+- `_ScopeChange/_LATEST.md` and the active amendment snapshot (when the root has been amended)
+
+### Main decomposition document role
+
+The main decomposition document is a **concise control surface**. It contains:
+
+- status / revision / references
+- objective table
+- vocabulary highlights or canonical summary
+- category summary
+- structured domain outline
+- knowledge type summary
+- knowledge subject summary
+- high-level telemetry
+- open-issue summary
+- decision log / change log
+- companion inventory (see below)
+
+The main document should NOT embed the full Domain Ledger or exhaustive derivative tables when the same truth already lives in companion registers.
+
+### Expected companion register types
+
+Heavy machine-truth SHOULD live in companion files such as:
+
+| Companion register | Package role |
+|---|---|
+| Domain Ledger (CSV) | authoritative companion register |
+| Category Register (CSV) | authoritative companion register |
+| Knowledge Type Register (CSV) | authoritative companion register |
+| Knowledge Subject Register (CSV) | authoritative companion register |
+| Objective Register (CSV) | authoritative companion register |
+| Open Issues Register (CSV) | authoritative companion register |
+| Validation Checks (CSV) | authoritative companion register |
+| Coverage & Telemetry (CSV/JSON) | authoritative companion register |
+| Vocabulary Map (CSV) | authoritative companion register |
+| Node Summary / Scope Boundary (CSV) | authoritative companion register |
+
+### Companion inventory requirement
+
+The main decomposition document MUST include a **Companion Inventory** section listing every companion register with its filename, package role, and a brief description. This enables downstream agents to discover the package layout without scanning the filesystem.
+
+### Derived publication artifacts
+
+Any single-file monolithic render of the decomposition package (e.g., a full-package publication markdown) is a **derived publication artifact**. It is not the authoritative amendment surface and must be explicitly labeled as derived.
+
+---
+
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL
 
@@ -74,7 +127,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 This section defines the conversational procedure for handbook/domain decomposition.
 
 ### Output Target
-The agent maintains a **single decomposition document** during the conversation (a living draft), and repeatedly revises it after user feedback until it passes the validation gates in SPEC.
+The agent maintains a **canonical working package** during the conversation (a living draft consisting of the main decomposition document and companion registers), and repeatedly revises it after user feedback until it passes the validation gates in SPEC.
 
 ### Phases
 
@@ -398,6 +451,14 @@ Minimum fields:
 
 #### 5) Decision Log / Change Log
 - A small section where non-trivial choices are recorded so later work can trace why boundaries were set.
+
+#### 6) Companion Inventory
+- A table listing every companion register in the canonical working package.
+- Minimum columns:
+  - `Filename`
+  - `PackageRole` (`authoritative companion register` | `derived publication artifact` | `snapshot / handoff artifact`)
+  - `Description` (brief purpose of the file)
+- This section enables downstream agents to discover the full package layout without scanning the filesystem.
 
 ---
 

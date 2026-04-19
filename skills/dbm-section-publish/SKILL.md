@@ -49,6 +49,11 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 - `SOURCE_DOMAIN`
 - `SECTION_ORDER`
 - `ALLOW_CONTEXT_ONLY_DECOMP_FALLBACK` — `true|false`, default `true`
+- `HYPERGRAPH_USE_MODE`
+- `HYPERGRAPH_SNAPSHOT_PATH`
+- `HYPERGRAPH_NODES_PATH`
+- `HYPERGRAPH_HYPEREDGES_PATH`
+- `HYPERGRAPH_EVIDENCE_ROOT`
 
 ## Runtime overrides
 
@@ -71,6 +76,11 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 | `SOURCE_DOMAIN` | Source domain label for the run | inferred | Non-empty string |
 | `SECTION_ORDER` | Display/assembly order | inferred | Positive integer |
 | `ALLOW_CONTEXT_ONLY_DECOMP_FALLBACK` | Allow decomposition-level context when a `CONTEXT_ONLY` KTY is below readiness threshold | `true` | `true`, `false` |
+| `HYPERGRAPH_USE_MODE` | Whether hypergraph evidence is admitted for this run | `NONE` | `NONE`, `AUXILIARY_PLANNING`, `AUXILIARY_QA`, `AUXILIARY_PLANNING_AND_QA` |
+| `HYPERGRAPH_SNAPSHOT_PATH` | Exact path to the admitted hypergraph snapshot | unset | Path under `_Aggregation/Hypergraph/` |
+| `HYPERGRAPH_NODES_PATH` | Exact path to the hypergraph nodes CSV | unset | Path |
+| `HYPERGRAPH_HYPEREDGES_PATH` | Exact path to the hypergraph hyperedges CSV | unset | Path |
+| `HYPERGRAPH_EVIDENCE_ROOT` | Root folder containing hypergraph evidence CSVs | unset | Path under `_Aggregation/Hypergraph/` |
 
 ## Tool usage
 
@@ -84,6 +94,7 @@ Disallowed behavior:
 - No modification of any `CAT-* / 1_Working / KTY-*` files.
 - No guessed discovery outside the frozen planning artifacts and approved section-map rows.
 - No use of `_MEMORY.md` or `_SEMANTIC.md` as authority.
+- Hypergraph evidence, when admitted, is read-only for local QA checks and must not drive section body synthesis.
 
 ## Outputs
 
@@ -105,6 +116,21 @@ When synthesizing a section, consult inputs in this order of authority:
 7. exact mapped KTY-local files named in the section map
 8. vocabulary map, decision log, and open-issues register named in the manifest when required by the mapped rows or QA/assertion work
 9. original DBM source markdown as provenance/history only
+
+## Hypergraph evidence policy
+
+Hypergraph evidence is **read-only auxiliary structure evidence** for section workers. It does not enter the content authority stack for section body synthesis.
+
+When `HYPERGRAPH_USE_MODE != NONE` and hypergraph inputs are provided in the brief, the section worker may use hypergraph evidence only for local QA checks:
+- did the mapped KTY set omit an obviously connected supporting KTY implied by graph adjacency?
+- does the section appear to restate a known cross-section state that should be emitted as a concordance assertion rather than restated inline?
+
+Hypergraph evidence must not be used to:
+- author or rewrite section body prose,
+- override mapped source content,
+- contradict the approved section map or decomposition mappings.
+
+Any hypergraph-derived QA concern must be labeled `AUXILIARY_STRUCTURE_WARNING` in the section QA output. The section worker must not block its own output on hypergraph QA findings; those findings are advisory for the package gate to consume.
 
 ## Mapping behavior definitions
 
@@ -169,7 +195,16 @@ When synthesizing a section, consult inputs in this order of authority:
 
 ## KTY readiness gates
 
-The skill must read each mapped KTY `_STATUS.md` before using its files.
+The skill must treat the frozen `Publication_Input_Manifest.md` as the primary freshness boundary for the run.
+
+Before reading mapped KTY-local files, the skill must confirm that the manifest records publication admission for the root via:
+- the active root `Handoff_State.md`,
+- publication-admission / closure evidence for the admitted snapshot,
+- non-blocking audit evidence for the admitted current-state root package.
+
+If the manifest is missing that evidence, or records the root as not publication-admissible, fail with `FAILED_INPUTS`.
+
+After the root publication-admission check passes, the skill must read each mapped KTY `_STATUS.md` before using its files.
 
 Minimum rules:
 - `PRIMARY` and `CONFLICTING` inputs must be at least `INITIALIZED`.
@@ -177,8 +212,9 @@ Minimum rules:
 - If a `CONFLICTING` input is below that threshold, fail with `FAILED_INPUTS`.
 - If a `SUPPORTING` input is below that threshold, skip it and record a gap note in section QA.
 - If a `CONTEXT_ONLY` input is below that threshold, the skill may fall back to decomposition-level context only when `ALLOW_CONTEXT_ONLY_DECOMP_FALLBACK=true`, with a QA note.
+- If manifest/root publication-admission evidence and local `_STATUS.md` materially disagree, fail with `FAILED_INPUTS` and record the mismatch in section QA.
 
-The skill must not treat an `OPEN` or otherwise unready KTY as equivalent to a fully authored source artifact.
+The skill must not treat local `_STATUS.md` files as sufficient publication admission evidence on their own, and it must not treat an `OPEN` or otherwise unready KTY as equivalent to a fully authored source artifact.
 
 ## Terminology control
 
@@ -217,7 +253,7 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
 ## Method
 
 1. **Validate inputs and write boundary.** Confirm all required runtime overrides are present and all output paths fall under the approved section directory.
-2. **Read the five frozen planning artifacts.** Determine the section's approved structure, mapped rows, relevant publication rules, and relevant concordance assertions.
+2. **Read the frozen planning artifacts and confirm root publication admission.** Determine the section's approved structure, mapped rows, relevant publication rules, relevant concordance assertions, and manifest-recorded admission basis.
 3. **Read only mapped source inputs.** For each mapped KTY, read:
    - `Scoping.md`
    - all mapped `KA-*.md`
@@ -225,7 +261,7 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
    - `_REFERENCES.md`
    - `_STATUS.md`
    - optional `_DEPENDENCIES.md` only when explicitly required by the section map or publication rules
-4. **Apply readiness gates and selector semantics.** Enforce `MappingRole`, `ContributionScope`, readiness, and publication-rule precedence.
+4. **Apply root-admission, readiness gates, and selector semantics.** Enforce publication-admission evidence, `MappingRole`, `ContributionScope`, KTY readiness, and publication-rule precedence.
 5. **Draft the section body.** Follow the approved template for `SECTION_TYPE` and the publication rules.
 6. **Emit stable section QA.** Use the fixed structure defined below.
 7. **Emit required structured assertions conservatively.** Filter the concordance register to rows where `SECTION_ID` is the authority section or appears in `RequiredSectionIDs`, then emit exactly one row per matched assertion key in `SEC-##_ASSERTIONS.csv`. Do not silently drop matched keys; if value extraction is ambiguous, emit the row with explicit uncertainty in `Notes`.
@@ -243,6 +279,7 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
 6. `## Gap / TBD Register`
 7. `## Amendment Notes`
 8. `## Assertion Emission Notes`
+9. `## Auxiliary Structure Warnings` (present only when hypergraph evidence was consumed; each item labeled `AUXILIARY_STRUCTURE_WARNING`)
 
 The QA artifact must preserve distinctions such as `TBD`, `ASSUMPTION`, and `DEFERRED_CONFIRMATION` even when body prose flattens unresolved items for readability.
 

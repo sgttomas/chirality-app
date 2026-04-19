@@ -12,6 +12,14 @@ Rows describe epistemic posture; columns describe functional role. NORMATIVE and
 
 Read structurally, the rows also form a governance grammar: NORMATIVE defines rules and standards, OPERATIVE executes bounded work within them, and EVALUATIVE audits, reconciles, and judges the results.
 
+### Governance Integration Rules
+
+- **Derivative-package rule.** Any package assembled from accepted upstream truth but not itself authoritative decomposition truth is a derivative package. This includes regenerated KTY-local artifacts, `_Aggregation` outputs, hypergraph snapshots, audit snapshots, concordance packages, and publication packages. Derivative packages must cite their accepted upstream snapshot(s) and must never be treated as a substitute for decomposition truth.
+- **Snapshot rule.** Every phase-boundary decision that changes or validates governed state must terminate in a new immutable snapshot and a pointer update only where the owning workflow explicitly permits one. Later phases consume accepted snapshots; they do not rely on mutable working state alone.
+- **Handoff-state rule.** Any workflow that stops with work intended for another agent or later phase must emit an explicit handoff state that names the accepted upstream snapshot(s), derivative-package status, closure verdict, rerun requirements, and remaining blockers.
+- **Closure rule.** A scope unit or phase is not closed merely because files were written. Closure requires authoritative truth to be accepted, required derivative packages to be regenerated or explicitly deferred, audit status to be recorded, and unresolved blockers to be surfaced in the handoff state.
+- **Sequencing rule.** If a later phase consumes derivative packages, it must run only after the upstream authoritative snapshot has been accepted and the required handoff state records which derivative packages are current.
+
 |  | **GUIDING** | **APPLYING** | **JUDGING** | **REVIEWING** |
 | --- | --- | --- | --- | --- |
 | **NORMATIVE** | HELP_HUMAN | ORCHESTRATOR | WORKING_ITEMS | AGGREGATION |
@@ -94,10 +102,12 @@ Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounde
 |---|---|---|---|
 | four-documents | `skills/four-documents/` | Draft + enrich Datasheet/Specification/Guidance/Procedure | ORCHESTRATOR Phase 2.2 + 2.5 |
 | domain-documents | `skills/domain-documents/` | Draft + verify Knowledge Artifacts for DOMAIN variants | ORCHESTRATOR Phase 2.2 |
+| decomposition-package-review | `skills/decomposition-package-review/` | Review one DOMAIN decomposition package for derivative parity, active snapshot completeness, and handoff-state readiness; optionally perform bounded package-local repair when explicitly authorized | SCOPE_CHANGE closeout, root remediation closure |
 | dbm-concordance-seed | `skills/dbm-concordance-seed/` | Seed and refine typed publication concordance candidates from frozen planning artifacts and mapped source content | DBM_PUBLISHER Gate 4 concordance freeze |
 | dbm-section-publish | `skills/dbm-section-publish/` | Publish one approved rewritten DBM section from mapped KTY-local inputs with fixed QA + assertions outputs | DBM_PUBLISHER section dispatch |
 | semantic-matrix-build | `skills/semantic-matrix-build/` | Generate `_SEMANTIC.md` semantic matrix | ORCHESTRATOR Phase 2.3 |
 | lens-register | `skills/lens-register/` | Generate `_SEMANTIC_LENSING.md` enrichment register | ORCHESTRATOR Phase 2.4 |
+| kty-metadata-align | `skills/kty-metadata-align/` | Review and align one DOMAIN KTY folder's metadata surfaces (`_CONTEXT.md`, `_STATUS.md`, `_REFERENCES.md`) without rewriting `Scoping.md` or `KA-*` content | DOMAIN remediation Phase 4/6 root agent |
 | dependency-extract | `skills/dependency-extract/` | Extract `Dependencies.csv` v3.1 + `_DEPENDENCIES.md` | ORCHESTRATOR setup + control-loop refresh |
 | semantic-lensing | `skills/semantic-lensing/` | Apply lensing register during content enrichment | DELIVERABLE_TASK, WORKING_ITEMS |
 | content-digest | `skills/content-digest/` | Produce content digest snapshots | EVALUATION and others |

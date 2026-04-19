@@ -90,6 +90,62 @@ These are the abstract entity names used in this specification. Conforming agent
 
 ---
 
+## Package Architecture
+
+### Canonical working package
+
+The normative output of every conforming decomposition agent is a **canonical working package**, not a single monolithic document. A canonical working package consists of:
+
+- one concise main decomposition document (the control surface)
+- zero or more **authoritative companion registers** (CSV, JSON, or structured markdown files holding heavy machine-truth)
+- `_ScopeChange/_LATEST.md` and the active amendment snapshot (when the root has been amended)
+
+The main decomposition document is a concise control surface. It contains status, objectives, vocabulary highlights, partition and production-unit summaries, high-level telemetry, open issues, and a decision/change log. It should not embed the full decomposition ledger or exhaustive derivative tables when that same truth already lives in companion files.
+
+### Authoritative companion register
+
+An **authoritative companion register** is a CSV, JSON, or structured markdown file that holds heavy machine-truth as the primary working surface for that data. Examples include:
+
+- decomposition ledger (the row-level unit-to-partition-to-production-unit mapping table)
+- partition register / telemetry
+- production-unit register
+- artifact / subject register
+- objective register / objective mappings
+- open issues register
+- validation checks
+- vocabulary map
+- node summary / coverage telemetry
+
+When a companion register exists for a given truth surface, the companion register is authoritative for machine-truth unless explicitly documented otherwise. Duplication of that truth in the main document must be intentional and justified.
+
+### Derived publication artifact
+
+A **derived publication artifact** is any single-file render, publication bundle, or review document assembled from the modular package. Examples include monolithic full-package renders, publication bundles, and formatted review documents.
+
+Derived publication artifacts:
+- are not the amendment surface
+- may be regenerated deterministically from the canonical working package
+- must be explicitly labeled as derived and non-authoritative for amendment work
+
+### Package-role label
+
+Every major decomposition artifact should declare its role using one of these labels:
+
+| Label | Meaning |
+|---|---|
+| `working surface` | The main decomposition document; the primary human-facing control surface |
+| `authoritative companion register` | A companion file holding heavy machine-truth as the primary working surface for that data |
+| `snapshot / handoff artifact` | An immutable amendment snapshot or handoff-state record |
+| `derived publication artifact` | A render, bundle, or review document assembled from the modular package; not the amendment surface |
+
+### Modular packages are the preferred default
+
+Conforming decomposition agents MUST default to producing modular working packages. Heavy machine-truth (ledgers, registers, telemetry, objective mappings) SHOULD live in companion files rather than being embedded in the main decomposition document.
+
+If a conforming agent produces a monolithic single-file output for publication or review purposes, that output MUST be declared as a derived publication artifact and MUST NOT be treated as the authoritative amendment surface.
+
+---
+
 [[BEGIN:PROTOCOL]]
 ## PROTOCOL — Abstract Decomposition Protocol
 
@@ -274,6 +330,19 @@ A decomposition is consistent when:
 | Terminology consistent | Canonical terms are used consistently; synonyms are mapped |
 | Decisions explicit | Non-trivial assignment decisions are recorded and referenceable |
 
+### Package-role requirements
+
+A decomposition output declares its package roles when:
+
+| Requirement | Validation |
+|---|---|
+| Package-role labeling | Every major output artifact is labeled as working surface, authoritative companion register, snapshot/handoff artifact, or derived publication artifact |
+| Companion inventory | The main decomposition document includes a companion inventory section listing all companion registers and their roles |
+| Authoritative surface declaration | The output explicitly declares which surfaces are authoritative vs derived |
+| No unlabeled monolithic output | Any single-file monolithic render is explicitly labeled as a derived publication artifact, not left ambiguous |
+
+Conforming agents MAY add domain-specific package-role requirements. They MUST NOT weaken these.
+
 ### Anti-patterns (invalid outputs)
 
 | Anti-pattern | Why it fails |
@@ -284,6 +353,8 @@ A decomposition is consistent when:
 | No stable IDs | Prevents tracking and longitudinal comparison |
 | Missing Decomposition Ledger | Prevents machine-checkable coverage |
 | Missing Coverage & Telemetry | Prevents anti-fragile feedback over revisions |
+| Undeclared package roles | Prevents downstream agents from distinguishing authoritative surfaces from derived artifacts |
+| Monolithic main doc embedding heavy companion truth | Inflates the control surface; makes targeted retrieval and narrow diffs harder; invites parity failures with companion registers |
 
 Conforming agents MAY add domain-specific anti-patterns. They MUST NOT remove these.
 
@@ -403,6 +474,8 @@ When creating a new decomposition agent that conforms to this specification, the
 6. **Declare WRITE_SCOPE.** Specify the agent's write scope (`project-level`, `repo-metadata-only`, etc.).
 7. **Add domain-specific fields, anti-patterns, and SPEC requirements** as needed. These extend the base; they do not replace it.
 8. **Declare domain-specific telemetry fields** beyond the base Coverage & Telemetry schema.
+
+9. **Declare package architecture.** Specify which output surfaces are authoritative working surfaces, which are authoritative companion registers, and which (if any) are derived publication artifacts. Include a companion inventory section in the main decomposition document so downstream agents can discover the package layout.
 
 A conforming agent SHOULD also:
 - Include domain-specific rationale explaining why the extensions exist.

@@ -39,6 +39,16 @@ The brief must not grant write access to KTY folders, decomposition truth, or un
 |---|---|---|---|
 | `RuntimeOverrides.RUN_LABEL` | string | Human-friendly run label | `pilot-deepcut-round-1` |
 | `RuntimeOverrides.SOURCE_DOMAIN` | string | Domain label for reporting | `West_Doe_Deepcut_DBM` |
+| `RuntimeOverrides.HYPERGRAPH_USE_MODE` | enum | Whether hypergraph evidence is admitted for this run | `AUXILIARY_PLANNING_AND_QA` |
+| `RuntimeOverrides.HYPERGRAPH_SNAPSHOT_PATH` | path | Exact path to the admitted hypergraph snapshot | `/.../_Aggregation/Hypergraph/snapshot/` |
+| `RuntimeOverrides.HYPERGRAPH_RUN_SUMMARY_PATH` | path | Exact path to the hypergraph run summary | `/.../_Aggregation/Hypergraph/Run_Summary.md` |
+| `RuntimeOverrides.HYPERGRAPH_QA_REPORT_PATH` | path | Exact path to the hypergraph QA report | `/.../_Aggregation/Hypergraph/QA_Report.md` |
+| `RuntimeOverrides.HYPERGRAPH_NODES_PATH` | path | Exact path to the hypergraph nodes CSV | `/.../_Aggregation/Hypergraph/nodes.csv` |
+| `RuntimeOverrides.HYPERGRAPH_HYPEREDGES_PATH` | path | Exact path to the hypergraph hyperedges CSV | `/.../_Aggregation/Hypergraph/hyperedges.csv` |
+| `RuntimeOverrides.HYPERGRAPH_EVIDENCE_ROOT` | path | Root folder containing hypergraph evidence CSVs | `/.../_Aggregation/Hypergraph/evidence/` |
+| `RuntimeOverrides.HYPERGRAPH_QA_VERDICT` | enum | QA verdict for the admitted hypergraph snapshot | `NON_BLOCKING` |
+| `RuntimeOverrides.HYPERGRAPH_LIMITATIONS` | string | Free-text list of known defects constraining allowed use | `Artifact-node collision in KTY-015 unresolved.` |
+| `RuntimeOverrides.HYPERGRAPH_QA_BINDING_POLICY` | enum | Whether hypergraph QA findings can block package readiness | `ADVISORY_ONLY` |
 | `CustomInstructions` | string | Run-specific emphasis only; must not restate the skill contract | `Be strict about sections that still read like stitched excerpts.` |
 
 ## Runtime-override guidance
