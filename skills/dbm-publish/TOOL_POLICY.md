@@ -4,8 +4,8 @@
 
 1. Invoke `tools/publication/assemble_publication.py`.
 2. Invoke `tools/publication/check_concordance.py`.
-3. Read the assembled package and section QA artifacts.
-4. Use direct reasoning to classify publication readiness and write rerun guidance.
+3. Read the assembled package, section QA artifacts, and all per-section assertion-discovery CSVs.
+4. Use direct reasoning to aggregate unresolved concordance-expansion candidates, classify publication readiness, and write rerun guidance.
 
 ## Allowed deterministic tools
 
@@ -24,6 +24,7 @@
 This skill uses reasoning to:
 - judge readability and publication quality of the assembled DBM,
 - interpret non-blocking quality notes after deterministic checks complete,
+- merge and classify per-section assertion-discovery candidates into one package-level expansion view,
 - convert findings into a clear `READY`, `READY_WITH_MAJOR_NOTES`, or `BLOCKED` decision,
 - generate actionable `Rerun_Recommendations.csv` rows.
 
@@ -33,6 +34,7 @@ This skill uses reasoning to:
 - No inline reimplementation of deterministic assembly or concordance logic that belongs in the tool layer.
 - No mutation of KTY-local truth, section-planning artifacts, or approved section prose except package-level summaries.
 - No partial concordance checking limited to rerun sections.
+- No suppression of unresolved `HIGH` expansion candidates from readiness logic.
 
 ## Write boundary
 

@@ -254,44 +254,66 @@ Required method:
 1. during knowledge-landscape review, read the KTY register, subject register,
    and open-issues register to identify recurring parameters, technical states,
    and scope-change-sensitive values likely to recur across sections
-2. after the draft schema and candidate section map exist, propose a candidate
-   `Publication_Concordance_Register.csv`
-3. pre-populate at least:
+2. after the draft schema and candidate section map exist, run
+   `build_concordance_candidates.py` to produce
+   `Publication_Concordance_Candidates.csv` and
+   `Publication_Concordance_Coverage.md`
+3. dispatch `dbm-concordance-seed` once per section or bounded section group to
+   refine the deterministic candidate set and add grounded prose-adjacent
+   candidates the tool cannot safely infer
+4. freeze `Publication_Concordance_Register.csv` from the agent-generated
+   candidate basis
+5. pre-populate at least:
    - `AssertionKey`
    - `AssertionLabel`
+   - `AssertionDomain`
    - `AssertionType`
+   - `ComparisonParameter`
+   - `DiscoverySource`
+   - `NormalizationHint`
+   - `Criticality`
    - `ComparisonRule`
    - `AuthoritySectionID`
    - `RequiredSectionIDs`
-4. have the human review, add, remove, or reassign authority before the
+6. have the human review, add, remove, or reassign authority before the
    register is frozen
 
 The concordance register should be derived from both recurring source values
 and the approved publication structure, because `AuthoritySectionID` and
-`RequiredSectionIDs` depend on the final section design.
+`RequiredSectionIDs` depend on the final section design. The agent should do
+the bulk of concordance population; the human only resolves targeted ambiguity
+and approves the frozen result.
 
 ### Type 2 bounded skills
 
-Create two skills:
+Create three skills:
 
-1. `dbm-section-publish`
+1. `dbm-concordance-seed`
+   - bounded concordance-refinement unit
+   - one approved section or one bounded section group per run
+   - reads the deterministic candidate set plus mapped source content
+   - writes one scope-local candidate CSV and one seed QA output
+
+2. `dbm-section-publish`
    - primary authoring unit
    - one target DBM section per run
    - reads only the mapped KTY-local inputs for that section
-   - writes one section output, one section QA output, and one section
-     assertions output
+   - writes one section output, one section QA output, one section
+     assertions output, and one assertion-discovery output
 
-2. `dbm-publish`
+3. `dbm-publish`
    - package-level bounded skill
    - does not dispatch other tasks
    - invokes deterministic assembly and concordance helpers
+   - aggregates section-level assertion-discovery outputs into package-level
+     expansion candidates
    - performs qualitative publication-readiness review on the assembled package
    - emits package-level readiness and rerun recommendations before human
      review
 
 ### Deterministic tools
 
-Create four deterministic helpers:
+Create five deterministic helpers:
 
 1. `tools/publication/build_section_map.py`
    - consumes the approved publication schema and the frozen input manifest
@@ -301,7 +323,18 @@ Create four deterministic helpers:
    - validates coverage, duplicates, and section-load limits
    - does not interpret free-text inclusion or exclusion prose
 
-2. `tools/publication/assemble_publication.py`
+2. `tools/publication/build_concordance_candidates.py`
+   - consumes the frozen input manifest, approved publication schema, and
+     approved section map
+   - harvests typed concordance candidates from structured sources only:
+     mapped KA metadata/tables, open issues, decision log, and active SCA
+     amendment CSVs
+   - emits:
+     - `Publication_Concordance_Candidates.csv`
+     - `Publication_Concordance_Coverage.md`
+   - does not do prose-only inference
+
+3. `tools/publication/assemble_publication.py`
    - consumes approved per-section outputs plus the frozen schema/map
    - owns deterministic completeness, trace, and package QA checks
    - emits:
@@ -311,14 +344,14 @@ Create four deterministic helpers:
      - `Publication_QA.md`
      - optional `_LATEST.md`
 
-3. `tools/publication/check_concordance.py`
+4. `tools/publication/check_concordance.py`
    - consumes the frozen concordance register and all per-section assertions
    - performs deterministic cross-section concordance checks
    - emits:
      - `Publication_Concordance_Report.md`
      - `Publication_Concordance_Findings.csv`
 
-4. `tools/publication/render_dispatch_briefs.py`
+5. `tools/publication/render_dispatch_briefs.py`
    - consumes the frozen planning artifacts
    - emits deterministic INIT-TASK briefs for section publication and package
      publication
@@ -345,7 +378,12 @@ _Publication/DBM/
     Publication_Schema.md
     Section_Map.csv
     Publication_Rules.md
+    Publication_Concordance_Candidates.csv
+    Publication_Concordance_Coverage.md
     Publication_Concordance_Register.csv
+    concordance-seed/
+      SEC-03_Candidates.csv
+      SEC-03_CONCORDANCE_SEED_QA.md
   dispatch/
     DISPATCH_INDEX.csv
     SEC-01_INIT-TASK.md
@@ -356,6 +394,7 @@ _Publication/DBM/
       SEC-01.md
       SEC-01_QA.md
       SEC-01_ASSERTIONS.csv
+      SEC-01_ASSERTION_DISCOVERY.csv
     ...
   package/
     RUN-YYYYMMDD-HHMMSS/
@@ -365,6 +404,7 @@ _Publication/DBM/
       Publication_QA.md
       Publication_Concordance_Report.md
       Publication_Concordance_Findings.csv
+      Publication_Concordance_Expansion_Candidates.csv
       Publication_Readiness.md
       Rerun_Recommendations.csv
     _LATEST.md
@@ -566,6 +606,7 @@ Minimum columns:
 
 - `AssertionKey`
 - `AssertionLabel`
+- `AssertionDomain`
 - `AssertionType`
 - `CanonicalTerm`
 - `Unit`
@@ -576,6 +617,9 @@ Minimum columns:
 - `FacilityScope`
 - `CurrentStateBasis`
 - `DecisionRefs`
+- `DiscoverySource`
+- `NormalizationHint`
+- `Criticality`
 - `Notes`
 
 Supported `AssertionType` values:
@@ -588,6 +632,18 @@ Supported `AssertionType` values:
 - `STATE`
 - `COMPOSITION`
 
+Supported `AssertionDomain` values:
+
+- `PROCESS_CONDITION`
+- `UTILITY_CONDITION`
+- `PRODUCT_SPEC`
+- `EQUIPMENT_LIMIT`
+- `OPERATING_TARGET`
+- `SCOPE_STATE`
+- `LOCATION_STATE`
+- `REGULATORY_STATE`
+- `CONTROL_LOGIC`
+
 Supported `ComparisonRule` values:
 
 - `EXACT`
@@ -598,8 +654,9 @@ Supported `ComparisonRule` values:
 
 Rules:
 
-- this register is human-approved before section synthesis
-- only assertions listed here are concordance-blocking in v1
+- this register is human-approved before section synthesis, but it should be
+  derived from the agent-seeded candidate loop rather than authored freehand
+- only assertions listed here are deterministically concordance-blocking in v1
 - each assertion must identify one authority section and all other sections
   required to assert or reference it
 - `AssertionKey` should be stable uppercase snake case and should not encode
@@ -614,6 +671,47 @@ Rules:
   - expected set-membership normalization hints for `SET_MATCH`
   - range-normalization hints for `RANGE_MATCH`
 - unresolved mismatches for required assertions block publication
+
+### 6. `Publication_Concordance_Candidates.csv`
+
+Purpose:
+- hold the agent-generated typed concordance candidate set used to seed and
+  refine the frozen blocking register
+
+Minimum additional columns beyond the frozen register:
+
+- `DiscoverySource`
+- `SourceKTYIDs`
+- `SourceSectionIDs`
+- `NormalizationHint`
+- `Criticality`
+- `CandidateValueExample`
+- `SourceArtifact`
+- `SourceRef`
+- `ResolutionStatus`
+
+Rules:
+
+- this candidate set is generated by the agent, not authored from scratch by
+  the human
+- it may be broader than the final frozen register
+- it should bias toward over-discovery and later pruning, not under-discovery
+- candidate provenance should be preserved so the human only resolves targeted
+  ambiguity
+
+### 7. `Publication_Concordance_Coverage.md`
+
+Purpose:
+- summarize typed concordance coverage before the blocking register is frozen
+
+Minimum contents:
+
+- candidate counts by discovery source
+- candidate counts by assertion domain
+- candidate counts by criticality
+- resolution-status summary
+- section coverage summary
+- skipped or structurally unharvestable artifacts
 
 ## Authority And Source-Use Rules
 
@@ -671,6 +769,7 @@ Publish exactly one target DBM section from approved mapped inputs.
 - `SECTION_OUTPUT_PATH`
 - `SECTION_QA_OUTPUT_PATH`
 - `SECTION_ASSERTIONS_OUTPUT_PATH`
+- `SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH`
 - `PUBLICATION_INPUT_MANIFEST`
 - `PUBLICATION_SCHEMA_PATH`
 - `SECTION_MAP_PATH`
@@ -700,6 +799,7 @@ The skill writes only:
 - one section file
 - one section QA file
 - one section assertions file
+- one section assertion-discovery file
 
 It must not modify any `CAT-* / 1_Working / KTY-*` files.
 
@@ -809,6 +909,7 @@ Required default templates:
 8. assertion emission notes
    - required concordance assertions emitted or intentionally marked
      non-applicable
+   - assertion-discovery candidates proposed for later expansion review
 
 ### Section assertions output format
 
@@ -848,6 +949,37 @@ Rules:
   the register's `ComparisonRule`
 - a section should prefer `REFERRED` over duplicated restatement when the
   publication rules designate another section as authority for that assertion
+
+### Section assertion discovery output format
+
+Each section run must also emit `SEC-##_ASSERTION_DISCOVERY.csv`.
+
+Minimum columns:
+
+- `SectionID`
+- `SuggestedAssertionKey`
+- `AssertionLabel`
+- `AssertionDomain`
+- `AssertionType`
+- `SuggestedComparisonRule`
+- `SuggestedComparisonParameter`
+- `SuggestedAuthoritySectionID`
+- `SuggestedRequiredSectionIDs`
+- `Criticality`
+- `DiscoverySource`
+- `CandidateValueExample`
+- `SourceArtifact`
+- `SourceRef`
+- `Notes`
+
+Rules:
+
+- after emitting the required approved-register rows, the worker must search
+  mapped content for materially repeated or technically important values/states
+  not already represented in the approved register for that section scope
+- these discoveries should be emitted rather than silently ignored
+- ambiguity about whether a candidate duplicates an existing register key
+  should be preserved in `Notes`, not silently suppressed
 
 ### KTY readiness gates
 
@@ -931,6 +1063,8 @@ It may:
 
 - invoke `assemble_publication.py`
 - invoke `check_concordance.py`
+- aggregate per-section `SEC-##_ASSERTION_DISCOVERY.csv` files into
+  `Publication_Concordance_Expansion_Candidates.csv`
 - review the assembled package for qualitative publication readiness
 - flag sections that still read like artifact dumps rather than engineering
   prose
@@ -976,11 +1110,13 @@ Required execution method:
    - total skipped inputs
    - total material terminology normalizations
 6. classify readiness:
-   - `BLOCKED` if required sections are missing, assembly failed, or blocking
-     concordance findings exist
-   - `READY_WITH_MAJOR_NOTES` if non-blocking but material quality or QA issues
+   - `BLOCKED` if required sections are missing, assembly failed, blocking
+     concordance findings exist, or unresolved `HIGH` expansion candidates
      remain
-   - `READY` otherwise
+   - `READY_WITH_MAJOR_NOTES` if no blocking condition remains but unresolved
+     `NORMAL` expansion candidates or other material quality / QA issues remain
+   - `READY` only if deterministic concordance passes and no material
+     expansion candidates remain unresolved
 7. emit `Publication_Readiness.md`
 8. emit `Rerun_Recommendations.csv`
 
@@ -1174,11 +1310,16 @@ New files:
 - `skills/dbm-section-publish/BRIEF_SCHEMA.md`
 - `skills/dbm-section-publish/TOOL_POLICY.md`
 - `skills/dbm-section-publish/QA_CHECKS.md`
+- `skills/dbm-concordance-seed/SKILL.md`
+- `skills/dbm-concordance-seed/BRIEF_SCHEMA.md`
+- `skills/dbm-concordance-seed/TOOL_POLICY.md`
+- `skills/dbm-concordance-seed/QA_CHECKS.md`
 - `skills/dbm-publish/SKILL.md`
 - `skills/dbm-publish/BRIEF_SCHEMA.md`
 - `skills/dbm-publish/TOOL_POLICY.md`
 - `skills/dbm-publish/QA_CHECKS.md`
 - `tools/publication/build_section_map.py`
+- `tools/publication/build_concordance_candidates.py`
 - `tools/publication/assemble_publication.py`
 - `tools/publication/check_concordance.py`
 - `tools/publication/render_dispatch_briefs.py`
@@ -1204,8 +1345,12 @@ Updated files:
 6. Draft the `Publication_Rules.md` default template.
 7. Draft machine-readable selector fields for `Publication_Schema.md`.
 8. Draft `Section_Map.csv` semantics for `MappingRole` and `ContributionScope`.
-9. Draft `Publication_Concordance_Register.csv`.
-10. Define the fixed `SEC-##_QA.md` and `SEC-##_ASSERTIONS.csv` formats.
+9. Draft the typed concordance candidate / freeze loop:
+    - `Publication_Concordance_Candidates.csv`
+    - `Publication_Concordance_Coverage.md`
+    - `Publication_Concordance_Register.csv`
+10. Define the fixed `SEC-##_QA.md`, `SEC-##_ASSERTIONS.csv`, and
+    `SEC-##_ASSERTION_DISCOVERY.csv` formats.
 11. Define selector/prose divergence handling and decision-log use.
 12. Add the `OVERVIEW` section type.
 13. Define the concordance-register authoring method and `AssertionKey`
@@ -1222,34 +1367,40 @@ Updated files:
    - cross-facility synthesis rules
    - no-invention rules
    - appendix-style traceability rules
-15. Draft `dbm-publish` as the package-quality gate that invokes deterministic
-    assembly and concordance tools, not a dispatcher.
+15. Draft `dbm-concordance-seed` as the bounded reasoning layer between the
+    deterministic candidate builder and the frozen blocking register.
+16. Draft `dbm-publish` as the package-quality gate that invokes deterministic
+    assembly and concordance tools, aggregates assertion-discovery expansion
+    candidates, and does not dispatch other tasks.
 
 ### Phase 2 — Author deterministic tools
 
 1. Implement `build_section_map.py`.
-2. Implement `assemble_publication.py`.
-3. Implement `check_concordance.py`.
-4. Implement `render_dispatch_briefs.py`.
-5. Add all tools to `tools/REGISTRY.md`.
-6. Ensure script headers define:
+2. Implement `build_concordance_candidates.py`.
+3. Implement `assemble_publication.py`.
+4. Implement `check_concordance.py`.
+5. Implement `render_dispatch_briefs.py`.
+6. Add all tools to `tools/REGISTRY.md`.
+7. Ensure script headers define:
    - inputs
    - outputs
    - exit codes
    - scope boundary
-7. Ensure `build_section_map.py` uses machine-readable selectors only and
+8. Ensure `build_section_map.py` uses machine-readable selectors only and
    generates a candidate map.
-8. Ensure `assemble_publication.py` owns deterministic completeness, trace, and
+9. Ensure `assemble_publication.py` owns deterministic completeness, trace, and
    package QA checks.
-9. Ensure `check_concordance.py` blocks unresolved assertion mismatches.
-10. Ensure `render_dispatch_briefs.py` can emit section briefs and targeted
+10. Ensure `check_concordance.py` blocks unresolved assertion mismatches.
+11. Ensure `build_concordance_candidates.py` remains deterministic and
+    structured-source-only.
+12. Ensure `render_dispatch_briefs.py` can emit section briefs and targeted
     rerun briefs deterministically.
-11. Ensure rendered briefs conform to `AGENT_TASK.md` § INIT-TASK brief format
+13. Ensure rendered briefs conform to `AGENT_TASK.md` § INIT-TASK brief format
     and the target skill's `BRIEF_SCHEMA.md`.
 
 ### Phase 3 — Validate skill layer
 
-1. Ensure both new skills follow `skills/SKILL_TEMPLATE.md`.
+1. Ensure all three publication skills follow `skills/SKILL_TEMPLATE.md`.
 2. Validate with:
    - `python3 tools/validation/validate_skill_metadata.py skills`
 3. Fix any metadata or companion-file violations before proceeding.
@@ -1261,22 +1412,27 @@ Updated files:
    - `Publication_Input_Manifest.md`
    - `Publication_Schema.md`
    - `Publication_Rules.md`
+   - `Publication_Concordance_Candidates.csv`
    - `Publication_Concordance_Register.csv`
 3. Run `build_section_map.py`.
-4. Review candidate-map output:
+4. Run `build_concordance_candidates.py`.
+5. Review candidate-map and concordance-candidate output:
    - unmapped rows
    - conflicting rows
    - section-size warnings
    - any selector-driven overreach that needs human correction
-5. Approve the final `Section_Map.csv`.
-6. Run `render_dispatch_briefs.py`.
-7. Pilot a small section set:
+   - unresolved high-criticality candidate gaps
+6. Dispatch `dbm-concordance-seed` for one overview section and one process
+   section, then freeze the blocking register.
+7. Approve the final `Section_Map.csv` and `Publication_Concordance_Register.csv`.
+8. Run `render_dispatch_briefs.py`.
+9. Pilot a small section set:
    - one overview section
    - one process section
    - one philosophy section
    - one discipline section
    - one regulatory section
-8. Review:
+10. Review:
    - readability
    - traceability
    - conflict behavior
@@ -1284,6 +1440,7 @@ Updated files:
    - terminology consistency
    - section-size behavior
    - concordance assertion emission quality
+   - assertion-discovery quality
 
 ### Phase 5 — Full publication run
 
@@ -1293,9 +1450,11 @@ Updated files:
 3. Persona dispatches `TASK + dbm-publish` once section outputs are complete.
 4. `dbm-publish` invokes `assemble_publication.py` and
    `check_concordance.py`.
-5. If readiness is `BLOCKED`, the persona uses targeted rerun briefs for only
+5. `dbm-publish` also aggregates `SEC-##_ASSERTION_DISCOVERY.csv` outputs into
+   `Publication_Concordance_Expansion_Candidates.csv`.
+6. If readiness is `BLOCKED`, the persona uses targeted rerun briefs for only
    the affected sections, then repeats package publication.
-6. Human reviews the package and either:
+7. Human reviews the package and either:
    - accepts it
    - requests schema/rule changes and rerun
 
@@ -1320,6 +1479,8 @@ Rerun semantics:
 - section workers never write inside KTY folders
 - package assembly is deterministic apart from timestamps
 - candidate section mapping is deterministic apart from approved human edits
+- structured concordance-candidate harvesting is deterministic apart from
+  approved human pruning or authority reassignment
 - brief rendering is deterministic from frozen planning artifacts
 - the final DBM body reads as a coherent engineering document
 - detailed provenance appears in the trace appendix, not inline in body prose
@@ -1333,7 +1494,11 @@ Rerun semantics:
 - section QA outputs follow a fixed structure
 - concordance-critical values and technical states are emitted as structured
   section assertions
+- section workers emit assertion-discovery candidates rather than silently
+  ignoring uncovered repeated values/states
 - unresolved cross-section assertion mismatches block publication
+- unresolved `HIGH` concordance-expansion candidates block readiness even when
+  the frozen register itself passes deterministic checking
 - decision references are preserved where publication relies on them
 - rendered TASK briefs validate against the target skill contract
 - open-issue statuses remain distinguishable in QA even when body prose is
@@ -1349,6 +1514,8 @@ Rerun semantics:
   review
 - all assertions in `Publication_Concordance_Register.csv` pass concordance
   checks or block publication pending rerun
+- the agent does the bulk of concordance population and typed coverage work
+  before the human freeze gate
 
 ## Defaults And Out-Of-Scope
 

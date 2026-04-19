@@ -12,6 +12,7 @@ The package run is valid only when all of the following are true:
    - `Publication_QA.md`
    - `Publication_Concordance_Report.md`
    - `Publication_Concordance_Findings.csv`
+   - `Publication_Concordance_Expansion_Candidates.csv`
    - `Publication_Readiness.md`
    - `Rerun_Recommendations.csv`
 3. `Publication_Readiness.md` uses one of the required readiness classifications:
@@ -21,7 +22,8 @@ The package run is valid only when all of the following are true:
 4. A `BLOCKED` result is used whenever:
    - required sections are missing,
    - assembly failed,
-   - blocking concordance findings exist.
+   - blocking concordance findings exist,
+   - unresolved `HIGH` concordance-expansion candidates remain.
 5. `Rerun_Recommendations.csv` exists whenever readiness is not `READY`, and remains allowed even for `READY` when the run still yields improvement notes.
 6. All writes stayed inside the approved package snapshot subtree / package output root.
 
@@ -32,6 +34,7 @@ The package run is valid only when all of the following are true:
 - summarize deterministic tool status,
 - summarize section completeness,
 - summarize blocking vs non-blocking concordance findings,
+- summarize unresolved `HIGH` / `NORMAL` / `LOW` concordance-expansion candidates,
 - summarize material readability/quality issues,
 - summarize QA burden (`TBD`, assumptions, deferred confirmation, skipped inputs, terminology normalizations),
 - identify whether targeted reruns are required or merely recommended.
@@ -51,6 +54,36 @@ Checks:
 - `BlockingLevel` should clearly distinguish blocking from advisory findings.
 - `RecommendedAction` should be specific enough for DBM_PUBLISHER to trigger targeted reruns without guesswork.
 
+## Required concordance-expansion candidate output
+
+`Publication_Concordance_Expansion_Candidates.csv` must:
+- aggregate all per-section `SEC-##_ASSERTION_DISCOVERY.csv` files from the current section set,
+- deduplicate semantically overlapping candidates conservatively,
+- classify each unresolved candidate as `HIGH`, `NORMAL`, or `LOW`,
+- retain enough source detail for targeted reruns.
+
+Minimum columns:
+- `AssertionKey`
+- `AssertionLabel`
+- `AssertionDomain`
+- `AssertionType`
+- `SuggestedComparisonRule`
+- `SuggestedComparisonParameter`
+- `SuggestedAuthoritySectionID`
+- `SuggestedRequiredSectionIDs`
+- `Criticality`
+- `DiscoverySource`
+- `SupportingSectionIDs`
+- `SourceArtifacts`
+- `SourceRefs`
+- `Disposition`
+- `Notes`
+
+Checks:
+- `Disposition` should distinguish unresolved candidates from duplicates or already-covered items.
+- Any unresolved `HIGH` candidate must be reflected in `Publication_Readiness.md` and `Rerun_Recommendations.csv`.
+- If no unresolved candidates remain, the file may still exist with only a header row or explicit zero-findings note per local convention.
+
 ## Failure reporting expectations
 
 Use `FAILED_INPUTS` when:
@@ -65,6 +98,7 @@ Use `FAILED` when:
 Even when the run completes, the QA/readiness output must surface:
 - missing sections,
 - blocking concordance findings,
+- unresolved expansion candidates by criticality,
 - major readability issues,
 - remaining unresolved conflict burden,
 - rerun recommendations tied to specific findings.

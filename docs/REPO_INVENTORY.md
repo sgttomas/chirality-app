@@ -29,9 +29,9 @@ If another document needs to mention how many agents, skills, or tools the proje
 
 | Category | Count | Canonical Source |
 |---|---:|---|
-| Indexed agents | 34 | [`AGENTS.md`](../AGENTS.md) |
-| Repo-native skills | 15 | [`skills/`](../skills/) |
-| Registered deterministic tools | 51 | [`tools/REGISTRY.md`](../tools/REGISTRY.md) |
+| Indexed agents | 35 | [`AGENTS.md`](../AGENTS.md) |
+| Repo-native skills | 19 | [`skills/`](../skills/) |
+| Registered deterministic tools | 63 | [`tools/REGISTRY.md`](../tools/REGISTRY.md) |
 
 ---
 

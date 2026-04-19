@@ -2,12 +2,16 @@
 """
 assemble_publication.py — Deterministic package assembler for DBM publication.
 
-Consumes approved section outputs plus frozen planning artifacts and writes:
+Writes:
   - Rewritten_DBM.md
   - Trace_Appendix.md
   - Publication_Manifest.md
   - Publication_QA.md
-  - optional _LATEST.md pointer preview when explicitly requested
+
+Scope boundary:
+  Reads: publication-root, input-manifest, schema, section-map, rules, sections-root
+  Writes: only files under --output-dir, plus optional _LATEST.md when explicitly requested
+  Does not: modify section outputs, planning artifacts, or inputs
 
 Inputs:
   --publication-root  Publication tool root (_Publication/DBM)
@@ -40,7 +44,6 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import os
 import re
 import sys
 from collections import defaultdict
@@ -54,9 +57,15 @@ if str(SCRIPT_DIR) not in sys.path:
 from build_section_map import parse_schema, read_csv_rows  # type: ignore
 
 
-SECTION_QA_BLOCK_RE = re.compile(r"^##\s+(.*)$", re.MULTILINE)
-SOURCE_REF_RE = re.compile(r"(?:\*\*SourceRef\*\*\s*\|\s*|SourceRef\s*[:|-]\s*)([^|\n]+)")
+TOP_SOURCE_RE = re.compile(r"^\s*(?:\*\*Source:\*\*|Source:)\s*(.+?)\s*$")
+REFERENCES_HEADING_RE = re.compile(r"^\s*##\s+References\b", re.IGNORECASE)
+HEADING_RE = re.compile(r"^\s*#{2,6}\s+")
+REFERENCE_BULLET_RE = re.compile(r"^\s*[-*]\s+(.+?)\s*$")
+METADATA_BULLET_RE = re.compile(r"^\s*[-*]\s+\*\*([^*]+?)\*\*\s*:?\s*(.+?)\s*$")
+SOURCE_REF_RE = re.compile(r"(?:\*\*Source\s*Ref\*\*\s*\|\s*|Source\s*Ref\s*[:|-]\s*|SourceRef\s*[:|-]\s*)([^|\n]+)")
 HBK_RE = re.compile(r"\bHBK-\d+\b")
+LINE_REF_ONLY_RE = re.compile(r"^L\d+(?:[–-]L?\d+)?$", re.IGNORECASE)
+STRONG_REFERENCE_HINT_RE = re.compile(r"(?:\.md\b|DBM/TOC|_Sources/|§|Section\b|Lines?\b|Line\b|W\d{6}-)", re.IGNORECASE)
 
 PACKAGE_OUTPUT_NAMES = [
     "Rewritten_DBM.md",
@@ -118,6 +127,194 @@ def read_text(path: Path) -> str:
         fatal(f"File not found: {path}")
 
 
+def dedupe_preserve_order(items: Sequence[str]) -> List[str]:
+    seen = set()
+    ordered: List[str] = []
+    for item in items:
+        if item and item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
+
+
+def clean_provenance_token(token: str) -> str:
+    return token.strip().replace("`", "").rstrip(".,;")
+
+
+def split_pre_references_and_references(lines: Sequence[str]) -> Tuple[List[str], List[str]]:
+    pre_references: List[str] = []
+    references: List[str] = []
+    in_references_block = False
+
+    for line in lines:
+        if REFERENCES_HEADING_RE.match(line):
+            in_references_block = True
+            continue
+        if in_references_block:
+            if HEADING_RE.match(line):
+                break
+            references.append(line)
+            continue
+        pre_references.append(line)
+    return pre_references, references
+
+
+def normalize_metadata_key(raw_key: str) -> str:
+    key = raw_key.replace("`", "").replace("*", "").strip().lower()
+    key = re.sub(r"\s+", " ", key)
+    return key.rstrip(":")
+
+
+def parse_metadata_fields(lines: Sequence[str]) -> Dict[str, str]:
+    fields: Dict[str, str] = {}
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        bullet_match = METADATA_BULLET_RE.match(line)
+        if bullet_match:
+            key = normalize_metadata_key(bullet_match.group(1))
+            value = clean_provenance_token(bullet_match.group(2))
+            if key and value and key not in fields:
+                fields[key] = value
+            continue
+
+        if not (stripped.startswith("|") and stripped.endswith("|")):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        first_cell = cells[0].replace("-", "").replace(":", "").strip()
+        if not first_cell or first_cell.lower() in {"field", "value"}:
+            continue
+        key = normalize_metadata_key(cells[0])
+        value = clean_provenance_token(cells[1])
+        if key and value and key not in fields:
+            fields[key] = value
+    return fields
+
+
+def is_line_ref_only(token: str) -> bool:
+    return bool(LINE_REF_ONLY_RE.fullmatch(token.strip()))
+
+
+def is_strong_reference(candidate: str) -> bool:
+    return bool(STRONG_REFERENCE_HINT_RE.search(candidate))
+
+
+def combine_source_parts(parts: Sequence[str]) -> str:
+    cleaned = [clean_provenance_token(part) for part in parts if part]
+    unique = dedupe_preserve_order(cleaned)
+    return "; ".join(unique)
+
+
+def extract_top_level_source(pre_reference_lines: Sequence[str]) -> str:
+    for line in pre_reference_lines:
+        source_match = TOP_SOURCE_RE.match(line)
+        if not source_match:
+            continue
+        candidate = clean_provenance_token(source_match.group(1))
+        if candidate and not is_line_ref_only(candidate):
+            return candidate
+    return ""
+
+
+def extract_source_from_metadata(fields: Dict[str, str]) -> str:
+    source = fields.get("source")
+    if source and not is_line_ref_only(source):
+        return source
+
+    source_file = fields.get("source file")
+    source_ref = fields.get("source ref") or fields.get("sourceref")
+    if source_file and source_ref:
+        return combine_source_parts([source_file, source_ref])
+    if source_file:
+        return source_file
+    if source_ref and not is_line_ref_only(source_ref):
+        return source_ref
+
+    document = fields.get("document")
+    section = fields.get("section")
+    source_span = fields.get("source span")
+    identification = combine_source_parts([document, section, source_span])
+    if identification and not is_line_ref_only(identification):
+        return identification
+    return ""
+
+
+def extract_source_from_references(reference_lines: Sequence[str]) -> str:
+    candidates: List[str] = []
+    for line in reference_lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("|"):
+            continue
+        reference_match = REFERENCE_BULLET_RE.match(line)
+        candidate = clean_provenance_token(reference_match.group(1) if reference_match else stripped)
+        if candidate:
+            candidates.append(candidate)
+    for candidate in candidates:
+        if is_strong_reference(candidate) and not is_line_ref_only(candidate):
+            return candidate
+    for candidate in candidates:
+        if not is_line_ref_only(candidate):
+            return candidate
+    return ""
+
+
+def build_evidence_summary(text: str, canonical_source: str) -> str:
+    canonical_upper = canonical_source.upper()
+    source_ref_tokens: List[str] = []
+    for match in SOURCE_REF_RE.findall(text):
+        cleaned = clean_provenance_token(match).rstrip(")")
+        if not cleaned:
+            continue
+        if canonical_upper and cleaned.upper() in canonical_upper:
+            continue
+        if is_line_ref_only(cleaned):
+            source_ref_tokens.append(f"SourceRef: {cleaned}")
+        else:
+            source_ref_tokens.append(cleaned)
+
+    evidence_bits: List[str] = []
+    source_ref_tokens = dedupe_preserve_order(source_ref_tokens)
+    if source_ref_tokens:
+        preview = ", ".join(source_ref_tokens[:5])
+        evidence_bits.append(preview if len(source_ref_tokens) <= 5 else f"{preview}, ...")
+
+    hbk_tokens = [token for token in dedupe_preserve_order(HBK_RE.findall(text)) if token.upper() not in canonical_upper]
+    if hbk_tokens:
+        preview = ", ".join(hbk_tokens[:5])
+        evidence_bits.append(f"HBK: {preview}" if len(hbk_tokens) <= 5 else f"HBK: {preview}, ...")
+
+    return "; ".join(evidence_bits)
+
+
+def parse_artifact_source_and_evidence(text: str) -> Tuple[str, str]:
+    lines = text.splitlines()
+    pre_reference_lines, reference_lines = split_pre_references_and_references(lines)
+    metadata_fields = parse_metadata_fields(pre_reference_lines)
+
+    canonical_source = extract_top_level_source(pre_reference_lines)
+    if not canonical_source:
+        canonical_source = extract_source_from_metadata(metadata_fields)
+    if not canonical_source:
+        canonical_source = extract_source_from_references(reference_lines)
+
+    evidence = build_evidence_summary(text, canonical_source)
+    return canonical_source, evidence
+
+
+def format_source_evidence(source: str, evidence: str) -> str:
+    if source and evidence:
+        return f"Source: {source}; Evidence: {evidence}"
+    if source:
+        return f"Source: {source}"
+    if evidence:
+        return f"Evidence: {evidence}"
+    return ""
+
+
 def load_section_map(path: Path) -> Dict[str, List[Dict[str, str]]]:
     grouped: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     for row in read_csv_rows(path):
@@ -141,14 +338,8 @@ def extract_artifact_source_ref(path: Path) -> str:
     if not path.exists() or not path.is_file() or path.suffix.lower() != ".md":
         return ""
     text = read_text(path)
-    match = SOURCE_REF_RE.search(text)
-    if match:
-        return match.group(1).strip()
-    evidence = sorted(set(HBK_RE.findall(text[:8000])))
-    if evidence:
-        preview = ", ".join(evidence[:5])
-        return f"Evidence: {preview}" if len(evidence) <= 5 else f"Evidence: {preview}, ..."
-    return ""
+    source, evidence = parse_artifact_source_and_evidence(text)
+    return format_source_evidence(source, evidence)
 
 
 def count_conflicts_in_qa(path: Path) -> int:

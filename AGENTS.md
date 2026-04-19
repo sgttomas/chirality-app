@@ -94,6 +94,7 @@ Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounde
 |---|---|---|---|
 | four-documents | `skills/four-documents/` | Draft + enrich Datasheet/Specification/Guidance/Procedure | ORCHESTRATOR Phase 2.2 + 2.5 |
 | domain-documents | `skills/domain-documents/` | Draft + verify Knowledge Artifacts for DOMAIN variants | ORCHESTRATOR Phase 2.2 |
+| dbm-concordance-seed | `skills/dbm-concordance-seed/` | Seed and refine typed publication concordance candidates from frozen planning artifacts and mapped source content | DBM_PUBLISHER Gate 4 concordance freeze |
 | dbm-section-publish | `skills/dbm-section-publish/` | Publish one approved rewritten DBM section from mapped KTY-local inputs with fixed QA + assertions outputs | DBM_PUBLISHER section dispatch |
 | semantic-matrix-build | `skills/semantic-matrix-build/` | Generate `_SEMANTIC.md` semantic matrix | ORCHESTRATOR Phase 2.3 |
 | lens-register | `skills/lens-register/` | Generate `_SEMANTIC_LENSING.md` enrichment register | ORCHESTRATOR Phase 2.4 |
@@ -101,9 +102,14 @@ Skills dispatched through TASK (via `TaskSkill: <name>`) codify recurring bounde
 | semantic-lensing | `skills/semantic-lensing/` | Apply lensing register during content enrichment | DELIVERABLE_TASK, WORKING_ITEMS |
 | content-digest | `skills/content-digest/` | Produce content digest snapshots | EVALUATION and others |
 | dbm-publish | `skills/dbm-publish/` | Assemble the rewritten DBM package, invoke deterministic QA/concordance helpers, and emit publication readiness + rerun guidance | DBM_PUBLISHER package gate |
+| deliverable-consistency | `skills/deliverable-consistency/` | Run deliverable-local consistency sweep across production documents | DELIVERABLE_TASK |
+| equipment-costing-extract | `skills/equipment-costing-extract/` | Extract costing-relevant design basis parameters from KA files in a single KTY folder | WORKING_ITEMS |
+| equipment-extract | `skills/equipment-extract/` | Extract discrete physical equipment items from KA files within a single KTY folder | WORKING_ITEMS |
 | estimate-snapshot | `skills/estimate-snapshot/` | Run per-deliverable estimate snapshots | ORCHESTRATOR Phase 4 (Estimating) |
 | estimate-prep | `skills/estimate-prep/` | Prepare estimation inputs (BOE, INDEX.md) | ORCHESTRATOR pre-Phase-4 |
+| pdf2md | `skills/pdf2md/` | Single-run PDF-to-Markdown conversion under TASK when full PDF2MD orchestration is unnecessary | PDF2MD, direct TASK |
 | pdf2md-page | `skills/pdf2md-page/` | Per-page VLM markdown extraction | PDF2MD orchestrator |
+| proposal-format | `skills/proposal-format/` | Structured recommendation output using PROPOSAL blocks with evidence, change, risk, and status fields | DELIVERABLE_TASK |
 | drawing-extract-page | `skills/drawing-extract-page/` | Per-page drawing-type-aware bounded extraction (v2: PFD basic + detailed targets; P_AND_ID/ISOMETRIC/GA stubbed fail-fast) | DRAWING_EXTRACT orchestrator |
 
 See `skills/README.md` for the full skill inventory and folder contract.

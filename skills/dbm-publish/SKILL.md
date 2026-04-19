@@ -15,6 +15,7 @@ metadata:
 Run the **package-level bounded publication gate** after section outputs already exist. This skill:
 - invokes deterministic assembly,
 - invokes deterministic concordance checking,
+- aggregates per-section assertion-discovery outputs into a package-level expansion view,
 - reviews the assembled package for qualitative publication readiness,
 - writes `Publication_Readiness.md`,
 - writes `Rerun_Recommendations.csv`.
@@ -65,7 +66,7 @@ Typical dispatcher: `DBM_PUBLISHER` after the section layer is complete enough f
 - This skill may invoke only these deterministic publication helpers:
   - `tools/publication/assemble_publication.py`
   - `tools/publication/check_concordance.py`
-- The `allowed-tools` frontmatter field is now authoritative for this skill and enforces that deterministic tool boundary under `TASK`.
+- The `allowed-tools` frontmatter field is authoritative for this skill and enforces that deterministic tool boundary under `TASK`.
 
 Disallowed behavior:
 - No dispatching other workers.
@@ -82,6 +83,7 @@ The skill writes package-level review artifacts under the immutable package snap
 - `Publication_QA.md`
 - `Publication_Concordance_Report.md`
 - `Publication_Concordance_Findings.csv`
+- `Publication_Concordance_Expansion_Candidates.csv`
 - `Publication_Readiness.md`
 - `Rerun_Recommendations.csv`
 
@@ -104,17 +106,19 @@ The skill writes package-level review artifacts under the immutable package snap
 2. **Invoke deterministic assembly.** Run `assemble_publication.py`.
 3. **Handle assembly failure conservatively.** If assembly exits non-zero, emit `BLOCKED` and record the tool failure.
 4. **Invoke deterministic concordance checking.** Run `check_concordance.py`.
-5. **Read the assembled DBM and all section QA artifacts.** Assess whether each section reads as coherent engineering prose under `Publication_Rules.md` rather than an artifact dump.
-6. **Aggregate material QA signals.** At minimum summarize:
+5. **Aggregate per-section discovery outputs.** Read every `SEC-##_ASSERTION_DISCOVERY.csv` under `SECTIONS_ROOT`, merge and conservatively deduplicate the candidates, classify unresolved items as `HIGH`, `NORMAL`, or `LOW`, and write `Publication_Concordance_Expansion_Candidates.csv`.
+6. **Read the assembled DBM and all section QA artifacts.** Assess whether each section reads as coherent engineering prose under `Publication_Rules.md` rather than an artifact dump.
+7. **Aggregate material QA signals.** At minimum summarize:
    - total conflicts,
    - total `TBD` / assumption / deferred-confirmation items,
    - total skipped inputs,
-   - total material terminology normalizations.
-7. **Classify readiness.**
-   - `BLOCKED` if required sections are missing, deterministic assembly failed, or blocking concordance findings exist.
-   - `READY_WITH_MAJOR_NOTES` if non-blocking but material quality/QA issues remain.
-   - `READY` otherwise.
-8. **Emit package review artifacts.** Write `Publication_Readiness.md` and `Rerun_Recommendations.csv`.
+   - total material terminology normalizations,
+   - total unresolved `HIGH`, `NORMAL`, and `LOW` concordance-expansion candidates.
+8. **Classify readiness.**
+   - `BLOCKED` if required sections are missing, deterministic assembly failed, blocking concordance findings exist, or unresolved `HIGH` expansion candidates remain.
+   - `READY_WITH_MAJOR_NOTES` if no blocking condition remains but unresolved `NORMAL` expansion candidates or other material quality/QA issues remain.
+   - `READY` only if deterministic assembly/concordance pass and no material expansion candidates remain unresolved.
+9. **Emit package review artifacts.** Write `Publication_Readiness.md`, `Publication_Concordance_Expansion_Candidates.csv`, and `Rerun_Recommendations.csv`.
 
 ## `Rerun_Recommendations.csv` schema
 
@@ -125,3 +129,8 @@ Minimum columns:
 - `SpecificFinding`
 - `RecommendedAction`
 - `Notes`
+
+Recommended `BlockingLevel` values:
+- `BLOCKING`
+- `MAJOR_NOTE`
+- `ADVISORY`

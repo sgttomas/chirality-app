@@ -1,6 +1,6 @@
 ---
 name: dbm-section-publish
-description: Publish exactly one rewritten DBM section from approved mapped DOMAIN inputs and emit fixed QA plus concordance-assertion artifacts.
+description: Publish exactly one rewritten DBM section from approved mapped DOMAIN inputs and emit fixed QA plus concordance assertion artifacts.
 compatibility: Chirality TASK; dispatched by DBM_PUBLISHER after the publication planning artifacts are frozen.
 metadata:
   chirality-skill-version: "1"
@@ -11,10 +11,11 @@ metadata:
 
 ## Purpose
 
-Publish **exactly one target DBM section** from approved mapped inputs. The skill consumes frozen publication planning artifacts, reads only the mapped KTY-local sources for its assigned section, and emits three outputs:
+Publish **exactly one target DBM section** from approved mapped inputs. The skill consumes frozen publication planning artifacts, reads only the mapped KTY-local sources for its assigned section, and emits four outputs:
 - one section body,
 - one section QA artifact,
-- one section assertions CSV.
+- one section assertions CSV,
+- one section assertion-discovery CSV.
 
 This skill is the primary publication authoring unit in v1. It is **not** a dispatcher and it does **not** redesign the publication schema or section map.
 
@@ -35,6 +36,7 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 - `SECTION_OUTPUT_PATH`
 - `SECTION_QA_OUTPUT_PATH`
 - `SECTION_ASSERTIONS_OUTPUT_PATH`
+- `SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH`
 - `PUBLICATION_INPUT_MANIFEST`
 - `PUBLICATION_SCHEMA_PATH`
 - `SECTION_MAP_PATH`
@@ -59,6 +61,7 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 | `SECTION_OUTPUT_PATH` | Output path for the section body | **Required** | Path under `_Publication/DBM/sections/{SECTION_ID}/` |
 | `SECTION_QA_OUTPUT_PATH` | Output path for stable QA markdown | **Required** | Path under `_Publication/DBM/sections/{SECTION_ID}/` |
 | `SECTION_ASSERTIONS_OUTPUT_PATH` | Output path for structured assertion rows | **Required** | Path under `_Publication/DBM/sections/{SECTION_ID}/` |
+| `SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH` | Output path for structured assertion-discovery rows | **Required** | Path under `_Publication/DBM/sections/{SECTION_ID}/` |
 | `PUBLICATION_INPUT_MANIFEST` | Frozen exact input-path manifest | **Required** | Markdown path |
 | `PUBLICATION_SCHEMA_PATH` | Approved publication schema | **Required** | Markdown path |
 | `SECTION_MAP_PATH` | Approved section map | **Required** | CSV path |
@@ -77,7 +80,7 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 
 Disallowed behavior:
 - No dispatching other tasks.
-- No writes outside the three section output paths.
+- No writes outside the four section output paths.
 - No modification of any `CAT-* / 1_Working / KTY-*` files.
 - No guessed discovery outside the frozen planning artifacts and approved section-map rows.
 - No use of `_MEMORY.md` or `_SEMANTIC.md` as authority.
@@ -87,6 +90,7 @@ Disallowed behavior:
 - `{SECTION_OUTPUT_PATH}` — one rewritten DBM section body
 - `{SECTION_QA_OUTPUT_PATH}` — stable section QA artifact
 - `{SECTION_ASSERTIONS_OUTPUT_PATH}` — stable section assertion rows for concordance checking
+- `{SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH}` — stable assertion-discovery rows for package-level concordance expansion
 
 ## Authority hierarchy
 
@@ -224,8 +228,9 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
 4. **Apply readiness gates and selector semantics.** Enforce `MappingRole`, `ContributionScope`, readiness, and publication-rule precedence.
 5. **Draft the section body.** Follow the approved template for `SECTION_TYPE` and the publication rules.
 6. **Emit stable section QA.** Use the fixed structure defined below.
-7. **Emit structured assertions.** Filter the concordance register to rows where `SECTION_ID` is the authority section or appears in `RequiredSectionIDs`, then emit one row per matched assertion key.
-8. **Return status conservatively.** Use `FAILED_INPUTS` for invalid/missing inputs or oversize sections; otherwise complete with explicit gaps/conflicts surfaced in the outputs.
+7. **Emit required structured assertions conservatively.** Filter the concordance register to rows where `SECTION_ID` is the authority section or appears in `RequiredSectionIDs`, then emit exactly one row per matched assertion key in `SEC-##_ASSERTIONS.csv`. Do not silently drop matched keys; if value extraction is ambiguous, emit the row with explicit uncertainty in `Notes`.
+8. **Emit assertion discovery candidates.** After required-key emission, search mapped content for repeated or technically important values/states not already represented in the approved register for this section scope. Emit those candidates in `SEC-##_ASSERTION_DISCOVERY.csv` rather than silently ignoring them.
+9. **Return status conservatively.** Use `FAILED_INPUTS` for invalid/missing inputs or oversize sections; otherwise complete with explicit gaps/conflicts surfaced in the outputs.
 
 ## Section QA output format
 
@@ -240,6 +245,13 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
 8. `## Assertion Emission Notes`
 
 The QA artifact must preserve distinctions such as `TBD`, `ASSUMPTION`, and `DEFERRED_CONFIRMATION` even when body prose flattens unresolved items for readability.
+
+Content expectations by block:
+- `Coverage Table` records mapped KTYs/KAs consumed plus mapped inputs skipped and why.
+- `Readiness Observations` records KTY readiness issues.
+- `Conflict Register` records contradictory values/states and both source positions.
+- `Gap / TBD Register` preserves distinctions such as `TBD`, `ASSUMPTION`, and `DEFERRED_CONFIRMATION`.
+- `Assertion Emission Notes` records required assertions emitted, unclear or unresolved matched keys, normalization issues, and discovery candidates proposed.
 
 ## Section assertions output format
 
@@ -264,6 +276,33 @@ Supported `AssertionStatus` values:
 
 Rules:
 - If the section is listed in `RequiredSectionIDs`, it must emit one row for that assertion key.
-- If the section is the `AuthoritySectionID`, it must emit the authoritative asserted value/state.
+- If the section is the `AuthoritySectionID`, it must emit the authoritative asserted value/state unless the source state is genuinely unresolved.
 - `NormalizedValue` must be suitable for deterministic comparison under the register's `ComparisonRule`.
 - Prefer `REFERRED` over duplicated restatement when the publication rules designate another section as authority.
+- Do not use `NOT_APPLICABLE` for a matched key unless the section map or publication rules clearly exclude that assertion from this section's current scope.
+- If competing mapped inputs cannot be resolved under approved authority, use `CONFLICT_UNRESOLVED` and surface the issue in section QA.
+
+## Section assertion discovery output format
+
+`SEC-##_ASSERTION_DISCOVERY.csv` minimum columns:
+- `SectionID`
+- `SuggestedAssertionKey`
+- `AssertionLabel`
+- `AssertionDomain`
+- `AssertionType`
+- `SuggestedComparisonRule`
+- `SuggestedComparisonParameter`
+- `SuggestedAuthoritySectionID`
+- `SuggestedRequiredSectionIDs`
+- `Criticality`
+- `DiscoverySource`
+- `CandidateValueExample`
+- `SourceArtifact`
+- `SourceRef`
+- `Notes`
+
+Discovery rules:
+- Emit discovery rows only for materially repeated or technically important values/states not already covered by the approved register for this section scope.
+- Prefer typed candidates such as process conditions, utility conditions, product specs, equipment limits, operating targets, scope state, location state, regulatory state, and control logic.
+- `SuggestedAssertionKey` should use stable uppercase snake case and remain semantic rather than section-derived.
+- If the worker is unsure whether a candidate is already covered semantically, still emit it and explain the ambiguity in `Notes`.

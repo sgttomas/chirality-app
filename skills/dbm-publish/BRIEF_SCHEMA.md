@@ -4,14 +4,14 @@ This file defines the INIT-TASK dispatch contract for `TASK + dbm-publish`.
 
 ## Purpose
 
-Use this skill after approved section outputs exist and DBM_PUBLISHER wants the package-level assembly, deterministic QA/concordance checks, and qualitative publication-readiness judgment.
+Use this skill after approved section outputs exist and DBM_PUBLISHER wants the package-level assembly, deterministic QA/concordance checks, concordance-expansion aggregation, and qualitative publication-readiness judgment.
 
 ## Scope model
 
 - `ScopePath` should normally be the publication root or package root:
   - `{EXECUTION_ROOT}/_Publication/DBM/`
   - or `{EXECUTION_ROOT}/_Publication/DBM/package/`
-- `AllowedWriteTargets` must remain inside the package snapshot subtree plus the package-level readiness artifacts for the current run.
+- `AllowedWriteTargets` must remain inside the package snapshot subtree plus the package-level readiness artifacts for the current run, including the concordance-expansion candidate rollup.
 
 The brief must not grant write access to KTY folders, decomposition truth, or unrelated tool roots.
 
@@ -46,6 +46,7 @@ The brief must not grant write access to KTY folders, decomposition truth, or un
 - `PACKAGE_OUTPUT_ROOT` should be the immutable snapshot parent, not a mutable working directory.
 - `AllowedWriteTargets` should constrain the run to the intended snapshot subtree and package-level readiness artifacts.
 - The skill should always run against the latest complete current section set, not only against the rerun subset.
+- The skill is expected to read all per-section `SEC-##_ASSERTION_DISCOVERY.csv` files under `SECTIONS_ROOT` and roll them up into one package-level expansion-candidate artifact.
 
 ## Recommended CustomInstructions content
 
@@ -81,6 +82,7 @@ ExpectedOutputs:
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Publication_QA.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Report.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Findings.csv
+  - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Expansion_Candidates.csv
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Publication_Readiness.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/package/RUN-20260418-120000/Rerun_Recommendations.csv
 ```

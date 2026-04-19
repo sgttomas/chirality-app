@@ -10,10 +10,11 @@ Use this skill when DBM_PUBLISHER needs one approved DBM section synthesized fro
 
 - `ScopePath` should normally be the section-local publication folder:
   - `{EXECUTION_ROOT}/_Publication/DBM/sections/{SECTION_ID}/`
-- `AllowedWriteTargets` must name exactly three files:
+- `AllowedWriteTargets` must name exactly four files:
   - section body markdown,
   - section QA markdown,
-  - section assertions CSV.
+  - section assertions CSV,
+  - section assertion-discovery CSV.
 
 The brief must not grant broader publication-root or KTY-folder write access.
 
@@ -24,7 +25,7 @@ The brief must not grant broader publication-root or KTY-folder write access.
 | `PURPOSE` | string | Why this section run exists | `Publish approved rewritten DBM section SEC-03.` |
 | `ScopePath` | path | Section-local publication folder | `/abs/root/_Publication/DBM/sections/SEC-03/` |
 | `TaskSkill` | string | Must equal the skill folder/name | `dbm-section-publish` |
-| `AllowedWriteTargets` | list[path] | Exact writable outputs | `[/.../SEC-03.md, /.../SEC-03_QA.md, /.../SEC-03_ASSERTIONS.csv]` |
+| `AllowedWriteTargets` | list[path] | Exact writable outputs | `[/.../SEC-03.md, /.../SEC-03_QA.md, /.../SEC-03_ASSERTIONS.csv, /.../SEC-03_ASSERTION_DISCOVERY.csv]` |
 | `RuntimeOverrides.SECTION_ID` | string | Stable section identity | `SEC-03` |
 | `RuntimeOverrides.SECTION_TITLE` | string | Approved section title | `Deep Cut Process Basis` |
 | `RuntimeOverrides.SECTION_TYPE` | enum | Approved section taxonomy | `PROCESS_BASIS` |
@@ -32,13 +33,14 @@ The brief must not grant broader publication-root or KTY-folder write access.
 | `RuntimeOverrides.SECTION_OUTPUT_PATH` | path | Section body output | `/.../SEC-03.md` |
 | `RuntimeOverrides.SECTION_QA_OUTPUT_PATH` | path | QA output | `/.../SEC-03_QA.md` |
 | `RuntimeOverrides.SECTION_ASSERTIONS_OUTPUT_PATH` | path | Assertions output | `/.../SEC-03_ASSERTIONS.csv` |
+| `RuntimeOverrides.SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH` | path | Assertion-discovery output | `/.../SEC-03_ASSERTION_DISCOVERY.csv` |
 | `RuntimeOverrides.PUBLICATION_INPUT_MANIFEST` | path | Frozen input manifest | `/.../_Planning/Publication_Input_Manifest.md` |
 | `RuntimeOverrides.PUBLICATION_SCHEMA_PATH` | path | Approved publication schema | `/.../_Planning/Publication_Schema.md` |
 | `RuntimeOverrides.SECTION_MAP_PATH` | path | Approved section map | `/.../_Planning/Section_Map.csv` |
 | `RuntimeOverrides.PUBLICATION_RULES_PATH` | path | Approved publication rules | `/.../_Planning/Publication_Rules.md` |
 | `RuntimeOverrides.PUBLICATION_CONCORDANCE_REGISTER_PATH` | path | Approved concordance register | `/.../_Planning/Publication_Concordance_Register.csv` |
 | `RuntimeOverrides.MAX_KA_FILES` | integer | Hard cap on mapped KA files | `12` |
-| `ExpectedOutputs` | list[path] | Same three section outputs | `[/.../SEC-03.md, /.../SEC-03_QA.md, /.../SEC-03_ASSERTIONS.csv]` |
+| `ExpectedOutputs` | list[path] | Same four section outputs | `[/.../SEC-03.md, /.../SEC-03_QA.md, /.../SEC-03_ASSERTIONS.csv, /.../SEC-03_ASSERTION_DISCOVERY.csv]` |
 
 ## Optional brief fields
 
@@ -53,9 +55,10 @@ The brief must not grant broader publication-root or KTY-folder write access.
 ## Runtime-override guidance
 
 - `SECTION_TYPE` must match the approved section taxonomy in `Publication_Schema.md`.
-- `SECTION_OUTPUT_PATH`, `SECTION_QA_OUTPUT_PATH`, and `SECTION_ASSERTIONS_OUTPUT_PATH` must all live inside `ScopePath`.
+- `SECTION_OUTPUT_PATH`, `SECTION_QA_OUTPUT_PATH`, `SECTION_ASSERTIONS_OUTPUT_PATH`, and `SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH` must all live inside `ScopePath`.
 - `MAX_KA_FILES` should match the approved section design, not an ad hoc worker preference.
 - The section worker should receive only the planning artifacts and mapped inputs already frozen for the run.
+- The section worker is expected to read the concordance register and emit both required-key rows and discovery candidates.
 
 ## Recommended CustomInstructions content
 
@@ -77,6 +80,7 @@ AllowedWriteTargets:
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_QA.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTIONS.csv
+  - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTION_DISCOVERY.csv
 RuntimeOverrides:
   SECTION_ID: SEC-03
   SECTION_TITLE: Deep Cut Process Basis
@@ -85,6 +89,7 @@ RuntimeOverrides:
   SECTION_OUTPUT_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03.md
   SECTION_QA_OUTPUT_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_QA.md
   SECTION_ASSERTIONS_OUTPUT_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTIONS.csv
+  SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTION_DISCOVERY.csv
   PUBLICATION_INPUT_MANIFEST: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/_Planning/Publication_Input_Manifest.md
   PUBLICATION_SCHEMA_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/_Planning/Publication_Schema.md
   SECTION_MAP_PATH: /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/_Planning/Section_Map.csv
@@ -95,4 +100,5 @@ ExpectedOutputs:
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_QA.md
   - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTIONS.csv
+  - /repo/domain-test/domains/West_Doe_Deepcut_DBM/_Publication/DBM/sections/SEC-03/SEC-03_ASSERTION_DISCOVERY.csv
 ```

@@ -229,6 +229,7 @@ def parse_manifest(markdown_path: Path) -> Dict[str, object]:
     explicit: Dict[str, str] = {}
 
     code_span_re = re.compile(r"`([^`]+)`")
+    kv_bold_colon_inside_re = re.compile(r"^\s*(?:-\s*)?\*\*([A-Za-z0-9_ /-]+?):\*\*\s*(.+?)\s*$")
     kv_re = re.compile(r"^\s*(?:-\s*)?(?:\*\*)?([A-Za-z0-9_ /-]+?)(?:\*\*)?\s*:\s*(.+?)\s*$")
 
     for raw_line in text.splitlines():
@@ -237,9 +238,9 @@ def parse_manifest(markdown_path: Path) -> Dict[str, object]:
         if heading_match:
             current_heading = heading_match.group(2).strip()
             continue
-        kv_match = kv_re.match(line)
+        kv_match = kv_bold_colon_inside_re.match(line) or kv_re.match(line)
         if kv_match:
-            key = normalize_space(kv_match.group(1)).upper().replace(" ", "_").replace("/", "_")
+            key = normalize_space(kv_match.group(1)).rstrip(":").upper().replace(" ", "_").replace("/", "_")
             value = kv_match.group(2).strip()
             if value.startswith("`") and value.endswith("`"):
                 value = value[1:-1]

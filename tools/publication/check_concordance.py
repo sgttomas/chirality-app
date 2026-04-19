@@ -2,20 +2,37 @@
 """
 check_concordance.py — Deterministic cross-section assertion concordance checker.
 
-Consumes:
+Purpose:
+  Compare the frozen concordance register against the current per-section
+  assertion CSVs and report blocking mismatches deterministically.
+
+Inputs:
   --register        Frozen Publication_Concordance_Register.csv
   --sections-root   Root containing per-section *_ASSERTIONS.csv files
   --output-report   Publication_Concordance_Report.md
   --output-findings Publication_Concordance_Findings.csv
 
 Writes:
-  Publication_Concordance_Report.md
+  - Publication_Concordance_Report.md
+  - Publication_Concordance_Findings.csv
+
+Scope boundary:
+  Reads: register and per-section assertion CSVs under sections-root
+  Writes: only Publication_Concordance_Report.md and
   Publication_Concordance_Findings.csv
+  Does not mutate section outputs or the publication package snapshot
 
 Exit codes:
   0 = success, no blocking concordance findings
   1 = fatal input / parsing error
   2 = outputs written, but blocking findings remain
+
+Example:
+  python3 tools/publication/check_concordance.py \
+    --register /repo/.../_Planning/Publication_Concordance_Register.csv \
+    --sections-root /repo/.../_Publication/DBM/sections \
+    --output-report /repo/.../_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Report.md \
+    --output-findings /repo/.../_Publication/DBM/package/RUN-20260418-120000/Publication_Concordance_Findings.csv
 
 All assertions listed in the register are treated as concordance-blocking in v1.
 """

@@ -2,12 +2,10 @@
 """
 render_dispatch_briefs.py — Deterministic INIT-TASK brief renderer for DBM publication.
 
-Consumes frozen planning artifacts and emits:
-  - one section INIT-TASK brief per approved section,
-  - one package INIT-TASK brief for dbm-publish,
-  - DISPATCH_INDEX.csv,
-  - pre-created section output directories,
-  - optional targeted rerender for selected sections.
+Purpose:
+  Render one INIT-TASK brief per approved section and one package INIT-TASK brief
+  for dbm-publish, then write the dispatch index and pre-create the section
+  output directories used by the workflow.
 
 Inputs:
   --publication-root       Path to {_EXECUTION_ROOT}/_Publication/DBM/
@@ -23,6 +21,20 @@ Inputs:
   [--skills-root]          Repo skills root (default: {repo}/skills)
   [--section-ids]          Comma/semicolon list of SectionIDs to rerender; default = all
   [--render-package]       yes|no (default yes)
+
+Writes:
+  - section INIT-TASK briefs under --dispatch-root
+  - package INIT-TASK brief under --dispatch-root when --render-package yes
+  - DISPATCH_INDEX.csv under --dispatch-root
+  - section output directories under --sections-root
+  - package snapshot directory under --package-root only when --render-package yes
+
+Scope boundary:
+  Reads: publication-root, input-manifest, schema, section-map, rules,
+  concordance-register, skills-root
+  Writes: dispatch briefs, DISPATCH_INDEX.csv, section output directories, and
+  the package snapshot directory only as a guard target when --render-package yes
+  Does not write section outputs or package outputs
 
 Exit codes:
   0 = success
@@ -55,9 +67,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from build_section_map import (  # type: ignore
-    find_table_with_columns,
     parse_list_cell,
-    parse_manifest,
     parse_markdown_tables,
     parse_schema,
     read_csv_rows,
@@ -65,6 +75,17 @@ from build_section_map import (  # type: ignore
 
 SECTION_BRIEF_NAME_TEMPLATE = "{section_id}_INIT-TASK.md"
 PACKAGE_BRIEF_NAME = "DBM_PUBLISH_INIT-TASK.md"
+PACKAGE_OUTPUT_NAMES = [
+    "Rewritten_DBM.md",
+    "Trace_Appendix.md",
+    "Publication_Manifest.md",
+    "Publication_QA.md",
+    "Publication_Concordance_Report.md",
+    "Publication_Concordance_Findings.csv",
+    "Publication_Concordance_Expansion_Candidates.csv",
+    "Publication_Readiness.md",
+    "Rerun_Recommendations.csv",
+]
 DISPATCH_INDEX_COLUMNS = [
     "DispatchType",
     "RenderMode",
@@ -203,6 +224,7 @@ def render_section_brief(
     body_path = section_dir / f"{section_id}.md"
     qa_path = section_dir / f"{section_id}_QA.md"
     assertions_path = section_dir / f"{section_id}_ASSERTIONS.csv"
+    assertion_discovery_path = section_dir / f"{section_id}_ASSERTION_DISCOVERY.csv"
     max_ka_files = section.get("MaxKAFiles", "") or "0"
 
     lines = [
@@ -213,6 +235,7 @@ def render_section_brief(
         f"  - {body_path.resolve()}",
         f"  - {qa_path.resolve()}",
         f"  - {assertions_path.resolve()}",
+        f"  - {assertion_discovery_path.resolve()}",
         "RuntimeOverrides:",
         f"  SECTION_ID: {section_id}",
         f"  SECTION_TITLE: {section['SectionTitle']}",
@@ -221,6 +244,7 @@ def render_section_brief(
         f"  SECTION_OUTPUT_PATH: {body_path.resolve()}",
         f"  SECTION_QA_OUTPUT_PATH: {qa_path.resolve()}",
         f"  SECTION_ASSERTIONS_OUTPUT_PATH: {assertions_path.resolve()}",
+        f"  SECTION_ASSERTION_DISCOVERY_OUTPUT_PATH: {assertion_discovery_path.resolve()}",
         f"  PUBLICATION_INPUT_MANIFEST: {paths['input_manifest'].resolve()}",
         f"  PUBLICATION_SCHEMA_PATH: {paths['schema'].resolve()}",
         f"  SECTION_MAP_PATH: {paths['section_map'].resolve()}",
@@ -233,11 +257,13 @@ def render_section_brief(
         f"  - {body_path.resolve()}",
         f"  - {qa_path.resolve()}",
         f"  - {assertions_path.resolve()}",
+        f"  - {assertion_discovery_path.resolve()}",
     ]
     metadata = {
         "body_path": str(body_path.resolve()),
         "qa_path": str(qa_path.resolve()),
         "assertions_path": str(assertions_path.resolve()),
+        "assertion_discovery_path": str(assertion_discovery_path.resolve()),
     }
     return "\n".join(lines).rstrip() + "\n", metadata
 
@@ -250,6 +276,7 @@ def render_package_brief(package_snapshot_dir: Path, paths: Dict[str, Path], sou
         package_snapshot_dir / "Publication_QA.md",
         package_snapshot_dir / "Publication_Concordance_Report.md",
         package_snapshot_dir / "Publication_Concordance_Findings.csv",
+        package_snapshot_dir / "Publication_Concordance_Expansion_Candidates.csv",
         package_snapshot_dir / "Publication_Readiness.md",
         package_snapshot_dir / "Rerun_Recommendations.csv",
     ]
@@ -334,7 +361,6 @@ def main() -> int:
 
     schema_rows = parse_schema(paths["schema"])
     section_map_rows = load_section_map(paths["section_map"])
-    manifest = parse_manifest(paths["input_manifest"])
     source_domain = infer_source_domain(section_map_rows, paths["publication_root"])
 
     selected_sections = set(parse_list_cell(args.section_ids)) if args.section_ids else {row["SectionID"] for row in schema_rows}
@@ -379,7 +405,14 @@ def main() -> int:
                 "TaskSkill": "dbm-section-publish",
                 "BriefPath": str(brief_path.resolve()),
                 "ScopePath": str(section_dir.resolve()) + "/",
-                "PrimaryOutputs": "; ".join([metadata["body_path"], metadata["qa_path"], metadata["assertions_path"]]),
+                "PrimaryOutputs": "; ".join(
+                    [
+                        metadata["body_path"],
+                        metadata["qa_path"],
+                        metadata["assertions_path"],
+                        metadata["assertion_discovery_path"],
+                    ]
+                ),
                 "PackageSnapshot": args.package_snapshot_name,
             }
         )

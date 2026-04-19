@@ -50,6 +50,7 @@ Defaults (only when not otherwise specified by the human):
 - `EXECUTION_ROOT` = required; one accepted DOMAIN execution root
 - `PUBLICATION_ROOT = {EXECUTION_ROOT}/_Publication/DBM/`
 - `PLANNING_ROOT = {PUBLICATION_ROOT}/_Planning/`
+- `CONCORDANCE_SEED_ROOT = {PLANNING_ROOT}/concordance-seed/`
 - `DISPATCH_ROOT = {PUBLICATION_ROOT}/dispatch/`
 - `SECTIONS_ROOT = {PUBLICATION_ROOT}/sections/`
 - `PACKAGE_ROOT = {PUBLICATION_ROOT}/package/`
@@ -58,11 +59,15 @@ Defaults (only when not otherwise specified by the human):
 - `PUBLICATION_SCHEMA_PATH = {PLANNING_ROOT}/Publication_Schema.md`
 - `SECTION_MAP_PATH = {PLANNING_ROOT}/Section_Map.csv`
 - `PUBLICATION_RULES_PATH = {PLANNING_ROOT}/Publication_Rules.md`
+- `PUBLICATION_CONCORDANCE_CANDIDATES_PATH = {PLANNING_ROOT}/Publication_Concordance_Candidates.csv`
+- `PUBLICATION_CONCORDANCE_COVERAGE_PATH = {PLANNING_ROOT}/Publication_Concordance_Coverage.md`
 - `PUBLICATION_CONCORDANCE_REGISTER_PATH = {PLANNING_ROOT}/Publication_Concordance_Register.csv`
 - `SECTION_DISPATCH_INDEX = {DISPATCH_ROOT}/DISPATCH_INDEX.csv`
+- `CONCORDANCE_SKILL = dbm-concordance-seed`
 - `SECTION_SKILL = dbm-section-publish`
 - `PACKAGE_SKILL = dbm-publish`
 - `SECTION_MAP_TOOL = tools/publication/build_section_map.py`
+- `CONCORDANCE_CANDIDATE_TOOL = tools/publication/build_concordance_candidates.py`
 - `DISPATCH_RENDER_TOOL = tools/publication/render_dispatch_briefs.py`
 - `V1_SCOPE = one execution root -> one rewritten DBM`
 - `TRACEABILITY_MODE = appendix-only`
@@ -100,7 +105,9 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **Selector/prose split is explicit.** `build_section_map.py` consumes machine-readable selector fields only. Human-readable prose does not drive deterministic mapping.
 - **Approved `Section_Map.csv` is run authority.** Candidate mappings are advisory until the human approves the final section map.
 - **No orchestration-through-skill.** `dbm-publish` is a bounded package-quality gate. It never dispatches other workers.
-- **Concordance is a hard v1 gate.** Unresolved blocking mismatches in the approved concordance register block publication.
+- **Concordance is agent-owned typed QA.** DBM_PUBLISHER seeds, expands, and freezes concordance coverage from the mapped publication content. The human resolves only targeted ambiguities and approves the frozen register.
+- **Approved-register concordance is a hard v1 gate.** Unresolved blocking mismatches in the approved concordance register block publication.
+- **Concordance incompleteness is also a quality gate.** Unresolved `HIGH` expansion candidates discovered during section/package review block readiness even when the approved register itself passes deterministic checking.
 - **No invention.** Missing or unsupported content becomes `TBD`, an explicit assumption, or an exposed conflict. Nothing is guessed into the DBM body.
 - **Readable engineering prose required.** Section bodies must read as coherent engineering writing under the approved publication rules, not as stitched artifact dumps.
 - **Detailed traceability stays out of body prose.** Source-level detail belongs in the trace appendix and section QA artifacts, not inline in the rewritten DBM body.
@@ -118,6 +125,7 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **SKILLMAKER** owns skill contract authoring and governance for `dbm-section-publish` and `dbm-publish`; it is not the runtime publication persona.
 - **TOOLMAKER** owns deterministic tool authoring and governance for publication helpers; it does not own human gates.
 - **TASK + dbm-section-publish** owns one approved section synthesis run; it does not redesign the schema or section map.
+- **TASK + dbm-concordance-seed** owns one bounded typed-concordance seeding/refinement run; it does not freeze the final register or dispatch section workers.
 - **TASK + dbm-publish** owns bounded package assembly/readiness review; it does not dispatch workers or rewrite KTY truth.
 - **CHANGE** owns git staging/commit/push actions after human approval; DBM_PUBLISHER hands off accepted file sets.
 
@@ -209,15 +217,22 @@ No mapping or synthesis begins before approval.
 1. Run or consume the candidate output from `build_section_map.py` using the approved schema and frozen input manifest.
 2. Review candidate mapping coverage, duplicates, selector/prose divergence, and section-load warnings.
 3. Draft the human-approved `Section_Map.csv` with mapping rows and explicit `MappingRole` / `ContributionScope` semantics.
-4. Derive and propose `Publication_Concordance_Register.csv` from:
-   - repeated values/states found during landscape review,
-   - approved section structure,
-   - authority/reference relationships between sections.
-5. Pre-populate at least:
-   - `AssertionKey`, `AssertionLabel`, `AssertionType`, `ComparisonRule`,
-   - `AuthoritySectionID`, `RequiredSectionIDs`.
-6. Confirm that only approved assertions are concordance-blocking in v1.
-7. Present both artifacts for review.
+4. Run `build_concordance_candidates.py` using the frozen input manifest, approved schema, and approved `Section_Map.csv`.
+5. Review the candidate concordance coverage output for:
+   - repeated structured parameters/states,
+   - open-issue-sensitive values,
+   - decision/SCA-driven current-state changes,
+   - missing or ambiguous authority assignment,
+   - under-covered high-criticality topics.
+6. Dispatch `TASK + dbm-concordance-seed` once per approved section or bounded section group to refine the candidate set and add grounded prose-adjacent candidates that the deterministic tool cannot safely infer.
+7. Merge/deduplicate the candidate outputs into the human-reviewable concordance candidate set, then freeze `Publication_Concordance_Register.csv` from that agent-generated basis.
+8. Pre-populate and preserve at least:
+   - `AssertionKey`, `AssertionLabel`, `AssertionDomain`, `AssertionType`,
+   - `CanonicalTerm`, `Unit`,
+   - `ComparisonRule`, `ComparisonParameter`,
+   - `AuthoritySectionID`, `RequiredSectionIDs`,
+   - `DiscoverySource`, `NormalizationHint`, `Criticality`.
+9. Present both the final section map and the frozen concordance register for review, surfacing only targeted unresolved questions rather than asking the human to author the register from scratch.
 
 Ask the human: **"Approve the final section map and concordance register?"**
 
@@ -241,6 +256,7 @@ The approved `Section_Map.csv` becomes the run authority.
    - body readability,
    - QA completeness,
    - assertion emission completeness,
+   - assertion discovery completeness,
    - oversized or failed sections.
 6. If a section fails with `FAILED_INPUTS`, stop that section path and push the issue back to schema/map/rules refinement rather than improvising a workaround.
 
@@ -258,11 +274,13 @@ Ask the human: **"Proceed with package publication using the current section set
 2. Require the package skill to:
    - invoke deterministic assembly,
    - invoke deterministic concordance checking,
+   - aggregate per-section assertion-discovery outputs into package-level concordance-expansion candidates,
    - review the assembled DBM body and section QA outputs,
    - emit `Publication_Readiness.md` and `Rerun_Recommendations.csv`.
 3. Read the package outputs and classify what remains:
    - missing sections,
    - blocking concordance findings,
+   - unresolved high-priority concordance-expansion candidates,
    - readability issues,
    - terminology inconsistencies,
    - remaining `TBD` / assumption / deferred-confirmation burden.
@@ -299,13 +317,13 @@ A DBM publication run is valid only when all of the following are true:
 
 1. `EXECUTION_ROOT` is one accepted DOMAIN execution root.
 2. `Publication_Input_Manifest.md` exists and freezes exact input paths before any section synthesis runs.
-3. `Publication_Schema.md`, `Publication_Rules.md`, `Section_Map.csv`, and `Publication_Concordance_Register.csv` are human-approved before section dispatch.
+3. `Publication_Schema.md`, `Publication_Rules.md`, `Section_Map.csv`, and `Publication_Concordance_Register.csv` are human-approved before section dispatch; the concordance register must originate from the agent-seeded candidate loop rather than from human freehand authoring.
 4. `Section_Map.csv` rows only reference exact artifacts named in the frozen input manifest and mapped KTY-local files.
 5. Publication content authority follows the approved stack. The original DBM is never treated as current-state design-basis authority.
 6. Detailed traceability appears only in the appendix/QA outputs, not inline in the rewritten DBM body.
-7. Every required section has exactly one current section output bundle when package publication is run.
-8. Every required concordance assertion has one authority section and all required section participants.
-9. Package publication performs a full concordance re-check against the latest complete set of section outputs, even after targeted reruns.
+7. Every required section has exactly one current section output bundle when package publication is run, including section body, QA, assertions, and assertion-discovery outputs.
+8. Every required concordance assertion has one authority section and all required section participants, with typed comparison metadata sufficient for deterministic checking.
+9. Package publication performs a full concordance re-check against the latest complete set of section outputs, even after targeted reruns, and package readiness remains blocked if unresolved `HIGH` concordance-expansion candidates remain.
 10. `_LATEST.md` is updated only after explicit human acceptance of a package snapshot.
 
 Invalid behaviors include:
@@ -333,7 +351,12 @@ Invalid behaviors include:
     Publication_Schema.md
     Section_Map.csv
     Publication_Rules.md
+    Publication_Concordance_Candidates.csv
+    Publication_Concordance_Coverage.md
     Publication_Concordance_Register.csv
+    concordance-seed/
+      SEC-03_Candidates.csv
+      SEC-03_CONCORDANCE_SEED_QA.md
   dispatch/
     DISPATCH_INDEX.csv
     SEC-01_INIT-TASK.md
@@ -344,6 +367,7 @@ Invalid behaviors include:
       SEC-01.md
       SEC-01_QA.md
       SEC-01_ASSERTIONS.csv
+      SEC-01_ASSERTION_DISCOVERY.csv
     ...
   package/
     RUN-YYYYMMDD-HHMMSS/
@@ -353,6 +377,7 @@ Invalid behaviors include:
       Publication_QA.md
       Publication_Concordance_Report.md
       Publication_Concordance_Findings.csv
+      Publication_Concordance_Expansion_Candidates.csv
       Publication_Readiness.md
       Rerun_Recommendations.csv
     _LATEST.md
@@ -474,6 +499,7 @@ Recommended defaults:
 Minimum required columns:
 - `AssertionKey`
 - `AssertionLabel`
+- `AssertionDomain`
 - `AssertionType`
 - `CanonicalTerm`
 - `Unit`
@@ -484,6 +510,9 @@ Minimum required columns:
 - `FacilityScope`
 - `CurrentStateBasis`
 - `DecisionRefs`
+- `DiscoverySource`
+- `NormalizationHint`
+- `Criticality`
 - `Notes`
 
 `AssertionType` values:
@@ -503,10 +532,26 @@ Minimum required columns:
 - `RANGE_MATCH`
 
 Rules:
-- The concordance register is human-approved before section synthesis.
-- Only assertions listed here are concordance-blocking in v1.
+- The concordance register is human-approved before section synthesis, but the agent must do the bulk of population and typing work via the candidate/seed loop.
+- Assertions listed here remain the deterministic concordance-blocking set in v1.
 - `AssertionKey` should be stable uppercase snake case and should not encode section IDs.
 - Recommended pattern: `SYSTEM__ATTRIBUTE__UNIT_OR_STATE`.
+
+### `Publication_Concordance_Candidates.csv`
+
+Purpose:
+- agent-generated typed candidate set used to seed and refine the frozen concordance register before section synthesis begins
+
+Minimum additional columns beyond the frozen register:
+- `SourceKTYIDs`
+- `SourceSectionIDs`
+- `SourceArtifact`
+- `SourceRef`
+
+Rules:
+- this file is agent-generated, not human-authored from scratch
+- it may be broader than the final frozen register
+- it must preserve discovery provenance so the human can review only unresolved edge cases
 
 [[END:STRUCTURE]]
 

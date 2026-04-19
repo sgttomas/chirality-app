@@ -4,7 +4,7 @@
 
 1. Read the frozen publication planning artifacts.
 2. Read only the mapped KTY-local files permitted by the approved section map.
-3. Use direct reasoning to synthesize the section body, QA artifact, and assertions CSV.
+3. Use direct reasoning to synthesize the section body, QA artifact, required assertions CSV, and assertion-discovery CSV.
 
 ## Allowed deterministic tools
 
@@ -23,7 +23,8 @@ This skill is reasoning-heavy. It must:
 - apply publication-rule precedence,
 - synthesize coherent engineering prose,
 - preserve uncertainty as `TBD`, assumptions, or conflicts rather than inventing reconciliations,
-- emit structured assertion rows suitable for later deterministic concordance checks.
+- emit structured required-assertion rows suitable for later deterministic concordance checks,
+- emit structured assertion-discovery rows for missing but technically important repeated assertions.
 
 ## Disallowed use
 
@@ -32,12 +33,14 @@ This skill is reasoning-heavy. It must:
 - No use of `_Aggregation/*`, `_Coordination/*`, `_Evaluation/*`, `_Reconciliation/*`, `_MEMORY.md`, or `_SEMANTIC.md` as content authority.
 - No modification of any `CAT-* / 1_Working / KTY-*` source files.
 - No package-level assembly or concordance checking.
+- No suppression of matched concordance keys merely because value extraction is inconvenient; unresolved extraction belongs in output notes.
 
 ## Write boundary
 
 The skill may write only:
 - one section body markdown file,
 - one section QA markdown file,
-- one section assertions CSV file.
+- one section assertions CSV file,
+- one section assertion-discovery CSV file.
 
 All writes must remain inside the section-local publication folder named in the INIT-TASK brief.

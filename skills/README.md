@@ -110,7 +110,7 @@ Current example:
 - `deliverable-consistency` should normally begin with `tools/validation/scan_deliverable_consistency.py`, then read only the flagged files and nearby context.
 
 Publication example:
-- `DBM_PUBLISHER` dispatches `TASK + dbm-section-publish` once per approved publication section, then dispatches `TASK + dbm-publish` for package assembly and readiness review. Both skills remain publication-local and should be confined to `_Publication/DBM/` scopes rather than mutating KTY-local truth.
+- `DBM_PUBLISHER` first runs the deterministic concordance-candidate builder, then dispatches `TASK + dbm-concordance-seed` to refine and freeze typed concordance coverage, then dispatches `TASK + dbm-section-publish` once per approved publication section, and finally dispatches `TASK + dbm-publish` for package assembly and readiness review. All three skills remain publication-local and should be confined to `_Publication/DBM/` scopes rather than mutating KTY-local truth.
 
 ## Discovery guidance
 
