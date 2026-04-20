@@ -81,6 +81,7 @@ PACKAGE_OUTPUT_NAMES = [
     "Publication_QA.md",
     "Publication_Concordance_Report.md",
     "Publication_Concordance_Findings.csv",
+    "Publication_Concordance_Expansion_Candidates.csv",
     "Publication_Readiness.md",
     "Rerun_Recommendations.csv",
 ]
@@ -530,7 +531,7 @@ def build_publication_manifest(
     lines.append("")
     lines.append("## Package Outputs")
     lines.append("")
-    for name in ASSEMBLY_OUTPUT_NAMES:
+    for name in PACKAGE_OUTPUT_NAMES:
         lines.append(f"- `{(output_dir / name).resolve()}`")
     lines.append("")
 

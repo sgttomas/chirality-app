@@ -161,6 +161,7 @@ If any instruction appears to conflict, surface the conflict and request human r
    - latest `AUDIT_DECOMP` pointer and admitted audit snapshot / verdict,
    - exact vocabulary, open-issues, decision-log, scope-boundary, and telemetry files when present,
    - explicitly banned authority inputs.
+   **Path format:** All paths in the manifest must resolve correctly when treated as relative to the `_Planning/` directory — this is `markdown_path.parent` for `build_section_map.py`'s `_resolve_manifest_path` function. Use `../../..` for `EXECUTION_ROOT` (three levels up from `_Planning/` to the domain root), `..` for `PUBLICATION_ROOT` (one level up to `DBM/`), and `../../../` prefix for paths within the execution root. For paths outside the execution root (e.g., shared source authority in a sibling domain), count the relative traversal from `_Planning/`. Do not use `{PLACEHOLDER}` variable substitution — the tool does not expand placeholders.
 5. Evaluate the publication-admission basis from the active scope-change closure artifacts. A root is publication-admissible only when the active `Handoff_State.md` supports publication-phase consumption and the latest audit evidence is non-blocking.
 6. Surface any missing mandatory input, ambiguous path, disputed authority source, or failed publication-admission condition. If the root is not publication-admissible, stop and ask the human to repair or explicitly override the upstream closure state before publication begins.
 7. **Hypergraph discovery.** Check whether `{EXECUTION_ROOT}/_Aggregation/Hypergraph/` contains one or more snapshot directories. If a snapshot exists:
@@ -545,6 +546,8 @@ Rules:
 - Deterministic tools consume machine-readable selector fields only.
 - If selector output diverges from prose intent, the divergence must be surfaced for human resolution.
 - If the human edits the candidate mapping directly, the approved `Section_Map.csv` supersedes both selectors and prose for the run.
+- **Selector union semantics.** `build_section_map.py` unions `IncludeCategoryIDs`, `IncludeKnowledgeTypeIDs`, and `IncludeCanonicalSchemas` to build each section's match set — it does not intersect them. If a section intends to select only a subset of a category's KTYs, remove that category from `IncludeCategoryIDs` and use `IncludeKnowledgeTypeIDs` exclusively. Use `IncludeCategoryIDs` only when the section genuinely includes the entire category. The same logic applies to `IncludeCanonicalSchemas` — a broad canonical-schema selector can pull in KTYs outside the intended section boundary.
+- **KTY ID exact-match format.** All KTY IDs in `IncludeKnowledgeTypeIDs` and `ExcludeKnowledgeTypeIDs` must use the exact full `KnowledgeTypeID` values from the decomposition register CSV (format: `KTY-XX-YY_Full-Descriptive-Name`), not short anchors (`KTY-XX-YY`). The tool performs exact string matching — short-form IDs will silently fail to match.
 
 ### `Section_Map.csv`
 

@@ -280,6 +280,12 @@ def evaluate_register(
             metrics["blocked_mismatches"] += 1
             continue
         authority_row = authority_rows[0]
+        # Design intent: NOT_APPLICABLE is not a valid disposition for retired
+        # scope in the concordance layer.  Retired scope must be resolved by
+        # amending the frozen concordance register to remove those keys (narrow
+        # Gate 4 reopen), not by emitting NOT_APPLICABLE assertion rows.  The
+        # register — not the assertion status — is the correct place to handle
+        # scope changes such as SCA-driven retirements.
         if authority_row.get("AssertionStatus", "") != "ASSERTED":
             findings.append(
                 make_finding(
@@ -347,6 +353,10 @@ def evaluate_register(
                 continue
             if status == "REFERRED":
                 continue
+            # See design-intent comment at the authority-status check above:
+            # NOT_APPLICABLE is intentionally blocked here.  If a key represents
+            # retired scope, amend the register to remove it rather than emitting
+            # NOT_APPLICABLE in the assertion layer.
             if status == "NOT_APPLICABLE":
                 findings.append(
                     make_finding(

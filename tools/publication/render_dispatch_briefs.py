@@ -60,7 +60,7 @@ import argparse
 import csv
 import sys
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -68,6 +68,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from build_section_map import (  # type: ignore
     parse_list_cell,
+    parse_manifest,
     parse_markdown_tables,
     parse_schema,
     read_csv_rows,
@@ -268,7 +269,13 @@ def render_section_brief(
     return "\n".join(lines).rstrip() + "\n", metadata
 
 
-def render_package_brief(package_snapshot_dir: Path, paths: Dict[str, Path], source_domain: str, run_label: str) -> str:
+def render_package_brief(
+    package_snapshot_dir: Path,
+    paths: Dict[str, Path],
+    source_domain: str,
+    run_label: str,
+    hypergraph_overrides: Optional[Dict[str, str]] = None,
+) -> str:
     outputs = [
         package_snapshot_dir / "Rewritten_DBM.md",
         package_snapshot_dir / "Trace_Appendix.md",
@@ -300,6 +307,17 @@ def render_package_brief(package_snapshot_dir: Path, paths: Dict[str, Path], sou
             f"  PACKAGE_OUTPUT_ROOT: {paths['package_root'].resolve()}/",
             f"  RUN_LABEL: {run_label}",
             f"  SOURCE_DOMAIN: {source_domain}",
+        ]
+    )
+    # Propagate hypergraph inputs so the package gate can run hypergraph QA
+    # when the manifest admits it, or record NOT_RUN by contract when it does not.
+    if hypergraph_overrides:
+        for key, value in hypergraph_overrides.items():
+            lines.append(f"  {key}: {value}")
+    else:
+        lines.append("  HYPERGRAPH_USE_MODE: NONE")
+    lines.extend(
+        [
             "ExpectedOutputs:",
         ]
     )
@@ -418,11 +436,34 @@ def main() -> int:
         )
 
     if args.render_package == "yes":
+        # Extract hypergraph fields from the frozen manifest so the package
+        # brief propagates them to the dbm-publish skill.
+        hypergraph_overrides: Optional[Dict[str, str]] = None
+        manifest = parse_manifest(paths["input_manifest"])
+        explicit = manifest.get("explicit", {})
+        if isinstance(explicit, dict):
+            use_mode = explicit.get("HYPERGRAPH_USE_MODE", "").strip().upper()
+            if use_mode and use_mode != "NONE":
+                hypergraph_overrides = {"HYPERGRAPH_USE_MODE": use_mode}
+                for field in (
+                    "HYPERGRAPH_SNAPSHOT_PATH",
+                    "HYPERGRAPH_QA_REPORT_PATH",
+                    "HYPERGRAPH_RUN_SUMMARY_PATH",
+                    "HYPERGRAPH_NODES_PATH",
+                    "HYPERGRAPH_HYPEREDGES_PATH",
+                    "HYPERGRAPH_EVIDENCE_ROOT",
+                    "HYPERGRAPH_QA_VERDICT",
+                    "HYPERGRAPH_LIMITATIONS",
+                ):
+                    if field in explicit:
+                        hypergraph_overrides[field] = explicit[field]
+
         package_brief = render_package_brief(
             package_snapshot_dir=package_snapshot_dir,
             paths=paths,
             source_domain=source_domain,
             run_label=args.package_snapshot_name,
+            hypergraph_overrides=hypergraph_overrides,
         )
         validate_brief(package_brief, required_package_fields)
         package_brief_path = paths["dispatch_root"] / PACKAGE_BRIEF_NAME

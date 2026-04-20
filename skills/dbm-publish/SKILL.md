@@ -107,6 +107,17 @@ The skill writes package-level review artifacts under the immutable package snap
 - `Publication_Readiness.md`
 - `Rerun_Recommendations.csv`
 
+### `Publication_Concordance_Expansion_Candidates.csv` schema
+
+Minimum required columns:
+- `CandidateKey` — the proposed assertion key
+- `SourceSection` — the section that discovered the candidate
+- `DiscoverySource` — how the candidate was found (e.g., `PROSE_EXTRACTION`, `STRUCTURED_TABLE`, `CROSS_SECTION_REFERENCE`)
+- `Criticality` — `HIGH`, `NORMAL`, or `LOW` (see criticality rubric in Method step 5)
+- `TriageStatus` — `UNRESOLVED`, `DEFER`, `ACCEPT_AS_DOCUMENTED`, or `REJECT`
+- `TriageJustification` — required when `TriageStatus` is not `UNRESOLVED`; documents the rationale for the triage decision
+- `Notes` — additional context
+
 ## Required readiness classification
 
 - `READY`
@@ -163,7 +174,7 @@ In either case, `HYPERGRAPH_QA_WARNING` findings never block readiness.
 2. **Invoke deterministic assembly.** Run `assemble_publication.py`.
 3. **Handle assembly failure conservatively.** If assembly exits non-zero, emit `BLOCKED` and record the tool failure.
 4. **Invoke deterministic concordance checking.** Run `check_concordance.py`.
-5. **Aggregate per-section discovery outputs.** Read every `SEC-##_ASSERTION_DISCOVERY.csv` under `SECTIONS_ROOT`, merge and conservatively deduplicate the candidates, classify unresolved items as `HIGH`, `NORMAL`, or `LOW`, and write `Publication_Concordance_Expansion_Candidates.csv`.
+5. **Aggregate per-section discovery outputs.** Read every `SEC-##_ASSERTION_DISCOVERY.csv` under `SECTIONS_ROOT`, merge and conservatively deduplicate the candidates, classify unresolved items as `HIGH`, `NORMAL`, or `LOW`, and write `Publication_Concordance_Expansion_Candidates.csv`. **Criticality rubric:** `HIGH` — concordance-significant: the candidate represents a value with cross-section authority ambiguity, current-state scope risk (e.g., retired, shared, or cross-facility scope), or a design-basis value where independent section restatement without concordance tracking creates contradiction risk. `NORMAL` — useful multi-section coverage without blocking risk: the value appears across sections but authority is clear and values agree. `LOW` — local or prose-adjacent suggestion: single-section, minor, or editorial.
 6. **Run optional hypergraph QA sub-check.** When `HYPERGRAPH_USE_MODE` includes QA and `HYPERGRAPH_QA_VERDICT != BLOCKED`, perform the package-level hypergraph QA checks defined in the Hypergraph QA integration section. Classify findings as `HYPERGRAPH_QA_WARNING` or `HYPERGRAPH_QA_BLOCKER`. Skip this step entirely when `HYPERGRAPH_USE_MODE = NONE` or `HYPERGRAPH_QA_VERDICT = BLOCKED`.
 7. **Read the assembled DBM and all section QA artifacts.** Assess whether each section reads as coherent engineering prose under `Publication_Rules.md` rather than an artifact dump.
 8. **Aggregate material QA signals.** At minimum summarize:
@@ -174,7 +185,7 @@ In either case, `HYPERGRAPH_QA_WARNING` findings never block readiness.
    - total unresolved `HIGH`, `NORMAL`, and `LOW` concordance-expansion candidates,
    - total `HYPERGRAPH_QA_WARNING` and `HYPERGRAPH_QA_BLOCKER` findings (when hypergraph QA was run).
 9. **Classify readiness.**
-   - `BLOCKED` if required sections are missing, deterministic assembly failed, blocking concordance findings exist, unresolved `HIGH` expansion candidates remain, or `HYPERGRAPH_QA_BLOCKER` findings exist when `HYPERGRAPH_QA_BINDING_POLICY = BLOCK_ON_BINDING_FAILURE`.
+   - `BLOCKED` if required sections are missing, deterministic assembly failed, blocking concordance findings exist, unresolved `HIGH` expansion candidates remain, or `HYPERGRAPH_QA_BLOCKER` findings exist when `HYPERGRAPH_QA_BINDING_POLICY = BLOCK_ON_BINDING_FAILURE`. **HIGH candidate triage:** Unresolved HIGH candidates block readiness until they are triaged. Triage means each HIGH candidate receives one of: `DEFER` (deferred to next register revision, with justification), `ACCEPT_AS_DOCUMENTED` (adequately covered by existing register keys or body prose), or `REJECT` (not a valid concordance item). Triaged HIGH candidates with documented justification are non-blocking. The triage must be presented to the human/controller for acceptance before readiness can advance.
    - `READY_WITH_MAJOR_NOTES` if no blocking condition remains but unresolved `NORMAL` expansion candidates, `HYPERGRAPH_QA_WARNING` findings, or other material quality/QA issues remain.
    - `READY` only if deterministic assembly/concordance pass, no material expansion candidates remain unresolved, and no unresolved hypergraph QA findings of any severity remain (when hypergraph QA was run).
 10. **Emit package review artifacts.** Write `Publication_Readiness.md`, `Publication_Concordance_Expansion_Candidates.csv`, and `Rerun_Recommendations.csv`.

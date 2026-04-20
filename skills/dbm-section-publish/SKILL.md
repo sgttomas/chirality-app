@@ -264,7 +264,7 @@ When that happens, DBM_PUBLISHER must split/refine the section design rather tha
 4. **Apply root-admission, readiness gates, and selector semantics.** Enforce publication-admission evidence, `MappingRole`, `ContributionScope`, KTY readiness, and publication-rule precedence.
 5. **Draft the section body.** Follow the approved template for `SECTION_TYPE` and the publication rules.
 6. **Emit stable section QA.** Use the fixed structure defined below.
-7. **Emit required structured assertions conservatively.** Filter the concordance register to rows where `SECTION_ID` is the authority section or appears in `RequiredSectionIDs`, then emit exactly one row per matched assertion key in `SEC-##_ASSERTIONS.csv`. Do not silently drop matched keys; if value extraction is ambiguous, emit the row with explicit uncertainty in `Notes`.
+7. **Emit required structured assertions conservatively.** Filter the concordance register to rows where `SECTION_ID` is the authority section or appears in `RequiredSectionIDs`, then emit exactly one row per matched assertion key in `SEC-##_ASSERTIONS.csv`. Do not silently drop matched keys; if value extraction is ambiguous, emit the row with explicit uncertainty in `Notes`. **Cross-section REFERRED obligation:** If the section appears in `RequiredSectionIDs` but is not the `AuthoritySectionID`, emit one row with status `REFERRED`. REFERRED rows are participation markers for concordance checking — they confirm the section acknowledges the cross-section value but do not need to duplicate the authority section's value. Do not skip REFERRED rows even when the key's value is not explicitly stated in the section's local content.
 8. **Emit assertion discovery candidates.** After required-key emission, search mapped content for repeated or technically important values/states not already represented in the approved register for this section scope. Emit those candidates in `SEC-##_ASSERTION_DISCOVERY.csv` rather than silently ignoring them.
 9. **Return status conservatively.** Use `FAILED_INPUTS` for invalid/missing inputs or oversize sections; otherwise complete with explicit gaps/conflicts surfaced in the outputs.
 
@@ -315,7 +315,7 @@ Rules:
 - If the section is listed in `RequiredSectionIDs`, it must emit one row for that assertion key.
 - If the section is the `AuthoritySectionID`, it must emit the authoritative asserted value/state unless the source state is genuinely unresolved.
 - `NormalizedValue` must be suitable for deterministic comparison under the register's `ComparisonRule`.
-- Prefer `REFERRED` over duplicated restatement when the publication rules designate another section as authority.
+- Prefer `REFERRED` over duplicated restatement when the publication rules designate another section as authority. (The mandatory REFERRED emission obligation is defined in the method step above — emit one REFERRED row for every key where this section appears in `RequiredSectionIDs` but is not the authority.)
 - Do not use `NOT_APPLICABLE` for a matched key unless the section map or publication rules clearly exclude that assertion from this section's current scope.
 - If competing mapped inputs cannot be resolved under approved authority, use `CONFLICT_UNRESOLVED` and surface the issue in section QA.
 
