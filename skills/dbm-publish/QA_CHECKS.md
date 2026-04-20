@@ -4,7 +4,7 @@
 
 The package run is valid only when all of the following are true:
 
-1. The deterministic assembly and concordance steps were invoked under the skill's tool policy; if either tool fails, the run must surface that failure explicitly in `Publication_Readiness.md` and the package QA trail.
+1. The deterministic assembly, concordance, and source-supersession validation steps (when a supersession map is admitted) were invoked under the skill's tool policy; if any tool fails, the run must surface that failure explicitly in `Publication_Readiness.md` and the package QA trail.
 2. The current package snapshot contains the expected package artifacts:
    - `Rewritten_DBM.md`
    - `Trace_Appendix.md`

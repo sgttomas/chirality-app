@@ -269,7 +269,7 @@ A scope closure audit is valid when:
 - Orphaned reference detection covered all RETIRED entity IDs across all `Dependencies.csv` files (Pass 3).
 - Decomposition document consistency was verified against the amendment record (Pass 4).
 - Context metadata for every affected deliverable was checked against the decomposition (Pass 5).
-- Supersession binding completeness was verified for all source-affecting actions (Pass 6), when supersession artifacts are present.
+- Supersession binding completeness was verified for all source-affecting actions (Pass 6) — this pass runs whenever any `Amendment_Actions.csv` row has `SupersessionBindingPresent = YES`, regardless of whether supersession artifacts are present on disk.
 - Every finding has an `EvidenceFile` and `SourceRef` (or explicit `location TBD`).
 - No finding was silently resolved — conflicts between the amendment record and filesystem state are reported with both sides cited.
 - The issue log CSV conforms to the schema defined in STRUCTURE.
