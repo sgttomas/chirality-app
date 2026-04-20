@@ -97,6 +97,7 @@ If any instruction appears to conflict, surface the conflict and request human r
 - **Type-level change preference.** Prefer the smallest amendment that changes instances, mappings, or attributes before changing the decomposition contract itself. If the request would alter the decomposition ontology, canonical vocabulary, or section contract, flag it explicitly as a contract-level change.
 - **Amendments operate on the canonical working package.** The amendment surface is the main decomposition document, authoritative companion registers, and `_ScopeChange` state. Derived publication artifacts (monolithic renders, publication bundles, review documents) must never be the default amendment target. If a derived artifact must be updated, it is regenerated from the amended canonical working package, not edited directly.
 - **Package-role classification required.** Every surface touched or affected by an amendment must be classified by package role (`working surface`, `authoritative companion register`, `snapshot / handoff artifact`, or `derived publication artifact`). This classification must appear in the Impact Assessment and Propagation Plan.
+- **Supersession binding required.** When an amendment action changes a fact that could conflict with an upstream admitted authority (source DBM, discipline DBM, vendor data, regulatory document, or other admitted authority), the action must produce a corresponding row in `Supersession_Delta.csv` that binds the SCA decision to the specific superseded authority fact. The binding must include the authority document path, the specific reference within it, the original value, and the replacement value. Without this binding, downstream consumers cannot distinguish intentional overrides from decomposition errors. A `SUPERSESSION` binding means the prior authority fact is overridden; a `SUPPLEMENTARY_EXTENSION` binding means the SCA adds detail without contradicting the prior authority.
 - **Evidence-first.** Every impact claim traces to specific files, rows, or sections.
 - **No invention.** If the impact or correct amendment is uncertain, mark it as `UNKNOWN` or `TBD` and surface it for human decision.
 - **Immutable snapshots.** Each amendment produces a new snapshot folder under `_ScopeChange/`; never overwrite prior snapshots.
@@ -611,6 +612,8 @@ A decomposition amendment cycle is valid when:
     Decision_Log.md                (all gate decisions)
     Handoff_State.md               (closure + downstream ownership state)
     RUN_SUMMARY.md                 (final summary + handoffs)
+    Supersession_Delta.csv         (new supersession bindings introduced by this SCA — required when any action changes a fact that could conflict with an upstream admitted authority)
+    Supersession_Map.csv           (cumulative active supersession map — all accepted SCAs to date; enables downstream consumers to read one file instead of reassembling history)
 ```
 
 ### `RUN_SUMMARY.md` / `Handoff_State.md` state fields
@@ -638,6 +641,31 @@ The active snapshot must expose these fixed state fields across `RUN_SUMMARY.md`
 | `Description` | string | Human-readable description |
 | `AffectedFiles` | string | Semicolon-separated list of file paths modified |
 | `DownstreamReruns` | string | Comma-separated list of agent / workflow names to rerun |
+| `SupersessionBindingPresent` | boolean | `YES` if this action has corresponding rows in `Supersession_Delta.csv`; `NO` for structural/organizational actions that do not affect authority facts. Actions that change a value conflicting with an admitted authority (e.g., retiring equipment, changing a design parameter, renaming a canonical term) must be `YES`. |
+
+### Supersession Map Schema
+
+`Supersession_Map.csv` records the claim-level binding between SCA decisions and the upstream authority facts they supersede. The cumulative map in the active snapshot must contain all accepted supersession bindings from all prior SCAs.
+
+Two `OverrideType` values are supported:
+- **`SUPERSESSION`** — the prior authority fact is overridden. The replacement value governs; the superseded value no longer applies.
+- **`SUPPLEMENTARY_EXTENSION`** — this SCA adds detail or structure not present in the prior authority. It does not override any existing governing fact. The prior authority remains valid.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `AmendmentID` | string | `SCA-{NNN}` that introduced this override |
+| `DecisionID` | string | Decision reference within the SCA (e.g., `D-003`) |
+| `SupersededAuthorityRole` | enum | `SOURCE_DBM` / `DISCIPLINE_DBM` / `VENDOR_DATA` / `REGULATORY` / `OTHER` |
+| `SupersededAuthorityPath` | string | File path to the superseded authority document |
+| `SupersededAuthorityRef` | string | Section, line, table, or cell reference within the authority document |
+| `SupersededFactKey` | string | Machine-readable key for the fact (e.g., `03-25_INLET_STABILIZER_SCOPE`) |
+| `SupersededFactTextOrValue` | string | The original authority value or statement being overridden |
+| `OverrideType` | enum | `SUPERSESSION` / `SUPPLEMENTARY_EXTENSION` |
+| `ReplacementFactTextOrValue` | string | The new governing value or statement |
+| `AppliesToRoots` | string | Semicolon-separated list of affected root names |
+| `AppliesToFacilities` | string | Semicolon-separated list of affected facility IDs (e.g., `03-25; 04-25`) |
+| `AppliesToSections` | string | Semicolon-separated list of publication section IDs where the override is relevant (may be empty if not yet mapped to sections) |
+| `Notes` | string | Additional context |
 
 ### Recommended Commit Message Format
 

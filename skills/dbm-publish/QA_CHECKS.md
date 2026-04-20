@@ -15,6 +15,8 @@ The package run is valid only when all of the following are true:
    - `Publication_Concordance_Expansion_Candidates.csv`
    - `Publication_Readiness.md`
    - `Rerun_Recommendations.csv`
+   - `Source_Supersession_Report.md` (when source-supersession validation was run)
+   - `Source_Supersession_Findings.csv` (when source-supersession validation was run)
 3. `Publication_Readiness.md` uses one of the required readiness classifications:
    - `READY`
    - `READY_WITH_MAJOR_NOTES`
@@ -23,6 +25,7 @@ The package run is valid only when all of the following are true:
    - required sections are missing,
    - assembly failed,
    - blocking concordance findings exist,
+   - unmatched source-supersession divergences exist (when source-supersession validation was run),
    - unresolved `HIGH` concordance-expansion candidates remain.
 5. `Rerun_Recommendations.csv` exists whenever readiness is not `READY`, and remains allowed even for `READY` when the run still yields improvement notes.
 6. All writes stayed inside the approved package snapshot subtree / package output root.

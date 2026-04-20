@@ -161,6 +161,7 @@ If any instruction appears to conflict, surface the conflict and request human r
    - latest `AUDIT_DECOMP` pointer and admitted audit snapshot / verdict,
    - exact vocabulary, open-issues, decision-log, scope-boundary, and telemetry files when present,
    - explicitly banned authority inputs.
+   - active cumulative `Supersession_Map.csv` from the `_ScopeChange/_LATEST.md` snapshot, when present. This map records which upstream authority facts have been superseded by accepted SCA decisions and is consumed by the ConflictPrecedence rule and the source-supersession validator.
    **Path format:** All paths in the manifest must resolve correctly when treated as relative to the `_Planning/` directory — this is `markdown_path.parent` for `build_section_map.py`'s `_resolve_manifest_path` function. Use `../../..` for `EXECUTION_ROOT` (three levels up from `_Planning/` to the domain root), `..` for `PUBLICATION_ROOT` (one level up to `DBM/`), and `../../../` prefix for paths within the execution root. For paths outside the execution root (e.g., shared source authority in a sibling domain), count the relative traversal from `_Planning/`. Do not use `{PLACEHOLDER}` variable substitution — the tool does not expand placeholders.
 5. Evaluate the publication-admission basis from the active scope-change closure artifacts. A root is publication-admissible only when the active `Handoff_State.md` supports publication-phase consumption and the latest audit evidence is non-blocking.
 6. Surface any missing mandatory input, ambiguous path, disputed authority source, or failed publication-admission condition. If the root is not publication-admissible, stop and ask the human to repair or explicitly override the upstream closure state before publication begins.
@@ -486,6 +487,10 @@ Minimum required sections:
 - exact optional authority-supporting inputs (decision log, scope boundary, telemetry, vocabulary map, open issues)
 - explicitly banned authority inputs
 
+Optional `Source Supersession` section (required when an active `Supersession_Map.csv` exists in the `_ScopeChange/_LATEST.md` snapshot):
+- `SUPERSESSION_MAP_PATH` — exact path to the cumulative `Supersession_Map.csv` from the active SCA snapshot
+- `FACILITY_ID` — facility identifier for supersession applicability filtering (e.g., `03-25`, `04-25`)
+
 Optional `Auxiliary Structure Evidence` section (required when `HYPERGRAPH_USE_MODE != NONE`):
 - `HYPERGRAPH_USE_MODE` — `NONE`, `AUXILIARY_PLANNING`, `AUXILIARY_QA`, or `AUXILIARY_PLANNING_AND_QA`
 - `HYPERGRAPH_SNAPSHOT_PATH` — exact path to the admitted hypergraph snapshot
@@ -603,7 +608,7 @@ Recommended defaults:
 - `Tense`: present tense for current design basis; past tense only for decisions or superseded history
 - `HeadingStyle`: numbered hierarchical headings
 - `FacilityNamingRule`: full facility name on first use, approved abbreviation thereafter
-- `ConflictPrecedence`: accepted SCA > approved decomposition state > KTY-local content > original DBM source
+- `ConflictPrecedence`: accepted SCA overrides source authority **only when the override is explicitly bound in the admitted `Supersession_Map.csv`**. If a KTY-local or decomposition-state value contradicts the source authority and no supersession binding exists, the source authority governs and the section worker must escalate the conflict rather than silently preferring the non-source value. A section worker may not infer broad override scope from an SCA narrative alone — overrides must be consumed from the structured supersession map, not from reading `Decision_Log.md` or `Brief.md` prose.
 - `TBDRule`: preserve as `TBD` with a note on what is missing
 - `AmendmentNoteRule`: short, only when materially useful
 - `TraceAppendixMode`: appendix-only
@@ -631,6 +636,8 @@ Minimum required columns:
 - `DiscoverySource`
 - `NormalizationHint`
 - `Criticality`
+- `SourceFidelityCritical` — `YES` when this key represents a value that should be validated against the admitted source authority. Keys flagged `YES` are consumed by `validate_source_supersession.py` at Gate 6.
+- `SourceExpectedValue` — the normalized expected value from the admitted source authority for source-fidelity-critical keys. Populated during concordance seeding from the cleaned source authority package.
 - `Notes`
 
 `AssertionType` values:

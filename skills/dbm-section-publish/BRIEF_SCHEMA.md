@@ -49,6 +49,7 @@ The brief must not grant broader publication-root or KTY-folder write access.
 | `RuntimeOverrides.SOURCE_DOMAIN` | string | Domain label for the run | `West_Doe_Deepcut_DBM` |
 | `RuntimeOverrides.SECTION_ORDER` | integer | Display/assembly order | `3` |
 | `RuntimeOverrides.ALLOW_CONTEXT_ONLY_DECOMP_FALLBACK` | boolean | Allow decomposition fallback for unready `CONTEXT_ONLY` inputs | `true` |
+| `RuntimeOverrides.SUPERSESSION_MAP_PATH` | path | Frozen cumulative supersession map; section worker filters to rows where `AppliesToSections` includes the current `SECTION_ID` | `/.../_ScopeChange/SCA-004_.../Supersession_Map.csv` |
 | `RuntimeOverrides.HYPERGRAPH_USE_MODE` | enum | Whether hypergraph evidence is admitted for this run | `AUXILIARY_PLANNING` |
 | `RuntimeOverrides.HYPERGRAPH_SNAPSHOT_PATH` | path | Exact path to the admitted hypergraph snapshot | `/.../_Aggregation/Hypergraph/snapshot/` |
 | `RuntimeOverrides.HYPERGRAPH_NODES_PATH` | path | Exact path to the hypergraph nodes CSV | `/.../_Aggregation/Hypergraph/nodes.csv` |

@@ -148,6 +148,8 @@ Every emitted candidate row must preserve or fill these typed fields:
 - `CandidateValueExample`
 - `SourceArtifact`
 - `SourceRef`
+- `SourceFidelityCritical` — `YES` when this key represents a value that should be validated against the admitted source authority at Gate 6. Use `YES` for equipment counts, specification values, scope inclusion/exclusion decisions, and any value where source-vs-publication divergence would be a material error. Use `NO` for structural/organizational keys that don't have a direct source counterpart.
+- `SourceExpectedValue` — the normalized expected value from the admitted source authority, when `SourceFidelityCritical = YES`. Extract this from the cleaned source authority package (narrative or canonical CSVs) during seeding. Leave empty when the key has no direct source counterpart or when `SourceFidelityCritical = NO`.
 - `Notes`
 - `ResolutionStatus`
 

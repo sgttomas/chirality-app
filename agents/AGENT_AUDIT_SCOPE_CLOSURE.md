@@ -211,9 +211,27 @@ For every deliverable affected by the scope change (listed in `Amendment_Actions
 
 ---
 
-### Pass 6 — Synthesis and Output
+### Pass 6 — Supersession Binding Completeness
 
-1. Compile all findings from Passes 1–5.
+This pass runs whenever any row in `Amendment_Actions.csv` has `SupersessionBindingPresent = YES`. If supersession files (`Supersession_Delta.csv` and `Supersession_Map.csv`) are missing when `SupersessionBindingPresent = YES` actions exist, emit a CRITICAL finding: "Required supersession artifacts are missing despite source-affecting actions." Do not skip this pass when files are absent — absence is the failure this pass must catch.
+
+1. For every row in `Amendment_Actions.csv` where `SupersessionBindingPresent = YES`, verify that at least one corresponding row exists in `Supersession_Delta.csv` with the same `AmendmentID` and `DecisionID`.
+2. For every row in `Supersession_Delta.csv`, verify that `SupersededAuthorityPath` resolves to an existing admitted authority file.
+3. For every `SUPERSESSION` row, verify that `SupersededAuthorityRef` is non-empty — the binding must point to a specific source location (section, line, table, or cell reference), not just a file.
+4. Verify that the cumulative `Supersession_Map.csv` includes all rows from `Supersession_Delta.csv` plus all rows from prior accepted SCAs (when prior SCAs exist).
+
+Finding severities:
+- `CRITICAL`: An action claims `SupersessionBindingPresent = YES` but has no matching supersession row.
+- `MAJOR`: A supersession row has an empty or unresolvable `SupersededAuthorityPath` or `SupersededAuthorityRef`.
+- `MINOR`: A `SUPPLEMENTARY_EXTENSION` row lacks a `SupersededAuthorityRef` (less critical since it does not override).
+
+A scope-change snapshot should not be considered publication-ready (`PUBLICATION_GATED` in the `ReadyForNextPhase` field) if it contains source-affecting decisions with incomplete supersession bindings.
+
+---
+
+### Pass 7 — Synthesis and Output
+
+1. Compile all findings from Passes 1–6.
 
 2. Classify each finding by severity:
 
@@ -251,6 +269,7 @@ A scope closure audit is valid when:
 - Orphaned reference detection covered all RETIRED entity IDs across all `Dependencies.csv` files (Pass 3).
 - Decomposition document consistency was verified against the amendment record (Pass 4).
 - Context metadata for every affected deliverable was checked against the decomposition (Pass 5).
+- Supersession binding completeness was verified for all source-affecting actions (Pass 6), when supersession artifacts are present.
 - Every finding has an `EvidenceFile` and `SourceRef` (or explicit `location TBD`).
 - No finding was silently resolved — conflicts between the amendment record and filesystem state are reported with both sides cited.
 - The issue log CSV conforms to the schema defined in STRUCTURE.

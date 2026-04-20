@@ -39,6 +39,9 @@ The brief must not grant write access to KTY folders, decomposition truth, or un
 |---|---|---|---|
 | `RuntimeOverrides.RUN_LABEL` | string | Human-friendly run label | `pilot-deepcut-round-1` |
 | `RuntimeOverrides.SOURCE_DOMAIN` | string | Domain label for reporting | `West_Doe_Deepcut_DBM` |
+| `RuntimeOverrides.SUPERSESSION_MAP_PATH` | path | Frozen cumulative supersession map from the active SCA snapshot | `/.../_ScopeChange/SCA-004_.../Supersession_Map.csv` |
+| `RuntimeOverrides.ROOT_NAME` | string | Root name for supersession applicability filtering; typically equals `SOURCE_DOMAIN` | `West_Doe_Deepcut_DBM` |
+| `RuntimeOverrides.FACILITY_ID` | string | Facility identifier for supersession applicability filtering | `04-25` |
 | `RuntimeOverrides.HYPERGRAPH_USE_MODE` | enum | Whether hypergraph evidence is admitted for this run | `AUXILIARY_PLANNING_AND_QA` |
 | `RuntimeOverrides.HYPERGRAPH_SNAPSHOT_PATH` | path | Exact path to the admitted hypergraph snapshot | `/.../_Aggregation/Hypergraph/snapshot/` |
 | `RuntimeOverrides.HYPERGRAPH_RUN_SUMMARY_PATH` | path | Exact path to the hypergraph run summary | `/.../_Aggregation/Hypergraph/Run_Summary.md` |

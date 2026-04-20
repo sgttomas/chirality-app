@@ -81,6 +81,7 @@ Typical dispatcher: `DBM_PUBLISHER` after human approval of the frozen planning 
 | `HYPERGRAPH_NODES_PATH` | Exact path to the hypergraph nodes CSV | unset | Path |
 | `HYPERGRAPH_HYPEREDGES_PATH` | Exact path to the hypergraph hyperedges CSV | unset | Path |
 | `HYPERGRAPH_EVIDENCE_ROOT` | Root folder containing hypergraph evidence CSVs | unset | Path under `_Aggregation/Hypergraph/` |
+| `SUPERSESSION_MAP_PATH` | Path to the frozen cumulative supersession map | unset | CSV path; when present, the section worker filters to rows where `AppliesToSections` includes the current `SECTION_ID` |
 
 ## Tool usage
 
@@ -228,7 +229,9 @@ When the manifest provides a vocabulary map, the skill should:
 1. If multiple mapped artifacts agree, synthesize them into one coherent narrative.
 2. If mapped artifacts differ:
    - do not reconcile silently,
-   - if an accepted SCA or explicit publication rule resolves the difference, publish the resolved current-state position and record the prior state in QA or trace notes,
+   - if a `SUPERSESSION` binding exists in the supersession map for the differing fact: apply the replacement value and record the binding reference (AmendmentID, DecisionID, SupersededAuthorityRef) in section QA,
+   - if a `SUPPLEMENTARY_EXTENSION` binding exists: the source authority fact still governs; the extension adds detail without contradicting it,
+   - if no supersession binding exists and the KTY-local or decomposition-state value contradicts the admitted source authority: preserve the source authority value and emit a `CONFLICT_UNRESOLVED` assertion — do not synthesize a silent override from SCA narrative alone,
    - otherwise record a publication conflict in section QA and use cautious wording in the narrative.
 3. If a system exists in only one facility/domain, scope the section explicitly to that facility.
 4. If a system moved between facilities due to accepted SCA, present the post-SCA arrangement as current-state content and keep prior placement only as audit context.

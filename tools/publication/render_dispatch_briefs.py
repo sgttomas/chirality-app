@@ -254,12 +254,17 @@ def render_section_brief(
         f"  MAX_KA_FILES: {max_ka_files}",
         f"  SOURCE_DOMAIN: {source_domain}",
         f"  SECTION_ORDER: {section['SectionOrder']}",
+    ]
+    # Propagate supersession map path to section workers when admitted.
+    if "supersession_map" in paths and paths["supersession_map"]:
+        lines.append(f"  SUPERSESSION_MAP_PATH: {paths['supersession_map'].resolve()}")
+    lines.extend([
         "ExpectedOutputs:",
         f"  - {body_path.resolve()}",
         f"  - {qa_path.resolve()}",
         f"  - {assertions_path.resolve()}",
         f"  - {assertion_discovery_path.resolve()}",
-    ]
+    ])
     metadata = {
         "body_path": str(body_path.resolve()),
         "qa_path": str(qa_path.resolve()),
@@ -275,6 +280,8 @@ def render_package_brief(
     source_domain: str,
     run_label: str,
     hypergraph_overrides: Optional[Dict[str, str]] = None,
+    supersession_map_path: Optional[str] = None,
+    facility_id: str = "",
 ) -> str:
     outputs = [
         package_snapshot_dir / "Rewritten_DBM.md",
@@ -286,6 +293,8 @@ def render_package_brief(
         package_snapshot_dir / "Publication_Concordance_Expansion_Candidates.csv",
         package_snapshot_dir / "Publication_Readiness.md",
         package_snapshot_dir / "Rerun_Recommendations.csv",
+        package_snapshot_dir / "Source_Supersession_Report.md",
+        package_snapshot_dir / "Source_Supersession_Findings.csv",
     ]
     lines = [
         "PURPOSE: Assemble the rewritten DBM and classify publication readiness.",
@@ -316,6 +325,13 @@ def render_package_brief(
             lines.append(f"  {key}: {value}")
     else:
         lines.append("  HYPERGRAPH_USE_MODE: NONE")
+    # Propagate supersession map and applicability context so the package gate
+    # can run source-fidelity validation via validate_source_supersession.py.
+    if supersession_map_path:
+        lines.append(f"  SUPERSESSION_MAP_PATH: {supersession_map_path}")
+    lines.append(f"  ROOT_NAME: {source_domain}")
+    if facility_id:
+        lines.append(f"  FACILITY_ID: {facility_id}")
     lines.extend(
         [
             "ExpectedOutputs:",
@@ -366,6 +382,20 @@ def main() -> int:
         "package_root": Path(args.package_root).resolve(),
         "skills_root": Path(args.skills_root).resolve(),
     }
+
+    # Resolve supersession map from the manifest if present.
+    manifest = parse_manifest(paths["input_manifest"])
+    _explicit = manifest.get("explicit", {})
+    _smap_path: Optional[Path] = None
+    if isinstance(_explicit, dict):
+        _raw_smap = _explicit.get("SUPERSESSION_MAP_PATH", "").strip()
+        if _raw_smap:
+            _smap_candidate = Path(_raw_smap)
+            if not _smap_candidate.is_absolute():
+                _smap_candidate = (paths["input_manifest"].parent / _smap_candidate).resolve()
+            if _smap_candidate.exists():
+                _smap_path = _smap_candidate
+    paths["supersession_map"] = _smap_path  # type: ignore[assignment]
 
     publication_root = paths["publication_root"]
     for name, path in paths.items():
@@ -458,12 +488,29 @@ def main() -> int:
                     if field in explicit:
                         hypergraph_overrides[field] = explicit[field]
 
+        # Extract supersession map path from the manifest.
+        supersession_map_path: Optional[str] = None
+        if isinstance(explicit, dict):
+            raw_smap = explicit.get("SUPERSESSION_MAP_PATH", "").strip()
+            if raw_smap:
+                smap_candidate = Path(raw_smap)
+                if not smap_candidate.is_absolute():
+                    smap_candidate = (paths["input_manifest"].parent / smap_candidate).resolve()
+                supersession_map_path = str(smap_candidate)
+
+        # Extract facility ID from the manifest if available.
+        _facility_id = ""
+        if isinstance(explicit, dict):
+            _facility_id = explicit.get("FACILITY_ID", "").strip()
+
         package_brief = render_package_brief(
             package_snapshot_dir=package_snapshot_dir,
             paths=paths,
             source_domain=source_domain,
             run_label=args.package_snapshot_name,
             hypergraph_overrides=hypergraph_overrides,
+            supersession_map_path=supersession_map_path,
+            facility_id=_facility_id,
         )
         validate_brief(package_brief, required_package_fields)
         package_brief_path = paths["dispatch_root"] / PACKAGE_BRIEF_NAME
