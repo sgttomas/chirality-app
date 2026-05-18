@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-03,INS,CAD,20000,5,40%,3 of 5 insurance lines are TBD (WCB / E&O / Employer's Liability); priced total reflects only builders risk + CGL
+PKG-021,DEL-021-03,LAB,CAD,7960,8,100%,All 8 labour lines fully priced from rate table + LoE
+PKG-021,DEL-021-03,TOTAL,CAD,27960,13,77%,Partial total; excludes 3 TBD insurance premium lines (WCB / E&O / Employer's Liability)

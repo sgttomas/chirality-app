@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-005-02,Professional Services > Design & Engineering,CAD,18390,4,100,"Project management ($990) + Cost estimating ($540) + BIM/CAD drafting ($3,420) + Civil engineering design ($13,440)"
+PKG-005,DEL-005-02,ALL,CAD,18390,4,100,Grand total — all CBS categories

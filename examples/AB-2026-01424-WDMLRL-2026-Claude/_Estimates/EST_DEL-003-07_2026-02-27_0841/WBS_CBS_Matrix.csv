@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-003-07,Professional Services > Design & Engineering,CAD,8640.00,2,100,L-003 + L-004
+PKG-003,DEL-003-07,Professional Services > Project Management,CAD,1530.00,2,100,L-001 + L-002
+PKG-003,DEL-003-07,TOTAL,CAD,10170.00,4,100,All CBS categories combined — 4 detail lines

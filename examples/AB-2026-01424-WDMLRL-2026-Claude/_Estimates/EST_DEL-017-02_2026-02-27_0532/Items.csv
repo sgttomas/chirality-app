@@ -1,0 +1,31 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-017-02,Project Management — DEL-017-02 allocation,6,hr,UNIT_RATE,Procedure,Phase 1-3 (all steps),Level_of_Effort.csv: R-01 Project Manager 6 hr
+ITM-002,DEL-017-02,Construction Project Management,8,hr,UNIT_RATE,Procedure,Phase 2 (Steps 5-10),Level_of_Effort.csv: R-02 Construction PM 8 hr
+ITM-003,DEL-017-02,Site Superintendent — mezzanine reno supervision,10,hr,UNIT_RATE,Procedure,Phase 2 (Steps 5-10),Level_of_Effort.csv: R-03 Site Superintendent 10 hr
+ITM-004,DEL-017-02,Cost Estimator — pricing and QTO support,4,hr,UNIT_RATE,Procedure,Phase 1 (pre-construction),Level_of_Effort.csv: R-08 Cost Estimator 4 hr
+ITM-005,DEL-017-02,QA/QC Lead — inspection and deficiency tracking,6,hr,UNIT_RATE,Procedure,Phase 2-3 (Steps 6-12),Level_of_Effort.csv: R-06 QA/QC Lead 6 hr
+ITM-006,DEL-017-02,HSE Manager — safety oversight,4,hr,UNIT_RATE,Procedure,Phase 2 (Steps 5-10),Level_of_Effort.csv: R-05 HSE Manager 4 hr
+ITM-007,DEL-017-02,Structural Engineering Assessment (existing mezzanine),1,LS,LUMP_SUM,Specification,REQ-017-02-002; Procedure Step 2,STRUCT-ASSESS-001; P.Eng. structural assessment of existing mezzanine
+ITM-008,DEL-017-02,Existing Documentation Collection and Condition Survey,1,LS,LUMP_SUM,Procedure,Step 1 (Steps 1.1-1.4),Field survey + existing drawings retrieval
+ITM-009,DEL-017-02,Renovation Design Package (architectural + structural + electrical),1,LS,LUMP_SUM,Procedure,Step 3 (Steps 3.1-3.6),IFC drawings stamped by P.Eng.; per REQ-017-02-005
+ITM-010,DEL-017-02,Permit Acquisition (building + safety code permits),1,LS,LUMP_SUM,Procedure,Step 4 (Steps 4.1-4.5),GC responsibility; permit fees excluded (County pays per RFP 3.3.1)
+ITM-011,DEL-017-02,Pre-Construction Coordination Meeting,1,LS,LUMP_SUM,Procedure,Step 5 (Steps 5.1-5.5),Coordination with DEL-017-03 washroom team
+ITM-012,DEL-017-02,Hazardous Materials Assessment (ACM + lead paint),1,LS,LUMP_SUM,Procedure,Step 6.1,ACM and lead-paint testing per A-005; abatement if required
+ITM-013,DEL-017-02,Demolition of Existing Finishes,30,m2,UNIT_RATE,Procedure,Step 6 (Steps 6.2-6.4),Remove existing flooring/wall/ceiling finishes; area assumed per ASM-001
+ITM-014,DEL-017-02,Structural Repairs / Reinforcement (allowance),1,LS,LUMP_SUM,Procedure,Step 6.5,Conditional on structural assessment; parametric allowance
+ITM-015,DEL-017-02,Electrical Rough-In (conduit + boxes + wiring),1,LS,LUMP_SUM,Procedure,Step 6.6; Specification REQ-017-02-010,Per approved electrical drawings
+ITM-016,DEL-017-02,Stair and Railing — Assessment + Repair/Replacement,1,LS,LUMP_SUM,Procedure,Step 7 (Steps 7.1-7.4),Conditional on assessment; per REQ-017-02-009
+ITM-017,DEL-017-02,Flooring Installation,30,m2,UNIT_RATE,Procedure,Step 8 (Steps 8.1-8.3); Specification REQ-017-02-008,Commercial vinyl/laminate; area assumed per ASM-001
+ITM-018,DEL-017-02,Electrical Completion (fixtures + devices + panel),1,LS,LUMP_SUM,Procedure,Step 9 (Steps 9.1-9.3),Lighting + outlets + connections; per REQ-017-02-010
+ITM-019,DEL-017-02,Interior Wall Finishes — partitions + gypsum board,30,m2,UNIT_RATE,Datasheet,Scope Components — Finishing work; Procedure Step 10,Metal stud + GWB partition; area assumed per ASM-001
+ITM-020,DEL-017-02,Interior Wall Finishes — paint,60,m2,UNIT_RATE,Procedure,Step 10.1; Specification REQ-017-02-011,Walls + ceiling paint; 2x floor area assumed for wall surface
+ITM-021,DEL-017-02,Ceiling Finishes,30,m2,UNIT_RATE,Procedure,Step 10.2,Suspended acoustic ceiling; area assumed per ASM-001
+ITM-022,DEL-017-02,Door Hardware + Trim + Millwork,1,LS,LUMP_SUM,Procedure,Step 10.3,Per approved design; break room casework allowance
+ITM-023,DEL-017-02,Coffee Room Fixtures / Fittings (counter/sink allowance),1,LS,LUMP_SUM,Procedure,Step 10.4; Datasheet Operational Conditions,ASSUMPTION — break room function implies counter/sink
+ITM-024,DEL-017-02,Contractor Self-Inspection (pre-completion punch list),1,LS,LUMP_SUM,Procedure,Step 11 (Steps 11.1-11.4),Internal QC walkdown
+ITM-025,DEL-017-02,Functional Verification,1,LS,LUMP_SUM,Procedure,Step 11A (Steps 11A.1-11A.2),Electrical/ventilation/fixtures/stair operational check
+ITM-026,DEL-017-02,Final Inspection Facilitation and CCC,1,LS,LUMP_SUM,Procedure,Step 12 (Steps 12.1-12.5),Owner final inspection + CCC issuance
+ITM-027,DEL-017-02,Closeout Documentation Package,1,LS,LUMP_SUM,Procedure,Step 13 (Steps 13.1-13.5),As-builts + warranty + statutory decl + WCB clearance
+ITM-028,DEL-017-02,Photographic Documentation (pre-demo + progressive),1,LS,LUMP_SUM,Specification,Documentation — Photographic Documentation,Date-stamped photos at key milestones per X-003
+ITM-029,DEL-017-02,Waste Disposal (demolition debris),1,LS,LUMP_SUM,Procedure,Step 6.4,Debris removal and disposal; segregate hazardous if applicable
+ITM-030,DEL-017-02,Temporary Protection (washroom below),1,LS,LUMP_SUM,Procedure,Step 5.3; Guidance Principle 4,Protect DEL-017-03 work area during mezzanine work

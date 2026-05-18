@@ -1,0 +1,14 @@
+# Decision Log
+
+## Run: EST_DEL-03-05_2026-02-18_2000
+
+| DecisionID | Decision | Rationale |
+|---|---|---|
+| DEC-EST-01 | Used RATE_TABLE as primary method for professional service fees (L-01, L-04) and the documented wetland replacement fee (L-03). | FP-17, FP-18 have published RecommendedRate values in Fees_Permits_Insurance.csv with Basis=PARAMETRIC and Confidence=MEDIUM. The ABWRET-A fee is documented at $10,769.54 in the Wetland Assessment Executive Summary (HIGH confidence). These satisfy RATE_TABLE evidence requirements. |
+| DEC-EST-02 | Used ALLOWANCE method for AEPA Water Act application fee (L-02) and Development permit fee (L-05). | FP-16 (Basis=PARAMETRIC, Confidence=LOW) and FP-07 (Basis=PARAMETRIC, Confidence=LOW) both note that fee schedules are TBD or uncertain. FALLBACK_POLICY=ALLOW_ALLOWANCE authorizes this. ALLOW_MIXED_METHODS=TRUE permits mixing RATE_TABLE and ALLOWANCE. |
+| DEC-EST-03 | Applied ROUNDING=DOLLAR to ABWRET-A fee: $10,769.54 rounded to $10,770. | Brief specifies ROUNDING=DOLLAR. Upward rounding applied (conservative). |
+| DEC-EST-04 | Excluded all physical construction costs (earthwork, erosion control installation, stormwater infrastructure) from DEL-03-05 estimate. | Per cost ownership rules in brief: physical construction work driven by environmental constraints is priced in executing deliverables (DEL-03-02 for earthwork, DEL-03-03 for pavement), NOT in DEL-03-05. DEL-03-05 carries only professional services and compliance costs. |
+| DEC-EST-05 | Excluded erosion and sediment control construction-phase costs (EC-07, $22,000 from Earthwork_Civil_Rates.csv) from DEL-03-05 estimate. | EC-07 is a construction-phase installation cost. Per cost ownership rules, physical construction costs belong to DEL-03-02. DEL-03-05 carries only the ESC plan preparation fee (FP-18, $4,500). |
+| DEC-EST-06 | Did not price any items for upstream document prerequisites (DEP-3505-E01 through E05) or regulator coordination beyond consultant fees. | These are input documents, not costs within DEL-03-05. The consultant fee (FP-17) includes regulatory coordination effort. No separate line item needed for document procurement. |
+| DEC-EST-07 | Development permit fee (L-05) carried as the flood fringe approval component only. The base development permit fee is a project-wide cost likely allocated to DEL-01-04 (Permitting, Inspections & AHJ Coordination). | To avoid double-counting, DEL-03-05 carries only the incremental regulatory cost attributable to flood fringe conditions. FP-07 Recommended $1,200 is used as an ALLOWANCE for this incremental component. |
+| DEC-EST-08 | CBS mapping: PROF_SERVICES for consultant fees; REGULATORY_FEES for government-payable fees and application fees. | Deterministic mapping rule based on deliverable substance: "Professional Services + Compliance." Documented in Run_Context.md. |

@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-01,LABOR-DESIGN,CAD,8680,2,100,Architect (Project) 40h + Architect (Intermediate) 24h
+PKG-002,DEL-02-01,LABOR-PRODUCTION,CAD,5700,1,100,CAD Technician / BIM Operator 60h
+PKG-002,DEL-02-01,LABOR-MGMT,CAD,1400,1,100,Project Manager 8h
+PKG-002,DEL-02-01,TOTAL,CAD,15780,4,100,All CBS categories combined

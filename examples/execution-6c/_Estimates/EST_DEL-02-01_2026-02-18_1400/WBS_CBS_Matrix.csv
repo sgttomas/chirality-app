@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-04,DEL-02-01,DESIGN-ARCH,CAD,9260,2,100,Architect (Project) 44h + Architect (Intermediate) 24h = 68h
+PKG-04,DEL-02-01,PRODUCTION-CAD,CAD,6080,1,100,CAD/BIM Operator 64h; highest single-line cost driver
+PKG-04,DEL-02-01,DESIGN-CIVIL,CAD,4600,2,100,Civil Sr 20h + Civil Int 12h = 32h; 12-acre site concept
+PKG-04,DEL-02-01,DESIGN-STRUCT,CAD,2610,2,100,Structural Sr 12h + Structural Int 6h = 18h
+PKG-04,DEL-02-01,DESIGN-MECH,CAD,2700,2,100,Mechanical Sr 12h + Mechanical Int 6h = 18h
+PKG-04,DEL-02-01,DESIGN-ELEC,CAD,2610,2,100,Electrical Sr 12h + Electrical Int 6h = 18h
+PKG-04,DEL-02-01,MGMT-COORD,CAD,1750,1,100,PM coordination 10h

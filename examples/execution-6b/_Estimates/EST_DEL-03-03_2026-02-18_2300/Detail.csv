@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF_SERVICES.STRUCTURAL,PKG-003,DEL-03-03,Structural Engineer (Senior) -- system selection rationale; expansion provisions; foundation approach; load path narrative,10,hr,155,1550,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-03-03/R-09 (10 hr) + Professional_Staff_Rates.csv row R-09 ($155/hr),MED,Cost drivers: system selection rationale; expansion provisions; foundation approach; load path narrative. Single-role deliverable per LoE.

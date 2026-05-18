@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-01,"Building Envelope > Cladding, Insulation & Waterproofing",CAD,532680.00,3,100,Building envelope -- insulated metal wall panels; Building envelope -- insulated metal roof panels; Flashing / trim / sealants allowance
+PKG-011,DEL-011-01,Concrete > Concrete & Foundations,CAD,1294788.00,11,100,Reinforced concrete slab-on-grade (heavy-duty shop floor); Thickened slab edge / grade beam -- building perimeter; Service pit/trench -- concrete walls and floor (below-grade); +8 more
+PKG-011,DEL-011-01,General Conditions > General Requirements & Indirect,CAD,96630.00,11,100,Concrete testing and quality assurance (cylinder tests / slu; Cold-weather concreting provisions; Professional staff -- Project Manager; +8 more
+PKG-011,DEL-011-01,"Openings > Doors, Windows & Glazing",CAD,45100.00,4,100,Structural rough openings for overhead doors -- repair bays ; Structural rough opening for overhead door -- wash bay; Entrance/exit door assemblies (man doors -- insulated steel); +1 more
+PKG-011,DEL-011-01,Structural Steel & Metals > Structural Steel & Fabrication,CAD,294704.00,4,100,Steel plate embedments in floor slab (supply + install); Crane runway beams and structural supports (2 x 5-tonne cran; Roof structure (steel deck on bar joists -- assumed system); +1 more
+PKG-011,DEL-011-01,TOTAL,CAD,2263902.00,33,100,Grand total -- all CBS categories

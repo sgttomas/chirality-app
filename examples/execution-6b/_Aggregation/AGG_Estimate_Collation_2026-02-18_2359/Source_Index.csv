@@ -1,0 +1,62 @@
+SourceID,SourceType,SourcePath,FromDeliverableID,ArtifactType,SchemaStatus,Notes
+SRC-001,Detail,_Estimates/EST_DEL-01-01_2026-02-18_1400/Detail.csv,DEL-01-01,Detail.csv,OK,1 line item
+SRC-002,RunContext,_Estimates/EST_DEL-01-01_2026-02-18_1400/Run_Context.md,DEL-01-01,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-003,Assumptions,_Estimates/EST_DEL-01-01_2026-02-18_1400/Assumptions_Log.md,DEL-01-01,Assumptions_Log.md,OK,3 assumptions
+SRC-004,Detail,_Estimates/EST_DEL-01-02_2026-02-18_2359/Detail.csv,DEL-01-02,Detail.csv,OK,2 line items
+SRC-005,RunContext,_Estimates/EST_DEL-01-02_2026-02-18_2359/Run_Context.md,DEL-01-02,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-006,Assumptions,_Estimates/EST_DEL-01-02_2026-02-18_2359/Assumptions_Log.md,DEL-01-02,Assumptions_Log.md,OK,Present
+SRC-007,Detail,_Estimates/EST_DEL-01-03_2026-02-18_1400/Detail.csv,DEL-01-03,Detail.csv,OK,7 line items (3 production + 4 financial allowance)
+SRC-008,RunContext,_Estimates/EST_DEL-01-03_2026-02-18_1400/Run_Context.md,DEL-01-03,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-009,Assumptions,_Estimates/EST_DEL-01-03_2026-02-18_1400/Assumptions_Log.md,DEL-01-03,Assumptions_Log.md,OK,7 assumptions including bond basis uncertainty
+SRC-010,Detail,_Estimates/EST_DEL-01-04_2026-02-18_2359/Detail.csv,DEL-01-04,Detail.csv,OK,92 line items (3 production + 89 construction)
+SRC-011,RunContext,_Estimates/EST_DEL-01-04_2026-02-18_2359/Run_Context.md,DEL-01-04,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-012,Assumptions,_Estimates/EST_DEL-01-04_2026-02-18_2359/Assumptions_Log.md,DEL-01-04,Assumptions_Log.md,OK,17 assumptions
+SRC-013,Detail,_Estimates/EST_DEL-01-05_2026-02-18_2359/Detail.csv,DEL-01-05,Detail.csv,OK,96 line items (3 production + 93 construction)
+SRC-014,RunContext,_Estimates/EST_DEL-01-05_2026-02-18_2359/Run_Context.md,DEL-01-05,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-015,Assumptions,_Estimates/EST_DEL-01-05_2026-02-18_2359/Assumptions_Log.md,DEL-01-05,Assumptions_Log.md,OK,11 assumptions
+SRC-016,Detail,_Estimates/EST_DEL-01-06_2026-02-18_2359/Detail.csv,DEL-01-06,Detail.csv,OK,2 line items
+SRC-017,RunContext,_Estimates/EST_DEL-01-06_2026-02-18_2359/Run_Context.md,DEL-01-06,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-018,Assumptions,_Estimates/EST_DEL-01-06_2026-02-18_2359/Assumptions_Log.md,DEL-01-06,Assumptions_Log.md,OK,Present
+SRC-019,Detail,_Estimates/EST_DEL-01-07_2026-02-18_1500/Detail.csv,DEL-01-07,Detail.csv,OK,2 line items
+SRC-020,RunContext,_Estimates/EST_DEL-01-07_2026-02-18_1500/Run_Context.md,DEL-01-07,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-021,Assumptions,_Estimates/EST_DEL-01-07_2026-02-18_1500/Assumptions_Log.md,DEL-01-07,Assumptions_Log.md,OK,Present
+SRC-022,Detail,_Estimates/EST_DEL-01-08_2026-02-18_1500/Detail.csv,DEL-01-08,Detail.csv,OK,2 line items
+SRC-023,RunContext,_Estimates/EST_DEL-01-08_2026-02-18_1500/Run_Context.md,DEL-01-08,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-024,Assumptions,_Estimates/EST_DEL-01-08_2026-02-18_1500/Assumptions_Log.md,DEL-01-08,Assumptions_Log.md,OK,Present
+SRC-025,Detail,_Estimates/EST_DEL-01-09_2026-02-18_1500/Detail.csv,DEL-01-09,Detail.csv,OK,2 line items
+SRC-026,RunContext,_Estimates/EST_DEL-01-09_2026-02-18_1500/Run_Context.md,DEL-01-09,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-027,Assumptions,_Estimates/EST_DEL-01-09_2026-02-18_1500/Assumptions_Log.md,DEL-01-09,Assumptions_Log.md,OK,Present
+SRC-028,Detail,_Estimates/EST_DEL-02-01_2026-02-18_2000/Detail.csv,DEL-02-01,Detail.csv,OK,4 line items
+SRC-029,RunContext,_Estimates/EST_DEL-02-01_2026-02-18_2000/Run_Context.md,DEL-02-01,Run_Context.md,OK,BASIS_OF_ESTIMATE=RATE_TABLE
+SRC-030,Assumptions,_Estimates/EST_DEL-02-01_2026-02-18_2000/Assumptions_Log.md,DEL-02-01,Assumptions_Log.md,OK,Present
+SRC-031,Detail,_Estimates/EST_DEL-02-02_2026-02-18_2100/Detail.csv,DEL-02-02,Detail.csv,OK,3 line items
+SRC-032,Detail,_Estimates/EST_DEL-02-03_2026-02-18_2100/Detail.csv,DEL-02-03,Detail.csv,OK,2 line items
+SRC-033,Detail,_Estimates/EST_DEL-02-04_2026-02-18_2200/Detail.csv,DEL-02-04,Detail.csv,OK,2 line items
+SRC-034,Detail,_Estimates/EST_DEL-02-05_2026-02-18_2200/Detail.csv,DEL-02-05,Detail.csv,OK,2 line items
+SRC-035,Detail,_Estimates/EST_DEL-03-01_2026-02-18_2000/Detail.csv,DEL-03-01,Detail.csv,OK,1 line item
+SRC-036,Detail,_Estimates/EST_DEL-03-02_2026-02-18_1955/Detail.csv,DEL-03-02,Detail.csv,OK,1 line item
+SRC-037,Detail,_Estimates/EST_DEL-03-03_2026-02-18_2300/Detail.csv,DEL-03-03,Detail.csv,OK,1 line item
+SRC-038,Detail,_Estimates/EST_DEL-03-04_2026-02-18_2300/Detail.csv,DEL-03-04,Detail.csv,OK,1 line item
+SRC-039,Detail,_Estimates/EST_DEL-03-05_2026-02-18_2330/Detail.csv,DEL-03-05,Detail.csv,OK,1 line item
+SRC-040,Detail,_Estimates/EST_DEL-03-06_2026-02-18_2330/Detail.csv,DEL-03-06,Detail.csv,OK,1 line item
+SRC-041,Detail,_Estimates/EST_DEL-04-01_2026-02-18_1300/Detail.csv,DEL-04-01,Detail.csv,OK,2 line items
+SRC-042,Detail,_Estimates/EST_DEL-04-02_2026-02-18_2300/Detail.csv,DEL-04-02,Detail.csv,OK,1 line item
+SRC-043,Detail,_Estimates/EST_DEL-04-03_2026-02-18_2345/Detail.csv,DEL-04-03,Detail.csv,OK,1 line item
+SRC-044,Detail,_Estimates/EST_DEL-05-01_2026-02-18_2350/Detail.csv,DEL-05-01,Detail.csv,OK,1 line item
+SRC-045,Detail,_Estimates/EST_DEL-05-02_2026-02-18_2345/Detail.csv,DEL-05-02,Detail.csv,OK,1 line item
+SRC-046,Detail,_Estimates/EST_DEL-05-03_2026-02-18_2350/Detail.csv,DEL-05-03,Detail.csv,OK,1 line item
+SRC-047,Detail,_Estimates/EST_DEL-05-04_2026-02-18_2355/Detail.csv,DEL-05-04,Detail.csv,OK,1 line item
+SRC-048,Detail,_Estimates/EST_DEL-06-01_2026-02-18_1600/Detail.csv,DEL-06-01,Detail.csv,OK,2 line items
+SRC-049,Detail,_Estimates/EST_DEL-06-02_2026-02-18_1800/Detail.csv,DEL-06-02,Detail.csv,OK,2 line items
+SRC-050,Detail,_Estimates/EST_DEL-07-01_2026-02-18_1700/Detail.csv,DEL-07-01,Detail.csv,OK,2 line items
+SRC-051,Detail,_Estimates/EST_DEL-07-02_2026-02-18_2359/Detail.csv,DEL-07-02,Detail.csv,OK,1 line item
+SRC-052,Detail,_Estimates/EST_DEL-07-03_2026-02-18_2000/Detail.csv,DEL-07-03,Detail.csv,OK,1 line item
+SRC-053,Detail,_Estimates/EST_DEL-07-04_2026-02-18_2355/Detail.csv,DEL-07-04,Detail.csv,OK,1 line item
+SRC-054,Detail,_Estimates/EST_DEL-07-05_2026-02-18_2359/Detail.csv,DEL-07-05,Detail.csv,OK,2 line items
+SRC-055,Detail,_Estimates/EST_DEL-08-01_2026-02-18_2359/Detail.csv,DEL-08-01,Detail.csv,OK,2 line items
+SRC-056,Detail,_Estimates/EST_DEL-08-02_2026-02-18_2359/Detail.csv,DEL-08-02,Detail.csv,OK,2 line items
+SRC-057,Detail,_Estimates/EST_DEL-08-03_2026-02-18_2359/Detail.csv,DEL-08-03,Detail.csv,OK,2 line items
+SRC-058,Detail,_Estimates/EST_DEL-09-01_2026-02-18_2200/Detail.csv,DEL-09-01,Detail.csv,OK,3 line items
+SRC-059,Detail,_Estimates/EST_DEL-10-01_2026-02-18_1900/Detail.csv,DEL-10-01,Detail.csv,OK,2 line items
+SRC-060,Detail,_Estimates/EST_DEL-10-02_2026-02-18_1900/Detail.csv,DEL-10-02,Detail.csv,OK,3 line items
+SRC-061,BOE,_Estimates/BASIS_OF_ESTIMATE.md,ALL,Basis of Estimate,OK,Project-level BOE document governing all ESTIMATING runs

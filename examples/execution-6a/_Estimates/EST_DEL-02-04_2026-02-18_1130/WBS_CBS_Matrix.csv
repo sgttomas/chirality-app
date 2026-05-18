@@ -1,0 +1,9 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-04,03-CONCRETE,CAD,370390,8,100,Foundations (screw piles + pile caps + grade beams) + slabs-on-grade + rebar + formwork + anchor bolts
+PKG-002,DEL-02-04,05-STEEL,CAD,461668,4,100,Primary structural steel + OWSJ + metal roof deck + misc steel
+PKG-002,DEL-02-04,07-ENVELOPE,CAD,554790,6,100,Insulated wall panels + masonry base + insulated roof panels + air barrier + flashing + sealant
+PKG-002,DEL-02-04,08-OPENINGS,CAD,249100,6,100,Overhead doors (8) + glazing + storefront entries + person doors + hardware
+PKG-002,DEL-02-04,09-FLOORING,CAD,58520,2,100,Sealed concrete floor finish (bays + office/shared)
+PKG-002,DEL-02-04,31-EARTHWORK,CAD,6000,1,0,Sump rough-in blockouts; rate is assumed (ASM-23) not from rate table
+PKG-002,DEL-02-04,50-DESIGN,CAD,20801,1,100,Structural engineering design fees at 2.5% of structural construction cost
+PKG-002,DEL-02-04,TOTAL,CAD,1721269,28,,Deliverable total across all CBS codes

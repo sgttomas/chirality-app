@@ -1,0 +1,66 @@
+Execution,DeliverableID,DeliverableName,RoleID,Role,EstimatedHours,Basis,Notes
+6c,DEL-01-01,Compliance Matrix & Checklist,R-22,Proposal Coordinator / Writer,8,PARAMETRIC,Same scope as 6b DEL-01-01
+6c,DEL-01-02,Formal Submission Package,R-22,Proposal Coordinator / Writer,14,PARAMETRIC,Slightly fewer deliverables to assemble than 6b (21 vs 38); still final QA
+6c,DEL-01-02,Formal Submission Package,R-02,Project Manager,4,PARAMETRIC,Final review and sign-off
+6c,DEL-01-03,Bonding & Insurance Evidence,R-02,Project Manager,4,PARAMETRIC,Same scope as 6b DEL-01-03
+6c,DEL-01-03,Bonding & Insurance Evidence,R-25,Legal Review (External),4,PARAMETRIC,Same scope as 6b
+6c,DEL-01-03,Bonding & Insurance Evidence,R-24,Administrative / Document Control,2,PARAMETRIC,Same scope as 6b
+6c,DEL-02-01,Concept Design Package,R-04,Architect (Project),44,PARAMETRIC,Consolidated concept: drawings + site concept + coordination lead; slightly more than 6b DEL-02-01 due to embedded civil/site
+6c,DEL-02-01,Concept Design Package,R-05,Architect (Intermediate),24,PARAMETRIC,Supporting architectural production
+6c,DEL-02-01,Concept Design Package,R-06,CAD Technician / BIM Operator,64,PARAMETRIC,Drawing production; more integrated drawing set
+6c,DEL-02-01,Concept Design Package,R-07,Civil Engineer (Senior),20,PARAMETRIC,Civil/site concept input (embedded in consolidated package)
+6c,DEL-02-01,Concept Design Package,R-08,Civil Engineer (Intermediate),12,PARAMETRIC,Supporting civil production
+6c,DEL-02-01,Concept Design Package,R-09,Structural Engineer (Senior),12,PARAMETRIC,Structural input to concept package
+6c,DEL-02-01,Concept Design Package,R-10,Structural Engineer (Intermediate),6,PARAMETRIC,Supporting structural input
+6c,DEL-02-01,Concept Design Package,R-11,Mechanical Engineer (Senior),12,PARAMETRIC,Mechanical input to concept package
+6c,DEL-02-01,Concept Design Package,R-12,Mechanical Engineer (Intermediate),6,PARAMETRIC,Supporting mechanical input
+6c,DEL-02-01,Concept Design Package,R-13,Electrical Engineer (Senior),12,PARAMETRIC,Electrical/IT input to concept package
+6c,DEL-02-01,Concept Design Package,R-14,Electrical Engineer (Intermediate),6,PARAMETRIC,Supporting electrical input
+6c,DEL-02-01,Concept Design Package,R-02,Project Manager,10,PARAMETRIC,Coordination oversight; more cross-discipline coordination needed
+6c,DEL-02-02,Design Brief Narrative,R-04,Architect (Project),20,PARAMETRIC,Consolidated narrative lead: design brief + durability + accessibility + adaptability; SOW-010/011/013/014/015
+6c,DEL-02-02,Design Brief Narrative,R-05,Architect (Intermediate),8,PARAMETRIC,Supporting narrative writing
+6c,DEL-02-02,Design Brief Narrative,R-07,Civil Engineer (Senior),8,PARAMETRIC,Civil design brief and durability input
+6c,DEL-02-02,Design Brief Narrative,R-09,Structural Engineer (Senior),10,PARAMETRIC,Structural brief + durability + expansion input
+6c,DEL-02-02,Design Brief Narrative,R-11,Mechanical Engineer (Senior),10,PARAMETRIC,Mechanical brief + maintainability input
+6c,DEL-02-02,Design Brief Narrative,R-13,Electrical Engineer (Senior),10,PARAMETRIC,Electrical brief + maintainability input
+6c,DEL-02-02,Design Brief Narrative,R-27,Building Science Consultant,8,PARAMETRIC,Envelope durability + energy crossover input
+6c,DEL-02-02,Design Brief Narrative,R-02,Project Manager,6,PARAMETRIC,Multi-discipline coordination overhead
+6c,DEL-02-03,Sustainability & Energy Narrative,R-27,Building Science Consultant,12,PARAMETRIC,Energy strategy; envelope performance; code compliance
+6c,DEL-02-03,Sustainability & Energy Narrative,R-11,Mechanical Engineer (Senior),8,PARAMETRIC,Mechanical energy efficiency; solar-ready mechanical
+6c,DEL-02-03,Sustainability & Energy Narrative,R-13,Electrical Engineer (Senior),6,PARAMETRIC,Electrical energy efficiency; solar-ready electrical
+6c,DEL-02-03,Sustainability & Energy Narrative,R-04,Architect (Project),4,PARAMETRIC,Envelope coordination input
+6c,DEL-03-01,Design Methodology Narrative,R-03,Design Manager,10,PARAMETRIC,Same scope as 6b DEL-06-01
+6c,DEL-03-01,Design Methodology Narrative,R-02,Project Manager,4,PARAMETRIC,Same scope as 6b
+6c,DEL-03-02,Detailed Design & Construction Docs Plan,R-03,Design Manager,10,PARAMETRIC,Same scope as 6b DEL-06-02
+6c,DEL-03-02,Detailed Design & Construction Docs Plan,R-02,Project Manager,4,PARAMETRIC,Same scope as 6b
+6c,DEL-04-01,Construction Methodology Narrative,R-15,Construction Manager,14,PARAMETRIC,Consolidated: SOW-019 methodology + SOW-020 administration in one DEL; slightly more than 6b DEL-07-01
+6c,DEL-04-01,Construction Methodology Narrative,R-02,Project Manager,4,PARAMETRIC,Input on project controls
+6c,DEL-04-02,Budget Control & Change Management Plan,R-02,Project Manager,8,PARAMETRIC,Cost reporting; change management; contingency approach
+6c,DEL-04-02,Budget Control & Change Management Plan,R-15,Construction Manager,4,PARAMETRIC,Budget control input
+6c,DEL-04-03,Communications & Reporting Plan,R-02,Project Manager,6,PARAMETRIC,Meeting structure; reporting; stakeholder touchpoints
+6c,DEL-04-03,Communications & Reporting Plan,R-15,Construction Manager,4,PARAMETRIC,Construction phase communications input
+6c,DEL-05-01,Schedule A — Pricing Summary,R-18,Estimator (Senior),40,PARAMETRIC,Same scope as 6b DEL-01-04
+6c,DEL-05-01,Schedule A — Pricing Summary,R-19,Estimator (Intermediate),24,PARAMETRIC,Same scope as 6b
+6c,DEL-05-01,Schedule A — Pricing Summary,R-02,Project Manager,8,PARAMETRIC,Pricing strategy; margin decisions
+6c,DEL-05-02,Schedule B — Cost Breakdown,R-18,Estimator (Senior),24,PARAMETRIC,Same scope as 6b DEL-01-05
+6c,DEL-05-02,Schedule B — Cost Breakdown,R-19,Estimator (Intermediate),16,PARAMETRIC,Same scope as 6b
+6c,DEL-05-02,Schedule B — Cost Breakdown,R-02,Project Manager,4,PARAMETRIC,Review and approval
+6c,DEL-05-03,Pricing Narrative & Assumptions,R-02,Project Manager,12,PARAMETRIC,Allowances; exclusions; value alternatives; CCIP
+6c,DEL-05-03,Pricing Narrative & Assumptions,R-18,Estimator (Senior),8,PARAMETRIC,Pricing assumptions documentation
+6c,DEL-06-01,Commissioning Training Closeout & Warranty,R-21,Commissioning Lead,16,PARAMETRIC,Consolidated: commissioning + training + closeout + deficiencies + warranty all in one DEL; more than any single 6b DEL-08-xx
+6c,DEL-06-01,Commissioning Training Closeout & Warranty,R-02,Project Manager,6,PARAMETRIC,Input on all closeout/warranty aspects
+6c,DEL-07-01,DB Firm Experience Profile,R-22,Proposal Coordinator / Writer,16,PARAMETRIC,Same scope as 6b DEL-01-07
+6c,DEL-07-01,DB Firm Experience Profile,R-02,Project Manager,4,PARAMETRIC,Same scope as 6b
+6c,DEL-07-02,Key Team Members & Resumes,R-26,HR Coordinator,12,PARAMETRIC,Same scope as 6b DEL-01-08
+6c,DEL-07-02,Key Team Members & Resumes,R-22,Proposal Coordinator / Writer,8,PARAMETRIC,Same scope as 6b
+6c,DEL-07-03,Appendix I — Subtrade & Consultant List,R-02,Project Manager,8,PARAMETRIC,Same scope as 6b DEL-01-09
+6c,DEL-07-03,Appendix I — Subtrade & Consultant List,R-24,Administrative / Document Control,4,PARAMETRIC,Same scope as 6b
+6c,DEL-08-01,Detailed Project Schedule,R-17,Scheduler,20,PARAMETRIC,Same scope as 6b DEL-09-01
+6c,DEL-08-01,Detailed Project Schedule,R-02,Project Manager,8,PARAMETRIC,Same scope as 6b
+6c,DEL-08-01,Detailed Project Schedule,R-15,Construction Manager,4,PARAMETRIC,Construction sequencing input
+6c,DEL-09-01,Risk Register & Mitigation Plan,R-02,Project Manager,10,PARAMETRIC,Same scope as 6b DEL-10-01; plus embedded QMP (SOW-027) adds ~4h
+6c,DEL-09-01,Risk Register & Mitigation Plan,R-23,Quality Lead,8,PARAMETRIC,QMP component (SOW-027) embedded in this DEL in 6c
+6c,DEL-09-01,Risk Register & Mitigation Plan,R-15,Construction Manager,4,PARAMETRIC,Construction risk input
+6c,DEL-09-02,Site Conditions & Due Diligence Summary,R-02,Project Manager,8,PARAMETRIC,Same scope as 6b DEL-10-02
+6c,DEL-09-02,Site Conditions & Due Diligence Summary,R-07,Civil Engineer (Senior),6,PARAMETRIC,Technical review of site conditions
+6c,DEL-09-02,Site Conditions & Due Diligence Summary,R-29,Geotechnical Engineer,4,PARAMETRIC,Existing geotech report interpretation

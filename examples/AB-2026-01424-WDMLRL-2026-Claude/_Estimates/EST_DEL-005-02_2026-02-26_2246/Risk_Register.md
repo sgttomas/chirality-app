@@ -1,0 +1,8 @@
+# Risk Register — EST_DEL-005-02_2026-02-26_2246
+
+| RiskID | Risk | Likelihood | Impact | Mitigation | Source |
+|---|---|---|---|---|---|
+| RSK-001 | Upstream dependency delays (DEL-008-01 geotech, DEL-008-02 survey, DEL-005-01 preliminary approval) compress design schedule and may require additional hours for rework or fast-tracking | MEDIUM | MEDIUM | Monitor critical path; establish latest-acceptable input dates per Guidance F-003 recommendation; consider contingency hours if schedule is confirmed tight | Guidance — Schedule Risk from Upstream Dependencies (Lensing: F-003); Procedure Prerequisites |
+| RSK-002 | County review of preliminary civil design (DEL-005-01) requires substantial revisions, increasing design effort beyond the 130-hour parametric allocation | LOW | MEDIUM | Early coordination with County at mandatory site meeting (March 3, 2026); align design intent before formal submission | Procedure Step 2.4; Specification REQ-007 |
+| RSK-003 | Actual staff rates differ from parametric rates (MEDIUM confidence, +/-20-30% per INDEX.md) | MEDIUM | LOW | Replace parametric rates with contracted/quoted rates as soon as available | INDEX.md Data Quality Statement; Professional_Staff_Rates.csv Confidence column |
+| RSK-004 | Site complexity (discovered through geotech report or survey) exceeds parametric assumptions, requiring more design hours than allocated | LOW | MEDIUM | Review hour allocation after receipt of DEL-008-01 and DEL-008-02; adjust estimate in next snapshot if warranted | Datasheet Conditions (Elevation Datum TBD, Utility Locations TBD); Guidance Principle 5 |

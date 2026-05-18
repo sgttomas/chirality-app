@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-03,PROF_SERVICES.STRUCTURAL,CAD,1550,1,100,Single line item: 10 hr x $155/hr Structural Engineer (Senior)

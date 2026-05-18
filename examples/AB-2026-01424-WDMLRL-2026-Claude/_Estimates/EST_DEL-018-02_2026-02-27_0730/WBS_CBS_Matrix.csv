@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-018,DEL-018-02,Construction Labour > General Construction Labour,CAD,14852.00,2,100,Lines: DL-011; DL-012
+PKG-018,DEL-018-02,Professional Services > Project Management,CAD,8590.00,8,100,Lines: DL-001; DL-002; DL-003; DL-004; DL-005 (+3 more)
+PKG-018,DEL-018-02,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,5000.00,1,100,Lines: DL-014
+PKG-018,DEL-018-02,"Sitework & Civil > Earthwork, Surfacing & Landscaping",CAD,79500.00,7,100,Lines: DL-007; DL-008; DL-009; DL-010; DL-017 (+2 more)
+PKG-018,DEL-018-02,Sitework & Civil > Underground Utilities & Site Services,CAD,13500.00,5,100,Lines: DL-013; DL-015; DL-016; DL-019; DL-021
+PKG-018,DEL-018-02,TOTAL,CAD,121442.00,23,,Grand total all CBS categories

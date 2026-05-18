@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0507-001,FF&E,PKG-005,DEL-05-07_Optional-FFandE-Allowance,FF&E cash allowance (furniture fixtures and equipment) - fixed per DEC-005,1,LS,20000,20000,CAD,ALLOWANCE,_PriceSources/Optional_Items_Pricing.csv row OPT-18; DEC-005,HIGH,Fixed $20k cash allowance. DB allocates: Meeting/Training $8k; Lunchroom $6k; Reception $3k; Misc $3k. Excludes connected appliances (DEL-05-06 scope).

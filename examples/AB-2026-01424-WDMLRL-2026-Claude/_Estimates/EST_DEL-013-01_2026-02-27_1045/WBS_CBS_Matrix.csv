@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-01,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,8900.00,5,100,Pre-commissioning inspection; Safety Code inspection coordination; ... (+3 more)
+PKG-013,DEL-013-01,Construction Labour > General Construction Labour,CAD,23900.00,6,100,Gas line connection — certified gas fitter; Electrical connection — power supply hook-up coordination; ... (+4 more)
+PKG-013,DEL-013-01,Equipment > Process & Facility Equipment,CAD,13000.00,1,100,High-recovery heating unit — supply and delivery (gas-fired assumed)
+PKG-013,DEL-013-01,General Conditions > General Requirements & Indirect,CAD,2500.00,1,100,Deficiency rectification allowance
+PKG-013,DEL-013-01,Materials > General Materials & Supplies,CAD,76980.00,2,100,Ductwork — supply and return distribution installed; Heat recovery connections — ductwork tie-ins to air exchanger
+PKG-013,DEL-013-01,Professional Services > Project Management,CAD,9840.00,11,100,Commissioning report preparation; As-built mark-ups and drawing submission; ... (+9 more)

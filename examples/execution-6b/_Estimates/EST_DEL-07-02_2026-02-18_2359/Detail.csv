@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF_SERVICES.CONSTRUCTION_MGMT,PKG-007,DEL-07-02,Construction Manager -- Construction Administration Narrative authoring (supervision approach; document management; shop drawing review; cleaning; transport/storage; site services),8,HR,155,1240,CAD,RATE_TABLE,S-01 (R-15 row 16) + S-02 (DEL-07-02 row 55),MED,Single role assignment per Level_of_Effort.csv; rate from Professional_Staff_Rates.csv; covers all sub-topics within SOW-0020 narrative

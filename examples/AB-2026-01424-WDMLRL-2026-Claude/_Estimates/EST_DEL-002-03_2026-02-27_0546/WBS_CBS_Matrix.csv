@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-03,Professional Services > Design & Engineering,CAD,17700,4,100,
+PKG-002,DEL-002-03,Professional Services > Project Management,CAD,1530,3,100,
+PKG-002,DEL-002-03,TOTAL,CAD,19230,7,100,Grand total for DEL-002-03 Structural Framing Plans

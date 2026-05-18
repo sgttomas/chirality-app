@@ -1,0 +1,25 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-013-02,HRV/ERV unit — commercial/industrial high-volume air exchanger supply and delivery,1,EA,UNIT_RATE,Datasheet,Attributes — Equipment Type,Equipment type TBD pending Mechanical Engineer; sized for ~455000 cu ft facility volume
+ITM-002,DEL-013-02,Equipment installation — set HRV/ERV in Utility Room including structural support and levelling,1,LS,LUMP_SUM,Procedure,Step 3.2 — Install Air Exchanger Unit,Includes rigging and placement; vibration isolation separate line
+ITM-003,DEL-013-02,Fresh air intake ductwork — material and installation from exterior wall to unit,1,LS,LUMP_SUM,Procedure,Step 2.3 — Install Fresh Air Intake Ductwork,Sizing and routing TBD pending design; includes cold-side insulation
+ITM-004,DEL-013-02,Exhaust outlet ductwork — material and installation from unit to exterior wall,1,LS,LUMP_SUM,Procedure,Step 2.4 — Install Exhaust Outlet Ductwork,Includes bird screen/louver at exterior termination
+ITM-005,DEL-013-02,Supply and return distribution ductwork — material and installation to/from facility areas,13000,sqft,UNIT_RATE,Procedure,Step 2.5 — Install Supply and Return Distribution Ductwork,Qty = facility floor area; rate normalized per sqft served
+ITM-006,DEL-013-02,Wall penetrations for intake and exhaust — core/frame plus sleeve and flashing,2,EA,UNIT_RATE,Procedure,Step 2.2 — Install Wall Penetrations,Two penetrations: fresh air intake + exhaust outlet
+ITM-007,DEL-013-02,Fire stopping at wall penetrations (fire-rated assemblies),2,EA,UNIT_RATE,Specification,REQ-014 — Fire Stopping at Wall Penetrations,Applicability TBD pending wall fire ratings; included as prudent allowance
+ITM-008,DEL-013-02,Vibration isolation system (spring mounts / rubber pads / inertia base),1,LS,LUMP_SUM,Specification,REQ-016 — Vibration Isolation,Requirement TBD per Mechanical Engineer; included as parametric allowance
+ITM-009,DEL-013-02,Controls and sensors — supply and installation (controller thermostat CO/CO2 sensors damper actuators),1,LS,LUMP_SUM,Procedure,Step 3.5 — Install Controls and Sensors,Specific components TBD per DEL-003-07
+ITM-010,DEL-013-02,Heating system integration — connection between HRV/ERV and DEL-013-01,1,LS,LUMP_SUM,Procedure,Step 3.4 — Integrate with Heating System,Interface details TBD pending mechanical design
+ITM-011,DEL-013-02,Condensate drain — routing from unit to drain point including freeze protection,1,LS,LUMP_SUM,Guidance,Condensate Drain Management,Provisions TBD pending equipment selection
+ITM-012,DEL-013-02,Electrical power connection — final connection from disconnect to unit,1,LS,LUMP_SUM,Procedure,Step 3.6 — Connect Power Supply,Scope boundary PKG-013/PKG-015 TBD; minimal allowance
+ITM-013,DEL-013-02,Commissioning and air balancing — performance testing and functional verification,1,LS,LUMP_SUM,Procedure,Steps 4.1–4.5 — Commissioning and Testing,Includes airflow measurement and heat recovery verification
+ITM-014,DEL-013-02,Safety codes permit and inspections,1,LS,LUMP_SUM,Procedure,Steps 2.1 and 4.6 — Mechanical Permit and Inspection,Alberta Safety Codes Act requirement
+ITM-015,DEL-013-02,Shop drawings and equipment submittals,1,LS,LUMP_SUM,Procedure,Step 1.2 — Prepare and Submit Shop Drawings,Mechanical Contractor submittal package
+ITM-016,DEL-013-02,O&M manual and as-built mark-ups and closeout documentation,1,LS,LUMP_SUM,Procedure,Steps 5.1–5.3 — Closeout,Commissioning report + O&M + as-builts
+ITM-017,DEL-013-02,Professional staff — Project Manager,6,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-018,DEL-013-02,Professional staff — Construction Project Manager,8,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-019,DEL-013-02,Professional staff — Site Superintendent,10,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-020,DEL-013-02,Professional staff — Cost Estimator,4,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-021,DEL-013-02,Professional staff — QA/QC Lead,6,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-022,DEL-013-02,Professional staff — HSE Manager,4,hr,UNIT_RATE,Datasheet,Identification — Responsible Party,LOE from Level_of_Effort.csv for DEL-013-02
+ITM-023,DEL-013-02,HVAC sheet metal labour — ductwork installation,80,hr,UNIT_RATE,Procedure,Steps 2.3–2.5 — Ductwork Installation,ASSUMPTION: 80 hrs parametric estimate for ductwork install labour (2 tradespeople x 5 days)
+ITM-024,DEL-013-02,General labourer — site support for mechanical installation,24,hr,UNIT_RATE,Procedure,Steps 2.2–3.3 — Installation Support,ASSUMPTION: 24 hrs parametric estimate for general support

@@ -1,0 +1,17 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-02,DEL-05-02,FIN,CAD,5320,2,100,Production cost -- Financial roles (estimator hours)
+PKG-02,DEL-05-02,MGMT,CAD,700,1,100,Production cost -- Management roles (PM review)
+PKG-02,DEL-05-02,GR,CAD,1305000,8,100,General Requirements (15% of base construction); 8 sub-lines
+PKG-02,DEL-05-02,STRUCT,CAD,1320000,3,100,Structural and Concrete -- foundations + steel + slabs
+PKG-02,DEL-05-02,ENVLP,CAD,980000,4,100,Building Envelope -- walls + roof + glazing + doors
+PKG-02,DEL-05-02,INTARCH,CAD,520000,7,100,Interior Architectural -- partitions + ceilings + flooring + paint + accessibility + signage + millwork
+PKG-02,DEL-05-02,MECH,CAD,1180000,8,100,Mechanical Systems -- HVAC + plumbing + fire protection + exhaust + breathing air + BAS
+PKG-02,DEL-05-02,ELEC,CAD,810000,10,100,Electrical Systems -- power + lighting + IT + fire alarm + PA + emergency + solar-ready + service entrance
+PKG-02,DEL-05-02,CIVIL,CAD,1230000,9,100,Site and Civil Works -- earthwork + paving + flatwork + drainage + landscaping
+PKG-02,DEL-05-02,UG,CAD,350000,9,100,Underground Utilities -- water + sewer + storm + gas + power + telecom + tie-ins + connection fees + environmental
+PKG-02,DEL-05-02,COLDSTG,CAD,290000,1,100,Cold Storage Building -- 6000 sf PEMB complete turnkey
+PKG-02,DEL-05-02,EQUIP,CAD,540000,5,100,Specialty Equipment -- OH doors + lockers + generator + workshop + misc (excl L-095/L-096 GR transparency lines)
+PKG-02,DEL-05-02,DESFEE,CAD,780000,9,100,Professional Design Fees -- architectural + civil + structural + mechanical + electrical + building science + environmental + geotech + markup
+PKG-02,DEL-05-02,FEES,CAD,558000,7,100,Bonds + Insurance + Permits -- perf bond + L&M bond + CCIP + builder's risk + CGL + building permit + trade permits + surety fee
+PKG-02,DEL-05-02,OPT,CAD,355000,10,100,Additional Options 1-6 (wash bay + yard lighting + access control + security + signage + FF&E)
+PKG-02,DEL-05-02,TAX,CAD,511000,2,100,GST on base ($493k) + GST on options ($18k)

@@ -1,0 +1,4 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-09-01-001,LABOUR.CONST,PKG-009,DEL-09-01,Scheduler -- Gantt chart production; CPM analysis; milestone dates; schedule assumptions,20,hr,130,2600,CAD,RATE_TABLE,PS-02 row 66 (R-17 20h) + PS-01 row 17 (R-17 $130/hr),MED,Primary cost driver; Gantt chart production and critical path analysis
+L-09-01-002,LABOUR.MGMT,PKG-009,DEL-09-01,Project Manager -- schedule review; milestone validation; coordination,8,hr,175,1400,CAD,RATE_TABLE,PS-02 row 67 (R-02 8h) + PS-01 row 2 (R-02 $175/hr),MED,Schedule review and milestone validation against project objectives
+L-09-01-003,LABOUR.CONST,PKG-009,DEL-09-01,Construction Manager -- construction sequencing input,4,hr,155,620,CAD,RATE_TABLE,PS-02 row 68 (R-15 4h) + PS-01 row 15 (R-15 $155/hr),MED,Construction sequencing and duration input for Gantt chart

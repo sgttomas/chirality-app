@@ -1,0 +1,259 @@
+# industry_sources_vocab.yaml
+#
+# Obscuration vocabulary for the industry-practices corpus
+# (domains/piping-design/_Sources/industry-practices/).
+#
+# Purpose: replace identifying source-organization names, issuer-specific
+# document numbers, and issuer-fingerprinting site/project names in MD bodies
+# with stable per-org IDs (`Industry Source NN`) so retrieval keys on topical
+# content, not on house-style identity. The org -> ID mapping lives only in
+# 00-MASTER-INDEX.csv / .xlsx (column: `Industry Source ID`).
+#
+# Schema:
+#   version: int                       — vocab schema version
+#   case_sensitive: bool               — alias/prefix matching is case-insensitive by default
+#   sources:
+#     - id: "Industry Source NN"       — stable per-org ID (zero-padded)
+#       canonical_name: str            — exactly as in master-index `Source Organization`
+#       aliases: [str, ...]            — whole-token textual variants to redact
+#       document_number_prefixes: [str, ...]
+#                                      — issuer-specific doc-number prefixes; replaced as
+#                                        "<id> Doc <suffix>" so cross-citations stay traceable
+#                                        as references without revealing the issuer
+#       site_names: [str, ...]         — issuer-fingerprinting site/project/facility names
+#                                        (replaced with "<id> Facility")
+#   keep_verbatim: [str, ...]          — generic technical references not to redact (codes etc.)
+#
+# Sort order of IDs: lexicographic by canonical_name (frozen at master-index build time).
+#
+# Maintenance: aliases and document_number_prefixes are seeded from the master
+# index; they grow as redacted-page leak-greps surface new variants. Adding an
+# alias is a one-line edit; the redactor is idempotent so already-redacted
+# pages re-run cleanly.
+
+version: 1
+case_sensitive: false
+
+sources:
+  - id: "Industry Source 01"
+    canonical_name: "BP - Cherry Point Refinery"
+    aliases:
+      - "BP Cherry Point Refinery"
+      - "BP Cherry Point"
+      - "Cherry Point Refinery"
+      - "BP America"
+      - "BP plc"
+      - "British Petroleum"
+      - "BP"
+    document_number_prefixes:
+      - "STP-"
+    site_names:
+      - "Cherry Point"
+      - "Blaine, Washington"
+      - "Blaine WA"
+
+  - id: "Industry Source 02"
+    canonical_name: "Chevron Corporation - Piping Manual (PIM)"
+    aliases:
+      - "Chevron Corporation"
+      - "Chevron USA"
+      - "Chevron U.S.A."
+      - "ChevronTexaco"
+      - "Chevron Texaco"
+      - "Chevron Piping Manual"
+      - "Chevron PIM"
+      - "Chevron"
+    document_number_prefixes:
+      - "PIM "
+      - "PIM-"
+      - "pim"
+    site_names: []
+
+  - id: "Industry Source 03"
+    canonical_name: "Oil Search Alaska - Nanushuk Project"
+    aliases:
+      - "Oil Search Alaska"
+      - "Oil Search (Alaska)"
+      - "Oil Search Ltd"
+      - "Oil Search"
+      - "Nanushuk Project"
+      - "Nanushuk"
+    document_number_prefixes:
+      - "NGE-"
+      - "NPF-"
+      - "OGE-"
+    site_names:
+      - "Nanushuk"
+      - "North Slope"
+      - "Pikka"
+
+  - id: "Industry Source 04"
+    canonical_name: "Oil Search Alaska - Nanushuk Project (WorleyParsons)"
+    aliases:
+      - "WorleyParsons"
+      - "Worley Parsons"
+      - "Worley"
+    document_number_prefixes: []
+    site_names: []
+
+  - id: "Industry Source 05"
+    canonical_name: "Phillips 66 - Refining Engineering Practices"
+    aliases:
+      - "Phillips 66 Company"
+      - "Phillips 66"
+      - "Phillips Petroleum"
+      - "ConocoPhillips"
+      - "Conoco Phillips"
+      - "Refining Engineering Practices"
+      - "Phillips HF"
+    document_number_prefixes:
+      - "REP5_"
+      - "REP5"
+      - "REP-5"
+    site_names: []
+
+  - id: "Industry Source 06"
+    canonical_name: "Plains Midstream Canada"
+    aliases:
+      - "Plains Midstream Canada ULC"
+      - "Plains Midstream Canada"
+      - "Plains Midstream"
+      - "PMC"
+      - "Plains All American"
+      - "Plains All-American Pipeline"
+    document_number_prefixes:
+      - "000-PES-"
+      - "PES-"
+    site_names: []
+
+  - id: "Industry Source 07"
+    canonical_name: "Process Industry Practices (CII)"
+    aliases:
+      - "Process Industry Practices"
+      - "Construction Industry Institute"
+      - "PIP (CII)"
+      - "PIP"
+      - "CII"
+    document_number_prefixes:
+      - "PIP PNC"
+      - "PIP PNE"
+      - "PIP PNEM"
+      - "PIP PNSC"
+      - "PIP PN"
+      - "PNC"
+      - "PNE"
+      - "PNEM"
+    site_names: []
+
+  - id: "Industry Source 08"
+    canonical_name: "Shell - Design and Engineering Practice (DEP)"
+    aliases:
+      - "Shell Global Solutions International"
+      - "Shell Global Solutions"
+      - "Shell International"
+      - "Royal Dutch Shell"
+      - "Shell Oil Company"
+      - "Shell DEP"
+      - "Design and Engineering Practice"
+      - "Shell"
+    document_number_prefixes:
+      - "DEP "
+      - "DEP-"
+    site_names: []
+
+  - id: "Industry Source 09"
+    canonical_name: "Shell Canada Limited"
+    aliases:
+      - "Shell Canada Limited"
+      - "Shell Canada Ltd"
+      - "Shell Canada Ltd."
+      - "Shell Canada"
+    document_number_prefixes: []
+    site_names: []
+
+  - id: "Industry Source 10"
+    canonical_name: "Suncor Energy"
+    aliases:
+      - "Suncor Energy Inc."
+      - "Suncor Energy Inc"
+      - "Suncor Energy"
+      - "Suncor"
+    document_number_prefixes:
+      - "Stand 020"
+      - "Stand-020"
+      - "Standard 020"
+    site_names: []
+
+  - id: "Industry Source 11"
+    canonical_name: "Suncor Energy - Voyageur Upgrader Project"
+    aliases:
+      - "Voyageur Upgrader Project"
+      - "Voyageur Upgrader"
+      - "Voyageur"
+    document_number_prefixes:
+      - "L-39"
+      - "N-1"
+      - "N-6"
+    site_names:
+      - "Voyageur"
+      - "Fort McMurray"
+
+  - id: "Industry Source 12"
+    canonical_name: "Syncrude Canada Ltd."
+    aliases:
+      - "Syncrude Canada Limited"
+      - "Syncrude Canada Ltd."
+      - "Syncrude Canada Ltd"
+      - "Syncrude Canada"
+      - "Syncrude"
+    document_number_prefixes: []
+    site_names:
+      - "Mildred Lake"
+      - "Aurora North"
+      - "Aurora"
+
+keep_verbatim:
+  # Generic engineering codes / standards bodies — never redact
+  - "ASME"
+  - "API"
+  - "NACE"
+  - "ASTM"
+  - "ANSI"
+  - "ISO"
+  - "MSS-SP"
+  - "MSS SP"
+  - "AWS"
+  - "ASNT"
+  - "PFI"
+  - "DIN"
+  - "EN ISO"
+  - "BS EN"
+  - "B31.1"
+  - "B31.3"
+  - "B31.4"
+  - "B31.8"
+  - "Section IX"
+  - "Section V"
+  - "Section VIII"
+  - "API 5L"
+  - "API 6D"
+  - "API 570"
+  - "API 598"
+  - "API 600"
+  - "API 602"
+  - "API 6A"
+  - "API 6FA"
+  - "API 6FD"
+  - "API 6FB"
+  - "API 6FC"
+  - "API 607"
+  - "API 608"
+  - "API 609"
+  - "API 614"
+  - "API 661"
+  - "API 674"
+  - "API 675"
+  - "API 676"
+  - "API 681"
+  - "API 682"
+  - "API 1104"

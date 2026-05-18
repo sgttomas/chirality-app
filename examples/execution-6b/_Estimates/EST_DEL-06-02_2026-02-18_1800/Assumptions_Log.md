@@ -1,0 +1,8 @@
+# Assumptions Log -- EST_DEL-06-02_2026-02-18_1800
+
+| AssumptionID | Assumption | Source | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | The Level_of_Effort.csv hours for DEL-06-02 (10 hrs Design Manager + 4 hrs PM = 14 hrs total) accurately reflect the effort to produce the Detailed Design & Construction Documents Plan narrative for the proposal. | Level_of_Effort.csv rows 51-52 (Basis: PARAMETRIC) | If actual effort differs, the estimate changes linearly. A +/- 4 hour swing on Design Manager time equals +/- $660 CAD. |
+| ASM-002 | The Professional_Staff_Rates.csv hourly rates ($165/hr Design Manager, $175/hr PM) are representative market rates for Alberta-based design-build professionals in 2024-2026. | Professional_Staff_Rates.csv rows R-03, R-02 (Basis: MARKET) | If rates are understated by 10%, the total increases by ~$235 CAD. Rate sensitivity is moderate given the small total. |
+| ASM-003 | This estimate covers proposal production cost only (hours to write the plan narrative). It does not include downstream design execution costs, actual design document production, or Owner review meeting attendance. | Brief context: "Proposal production cost estimate: hours to write the detailed design/construction documents plan" | If scope is misunderstood and downstream execution hours are expected, the estimate would need to be substantially larger. |
+| ASM-004 | No overhead, profit margin, or burden rate is applied to the hourly rates. The rates in Professional_Staff_Rates.csv are used as-is. | Rate table provides HourlyRate_CAD without markup notation | If a burden/overhead multiplier is expected, totals would increase proportionally. |

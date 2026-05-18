@@ -1,0 +1,3 @@
+AtomicUnitID,UnitStatement,CategoryID,KnowledgeTypeIDs,ObjectiveIDs,SourcePath,SourceRef,Notes
+AU-001,Unit asserted by two categories,CAT-001,KTY-01-01_Pumps,,Domain_Ledger.csv,row1,
+AU-001,Unit asserted by two categories,CAT-002,KTY-02-01_Piping,,Domain_Ledger.csv,row2,

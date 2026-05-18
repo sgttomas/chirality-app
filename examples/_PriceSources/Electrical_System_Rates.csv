@@ -1,0 +1,15 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+ES-01,Power,Electrical power distribution (institutional; complete),sf,18,24,21,PARAMETRIC,MEDIUM,Service entrance; switchgear; panels; feeders; branch circuits; receptacles
+ES-02,Power,Electrical power distribution (apparatus/shop bays),sf,12,16,14,PARAMETRIC,MEDIUM,Heavier circuits; welding receptacles; 3-phase for equipment
+ES-03,Lighting,LED lighting system (institutional; IES-compliant),sf,8,12,10,PARAMETRIC,MEDIUM,Fixtures; controls; daylighting controls; dimming where required
+ES-04,Lighting,LED lighting (apparatus/shop bays; high-bay),sf,5,8,6,PARAMETRIC,MEDIUM,High-bay LED fixtures; instant-on for emergency response
+ES-05,Lighting,LED lighting (cold storage; basic),sf,3,5,4,PARAMETRIC,MEDIUM,Minimal fixtures; moisture-rated
+ES-06,Telecom,IT/telecom infrastructure (per data drop),each,700,1000,850,PARAMETRIC,MEDIUM,Cat 6A cable; termination; patch panel port; tested
+ES-07,Telecom,IT backbone (fibre + MDF/IDF rooms),lump_sum,25000,40000,32000,PARAMETRIC,MEDIUM,Main + intermediate distribution; fibre backbone; racks; UPS
+ES-08,FireAlarm,Fire alarm system (institutional),sf,3,4,3.50,PARAMETRIC,MEDIUM,Addressable; smoke/heat detectors; pull stations; notification; FACP
+ES-09,PA,PA/paging system (building-wide; basic),lump_sum,15000,25000,20000,PARAMETRIC,MEDIUM,Amplifier; speakers; zone control; microphone stations
+ES-10,Display,Display system (wall-mounted; commercial),each,2000,3000,2500,PARAMETRIC,MEDIUM,55" commercial display + mount + power + data; apparatus bay info display
+ES-11,Emergency,Emergency lighting system,sf,2,3,2.50,PARAMETRIC,MEDIUM,Battery units; exit signs; egress lighting; per code
+ES-12,Power,Cold storage electrical (basic power + lighting),sf,5,8,6,PARAMETRIC,MEDIUM,Panel; receptacles; lighting; door opener feeds; minimal
+ES-13,Solar,Solar-ready electrical provisions (conduit + panel space + disconnect),lump_sum,8000,15000,12000,PARAMETRIC,MEDIUM,Conduit run; reserved panel space; labelled disconnect; no PV panels
+ES-14,Power,Electrical service entrance (600A; 347/600V 3-phase),lump_sum,35000,55000,45000,PARAMETRIC,MEDIUM,Padmount transformer (by utility); service entrance switchboard; metering

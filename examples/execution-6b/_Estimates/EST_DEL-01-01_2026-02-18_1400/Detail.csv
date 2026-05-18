@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,LABOUR.ADMIN,PKG-001,DEL-01-01,Proposal Coordinator / Writer (R-22) -- Map all RFP sections; addenda integration; compliance tracking spreadsheet,8,HR,105,840,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-01/R-22 + Professional_Staff_Rates.csv row R-22,MEDIUM,8 hrs from LoE; $105/hr from rate table; both MARKET basis MEDIUM confidence

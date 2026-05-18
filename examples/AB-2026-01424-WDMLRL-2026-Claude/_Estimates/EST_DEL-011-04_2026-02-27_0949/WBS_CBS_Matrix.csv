@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-04,Construction Labour > General Construction Labour,CAD,3264.30,7,100,Door frame installation labour (set + shim + anchor per open; Door leaf hanging + hardware installation labour (per door); Caulking and weatherproofing — frame perimeter sealant (per ; +4 more
+PKG-011,DEL-011-04,Materials > General Materials & Supplies,CAD,7761.20,5,100,Insulated steel man-door assembly (door leaf + frame) — supp; Door hardware set — hinges closers locksets weather strippin; Accessible door hardware upgrade (lever handle + low thresho; +2 more
+PKG-011,DEL-011-04,Professional Services > Project Management,CAD,6400.00,2,100,Shop drawing / submittal preparation and review; Professional staff — project management and supervision (LOE
+PKG-011,DEL-011-04,TOTAL,CAD,17425.50,14,100,Grand total -- all CBS categories

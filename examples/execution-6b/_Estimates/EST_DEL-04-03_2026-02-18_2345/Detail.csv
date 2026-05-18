@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-04-03-01,PROF_SERVICES.ELECTRICAL,PKG-004,DEL-04-03,Electrical Engineer (Senior) -- LED controls; motor efficiency; solar-ready electrical provisions; metering/sub-metering strategy,8,hr,155,1240,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-04-03/R-13 + Professional_Staff_Rates.csv row R-13,MED,8 hrs per LoE; $155/hr per rate table; cost drivers: LED lighting controls; motor efficiency; solar-ready electrical provisions; metering strategy

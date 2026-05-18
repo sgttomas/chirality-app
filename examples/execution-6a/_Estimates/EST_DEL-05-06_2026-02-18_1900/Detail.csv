@@ -1,0 +1,7 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0506-01,CBS-EQP,PKG-005,DEL-05-06,Refrigerator with freezer (commercial residential; per unit),2,each,1500,3000,CAD,QUOTE,Optional_Items_Pricing.csv OPT-12 (RecommendedPrice),MEDIUM,2 units required per OSR S12.6; retail pricing treated as quote-equivalent per DEC-EST-001
+L-0506-02,CBS-EQP,PKG-005,DEL-05-06,Microwave (commercial; per unit),2,each,450,900,CAD,QUOTE,Optional_Items_Pricing.csv OPT-13 (RecommendedPrice),MEDIUM,2 units required per OSR S12.6; retail pricing treated as quote-equivalent per DEC-EST-001
+L-0506-03,CBS-EQP,PKG-005,DEL-05-06,Stove/oven with range hood (residential),1,each,3500,3500,CAD,QUOTE,Optional_Items_Pricing.csv OPT-14 (RecommendedPrice),MEDIUM,1 unit; electric or gas range with range hood and exhaust
+L-0506-04,CBS-EQP,PKG-005,DEL-05-06,Dishwasher (commercial residential),1,each,1100,1100,CAD,QUOTE,Optional_Items_Pricing.csv OPT-15 (RecommendedPrice),MEDIUM,1 unit; standard built-in
+L-0506-05,CBS-EQP,PKG-005,DEL-05-06,Residential laundry set (washer + dryer; per set),2,set,2800,5600,CAD,QUOTE,Optional_Items_Pricing.csv OPT-16 (RecommendedPrice),MEDIUM,2 sets required per OSR S12.6; front-load washer + dryer
+L-0506-06,CBS-INST,PKG-005,DEL-05-06,Appliance installation and connection (all units),1,LS,4500,4500,CAD,QUOTE,Optional_Items_Pricing.csv OPT-17 (RecommendedPrice),MEDIUM,Plumbing connections; electrical connections; venting; testing for all appliances

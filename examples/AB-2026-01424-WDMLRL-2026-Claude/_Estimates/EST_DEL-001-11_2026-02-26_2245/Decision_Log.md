@@ -1,0 +1,12 @@
+# Decision_Log — EST_DEL-001-11_2026-02-26_2245
+
+## Decisions Applied During This Run
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Primary pricing method: LOE x Staff Rate (effort-based parametric) | `Level_of_Effort.csv` provides 5 role-specific hour entries for DEL-001-11; `Professional_Staff_Rates.csv` provides matching hourly rates. This is the most granular and directly applicable pricing method available. | All 5 LOE-sourced items priced at MEDIUM confidence |
+| DEC-002 | Fee-based method (Professional_Design_Fees.csv) used for cross-check only, not primary pricing | DF-01 requires a construction value input which is not available at the individual deliverable level. The LOE method provides more granular traceability for a single-deliverable estimate. | Fee-based cross-check noted in Summary.md; not used for line-item amounts |
+| DEC-003 | Parametric_Building_Rates.csv not applicable to this deliverable | PB-01 and PB-02 provide construction cost rates ($/sf), not design professional services rates. These rates apply to construction packages (PKG-010 through PKG-018), not design deliverables. | Rates indexed but not used |
+| DEC-004 | Code review, coordination review, and County approval activities priced at $0 as embedded in LOE hours | The LOE model allocates hours by role across the entire deliverable lifecycle. Activities such as code review (ITEM-007), inter-discipline coordination (ITEM-008), and County approval coordination (ITEM-009) are captured within the Senior Architect, Architect, and PM hours respectively. Pricing these separately would double-count effort. | Items appear in Items.csv for traceability; Amount = $0 in Detail.csv with note that effort is embedded |
+| DEC-005 | Three items set to TBD per FALLBACK_POLICY=ALLOW_PARAMETRIC | The existing conditions survey (ITEM-006), P.Eng./AAAL stamp fees (ITEM-010), and building permit fees (ITEM-011) have no parametric model or rate in the provided price sources. Even with ALLOW_PARAMETRIC fallback, no basis exists for computing amounts. Items recorded as TBD. | 3 TBD lines; RUN_STATUS = WARNINGS |
+| DEC-006 | Scope limited to design professional services for producing the specification document | DEL-001-11 is a design deliverable (Architectural Specification). The estimate covers the effort to produce the specification, not the construction cost of items specified therein. Construction costs are estimated under construction packages. | Clarified in Summary.md scope note |

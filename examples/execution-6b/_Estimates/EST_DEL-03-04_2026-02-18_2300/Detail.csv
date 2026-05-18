@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF_SERVICES_DESIGN,PKG-003,DEL-03-04,Mechanical Engineer (Senior) -- systems selection rationale; HVAC; plumbing; fire protection narrative,10,hr,160,1600,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-03-04 R-11 (10 hrs) + Professional_Staff_Rates.csv row R-11 ($160/hr),MEDIUM,Single-role deliverable; senior mechanical engineer authors mechanical design brief per RFP Section 7.1.2(4)

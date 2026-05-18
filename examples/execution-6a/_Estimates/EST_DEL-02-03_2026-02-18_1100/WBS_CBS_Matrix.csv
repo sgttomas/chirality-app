@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-03,21.03.01,CAD,31850,3,100,PW Shop Bay Sealed Concrete / Floor Finish (bays + workshop + warehouse)
+PKG-002,DEL-02-03,21.03.02,CAD,40188,4,100,PW Shop Bay Functional Fit-up (ceiling paint + compressed air + wall paint)
+PKG-002,DEL-02-03,21.03.03,CAD,34000,2,100,PW Workshop and Storage Areas (equip allowance + shelving/racking)
+PKG-002,DEL-02-03,21.03.04,CAD,95060,12,100,PW PPE / Locker Room Fit-up (lockers + flooring + partitions + ceiling + paint + accessories + showers)
+PKG-002,DEL-02-03,21.03.05,CAD,11298,11,100,PW Shop Office and Washroom Fit-up (flooring + ceiling + paint + partitions + accessories)
+PKG-002,DEL-02-03,ALL,CAD,212396,32,100,TOTAL — DEL-02-03 Public Works Shop Bays Workshop & Support Spaces

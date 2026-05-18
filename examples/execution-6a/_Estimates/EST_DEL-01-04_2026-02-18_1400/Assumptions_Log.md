@@ -1,0 +1,13 @@
+# Assumptions Log
+
+**RunID:** EST_DEL-01-04_2026-02-18_1400
+
+| AssumptionID | Category | Assumption | Source / Basis | Impact if Wrong | Affected Lines |
+|---|---|---|---|---|---|
+| ASM-01 | Permit fees | Building permit fee rate is 0.75% of total construction value. | Fees_Permits_Insurance.csv FP-06 RecommendedRate = 0.75%. Source notes: "Penhold fee schedule TBD." | HIGH. At 0.50%, fee = $43,500 (delta -$21,750). At 1.00%, fee = $87,000 (delta +$21,750). Building permit is 81.7% of total estimate. | L-03 |
+| ASM-02 | Permit fees | Total construction value for permit fee calculation is $8,700,000 CAD. | Assumed_Project_Parameters.csv PP-24. Confidence = LOW; basis = PARAMETRIC. | HIGH. Building permit fee scales linearly with construction value. A 10% change in PP-24 changes the building permit fee by approximately $4,875. | L-03 |
+| ASM-03 | Permit fees | Development permit, electrical permit, plumbing permit, and gas permit fees are at recommended rates from Fees_Permits_Insurance.csv. | FP-07 ($1,200), FP-08 ($2,500), FP-09 ($2,000), FP-10 ($1,000). All are PARAMETRIC basis with LOW-MEDIUM confidence. | LOW-MEDIUM. Combined value = $6,700. Even if all fees double, impact is +$6,700 (8.4% of total estimate). | L-04, L-05, L-06, L-07 |
+| ASM-04 | Level of effort | PM coordination effort is 40 hours for the full project duration. | Level_of_Effort.csv DEL-01-04/R-02. Basis = PARAMETRIC. Notes: "Permit applications; inspection coordination; AHJ liaison throughout project." | LOW-MEDIUM. At 60 hours (+50%), labour cost increases by $3,500 (4.4% of total estimate). | L-01 |
+| ASM-05 | Level of effort | Administrative support is 12 hours for permit documentation and inspection records. | Level_of_Effort.csv DEL-01-04/R-24. Basis = PARAMETRIC. | LOW. Even at double hours (24h), impact is +$960 (1.2% of total estimate). | L-02 |
+| ASM-06 | Scope boundary | No re-inspection fees are budgeted. | RFP §7.2 states DB pays for directed re-work and re-inspections. However, re-inspection frequency is unknown at this stage and no re-inspection fee data is available in PRICE_SOURCES. | MEDIUM. If significant re-inspections occur, additional costs could be material. Suggest carrying a contingency line in future reruns if re-inspection history becomes available. | N/A (not priced) |
+| ASM-07 | Scope boundary | Only permits listed (building, development, electrical, plumbing, gas) are included. Additional permits (e.g., fire suppression, elevator if applicable, signage) are assumed either not required or covered under other deliverable estimates. | Best-effort from Fees_Permits_Insurance.csv FP-06 through FP-10 scope. | LOW-MEDIUM. If additional permits are required, they may add $1,000-$5,000 each. | N/A (not priced) |

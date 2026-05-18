@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-04,Construction Labour > General Construction Labour,CAD,1562.40,1,100,Labourer — trench excavation and backfill support
+PKG-014,DEL-014-04,Construction Labour > Plumbing Labour,CAD,8352.00,6,100,Plumber labour — underground rough-in (Phase 2); Plumber labour — above-ground rough-in and venting (Phase 4); ... (6 items)
+PKG-014,DEL-014-04,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1800.00,1,100,Plumbing permit and Safety Code inspection fees
+PKG-014,DEL-014-04,Plumbing > Plumbing Systems,CAD,19290.00,12,100,Floor drain body and grate — repair bay (heavy-duty load-rat...; Floor drain body and grate — wash bay (heavy-duty load-rated...; ... (12 items)
+PKG-014,DEL-014-04,Professional Services > Project Management,CAD,5720.00,5,100,Product submittals and coordination — lump sum; Project management — PM allocation; ... (5 items)
+PKG-014,DEL-014-04,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,1370.00,2,100,QA/QC lead allocation; HSE manager allocation

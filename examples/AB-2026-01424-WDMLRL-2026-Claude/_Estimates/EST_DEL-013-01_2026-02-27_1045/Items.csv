@@ -1,0 +1,27 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-013-01,High-recovery heating unit — supply and delivery (gas-fired assumed),2,EA,UNIT_RATE,Datasheet,Attributes — System Type,Qty 2 assumed: primary + secondary unit for 13000 sqft high-bay; type TBD per DEL-003-07; ASSUMPTION natural gas
+ITM-002,DEL-013-01,Ductwork — supply and return distribution installed,1208,m2,UNIT_RATE,Datasheet,Construction — Ductwork Connections,Normalized per floor area from Mechanical_System_Rates MS-06; actual routing per DEL-003-03
+ITM-003,DEL-013-01,Heat recovery connections — ductwork tie-ins to air exchanger (DEL-013-02),1,LS,LUMP_SUM,Procedure,Step 3.3 — Ductwork Connections,Allowance for heat recovery loop duct connections
+ITM-004,DEL-013-01,Gas line connection — certified gas fitter,1,LS,LUMP_SUM,Procedure,Step 3.4 — Utility Connections,Conditional on gas-fired confirmation; includes gas fitter labour
+ITM-005,DEL-013-01,Electrical connection — power supply hook-up coordination,1,LS,LUMP_SUM,Procedure,Step 3.4 — Utility Connections,Coordination with PKG-015; circuit termination at equipment
+ITM-006,DEL-013-01,Controls and BMS integration — thermostats sensors controllers wiring,1,LS,LUMP_SUM,Procedure,Step 3.5 — Controls Installation,BMS protocol TBD; includes mounting wiring and configuration
+ITM-007,DEL-013-01,Equipment positioning and securing in utility room,1,LS,LUMP_SUM,Procedure,Step 3.2 — Position and Secure Equipment,Rigging anchoring vibration isolation
+ITM-008,DEL-013-01,Pre-commissioning inspection,1,LS,LUMP_SUM,Procedure,Step 4.1 — Pre-Commissioning Inspection,Includes checklist and documentation
+ITM-009,DEL-013-01,Safety Code inspection coordination,1,LS,LUMP_SUM,Specification,REQ-003 — Code-Compliant Installation,Proponent obtains and schedules; permit fees by Owner
+ITM-010,DEL-013-01,Initial start-up and functional testing,1,LS,LUMP_SUM,Procedure,Step 4.3 — Initial Start-Up,Manufacturer-guided start-up procedure
+ITM-011,DEL-013-01,Integrated HVAC system test (with DEL-013-02 through 06),1,LS,LUMP_SUM,Procedure,Step 4.4 — Integrated HVAC System Test,Multi-system simultaneous operation test including air balance
+ITM-012,DEL-013-01,Performance verification testing,1,LS,LUMP_SUM,Procedure,Step 4.5 — Performance Verification,Data recording per commissioning requirements
+ITM-013,DEL-013-01,Commissioning report preparation,1,LS,LUMP_SUM,Procedure,Step 5.1 — Prepare Commissioning Report,Includes all documentation compilation
+ITM-014,DEL-013-01,As-built mark-ups and drawing submission,1,LS,LUMP_SUM,Procedure,Step 5.2 — As-Built Mark-Ups,Mark-ups of IFC drawings with deviations
+ITM-015,DEL-013-01,O&M manuals and warranty documentation,1,LS,LUMP_SUM,Procedure,Step 5.3 — O&M Manuals and Warranty,Compilation and submission to PKG-020
+ITM-016,DEL-013-01,Equipment submittal preparation and review coordination,1,LS,LUMP_SUM,Specification,REQ-015 — Equipment Submittal Approval,Data sheets and performance documentation for ME review
+ITM-017,DEL-013-01,Ductwork routing coordination — design review,1,LS,LUMP_SUM,Procedure,Step 1.3 — Coordinate Ductwork Routing,Multi-discipline coordination meeting and documentation
+ITM-018,DEL-013-01,Project management — DEL-013-01 scope,6,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-01 allocation
+ITM-019,DEL-013-01,Construction project management — DEL-013-01 scope,8,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-02 allocation
+ITM-020,DEL-013-01,Site superintendent — DEL-013-01 scope,10,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-03 allocation
+ITM-021,DEL-013-01,Cost estimator — DEL-013-01 scope,4,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-08 allocation
+ITM-022,DEL-013-01,QA/QC lead — DEL-013-01 scope,6,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-06 allocation
+ITM-023,DEL-013-01,HSE manager — DEL-013-01 scope,4,hr,UNIT_RATE,Procedure,All Phases,Per Level_of_Effort.csv R-05 allocation
+ITM-024,DEL-013-01,HVAC sheet metal worker — installation labour,80,hr,UNIT_RATE,Procedure,Steps 3.2 through 3.4,Parametric: ~2 workers x 5 days for equipment install + ductwork
+ITM-025,DEL-013-01,Labourer — installation support,40,hr,UNIT_RATE,Procedure,Steps 3.2 through 3.4,Parametric: helper labour for rigging and material handling
+ITM-026,DEL-013-01,Deficiency rectification allowance,1,LS,LUMP_SUM,Procedure,Step 5.4 — Deficiency Rectification,Allowance for post-commissioning rectification work

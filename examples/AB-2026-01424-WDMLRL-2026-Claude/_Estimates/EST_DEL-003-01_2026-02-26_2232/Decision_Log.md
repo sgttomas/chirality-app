@@ -1,0 +1,9 @@
+# Decision Log — EST_DEL-003-01_2026-02-26_2232
+
+| DecisionID | Decision | Rationale | Alternative Considered | Source |
+|---|---|---|---|---|
+| DEC-001 | Use LOE-based parametric pricing (hours x rates) as primary method | LOE data (Level_of_Effort.csv) provides role-specific hour allocations for DEL-003-01; combined with staff rate table, this produces a direct, traceable cost estimate. | Fee-based pricing (Professional_Design_Fees.csv, DF-03 @ 1.6% of construction value) — rejected because construction value is not yet established. | PS-01, PS-02 |
+| DEC-002 | Treat ITM-005 through ITM-012 as $0 activity milestones | These items represent identifiable activities/milestones from the Procedure and Specification documents, but their labour effort is fully captured within ITM-001 through ITM-004. Pricing them separately would double-count. | Price each activity independently with allocated hours — rejected because the LOE model allocates hours by role, not by activity, and splitting would require unsupported assumptions. | PS-02 (LOE model structure) |
+| DEC-003 | CBS categories assigned as Management and Design | Project Manager and Cost Estimator roles mapped to Management CBS; Mechanical Engineer and BIM Technician roles mapped to Design CBS. This aligns with the Category column in Professional_Staff_Rates.csv. | Single CBS category for all roles — rejected because the rate table distinguishes categories. | PS-01 (Category column) |
+| DEC-004 | FALLBACK_POLICY not triggered | All 4 labour items were priced from primary sources (LOE hours + staff rates). No fallback to ALLOWANCE or other methods was required. | N/A | Run configuration |
+| DEC-005 | Scope limited to DEL-003-01 only | Per INIT-TASK brief, scope is DEL-003-01. Downstream deliverables (DEL-003-02 through DEL-003-07) and construction packages are excluded. | Estimate full PKG-003 — not authorized by brief. | INIT-TASK brief |

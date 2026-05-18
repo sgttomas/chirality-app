@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-06,Construction Labour > Plumbing Labour,CAD,3340.80,3,100,Plumber installation labour — fixture installation; Plumber labour — pressure testing and pre-commissioning; Plumber labour — commissioning support
+PKG-014,DEL-014-06,Plumbing > Plumbing Systems,CAD,12220.00,11,100,Water Tap (shop area) — supply and install; Water Tap (utility room) — supply and install; ... (11 items)
+PKG-014,DEL-014-06,Professional Services > Project Management,CAD,5590.00,6,100,Project Manager — coordination and oversight; Construction Project Manager — site coordination; ... (6 items)
+PKG-014,DEL-014-06,TOTAL,CAD,21150.80,20,100,Grand total — all CBS categories

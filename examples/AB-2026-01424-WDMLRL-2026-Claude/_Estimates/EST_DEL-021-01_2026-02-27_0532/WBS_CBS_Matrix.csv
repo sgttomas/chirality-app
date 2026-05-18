@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-01,Construction Labour > General Construction Labour,CAD,7960,8,100,8 line items
+PKG-021,DEL-021-01,General Conditions > General Requirements & Indirect,CAD,150,1,100,Courier / physical delivery of sealed proposal to 
+PKG-021,DEL-021-01,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1500,1,100,Bid bond premium — surety fee for bid bond instrum
+PKG-021,DEL-021-01,TOTAL,CAD,9610,10,100,All CBS categories combined; 10 lines priced

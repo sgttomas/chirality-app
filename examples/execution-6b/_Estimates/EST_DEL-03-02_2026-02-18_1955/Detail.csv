@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF_SERVICES,PKG-003,DEL-03-02,Civil Engineer (Senior) -- parking; access; drainage; stormwater; grading; utility connections; site servicing narrative,10,hr,155,1550,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-03-02/R-07 + Professional_Staff_Rates.csv row R-07,MED,10 hrs from LoE; $155/hr from rate table; brief writing assumes concept (DEL-02-02) is already developed

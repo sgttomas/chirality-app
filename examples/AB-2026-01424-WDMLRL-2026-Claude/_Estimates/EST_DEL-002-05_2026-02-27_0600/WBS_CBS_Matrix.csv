@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-05,General Conditions > General Requirements & Indirect,CAD,4080,2,100,
+PKG-002,DEL-002-05,Professional Services > Design & Engineering,CAD,21780,7,100,
+PKG-002,DEL-002-05,Professional Services > Project Management,CAD,1870,3,100,
+PKG-002,DEL-002-05,TOTAL,CAD,27730,12,100,

@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-004,DEL-04-01,04.01.SHELL,CAD,192000,1,100,PB-01 parametric shell rate x 6000 sf
+PKG-004,DEL-04-01,04.01.DESIGN,CAD,10000,1,0,Allowance — no explicit source; ASM-003
+PKG-004,DEL-04-01,ALL,CAD,202000,2,50,Total for DEL-04-01 (shell + design allowance)

@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-07-01-001,CBS-ADMIN,PKG-03,DEL-07-01,Proposal Coordinator / Writer (R-22) — firm experience narrative writing; project summaries; reference compilation,16,hr,105,1680,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-01/R-22 + Professional_Staff_Rates.csv row R-22,MED,Primary cost driver; 16 hours per LOE; rate $105/hr per rate table
+L-07-01-002,CBS-MGMT,PKG-03,DEL-07-01,Project Manager (R-02) — review and strategic input on firm experience profile,4,hr,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-01/R-02 + Professional_Staff_Rates.csv row R-02,MED,PM oversight and review; 4 hours per LOE; rate $175/hr per rate table

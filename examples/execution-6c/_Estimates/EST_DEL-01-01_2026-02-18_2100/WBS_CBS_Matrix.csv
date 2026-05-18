@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-01,DEL-01-01,ADMIN,CAD,840,1,100,Single role (R-22 Proposal Coordinator) at 8 hours x $105/hr. Full provenance from rate table + LOE.

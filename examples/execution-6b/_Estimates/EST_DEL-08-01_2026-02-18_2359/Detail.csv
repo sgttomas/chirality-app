@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,CX,PKG-008,DEL-08-01,Commissioning Lead -- commissioning approach; training plan; O&M manual coordination; as-built coordination; handover process,10,hr,140,1400,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-08-01/R-21 + Professional_Staff_Rates.csv row R-21,MED,Primary author: commissioning approach and training/closeout narrative per SOW-0023
+L-002,MGMT,PKG-008,DEL-08-01,Project Manager -- input on closeout process; review and coordination,4,hr,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-08-01/R-02 + Professional_Staff_Rates.csv row R-02,MED,PM review and closeout process input

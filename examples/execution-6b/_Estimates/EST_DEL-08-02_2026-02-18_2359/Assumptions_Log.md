@@ -1,0 +1,8 @@
+# Assumptions Log -- EST_DEL-08-02_2026-02-18_2359
+
+| AssumptionID | Assumption | Basis | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | Hours in Level_of_Effort.csv for DEL-08-02 (R-21: 6 hrs, R-02: 2 hrs) are reasonable for a deficiencies management narrative of this scope | Level_of_Effort.csv Basis=PARAMETRIC; the LoE was developed as a parametric estimate for this project | If hours are underestimated, actual production cost could increase. 6 hrs for a Commissioning Lead to draft a deficiency management narrative covering punch lists, valuation, holdback, and warranty review is within a plausible range for a proposal-stage narrative. |
+| ASM-002 | Hourly rates in Professional_Staff_Rates.csv (R-21: $140/hr, R-02: $175/hr) reflect current market rates for Alberta-based professional staff | Professional_Staff_Rates.csv Basis=MARKET, Confidence=MEDIUM | If rates are stale or non-representative, the dollar total could be off. Rates are denominated in CAD and sourced from market data. |
+| ASM-003 | No additional roles beyond R-21 and R-02 are required to produce DEL-08-02 | Level_of_Effort.csv lists only these two roles for DEL-08-02 | If a Quality Lead (R-23) or other reviewer is needed, hours and cost would increase. The LoE source does not include any such roles for this deliverable. |
+| ASM-004 | The deficiency management narrative is a self-contained proposal document section; no external printing, formatting, or specialist costs apply | Narrative deliverables in this proposal are produced as markdown/word documents by internal staff | If specialist formatting or legal review is needed, costs would increase. No such requirement is indicated in the decomposition or dependency register. |

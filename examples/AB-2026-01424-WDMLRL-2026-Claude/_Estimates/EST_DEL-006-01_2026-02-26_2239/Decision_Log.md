@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-006-01_2026-02-26_2239
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used Level_of_Effort.csv role-based hours as the primary pricing basis rather than Professional_Design_Fees.csv percentage approach | LOE provides direct, deliverable-specific hour allocations for DEL-006-01 (4 role entries, 80 hours total). The fee-based approach would require a construction value input that is not available, and would price at the discipline level rather than the deliverable level. | Estimate is directly traceable to deliverable-level parametric model |
+| DEC-002 | Structured Items.csv with both activity items (ITEM-001 through ITEM-007) and role-based items (ITEM-008 through ITEM-011) | Activity items provide scope coverage and traceability to Procedure steps. Role-based items carry the cost. This avoids double-counting while maintaining both views. | 7 scope coverage lines at $0 + 4 costed role lines = $11,365 total |
+| DEC-003 | Priced activity items (ITEM-001 through ITEM-007) at $0 in Detail.csv | The LOE data provides hours by role, not by task. Apportioning hours across tasks would require assumptions not supported by the pricing sources. Cost is carried entirely in the role-based lines (L-001 through L-004). | No double-counting; scope coverage is visible but not costed separately |
+| DEC-004 | Applied NONE rounding per brief configuration | Brief specifies ROUNDING=NONE. All amounts are exact products of hours x rate. | Amounts: $990, $540, $1,995, $7,840 (no rounding applied) |
+| DEC-005 | CBS categories defined as LABOUR-PM, LABOUR-EST, LABOUR-BIM, LABOUR-ENG, SCOPE | Professional services deliverable has no material or equipment costs. CBS reflects the role-based cost structure. | WBS_CBS_Matrix.csv shows cost by labour category |
+| DEC-006 | FALLBACK_POLICY (ALLOW_PARAMETRIC) was not triggered | All items were priced from primary parametric sources (Level_of_Effort.csv + Professional_Staff_Rates.csv). No fallback pricing was required. | N/A |

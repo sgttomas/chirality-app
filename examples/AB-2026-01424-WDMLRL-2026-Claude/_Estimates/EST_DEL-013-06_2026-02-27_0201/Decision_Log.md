@@ -1,0 +1,16 @@
+# Decision Log — EST_DEL-013-06_2026-02-27_0201
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-01 | Fan type assumed as HVLS (High Volume Low Speed) | Guidance P2 states 35 ft ceiling demands purpose-selected high-ceiling fan; HVLS is standard industrial solution for this ceiling height and floor area (~13,000 sqft) | Equipment pricing based on HVLS class ($3,500-$8,000/unit range); if standard industrial fans are selected, unit cost drops but quantity may need to increase |
+| DEC-02 | Fan unit price set at $5,500 (parametric mid-point) | No ceiling fan pricing in any PRICE_SOURCES file; parametric range $3,500-$8,000 for industrial HVLS fans in Canadian market; mid-point selected | Directly sets 47% of total cost; high sensitivity to actual quote |
+| DEC-03 | Installation labour estimated at 8 hrs/fan | Elevated work at 35 ft ceiling requiring aerial lift; HVLS fan assemblies are larger than residential fans; includes mounting bracket, downrod, motor/blade assembly | Conservative estimate; actual hours depend on fan model and access method |
+| DEC-04 | Electrical connection scoped to junction box only | Branch circuit wiring from panel to junction box is explicitly DEL-015 scope per Specification and Procedure; this estimate covers connection at box only | 3 hrs/fan at electrician rate; if scope boundary shifts, cost increases |
+| DEC-05 | Speed controller priced as individual wall-mounted unit ($475/fan) | Control type is TBD (D-003); wall switch is lower-cost assumption; centralized panel would increase total but cover all 6 fans | If centralized panel selected, ITEM-05 becomes 1 LS at higher amount |
+| DEC-06 | Mechanical engineering hours set at 24 hrs | Covers fan selection, equipment submittal preparation, layout design, coordination with structural/electrical engineers | Based on parametric estimate for single-system mechanical design scope |
+| DEC-07 | Structural engineer review set at 8 hrs | 6 attachment point load calculations + stamped drawing; standard structural review scope | Could increase if structural modifications are required |
+| DEC-08 | Commissioning estimated at 32 total hrs (16 Cx agent + 16 HVAC tech) | 7-step commissioning procedure per Procedure Step 7; includes speed test, direction test, vibration measurement, noise measurement, HVAC integration test | Duration depends on number of TBD acceptance criteria that are resolved |
+| DEC-09 | Scaffolding/lift rental at $500/day x 5 days | Boom lift rental for 35 ft reach; 5 days covers installation phase + commissioning phase | No rental rate in PRICE_SOURCES; parametric estimate |
+| DEC-10 | Safety code permits at $500 each (2 permits assumed) | Electrical permit required per RFP §3.3.2; mechanical permit TBD per C-002; assumed both | If mechanical permit not required, cost reduces by $500 |
+| DEC-11 | ALLOW_MIXED_METHODS = TRUE applied; all lines PARAMETRIC | FALLBACK_POLICY = ALLOW_PARAMETRIC allows parametric pricing where basis evidence missing; all items priced parametrically since primary basis is PARAMETRIC | Consistent method across all lines; no method mixing was actually needed |
+| DEC-12 | Management LOE hours taken directly from Level_of_Effort.csv | 38 total hours across 6 roles; hours and role assignments accepted as-is from source | HIGH confidence since both hours and rates are sourced |

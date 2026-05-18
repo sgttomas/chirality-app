@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-07-04,CBS-01-PROF,CAD,1050,1,100,Single role (PM) assigned; 6 hours at $175/hr

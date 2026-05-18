@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-021,DEL-021-02,Construction Labour > General Construction Labour,CAD,2460,3,100,Site Superintendent — bond-related site coordinati; HSE Manager — bond-related safety compliance revie; Document Controller — bond documentation and filin
+PKG-021,DEL-021-02,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,39000,2,100,Performance Bond premium — 50% of contract price; Labour & Material Payment Bond premium — 50% of co
+PKG-021,DEL-021-02,Professional Services > Project Management,CAD,5500,5,100,5 line items
+PKG-021,DEL-021-02,TOTAL,CAD,46960,10,100,All CBS categories combined; 10 lines priced

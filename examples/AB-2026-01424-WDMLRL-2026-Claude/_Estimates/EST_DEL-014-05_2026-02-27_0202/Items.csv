@@ -1,0 +1,17 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-01,DEL-014-05,Emergency shower unit — combination shower/eyewash (supply),1,EA,UNIT_RATE,Datasheet,Attributes — Unit type,ASSUMPTION: combination shower/eyewash per CF-002; Qty 1 per Datasheet Attributes — Quantity
+ITEM-02,DEL-014-05,Thermostatic mixing valve (TMV) — supply,1,EA,UNIT_RATE,Specification,REQ-ES-005 — Tepid Water Delivery,ASSUMPTION: TMV required per CF-001; pending IFC design confirmation
+ITEM-03,DEL-014-05,Supply branch piping — pipe and fittings from distribution main to shower rough-in,1,LS,LUMP_SUM,Procedure,Step 4 — Install Supply Branch Piping,Pipe material and size TBD per Datasheet; parametric estimate for short interior run
+ITEM-04,DEL-014-05,Pipe supports and hangers,1,LS,LUMP_SUM,Procedure,Step 4.3 — Pipe supports and fittings,Included with supply branch installation
+ITEM-05,DEL-014-05,Emergency shower signage — high-visibility safety sign,1,EA,UNIT_RATE,Specification,REQ-ES-010 — Signage,ASSUMPTION: required per Alberta OH&S Code; type TBD
+ITEM-06,DEL-014-05,Plumber labour — rough-in and unit installation,16,hr,UNIT_RATE,Procedure,Steps 3-7 — Mark-out through pressure test,Parametric estimate: plumber installation labour for emergency shower
+ITEM-07,DEL-014-05,Plumber labour — commissioning and testing,4,hr,UNIT_RATE,Procedure,Step 9 — Commissioning flow test,15-min flow test plus setup/teardown and documentation
+ITEM-08,DEL-014-05,Alberta Safety Code plumbing permit,1,EA,UNIT_RATE,Specification,REQ-ES-011 — Permits and Inspections,Permit fee for plumbing work; included in overall PKG-014 permit (allocation)
+ITEM-09,DEL-014-05,Safety Code inspections coordination (rough-in + final),2,EA,UNIT_RATE,Procedure,Steps 5 and 8 — Rough-in and final inspections,Plumber time for inspection coordination
+ITEM-10,DEL-014-05,Project Manager oversight,6,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-01 for DEL-014-05
+ITEM-11,DEL-014-05,Construction Project Manager oversight,8,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-02 for DEL-014-05
+ITEM-12,DEL-014-05,Site Superintendent oversight,10,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-03 for DEL-014-05
+ITEM-13,DEL-014-05,Cost Estimator effort,4,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-08 for DEL-014-05
+ITEM-14,DEL-014-05,QA/QC Lead oversight,6,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-06 for DEL-014-05
+ITEM-15,DEL-014-05,HSE Manager oversight,4,hr,UNIT_RATE,Datasheet,Identification — DEL-014-05,Per Level_of_Effort.csv row R-05 for DEL-014-05
+ITEM-16,DEL-014-05,Owner orientation and documentation handover,2,hr,UNIT_RATE,Procedure,Step 10 — Owner Orientation,Plumber + PM time for demonstration and records turnover

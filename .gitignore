@@ -1,0 +1,94 @@
+.DS_Store
+**/.DS_Store
+
+# Local/runtime agent state
+.claude/
+**/.claude/
+.chirality/
+**/.chirality/
+.checkpoints/
+**/.checkpoints/
+
+# Archives are historical/local, not canonical repo content
+.archive/
+.Archive/
+**/.archive/
+**/.Archive/
+**/_archive/
+**/_Archive/
+
+# Python/cache/build artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+
+# JavaScript/frontend dependency and build artifacts
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist/
+**/dist/
+dist-electron/
+**/dist-electron/
+build/
+**/build/
+target/
+**/target/
+out/
+**/out/
+*.tsbuildinfo
+frontend/artifacts/
+**/frontend/artifacts/
+
+# Environment/local secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+
+# Large or reproducible source corpora and generated source work dirs
+domains/*/_Sources/**
+!domains/*/_Sources/
+!domains/*/_Sources/.gitkeep
+!domains/*/_Sources/README.md
+domains/*/_LocalIndexes/**
+!domains/*/_LocalIndexes/
+!domains/*/_LocalIndexes/.gitkeep
+!domains/*/_LocalIndexes/README.md
+**/*_pdf2md_work/
+**/*_drawing_extract_work/
+**/*_drawing_extract_work_run*/
+**/*_symbol_instance_diag_work/
+**/_LocalIndexes/
+tools/retrieval/_index/
+**/_Sources/**/*.pdf
+**/_Sources/**/*.PDF
+**/_Sources/**/*.zip
+**/_Sources/**/*.png
+**/_Sources/**/*.jpg
+**/_Sources/**/*.jpeg
+**/_Sources/**/*.tif
+**/_Sources/**/*.tiff
+**/_Sources/**/*.mht
+**/_Sources/**/*.bak
+
+# Zip archives and office temp files
+*.zip
+~$*.xlsx
+~$*.xls
+~$*.xlsm
+
+# Local public export staging outputs
+exports/*/staging/
+exports/*/staging-*/
+exports/*/latest/

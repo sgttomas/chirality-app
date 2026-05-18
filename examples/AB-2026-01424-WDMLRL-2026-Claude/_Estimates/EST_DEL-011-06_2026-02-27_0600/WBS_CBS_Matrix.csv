@@ -1,0 +1,10 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-011,DEL-011-06,"Building Envelope > Cladding, Insulation & Waterproofing",CAD,2520.00,1,100,Waterproofing / damp-proofing at pit base and wall/slab inte
+PKG-011,DEL-011-06,Concrete > Concrete & Foundations,CAD,53210.00,6,100,Reinforced concrete pit walls (cast-in-place); Reinforced concrete pit floor slab; Formwork for pit walls and floor; +3 more
+PKG-011,DEL-011-06,Construction Labour > General Construction Labour,CAD,8400.00,1,100,Construction labour — concrete placement and finishing
+PKG-011,DEL-011-06,"Interior Construction > Partitions, Finishes & Fit-Out",CAD,2880.00,1,100,Pit interior lining and finishing (walls and floor)
+PKG-011,DEL-011-06,Mechanical > HVAC Equipment & Distribution,CAD,6300.00,3,100,Ventilation rough-in provisions (sleeves and duct openings i; Lighting rough-in provisions (conduit and junction boxes in ; Floor drain rough-in provisions (drain body and piping)
+PKG-011,DEL-011-06,Professional Services > Project Management,CAD,5640.00,1,100,Project management and supervision (DEL-011-06)
+PKG-011,DEL-011-06,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,16995.00,5,100,Safety railings and edge protection at pit perimeter; Pit cover / grating system (removable steel grating); Excavation safety measures (shoring/benching per Alberta OHS; +2 more
+PKG-011,DEL-011-06,"Sitework & Civil > Earthwork, Surfacing & Landscaping",CAD,1215.00,1,100,Excavation of below-grade pit void within building footprint
+PKG-011,DEL-011-06,TOTAL,CAD,97160.00,19,100,Grand total -- all CBS categories

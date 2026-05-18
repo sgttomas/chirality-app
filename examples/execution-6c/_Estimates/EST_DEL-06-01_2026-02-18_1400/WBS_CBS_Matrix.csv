@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-07,DEL-06-01,PROPOSAL_PRODUCTION.Construction,CAD,2240,1,100,Commissioning Lead hours (R-21)
+PKG-07,DEL-06-01,PROPOSAL_PRODUCTION.Management,CAD,1050,1,100,Project Manager hours (R-02)
+PKG-07,DEL-06-01,ALL,CAD,3290,2,100,Deliverable total — 22 hours across 2 roles

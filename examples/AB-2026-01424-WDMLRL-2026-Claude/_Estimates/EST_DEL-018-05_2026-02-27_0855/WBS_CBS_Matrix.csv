@@ -1,0 +1,11 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-018,DEL-018-05,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,500.00,1,100,Lines: DL-011
+PKG-018,DEL-018-05,Construction Labour > General Construction Labour,CAD,7141.60,4,100,Lines: DL-015; DL-016; DL-017; DL-018
+PKG-018,DEL-018-05,General Conditions > General Requirements & Indirect,CAD,3500.00,1,100,Lines: DL-019
+PKG-018,DEL-018-05,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,2500.00,1,100,Lines: DL-020
+PKG-018,DEL-018-05,Plumbing > Plumbing Systems,CAD,1200.00,1,100,Lines: DL-007
+PKG-018,DEL-018-05,Professional Services > Project Management,CAD,6840.00,8,100,Lines: DL-013; DL-014A; DL-014B; DL-014C; DL-014D (+3 more)
+PKG-018,DEL-018-05,"Sitework & Civil > Earthwork, Surfacing & Landscaping",CAD,1430.00,6,100,Lines: DL-001; DL-002; DL-005; DL-006; DL-009 (+1 more)
+PKG-018,DEL-018-05,Sitework & Civil > Underground Utilities & Site Services,CAD,21270.00,3,100,Lines: DL-003; DL-004; DL-008
+PKG-018,DEL-018-05,Survey & Investigation > Survey & Field Investigation,CAD,1260.00,1,100,Lines: DL-012
+PKG-018,DEL-018-05,TOTAL,CAD,45641.60,26,,Grand total all CBS categories

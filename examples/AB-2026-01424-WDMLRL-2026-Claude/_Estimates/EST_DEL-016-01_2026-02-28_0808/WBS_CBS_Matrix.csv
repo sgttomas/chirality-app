@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-016,DEL-016-01,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,15000.00,4,100%,Commissioning; Alberta Safety Code inspection; Operational demonstration to Owner
+PKG-016,DEL-016-01,Construction Labour > General Construction Labour,CAD,12084.80,5,100%,Crane installation; Electrical final connection and verification (both cranes)
+PKG-016,DEL-016-01,Equipment > Process & Facility Equipment,CAD,405000.00,3,100%,5-tonne overhead crane unit; Anti-collision system for 2 overhead cranes
+PKG-016,DEL-016-01,General Conditions > General Requirements & Indirect,CAD,12000.00,1,100%,Freight and delivery to site
+PKG-016,DEL-016-01,Professional Services > Professional Staff,CAD,12590.00,9,100%,Shop drawings review and coordination; Documentation package; Procurement management; Project Manager coordination; ...
+PKG-016,DEL-016-01,TOTAL,CAD,456674.80,22,100%,Grand total — all lines priced (0 TBD)

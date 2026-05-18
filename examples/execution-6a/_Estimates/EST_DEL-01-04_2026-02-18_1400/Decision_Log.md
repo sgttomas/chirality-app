@@ -1,0 +1,12 @@
+# Decision Log
+
+**RunID:** EST_DEL-01-04_2026-02-18_1400
+
+| DecisionID | Category | Decision | Rationale | Affected Lines |
+|---|---|---|---|---|
+| DEC-EST-01 | Method mix | Used ALLOWANCE method for permit fee lines (L-03 through L-07) alongside RATE_TABLE for labour lines (L-01, L-02). | Brief explicitly authorizes mixed methods (ALLOW_MIXED_METHODS=TRUE). Deliverable substance is "Management + Fees" per brief; coordinator hours have rate table evidence while permit fees do not have confirmed fee schedules. FALLBACK_POLICY=ALLOW_ALLOWANCE permits this. | L-03, L-04, L-05, L-06, L-07 |
+| DEC-EST-02 | CBS mapping | Applied deterministic CBS mapping: 01-MGMT for labour, 01-FEES for permit fees. | No CBSHint provided in decomposition. Mapping follows deliverable substance ("Management + Fees") as stated in brief. Documented in Run_Context.md. | All lines |
+| DEC-EST-03 | Scope boundary | Excluded environmental/AEP fees (FP-16, FP-17) from this estimate. | Environmental consultant fees and AEPA Water Act application fees are in Fees_Permits_Insurance.csv but relate to DEL-03-05 (Environmental Constraints, Flood Hazard & Regulatory Compliance), not DEL-01-04. Per Cost Ownership Rules, discipline-specific costs are not carried in PKG-001 unless they are project-level management costs. Environmental regulatory fees are discipline-specific to civil/environmental scope. | N/A (excluded) |
+| DEC-EST-04 | Scope boundary | Excluded utility connection fees (FP-11 through FP-15) from this estimate. | Utility service tie-ins are treated as cash allowance per SOW-0110 / DEC-004 in decomposition. These costs belong to DEL-03-04 (Site Utilities Distribution & Allowance-Based Tie-Ins) under PKG-003. DEL-01-04 handles permit/inspection coordination for utility connections but does not carry the connection fee costs. | N/A (excluded) |
+| DEC-EST-05 | Pricing basis | Used PP-24 ($8,700,000 estimated total construction value) as denominator for building permit percentage calculation (FP-06). | FP-06 building permit is percentage-based (0.75% recommended). PP-24 is the only available construction value estimate. Noted as PARAMETRIC / LOW confidence. Sensitivity documented in Summary.md. | L-03 |
+| DEC-EST-06 | Rounding | Applied DOLLAR rounding to all amounts. | Per brief: ROUNDING=DOLLAR. All computed amounts happened to be whole dollars (no fractional cents to round). | All lines |

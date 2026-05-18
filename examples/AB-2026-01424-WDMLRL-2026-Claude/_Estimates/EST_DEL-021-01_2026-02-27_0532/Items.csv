@@ -1,0 +1,11 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-021-01,Project Manager — bid security coordination and submission oversight,6,hr,UNIT_RATE,Procedure,Phase 1–5 (all phases),Level_of_Effort.csv R-01; coordination across all phases
+ITEM-002,DEL-021-01,Construction Project Manager — bid security support,8,hr,UNIT_RATE,Procedure,Phase 1–5,Level_of_Effort.csv R-02; construction input to bid security process
+ITEM-003,DEL-021-01,Site Superintendent — bid security support,10,hr,UNIT_RATE,Procedure,Phase 1–5,Level_of_Effort.csv R-03; field operations input
+ITEM-004,DEL-021-01,Contract Administrator — surety engagement and bond administration,16,hr,UNIT_RATE,Procedure,Phase 1 (Surety Engagement) / Phase 2–3 (Bond & Consent prep),Level_of_Effort.csv R-25; primary bid security execution role
+ITEM-005,DEL-021-01,Cost Estimator — bid amount finalization support for bond sizing,4,hr,UNIT_RATE,Procedure,Phase 2 Step 2.2 (Finalize Bid Amount),Level_of_Effort.csv R-08; bid amount confirmation for 10% bond
+ITEM-006,DEL-021-01,QA/QC Lead — bid security verification and checklist review,6,hr,UNIT_RATE,Procedure,Phase 4 Step 4.2–4.3 (Checklist and Go/No-Go),Level_of_Effort.csv R-06; verification activities per Specification
+ITEM-007,DEL-021-01,HSE Manager — bid security package review (safety pre-qualification context),4,hr,UNIT_RATE,Procedure,Phase 4 Step 4.1 (Package Assembly),Level_of_Effort.csv R-05; H&S pre-qual form alignment
+ITEM-008,DEL-021-01,Document Controller — bid security document control and submission logistics,6,hr,UNIT_RATE,Procedure,Phase 4–5 (Package Assembly and Submission),Level_of_Effort.csv R-09; document assembly and delivery tracking
+ITEM-009,DEL-021-01,Bid bond premium — surety fee for bid bond instrument (10% of bid amount),1,LS,LUMP_SUM,Datasheet,Construction — Bid Bond,Parametric estimate; bid bond premiums typically range $500–$2500 for projects of this scale; see Assumptions_Log
+ITEM-010,DEL-021-01,Courier / physical delivery of sealed proposal to Camrose County,1,LS,LUMP_SUM,Procedure,Phase 5 Step 5.1 (Deliver Before Closing Time),Physical delivery to 3755 – 43 Ave Camrose AB; courier cost

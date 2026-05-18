@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-03,03.03.ASP-HD,CAD,200000,2,100,Heavy duty asphalt (Zone A) + geogrid allowance; L-001 + L-012
+PKG-003,DEL-03-03,03.03.ASP-LD,CAD,208000,2,100,Light duty asphalt (Zone B) + geofabric allowance; L-002 + L-013
+PKG-003,DEL-03-03,03.03.AGG,CAD,390000,3,100,Aggregate surfacing (Zone C) two lifts for 300mm + geofabric; L-003 + L-004 + L-014
+PKG-003,DEL-03-03,03.03.CONC,CAD,83230,4,100,Concrete aprons (main+cold storage) + curb/gutter + sidewalk; L-005 + L-006 + L-007 + L-008
+PKG-003,DEL-03-03,03.03.MARK,CAD,3150,2,100,Line painting + accessible signage; L-009 + L-010
+PKG-003,DEL-03-03,03.03.SITE,CAD,12000,1,100,Bollards; L-011
+PKG-003,DEL-03-03,TOTAL,CAD,896380,14,100,Total DEL-03-03 estimate (all CBS codes)

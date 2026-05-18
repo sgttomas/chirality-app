@@ -1,0 +1,25 @@
+SourceID,SourceType,SourcePath,Description,UsedBy,Notes
+SRC-01,Estimate_Snapshot,_Estimates/EST_DEL-01-01_2026-02-18_2100/,DEL-01-01 estimate (1 line; $840),PKG-01,OK
+SRC-02,Estimate_Snapshot,_Estimates/EST_DEL-01-02_2026-02-18_1430/,DEL-01-02 estimate (2 lines; $2170),PKG-01,OK
+SRC-03,Estimate_Snapshot,_Estimates/EST_DEL-01-03_2026-02-18_1500/,DEL-01-03 estimate (9 lines; $543094),PKG-01,OK -- dual cost nature
+SRC-04,Estimate_Snapshot,_Estimates/EST_DEL-02-01_2026-02-18_1400/,DEL-02-01 estimate (12 lines; $29610),PKG-04,OK
+SRC-05,Estimate_Snapshot,_Estimates/EST_DEL-02-02_2026-02-18_2024/,DEL-02-02 estimate (8 lines; $12170),PKG-04,OK
+SRC-06,Estimate_Snapshot,_Estimates/EST_DEL-02-03_2026-02-18_1500/,DEL-02-03 estimate (4 lines; $4770),PKG-04,OK
+SRC-07,Estimate_Snapshot,_Estimates/EST_DEL-03-01_2026-02-18_1400/,DEL-03-01 estimate (2 lines; $2350),PKG-05,OK
+SRC-08,Estimate_Snapshot,_Estimates/EST_DEL-03-02_2026-02-18_1430/,DEL-03-02 estimate (2 lines; $2350),PKG-05,OK
+SRC-09,Estimate_Snapshot,_Estimates/EST_DEL-04-01_2026-02-18_2300/,DEL-04-01 estimate (2 lines; $2870),PKG-06,OK
+SRC-10,Estimate_Snapshot,_Estimates/EST_DEL-04-02_2026-02-18_2400/,DEL-04-02 estimate (2 lines; $2020),PKG-06,OK
+SRC-11,Estimate_Snapshot,_Estimates/EST_DEL-04-03_2026-02-18_2345/,DEL-04-03 estimate (2 lines; $1670),PKG-06,OK
+SRC-12,Estimate_Snapshot,_Estimates/EST_DEL-05-01_2026-02-18_1400/,DEL-05-01 estimate (24 lines; $10738960),PKG-02,OK -- dual cost: production + construction
+SRC-13,Estimate_Snapshot,_Estimates/EST_DEL-05-02_2026-02-18_1500/,DEL-05-02 estimate (98 lines; $10735020),PKG-02,OK -- dual cost: production + construction (same $10729k content)
+SRC-14,Estimate_Snapshot,_Estimates/EST_DEL-05-03_2026-02-18_1430/,DEL-05-03 estimate (2 lines; $3260),PKG-02,OK
+SRC-15,Estimate_Snapshot,_Estimates/EST_DEL-06-01_2026-02-18_1400/,DEL-06-01 estimate (2 lines; $3290),PKG-07,OK
+SRC-16,Estimate_Snapshot,_Estimates/EST_DEL-07-01_2026-02-18_2010/,DEL-07-01 estimate (2 lines; $2380),PKG-03,OK
+SRC-17,Estimate_Snapshot,_Estimates/EST_DEL-07-02_2026-02-18_2130/,DEL-07-02 estimate (2 lines; $1860),PKG-03,OK
+SRC-18,Estimate_Snapshot,_Estimates/EST_DEL-07-03_2026-02-18_1500/,DEL-07-03 estimate (2 lines; $1720),PKG-03,OK
+SRC-19,Estimate_Snapshot,_Estimates/EST_DEL-08-01_2026-02-18_1400/,DEL-08-01 estimate (3 lines; $4620),PKG-08,OK
+SRC-20,Estimate_Snapshot,_Estimates/EST_DEL-09-01_2026-02-18_1500/,DEL-09-01 estimate (3 lines; $3410),PKG-09,OK
+SRC-21,Estimate_Snapshot,_Estimates/EST_DEL-09-02_2026-02-18_1600/,DEL-09-02 estimate (3 lines; $2950),PKG-09,OK
+SRC-22,BOE,_Estimates/BASIS_OF_ESTIMATE.md,Basis of Estimate -- strategy document,All,DRAFT v0.1
+SRC-23,Price_Sources_Index,_PriceSources/INDEX.md,Price sources index,All,17 price source files
+SRC-24,Decomposition,_Decomposition/Penhold_PSB_Project_Decomposition_Final_AddendumIntegrated_v1.md,Project decomposition (9 PKGs / 21 DELs),All,Consolidated proposal-response structure

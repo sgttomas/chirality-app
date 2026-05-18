@@ -1,0 +1,7 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+BE-01,Envelope,Insulated metal wall panels,m2,140,220,180,PARAMETRIC,MEDIUM,Shop envelope
+BE-02,Envelope,Insulated metal roof panels,m2,160,260,210,PARAMETRIC,MEDIUM,High roof / long spans
+BE-03,Doors,"Overhead door, 24' class (supply + install)",each,14000,24000,19000,ALLOWANCE,LOW,Exact size/spec TBD
+BE-04,Doors,"Man door, insulated steel",each,900,1700,1300,PARAMETRIC,MEDIUM,
+BE-05,Envelope,"Flashing, trim, sealants allowance",ls,6000,12000,9000,PARAMETRIC,MEDIUM,
+BE-06,Glazing,"Window unit, commercial",m2,520,920,720,PARAMETRIC,MEDIUM,Office area glazing

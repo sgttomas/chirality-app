@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-04,01-MGMT,CAD,7960,2,100,PM + Admin coordination labour; RATE_TABLE method
+PKG-001,DEL-01-04,01-FEES,CAD,71950,5,100,Building permit + development permit + trade permits; ALLOWANCE method

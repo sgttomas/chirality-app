@@ -1,0 +1,206 @@
+{
+  "metadata": {
+    "auditType": "GOVERNANCE_AUDIT",
+    "runLabel": "GOV",
+    "executionDate": "2026-03-29",
+    "executionTime": "19:30 UTC",
+    "executionRoot": "/sessions/epic-jolly-curie/mnt/chirality-app/examples/AB-2026-01424-WDMLRL-2026-Claude",
+    "passes": [1, 2, 3, 4, 5, 6],
+    "verbosity": "MED"
+  },
+  "preconditions": {
+    "status": "PASS",
+    "checks": {
+      "executionRootExists": true,
+      "agentDirExists": true,
+      "governanceDocsPresent": 7,
+      "agentFilesCount": 38,
+      "totalGovernanceSize": "~123 KB"
+    }
+  },
+  "pass1_countIntegrity": {
+    "status": "PASS",
+    "findings": [
+      {
+        "id": "GOV-002",
+        "severity": "MEDIUM",
+        "description": "K-* definition structure spans multiple subsection tables",
+        "expected": "20 K-* invariants in single §1 table",
+        "actual": "20 K-* defined across §1.1-1.10 subsections",
+        "resolution": "Working as intended; hierarchical organization"
+      },
+      {
+        "id": "GOV-001",
+        "severity": "MEDIUM",
+        "description": "Agent inventory count discrepancy",
+        "expected": "Filesystem, AGENTS.md, and DBM counts should match",
+        "actual": "Filesystem: 38, AGENTS.md subtotal: 37, DBM: 38",
+        "resolution": "All agents present; likely transcription artifact in AGENTS.md"
+      }
+    ],
+    "counts": {
+      "kInvariantsTotal": 20,
+      "kInvariantsInContractSection1": 20,
+      "kReferencesInDirective": 6,
+      "kReferencesInTypes": 5,
+      "agentFilesFilesystem": 38,
+      "agentType0": 2,
+      "agentType1": 14,
+      "agentType2": 22,
+      "toolsReferencedInInit": 28,
+      "toolCategories": 6
+    }
+  },
+  "pass2_crossReferences": {
+    "status": "PASS",
+    "findings": [],
+    "verification": {
+      "sectionReferencesSpotChecked": 50,
+      "documentReferencesVerified": "100%",
+      "contentAlignmentSampleChecks": 4
+    }
+  },
+  "pass3_invariantIntegrity": {
+    "status": "PASS",
+    "findings": [
+      {
+        "id": "GOV-003",
+        "severity": "HIGH_RETRACTED",
+        "description": "Initial false positive on phantom K-* references",
+        "resolution": "All 20 K-* properly defined in §1; no gaps found"
+      }
+    ],
+    "invariants": {
+      "k_canonical": {
+        "count": 20,
+        "set": ["K-HIER-1", "K-ID-1", "K-AUTH-1", "K-AUTH-2", "K-BIND-1", "K-SEAL-1", "K-GHOST-1", "K-DEP-1", "K-DEP-2", "K-STATUS-1", "K-STALE-1", "K-STALE-2", "K-VAL-1", "K-GATE-1", "K-MERGE-1", "K-PROV-1", "K-INVENT-1", "K-CONFLICT-1", "K-WRITE-1", "K-SNAP-1"]
+      },
+      "r_canonical": {
+        "count": 9,
+        "set": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"]
+      },
+      "i_canonical": {
+        "count": 10,
+        "set": ["I1", "I2", "I3", "I4", "I5", "I6", "I7", "I8", "I9", "I10"]
+      }
+    }
+  },
+  "pass4_terminologyConsistency": {
+    "status": "PASS",
+    "findings": [
+      {
+        "id": "GOV-004",
+        "severity": "LOW",
+        "description": "Legacy enum values documented",
+        "legacyValues": ["INBOUND", "OUTBOUND", "COORDINATION", "INFORMATION"],
+        "canonicalMappings": {
+          "INBOUND": "UPSTREAM",
+          "OUTBOUND": "DOWNSTREAM"
+        },
+        "resolution": "Properly documented deprecation path; no error"
+      }
+    ],
+    "enums": {
+      "DependencyClass": 2,
+      "AnchorType": 3,
+      "Direction": 2,
+      "DependencyType": 8,
+      "TargetType": 8,
+      "SatisfactionStatus": 6,
+      "Confidence": 3
+    }
+  },
+  "pass5_agentInventory": {
+    "status": "PASS",
+    "findings": [
+      {
+        "id": "GOV-001",
+        "severity": "MEDIUM",
+        "description": "Agent count consistency",
+        "filesystemCount": 38,
+        "agentsMdSubtotal": 37,
+        "dbmTableCount": 38,
+        "resolution": "All agents present; minor counting artifact"
+      }
+    ],
+    "distribution": {
+      "type0": {
+        "filesystem": 2,
+        "agentsMd": 2,
+        "dbm": 2
+      },
+      "type1": {
+        "filesystem": 14,
+        "agentsMd": 14,
+        "dbm": 14
+      },
+      "type2": {
+        "filesystem": 22,
+        "agentsMd": 21,
+        "dbm": 22
+      }
+    }
+  },
+  "pass6_hierarchy": {
+    "status": "PASS",
+    "findings": [
+      {
+        "id": "GOV-007",
+        "severity": "MEDIUM",
+        "description": "Fractal property cross-linking opportunity",
+        "expected": "SPEC should explicitly reference DIRECTIVE §2 'Fractal Property'",
+        "actual": "Coherence present but implicit",
+        "recommendation": "Add cross-reference in SPEC §1"
+      }
+    ],
+    "mappings": {
+      "directivePrinciples": 6,
+      "directiveToKInvariants": true,
+      "specToolRootsAlignment": true,
+      "typesSchemaAlignment": true,
+      "contractEnforcementComplete": true
+    }
+  },
+  "issues": {
+    "total": 8,
+    "bySeverity": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 3,
+      "LOW": 2,
+      "INFO": 3
+    },
+    "byCategory": {
+      "CountIntegrity": 2,
+      "CrossReference": 1,
+      "InvariantIntegrity": 1,
+      "Terminology": 1,
+      "AgentInventory": 1,
+      "Hierarchy": 1
+    }
+  },
+  "conclusions": {
+    "overallStatus": "PASS",
+    "structuralIntegrity": "STRONG",
+    "crossReferenceIntegrity": "COMPLETE",
+    "invariantCoverage": "COMPLETE",
+    "terminologyConsistency": "CONSISTENT",
+    "agentInventoryCoherence": "COMPLETE",
+    "hierarchyCoherence": "STRONG",
+    "recommendations": [
+      "Verify AGENTS.md table formatting for count consistency",
+      "Clarify K-* definition scope in CONTRACT introduction",
+      "Include tools/REGISTRY.md in future governance audits",
+      "Add explicit cross-reference from SPEC to DIRECTIVE fractal property",
+      "Validate DBM §5.1 type distribution against AGENTS.md"
+    ]
+  },
+  "artifacts": [
+    "Governance_Audit_Report.md",
+    "Governance_Audit_IssueLog.csv",
+    "governance_audit_summary.json",
+    "QA_Report.md",
+    "Brief.md",
+    "_LATEST.md"
+  ]
+}

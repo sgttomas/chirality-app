@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-04,Professional Services > Design & Engineering,CAD,17700,4,100,
+PKG-002,DEL-002-04,Professional Services > Project Management,CAD,1530,4,100,
+PKG-002,DEL-002-04,TOTAL,CAD,19230,8,100,All line items; 130 staff-hours total

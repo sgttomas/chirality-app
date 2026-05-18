@@ -1,0 +1,5 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+PS-01,Surfacing,Gravel driving surface (base + place),m2,28,55,40,PARAMETRIC,MEDIUM,
+PS-02,Surfacing,Asphalt paving (installed),m2,55,110,80,PARAMETRIC,MEDIUM,
+PS-03,Concrete,Concrete apron / approach slab,m2,145,240,190,PARAMETRIC,MEDIUM,
+PS-04,Concrete,Curb and gutter,m,70,140,105,PARAMETRIC,MEDIUM,

@@ -1,0 +1,12 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-008,DEL-008-01,Professional Services — Management,CAD,1530,2,100%,Fully priced: PM $990 + Cost Estimator $540
+PKG-008,DEL-008-01,Professional Services — Geotechnical,CAD,TBD,11,45%,Rate ($175/hr) available for 10 of 11 lines but hours TBD for all; 1 line (cert/seal) has no rate
+PKG-008,DEL-008-01,Professional Services — Administration,CAD,TBD,1,0%,No rate or qty available
+PKG-008,DEL-008-01,Field Investigation — Mobilization,CAD,TBD,1,0%,No mob/demob rate in sources
+PKG-008,DEL-008-01,Field Investigation — Drilling,CAD,TBD,2,0%,No drilling rates; quantities TBD
+PKG-008,DEL-008-01,Field Investigation — Monitoring,CAD,TBD,1,0%,TBD whether required
+PKG-008,DEL-008-01,Field Investigation — Sampling,CAD,TBD,1,0%,No sample handling rates; quantities TBD
+PKG-008,DEL-008-01,Field Investigation — Documentation,CAD,TBD,1,0%,May be included in supervision
+PKG-008,DEL-008-01,Field Investigation — Restoration,CAD,TBD,1,0%,No rate in sources
+PKG-008,DEL-008-01,Laboratory Testing,CAD,TBD,1,0%,No lab test rates; test program TBD
+PKG-008,DEL-008-01,ALL CBS COMBINED,CAD,1530 + TBD,23,8.7%,Only 2 of 23 lines fully priced ($1530 CAD); 21 lines TBD

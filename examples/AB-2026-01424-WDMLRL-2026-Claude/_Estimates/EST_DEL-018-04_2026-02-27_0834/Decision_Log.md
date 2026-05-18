@@ -1,0 +1,14 @@
+# Decision Log — EST_DEL-018-04_2026-02-27_0834
+
+| Decision ID | Decision | Rationale | Impact |
+|-------------|----------|-----------|--------|
+| DEC-001 | Used PS-03 (concrete apron/approach slab @ $190/m2) as parametric proxy for cement pad pricing | PS-03 is the closest available rate in Paving_Surfacing_Rates.csv for exterior concrete slab construction; includes standard formwork and reinforcement | HIGH — this rate drives 43% of the total estimate |
+| DEC-002 | Assumed south zone cement pad width of 130' (matching New North Shop width) | Only one dimension (18') annotated on Appendix B; proportional analysis of the conceptual plan suggests the pad extends the full width of the shop structure | MEDIUM — directly affects cement pad area (217 m2) |
+| DEC-003 | Assumed east-side cement pad area of ~14 m2 | No dimensions given; small notation on Appendix B near Wash Bay Mud Sump; assumed ~10' x 15' based on typical wash bay pad sizing | LOW — $3,206 total cost for this pad |
+| DEC-004 | Excluded gravel material cost from estimate | County/Landfill supplies gravel per SOW-0203 and Appendix B note; contractor scope is subgrade prep, placement, and compaction only | HIGH — gravel material cost would be a significant additional line if scope changes |
+| DEC-005 | Applied $12,500 parametric allowance for crane pad structural uplift | No crane supplier data available; based on parametric model of thickened slab (~150mm additional) at two crane base locations (~40 m2 each) with heavy rebar and cast-in anchor bolts | LOW confidence; HIGH variability |
+| DEC-006 | Included $3,500 cold weather concreting allowance | December 31, 2026 completion deadline means concrete may be placed in autumn/early winter in Alberta; CSA A23.1 cold weather provisions may be triggered | Conditional — may be $0 if all concrete placed in warm months |
+| DEC-007 | Priced gravel placement at $18/m2 (labour/equipment only, no material) | Derived from Construction_Labour_Rates.csv: Equipment Operator T-07 + Labourer T-08 fully burdened rates at ~0.12 hr/m2 combined productivity | MEDIUM — placement productivity assumption |
+| DEC-008 | Used Level_of_Effort.csv allocations directly for professional staff hours | LoE file provides 6 role allocations totaling 38 hours for DEL-018-04; rates from Professional_Staff_Rates.csv | LOW risk — direct source match |
+| DEC-009 | Applied 10% small-area premium to east-side cement pad unit rate ($210/m2 vs $190/m2) | Small pours have higher per-unit mobilization and setup costs; 10% is a standard parametric premium for pours under 20 m2 | LOW impact ($280 delta) |
+| DEC-010 | FALLBACK_POLICY ALLOW_PARAMETRIC was not invoked as a fallback | All items could be priced using PARAMETRIC method from the provided rate tables; no items required fallback to a secondary method | N/A |

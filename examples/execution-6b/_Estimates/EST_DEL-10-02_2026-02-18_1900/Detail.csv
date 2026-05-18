@@ -1,0 +1,4 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,GR-PM,PKG-010,DEL-10-02,Project Manager -- site conditions summary coordination; geotech summary; environmental; flood zone; site grading review,8,hr,175,1400,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-10-02/R-02 + Professional_Staff_Rates.csv row R-02,MED,8 hrs per LoE; $175/hr per rate table
+L-002,GR-DESIGN,PKG-010,DEL-10-02,Civil Engineer (Senior) -- technical review of site conditions reports,6,hr,155,930,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-10-02/R-07 + Professional_Staff_Rates.csv row R-07,MED,6 hrs per LoE; $155/hr per rate table
+L-003,GR-DESIGN,PKG-010,DEL-10-02,Geotechnical Engineer -- existing 2021 geotech report interpretation,4,hr,155,620,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-10-02/R-29 + Professional_Staff_Rates.csv row R-29,MED,4 hrs per LoE; $155/hr per rate table

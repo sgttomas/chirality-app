@@ -1,0 +1,4 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-09-02-01,PROF-PM,PKG-09,DEL-09-02,Project Manager -- site conditions coordination and due diligence review,8,hr,175,1400,CAD,RATE_TABLE,Professional_Staff_Rates.csv R-02 + Level_of_Effort.csv DEL-09-02/R-02,MED,8 hours per LOE; $175/hr per rate table
+L-09-02-02,PROF-CIVIL,PKG-09,DEL-09-02,Civil Engineer (Senior) -- technical review of site conditions and grading/drainage implications,6,hr,155,930,CAD,RATE_TABLE,Professional_Staff_Rates.csv R-07 + Level_of_Effort.csv DEL-09-02/R-07,MED,6 hours per LOE; $155/hr per rate table
+L-09-02-03,PROF-GEOTECH,PKG-09,DEL-09-02,Geotechnical Engineer -- existing geotech report interpretation and foundation recommendations summary,4,hr,155,620,CAD,RATE_TABLE,Professional_Staff_Rates.csv R-29 + Level_of_Effort.csv DEL-09-02/R-29,MED,4 hours per LOE; $155/hr per rate table

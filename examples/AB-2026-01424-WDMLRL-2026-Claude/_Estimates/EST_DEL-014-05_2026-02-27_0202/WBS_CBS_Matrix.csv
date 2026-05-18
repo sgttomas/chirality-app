@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-05,Construction Labour > General Construction Labour,CAD,2412.80,4,100,Plumber labour — rough-in and unit installation; Plumber labour — commissioning and testing; ... (4 items)
+PKG-014,DEL-014-05,Materials > General Materials & Supplies,CAD,4550.00,5,100,Emergency shower unit — combination shower/eyewash (supply); Thermostatic mixing valve (TMV) — supply; ... (5 items)
+PKG-014,DEL-014-05,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,500.00,1,100,Alberta Safety Code plumbing permit (allocated share)
+PKG-014,DEL-014-05,Professional Services > Project Management,CAD,5590.00,6,100,Project Manager oversight; Construction Project Manager oversight; ... (6 items)
+PKG-014,DEL-014-05,TOTAL,CAD,13052.80,16,100,Grand total — all CBS categories

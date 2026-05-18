@@ -1,0 +1,24 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-012-03,Project management — office fit-out coordination,6,hr,UNIT_RATE,Procedure,Phase 1 — Design Coordination,Level_of_Effort.csv R-01 allocation for DEL-012-03
+ITM-002,DEL-012-03,Construction project management — site coordination,8,hr,UNIT_RATE,Procedure,Phase 2 — Construction,Level_of_Effort.csv R-02 allocation for DEL-012-03
+ITM-003,DEL-012-03,Site superintendent — field leadership,10,hr,UNIT_RATE,Procedure,Phase 2 — Construction,Level_of_Effort.csv R-03 allocation for DEL-012-03
+ITM-004,DEL-012-03,Cost estimator — estimate prep / QTO,4,hr,UNIT_RATE,Procedure,Phase 1 — Design Coordination,Level_of_Effort.csv R-08 allocation for DEL-012-03
+ITM-005,DEL-012-03,QA/QC lead — inspections / deficiency tracking,6,hr,UNIT_RATE,Procedure,Phase 3 — Inspection and Verification,Level_of_Effort.csv R-06 allocation for DEL-012-03
+ITM-006,DEL-012-03,HSE manager — safety oversight,4,hr,UNIT_RATE,Procedure,Phase 2 — Construction,Level_of_Effort.csv R-05 allocation for DEL-012-03
+ITM-007,DEL-012-03,Interior partition walls — metal stud + gypsum board,50,m2,UNIT_RATE,Datasheet,Fit-Out Attributes — Wall systems; Construction — Interior partitions,ASSUMPTION: ~25 m2 floor area x ~2.0 wall-to-floor ratio = ~50 m2 partition wall area (see ASM-001 and ASM-002)
+ITM-008,DEL-012-03,Suspended acoustic ceiling,25,m2,UNIT_RATE,Datasheet,Fit-Out Attributes — Ceiling finish; Specification REQ-009,ASSUMPTION: ceiling area equals floor area (~25 m2). Ceiling type TBD per IFC RCP (see ASM-001)
+ITM-009,DEL-012-03,Floor finish — commercial vinyl/laminate,25,m2,UNIT_RATE,Datasheet,Fit-Out Attributes — Floor finish; Specification REQ-009,Floor finish type TBD per IFC finish schedule; using commercial vinyl/laminate per Guidance Principle 3 (see ASM-001)
+ITM-010,DEL-012-03,Paint — walls and ceilings,75,m2,UNIT_RATE,Specification,REQ-009 — Floor and Ceiling Finishes,Painted area = ~50 m2 walls + ~25 m2 ceiling = 75 m2 (see ASM-002)
+ITM-011,DEL-012-03,Interior door — supply and install (1 EA standard),1,EA,LUMP_SUM,Datasheet,Fit-Out Attributes — Door(s),1 entry door shown on App B (Shop) floor plan. Type/hardware TBD per IFC door schedule
+ITM-012,DEL-012-03,Electrical receptacles — 15A/120V supply and install,4,EA,UNIT_RATE,Specification,REQ-007 — Electrical Receptacles,Qty TBD; assumed 4 EA per typical small office. Scope boundary PKG-012/PKG-015 unresolved (CONF-001)
+ITM-013,DEL-012-03,LED lighting fixture — 1x 8 ft strip install,1,EA,LUMP_SUM,Specification,REQ-006 — Lighting,SOW-0054. Scope boundary PKG-012/PKG-015 unresolved (CONF-001)
+ITM-014,DEL-012-03,Data/communications outlet rough-in,2,EA,UNIT_RATE,Specification,REQ-005 — Integrated Communication and Data Systems,Qty TBD; assumed 2 EA data drops. Final low-voltage wiring by PKG-015
+ITM-015,DEL-012-03,HVAC coordination — duct penetrations and register accommodation,1,LS,LUMP_SUM,Procedure,Step 2.4 — MEP Rough-In Coordination; Step 2.7 — Ceiling System,Allowance for blocking and framing around HVAC penetrations
+ITM-016,DEL-012-03,Accessibility features — door hardware / threshold / clearances,1,LS,LUMP_SUM,Specification,REQ-003 — Accessibility Compliance,Lever hardware; barrier-free threshold; per Alberta Building Code
+ITM-017,DEL-012-03,Safety features — exit signage / emergency lighting / fire extinguisher mount,1,LS,LUMP_SUM,Specification,REQ-013 — Emergency Egress and Life Safety Provisions; Procedure Step 2.12,Per Alberta Building Code and Fire Code
+ITM-018,DEL-012-03,Millwork — basic casework allowance (kitchenette/counter if applicable),1,LS,LUMP_SUM,Datasheet,Fit-Out Attributes,Allowance per Interior_Architectural_Rates.csv IA-05. Applicability TBD — included as office may have counter/shelf
+ITM-019,DEL-012-03,Construction labour — carpenter (partition framing and drywall),40,hr,UNIT_RATE,Procedure,Steps 2.2–2.6 — Partition layout through wall closure,Parametric estimate: ~50 m2 partition @ ~0.8 hr/m2
+ITM-020,DEL-012-03,Construction labour — drywaller (taping / finishing),16,hr,UNIT_RATE,Procedure,Step 2.6 — Close Partition Walls,Parametric estimate: ~50 m2 partition @ ~0.32 hr/m2
+ITM-021,DEL-012-03,Construction labour — painter,12,hr,UNIT_RATE,Procedure,Step 2.6 — Close Partition Walls (finish),Parametric estimate: ~75 m2 paint @ ~0.16 hr/m2
+ITM-022,DEL-012-03,Construction labour — flooring installer,8,hr,UNIT_RATE,Procedure,Step 2.8 — Install Floor Finish,Parametric estimate: ~25 m2 floor @ ~0.32 hr/m2
+ITM-023,DEL-012-03,Inspection and deficiency correction — labour allowance,8,hr,UNIT_RATE,Procedure,Phase 3 — Inspection and Verification,Allowance for interim/final inspections and deficiency remediation

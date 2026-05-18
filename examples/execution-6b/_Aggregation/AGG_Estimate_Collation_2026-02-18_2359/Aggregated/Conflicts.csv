@@ -1,0 +1,3 @@
+ConflictID,LineUID_A,LineUID_B,Field,Value_A,Value_B,Resolution,Notes
+CONFLICT-001,DEL-01-03::L-004,DEL-01-04::B-1110,Amount,180000,90000,NO_CONFLICT_DIFFERENT_SCOPE,"DEL-01-03 L-004 is the total performance bond premium on full contract ($12M x 1.50%); DEL-01-04 B-1110 is the same premium but calculated as 50% of contract price x 1.50% ($12M/2 x 1.50%); this apparent conflict is explained by different calculation basis -- DEL-01-03 uses full contract; DEL-01-04 uses 50% per CCDC 14 convention. Flagged for human review."
+CONFLICT-002,DEL-01-03::L-005,DEL-01-04::B-1120,Amount,120000,60000,NO_CONFLICT_DIFFERENT_SCOPE,"DEL-01-03 L-005 is full L&M bond premium ($12M x 1.00%); DEL-01-04 B-1120 uses 50% basis ($12M/2 x 1.00%). Same root cause as CONFLICT-001."

@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,LABOUR,PKG-001,DEL-01-09,Project Manager -- subtrade identification; outreach; form completion,8,hr,175,1400,CAD,RATE_TABLE,Level_of_Effort.csv (DEL-01-09 / R-02) + Professional_Staff_Rates.csv (R-02),MED,PM drives subtrade procurement coordination and Appendix I form completion
+L-02,LABOUR,PKG-001,DEL-01-09,Administrative / Document Control -- contact coordination; form formatting,4,hr,80,320,CAD,RATE_TABLE,Level_of_Effort.csv (DEL-01-09 / R-24) + Professional_Staff_Rates.csv (R-24),MED,Administrative support for contact gathering and form production

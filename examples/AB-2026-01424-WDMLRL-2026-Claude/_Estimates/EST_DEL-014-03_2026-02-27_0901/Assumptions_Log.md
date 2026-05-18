@@ -1,0 +1,22 @@
+# Assumptions Log — EST_DEL-014-03_2026-02-27_0901
+
+| AssumptionID | Assumption | Impact if Wrong | Source / Basis |
+|---|---|---|---|
+| ASM-001 | Fill line run length is approximately 15 m from utility room to north exterior wall | Piping cost ($130/m) and heat trace cost ($85/m) scale linearly; each additional metre adds ~$215 | Parametric assumption from building layout context (13,000 sqft building) |
+| ASM-002 | Pump is located indoors in utility room (per Guidance T-1 preferred option) | If pump is outdoors, freeze protection cost increases; pump enclosure would add $2,000-$5,000 | Guidance.md T-1 — indoor location provides better freeze protection |
+| ASM-003 | Bulk water fill pump is an industrial-grade centrifugal transfer pump, 5-10 HP, 200-400 LPM range, priced at $8,500 | Actual pump could range $5,000-$12,000+ depending on specified flow rate and features; +/- $3,500 | Parametric derivation; pump spec TBD per Datasheet and Specification REQ-014-03-02 |
+| ASM-004 | Exterior fill connection is a cam-lock or storz type coupling with protective cap and weather enclosure, priced at $1,200 | Different connection standards could change cost; range $600-$2,000 | Parametric; Guidance.md T-2 (connection type trade-off); Examples section |
+| ASM-005 | Backflow prevention device is a double-check valve assembly (DCVA) for 2-3 inch line, priced at $1,800 | An RPZ device would be $2,500-$4,000; a simpler check valve would be $300-$600; +/- $1,200 | Specification REQ-014-03-06; Guidance.md C-4 (minimum DCVA or equivalent) |
+| ASM-006 | Freeze protection uses self-regulating heat trace cable + pipe insulation at $85/m installed | Drain-back design could eliminate heat trace ($0/m for piping but $500-$1,000 for drain-back valves and controls); heated enclosure alternative would be $2,000-$5,000 lump sum | Specification REQ-014-03-07; Guidance.md C-1 |
+| ASM-007 | Valves and fittings package (isolation valves, check valve, drain valve, supports) totals $2,200 lump sum | Range $1,500-$3,500 depending on pipe size, valve count, and specification | Procedure.md Step 2.3 (fill line installation includes valves, supports) |
+| ASM-008 | Wall sleeve and penetration seal for concrete wall costs $650 | Range $400-$1,000; concrete structure wall penetration with link seal and firestopping | Procedure.md Step 2.1 |
+| ASM-009 | Pump mounting pad/frame costs $400 | Simple steel frame or concrete pad; range $200-$800 | Procedure.md Step 2.2 |
+| ASM-010 | Electrical conduit stub-out to pump motor location costs $350 | Short conduit run and fittings; range $200-$600; plumbing contractor scope only | Procedure.md Step 2.7 |
+| ASM-011 | Cistern inlet connection (bulkhead fitting + isolation valve) costs $450 | Range $250-$800; depends on cistern type and connection method | Procedure.md Step 2.4; interface with DEL-014-01 |
+| ASM-012 | Pressure test materials/equipment at $500 and system flush at $250 | Labour component included in plumber hours (LN-012); these cover materials/rental only | Procedure.md Steps 4.2, 4.4 |
+| ASM-013 | Commissioning activities total $2,550 across 4 tests (~18 hr combined effort at blended rates) | Could range $1,500-$4,000 depending on commissioning agent involvement vs. self-commissioning by plumber; Guidance C-6 unresolved | Procedure.md Phase 5 |
+| ASM-014 | Alberta plumbing permit and 2 inspections costs $1,500 | Jurisdictional variation: could be $500-$3,000 depending on Camrose County / Alberta Safety Codes fee schedule | Specification REQ-014-03-05; Procedure.md Steps 3.1, 4.3 |
+| ASM-015 | Closeout documentation effort at $1,600 (~12 hr) | Includes as-built drawing mark-ups, O&M manual compilation, warranty assembly, punch list clearance | Procedure.md Phase 6 |
+| ASM-016 | Bollard protection at exterior fill point costs $800 | Steel bollard with concrete footing; range $500-$1,500 | Procedure.md Step 2.5 (bollard protection mentioned) |
+| ASM-017 | System scope is cistern replenishment only (not bidirectional extraction) | If extraction is required, add pump bypass/reversal, additional valves, and potentially a different pump; additional cost $3,000-$8,000 | Guidance.md Conflict Table C-003; DEC-005 |
+| ASM-018 | Pipe material is Schedule 40 PVC or copper (2-3 inch) consistent with UU-01 rate | Stainless steel or specialty material would increase piping cost 2-3x | Datasheet Construction — Fill Line Pipe Material (TBD) |

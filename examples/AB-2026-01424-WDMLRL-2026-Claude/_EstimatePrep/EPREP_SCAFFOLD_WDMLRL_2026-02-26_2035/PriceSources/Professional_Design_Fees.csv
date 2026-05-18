@@ -1,0 +1,6 @@
+ItemID,Discipline,Description,FeePercentMin,FeePercentMax,RecommendedPercent,FeeBase,Basis,Confidence,Notes
+DF-01,Architecture,Architectural design fee (incl. coordination),3.0,6.0,4.5,construction_value,PARAMETRIC,MEDIUM,Use if pricing design as fee vs internal LOE
+DF-02,Structural,Structural design fee,1.2,2.5,1.8,construction_value,PARAMETRIC,MEDIUM,
+DF-03,Mechanical,Mechanical design fee,1.0,2.2,1.6,construction_value,PARAMETRIC,MEDIUM,
+DF-04,Electrical,Electrical design fee,1.0,2.2,1.6,construction_value,PARAMETRIC,MEDIUM,
+DF-05,Civil,Civil/site design fee,0.6,1.5,1.0,construction_value,PARAMETRIC,MEDIUM,

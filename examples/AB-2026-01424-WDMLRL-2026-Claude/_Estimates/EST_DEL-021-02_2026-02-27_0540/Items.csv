@@ -1,0 +1,11 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-021-02,Performance Bond premium — 50% of contract price,1,LS,LUMP_SUM,Datasheet,Attributes — Performance Bond (SOW-0099),Bond face amount is 50% of contract price; contract price TBD; premium is the priceable cost to the proponent
+ITEM-002,DEL-021-02,Labour & Material Payment Bond premium — 50% of contract price,1,LS,LUMP_SUM,Datasheet,Attributes — Payment Bond (SOW-0100),Bond face amount is 50% of contract price; contract price TBD; premium is the priceable cost to the proponent
+ITEM-003,DEL-021-02,Surety arrangement and bond coordination — Contract Administrator,16,hr,UNIT_RATE,Procedure,Steps 1-6 — Bond coordination and surety engagement,Level_of_Effort.csv R-25 Contract Administrator 16 hr for DEL-021-02
+ITEM-004,DEL-021-02,Project Manager — bond coordination and Owner liaison,6,hr,UNIT_RATE,Procedure,Steps 1-6 — PM oversight and Owner liaison,Level_of_Effort.csv R-01 Project Manager 6 hr for DEL-021-02
+ITEM-005,DEL-021-02,Construction Project Manager — bond coordination support,8,hr,UNIT_RATE,Procedure,Steps 1-6 — Construction PM coordination,Level_of_Effort.csv R-02 Construction PM 8 hr for DEL-021-02
+ITEM-006,DEL-021-02,Site Superintendent — bond-related site coordination,10,hr,UNIT_RATE,Procedure,Steps 1-6 — Site coordination for bond prerequisites,Level_of_Effort.csv R-03 Site Superintendent 10 hr for DEL-021-02
+ITEM-007,DEL-021-02,Cost Estimator — bond amount verification,4,hr,UNIT_RATE,Procedure,Step 2 — Contract price confirmation and bond calculation,Level_of_Effort.csv R-08 Cost Estimator 4 hr for DEL-021-02
+ITEM-008,DEL-021-02,QA/QC Lead — bond document review and verification,6,hr,UNIT_RATE,Specification,Verification — bond document review per REQ-021-02-001 through REQ-021-02-008,Level_of_Effort.csv R-06 QA/QC Lead 6 hr for DEL-021-02
+ITEM-009,DEL-021-02,HSE Manager — bond-related safety compliance review,4,hr,UNIT_RATE,Procedure,Prerequisites — Safety compliance context for bonding,Level_of_Effort.csv R-05 HSE Manager 4 hr for DEL-021-02
+ITEM-010,DEL-021-02,Document Controller — bond documentation and filing,6,hr,UNIT_RATE,Procedure,Step 6 — Retain copies and update contract file,Level_of_Effort.csv R-09 Document Controller 6 hr for DEL-021-02

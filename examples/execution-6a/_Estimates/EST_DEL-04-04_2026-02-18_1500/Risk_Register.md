@@ -1,0 +1,7 @@
+# Risk Register -- EST_DEL-04-04_2026-02-18_1500
+
+| RiskID | Description | Likelihood | Impact | Mitigation | Affected Lines |
+|---|---|---|---|---|---|
+| RSK-0404-01 | Climate analysis (DEP-04-04-007) may reveal that passive ventilation (ridge vents / gable fans) is insufficient for condensation prevention in Penhold's climate, requiring active mechanical ventilation at higher cost. | MEDIUM | MEDIUM ($12,000-$30,000 increase to ventilation cost) | Obtain Environment Canada climate normals early in design. If active ventilation needed, rerun estimate with updated MS-13 rate or substitute MS-07 rate. | L-0404-02 |
+| RSK-0404-02 | AHJ may require fire alarm system in cold storage building depending on occupancy classification and proximity to main building. | LOW | MEDIUM (~$21,000 if ES-08 rate applied at $3.50/sf x 6,000 sf) | Confirm occupancy classification and fire alarm requirements with AHJ during DEL-01-04 permitting coordination. | Would add new line item. |
+| RSK-0404-03 | Rate table rates (ES-12, MS-13) are PARAMETRIC basis with MEDIUM confidence. Actual pricing may vary based on market conditions, contractor availability, and detailed design. | MEDIUM | LOW-MEDIUM (range: $42,000-$72,000 vs recommended $54,000) | Rates include min/max ranges. Sensitivity documented in QA Report. Recommend obtaining quotes during procurement for tighter estimate. | L-0404-01, L-0404-02 |

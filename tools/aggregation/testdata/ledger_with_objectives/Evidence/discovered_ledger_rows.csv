@@ -1,0 +1,3 @@
+AtomicUnitID,UnitStatement,CategoryID,KnowledgeTypeIDs,ObjectiveIDs,SourcePath,SourceRef,Notes
+AU-001,Pumps operational integrity,CAT-001,KTY-02-01_Piping; KTY-01-01_Pumps ;KTY-02-01_Piping,OBJ-002 ;OBJ-001; OBJ-002,Domain_Ledger.csv,row1,
+AU-002,Piping layout compliance,CAT-002,KTY-02-01_Piping,OBJ-001,Domain_Ledger.csv,row2,

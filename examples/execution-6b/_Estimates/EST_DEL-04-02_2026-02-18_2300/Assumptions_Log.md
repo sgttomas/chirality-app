@@ -1,0 +1,8 @@
+# Assumptions Log
+
+| AssumptionID | Assumption | Source | Impact if Wrong |
+|---|---|---|---|
+| A-0402-01 | The 10 hours allocated to R-11 (Mechanical Engineer Senior) in Level_of_Effort.csv is sufficient to produce the full mechanical energy and solar readiness narrative covering: high-efficiency equipment, heat recovery, ventilation optimization, DHW efficiency, solar-ready provisions, and energy metering. | Level_of_Effort.csv row DEL-04-02/R-11 | If scope is broader than anticipated or requires more detailed analysis, hours may need to increase. 10 hrs is a focused narrative effort consistent with the T2 (narrative) deliverable type. |
+| A-0402-02 | No intermediate mechanical engineer support is required for DEL-04-02. | Level_of_Effort.csv (no R-12 row for DEL-04-02) | If supporting calculations or research are needed (e.g., heat recovery sizing, energy model inputs), an intermediate role may need to be added. Compare: DEL-02-04 (Mechanical Concept Narrative) allocates R-12 at 8 hrs; DEL-04-02 does not. |
+| A-0402-03 | Market rates in Professional_Staff_Rates.csv ($160/hr CAD for R-11) are current and applicable. | Professional_Staff_Rates.csv row R-11; Confidence = MEDIUM | If actual rates differ, total will scale proportionally. A $10/hr variance on 10 hrs = $100 impact. |
+| A-0402-04 | The mechanical energy narrative can be produced without requiring a separate building science consultant contribution. | Level_of_Effort.csv (no R-27 row for DEL-04-02; R-27 is assigned to DEL-04-01) | If building science input is needed specifically for DEL-04-02, those hours are currently captured under DEL-04-01. Scope boundary is clear: envelope strategy is DEL-04-01; mechanical energy efficiency is DEL-04-02. |

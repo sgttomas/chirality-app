@@ -1,0 +1,28 @@
+# QA CHECKS — four-documents
+
+## Minimum output validity checks
+
+1. The four document files exist after a successful Pass 1 run.
+2. `DECOMP_VARIANT=DOMAIN` is rejected with `UNSUPPORTED_VARIANT`.
+3. `P3_ONLY` does not proceed unless the four existing documents and `_SEMANTIC_LENSING.md` are already present.
+4. The run does not modify metadata files other than the safe `_STATUS.md` update.
+5. Source-grounding gaps appear as `TBD`, assumptions, or conflict-table entries rather than invented content.
+6. The run stays within the target deliverable folder.
+7. Every warranted item ID in `_SEMANTIC_LENSING.md` has a Pass 3 disposition, and no stale/nonexistent item IDs are referenced.
+8. `python3 tools/validation/validate_p3_disposition.py {DELIVERABLE_PATH}` passes before the Pass 3 output is accepted.
+
+## Failure reporting expectations
+
+Use `FAILED_INPUTS` when:
+- authoritative source materials are unavailable,
+- required existing files for `P3_ONLY` are missing,
+- overwrite protection blocks the run.
+
+Use `UNSUPPORTED_VARIANT` when `DECOMP_VARIANT=DOMAIN`.
+
+## Required evidence/log expectations
+
+- Record inaccessible source materials as missing.
+- Record source rereads for substantive Pass 3 changes.
+- Record any conflict-table additions when source materials and decomposition context disagree.
+- Record item-by-item Pass 3 disposition evidence for all warranted `_SEMANTIC_LENSING.md` rows.

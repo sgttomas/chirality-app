@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-010,DEL-10-02,GR-PM,CAD,1400,1,100,PM coordination for site conditions and due diligence summary
+PKG-010,DEL-10-02,GR-DESIGN,CAD,1550,2,100,Civil engineer site review + geotechnical report interpretation

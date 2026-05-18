@@ -1,0 +1,5 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+EC-01,Earthworks,Common excavation,m3,14,28,20,PARAMETRIC,MEDIUM,
+EC-02,Earthworks,Imported granular fill (supply + place),m3,38,72,55,PARAMETRIC,MEDIUM,
+EC-03,Earthworks,Compaction / proof roll allowance,m2,2.5,5.5,4.0,PARAMETRIC,MEDIUM,
+EC-04,Earthworks,Topsoil stripping + stockpile,m2,2.0,4.5,3.2,PARAMETRIC,MEDIUM,

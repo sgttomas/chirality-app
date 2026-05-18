@@ -1,0 +1,23 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-014-01,"50,000L cistern vessel — supply and set",1,EA,UNIT_RATE,Datasheet,Attributes > Cistern,"Minimum 50,000L; tank type and material TBD (Lensing A-002, B-001)"
+ITM-002,DEL-014-01,Distribution pump — supply and install (100 LPM min; 2.5 inch connection),1,EA,UNIT_RATE,Datasheet,Attributes > Distribution Pump,Pump type and motor power TBD (Lensing B-002 and A-004)
+ITM-003,DEL-014-01,Distribution piping — cistern to service points (water taps and pressure washer reel),1,LS,LUMP_SUM,Datasheet,Distribution Points / Construction > Piping,"Pipe material TBD; routing lengths TBD; 3 distribution points identified on R-06"
+ITM-004,DEL-014-01,"Pipe supports, hangers, valves, and appurtenances",1,LS,LUMP_SUM,Specification,REQ-014-01-004,Complete plumbing requirement; quantities depend on IFC design
+ITM-005,DEL-014-01,2.5-inch cistern filling connection,1,EA,UNIT_RATE,Datasheet,Attributes > Cistern > Fill connection diameter,"Coupling type TBD (Lensing E-001); coordination with DEL-014-03"
+ITM-006,DEL-014-01,Backflow prevention device(s),1,LS,LUMP_SUM,Specification,REQ-014-01-011,"Type and location TBD; Alberta plumbing code requirement (Lensing F-001)"
+ITM-007,DEL-014-01,"Cistern overflow provision (overflow pipe, high-level alarm, or both)",1,LS,LUMP_SUM,Specification,REQ-014-01-012,Specific mechanism TBD (Lensing F-002)
+ITM-008,DEL-014-01,Freeze protection — insulation and/or heat trace on piping and cistern,1,LS,LUMP_SUM,Specification,REQ-014-01-008,"Method TBD; Alberta climate requires freeze protection (Lensing A-001, D-001)"
+ITM-009,DEL-014-01,Pressure testing of distribution piping,1,LS,LUMP_SUM,Procedure,Phase 4 > Step 4.2,Test parameters TBD per Alberta plumbing code (Lensing A-005)
+ITM-010,DEL-014-01,Plumbing permit — Alberta Safety Code,1,LS,LUMP_SUM,Procedure,Phase 1 > Step 1.4,"Permit fee; RFP §3.3.2"
+ITM-011,DEL-014-01,"Commissioning — cistern fill test, pump test, distribution verification, overflow test",1,LS,LUMP_SUM,Procedure,Phase 5 > Steps 5.1-5.2,Coordination with DEL-020-01
+ITM-012,DEL-014-01,As-built drawings and O&M documentation,1,LS,LUMP_SUM,Procedure,Phase 6 > Steps 6.1-6.2,Standard closeout deliverable
+ITM-013,DEL-014-01,Pre-CCC deficiency inspection,1,LS,LUMP_SUM,Procedure,Phase 6 > Step 6.3,Standard practice (Lensing X-003)
+ITM-014,DEL-014-01,Flushing and disinfection of distribution piping,1,LS,LUMP_SUM,Procedure,Phase 4A > Step 4A.1,"Standard practice; disinfection scope depends on water quality classification (Lensing F-004)"
+ITM-015,DEL-014-01,Project management — PM allocation for DEL-014-01,6,hr,UNIT_RATE,Procedure,Prerequisites / Phase 1,LOE from Level_of_Effort.csv (R-01)
+ITM-016,DEL-014-01,Construction project management — CPM allocation for DEL-014-01,8,hr,UNIT_RATE,Procedure,Prerequisites / Phase 3,LOE from Level_of_Effort.csv (R-02)
+ITM-017,DEL-014-01,Site superintendent — allocation for DEL-014-01,10,hr,UNIT_RATE,Procedure,Prerequisites / Phase 3,LOE from Level_of_Effort.csv (R-03)
+ITM-018,DEL-014-01,Cost estimator — allocation for DEL-014-01,4,hr,UNIT_RATE,Procedure,Phase 1 > Step 1.1,LOE from Level_of_Effort.csv (R-08)
+ITM-019,DEL-014-01,QA/QC lead — allocation for DEL-014-01,6,hr,UNIT_RATE,Procedure,Phase 4 > Step 4.1,LOE from Level_of_Effort.csv (R-06)
+ITM-020,DEL-014-01,HSE manager — allocation for DEL-014-01,4,hr,UNIT_RATE,Procedure,Prerequisites,LOE from Level_of_Effort.csv (R-05)
+ITM-021,DEL-014-01,Plumber labour — cistern installation and piping rough-in,80,hr,UNIT_RATE,Procedure,Phase 3 > Steps 3.1-3.6,"Parametric estimate: ~2 plumbers x 5 days for cistern set, piping, pump install, connections"
+ITM-022,DEL-014-01,Plumber labour — testing and commissioning,16,hr,UNIT_RATE,Procedure,Phase 4-5,"Parametric estimate: 2 plumbers x 1 day for pressure test, pump test, commissioning"

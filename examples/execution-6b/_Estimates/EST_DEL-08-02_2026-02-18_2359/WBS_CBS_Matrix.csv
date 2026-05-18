@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-008,DEL-08-02,CX,CAD,840,1,100,Commissioning Lead hours for deficiency management narrative
+PKG-008,DEL-08-02,MGMT,CAD,350,1,100,Project Manager hours for deficiency process input
+PKG-008,DEL-08-02,TOTAL,CAD,1190,2,100,Grand total -- DEL-08-02 Deficiencies Management Narrative

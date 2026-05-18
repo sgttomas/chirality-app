@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-05-06,CBS-EQP,CAD,14100,5,100,Equipment purchase: 2 fridges + 2 microwaves + 1 stove/oven + 1 dishwasher + 2 laundry sets
+PKG-005,DEL-05-06,CBS-INST,CAD,4500,1,100,Installation and connection for all appliances
+PKG-005,DEL-05-06,TOTAL,CAD,18600,6,100,DEL-05-06 total (all CBS categories)

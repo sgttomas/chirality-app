@@ -1,0 +1,22 @@
+WBS_PackageID,PackageName,Amount_CAD,DeliverableCount,LineCount
+PKG-001,Architectural Design,184710.0,11,66
+PKG-002,Structural Design,209645.0,12,95
+PKG-003,Mechanical Design,97110.0,7,53
+PKG-004,Electrical Design,134730.0,9,62
+PKG-005,Civil Design,106250.0,7,54
+PKG-006,Process / Fire Protection Design,90920.0,8,96
+PKG-007,Instrumentation & Controls Design,43920.0,4,22
+PKG-008,Geotechnical & Environmental,96640.0,4,75
+PKG-009,Project Management & Controls,38035.0,4,55
+PKG-010,Foundation & Concrete Construction,570213.6,1,31
+PKG-011,Building Envelope & Structural Steel,2890261.4,7,155
+PKG-012,Interior Architectural Construction,125435.0,3,61
+PKG-013,Mechanical & HVAC Installation,596623.5,6,136
+PKG-014,Underground Utilities & Services,300587.8,6,128
+PKG-015,Electrical Installation,266787.4,5,125
+PKG-016,Equipment Procurement & Install,456674.8,1,22
+PKG-017,Specialties & Finishing,213514.34,4,130
+PKG-018,Sitework & Civil Construction,589972.4,6,128
+PKG-019,Permits & Regulatory,22360.0,4,50
+PKG-020,Optional / Alternates,43370.0,3,34
+PKG-021,Contract Administration,160750.0,5,54

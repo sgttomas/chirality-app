@@ -1,0 +1,73 @@
+Execution,DeliverableID,DeliverableName,RoleID,Role,EstimatedHours,Basis,Notes
+6b,DEL-01-01,Compliance Matrix & Checklist,R-22,Proposal Coordinator / Writer,8,PARAMETRIC,Map all RFP sections; addenda integration; compliance tracking spreadsheet
+6b,DEL-01-02,Formal Submission Package,R-22,Proposal Coordinator / Writer,16,PARAMETRIC,Final PDF assembly; TOC; page numbering; submission QA; must be LAST
+6b,DEL-01-02,Formal Submission Package,R-02,Project Manager,4,PARAMETRIC,Final review and sign-off
+6b,DEL-01-03,Bonding & Insurance Evidence,R-02,Project Manager,4,PARAMETRIC,Surety broker coordination; insurance approach decisions
+6b,DEL-01-03,Bonding & Insurance Evidence,R-25,Legal Review (External),4,PARAMETRIC,Bond document review; insurance documentation review
+6b,DEL-01-03,Bonding & Insurance Evidence,R-24,Administrative / Document Control,2,PARAMETRIC,Document compilation and filing
+6b,DEL-01-04,Schedule A — Pricing Summary,R-18,Estimator (Senior),40,PARAMETRIC,Construction pricing compilation; Schedule A form completion; QA review
+6b,DEL-01-04,Schedule A — Pricing Summary,R-19,Estimator (Intermediate),24,PARAMETRIC,Supporting takeoffs; pricing assembly; cross-checks
+6b,DEL-01-04,Schedule A — Pricing Summary,R-02,Project Manager,8,PARAMETRIC,Pricing strategy review; margin decisions
+6b,DEL-01-05,Schedule B — Cost Breakdown,R-18,Estimator (Senior),24,PARAMETRIC,Detailed cost breakdown; reconciliation to Schedule A
+6b,DEL-01-05,Schedule B — Cost Breakdown,R-19,Estimator (Intermediate),16,PARAMETRIC,Breakdown detail assembly; cross-reference checking
+6b,DEL-01-05,Schedule B — Cost Breakdown,R-02,Project Manager,4,PARAMETRIC,Review and approval
+6b,DEL-01-06,Pricing Narrative & Assumptions,R-02,Project Manager,12,PARAMETRIC,Narrative lead: allowances; exclusions; value alternatives; CCIP
+6b,DEL-01-06,Pricing Narrative & Assumptions,R-18,Estimator (Senior),8,PARAMETRIC,Pricing assumptions documentation; backup
+6b,DEL-01-07,DB Firm Experience Profile,R-22,Proposal Coordinator / Writer,16,PARAMETRIC,Research firm portfolio; write project summaries; gather references
+6b,DEL-01-07,DB Firm Experience Profile,R-02,Project Manager,4,PARAMETRIC,Review and input on key projects
+6b,DEL-01-08,Key Team Members & Resumes,R-26,HR Coordinator,12,PARAMETRIC,Availability confirmations; resume source files; formatting
+6b,DEL-01-08,Key Team Members & Resumes,R-22,Proposal Coordinator / Writer,8,PARAMETRIC,Resume editing to 2-page max; role descriptions
+6b,DEL-01-09,Appendix I — Subtrade & Consultant List,R-02,Project Manager,8,PARAMETRIC,Subtrade identification; outreach; form completion
+6b,DEL-01-09,Appendix I — Subtrade & Consultant List,R-24,Administrative / Document Control,4,PARAMETRIC,Contact coordination; form formatting
+6b,DEL-02-01,Architectural Concept Package (Drawings),R-04,Architect (Project),40,PARAMETRIC,Concept development; floor plans; elevations; sections; program integration; coordination lead
+6b,DEL-02-01,Architectural Concept Package (Drawings),R-05,Architect (Intermediate),24,PARAMETRIC,Supporting architectural production; detail development
+6b,DEL-02-01,Architectural Concept Package (Drawings),R-06,CAD Technician / BIM Operator,60,PARAMETRIC,Drawing production; CAD/BIM modeling; revision cycles
+6b,DEL-02-01,Architectural Concept Package (Drawings),R-02,Project Manager,8,PARAMETRIC,Coordination oversight; client interface
+6b,DEL-02-02,Civil/Site Concept Plan,R-07,Civil Engineer (Senior),24,PARAMETRIC,Site layout; parking; grading concept; utility routing; drainage
+6b,DEL-02-02,Civil/Site Concept Plan,R-08,Civil Engineer (Intermediate),16,PARAMETRIC,Supporting civil calculations; drawing markups
+6b,DEL-02-02,Civil/Site Concept Plan,R-06,CAD Technician / BIM Operator,16,PARAMETRIC,Site plan drawing production
+6b,DEL-02-03,Structural Concept Narrative,R-09,Structural Engineer (Senior),16,PARAMETRIC,Foundation approach; framing system; expansion provisions; narrative writing
+6b,DEL-02-03,Structural Concept Narrative,R-10,Structural Engineer (Intermediate),8,PARAMETRIC,Supporting calculations; sketch review
+6b,DEL-02-04,Mechanical Concept Narrative,R-11,Mechanical Engineer (Senior),16,PARAMETRIC,HVAC; plumbing; fire protection; exhaust; generator sizing; narrative
+6b,DEL-02-04,Mechanical Concept Narrative,R-12,Mechanical Engineer (Intermediate),8,PARAMETRIC,Supporting calculations; equipment research
+6b,DEL-02-05,Electrical/IT Concept Narrative,R-13,Electrical Engineer (Senior),16,PARAMETRIC,Power; lighting; IT/telecom; fire alarm; security provisions; narrative
+6b,DEL-02-05,Electrical/IT Concept Narrative,R-14,Electrical Engineer (Intermediate),8,PARAMETRIC,Supporting load calculations; equipment research
+6b,DEL-03-01,Architectural Design Brief,R-04,Architect (Project),12,PARAMETRIC,Site plan rationale; architectural plan; elevations; finishes; code compliance narrative
+6b,DEL-03-02,Civil Design Brief,R-07,Civil Engineer (Senior),10,PARAMETRIC,Parking; access; drainage; grading; utility connections narrative
+6b,DEL-03-03,Structural Design Brief,R-09,Structural Engineer (Senior),10,PARAMETRIC,System selection rationale; expansion; foundation; load path narrative
+6b,DEL-03-04,Mechanical Design Brief,R-11,Mechanical Engineer (Senior),10,PARAMETRIC,Systems selection rationale; HVAC; plumbing; fire protection narrative
+6b,DEL-03-05,Electrical/IT Design Brief,R-13,Electrical Engineer (Senior),10,PARAMETRIC,Power; lighting; controls; telecom; fire alarm; solar-readiness narrative
+6b,DEL-03-06,Accessibility & Adaptability Narrative,R-04,Architect (Project),8,PARAMETRIC,Accessibility per ABC; adaptability/expansion; cross-discipline coordination
+6b,DEL-04-01,Building Envelope & Energy Strategy,R-27,Building Science Consultant,12,PARAMETRIC,Thermal performance; air barrier; thermal bridging; energy code
+6b,DEL-04-01,Building Envelope & Energy Strategy,R-04,Architect (Project),4,PARAMETRIC,Envelope coordination input
+6b,DEL-04-02,Mechanical Energy & Solar Readiness,R-11,Mechanical Engineer (Senior),10,PARAMETRIC,High-efficiency equipment; heat recovery; solar-ready mechanical; metering
+6b,DEL-04-03,Electrical Energy Efficiency,R-13,Electrical Engineer (Senior),8,PARAMETRIC,LED controls; motor efficiency; solar-ready electrical; metering
+6b,DEL-05-01,Architectural Durability & Maintenance,R-04,Architect (Project),10,PARAMETRIC,Cladding; roofing; finishes lifecycle; doors/hardware; moisture management
+6b,DEL-05-02,Structural Durability & Maintenance,R-09,Structural Engineer (Senior),8,PARAMETRIC,Corrosion; freeze-thaw; foundation longevity; slab; inspection access
+6b,DEL-05-03,Mechanical Maintainability,R-11,Mechanical Engineer (Senior),8,PARAMETRIC,Equipment access; serviceability; maintenance schedule; lifecycle cost
+6b,DEL-05-04,Electrical Maintainability,R-13,Electrical Engineer (Senior),8,PARAMETRIC,Panel accessibility; fixture replacement; control system; IT lifecycle
+6b,DEL-06-01,Design Methodology Narrative,R-03,Design Manager,10,PARAMETRIC,Design approach; stakeholder engagement; review process; innovation
+6b,DEL-06-01,Design Methodology Narrative,R-02,Project Manager,4,PARAMETRIC,Input on client engagement approach
+6b,DEL-06-02,Detailed Design & Construction Documents Plan,R-03,Design Manager,10,PARAMETRIC,5 milestones; discipline deliverables; coordination; QA/QC checkpoints
+6b,DEL-06-02,Detailed Design & Construction Documents Plan,R-02,Project Manager,4,PARAMETRIC,Input on review cycles; Owner coordination
+6b,DEL-07-01,Construction Methodology Narrative,R-15,Construction Manager,12,PARAMETRIC,H&S; staging; permits; budget/schedule control; communications; QA/QC
+6b,DEL-07-01,Construction Methodology Narrative,R-02,Project Manager,4,PARAMETRIC,Input on project controls approach
+6b,DEL-07-02,Construction Administration Narrative,R-15,Construction Manager,8,PARAMETRIC,Supervision; document management; shop drawings; cleaning
+6b,DEL-07-03,Subconsultant Approach Narrative,R-02,Project Manager,8,PARAMETRIC,Discipline listing; management approach; geotech review protocol
+6b,DEL-07-04,Meetings & Reporting Narrative,R-02,Project Manager,6,PARAMETRIC,Meeting structure; frequency; reporting cadence
+6b,DEL-07-05,Quality Management Narrative,R-23,Quality Lead,8,PARAMETRIC,Design QC; construction QC; commissioning QC; documentation QC
+6b,DEL-07-05,Quality Management Narrative,R-02,Project Manager,4,PARAMETRIC,Input on quality framework
+6b,DEL-08-01,Commissioning Training & Closeout Narrative,R-21,Commissioning Lead,10,PARAMETRIC,Commissioning approach; training; O&M; as-built; handover
+6b,DEL-08-01,Commissioning Training & Closeout Narrative,R-02,Project Manager,4,PARAMETRIC,Input on closeout process
+6b,DEL-08-02,Deficiencies Management Narrative,R-21,Commissioning Lead,6,PARAMETRIC,Punch lists; valuation; holdback; warranty review
+6b,DEL-08-02,Deficiencies Management Narrative,R-02,Project Manager,2,PARAMETRIC,Input on deficiency process
+6b,DEL-08-03,Warranty Requirements Narrative,R-02,Project Manager,4,PARAMETRIC,12-month warranty; manufacturer warranties; SC provisions
+6b,DEL-08-03,Warranty Requirements Narrative,R-21,Commissioning Lead,4,PARAMETRIC,Warranty coordination with commissioning
+6b,DEL-09-01,Detailed Project Schedule,R-17,Scheduler,20,PARAMETRIC,Gantt chart production; CPM analysis; milestone dates; assumptions
+6b,DEL-09-01,Detailed Project Schedule,R-02,Project Manager,8,PARAMETRIC,Schedule review; milestone validation
+6b,DEL-09-01,Detailed Project Schedule,R-15,Construction Manager,4,PARAMETRIC,Construction sequencing input
+6b,DEL-10-01,Risk Register & Mitigation Plan,R-02,Project Manager,10,PARAMETRIC,Risk identification; likelihood/impact assessment; mitigation
+6b,DEL-10-01,Risk Register & Mitigation Plan,R-15,Construction Manager,4,PARAMETRIC,Construction risk input
+6b,DEL-10-02,Site Conditions & Due Diligence Summary,R-02,Project Manager,8,PARAMETRIC,Geotech summary; environmental; flood zone; site grading review
+6b,DEL-10-02,Site Conditions & Due Diligence Summary,R-07,Civil Engineer (Senior),6,PARAMETRIC,Technical review of site conditions reports
+6b,DEL-10-02,Site Conditions & Due Diligence Summary,R-29,Geotechnical Engineer,4,PARAMETRIC,Existing geotech report interpretation

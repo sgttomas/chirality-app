@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-07-05,MGMT,CAD,1740,2,100,Quality Lead (8 hr x $130) + PM (4 hr x $175); all lines have full SourceRef

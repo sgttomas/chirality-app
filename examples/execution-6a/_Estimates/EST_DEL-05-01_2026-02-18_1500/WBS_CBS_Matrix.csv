@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-05-01,CBS-0500-EQUIP,CAD,95000,1,100,ALLOWANCE fallback; requires vendor quote replacement
+PKG-005,DEL-05-01,CBS-0500-PLMB,CAD,16000,1,100,ALLOWANCE fallback; requires vendor quote replacement
+PKG-005,DEL-05-01,CBS-0500-ENVR,CAD,12000,1,100,ALLOWANCE fallback; requires vendor quote replacement; AEP requirements TBD

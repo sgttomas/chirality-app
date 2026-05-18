@@ -1,0 +1,9 @@
+# Assumptions Log — EST_DEL-006-01_2026-02-26_2239
+
+| AssumptionID | Assumption | Basis | Risk if Incorrect |
+|---|---|---|---|
+| ASM-001 | The LOE model allocations in Level_of_Effort.csv (80 total hours for DEL-006-01) are appropriate for a preliminary plumbing design of this scope and complexity | Parametric model provided as a pricing source; MEDIUM confidence per source metadata | If actual effort is higher (e.g., due to complexity of cistern design, renovation scope, or interdisciplinary coordination), cost will exceed estimate. If lower, estimate is conservative. |
+| ASM-002 | Hourly rates in Professional_Staff_Rates.csv are representative of current Alberta market rates for these roles | Rates are tagged PARAMETRIC / MEDIUM confidence in the source file | Rate variance directly affects total; a 10% rate increase would add approximately $1,137 to the total |
+| ASM-003 | All design effort for DEL-006-01 is captured by the four roles identified in the LOE model (PM, Cost Estimator, BIM Technician, Plumbing Engineer) | Level_of_Effort.csv assigns only these four roles to DEL-006-01 | If additional specialist involvement is required (e.g., environmental consultant for septic design, geotechnical input beyond standard coordination), costs would increase |
+| ASM-004 | No material, equipment, or subcontractor costs apply to this deliverable | DEL-006-01 is a Design Presentation artifact — it produces documents, not physical assets | If external printing, specialty software licensing, or third-party review fees are required, they are not included |
+| ASM-005 | Currency is CAD as specified in the brief and confirmed by Assumed_Project_Parameters.csv (PP-17) | PP-17 states CAD based on Alberta context; MEDIUM confidence (tagged as ASSUMPTION in source) | Low risk — project is in Alberta, Canada |

@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-015,DEL-015-01,Construction Labour > Electrical Labour,CAD,9946.40,3,100,CBS normalized; 3 detail lines
+PKG-015,DEL-015-01,Electrical > Commissioning & Administration,CAD,7000.00,6,100,CBS normalized; 6 detail lines
+PKG-015,DEL-015-01,Electrical > Power Distribution & Equipment,CAD,42025.00,5,100,CBS normalized; 5 detail lines
+PKG-015,DEL-015-01,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1500.00,1,100,CBS normalized; 1 detail lines
+PKG-015,DEL-015-01,Professional Services > Project Management,CAD,5590.00,6,100,CBS normalized; 6 detail lines
+PKG-015,DEL-015-01,TOTAL,CAD,66061.40,21,100,All CBS categories combined (post-normalization)

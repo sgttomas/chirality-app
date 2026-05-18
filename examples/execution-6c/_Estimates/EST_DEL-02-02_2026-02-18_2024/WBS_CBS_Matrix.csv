@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-04,DEL-02-02,PROF_DESIGN,CAD,9800,6,100,6 design roles: R-04 ($2900) + R-05 ($960) + R-07 ($1240) + R-09 ($1550) + R-11 ($1600) + R-13 ($1550)
+PKG-04,DEL-02-02,PROF_SPECIALTY,CAD,1320,1,100,Building Science Consultant R-27 ($1320)
+PKG-04,DEL-02-02,PROF_MGMT,CAD,1050,1,100,Project Manager R-02 ($1050)

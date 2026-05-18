@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,MGMT,PKG-007,DEL-07-03,Project Manager -- Subconsultant Approach Narrative (discipline listing; management/interface approach; geotech review protocol per DEC-013),8,HR,175,1400,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-03/R-02 + Professional_Staff_Rates.csv row R-02,MED,8 hrs x $175/hr; covers all subconsultant approach topics per SOW-0021 and RFP Section 7.3.4

@@ -1,0 +1,6 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-001-04,Project Management — coordination and oversight for Building Sections deliverable,6,hr,UNIT_RATE,Procedure,Phase A + Phase B (Steps A-1 through B-6),Role R-01 Project Manager; LOE from Level_of_Effort.csv
+ITEM-002,DEL-001-04,Cost Estimating — quantity takeoff and benchmarking support for Building Sections,4,hr,UNIT_RATE,Procedure,Phase A + Phase B,Role R-08 Cost Estimator; LOE from Level_of_Effort.csv
+ITEM-003,DEL-001-04,Senior Architect — lead design and code coordination for Building Sections,54,hr,UNIT_RATE,Procedure,Phase A (section cut selection and preliminary sections) + Phase B (structural coordination and IFC),Role R-11 Senior Architect; LOE from Level_of_Effort.csv
+ITEM-004,DEL-001-04,Architect — production drawing development for Building Sections,42,hr,UNIT_RATE,Procedure,Phase A (drafting preliminary sections) + Phase B (assembly annotations and final drawings),Role R-12 Architect; LOE from Level_of_Effort.csv
+ITEM-005,DEL-001-04,BIM Technician — modeling and sheet setup for Building Sections,24,hr,UNIT_RATE,Procedure,Phase A (model setup and section views) + Phase B (coordination model updates and sheet production),Role R-13 BIM Technician; LOE from Level_of_Effort.csv

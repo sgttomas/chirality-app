@@ -1,0 +1,3 @@
+ItemID,Category,Description,Unit,PriceMin,PriceMax,RecommendedPrice,Basis,Confidence,Notes
+OPT-01,Alternates,Allowance for winter conditions / heating / hoarding,ls,15000,65000,35000,ALLOWANCE,LOW,Seasonal risk; validate schedule
+OPT-02,Alternates,Allowance for contaminated soils handling,ls,10000,120000,45000,ALLOWANCE,LOW,Site conditions unknown

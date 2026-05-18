@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-03,Mechanical > Administration & Permits,CAD,11900.00,7,0,Mechanical permit - AHJ application and fees; Equipment submittals - preparation and review coordination; ... (+5 more)
+PKG-013,DEL-013-03,Mechanical > Controls & Commissioning,CAD,24000.00,7,0,Dampers and control valves - intake/supply/zone; Controls integration - BAS wiring and programming; ... (+5 more)
+PKG-013,DEL-013-03,Mechanical > HVAC Equipment & Distribution,CAD,145100.00,10,30,Makeup Air Unit (MUA) - supply and install; Fresh air intake ductwork - exterior penetration to MUA; ... (+8 more)
+PKG-013,DEL-013-03,Professional Services > Project Management,CAD,5590.00,6,100,Project Manager - MUA deliverable coordination; Construction Project Manager - MUA coordination; ... (+4 more)

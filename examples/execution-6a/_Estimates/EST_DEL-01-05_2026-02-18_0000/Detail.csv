@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-01,PM,PKG-001,DEL-01-05,Project Manager — meetings (biweekly x 2h x 18mo = 72h) + change control admin (18h),90,hr,175,15750,CAD,RATE_TABLE,Professional_Staff_Rates.csv (R-02) + Level_of_Effort.csv (DEL-01-05 R-02 90h),MED,SOW-0011 meetings + SOW-0012 change control; PP-01 18-month duration basis
+L-02,ADMIN,PKG-001,DEL-01-05,Administrative / Document Control — minutes + RFI log + submittal tracking + change order documentation,50,hr,80,4000,CAD,RATE_TABLE,Professional_Staff_Rates.csv (R-24) + Level_of_Effort.csv (DEL-01-05 R-24 50h),MED,SOW-0011 meeting minutes + SOW-0012 documentation management; PP-01 18-month duration basis

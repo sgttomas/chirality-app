@@ -1,0 +1,14 @@
+# Decision Log — EST_DEL-013-03_2026-02-27_0901
+
+| DecID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used MS-02 RecommendedRate ($45,000) for MUA unit installed cost | Midpoint of $28,000-$65,000 range; sizing TBD; parametric basis consistent with FALLBACK_POLICY=ALLOW_PARAMETRIC | MUA unit cost could range from $28,000 to $65,000 (+44%/-38%); dominant single line item |
+| DEC-002 | Used MS-06 RecommendedRate ($60/m2) applied to 13,000 sqft (1,208 m2) building floor area for supply ductwork | Parametric normalization per floor area is standard for conceptual HVAC estimates; floor area from PP-10 | Ductwork cost ($72,480) is largest CBS; sensitive to actual routing and distribution design |
+| DEC-003 | Split ITM-022 (management) into 6 role-based lines using LOE hours from Level_of_Effort.csv matched to Staff Rates | LOE source provides hour allocations by role; Staff Rates source provides hourly rates; direct match provides best traceability | Management total ($5,590) has 100% provenance |
+| DEC-004 | Estimated ductwork insulation at 15% of supply ductwork cost | Industry parametric ratio for insulated commercial HVAC ductwork; no direct source for insulation rates | $10,870 estimate; actual depends on specification (TBD per DEL-003-07) |
+| DEC-005 | Estimated ductwork hangers/supports at 7.5% of supply ductwork cost | Industry parametric ratio for ductwork support systems in high-bay industrial buildings | $5,400 estimate; 35ft ceiling increases hanger complexity |
+| DEC-006 | Assumed 4 EA fire/smoke dampers | Typical for a building of this size with limited fire-rated assemblies (utility room walls, possibly mezzanine) | $2,600 total; actual count per fire separation drawings |
+| DEC-007 | Assumed gas-fired MUA unit | Consistent with Guidance C3 and DEL-013-01 natural gas heating system; most common in Alberta industrial | Affects gas connection line item ($2,500); if electric MUA, gas connection not needed |
+| DEC-008 | FALLBACK_POLICY=ALLOW_PARAMETRIC applied to 23 of 31 lines | No direct quotes, rate tables, or historical data available for commissioning, permits, submittals, dampers, controls, insulation, etc. | 74% of lines are ASSUMPTION-based; total has material uncertainty |
+| DEC-009 | Did not price warranty/deficiency correction or post-commissioning monitoring | Warranty terms TBD per CCDC 14 contract (Enrichment X-005); monitoring is optional consideration per Guidance C8 | Potential understatement of lifecycle costs; excluded per standard construction estimate scope |
+| DEC-010 | Included condensate management ($750) despite applicability being TBD | Prudent provision for cold-climate MUA with heating coil; low-cost inclusion reduces risk of omission | Minor cost; may be unnecessary if MUA does not produce condensation |

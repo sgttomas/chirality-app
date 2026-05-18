@@ -1,0 +1,5 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-02,Construction Labour > General Construction Labour,CAD,4676.80,3,100,Plumber labour — tank installation and connections; Equipment operator labour — excavation and backfill; Labourer — general support
+PKG-014,DEL-014-02,Plumbing > Plumbing Systems,CAD,55400.00,10,100,"Supply and set new 2,000 US gal septic holding tank; Underground sanitary line — building drainage to holding tan...; ... (10 items)"
+PKG-014,DEL-014-02,Professional Services > Professional Staff,CAD,5780.00,6,100,Professional staff — Project Manager; Professional staff — Construction Project Manager; ... (6 items)
+PKG-014,DEL-014-02,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,560.00,1,100,Professional staff — HSE Manager

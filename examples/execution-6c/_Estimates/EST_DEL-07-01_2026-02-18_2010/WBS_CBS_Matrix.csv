@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-03,DEL-07-01,CBS-ADMIN,CAD,1680,1,100,Proposal Coordinator / Writer hours
+PKG-03,DEL-07-01,CBS-MGMT,CAD,700,1,100,Project Manager hours
+PKG-03,DEL-07-01,ALL,CAD,2380,2,100,Deliverable total

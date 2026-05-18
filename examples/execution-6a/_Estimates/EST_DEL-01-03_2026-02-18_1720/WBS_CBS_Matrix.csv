@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-03,CBS-LABOUR-SAFETY,CAD,6600,1,100,Safety Officer labour fully priced from rate table
+PKG-001,DEL-01-03,CBS-LABOUR-ADMIN,CAD,640,1,100,Admin/Doc Control labour fully priced from rate table
+PKG-001,DEL-01-03,CBS-TRAINING,CAD,TBD,1,0,No pricing source; TBD under STRICT fallback
+PKG-001,DEL-01-03,CBS-SUPPLIES,CAD,TBD,1,0,No pricing source; TBD under STRICT fallback
+PKG-001,DEL-01-03,ALL,CAD,7240,4,50,Subtotal of priced lines only; 2 of 4 lines priced (50%)

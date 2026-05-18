@@ -1,0 +1,23 @@
+CBS_Category,Description,CostCategory,Amount_CAD,LineCount,Notes
+LABOUR.ADMIN,Administrative labour (proposal coordinator; admin; HR),PRODUCTION,8540,5,Proposal coordinator + admin + HR coordinator hours
+LABOUR.DESIGN,Design professional labour (architects; engineers; building science; CAD),PRODUCTION,58090,37,All design discipline hours across PKG-002 through PKG-005 and PKG-010
+LABOUR.MGMT,Management labour (PM; design manager; construction manager),PRODUCTION,28290,22,PM + design manager + construction manager hours across all packages
+LABOUR.LEGAL,Legal review labour,PRODUCTION,1200,1,External legal review for bond/insurance (DEL-01-03)
+LABOUR.CONST,Construction/scheduling labour,PRODUCTION,3220,2,Scheduler + construction manager construction-specific hours
+LABOUR.ESTIMATING,Estimating labour,PRODUCTION,15040,4,Senior + intermediate estimator hours for Schedule A/B
+LABOUR.CX,Commissioning labour,PRODUCTION,2800,3,Commissioning lead hours across PKG-008
+LABOUR.QA,Quality management labour,PRODUCTION,1040,1,Quality lead hours for DEL-07-05
+CON.STR,Construction - Structural/Concrete,CONSTRUCTION_PRICING,1792000,10,Foundations + slab + steel + deck (DEL-01-04 + DEL-01-05 views)
+CON.ENV,Construction - Building Envelope,CONSTRUCTION_PRICING,1614000,12,Wall panels + roof + glazing + doors + sealant + air barrier
+CON.INT,Construction - Interior Architectural,CONSTRUCTION_PRICING,560000,12,Partitions + ceilings + flooring + painting + accessibility + millwork
+CON.MEC,Construction - Mechanical,CONSTRUCTION_PRICING,1884000,14,HVAC + plumbing + fire protection + exhaust + ventilation + BAS
+CON.EQP,Construction - Equipment,CONSTRUCTION_PRICING,2470000,32,OH doors + generator + lockers + PEMB + temporary facilities + misc
+CON.ELC,Construction - Electrical,CONSTRUCTION_PRICING,1394000,16,Power + service + lighting + IT + fire alarm + emergency + solar + cold storage
+CON.CIV,Construction - Civil/Earthwork,CONSTRUCTION_PRICING,1104000,18,Clearing + excavation + fill + drainage + seeding + survey
+CON.PAV,Construction - Paving,CONSTRUCTION_PRICING,1302000,18,Heavy/light asphalt + aggregate + aprons + curb + sidewalk + bollards
+CON.UTL,Construction - Underground Utilities,CONSTRUCTION_PRICING,604000,14,Water + sewer + storm + gas + power + telecom + tie-in
+CON.GR,Construction - General Requirements,CONSTRUCTION_PRICING,2682000,24,Design fees + insurance + permits + environmental
+OPT,Construction - Optional Items,CONSTRUCTION_PRICING,726000,14,Options 1-6 (wash bay + yard lighting + access control + security + signage + FF&E)
+PREMIUM.BOND,Financial - Bond Premiums,FINANCIAL_ALLOWANCE,300000,2,Performance + labour/materials bond premiums
+PREMIUM.INS,Financial - Insurance Premiums,FINANCIAL_ALLOWANCE,240000,1,CCIP insurance premium
+PREMIUM.BROKER,Financial - Broker Fees,FINANCIAL_ALLOWANCE,3500,1,Surety broker fee

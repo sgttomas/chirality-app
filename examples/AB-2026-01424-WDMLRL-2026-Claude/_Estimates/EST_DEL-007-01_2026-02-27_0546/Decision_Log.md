@@ -1,0 +1,9 @@
+# Decision Log — EST_DEL-007-01_2026-02-27_0546
+
+| DecisionID | Decision | Rationale | Alternative Considered |
+|-----------|----------|-----------|----------------------|
+| DEC-001 | Price DEL-007-01 using Level_of_Effort.csv hours x Professional_Staff_Rates.csv hourly rates (PARAMETRIC method) | LOE provides deliverable-specific hour allocations by role; staff rates provide CAD/hr unit rates. Together they fully price the deliverable without gaps. This is the most direct and traceable approach given available sources. | Professional_Design_Fees.csv fee-percentage method — rejected because (a) no Landscape Architect fee line exists in the table, and (b) the fee method requires a construction value base which is not meaningful for a single preliminary design deliverable. |
+| DEC-002 | CBS categories assigned as DESIGN_LABOUR (Landscape Architect) and MGMT_LABOUR (Project Manager, Cost Estimator) | Standard CBS classification for professional services. The Landscape Architect performs the core design work; PM and Cost Estimator provide management/support. | Single CBS category (e.g., PROFESSIONAL_SERVICES) — rejected for insufficient granularity in the rollup. |
+| DEC-003 | All items classified as UNIT_RATE (hours x rate) rather than LUMP_SUM | The LOE source provides specific hour quantities per role, making UNIT_RATE the natural and more transparent pricing mode. | LUMP_SUM — would obscure the hours breakdown and reduce traceability. |
+| DEC-004 | Professional_Design_Fees.csv noted as not applicable but not flagged as a gap | This source does not contain a Landscape Architect row. Since the LOE + staff rates method provides full pricing, the absence is an observation, not a gap. | Flag as WARNING — rejected because no pricing coverage is lost. |
+| DEC-005 | UPDATE_LATEST_POINTER = FALSE per brief; no pointer file modified | Brief explicitly sets UPDATE_LATEST_POINTER to FALSE. | N/A |

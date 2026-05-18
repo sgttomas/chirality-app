@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-007,DEL-007-04,Professional Services > Design & Engineering,CAD,9450.00,1,100,Landscape Architect ($9450); parametric LOE
+PKG-007,DEL-007-04,Professional Services > Project Management,CAD,1530.00,2,100,PM ($990) + Cost Estimator ($540); parametric LOE
+PKG-007,DEL-007-04,TOTAL,CAD,10980.00,3,100,Grand total for DEL-007-04 Landscape Specification

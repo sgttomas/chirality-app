@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-020,DEL-020-01,Management,CAD,2340,3,100,PM ($990) + Cost Estimator ($540) + QA/QC Lead ($810)
+PKG-020,DEL-020-01,Construction,CAD,3250,3,100,Construction PM ($1240) + Site Superintendent ($1450) + HSE Manager ($560)
+PKG-020,DEL-020-01,Admin,CAD,900,2,100,Document Controller ($900) + documentation compilation ($0 — labour included)
+PKG-020,DEL-020-01,Specialty,CAD,4800,10,80,Commissioning Agent ($4800) + activity line items ($0 labour-only) + 2 TBD items (crane testing and Safety Code fees)
+PKG-020,DEL-020-01,TOTAL,CAD,11290,18,89,Total priced amount; excludes 2 TBD items (DL-020-01-011 crane load testing and DL-020-01-018 Safety Code fees)

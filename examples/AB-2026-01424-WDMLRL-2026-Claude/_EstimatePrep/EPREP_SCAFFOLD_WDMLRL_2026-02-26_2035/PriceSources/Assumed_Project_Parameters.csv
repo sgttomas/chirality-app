@@ -1,0 +1,19 @@
+ParameterID,Category,Parameter,Value,Unit,Source,Confidence,Notes
+PP-01,Identity,Project,2026 Design Build of West Dried Meat Lake Regional Landfill Maintenance Shop Addition,,CONFIRMED,HIGH,RFP title; Decomposition header
+PP-02,Identity,Owner,Camrose County,,CONFIRMED,HIGH,RFP §1.1; Decomposition header
+PP-03,Location,Site,"West Dried Meat Lake Regional Landfill near Ferintosh, Alberta",,CONFIRMED,HIGH,RFP §1.0 Introduction
+PP-04,Location,Legal/Reference Location,SW 14–44–21–W4 (per project documents),,CONFIRMED,HIGH,Decomposition header
+PP-05,Contract,Procurement Model,Design-Build,,CONFIRMED,HIGH,RFP title/intro
+PP-06,Contract,Contract Form,CCDC 14–2013 Design-Build Stipulated Price,,DESIGN_BASIS,HIGH,Decomposition header
+PP-07,Schedule,Contract Completion Deadline,2026-12-31,date,DESIGN_BASIS,HIGH,"RFP mentions Dec 31, 2026; Decomposition header"
+PP-08,Schedule,Mandatory Site Meeting,2026-03-03 10:00,local,CONFIRMED,HIGH,RFP §3.2
+PP-09,Facility,Addition Building Type,Maintenance shop addition,,CONFIRMED,HIGH,RFP title; Decomposition
+PP-10,Facility,Addition Floor Area (approx),13000,sqft,DERIVED,MEDIUM,Decomposition vocabulary map (derived from Appendix B drawing)
+PP-11,Facility,Ceiling Height,35,ft,CONFIRMED,HIGH,Appendix B (Shop) notes: Concrete Structure (35’ Ceiling)
+PP-12,Equipment,Overhead Cranes,2,each,CONFIRMED,HIGH,Appendix B (Shop) notes: (2) 5 Ton Cranes
+PP-13,Equipment,Overhead Crane Capacity,5,ton,CONFIRMED,HIGH,Appendix B (Shop) notes
+PP-14,Plumbing,Cistern Volume,50000,L,CONFIRMED,HIGH,"Appendix B (Shop) notes: 50,000L Water Storage"
+PP-15,Plumbing,Septic Holding Tank,2000,US gal,CONFIRMED,HIGH,Decomposition SSOW SOW-0043
+PP-16,Mechanical,Forced-Air Makeup Air System Required,Yes,bool,CONFIRMED,HIGH,SSOW SOW-0037
+PP-17,Currency,Currency,CAD,,ASSUMPTION,MEDIUM,"Alberta, Canada context; canonical schema uses CAD columns"
+PP-18,Economics,Base Year,2026,year,DERIVED,MEDIUM,RFP is for 2026; using current year as base

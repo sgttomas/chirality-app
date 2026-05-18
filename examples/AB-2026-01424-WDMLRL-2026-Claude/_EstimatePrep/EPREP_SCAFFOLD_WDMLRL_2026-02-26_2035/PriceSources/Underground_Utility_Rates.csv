@@ -1,0 +1,6 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+UU-01,Water,Underground water line (installed),m,90,180,130,PARAMETRIC,MEDIUM,
+UU-02,Sanitary,Sanitary line (installed),m,110,220,160,PARAMETRIC,MEDIUM,
+UU-03,Electrical,"Underground conduit (power), installed",m,65,140,95,PARAMETRIC,MEDIUM,
+UU-04,Sanitary,"Septic holding tank (2,000 US gal) supply + set",each,18000,42000,29000,ALLOWANCE,LOW,Removal of existing tank included elsewhere
+UU-05,Water,"Cistern (50,000L) supply + set",each,42000,95000,65000,ALLOWANCE,LOW,

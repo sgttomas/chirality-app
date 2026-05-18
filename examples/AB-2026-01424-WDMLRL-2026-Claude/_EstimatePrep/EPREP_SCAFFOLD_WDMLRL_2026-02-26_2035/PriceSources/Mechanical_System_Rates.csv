@@ -1,0 +1,9 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+MS-01,Heating,"Unit heater (gas), installed",each,4500,8500,6500,ALLOWANCE,LOW,Qty and sizing TBD
+MS-02,Ventilation,"Make-up air unit (MUA), installed",each,28000,65000,45000,ALLOWANCE,LOW,Forced-air makeup; sizing TBD
+MS-03,Ventilation,"High-volume air exchanger, installed",each,9000,18000,13500,ALLOWANCE,LOW,
+MS-04,Exhaust,Vehicle exhaust hose + fan system,each,6000,14000,9500,ALLOWANCE,LOW,Repair bays
+MS-05,Exhaust,Welding station exhaust/vent system,each,4500,12000,8000,ALLOWANCE,LOW,
+MS-06,Distribution,"Ductwork, installed",m2,40,85,60,PARAMETRIC,MEDIUM,Normalized per floor area
+MS-07,Plumbing,Gas fitting rough-in for kitchenette (piping + valve + test),ls,1500,4000,2500,PARAMETRIC,LOW,
+MS-08,HVAC,Small kitchen ventilation (range hood exhaust + makeup air),ls,2000,5000,3500,PARAMETRIC,LOW,

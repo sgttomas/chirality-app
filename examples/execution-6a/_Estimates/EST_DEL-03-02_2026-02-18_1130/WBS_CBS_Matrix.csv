@@ -1,0 +1,10 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-02,03-02-CLR,CAD,32010,2,100,Clearing and Stripping
+PKG-003,DEL-03-02,03-02-EW,CAD,178038,5,100,Earthworks (Cut/Fill) including building pad preparation
+PKG-003,DEL-03-02,03-02-ESC,CAD,22000,1,100,Erosion and Sediment Control (construction phase)
+PKG-003,DEL-03-02,03-02-DRN,CAD,74500,3,100,Drainage and Stormwater (swales + retention pond + outlet)
+PKG-003,DEL-03-02,03-02-FIN,CAD,110000,1,100,Final Grading and Restoration (topsoil + seeding)
+PKG-003,DEL-03-02,03-02-SRV,CAD,12000,1,100,Construction Survey and Staking
+PKG-003,DEL-03-02,03-02-GEO,CAD,32000,1,100,Geotechnical Services (testing + certification)
+PKG-003,DEL-03-02,03-02-DSN,CAD,11514,1,100,Civil Design Fees (2.5% of construction subtotal)
+PKG-003,DEL-03-02,TOTAL,CAD,472062,15,100,DEL-03-02 Estimate Total

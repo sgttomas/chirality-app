@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-008,DEL-08-01,CX,CAD,1400,1,100,Commissioning Lead labor
+PKG-008,DEL-08-01,MGMT,CAD,700,1,100,Project Manager labor
+PKG-008,DEL-08-01,TOTAL,CAD,2100,2,100,All CBS categories combined

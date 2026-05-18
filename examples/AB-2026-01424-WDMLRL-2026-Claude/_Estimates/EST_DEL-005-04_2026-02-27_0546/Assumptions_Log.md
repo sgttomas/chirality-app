@@ -1,0 +1,9 @@
+# Assumptions Log — EST_DEL-005-04_2026-02-27_0546
+
+| AssumptionID | Assumption | Source / Rationale | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | Hourly rates from Professional_Staff_Rates.csv are representative of 2026 Alberta market rates for the roles listed | Professional_Staff_Rates.csv states PARAMETRIC basis with MEDIUM confidence | If actual rates are higher/lower, the total scales linearly. A 10% rate increase would add approximately $1,839 to the total. |
+| ASM-002 | Level of effort hours from Level_of_Effort.csv (R-17: 84 hr, R-13: 36 hr, R-01: 6 hr, R-08: 4 hr) are representative of the effort required to produce the driving surface and pad layout drawing set | Level_of_Effort.csv provides PARAMETRIC estimates with MEDIUM confidence for this specific deliverable | If actual effort is higher (e.g., due to complex site geometry, multiple design iterations, or extensive Owner coordination), the total would increase. Each additional Civil Engineer hour adds $160. |
+| ASM-003 | Currency is CAD | Assumed_Project_Parameters.csv PP-17; Alberta project context | Low risk — project is in Alberta, Canada |
+| ASM-004 | No additional specialist roles are required beyond the four identified (Civil Engineer, BIM Technician, PM, Cost Estimator) | Level_of_Effort.csv only lists these 4 roles for DEL-005-04 | If additional roles are needed (e.g., Surveyor for field verification, Geotechnical Engineer for pavement design consultation), costs would increase. However, those roles are typically scoped under their own deliverables (PKG-008). |
+| ASM-005 | Design effort covers a single design cycle (preliminary + final) with normal coordination | Procedure Steps 1-9 describe a standard design workflow without exceptional rework | If major design rework is required (e.g., Owner rejects preliminary design, geotech results require fundamental redesign), additional hours beyond the parametric estimate would be needed. |

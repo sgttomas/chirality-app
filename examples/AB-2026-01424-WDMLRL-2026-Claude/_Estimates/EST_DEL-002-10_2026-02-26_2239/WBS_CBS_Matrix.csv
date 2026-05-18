@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-10,Professional Services > Design & Engineering,CAD,11800,13,100,
+PKG-002,DEL-002-10,Professional Services > Project Management,CAD,1530,3,100,
+PKG-002,DEL-002-10,TOTAL,CAD,13330,16,100,

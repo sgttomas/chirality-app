@@ -1,0 +1,6 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+IA-01,Partitions,Metal stud partition + gypsum board,m2,65,120,90,PARAMETRIC,MEDIUM,Office/utility/parts room
+IA-02,Finishes,Paint (walls/ceilings) allowance,m2,8,18,12,PARAMETRIC,MEDIUM,
+IA-03,Ceilings,Suspended acoustic ceiling,m2,55,110,80,PARAMETRIC,MEDIUM,Office areas
+IA-04,Flooring,Commercial vinyl/laminate flooring,m2,45,95,70,PARAMETRIC,MEDIUM,Office/amenities
+IA-05,Millwork,Basic casework allowance,ls,6000,18000,11000,ALLOWANCE,LOW,Kitchenette/office

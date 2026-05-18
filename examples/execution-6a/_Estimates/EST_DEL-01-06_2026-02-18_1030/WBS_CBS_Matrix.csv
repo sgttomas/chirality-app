@@ -1,0 +1,3 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-06,01-CMGT,CAD,203700,2,100%,Site Superintendent + Construction Manager labor; fully sourced from rate tables and level of effort
+PKG-001,DEL-01-06,01-SITE,CAD,TBD,2,0%,Temporary facilities/fencing and site cleaning; no rate table evidence -- amounts TBD per STRICT policy

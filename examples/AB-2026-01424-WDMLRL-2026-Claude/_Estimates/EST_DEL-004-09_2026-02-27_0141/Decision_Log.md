@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-004-09_2026-02-27_0141
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| ED-001 | Used Level_of_Effort.csv (parametric hours) as primary pricing source rather than Professional_Design_Fees.csv (fee-percentage model) | LOE-based pricing provides role-level traceability and is consistent with the PARAMETRIC basis of estimate. Fee-percentage model requires a construction value which is not yet confirmed. | Primary pricing method for all 4 Detail.csv lines |
+| ED-002 | Classified Items 5–36 as scope verification lines with costs embedded in labour (Items 1–4) | DEL-004-09 is a professional design specification document. The priceable output is the engineer's time, not separate physical items. The electrical systems and requirements listed are the scope the engineer addresses in the specification, not separately procurable items. | 32 items in Items.csv are LUMP_SUM with Qty=1/Unit=LS; not separately priced in Detail.csv |
+| ED-003 | Assigned CBS categories: Design-Management (PM + Estimator), Design-Production (BIM Tech), Design-Engineering (Electrical Engineer) | Standard CBS taxonomy for professional design deliverables; separates management oversight, production/drafting support, and lead engineering effort | WBS_CBS_Matrix.csv rollups reflect this split |
+| ED-004 | Did not apply FALLBACK_POLICY | All items were priceable from primary PARAMETRIC sources. No fallback was needed. | No impact |
+| ED-005 | Did not update _LATEST.md pointer | UPDATE_LATEST_POINTER = FALSE per run brief | No pointer file modified |
+| ED-006 | Extracted 36 items from 4 documents to capture full specification scope including 27 REQs and 9 procedure steps | The Electrical Specification is the most comprehensive specification in PKG-004, covering all electrical systems. Thorough item extraction ensures scope verification completeness even though all items are priced through the 4 labour lines. | 36 items in Items.csv provide complete traceability to all specification requirements and procedure steps |

@@ -1,0 +1,21 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-014-06,Water Tap (shop area near pressure washer reel) — supply and install,1,EA,UNIT_RATE,Datasheet,Fixture Inventory,Hose bib or threaded service tap; type TBD per DEL-006-06
+ITM-002,DEL-014-06,Water Tap (standalone service tap near utility room) — supply and install,1,EA,UNIT_RATE,Datasheet,Fixture Inventory,Service tap in utility zone — not a washroom fixture (Guidance Principle 5)
+ITM-003,DEL-014-06,Retractable Pressure Washer Hose Reel — supply and install,1,EA,UNIT_RATE,Datasheet,Pressure Washer Reel,Wall-mounted retractable reel; water-side connection only; 70A electrical by PKG-015
+ITM-004,DEL-014-06,Industrial Wash Station (wash sink) — supply and install,1,EA,UNIT_RATE,Datasheet,Industrial Wash Station,"Heavy-duty stainless steel or equivalent; hot/cold supply TBD (CONF-014-06-01)"
+ITM-005,DEL-014-06,Isolation valves and supply stops for all fixtures,4,EA,UNIT_RATE,Procedure,Step 5a/5b/5c,One isolation valve per fixture connection point (minimum)
+ITM-006,DEL-014-06,Drain assembly for industrial wash station (P-trap / tailpiece / strainer),1,EA,UNIT_RATE,Procedure,Step 5c,Code-compliant drain connection to DWV
+ITM-007,DEL-014-06,Point-of-use water heater for industrial wash station (conditional),1,EA,LUMP_SUM,Guidance,Hot Water Supply / CONF-014-06-01,CONDITIONAL: carried as allowance pending design confirmation
+ITM-008,DEL-014-06,Backflow prevention devices (vacuum breakers / check valves),3,EA,UNIT_RATE,Procedure,Step 5d,ASSUMPTION: required for cistern-fed non-municipal source; qty TBD
+ITM-009,DEL-014-06,Trim / hardware / mounting brackets / miscellaneous fittings,1,LS,LUMP_SUM,Procedure,Step 3 / Step 5e,Mounting hardware and misc fittings for all fixtures
+ITM-010,DEL-014-06,Plumber installation labour — fixture installation,24,hr,UNIT_RATE,Procedure,Steps 5a through 5e,"Licensed journeyman plumber(s); PARAMETRIC estimate for 3 fixture groups"
+ITM-011,DEL-014-06,Plumber labour — pressure testing and pre-commissioning,8,hr,UNIT_RATE,Procedure,Step 6,Pressure test all supply connections; flow test drains
+ITM-012,DEL-014-06,Plumber labour — commissioning support,4,hr,UNIT_RATE,Procedure,Step 8,Support commissioning agent (PKG-020) for fixture operational tests
+ITM-013,DEL-014-06,Project Manager — coordination and oversight (LOE),6,hr,UNIT_RATE,Specification,Verification / Interface Requirements,Per Level_of_Effort.csv R-01 for DEL-014-06
+ITM-014,DEL-014-06,Construction Project Manager — site coordination (LOE),8,hr,UNIT_RATE,Procedure,Step 4 / Step 7,Per Level_of_Effort.csv R-02 for DEL-014-06
+ITM-015,DEL-014-06,Site Superintendent — field supervision (LOE),10,hr,UNIT_RATE,Procedure,Step 5 / Step 6,Per Level_of_Effort.csv R-03 for DEL-014-06
+ITM-016,DEL-014-06,Cost Estimator (LOE),4,hr,UNIT_RATE,Specification,Documentation,Per Level_of_Effort.csv R-08 for DEL-014-06
+ITM-017,DEL-014-06,QA/QC Lead — inspection support (LOE),6,hr,UNIT_RATE,Specification,Verification,Per Level_of_Effort.csv R-06 for DEL-014-06
+ITM-018,DEL-014-06,HSE Manager (LOE),4,hr,UNIT_RATE,Specification,Standards,Per Level_of_Effort.csv R-05 for DEL-014-06
+ITM-019,DEL-014-06,Submittal / shop drawing preparation and review,1,LS,LUMP_SUM,Specification,REQ-014-06-038 / Submittal Requirements,Manufacturer data sheets / material certs / warranty info per fixture type
+ITM-020,DEL-014-06,Safety Code inspection — plumbing fixtures,1,LS,LUMP_SUM,Procedure,Step 7,AHJ inspection with County representative present

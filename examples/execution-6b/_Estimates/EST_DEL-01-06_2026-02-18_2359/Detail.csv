@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0106-01,PROF_SERVICES.PM,PKG-001,DEL-01-06,Project Manager -- pricing narrative lead: allowances; exclusions; value alternatives; CCIP documentation,12,hr,175,2100,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-06/R-02 + Professional_Staff_Rates.csv R-02,MED,12 hrs per LoE; $175/hr per rate table
+L-0106-02,PROF_SERVICES.ESTIMATING,PKG-001,DEL-01-06,Estimator (Senior) -- pricing assumptions documentation and backup,8,hr,145,1160,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-01-06/R-18 + Professional_Staff_Rates.csv R-18,MED,8 hrs per LoE; $145/hr per rate table

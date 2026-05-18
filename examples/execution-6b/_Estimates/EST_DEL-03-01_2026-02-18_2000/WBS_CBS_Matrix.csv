@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-003,DEL-03-01,PROF-ARCH,CAD,1740,1,100,Single line item: 12 hrs Architect (Project) @ $145/hr

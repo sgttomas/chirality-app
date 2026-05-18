@@ -1,0 +1,9 @@
+# Decision Log — EST_DEL-001-01_2026-02-27_0539
+
+| DecisionID | Decision | Rationale | Category |
+|---|---|---|---|
+| DEC-001 | Used PARAMETRIC method for all 5 line items | BASIS_OF_ESTIMATE = PARAMETRIC; Level_of_Effort.csv provides parametric hours per role; Professional_Staff_Rates.csv provides parametric hourly rates. No fallback required. | Method Selection |
+| DEC-002 | Mapped deliverable scope to professional labour hours only (no material or equipment items) | DEL-001-01 is a Design Presentation deliverable (preliminary architectural design for County approval). The deliverable content (Datasheet, Specification, Guidance, Procedure) describes design activities and professional services, not physical construction. No material or equipment items are priceable at this deliverable level. | Scope Resolution |
+| DEC-003 | Assigned CBS category "Management" to PM and Cost Estimator roles; "Design" to Senior Architect, Architect, and BIM Technician roles | Professional_Staff_Rates.csv categorizes roles as Management, Design, Admin, Construction, Specialty. PM (R-01) is Management; Cost Estimator (R-08) is Management; Senior Architect (R-11) is Design; Architect (R-12) is Design; BIM Technician (R-13) is Design. These categories were used as CBS values. | CBS Assignment |
+| DEC-004 | Did not apply any escalation, contingency, or markup | No escalation factor, contingency percentage, or markup is specified in the INIT-TASK brief or price sources. Rates are taken at face value from the parametric source. | Pricing Convention |
+| DEC-005 | Used Professional_Design_Fees.csv and Parametric_Building_Rates.csv for cross-check only, not for primary pricing | Level_of_Effort.csv provides direct hours-by-role for DEL-001-01, which is more granular than a percentage-of-construction-value fee model. The fee model serves as a reasonableness check. | Source Prioritization |

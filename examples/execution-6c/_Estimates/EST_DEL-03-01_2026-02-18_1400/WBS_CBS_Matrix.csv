@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-05,DEL-03-01,MGMT,CAD,2350,2,100,All lines have full SourceRef traceability to rate table and LOE

@@ -1,0 +1,14 @@
+# Decision Log — EST_DEL-018-05_2026-02-27_0855
+
+| DecisionID | Decision | Rationale | Impact |
+|-----------|----------|-----------|--------|
+| DEC-001 | Used UU-04 (septic tank) as parametric proxy for precast mud sump pricing | No direct rate table entry for precast mud sump; UU-04 is the closest underground precast concrete structure in the rate tables. Adjusted from $29,000 (2,000 US gal septic) down to $18,500 for a smaller open-top sump configuration. | Largest cost item ($18,500 / 40.5%); LOW confidence until replaced with vendor quote |
+| DEC-002 | Used UU-02 (sanitary line) rate for drainage pipe | Drainage pipe from floor drain to sump is functionally similar to a sanitary line (underground gravity pipe). UU-02 rate of $160/m applied. | $1,920 for 12m run; MED confidence |
+| DEC-003 | Assumed sump excavation volume of 18 m3 | Based on assumed sump dimensions ~2.4m L x 1.8m W x 2.5m D with overdig allowance. Actual dimensions TBD per civil design. | Affects DL-001 ($360); low impact on total |
+| DEC-004 | Assumed drainage pipe run of 12m | Estimated distance from interior wash bay floor drain to exterior east-side mud sump based on building layout (App B Shop). | Affects DL-004 ($1,920) and DL-005/006 trench volumes |
+| DEC-005 | Assumed 1 floor drain per App B (Plumbing) | Plumbing drawing shows one floor drain in wash bay; Specification uses plural "floor drain(s)" but quantity defaulted to 1. | Affects DL-007 ($1,200); minor impact if count increases |
+| DEC-006 | Included cold-weather construction allowance of $3,500 | December 2026 completion deadline in Alberta means high probability of sub-zero construction conditions per Procedure CW-1 to CW-4. | $3,500 / 7.7% of total; ALLOWANCE method |
+| DEC-007 | Included environmental regulatory scoping allowance of $2,500 | ENV-PERMIT-001 status conditional/TBD per Guidance CF-002 and CF-003. Allowance covers AEPA inquiry and basic permit fees if required. | $2,500 / 5.5% of total; ALLOWANCE method |
+| DEC-008 | Applied ALLOW_MIXED_METHODS for 2 ALLOWANCE lines in a PARAMETRIC run | FALLBACK_POLICY=ALLOW_PARAMETRIC and ALLOW_MIXED_METHODS=TRUE permit allowance fallback for items without parametric model evidence. | Consistent with brief; 2/26 lines affected |
+| DEC-009 | Assumed precast sump construction (not CIP) | Guidance Trade-offs lists both CIP and precast as options; precast assumed for faster installation consistent with parametric approach using UU-04 proxy. | Affects DL-003 pricing approach |
+| DEC-010 | Excluded County-supplied materials from estimate | RFP SS3.3.1 states County supplies aggregate/gravel and pays permit fees. Estimate includes only contractor labour for placement. | Earthwork fill rates include supply+place but County supplies aggregate; net effect is conservative (slightly overestimated) |

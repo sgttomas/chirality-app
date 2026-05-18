@@ -1,0 +1,24 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-001,DEL-014-03,High-volume bulk water fill pump (supply),1,EA,UNIT_RATE,Datasheet,Attributes — Pump Type,Pump make/model TBD pending IFC design (PKG-006); flow rate TBD
+ITM-002,DEL-014-03,Fill line piping — pump outlet to exterior fill point (supply and install),15,m,UNIT_RATE,Datasheet,Construction — Fill Line Pipe Material,"Material TBD; assumed ~15 m run length from utility room to north exterior wall; parametric estimate"
+ITM-003,DEL-014-03,Exterior fill connection hardware (coupling/cap/enclosure — supply and install),1,EA,UNIT_RATE,Datasheet,Construction — Fill Connection Hardware,Coupling type TBD pending design
+ITM-004,DEL-014-03,Backflow prevention device (supply and install),1,EA,UNIT_RATE,Specification,REQ-014-03-06 — Backflow Prevention,Device type TBD; Alberta Plumbing Code requirement (ASSUMPTION)
+ITM-005,DEL-014-03,Freeze protection — heat trace cable and insulation for fill line and exterior connection,15,m,UNIT_RATE,Specification,REQ-014-03-07 — Freeze Protection,Method TBD; assumed heat trace + insulation for exposed piping length (~15 m)
+ITM-006,DEL-014-03,Isolation valves and fittings (supply and install),1,LS,LUMP_SUM,Procedure,Step 2.3 — Fill Line Installation,"Includes check valves, isolation valves, drain provisions, supports/hangers"
+ITM-007,DEL-014-03,Wall sleeve and penetration seal (supply and install),1,EA,UNIT_RATE,Procedure,Step 2.1 — Wall Sleeve Installation,Exterior wall penetration through concrete structure
+ITM-008,DEL-014-03,Pump mounting pad/frame,1,EA,UNIT_RATE,Procedure,Step 2.2 — Pump Rough-In,Mounting in utility room per IFC
+ITM-009,DEL-014-03,Electrical conduit stub-out to pump motor location,1,EA,UNIT_RATE,Procedure,Step 2.7 — Electrical Stub-Out,Plumbing Contractor scope; electrical connection under DEL-015-04
+ITM-010,DEL-014-03,Cistern inlet connection (interface with DEL-014-01),1,EA,UNIT_RATE,Procedure,Step 2.4 — Cistern Inlet Connection,Interface coordination required with DEL-014-01
+ITM-011,DEL-014-03,Plumber labour — rough-in and installation,40,hr,UNIT_RATE,Procedure,Phases 1-2 (Preparation through Rough-In),Parametric estimate for installation scope
+ITM-012,DEL-014-03,Plumber labour — completion and final connections,16,hr,UNIT_RATE,Procedure,Phase 4 — Completion,Final connections; pressure test; system flush
+ITM-013,DEL-014-03,Labourer support — installation assist,24,hr,UNIT_RATE,Procedure,Phases 1-4,General assist for staging; material handling; excavation support
+ITM-014,DEL-014-03,Pressure test of fill line,1,LS,LUMP_SUM,Procedure,Step 4.2 — Pressure Test,Per Alberta Plumbing Code; test parameters TBD
+ITM-015,DEL-014-03,System flush,1,LS,LUMP_SUM,Procedure,Step 4.4 — System Flush,Pre-commissioning flush to remove debris
+ITM-016,DEL-014-03,Commissioning — pump start and flow/performance test,1,LS,LUMP_SUM,Procedure,Phase 5 — Commissioning (Steps 5.1-5.2),Operational test and flow measurement
+ITM-017,DEL-014-03,Commissioning — backflow prevention verification,1,LS,LUMP_SUM,Procedure,Step 5.3 — Backflow Prevention Verification,Device test per manufacturer and code
+ITM-018,DEL-014-03,Commissioning — freeze protection function check,1,LS,LUMP_SUM,Procedure,Step 5.4 — Freeze Protection Function Check,Heat trace / drain-back verification
+ITM-019,DEL-014-03,Commissioning — cistern integration test with DEL-014-01,1,LS,LUMP_SUM,Procedure,Step 5.5 — Integration Test with DEL-014-01,Coordinated fill test
+ITM-020,DEL-014-03,Safety Codes inspections — rough-in and final (plumbing permit fees),1,LS,LUMP_SUM,Specification,REQ-014-03-05 — Code Compliance,"Two inspections; permit fee allowance"
+ITM-021,DEL-014-03,As-built drawings and closeout documentation,1,LS,LUMP_SUM,Procedure,Phase 6 — Closeout (Steps 6.1-6.4),"As-builts, O&M manual, warranty docs, punch list"
+ITM-022,DEL-014-03,Professional staff — project management and supervision (LOE),1,LS,LUMP_SUM,Procedure,All Phases,From Level_of_Effort.csv for DEL-014-03
+ITM-023,DEL-014-03,Bollard protection at exterior fill point,1,EA,UNIT_RATE,Procedure,Step 2.5 — Exterior Fill Point Installation,Protection for fill point from vehicle damage

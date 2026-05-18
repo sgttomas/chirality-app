@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-005,DEL-005-03,Professional Services > Design & Engineering,CAD,13440.00,11,100,"Site familiarization and baseline data collection ($1,600) + Drainage system design ($4,800) + Drainage plan drawing production ($3,200) + Internal engineering review and QA ($1,920) + IFC release and handoff ($1,920)"
+PKG-005,DEL-005-03,Professional Services > Professional Staff,CAD,4950.00,3,100,"Project management ($990) + Cost estimating support ($540) + Drainage plan drawing production ($3,420)"
+PKG-005,DEL-005-03,TOTAL,CAD,18390.00,14,100,Grand total — all CBS categories

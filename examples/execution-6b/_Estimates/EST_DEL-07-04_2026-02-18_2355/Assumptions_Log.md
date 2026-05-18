@@ -1,0 +1,8 @@
+# Assumptions Log -- EST_DEL-07-04_2026-02-18_2355
+
+| AssumptionID | Assumption | Source / Basis | Impact if Wrong |
+|---|---|---|---|
+| ASM-001 | The hourly rate for R-02 (Project Manager) at $175/hr CAD is the correct rate for the proposal preparation phase | Professional_Staff_Rates.csv, row R-02; Basis=MARKET, Confidence=MEDIUM | If actual rate differs, total scales linearly (e.g., +$25/hr = +$150 total) |
+| ASM-002 | Only the Project Manager (R-02) contributes hours to DEL-07-04; no Construction Manager (R-15) hours are required | Level_of_Effort.csv assigns only R-02 to DEL-07-04 (row 57); decomposition lists "PM / Construction Manager" as responsible parties | If CM review is needed, estimate could increase by 2-4 hours ($310-$620 CAD at R-15 rate of $155/hr). Total impact: +30% to +59% |
+| ASM-003 | 6 hours is sufficient for the PM to develop the meetings and reporting narrative covering: meeting structure (in-person/virtual), frequency, agenda/minutes protocol, progress reporting, and close-out meetings | Level_of_Effort.csv row 57; Basis=PARAMETRIC | If scope complexity is higher (e.g., Owner requests multiple meeting type definitions with detailed agendas), hours could increase. Reasonable range: 4-10 hours for this type of narrative. |
+| ASM-004 | No Construction Manager hours for DEL-07-04 implies that meeting/reporting protocol is treated as a PM-authored narrative, with CM input captured under DEL-07-01 (Construction Methodology) where 12 CM hours are assigned | Level_of_Effort.csv rows 53-54 (DEL-07-01: R-15=12h, R-02=4h) vs row 57 (DEL-07-04: R-02=6h only) | If this assumption is incorrect and CM should have dedicated DEL-07-04 hours, the hours split should be revisited in Level_of_Effort.csv |

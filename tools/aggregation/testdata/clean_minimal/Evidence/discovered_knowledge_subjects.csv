@@ -1,0 +1,3 @@
+SubjectID,SubjectName,KnowledgeTypeID,SourcePath,SourceRef,Notes
+SUB-01-01-01,Centrifugal Pumps,KTY-01-01_Pumps,execution/CAT-001_Operations/1_Working/KTY-01-01_Pumps/Scoping.md,SCOPING#Artifact Plan,
+SUB-02-01-01,Process Piping,KTY-02-01_Piping,execution/CAT-002_Engineering/1_Working/KTY-02-01_Piping/Scoping.md,SCOPING#Artifact Plan,

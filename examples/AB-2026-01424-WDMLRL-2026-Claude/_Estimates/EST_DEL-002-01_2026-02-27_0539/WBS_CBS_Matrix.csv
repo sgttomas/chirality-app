@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-002-01,Professional Services > Design & Engineering,CAD,8850,2,100%,
+PKG-002,DEL-002-01,Professional Services > Project Management,CAD,1530,2,100%,
+PKG-002,DEL-002-01,TOTAL,CAD,10380,4,100%,All 4 priced line items have complete provenance

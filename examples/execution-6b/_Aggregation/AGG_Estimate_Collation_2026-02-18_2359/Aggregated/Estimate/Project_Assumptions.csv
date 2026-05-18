@@ -1,0 +1,28 @@
+AssumptionUID,FromDeliverableID,AssumptionID,Assumption,Source,ImpactIfWrong,LinkedLines
+DEL-01-01::EST-ASM-001,DEL-01-01,EST-ASM-001,8 hours allocated to R-22 for DEL-01-01 are sufficient for full compliance matrix production,Level_of_Effort.csv row DEL-01-01/R-22 (Basis=PARAMETRIC),If hours insufficient the estimate understates cost,DEL-01-01::L-001
+DEL-01-01::EST-ASM-002,DEL-01-01,EST-ASM-002,$105/hr rate for R-22 (Proposal Coordinator/Writer) is representative,Professional_Staff_Rates.csv row R-22 (Basis=MARKET Confidence=MEDIUM),If actual rate differs the line item amount changes proportionally,DEL-01-01::L-001
+DEL-01-01::EST-ASM-003,DEL-01-01,EST-ASM-003,No other roles contribute billable hours to DEL-01-01,Level_of_Effort.csv has exactly one row for DEL-01-01,If a reviewer spends time not captured in LoE the estimate understates cost,DEL-01-01::L-001
+DEL-01-03::ASM-001,DEL-01-03,ASM-001,Estimated total project value is $12M CAD,Assumed_Project_Parameters.csv PP-25 (PARAMETRIC LOW confidence),HIGH -- every $1M change shifts bond premiums ~$25k and CCIP ~$20k,DEL-01-03::L-004 L-005 L-006
+DEL-01-03::ASM-002,DEL-01-03,ASM-002,Performance bond premium rate is 1.50% of contract price,Fees_Permits_Insurance.csv FP-01 (MARKET MEDIUM range 1.25%-1.75%),MEDIUM -- range $150K to $210K at $12M,DEL-01-03::L-004
+DEL-01-03::ASM-003,DEL-01-03,ASM-003,Labour and Materials bond premium rate is 1.00%,Fees_Permits_Insurance.csv FP-02 (MARKET MEDIUM range 0.75%-1.25%),MEDIUM -- range $90K to $150K at $12M,DEL-01-03::L-005
+DEL-01-03::ASM-004,DEL-01-03,ASM-004,CCIP insurance premium rate is 2.00%,Fees_Permits_Insurance.csv FP-03 (MARKET LOW range 1.50%-2.50%),HIGH -- range $180K to $300K at $12M,DEL-01-03::L-006
+DEL-01-03::ASM-005,DEL-01-03,ASM-005,Surety broker fee is $3500 (recommended midpoint),Fees_Permits_Insurance.csv FP-19 (MARKET LOW range $2k-$5k),LOW -- max variance +/-$1500,DEL-01-03::L-007
+DEL-01-03::ASM-006,DEL-01-03,ASM-006,Level of effort for DEL-01-03 is 10 hours (4 PM + 4 Legal + 2 Admin),Level_of_Effort.csv (PARAMETRIC basis),LOW -- even doubling hours adds only ~$2060,DEL-01-03::L-001 L-002 L-003
+DEL-01-03::ASM-007,DEL-01-03,ASM-007,Bond premiums calculated on total project value ($12M) not just base construction ($8.7M),Brief Special Instructions / RFP C-08 Contract Price,HIGH -- using $8.7M would reduce bond premiums by ~$82500 and CCIP by ~$66000,DEL-01-03::L-004 L-005 L-006
+DEL-01-04::ASM-01,DEL-01-04,ASM-01,Main PSB building footprint is 18000 sf,PP-05 (DESIGN_BASIS MEDIUM),+/- 10% area change shifts $/sf lines ~$600k,DEL-01-04::B-110 thru B-670
+DEL-01-04::ASM-02,DEL-01-04,ASM-02,Cold storage building is 6000 sf (60x100 ft),PP-07 (CONFIRMED HIGH),Low risk -- confirmed in RFP,DEL-01-04::B-1000
+DEL-01-04::ASM-03,DEL-01-04,ASM-03,Developed site area is 4.5 acres,PP-10 (ASSUMPTION MEDIUM),+/- 1 acre shifts earthwork/paving ~$150k,DEL-01-04::B-700 thru B-870
+DEL-01-04::ASM-04,DEL-01-04,ASM-04,Apparatus/shop bays ~12000 sf (67%) and office ~6000 sf (33%),Derived from functional program,+/- 2000 sf changes mech/elec costs ~$50k,DEL-01-04::B-110 B-400 thru B-460 B-600 thru B-620
+DEL-01-04::ASM-05,DEL-01-04,ASM-05,Screw pile foundation system (80 piles at 6m centres),SC-14 per 2021 geotech; DEC-013,Spread footings ~$100k less; deep foundations could add $100-200k,DEL-01-04::B-100
+DEL-01-04::ASM-06,DEL-01-04,ASM-06,8 overhead doors at 16x16 ft (4 fire + 4 PW),PP-13 (CONFIRMED per Addendum 03),Very low risk,DEL-01-04::B-500
+DEL-01-04::ASM-07,DEL-01-04,ASM-07,Fire protection (wet sprinkler) is required,Conservative assumption; AHJ determination pending,If not required: $108k savings,DEL-01-04::B-420
+DEL-01-04::ASM-08,DEL-01-04,ASM-08,Radiant in-floor heating in all apparatus/shop bays,Design assumption (Alberta practice),Unit heaters ~$50k less,DEL-01-04::B-400
+DEL-01-04::ASM-09,DEL-01-04,ASM-09,40 parking stalls for light vehicles,PP-19 (ASSUMPTION MEDIUM),+/- 10 stalls changes paving ~$25k,DEL-01-04::B-810
+DEL-01-04::ASM-10,DEL-01-04,ASM-10,200 lm each for on-site utilities,Typical 4.5-acre site assumption,+/- 50 lm changes costs $20-40k,DEL-01-04::B-900 thru B-950
+DEL-01-04::ASM-15,DEL-01-04,ASM-15,Perimeter wall area ~1520 m2 (160m x 9.5m avg),Geometric estimate,+/- 15% changes envelope cost ~$120k,DEL-01-04::B-200 thru B-250
+DEL-01-04::ASM-17,DEL-01-04,ASM-17,Design fees at ~8-9% of construction value including markup,ED-13 Alberta DB practice,If 6-7% (lower): savings $100-150k,DEL-01-04::B-1100
+DEL-01-05::ASM-01,DEL-01-05,ASM-01,Schedule B mirrors DEL-01-04 pricing exactly,Schedule B is a breakdown of Schedule A,If additional items emerge totals would change,All B-* and C-* lines in DEL-01-05
+DEL-01-05::ASM-06,DEL-01-05,ASM-06,Fire protection included at $108000,AHJ determination pending,If not required $108000 reduction,DEL-01-05::B-BLD-420
+DEL-01-05::ASM-07,DEL-01-05,ASM-07,CCIP insurance rate is 2.00% of $12M,FP-03 recommended rate,Could range $180k-$300k,DEL-01-05::B-GR-130
+DEL-01-05::ASM-10,DEL-01-05,ASM-10,FF&E cash allowance fixed at $20000,DEC-012,None -- fixed decision,DEL-01-05::C-600
+DEL-01-05::ASM-11,DEL-01-05,ASM-11,Production effort (44 hours) sufficient for Schedule B,Level_of_Effort.csv allocation,If more iterations needed hours could increase,DEL-01-05::A-010 thru A-030

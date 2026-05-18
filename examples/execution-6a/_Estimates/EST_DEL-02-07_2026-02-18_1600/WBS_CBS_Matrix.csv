@@ -1,0 +1,6 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-07,26-EMRG-GEN,CAD,162000,2,100,Generator system (EQ-04) + installation labour. All ALLOWANCE method.
+PKG-002,DEL-02-07,26-EMRG-DIST,CAD,18000,1,100,Emergency distribution to essential loads. ALLOWANCE method.
+PKG-002,DEL-02-07,26-EMRG-DOOR,CAD,16000,1,100,Door backup mechanism integration. ALLOWANCE method.
+PKG-002,DEL-02-07,26-EMRG-DES,CAD,5000,1,100,Generator-specific design fees. ALLOWANCE method.
+PKG-002,DEL-02-07,ALL,CAD,201000,5,100,TOTAL — DEL-02-07 Emergency Power & Backup Generator

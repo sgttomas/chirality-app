@@ -1,0 +1,6 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-001-01,Project management — preliminary architectural design coordination,6,hr,UNIT_RATE,Procedure,Step 1 — Project Mobilization,PM coordination of preliminary design activities including site meeting attendance and interdisciplinary coordination
+ITEM-002,DEL-001-01,Cost estimating support — preliminary design phase,4,hr,UNIT_RATE,Procedure,Step 4 — Room/Area Schedule,Cost estimator input for area schedule and preliminary cost cross-checks
+ITEM-003,DEL-001-01,Senior architect — preliminary design development and County presentation,27,hr,UNIT_RATE,Procedure,Steps 2-7 — Design Development through Submission,Lead design: floor plans (new addition + renovation); building sections/elevations; design narrative; code compliance; County presentation
+ITEM-004,DEL-001-01,Architect — preliminary design production support,21,hr,UNIT_RATE,Procedure,Steps 2-7 — Design Development through Submission,Production support: floor plan drafting; room/area schedule; coordination with other disciplines; QA/QC review
+ITEM-005,DEL-001-01,BIM technician — preliminary design modelling and drawing production,12,hr,UNIT_RATE,Procedure,Steps 2-3 — Floor Plans and Sections/Elevations,BIM model setup; preliminary floor plan production; section/elevation views; presentation formatting

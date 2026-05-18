@@ -1,0 +1,31 @@
+WBS_PackageID,PackageName,DeliverableID,DeliverableName,ProductionCost_CAD,ProductionHours,ConstructionContent_CAD,BondInsurancePremiums_CAD,GrandTotal_CAD,CostType,Notes
+PKG-01,Compliance & Submission,DEL-01-01,Compliance Matrix & Checklist,840,8,0,0,840,PRODUCTION,
+PKG-01,Compliance & Submission,DEL-01-02,Formal Submission Package,2170,18,0,0,2170,PRODUCTION,
+PKG-01,Compliance & Submission,DEL-01-03,Bonding & Insurance Evidence,5560,10,0,537534,543094,MIXED,Production $2060 + broker $3500 + premiums $537534. Premiums NOT additive to construction.
+PKG-01,Compliance & Submission,SUBTOTAL,,8570,36,0,537534,546104,,PKG-01 additive production cost = $8570 (excl premiums)
+PKG-02,Financial Proposal,DEL-05-01,Schedule A -- Pricing Summary,9960,72,10729000,0,10738960,MIXED,Production $9960 + Construction $10729000
+PKG-02,Financial Proposal,DEL-05-02,Schedule B -- Cost Breakdown,6020,44,10729000,0,10735020,MIXED,Production $6020 + Construction $10729000. Construction content SAME as DEL-05-01 (count ONCE).
+PKG-02,Financial Proposal,DEL-05-03,Pricing Narrative & Assumptions,3260,20,0,0,3260,PRODUCTION,
+PKG-02,Financial Proposal,SUBTOTAL,,19240,136,10729000,0,10748240,,PKG-02 production = $19240; construction content = $10729000 (counted once)
+PKG-03,Team Qualifications,DEL-07-01,DB Firm Experience Profile,2380,20,0,0,2380,PRODUCTION,
+PKG-03,Team Qualifications,DEL-07-02,Key Team Members & Resumes,1860,20,0,0,1860,PRODUCTION,
+PKG-03,Team Qualifications,DEL-07-03,Appendix I -- Subtrade & Consultant List,1720,12,0,0,1720,PRODUCTION,
+PKG-03,Team Qualifications,SUBTOTAL,,5960,52,0,0,5960,PRODUCTION,
+PKG-04,Design Proposal,DEL-02-01,Concept Design Package,29610,228,0,0,29610,PRODUCTION,Largest production effort
+PKG-04,Design Proposal,DEL-02-02,Design Brief Narrative,12170,80,0,0,12170,PRODUCTION,Consolidated 5-SOW narrative
+PKG-04,Design Proposal,DEL-02-03,Sustainability & Energy Narrative,4770,30,0,0,4770,PRODUCTION,
+PKG-04,Design Proposal,SUBTOTAL,,46550,338,0,0,46550,PRODUCTION,
+PKG-05,Delivery Plan,DEL-03-01,Design Methodology Narrative,2350,14,0,0,2350,PRODUCTION,
+PKG-05,Delivery Plan,DEL-03-02,Detailed Design & Construction Docs Plan,2350,14,0,0,2350,PRODUCTION,
+PKG-05,Delivery Plan,SUBTOTAL,,4700,28,0,0,4700,PRODUCTION,
+PKG-06,Construction Methodology,DEL-04-01,Construction Methodology Narrative,2870,18,0,0,2870,PRODUCTION,
+PKG-06,Construction Methodology,DEL-04-02,Budget Control & Change Management Plan,2020,12,0,0,2020,PRODUCTION,
+PKG-06,Construction Methodology,DEL-04-03,Communications & Reporting Plan,1670,10,0,0,1670,PRODUCTION,
+PKG-06,Construction Methodology,SUBTOTAL,,6560,40,0,0,6560,PRODUCTION,
+PKG-07,Commissioning/Closeout,DEL-06-01,Commissioning/Training/Closeout & Warranty Narrative,3290,22,0,0,3290,PRODUCTION,
+PKG-07,Commissioning/Closeout,SUBTOTAL,,3290,22,0,0,3290,PRODUCTION,
+PKG-08,Schedule & Milestones,DEL-08-01,Detailed Project Schedule,4620,32,0,0,4620,PRODUCTION,
+PKG-08,Schedule & Milestones,SUBTOTAL,,4620,32,0,0,4620,PRODUCTION,
+PKG-09,Due Diligence & Risk,DEL-09-01,Risk Register & Mitigation Plan,3410,22,0,0,3410,PRODUCTION,
+PKG-09,Due Diligence & Risk,DEL-09-02,Site Conditions & Due Diligence Summary,2950,18,0,0,2950,PRODUCTION,
+PKG-09,Due Diligence & Risk,SUBTOTAL,,6360,40,0,0,6360,PRODUCTION,

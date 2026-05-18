@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-006,DEL-06-02,DESIGN_MANAGEMENT,CAD,2350,2,100,All line items have full source references; hours from Level_of_Effort.csv; rates from Professional_Staff_Rates.csv

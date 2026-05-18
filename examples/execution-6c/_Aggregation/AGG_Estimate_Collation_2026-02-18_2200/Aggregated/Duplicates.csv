@@ -1,0 +1,3 @@
+DuplicateID,Type,Source1,Source2,Description,Resolution
+D-001,CONSTRUCTION_CONTENT,DEL-05-01 (24 construction lines),DEL-05-02 (95 construction lines),Same $10729000 construction pricing. DEL-05-01 is summary; DEL-05-02 is detail.,Both preserved in Project_Detail.csv for audit. Counted ONCE in totals. DEL-05-02 provides granular CBS traceability.
+D-002,BOND_INSURANCE,DEL-01-03 L-010/L-011/L-020/L-021/L-022 ($537534),DEL-05-01 L-021 ($474000),Bond/insurance premiums documented in bonding evidence AND carried in construction pricing. Same costs; different calculation precision.,DEL-01-03 premium lines tagged CostType=BOND_INSURANCE and excluded from production/construction totals. Only production lines ($2060) and broker fee ($3500) are additive.

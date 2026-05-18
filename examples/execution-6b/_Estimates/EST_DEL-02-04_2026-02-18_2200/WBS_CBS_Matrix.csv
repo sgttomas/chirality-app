@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-04,DESIGN_SERVICES,CAD,3600,2,100,All lines have non-TBD SourceRef; 24 total hours (16 Sr + 8 Int)

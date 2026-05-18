@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-009,DEL-009-04,Professional Services,CAD,1530.00,8,100%,Priced lines only (DL-001 through DL-008 allocated from LOE source)
+PKG-009,DEL-009-04,Professional Services — Direct LOE,CAD,1530.00,2,100%,"DL-019 ($990) + DL-020 ($540); these are the source LOE amounts that DL-001 through DL-008 were allocated from"
+PKG-009,DEL-009-04,Professional Services — TBD (Operational),CAD,TBD,10,0%,DL-009 through DL-018: construction-phase and guarantee-period operational effort not in LOE source

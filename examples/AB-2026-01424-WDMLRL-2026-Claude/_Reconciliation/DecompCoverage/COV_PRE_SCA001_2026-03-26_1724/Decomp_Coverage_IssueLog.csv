@@ -1,0 +1,2 @@
+IssueID,CheckNumber,Severity,EntityType,ConcreteLabel,EntityID,Description,DecompositionRef,FilesystemRef
+COV-001,0,WARNING,PARTITION,Package,ALL,"Decomposition §9 Telemetry states DeliverableCount=111 but actual count from §7 tables is 117. Internal inconsistency in decomposition document.",§9 Coverage & Telemetry - DeliverableCount row,N/A (document-internal issue)

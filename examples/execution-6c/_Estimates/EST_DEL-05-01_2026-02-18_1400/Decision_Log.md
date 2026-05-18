@@ -1,0 +1,15 @@
+# Decision Log: EST_DEL-05-01_2026-02-18_1400
+
+| DecisionID | Decision | Rationale | Impact |
+|---|---|---|---|
+| D-001 | Use ALLOW_MIXED_METHODS=TRUE to combine RATE_TABLE (production) with PARAMETRIC/ALLOWANCE (construction content) | BOE Section 3.2 requires dual cost nature: production hours and construction pricing content are fundamentally different cost types. Forcing single method would be inappropriate. | 3 lines RATE_TABLE; 18 lines PARAMETRIC; 1 line ALLOWANCE |
+| D-002 | Apply 15% General Requirements factor to base construction value | Industry standard for DB municipal projects in Alberta is 12-18%. Midpoint of 15% used. No project-specific GR breakdown available. | L-010: $1,305,000 |
+| D-003 | Use 9% blended design fee percentage of total base construction | Professional_Design_Fees.csv provides per-discipline percentages (2.5-7%), but for Schedule A summary level, a blended 9% of $8.7M base construction is more appropriate than sum-of-parts. Typical DB design fee range is 8-12%. | L-020: $780,000 |
+| D-004 | Apply bond/insurance as percentage of PP-24 base construction value ($8,700,000) | FP-01 through FP-05 provide percentage rates. Applied to PP-24 as the best available base value. Bond costs included in base price per RFP Section 5.3.1. | L-021: $474,000 |
+| D-005 | Resolve OI-004 (FF&E) as $20,000 cash allowance on Additional Option 6 | Per BOE Section 4 recommendation and OPT-18 (fixed at $20,000). BOE states this is the recommended resolution. | L-035: $20,000 |
+| D-006 | Use non-illuminated signage for Option 5 ($12k vs $22k illuminated) | OPT-10 (non-illuminated) used as default because Town branding guidelines are PENDING from Owner. Illuminated option noted as alternative. | L-034: $12,000 |
+| D-007 | Include Year 1 monitoring fee in Option 4 capital estimate | OPT-09 annual monitoring ($5,400/yr) included as Year 1 capital cost with camera system. Ongoing operational cost noted but not capitalized beyond Year 1. | L-033: $55,000 |
+| D-008 | Calculate GST separately on base scope and optional items | SOW-005 requires "taxes separated" in Schedule A. GST (5%) calculated independently on base scope and optional items as two separate lines. | L-040: $498,000; L-041: $18,000 |
+| D-009 | Use developed site area (4.5 acres) rather than total parcel (12 acres) for civil/site pricing | PP-10 specifies 4.5 acres as developed area. Remaining 7.5 acres (dog park/storm pond in flood fringe) is excluded from site development scope. | L-016: $1,230,000 |
+| D-010 | CBS codes assigned by cost function rather than by decomposition CBSHint | No explicit CBSHint present in decomposition for DEL-05-01. CBS assigned based on construction discipline/function for content lines and role category for production lines. | See Run_Context.md CBS Mapping Rule |
+| D-011 | Cold storage building priced as single lump sum using PB-02 turnkey rate | Cold storage (60x100 PEMB) is most efficiently estimated as a turnkey parametric rate ($48/sf) rather than build-up from individual components. Component cross-check embedded in L-018 SourceRef. | L-018: $290,000 |

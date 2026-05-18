@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-01,3100,CAD,11012,1,100,Architectural design fees; 7% of $157317 construction subtotal; DF-01
+PKG-002,DEL-02-01,3200,CAD,30225,1,100,Interior partitions; IA-01/02/04 blended at $93/m2
+PKG-002,DEL-02-01,3300,CAD,47200,3,100,Interior doors + frames + hardware; BE-11/12/13; unchanged
+PKG-002,DEL-02-01,3400,CAD,58882,3,100,Interior finishes: floor $16905 + ceiling $32844 + paint $9133; IA-05/08/12/13
+PKG-002,DEL-02-01,3500,CAD,9490,1,100,Accessibility features; IA-15/16/17/18 composite
+PKG-002,DEL-02-01,3600,CAD,11520,1,100,Code-required signage; IA-19/20/21 composite

@@ -1,0 +1,9 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-05,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,1280.00,1,100,Testing and commissioning
+PKG-013,DEL-013-05,Construction Labour > General Construction Labour,CAD,2618.70,2,100,Installation labour — HVAC sheet metal trade; Photographing concealed work
+PKG-013,DEL-013-05,General Conditions > General Requirements & Indirect,CAD,1710.00,2,100,Equipment procurement and submittal review; Closeout documentation (as-builts + O&M manual + warranty certs + compliance docs)
+PKG-013,DEL-013-05,Mechanical > HVAC Equipment & Distribution,CAD,8000.00,9,100,Welding station exhaust hood (source-capture LEV hood) — supply and install; Flexible exhaust ductwork connections — supply and install; ... (+7 more)
+PKG-013,DEL-013-05,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,500.00,1,100,Safety Code permit application and inspection coordination
+PKG-013,DEL-013-05,Professional Services > Design & Engineering,CAD,2640.00,1,100,Mechanical design engineering — LEV system design (P.Eng. stamped IFC)
+PKG-013,DEL-013-05,Professional Services > Project Management,CAD,4220.00,4,100,Project management — PM oversight; Construction project management — field coordination; ... (+2 more)
+PKG-013,DEL-013-05,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,1370.00,2,100,QA/QC lead — quality oversight; HSE manager — safety oversight

@@ -1,0 +1,12 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+ES-01,Lighting,"High-bay LED fixture, installed",each,350,700,520,PARAMETRIC,MEDIUM,150W class
+ES-02,Power,Panelboard supply + install,each,3200,6500,4800,ALLOWANCE,LOW,
+ES-03,Power,3-phase service allowance,ls,45000,95000,70000,ALLOWANCE,LOW,Utility/service conditions TBD
+ES-04,Devices,"Welding receptacle (50A class), installed",each,650,1300,950,PARAMETRIC,MEDIUM,
+ES-05,Low-Voltage,Security camera rough-in (cable + box),each,180,420,280,PARAMETRIC,MEDIUM,
+ES-06,Power,Motor connection allowance (doors/pumps),each,750,1600,1150,PARAMETRIC,MEDIUM,
+ES-07,Lighting,8-foot LED strip fixture (commercial; installed),each,120,280,200,PARAMETRIC,MEDIUM,
+ES-08,Lighting,Service pit/trench lighting (wet-rated LED; installed),each,180,400,280,PARAMETRIC,LOW,
+ES-09,Lighting,Emergency/exit light combo (battery backup; installed),each,250,500,375,PARAMETRIC,MEDIUM,
+ES-10,Telecom,2-way radio antenna rough-in (conduit + box; per point),each,350,700,500,PARAMETRIC,LOW,
+ES-11,FireAlarm,Fire alarm device rough-in (per device; installed),each,200,500,350,PARAMETRIC,LOW,

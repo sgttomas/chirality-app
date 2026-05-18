@@ -1,0 +1,9 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITEM-001,DEL-002-04,Structural Engineer — design development and detail drawing production (Phase 1 and Phase 2),84,hr,UNIT_RATE,Procedure,Steps 1-13A,"Lead structural design: section cut schedule, design questions, building cross-sections, longitudinal sections, service pit details, mezzanine details, wash bay details, crane support details, embedment details, stair details, misc details, cross-ref reconciliation"
+ITEM-002,DEL-002-04,BIM Technician — CAD/BIM modelling and sheet production,36,hr,UNIT_RATE,Procedure,Steps 5-13,"Drawing production support: modelling structural sections, sheet setup, detail drawing production, cross-reference management"
+ITEM-003,DEL-002-04,Project Manager — coordination and oversight,6,hr,UNIT_RATE,Procedure,Steps 1-3 and 15-17,"Owner coordination (Step 3), multi-discipline coordination review (Step 15), IFC issue oversight (Step 17)"
+ITEM-004,DEL-002-04,Cost Estimator — quantity takeoff and benchmarking support,4,hr,UNIT_RATE,Procedure,Steps 3-4,"Support for material specification matrix, cost benchmarking of structural elements"
+ITEM-005,DEL-002-04,Internal quality check — structural engineer QC review (Phase 3),1,LS,LUMP_SUM,Procedure,Step 14,"Internal QC checklist completion per 12-item checklist; included in Structural Engineer hours (ITEM-001)"
+ITEM-006,DEL-002-04,Multi-discipline coordination review (Phase 3),1,LS,LUMP_SUM,Procedure,Step 15,"Distribute drafts to Arch/Mech/Elec/Plumb; resolve conflicts; included in PM hours (ITEM-003)"
+ITEM-007,DEL-002-04,P.Eng. review and stamp — IFC drawing set,1,LS,LUMP_SUM,Procedure,Step 16,"P.Eng. licensed in Alberta signs and stamps all sheets; included in Structural Engineer hours (ITEM-001)"
+ITEM-008,DEL-002-04,IFC issue and transmittal,1,LS,LUMP_SUM,Procedure,Step 17,"Assign IFC revision designation, issue to GC, file copy to Owner; included in PM hours (ITEM-003)"

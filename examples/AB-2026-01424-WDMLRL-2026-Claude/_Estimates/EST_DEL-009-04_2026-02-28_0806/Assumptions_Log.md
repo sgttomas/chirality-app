@@ -1,0 +1,19 @@
+# Assumptions_Log.md
+## Estimate Assumptions Log — DEL-009-04
+
+**RunID:** EST_DEL-009-04_2026-02-28_0806
+
+---
+
+| Assumption ID | Assumption | Basis | Impact if Wrong | Confidence |
+|---|---|---|---|---|
+| ASM-001 | The 10 total LOE hours (6h PM + 4h CE) from Level_of_Effort.csv rows 255-256 can be allocated across Phase 1 and Phase 2 setup activities based on professional judgment of relative effort per step | Level_of_Effort.csv provides only aggregate role hours per deliverable without step-level breakdown | Individual line amounts (DL-001 through DL-008) would shift, but total remains $1,530 | MEDIUM |
+| ASM-002 | The new LOE rows (R-06 16h, R-09 12h, R-22 20h) can be allocated to specific Phase 2-5 activities based on the activity-level notes in the LOE source | LOE row 580 notes "Inspection coordination (8) + audit/KPI (4) + deficiency tracking (4)"; row 581 notes "Register filing (6) + compliance docs (4) + closeout summary (2)"; row 582 notes "County coordination per inspection (~12 x 1hr) + code tracking (4) + regulatory (4)" | If notes do not accurately describe activity distribution, individual line amounts may shift while role totals remain correct | MEDIUM |
+| ASM-003 | Currency is CAD throughout | Assumed_Project_Parameters.csv PP-17 confirms CAD; Alberta project context | Negligible -- all sources use CAD | HIGH |
+| ASM-004 | Professional staff hourly rates in Professional_Staff_Rates.csv are applicable without escalation or overhead multiplier | Rates are stated as PARAMETRIC with MEDIUM confidence; no escalation factor or overhead/profit markup is included in the source | Actual costs may differ; rates may need burden/overhead loading for a complete cost picture | MEDIUM |
+| ASM-005 | Permit fees are excluded from this estimate per RFP S3.3.1 (County responsibility) | RFP S3.3.1 explicitly states permit fees paid by County; Datasheet confirms | No impact -- this is a confirmed exclusion, not an assumption risk | HIGH |
+| ASM-006 | The register is a professional-services deliverable with no material, equipment, or subcontractor costs | Deliverable type is Register/Log per _CONTEXT.md; all Procedure steps are administrative/management activities | If register requires specialized software licensing or external consulting, those costs are missing | MEDIUM |
+| ASM-007 | DL-015 (deficiency tracking) allowance of $1,500 is reasonable for a project of this scale | Professional judgment; deficiency count on comparable rural Alberta projects typically ranges from 5-15 items, each requiring 2-4 hours of tracking effort | If deficiency count exceeds typical range, the allowance may be insufficient; if fewer deficiencies occur, the allowance is conservative | LOW |
+| ASM-008 | DL-016 (regulatory change) allowance of $900 is reasonable given the project timeline | Professional judgment; mid-construction code changes are uncommon but possible; $900 covers approximately 6-7 hours of specialist effort | If multiple regulatory changes occur, the allowance may be insufficient; if none occur, the cost is $0 and the allowance is unused | LOW |
+| ASM-009 | DL-017 (guarantee period maintenance) allowance of $1,500 is reasonable for a 2-year guarantee period | Professional judgment; assumes periodic (quarterly) register review during guarantee period at approximately 2-3 hours per review | If guarantee-period activity is higher than assumed (e.g., outstanding deficiencies requiring active tracking), the allowance may be insufficient | LOW |
+| ASM-010 | County notification effort (DL-013) is fully captured within DL-011 inspection coordination hours | LOE row 582 note explicitly includes "County coordination per inspection" in R-22 hours | If County notification requires separate dedicated effort beyond what is included in the per-inspection coordination, cost is understated | MEDIUM |

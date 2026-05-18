@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-09,DEL-09-01,CBS-MGMT,CAD,2790,2,100,PM (R-02) + Quality Lead (R-23)
+PKG-09,DEL-09-01,CBS-CONST,CAD,620,1,100,Construction Manager (R-15)
+PKG-09,DEL-09-01,ALL,CAD,3410,3,100,Deliverable total — all CBS categories

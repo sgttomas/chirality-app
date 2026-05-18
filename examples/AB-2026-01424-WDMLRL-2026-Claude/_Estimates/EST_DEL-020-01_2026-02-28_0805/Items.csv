@@ -1,0 +1,19 @@
+ItemID,DeliverableID,Description,Qty,Unit,PricingMode,SourceDoc,SourceSection,Notes
+ITM-020-01-001,DEL-020-01,Project Manager — Commissioning coordination and oversight,6,hr,UNIT_RATE,Procedure,Steps 1-11 overall coordination,LoE source: Level_of_Effort.csv row for DEL-020-01 R-01
+ITM-020-01-002,DEL-020-01,Construction Project Manager — Field commissioning coordination,8,hr,UNIT_RATE,Procedure,Steps 1-11 construction coordination,LoE source: Level_of_Effort.csv row for DEL-020-01 R-02
+ITM-020-01-003,DEL-020-01,Site Superintendent — Commissioning site supervision,10,hr,UNIT_RATE,Procedure,Steps 2-8 site supervision during testing,LoE source: Level_of_Effort.csv row for DEL-020-01 R-03
+ITM-020-01-004,DEL-020-01,Cost Estimator — Commissioning cost tracking,4,hr,UNIT_RATE,Procedure,Step 1 planning and cost tracking,LoE source: Level_of_Effort.csv row for DEL-020-01 R-08
+ITM-020-01-005,DEL-020-01,QA/QC Lead — Commissioning quality verification,6,hr,UNIT_RATE,Procedure,Steps 2 and 8 pre-commissioning and integrated verification,LoE source: Level_of_Effort.csv row for DEL-020-01 R-06
+ITM-020-01-006,DEL-020-01,HSE Manager — Commissioning safety oversight,4,hr,UNIT_RATE,Procedure,Steps 2-8 safety during testing activities,LoE source: Level_of_Effort.csv row for DEL-020-01 R-05
+ITM-020-01-007,DEL-020-01,Document Controller — Commissioning documentation compilation,12,hr,UNIT_RATE,Procedure,Steps 9 and 11 documentation compilation and handoff,LoE source: Level_of_Effort.csv row for DEL-020-01 R-09
+ITM-020-01-008,DEL-020-01,Commissioning Agent — Full commissioning execution,30,hr,UNIT_RATE,Procedure,Steps 1-11 all commissioning activities,LoE source: Level_of_Effort.csv row for DEL-020-01 R-23
+ITM-020-01-009,DEL-020-01,Commissioning Plan development and approval,1,LS,LUMP_SUM,Specification,REQ-020-01-003A — Commissioning Plan Required,Included in Commissioning Agent hours (ITM-020-01-008); no separate material cost
+ITM-020-01-010,DEL-020-01,Electrical and low-voltage systems functional testing,1,LS,LUMP_SUM,Procedure,Step 3 — Electrical and Low-Voltage Systems Testing,Labour covered by Commissioning Agent and trade hours; material/equipment cost TBD
+ITM-020-01-011,DEL-020-01,Crane load testing (2 x 5-tonne overhead cranes),1,LS,LUMP_SUM,Procedure,Step 4 — Crane and Lifting Systems Testing,May require specialized test weights or third-party inspector; cost TBD
+ITM-020-01-012,DEL-020-01,Mechanical/HVAC systems functional testing,1,LS,LUMP_SUM,Procedure,Step 5 — Mechanical and HVAC Systems Testing,Labour covered by Commissioning Agent and trade hours; material/equipment cost TBD
+ITM-020-01-013,DEL-020-01,Plumbing and water systems functional testing,1,LS,LUMP_SUM,Procedure,Step 6 — Plumbing and Water Systems Testing,Includes cistern fill test and pump flow measurement
+ITM-020-01-014,DEL-020-01,Building envelope systems functional testing,1,LS,LUMP_SUM,Procedure,Step 7 — Building Envelope Systems Testing,Labour covered by Commissioning Agent hours
+ITM-020-01-015,DEL-020-01,Integrated systems verification,1,LS,LUMP_SUM,Procedure,Step 8 — Integrated Systems Verification,Cross-system verification walkthrough
+ITM-020-01-016,DEL-020-01,Operator training delivery and documentation,1,LS,LUMP_SUM,Procedure,Step 10 — Operator Training,Training for County staff on all building systems
+ITM-020-01-017,DEL-020-01,Commissioning documentation package compilation,1,LS,LUMP_SUM,Procedure,Steps 9 and 11 — Documentation and Handoff,Includes test records and O&M manuals and as-built verification and completion report
+ITM-020-01-018,DEL-020-01,Safety Code inspection coordination during commissioning,1,LS,LUMP_SUM,Specification,REQ-020-01-013 — Alberta Safety Code Compliance,Coordination effort included in PM and Cx Agent hours; third-party fees TBD

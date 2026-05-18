@@ -1,0 +1,11 @@
+# Risk Register — EST_DEL-017-02_2026-02-27_0532
+
+| Risk ID | Risk | Likelihood | Impact | Mitigation | Affected Items |
+|---------|------|-----------|--------|-----------|----------------|
+| RSK-001 | Structural assessment reveals mezzanine is not economically repairable, requiring demolition/reconstruction or scope change. | LOW-MED | HIGH — could add 50,000+ CAD or trigger scope elimination | Guidance identifies contingency pathway (E-001): notify County, initiate change order, evaluate alternatives. | ITM-014, ITM-007, and potentially entire deliverable scope. |
+| RSK-002 | Mezzanine area is significantly larger than assumed 30 m2, increasing area-based costs. | MEDIUM | MEDIUM — +10 m2 adds ~3,000 CAD across area-based items | Obtain field measurement or original drawings before committing to design. | ITM-013, ITM-017, ITM-019, ITM-020, ITM-021 |
+| RSK-003 | Hazardous materials (ACM or lead paint) found during pre-demolition assessment, requiring abatement. | MEDIUM | MEDIUM — abatement could add 5,000-15,000 CAD | Conduct hazmat assessment early (Procedure Step 6.1); budget contingency for abatement. | ITM-012, ITM-029 |
+| RSK-004 | Stair/railing full replacement required (existing not code-compliant), exceeding allowance. | MEDIUM | MEDIUM — could add 4,000-9,000 CAD above allowance | Include stair assessment in structural assessment scope; early code review. | ITM-016 |
+| RSK-005 | Electrical scope expands beyond break room basics (e.g., panel upgrade required, fire alarm integration). | LOW-MED | MEDIUM — could add 3,000-8,000 CAD | Address in renovation design; coordinate with DEL-017-03 electrical scope. | ITM-015, ITM-018 |
+| RSK-006 | Building envelope has deficiencies requiring resolution before interior renovation. | LOW | HIGH — could delay entire renovation schedule | Verify envelope integrity per Procedure Step 5.2 prerequisite. | All construction items. |
+| RSK-007 | HVAC/ventilation upgrade needed for mezzanine occupancy (not currently in scope). | MEDIUM | LOW-MED — could add 3,000-8,000 CAD for ventilation work | Guidance identifies HVAC gap (D-002); address in design; coordinate with PKG-013. | Not currently estimated; would add new line items. |

@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,PROF-STRUCT,PKG-002,DEL-02-03,Structural Engineer (Senior) -- foundation approach; framing system; expansion provisions; narrative writing,16,HR,155,2480,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-02-03/R-09 + Professional_Staff_Rates.csv R-09,MED,Senior structural lead; 16 hrs per Level_of_Effort.csv
+L-002,PROF-STRUCT,PKG-002,DEL-02-03,Structural Engineer (Intermediate) -- supporting calculations; sketch review,8,HR,125,1000,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-02-03/R-10 + Professional_Staff_Rates.csv R-10,MED,Supporting structural production; 8 hrs per Level_of_Effort.csv

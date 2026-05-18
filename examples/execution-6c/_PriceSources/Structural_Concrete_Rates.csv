@@ -1,0 +1,16 @@
+ItemID,Category,Description,Unit,RateMin,RateMax,RecommendedRate,Basis,Confidence,Notes
+SC-01,Concrete,Concrete 25 MPa (supplied and placed),m3,320,380,350,PARAMETRIC,MEDIUM,Standard structural mix; includes placement + vibration + curing
+SC-02,Concrete,Concrete 32 MPa (supplied and placed),m3,350,420,385,PARAMETRIC,MEDIUM,Higher strength for foundations and slabs; includes placement
+SC-03,Concrete,Concrete slab-on-grade (150mm with W/W mesh),m2,75,95,85,PARAMETRIC,MEDIUM,Typical industrial/institutional floor slab; includes sub-base prep
+SC-04,Concrete,Concrete slab-on-grade (200mm reinforced),m2,95,120,108,PARAMETRIC,MEDIUM,Heavy-duty slab for apparatus/shop bays; reinforced for vehicle loading
+SC-05,Formwork,Foundation formwork (strip/pad footings),m2,55,75,65,PARAMETRIC,MEDIUM,Standard reusable forms
+SC-06,Formwork,Wall formwork (foundation walls),m2,65,85,75,PARAMETRIC,MEDIUM,Taller forms; bracing included
+SC-07,Reinforcing,Reinforcing steel (#10M to #25M supplied and placed),kg,2.80,3.70,3.25,PARAMETRIC,MEDIUM,Cut/bent/placed; includes tie wire + chairs
+SC-08,Steel,Structural steel (W-shapes and HSS fabricated and erected),kg,5.50,7.50,6.50,PARAMETRIC,MEDIUM,Shop fabricated; field bolted; includes connections; Alberta shop rates
+SC-09,Steel,Structural steel (misc — stairs/handrails/platforms),kg,7.50,10.50,9.00,PARAMETRIC,MEDIUM,Higher fab cost per kg due to complexity
+SC-10,Steel,Open-web steel joists (supplied and erected),m2,45,60,52,PARAMETRIC,MEDIUM,For clear-span roof framing; per m2 of roof area
+SC-11,Steel,Metal roof deck (supplied and installed),m2,35,48,42,PARAMETRIC,MEDIUM,22 ga or 20 ga; per m2 of roof area
+SC-12,Foundation,Spread footings (complete — excavation through backfill),each,1800,3200,2500,PARAMETRIC,MEDIUM,Typical 1.2m x 1.2m x 0.3m; includes excavation/form/rebar/concrete/backfill
+SC-13,Foundation,Strip footings (complete),lm,180,260,220,PARAMETRIC,MEDIUM,600mm wide x 300mm deep typical; per linear metre
+SC-14,Foundation,Screw piles (installed),each,2200,3800,3000,PARAMETRIC,MEDIUM,Galvanized; 2.75" to 3.5" shaft; 6-8m depth typical for Penhold soils
+SC-15,Anchors,Anchor bolts (standard; set in concrete),each,35,55,45,PARAMETRIC,MEDIUM,Per bolt; includes template + setting

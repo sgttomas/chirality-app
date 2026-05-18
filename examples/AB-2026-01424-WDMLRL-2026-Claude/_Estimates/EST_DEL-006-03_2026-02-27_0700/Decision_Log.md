@@ -1,0 +1,10 @@
+# Decision Log — EST_DEL-006-03_2026-02-27_0700
+
+| Decision ID | Decision | Rationale | Impact |
+|---|---|---|---|
+| DEC-001 | Used Level_of_Effort.csv (parametric LOE hours) as primary pricing model rather than Professional_Design_Fees.csv (percentage-of-construction-value) | LOE-based pricing is more appropriate for individual deliverable-level estimates; fee-percentage approach is better suited for package-level or whole-project aggregation. LOE hours are directly traceable to specific roles and activities. | Pricing method is PARAMETRIC with role-level granularity |
+| DEC-002 | Scope activity items (ITEM-001 through ITEM-016) are priced at $0 in Detail.csv with costs carried by role-based labour lines (L-001 through L-004) | The Level_of_Effort.csv provides aggregate hours per role per deliverable, not per-activity breakdowns. The 16 activity items provide scope coverage and traceability back to Procedure steps, while the 4 labour lines carry the actual cost. This avoids double-counting. | 16 zero-dollar scope lines + 4 priced labour lines = $11,365 total; no double-counting |
+| DEC-003 | Applied NONE rounding (default) | No rounding instruction provided in brief; default per protocol | Amounts are exact products of hours x rates |
+| DEC-004 | Did not update _LATEST.md pointer | UPDATE_LATEST_POINTER = FALSE per brief | No pointer file modified |
+| DEC-005 | CBS codes assigned as LABOUR-PM, LABOUR-EST, LABOUR-BIM, LABOUR-ENG, and SCOPE | Consistent with CBS conventions observed in prior PKG-006 estimates (EST_DEL-006-01); CBS codes reflect the cost breakdown structure by labour role category | CBS rollups are consistent across PKG-006 deliverable estimates |
+| DEC-006 | Professional_Design_Fees.csv source indexed but not used for pricing | Fee-percentage method is an alternative parametric model; LOE-based model was preferred for this deliverable-level run. The fee source is documented in Source_Index.md for completeness. | No impact on totals; source availability recorded |

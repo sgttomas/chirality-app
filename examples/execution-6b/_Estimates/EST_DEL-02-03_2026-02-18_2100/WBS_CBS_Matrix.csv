@@ -1,0 +1,2 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-03,PROF-STRUCT,CAD,3480,2,100,All lines have SourceRef; RATE_TABLE method; 24 total hours

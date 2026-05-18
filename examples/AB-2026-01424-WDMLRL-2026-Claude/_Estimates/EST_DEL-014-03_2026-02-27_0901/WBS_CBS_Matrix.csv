@@ -1,0 +1,9 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-03,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,3300.00,6,100,Pressure test of fill line; System flush; ... (6 items)
+PKG-014,DEL-014-03,Construction Labour > General Construction Labour,CAD,6759.20,3,100,Plumber labour — rough-in and installation; Plumber labour — completion and final connections; Labourer support — installation assist
+PKG-014,DEL-014-03,Equipment > Process & Facility Equipment,CAD,8500.00,1,100,High-volume bulk water fill pump (supply)
+PKG-014,DEL-014-03,General Conditions > General Requirements & Indirect,CAD,1600.00,1,100,As-built drawings and closeout documentation
+PKG-014,DEL-014-03,Materials > General Materials & Supplies,CAD,11075.00,10,100,Fill line piping — supply and install (2-3 inch); Exterior fill connection hardware (coupling/cap/enclosure); ... (10 items)
+PKG-014,DEL-014-03,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1500.00,1,100,Safety Codes inspections — plumbing permit and inspection fe...
+PKG-014,DEL-014-03,Professional Services > Project Management,CAD,5590.00,1,100,Professional staff — PM / CPM / Superintendent / Estimator /...
+PKG-014,DEL-014-03,ALL,CAD,38324.20,23,100,Grand total — all CBS categories

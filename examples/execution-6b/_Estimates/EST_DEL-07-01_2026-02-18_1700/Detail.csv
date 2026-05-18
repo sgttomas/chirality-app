@@ -1,0 +1,3 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-001,CONST,PKG-007,DEL-07-01,Construction Manager -- Construction Methodology Narrative (H&S; staging; permits; budget/schedule control; communications; QA/QC framework),12,HR,155,1860,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-01/R-15 + Professional_Staff_Rates.csv row R-15,MED,12 hrs x $155/hr; covers all 7 methodology topic areas per SOW-0019
+L-002,MGMT,PKG-007,DEL-07-01,Project Manager -- Input on project controls approach for Construction Methodology Narrative,4,HR,175,700,CAD,RATE_TABLE,Level_of_Effort.csv row DEL-07-01/R-02 + Professional_Staff_Rates.csv row R-02,MED,4 hrs x $175/hr; PM input on budget/schedule control sections

@@ -1,0 +1,4 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-001,DEL-01-05,PM,CAD,15750,1,100,Project Manager labour (90 hrs x $175/hr)
+PKG-001,DEL-01-05,ADMIN,CAD,4000,1,100,Administrative / Document Control labour (50 hrs x $80/hr)
+PKG-001,DEL-01-05,ALL,CAD,19750,2,100,Deliverable total (2 CBS categories)

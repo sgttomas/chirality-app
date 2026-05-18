@@ -1,0 +1,13 @@
+# Assumptions Log — EST_DEL-008-01_2026-02-26_2232
+
+| AssumptionID | Assumption | Basis | Risk if Wrong |
+|-------------|-----------|-------|---------------|
+| ASM-001 | Geotechnical Engineer (R-20) at $175/hr is the appropriate rate for all geotechnical professional service activities (program development, field supervision, analysis, report writing, review) | Professional_Staff_Rates.csv R-20 | If a subconsultant geotech firm is used, their rates may differ; if senior vs. junior engineer hours differ, a blended rate may be needed |
+| ASM-002 | PM (6 hr) and Cost Estimator (4 hr) level-of-effort from LoE is the full allocation for those roles on this deliverable | Level_of_Effort.csv, rows for DEL-008-01 | If the investigation requires more PM coordination (e.g., multi-week field program, Owner review cycles), actual hours may exceed the LoE allocation |
+| ASM-003 | Field investigation activities (drilling, sampling, test pits, monitoring) will be performed by a geotechnical drilling subcontractor, not by the Design-Builder's own forces | Standard practice for design-build geotech investigations in Alberta | If self-performed, cost structure would differ (equipment ownership, crew rates) |
+| ASM-004 | Laboratory testing will be performed by an independent geotechnical laboratory | Standard practice | If in-house testing is possible, cost structure differs |
+| ASM-005 | Mobilization / demobilization is a single round trip (one mob, one demob) | Typical for a standard investigation program on a single-building footprint | If multiple mobilizations are needed (e.g., return for additional boreholes, monitoring well readings), costs increase |
+| ASM-006 | Currency is CAD per Assumed_Project_Parameters.csv PP-17 and INIT-TASK brief | Alberta project; all rates in Professional_Staff_Rates.csv are labelled CAD | No foreign exchange exposure assumed |
+| ASM-007 | No overhead, profit markup, or indirect cost multiplier is applied to the hourly rates | Professional_Staff_Rates.csv provides bare hourly rates with no overhead structure defined | Actual billing rates may include overhead/profit multipliers; total cost would be higher |
+| ASM-008 | The investigation can be completed in a single field mobilization of reasonable duration (1-3 days of drilling) | Typical for a building footprint of approx 13,000 sqft | If ground conditions are complex (e.g., deep fill, contamination on landfill site), investigation may require extended field time |
+| ASM-009 | Report preparation and review can be completed by a single Geotechnical Engineer with peer review | Standard practice for investigations of this scale | Complex findings (e.g., contamination, unusual stratigraphy) may require additional specialist input |

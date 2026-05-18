@@ -1,0 +1,23 @@
+WBS_PackageID,PackageName,Administration & Permits,"Cladding, Insulation & Waterproofing",Commissioning & Administration,"Commissioning, Testing & Inspection",Concrete & Foundations,Controls & Commissioning,Design & Engineering,"Doors, Windows & Glazing","Earthwork, Surfacing & Landscaping",Electrical Labour,General Construction Labour,General Materials & Supplies,General Requirements & Indirect,HSE & Quality Assurance,HVAC Equipment & Distribution,Low Voltage & Communications,"Partitions, Finishes & Fit-Out","Permits, Fees & Bonding",Plumbing Labour,Plumbing Systems,Power Distribution & Equipment,Process & Facility Equipment,Professional Staff,Project Management,Specialty Consulting,Structural Steel & Fabrication,Survey & Field Investigation,Underground Utilities & Site Services,Utility Connections,Insurance,WBS_Total
+PKG-001,Architectural Design,,,,,,,159260.00,,,,,,,,,,,10000.00,,,,,,10710.00,4740.00,,,,,,184710.00
+PKG-002,Structural Design,,,,,,,186865.00,,,,,,4080.00,,,,,,,,,,,18700.00,,,,,,,209645.00
+PKG-003,Mechanical Design,,,,,,,87930.00,,,,,,,,,,,,,,,,,9180.00,,,,,,,97110.00
+PKG-004,Electrical Design,,,,,,,127080.00,,,,,,,,,,,,,,,,,7650.00,,,,,,,134730.00
+PKG-005,Civil Design,,,,,,,93650.00,,,,,,,,,,,,,,,,4950.00,7650.00,,,,,,,106250.00
+PKG-006,Process / Fire Protection Design,,,,,,,81740.00,,,,,,,,,,,,,,,,,9180.00,,,,,,,90920.00
+PKG-007,Instrumentation & Controls Design,,,,,,,28350.00,,,,,,,,,,,,,,,,,15570.00,,,,,,,43920.00
+PKG-008,Geotechnical & Environmental,,,,9600.00,,,,,,,,,,,,,,,,,,,,52040.00,20000.00,,15000.00,,,,96640.00
+PKG-009,Project Management & Controls,,,,,,,2360.00,,,,15495.00,,6000.00,,,,,,,,,,,14180.00,,,,,,,38035.00
+PKG-010,Foundation & Concrete Construction,,,,13500.00,431090.00,,,,47997.60,,51536.00,,,,,,,,,,,,5590.00,11000.00,,,9500.00,,,,570213.60
+PKG-011,Building Envelope & Structural Steel,,599906.00,,,1454422.00,,,172240.00,1215.00,,58781.90,35799.70,122884.80,17555.00,6300.00,,2880.00,,,,2200.00,1480.00,26760.00,12040.00,,375797.00,,,,,2890261.40
+PKG-012,Interior Architectural Construction,,,,,13500.00,,3290.00,9800.00,,,42521.00,,4530.00,,,,37694.00,750.00,,,,,,13350.00,,,,,,,125435.00
+PKG-013,Mechanical & HVAC Installation,11900.00,,,23999.20,,29500.00,9280.00,,,,61648.30,117766.40,6139.60,2740.00,223050.00,,,3000.00,,,,71450.00,5590.00,30560.00,,,,,,,596623.50
+PKG-014,Underground Utilities & Services,,,,8800.00,,,,,,,24320.00,115675.00,3600.00,1930.00,,,,5300.00,11692.80,86910.00,,8500.00,5780.00,28080.00,,,,,,,300587.80
+PKG-015,Electrical Installation,,,8760.00,,,,,,,19930.40,52428.00,42309.00,1200.00,1370.00,,9835.00,,3000.00,,,96675.00,3500.00,11180.00,16600.00,,,,,,,266787.40
+PKG-016,Equipment Procurement & Install,,,,15000.00,,,,,,,12084.80,,12000.00,,,,,,,,,405000.00,12590.00,,,,,,,,456674.80
+PKG-017,Specialties & Finishing,,,,2350.00,,,30070.00,,3000.00,,140723.54,,5200.00,1600.00,,,,,,,,,,30570.80,,,,,,,213514.34
+PKG-018,Sitework & Civil Construction,,,,13500.00,63635.00,,,,248329.00,,45088.40,,7000.00,14270.00,,,,5500.00,,1200.00,,,5590.00,36780.00,,,10060.00,61020.00,78000.00,,589972.40
+PKG-019,Permits & Regulatory,,,,,,,,,,,7600.00,,,3300.00,,,,,,,,,,11460.00,,,,,,,22360.00
+PKG-020,Optional / Alternates,,,,,,,,,,,6500.00,,19100.00,,,,,,,,,,,17770.00,,,,,,,43370.00
+PKG-021,Contract Administration,,,,,,,,,,,30040.00,500.00,150.00,,,,,40500.00,,,,,5000.00,10560.00,,,,,,74000.00,160750.00
+,CBS_Total,11900.00,599906.00,8760.00,86749.20,1962647.00,29500.00,809875.00,182040.00,300541.60,19930.40,548766.94,312050.10,191884.40,42765.00,229350.00,9835.00,40574.00,68050.00,11692.80,88110.00,98875.00,489930.00,83030.00,363630.80,24740.00,375797.00,34560.00,61020.00,78000.00,74000.00,7238510.24

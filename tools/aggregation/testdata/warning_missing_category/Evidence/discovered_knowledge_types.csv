@@ -1,0 +1,3 @@
+KnowledgeTypeID,Name,CategoryID,Discipline,Type,Responsible,Description,AnticipatedArtifacts,DecompositionRef,SourcePath,SourceRef,Notes
+KTY-01-01_Pumps,Pumps Reference,CAT-001,Mechanical,Reference,SME,Pumps knowledge artifacts,,Decomp.md,execution/CAT-001_Operations/1_Working/KTY-01-01_Pumps,KTY_CONTEXT:_CONTEXT.md,
+KTY-02-01_Orphan,Orphan KTY with no valid category,CAT-999,Mechanical,Reference,SME,References nonexistent category,,Decomp.md,execution/CAT-002_Missing/1_Working/KTY-02-01_Orphan,KTY_CONTEXT:_CONTEXT.md,

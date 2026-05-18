@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-013,DEL-013-02,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,3800.00,1,100,Commissioning and air balancing
+PKG-013,DEL-013-02,Construction Labour > General Construction Labour,CAD,17247.20,7,71,Equipment installation — set HRV/ERV in Utility Room; Heating system integration — connection to DEL-013-01; ... (+5 more)
+PKG-013,DEL-013-02,Equipment > Process & Facility Equipment,CAD,13500.00,1,100,HRV/ERV unit — commercial/industrial high-volume air exchanger supply and delivery
+PKG-013,DEL-013-02,Materials > General Materials & Supplies,CAD,40786.40,8,38,Fresh air intake ductwork — material and installation; Exhaust outlet ductwork — material and installation; ... (+6 more)
+PKG-013,DEL-013-02,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1500.00,1,0,Safety codes permit and inspections
+PKG-013,DEL-013-02,Professional Services > Professional Staff,CAD,5590.00,6,100,Professional staff — Project Manager; Professional staff — Construction Project Manager; ... (+4 more)

@@ -1,0 +1,8 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-014,DEL-014-01,"Commissioning & Testing > Commissioning, Testing & Inspection",CAD,5500.00,4,100,"Pressure testing of distribution piping; Commissioning — fill test, pump test, distribution verificat...; ... (4 items)"
+PKG-014,DEL-014-01,Construction Labour > General Construction Labour,CAD,8908.80,2,100,Plumber labour — cistern installation and piping rough-in; Plumber labour — testing and commissioning
+PKG-014,DEL-014-01,General Conditions > General Requirements & Indirect,CAD,2000.00,1,100,As-built drawings and O&M documentation
+PKG-014,DEL-014-01,Materials > General Materials & Supplies,CAD,100050.00,8,100,"50,000L cistern vessel — supply and set; Distribution pump — supply and install (100 LPM min); ... (8 items)"
+PKG-014,DEL-014-01,"Permits, Fees & Insurance > Permits, Fees & Bonding",CAD,1500.00,1,100,Plumbing permit — Alberta Safety Code
+PKG-014,DEL-014-01,Professional Services > Project Management,CAD,5590.00,6,100,Project management — PM allocation; Construction project management — CPM allocation; ... (6 items)
+PKG-014,DEL-014-01,TOTAL,CAD,123548.80,22,100,Grand total — all CBS categories

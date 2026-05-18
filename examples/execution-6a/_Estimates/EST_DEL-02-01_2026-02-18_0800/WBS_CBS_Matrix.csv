@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-002,DEL-02-01,3100,CAD,TBD,1,100,Architectural design fees; 7% of construction subtotal; TBD because construction subtotal is TBD
+PKG-002,DEL-02-01,3200,CAD,TBD,1,0,Interior partitions; no rate table evidence; TBD under STRICT policy
+PKG-002,DEL-02-01,3300,CAD,47200,3,100,Interior doors + frames + hardware; fully priced from BE-11 BE-12 BE-13
+PKG-002,DEL-02-01,3400,CAD,TBD,3,0,Interior finishes (floor sealer + ceiling + paint); no rate table evidence
+PKG-002,DEL-02-01,3500,CAD,TBD,1,0,Accessibility features; no rate table evidence
+PKG-002,DEL-02-01,3600,CAD,TBD,1,0,Code-required signage; no rate table evidence

@@ -1,0 +1,7 @@
+WBS_PackageID,WBS_DeliverableID,CBS,Currency,Amount_Total,LineCount,ProvenanceCompletenessPct,Notes
+PKG-018,DEL-018-01,Construction Labour > General Construction Labour,CAD,3153.60,2,100,Lines: L-015; L-016
+PKG-018,DEL-018-01,Professional Services > Professional Staff,CAD,5590.00,6,100,Lines: L-009; L-010; L-011; L-012; L-013 (+1 more)
+PKG-018,DEL-018-01,Professional Services > Project Management,CAD,2500.00,2,100,Lines: L-003; L-008
+PKG-018,DEL-018-01,"Quality, Safety & Environment > HSE & Quality Assurance",CAD,3700.00,2,100,Lines: L-004; L-006
+PKG-018,DEL-018-01,"Sitework & Civil > Earthwork, Surfacing & Landscaping",CAD,16200.00,3,100,Lines: L-001; L-002; L-007
+PKG-018,DEL-018-01,Survey & Investigation > Survey & Field Investigation,CAD,1800.00,1,100,Lines: L-005

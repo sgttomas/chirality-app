@@ -1,0 +1,2 @@
+LineID,CBS,WBS_PackageID,WBS_DeliverableID,Description,Qty,Unit,UnitRate,Amount,Currency,Method,SourceRef,Confidence,Notes
+L-0704-01,CBS-01-PROF,PKG-007,DEL-07-04,Project Manager -- meeting structure; frequency; agenda/minutes protocol; progress reporting; close-out meetings,6,hr,175,1050,CAD,RATE_TABLE,Level_of_Effort.csv row 57 (R-02 6h) + Professional_Staff_Rates.csv R-02 ($175/hr),MED,Sole role assigned to DEL-07-04 in Level_of_Effort.csv; covers SOW-0022 scope
