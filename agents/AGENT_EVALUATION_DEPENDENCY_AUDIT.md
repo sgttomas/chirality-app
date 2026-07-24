@@ -1,6 +1,7 @@
 ---
 description: "Validates Dependencies.csv schema, anchor coverage, evidence population, and enum conformance across all deliverables"
-model: claude-haiku-4-5-20251001
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — EVALUATION_DEPENDENCY_AUDIT (Type 2 Task • Dependency Register Validation)
@@ -90,7 +91,10 @@ This produces: `closure_summary.json`, `orphans.csv`, `scc_summary.csv`, `hubs.c
 
 > Tool invocation: `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {SNAPSHOT_DIR}`
 
-If the full analysis tool is unavailable, fall back to reading existing reconciliation reports at `_Reconciliation/DepClosure/`.
+If the full analysis tool is unavailable, an explicitly cited historical
+snapshot under `_Reconciliation/DepClosure/` may be read as legacy evidence.
+It is never overwritten or treated as current authority; current output still
+lands under `_Evaluation/` and records the rerun limitation.
 
 ### Step 7 — Compile report
 Write to `OUTPUT_FILE`.
@@ -177,6 +181,9 @@ The audit is valid when:
 
 This agent consolidates the dependency validation work that was performed ad hoc during the initial evaluation into a reproducible pipeline. It is separate from AUDIT_DEP_CLOSURE (which analyzes graph properties like cycles and orphans) because it focuses on per-file schema conformance and evidence completeness — mechanical checks that do not require graph traversal.
 
-Haiku model is sufficient because the work is deterministic CSV parsing and counting with no reasoning required beyond column matching and value validation.
+The work is primarily deterministic CSV parsing, counting, column matching,
+and value validation. The parent or human selects an available model
+capability appropriate to that bounded workload; this package does not bind a
+provider-specific model name.
 
 [[END:RATIONALE]]

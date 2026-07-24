@@ -13,7 +13,7 @@ Inputs:
   --schema                 Publication_Schema.md
   --section-map            Approved Section_Map.csv
   --rules                  Publication_Rules.md
-  [--concordance-register]  (LEGACY — accepted but ignored)
+  [--concordance-register] Frozen publication concordance register
   [--section-context-root] _Planning/section-context/ folder containing SEC-##_Context.md packets
   --dispatch-root          dispatch/ output folder
   --sections-root          sections/ output folder
@@ -295,6 +295,7 @@ def render_section_brief(
         f"  PUBLICATION_SCHEMA_PATH: {paths['schema'].resolve()}",
         f"  SECTION_MAP_PATH: {paths['section_map'].resolve()}",
         f"  PUBLICATION_RULES_PATH: {paths['rules'].resolve()}",
+        f"  PUBLICATION_CONCORDANCE_REGISTER_PATH: {paths['concordance_register'].resolve()}",
         f"  MAX_KA_FILES: {max_ka_files}",
         f"  DBM_OUTPUT_MODE: {dbm_output_mode}",
         f"  SOURCE_DOMAIN: {source_domain}",
@@ -405,6 +406,8 @@ def render_concordance_verify_brief(
         f"  - {findings_path.resolve()}",
         "RuntimeOverrides:",
         f"  SECTIONS_ROOT: {paths['sections_root'].resolve()}/",
+        f"  CONCORDANCE_REGISTER_PATH: {paths['concordance_register'].resolve()}",
+        f"  CONCORDANCE_FINDINGS_PATH: {(package_snapshot_dir / 'Publication_Concordance_Findings.csv').resolve()}",
         f"  OUTPUT_VERIFICATION_PATH: {report_path.resolve()}",
         f"  OUTPUT_VERIFICATION_FINDINGS_PATH: {findings_path.resolve()}",
         f"  SOURCE_SUPERSESSION_FINDINGS_PATH: {source_supersession_findings.resolve()}",
@@ -437,7 +440,7 @@ def main() -> int:
     parser.add_argument("--schema", required=True)
     parser.add_argument("--section-map", required=True)
     parser.add_argument("--rules", required=True)
-    parser.add_argument("--concordance-register", default="", help="LEGACY — accepted but ignored")
+    parser.add_argument("--concordance-register", default="")
     parser.add_argument("--section-context-root", default="")
     parser.add_argument("--dispatch-root", required=True)
     parser.add_argument("--sections-root", required=True)
@@ -454,6 +457,9 @@ def main() -> int:
         "schema": Path(args.schema).resolve(),
         "section_map": Path(args.section_map).resolve(),
         "rules": Path(args.rules).resolve(),
+        "concordance_register": Path(args.concordance_register).resolve()
+        if args.concordance_register
+        else (Path(args.input_manifest).resolve().parent / "Publication_Concordance_Register.csv"),
         "section_context_root": Path(args.section_context_root).resolve() if args.section_context_root else (Path(args.input_manifest).resolve().parent / "section-context"),
         "dispatch_root": Path(args.dispatch_root).resolve(),
         "sections_root": Path(args.sections_root).resolve(),

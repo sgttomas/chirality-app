@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 from pathlib import Path
 
@@ -120,8 +121,15 @@ KATEX_HEAD = """<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@
 .chunk.eq .eqhead{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:#666;margin-bottom:.25rem;flex-wrap:wrap}
 .chunk.eq .eqnum{margin-right:.25rem}
 .chunk.eq .hash{color:#aaa;font-size:.7rem}
-.chunk.eq .rendered{padding:.4rem;background:#f5f5f5;overflow-x:auto}
-.chunk.eq pre.src{margin:.25rem 0 0;padding:.5rem;background:#272822;color:#f8f8f2;font-size:.75rem;overflow-x:auto;white-space:pre-wrap}
+.chunk.eq .sourcecrop{margin:.45rem 0 .6rem;padding:.45rem;background:#fff;border:1px solid #ccc;border-radius:3px}
+.chunk.eq .sourcecrop img{display:block;max-width:100%;max-height:16rem;margin:0 auto;background:#fff;object-fit:contain}
+.chunk.eq .sourcecrop figcaption{margin-top:.3rem;font-size:.68rem;color:#555;text-align:center}
+.chunk.eq .auditpair{display:grid;grid-template-columns:minmax(0,1fr);gap:.4rem}
+.chunk.eq .eqview{margin:.45rem 0 0;clear:both}
+.chunk.eq .eqview-label{font-size:.68rem;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:.03em;margin:0 0 .2rem}
+.chunk.eq .rendered{display:block;position:relative;min-height:2.6rem;margin:0 0 .55rem;padding:.55rem;background:#f5f5f5;border:1px solid #e2e2e2;border-radius:3px;overflow-x:auto}
+.chunk.eq .rendered .katex-display{margin:.25rem 0}
+.chunk.eq pre.src{display:block;position:relative;margin:0;padding:.55rem;background:#272822;color:#f8f8f2;border-radius:3px;font-size:.75rem;line-height:1.35;overflow-x:auto;white-space:pre-wrap}
 .chunk.eq textarea.flagnote{min-height:3rem}
 .chunk.eq .flagpreview{display:none;margin-top:.3rem;padding:.4rem .5rem;background:#fff;border:1px dashed #c88a3a;border-radius:3px;font-size:.85rem;overflow-x:auto}
 .chunk.eq[data-status="flagged"] .flagpreview{display:block}
@@ -207,7 +215,7 @@ document.addEventListener("change", e => {
 
 INSTRUCTIONS_HTML = """<details class="instructions" open>
 <summary>How to use this audit</summary>
-<p>Each display equation extracted from the source is shown rendered (via KaTeX) and as raw LaTeX, paired with the source page PNG on the left. Compare each equation to the printed version in the PNG and mark its status.</p>
+<p>Each display equation extracted from the source is shown rendered (via KaTeX) and as raw LaTeX, paired with the source page PNG on the left. When available, a clipped source image is shown inside the equation card above the rendered/transcribed text. Compare the transcription to the crop first, then use the full page for context.</p>
 <p><b>Statuses</b> (four possible):</p>
 <ul>
   <li><code>Unreviewed</code> — default; not yet looked at.</li>
@@ -224,6 +232,7 @@ def render_eq_chunk(
     status: str,
     flag_note: str,
     backcheck_entry: dict,
+    crop_rel: str | None = None,
 ) -> str:
     """Render one equation chunk: head + (optional backcheck note) +
     rendered preview + raw LaTeX + flag textarea + live KaTeX preview.
@@ -265,6 +274,17 @@ def render_eq_chunk(
             + f'</div>'
         )
 
+    crop_block = ""
+    if crop_rel:
+        crop_src = html.escape(crop_rel)
+        crop_alt = html.escape(f"Source crop for page {page} equation {idx}")
+        crop_block = (
+            f'<figure class="sourcecrop">'
+            f'<img class="crop" loading="lazy" src="{crop_src}" alt="{crop_alt}">'
+            f'<figcaption>source crop · p. {page} · eq {idx}</figcaption>'
+            f'</figure>'
+        )
+
     return (
         f'<div class="chunk eq" data-kind="equation" data-key="{key}" '
         f'data-page="{page}" data-hash="{h}" data-status="{status}">'
@@ -276,8 +296,12 @@ def render_eq_chunk(
         f'<label class="rb"><input type="radio" name="s_{key}" value="flagged">⚠ Flag</label>'
         f'</div>'
         f'{bc_block}'
+        f'{crop_block}'
+        f'<div class="eqview"><div class="eqview-label">Rendered KaTeX</div>'
         f'<div class="rendered">$$ {html.escape(latex)} $$</div>'
+        f'<div class="eqview-label">Raw LaTeX</div>'
         f'<pre class="src">{html.escape(latex)}</pre>'
+        f'</div>'
         f'<textarea class="flagnote" placeholder="Type the corrected LaTeX, or a natural-language note (EQUATION_AUDIT Phase 3a will interpret prose notes to LaTeX before applying fixes)...">{html.escape(flag_note)}</textarea>'
         f'<div class="flagpreview"><div class="pvlabel">Preview (rendered from textarea)</div><div class="pvbody"></div></div>'
         f'</div>'
@@ -289,6 +313,7 @@ def render_equations_audit_page(
     audit_dir: Path,
     title: str,
     pages_dir_rel: str = "pages",
+    crops_dir: Path | None = None,
 ) -> tuple[str, dict]:
     """Compose the full equations.html document.
 
@@ -296,6 +321,8 @@ def render_equations_audit_page(
     `{"total", "verified", "flagged", "backcheck"}`.
     """
     verified, flagged, backcheck, rejected = load_sidecars_with_legacy(audit_dir)
+    crops_dir = crops_dir or (audit_dir / "crops")
+    crops_dir = crops_dir.resolve() if crops_dir and crops_dir.exists() else None
 
     # Filter rejected 1.5-P proposals from the in-memory backcheck map
     # before passing it to the status resolver. This keeps re-renders
@@ -318,7 +345,12 @@ def render_equations_audit_page(
                 r["key"], verified, flagged, backcheck=suppressed_backcheck
             )
             bc_entry = suppressed_backcheck.get(r["key"], {}) if status == "backcheck" else {}
-            eq_blocks.append(render_eq_chunk(r, status, note, bc_entry))
+            crop_rel = None
+            if crops_dir:
+                crop_path = crops_dir / f'page_{r["page"]:04d}_eq_{r["index"]:02d}.png'
+                if crop_path.exists():
+                    crop_rel = os.path.relpath(crop_path, audit_dir)
+            eq_blocks.append(render_eq_chunk(r, status, note, bc_entry, crop_rel))
             if status == "verified":
                 v_count += 1
             elif status == "flagged":

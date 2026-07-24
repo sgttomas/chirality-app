@@ -4,7 +4,7 @@ Use this skill with a generic TASK shell (no profile) like this:
 
 ```md
 PURPOSE: Draft Knowledge Artifacts for KTY-01 (Pressure Vessel Design)
-RequestedBy: ORCHESTRATOR
+RequestedBy: PROJECT_SETUP
 
 ScopePath: /abs/path/to/KTY-01_Pressure-Vessel-Design
 TaskSkill: domain-documents
@@ -45,9 +45,9 @@ RuntimeOverrides:
 | `RuntimeOverrides.UNIT_SCOPE` | `EXAMPLES_ONLY` | `EXAMPLES_ONLY`, `ALL_MAPPED` | Which handbook units form the evidence set |
 | `RuntimeOverrides.ARTIFACT_NAMING` | `PREFIXED_TYPED_SLUG` | `PREFIXED_TYPED_SLUG`, `TYPED_SLUG`, `PREFIXED_SLUG` | Artifact file naming policy |
 | `RuntimeOverrides.MAX_ARTIFACTS` | `25` | Positive integer | Hard cap on artifact file count |
-| `RuntimeOverrides.SOURCES_ROOT` | Provided by ORCHESTRATOR | Absolute path | Shared source/reference file root |
+| `RuntimeOverrides.SOURCES_ROOT` | Provided by PROJECT_SETUP | Absolute path | Shared source/reference file root |
 | `RuntimeOverrides.COMBINED_SOURCE_AUTHORITY_PATH` | omitted | Absolute path | Additional admitted source authority root for combined/cross-root source packages; source material remains subordinate to structured SCA supersession in `SCA_DRIVEN` mode |
-| `RuntimeOverrides.REPORT_TO` | `ORCHESTRATOR` | Free-form | Where to report run outcome |
+| `RuntimeOverrides.REPORT_TO` | `PROJECT_SETUP` | Free-form | Where to report run outcome |
 
 ## TaskProfile
 
@@ -165,6 +165,6 @@ This skill handles the `OPEN → INITIALIZED` transition (during Pass 1/2 runs).
 
 ## Notes
 
-- One invocation processes one Knowledge Type folder. ORCHESTRATOR dispatches one task per in-scope KTY.
+- One invocation processes one Knowledge Type folder. PROJECT_SETUP dispatches one task per in-scope KTY.
 - The brief does not include `AllowedTools` because this is a reasoning-first drafting skill. Safe-update of `_STATUS.md` uses `tools/scaffolding/write_status.sh` if available.
 - Authoritative source access is mandatory — runs that cannot read the source file halt with `FAILED_INPUTS`.

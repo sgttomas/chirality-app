@@ -1,10 +1,10 @@
 ---
 name: proposal-format
 description: Structured recommendation output using PROPOSAL blocks with evidence, change, risk, and status fields. Use for any deliverable-local task that surfaces actionable findings.
-compatibility: Chirality TASK with DELIVERABLE_TASK profile; reasoning-only (no deterministic tools).
+compatibility: Chirality TASK generic shell; reasoning-only (no deterministic tools).
 metadata:
   chirality-skill-version: "1"
-  chirality-task-profile: DELIVERABLE_TASK
+  chirality-task-profile: NONE
 ---
 
 # SKILL — proposal-format
@@ -17,13 +17,14 @@ The PROPOSAL: pattern is the canonical recommendation format for deliverable-loc
 
 ## Suitable agent shells
 
-- `TASK` with `TaskProfile: DELIVERABLE_TASK`
+- `TASK` (generic shell, no profile)
 
 ## Inputs
 
 ### Required
 
-- `DeliverablePath` via `DELIVERABLE_TASK`
+- `ScopePath`
+- `RuntimeOverrides.DELIVERABLE_PATH`
 
 ### Optional
 
@@ -40,6 +41,7 @@ The PROPOSAL: pattern is the canonical recommendation format for deliverable-loc
 | `FocusDocs` | Limit analysis to named docs (e.g., `Specification.md,Guidance.md`) | all production docs |
 | `IncludeLensTags` | Add `Lens:` tags even when semantic lensing is not active | `false` |
 | `ProposalDepth` | `summary` (title + status only) or `full` (all fields) | `full` |
+| `ProductionFormat` | resolver-selected `LEGACY_FOUR_DOC`, `SOW_V1`, or authorized `MIGRATION_DUAL` | resolver result |
 
 ## Tool usage
 
@@ -50,7 +52,7 @@ When combined with other skills that use deterministic tools (e.g., deliverable-
 Disallowed behavior:
 - no inventing evidence to justify a proposal
 - no widening scope beyond the single deliverable
-- no edits outside the files permitted by `DELIVERABLE_TASK`
+- no edits outside the effective bounded task brief's write authorization
 - no silent conflict resolution — contradictions go in `NEEDS_HUMAN_RULING`
 
 ## Method: PROPOSAL block format
@@ -73,7 +75,10 @@ Optional field (when semantic lensing is active or `IncludeLensTags: true`):
 
 ### Field rules
 
-- **Evidence** must cite a file and best-effort section/heading. If exact location is unknown, use `location TBD`. Never cite `_SEMANTIC_LENSING.md` as evidence — it is a worklist, not authority.
+- **Evidence** must cite a file and best-effort section/heading. Candidate-mode
+  proposals also cite the affected compound Scope-of-Work ID. If exact
+  location is unknown, use `location TBD`. Never cite `_SEMANTIC_LENSING.md`
+  as evidence — it is a worklist, not authority.
 - **Change** must be precise enough to apply without further interpretation. "Improve the specification" is not acceptable; "Add REQ-12: minimum wall thickness per CSA Z662 §7.1" is.
 - **Why** must name the improvement category (clarity, completeness, verification, consistency, source fidelity, etc.), not just restate the change.
 - **Risk** must name concrete downstream effects. "Low risk" without explanation is not acceptable; "Low — additive requirement; no existing content contradicted" is.
@@ -119,7 +124,7 @@ This baseline scan is the default behavior, not a separate mode. It is what the 
 - `NEEDS_HUMAN_RULING:` items
 - `DEPENDENCY_NOTES:` items
 - Optional applied edits (when `ApplyEdits: true`)
-- Updated `MEMORY.md` through DELIVERABLE_TASK closeout
+- Optional `MEMORY.md` update only when explicitly authorized by the brief
 
 ## Non-negotiable constraints
 

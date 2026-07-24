@@ -1,0 +1,65 @@
+{
+  "name": "@chirality/runtime-contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./agent-engine-port": {
+      "types": "./dist/harness/agent-engine-port.d.ts",
+      "import": "./dist/harness/agent-engine-port.js"
+    },
+    "./engine-conformance": {
+      "types": "./dist/harness/engine-conformance.d.ts",
+      "import": "./dist/harness/engine-conformance.js"
+    },
+    "./errors": {
+      "types": "./dist/harness/errors.d.ts",
+      "import": "./dist/harness/errors.js"
+    },
+    "./event-schema": {
+      "types": "./dist/harness/event-schema.d.ts",
+      "import": "./dist/harness/event-schema.js"
+    },
+    "./mcp/tool-names": {
+      "types": "./dist/harness/mcp/tool-names.d.ts",
+      "import": "./dist/harness/mcp/tool-names.js"
+    },
+    "./sdk-version": {
+      "types": "./dist/harness/sdk-version.d.ts",
+      "import": "./dist/harness/sdk-version.js"
+    },
+    "./tool-catalog": {
+      "types": "./dist/harness/tool-catalog.d.ts",
+      "import": "./dist/harness/tool-catalog.js"
+    },
+    "./tool-descriptor": {
+      "types": "./dist/harness/tool-descriptor.d.ts",
+      "import": "./dist/harness/tool-descriptor.js"
+    },
+    "./transcript-replay": {
+      "types": "./dist/harness/transcript-replay.d.ts",
+      "import": "./dist/harness/transcript-replay.js"
+    },
+    "./types": {
+      "types": "./dist/harness/types.d.ts",
+      "import": "./dist/harness/types.js"
+    },
+    "./domain-profile": {
+      "types": "./dist/harness/domain-profile.d.ts",
+      "import": "./dist/harness/domain-profile.js"
+    },
+    "./operation-proposal": {
+      "types": "./dist/harness/operation-proposal.d.ts",
+      "import": "./dist/harness/operation-proposal.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

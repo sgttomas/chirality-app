@@ -9,22 +9,29 @@ if str(VALIDATION_DIR) not in sys.path:
     sys.path.insert(0, str(VALIDATION_DIR))
 
 from validate_lens_register import validate_lens_register  # noqa: E402
-from validate_p3_disposition import validate_p3_disposition  # noqa: E402
-from validate_semantic_matrix import validate_semantic_file  # noqa: E402
+from scan_deliverable_consistency import main as consistency_main  # noqa: E402
+from validate_p3_disposition import main as p3_main, validate_p3_disposition  # noqa: E402
+from validate_semantic_matrix import main as semantic_main, validate_semantic_file  # noqa: E402
 from validate_semantic_pipeline_scope import validate_changed_paths  # noqa: E402
 
 
-def write_semantic(path: Path, *, omit_matrix: str | None = None) -> None:
+def write_semantic(path: Path, *, omit_matrix: str | None = None, use_sow: bool = False) -> None:
     path.mkdir(parents=True, exist_ok=True)
     sections = [
         "# Deliverable: DEL-17-99 Example",
         "**Inputs Read:**",
         "- `_CONTEXT.md` - x",
         "- `_STATUS.md` - x",
-        "- `Datasheet.md` - x",
-        "- `Specification.md` - x",
-        "- `Guidance.md` - x",
-        "- `Procedure.md` - x",
+        *(
+            ["- `ScopeOfWork.md` - x"]
+            if use_sow
+            else [
+                "- `Datasheet.md` - x",
+                "- `Specification.md` - x",
+                "- `Guidance.md` - x",
+                "- `Procedure.md` - x",
+            ]
+        ),
         "**Audit:** PASS",
         "## Matrix A - Orientation (3x4) - Canonical",
         "",
@@ -81,6 +88,48 @@ def write_semantic(path: Path, *, omit_matrix: str | None = None) -> None:
         if matrix != omit_matrix:
             sections.append(f"### {matrix} - Example")
     (path / "_SEMANTIC.md").write_text("\n".join(sections) + "\n", encoding="utf-8")
+
+
+def write_valid_sow(path: Path, *, extra: str = "") -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    text = """---
+schema: chirality-deliverable-sow/v1
+deliverable_id: DEL-17-99
+package_id: PKG-17
+decomposition_basis: execution/_Decomposition/SOFTWARE_DECOMP.md@abc123
+project_scope_refs: [SOW-001]
+package_objective_refs: [OBJ-001]
+---
+
+# Scope of Work — DEL-17-99
+
+## Purpose and Objective Traceability
+
+- **OUT-001** — Produce the bounded output.
+
+## Deliverable Definition — Ontology
+
+The output is defined by the accepted decomposition.
+
+## Completion and Reliance Basis — Epistemology
+
+- **AC-001** — The bounded output is complete.
+
+## Production and Verification Method — Praxeology
+
+- **VER-001** — Inspect the output deterministically.
+
+## Governing Values and Decisions — Axiology
+
+Preserve accepted authority.
+
+## Output and Evaluation Matrix
+
+| Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
+|---|---|---|---|---|---|
+| OUT-001 | SOW-001 | | AC-001 | VER-001 | Deterministic evidence |
+"""
+    (path / "ScopeOfWork.md").write_text(text + extra, encoding="utf-8")
 
 
 def write_lens(path: Path, *, generic_notes: bool = False, bad_total: bool = False) -> None:
@@ -200,3 +249,74 @@ def test_scope_validator_rejects_dirty_outside_when_strict() -> None:
         strict_repo=True,
     )
     assert any(f.category == "DIRTY_OUTSIDE_DELIVERABLE" for f in findings)
+
+
+def test_scope_validator_selects_sow_p3_write_surface() -> None:
+    findings = validate_changed_paths(
+        ["execution/PKG/DEL/ScopeOfWork.md"],
+        "execution/PKG/DEL",
+        "p3",
+        production_format="SOW_V1",
+    )
+    assert findings == []
+    denied = validate_changed_paths(
+        ["execution/PKG/DEL/Specification.md"],
+        "execution/PKG/DEL",
+        "p3",
+        production_format="SOW_V1",
+    )
+    assert any(f.category == "OUT_OF_SCOPE_PATH" for f in denied)
+
+
+def test_semantic_cli_rejects_declared_sow_when_format_is_missing(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["validate_semantic_matrix.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert semantic_main() == 2
+
+
+def test_p3_cli_rejects_declared_sow_when_format_is_missing(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["validate_p3_disposition.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert p3_main() == 2
+
+
+def test_consistency_cli_rejects_declared_sow_when_format_is_missing(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["scan_deliverable_consistency.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert consistency_main() == 2
+
+
+def test_semantic_p3_and_consistency_clis_accept_resolved_sow(tmp_path: Path, monkeypatch) -> None:
+    write_valid_sow(tmp_path, extra="\nA-001 disposition evidence.\n")
+    write_semantic(tmp_path, use_sow=True)
+    write_lens(tmp_path)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["validate_semantic_matrix.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert semantic_main() == 0
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["validate_p3_disposition.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert p3_main() == 0
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["scan_deliverable_consistency.py", str(tmp_path), "--production-format", "SOW_V1"],
+    )
+    assert consistency_main() == 0

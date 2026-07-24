@@ -55,6 +55,17 @@ python3 tools/source_catalog/build_source_database.py \
   --domain-root domains/piping-design
 ```
 
+For the Chirality self-domain, build from the manifest-referenced governance
+core corpus. Source files are not copied; catalog paths are recorded as
+`@repo/<RepoRelPath>` and resolved through `--repo-root`:
+
+```sh
+python3 tools/source_catalog/build_source_database.py \
+  --domain-root domains/chirality \
+  --repo-root . \
+  --source-manifest domains/chirality/_Sources/Source_Manifest.csv
+```
+
 Build BM25 + dense retrieval sidecars into that snapshot:
 
 ```sh
@@ -69,7 +80,26 @@ python3 tools/retrieval/build_source_index.py \
   --snapshot <snapshot-or-latest> --no-embeddings
 ```
 
+For the initial Chirality self-domain milestone, build BM25 only first:
+
+```sh
+python3 tools/retrieval/build_source_index.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md \
+  --no-embeddings
+```
+
+Optionally build dense embeddings later after the catalog and BM25 retrieval
+path are accepted:
+
+```sh
+python3 tools/retrieval/build_source_index.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md
+```
+
 ## Query
+
+Default hybrid search uses BM25 plus dense cosine retrieval when embeddings are
+available, then fuses ranks:
 
 ```sh
 python3 tools/retrieval/query_source_index.py \
@@ -78,9 +108,42 @@ python3 tools/retrieval/query_source_index.py \
   --k 10
 ```
 
+Pure dense semantic search ranks by embedding cosine only:
+
+```sh
+python3 tools/retrieval/query_source_index.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md \
+  --query "epistemic warrant and professional accountability" \
+  --mode dense \
+  --k 10
+```
+
+Pure BM25 lexical search ranks by keyword match only:
+
+```sh
+python3 tools/retrieval/query_source_index.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md \
+  --query "derivative-package rule" \
+  --mode bm25 \
+  --k 10
+```
+
+Atom-only dense search is useful for semantic discovery over accepted atomic
+knowledge units:
+
+```sh
+python3 tools/retrieval/query_source_index.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md \
+  --query "human authority over epistemic warrant" \
+  --mode dense \
+  --chunk-type LEDGER_ATOM \
+  --k 20
+```
+
 Useful filters:
 
 ```sh
+--mode hybrid
 --source-doc SRC-PIPING-MANUAL
 --artifact-role SOURCE_MARKDOWN
 --chunk-type SECTION_NODE
@@ -92,7 +155,8 @@ Useful filters:
 --json
 ```
 
-The public result contract returns stable IDs and provenance:
+The public result contract returns retrieval mode on each query payload plus
+stable IDs and provenance on each result row:
 
 - `chunk_id`
 - `artifact_id`
@@ -111,6 +175,15 @@ Internal row numbers are implementation detail only.
 ```sh
 python3 tools/source_catalog/validate_source_database.py \
   --snapshot domains/piping-design/_LocalIndexes/_LATEST.md
+```
+
+Validate the Chirality self-domain snapshot with repo-path resolution:
+
+```sh
+python3 tools/source_catalog/validate_source_database.py \
+  --snapshot domains/chirality/_LocalIndexes/_LATEST.md \
+  --domain-root domains/chirality \
+  --repo-root .
 ```
 
 Use `--skip-hash-verify` for quick checks over very large local corpora.

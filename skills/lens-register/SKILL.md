@@ -1,9 +1,9 @@
 ---
 name: lens-register
 description: Generate a matrix-organized, coverage-complete semantic lensing register (_SEMANTIC_LENSING.md) from _SEMANTIC.md + production documents. Setup-pipeline companion to the interactive semantic-lensing skill.
-compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (Phase 2.4).
+compatibility: Chirality TASK; dispatched by PROJECT_SETUP setup pipeline (Phase 2.4).
 metadata:
-  chirality-skill-version: "1"
+  chirality-skill-version: "2"
   chirality-task-profile: NONE
 ---
 
@@ -13,265 +13,275 @@ metadata:
 
 Produce a **matrix-organized lensing register** (`_SEMANTIC_LENSING.md`) that:
 
-1. Uses **each cell** of each matrix **A, B, C, F, D, X, E** (from `_SEMANTIC.md`) as a **lens** (a "what to look for" perspective),
-2. Applies that lens to each of the **production documents**, and
-3. Records only **warranted** enrichment inputs (gaps, conflicts, needed questions) with provenance — **without rewriting** the documents.
+1. Uses each primary Result-table cell of matrices **A, B, C, F, D, X, E** from `_SEMANTIC.md` as a lens,
+2. Applies each lens to the deliverable-local production documents, and
+3. Records only warranted enrichment inputs with provenance, without rewriting the documents.
 
-This output is intended to make follow-on enrichment:
-- **auditable** (evidence-linked),
-- **minimal** (only what's warranted),
-- **safe** (no invention; no conflict resolution by the skill).
-
-This is the **setup-pipeline, coverage-complete** contract in the semantic-lensing family. Its interactive counterpart is `skills/semantic-lensing/`, which consumes this register as a candidate worklist.
+This is the **setup-pipeline, coverage-complete** contract in the semantic-lensing family. It is the normal PROJECT_SETUP Phase 2.4 skill. Its interactive counterpart is `semantic-lensing`, which produces human-facing proposals or reviews existing register entries. `lens-register` creates the register; `four-documents` Pass 3 consumes the register.
 
 ## Suitable agent shells
 
-- `TASK` (generic shell mode, no profile)
+- `TASK` generic shell, no profile.
 
-Typical dispatcher: ORCHESTRATOR Phase 2.4 dispatches TASK with `TaskSkill: lens-register` (one dispatch per deliverable).
+Typical dispatcher: PROJECT_SETUP Phase 2.4 dispatches TASK with `TaskSkill: lens-register`, `ScopePath={DELIVERABLE_PATH}`, `RuntimeOverrides.deliverable_folder={DELIVERABLE_PATH}`, and write authorization for `_SEMANTIC_LENSING.md`.
 
 ## Inputs
 
 ### Required
 
-- `DeliverablePath` (or `deliverable_folder`) — absolute path to one production unit folder
+- `ScopePath` — absolute path to one production unit folder.
+- `deliverable_folder` — absolute path to the same folder, normally supplied in `RuntimeOverrides`.
+- `_SEMANTIC.md` in the deliverable folder.
 
 ### Optional
 
-- `DECOMP_VARIANT` — `PROJECT` | `SOFTWARE` (default `PROJECT`). DOMAIN is not supported; see QA_CHECKS.md for refusal behavior.
+- `DECOMP_VARIANT` — `PROJECT` | `SOFTWARE` (default `PROJECT`). `DOMAIN` is not supported.
+- `STATUS_POLICY` — default `NO_STATUS_TOUCH`.
+- `PRODUCTION_FORMAT` — resolver-selected `LEGACY_FOUR_DOC`, `SOW_V1`, or
+  authorized `MIGRATION_DUAL`; dual mode requires `FORMAT_AUTHORITY_REF`.
+- `DeliverablePath` — compatibility alias only; does not affect TASK write authorization.
 
-### Files read (deliverable-local)
+### Files read
 
 Required:
-- `{deliverable_folder}/_SEMANTIC.md` (source for the lenses — if missing, write blocking header and stop)
+- `{deliverable_folder}/_SEMANTIC.md` — source for lenses.
 
-Contextual (if missing, degrade with warnings and proceed):
+Contextual, read when present:
 - `{deliverable_folder}/_CONTEXT.md`
 - `{deliverable_folder}/_STATUS.md`
-- Production documents: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+- `{deliverable_folder}/Datasheet.md`
+- `{deliverable_folder}/Specification.md`
+- `{deliverable_folder}/Guidance.md`
+- `{deliverable_folder}/Procedure.md`
+- `{deliverable_folder}/ScopeOfWork.md` — read instead of the legacy set for
+  `SOW_V1`, or as the candidate replacement in authorized `MIGRATION_DUAL`
+  with exact path-scoped authority.
+- `{deliverable_folder}/_REFERENCES.md` — metadata only; do not follow external paths.
 
-Optional:
-- `{deliverable_folder}/_REFERENCES.md` (read if present; list pointers but do not expand scope unless explicitly instructed)
+Missing production documents produce warnings, not failure.
 
 ## Runtime overrides
 
 | Key | Meaning | Default | Allowed values |
 |---|---|---|---|
-| `DECOMP_VARIANT` | Variant of decomposition pipeline | `PROJECT` | `PROJECT`, `SOFTWARE` |
+| `deliverable_folder` | Skill-local scope anchor | required | absolute path equal to `ScopePath` |
+| `DECOMP_VARIANT` | Decomposition pipeline variant | `PROJECT` | `PROJECT`, `SOFTWARE` |
+| `STATUS_POLICY` | Lifecycle handling | `NO_STATUS_TOUCH` | `NO_STATUS_TOUCH` |
+
+`DECOMP_VARIANT=DOMAIN` is refused because DOMAIN pipelines skip semantic lensing.
 
 ## Tool usage
 
-This is a reasoning-only skill. No deterministic tools are required or allowed.
+Reasoning-first generation. Deterministic validation is optional but expected when the validator exists and the brief permits it.
 
-- Preferred tools: none (reasoning-first extraction)
-- `allowed-tools` frontmatter field intentionally omitted
+- No deterministic tool is required to generate `_SEMANTIC_LENSING.md`.
+- Optional validators may be used after generation:
+  - `python3 tools/validation/validate_lens_register.py {deliverable_folder}`
+  - `python3 tools/validation/validate_semantic_pipeline_scope.py {deliverable_folder} --step lens`
+- Do not claim validator PASS unless the validator actually ran and passed.
 
-Disallowed behavior:
-- No writing to any file outside `{deliverable_folder}/_SEMANTIC_LENSING.md`
-- No modification of production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
-- No modification of `_SEMANTIC.md` under any circumstances
-- No cross-deliverable scanning or comparison
-- No modification of `_STATUS.md` (unless orchestrator later adds a lifecycle state for lensing)
+The `allowed-tools` frontmatter field is intentionally omitted; TASK may still enforce a brief-provided allowlist.
 
 ## Outputs
 
-- `{deliverable_folder}/_SEMANTIC_LENSING.md` — overwritten each run
+Skill-authored output:
+
+- `{deliverable_folder}/_SEMANTIC_LENSING.md` — overwritten each run.
+
+TASK shell output:
+
+- `{deliverable_folder}/_run_records/TASK_RUN_*.md` — TASK run record.
 
 ## Non-negotiable invariants
 
-- **One deliverable per run.** Operate on a single deliverable folder only.
-- **Read-only on production documents.** You MUST NOT edit any production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`).
-- **Use matrices as lenses, not as authority.** Matrices condition what to look for; they do not justify inventing content.
-- **No invention.** If information is not present in the production documents (or other explicitly read deliverable-local files), record it as `Type=TBD_Question` rather than asserting it.
-- **Provenance is mandatory.** Every warranted item must include `SourcePath` and best-effort `SectionRef` (use "location TBD" if needed).
-- **Conflicts are surfaced, not resolved.** When documents disagree, create `Type=Conflict` and leave `HumanRuling = TBD`.
-- **No recursive ingestion.** Do not treat `_SEMANTIC_LENSING.md` as an input source for subsequent runs unless explicitly instructed.
-- **Matrix coverage is complete.** Every cell in each of A, B, C, F, D, X, E MUST appear in the **Lens Coverage** table (even if it yields no warranted items).
-- **Do not force verbosity.** If documents are already consistent and complete under a lens, record `CoverageStatus=NO_ITEMS` for that lens and move on.
-- **Avoid restatement.** Do not emit items that merely repeat what is already clear and consistent across documents.
-- **Preserve document-role boundaries (non-authoritative placement guidance):** When proposing where to apply a future enrichment, prefer placement by document role:
-  - normative content (requirements, acceptance criteria) → `Specification.md`
-  - operational content (prerequisites, steps, checks) → `Procedure.md`
-  - directional content (rationale, tradeoffs, interpretation) → `Guidance.md`
-  - descriptive content (parameters, enumerations, identifiers) → `Datasheet.md`
-  This is a suggestion signal only; it does not authorize edits.
+- **One deliverable per run.** Operate on exactly one folder.
+- **Read-only production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, or `Procedure.md`.
+- **SOW target IDs.** In `SOW_V1` or authorized migration-dual mode, apply lenses to
+  `ScopeOfWork.md` and record `AppliesToSection`, `TargetClaimRef`, and
+  `SuggestedTargetSection`; do not invent a second claim registry.
+- **Read-only `_SEMANTIC.md`.** It is a lens source, not an output target or engineering authority.
+- **Read-only `_STATUS.md`.** Normal Phase 2.4 policy is `NO_STATUS_TOUCH`.
+- **No external expansion.** Do not follow `_REFERENCES.md` paths or read outside the deliverable folder.
+- **Use lenses, not authority.** Matrix cells shape what to look for; they do not justify inventing content.
+- **No invention.** Unknowns become `TBD_Question`; gaps become `MissingSlot`; conflicts become `Conflict`.
+- **Provenance required.** Every warranted item has `SourcePath` and `SectionRef` or explicit absence provenance.
+- **Conflicts surfaced, not resolved.** `HumanRuling=TBD` unless a prior human ruling is cited.
+- **Matrix coverage complete.** Every cell in A, B, C, F, D, X, E appears in Lens Coverage.
+- **Structural matrices excluded.** K and T are transposes; G is a truncation. They are not lensed because doing so duplicates D/B coverage.
+- **Parser hygiene.** Ignore derivation tables, Matrix Summary, and Matrix Z. Parse only primary Result tables.
+- **No boilerplate NO_ITEMS.** Notes must be lens-specific.
 
-## Precedence (conflict resolution)
+## Precedence
 
 1. **PROTOCOL** governs sequencing and run behavior.
-2. **SPEC** governs validity (what counts as warranted + how it must be recorded).
-3. **STRUCTURE** defines register schema and output format.
+2. **SPEC** governs validity.
+3. **STRUCTURE** defines output schema.
 4. **RATIONALE** governs interpretation when ambiguity remains.
 
-If any instruction appears to conflict, flag the conflict and return it to the invoker.
+If instructions conflict, flag the conflict and return it to the invoker.
 
 ## Glossary
 
-- **Lens (matrix cell):** the atomic semantic unit in a matrix cell (e.g., `A[normative, guiding]`) used as a "what to look for" perspective.
-- **LensKey:** canonical identifier for a lens cell: `M:[RowLabel]:[ColLabel]`.
-- **Warranted item:** a gap/conflict/question that is actionable for a later enrichment pass, grounded by evidence or explicit absence.
-- **Production Documents:** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
+| Term | Meaning |
+|---|---|
+| Lens | A matrix Result-table cell used as a question-shaping perspective. |
+| LensKey | Canonical identifier: `M:[RowLabel]:[ColLabel]`. |
+| Warranted item | A grounded gap, conflict, weak statement, normalization risk, rationale gap, verification gap, or TBD question. |
+| Production documents | `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`. |
+| Structural matrices | K, G, T; excluded from lensing because they duplicate predecessor content. |
 
 ---
 
-## PROTOCOL — Straight-through Lensing Procedure
+## PROTOCOL — Straight-through lens-register procedure
 
 ### Step 0 — Safety checks
 
-1. Confirm `{deliverable_folder}` exists and is readable.
-2. If `DECOMP_VARIANT=DOMAIN` is passed: refuse gracefully (see QA_CHECKS.md for refusal behavior). DOMAIN pipelines skip the semantic lensing step.
+1. Resolve `ScopePath` and `deliverable_folder`; they must identify the same readable directory.
+2. If `DECOMP_VARIANT=DOMAIN`, refuse gracefully and do not write files.
 3. Confirm `_SEMANTIC.md` exists.
-   - If missing: write `_SEMANTIC_LENSING.md` with a blocking header ("Missing _SEMANTIC.md; run `semantic-matrix-build` skill first (ORCHESTRATOR Phase 2.3)") and stop.
+   - If missing, write `_SEMANTIC_LENSING.md` with a blocking header and stop.
 4. Confirm production documents exist.
-   - If one or more are missing: do **not** fail the run. Record `[WARNING] MISSING_DOC: <filename>` in the output header and proceed with available docs.
+   - Missing production documents produce `[WARNING] MISSING_DOC: <filename>` and the run proceeds with available documents.
+5. Confirm no write target outside `_SEMANTIC_LENSING.md` and TASK `_run_records/` is required.
 
-### Step 1 — Read context + inputs
+### Step 1 — Read context and inputs
 
 Read, in order:
-1. `_CONTEXT.md` (deliverable identity + description)
-2. `_STATUS.md` (record current state; do not change it)
-3. `_SEMANTIC.md` (extract matrices A, B, C, F, D, X, E)
-4. The production documents that exist (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
-5. `_REFERENCES.md` (if present; list but do not expand scope unless told)
 
-### Step 2 — Parse matrices into a lens inventory (coverage scaffold)
+1. `_CONTEXT.md` if present.
+2. `_STATUS.md` if present; record state but do not change it.
+3. `_SEMANTIC.md`.
+4. Existing production documents.
+5. `_REFERENCES.md` if present; list as metadata only and do not follow external paths.
 
-For each matrix `M ∈ {A, B, C, F, D, X, E}` in `_SEMANTIC.md`:
+### Step 2 — Parse matrices into a lens inventory
 
-- Extract:
-  - matrix name
-  - row labels (in order)
-  - column labels (in order)
-  - cell values (atomic semantic units)
+For each matrix `M ∈ {A, B, C, F, D, X, E}`:
 
-- Construct a **Lens Coverage** row for every cell (row-major, deterministic):
-  - `LensKey = M:[RowLabel]:[ColLabel]`
-  - `LensValue = cell value`
-  - Initialize `ItemCount=0`
-  - Initialize `CoverageStatus=NO_ITEMS`
+1. Locate the matrix section.
+2. Locate the first primary `### Result` table in that section.
+3. Extract row labels, column labels, and cell values.
+4. Create one Lens Coverage row per cell, row-major:
+   - `LensKey = M:[RowLabel]:[ColLabel]`
+   - `LensValue = cell value`
+   - `ItemCount=0`
+   - `CoverageStatus=NO_ITEMS`
+   - `Notes=<lens-specific initial note>`
 
-If a matrix cell is empty or malformed:
-- Set `CoverageStatus=MATRIX_ERROR` for that `LensKey`,
-- Add a `Type=MatrixError` warranted item referencing `_SEMANTIC.md`,
-- Continue (do not fail the run).
+Ignore:
 
-### Step 3 — Apply lenses to the production documents and record warranted items
+- derivation/intermediate work tables;
+- Matrix Summary;
+- Matrix Z;
+- structural matrices K, G, T.
 
-For each `LensKey` in the lens inventory:
+If a required matrix or cell is malformed, record `MATRIX_ERROR` and continue.
 
-1. **Scan** the production documents and ask: "What becomes salient under this lens?"
-2. Record only what meets the warranted threshold (below).
-3. Update the Lens Coverage row (`ItemCount`, `CoverageStatus`) accordingly.
+### Step 3 — Apply lenses and record warranted items
 
-**Warranted threshold (tight filter):** create an item only when at least one is true:
+For each `LensKey`:
 
-- `Conflict`: two+ documents (or two+ locations) make incompatible claims about the same thing (include contenders).
-- `VerificationGap`: a normative requirement exists but acceptance/verification is missing or ambiguous.
-- `MissingSlot`: a category suggested by the lens is absent where it would reasonably belong (record as absence; do not invent content).
-- `WeakStatement`: language is materially ambiguous/vague in a way that could change implementation decisions.
-- `RationaleGap`: a decision/requirement exists without enough explanation to interpret safely (prefer Guidance as suggested placement).
-- `Normalization`: terminology or naming is inconsistent across documents in a way that risks drift.
-- `TBD_Question`: a necessary input is missing and must be sourced externally or from references.
+1. Scan the production documents.
+2. Ask: what gap, conflict, ambiguity, missing verification, missing rationale, or terminology risk becomes salient under this lens?
+3. Record an item only when it meets the warranted threshold.
+4. Update `ItemCount`, `CoverageStatus`, and `Notes`.
 
-**How to write `CandidateInfo` (enrichment-ready, non-destructive):**
-- Phrase as a minimal *additive* suggestion (e.g., "Add acceptance criteria for …", "Clarify definition of …", "Record TBD: …").
-- Do not draft full paragraphs.
-- Do not introduce new numeric values or "shall" requirements unless they already exist and you are only pointing to the gap.
+Warranted item types:
 
-**Provenance for absence (`MissingSlot`):**
-- `SourcePath` must include the doc(s) you searched.
-- `SectionRef` can be:
-  - a specific heading where it would belong, or
-  - `entire document scanned` if no better anchor exists.
+- `Conflict`
+- `VerificationGap`
+- `MissingSlot`
+- `WeakStatement`
+- `RationaleGap`
+- `Normalization`
+- `TBD_Question`
+- `MatrixError`
 
-**Conflict handling:**
-- Populate `Contenders` with two+ `path#section` entries.
-- Set `HumanRuling=TBD` (unless a human ruling exists elsewhere and you can cite it).
+Tight filter:
+
+- Do not record restatements.
+- Do not pad the register for coverage.
+- Do not create items simply because a lens exists.
+- If documents are already clear and aligned under a lens, record `NO_ITEMS` with a specific note.
 
 ### Step 4 — Write `_SEMANTIC_LENSING.md`
 
-Write/overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the schema in STRUCTURE.
+Write or overwrite `{deliverable_folder}/_SEMANTIC_LENSING.md` using the STRUCTURE schema.
 
-### Step 5 — Report completion (to invoker)
+### Step 5 — QA and optional validation
 
-Report:
-- Deliverable ID/name
-- Whether `_SEMANTIC.md` was present and parsed
-- Count of warranted items (total + by document + by matrix)
-- Any matrix parsing errors, missing docs, or severe conflicts detected
+1. Confirm protected files were not modified.
+2. Confirm coverage completeness and schema compliance.
+3. Run `validate_lens_register.py` if available and permitted.
+4. Report validator status as `PASS`, `FAILED`, or `NOT_RUN`.
+5. Return run report to TASK/PROJECT_SETUP.
 
 ---
 
-## SPEC — Validity Requirements
+## SPEC — Validity requirements
 
 ### S1 — Coverage completeness
 
-A run is valid only if:
-- Every cell of every matrix A, B, C, F, D, X, E is processed as a lens, and
-- `_SEMANTIC_LENSING.md` includes a **Lens Coverage** entry for each `LensKey` with:
-  - `CoverageStatus` (`NO_ITEMS|HAS_ITEMS|MATRIX_ERROR`), and
-  - `ItemCount` (0 permitted).
+Every cell of A, B, C, F, D, X, and E must appear in Lens Coverage. Zero-item cells are valid when their notes are lens-specific.
 
-### S2 — No-invention constraint
+### S2 — No invention
 
-A recorded warranted item must be one of:
-- Gap / normalization / weak-statement item with provenance, or
-- A conflict grounded in at least two cited contenders, or
-- A question-to-answer (`Type=TBD_Question`) with rationale and where to look.
+A warranted item must be grounded in production-document evidence or explicit absence. Use `TBD_Question` when required information is absent or external.
 
-No speculation or baseless assumptions. Use `TBD` instead, to draw the human's attention.
+### S3 — Provenance
 
-### S3 — Provenance constraint
+Every warranted item includes:
 
-Every warranted item MUST include:
-- `SourcePath` (file path(s)), and
-- best-effort `SectionRef` (heading anchor; or `location TBD` / `entire document scanned`).
+- `SourcePath`;
+- `SectionRef`;
+- `Contenders` when conflict exists.
 
-### S4 — Human decision rights preserved
+### S4 — Human decision rights
 
-The skill MUST NOT:
-- Choose a "winner" when sources conflict
-- Introduce new requirements or numeric values
-- Claim compliance with a standard whose text is not present
-
-Instead:
-- Capture conflict items with `HumanRuling = TBD`
-- Capture questions with a clear "who/what to consult"
+The skill must not choose a winner, introduce requirements, or assert compliance. Human rulings remain `TBD` unless already citable.
 
 ### S5 — Output stability
 
-The output must be:
-- deterministically structured (stable ordering),
-- easy for a future agent to consume,
-- consistent with STRUCTURE tables (no alternate table formats).
+Output must use stable ordering and exact table schemas.
+
+### S6 — Scope discipline
+
+The run must not read sibling deliverables or external references; `_REFERENCES.md` is metadata only.
+
+### S7 — Status discipline
+
+`_STATUS.md` is not changed by `lens-register`.
 
 ---
 
-## STRUCTURE — Output File Schema (`_SEMANTIC_LENSING.md`)
+## STRUCTURE — Output file schema
 
-### File header (required)
+### File header
 
 ```markdown
 # Semantic Lensing Register: [Production Unit ID] [Name]
 
 **Generated:** [YYYY-MM-DD]
+**DECOMP_VARIANT:** [PROJECT|SOFTWARE]
 **Deliverable Folder:** [path]
-**Warnings:** [optional; e.g., MISSING_DOC, MATRIX_ERROR]
+**StatusPolicy:** NO_STATUS_TOUCH
+**Validator:** PASS | FAILED | NOT_RUN — [reason]
+**Warnings:** [optional warning list]
 
 **Inputs Read:**
-- _CONTEXT.md — [SourceRef]
-- _STATUS.md — [SourceRef]
+- _CONTEXT.md — [SourceRef or not present]
+- _STATUS.md — [SourceRef or not present]
 - _SEMANTIC.md — [SourceRef]
-- Datasheet.md — [SourceRef or "missing"]
-- Specification.md — [SourceRef or "missing"]
-- Guidance.md — [SourceRef or "missing"]
-- Procedure.md — [SourceRef or "missing"]
-- _REFERENCES.md — [SourceRef or "not present / not read"]
+- Datasheet.md — [SourceRef or missing]
+- Specification.md — [SourceRef or missing]
+- Guidance.md — [SourceRef or missing]
+- Procedure.md — [SourceRef or missing]
+- _REFERENCES.md — [SourceRef or not present / not read]
 
-**Purpose:** Apply `semantic-matrix-build` matrix cells as lenses over the production documents, capturing warranted enrichment inputs for a later enrichment pass.
+**Purpose:** Apply semantic-matrix-build Result-table cells as lenses over production documents, capturing warranted enrichment inputs for a later enrichment pass.
 ```
 
-### Summary block (required)
+### Summary block
 
 ```markdown
 ## Summary
@@ -282,8 +292,16 @@ The output must be:
   - Specification: n
   - Guidance: n
   - Procedure: n
+  - Multi: n
+  - NA: n
 - By matrix:
-  - A: n  B: n  C: n  F: n  D: n  X: n  E: n
+  - A: n
+  - B: n
+  - C: n
+  - F: n
+  - D: n
+  - X: n
+  - E: n
 - By type:
   - Conflict: n
   - VerificationGap: n
@@ -297,87 +315,85 @@ The output must be:
 - Matrix parse errors: n
 ```
 
-### Matrix sections (required)
+### Matrix sections
 
-For each matrix M in this order: **A, B, C, F, D, X, E**:
+For each matrix in order: A, B, C, F, D, X, E.
 
 ```markdown
 ## Matrix M — [Matrix Name]
 
-### Lens Coverage (required)
+### Lens Coverage
 | LensKey | RowLabel | ColLabel | LensValue | ItemCount | CoverageStatus | Notes |
 |---|---|---|---|---:|---|---|
-| M:[r]:[c] | r | c | ... | 0 | NO_ITEMS | ... |
+| M:[r]:[c] | r | c | ... | 0 | NO_ITEMS | lens-specific note |
 
-CoverageStatus enum:
-- NO_ITEMS
-- HAS_ITEMS
-- MATRIX_ERROR
-
-### Warranted Items (only if any exist for this matrix)
+### Warranted Items
 | ItemID | LensKey | Type | AppliesToDoc | SuggestedEditDoc | CandidateInfo | WhyWarranted | SourcePath | SectionRef | Contenders | ProposedAuthority (PROPOSAL) | HumanRuling |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| A-001 | A:[r]:[c] | VerificationGap | Specification | Specification | Add acceptance criteria for ... | ... | ... | ... | ... | ... | TBD |
+| A-001 | A:[r]:[c] | VerificationGap | Specification | Specification | Add acceptance criteria for ... | ... | ... | ... | ... | PROPOSAL | TBD |
 ```
 
-#### Column requirements (Warranted Items)
+Omit `### Warranted Items` for a matrix only when no warranted items exist for that matrix.
 
-- `ItemID`: unique within the file (recommend `A-001`, `A-002`, ..., then `B-001`, etc.)
+#### Lens Coverage columns
+
 - `LensKey`: `M:[RowLabel]:[ColLabel]`
-- `Type` (enum):
-  - `MissingSlot`
-  - `WeakStatement`
-  - `Conflict`
-  - `VerificationGap`
-  - `RationaleGap`
-  - `Normalization`
-  - `TBD_Question`
-  - `MatrixError`
-- `AppliesToDoc`: where the issue is observed (`Datasheet` | `Specification` | `Guidance` | `Procedure` | `Multi` | `NA`)
-- `SuggestedEditDoc`: where a later enrichment pass should *prefer* to place the fix (same filename convention | `Multi` | `TBD`)
-- `CandidateInfo`: short, enrichment-ready phrasing (not full prose); may include "TBD: …" question wording
-- `WhyWarranted`: 1–2 sentences explaining gap/conflict/leverage
-- `SourcePath`: file path(s)
-- `SectionRef`: best-effort headings; use "location TBD" or "entire document scanned" if needed
-- `Contenders`: only for conflicts; include two+ `path#section` entries
-- `ProposedAuthority`: PROPOSAL only; never authoritative
-- `HumanRuling`: always `TBD` unless a human has already ruled elsewhere (then cite where)
+- `RowLabel`: row label from matrix Result table
+- `ColLabel`: column label from matrix Result table
+- `LensValue`: cell value
+- `ItemCount`: integer count of warranted items for the lens
+- `CoverageStatus`: `NO_ITEMS` | `HAS_ITEMS` | `MATRIX_ERROR`
+- `Notes`: lens-specific note; no boilerplate
 
-#### SuggestedEditDoc heuristic (non-authoritative)
+#### Warranted Items columns
 
-Use the least-surprising placement guidance. Typical mappings:
-- `VerificationGap` → `Specification` (and/or `Procedure` if the missing item is an execution check)
-- `RationaleGap` → `Guidance`
-- `Normalization` → usually `Guidance` (vocabulary note) + wherever the term appears
-- `WeakStatement` → same doc where it appears, unless it belongs elsewhere by role
-- `MissingSlot` → `TBD` or best-fit doc role
-- `Conflict` / `TBD_Question` / `MatrixError` → `NA` or `TBD` as applicable
+- `ItemID`: unique within file, recommended `{Matrix}-{000}`.
+- `LensKey`: matching Lens Coverage key.
+- `Type`: one allowed item type.
+- `AppliesToDoc`: `Datasheet` | `Specification` | `Guidance` | `Procedure` | `Multi` | `NA`.
+- `SuggestedEditDoc`: best-fit later enrichment target, or `TBD` / `NA`.
+- `CandidateInfo`: short enrichment-ready phrasing; not full prose.
+- `WhyWarranted`: 1–2 sentence rationale.
+- `SourcePath`: file path(s) searched or cited.
+- `SectionRef`: heading anchor, `location TBD`, or `entire document scanned`.
+- `Contenders`: two or more `path#section` entries for conflicts; blank otherwise.
+- `ProposedAuthority (PROPOSAL)`: always `PROPOSAL` for proposed authority placement.
+- `HumanRuling`: `TBD` unless a prior human ruling is cited.
+
+### SuggestedEditDoc heuristic
+
+- `VerificationGap` → `Specification` and/or `Procedure`.
+- `RationaleGap` → `Guidance`.
+- `Normalization` → `Guidance` plus affected documents as needed.
+- `WeakStatement` → same document where the ambiguity appears unless role placement suggests otherwise.
+- `MissingSlot` → best-fit document role or `TBD`.
+- `Conflict`, `TBD_Question`, `MatrixError` → `NA` or `TBD`.
 
 ### SourceRef convention
 
-Use file path + best-effort heading anchors (or "location TBD") to record provenance. You are recording traceability, not claiming these sources "prove" the matrices.
+Use file path + best-effort heading anchors, or `location TBD`. SourceRefs record traceability; they do not make matrices authoritative.
 
 ---
 
-## RATIONALE — Why this skill exists
+## RATIONALE
 
-- **Bridges semantic partitions to document enrichment.** `_SEMANTIC.md` provides structured semantic partitions; lensing translates that into actionable enrichment targets for the production documents.
-- **Reduces drift without rewriting.** The register captures only what is warranted, avoiding restatement and minimizing semantic churn.
-- **Protects human authority.** Conflicts and consequential choices are surfaced for human ruling; the skill does not decide.
-- **Improves rerunnability.** When documents evolve, the register can be regenerated to reflect current gaps and conflicts with stable coverage accounting.
+`_SEMANTIC.md` partitions the deliverable's semantic space. `lens-register` turns those partitions into a bounded, evidence-linked worklist for later enrichment without editing the production documents.
 
-**Value hierarchy:**
-1. Provenance + no invention
-2. Cross-document consistency support
-3. Coverage completeness across all matrix cells
-4. Density and usability of `CandidateInfo` for downstream enrichment
+Value hierarchy:
+
+1. Provenance and no invention
+2. Scope discipline
+3. Coverage completeness
+4. Register usability
+5. Semantic density
 
 ## QA expectations
 
-See `QA_CHECKS.md` for the full invariant list and refusal behavior.
+See `QA_CHECKS.md`.
 
 ## See also
 
-- `skills/semantic-lensing/SKILL.md` — interactive proposal workflow consuming the register
-- `agents/AGENT_ORCHESTRATOR.md` — dispatches this skill via TASK during Phase 2.4
-- `.Archive/SEMANTIC_PIPELINE_ARCHITECTURE.md` — two-contract architecture
+- `skills/semantic-matrix-build/SKILL.md` — produces `_SEMANTIC.md`
+- `skills/semantic-lensing/SKILL.md` — interactive proposal workflow consuming this register
+- `skills/four-documents/SKILL.md` — Pass 3 consumer of `_SEMANTIC_LENSING.md`
+- `agents/AGENT_PROJECT_SETUP.md` — dispatches this skill via TASK in Phase 2.4

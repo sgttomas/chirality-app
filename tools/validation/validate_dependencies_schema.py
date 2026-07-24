@@ -1,22 +1,7 @@
 #!/usr/bin/env python3
-"""
-validate_dependencies_schema.py
-Validates a Dependencies.csv file against the v3.1 schema.
+"""Validate a dependency CSV file against the canonical v3.1 contract."""
 
-Checks:
-  1. All 29 required columns are present
-  2. RegisterSchemaVersion column contains 'v3.1'
-  3. Every data row has the same field count as the header
-  4. Reports any extension columns found
-
-Usage:
-    python3 validate_dependencies_schema.py <csv_path>
-
-Exit codes:
-    0 = valid schema
-    1 = invalid schema or file error
-"""
-
+import argparse
 import csv
 import sys
 
@@ -32,9 +17,79 @@ REQUIRED_COLUMNS = [
 
 KNOWN_EXTENSIONS = ["EstimateImpactClass", "ConsumerHint"]
 
-def validate(csv_path):
+CANONICAL_ENUMS = {
+    "DependencyClass": {"ANCHOR", "EXECUTION"},
+    "AnchorType": {"IMPLEMENTS_NODE", "TRACES_TO_REQUIREMENT", "NOT_APPLICABLE"},
+    "Direction": {"UPSTREAM", "DOWNSTREAM"},
+    "DependencyType": {"PREREQUISITE", "INTERFACE", "HANDOVER", "CONSTRAINT", "ENABLES", "OTHER"},
+    "TargetType": {"DELIVERABLE", "PACKAGE", "WBS_NODE", "REQUIREMENT", "DOCUMENT", "EQUIPMENT", "EXTERNAL", "UNKNOWN"},
+    "Explicitness": {"EXPLICIT", "IMPLICIT"},
+    "SatisfactionStatus": {"TBD", "PENDING", "IN_PROGRESS", "SATISFIED", "WAIVED", "NOT_APPLICABLE"},
+    "Confidence": {"HIGH", "MEDIUM", "LOW"},
+    "Origin": {"DECLARED", "EXTRACTED"},
+    "Status": {"ACTIVE", "RETIRED"},
+}
+
+
+def dependency_id(row: dict[str, str], fallback: str = "<missing>") -> str:
+    return row.get("DependencyID", "").strip() or fallback
+
+
+def validate_row_semantics(rows: list[dict[str, str]]) -> list[str]:
+    findings: list[str] = []
+    for line_number, row in enumerate(rows, start=2):
+        dep_id = dependency_id(row)
+
+        for field, allowed in CANONICAL_ENUMS.items():
+            value = row.get(field, "").strip()
+            if value not in allowed:
+                findings.append(
+                    f"Row {line_number} invalid {field}: {value!r} "
+                    f"(DependencyID={dep_id}; allowed={', '.join(sorted(allowed))})"
+                )
+
+        dependency_class = row.get("DependencyClass", "").strip()
+        anchor_type = row.get("AnchorType", "").strip()
+        dependency_type = row.get("DependencyType", "").strip()
+        target_type = row.get("TargetType", "").strip()
+        target_deliverable_id = row.get("TargetDeliverableID", "").strip()
+
+        if dependency_class == "ANCHOR":
+            if dependency_type != "OTHER":
+                findings.append(
+                    f"Row {line_number} ANCHOR row must use DependencyType=OTHER "
+                    f"(DependencyID={dep_id}; found {dependency_type!r})"
+                )
+            if anchor_type == "NOT_APPLICABLE":
+                findings.append(
+                    f"Row {line_number} ANCHOR row must not use AnchorType=NOT_APPLICABLE "
+                    f"(DependencyID={dep_id})"
+                )
+
+        if dependency_class == "EXECUTION" and anchor_type != "NOT_APPLICABLE":
+            findings.append(
+                f"Row {line_number} EXECUTION row must use AnchorType=NOT_APPLICABLE "
+                f"(DependencyID={dep_id}; found {anchor_type!r})"
+            )
+
+        if target_type == "DELIVERABLE" and not target_deliverable_id:
+            findings.append(
+                f"Row {line_number} TargetType=DELIVERABLE requires TargetDeliverableID "
+                f"(DependencyID={dep_id})"
+            )
+        if target_type and target_type != "DELIVERABLE" and target_deliverable_id:
+            findings.append(
+                f"Row {line_number} non-deliverable TargetType must leave TargetDeliverableID blank "
+                f"(DependencyID={dep_id}; TargetType={target_type!r}; "
+                f"TargetDeliverableID={target_deliverable_id!r})"
+            )
+
+    return findings
+
+
+def validate(csv_path, schema_only=False):
     try:
-        with open(csv_path, 'r', newline='') as f:
+        with open(csv_path, 'r', newline='', encoding='utf-8-sig') as f:
             reader = csv.reader(f)
             header = next(reader)
             raw_rows = list(reader)
@@ -51,6 +106,7 @@ def validate(csv_path):
     extensions = [col for col in header if col not in REQUIRED_COLUMNS]
     row_count = len(raw_rows)
     findings = []
+    dict_rows: list[dict[str, str]] = []
 
     expected_width = len(header)
     for index, row in enumerate(raw_rows, start=2):
@@ -60,6 +116,8 @@ def validate(csv_path):
                 f"Row {index} field count mismatch: expected {expected_width}, "
                 f"found {len(row)} (DependencyID={dependency_id})"
             )
+        padded = row + [""] * max(0, expected_width - len(row))
+        dict_rows.append({name: padded[column_index] for column_index, name in enumerate(header)})
 
     if "RegisterSchemaVersion" in header:
         version_index = header.index("RegisterSchemaVersion")
@@ -76,25 +134,35 @@ def validate(csv_path):
     if missing:
         findings.append(f"Missing columns ({len(missing)}): {', '.join(missing)}")
 
+    if not schema_only and not missing:
+        findings.extend(validate_row_semantics(dict_rows))
+
     return not findings, findings, extensions, row_count, header
 
 
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <csv_path>", file=sys.stderr)
-        sys.exit(1)
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("csv_path")
+    parser.add_argument(
+        "--schema-only",
+        action="store_true",
+        help="Validate only CSV shape/version. Use only for historical legacy snapshots.",
+    )
+    return parser.parse_args(argv)
 
-    csv_path = sys.argv[1]
-    valid, findings, extensions, row_count, header = validate(csv_path)
+
+if __name__ == '__main__':
+    args = parse_args(sys.argv[1:])
+    valid, findings, extensions, row_count, header = validate(args.csv_path, schema_only=args.schema_only)
 
     if not valid:
-        print(f"INVALID: {csv_path}")
+        print(f"INVALID: {args.csv_path}")
         for finding in findings:
             print(f"  {finding}")
         print(f"  Data rows: {row_count}")
         sys.exit(1)
 
-    print(f"VALID: {csv_path}")
+    print(f"VALID: {args.csv_path}")
     print(f"  Columns: {len(header)} ({len(REQUIRED_COLUMNS)} required + {len(extensions)} extension)")
     print(f"  Data rows: {row_count}")
     if extensions:

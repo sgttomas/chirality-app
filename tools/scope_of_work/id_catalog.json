@@ -1,0 +1,23 @@
+{
+  "schema": "chirality-sow-id-catalog/v1",
+  "width": 3,
+  "definitions": {
+    "AC": "acceptance criterion",
+    "AX": "governing value or rationale",
+    "CLM": "descriptive claim",
+    "CON": "unresolved conflict",
+    "OUT": "expected output",
+    "REM": "remaining item",
+    "REQ": "normative requirement",
+    "TBD": "unresolved information",
+    "VER": "verification method"
+  },
+  "migration_dispositions": [
+    "PRESERVED",
+    "MERGED",
+    "SPLIT",
+    "SUPERSEDED",
+    "DEFERRED",
+    "CONFLICT"
+  ]
+}

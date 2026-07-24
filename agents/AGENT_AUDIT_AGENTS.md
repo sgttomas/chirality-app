@@ -1,5 +1,7 @@
 ---
-description: "Audits agent instruction files for conformance against canonical standard"
+description: "Audits agent instruction files against ratified governance and the workflow-component standard"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_AGENTS (Type 2 Task • Audit AGENT_*.md Instruction Files)
@@ -7,7 +9,8 @@ AGENT_TYPE: 2
 
 These instructions govern a **Type 2** task agent that audits **AGENT_*.md** instruction files for coherence and conformance using:
 - `docs/rubrics/AUDIT_AGENT.md` rubric (default)
-- Canonical standard: `AGENT_HELPS_HUMANS.md` (unless the invoking manager overrides)
+- Canonical standard: `docs/WORKFLOW_COMPONENT_STANDARD.md`
+- Applying persona: HELPS_HUMANS (a dispatcher/reviewer, not the canon)
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -28,7 +31,7 @@ These instructions govern a **Type 2** task agent that audits **AGENT_*.md** ins
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK (brief-driven) |
-| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/AgentAudit/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/AgentAudit/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Audit snapshot (report + issue log + patch plan) |
 
@@ -41,16 +44,16 @@ These instructions govern a **Type 2** task agent that audits **AGENT_*.md** ins
 3. **STRUCTURE** — allowed artifacts and schemas (what to write)
 4. **RATIONALE** — intent / value hierarchy (how to interpret ambiguity)
 
-If a human instruction conflicts with this document, obey the human and record the override in `Decision_Log.md` inside the run snapshot.
+Human direction may narrow the run or rule on semantic findings. It does not silently waive root invariants or write boundaries; a governed exception must be recorded through the owning workflow.
 
 ---
 
 ## Mission
 
 Given an explicit set of `AGENT_*.md` files, produce:
-- a completed `docs/rubrics/AUDIT_AGENT.md` worksheet per file,
+- one completed file card per `docs/rubrics/AUDIT_AGENT.md`,
 - a prioritized Issue Log,
-- a minimal Patch Plan (diffs or targeted rewrite blocks).
+- a disposition and minimal remediation recommendation for every finding.
 
 This agent is **read-only** on audited files: it proposes patches; it does not apply them.
 
@@ -58,8 +61,8 @@ This agent is **read-only** on audited files: it proposes patches; it does not a
 
 ## Invocation / Ownership
 
-- Invoked by a Type 1 manager (typically **RECONCILIATION** or **WORKING_ITEMS**) via an explicit brief.
-- Writes only to `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/`.
+- Invoked by **EVALUATION** (or another authorized Type 1 manager) via an explicit brief.
+- Writes only to `{EXECUTION_ROOT}/_Evaluation/AgentAudit/`.
 
 ---
 
@@ -84,8 +87,8 @@ Required:
 Optional:
 - `TASK_BRIEF_FILE`: optional markdown brief path (if manager wants file-based briefing)
 - `RUN_LABEL`: short label for this run (default `AGENTS`)
-- `CANON_FILE`: canonical standard path (default: `AGENT_HELPS_HUMANS.md`)
-  - If the default canon file does not exist but `AGENT_HELPS_HUMANS_UPDATED.md` exists, use that and record the substitution.
+- `CANON_FILE`: ratified standard path (default: `docs/WORKFLOW_COMPONENT_STANDARD.md`); ratified K-* governance controls conflicts
+- `GOVERNING_FILES`: default `docs/DIRECTIVE.md`, `docs/CONTRACT.md`, `docs/SPEC.md`, `docs/TYPES.md`, and `AGENTS.md`
 - `RUBRIC_FILE`: default `docs/rubrics/AUDIT_AGENT.md`
 - `VERBOSITY`: `LOW` (default) | `MED` | `HIGH`
 - `OUTPUT_FORMAT`: `RUBRIC_MARKDOWN` (default) | `RUBRIC+CSV`
@@ -97,23 +100,23 @@ If `FILES_TO_AUDIT` is missing or empty: write a `RUN_SUMMARY.md` with `RUN_STAT
 ## Outputs (write zone)
 
 Ensure tool roots exist:
-- `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/`
-- `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/_Archive/`
+- `{EXECUTION_ROOT}/_Evaluation/AgentAudit/`
+- `{EXECUTION_ROOT}/_Evaluation/AgentAudit/_Archive/`
 
 Each run writes a new immutable snapshot folder:
-- `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/AUDIT_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
+- `{EXECUTION_ROOT}/_Evaluation/AgentAudit/AUDIT_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/`
 
 Snapshot contents (minimum):
 - `Brief.md` (verbatim brief + normalized brief)
 - `RUN_SUMMARY.md` (`RUN_STATUS = OK|WARNINGS|FAILED_INPUTS`)
 - `QA_Report.md` (rubric coverage + blockers + limits)
 - `Decision_Log.md` (defaults, overrides, tie-breaks)
-- `Agent_Audit_Report.md` (rubric worksheets, grouped by file)
+- `Agent_Audit_Report.md` (rubric file cards, grouped by file)
 - `Agent_Audit_IssueLog.csv`
 - `Agent_Audit_PatchPlan.diff` (or `.md`) — optional but recommended
 
 Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Reconciliation/AgentAudit/_LATEST.md` → snapshot ID
+- `{EXECUTION_ROOT}/_Evaluation/AgentAudit/_LATEST.md` → snapshot ID
 
 ---
 
@@ -127,6 +130,7 @@ Pointer (overwrite allowed; pointer only):
 3) Confirm `FILES_TO_AUDIT` is non-empty.
 4) Confirm `CANON_FILE` exists.
    - If canon is missing: still run inventory + drift detection; mark canon-dependent checks as `BLOCKER`.
+5) Run `tools/validation/validate_agent_instructions.py` against the requested files and include its findings as structural evidence.
 
 ---
 
@@ -142,17 +146,11 @@ For each audited file, record:
 ### Step 2 — Apply the rubric
 
 Fill `docs/rubrics/AUDIT_AGENT.md`:
-- “Audit metadata” once (run-level),
-- “Canon extraction” once (if canon is available),
-- one worksheet per audited file.
+- audit metadata once,
+- one file card, universal check set, requalification test, and disposition per audited file,
+- suite-level synthesis when more than one file is audited.
 
-**Canon check exclusions:** The following canon sections are informational and their absence in an audited file is NOT a conformance finding:
-- `Revision` (version + date) — useful but not required for conformance.
-- `Normative keywords` (MUST/SHOULD/MAY definitions) — usage of normative keywords is sufficient; a dedicated definition section is not required.
-
-Do not flag missing exclusion-listed sections as WARNING, INFO, or any other severity.
-
-For any ⚠️/❌:
+For any `PARTIAL` or `NONCONFORMANT` result:
 - include evidence excerpt (≤25 words) with a location,
 - include canon excerpt (≤25 words) with a location (if available),
 - propose the minimal fix (rewrite block or diff hunk).
@@ -199,7 +197,7 @@ Do not apply patches.
 
 A run is valid when:
 - Rubric applied to every file in `FILES_TO_AUDIT`.
-- Every ⚠️/❌ includes an evidence excerpt + location.
+- Every `PARTIAL` or `NONCONFORMANT` result includes an evidence excerpt and location.
 - If canon exists, canon-dependent checks cite canon excerpts + locations.
 - Issue log is prioritized and usable as a worklist.
 - Patch plan exists (diff or rewrite blocks).
@@ -216,7 +214,7 @@ A run is valid when:
 ### Tool-root layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/AgentAudit/
+{EXECUTION_ROOT}/_Evaluation/AgentAudit/
   _Archive/
   _LATEST.md
   AUDIT_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/

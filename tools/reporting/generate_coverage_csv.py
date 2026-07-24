@@ -17,10 +17,22 @@ Example:
     python3 generate_coverage_csv.py ./execution ./Coverage.csv --artifact "Detail.csv"
 """
 
+import argparse
 import csv
+import importlib.util
 import glob
 import os
 import sys
+from pathlib import Path
+
+SOW_COMMON_PATH = Path(__file__).resolve().parents[1] / "scope_of_work" / "common.py"
+_spec = importlib.util.spec_from_file_location("chirality_scope_of_work_common", SOW_COMMON_PATH)
+if _spec is None or _spec.loader is None:
+    raise ImportError(f"cannot load Scope-of-Work common module: {SOW_COMMON_PATH}")
+_common = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _common
+_spec.loader.exec_module(_common)
+resolve_production_format = _common.resolve_production_format
 
 def find_deliverables(execution_root):
     """Find all DEL-* folders under PKG-*/1_Working/."""
@@ -49,13 +61,19 @@ def check_estimate(execution_root, del_id):
     matches = glob.glob(pattern)
     return len(matches) > 0, len(matches)
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print(f"Usage: {sys.argv[0]} <EXECUTION_ROOT> <output_csv>", file=sys.stderr)
-        sys.exit(1)
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("execution_root")
+    parser.add_argument("output_csv")
+    parser.add_argument("--isolated-migration", action="store_true")
+    parser.add_argument("--migration-authority", default="")
+    return parser.parse_args()
 
-    execution_root = sys.argv[1]
-    output_path = sys.argv[2]
+
+def main():
+    args = parse_args()
+    execution_root = args.execution_root
+    output_path = args.output_csv
 
     deliverables = find_deliverables(execution_root)
 
@@ -64,7 +82,7 @@ if __name__ == '__main__':
         writer.writerow([
             'DeliverableID', 'Package', 'HasDependenciesCsv', 'HasSemantic',
             'HasEstimate', 'EstimateCount', 'HasDatasheet', 'HasSpecification',
-            'HasGuidance', 'HasProcedure'
+            'HasGuidance', 'HasProcedure', 'HasScopeOfWork', 'ProductionFormatState'
         ])
 
         stats = {'total': 0, 'has_deps': 0, 'has_sem': 0, 'has_est': 0, 'has_kit': 0}
@@ -78,6 +96,12 @@ if __name__ == '__main__':
             has_sp = check_artifact(d['path'], 'Specification.md')
             has_gu = check_artifact(d['path'], 'Guidance.md')
             has_pr = check_artifact(d['path'], 'Procedure.md')
+            has_sow = check_artifact(d['path'], 'ScopeOfWork.md')
+            format_state = resolve_production_format(
+                Path(d['path']),
+                isolated_migration=args.isolated_migration,
+                migration_authority=args.migration_authority,
+            ).state
 
             if has_deps: stats['has_deps'] += 1
             if has_sem: stats['has_sem'] += 1
@@ -94,6 +118,8 @@ if __name__ == '__main__':
                 'Y' if has_sp else 'N',
                 'Y' if has_gu else 'N',
                 'Y' if has_pr else 'N',
+                'Y' if has_sow else 'N',
+                format_state,
             ])
 
     t = stats['total']
@@ -102,3 +128,8 @@ if __name__ == '__main__':
     print(f"  _SEMANTIC.md: {stats['has_sem']}/{t}")
     print(f"  Estimates: {stats['has_est']}/{t}")
     print(f"  Doc kit complete: {stats['has_kit']}/{t}")
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

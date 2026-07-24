@@ -21,15 +21,23 @@ def _write_pages(work: Path, pages: dict[int, str]) -> None:
         (work / f"page_{pg:04d}.md").write_text(body, encoding="utf-8")
 
 
-def _run_cli(work: Path, out_html: Path, out_jsonl: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        [
+def _run_cli(
+    work: Path,
+    out_html: Path,
+    out_jsonl: Path,
+    crops_dir: Path | None = None,
+) -> subprocess.CompletedProcess:
+    cmd = [
             sys.executable, str(SCRIPT),
             "--work-dir", str(work),
             "--out-html", str(out_html),
             "--out-jsonl", str(out_jsonl),
             "--title", "Test Equation Audit",
-        ],
+        ]
+    if crops_dir:
+        cmd.extend(["--crops-dir", str(crops_dir)])
+    return subprocess.run(
+        cmd,
         capture_output=True, text=True, cwd=str(ROOT),
     )
 
@@ -140,6 +148,35 @@ class AuditEquationsEndToEnd(unittest.TestCase):
             self.assertEqual(rec0["index"], 1)
             self.assertEqual(rec0["latex"], "a = b")
             self.assertNotIn("key", rec0)
+
+    def test_renders_equation_source_crop_when_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work, audit, out_html, out_jsonl = self._fixture(Path(tmp))
+            crops = audit / "crops"
+            crops.mkdir()
+            (crops / "page_0001_eq_01.png").write_bytes(b"fake png bytes")
+
+            proc = _run_cli(work, out_html, out_jsonl)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            doc = out_html.read_text(encoding="utf-8")
+            self.assertIn('class="sourcecrop"', doc)
+            self.assertIn('src="crops/page_0001_eq_01.png"', doc)
+            self.assertIn("source crop · p. 1 · eq 1", doc)
+            self.assertEqual(doc.count('class="sourcecrop"'), 1)
+
+    def test_renders_equation_source_crop_from_explicit_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            work, audit, out_html, out_jsonl = self._fixture(root)
+            external_crops = root / "external-crops"
+            external_crops.mkdir()
+            (external_crops / "page_0005_eq_01.png").write_bytes(b"fake png bytes")
+
+            proc = _run_cli(work, out_html, out_jsonl, crops_dir=external_crops)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            doc = out_html.read_text(encoding="utf-8")
+            self.assertIn('src="../external-crops/page_0005_eq_01.png"', doc)
+            self.assertIn("source crop · p. 5 · eq 1", doc)
 
     def test_loads_canonical_kind_prefixed_sidecars(self):
         with tempfile.TemporaryDirectory() as tmp:

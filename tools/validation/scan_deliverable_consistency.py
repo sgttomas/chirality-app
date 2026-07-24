@@ -22,10 +22,23 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
 from pathlib import Path
+
+SOW_COMMON_PATH = Path(__file__).resolve().parents[1] / "scope_of_work" / "common.py"
+_spec = importlib.util.spec_from_file_location("chirality_scope_of_work_common", SOW_COMMON_PATH)
+if _spec is None or _spec.loader is None:
+    raise ImportError(f"cannot load Scope-of-Work common module: {SOW_COMMON_PATH}")
+_common = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _common
+_spec.loader.exec_module(_common)
+PRODUCTION_FORMATS = _common.PRODUCTION_FORMATS
+SowError = _common.SowError
+require_requested_format = _common.require_requested_format
+resolve_production_format = _common.resolve_production_format
 
 
 CORE_FILES = [
@@ -96,6 +109,14 @@ def parse_args() -> argparse.Namespace:
         help="How readily to flag candidate unsourced numeric lines",
     )
     parser.add_argument(
+        "--production-format",
+        choices=["AUTO", *PRODUCTION_FORMATS],
+        default="AUTO",
+        help="Production contract to scan.",
+    )
+    parser.add_argument("--isolated-migration", action="store_true")
+    parser.add_argument("--migration-authority", default="")
+    parser.add_argument(
         "--max-findings",
         type=int,
         default=10,
@@ -125,12 +146,17 @@ def infer_unit_id(deliverable_dir: Path) -> tuple[str | None, str | None]:
     return deliverable_id, package_id
 
 
-def find_production_docs(deliverable_dir: Path, focus_docs: list[str]) -> list[Path]:
+def find_production_docs(
+    deliverable_dir: Path,
+    focus_docs: list[str],
+    production_format: str = "LEGACY_FOUR_DOC",
+) -> list[Path]:
     if focus_docs:
         requested = [deliverable_dir / name for name in focus_docs]
         return [path for path in requested if path.is_file()]
 
-    standard_docs = [deliverable_dir / name for name in FOUR_DOCS if (deliverable_dir / name).is_file()]
+    names = ["ScopeOfWork.md"] if production_format in {"SOW_V1", "MIGRATION_DUAL"} else FOUR_DOCS
+    standard_docs = [deliverable_dir / name for name in names if (deliverable_dir / name).is_file()]
     if standard_docs:
         return standard_docs
 
@@ -268,11 +294,31 @@ def main() -> int:
     if not deliverable_dir.is_dir():
         print(f"ERROR: Deliverable path is not a directory: {deliverable_dir}", file=sys.stderr)
         return 1
+    resolution = resolve_production_format(
+        deliverable_dir,
+        isolated_migration=args.isolated_migration,
+        migration_authority=args.migration_authority,
+    )
+    try:
+        require_requested_format(resolution, args.production_format)
+    except SowError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    production_format = resolution.state
 
     expected_deliverable_id, expected_package_id = infer_unit_id(deliverable_dir)
     missing_core_files = [name for name in CORE_FILES if not (deliverable_dir / name).is_file()]
-    missing_four_documents = [name for name in FOUR_DOCS if not (deliverable_dir / name).is_file()]
-    scanned_docs = find_production_docs(deliverable_dir, args.focus_docs)
+    missing_four_documents = (
+        []
+        if production_format in {"SOW_V1", "MIGRATION_DUAL"}
+        else [name for name in FOUR_DOCS if not (deliverable_dir / name).is_file()]
+    )
+    missing_scope_of_work = (
+        production_format in {"SOW_V1", "MIGRATION_DUAL"}
+        and not (deliverable_dir / "ScopeOfWork.md").is_file()
+    )
+    scan_format = "SOW_V1" if resolution.has_scope_of_work and production_format != "LEGACY_FOUR_DOC" else production_format
+    scanned_docs = find_production_docs(deliverable_dir, args.focus_docs, scan_format)
 
     marker_findings = []
     identity_mismatches = []
@@ -302,9 +348,12 @@ def main() -> int:
         "production_unit_id": expected_deliverable_id,
         "package_id": expected_package_id,
         "strictness": args.strictness,
+        "production_format": production_format,
+        "production_format_issues": list(resolution.issues),
         "scanned_docs": [path.name for path in scanned_docs],
         "missing_core_files": missing_core_files,
         "missing_four_documents": missing_four_documents,
+        "missing_scope_of_work": missing_scope_of_work,
         "marker_findings": marker_findings,
         "identity_mismatches": identity_mismatches,
         "candidate_unsourced_numerics": candidate_unsourced_numerics,
@@ -330,7 +379,7 @@ def main() -> int:
     else:
         sys.stdout.write(payload)
 
-    return 0
+    return 0 if resolution.valid else 1
 
 
 if __name__ == "__main__":

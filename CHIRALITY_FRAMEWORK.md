@@ -1,7 +1,7 @@
 # The Chirality Framework
 
 Chirality AI Ltd.
-Date: 2026-04-04, Revision 2, Issued for Use
+Date: 2026-07-23, Revision 3, Candidate for Owner Review
 
 **A theory of professional accountability with AI agent systems.**
 
@@ -21,52 +21,85 @@ The framework is also practice-grounded: it was developed to explain, organize, 
 
 ## 2. The Nature of Knowledge in Professional Practice
 
-### 2.1 Knowledge as Warranted Accountability
+### 2.1 Knowledge Belongs to a Knower
 
-Knowledge, in the context of professional practice, is not a property of information. It is a relationship between three elements:
+Information is an externalizable substrate. It can be recorded, transmitted,
+copied, cited, compared, and identified without being the knowledge of any
+particular person. Knowledge is different in kind: it is a situated
+achievement of a knower.
 
-- **A claim** — an assertion that something is the case
-- **A warrant** — the justification for believing the claim, grounded in evidence
-- **An accountable person** — a qualified professional who commits to the claim on the basis of the warrant, under duty of care
+This framework does not require knowledge to be factive. A knower may know
+wrongly, incompletely, or provisionally, and may revise what they know. That
+possibility is not a defect in the definition. It is one reason professional
+practice needs evidence, review, attribution, and correction. Those
+mechanisms discipline knowing; they do not relocate knowledge from the
+knower into an artifact.
 
-A claim without a warrant is assertion. A warrant without an accountable person is evidence. An accountable person without inspectable grounds is unsupported faith. All three must be present, and the relationship between them must be inspectable, for knowledge to exist in the sense that professional practice requires: something a competent person warrants under duty of care, backed by an auditable record.
+The project's operational `Claim` and `Warrant` primitives describe
+information and its grounds. They make a knower's potential basis inspectable,
+but neither primitive is itself a knower and their conjunction is not a
+definition of knowledge.
 
-### 2.2 The Transition from Information to Knowledge
+### 2.2 Configurational Multiplicity
 
-Information becomes knowledge when an accountable professional warrants it. The transition is not computational — no amount of processing, retrieval, or verification transforms information into knowledge automatically. The transition is an act of commitment: a professional examines the claim, assesses the warrant, and accepts responsibility for the result.
+Identical information may occasion different knowledge for different
+knowers. It may also occasion different knowledge for the same knower in a
+different context, for another purpose, or at another time. The difference
+need not arise because the information changed. It can arise because knowing
+is situated.
 
-This act cannot be performed by an AI system. AI agents can produce claims. They can attach warrants — source citations, provenance records, evidence chains. They can classify the epistemic status of claims. But they cannot supply the accountable person. The gap between information and knowledge is not a limitation to be engineered away. It is the space in which professional responsibility lives.
+Chirality calls this **configurational multiplicity**. Schemas, taxonomies,
+Knowledge Types, semantic lenses, and knowledge graphs can direct attention
+and preserve useful distinctions. They are scaffolding for inquiry and
+accountable work, not exhaustive state spaces that determine in advance
+everything a knower may find in the information.
 
-### 2.3 The Double Commitment
+### 2.3 Authentication and Accountable Reliance
 
-Professional authentication is not a single act of acceptance. It is a double commitment:
+Professional authentication is an attributable act concerning identified
+information. An accountable actor reviews a defined work product, assesses
+its grounds, and binds an acceptance to the exact content or SHA, scope, and
+purpose for which reliance is authorized.
 
-- **The inner commitment:** the professional affirms that the claims in the work product are warranted — that the evidence supports them and the epistemic status of each claim is understood.
-- **The outer commitment:** the professional affirms themselves as bound to that stance — they stake their professional standing, their seal, and their personal accountability on the work.
+Authentication therefore confers a status the unauthenticated information
+does not possess: **accountable-reliance status** within that stated relation.
+It does not create knowledge, make the information true, establish how
+reality ultimately is, or determine what every knower must know from the
+information. It records that an identified person accepts responsibility for
+reliance on identified content under specified conditions.
 
-The inner commitment is about the work. The outer commitment is about the professional's relationship to the work. Both are required. A professional who reviews claims without committing to the result has not authenticated. A professional who commits without reviewing has not warranted.
-
-The architecture exists to make both commitments possible with integrity: the inner commitment requires that every claim's warrant state be inspectable; the outer commitment requires that the professional's act of acceptance bind to specific, identified content.
+The Appendix D conjecture describes this act as a double commitment: the
+professional assesses a stance toward the work and affirms themselves as
+bound to that stance. That conjecture is an interpretive aid, not the
+definition of knowledge or a premise required by the architecture.
 
 ### 2.4 The Chirality of Knowledge
 
-The framework is named for a structural property of knowledge itself.
+The framework is named for the permanent **accountability gap** between
+externalizable information and accountable knowing. Information can be made
+available to a knower, but no informational artifact, schema, provenance
+chain, model output, or authentication record is identical with the knower's
+knowing. Without a knower, information is not known as knowledge.
 
-In chemistry, chirality is the property of a molecule whose mirror image cannot be superimposed on the original. The left hand and the right hand have the same components, the same connections, the same structure — but they are irreducibly distinct.
+This is the sole primary sense in which the framework calls knowledge
+*chiral*. The term marks an irreducible orientation: information can be
+presented, organized, and warranted, while knowing remains situated in the
+person who knows and may differ across knowers. The metaphor does not claim
+geometric correspondence, and it does not make every duality in the
+architecture another instance of chirality.
 
-Knowledge, in professional practice, has this property. It is composed of complementary, non-superimposable components whose pairing is constitutive:
+The accountability gap is permanent, but it is workable. The architecture
+makes information, provenance, gaps, conflicts, rulings, review, and
+authentication inspectable so that an accountable person can form, examine,
+revise, and stand behind their knowing. Authentication records one such
+accountable relation without exhausting the other knowledge that the same
+information may occasion.
 
-- **Claim and warrant** are chiral. A claim asserts; a warrant justifies. They appear in the same documents, carry the same content format, and are both text — but they are structurally distinct. A claim without a warrant is assertion. A warrant without a claim is evidence. Neither is knowledge. Both are required. Neither can be derived from the other.
-
-- **Meaning and commitment** are chiral. Meaning is given — the professional encounters it in the work. Commitment is enacted — the professional supplies it through the act of authentication. No amount of meaning produces commitment. No amount of commitment compensates for absent meaning. Both are required. Neither can be superimposed on the other.
-
-- **Content and accountability** are chiral. The informational structure of a work product (its claims, warrants, and epistemic state) is one hand. The professional who takes responsibility for that structure is the other. They cannot be collapsed into a single thing. The content exists without the professional (as information). The professional exists without the content (as capability). Knowledge exists only when both are present and bound together.
-
-This chirality is not a limitation to be resolved. It is the structure that makes professional knowledge possible. If claim and warrant could be collapsed, there would be no distinction between grounded and ungrounded assertions. If meaning and commitment could be derived from each other, there would be no need for a professional to decide. If content and accountability could be superimposed, there would be no space for the act of warranting.
-
-The architecture makes both hands visible. The professional holds them together. The seal is the act that binds the chiral pair — declaring that the content has been inspected, the warrant has been assessed, and the professional takes responsibility for both.
-
-The semantic algebra that generates the system's deliverable-level semantic structures formalizes this chirality: Matrix A (how the system is organized) and Matrix B (what adequate knowledge means) are the two non-superimposable inputs. Neither alone generates the semantic space. The algebra brings both hands together.
+This permanent gap is distinct from the operational primitive `Gap`. An
+operational `Gap` records a missing warrant and can be resolved. The
+accountability gap cannot be closed by supplying another citation or by
+improving a model; it names the non-identity between information and the
+accountable knowing of a person.
 
 ### 2.5 Agency, Delegation, and Accountability
 
@@ -85,7 +118,14 @@ The resulting distinction is fundamental: artificial agents have bounded operati
 
 Once many agents are arranged into bounded roles, gates, dependencies, and handoffs, the system is no longer just a collection of tools. It becomes a form of project management.
 
-This is not metaphorical. The folder structure, stable identifiers, decomposition, lifecycle states, dependency records, gate reviews, and change controls are the same kinds of structures that human teams use to coordinate professional work. In Chirality, those structures are not represented in a separate management layer; they are the filesystem itself. The project structure and the epistemic structure are therefore coupled on purpose. What exists, what is being worked on, what is known, what is unresolved, and what may proceed are all made inspectable in the same project state.
+This is not metaphorical. The folder structure, stable identifiers,
+decomposition, lifecycle states, dependency records, gate reviews, and change
+controls are the same kinds of structures that human teams use to coordinate
+professional work. In Chirality, those structures are not represented in a
+separate management layer; they are the filesystem itself. The project
+structure and epistemic record are therefore coupled on purpose. What exists,
+what is being worked on, what is claimed or warranted, what is recorded as
+unresolved, and what may proceed can be inspected in the same project state.
 
 The same is true of governance. Chirality repeatedly distinguishes normative, operative, and evaluative functions. Normative functions define rules and standards. Operative functions execute within those rules. Evaluative functions assess, audit, reconcile, and judge. This pattern is structurally analogous to the differentiation seen in political governance among rule-setting, administration, and adjudication; at civic scale, these often appear as legislative, executive, and judicial branches. The analogy is useful because the underlying problem is the same: authority, execution, and review must be related, but not collapsed into one undifferentiated power.
 
@@ -95,7 +135,7 @@ The claim is not that project governance and political governance are identical 
 
 The Chirality Framework is woven throughout the agent architecture because professional knowledge work cannot be separated from agency, organization, and governance. A person cannot determine what to rely on without also knowing who acted, under what constraints, through what process, and under whose authority.
 
-But the framework does not claim to encompass the whole of human life or all possible forms of knowledge. It addresses a specific region of reality: the transition from information to warranted reliance in work that carries professional consequences.
+But the framework does not claim to encompass the whole of human life or all possible forms of knowledge. It addresses a specific region of practice: the relation between information, situated knowing, and warranted reliance in work that carries professional consequences.
 
 That is why the framework contains an account of agents, an account of teams, and an account of governance, yet is reducible to none of them. It is concerned with each only insofar as each bears on the possibility of accountable knowledge.
 
@@ -110,7 +150,7 @@ The distinctions above can be kept compactly in view:
 | **Claim** | Epistemic primitive | n/a | n/a | Receives classification | No | No | No |
 | **Warrant** | Epistemic primitive | No | n/a | No | No | No | No |
 | **Ruling** | Binding human decision | No | May cite grounds | n/a | Yes | No | Yes, through the responsible human who issues it |
-| **Work product / deliverable** | Informational artifact | Contains claims | Contains warrants | Carries aggregate epistemic state | No | No, until authenticated by a human | No |
+| **Work product / deliverable** | Informational artifact | Contains claims | Contains warrants | Carries aggregate epistemic state | No | No; it is authenticated by a licensed professional | No |
 
 ---
 
@@ -120,7 +160,12 @@ The distinctions above can be kept compactly in view:
 
 Warranting requires inspectability, and inspectability must be architectural, not aspirational.
 
-A system that recommends transparency is a guideline. A system that makes opacity structurally impossible is a governance framework. The Chirality architecture is the latter. Every design decision in the system derives from this principle: if the professional cannot inspect it, they cannot warrant it; if they cannot warrant it, knowledge does not exist; therefore the architecture must make every element of the warranting act inspectable.
+A system that recommends transparency is a guideline. A system that makes
+material grounds and state structurally inspectable is a governance
+framework. Every design decision in Chirality follows the practical
+principle that a professional cannot responsibly authorize reliance on what
+they cannot inspect. The architecture must therefore expose the information,
+grounds, process, and accountable acts relevant to reliance.
 
 ### 3.2 The Four Pillars
 
@@ -140,13 +185,18 @@ These pillars are not merely a classification scheme selected for this project. 
 - Without praxiology: the professional does not know how the work was performed
 - Without axiology: the professional does not know why the decisions were made the way they were
 
-The four pillars form two chiral pairs. Ontology and epistemology are the structural pair — what exists and what is warranted about what exists. Praxiology and axiology are the action pair — how work is done and what values govern it. Each pair is internally chiral: ontology without epistemology is structure without knowledge of what the structure means; epistemology without ontology has nothing to attach warrants to. Praxiology without axiology is execution without purpose; axiology without praxiology is values without enactment. The complete framework requires both pairs, and neither pair can be superimposed on the other.
+The pillars are complementary accountability questions, not independent
+chiral structures. Each reveals a different possible failure of responsible
+reliance, and their value lies in being asked together without pretending
+that they exhaust what a knower may perceive in the work.
 
 ### 3.3 The Epistemic Architecture
 
 The epistemology is the load-bearing pillar. The other three pillars are necessary — the architecture cannot function without them — but they exist in service of the epistemology. The ontology gives the epistemic architecture something to operate on. The praxiology enforces it through bounded execution and human gates. The axiology anchors it in professional responsibility.
 
-The epistemology is load-bearing because it governs the warrant — the element that determines whether the professional's commitment is grounded or empty.
+The epistemology is load-bearing because it governs the warrant — the
+inspectable ground on which a professional may decide whether to authorize
+reliance.
 
 #### 3.3.1 The Epistemic Ontology
 
@@ -183,7 +233,10 @@ The epistemic ontology is enforced through four architectural mechanisms, each m
 | **Conflict surfacing** | Whether claims disagree — contradictions are exposed with competing sources, not silently resolved |
 | **Epistemic labeling** | How certain a claim is — every claim carries FACT, ASSUMPTION, PROPOSAL, or TBD |
 
-The common thread is visibility. The system does not prevent epistemic failures. It makes them impossible to hide.
+The common thread is visibility. The system does not prevent epistemic
+failures. Its declared controls make specified omissions and nonconformance
+detectable, subject to the enforcement limits described by the operational
+governance.
 
 #### 3.3.3 The Warrant Lifecycle
 
@@ -204,6 +257,12 @@ The warrant lifecycle is interleaved with the production lifecycle of the work p
 
 Thorough review, in operational terms, is the process of auditing warrant sufficiency. The professional examines claims, checks warrants, resolves gaps and conflicts through rulings, and determines whether the aggregate state supports authentication.
 
+Within this unchanged lifecycle, `AUTHENTICATED` is relational: an
+accountable actor binds acceptance to identified content or SHA, scope, and
+purpose. The status records accountable-reliance standing within that
+relation; it does not itself perform the separate `ISSUED` release transition,
+certify metaphysical truth, or dictate the knowledge of another knower.
+
 ### 3.4 The Fractal Property
 
 The four pillars appear at every level of the system:
@@ -214,9 +273,11 @@ The four pillars appear at every level of the system:
 | **Agent instructions** | Header block, write scope | Invariants, provenance rules | Non-negotiable constraints | Protocol sections |
 | **Production documents** | Datasheet | Specification | Guidance | Procedure |
 
-This self-similarity arises because Chirality must answer the same four accountability questions at every level of abstraction. In this architecture, the fractal property is not arbitrary repetition; it is evidence that the same accountability logic is being carried through governance documents, agent instructions, and production documents.
-
-More precisely, the fractal property is the chirality of knowledge (§2.4) recurring at every level. Wherever knowledge exists in the system — in a deliverable, in an agent instruction, in a governance document — it is composed of complementary, non-superimposable components whose pairing is constitutive. The same chiral structure — claim and warrant, structure and value, content and accountability — appears at every level because knowledge at every level has the same structural property.
+This self-similarity arises because Chirality asks the same four
+accountability questions at every level of abstraction. The fractal property
+is the recurrence of those questions through governance documents, agent
+instructions, and production documents. It is not a claim that one chiral
+duality recurs at every level.
 
 ### 3.5 The Generative Relationship to Systems Engineering
 
@@ -237,23 +298,38 @@ In Chirality, systems engineering is not incidental decoration or a post hoc com
 
 ### 4.1 The Boundary
 
-The architecture creates the conditions for knowledge. It cannot create knowledge.
+The architecture can organize information and support accountable knowing. It
+cannot be the knower.
 
-No architectural completeness — no invariant system, no epistemic labeling, no provenance trail — can produce the professional's commitment. Facts cannot enact warranting. The double commitment — the professional standing by their own stance — is an act of a person, not a consequence of a system.
-
-The architecture makes the act tractable: every claim's warrant state is visible, every gap is surfaced, every conflict reaches the decision-maker, every approval binds to specific content. But tractable is not automatic. The professional must still look, judge, and commit. The system ensures they can. It cannot ensure they do.
+No architectural completeness — no invariant system, epistemic label, or
+provenance trail — performs a person's knowing or professional commitment.
+The architecture makes responsible reliance tractable: represented claim
+states and grounds are inspectable; declared checks can surface operational
+gaps and conflicts for a decision-maker; and approvals bind to identified
+content. The professional must still interpret, judge, and decide what they
+know and what reliance they will accept.
 
 ### 4.2 The Irreducible Human Element
 
-AI agents can produce claims with warrants. They can classify epistemic status. They can surface gaps and conflicts. They can generate semantic structures that organize the categories of knowledge a deliverable should contain. They can audit the warrant state of every claim in a work product.
+AI agents can produce claims with warrants. They can classify epistemic
+status, surface detected gaps and conflicts, generate purpose-specific
+semantic structures, and audit represented claim states within their declared
+scope. These mechanisms do not guarantee complete detection or exhaustive
+categorization.
 
-They cannot authenticate. They cannot take responsibility. They cannot enact the commitment that transforms information into knowledge.
+They cannot authenticate or assume professional responsibility. They can
+occasion knowledge in a human knower, as other information can, but they do
+not occupy the accountable professional role.
 
-This is not a current limitation of AI that future models will resolve. It is a consequence of what knowledge means in professional practice. Knowledge requires an accountable self. The self is not a capability. It is a person — identifiable, liable, and willing to be held to their warrant.
+This boundary is not a prediction about future model capability. It concerns
+the project's allocation of professional authority. The accountable actor is
+an identifiable person who can accept duty of care and be held to an
+attributed act. Better output does not erase the accountability gap, because
+accuracy and accountability answer different questions.
 
-The gap between AI output and professional knowledge is structural, not technological. It cannot be closed from the AI side — not because AI is insufficiently capable, but because the gap is not on the AI side. It is the space where a person commits. Scaling does not produce accountability. Alignment does not produce accountability. Self-assessed confidence does not produce accountability. A model that never hallucinates still does not produce knowledge, because knowledge is not accurate information — it is warranted information, and warranting is an act of a person under duty of care.
-
-The invariant K-AUTH-1 — "only humans author binding approval records" — is not a design constraint. It is an ontological claim about the nature of professional knowledge.
+The invariant K-AUTH-1 — "only humans author binding approval records" —
+operationalizes that authority boundary. This framework does not enlarge or
+alter the invariant.
 
 ---
 
@@ -261,9 +337,13 @@ The invariant K-AUTH-1 — "only humans author binding approval records" — is 
 
 Productivity tools optimize for output quality — making the agent's output better.
 
-Professional accountability tools optimize for knowing what you can rely on — making the epistemic status of every claim transparent, so that a competent professional can determine what to warrant.
+Professional accountability tools optimize for knowing what you can rely on
+— requiring represented claim states and grounds to be inspectable so that a
+competent professional can determine what reliance to accept.
 
-Both approaches are valid. Both are complementary. But only the second supports the act that constitutes knowledge: a qualified person committing to a claim on inspectable grounds under duty of care.
+Both approaches are valid and complementary. Only the second directly
+supports accountable reliance: a qualified person committing to identified
+information on inspectable grounds under duty of care.
 
 The Chirality Framework provides one rigorous structural implementation of the conditions that make this act possible when the claims are produced by AI agents, organized through project-management structures, and governed under explicit authority.
 
@@ -275,7 +355,10 @@ To know what you know, why you know it, and why you know why.
 
 The first clause is ontological: identify the claims. The second is epistemic: verify the warrants. The third is reflexive: ensure the accountability structure itself is inspectable — that the grounds for your warranting are themselves subject to examination.
 
-The third clause is what makes knowledge professional rather than personal. A professional does not merely know. They know in a way that can withstand scrutiny, because the entire chain — from claim to warrant to their act of commitment — is architecturally visible.
+The third clause distinguishes accountable professional reliance from knowing
+considered only as a personal achievement. A professional's knowing may still
+be mistaken or revised, but the grounds and attributed act can withstand
+scrutiny because the chain from claim to warrant to commitment is inspectable.
 
 ---
 
@@ -283,11 +366,18 @@ The third clause is what makes knowledge professional rather than personal. A pr
 
 AI can accelerate professional work. It cannot inherit professional responsibility.
 
-The gap between acceleration and responsibility is not a problem to be solved. It is not negative space — an absence waiting to be filled by better AI. It is the positive space in which professional responsibility lives. It is the space where a person looks at what has been produced, assesses its grounds, and commits. Without this gap, there is no space for commitment. Without commitment, there is no knowledge. The gap is what makes professional practice professional.
+The accountability gap between externalizable information and accountable
+knowing is not a problem to be solved. It is the space in which a person
+interprets what has been produced, assesses its grounds, and decides what
+reliance to accept. Better AI may change the information available and the
+work needed to assess it; it does not eliminate the knower or the accountable
+relation.
 
 The Chirality Framework holds that gap open and makes it workable — providing the architecture within which a professional can direct AI agents, review their outputs, and authenticate the result under duty of care, backed by an auditable record.
 
-If we cannot make it auditable, we cannot rely on it. If we cannot warrant it, it is not knowledge. The architecture makes it auditable. The professional makes it knowledge.
+If we cannot make the grounds auditable, we cannot authorize professional
+reliance on them. The architecture makes the relation auditable. The
+professional knows, judges, and accepts responsibility.
 
 ---
 
@@ -298,3 +388,19 @@ If we cannot make it auditable, we cannot rely on it. If we cannot warrant it, i
 | 2026-03-29 | 0 | Initial issue |
 | 2026-04-04 | 1 | Clarified the framework's scope and its relation to agency, project management, governance, and professional knowledge work |
 | 2026-04-04 | 2 | Normalized epistemic status semantics, added a compact normalization table, and aligned the warrant lifecycle with the formal ontology |
+| 2026-07-23 | 3 | Reframed knowledge as a situated achievement of a knower, authentication as relational accountable-reliance status, and the accountability gap as the sole primary chirality of knowledge; operational primitives and lifecycle mechanics unchanged |
+| 2026-07-23 | 4 | Added the D-GOV-20 shared-runtime boundary: one governed local daemon may execute many model-backed agent instances while authority remains role-, brief-, project-, and human-gate-defined |
+
+### Runtime as institutional machinery
+
+The shared Chirality runtime does not make a model authoritative. It provides
+the institutional machinery that binds an executing model to a role, sealed
+brief, declared tools, permissions, project boundary, evidence trail, and
+acceptance gate. A model may occupy an Agent 0, Agent 1, or Agent 2 seat for a
+run; the seat’s authority contract remains stable when the model changes.
+
+One per-user daemon owns runtime state so Desktop, CLI, cloud supervisors, and
+local workers cannot silently create competing sessions or permission
+systems. Its machine-local state is operational rather than epistemic
+authority. The relied-upon record remains inspectable in the governed project
+and its Git history.

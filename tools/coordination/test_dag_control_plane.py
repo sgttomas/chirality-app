@@ -121,6 +121,33 @@ def test_aggregate_dag_audit_reports_fixture_hygiene_findings(tmp_path: Path) ->
     assert strict_passed(summary) is False
 
 
+def test_aggregate_dag_audit_canonical_mode_reports_legacy_rows(tmp_path: Path) -> None:
+    nodes_path = tmp_path / "DeliverableNodes.csv"
+    edges_path = tmp_path / "DependencyEdges.csv"
+    write_csv(nodes_path, [
+        node("DEL-00-01", "PKG-00", "Architecture basis"),
+        node("DEL-01-01", "PKG-01", "A"),
+        node("DEL-01-02", "PKG-01", "B"),
+    ], NODE_COLUMNS)
+    write_csv(edges_path, [
+        edge("DAG-TEST-E0001", "PKG-01", "DEL-01-01", "PKG-01", "DEL-01-02"),
+        edge("DAG-TEST-E0002", "PKG-01", "DEL-01-02", "PKG-00", "DEL-00-01", dependency_type=ARCHITECTURE_BASIS),
+    ], REQUIRED_COLUMNS)
+
+    legacy_summary = audit_dag(edges_path=edges_path, nodes_path=nodes_path)
+    canonical_summary = audit_dag(edges_path=edges_path, nodes_path=nodes_path, canonical=True)
+
+    assert legacy_summary["canonical_mode"] is False
+    assert legacy_summary["canonical_finding_count"] == 0
+    assert canonical_summary["canonical_mode"] is True
+    assert canonical_summary["canonical_finding_count"] > 0
+    assert any(
+        finding["Issue"] == "INVALID_ENUM" and finding["Field"] == "DependencyType"
+        for finding in canonical_summary["canonical_findings"]
+    )
+    assert strict_passed(canonical_summary) is False
+
+
 def test_materializer_writes_non_pkg00_mirrors_and_preserves_rows(tmp_path: Path) -> None:
     execution_root = tmp_path / "execution"
     pkg00_path = execution_root / "PKG-00" / "1_Working" / "DEL-00-01_Architecture basis"
@@ -185,6 +212,38 @@ def test_materializer_writes_non_pkg00_mirrors_and_preserves_rows(tmp_path: Path
     pointer = (del0101_path / "_DEPENDENCIES.md").read_text(encoding="utf-8")
     assert "SYNCHRONIZED_FROM_DAG_001" in pointer
     assert "CANDIDATE` rows remain non-gating" in pointer
+
+
+def test_materializer_canonical_output_rejects_noncanonical_edges(tmp_path: Path) -> None:
+    execution_root = tmp_path / "execution"
+    del0101_path = execution_root / "PKG-01" / "1_Working" / "DEL-01-01_Project governance baseline"
+    del0101_path.mkdir(parents=True)
+
+    nodes_path = tmp_path / "DeliverableNodes.csv"
+    edges_path = tmp_path / "DependencyEdges.csv"
+    write_csv(nodes_path, [
+        node("DEL-01-01", "PKG-01", "Project governance baseline", del0101_path),
+        node("DEL-01-02", "PKG-01", "Copyright policy"),
+    ], NODE_COLUMNS)
+    write_csv(edges_path, [
+        edge("DAG-001-E0001", "PKG-01", "DEL-01-01", "PKG-01", "DEL-01-02"),
+        edge("DAG-001-E0002", "PKG-01", "DEL-01-01", "PKG-01", "DEL-01-02", status=CANDIDATE),
+    ], REQUIRED_COLUMNS)
+
+    summary = materialize_local_dependencies(
+        edges_path=edges_path,
+        nodes_path=nodes_path,
+        execution_root=execution_root,
+        refresh_pointers=True,
+        generated_date="2026-04-30",
+        source_label="DAG-001",
+        canonical_output=True,
+    )
+
+    assert summary["canonical_output"] is True
+    assert summary["canonical_finding_count"] > 0
+    assert summary["total_candidate_rows"] == 0
+    assert summary["skipped_status_counts"] == {CANDIDATE: 1}
 
 
 def test_materializer_can_scope_to_selected_deliverables(tmp_path: Path) -> None:

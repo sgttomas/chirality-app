@@ -4,6 +4,18 @@ This document describes how external open-source tools integrate with the Chiral
 
 All tool directories are gitignored. The framework configures against them as external dependencies, not vendored copies.
 
+## Scope-of-Work transition tools require no external system
+
+The active `SOW_V1` / transitional legacy workflow is implemented by six
+repo-native Python-standard-library tools under `tools/scope_of_work/`:
+`validate_scope_of_work.py`, `render_scope_of_work.py`,
+`convert_four_documents_to_scope_of_work.py`,
+`map_scope_of_work_claims.py`, `report_scope_of_work_parity.py`, and
+`derive_review_checklist.py`. They use no external executable, hosted service,
+network access, JavaScript runtime, or vendored dependency. Their
+authoritative interfaces are registered in `tools/REGISTRY.md`; this note
+prevents them from being mistaken for an unrecorded external integration.
+
 For the authoritative pipeline specification — entity type registry, ID namespace rules, canonical CSV schemas, confidence level definitions, validation criteria per stage, execution model, and domain-specific tool configuration — see `PIPELINE_DESIGN.md`.
 
 ---
@@ -131,7 +143,7 @@ Reads workspace folder structure and metadata stubs (`_CONTEXT.md`, `_REFERENCES
 
 Reads the structural hypergraph (produced by DOMAIN_HYPERGRAPH) and validates structural integrity, referential integrity, and completeness.
 
-### ORCHESTRATOR
+### PROJECT_SETUP
 
 Coordinates the pipeline. Responsible for invoking the PDF2MD agent at Step 0 and sub-agents at Steps 1–7. May also assist the human with ad hoc entity extraction work when directed.
 
@@ -198,7 +210,7 @@ Once trained, zingg's model is deterministic and scalable. The LLM's judgment is
 pip install pymupdf
 ```
 
-No VLM API key required — uses Claude Code's built-in multimodal vision. Invoke with `--agent PDF2MD` or let ORCHESTRATOR spawn it.
+No VLM API key required — uses Claude Code's built-in multimodal vision. Invoke with `--agent PDF2MD` or let PROJECT_SETUP spawn it.
 
 **Drawing extraction support utilities**:
 

@@ -41,7 +41,7 @@ Use this skill with a generic TASK shell (no profile).
 
 ```markdown
 PURPOSE: Generate estimate snapshot for Package 02 deliverables (parametric model)
-RequestedBy: ORCHESTRATOR
+RequestedBy: PROJECT_SETUP
 ScopePath: {EXECUTION_ROOT}
 TaskSkill: estimate-snapshot
 

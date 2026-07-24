@@ -21,8 +21,8 @@ For every row:
 |---|---|
 | `LocalSeq` | Strictly increasing positive integer; starts at `1`; no gaps; no duplicates |
 | `UnitStatement` | Non-empty; one concept per row; preferred length ≤ 50 words |
-| `SourceRef` | Non-empty; dual citation `<book>.md:L####\|<book>.html#anchor` |
-| `SourceRef` MD line | Falls within `LINE_START..LINE_END` (inclusive) |
+| `SourceRef` | Non-empty; dual citation. Default form is `<book>.md:L####\|<book>.html#anchor`; manifest-backed form `@repo/<RepoRelPath>:L####\|domains/chirality/_Decomposition/source_review_html/<SourceDocID>.html#<SectionID>` is valid when `SOURCE_REF_BASE` is supplied. Grouped-source form `@repo/<component RepoRelPath>:L####\|domains/chirality/_Decomposition/source_review_html/<SourceDocID>.html#<SectionID>` is valid when `SOURCE_REF_MODE=COMPONENT_MAP`. |
+| `SourceRef` source line | Normal mode: falls within `LINE_START..LINE_END` (inclusive). Component-map mode: the generated MD evidence line falls within `LINE_START..LINE_END`, and the cited repo component line is derived from `ASSET_MANIFEST_PATH.source_components`. |
 | `ContentHash` | Non-empty; exactly 12 lowercase hex characters; equals `sha1(UnitStatement)[:12]` |
 | `InOutStatus` | One of `IN`, `OUT`, `TBD` |
 | `SectionID` | Member of `TARGET_SECTION_IDS` from `RuntimeOverrides` |
@@ -84,7 +84,7 @@ These defects block the per-source merge step (`merge_source_atomizations.py per
 - Missing `ContentHash` or mismatch with re-derived hash
 - Non-monotonic `LocalSeq`
 - `SectionID` outside `TARGET_SECTION_IDS`
-- `SourceRef` MD line outside `LINE_START..LINE_END`
+- `SourceRef` source line outside `LINE_START..LINE_END` for normal sources, or a component-map SourceRef that cannot be derived from the generated MD line and `source_components`
 - Empty `UnitStatement` on an IN row
 - Boilerplate (page-numbers-only, header-only) emitted as IN
 - File-write outside the declared write boundary

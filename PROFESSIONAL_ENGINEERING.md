@@ -63,7 +63,7 @@ Terms defined in the APEGA practice standard *Relying on the Work of Others and 
 | **Professional Work Product (PWP)** | An output of professional services with technical information relied upon by others to make a decision or take action | Authenticated deliverables issued for reliance (lifecycle state: ISSUED) |
 | **Authentication** | A licensed professional has completed, performed a thorough review of, or directly supervised and controlled the work and accepts professional responsibility | Human approval, seal, and signature at issuance gate |
 | **Validation** | A Responsible Member has reviewed the PWP to ensure it meets QC/QA measures in the PPMP | Responsible Member review per the firm's PPMP |
-| **Direct Supervision and Control** | Directing, monitoring, and controlling engineering work, including making all decisions related to the practice | Gate-controlled agent orchestration under the Type 0/1/2 hierarchy with human authority at every gate |
+| **Direct Supervision and Control** | Directing, monitoring, and controlling engineering work, including making all decisions related to the practice | Gate-controlled Agent 0/1/2 delegation with human authority at every consequential gate |
 | **Thorough Review** | An evaluation of the outputs of professional services prepared by others to verify their reliability, validity, and technical accuracy | REVIEW agent 5-gate protocol + human authentication decision |
 | **Due Diligence** | The level of judgement, care, forethought, and determination a person reasonably uses to avoid harming oneself, other people, property, or the environment | The licensed professional's exercise of judgment at every gate, supported by the system's evidence trail |
 | **AI Agent** | A controlled system architecture (model + instructions + tools + file access + governance) that performs bounded work under the direction of a licensed professional | An AGENT_*.md instruction file instantiated at runtime within the Chirality agent operating system |
@@ -140,7 +140,10 @@ APEGA requires that the licensed professional demonstrate active involvement thr
 
 **Directing, monitoring, and controlling work throughout its lifespan.**
 
-- Type 1 (Manager) agents operate through gate-controlled workflows where the licensed professional makes consequential decisions at every phase.
+- HELP_HUMAN may supervise several Agent 1 managers across packages while
+  presenting consequential cross-manager decisions to the licensed
+  professional. Agent 1 managers remain valid direct human entry points.
+- Type 1 (Manager) agents operate through gate-controlled workflows where the licensed professional makes consequential decisions at defined junctions.
 - Type 2 (Specialist) agents execute only within bounded briefs defined by the licensed professional or an authorized Type 1 agent.
 - Human authority is the halting condition — no agent may autonomously advance workflow stages, approve deliverables, or resolve conflicts. Enforced by K-GATE-1 (dynamic gates with minimum seal + pipeline approval) and K-SEAL-1 (no Type 2 execution before context is sealed and gate-approved). See `docs/CONTRACT.md` §1.7, §1.3.
 - Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §6 (Orchestration Architecture).
@@ -149,28 +152,31 @@ APEGA requires that the licensed professional demonstrate active involvement thr
 
 - Every agent instruction file (AGENT_*.md) declares: agent type, class, interaction surface, write scope, blocking behavior, primary outputs, and non-negotiable invariants.
 - Write scope is enforced by invariant K-WRITE-1: "Every agent has an explicit write scope declared in its header block. No agent writes outside its declared zone."
-- The three-type hierarchy (Type 0 Architect / Type 1 Manager / Type 2 Specialist) establishes clear authority boundaries. Authority flows downward; escalation flows upward. A Type 2 agent cannot modify rules set by Type 0. A Type 1 agent cannot approve deliverables for external reliance.
-- Implementation: `docs/TYPES.md` §4 (Agent Roles), §4.3 (Authority Model); `docs/DBM_Agent_Instruction_Architecture.md` §2 (Type Hierarchy), §7 (Write Scope Architecture); `docs/CONTRACT.md` §1.10 (K-WRITE-1).
+- The runtime hierarchy (Agent 0 Supervising Architect / Agent 1 Manager / Agent 2 Specialist) establishes clear delegation boundaries. Normative standards constrain all three layers from outside the hierarchy. Capabilities are explicit rather than inherited, escalation flows upward, and no agent may approve deliverables for external reliance.
+- Implementation: `docs/TYPES.md` §4 (Agent Roles), §4.3 (Authority Model); `docs/DBM_Agent_Instruction_Architecture.md` §2 (Runtime Hierarchy), §6 (Delegation and Coordination); `docs/CONTRACT.md` §1.10 (K-WRITE-1).
 
 **Maintaining regular and ongoing communication.**
 
 - Type 1 agents maintain interactive sessions with the licensed professional, presenting structured outputs and awaiting human decisions at gates.
-- Type 2 agents receive structured briefs (INIT-TASK) and return structured run reports with PASS/FAIL status and evidence. Brief format defined in `docs/DBM_Agent_Instruction_Architecture.md` §9 (Brief & Output Contracts).
+- Type 2 agents receive structured briefs and return structured run reports with status and evidence. The component and runtime contracts are defined in `docs/DBM_Agent_Instruction_Architecture.md` §§5, 8–9.
 - Session handoff artifacts (NEXT_INSTANCE_STATE.md, NEXT_INSTANCE_PROMPT.md) maintain continuity across sessions without hidden state. Working memory per deliverable is defined in `docs/SPEC.md` §8 (`_MEMORY.md`).
-- Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §6.2 (Control Loop).
+- Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §6 (Delegation and Coordination).
 
 **Identifying and rectifying gaps in competencies.**
 
 - Agent audit system (AUDIT_AGENTS) verifies conformance of agent instructions against the canonical standard (`agents/AGENT_HELPS_HUMANS.md`). Structural requirements for instruction files defined in `docs/SPEC.md` §9.
-- Three layers of contracts govern agent behavior: R1–R9 workflow design requirements (defined in `agents/AGENT_HELPS_HUMANS.md`), I1–I10 decomposition invariants (defined in `agents/AGENT_DECOMP_BASE.md`), and 21 K-* system-wide invariants (defined in `docs/CONTRACT.md`).
+- Three layers of contracts govern agent behavior: workflow-component requirements in `docs/WORKFLOW_COMPONENT_STANDARD.md`, I1–I10 decomposition invariants in `docs/DECOMPOSITION_STANDARD.md`, and system-wide K-* invariants in `docs/CONTRACT.md`.
 - Evaluation framework provides systematic assessment of agent output quality.
 - Agent instruction governance follows release engineering discipline: versioned, reviewed, no silent behavior changes (see §6.2 of this standard).
-- Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §4 (Contract Framework).
+- Implementation: `docs/DBM_Agent_Instruction_Architecture.md` §5 (Workflow Components).
 
 **Completing periodic reviews to ensure PWPs are accurate and reliable.**
 
 - REVIEW agent implements a formal 5-gate review process for lifecycle transitions (see §5 of this standard).
-- RECONCILIATION agent performs cross-deliverable coherence analysis.
+- EVALUATION performs generic cross-deliverable coherence assessment.
+- Activated RECONCILIATION runs align deliverable-local objectives, claims,
+  artifacts, implementation evidence, lifecycle state, and remaining work with
+  project-wide truth.
 - All agent outputs are git-committed, enabling diff-based review at any point.
 - Implementation: `docs/CONTRACT.md` (invariant system); `agents/AGENT_REVIEW.md` (review protocol).
 
@@ -279,8 +285,8 @@ The firm's quality control and assurance for AI-assisted work is implemented thr
 | `docs/CONTRACT.md` | 21 binding invariants (K-*) with enforcement map |
 | `docs/SPEC.md` | Physical structures, file formats, schema validation checklists |
 | `docs/TYPES.md` | Controlled vocabulary, enumerated types, lifecycle state machine |
-| `agents/AGENT_HELPS_HUMANS.md` | Workflow design requirements (R1–R9) binding on all agents |
-| `agents/AGENT_DECOMP_BASE.md` | Decomposition invariants (I1–I10) binding on all decomposition agents |
+| `docs/WORKFLOW_COMPONENT_STANDARD.md` | Workflow-component requirements binding on agents, skills, tools, briefs, and workflow packages |
+| `docs/DECOMPOSITION_STANDARD.md` | Decomposition invariants (I1–I10) binding on decomposition managers |
 
 ### 6.2 Instruction Governance as Release Engineering
 
@@ -310,7 +316,7 @@ The firm exercises due diligence on the LLM technology consistent with APEGA §3
 - Assessment of model safety practices, alignment research, and responsible deployment policies
 - Testing of agent behavior within the firm's instruction architecture before adopting model updates
 - Documented assessment of material model changes and their impact on agent behavior
-- The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: R1–R9 workflow requirements (`agents/AGENT_HELPS_HUMANS.md`), 21 K-* system invariants (`docs/CONTRACT.md`), write scope quarantine (`docs/DBM_Agent_Instruction_Architecture.md` §7), and deterministic tool validation (`tools/REGISTRY.md`). The firm does not rely solely on the model provider's safety measures
+- The agent instruction architecture constrains and governs LLM behavior independent of the provider's controls: workflow-component requirements (`docs/WORKFLOW_COMPONENT_STANDARD.md`), K-* system invariants (`docs/CONTRACT.md`), write-scope quarantine (`docs/CONTRACT.md` §1.10 and `docs/DBM_Agent_Instruction_Architecture.md` §6), and deterministic tool validation (`tools/REGISTRY.md`). The firm does not rely solely on the model provider's safety measures
 
 ### 6.5 Evidence and Auditability
 
@@ -338,7 +344,7 @@ The firm maintains the following records for AI-assisted work, as required for P
 | Scope traceability | `_CONTEXT.md` per deliverable | `docs/SPEC.md` §4 | Scope items, objectives, decomposition reference |
 | Source references | `_REFERENCES.md` per deliverable | `docs/SPEC.md` §7 | Source document pointers with relevance statements |
 | Analysis snapshots | Tool root snapshot folders | `docs/SPEC.md` §11 | Timestamped, immutable records of every analysis run |
-| Agent run reports | Snapshot Brief.md, RUN_SUMMARY.md, QA_Report.md | `docs/DBM_Agent_Instruction_Architecture.md` §9.4 | Inputs, outputs, quality checks, warnings |
+| Agent run reports | Launch brief, RETURN.md, STATUS.json, handoff state | `docs/DBM_Agent_Instruction_Architecture.md` §§8–9 | Inputs, outputs, quality checks, warnings |
 | Review records | REVIEW gate artifacts | `agents/AGENT_REVIEW.md` | Checklists, finding registers, disposition records, transition decisions |
 | Change records | `_Change/` tool root | `agents/AGENT_CHANGE.md` | Change assessments, impact analysis, approval records |
 | Version history | Git repository | `docs/DIRECTIVE.md` §2.2 | Complete diff-based record of all project state changes |

@@ -18,9 +18,9 @@ The system enforces three distinct separations:
 
 **Instruction vs Execution.** The instruction root (release-managed agent OS) is physically separated from the working root (user-controlled project state). Agents read instructions from one location and write state to another. This is stated in `DIRECTIVE.md` §2.6 and enforced by the runtime architecture.
 
-**Source Truth vs Derived Output.** Deliverable folders (source truth) are structurally isolated from tool roots (derived outputs). Tool roots (`_Aggregation/`, `_Estimates/`, `_Reconciliation/`, `_Change/`, `_Schedule/`) contain agent-produced analysis and snapshots. Source truth contains human-accepted deliverable content. The boundary is enforced by K-WRITE-1: every agent declares its write scope and cannot cross into another zone.
+**Source Truth vs Derived Output.** Deliverable folders (source truth) are structurally isolated from tool roots (derived outputs). Tool roots (`_Aggregation/`, `_Estimates/`, `_Evaluation/`, `_Reconciliation/`, `_Change/`, `_Schedule/`) contain agent-produced analysis and snapshots. Source truth contains human-accepted deliverable content. The boundary is enforced by K-WRITE-1 and managed child scope checks.
 
-**Authority vs Execution.** The Type 0/1/2 hierarchy separates standards definition from orchestration from bounded task execution. Authority flows downward (Type 0 constrains Type 1, Type 1 constrains Type 2); escalation flows upward. This is stated in `TYPES.md` §4.3 and enforced by agent instruction constraints and human gate authority.
+**Authority vs Execution.** Normative standards constrain every runtime layer from outside the hierarchy. Agent 0 supervises Agent 1 managers; Agent 1 delegates bounded Agent 2 execution; Agent 2 does not delegate. Escalation flows upward and human gate authority remains final. This is stated in `TYPES.md` §4.3.
 
 ### 1.2 Modularity & Encapsulation
 
@@ -29,7 +29,8 @@ The atomic unit of work is the **production unit folder** — a single deliverab
 Encapsulation is enforced by:
 - K-HIER-1: flat package→deliverable hierarchy (no nesting)
 - K-WRITE-1: deliverable-local agents write only within their assigned folder
-- WORKING_ITEMS invariant: no cross-deliverable scanning/editing by default
+- WORKING_ITEMS invariant: one activated package per instance; cross-package
+  scanning/editing requires Agent 0 ownership or a separate activation
 
 Cross-deliverable operations (reconciliation, aggregation, closure analysis) are explicit, opt-in, and write to isolated tool roots — never to deliverable folders.
 
@@ -87,7 +88,7 @@ Every analysis run (estimation, closure audit, reconciliation, review) produces 
 
 The system implements a classic V-model: decomposition down the left side, integration and verification up the right.
 
-**Decomposition (left leg)** — `AGENT_DECOMP_BASE.md` defines a 7-gate protocol:
+**Decomposition (left leg)** — `docs/DECOMPOSITION_STANDARD.md` defines a 7-gate protocol:
 
 | Phase | Direction | Activity | Gate |
 |-------|-----------|----------|------|
@@ -126,7 +127,7 @@ Transition readiness criteria are severity-based:
 
 Three forms of coverage verification exist:
 
-**Decomposition coverage** (DECOMP_BASE Phase 6): Every IN-scope atomic unit mapped to exactly one partition and at least one production unit. Gaps are open issues with stable IDs.
+**Decomposition coverage** (`docs/DECOMPOSITION_STANDARD.md`, Phase 6): Every IN-scope atomic unit maps to exactly one partition and at least one production unit. Gaps are open issues with stable IDs.
 
 **Dependency coverage** (TASK+dependency-extract Function 5): Every active dependency row has evidence (EvidenceFile + SourceRef). Floating nodes (deliverables without an IMPLEMENTS_NODE anchor) generate warnings.
 
@@ -154,12 +155,16 @@ The write scope architecture creates formal fault containment:
 
 | Containment Zone | Agents | Failure Impact |
 |-----------------|--------|----------------|
-| Deliverable-local | WORKING_ITEMS, TASK, DELIVERABLE_TASK (also TASK+four-documents, TASK+dependency-extract, TASK+semantic-matrix-build, TASK+lens-register via TASK shell) | Limited to one production unit folder |
-| Tool-root | ORCHESTRATOR, ESTIMATING, AGGREGATION, AUDIT_*, SCHEDULING | Limited to one tool root; source truth untouched |
+| Package-level | WORKING_ITEMS | Limited to one activated package, with child writes further bounded by brief |
+| Bounded task | TASK (including TASK+four-documents, dependency-extract, semantic-matrix-build, and lens-register) | Limited to the sealed `ScopePath` and allowed write targets |
+| Tool-root | PROJECT_SETUP scheduling workflow, AGGREGATION, AUDIT_* | Limited to one tool root; source truth untouched |
 | Repo (approval-gated) | CHANGE | Requires explicit human approval token per action |
-| Read-only | HELP_HUMAN, HELPS_HUMANS, DECOMP_BASE | Zero write impact |
+| Read-only | HELP_HUMAN | Zero write impact |
+| Workflow-component architecture | HELPS_HUMANS | Repo-wide component-design surfaces under human-reviewed governance changes |
 
-A Type 2 agent failure cannot corrupt source truth — it writes to an isolated tool root or a single deliverable folder. The CHANGE agent's approval gate (APPROVE: / APPROVE_DESTRUCTIVE:) is the sole path from derived output to committed state.
+A Type 2 agent failure is contained to its sealed brief: an isolated tool root,
+scaffold boundary, or bounded content target. CHANGE governs Git mutation but
+does not convert committed state into semantic acceptance.
 
 ### 4.2 Failure Mode Visibility
 
@@ -189,7 +194,7 @@ These invariants bound what a Type 2 agent can see and when it can run. Context 
 
 ### 5.1 Hierarchical Decomposition & Allocation
 
-The decomposition protocol (`AGENT_DECOMP_BASE.md`) implements formal requirements decomposition:
+The decomposition protocol (`docs/DECOMPOSITION_STANDARD.md`) implements formal requirements decomposition:
 
 ```
 Source Corpus (SOW/Handbook)
@@ -223,12 +228,12 @@ The system implements an RTM through three layers:
 The system implements a closed-loop feedback control system across sessions:
 
 ```
-ORCHESTRATOR (Plant Setup)
+PROJECT_SETUP (Plant Setup)
   → WORKING_ITEMS (Actuator — produces content)
     → TASK+dependency-extract rerun (Sensor — updates dependency state)
-      → RECONCILIATION (Comparator — surfaces deviations)
+      → EVALUATION (Comparator — surfaces deviations)
         → CHANGE (Output — commits to baseline)
-          → ORCHESTRATOR scan (Feedback — reports new state)
+          → PROJECT_SETUP scan (Feedback — reports new state)
 ```
 
 **Control variables and set points:**
@@ -236,20 +241,28 @@ ORCHESTRATOR (Plant Setup)
 | Controlled Variable | Set Point | Sensor | Actuator |
 |--------------------|-----------|--------|----------|
 | Lifecycle state | ISSUED | `_STATUS.md` | REVIEW gate |
-| Dependency closure | All active deps satisfied | `Dependencies.csv` | RECONCILIATION |
+| Dependency closure | All active deps satisfied | `Dependencies.csv` | EVALUATION |
 | Decomposition fidelity | Zero unassigned units | Decomposition Ledger | Human correction |
 | Work availability | No blocked deliverables | Blocker analysis | Tier sequencing |
 | Artifact completeness | All anticipated artifacts present | Folder scan | WORKING_ITEMS |
 
 ### 6.2 Open-Loop vs Closed-Loop Segments
 
-**Open-loop (within a session):** WORKING_ITEMS produces content within a single deliverable without cross-deliverable feedback. Bounded by deliverable scope and session objective.
+**Open-loop (within a terminal child):** Agent 2 produces one bounded return
+without sibling feedback. WORKING_ITEMS manages the package-level graph and
+validates deliverable fan-in.
 
-**Closed-loop (across sessions):** The handoff mechanism (`NEXT_INSTANCE_STATE.md`) carries state between sessions. TASK+dependency-extract rerun after content changes updates the dependency graph. RECONCILIATION detects integration defects. ORCHESTRATOR scan computes work availability for the next tier.
+**Closed-loop (across sessions and active managed runs):** Durable handoffs
+carry state between sessions. During a run, children report typed notices to
+their parent; selected updates arrive at safe turn boundaries and require
+acknowledgment. TASK+dependency-extract updates dependency state, EVALUATION
+detects generic integration defects, and managers derive the next
+dependency-valid graph. RECONCILIATION is activated separately for calibrated
+deliverable-corpus concordance.
 
 ### 6.3 Human Authority as the Halting Condition
 
-ORCHESTRATOR invariant: "Human authority is the halting condition."
+PROJECT_SETUP invariant: "Human authority is the halting condition."
 
 Every control loop iteration requires human confirmation at gates. The system cannot autonomously advance tiers, approve deliverables, or resolve conflicts. Human gates function as the decision authority in the control loop — the system proposes; the human decides whether to continue, hold, or redirect.
 
@@ -263,13 +276,17 @@ The architecture defines three layers of formally stated invariants:
 
 **I1–I10 (Decomposition invariants):** Structural constraints on decomposition (flat partitions, no gaps, stable IDs, deterministic coupling, vocabulary discipline). Enforced by decomposition agents; verified by AUDIT_DECOMP.
 
-**R1–R9 (Workflow design requirements):** Behavioral constraints on all agents (human decision rights, straight-through tasks, write quarantine, immutable snapshots, provenance, no invention, conflict surfacing, brief-driven execution, hygienic publication). Enforced by agent instructions.
+**R1–R17 (ratified workflow-component requirements):** Behavioral
+constraints covering decision rights, execution, writes, snapshots,
+provenance, claims, integration, lifecycle, containment, and proportional
+design. Validators measure implementation conformance; D-GOV-14 item 1
+ratifies the exact standard text at its recorded Proposed SHA.
 
 **K-* (System-wide invariants):** 21 named, stable invariants covering hierarchy, authority, sealing, dependencies, status, staleness, gates, merge, provenance, invention, conflicts, claim strength, write scope, and snapshots. Defined in `CONTRACT.md` with enforcement points.
 
 ### 7.2 Preconditions and Postconditions
 
-Each ORCHESTRATOR function has explicit pre/postconditions:
+Each PROJECT_SETUP function has explicit pre/postconditions:
 
 | Function | Precondition | Postcondition |
 |----------|-------------|---------------|
@@ -327,7 +344,7 @@ These types are not merely documentation — they constrain agent behavior throu
 The deliverable lifecycle is a formal state machine with authorized transition actors:
 
 ```
-OPEN ──[PREPARATION]──→ INITIALIZED ──[TASK+four-documents/domain-documents]──→
+OPEN ──[PREPARATION + validated selected production contract]──→ INITIALIZED ──[TASK+scope-of-work/domain-documents]──→
   SEMANTIC_READY ──[TASK+semantic-matrix-build]──→ IN_PROGRESS ──[human]──→
     CHECKING ──[REVIEW + human approval]──→ ISSUED ──[human]──→
 ```
@@ -415,7 +432,7 @@ Together, these prevent the most common failure mode in LLM-assisted systems: pl
 | Layer | Timing | Invariants Checked |
 |-------|--------|-------------------|
 | Agent instructions (design-time; constrains intent, not guaranteed behavior) | When instruction files are written | K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, K-DEP-2 |
-| ORCHESTRATOR (runtime) | During workspace initialization and pipeline execution | K-SEAL-1, K-GATE-1, K-HIER-1 |
+| PROJECT_SETUP (runtime) | During workspace initialization and pipeline execution | K-SEAL-1, K-GATE-1, K-HIER-1 |
 | Human review (gate) | At every gate decision | K-AUTH-1, K-AUTH-2, K-BIND-1, K-STALE-2, K-MERGE-1, K-VAL-1, K-STATUS-1 |
 | Future tooling (automated) | Continuous/on-demand | K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, K-DEP-2 |
 

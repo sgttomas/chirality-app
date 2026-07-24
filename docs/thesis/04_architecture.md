@@ -20,6 +20,11 @@ The graph model is formally stated as follows:
 
 - **Nodes** are deliverable folders and package folders. Each folder on the filesystem corresponds to an entity in the project domain.
 - **Edges** are rows in `Dependencies.csv` registers. Each row encodes a directed relationship between a host deliverable and a target entity, classified as either a tree edge (ANCHOR class) or a directed acyclic graph edge (EXECUTION class). The two edge classes together form a knowledge graph: the tree preserves stable definitional intent; the DAG captures execution-time couplings.
+
+`Knowledge graph` is retained as the project's operational term for this
+recorded relationship structure. The graph organizes externalizable
+information; it is not a container of a person's knowledge and does not
+exhaust what a knower may perceive in the project record.
 - **Properties** are plain markdown files within each node folder. The files `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, and the four-document kit (Datasheet, Specification, Guidance, Procedure) carry the identity, lifecycle state, traceability, and technical content of each deliverable.
 
 This formulation means the project graph has no representation other than the filesystem itself. There is no translation layer, no secondary index, and no remote service. An agent, a human, and a static analysis tool all observe the same structure and parse the same files.
@@ -154,11 +159,22 @@ The pattern is significant. Forward transitions through the early automated stat
 
 The `INITIALIZED → SEMANTIC_READY` transition is optional. If the semantic lensing step is omitted, deliverables may transition directly from `INITIALIZED → IN_PROGRESS`. This reflects the "least structure that works" principle (DBM §1.8): semantic enrichment is available when it adds value, but its absence does not block production.
 
+When used, a semantic lens is purpose-specific scaffolding. It directs
+attention and supports comparison without defining a closed set of everything
+that can be known from the deliverable. Its lifecycle state records that the
+artifact was generated, not that interpretation is complete.
+
 ### 4.4.3 Stage Gates vs. Lifecycle States
 
 TYPES.md §5.2 draws an explicit distinction that is architecturally important. **Lifecycle states** track the production status of individual deliverables and are recorded in `_STATUS.md`. **Stage gates** (30%, 60%, 90%, IFC, and similar project-level milestones) are human-managed checkpoints that represent aggregate progress targets across a set of deliverables. Stage gates are not lifecycle states and are tracked separately in coordination records.
 
-The distinction prevents a category error that is common in project management tooling: conflating the micro-level question (is this deliverable ready for review?) with the macro-level question (has the project reached a stage gate?). In the Chirality architecture, the answer to the first question is always obtained from `_STATUS.md`; the answer to the second requires aggregation across the project, which is the domain of the SCHEDULING and RECONCILIATION agents.
+The distinction prevents a category error common in project-management tooling:
+conflating the micro-level question (is this deliverable ready for review?) with
+the macro-level question (has the project reached a stage gate?). The first is
+read from `_STATUS.md`; the second requires project aggregation, EVALUATION
+evidence, and a human-gated REVIEW or ORCHESTRATOR decision. A calibrated
+RECONCILIATION run may supply corpus-concordance evidence but does not itself
+accept the stage gate.
 
 ### 4.4.4 `_STATUS.md` as Canonical State Indicator
 
@@ -184,11 +200,24 @@ The two lifecycles are interleaved: a deliverable in `IN_PROGRESS` contains clai
 
 The agent system is organized into three types with strictly partitioned responsibilities. The hierarchy is defined in DBM §2 and summarized in TYPES.md §4. It is not merely a labeling convention — it is the mechanism by which the system's authority model is enforced.
 
-**Type 0 — Canonical Standards (Architect).** Type 0 agents define the invariant protocols and design standards that all downstream agents must conform to. They do not write project state. They are, in the DBM's terminology, the "constitutional layer" of the system. The Type 0 layer is composed of HELPS_HUMANS, which defines the workflow design standard (R1–R9, the four-section agent structure, brief formats, and QA contracts), and DECOMP_BASE, which defines the decomposition protocol standard (the seven-gate protocol, I1–I10 invariants, and the extension contract for decomposition variants). Where any agent instruction disagrees with a Type 0 standard, the agent instruction must be edited to conform — not the standard.
+**Standards and Agent 0.** Normative governance and accepted domain standards form the constitutional layer outside the runtime hierarchy. The workflow-component and decomposition standards in this tranche are candidate texts implementing ruled separations; until explicitly accepted, ratified root governance and approved manager instructions govern conflicts. HELP_HUMAN is the sole Agent 0 Supervising Architect; HELPS_HUMANS is the Agent 1 manager that applies and maintains component governance.
 
-**Type 1 — Interactive Personas (Manager).** Type 1 agents are human-facing orchestrators. They run conversational, gate-controlled workflows where humans make consequential decisions and agents handle routing, structural output, and brief preparation. Type 1 agents may spawn Type 2 agents. They own orchestration decisions but do not own engineering content. See `AGENTS.md` for the current agent index.
+**Agent 0 — Supervising Architect.** HELP_HUMAN is the sole Agent 0. It aligns
+the human's objective, authority, stakes, and decision points; derives the
+cross-package graph; delegates only to named Agent 1 managers; and validates
+cross-manager fan-in.
 
-**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven specialists operating in straight-through execution mode. They receive structured inputs (INIT-TASK briefs), produce auditable outputs, and return to their invoking agent without mid-run human interaction. Type 2 agents never spawn other agents. See `AGENTS.md` for the current agent index.
+**Type 1 — Interactive Personas (Manager).** Type 1 agents are valid direct
+human entry points and may also run under Agent 0. They own a bounded
+management scope, derive or apply a work graph, delegate Agent 2 work, broker
+child coordination, validate fan-in, and escalate consequential decisions.
+See `AGENTS.md` for the current agent index.
+
+**Type 2 — Bounded Task Agents (Specialist).** Type 2 agents are brief-driven
+specialists. They receive sealed inputs, produce auditable outputs, may report
+typed coordination notices to their direct parent, and never delegate. A Type
+2 instance may be TASK plus a skill, an ephemeral bounded generalist, or an
+approved dedicated specialist. See `AGENTS.md` for the current agent index.
 
 [COMPARE: Multi-agent frameworks such as AutoGen and CrewAI support role differentiation among agents but do not enforce a strict constitutional hierarchy with write-scope enforcement and non-bypassable human gates; compare authority isolation properties]
 
@@ -198,9 +227,14 @@ DBM §2 identifies three authority invariants that the entire system depends upo
 
 1. **Type 2 cannot escalate to Type 1 authority.** Specialists execute bounded briefs and return outputs. They cannot initiate gate reviews, spawn other agents, or make scope decisions. A Type 2 agent that encounters a scope question must record it as `TBD` and surface it in the run report — it cannot route the question to a human directly.
 
-2. **Type 1 cannot override Type 0 constraints.** Managers orchestrate within the rules established by canonical standards. They cannot relax the R1–R9 workflow requirements, the I1–I10 decomposition invariants, or any K-* invariant. An orchestration decision that would require violating a Type 0 constraint is not a valid orchestration decision.
+2. **Managers cannot override standards.** Agent 1 managers operate within accepted workflow, decomposition, and K-* invariants. A proposed workflow that requires violating a standard must escalate for governed amendment.
 
-3. **Human gates cannot be bypassed by any agent type.** No agent — regardless of type — can approve deliverables for external reliance, resolve conflicts authoritatively, commit to the baseline, or advance the lifecycle to `CHECKING` or `ISSUED`. These transitions are structurally unavailable to agents. The architecture does not merely recommend that agents defer to humans at these junctions; it removes the capability.
+3. **Human gates are reserved against every agent type.** No agent — regardless
+of type — is authorized to approve deliverables for external reliance, resolve
+consequential conflicts authoritatively, or accept lifecycle advancement to
+`CHECKING` or `ISSUED`. CHANGE may create Git commits in an authorized
+closeout, but a commit or push is transport state, not semantic acceptance.
+(Chapter 8, §8.6 states this enforcement model and its limits.)
 
 ### 4.5.3 Classification Properties
 
@@ -221,74 +255,81 @@ These properties are not metadata — they are enforceable constraints. The `BLO
 
 ## 4.6 Write Scope Architecture
 
-### 4.6.1 The Five Scope Categories
+### 4.6.1 The Write Scope Categories
 
-The write scope model, defined in DBM §7, enforces a formal separation between source truth and derived outputs. Every agent is assigned to exactly one of five scope categories. The category determines which portions of the filesystem the agent may modify; writes outside the declared scope are architectural violations of K-WRITE-1.
+The write scope model, defined in DBM §7, enforces a formal separation between source truth and derived outputs. Every agent is assigned to exactly one of six scope categories (DBM §7.1); the header-block `WRITE_SCOPE` property draws from the eight base values enumerated in `TYPES.md` §4.2. The category determines which portions of the filesystem the agent may modify; writes outside the declared scope are architectural violations of K-WRITE-1.
 
-The five categories, from most to least restrictive, are:
+The six categories, from most to least restrictive, are:
 
-- **NONE** — Read-only. The agent may draft content but may not write to any location. The human applies any output. Applies to: HELPS_HUMANS, DECOMP_BASE, HELP_HUMAN.
-- **REPO-METADATA-ONLY** — May write to instruction files, README, and templates — not to execution truth. Applies to: DOMAIN_DECOMP, CONTEXT_TRANSPOSE.
+- **NONE** — Read-only. The agent may draft content but may not write to any location. The human applies any output. Applies to: HELPS_HUMANS, Decomposition Standard, HELP_HUMAN.
+- **REPO-METADATA-ONLY** — May write to instruction files, README, and templates — not to execution truth. Applies to: DOMAIN_DECOMP, HELPS_HUMANS context-transposition mode.
+- **REPO-WIDE** — May write across the instruction repository under its declared protocol (agent, skill, and tool governance; publication through CHANGE). Applies to: HELPS_HUMANS.
 - **PROJECT-LEVEL** — May write to decomposition documents, project metadata files, and folder scaffolding. Applies to: PROJECT_DECOMP, SOFTWARE_DECOMP, SCOPE_CHANGE, PREPARATION, ESTIMATE_PREP.
-- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: WORKING_ITEMS, TASK+four-documents, TASK+domain-documents, TASK+semantic-matrix-build, TASK+lens-register, TASK+dependency-extract, TASK, DELIVERABLE_TASK, REVIEW.
-- **TOOL-ROOT-ONLY** — May write only to a specific designated tool root under `{EXECUTION_ROOT}/`. Applies to: ORCHESTRATOR (`_Coordination/`), RECONCILIATION (`_Reconciliation/`), CHANGE (`_Change/` plus repo files with approval gate), SCHEDULING (`_Schedule/`), ESTIMATING (`_Estimates/`), AGGREGATION (`_Aggregation/`), and the four audit agents.
+- **PACKAGE-LEVEL** — May write only within one activated package and its
+  selected deliverables. Applies to WORKING_ITEMS.
+- **DELIVERABLE-LOCAL** — May write only within a single assigned production unit folder. Applies to: TASK+four-documents, TASK+domain-documents, TASK+semantic-matrix-build, TASK+lens-register, TASK+dependency-extract, TASK, REVIEW.
+- **TOOL-ROOT-ONLY** — May write only to a designated tool root under
+  `{EXECUTION_ROOT}/`. Examples include ORCHESTRATOR coordination outputs,
+  CHANGE logs, schedule/estimate tools, AGGREGATION snapshots, and EVALUATION
+  audit specialists under `_Evaluation/`. RECONCILIATION instead has
+  activation-bounded project-level authority because an accepted concordance
+  repair may touch deliverable and project truth.
 
 ### 4.6.2 The Write Scope Tree
 
-DBM §7.1 presents the full assignment structure in a tree format:
+DBM §7.1 presents the assignment structure in a tree format; it is shown here updated to the live `AGENTS.md` registry membership:
 
 ```
 NONE
-├── HELPS_HUMANS
-├── DECOMP_BASE
 └── HELP_HUMAN
 
 REPO-METADATA-ONLY
-├── DOMAIN_DECOMP
-└── CONTEXT_TRANSPOSE
+└── DOMAIN_DECOMP
+
+REPO-WIDE
+└── HELPS_HUMANS
 
 PROJECT-LEVEL
 ├── PROJECT_DECOMP
 ├── SOFTWARE_DECOMP
 ├── SCOPE_CHANGE
-├── PREPARATION
-└── ESTIMATE_PREP
+├── DOMAIN_ENGINE
+├── PDF2MD / DRAWING_EXTRACT / EQUATION_AUDIT (run-parameterized)
+├── REVIEW (deliverable review plus _Evaluation/Reviews snapshot)
+└── RECONCILIATION (adopted activation and wave briefs only)
 
-DELIVERABLE-LOCAL
-├── WORKING_ITEMS (+NEXT_INSTANCE_STATE.md standing exception)
-├── TASK+four-documents
-├── TASK+domain-documents
-├── TASK+semantic-matrix-build
-├── TASK+lens-register
-├── TASK+dependency-extract (dependency artifacts only)
-├── TASK
-└── REVIEW (+tool-root for snapshots)
+PACKAGE-LEVEL
+└── WORKING_ITEMS (one activated package)
 
-REPO-WIDE
-├── TOOLMAKER
-└── SKILLMAKER
+BOUNDED-TASK-BRIEF
+└── TASK (including skill-selected deliverable-local work)
+
+WORKSPACE-SCAFFOLD-ONLY
+└── PREPARATION
 
 TOOL-ROOT-ONLY
 ├── ORCHESTRATOR         → _Coordination/
-├── RECONCILIATION       → _Reconciliation/
 ├── CHANGE               → _Change/ (+repo files with approval gate)
-├── SCHEDULING           → _Schedule/
-├── ESTIMATING           → _Estimates/
 ├── AGGREGATION          → _Aggregation/
-├── AUDIT_AGENTS         → _Reconciliation/AgentAudit/
-├── AUDIT_DECOMP         → _Reconciliation/DecompCoverage/
-├── AUDIT_DEP_CLOSURE    → _Reconciliation/DepClosure/
-├── AUDIT_HYPERGRAPH_CLOSURE → _Reconciliation/HypergraphClosure/
-├── AUDIT_GOVERNANCE     → _Reconciliation/GovernanceAudit/
-├── AUDIT_EPISTEMIC      → _Reconciliation/EpistemicAudit/
-├── AUDIT_SCOPE_CLOSURE  → _Reconciliation/ScopeClosureAudit/
+├── AUDIT_AGENTS         → _Evaluation/AgentAudit/
+├── AUDIT_DECOMP         → _Evaluation/DecompCoverage/
+├── AUDIT_DEP_CLOSURE    → _Evaluation/DepClosure/
+├── AUDIT_HYPERGRAPH_CLOSURE → _Evaluation/HypergraphClosure/
+├── AUDIT_GOVERNANCE     → _Evaluation/GovernanceAudit/
+├── AUDIT_EPISTEMIC      → _Evaluation/EpistemicAudit/
+├── AUDIT_SCOPE_CLOSURE  → _Evaluation/ScopeClosureAudit/
 ├── DOMAIN_HYPERGRAPH    → _Aggregation/Hypergraph/
 ├── EVALUATION           → _Evaluation/
-├── CONTENT_DIGEST       → _Evaluation/content-digests/
+├── RESEARCH / RESEARCHER → activated research run root
+├── DBM_PUBLISHER        → activated publication root
 ├── EVALUATION_REPORT    → _Evaluation/reports/
 ├── EVALUATION_STRUCTURE_AUDIT → _Evaluation/reports/
 └── EVALUATION_DEPENDENCY_AUDIT → _Evaluation/reports/
 ```
+
+*Membership updated under D-GOV-11 through D-GOV-13 on 2026-07-11; the live
+assignment is maintained in the DBM and `AGENTS.md` registry (per K-AGENTS-1,
+where narrative and live registry disagree, the registry governs).*
 
 ### 4.6.3 The Six Write Scope Rules
 
@@ -299,13 +340,15 @@ DBM §7.2 states six rules that govern write scope enforcement across the agent 
 3. Tool-root agents write only to their designated tool root under `{EXECUTION_ROOT}/`.
 4. Source truth (deliverable production documents) is never modified by tool-root agents.
 5. `_STATUS.md` updates are restricted to designated agents (PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW) and only for forward lifecycle transitions.
-6. Cross-deliverable scanning or editing is prohibited inside WORKING_ITEMS sessions unless the human explicitly requests a cross-check.
+6. WORKING_ITEMS may scan and coordinate the deliverables of its one activated
+   package. Cross-package access requires Agent 0 ownership or separate
+   authority.
 
 ### 4.6.4 Write Scope as Fault Containment
 
-The practical significance of write scope is containment. A failure in a Type 2 task agent — whether through model error, malformed input, or unexpected behavior — can corrupt only the zone to which that agent has write access. Because tool-root agents cannot write to source truth, and deliverable-local agents cannot write to other deliverables, the blast radius of any single agent failure is bounded by architectural construction.
+The practical significance of write scope is containment. A failure in a Type 2 task agent — whether through model error, malformed input, or unexpected behavior — can corrupt only the zone to which that agent has write access. Because tool-root agents have no declared write path to source truth, and deliverable-local agents none to other deliverables, the blast radius of a conforming agent's failure is bounded by construction — and a non-conforming write is exposed to detection, because every write lands in a reviewable git diff.
 
-This is the property DBM §1.5 refers to as "write quarantine": formal fault containment zones established not by runtime monitoring but by the structural impossibility of cross-zone writes. The distinction matters: a monitoring approach would detect the violation after it occurred; the write scope model prevents the violation from being representable. A Type 2 agent running under WORKING_ITEMS that attempts to modify a file in another deliverable's folder is not committing a policy violation — the action is outside its declared scope and should not occur in a conforming agent.
+This is the property DBM §1.5 refers to as "write quarantine": formal fault containment zones established not by runtime monitoring but by the absence of any conforming write path across zones. The distinction matters: a monitoring approach would detect the violation after it occurred; the write scope model removes the violation from the space of conforming behavior — no sanctioned execution path includes a cross-zone write — while diff review and the audit agents carry the residual risk of non-conforming behavior (Chapter 8, §8.6). A Type 2 agent running under WORKING_ITEMS that attempts to modify a file in another deliverable's folder is not committing a policy violation — the action is outside its declared scope and should not occur in a conforming agent.
 
 [COMPARE: LangChain agents and ReAct-style frameworks typically have broad tool access without formal zone partitioning; compare fault isolation properties under agent misbehavior]
 
@@ -319,9 +362,9 @@ This is the property DBM §1.5 refers to as "write quarantine": formal fault con
 
 The Chirality system maintains agent behavior through three distinct layers of contracts, defined in DBM §4. Each layer addresses a different scope of concern, and they are complementary rather than overlapping.
 
-**R1–R9: Workflow Design Requirements** (from HELPS_HUMANS). These nine requirements apply to all agents and to the design of any new agent workflow. They establish universal baseline obligations: that human decision rights are explicit (R1), that task agents run straight-through without mid-run gates (R2), that write quarantine is enforced (R3), that snapshots are immutable (R4), that provenance is mandatory (R5), that no-invention behavior is defined (R6), that conflicts and duplicates are surfaced (R7), that brief-driven execution exists (R8), and that publication is hygienic and non-destructive by default (R9).
+**R1–R17: Workflow Design Requirements** (from HELPS_HUMANS). These requirements apply to all agents and to the design of any new agent workflow (R1–R17 as of this revision; R10–R12 govern the skill/tool layer; R13–R17 add claim-strength calibration, multi-phase integration, registry lifecycle, active-checkout containment, and proportional design evidence — see Appendix A for the full catalog). They establish universal baseline obligations: that human decision rights are explicit (R1), that task agents run straight-through without mid-run gates (R2), that write quarantine is enforced (R3), that snapshots are immutable (R4), that provenance is mandatory (R5), that no-invention behavior is defined (R6), that conflicts and duplicates are surfaced (R7), that brief-driven execution exists (R8), and that publication is hygienic and non-destructive by default (R9).
 
-**I1–I10: Decomposition Invariants** (from DECOMP_BASE). These ten invariants apply specifically to all decomposition agents (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) and are verified by AUDIT_DECOMP. They govern: human-validated decomposition gates (I1), no-invention in scope assignment (I2), flat partition structure (I3), no overlaps and no gaps (I4), stable identifiers (I5), deterministic ID coupling (I6), best-effort objective mapping (I7), traceable rationale (I8), machine-checkable ledger and telemetry (I9), and vocabulary discipline (I10).
+**I1–I10: Decomposition Invariants** (from Decomposition Standard). These ten invariants apply specifically to all decomposition agents (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) and are verified by AUDIT_DECOMP. They govern: human-validated decomposition gates (I1), no-invention in scope assignment (I2), flat partition structure (I3), no overlaps and no gaps (I4), stable identifiers (I5), deterministic ID coupling (I6), best-effort objective mapping (I7), traceable rationale (I8), machine-checkable ledger and telemetry (I9), and vocabulary discipline (I10).
 
 **K-* Invariants: System-Wide Enforcement** (from CONTRACT.md). The K-* catalog defines system-wide binding constraints. The full catalog is reproduced in Appendix A; the groupings and their primary enforcing agents are summarized below.
 
@@ -332,30 +375,40 @@ The Chirality system maintains agent behavior through three distinct layers of c
 | Sealing & Context | K-SEAL-1, K-GHOST-1 | ORCHESTRATOR, Type 2 agents |
 | Dependencies | K-DEP-1, K-DEP-2 | TASK+dependency-extract, AUDIT_DEP_CLOSURE |
 | Status | K-STATUS-1 | PREPARATION, TASK+four-documents, TASK+semantic-matrix-build, REVIEW |
-| Staleness & Validation | K-STALE-1, K-STALE-2, K-VAL-1 | AUDIT_DEP_CLOSURE, RECONCILIATION; future tooling |
-| Gates | K-GATE-1 | ORCHESTRATOR, SCHEDULING |
+| Staleness & Validation | K-STALE-1, K-STALE-2, K-VAL-1 | EVALUATION, AUDIT_DEP_CLOSURE, deterministic validators |
+| Gates | K-GATE-1 | ORCHESTRATOR, ORCHESTRATOR scheduling workflow |
 | Merge | K-MERGE-1 | CHANGE |
-| Provenance | K-PROV-1 | TASK+dependency-extract (every row must cite evidence) |
+| Provenance & Claim Discipline | K-PROV-1, K-CLAIM-1 | TASK+dependency-extract (row evidence); AUDIT_GOVERNANCE |
 | Invention | K-INVENT-1 | Universal (all agents) |
 | Conflicts | K-CONFLICT-1 | Universal (all agents) |
-| Write Scope | K-WRITE-1 | Universal (declared per agent) |
+| Write Scope & Containment | K-WRITE-1, K-WRITE-2 | Universal (declared per agent); TASK shell (deterministic path check) |
 | Snapshots | K-SNAP-1 | All snapshot-producing agents |
+| Agent Registry | K-AGENTS-1 | AGENTS.md; AUDIT_GOVERNANCE, AUDIT_AGENTS |
+| Domain Engines | K-DOMAIN-1, K-DOMAIN-2, K-DOMAIN-3, K-DOMAIN-4 | DOMAIN_ENGINE (profile and operation governance) |
 
-### 4.7.2 Four Enforcement Layers
+### 4.7.2 The Enforcement Layers
 
-CONTRACT.md §2 defines the enforcement map. The K-* invariants are not enforced by a single centralized mechanism; they are distributed across four enforcement layers at different points in the system's operation:
+CONTRACT.md §2 defines the enforcement map. The K-* invariants are not enforced by a single centralized mechanism; they are distributed across complementary enforcement layers at different points in the system's operation:
 
-**Design-time (agent instructions).** The invariants K-GHOST-1, K-WRITE-1, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-DEP-1, and K-DEP-2 are enforced by the content of the agent instruction files themselves. When an agent instruction is written to conform with these invariants, the agent's behavior is constrained at the point of instruction — before any runtime invocation. This is "design-time" in the sense that the constraint is baked into the specification the agent operates from.
+**Design-time (agent instructions).** The invariants K-GHOST-1, K-WRITE-1, K-WRITE-2, K-SNAP-1, K-PROV-1, K-INVENT-1, K-CONFLICT-1, K-CLAIM-1, K-DEP-1, K-DEP-2, K-AGENTS-1, and K-DOMAIN-1 through K-DOMAIN-4 are constrained by the content of the agent instruction files themselves. When an agent instruction is written to conform with these invariants, the agent's behavior is constrained at the point of instruction — before any runtime invocation. This is "design-time" in the sense that the constraint is baked into the specification the agent operates from.
 
-**Runtime (ORCHESTRATOR).** The invariants K-SEAL-1, K-GATE-1, and K-HIER-1 are enforced by ORCHESTRATOR during active session management. ORCHESTRATOR checks that context is sealed and gate-approved before dispatching any Type 2 agent, and that gate structure conforms to the project's configured gate map.
+**Runtime (managed hierarchy and permission layer).** K-SEAL-1, hierarchy,
+declared context, child tools, read/write containment, work-graph dependencies,
+write overlap, return markers, and parent-mediated communication are enforced
+by the managed delegation service, permission overlay, hooks, and durable run
+records. Agent 0 manages cross-package work; each Agent 1 manages its bounded
+scope. ORCHESTRATOR remains one Agent 1 manager rather than the universal
+runtime enforcement point.
 
 **Human gate.** The invariants K-AUTH-1, K-AUTH-2, K-BIND-1, K-STALE-2, K-MERGE-1, K-VAL-1, and K-STATUS-1 are enforced through human review at defined gates. These invariants govern decisions that cannot be delegated to automated systems: binding approvals, staleness triage, merge authorization, and lifecycle state management for consequential transitions.
 
 **Future tooling (automated).** K-STALE-1, K-VAL-1, K-MERGE-1, K-AUTH-2, and K-DEP-2 are identified as candidates for automated tooling — specifically for SHA comparison, staleness computation, and dependency resolution validation. The current architecture makes these checks tractable by ensuring all relevant state is in git-tracked files; the tooling has not yet been implemented.
 
+The live enforcement map (`CONTRACT.md` §2, reproduced in Appendix A) additionally assigns K-WRITE-2 to a deterministic runtime check in the TASK shell (ScopePath containment), the K-DOMAIN-* family to the DOMAIN_ENGINE profile-and-operation layer, and K-CLAIM-1, K-PROV-1, K-AGENTS-1, and K-DOMAIN-4 to the governance audit agents.
+
 This distribution of enforcement is architecturally significant. It means that no single failure mode — a misbehaving agent, a human error, a tool gap — can violate all constraints simultaneously. The layers are complementary and partially redundant.
 
-[RATIONALE: The decision to enforce many invariants at the agent-instruction level rather than at runtime provides a stronger guarantee than runtime-only enforcement: an instruction-level constraint means the agent cannot describe a conforming execution path that violates the invariant, rather than merely detecting the violation after the fact. The tradeoff is that instruction-level enforcement depends on the quality of the agent instructions themselves, which requires the Type 0 canonical standards and the AUDIT_AGENTS agent to maintain.]
+[RATIONALE: Enforcing many invariants at the instruction level places the constraint earlier than runtime-only enforcement: a conforming agent should not plan the violating action. The constraint binds intent, not guaranteed behavior (Chapter 8, §8.6.2). This depends on maintained external standards, HELPS_HUMANS component governance, and conformance audits.]
 
 ---
 
@@ -366,43 +419,48 @@ This distribution of enforcement is architecturally significant. It means that n
 DBM §6.1 defines the spawning graph — the complete map of which agents may initiate which other agents:
 
 ```
-HELP_HUMAN (Type 1) — classifies intent and routes; does not spawn
+HELP_HUMAN (Agent 0) ──delegates── named Agent 1 managers
 
-ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION
-                                ├── TASK+four-documents
-                                ├── TASK+domain-documents
-                                ├── TASK+semantic-matrix-build
-                                ├── TASK+lens-register
-                                ├── DOMAIN_HYPERGRAPH (DOMAIN variant; Phase 2.6)
-                                ├── ESTIMATING
-                                └── AGGREGATION
+ORCHESTRATOR (Type 1) ──spawns──┬── PREPARATION (Type 2)
+                                ├── DOMAIN_HYPERGRAPH (Type 2) [DOMAIN only; Phase 2.6]
+                                └── AGGREGATION (Type 2)
+                  ──dispatches TASK+skill──┬── four-documents [Phases 2.2 + 2.5]
+                                           ├── domain-documents [Phase 2.2; DOMAIN]
+                                           ├── semantic-matrix-build [Phase 2.3]
+                                           ├── lens-register [Phase 2.4]
+                                           ├── dependency-extract [setup + refresh]
+                                           └── estimate-snapshot, estimate-prep [Phase 4]
 
-WORKING_ITEMS (Type 1) ──spawns──── TASK
+WORKING_ITEMS (Agent 1, one package) ──delegates── TASK, approved named Agent 2,
+                                                    or bounded generalist Agent 2
 
-RECONCILIATION (Type 1) ──spawns──┬── AUDIT_DEP_CLOSURE
-                                  ├── AUDIT_AGENTS
-                                  ├── AUDIT_DECOMP
-                                  ├── AUDIT_EPISTEMIC
-                                  ├── AUDIT_GOVERNANCE
-                                  ├── AUDIT_SCOPE_CLOSURE
-                                  └── AUDIT_HYPERGRAPH_CLOSURE (DOMAIN variant)
+EVALUATION (Agent 1) ──delegates──┬── AUDIT_DEP_CLOSURE / AUDIT_DECOMP (Agent 2)
+                                 ├── AUDIT_AGENTS / AUDIT_GOVERNANCE (Agent 2)
+                                 ├── AUDIT_EPISTEMIC / AUDIT_HYPERGRAPH_CLOSURE (Agent 2)
+                                 ├── EVALUATION_REPORT / *_AUDIT (Agent 2)
+                                 └── TASK + evaluation skills
 
-EVALUATION (Type 1) ──spawns──┬── CONTENT_DIGEST
-                              ├── EVALUATION_REPORT
-                              ├── EVALUATION_STRUCTURE_AUDIT
-                              └── EVALUATION_DEPENDENCY_AUDIT
+RECONCILIATION (Agent 1) ──delegates── TASK or bounded generalist Agent 2
+                                      for calibrated corpus-concordance waves
 
-CHANGE (Type 1) — leaf agent; implements approved edits; spawns nothing
-TOOLMAKER (Type 1) — standalone; designs and implements deterministic tools
-SKILLMAKER (Type 1) — standalone; designs and governs repo-native skills
+DBM_PUBLISHER (Type 1) ──dispatches TASK+skill──┬── dbm-section-publish
+                                                └── dbm-publish
 
-REVIEW (Type 1) — triggers AUDIT_DECOMP as a precondition check
-SCOPE_CHANGE (Type 1) — hands off to ORCHESTRATOR + CHANGE
-CONTEXT_TRANSPOSE (Type 1) — hands off to CHANGE for publication
-SCHEDULING (Type 1) — standalone; reads dependency graph; produces schedule artifacts
+CHANGE (Type 1) ── leaf agent (spawns nothing; implements approved edits)
+REVIEW (Type 1) ── triggers AUDIT_DECOMP as precondition check
+SCOPE_CHANGE (Type 1) ── hands off to ORCHESTRATOR (for PREPARATION) + CHANGE (for commits)
+ORCHESTRATOR scheduling workflow (Type 1) ── standalone (reads dependency graph; produces schedule artifacts)
+HELPS_HUMANS (Agent 1) ── designs agents, skills, tools, briefs, migrations, and deprecations
+PDF2MD (Agent 1) ──delegates──── TASK + pdf2md-page [per page]
+DRAWING_EXTRACT (Agent 1) ──delegates──── TASK + target-specific drawing skill
 ```
 
-The spawning graph is acyclic by construction: no Type 2 agent spawns any other agent, and the Type 1 agents that do spawn Type 2 agents do not spawn each other. This property means that execution trees are bounded in depth and that no runaway spawning cascade is architecturally possible.
+*Graph as maintained in DBM §6.1 as of 2026-07-02. The specialist capabilities formerly packaged as separate `TASK+<skill>` agent files are now dispatched as skills through the bounded `TASK` shell; references to `TASK+<skill>` elsewhere in this thesis denote those skill-dispatched pipelines.*
+
+The delegation graph is bounded to Agent 0→Agent 1→Agent 2. Agent 2 never
+delegates and Agent 1 siblings do not delegate to one another. This bounds the
+runtime tree at three positions while still permitting many active instances
+and parent-mediated many-to-many coordination.
 
 ### 4.8.2 Session Handoff Mechanism
 
@@ -422,9 +480,12 @@ This mechanism solves a fundamental limitation of LLM-based agent systems: the a
 The operational control loop in a running project follows the sequence:
 
 1. **ORCHESTRATOR** initializes the workspace and session handoff artifacts; manages gate sequence.
-2. **WORKING_ITEMS** reads session state and executes deliverable-level work; dispatches TASK agents pre-authorizedly.
+2. **WORKING_ITEMS** reads package state, derives the intra-package work graph,
+   and dispatches deliverable-scoped TASK agents within accepted authority.
 3. **TASK+dependency-extract** reruns are triggered after content changes to keep dependency registers current.
-4. **RECONCILIATION** aggregates and audits across the project; dispatches audit agents to produce closure reports and coverage analyses.
+4. **EVALUATION** performs generic structural, dependency, epistemic,
+   governance, and coherence audits. **RECONCILIATION** is activated separately
+   for calibrated deliverable-corpus concordance.
 5. **CHANGE** receives approved commit instructions and applies them to the repository, requiring explicit approval tokens before any state-changing action.
 6. The loop returns to WORKING_ITEMS for the next session, with updated state in `NEXT_INSTANCE_STATE.md`.
 
@@ -437,8 +498,8 @@ DBM §6.3 defines four distinct spawning mechanisms, each with different authori
 | Mechanism | Used By | Authorization Required |
 |-----------|---------|----------------------|
 | **Human-gated phases** | ORCHESTRATOR | Explicit human confirmation at each sequential phase |
-| **Pre-authorized dispatch** | WORKING_ITEMS | Human confirms session objective once; TASK agents dispatched autonomously within session |
-| **Human-directed toolbelt** | RECONCILIATION | Human provides TOOLBELT list of authorized agents; one task per cycle by default |
+| **Package orchestration** | WORKING_ITEMS | Human or Agent 0 accepts the package activation; TASK agents are dispatched according to the recorded work graph |
+| **Human-directed audit toolbelt** | EVALUATION | Human defines the evaluation basis and authorized audit scope; EVALUATION validates bounded returns before synthesis |
 | **Approval-gated execution** | CHANGE | Explicit approval tokens required per action (`APPROVE:` or `APPROVE_DESTRUCTIVE:`) |
 
 The progressive reduction in per-action authorization overhead is deliberate: ORCHESTRATOR phases are high-stakes and infrequent; WORKING_ITEMS task dispatch is routine and repetitive. Requiring explicit human confirmation at every TASK dispatch in a working session would impose ceremony with no corresponding safety benefit. Conversely, CHANGE applies the most stringent authorization requirement because its operations modify repository state — an action that, if incorrect, may require recovery operations.
@@ -498,6 +559,8 @@ The rule also creates a safe re-run model. Because reruns produce new snapshots 
 
 ## 4.10 Summary
 
-The Chirality architecture is, at its core, a structure-as-governance system. Its capabilities do not arise from the sophistication of the individual agents but from the structural properties of the constraints under which those agents operate. The filesystem-as-state decision (§4.2) operationalizes the ontological pillar by making the project's domain model directly inspectable and version-controllable. The evidence-first design — mandatory provenance, explicit epistemic labels, immutable audit trails — operationalizes the epistemological pillar by making the reliability of every claim structurally visible rather than inferred. The agent type hierarchy and write scope architecture (§4.5, §4.6) operationalize the praxiological pillar by ensuring that bounded agents cannot exceed their authority, that failures are contained within declared zones, and that human gates are structural rather than advisory. The invariant system and the non-bypassable human gates on lifecycle transitions to CHECKING and ISSUED (§4.4, §4.7) operationalize the axiological pillar by encoding the values of professional responsibility — human authority, evidence over plausibility, and public welfare primacy — as architectural constraints that cannot be relaxed by any agent at any type level. The result is a system whose safety properties are not dependent on agent reliability, but on structural impossibility: the agents cannot approve deliverables, cannot escape their write zones, and cannot hide the epistemic status of their outputs, because the architecture does not permit these things. The governance is in the structure.
+The Chirality architecture is, at its core, a structure-as-governance system. Its capabilities do not arise from the sophistication of the individual agents but from the structural properties of the constraints under which those agents operate. The filesystem-as-state decision (§4.2) operationalizes the ontological pillar by making the project's domain model directly inspectable and version-controllable. The evidence-first design — mandatory provenance, explicit epistemic labels, immutable audit trails — operationalizes the epistemological pillar by making the reliability of every claim structurally visible rather than inferred. The agent type hierarchy and write scope architecture (§4.5, §4.6) operationalize the praxiological pillar by ensuring that bounded agents cannot exceed their authority, that failures are contained within declared zones, and that human gates are structural rather than advisory. The invariant system and the non-bypassable human gates on lifecycle transitions to CHECKING and ISSUED (§4.4, §4.7) operationalize the axiological pillar by encoding the values of professional responsibility — human authority, evidence over plausibility, and public welfare primacy — as architectural constraints that cannot be relaxed by any agent at any type level. The result is a system whose safety properties do not rest on agent reliability, but on structural containment: under the sanctioned workflow the agents have no path that approves deliverables, no declared write path outside their zones, and no way to hide the epistemic status of their outputs that survives review — because the architecture provides no conforming path for these things and layers detection behind each (Chapter 8, §8.6). The governance is in the structure.
+
+Stated as a division of labor, the structure reads: agents propose; deterministic tools and domain engines compute; humans rule; the record binds. The domain-engine invariants (K-DOMAIN-1 through K-DOMAIN-4) make the computing clause explicit — Chirality governs the work around a domain application without becoming the solver or the source of accepted engineering truth — and the same containment pattern holds for every other component the environment encloses.
 
 ---

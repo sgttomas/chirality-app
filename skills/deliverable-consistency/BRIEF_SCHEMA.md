@@ -1,13 +1,12 @@
 # deliverable-consistency — Brief Schema
 
-Use this skill with the deliverable profile like this:
+Use this skill with the generic TASK shell like this:
 
 ```md
 PURPOSE: Run a deliverable-local consistency sweep
 RequestedBy: WORKING_ITEMS
 
-DeliverablePath: /abs/path/to/DEL-XXX_Name
-TaskProfile: DELIVERABLE_TASK
+ScopePath: /abs/path/to/DEL-XXX_Name
 TaskSkill: deliverable-consistency
 
 Tasks:
@@ -18,6 +17,8 @@ Tasks:
 ApplyEdits: false
 
 RuntimeOverrides:
+  DELIVERABLE_PATH: /abs/path/to/DEL-XXX_Name
+  ProductionFormat: LEGACY_FOUR_DOC
   FocusDocs:
     - Datasheet.md
     - Specification.md
@@ -37,9 +38,12 @@ EXCLUSIONS:
 
 ## Required fields
 
-- `DeliverablePath`
-- `TaskProfile: DELIVERABLE_TASK`
+- `ScopePath`
 - `TaskSkill: deliverable-consistency`
+- `RuntimeOverrides.DELIVERABLE_PATH`
+- `RuntimeOverrides.ProductionFormat` — resolver-selected `LEGACY_FOUR_DOC`,
+  `SOW_V1`, or authorized `MIGRATION_DUAL`; dual mode also requires
+  `RuntimeOverrides.FormatAuthorityRef`.
 
 ## Typical tasks
 
@@ -51,4 +55,4 @@ EXCLUSIONS:
 ## Notes
 
 - `ApplyEdits: false` is the normal safe default.
-- Turn `ApplyEdits: true` on only when you want the task to apply minimal corrections directly.
+- Turn `ApplyEdits: true` on only when you want the task to apply minimal corrections directly, and provide either `AllowedWriteTargets` or explicit writable targets in the brief.

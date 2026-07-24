@@ -4,7 +4,7 @@ Use this skill with a generic TASK shell (no profile) like this:
 
 ```md
 PURPOSE: Extract equipment items from KTY-04-01 KA files
-RequestedBy: ORCHESTRATOR
+RequestedBy: PROJECT_SETUP
 
 ScopePath: {EXECUTION_ROOT}
 TaskSkill: equipment-extract
@@ -56,5 +56,5 @@ The skill writes only:
 ## Notes
 
 - `KTY_ID` is derived at runtime from `_CONTEXT.md` or from the folder name when `_CONTEXT.md` is unavailable.
-- One invocation processes one KTY folder. ORCHESTRATOR spawns one task per in-scope KTY for parallelism.
+- One invocation processes one KTY folder. PROJECT_SETUP spawns one task per in-scope KTY for parallelism.
 - The brief does not include `AllowedTools` because this is a reasoning-only extraction skill with no deterministic tool dependencies.

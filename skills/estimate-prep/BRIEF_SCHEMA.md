@@ -90,7 +90,7 @@ AllowedWriteTargets:
 
 ```markdown
 PURPOSE: Generate parametric pricing baseline + BOE scaffold for Penhold MSB proposal
-RequestedBy: ORCHESTRATOR
+RequestedBy: PROJECT_SETUP
 ScopePath: {EXECUTION_ROOT}
 TaskSkill: estimate-prep
 

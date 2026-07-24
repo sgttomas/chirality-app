@@ -23,10 +23,10 @@ No `Bash`, no shell-outs, no subprocess invocations.
 
 | Tool | Owner | When |
 |---|---|---|
-| `tools/pdf2md/rasterize_pdf.py` | TOOLMAKER | PDF2MD Phase 1 — produces `page_NNNN.png` |
-| `tools/equation_audit/audit_equations.py` | TOOLMAKER | EQUATION_AUDIT Phase 1 — extracts every display equation per page (text) and populates `EXPECTED_EQUATION_HASHES` |
-| `tools/equation_audit/build_equation_bbox_brief.py` | TOOLMAKER | EQUATION_AUDIT Phase 1 — produces this skill's brief |
-| `tools/equation_audit/crop_equation_regions.py` | TOOLMAKER | EQUATION_AUDIT Phase 1 — consumes this skill's output JSONs and emits per-equation PNG crops |
+| `tools/pdf2md/rasterize_pdf.py` | HELPS_HUMANS | PDF2MD Phase 1 — produces `page_NNNN.png` |
+| `tools/equation_audit/audit_equations.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 1 — extracts every display equation per page (text) and populates `EXPECTED_EQUATION_HASHES` |
+| `tools/equation_audit/build_equation_bbox_brief.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 1 — produces this skill's brief |
+| `tools/equation_audit/crop_equation_regions.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 1 — consumes this skill's output JSONs and emits per-equation PNG crops |
 
 The worker never invokes any of the above. It writes its single JSON output; the persona feeds it to `crop_equation_regions.py`.
 

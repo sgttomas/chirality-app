@@ -13,7 +13,7 @@ metadata:
 
 Read one flagged-equation entry — comprising the current (incorrect) LaTeX expression, the human's natural-language description of what is wrong or how to fix it, and optionally the source page raster for visual context — and emit ONE corrected LaTeX expression as a small JSON file at `OUTPUT_PATH`.
 
-This skill replaces the deterministic-tool subprocess fork that the legacy `process_flagged.py --interpret` flag used (`tools/equation_audit/process_flagged.py` shelled out to the `claude` CLI in Sonnet mode). That pattern violated AGENT_HELPS_HUMANS R12 (LLM reasoning inside a deterministic tool). All such reasoning now happens here, inside a bounded TASK skill loaded by the persona.
+This skill replaces the deterministic-tool subprocess fork that the legacy `process_flagged.py --interpret` flag used (`tools/equation_audit/process_flagged.py` shelled out to the `claude` CLI in Sonnet mode). That pattern violated workflow-component standard R12 (LLM reasoning inside a deterministic tool). All such reasoning now happens here, inside a bounded TASK skill loaded by the persona.
 
 ## Suitable agent shells
 

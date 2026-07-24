@@ -9,14 +9,6 @@ These instructions govern an agent that transforms a messy user-provided Scope o
 
 This is a **human-interactive (persona) agent**. It runs a conversational workflow with mandatory confirmation gates and produces a decomposition document that initializes all downstream agent workflows.
 
-This revision (v2) adds an anti-fragile improvement: a **Scope Ledger + Coverage Telemetry** that makes scope assignment and completeness **machine-checkable** and comparable across iterations.
-
-This revision (v2.1) clarifies the **DeliverableID** format to be deterministically coupled to **PackageID** (fixed-width) so folder paths and downstream automation remain mechanically stable.
-
-This revision (v2.2) clarifies **design decomposition granularity**: design packages are discipline-exclusive, and design deliverables are split by knowledge-artifact kind (not by individual artifact instances).
-
----
-
 **Naming convention:** use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`); use the role name (e.g., `CHANGE`) when referring to the agent itself. This applies to all agents.
 
 ## Agent Type
@@ -62,6 +54,10 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 - **Design deliverables are artifact-kind based.** Within design Packages, Deliverables MUST be defined by distinct knowledge-artifact kinds (for example: drawing set, calculation package, specification set, model package). Repeated instances of a kind (for example: many sheets in one drawing set) MUST be represented as Artifacts under that Deliverable, not as separate Deliverables.
 - **Objective mapping is best-effort.** Objectives are derived from SSOW. Unmapped objectives must be surfaced as open issues.
 - **Traceable rationale.** Non-trivial assignment decisions must be recorded as explicit decisions in the decomposition output.
+- **Production-contract boundary.** PROJECT deliverables declare anticipated
+  artifacts and objective mappings without choosing legacy initialization.
+  Downstream new production uses `SOW_V1`; DOMAIN/KTY and independent schemas
+  remain outside this rule.
 
 ---
 
@@ -81,7 +77,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 
 ## Package Architecture (PROJECT variant)
 
-PROJECT_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The PROJECT canonical working package consists of:
+PROJECT_DECOMP conforms to the package architecture defined in `docs/DECOMPOSITION_STANDARD.md`. The PROJECT canonical working package consists of:
 
 - one concise main decomposition document (the working surface)
 - authoritative companion registers when heavy machine-truth warrants separate files (e.g., Scope Ledger CSV, objective mappings, coverage telemetry)

@@ -176,19 +176,41 @@ def encode_texts(texts: list[str], model_name: str, dim: int, batch: int) -> np.
     from fastembed import TextEmbedding
 
     model = TextEmbedding(model_name=model_name)
-    embs = np.empty((len(texts), dim), dtype=np.float32)
+
+    # Length-bucket: embed shortest-first so each fastembed batch pads to a
+    # length near its own members instead of to the corpus-wide max. With a
+    # high chunk-length variance an unsorted batch of 64 almost always contains
+    # one cap-length chunk, forcing the whole batch to pad to that length;
+    # sorting collapses that waste. fastembed preserves input order within
+    # model.embed(), so we sort, embed, then invert the permutation to restore
+    # chunk order. The returned row i corresponds to texts[i] exactly as it
+    # would without sorting; per-chunk embeddings are batch-invariant because
+    # attention masking ignores padding, so the index is unchanged.
+    # Trade-off: the largest chunks batch last, so peak memory lands in the
+    # tail — on memory-constrained machines or very large corpora, lower
+    # --batch (e.g. 16) to cap that peak (a 48k-chunk run was killed at the
+    # default batch of 64 on a 16 GB box, 2026-06-18).
+    order = np.argsort([len(t) for t in texts], kind="stable")
+    sorted_texts = [texts[int(i)] for i in order]
+
+    sorted_embs = np.empty((len(texts), dim), dtype=np.float32)
     written = 0
-    for i, vec in enumerate(model.embed(texts, batch_size=batch)):
+    for j, vec in enumerate(model.embed(sorted_texts, batch_size=batch)):
         v = np.asarray(vec, dtype=np.float32)
         if v.shape[0] != dim:
             raise RuntimeError(f"unexpected dim {v.shape[0]} (expected {dim})")
-        embs[i] = v
+        sorted_embs[j] = v
         written += 1
         if written % 1000 == 0:
             print(f"      {written:,}/{len(texts):,}")
     if written != len(texts):
         raise RuntimeError(f"embedded {written} != {len(texts)}")
-    return embs
+
+    # Reassemble in chunk order: inverse permutation of the length sort.
+    inv = np.argsort(order, kind="stable")
+    if not np.array_equal(order[inv], np.arange(len(texts))):
+        raise RuntimeError("length-sort inverse permutation is not valid")
+    return sorted_embs[inv]
 
 
 def chunks_digest(rows: list[dict]) -> str:

@@ -6,17 +6,18 @@ This file enumerates the mandatory invariants and local quality checks that must
 
 1. **Evidence-first.** Each dependency row must cite at least one concrete evidence location (`EvidenceFile` + `SourceRef`) or explicitly state `location TBD`.
 2. **Do not modify source documents.** Never edit deliverable docs, `_REFERENCES.md`, or decomposition outputs.
-3. **Writes limited to dependency artifacts only:** `{deliverable}/_DEPENDENCIES.md` and `{deliverable}/Dependencies.csv`.
+3. **Writes limited to dependency artifacts only:** `{deliverable}/_DEPENDENCIES.md`, `{deliverable}/Dependencies.csv`, and the TASK run record under `{deliverable}/_run_records/`.
 4. **No invention.** If the target cannot be resolved confidently, record `TargetType=UNKNOWN` and preserve the raw reference text.
 5. **No hierarchy discovery.** This skill does not create or restructure the decomposition Tree; it only anchors to identifiers that already exist.
 6. **Straight-through.** No human decisions required mid-run; defaults are conservative and logged.
 7. **Non-destructive updates.** Do not delete rows; retire extracted rows when no longer seen.
 8. **Epistemic separation.** Distinguish FACT vs ASSUMPTION vs PROPOSAL in `Notes`.
 9. **Schema discipline.** `Dependencies.csv` must remain parseable and include all 29 canonical required columns.
-10. **Enum normalization on write.** Normalize legacy variants to canonical enums.
-11. **Lifecycle hygiene.** Track both extraction lifecycle (`FirstSeen`/`LastSeen`/`Status`) and closure lifecycle (`RequiredMaturity`/`ProposedMaturity`/`SatisfactionStatus`).
+10. **Enum normalization on write.** Normalize legacy and project-specific variants to canonical enums.
+11. **Lifecycle hygiene.** Track both extraction lifecycle (`FirstSeen`/`LastSeen`/`Status`) and closure lifecycle (`RequiredMaturity`/`ProposedMaturity`/`SatisfactionStatus`). `Status` is only `ACTIVE` or `RETIRED`; candidate/non-gating dispositions are worklist/review states, not `Status` values.
 12. **Referential integrity.** `FromDeliverableID` must match the current deliverable; preserve unresolved targets as `UNKNOWN`/`TBD` rather than guessing.
 13. **Information flow only.** Do not create edges that are merely "coordination" or "structural adjacency."
+14. **Architecture-basis consistency.** When `ARCHITECTURE_BASIS_POLICY=PKG00_CONSISTENCY_TRACKERS`, supported `DEL-00-*` rows are valid consistency dependencies; do not retire them merely because they point to PKG-00.
 
 ## Mandatory local quality checks (from PROTOCOL Function 5)
 
@@ -30,7 +31,8 @@ This file enumerates the mandatory invariants and local quality checks that must
 
 - Validate enum fields on write using `python3 tools/validation/validate_enum.py`:
   - `DEPENDENCY_CLASS`, `ANCHOR_TYPE`, `DIRECTION`, `DEPENDENCY_TYPE`, `TARGET_TYPE`, `EXPLICITNESS`, `CONFIDENCE`, `ORIGIN`, `STATUS`, `SATISFACTION_STATUS`
-- Normalize legacy values: `INBOUND` -> `UPSTREAM`, `OUTBOUND` -> `DOWNSTREAM` on write.
+- Normalize legacy values on write. `INBOUND`/`OUTBOUND` become `UPSTREAM`/`DOWNSTREAM`; legacy or project-specific dependency labels are mapped to canonical `DependencyType` values and preserved in `Notes`.
+- Reject `Status=CANDIDATE` in a canonical register; move candidate visibility to a non-authoritative worklist or a candidate-disposition note on a `RETIRED` row.
 
 ### ID format validation
 
@@ -60,7 +62,7 @@ A `dependency-extract` run is valid when all of the following hold:
 - Targets are not invented (`UNKNOWN` permitted).
 - Updates are non-destructive (no row deletions).
 - `DependencyID` values are unique within each deliverable register.
-- Write-form enums are canonical (legacy values normalized).
+- Write-form enums are canonical (legacy values normalized and not re-emitted).
 - `_DEPENDENCIES.md` summary/lifecycle counts are consistent with `Dependencies.csv`.
 - If decomposition cannot be located, `_DEPENDENCIES.md` Run Notes include `[WARNING] MISSING_DECOMPOSITION` and anchor validation/label resolution is explicitly marked degraded.
 

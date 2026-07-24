@@ -15,8 +15,8 @@ You will be given exactly two inputs by the parent caller:
 - `PDF_PATH` — absolute path to the single PDF you own
 - `STEM` — the file stem (PDF basename without `.pdf`)
 
-All other paths derive from these. The repo root is
-`<chirality-root>` — use absolute paths.
+All other paths derive from these. Resolve `REPO_ROOT` with
+`git rev-parse --show-toplevel` and use derived absolute paths.
 
 ## Derived paths
 
@@ -65,7 +65,7 @@ Each dispatch produces BOTH the per-page Markdown and the per-page asset JSON fr
 ```
 TASK+pdf2md-page-full worker.
 Brief: {WORK_DIR}/briefs/page_{nn}.brief.md
-Steps: Read brief → Read skills/pdf2md-page-full/SKILL.md (cwd <chirality-root>) → Read IMAGE_PATH (single multimodal read) → Transcribe to Markdown per the 8 SKILL rules with [FIGURE:]/[TABLE:]/[... logo] placeholders → Identify visible assets and emit pdf2md-page-assets/v1 JSON with one-to-one placeholder↔entry correspondence → Write Markdown to OUTPUT_MD_PATH and JSON to OUTPUT_JSON_PATH → Report: RUN_STATUS=<literal> page={n} md_bytes=<n> assets=<n>.
+Steps: Read brief → Read skills/pdf2md-page-full/SKILL.md (cwd {REPO_ROOT}) → Read IMAGE_PATH (single multimodal read) → Transcribe to Markdown per the 8 SKILL rules with [FIGURE:]/[TABLE:]/[... logo] placeholders → Identify visible assets and emit pdf2md-page-assets/v1 JSON with one-to-one placeholder↔entry correspondence → Write Markdown to OUTPUT_MD_PATH and JSON to OUTPUT_JSON_PATH → Report: RUN_STATUS=<literal> page={n} md_bytes=<n> assets=<n>.
 ```
 
 `subagent_type: general-purpose`, `model: sonnet`. **All workers in a single message** so they run in parallel.

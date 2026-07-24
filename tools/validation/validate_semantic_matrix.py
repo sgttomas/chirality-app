@@ -4,10 +4,23 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+SOW_COMMON_PATH = Path(__file__).resolve().parents[1] / "scope_of_work" / "common.py"
+_spec = importlib.util.spec_from_file_location("chirality_scope_of_work_common", SOW_COMMON_PATH)
+if _spec is None or _spec.loader is None:
+    raise ImportError(f"cannot load Scope-of-Work common module: {SOW_COMMON_PATH}")
+_common = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _common
+_spec.loader.exec_module(_common)
+PRODUCTION_FORMATS = _common.PRODUCTION_FORMATS
+SowError = _common.SowError
+require_requested_format = _common.require_requested_format
+resolve_production_format = _common.resolve_production_format
 
 
 CANONICAL_A = {
@@ -49,6 +62,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate one deliverable _SEMANTIC.md file.")
     parser.add_argument("deliverable_path", help="Path to a deliverable folder")
     parser.add_argument("--json", action="store_true", help="Reserved for future machine-readable output")
+    parser.add_argument(
+        "--production-format",
+        choices=["AUTO", *PRODUCTION_FORMATS],
+        default="AUTO",
+        help="Production contract whose provenance must appear in Inputs Read.",
+    )
+    parser.add_argument("--isolated-migration", action="store_true")
+    parser.add_argument("--migration-authority", default="")
     return parser.parse_args()
 
 
@@ -218,7 +239,7 @@ def validate_work_section(name: str, section: str) -> list[Finding]:
     return findings
 
 
-def validate_semantic_file(deliverable_path: Path) -> list[Finding]:
+def validate_semantic_file(deliverable_path: Path, *, production_format: str = "LEGACY_FOUR_DOC") -> list[Finding]:
     semantic_path = deliverable_path / "_SEMANTIC.md"
     if not semantic_path.is_file():
         return [Finding("MISSING_FILE", f"{semantic_path} does not exist")]
@@ -228,7 +249,12 @@ def validate_semantic_file(deliverable_path: Path) -> list[Finding]:
 
     if "**Inputs Read:**" not in text:
         findings.append(Finding("MISSING_INPUTS_READ", "_SEMANTIC.md lacks Inputs Read provenance"))
-    for filename in ["_CONTEXT.md", "_STATUS.md", "Datasheet.md", "Specification.md", "Guidance.md", "Procedure.md"]:
+    production_inputs = (
+        ["ScopeOfWork.md"]
+        if production_format in {"SOW_V1", "MIGRATION_DUAL"}
+        else ["Datasheet.md", "Specification.md", "Guidance.md", "Procedure.md"]
+    )
+    for filename in ["_CONTEXT.md", "_STATUS.md", *production_inputs]:
         if filename not in text:
             findings.append(Finding("MISSING_INPUT_REF", f"Inputs Read does not list {filename}"))
     if "**Audit:** PASS" not in text and "Audit: PASS" not in text:
@@ -268,7 +294,20 @@ def main() -> int:
         return 2
 
     deliverable_path = Path(args.deliverable_path)
-    findings = validate_semantic_file(deliverable_path)
+    resolution = resolve_production_format(
+        deliverable_path,
+        isolated_migration=args.isolated_migration,
+        migration_authority=args.migration_authority,
+    )
+    try:
+        require_requested_format(resolution, args.production_format)
+    except SowError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    if not resolution.valid:
+        print(f"ERROR: format state is {resolution.state}: {'; '.join(resolution.issues)}", file=sys.stderr)
+        return 2
+    findings = validate_semantic_file(deliverable_path, production_format=resolution.state)
     if findings:
         print(f"INVALID: {deliverable_path / '_SEMANTIC.md'}")
         for finding in findings:

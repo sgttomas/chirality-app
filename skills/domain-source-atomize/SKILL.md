@@ -47,6 +47,8 @@ Not the best fit for:
 
 - `MAX_ATOMS` — bound for smoke testing; halt and write what you have when reached
 - `SOURCE_HTML_PATH` — when known, used as the second half of the dual `SourceRef` anchor
+- `SOURCE_REF_BASE` — when present, a full dual-citation template for manifest-backed sources, e.g. `@repo/<RepoRelPath>:L####|domains/chirality/_Decomposition/source_review_html/<SourceDocID>.html#<SectionID>`
+- `SOURCE_REF_MODE` — optional; `COMPONENT_MAP` for generated grouped-source markdown whose `ASSET_MANIFEST_PATH` includes `source_components` mapping generated MD lines back to original repo component files.
 
 ## Runtime overrides
 
@@ -65,6 +67,8 @@ Not the best fit for:
 | `OUTPUT_VOCAB_SEED_PATH` | Per-unit vocab CSV | **Required** | Parent dir exists; `.csv` |
 | `MAX_ATOMS` | Smoke-test bound | None | Positive integer |
 | `SOURCE_HTML_PATH` | `<book>.html` URL or path | None | String |
+| `SOURCE_REF_BASE` | Manifest-backed dual-citation template | None | String containing `L####` and `<SectionID>` |
+| `SOURCE_REF_MODE` | SourceRef construction mode | None | `COMPONENT_MAP` |
 
 ## Read boundary
 
@@ -72,7 +76,7 @@ Reads are limited to:
 
 - `MD_PATH` — but ONLY lines `LINE_START..LINE_END` inclusive. Lines outside that range MUST NOT be inspected.
 - `SKELETON_PATH` — read in full for section metadata (titles, depth, in-scope status).
-- `ASSET_MANIFEST_PATH` — read in full for asset metadata (figure/table captions, page numbers).
+- `ASSET_MANIFEST_PATH` — read in full for asset metadata (figure/table captions, page numbers) and, for grouped sources, `source_components` line maps.
 
 The skill MUST NOT read any other source files, other sources' MD, the v1.1 archive, prior decomposition ledgers, or cross-source artifacts.
 
@@ -110,7 +114,7 @@ LocalSeq, UnitStatement, SourceRef, ContentHash, InOutStatus, SectionID, Dispatc
 |---|---|
 | `LocalSeq` | 1-indexed monotonic counter within this dispatch unit |
 | `UnitStatement` | One normalized atomic statement, one concept per row, ≤ ~50 words preferred |
-| `SourceRef` | Dual citation: `<book>.md:L####` plus `<book>.html#anchor` separated by `\|` (e.g., `Pipe-Stress-Engineering.md:L1170\|Pipe-Stress-Engineering.html#SEC-PSE-0024`). Section anchor is acceptable when no finer anchor applies. **Per-kind anchor routing:** atoms sourced from an asset rather than prose anchor into the per-kind surfaces — `figures.html#asset-{asset_id}`, `tables.html#asset-{asset_id}`, `images.html#asset-{asset_id}` (use `equations.html#p{page}` when anchoring an equation). The `<book>.html` anchor remains the default for prose-derived atoms. |
+| `SourceRef` | Dual citation separated by `\|`. Default handbook form: `<book>.md:L####\|<book>.html#anchor` (e.g., `Pipe-Stress-Engineering.md:L1170\|Pipe-Stress-Engineering.html#SEC-PSE-0024`). Manifest-backed sources may provide `SOURCE_REF_BASE`; replace `L####` with the source line and `<SectionID>` with the mapped section, yielding forms like `@repo/<RepoRelPath>:L####\|domains/chirality/_Decomposition/source_review_html/<SourceDocID>.html#SEC-XXXX-0001`. Grouped manifest-backed sources may set `SOURCE_REF_MODE=COMPONENT_MAP`; use `ASSET_MANIFEST_PATH.source_components` to map the generated MD line to the original component file and cite `@repo/<component RepoRelPath>:L####\|<SOURCE_HTML_PATH>#<SectionID>`. Section anchor is acceptable when no finer anchor applies. **Per-kind anchor routing:** atoms sourced from an asset rather than prose anchor into the per-kind surfaces — `figures.html#asset-{asset_id}`, `tables.html#asset-{asset_id}`, `images.html#asset-{asset_id}` (use `equations.html#p{page}` when anchoring an equation). The source HTML anchor remains the default for prose-derived atoms. |
 | `ContentHash` | `sha1(UnitStatement)[:12]` — load-bearing for dedup, retrieval, and HTML cross-reference |
 | `InOutStatus` | `IN` \| `OUT` \| `TBD` |
 | `SectionID` | One of the `TARGET_SECTION_IDS` from `RuntimeOverrides` |
@@ -158,7 +162,7 @@ For each meaningful technical statement in the slice:
 
 1. Normalize it into a single short atomic statement (one concept, ≤ ~50 words).
 2. Assign `SectionID` — the target section whose line range covers the statement's MD line.
-3. Compute `SourceRef` — dual citation pinning to MD line and HTML anchor.
+3. Compute `SourceRef` — dual citation pinning to the source line and HTML anchor. If `SOURCE_REF_MODE=COMPONENT_MAP`, locate the atom's generated MD line in `ASSET_MANIFEST_PATH.source_components`, convert it to the original component file line, and cite `@repo/<component RepoRelPath>:L####|<SOURCE_HTML_PATH>#<SectionID>`. If `SOURCE_REF_BASE` is present, use it as the template; otherwise use the default `<book>.md:L####|<book>.html#anchor` form.
 4. Compute `ContentHash` — `sha1(UnitStatement)[:12]`.
 5. Classify `InOutStatus`:
    - **IN** for substantive technical claims that belong in the domain decomposition: principles, procedures, formulas (referenced from text), rules of thumb, standards-citations with the requirement clearly stated, definitions of canonical terms.
@@ -198,14 +202,14 @@ Also return: `DISPATCH_UNIT_ID`, `ATOM_COUNT`, `IN_COUNT`, `OUT_COUNT`, `TBD_COU
 
 ## Non-negotiable constraints
 
-- **Line-range discipline.** Read only lines `LINE_START..LINE_END`. Any atom whose `SourceRef` MD line falls outside that range is a contract violation.
+- **Line-range discipline.** Read only lines `LINE_START..LINE_END`. For normal sources, any atom whose `SourceRef` MD line falls outside that range is a contract violation. For `SOURCE_REF_MODE=COMPONENT_MAP`, the cited repo component line may differ from the generated MD line, but the generated MD evidence line used to derive it must fall within `LINE_START..LINE_END` and within a `source_components` range.
 - **Target-section discipline.** Every emitted atom's `SectionID` must be in `TARGET_SECTION_IDS`. Atoms whose source belongs to a section outside that list are a contract violation.
 - **Output-path-only writes.** Exactly two files are written per invocation. No other side effects.
 - **No invention (AOP-08).** Extract only what is visible in the assigned slice; if a fact is not present, do not invent — mark `TBD` or omit.
 - **Content-hash discipline.** `ContentHash` MUST equal `sha1(UnitStatement)[:12]` — the merge tool re-verifies this and fails if mismatched.
 - **LocalSeq monotonicity.** Strictly increasing positive integers starting at 1; no gaps, no reuse.
 - **No final stable IDs.** `AtomicUnitID` is not a column in the per-unit CSV; the merge tool owns assignment.
-- **Dual SourceRef.** Both halves required; HTML anchor falls back to the section anchor when no finer-grained anchor applies.
+- **Dual SourceRef.** Both halves required; HTML anchor falls back to the section anchor when no finer-grained anchor applies. Manifest-backed `@repo/<RepoRelPath>:L####|...#<SectionID>` refs are valid when `SOURCE_REF_BASE` is supplied. Grouped manifest-backed `@repo/<component RepoRelPath>:L####|...#<SectionID>` refs are valid when `SOURCE_REF_MODE=COMPONENT_MAP` and `ASSET_MANIFEST_PATH.source_components` supplies the line map.
 
 ## QA expectations
 

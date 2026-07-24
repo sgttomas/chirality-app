@@ -1,6 +1,6 @@
 # dependency-extract — Brief Schema
 
-This skill is dispatched by ORCHESTRATOR (or other personas) via TASK with `TaskSkill: dependency-extract`. The following fields describe the brief expected by a single invocation.
+This skill is dispatched by PROJECT_SETUP (or other personas) via TASK with `TaskSkill: dependency-extract`. The following fields describe the brief expected by a single invocation.
 
 ## Required
 
@@ -20,9 +20,11 @@ This skill is dispatched by ORCHESTRATOR (or other personas) via TASK with `Task
 
 ## Optional — run controls
 
-- `MODE` — `UPDATE` (default) or `RESET_EXTRACTED`.
+- `MODE` — `UPDATE` (default), `RESET_EXTRACTED`, or `CANONICALIZE_EXISTING`.
+  - `CANONICALIZE_EXISTING` is for type-system rectification runs. It reads an existing register, normalizes core enum fields to canonical write form, preserves legacy values in `Notes`, and moves candidate/non-gating graph dispositions out of `Status=CANDIDATE`.
 - `STRICTNESS` — `CONSERVATIVE` (default) or `AGGRESSIVE`. `AGGRESSIVE` permits strongly-implied anchors marked `ASSUMPTION` with `Confidence=LOW`.
 - `CONSUMER_CONTEXT` — `NONE` (default) | `TASK_ESTIMATING` | `AGGREGATION` | `RECONCILIATION`. When set to a non-`NONE` value, the skill adds a `## Downstream Handoff Notes` section and (for `TASK_ESTIMATING`) attempts to populate `ConsumerHint` and `EstimateImpactClass` extension columns.
+- `ARCHITECTURE_BASIS_POLICY` — `NONE` (default) | `PKG00_CONSISTENCY_TRACKERS`. When enabled, `DEL-00-*` rows are retained as architecture-consistency dependency trackers when supported by evidence, and PKG-00 files may be read but not written.
 
 ## Deliverable-local read-only inputs (if present)
 
@@ -40,6 +42,36 @@ DECOMPOSITION_PATH: /abs/path/to/run/_Decomposition/latest.md
 MODE: UPDATE
 STRICTNESS: CONSERVATIVE
 CONSUMER_CONTEXT: NONE
+```
+
+## Canonicalization brief example
+
+```yaml
+TaskSkill: dependency-extract
+SCOPE: DEL-001
+RUN_ROOT: /abs/path/to/run
+DECOMPOSITION_PATH: /abs/path/to/run/_Decomposition/SOFTWARE_DECOMP.md
+MODE: CANONICALIZE_EXISTING
+STRICTNESS: CONSERVATIVE
+CONSUMER_CONTEXT: RECONCILIATION
+```
+
+## Semantic refresh brief example
+
+```yaml
+TaskSkill: dependency-extract
+SCOPE: DEL-001
+RUN_ROOT: /abs/path/to/run
+DECOMPOSITION_PATH: /abs/path/to/run/_Decomposition/SOFTWARE_DECOMP.md
+MODE: UPDATE
+STRICTNESS: CONSERVATIVE
+CONSUMER_CONTEXT: RECONCILIATION
+ARCHITECTURE_BASIS_POLICY: PKG00_CONSISTENCY_TRACKERS
+ApplyEdits: true
+AllowedWriteTargets:
+  - /abs/path/to/deliverable/Dependencies.csv
+  - /abs/path/to/deliverable/_DEPENDENCIES.md
+  - /abs/path/to/deliverable/_run_records/
 ```
 
 ## Output

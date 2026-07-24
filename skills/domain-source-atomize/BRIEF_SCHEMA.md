@@ -25,6 +25,9 @@ RuntimeOverrides:
   LINE_END: <integer>
   SKELETON_PATH: <absolute path to <book>_skeleton.json>
   ASSET_MANIFEST_PATH: <absolute path to <book>_assets_manifest.json>
+  SOURCE_REF_BASE: <optional dual-citation template for manifest-backed sources>
+  SOURCE_REF_MODE: <optional COMPONENT_MAP for grouped manifest-backed sources>
+  SOURCE_HTML_PATH: <optional review HTML path>
   OUTPUT_LEDGER_PATH: <absolute path; per-unit atom CSV>
   OUTPUT_VOCAB_SEED_PATH: <absolute path; per-unit vocab CSV>
   TARGET_SECTION_IDS:
@@ -33,11 +36,11 @@ RuntimeOverrides:
     ...
 
 CustomInstructions:
-  - Read ONLY lines LINE_START..LINE_END of MD_PATH. Atoms whose SourceRef line falls outside that range MUST NOT be emitted.
+  - Read ONLY lines LINE_START..LINE_END of MD_PATH. Atoms whose evidence line falls outside that range MUST NOT be emitted.
   - Every emitted atom MUST map to one of the TARGET_SECTION_IDS (its SectionID column).
   - LocalSeq is monotonic across atoms in the same dispatch unit. Final stable IDs are NOT assigned here — the merge step assigns HBA-<PREFIX>-NNNNN.
   - ContentHash MUST be sha1(UnitStatement)[:12]; this column is load-bearing for dedup and HTML cross-reference.
-  - SourceRef is dual: `<book>.md:L####` (the MD line) and `<book>.html#anchor` (the HTML anchor; SectionID when no finer applies).
+  - SourceRef is dual. If SOURCE_REF_MODE is COMPONENT_MAP, use ASSET_MANIFEST_PATH source_components to map generated MD evidence lines back to original @repo component file lines. If SOURCE_REF_BASE is present, use that template by replacing L#### with the source line and <SectionID> with the mapped section. Otherwise use `<book>.md:L####|<book>.html#anchor`.
   - InOutStatus ∈ {IN, OUT, TBD}. Default IN for substantive technical statements; OUT for boilerplate; TBD for ambiguous content.
   - Do not invent (AOP-08).
   - Write ONLY to OUTPUT_LEDGER_PATH and OUTPUT_VOCAB_SEED_PATH.
@@ -69,6 +72,8 @@ ExpectedOutputs:
 |---|---|---|---|
 | `MAX_ATOMS` | positive integer | `200` | smoke-test bound; halt when reached |
 | `SOURCE_HTML_PATH` | string | `audit/Pipe-Stress-Engineering.html` | when known, included in dual SourceRefs |
+| `SOURCE_REF_BASE` | string | `@repo/docs/CONTRACT.md:L####\|domains/chirality/_Decomposition/source_review_html/SRC-DOCS-CONTRACT.html#<SectionID>` | manifest-backed dual-citation template; replace `L####` and `<SectionID>` per atom |
+| `SOURCE_REF_MODE` | string | `COMPONENT_MAP` | grouped-source mode; valid when the asset manifest contains `source_components` mapping generated MD lines to original repo component files |
 
 ## `AllowedWriteTargets`
 
@@ -83,7 +88,7 @@ Exactly two entries:
 
 ## Recommended `CustomInstructions` content
 
-`CustomInstructions` carry run-specific reinforcement; they do not replace skill hydration. The contract in `SKILL.md` remains authoritative. The orchestrator's brief-builder (`tools/decomp/build_atomization_brief.py`) includes a defensive set of one-line reminders re-stating the constraints above — line-range discipline, target-section discipline, ContentHash rule, dual-SourceRef rule, IN/OUT/TBD enum, the no-invention rule, and the write-boundary rule.
+`CustomInstructions` carry run-specific reinforcement; they do not replace skill hydration. The contract in `SKILL.md` remains authoritative. The orchestrator's brief-builder (`tools/decomp/build_atomization_brief.py`) includes a defensive set of one-line reminders re-stating the constraints above — line-range discipline, target-section discipline, ContentHash rule, dual-SourceRef rule, component-map SourceRef rule when applicable, IN/OUT/TBD enum, the no-invention rule, and the write-boundary rule.
 
 When a particular dispatch surfaces a recurrent worker error (e.g., chronic over-atomization in dense reference sections, or chronic misclassification of TBD vs OUT), the orchestrator MAY add one or two run-specific reminders. Do not duplicate the skill contract.
 

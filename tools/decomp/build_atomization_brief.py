@@ -28,6 +28,7 @@ The brief is written to stdout.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -45,6 +46,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--scope-path", default=None, type=Path,
                    help="Quarantined work folder used as ScopePath in the brief. "
                         "Defaults to the parent of --output-ledger-path.")
+    p.add_argument("--source-prefix-map", default=None, type=Path,
+                   help="Optional Source_Decomp_Prefix_Map.csv. Defaults to the "
+                        "sibling map when --dispatch-plan lives under "
+                        "_Decomposition/source_dispatch_plans/.")
     p.add_argument("--max-atoms", type=int, default=None,
                    help="Optional bound for smoke testing")
     return p.parse_args()
@@ -60,6 +65,28 @@ def find_unit(plan: dict, unit_id: str) -> dict | None:
         if u.get("unit_id") == unit_id:
             return u
     return None
+
+
+def infer_source_prefix_map(dispatch_plan: Path) -> Path | None:
+    if dispatch_plan.parent.name == "source_dispatch_plans":
+        candidate = dispatch_plan.parent.parent / "Source_Decomp_Prefix_Map.csv"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def load_source_ref_base(map_path: Path | None, source_name: str) -> tuple[str, str]:
+    if map_path is None or not map_path.exists():
+        return "", ""
+    with map_path.open("r", encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            if row.get("SourceDocID") == source_name or row.get("SourceName") == source_name:
+                return row.get("SourceRefBase", ""), row.get("ReviewHtmlPath", "")
+    return "", ""
+
+
+def load_asset_manifest(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def main() -> int:
@@ -83,6 +110,12 @@ def main() -> int:
     oversized = unit.get("contains_oversized_section", False)
 
     scope_path = args.scope_path or args.output_ledger_path.parent
+    source_prefix_map = args.source_prefix_map or infer_source_prefix_map(args.dispatch_plan)
+    source_ref_base, source_html_path = load_source_ref_base(source_prefix_map, source_name)
+    asset_manifest = load_asset_manifest(args.asset_manifest)
+    source_components = asset_manifest.get("source_components") or []
+    if source_components and not source_html_path:
+        source_html_path = asset_manifest.get("source_html_path", "")
 
     lines = [
         f"PURPOSE: Atomize lines {line_start}..{line_end} of {source_name} "
@@ -108,6 +141,14 @@ def main() -> int:
         f"  LINE_END: {line_end}",
         f"  SKELETON_PATH: {args.skeleton.resolve()}",
         f"  ASSET_MANIFEST_PATH: {args.asset_manifest.resolve()}",
+    ]
+    if source_ref_base:
+        lines.append(f"  SOURCE_REF_BASE: {source_ref_base}")
+    if source_components:
+        lines.append("  SOURCE_REF_MODE: COMPONENT_MAP")
+    if source_html_path:
+        lines.append(f"  SOURCE_HTML_PATH: {source_html_path}")
+    lines += [
         f"  OUTPUT_LEDGER_PATH: {args.output_ledger_path}",
         f"  OUTPUT_VOCAB_SEED_PATH: {args.output_vocab_seed_path}",
         "  TARGET_SECTION_IDS:",
@@ -119,11 +160,12 @@ def main() -> int:
     lines += [
         "",
         "CustomInstructions:",
-        "  - Read ONLY lines LINE_START..LINE_END of MD_PATH. Atoms whose SourceRef line falls outside that range MUST NOT be emitted.",
+        "  - Read ONLY lines LINE_START..LINE_END of MD_PATH. Atoms whose generated MD evidence line falls outside that range MUST NOT be emitted.",
         "  - Every emitted atom MUST map to one of the TARGET_SECTION_IDS (its SectionID column).",
         "  - LocalSeq is monotonic across atoms in the same dispatch unit. Final stable IDs are NOT assigned here — that is the merge step's responsibility.",
         "  - ContentHash MUST be sha1(UnitStatement)[:12]; this column is load-bearing for dedup and HTML cross-reference.",
-        "  - SourceRef is dual: `<book>.md:L####` (the line in the assembled markdown) and `<book>.html#anchor` (the rendered HTML anchor; the SectionID anchor when no finer-grained anchor applies).",
+        "  - SourceRef is dual. If SOURCE_REF_MODE is COMPONENT_MAP, use ASSET_MANIFEST_PATH source_components to map the generated MD source line back to its original @repo component file line, then cite `@repo/<component_repo_rel_path>:L####|SOURCE_HTML_PATH#<SectionID>`.",
+        "  - If SOURCE_REF_BASE is present, use that template by replacing L#### with the source line and <SectionID> with the mapped section. Otherwise use `<book>.md:L####|<book>.html#anchor`.",
         "  - InOutStatus ∈ {IN, OUT, TBD}. Default IN for substantive technical statements; OUT for boilerplate (page-numbers-only, headers-only, copyright matter); TBD for ambiguous content the persona must rule on.",
         "  - Do not invent (AOP-08). If a fact is not in the assigned line range, mark TBD and surface the gap.",
         "  - Vocabulary seeds: append candidate canonical terms with source attribution to OUTPUT_VOCAB_SEED_PATH.",

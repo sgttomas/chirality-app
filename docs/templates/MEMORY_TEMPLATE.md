@@ -1,13 +1,9 @@
-# Memory — {{DEL-ID}}
+# MEMORY - {{DEL-ID}}
 
-> Organize by semantic topic, then chronologically within each topic. These headings are the minimum schema — add new sections as needed to capture what matters for this deliverable.
+> Revised per D-GOV-17 M4-A (ruled 2026-07-18) to codify actual corpus
+> practice. Organize by semantic topic, then chronologically within each
+> topic. `## Decisions And Evidence` is the required minimum section; add
+> optional sections as needed to capture what matters for this deliverable
+> (observed in practice: `## Open Items`, `## Dependency Note`).
 
-## Key Decisions & Human Rulings
-
-## Domain Context
-
-## Open Items
-
-## Proposal History
-
-## Interface & Dependency Notes
+## Decisions And Evidence

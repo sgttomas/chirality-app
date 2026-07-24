@@ -1,124 +1,178 @@
 # semantic-matrix-build — QA Checks
 
-Minimum checks for a valid run:
+## Minimum checks for a valid run
 
-1. `deliverable_folder` exists and is a directory.
-2. `_CONTEXT.md` exists in the deliverable folder.
-3. `_SEMANTIC.md` is written to `{deliverable_folder}/_SEMANTIC.md`.
-4. Output contains all eight derived matrices in sequence: C, F, D, K, G, X, T, E.
-5. Canonical matrices A and B are reproduced as-is (not re-derived).
-6. `_STATUS.md` is updated only on audit PASS (set/verified as `SEMANTIC_READY`); on FAIL, state is not advanced.
-7. Production documents in the deliverable folder are not modified (read-only).
-8. No files outside the deliverable folder were written.
-9. `python3 tools/validation/validate_semantic_matrix.py {deliverable_folder}` passes before the output is accepted.
+1. `ScopePath` exists and is a directory.
+2. `deliverable_folder` exists, is a directory, and resolves to `ScopePath`.
+3. `_CONTEXT.md` exists in `deliverable_folder`.
+4. `decomposition_path` is provided. If the file cannot be read, record that fact; do not invent decomposition content.
+5. `_SEMANTIC.md` is written to `{deliverable_folder}/_SEMANTIC.md`.
+6. Production documents are read-only.
+7. No sibling deliverable folder is scanned.
+8. No files outside the effective bounded task brief's write authorization are written.
+9. All eight derived matrices appear in sequence: C, F, D, K, G, X, T, E.
+10. Canonical matrices A and B are reproduced exactly and not re-derived.
+11. Interpreted matrices C, F, D, X, and E include intermediate collections and all three interpretation steps for every cell.
+12. Matrix Summary appears after `Matrix Z — Summary Boundary` and contains compact markdown tables for C, F, D, K, G, X, T, and E.
+13. `STATUS_POLICY` is honored exactly.
+14. Repo validator is run when available and permitted; if unavailable, the report says so.
 
-## Structural invariants (all required)
-
-| Check | Requirement |
-|---|---|
-| Matrix A canonical | Exact canonical values present, not re-derived |
-| Matrix B canonical | Exact canonical values present, not re-derived |
-| Eight derived matrices | C, F, D, K, G, X, T, E all present in order |
-| Construction formula shown | Each derived matrix shows its construction formula |
-| Full derivation work shown | Dot-product matrices (C, F, X, E) and addition matrix (D) include intermediate collections + all three interpretation steps for each cell |
-| Result tables present | Each derived matrix has a completed Result table with row and column labels |
-| Matrix Summary present | Final section contains all eight derived matrices in compact table form |
-| Correct dimensions | Matrix dimensions match specification (C 3×4, F 3×4, D 3×4, K 4×3, G 3×4, X 4×4, T 4×4, E 4×4) |
-
-## Semantic product validity (all required)
+## Structural invariants
 
 | Check | Requirement |
 |---|---|
-| All cells populated | No empty cells in any final matrix |
-| Single unit per cell | Each cell contains exactly one semantic unit (a 2-5 word phrase), not a list |
-| No algebra leaks | No `∩` or `Σ` operators in final cell values |
-| No operator leaks | No `+` flanked by semantic terms in final cell values |
-| No long expansions | No cell value exceeds ~80 characters |
-| No axis tokens in output | Row/column labels do not appear in cell values |
+| Header | Includes generated date, variant, perspective, framework, audit status, phase/status ruling, and Inputs Read. |
+| Inputs Read | Lists `_CONTEXT.md`, `_STATUS.md`, `_REFERENCES.md`, `_DEPENDENCIES.md`, `MEMORY.md`, and production documents as read, not present, or absent. |
+| SourceRefs | Use path + best-effort heading anchor when possible. |
+| Matrix A | Exact canonical 3×4 Orientation values. |
+| Matrix B | Exact canonical 4×4 Conceptualization values. |
+| Matrix order | A, B, C, F, D, K, G, X, T, E, Matrix Z, Matrix Summary. |
+| Result tables | Every matrix section has a Result table. |
+| Summary tables | Summary uses markdown tables, not bullets. |
+| Matrix Z | Present between Matrix E and Matrix Summary; not counted as a semantic matrix. |
+| Correct dimensions | C 3×4, F 3×4, D 3×4, K 4×3, G 3×4, X 4×4, T 4×4, E 4×4. |
 
-## Interpretation validity (all required — "show all work")
+## Construction formulas
+
+The section heading or construction note must show these formulas:
+
+| Matrix | Required formula |
+|---|---|
+| C | `L_C(i,j) = Σ_k (A(i,k) * B(k,j)); C(i,j) = I(row_i, col_j, L_C(i,j))` |
+| F | `L_F(i,j) = Σ_k (C(i,k) * B(k,j)); F(i,j) = I(row_i, col_j, L_F(i,j))` |
+| D | `L_D(i,j) = A(i,j) + (resolution * F(i,j)); D(i,j) = I(row_i, col_j, L_D(i,j))` |
+| K | `K(i,j) = D(j,i)` |
+| G | remove `wisdom` row from B |
+| X | `L_X(i,j) = Σ_k (K(i,k) * G(k,j)); X(i,j) = I(row_i, col_j, L_X(i,j))` |
+| T | `T(i,j) = B(j,i)` |
+| E | `L_E(i,j) = Σ_k (X(i,k) * T(k,j)); E(i,j) = I(row_i, col_j, L_E(i,j))` |
+
+## Interpretation validity
+
+For every interpreted cell in C, F, D, X, and E:
 
 | Check | Requirement |
 |---|---|
-| Step 1 explicit | Axis anchor `a = r * c` is computed and shown for each interpreted cell |
-| Step 2 explicit | Every projection `p_t = a * t` is computed and shown for each contributor `t ∈ L` |
-| Step 3 explicit | Centroid selection reasoning is provided for each interpreted cell |
-| Explicit products | Intermediate collections, axis anchors, and projections use explicit `*` product notation; `x`, prose-only joins, and implicit collections are invalid |
-| No shortcuts | Interpretation does not skip from Step 1 to Step 3 |
-| All contributors projected | Every `t ∈ L` has a corresponding `p_t` in the working |
+| Intermediate collection | Contains every contributor product required by the formula. |
+| Step 1 explicit | Shows `r * c = <resolved anchor phrase>`. |
+| Step 1 resolved | Anchor phrase is semantic; it is not merely `<row>-<column> coordinate frame`. |
+| Step 2 explicit | Shows every `p_n = a * t_n`. |
+| Step 2 resolved | Every projection ends with a resolved semantic phrase. Formula-only projections are invalid. |
+| Step 2 complete | Every contributor in `L` has exactly one projection. |
+| Step 3 explicit | Says `centroid selects <final phrase>` or equivalent. |
+| Step 3 single | Selects one final phrase only. |
+| No shortcut | The working does not jump from Step 1 to Step 3. |
+| Explicit products | Uses `*` for semantic products. Do not use `x` or prose-only joins. |
 
-## Non-negotiable invariants (enumerated)
+## Semantic product validity
 
-Each is a distinct check:
+Final cells in Result tables and Matrix Summary must satisfy all checks.
 
-1. **Show all work (operations).** Every interpretation operation displays all three steps explicitly. Interpretations that skip steps are invalid.
-2. **No particulars.** Outputs are types, categories, behaviors, and values—not specific instances, numbers, equipment tags, or code clauses.
-3. **Semantic-algebra discipline.** The A, B → C, F, D, K, G, X, T, E matrix progression is followed in order; downstream matrices are not computed before upstream matrices are complete.
-4. **Lens-not-authority separation.** The skill produces a semantic lens (`_SEMANTIC.md`), not an engineering authority. It does not decide design content or evidence-based claims.
-5. **Deliverable-bound perspective.** The skill adopts exactly one deliverable's perspective per run. No cross-deliverable scanning or comparison.
-6. **Semantic density over verbosity.** Final cell values are 2-5 word phrases. Working/outworking may be longer.
-7. **Order of operations is strict.** Parentheses, then `*` left-to-right, then `+` left-to-right.
-8. **List-valued operands require interpretation.** `I(r, c, L)` is applied before downstream use of any list-valued operand.
-9. **Read-only on production documents.** The skill does not modify `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, any `KA-*.md`, or `Scoping.md`.
-10. **Latent axes.** Row and column labels condition the output but do not appear literally in cell values.
-11. **Deliverable-local write scope.** Only `{deliverable_folder}/_SEMANTIC.md` and `{deliverable_folder}/_STATUS.md` may be written.
-12. **No status regression.** `_STATUS.md` state is never regressed; on audit PASS state is set/verified as `SEMANTIC_READY`; on audit FAIL state is unchanged.
+| Check | Requirement |
+|---|---|
+| Populated | No empty final cells. |
+| Single unit | Exactly one semantic unit, not a list. |
+| Length | 2–5 words, except canonical inherited B/G/T values. |
+| Dense | Prefer 2–3 words when complete. |
+| No algebra leak | No `∩` or `Σ`. |
+| No operator leak | No unresolved `+` flanked by semantic terms. |
+| No long expansion | No final cell exceeds about 80 characters. |
+| No axis tokens | Row/column labels for that cell do not appear literally in its final value. |
+| No particulars | No exact code clauses, event-name lists, file paths, implementation paths, numeric requirements, equipment tags, or other instances. |
+| No authority claims | No engineering correctness, recommendations, fitness judgments, or acceptance rulings. |
 
-## Audit (mandatory before acceptance)
+## Deliverable-conditioning validity
 
-The skill must scan every cell in every Result table (matrices C, F, D, X, E) for these three failure patterns:
+The lens must be relevant to the deliverable without becoming a requirements summary.
 
-1. **Algebra leak:** cell value contains `∩` or `Σ`.
-2. **Uninterpreted expansion:** cell value exceeds ~80 characters.
-3. **Operator leak:** cell value contains `+` flanked by semantic terms.
+| Failure pattern | Invalid example | Better pattern |
+|---|---|---|
+| Too generic | `adequate evidence` for many unrelated cells | `runtime proof`, `summary integrity`, `source assurance` |
+| Too literal | exact API method, route, event name, or file path in a cell | category phrase such as `contract boundary`, `compatibility proof` |
+| Requirement restatement | a SHALL-style or test-case phrase | semantic type/category phrase |
+| Source warning ignored | perspective omits known source-state caveat category | perspective mentions unresolved source-state caveats without particulars |
 
-If any cell fails:
+## Audit procedure
 
-- Mark the run **FAIL** (do not attempt to repair, re-derive, or re-audit).
-- Leave `_STATUS.md` state unchanged; append a History entry noting the audit failure.
-- Emit the run report with the failed matrix/cell(s) and the failure reason(s).
-- End the run.
+Audit after generating all Result tables and Matrix Summary.
 
-Only if all cells pass may the run proceed to `_STATUS.md` advancement.
+Scan final cell values in:
 
-## Source traceability (required)
+- C Result and Summary C;
+- F Result and Summary F;
+- D Result and Summary D;
+- K Result and Summary K;
+- G Result and Summary G;
+- X Result and Summary X;
+- T Result and Summary T;
+- E Result and Summary E.
 
-The `_SEMANTIC.md` file must record provenance:
+Fail immediately if any final cell violates semantic product validity.
 
-- `Inputs Read` block lists each file read with a SourceRef (file path + best-effort heading anchor or "location TBD").
-- Production documents read are enumerated (or explicitly absent).
-- The Perspective statement is deliverable-bound (derived from `_CONTEXT.md` + production documents).
+On audit FAIL:
 
-A run that invents inputs or skips provenance is invalid.
+1. Mark the run `FAIL`.
+2. Do not repair, regenerate, or re-audit within the same run.
+3. Do not advance status.
+4. If `_SEMANTIC.md` is written, its header must show `Audit: FAIL`.
+5. The run report must list matrix, cell, value, and reason.
 
-## Evaluative judgment boundary (must NOT be present)
+On audit PASS:
 
-The `_SEMANTIC.md` file must NOT contain:
+1. Mark `_SEMANTIC.md` `Audit: PASS`.
+2. Apply `STATUS_POLICY` exactly.
+3. Run repo validator when available and permitted.
+4. Report validator result or `validator not available`.
 
-- Engineering correctness assessments
-- Specific numeric values, equipment tags, or code clause citations (no particulars)
-- Cross-deliverable comparisons
-- Recommendations or authority claims
-- Evaluative language about the deliverable's fitness
+## Status policy checks
 
-Those belong elsewhere in the pipeline (`lens-register` skill enrichment register; human engineering authority).
+| Policy | Required behavior |
+|---|---|
+| `PRESERVE_CURRENT` | Do not change lifecycle state. Header/run report says state preserved by runtime policy. |
+| `ADVANCE_ON_PASS` | On audit PASS, set/verify `SEMANTIC_READY` only if `_STATUS.md` edit is authorized. On FAIL, unchanged. |
+| `NO_STATUS_TOUCH` | Do not edit `_STATUS.md` at all. |
+
+No status regression is ever allowed.
+
+## File-scope checks
+
+| Check | Requirement |
+|---|---|
+| Production docs | Not modified. |
+| `_CONTEXT.md` | Not modified. |
+| `_REFERENCES.md` | Not modified. |
+| `_DEPENDENCIES.md` | Not modified. |
+| `MEMORY.md` | Not modified by this skill. |
+| Sibling folders | Not read or written. |
+| `_STATUS.md` | Modified only when status policy and TASK authorization allow it. |
+| `_SEMANTIC.md` | Created/overwritten only inside `deliverable_folder`. |
 
 ## Failure reporting
 
-- If `_CONTEXT.md` is missing: report `FAILED_INPUTS` — the skill cannot operate without it.
-- If `deliverable_folder` is not a directory: report `FAILED_INPUTS`.
-- If a production document is missing: record its absence in `Inputs Read`; do not fail.
-- If `_REFERENCES.md` is missing: note `not read`; do not fail.
-- On audit FAIL: emit run report with failing matrix/cell(s) + reason(s); `_STATUS.md` state unchanged.
+| Situation | Report |
+|---|---|
+| `deliverable_folder` missing/not directory | `FAILED_INPUTS` |
+| `_CONTEXT.md` missing | `FAILED_INPUTS` |
+| `decomposition_path` omitted | `FAILED_INPUTS` |
+| `ScopePath` and `deliverable_folder` disagree | `FAILED_INPUTS` |
+| Required write target unauthorized | `FAILED_INPUTS` or TASK authorization violation, according to TASK rules |
+| Production doc missing | Record absent; continue |
+| `_REFERENCES.md` missing | Record not present; continue |
+| `MEMORY.md` missing | Record not present; continue |
+| Audit fail | `FAIL`, with matrix/cell/reason |
+| Validator unavailable | Report unavailable; do not claim validator PASS |
 
-## Success case
+## Success report
 
 A clean run reports:
 
-- `RUN_STATUS=OK`
-- Deliverable ID/name
-- `_SEMANTIC.md` was written (path)
-- Audit PASS
-- `validate_semantic_matrix.py` PASS
-- `_STATUS.md` state set/verified as `SEMANTIC_READY`
-- No failing cells or matrix construction errors
+- `RUN_STATUS=SUCCESS` or the local TASK success token;
+- deliverable ID/name;
+- `DECOMP_VARIANT`;
+- `_SEMANTIC.md` path;
+- Audit PASS;
+- validator PASS or validator unavailable;
+- status policy and actual status action;
+- no production document modifications;
+- no out-of-scope writes;
+- no failing cells.

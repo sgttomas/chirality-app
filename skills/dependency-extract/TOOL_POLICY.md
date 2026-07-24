@@ -4,7 +4,7 @@
 
 1. Reasoning-led two-pass extraction (Pass 1 ANCHOR from `{ANCHOR_DOC}`, then Pass 2 EXECUTION from `{EXECUTION_DOC_ORDER}`) over the deliverable's source documents, `_REFERENCES.md`, and `{DECOMPOSITION_PATH}` (when available).
 2. Reasoning-led target resolution, row match/merge, and persistence to `Dependencies.csv` and `_DEPENDENCIES.md`.
-3. `python3 tools/validation/validate_dependencies_schema.py {deliverable_folder}/Dependencies.csv` — Function 5 schema validation (confirms all 29 required v3.1 columns are present and CSV is parseable).
+3. `python3 tools/validation/validate_dependencies_schema.py {deliverable_folder}/Dependencies.csv` — Function 5 canonical validation (confirms all 29 required v3.1 columns are present, CSV is parseable, core enum values are canonical, ANCHOR/EXECUTION row rules hold, and `Status=CANDIDATE` is absent).
 4. `python3 tools/validation/validate_enum.py {ENUM_NAME} {value}` — Function 5 enum-field normalization and validation on write.
 5. `tools/validation/validate_id_format.sh {TYPE} {value}` — Function 5 ID-format validation for deliverable/package/WBS IDs.
 
@@ -30,6 +30,7 @@ Reasoning is the primary extraction engine. The agent performs evidence-first tw
 - No editing of any source document or `_REFERENCES.md`.
 - No editing of decomposition outputs.
 - No writes outside dependency artifacts (`{deliverable}/_DEPENDENCIES.md`, `{deliverable}/Dependencies.csv`).
+- The TASK shell may create the required run record under `{deliverable}/_run_records/`.
 - No hierarchy discovery (no creating or restructuring the decomposition Tree).
 - No cross-deliverable synthesis (aggregation is downstream).
 - No hidden reliance on tools outside the declared list unless the human expands AllowedTools. No writes outside declared scope.
@@ -40,5 +41,6 @@ Writes are limited to dependency artifacts only:
 
 - `{deliverable}/_DEPENDENCIES.md`
 - `{deliverable}/Dependencies.csv`
+- TASK run record under `{deliverable}/_run_records/`
 
 No other files may be created or modified.

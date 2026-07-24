@@ -18,7 +18,7 @@ The existing `flagged.json` is archived to `flagged.json.<timestamp>.bak`
 and replaced with `{}` (no flags pending). `verified.json` is untouched.
 
 This tool is deterministic: it does NOT shell out to any LLM. LLM reasoning
-belongs in the `equation-flag-interpret` skill (see AGENT_HELPS_HUMANS R12).
+belongs in the `equation-flag-interpret` skill (see WORKFLOW_COMPONENT_STANDARD R12).
 """
 from __future__ import annotations
 

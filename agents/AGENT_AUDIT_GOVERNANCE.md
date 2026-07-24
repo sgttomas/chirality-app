@@ -1,5 +1,7 @@
 ---
 description: "Audits governance document suite for internal consistency and cross-reference integrity"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_GOVERNANCE (Type 2 Task • Governance Document Suite Consistency Audit)
@@ -26,7 +28,7 @@ These instructions govern a **Type 2** task agent that audits the governance doc
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK (brief-driven) |
-| **WRITE_SCOPE** | tool-root-only (`_Reconciliation/GovernanceAudit/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Governance audit snapshot (report + issue log CSV + machine-readable summary + QA self-assessment) |
 
@@ -48,7 +50,7 @@ If a human instruction conflicts with this document, obey the human and record t
 Given an explicit brief, audit the governance document suite for:
 - count integrity (K-* invariants, agents, tools),
 - cross-reference resolution (§ citations, document references),
-- invariant ID integrity (K-*, R1–R9, I1–I10),
+- invariant ID integrity (K-*, R1–R17, I1–I10),
 - terminology consistency (TYPES.md definitions),
 - agent inventory consistency (AGENTS.md vs. agents/ vs. DBM §5.1),
 - document hierarchy coherence (DIRECTIVE → CONTRACT → SPEC → agent WRITE_SCOPE).
@@ -59,14 +61,14 @@ This agent is **read-only** on all governance documents: it produces findings; i
 
 ## Invocation / Ownership
 
-- Invoked by a Type 1 manager (typically **RECONCILIATION**) via an explicit brief.
-- Writes only to `_Reconciliation/GovernanceAudit/`.
+- Invoked by **EVALUATION** (or another authorized Type 1 manager) via an explicit brief.
+- Writes only to `{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/`.
 
 ---
 
 ## Non-negotiable invariants
 
-- **K-WRITE-1** — Write only to `_Reconciliation/GovernanceAudit/`. Do not modify any governance document, agent instruction file, or other file outside the write zone.
+- **K-WRITE-1** — Write only to `{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/`. Do not modify any governance document, agent instruction file, or other file outside the write zone.
 - **K-SNAP-1** — Each run writes a new immutable snapshot folder. Never overwrite prior snapshots. `_LATEST.md` is the only mutable file.
 - **K-INVENT-1** — Unknown values become `TBD`, not guessed. If a cross-reference cannot be resolved, report it as unresolvable rather than inferring intent.
 - **K-CONFLICT-1** — Conflicts between documents must be surfaced with pointers to both sides. Do not silently resolve discrepancies.
@@ -112,7 +114,7 @@ If `GOVERNANCE_DOCS` is missing or empty: write a `Governance_Audit_Report.md` w
 2. Confirm each governance document in `GOVERNANCE_DOCS` exists and is readable.
 3. Confirm `AGENT_DIR` exists and contains `AGENT_*.md` files.
 4. If any required document is missing, record it as a `BLOCKER` finding and continue with remaining passes where possible.
-5. Create the snapshot folder: `_Reconciliation/GovernanceAudit/GovernanceAudit_{YYYY-MM-DD}_{HHmm}/`.
+5. Create the snapshot folder: `{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/GovernanceAudit_{YYYY-MM-DD}_{HHmm}/`.
 
 ---
 
@@ -170,14 +172,14 @@ Verify that invariant IDs are consistent across the repo.
 - Report any K-* ID cited outside `CONTRACT.md` that does not exist in the catalog.
 - Report any K-* ID in `CONTRACT.md` that is never cited outside the catalog (orphaned invariants).
 
-**3b. R1–R9 requirements:**
-- Build the canonical R-ID set from `AGENT_HELPS_HUMANS.md` SPEC section.
+**3b. R1–R17 requirements:**
+- Build the canonical R-ID set from `docs/WORKFLOW_COMPONENT_STANDARD.md` §14.
 - Scan all governance documents for R-ID references.
 - Report any R-ID cited that does not exist in the canonical set.
 - Report any R-ID in the canonical set that is never cited outside the defining document (orphaned requirements).
 
 **3c. I1–I10 invariants:**
-- Build the canonical I-ID set from `AGENT_DECOMP_BASE.md`.
+- Build the canonical I-ID set from `docs/DECOMPOSITION_STANDARD.md`.
 - Scan all governance documents for I-ID references.
 - Report any I-ID cited that does not exist in the canonical set.
 - Report any I-ID in the canonical set that is never cited outside the defining document (orphaned invariants).
@@ -296,7 +298,7 @@ A run is valid when ALL of the following are true:
 - Every issue in the issue log includes: `File` (path), `Section` (heading or line reference), and `Description` with a concrete excerpt (≤25 words) demonstrating the problem.
 
 ### V3 — No governance document modified
-- No file outside `_Reconciliation/GovernanceAudit/` was created, modified, or deleted.
+- No file outside `{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/` was created, modified, or deleted.
 
 ### V4 — Snapshot immutability
 - Outputs are written to a new timestamped snapshot folder. No prior snapshot folder was modified.
@@ -366,7 +368,7 @@ NOTES:
 ### Tool-root layout
 
 ```
-_Reconciliation/GovernanceAudit/
+{EXECUTION_ROOT}/_Evaluation/GovernanceAudit/
   _LATEST.md
   GovernanceAudit_{YYYY-MM-DD}_{HHmm}/
     Brief.md
@@ -412,7 +414,7 @@ Verbatim reproduction of the INIT-TASK brief as received, followed by normalized
 ## Pass 3 — Invariant ID Integrity
 ### 3a. K-* Invariants
 {Findings: missing IDs, orphaned IDs}
-### 3b. R1–R9 Requirements
+### 3b. R1–R17 Requirements
 {Findings}
 ### 3c. I1–I10 Invariants
 {Findings}
@@ -547,7 +549,7 @@ This audit agent addresses these risks through six passes that mechanically veri
 
 - **Count integrity** catches the most common drift: a document says "20 invariants" when the catalog now has 22.
 - **Cross-reference resolution** catches broken internal links that make the document suite harder to navigate and verify.
-- **Invariant ID integrity** ensures that the contract layer (K-*, R1–R9, I1–I10) is completely connected — every invariant is both defined and used.
+- **Invariant ID integrity** ensures that the contract layer (K-*, R1–R17, I1–I10) is completely connected — every invariant is both defined and used.
 - **Terminology consistency** prevents semantic drift that undermines the shared vocabulary.
 - **Agent inventory consistency** ensures that the three sources of agent truth (filesystem, AGENTS.md, DBM §5.1) agree.
 - **Document hierarchy coherence** verifies the structural relationships between governance documents — that principles are reflected in invariants, that invariants are reflected in enforcement points, and that schemas are consistent.

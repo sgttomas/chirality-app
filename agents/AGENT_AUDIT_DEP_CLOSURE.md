@@ -1,5 +1,7 @@
 ---
 description: "Audits dependency closure across deliverables — detects orphans, cycles, and missing edges"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_DEP_CLOSURE (Type 2 Task • Cross‑deliverable dependency graph closure)
@@ -24,7 +26,7 @@ It validates topological integrity, detects orphans and cycles, and produces dec
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK (brief-driven) |
-| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/DepClosure/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/DepClosure/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Closure report + JSON summary + reproducible analysis script |
 
@@ -70,7 +72,7 @@ Required:
 - `RUN_LABEL`: short label for this run (default `AUDIT_DEP_CLOSURE`)
 
 Optional:
-- `REQUESTED_BY`: invoking agent name (default `RECONCILIATION`)
+- `REQUESTED_BY`: invoking agent name (default `EVALUATION`)
 - `FILTER_ACTIVE_ONLY`: `true` (default) | `false`
 - `NORMALIZE_IDS`: `true` (default) | `false`
   - When `true`, normalize long-form IDs by stripping descriptive suffixes for analysis only. Examples: `DEL-XXX-YY_Label` → `DEL-XXX-YY` (PROJECT_DECOMP), `DEL-XX-YY` (SOFTWARE_DECOMP, already short-form). If DOMAIN folders are encountered in a mixed workspace, their `KTY-CC-TT_Label` IDs are normalized to `KTY-CC-TT`.
@@ -87,9 +89,9 @@ If `EXECUTION_ROOT` is missing/invalid or no deliverables can be discovered in s
 
 ## Outputs (write zone)
 
-Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation DepClosure`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Evaluation DepClosure`
 
-Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/DepClosure CLOSURE {RUN_LABEL}`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Evaluation/DepClosure CLOSURE {RUN_LABEL}`
 
 Run graph analysis: `python3 tools/coordination/analyze_dep_closure.py {EXECUTION_ROOT} --output-dir {snapshot_folder}/Evidence/`
 This produces: `closure_summary.json`, `coverage.csv`, `orphans.csv`, `cycles_sample.csv`, `scc_summary.csv`, `hubs.csv`, `bidirectional_pairs.csv`, `id_normalization.csv`.
@@ -102,7 +104,7 @@ Additional snapshot contents (minimum, produced by LLM):
 - `Dependency_Closure_Report.md`
 - `Dependency_Closure_IssueLog.csv`
 
-Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/DepClosure {snapshot_folder_name}`
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Evaluation/DepClosure {snapshot_folder_name}`
 
 ---
 
@@ -240,7 +242,7 @@ If `PRIOR_RUN_LABEL` is provided:
 ## SPEC
 
 A run is valid when:
-- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Reconciliation/DepClosure/`.
+- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Evaluation/DepClosure/`.
 - `Dependency_Closure_Report.md`, `Dependency_Closure_IssueLog.csv`, `closure_summary.json`, and `analyze_closure.py` exist.
 - The report includes verdicts for all core checks (or marks them `INCOMPLETE` with reasons).
 - Every WARNING/BLOCKER finding includes evidence pointers (file + row identifiers).
@@ -256,7 +258,7 @@ A run is valid when:
 ### Tool-root layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/DepClosure/
+{EXECUTION_ROOT}/_Evaluation/DepClosure/
   _Archive/
   _LATEST.md
   CLOSURE_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/

@@ -1,0 +1,22 @@
+{
+  "name": "@chirality/runtime-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "bin": {
+    "chirality": "./dist/src/bin.js"
+  },
+  "files": ["dist/src"],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@chirality/runtime-client": "*",
+    "@chirality/runtime-contracts": "*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run test"
+  }
+}

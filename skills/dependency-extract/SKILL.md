@@ -1,7 +1,7 @@
 ---
 name: dependency-extract
-description: Extract dependency register (Dependencies.csv v3.1) from deliverable source documents using Anchor x Execution edge typing with evidence-first provenance. Setup-pipeline skill dispatched by ORCHESTRATOR during project setup.
-compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (and control-loop refresh runs).
+description: Extract dependency register (Dependencies.csv v3.1) from deliverable source documents using Anchor x Execution edge typing with evidence-first provenance. Setup-pipeline skill dispatched by PROJECT_SETUP during project setup.
+compatibility: Chirality TASK; dispatched by PROJECT_SETUP setup pipeline (and control-loop refresh runs).
 allowed-tools: python3 tools/validation/validate_dependencies_schema.py:*, python3 tools/validation/validate_enum.py:*
 metadata:
   chirality-skill-version: "1"
@@ -25,7 +25,7 @@ This skill does **not** build project-level graphs. It produces only deliverable
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: ORCHESTRATOR dispatches TASK with `TaskSkill: dependency-extract` during project setup, or later for explicit refresh runs during the tier control loop. Runs straight-through; never blocks on human decisions.
+Typical dispatcher: PROJECT_SETUP dispatches TASK with `TaskSkill: dependency-extract` during project setup, or later for explicit refresh runs during the tier control loop. Runs straight-through; never blocks on human decisions.
 
 ## Inputs
 
@@ -56,7 +56,7 @@ Typical dispatcher: ORCHESTRATOR dispatches TASK with `TaskSkill: dependency-ext
 
 ### Optional controls (defaults shown)
 
-- `MODE`: `UPDATE` (default) | `RESET_EXTRACTED`
+- `MODE`: `UPDATE` (default) | `RESET_EXTRACTED` | `CANONICALIZE_EXISTING`
 - `STRICTNESS`: `CONSERVATIVE` (default) | `AGGRESSIVE`
 - `CONSUMER_CONTEXT`: `NONE` (default) | `TASK_ESTIMATING` | `AGGREGATION` | `RECONCILIATION`
 
@@ -77,7 +77,7 @@ Defaults and chosen paths MUST be recorded in `_DEPENDENCIES.md` Run Notes.
 | `DOC_ROLE_MAP` | Role-to-filename mapping | `DEFAULT` | `DEFAULT` / explicit mapping |
 | `ANCHOR_DOC` | Primary anchor doc | `AUTO` | `AUTO` / filename |
 | `EXECUTION_DOC_ORDER` | Execution doc ordering | `AUTO` | `AUTO` / ordered list |
-| `MODE` | Update vs reset behavior | `UPDATE` | `UPDATE` / `RESET_EXTRACTED` |
+| `MODE` | Update, reset, or canonicalize existing register values | `UPDATE` | `UPDATE` / `RESET_EXTRACTED` / `CANONICALIZE_EXISTING` |
 | `STRICTNESS` | Extraction posture | `CONSERVATIVE` | `CONSERVATIVE` / `AGGRESSIVE` |
 | `CONSUMER_CONTEXT` | Downstream consumer hint | `NONE` | `NONE` / `TASK_ESTIMATING` / `AGGREGATION` / `RECONCILIATION` |
 
@@ -94,6 +94,7 @@ Disallowed behavior:
 - No editing of any source document or `_REFERENCES.md`.
 - No editing of decomposition outputs.
 - No writes outside dependency artifacts (`{deliverable}/_DEPENDENCIES.md`, `{deliverable}/Dependencies.csv`).
+- The TASK shell may still create its required run record under `{deliverable}/_run_records/`.
 - No hierarchy discovery (no creating or restructuring the decomposition Tree).
 - No cross-deliverable synthesis (aggregation is downstream).
 
@@ -108,6 +109,7 @@ Reads are limited to the current deliverable folder plus the decomposition docum
 | `{deliverable}/Dependencies.csv` | Full (if present) | Match/merge with existing rows |
 | `{deliverable}/_DEPENDENCIES.md` | Full (if present) | Preserve declared lists + Run History |
 | `{DECOMPOSITION_PATH}` | Read-only | Validate anchors + resolve canonical labels |
+| Architecture-basis / PKG-00 source files | Relevant excerpts when cited | Confirm architecture-consistency dependency rows without writing PKG-00 |
 
 ## Write boundary
 
@@ -115,8 +117,27 @@ Writes are limited to dependency artifacts only:
 
 - `{deliverable}/_DEPENDENCIES.md`
 - `{deliverable}/Dependencies.csv`
+- TASK run record under `{deliverable}/_run_records/`
 
 No other files may be created or modified.
+
+## Architecture-basis / PKG-00 policy
+
+Some projects inject architecture-basis deliverables into each downstream
+deliverable through scope change. In that pattern, `DEL-00-*` rows are valid
+architecture-consistency dependency trackers: they tell future agents to inspect
+the relevant PKG-00 basis while carrying out the deliverable.
+
+When a brief enables this policy:
+- keep supported `DEL-00-*` rows as execution dependencies using canonical enum
+  values;
+- read relevant PKG-00 source files only as needed to confirm consistency;
+- do not write any PKG-00 deliverable files;
+- do not retire a `DEL-00-*` row merely because it is architecture basis rather
+  than ordinary implementation work;
+- if a `DEL-00-*` row appears contradicted, stale, or overbroad, preserve it
+  unless the local evidence clearly supports retirement; otherwise record
+  `NEEDS_HUMAN_GRAPH_DECISION` in the run notes.
 
 ## Method
 
@@ -207,6 +228,8 @@ If uncertain:
 
 Normalize legacy values on write:
 - `Direction`: `INBOUND` -> `UPSTREAM`, `OUTBOUND` -> `DOWNSTREAM`
+- Project-specific labels in core enum fields MUST be mapped to canonical values before persistence; preserve the original label in `Notes` as `legacy_<field>=<value>`.
+- `Status=CANDIDATE` MUST NOT be emitted. Non-gating candidates belong in a separate non-authoritative worklist or review packet.
 
 ### Function 3 — Persist to canonical register (`Dependencies.csv`)
 
@@ -216,6 +239,7 @@ Normalize legacy values on write:
 - Update `LastSeen`, set `Status=ACTIVE` when found.
 - Mark unseen extracted rows `RETIRED` (do not delete).
 - Preserve declared edges (`Origin=DECLARED`).
+- In `MODE=CANONICALIZE_EXISTING`, do not extract new rows from prose. Read the existing register, normalize all core enum fields to canonical write form, preserve legacy values in `Notes`, and move any non-gating candidate relationship to a non-authoritative candidate worklist or mark the register row `RETIRED` with a candidate-disposition note.
 - Ensure `FromDeliverableID` matches the host deliverable identity.
 - Ensure `DependencyID` uniqueness within the deliverable register.
 - Normalize target ID placement on write:
@@ -329,9 +353,7 @@ They do **not** represent:
 - `DependencyClass`: `ANCHOR` | `EXECUTION`
 - `AnchorType`: `IMPLEMENTS_NODE` | `TRACES_TO_REQUIREMENT` | `NOT_APPLICABLE`
 - `Direction`: `UPSTREAM` | `DOWNSTREAM`
-- `DependencyType`:
-  - Preferred (emit when supported by evidence): `PREREQUISITE` | `INTERFACE` | `HANDOVER` | `CONSTRAINT` | `ENABLES` | `OTHER`
-  - Legacy-compatible (do not emit in new extractions): `COORDINATION` | `INFORMATION`
+- `DependencyType`: `PREREQUISITE` | `INTERFACE` | `HANDOVER` | `CONSTRAINT` | `ENABLES` | `OTHER`
 - `TargetType`: `DELIVERABLE` | `PACKAGE` | `WBS_NODE` | `REQUIREMENT` | `DOCUMENT` | `EQUIPMENT` | `EXTERNAL` | `UNKNOWN`
 - `Explicitness`: `EXPLICIT` | `IMPLICIT`
 - `SatisfactionStatus`: `TBD` | `PENDING` | `IN_PROGRESS` | `SATISFIED` | `WAIVED` | `NOT_APPLICABLE`
@@ -341,6 +363,8 @@ They do **not** represent:
 
 Legacy read compatibility:
 - `INBOUND`/`OUTBOUND` MAY appear in older files; normalize to `UPSTREAM`/`DOWNSTREAM` on write.
+- `COORDINATION`, `INFORMATION`, and project-specific dependency labels MAY appear in older files; interpret the relationship and map to the canonical `DependencyType` set on write.
+- `CANDIDATE` MAY appear in older files as a graph-governance disposition; do not write it to `Status`. Preserve candidate visibility in a separate non-authoritative worklist or in `Notes` on a `RETIRED` row.
 - If `RegisterSchemaVersion` is missing, add it on write and set to `v3.1`.
 
 #### Extension columns (optional; non-breaking)
@@ -404,7 +428,7 @@ See `QA_CHECKS.md` for the authoritative invariant list. Summary:
 - Targets are not invented (`UNKNOWN` permitted).
 - Updates are non-destructive (no row deletions; unseen rows `RETIRED`).
 - `DependencyID` values are unique within each deliverable register.
-- Write-form enums are canonical (legacy `INBOUND`/`OUTBOUND` normalized).
+- Write-form enums are canonical; legacy and project-specific values are read-only migration inputs, never emitted.
 - `_DEPENDENCIES.md` summary/lifecycle counts are consistent with `Dependencies.csv`.
 - Non-fatal integrity warnings: `[WARNING] FLOATING_NODE` (no parent anchor), `[WARNING] AMBIGUOUS_ANCHOR` (multiple parent anchors), `[WARNING] MISSING_DECOMPOSITION`.
 

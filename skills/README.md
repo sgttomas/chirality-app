@@ -12,13 +12,13 @@ Skills are **not agents**. They do not have their own decision rights, write sco
 
 The canonical loader for these skills is [`AGENT_TASK.md`](../agents/AGENT_TASK.md).
 
-**Governed by:** SKILLMAKER (Type 1, `agents/AGENT_SKILLMAKER.md`), operating under the Type 0 standard `AGENT_HELPS_HUMANS.md` which governs workflow-component design across agents, skills, and tools. SKILLMAKER owns skill design, contract evolution, and subsystem governance; its outcomes conform to HELPS_HUMANS R10 + R12 and the "Design Outcomes for Skill Contracts" section.
+**Governed by:** HELPS_HUMANS (Type 1, `agents/AGENT_HELPS_HUMANS.md`), operating under `docs/WORKFLOW_COMPONENT_STANDARD.md`, which governs workflow-component design across agents, skills, tools, briefs, and workflow packages. HELPS_HUMANS owns skill design, contract evolution, and subsystem governance; its outcomes conform to standard R10 + R12 and §11.
 
 ## Why skills exist
 
 Use a new skill when:
 - the role stays the same,
-- the write scope stays the same,
+- write authority is supplied by the bounded TASK brief,
 - the interaction model stays the same,
 - but the **method** and **toolchain** vary.
 
@@ -29,12 +29,11 @@ Do **not** create a new agent just because a bounded task has a different tool r
 When a skill is loaded by `TASK`, precedence is:
 
 1. Human instructions in the run brief
-2. `TASK` shell hard boundaries
-3. Active task profile (if any)
-4. Skill contract
-5. Skill defaults
+2. `TASK` shell hard authorization boundary
+3. Skill contract
+4. Skill defaults
 
-A skill must never widen scope beyond what the agent shell and brief allow.
+A skill must never widen write authority beyond what the TASK shell and effective bounded task brief allow.
 
 ## Skill dispatch and hydration
 
@@ -46,7 +45,7 @@ The authority split between companion files:
 - **`TOOL_POLICY.md`** — the tool allowlist and preferences.
 - **`QA_CHECKS.md`** — output validity checks.
 
-The orchestrator provides runtime parameters via `RuntimeOverrides` and optional run-specific reinforcement via `CustomInstructions`. It does not duplicate the skill contract. See `AGENT_HELPS_HUMANS.md` § Skill dispatch principle.
+The orchestrator provides runtime parameters via `RuntimeOverrides` and optional run-specific reinforcement via `CustomInstructions`. It does not duplicate the skill contract. See `docs/WORKFLOW_COMPONENT_STANDARD.md` §11.
 
 ## Folder contract
 
@@ -91,20 +90,24 @@ Good skill design makes tool usage explicit:
 - disallowed tools
 - when to fall back from tools to manual/LLM reasoning
 
-## Relationship to task profiles
+## Relationship to task briefs
 
-Profiles and skills are orthogonal:
+Briefs and skills are orthogonal:
 
-- **Task profile** = structural specialization of the agent
+- **Brief** = run-specific authority, scope inputs, write permissions, overrides, and expected outputs
 - **Skill** = method pack for a recurring task shape
 
 Example:
-- `TaskProfile: DELIVERABLE_TASK`
+- `ScopePath: /abs/path/to/deliverable`
+- `RuntimeOverrides.DELIVERABLE_PATH: /abs/path/to/deliverable`
 - `TaskSkill: deliverable-consistency`
+- `ApplyEdits: false`
 
 or:
-- no profile
+- `ScopePath: /abs/path/to/pdf-work-dir`
 - `TaskSkill: pdf2md`
+
+The `metadata.chirality-task-profile` frontmatter field remains part of the repo metadata contract for compatibility and should normally be `NONE`. Non-`NONE` values are deprecated compatibility metadata, not write-scope grants.
 
 Current example:
 - `deliverable-consistency` should normally begin with `tools/validation/scan_deliverable_consistency.py`, then read only the flagged files and nearby context.
@@ -118,8 +121,17 @@ Publication example:
 Review example:
 - `WORKING_ITEMS` dispatches `TASK + dbm-draft-review` to review a human-prepared draft DBM against the governed knowledge base. The skill runs deterministic substrate tools (`scan_section_coverage.py`, `extract_claims.py`, `scan_tbd_markers.py`, `check_body_thinness.py`) then uses agent judgment to compare the substrate against governed truth (KA artifacts, section map, publication rules, supersession state) and prepare candidate findings. The human dispositions findings through the REVIEW agent.
 
+Software example:
+- `WORKING_ITEMS` activates the project-local `software-workflow.json`, then dispatches `TASK` with one of `software-repository-reconnaissance`, `software-bounded-implementation`, `software-defect-diagnosis`, `software-test-planning`, or `software-code-review`. The skill carries the reasoning method; `tools/software_workflow/` discovers surfaces, selects and runs registered checks, validates write scope, compares structured contracts, and detects generated-file drift. See `docs/SOFTWARE_WORKFLOW_PROFILE.md`.
+
 Legacy skills:
 - `dbm-concordance-seed` — marked `chirality-skill-status: LEGACY`; no longer dispatched by DBM_PUBLISHER. Concordance has moved from pre-authoring gate to post-authoring evidence bundle review.
+
+Active PROJECT/SOFTWARE production skill:
+- `scope-of-work` — supports explicit `INIT`, `CONVERT`, and `VERIFY` modes for
+  `SOW_V1`. Conversion is lossless, lifecycle-neutral, and confined to an
+  exactly authorized isolated workspace. `four-documents` remains supported
+  only for existing `LEGACY_FOUR_DOC` compatibility through rollback.
 
 ## Discovery guidance
 

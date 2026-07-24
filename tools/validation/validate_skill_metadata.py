@@ -200,18 +200,18 @@ def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
     if not brief_schema_md.is_file():
         issues.append(
             "BRIEF_SCHEMA.md is missing "
-            "(required by AGENT_HELPS_HUMANS Design Outcomes for Skill Contracts)"
+            "(required by WORKFLOW_COMPONENT_STANDARD skill contract)"
         )
 
     tool_policy_md = skill_dir / "TOOL_POLICY.md"
     if not tool_policy_md.is_file():
-        issues.append("TOOL_POLICY.md is missing (required by AGENT_HELPS_HUMANS Design Outcomes for Skill Contracts)")
+        issues.append("TOOL_POLICY.md is missing (required by WORKFLOW_COMPONENT_STANDARD skill contract)")
 
     qa_checks_md = skill_dir / "QA_CHECKS.md"
     if not qa_checks_md.is_file():
         issues.append(
             "QA_CHECKS.md is missing "
-            "(required by AGENT_HELPS_HUMANS Design Outcomes for Skill Contracts)"
+            "(required by WORKFLOW_COMPONENT_STANDARD skill contract)"
         )
 
     data, fm_issues = extract_frontmatter(skill_md)

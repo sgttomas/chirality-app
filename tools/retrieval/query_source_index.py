@@ -10,6 +10,7 @@ Inputs:
   --snapshot           Snapshot directory or _LATEST.md pointer.
   --query              Single query string.
   --batch              CSV with a `query` column.
+  --mode               Retrieval mode: hybrid, dense, or bm25.
   --json               Emit JSON.
 
 Filters:
@@ -32,6 +33,7 @@ import csv
 import json
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -39,38 +41,108 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "tools" / "source_catalog"))
-from source_database import DEFAULT_DOMAIN_ROOT, resolve_snapshot_path  # noqa: E402
+from source_database import DEFAULT_DOMAIN_ROOT, resolve_snapshot_path, stable_id  # noqa: E402
+from research_packet import QUERY_LOG_COLUMNS  # noqa: E402
 
 INDEX_NAME = "source_v2"
 RRF_K = 60
 
+FILTER_ARG_KEYS = [
+    "source_doc", "artifact_role", "chunk_type", "audit_kind",
+    "category_id", "knowledge_type_id", "subject_id", "archive_state",
+]
+
+
+def render_filters(args: argparse.Namespace) -> str:
+    """Compact `k=v;k=v` rendering of the non-default filter args."""
+    parts = []
+    for key in FILTER_ARG_KEYS:
+        val = getattr(args, key, None)
+        if val and not (key == "archive_state" and val == "ACTIVE"):
+            parts.append(f"{key}={val}")
+    return ";".join(parts)
+
+
+def resolve_domain_label(snapshot: Path, fallback: Path) -> str:
+    """Best-effort repo-relative domain root for the Query_Log, from the snapshot's meta.json."""
+    meta_path = snapshot / "meta.json"
+    if meta_path.exists():
+        try:
+            md = json.loads(meta_path.read_text(encoding="utf-8")).get("domain_root")
+            if md:
+                try:
+                    return str(Path(md).resolve().relative_to(REPO_ROOT))
+                except ValueError:
+                    return str(md)
+        except Exception:
+            pass
+    return str(fallback)
+
+
+def log_query(
+    log_path: Path,
+    *,
+    snapshot: Path,
+    domain_root: Path,
+    mode: str,
+    query: str,
+    filters: str,
+    k: int,
+    result_count: int,
+    utc: str,
+) -> None:
+    """Append one canonical Query_Log.csv row. Header is written once."""
+    row = {
+        "QueryID": stable_id("Q", utc, str(snapshot), query, mode, filters),
+        "UTC": utc,
+        "DomainRoot": str(domain_root),
+        "Snapshot": Path(snapshot).name,
+        "Mode": mode,
+        "Query": query,
+        "Filters": filters,
+        "K": k,
+        "ResultCount": result_count,
+        "Notes": "",
+    }
+    new_file = not log_path.exists()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=QUERY_LOG_COLUMNS, extrasaction="ignore")
+        if new_file:
+            writer.writeheader()
+        writer.writerow(row)
+
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--snapshot", type=Path)
-    ap.add_argument("--domain-root", type=Path, default=DEFAULT_DOMAIN_ROOT)
-    ap.add_argument("--query")
-    ap.add_argument("--batch", type=Path)
-    ap.add_argument("--k", type=int, default=15)
-    ap.add_argument("--json", action="store_true", dest="emit_json")
-    ap.add_argument("--source-doc")
-    ap.add_argument("--artifact-role")
-    ap.add_argument("--chunk-type")
-    ap.add_argument("--audit-kind")
-    ap.add_argument("--category-id")
-    ap.add_argument("--knowledge-type-id")
-    ap.add_argument("--subject-id")
-    ap.add_argument("--archive-state", choices=("ACTIVE", "ARCHIVE"), default="ACTIVE")
+    ap = build_arg_parser()
     args = ap.parse_args()
 
     if not args.query and not args.batch:
         ap.error("provide --query or --batch")
+
+    if args.run_log and args.log_dir:
+        ap.error("--run-log and --log-dir are mutually exclusive")
 
     try:
         snapshot = resolve_snapshot_path(args.snapshot, args.domain_root)
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
+
+    log_path: Path | None = None
+    if args.run_log:
+        log_path = args.run_log
+    elif args.log_dir:
+        log_path = args.log_dir / "Query_Log.csv"
+    if log_path is not None:
+        # Snapshots are immutable; never write a run log inside one.
+        resolved = log_path.resolve()
+        if resolved == snapshot or snapshot in resolved.parents:
+            print(
+                f"ERROR: refusing to write query log inside the immutable snapshot: {resolved}",
+                file=sys.stderr,
+            )
+            return 2
 
     try:
         build = load_index_build(snapshot)
@@ -79,18 +151,42 @@ def main() -> int:
         return 2
 
     queries = collect_queries(args)
+    filters = render_filters(args)
+    domain_label = resolve_domain_label(snapshot, args.domain_root) if log_path else ""
     results = []
     for tag, query in queries:
-        hits = query_one(snapshot, query, args.k, build, args)
-        results.append({"tag": tag, "query": query, "results": hits})
+        try:
+            hits = query_one(snapshot, query, args.k, build, args)
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+        if log_path is not None:
+            log_query(
+                log_path,
+                snapshot=snapshot,
+                domain_root=domain_label,
+                mode=args.mode,
+                query=query,
+                filters=filters,
+                k=args.k,
+                result_count=len(hits),
+                utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            )
+        results.append({"tag": tag, "query": query, "mode": args.mode, "results": hits})
 
     if args.emit_json:
         print(json.dumps(results if args.batch else results[0], indent=2))
     else:
         for payload in results:
-            print(f"QUERY {payload['tag']}: {payload['query']}")
+            mode = payload["mode"]
+            print(f"QUERY {payload['tag']} [mode={mode}]: {payload['query']}")
             for i, hit in enumerate(payload["results"], start=1):
-                score = hit.get("rrf_score")
+                if mode == "dense":
+                    score = hit.get("cosine_score")
+                elif mode == "bm25":
+                    score = hit.get("bm25_score")
+                else:
+                    score = hit.get("rrf_score")
                 bm = hit.get("bm25_rank")
                 dn = hit.get("dense_rank")
                 print(
@@ -101,6 +197,41 @@ def main() -> int:
                 if preview:
                     print(f"    {preview[:220]}")
     return 0
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--snapshot", type=Path)
+    ap.add_argument("--domain-root", type=Path, default=DEFAULT_DOMAIN_ROOT)
+    ap.add_argument("--query")
+    ap.add_argument("--batch", type=Path)
+    ap.add_argument("--k", type=int, default=15)
+    ap.add_argument(
+        "--mode",
+        choices=("hybrid", "dense", "bm25"),
+        default="hybrid",
+        help="Retrieval mode. hybrid fuses BM25 and dense ranks; dense uses cosine only; bm25 uses lexical BM25 only.",
+    )
+    ap.add_argument("--json", action="store_true", dest="emit_json")
+    ap.add_argument(
+        "--run-log",
+        type=Path,
+        help="Append one Query_Log.csv row per query to this file (e.g. <packet>/Query_Log.csv). Off by default.",
+    )
+    ap.add_argument(
+        "--log-dir",
+        type=Path,
+        help="Append rows to <dir>/Query_Log.csv. Mutually exclusive with --run-log. Never writes inside an immutable snapshot.",
+    )
+    ap.add_argument("--source-doc")
+    ap.add_argument("--artifact-role")
+    ap.add_argument("--chunk-type")
+    ap.add_argument("--audit-kind")
+    ap.add_argument("--category-id")
+    ap.add_argument("--knowledge-type-id")
+    ap.add_argument("--subject-id")
+    ap.add_argument("--archive-state", choices=("ACTIVE", "ARCHIVE"), default="ACTIVE")
+    return ap
 
 
 def collect_queries(args: argparse.Namespace) -> list[tuple[str, str]]:
@@ -191,13 +322,50 @@ def query_one(
         return []
     fan = min(row_count, max(k * 20, 100))
 
-    bm = bm25_topk(snapshot, query, fan, allowed)
-    dense: list[tuple[int, float]] = []
-    if build.get("embeddings_norm_path") and (snapshot / build["embeddings_norm_path"]).exists():
-        dense = dense_topk(snapshot, query, fan, allowed, build)
+    mode = args.mode
+    if mode == "bm25":
+        bm = bm25_topk(snapshot, query, fan, allowed)
+        ranked = rank_single(bm, k, rank_kind="bm25")
+        return hydrate(snapshot, ranked, bm, [])
 
-    fused = rrf(bm, dense, k)
-    return hydrate(snapshot, fused, bm, dense)
+    if mode == "dense":
+        if not has_dense_embeddings(snapshot, build):
+            raise RuntimeError(
+                "dense embeddings are not built for this snapshot; "
+                "use --mode bm25 or rebuild without --no-embeddings"
+            )
+        dense = dense_topk(snapshot, query, fan, allowed, build)
+        ranked = rank_single(dense, k, rank_kind="dense")
+        return hydrate(snapshot, ranked, [], dense)
+
+    if mode == "hybrid":
+        bm = bm25_topk(snapshot, query, fan, allowed)
+        dense: list[tuple[int, float]] = []
+        if has_dense_embeddings(snapshot, build):
+            dense = dense_topk(snapshot, query, fan, allowed, build)
+        fused = rrf(bm, dense, k)
+        return hydrate(snapshot, fused, bm, dense)
+
+    raise RuntimeError(f"unsupported retrieval mode: {mode}")
+
+
+def has_dense_embeddings(snapshot: Path, build: dict) -> bool:
+    rel = build.get("embeddings_norm_path")
+    return bool(rel) and (snapshot / rel).exists()
+
+
+def rank_single(
+    hits: list[tuple[int, float]],
+    k: int,
+    *,
+    rank_kind: str,
+) -> list[tuple[int, float | None, int | None, int | None]]:
+    ranked = []
+    for rank, (row, _score) in enumerate(hits[:k], start=1):
+        bm_rank = rank if rank_kind == "bm25" else None
+        dense_rank = rank if rank_kind == "dense" else None
+        ranked.append((row, None, bm_rank, dense_rank))
+    return ranked
 
 
 def bm25_topk(
@@ -274,7 +442,7 @@ def rrf(
 
 def hydrate(
     snapshot: Path,
-    fused: list[tuple[int, float, int | None, int | None]],
+    fused: list[tuple[int, float | None, int | None, int | None]],
     bm25_hits: list[tuple[int, float]],
     dense_hits: list[tuple[int, float]],
 ) -> list[dict]:
@@ -312,7 +480,7 @@ def hydrate(
         out.append(
             {
                 **m,
-                "rrf_score": round(rrf_score, 6),
+                "rrf_score": round(rrf_score, 6) if rrf_score is not None else None,
                 "bm25_rank": bm_rank,
                 "bm25_score": round(bm_score.get(row_index, 0.0), 4) if bm_rank else None,
                 "dense_rank": dn_rank,

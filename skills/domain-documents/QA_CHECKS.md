@@ -14,7 +14,7 @@ These invariants MUST hold for every run. Violating any of them makes the run in
 | **Maximally comprehensive KAs** | The KA set captures all material source-backed facts, parameters, scope boundaries, interfaces, assumptions, exceptions, open issues, and current-state authority notes within the approved KTY/Subject scope |
 | **KA-* naming convention** | Default `KA-01_{Type}__{Slug}.md`; configurable via `ARTIFACT_NAMING`. Stable ordinal prefix when `PREFIXED_*` |
 | **One deliverable per run** | Each invocation processes exactly one Knowledge Type folder (`KTY_PATH`). No cross-Knowledge-Type scanning |
-| **No human input** | The skill works from folder contents, references, and decomposition. Human interacts with ORCHESTRATOR/WORKING_ITEMS, not this skill |
+| **No human input** | The skill works from folder contents, references, and decomposition. Human interacts with PROJECT_SETUP/WORKING_ITEMS, not this skill |
 | **Respect human work** | `_STATUS.md` `Current State` must be within `ALLOW_OVERWRITE_STATES` (default `OPEN, INITIALIZED`) before any overwrite. Halt with `SKIPPED_PROTECT_HUMAN_WORK` otherwise |
 | **Authority mode default** | `AUTHORITY_MODE` defaults to `SOURCE_FIDELITY`; non-SCA behavior remains unchanged |
 | **SCA authority mode** | `AUTHORITY_MODE: SCA_DRIVEN` requires admitted decomposition state, structured SCA artifacts, and `SUPERSESSION_MAP_PATH`; source material is provenance verification only |

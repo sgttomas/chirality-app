@@ -23,10 +23,10 @@ No `Bash`, no shell-outs, no subprocess invocations.
 
 | Tool | Owner | When |
 |---|---|---|
-| `tools/equation_audit/build_equation_interpret_brief.py` | TOOLMAKER | EQUATION_AUDIT Phase 3a — produces this skill's brief |
-| `tools/equation_audit/validate_flagged_schema.py` | TOOLMAKER | EQUATION_AUDIT Phase 3b — confirms every flagged entry now has a LaTeX-shaped description before fixes apply |
-| `tools/equation_audit/process_flagged.py` | TOOLMAKER | EQUATION_AUDIT Phase 3c — applies the fixes deterministically |
-| `tools/equation_audit/audit_equations.py` | TOOLMAKER | EQUATION_AUDIT Phase 4 — re-extracts equations and emits backcheck.json |
+| `tools/equation_audit/build_equation_interpret_brief.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 3a — produces this skill's brief |
+| `tools/equation_audit/validate_flagged_schema.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 3b — confirms every flagged entry now has a LaTeX-shaped description before fixes apply |
+| `tools/equation_audit/process_flagged.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 3c — applies the fixes deterministically |
+| `tools/equation_audit/audit_equations.py` | HELPS_HUMANS | EQUATION_AUDIT Phase 4 — re-extracts equations and emits backcheck.json |
 
 The worker never invokes any of the above. It writes its single JSON output; the persona merges that JSON back into `flagged.json`'s `description` field and proceeds.
 

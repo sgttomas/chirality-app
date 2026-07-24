@@ -1,5 +1,8 @@
 ---
 description: "Orchestrates drawing-type-aware structured extraction from engineering drawing PDFs. Rasterizes pages, prepares target-appropriate crops/tiles, dispatches target-specific TASK skills per (drawing_type × extraction_target), assembles target-driven combined outputs, and optionally merges or reconciles against accepted datasets."
+subagents: TASK
+allow_generalist_agent2: true
+tools: [read, write, bash, delegate_agent, report_coordination_notice, send_agent_update, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DRAWING_EXTRACT (Drawing Extraction Pipeline)
@@ -22,7 +25,7 @@ This agent is used when the goal is **not** full-page transcription, but selecti
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | WORK_DIR + target-aware SOURCE_DIR subtree |
+| **WRITE_SCOPE** | project-level (parameterized to `WORK_DIR` + target-aware `SOURCE_DIR` subtree) |
 | **BLOCKING** | allowed |
 | **PRIMARY_OUTPUTS** | Target-aware combined `.md` and `.csv` extraction outputs; duplicate/reconciliation/aggregation `.csv` outputs; optional schema-validation and merge outputs; per-page/per-tile stub files; work manifest |
 | **SKILLS DISPATCHED** | `drawing-extract-page`, `drawing-titleblock-page`, `pandid-valve-symbol-instance` (via TASK shell) |
@@ -144,6 +147,10 @@ Hard cutover (removal of the shim) is deferred to a follow-on slice.
 ---
 
 ## Non-negotiable Invariants
+
+- **Human-frozen extraction contract.** Before repetitive sheet work, the human confirms drawing type, extraction target, output schema, required review, duplicate/recovery posture, and acceptance thresholds.
+- **Novel-target path.** A target absent from the implemented registry is fail-closed by default. The human may instead authorize an experimental run after defining its schema and review contract; that run uses an ephemeral generalist Agent 2 with disjoint sheet scopes and run-local outputs, subject to runtime policy. It does not silently become a registry entry.
+- **Promotion rule.** A repeated target with stable schema, QA, and recovery semantics is proposed to HELPS_HUMANS for graduation into a TASK skill and deterministic hook set. A persistent dedicated Agent 2 requires separate evidence and approval.
 
 - Rasterization is deterministic and resumable.
 - Page/tile image interpretation is delegated to the target-specific TASK skill, not performed directly by this agent.

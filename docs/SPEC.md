@@ -1,10 +1,12 @@
 # SPEC — Physical Structures and Mechanics
 
-This document is the authoritative specification for the physical structures, file formats, schemas, and layout conventions used in the Chirality filesystem-as-state project execution system.
+> **Status: RATIFIED — owner ratification 2026-07-11 (`CONTRACT.md` / K-AUTH-1).** Owner direction of record (2026-07-11, in-session, Ryan Tufts): "You can now take all the `docs/` out of the DRAFT state, making them authoritative." This document is accepted root governance in full. Provenance: it re-established the monorepo-root governance layer (root `docs/` was hollowed out during the four-repo merge; see `plans/monorepo_root_governance_and_path_anchoring_2026-06-15.md`), authored from the prior root canon (`.archive/SPEC.md`), preserving the established §1–§13 numbering and schemas, and adding the **Root Model and Path Anchoring** convention (§0.2–§0.3) plus reconciliations to the live agent surface. **Ratification history:** per D-GOV-05 (`docs/governance_harness/_DECISIONS/D-GOV-05_minimal_governance_basis.md`, ruled by owner 2026-07-01), K-WRITE-2 path containment (§0.2.3) was ratified first as part of the minimal harness basis; the 2026-07-11 full ratification subsumes that partial basis.
+
+This document is the authoritative specification for the physical structures, file formats, schemas, and layout conventions used in the Chirality filesystem-as-state agent operating system.
 
 All agents, tools, and governance documents reference this specification. Where an agent instruction file defines a format inline, this document is the canonical version; agent instructions MUST conform.
 
-**Normative keywords:** MUST, MUST NOT, SHOULD, SHOULD NOT, MAY follow the conventions defined in `AGENT_HELPS_HUMANS.md`.
+**Normative keywords:** MUST, MUST NOT, SHOULD, SHOULD NOT, MAY follow the conventions defined in `WORKFLOW_COMPONENT_STANDARD.md`.
 
 ---
 
@@ -14,18 +16,85 @@ This specification embodies the four-pillar philosophy defined in `DIRECTIVE.md`
 
 | DIRECTIVE Pillar | SPEC Sections | What the Section Governs |
 |---|---|---|
-| **Ontology** — what exists? | §1–2, §10 | Execution root layout, deliverable structure, filesystem-safe naming |
-| **Epistemology** — what can be known? | §5–6, §14–15 | Dependency tracking, provenance requirements, evidence schema, conflict resolution mechanisms |
-| **Praxiology** — how do we execute? | §3–4, §9, §11–12 | Lifecycle state machine, context and authority, agent instruction structure, validation checklist |
+| **Ontology** — what exists? | §1–2, §10, §12 | Execution root layout, deliverable structure, filesystem-safe naming, structure validation |
+| **Epistemology** — what can be known? | §5–6 | Dependency tracking, provenance requirements, evidence schema |
+| **Praxiology** — how do we execute? | §0.2–0.3, §3–4, §9, §11 | Root model and path anchoring, lifecycle state machine, context and authority, agent instruction structure, snapshots |
 | **Axiology** — what do we value? | §7–8, §13 | Reference and memory management, coordination representation, and the values embedded in schema structure |
 
 This alignment ensures that project execution state (the filesystem) reflects the same philosophical commitments as the governance framework itself.
 
 ---
 
+## 0.2 Root Model and Path Anchoring
+
+> Numbering note: this section is placed in the §0 preamble (rather than as a new §1) so the established §1–§13 numbers — and every cross-reference to them, e.g. `SPEC §1.2` (tool roots) and `SPEC §6.5` (provenance) — remain stable.
+
+Chirality runs in two deployment shapes that share one path model: the **canonical monorepo** (this repository) and the **desktop harness** (an app bundle pointed at a user-selected folder). The path model defines two roots and one containment rule.
+
+### 0.2.1 `REPO_ROOT` — the active checkout
+
+`REPO_ROOT` is the root of the active git checkout, resolved as:
+
+```sh
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+```
+
+`REPO_ROOT` MUST be resolved at session start and never hard-coded. In a linked **git worktree**, `git rev-parse --show-toplevel` returns *that worktree's* root — so a worktree is a fully isolated checkout, and every path derived from `REPO_ROOT` re-anchors to it automatically. This is the mechanism that makes worktree-based isolation safe.
+
+`REPO_ROOT` is the home of the **shared instruction surface** (`AGENTS.md`, `agents/`, `skills/`, `tools/`, root `docs/`, `init/`) — the release-managed agent operating system (the **instruction root**; see `DIRECTIVE.md` §2.6). The instruction surface is read-mostly: changing it is a repo-wide governance action, not ordinary working-root execution.
+
+### 0.2.2 `WORKING_ROOT` — the active workspace
+
+`WORKING_ROOT` is the project or domain workspace an agent is scoped to — `projects/<name>/` or `domains/<name>/` in this monorepo, or the user-selected folder under the desktop harness. It is where governed project truth lives (`{EXECUTION_ROOT}`, tool roots, deliverables, decomposition state).
+
+- `WORKING_ROOT` MUST resolve to an absolute path under `REPO_ROOT` (monorepo) or to the user-selected root (desktop harness).
+- One `REPO_ROOT` instruction surface serves **many** working roots without per-workspace instruction drift.
+- A working root MUST NOT be the shared instruction surface itself; agents operating in a working root MUST NOT write to `agents/`, `skills/`, `tools/`, or root `docs/` except through an explicit, separately-authorized repo-wide instruction change.
+
+### 0.2.3 ScopePath containment (binding)
+
+Every `ScopePath` and every `AllowedWriteTarget` (see `AGENT_TASK.md`) MUST:
+
+1. normalize to an absolute path, and
+2. resolve **under `REPO_ROOT`** (the active checkout returned by `git rev-parse --show-toplevel`).
+
+A `ScopePath` or write target that resolves outside the active checkout — including via symlink or `..` traversal — MUST be rejected (`SCOPE_OUTSIDE_WORKTREE`); the task stops rather than writing. This upgrades the existing `AGENT_TASK.md` rule ("`ScopePath` must resolve to an existing local path") to "…and must resolve within the active checkout," and is the deterministic backstop that prevents an agent launched in a worktree from writing back to the main checkout. It is a no-op in single-checkout (shared-monorepo) mode. This rule is bound as `CONTRACT.md` invariant **K-WRITE-2**.
+
+### 0.2.4 Path reference discipline
+
+- **Instruction-surface references** (to `agents/`, `skills/`, `tools/`, root `docs/`, `AGENTS.md`) resolve **`REPO_ROOT`-relative**.
+- **Working-root references** (to `{EXECUTION_ROOT}`, tool roots, deliverables, `_Coordination/`, decomposition state) resolve **`WORKING_ROOT`-relative**.
+- Instruction, coordination, and plan files MUST NOT embed machine-absolute paths (e.g. `/Users/<name>/...`). Absolute paths are permitted only in run records and evidence artifacts, where they record what actually happened and are never re-executed.
+
+---
+
+## 0.3 Path Token Registry
+
+Agent instructions and skills reference roots through `{*_ROOT}` tokens. Each token resolves against exactly one anchor. Projects and domains MAY bind additional workspace-local tokens, but every such token MUST resolve under `WORKING_ROOT`.
+
+| Token | Anchor | Resolves to |
+|---|---|---|
+| `{REPO_ROOT}` | self | `git rev-parse --show-toplevel` (the active checkout) |
+| `{INSTRUCTION_ROOT}` | `REPO_ROOT`-relative | the shared instruction surface; `= REPO_ROOT` in the monorepo, the app bundle in desktop builds |
+| `{WORKING_ROOT}` | `REPO_ROOT`-relative | the active `projects/<name>/` or `domains/<name>/` (or user-selected folder) |
+| `{EXECUTION_ROOT}` | `WORKING_ROOT`-relative | the execution instance root (project-defined; often `WORKING_ROOT` or `WORKING_ROOT/execution`) |
+| `{COORDINATION_ROOT}` | `EXECUTION_ROOT`-relative | `{EXECUTION_ROOT}/_Coordination/` |
+| `{DECOMP_ROOT}` / `{DECOMPOSITION_ROOT}` | `EXECUTION_ROOT`-relative | `{EXECUTION_ROOT}/_Decomposition/` (or a domain pack's `_Decomposition/`) |
+| `{AGGREGATION_ROOT}` | tool-root-relative | `{EXECUTION_ROOT}/_Aggregation/` |
+| `{EVALUATION_ROOT}` | tool-root-relative | `{EXECUTION_ROOT}/_Evaluation/` |
+| `{RECONCILIATION_ROOT}` | tool-root-relative | `{EXECUTION_ROOT}/_Reconciliation/` |
+| `{ESTIMATES_ROOT}` | tool-root-relative | `{EXECUTION_ROOT}/_Estimates/` |
+| `{SOURCE_AUDIT_ROOT}`, `{ASSETS_ROOT}`, `{PUBLICATION_ROOT}`, `{RESEARCH_ROOT}`, `{PLANNING_ROOT}`, `{RUN_ROOT}`, `{CONTEXT_ROOT}` | `WORKING_ROOT`-relative | domain/workspace-local roots bound by the owning agent/skill; MUST resolve under `WORKING_ROOT` |
+| `{SKILL_ROOT}` | `REPO_ROOT`-relative | `{REPO_ROOT}/skills/<name>/` |
+| `{TOOL_ROOT}` | context-dependent | `{REPO_ROOT}/tools/` when referring to the deterministic tool layer; a project tool root (`{EXECUTION_ROOT}/_<Name>/`) when referring to a derived-output root (see §1.2) |
+
+The token vocabulary above is the registry; an agent that introduces a new `{*_ROOT}` token MUST declare its anchor in the agent's own instruction file and keep it consistent with this table.
+
+---
+
 ## 1. Execution Root Layout
 
-An execution instance is a self-contained project workspace rooted at `{EXECUTION_ROOT}/`. The execution root contains packages (work partitions) and tool roots (derived/operational outputs).
+An execution instance is a self-contained project workspace rooted at `{EXECUTION_ROOT}/` (which resolves `WORKING_ROOT`-relative; see §0.2–0.3). The execution root contains packages (work partitions) and tool roots (derived/operational outputs).
 
 ```
 {EXECUTION_ROOT}/
@@ -47,10 +116,11 @@ An execution instance is a self-contained project workspace rooted at `{EXECUTIO
 ├── _Change/                         # Change management records
 ├── _Coordination/                   # Coordination representation
 │   └── _COORDINATION.md
-├── _Decomposition/                  # Project decomposition document(s)
+├── _Decomposition/                  # Project/domain decomposition document(s)
 │   └── _Archive/
 ├── _Estimates/                      # Cost estimate snapshots
-├── _Reconciliation/                 # Reconciliation reports, closure analysis
+├── _Evaluation/                     # Current audits, evaluations, and review snapshots
+├── _Reconciliation/                 # Deliverable-corpus concordance; historical audit snapshots are immutable
 ├── _Archive/                        # Baseline snapshots with checksums
 ├── _Scripts/                        # Deployment and analysis scripts
 └── _Sources/                        # Shared source/reference documents
@@ -63,7 +133,7 @@ An execution instance is a self-contained project workspace rooted at `{EXECUTIO
 **Required subfolders:**
 
 | Subfolder | Purpose |
-|-----------|---------|
+|---|---|
 | `0_References/` | Package-level reference materials |
 | `0_References/_Archive/` | Archived references |
 | `1_Working/` | Active deliverable folders |
@@ -76,19 +146,34 @@ An execution instance is a self-contained project workspace rooted at `{EXECUTIO
 
 ### 1.2 Tool Roots
 
-Tool roots are project-level directories for derived outputs. Each tool root is isolated from source truth (deliverable folders).
+Tool roots are workspace-level directories for derived outputs, resolved `{EXECUTION_ROOT}`-relative. Each tool root is isolated from source truth (deliverable folders). A tool-root path is the canonical write destination for `tool-root-only` agents (see §9.5); `AUDIT_GOVERNANCE` validates that every agent's `WRITE_SCOPE` references a registered tool root and that every tool root has at least one writer.
 
 | Tool Root | Purpose | Typical Writer |
-|-----------|---------|----------------|
-| `_Aggregation/` | Aggregation snapshots and templates | AGGREGATION agent |
-| `_Change/` | Change management records | CHANGE agent |
-| `_Coordination/` | Coordination representation | ORCHESTRATOR |
-| `_Decomposition/` | Project decomposition document(s) | PROJECT_DECOMP agent |
-| `_Estimates/` | Cost estimate snapshots | ESTIMATING agent |
-| `_Reconciliation/` | Reconciliation reports, closure analysis | RECONCILIATION agent |
-| `_Archive/` | Baseline snapshots with checksums | Human / CHANGE agent |
+|---|---|---|
+| `_Aggregation/` | Aggregation snapshots and templates | AGGREGATION |
+| `_Change/` | Change management records | CHANGE |
+| `_Coordination/` | Coordination representation | PROJECT_SETUP |
+| `_Decomposition/` | Project/domain decomposition document(s) and companions | PROJECT_DECOMP / SOFTWARE_DECOMP / DOMAIN_DECOMP |
+| `_Estimates/` | Cost estimate snapshots | TASK + estimate skills |
+| `_Evaluation/` | Current evaluation reports plus structural, dependency, epistemic, governance, agent, coherence, and review snapshots | EVALUATION / EVALUATION_* / REVIEW / AUDIT_* |
+| `_Reconciliation/` | Calibrated deliverable-corpus concordance runs and historical immutable generic-audit artifacts | RECONCILIATION |
+| `_Schedule/` | Schedule snapshots generated from the dependency graph | PROJECT_SETUP scheduling workflow |
+| `_ScopeChange/` | Change-impact assessments and decomposition amendment snapshots | SCOPE_CHANGE |
+| `_Sources/` | Shared source/reference documents | Human / source-extraction pipelines |
+| `_LocalIndexes/` | Derived source-catalog and retrieval snapshots (domain packs) | DOMAIN_DECOMP / retrieval tools |
+| `_Archive/` | Baseline snapshots with checksums | Human / CHANGE |
 | `_Scripts/` | Deployment and analysis scripts | Human / tooling |
-| `_Sources/` | Shared source/reference documents | Human |
+
+**Nested audit/snapshot subtrees are legal.** A registered tool root MAY contain
+named subtrees that are themselves snapshot roots — e.g.
+`_Evaluation/AgentAudit/`, `_Evaluation/DepClosure/`,
+`_Evaluation/ScopeClosureAudit/`, `_Evaluation/HypergraphClosure/`,
+`_Evaluation/EpistemicAudit/`, `_Evaluation/GovernanceAudit/`,
+`_Evaluation/DecompCoverage/`, `_Evaluation/Reviews/`, and
+`_Aggregation/Hypergraph/`. An agent whose `WRITE_SCOPE` is parameterized to
+such a subtree satisfies the registry through its parent tool root. Legacy
+generic-audit subtrees under `_Reconciliation/` remain readable immutable
+evidence but are not current write destinations.
 
 ---
 
@@ -103,15 +188,16 @@ Each deliverable occupies a folder at:
 ### 2.1 File Inventory
 
 | File | Presence | Created By | Purpose |
-|------|----------|------------|---------|
+|---|---|---|---|
 | `_STATUS.md` | MUST | PREPARATION | Lifecycle state and history |
 | `_CONTEXT.md` | MUST | PREPARATION | Identity, decomposition pointer, traceability |
 | `_DEPENDENCIES.md` | MUST | PREPARATION | Dependency summary (human declarations + agent extractions) |
 | `_REFERENCES.md` | MUST | PREPARATION | Source document pointers |
-| `Datasheet.md` | MUST | TASK+four-documents | Key parameters and structured metadata |
-| `Specification.md` | MUST | TASK+four-documents | Technical requirements and scope definition |
-| `Guidance.md` | MUST | TASK+four-documents | Design guidance, rationale, and best practices |
-| `Procedure.md` | MUST | TASK+four-documents | Step-by-step execution workflow |
+| `ScopeOfWork.md` | MUST* | TASK+scope-of-work | Canonical PROJECT/SOFTWARE production contract selected by schema marker |
+| `Datasheet.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy key parameters and structured metadata |
+| `Specification.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy technical requirements and scope definition |
+| `Guidance.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy design guidance, rationale, and best practices |
+| `Procedure.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy step-by-step execution workflow |
 | `Dependencies.csv` | SHOULD | TASK+dependency-extract | Structured dependency register (v3.1 schema) |
 | `_MEMORY.md` | SHOULD | PREPARATION | Working memory (shared by WORKING_ITEMS and deliverable-local task agents) |
 | `_SEMANTIC.md` | MAY | TASK+semantic-matrix-build | Semantic lens with derivation work |
@@ -120,7 +206,36 @@ Each deliverable occupies a folder at:
 
 **Minimum viable fileset (PREPARATION):** `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_SEMANTIC.md` (placeholder).
 
-**Document kit (TASK+four-documents):** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
+**Production contract:** At lifecycle state `INITIALIZED` or later, exactly one
+valid production format is required. `SOW_V1` is one valid `ScopeOfWork.md`.
+`LEGACY_FOUR_DOC` is the complete four-file kit retained only for an existing
+unconverted deliverable during the authorized transition. The `MUST*` and
+`MAY*` marks above are resolved by this exclusive format rule, not as five
+simultaneous file requirements.
+
+### 2.2 Production Format Resolution
+
+| Files present | State | Validity |
+|---|---|---|
+| Valid `ScopeOfWork.md` only | `SOW_V1` | Canonical |
+| Complete four-document kit only | `LEGACY_FOUR_DOC` | Transitional compatibility for an existing unconverted deliverable |
+| Both complete formats | `MIGRATION_DUAL` only in an isolated conversion workspace with exact accepted migration authority; otherwise `AMBIGUOUS` | Never an accepted deliverable baseline |
+| Partial legacy kit, invalid `ScopeOfWork.md`, or neither at or beyond `INITIALIZED` | `INVALID` | Invalid |
+
+New PROJECT/SOFTWARE deliverables use `SOW_V1`. A successful legacy conversion
+is prepared and verified in isolation, then integrated as one atomic
+replacement that adds the clean finalized `ScopeOfWork.md` and removes all
+four legacy production files. The evidence-rich migration candidate is kept
+outside production; Git history and external migration/finalization receipts
+preserve its source basis and bind the final production hash. No accepted
+commit contains two competing canonical formats or migration-only metadata in
+the production contract.
+
+Format migration is lifecycle-neutral and leaves `_STATUS.md` byte-identical.
+An `ISSUED` deliverable additionally requires an explicit human-approved
+administrative representation-replacement record bound to its accepted basis
+and source hashes. Any semantic change fails format migration and proceeds only
+through the governed scope-change process.
 
 ---
 
@@ -138,6 +253,8 @@ Each deliverable occupies a folder at:
 - {YYYY-MM-DD} — State set to {STATE} ({AGENT_OR_ACTOR})
 ```
 
+A working root MAY host a `## Remaining` section in `_STATUS.md` as the deliverable-local record of warranted open scope. Where adopted, it is the sole deliverable-local executable work surface, and the CHECKING entry minimums in §3.4 reference it.
+
 ### 3.2 Valid Lifecycle States
 
 ```
@@ -145,29 +262,57 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 ```
 
 | State | Meaning | Typical Trigger |
-|-------|---------|-----------------|
+|---|---|---|
 | `OPEN` | Folder exists, no content yet | PREPARATION creates folder |
-| `INITIALIZED` | Draft documents generated | TASK+four-documents completes document kit |
+| `INITIALIZED` | Selected production contract exists and validates | TASK+scope-of-work completes `SOW_V1`; retained legacy deliverables preserve their existing state |
 | `SEMANTIC_READY` | Semantic lens generated | TASK+semantic-matrix-build writes `_SEMANTIC.md` |
 | `IN_PROGRESS` | Active human + agent work | Human or WORKING_ITEMS begins work |
-| `CHECKING` | Under review | Human moves to review |
-| `ISSUED` | Released | Human approves and issues |
+| `CHECKING` | Frozen candidate under review against a declared basis | Human declares the checking basis and freezes the candidate (entry conditions: §3.4) |
+| `ISSUED` | Accepted baseline | Human approves and issues; subsequent changes only via the governed scope-change process (§3.4) |
+
+The `SEMANTIC_READY` state is optional in the lifecycle; a working root MAY omit it where no semantic step applies.
 
 ### 3.3 Transition Rules
 
 | Transition | Authorized Actor |
-|------------|-----------------|
+|---|---|
 | `→ OPEN` | PREPARATION |
-| `OPEN → INITIALIZED` | TASK+four-documents |
+| `OPEN → INITIALIZED` | TASK+scope-of-work after `SOW_V1` validation |
 | `INITIALIZED → SEMANTIC_READY` | TASK+semantic-matrix-build |
 | `INITIALIZED → IN_PROGRESS` | Human, WORKING_ITEMS (when semantic step is skipped) |
 | `SEMANTIC_READY → IN_PROGRESS` | Human, WORKING_ITEMS |
 | `IN_PROGRESS → CHECKING` | Human |
 | `CHECKING → ISSUED` | Human |
+| `CHECKING → IN_PROGRESS` | Human (reversal — the sole exit from an unsuccessful or withdrawn check) |
+| `ISSUED → IN_PROGRESS` | Human, via the governed scope-change process only (opens a new revision cycle) |
 
-**Invariant:** `_STATUS.md` is the authoritative lifecycle indicator. No other file determines deliverable state.
+**Invariant:** `_STATUS.md` is the authoritative lifecycle indicator. No other file determines deliverable state (`CONTRACT.md` K-STATUS-1).
 
 **Stage gates** (30/60/90/IFC, etc.) are human-managed milestones and are NOT lifecycle states. They are tracked separately in coordination records.
+
+### 3.4 Lifecycle Regimes and CHECKING Entry Conditions
+
+Lifecycle states are governed production and change-control regimes with maturity/readiness entry conditions; they are not percentage-complete scores. Advancing `IN_PROGRESS` → `CHECKING` → `ISSUED` carries maturity meaning — each transition asserts readiness against declared entry conditions — while the states themselves define which changes are lawful and under what control:
+
+- `IN_PROGRESS` permits ordinary authorized edits. It is the honest holding state whenever warranted open scope exists, however advanced the implementation.
+- `CHECKING` is a frozen candidate under review against a declared basis. Review evidence appends to run/review records, never to the frozen claim surfaces; reversal to `IN_PROGRESS` is the only edit path.
+- `ISSUED` is an accepted baseline; changes flow only through the governed scope-change process.
+
+**Entry to `CHECKING` is layered**, not a single trigger:
+
+1. **Universal minimums (candidacy).** The deliverable's `## Remaining` open-scope record (where the working root adopts one in `_STATUS.md`; §3.1) is **warranted-empty** — empty, with a current evidence basis bound to the candidate source state certifying that the emptiness is warranted.
+2. **Candidate-specific checking basis.** A declared checking basis appropriate to the deliverable's claims and risk. These criteria are emergent; maturity feedback from real checks hardens into reusable ruled profiles.
+3. **Human declaration.** A human declares the checking basis and freezes the candidate; entry is a human act.
+
+There are no disclosed-deferral carve-outs: any warranted Remaining item keeps the deliverable `IN_PROGRESS`. Boundary adjustments are rescoped through the project's decision process before freeze, never carved out during review. A failed check exits by reversal, its findings becoming Remaining items.
+
+**Rebaseline asymmetry:** demotion to `IN_PROGRESS` requires no criteria beyond the absence of a current accepted basis for the asserted state; promotion requires a contemporary declared basis. Lifecycle corrections are human-authorized administrative acts.
+
+These entry conditions are gate preconditions, not state determinants: `_STATUS.md` remains the sole lifecycle authority (`CONTRACT.md` K-STATUS-1), and every transition — reversals included — is recorded there. Nothing in this section creates a machine-enforced BLOCK on the `CHECKING → ISSUED` judgment (K-GATE-1 / D-GOV-02 posture unchanged).
+
+Reference formulation: `docs/DELIVERABLE_CONCORDANCE_METHOD.md` §4 (ratified 2026-07-11). Amendment authorized by owner direction 2026-07-11: "attend to both now and resolve the issues you find as you recommended in the sequence 1, 2, 3, 4 just stated.  I give you approval to edit the SPEC/TYPES and just report back what you did."
+
+Distinctness: the `IN_PROGRESS` token also appears as a `SatisfactionStatus` enum value (§6.3) — an unrelated vocabulary.
 
 ---
 
@@ -216,7 +361,7 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 
 `_DEPENDENCIES.md` is a hybrid container with two ownership zones:
 
-**Human-owned sections** (PREPARATION creates; human/ORCHESTRATOR maintains):
+**Human-owned sections** (PREPARATION creates; human/PROJECT_SETUP maintains):
 - Dependency Tracking Mode
 - Declared Upstream
 - Declared Downstream
@@ -277,7 +422,7 @@ OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED
 ### 5.3 Tracking Modes
 
 | Mode | Meaning |
-|------|---------|
+|---|---|
 | `NOT_TRACKED` | Dependencies coordinated externally by humans |
 | `DECLARED` | Human-declared upstream/downstream only; no agent extraction |
 | `TRACKED` | Full extraction via TASK+dependency-extract; `Dependencies.csv` present |
@@ -295,7 +440,7 @@ The `RegisterSchemaVersion` column MUST be present in every row and set to `v3.1
 #### Core Columns (MUST be present)
 
 | # | Column | Type | Required | Description |
-|---|--------|------|----------|-------------|
+|---|---|---|---|---|
 | 1 | `RegisterSchemaVersion` | string | MUST | Schema version identifier (`v3.1`) |
 | 2 | `DependencyID` | string | MUST | Unique within the deliverable register (e.g., `DEP-01-01-001`) |
 | 3 | `FromPackageID` | string | MUST | Package ID of the host deliverable |
@@ -329,46 +474,44 @@ The `RegisterSchemaVersion` column MUST be present in every row and set to `v3.1
 #### Extension Columns (MAY be present; non-breaking)
 
 | Column | Type | Description |
-|--------|------|-------------|
+|---|---|---|
 | `EstimateImpactClass` | enum | `BLOCKING`, `ADVISORY`, `INFO`, `TBD` |
-| `ConsumerHint` | enum | `TASK`, `TASK_ESTIMATING`, `AGGREGATION`, `RECONCILIATION`, `TBD` |
+| `ConsumerHint` | enum | `TASK`, `TASK_ESTIMATING`, `AGGREGATION`, `EVALUATION`, `RECONCILIATION_LEGACY`, `TBD` |
 
 ### 6.3 Canonical Enum Values
 
 **DependencyClass:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `ANCHOR` | Tree edge: connects deliverable to a definition/traceability node |
 | `EXECUTION` | DAG edge: information flow, prerequisite, handoff, or constraint |
 
 **AnchorType:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `IMPLEMENTS_NODE` | Parent definition node (exactly one per deliverable) |
 | `TRACES_TO_REQUIREMENT` | Requirement trace link (zero or more) |
 | `NOT_APPLICABLE` | Used for EXECUTION rows |
 
 **Direction:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `UPSTREAM` | This deliverable requires information FROM the target |
 | `DOWNSTREAM` | This deliverable produces information FOR the target |
 
 **DependencyType:**
 | Value | Usage | Meaning |
-|-------|-------|---------|
+|---|---|---|
 | `PREREQUISITE` | Preferred | Required input or approval before work can proceed |
 | `INTERFACE` | Preferred | Explicit data/artifact exchange between deliverables |
 | `HANDOVER` | Preferred | Output of one deliverable consumed as input to another |
 | `CONSTRAINT` | Preferred | Explicit constraint or condition |
 | `ENABLES` | Preferred | This deliverable enables downstream work |
 | `OTHER` | Preferred | Dependency that does not fit other categories; used for ANCHOR rows |
-| `COORDINATION` | Legacy | Do not emit in new extractions |
-| `INFORMATION` | Legacy | Do not emit in new extractions |
 
 **TargetType:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `DELIVERABLE` | Another deliverable in the project |
 | `PACKAGE` | A package (used in ANCHOR rows) |
 | `WBS_NODE` | Work breakdown structure or scope node |
@@ -380,13 +523,13 @@ The `RegisterSchemaVersion` column MUST be present in every row and set to `v3.1
 
 **Explicitness:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `EXPLICIT` | Dependency is explicitly stated in source text |
 | `IMPLICIT` | Dependency is implied but not directly stated |
 
 **SatisfactionStatus:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `TBD` | Not yet assessed |
 | `PENDING` | Assessed but not yet satisfied |
 | `IN_PROGRESS` | Actively being worked toward satisfaction |
@@ -396,20 +539,20 @@ The `RegisterSchemaVersion` column MUST be present in every row and set to `v3.1
 
 **Confidence:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `HIGH` | Strong evidence; explicit source reference |
 | `MEDIUM` | Reasonable evidence; some interpretation required |
 | `LOW` | Weak evidence; significant interpretation or assumption |
 
 **Origin:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `DECLARED` | Human-declared dependency |
 | `EXTRACTED` | Agent-extracted from source documents |
 
 **Status:**
 | Value | Meaning |
-|-------|---------|
+|---|---|
 | `ACTIVE` | Dependency is currently observed and relevant |
 | `RETIRED` | Dependency was previously observed but is no longer found in source text |
 
@@ -432,7 +575,7 @@ Every ACTIVE row MUST include:
 - `EvidenceFile`: the source document filename (or `location TBD`)
 - `SourceRef`: path + heading/section within the evidence file (or `location TBD`)
 
-`EvidenceQuote` SHOULD be provided (max 30 words) for traceability.
+`EvidenceQuote` SHOULD be provided (max 30 words) for traceability. This section is the enforcement point for `CONTRACT.md` K-PROV-1.
 
 ### 6.6 Lifecycle Tracking
 
@@ -459,6 +602,8 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 **DependencyType normalization (see §6.3):**
 - `COORDINATION` (legacy) → `OTHER` (canonical, used for ANCHOR rows and catch-all)
 - `INFORMATION` (legacy) → Interpret context and map to `PREREQUISITE`, `INTERFACE`, `HANDOVER`, `CONSTRAINT`, or `ENABLES` as appropriate
+- Project-specific dependency labels such as `ARCHITECTURE_BASIS`, `DOMAIN_MODEL`, `*_PREDECESSOR`, `*_CONTRACT`, or `SERVICE_API` are read-only migration inputs, not v3.1 core enum values. Current registers MUST map them to the canonical `DependencyType` set and preserve the original label in `Notes` or a documented extension column.
+- `CANDIDATE` is not a valid `Status`. Candidate/non-gating graph dispositions belong in graph-governance worklists or review packets outside the canonical `Dependencies.csv` / `DependencyEdges.csv` register.
 
 **SchemaVersion handling:**
 - If `RegisterSchemaVersion` is missing from an existing file, add it on write and set to `v3.1`
@@ -491,7 +636,7 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 
 - References are listed as relative paths (preferred) or absolute paths to source documents.
 - Each reference includes a brief relevance statement.
-- `_REFERENCES.md` is created by PREPARATION and MAY be updated by human or ORCHESTRATOR.
+- `_REFERENCES.md` is created by PREPARATION and MAY be updated by human or PROJECT_SETUP.
 - TASK+dependency-extract reads `_REFERENCES.md` but MUST NOT modify it.
 
 ---
@@ -527,7 +672,11 @@ Rows are never deleted. Rows no longer observed in source text are marked `RETIR
 
 ## 9. Agent Instruction File Structure
 
-All agent instruction files (`AGENT_*.md`) MUST follow the structure defined by `AGENT_HELPS_HUMANS.md`.
+All live agent instruction files currently implement the candidate structure in
+`WORKFLOW_COMPONENT_STANDARD.md` and are checked by the instruction validator.
+That implementation evidence does not ratify the candidate. HELPS_HUMANS is
+the applying/maintenance persona, not the constitutional source. `AGENTS.md`
+is a distinct authoritative runtime surface (K-AGENTS-1).
 
 ### 9.1 Required Header
 
@@ -557,7 +706,7 @@ AGENT_TYPE: {0|1|2}
 Every agent instruction file MUST include these section markers:
 
 | Section | Marker | Purpose |
-|---------|--------|---------|
+|---|---|---|
 | PROTOCOL | `[[BEGIN:PROTOCOL]]` ... `[[END:PROTOCOL]]` | Execution procedure (sequencing, interactions) |
 | SPEC | `[[BEGIN:SPEC]]` ... `[[END:SPEC]]` | Validity requirements (pass/fail criteria) |
 | STRUCTURE | `[[BEGIN:STRUCTURE]]` ... `[[END:STRUCTURE]]` | Schemas, templates, artifact definitions |
@@ -574,12 +723,14 @@ PROTOCOL > SPEC > STRUCTURE > RATIONALE
 ### 9.5 Classification Properties
 
 | Property | Valid Values | Meaning |
-|----------|-------------|---------|
+|---|---|---|
 | `AGENT_TYPE` | `TYPE 0`, `TYPE 1`, `TYPE 2` | Architect / Manager / Specialist |
 | `AGENT_CLASS` | `PERSONA`, `TASK` | Interactive session vs. straight-through pipeline |
 | `INTERACTION_SURFACE` | `chat`, `INIT-TASK`, `spawned`, `both` | How the agent is invoked |
-| `WRITE_SCOPE` | `repo-wide`, `deliverable-local`, `tool-root-only`, `workspace-scaffold-only`, `repo-metadata-only`, `none` | What the agent is allowed to write |
+| `WRITE_SCOPE` | base values: `repo-wide`, `project-level`, `package-level`, `deliverable-local`, `tool-root-only`, `workspace-scaffold-only`, `repo-metadata-only`, `bounded-task-brief`, `none` | What the agent is allowed to write |
 | `BLOCKING` | `never`, `allowed` | Whether the agent may pause for human input |
+
+**`WRITE_SCOPE` parameterization.** A `tool-root-only` scope MAY be parameterized to a specific tool root or registered subtree — for example `tool-root-only ({EXECUTION_ROOT}/_Evaluation/<subtree>/)`. The parameterized form satisfies the `AUDIT_GOVERNANCE` registry check via its parent tool root (see §1.2). `bounded-task-brief` is the canonical scope of the `TASK` shell: writes are authorized only by the effective bounded task brief (`AllowedWriteTargets` or an explicitly named boundary), never by `ScopePath`/`DeliverablePath` alone, and always subject to ScopePath containment (§0.2.3).
 
 ### 9.6 Naming Convention
 
@@ -589,82 +740,44 @@ Use `AGENT_*` when referring to instruction files (e.g., `AGENT_CHANGE.md`). Use
 
 Harness runtime metadata parsing uses a split contract:
 
-- **YAML frontmatter** (machine fields consumed by runtime where present):
-  - `description`
-  - `subagents`
-  - `tools`
-  - `model`
-  - `max_turns`
-  - `disallowed_tools`
-  - `auto_approve_tools`
-- **Canonical body header/table**:
-  - `AGENT_TYPE: {0|1|2}` line in the instruction body
-  - `AGENT_CLASS` value in the Agent Type table
+- **YAML frontmatter** (machine fields consumed by runtime where present): `description`, `subagents`, `tools`, `model`, `max_turns`, `disallowed_tools`, `auto_approve_tools`, `allow_generalist_agent2`, and `dedicated_agent2_approval`.
+- **Canonical body header/table**: the `AGENT_TYPE: {0|1|2}` line in the instruction body and the `AGENT_CLASS` value in the Agent Type table.
 
 Subagent registry safety rules:
+- The former SDK Agent compatibility bridge is disabled after managed-runtime
+  acceptance. The canonical managed runtime permits Agent 0 to launch named
+  Agent 1 sessions and Agent 1 to launch valid Agent 2 forms; historical Agent
+  tool requests fail closed.
+- Agent 1 delegates only Agent 2 forms. `AGENT_CLASS: TASK` remains preferred
+  for persistent Agent 2 packages.
 
-- Delegated subagents MUST declare `AGENT_TYPE: 2` in the body header.
-- `AGENT_CLASS: TASK` is preferred and validated as a warning-level rule (non-blocking).
+Delegation governance rule (fail closed): when subagents are enabled and a Type 1 persona is allowlisted for subagents, runtime injects subagents only if valid governance metadata is present (`contextSealed === true`, `pipelineRunApproved === true`, a non-empty `approvalRef`). The reference MUST cite the applicable human approval record; runtime presence checks are necessary but do not authenticate or create that human act. Missing or invalid governance metadata MUST block subagent injection while allowing the parent turn to continue normally. Deployment-specific harness/runtime API and UI contracts (turn input, attachment handling, selector schemas) are defined in the owning project's runtime docs, not at the framework root.
 
-Delegation governance rule (fail closed):
+### 9.8 Managed Multi-Agent Runtime Record
 
-- When `CHIRALITY_ENABLE_SUBAGENTS === "true"` and a Type 1 persona is allowlisted for subagents, runtime injects subagents only if `opts.subagentGovernance` is present and valid:
-  - `contextSealed === true`
-  - `pipelineRunApproved === true`
-  - `approvalRef` is a non-empty string
-  - `approvedBy` is optional
-- Missing/invalid governance metadata MUST block subagent injection while allowing the parent turn to continue normally.
+The managed runtime persists one durable record tree per orchestration
+run under `{EXECUTION_ROOT}/_Coordination/AgentRuns/<RunID>/`. It contains the
+versioned orchestration plan, work graph, instance launch briefs/status/returns,
+coordination notices and dispositions, parent updates and acknowledgments,
+brief amendments, and final handoff state.
 
-### 9.8 Harness Turn Input Contract
+Plans, briefs, returns, notices, dispositions, updates, amendments, and
+acknowledgments are immutable/versioned entries. `STATUS.json` and
+`HANDOFF_STATE.md` are runtime-owned materialized summaries reconstructed from
+those records and may advance as a child or run changes state.
 
-Harness runtime accepts a turn options object (`opts`) on session boot and turn execution APIs.
+Every work graph records `RunID`, `PlanVersion`, selection authority,
+descriptive posture, accepted basis, agent-instance nodes, dependency edges,
+concurrency eligibility, read scopes, write ownership, expected returns,
+fan-in gates, and human decision points. Every managed instance records its
+logical parent, agent role/type, instruction or brief hash, declared context,
+tools, writes, output artifacts, and status.
 
-- `POST /api/harness/turn` accepts `opts` and applies runtime option mapping.
-- `POST /api/harness/session/boot` accepts `opts`; bootstrap policy remains authoritative for bootstrap-only constraints.
-- `POST /api/harness/turn` also accepts optional `attachments` as an array of absolute filesystem path strings.
-
-Attachment handling rules:
-
-- The UI sends attachment paths only; server-side runtime classifies and reads files.
-- Client-supplied attachment metadata (name/mime/type) is non-authoritative and MUST NOT be trusted for execution.
-- A turn MAY omit text when attachments are present (`message.trim() === ""` with non-empty `attachments`).
-- Resolver validation is server-side and enforces:
-  - supported extensions (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.pdf`, `.txt`, `.md`, `.csv`)
-  - `stats.isFile()` check — directories, symlinks, and special files are rejected
-  - per-file size limit (10 MB)
-  - total per-turn raw-byte budget (18 MB raw, which yields ~24 MB after base64 encoding)
-- Partial attachment failure is non-fatal when the turn still has executable content:
-  - if at least one attachment resolves (or user text exists), runtime proceeds and prepends a warning text block to the user content.
-  - if all attachments fail and user text is empty, the request is rejected (`400`).
-
-Prompt mode selection:
-
-- No attachments: runtime uses SDK `query({ prompt: string })`.
-- Attachments present: runtime builds multimodal content blocks and uses SDK `query({ prompt: AsyncIterable<SDKUserMessage> })`.
-
-UI attachment state rules:
-
-- UI stores `Attachment[]` (path, display name, client-classified mime/type) for preview purposes only; server reclassifies.
-- On send failure, UI rolls back the optimistic user message and streaming placeholder, preserving the draft text and attachment selections for retry.
-- Session rehydration validates attachment shape — malformed records are silently dropped; valid records are restored.
-
-UI contract rules:
-
-- UI MAY expose any subset of supported `opts` fields.
-- Omitted fields MUST follow runtime fallback chains (persona defaults, global defaults, and runtime defaults).
-- UI visibility of a field MUST NOT be interpreted as runtime authorization.
-
-Key fallback examples:
-
-- Model: `opts.model` → global model (instruction root) → runtime default.
-- Tools: `opts.tools` → persona `tools` frontmatter → runtime preset.
-- Max turns: `opts.maxTurns` → persona `max_turns` frontmatter → runtime default.
-
-Governance visibility and enforcement:
-
-- UI MAY present delegation governance fields for operator use.
-- Runtime gate/seal logic remains authoritative.
-- Supplying `opts.subagentGovernance` does not guarantee delegation; all runtime gates MUST still pass.
+The runtime rejects direct sibling messaging, invalid parent/child type pairs,
+undeclared writes, concurrent path overlap (including ancestor containment),
+missing seals/approval references, capability inheritance, and fan-in over
+missing or invalid returns. Overlapping writes require an accepted predecessor
+or one declared integration owner.
 
 ---
 
@@ -695,7 +808,7 @@ Task agents that produce outputs to tool roots SHOULD write to timestamped snaps
 {TOOL_ROOT}/{SNAPSHOT_LABEL}_{YYYY-MM-DD}_{HHmm}/
 ```
 
-Snapshot folders are immutable after creation. Reruns create new snapshot folders.
+Snapshot folders are immutable after creation. Reruns create new snapshot folders. This is the enforcement point for `CONTRACT.md` K-SNAP-1.
 
 ### 11.2 Pointer Files
 
@@ -735,11 +848,10 @@ A deliverable folder is valid when:
 - [ ] Contains `_DEPENDENCIES.md`
 - [ ] Contains `_REFERENCES.md`
 
-A deliverable folder is **initialized** (state >= `INITIALIZED`) when it additionally contains:
-- [ ] `Datasheet.md`
-- [ ] `Specification.md`
-- [ ] `Guidance.md`
-- [ ] `Procedure.md`
+A deliverable folder is **initialized** (state >= `INITIALIZED`) when it
+additionally resolves to exactly one valid production format under §2.2:
+`SOW_V1`, or `LEGACY_FOUR_DOC` during the authorized transition. New
+deliverables must resolve to `SOW_V1`.
 
 A deliverable folder is **dependency-tracked** when it additionally contains:
 - [ ] `Dependencies.csv` with valid v3.1 schema headers
@@ -757,135 +869,94 @@ Records the project's chosen coordination representation:
 
 The coordination representation is chosen per project instance and recorded once. It does not change the dependency tracking mechanics (which always maintain the full DAG), only how teams use the graph for scheduling.
 
----
-
-## 14. UI Navigation and Selector Contract
-
-This section defines deterministic frontend behavior for matrix launch routing and work mode selectors.
-
-**Note:** This section describes what the desktop frontend currently implements. UI labels (e.g., `HELP`, `ORCHESTRATE`, `DEPENDENCIES`, `RECONCILING`) are abbreviated variants of canonical agent/role names, and the selector list currently includes `DEPENDENCIES` — an archived wrapper name pointing to `skills/dependency-extract/` (see `AGENTS.md` "TASK Skill Capabilities"). Full normalization of UI labels to canonical agent/role names and removal of archived wrapper references is deferred to a separate frontend slice.
-
-### 14.1 PORTAL Matrix Routing
-
-Matrix rows map to destination views as follows:
-
-| Matrix Row | Destination View |
-|------------|------------------|
-| `NORMATIVE` | `WORKBENCH` |
-| `OPERATIVE` | `PIPELINE` |
-| `EVALUATIVE` | `WORKBENCH` |
-
-Matrix columns are shared labels: `GUIDING`, `APPLYING`, `JUDGING`, `REVIEWING`.
-
-### 14.2 WORKBENCH Selector Scope
-
-WORKBENCH persona selector is limited to the NORMATIVE + EVALUATIVE matrix agents:
-
-- `HELP`
-- `ORCHESTRATE`
-- `WORKING_ITEMS`
-- `AGGREGATE`
-- `AGENTS`
-- `DEPENDENCIES`
-- `CHANGE`
-- `RECONCILING`
-
-OPERATIVE matrix entries MUST route to PIPELINE, not WORKBENCH.
-
-### 14.3 PIPELINE Selector Schema
-
-PIPELINE uses category-driven selectors:
-
-1. `Category`: one of `DECOMP*`, `PREP*`, `TASK*`, `AUDIT*`
-2. `Type`: category-specific static options (including disabled placeholders)
-3. TASK-only split controls:
-   - `Task Agent` (static task options)
-   - `Scope Mode` (`DELIVERABLES` or `KNOWLEDGE_TYPES`)
-   - `Scope` (dynamic list based on mode)
-   - `Target Deliverable` (required when scope mode is `KNOWLEDGE_TYPES`)
-
-### 14.4 Disabled Option Behavior
-
-Requested but unsupported variants MUST be shown and disabled:
-
-- Visible to operators (no silent omission)
-- Non-selectable
-- Labeled as coming soon (or equivalent disabled hint)
-
-### 14.5 Stale Selection Reset Rules
-
-Frontend state MUST clear invalid/stale selections when:
-
-- Project root changes
-- Deliverable scan results no longer include the selected deliverable key
-- Knowledge decomposition marker is absent while knowledge-type scope is selected
-- Knowledge type no longer resolves to available target deliverables
+The coordination root also holds the session control-plane handoff files (`NEXT_INSTANCE_PROMPT.md` and, where used, `NEXT_INSTANCE_STATE.md`); see `AGENT_PROJECT_SETUP.md`.
 
 ---
 
-## 15. `/api/project/deliverables` Response Contract Extension
+## Deferred to working-root / runtime docs
 
-The deliverables endpoint continues to return `deliverables[]` and is extended with knowledge-scope metadata.
+The prior root SPEC carried desktop-frontend UI navigation and `/api/project/deliverables` response contracts. Those are deployment-specific runtime contracts, not framework-root structures, and are owned by the runtime project's docs (`projects/chirality-app-dev/docs/`). They are intentionally not reproduced here.
 
-### 15.1 Response Shape
+---
 
-```json
-{
-  "deliverables": [
-    {
-      "id": "DEL-01-01",
-      "name": "Deliverable Name",
-      "pkg": "PKG-01_PackageLabel",
-      "status": "open",
-      "path": "/abs/path/to/deliverable"
-    }
-  ],
-  "knowledgeDecomposition": {
-    "enabled": false,
-    "markerFile": null
-  },
-  "knowledgeTypes": [
-    {
-      "id": "datasheet",
-      "label": "Datasheet",
-      "matchingDeliverableKeys": ["PKG-01_PackageLabel::DEL-01-01"]
-    }
-  ]
-}
+## 14. Root-Owned Shared Runtime
+
+The root `runtime/` workspace contains versioned contracts, provider-neutral
+orchestration, a daemon, a Unix-socket client, a CLI, and safe engine/provider
+adapters. It is an independent Node workspace with its own lockfile. Project
+applications consume its public packages; private project adapters do not
+become generic runtime dependencies.
+
+### 14.1 Local control plane
+
+The packaged Chirality application may run in `--runtime-daemon` mode without
+a window. Its only control listener is
+`{userData}/runtime/control.sock`. The parent directory is mode `0700`; the
+socket and owner/auth records are mode `0600`. Stale-socket recovery verifies
+current-user ownership and absence of a live recorded process before removal.
+
+Installation is opt-in through the bundled CLI. The installed macOS
+LaunchAgent has label `com.chirality.runtime`, starts at login, restarts after
+failure, writes logs and mutable state beneath Chirality user data, and does
+not load any local model automatically.
+
+HTTP/1.1 JSON requests and canonical SSE responses cover health, project
+registration/status, session create/list/boot/replay/turn/interrupt,
+high-level Agent 1 runs, provider credentials, and explicit oMLX model
+status/activation. Tokens are hashed at rest, scoped to a client and optional
+project, and compared in constant time. Browser code never receives a runtime
+credential.
+
+### 14.2 Project manifests and sessions
+
+Each registered checkout supplies `chirality.project.json` with schema
+`chirality.project/v1`, a stable project ID and display name, relative
+working/instruction/AGENTS/execution references, profile references, enabled
+adapter IDs, and an embedded-UI declaration. Registration containment-checks
+the resolved paths and records the manifest hash and approval outside the
+checkout. Privileged execution stops on manifest drift until re-registration.
+
+Canonical runtime sessions live beneath
+`{userData}/runtime/projects/<projectId>/sessions`. A legacy project-local
+session may be copied and validated lazily on access, with migration evidence;
+the source remains untouched for the migration cycle. JSON/JSONL stays the
+runtime evidence format.
+
+### 14.3 Local-model residency
+
+The first managed provider is authenticated literal-loopback oMLX. Discovery
+uses `GET /v1/models/status`; explicit transitions use the exact model ID with
+`POST /v1/models/{id}/unload` and `POST /v1/models/{id}/load`. Redirects,
+embedded URL credentials, remote hosts, and aliases are rejected.
+
+One primary local LLM may be managed at a time. Activation rejects new local
+turns, drains active Pi turns for at most ten minutes, and completes the whole
+transition within twenty minutes. Drain timeout retains the current model.
+Load failure after unload enters `NO_MODEL`. Unknown helper, embedding, and
+reranking models are never automatically unloaded. Redacted transition
+evidence assigns an epoch referenced by local sessions and AgentRuns.
+
+### 14.4 Initial governed run
+
+`chirality run --project <id> --agent <Agent1Role> --brief-file <path>
+--local-model <exact-id>` creates a real Agent 1 session. The exact local model
+must already be resident. The run authorizes at most one Pi/oMLX Agent 2 child
+with one declared read-only Chirality tool and requires the Agent 1 to review
+its return. Missing compliant delegation terminates with
+`REQUIRED_DELEGATION_MISSING`. Agent 2 cannot delegate.
+
+The complete initial CLI surface is:
+
+```text
+chirality daemon install|start|stop|status|uninstall
+chirality project register|list|status
+chirality models list|activate
+chirality session create|list|replay|turn|interrupt
+chirality run --project <id> --agent <role> --brief-file <path>
+              [--local-model <exact-id>] [--json]
 ```
 
-### 15.2 `knowledgeDecomposition`
-
-| Field | Type | Meaning |
-|-------|------|---------|
-| `enabled` | boolean | `true` only when a knowledge decomposition marker is found in decomposition docs |
-| `markerFile` | string \| null | Path (or filename) of the first marker-bearing decomposition file; `null` when none found |
-
-### 15.3 `knowledgeTypes[]`
-
-Each element represents a canonical knowledge-type bucket observed across scanned deliverables.
-
-| Field | Type | Meaning |
-|-------|------|---------|
-| `id` | string | Stable key for the knowledge type (e.g., `datasheet`) |
-| `label` | string | Human-readable label (e.g., `Datasheet`) |
-| `matchingDeliverableKeys` | string[] | Deliverable composite keys in `pkg::id` format where this type is present |
-
-Knowledge types SHOULD be derived from canonical deliverable file classes:
-
-- Datasheet
-- Specification
-- Guidance
-- Procedure
-- Dependencies
-- References
-- Context
-- Status
-- Semantic
-- Memory
-
-When `knowledgeDecomposition.enabled=false`, clients MUST NOT present knowledge-type scope as an active selection mode.
-
----
-
-EOF
+Run requests may also arrive through standard input or a request file. Human
+output is the default; `--json` emits newline-delimited canonical events.
+Credential values remain Desktop-managed and are neither accepted nor
+displayed by this initial CLI.

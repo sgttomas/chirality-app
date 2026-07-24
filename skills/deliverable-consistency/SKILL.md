@@ -1,11 +1,11 @@
 ---
 name: deliverable-consistency
 description: Run a deliverable-local consistency sweep across production documents in one deliverable. Use when checking for unresolved markers, missing core artifacts, identity-label mismatches, or candidate unsourced numeric statements.
-compatibility: Chirality TASK with DELIVERABLE_TASK profile; local repo tools only.
+compatibility: Chirality TASK generic shell; local repo tools only.
 allowed-tools: python3 tools/validation/scan_deliverable_consistency.py:*
 metadata:
   chirality-skill-version: "1"
-  chirality-task-profile: DELIVERABLE_TASK
+  chirality-task-profile: NONE
 ---
 
 # SKILL — deliverable-consistency
@@ -14,8 +14,7 @@ metadata:
 
 Run a deliverable-local consistency sweep across the production documents in one deliverable.
 
-This skill is meant to work with:
-- `TaskProfile: DELIVERABLE_TASK`
+This skill is meant to work with generic `TASK` briefs that identify exactly one deliverable folder.
 
 It helps the agent:
 - surface contradictions,
@@ -26,13 +25,14 @@ It helps the agent:
 
 ## Suitable agent shells
 
-- `TASK` with `TaskProfile: DELIVERABLE_TASK`
+- `TASK` (generic shell, no profile)
 
 ## Inputs
 
 ### Required
 
-- `DeliverablePath` via `DELIVERABLE_TASK`
+- `ScopePath`
+- `RuntimeOverrides.DELIVERABLE_PATH`
 
 ### Optional
 
@@ -52,6 +52,7 @@ It helps the agent:
 | `MaxFindings` | Soft cap on reported findings | `10` |
 | `CheckIdentity` | Check folder/document naming consistency | `true` |
 | `CheckUnsourcedNumerics` | Flag numeric statements needing evidence review | `true` |
+| `ProductionFormat` | resolver-selected `LEGACY_FOUR_DOC`, `SOW_V1`, or authorized `MIGRATION_DUAL` | resolver result |
 
 ## Tool usage
 
@@ -62,12 +63,15 @@ Preferred method:
 - run the deterministic scan first
 - read only the flagged deliverable-local files and nearby context
 - compare files directly where the deterministic scan cannot decide
-- recommendation-first output through `DELIVERABLE_TASK`
+- produce recommendation-first output unless edits are explicitly authorized by the brief
 
 Disallowed behavior:
 - no widening scope beyond the single deliverable
-- no edits outside the files already permitted by `DELIVERABLE_TASK`
+- no edits outside the effective bounded task brief's write authorization
 - no silent conflict resolution
+- `SOW_V1` validates cross-section/ID consistency in `ScopeOfWork.md`;
+  `MIGRATION_DUAL` additionally requires exact path-scoped accepted authority
+- missing, partial, invalid, ambiguous, and unauthorized dual input fail closed
 
 ## Outputs
 
@@ -75,7 +79,7 @@ Disallowed behavior:
 - `MISSING:` items where files or references are absent
 - `NEEDS_HUMAN_RULING:` items for true contradictions
 - optional applied minimal edits if `ApplyEdits: true`
-- updated `MEMORY.md` through `DELIVERABLE_TASK` closeout
+- optional `MEMORY.md` update only when the brief explicitly authorizes it
 
 ## Non-negotiable constraints
 

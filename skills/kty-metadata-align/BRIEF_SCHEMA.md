@@ -4,7 +4,7 @@ Use this skill with a generic TASK shell (no profile) like this:
 
 ```md
 PURPOSE: Align one KTY's metadata after DOMAIN regeneration.
-RequestedBy: ORCHESTRATOR
+RequestedBy: PROJECT_SETUP
 
 ScopePath: /abs/path/to/CAT-003_Operations/1_Working/KTY-03-02_Onboarding-Checklist
 TaskSkill: kty-metadata-align

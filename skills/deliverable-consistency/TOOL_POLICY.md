@@ -5,7 +5,7 @@
 This skill is tool-first for the initial sweep, then reasoning-first for adjudication.
 
 1. run `tools/validation/scan_deliverable_consistency.py` against the deliverable
-2. read the flagged production docs and nearby context through `DELIVERABLE_TASK`
+2. read the flagged production docs and nearby context from `RuntimeOverrides.DELIVERABLE_PATH`
 3. compare files directly where the scan surfaces a plausible inconsistency
 4. emit evidence-backed proposals
 5. apply minimal edits only if authorized
@@ -13,7 +13,7 @@ This skill is tool-first for the initial sweep, then reasoning-first for adjudic
 Normal invocation shape:
 
 ```sh
-python3 tools/validation/scan_deliverable_consistency.py "$DeliverablePath"
+python3 tools/validation/scan_deliverable_consistency.py "$DELIVERABLE_PATH"
 ```
 
 Use the optional flags only when the brief calls for them: `--focus-doc`, `--strictness`, `--max-findings`, `--check-identity`, `--check-unsourced-numerics`.
@@ -44,10 +44,10 @@ Reasoning takes over after the deterministic sweep: the agent reads flagged prod
 - No hidden reliance on tools outside the declared list unless the human expands AllowedTools. No writes outside declared scope.
 - no project-wide scanning
 - no widening scope beyond the single deliverable
-- no edits outside the files already permitted by `DELIVERABLE_TASK`
+- no edits outside the effective bounded task brief's write authorization
 - no silent conflict resolution
-- no dependency register edits unless separately authorized through the profile brief
+- no dependency register edits unless separately authorized by the brief
 
 ## Write boundary
 
-Writes are limited to the files already permitted by `DELIVERABLE_TASK` for the single deliverable under `DeliverablePath`, and include optional applied minimal edits (only if `ApplyEdits: true`) and `MEMORY.md` updates through the `DELIVERABLE_TASK` closeout. No writes outside the deliverable. No dependency register edits unless separately authorized through the profile brief.
+Writes are limited to the effective bounded task brief's write authorization for the single deliverable under `RuntimeOverrides.DELIVERABLE_PATH`. Optional applied minimal edits require `ApplyEdits: true`. `MEMORY.md` updates and dependency register edits require explicit brief authorization.

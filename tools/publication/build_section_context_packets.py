@@ -12,8 +12,8 @@ Inputs:
   --manifest                Frozen Publication_Input_Manifest.md
   --schema                  Approved Publication_Schema.md
   --section-map             Approved Section_Map.csv
-  [--concordance-register]  (LEGACY — accepted but ignored; concordance moved to post-authoring)
-  [--risk-inventory]        (LEGACY — accepted but ignored; concordance moved to post-authoring)
+  [--concordance-register]  Frozen publication concordance register
+  [--risk-inventory]        Frozen publication concordance risk inventory
   [--supersession-map]      Frozen cumulative Supersession_Map.csv
   [--open-issues]           Open_Issues_Register.csv
   [--hypergraph-use-mode]   NONE | AUXILIARY_PLANNING | AUXILIARY_QA |
@@ -252,7 +252,7 @@ def row_matches_entities(row: Dict[str, str], entities: Sequence[str]) -> bool:
 
 
 def row_applies_to_section(row: Dict[str, str], section_id: str, entities: Sequence[str]) -> bool:
-    applies = first_value(row, "AppliesToSections", "RequiredSectionIDs", "SectionIDs", "SectionID")
+    applies = first_value(row, "AppliesToSections", "RequiredSectionIDs", "AffectedSectionIDs", "SectionIDs", "SectionID")
     if applies and section_id in split_ids(applies):
         return True
     if row_matches_entities(row, entities):
@@ -299,6 +299,8 @@ def build_packet(
     objectives: Dict[str, Dict[str, str]],
     kty_objectives: Dict[str, List[str]],
     supersession_rows: Sequence[Dict[str, str]],
+    concordance_register_rows: Sequence[Dict[str, str]],
+    risk_inventory_rows: Sequence[Dict[str, str]],
     open_issue_rows: Sequence[Dict[str, str]],
     remediation_rows: Sequence[Dict[str, str]],
     vocabulary_rows: Sequence[Dict[str, str]],
@@ -380,6 +382,49 @@ def build_packet(
                 ]
             )
     table(lines, ["SupersededFactKey", "OverrideType", "ReplacementValue", "AmendmentID", "AppliesToSections"], supersession_out)
+
+    lines.extend(["", "## Concordance Assertions", ""])
+    authority_keys, required_keys = concordance_keys_for_section(concordance_register_rows, section_id)
+    concordance_out: List[List[str]] = []
+    for row in concordance_register_rows:
+        key = row.get("AssertionKey", "")
+        if key in authority_keys or key in required_keys or row_applies_to_section(row, section_id, entities):
+            roles: List[str] = []
+            if key in authority_keys:
+                roles.append("AUTHORITY")
+            if key in required_keys:
+                roles.append("REQUIRED")
+            concordance_out.append(
+                [
+                    key,
+                    "; ".join(roles) if roles else "REFERENCED",
+                    first_value(row, "AssertionLabel", "Label", "Description"),
+                    first_value(row, "AuthoritySectionID"),
+                    first_value(row, "RequiredSectionIDs"),
+                ]
+            )
+    table(lines, ["AssertionKey", "SectionRole", "AssertionLabel", "AuthoritySectionID", "RequiredSectionIDs"], concordance_out)
+
+    lines.extend(["", "## Concordance Risk Inventory", ""])
+    risk_out: List[List[str]] = []
+    for row in risk_inventory_rows:
+        if row_applies_to_section(row, section_id, entities):
+            risk_out.append(
+                [
+                    first_value(row, "RiskID", "ID"),
+                    first_value(row, "RiskClass", "Class"),
+                    first_value(row, "SourceKTYID", "KnowledgeTypeID", "KTYID"),
+                    first_value(row, "AffectedSectionIDs", "SectionIDs", "SectionID"),
+                    first_value(row, "CoverageStatus", "Status"),
+                    first_value(row, "RegisterAssertionKey", "AssertionKey"),
+                    first_value(row, "WhyItMatters", "Summary", "Description"),
+                ]
+            )
+    table(
+        lines,
+        ["RiskID", "RiskClass", "SourceKTYID", "AffectedSectionIDs", "CoverageStatus", "RegisterAssertionKey", "WhyItMatters"],
+        risk_out,
+    )
 
     lines.extend(["", "## Open Issues Affecting This Section", ""])
     open_out: List[List[str]] = []
@@ -505,6 +550,8 @@ def generate_packets(
     remediation_rows = load_rows(classified.get("remediation_manifest"))
     open_issue_rows = load_rows(open_issues_path)
     supersession_rows = load_rows(supersession_map_path)
+    concordance_register_rows = load_rows(concordance_register_path)
+    risk_inventory_rows = load_rows(risk_inventory_path)
 
     categories = index_by(category_rows, "CategoryID")
     ktys = index_by(kty_rows, "KnowledgeTypeID")
@@ -526,6 +573,8 @@ def generate_packets(
             objectives=objectives,
             kty_objectives=kty_objectives,
             supersession_rows=supersession_rows,
+            concordance_register_rows=concordance_register_rows,
+            risk_inventory_rows=risk_inventory_rows,
             open_issue_rows=open_issue_rows,
             remediation_rows=remediation_rows,
             vocabulary_rows=vocabulary_rows,
@@ -542,8 +591,8 @@ def main() -> int:
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--schema", required=True)
     parser.add_argument("--section-map", required=True)
-    parser.add_argument("--concordance-register", default="", help="LEGACY — accepted but ignored")
-    parser.add_argument("--risk-inventory", default="", help="LEGACY — accepted but ignored")
+    parser.add_argument("--concordance-register", default="")
+    parser.add_argument("--risk-inventory", default="")
     parser.add_argument("--supersession-map", default="")
     parser.add_argument("--open-issues", default="")
     parser.add_argument("--hypergraph-use-mode", default="NONE")
@@ -554,6 +603,8 @@ def main() -> int:
         manifest_path=Path(args.manifest).resolve(),
         schema_path=Path(args.schema).resolve(),
         section_map_path=Path(args.section_map).resolve(),
+        concordance_register_path=Path(args.concordance_register).resolve() if args.concordance_register else None,
+        risk_inventory_path=Path(args.risk_inventory).resolve() if args.risk_inventory else None,
         output_dir=Path(args.output_dir).resolve(),
         supersession_map_path=Path(args.supersession_map).resolve() if args.supersession_map else None,
         open_issues_path=Path(args.open_issues).resolve() if args.open_issues else None,

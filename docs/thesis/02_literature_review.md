@@ -10,21 +10,17 @@ The literature review serves a dual purpose. First, it demonstrates that the fiv
 
 ---
 
-
-
----
-
 ## 2.1 AI Agent Architectures and Multi-Agent Systems
 
 The field of LLM-based autonomous agents has advanced rapidly since 2022, producing a body of work focused on what agents can do: reason, plan, use tools, delegate, and collaborate. This section surveys the foundational patterns, multi-agent frameworks, and alignment techniques that constitute the current state of the art, and identifies the governance gap that motivates the Chirality architecture.
 
 ### 2.1.1 Foundation Agent Patterns
 
-**Chain-of-thought prompting** established the enabling substrate for agentic reasoning. Wei et al. demonstrated that prompting large language models with intermediate reasoning steps — a chain of thought — substantially improves performance on arithmetic, commonsense, and symbolic reasoning tasks [1]. Crucially, this capability emerges as a function of model scale rather than explicit training and requires only few-shot in-context examples. For the Chirality architecture, chain-of-thought is the reasoning mode employed by agents operating within the ANALYST and AUDITOR tiers; the architecture inherits its inferential power while layering structural constraints that chain-of-thought alone does not provide.
+**Chain-of-thought prompting** established the enabling substrate for agentic reasoning. Wei et al. demonstrated that prompting large language models with intermediate reasoning steps — a chain of thought — substantially improves performance on arithmetic, commonsense, and symbolic reasoning tasks [1]. Crucially, this capability emerges as a function of model scale rather than explicit training and requires only few-shot in-context examples. For the Chirality architecture, chain-of-thought is the reasoning mode employed by the suite's Type 1 and Type 2 agents; the architecture inherits its inferential power while layering structural constraints that chain-of-thought alone does not provide.
 
 **ReAct** (Reasoning + Acting) extended this pattern into an action loop. Yao et al. introduced an agent paradigm in which a language model interleaves reasoning traces with action calls against external tools or environments [2]. In evaluation on HotpotQA and FEVER, ReAct outperformed pure chain-of-thought by grounding reasoning in retrieved evidence, reducing hallucination and error propagation. On interactive decision-making benchmarks (ALFWorld, WebShop), ReAct surpassed imitation and reinforcement learning baselines by an absolute margin of 34% and 10% respectively. The architecture directly influences Chirality's deterministic tool interface design: agents reason about what to invoke, invoke it, and receive structured results — but the ReAct paper specifies no constraints on what tools may be invoked, what side-effects are permissible, or what authority boundaries govern the action space.
 
-**Toolformer** demonstrated that models can autonomously learn when and how to call external APIs. Schick et al. trained a model in a self-supervised manner to decide which of a fixed set of APIs to call, when to call them, what arguments to pass, and how to incorporate results into subsequent generation [3]. Toolformer achieved competitive zero-shot performance across diverse downstream tasks without sacrificing core language modelling ability. The work is relevant to Chirality's TOOLMAKER subsystem, which provides deterministic, auditable tool implementations. However, Toolformer treats tool invocation as a capability to be maximised; it does not define a scope boundary separating read-only from write-capable tools, nor does it specify authority conditions under which writes are permissible.
+**Toolformer** demonstrated that models can autonomously learn when and how to call external APIs. Schick et al. trained a model in a self-supervised manner to decide which of a fixed set of APIs to call, when to call them, what arguments to pass, and how to incorporate results into subsequent generation [3]. Toolformer achieved competitive zero-shot performance across diverse downstream tasks without sacrificing core language modelling ability. The work is relevant to Chirality's registered deterministic toolset (indexed in `tools/REGISTRY.md` and maintained by the HELPS_HUMANS agent), which provides deterministic, auditable tool implementations. However, Toolformer treats tool invocation as a capability to be maximised; it does not define a scope boundary separating read-only from write-capable tools, nor does it specify authority conditions under which writes are permissible.
 
 ### 2.1.2 Multi-Agent Frameworks
 
@@ -38,7 +34,7 @@ The field of LLM-based autonomous agents has advanced rapidly since 2022, produc
 
 ### 2.1.3 Generative Agent Societies
 
-Park et al. introduced generative agents — computational agents built on an LLM core augmented with a memory stream, reflection mechanism, and daily planning module — and demonstrated their deployment in a 25-agent simulated town environment [8]. Agents autonomously organised social events, formed relationships, and exhibited emergent coordination behaviours from only a small number of authored initial conditions. The memory architecture — storing full experience history as natural language, synthesising higher-level reflections over time, and retrieving relevant context dynamically — informs Chirality's MEMORY subsystem design. The Park et al. work is significant for establishing that complex, temporally extended agent behaviour is achievable without hard-coded scripts. It does not, however, address governance: agents in the simulated town are unconstrained in what they write to shared memory, have no authority hierarchy, and emit no provenance records linking their outputs to source observations.
+Park et al. introduced generative agents — computational agents built on an LLM core augmented with a memory stream, reflection mechanism, and daily planning module — and demonstrated their deployment in a 25-agent simulated town environment [8]. Agents autonomously organised social events, formed relationships, and exhibited emergent coordination behaviours from only a small number of authored initial conditions. The memory architecture — storing full experience history as natural language, synthesising higher-level reflections over time, and retrieving relevant context dynamically — informs Chirality's working-memory design (per-deliverable `_MEMORY.md` files and session handoff artifacts). The Park et al. work is significant for establishing that complex, temporally extended agent behaviour is achievable without hard-coded scripts. It does not, however, address governance: agents in the simulated town are unconstrained in what they write to shared memory, have no authority hierarchy, and emit no provenance records linking their outputs to source observations.
 
 ### 2.1.4 Principle-Based Alignment
 
@@ -46,7 +42,7 @@ Bai et al. introduced Constitutional AI (CAI), a training methodology that reduc
 
 ### 2.1.5 Hierarchical Agent Architectures
 
-Several frameworks have explored hierarchical organisation as a mechanism for managing complexity in multi-agent systems. The Self-Organised Agents (SoA) framework employs a mother–child delegation pattern in which high-level agents decompose tasks and assign subtasks to specialised child agents [see survey in 10]. Research on multi-agent resilience has found that hierarchical topologies exhibit lower performance degradation under faulty agent conditions (5.5% drop) compared to decentralised structures (23.7% drop), suggesting that layered authority confers robustness properties [10]. Shavit et al. identified baseline governance obligations for agentic AI systems including minimal footprint, preference reversibility, and human check-in at task boundaries [11].
+Several frameworks have explored hierarchical organisation as a mechanism for managing complexity in multi-agent systems. The Self-Organised Agents (SoA) framework employs a mother–child delegation pattern in which high-level agents decompose tasks and assign subtasks to specialised child agents [21]. Research on multi-agent resilience has found that hierarchical topologies exhibit lower performance degradation under faulty-agent conditions (a 5.5% drop, compared with 23.7% for decentralised structures), suggesting that layered authority confers robustness properties [10]. Shavit et al. identified baseline governance obligations for agentic AI systems including minimal footprint, preference reversibility, and human check-in at task boundaries [11].
 
 These hierarchical models establish the structural feasibility of tiered agent authority — a foundation on which Chirality builds. However, none of the surveyed frameworks formalise the authority relationship as a typed invariant. Tiers are assigned for task specialisation or fault tolerance; they do not enforce write-scope quarantine, require gate-controlled human approval for authority escalation, or mandate that agents provide evidence structures tying every output claim to a retrievable source.
 
@@ -56,7 +52,7 @@ The literature surveyed above represents the most capable class of LLM-based age
 
 No published architecture provides a formal governance layer that specifies what agents *must not* do and what evidence they *must* provide. Specifically, the following structural properties are absent from the surveyed literature:
 
-1. **Invariant contracts**: formally specified, runtime-enforced constraints on agent action independent of model weights or prompt content.
+1. **Invariant contracts**: formally specified constraints on agent action, enforced outside the model — through declared contracts, gates, and audit — independent of model weights or prompt content.
 2. **Write-scope quarantine**: a typed boundary separating read-only from write-capable operations, enforced at the architectural level rather than through prompting.
 3. **Gate-controlled human authority**: a formal mechanism requiring human principal approval for operations above a defined authority threshold, rather than optional human-in-the-loop hooks.
 4. **Epistemic transparency obligations**: a structural requirement that every output claim carry provenance metadata — source, confidence class, and derivation path — rather than relying on population-level accuracy of the underlying model.
@@ -73,7 +69,7 @@ The Chirality architecture is designed to fill this gap: to provide not a more c
 
 [3] T. Schick, J. Dwivedi-Yu, R. Dessì, R. Raileanu, M. Lomeli, L. Zettlemoyer, N. Cancedda, and T. Scialom, "Toolformer: Language Models Can Teach Themselves to Use Tools," in *Advances in Neural Information Processing Systems (NeurIPS)*, vol. 36, New Orleans, LA, USA, 2023. [Online]. Available: https://arxiv.org/abs/2302.04761
 
-[4] Q. Wu, G. Bansal, J. Zhang, Y. Wu, B. Li, E. Zhu, L. Jiang, X. Zhang, S. Zhang, J. Liu, A. H. Awadallah, R. W. White, D. Burger, and C. Wang, "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation," *arXiv preprint arXiv:2308.08155*, 2023. [Online]. Available: https://arxiv.org/abs/2308.08155
+[4] Q. Wu, G. Bansal, J. Zhang, Y. Wu, B. Li, E. Zhu, L. Jiang, X. Zhang, S. Zhang, J. Liu, A. H. Awadallah, R. W. White, D. Burger, and C. Wang, "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation," in *Proc. First Conf. on Language Modeling (COLM 2024)*, 2024. [Online]. Available: https://arxiv.org/abs/2308.08155
 
 [5] S. Hong, M. Zhuge, J. Chen, X. Zheng, Y. Cheng, C. Zhang, J. Wang, Z. Wang, S. K. S. Yau, Z. Lin, L. Zhou, C. Ran, L. Xiao, C. Wu, and J. Schmidhuber, "MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework," in *Proc. 12th Int. Conf. Learning Representations (ICLR)*, Vienna, Austria, 2024. [Online]. Available: https://arxiv.org/abs/2308.00352
 
@@ -85,9 +81,11 @@ The Chirality architecture is designed to fill this gap: to provide not a more c
 
 [9] Y. Bai, S. Jones, K. Ndousse, A. Askell, A. Chen, N. DasSarma, D. Drain, S. Fort, D. Ganguli, T. Henighan, et al., "Constitutional AI: Harmlessness from AI Feedback," *arXiv preprint arXiv:2212.08073*, 2022. [Online]. Available: https://arxiv.org/abs/2212.08073
 
-[10] L. Huang, Y. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen, W. Peng, X. Feng, B. Qin, and T. Liu, "A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions," *ACM Transactions on Information Systems*, 2024. doi: 10.1145/3703155. [Online]. Available: https://arxiv.org/abs/2311.05232
+[10] J. Huang, J. Zhou, T. Jin, X. Zhou, Z. Chen, W. Wang, Y. Yuan, M. R. Lyu, and M. Sap, "On the Resilience of LLM-Based Multi-Agent Collaboration with Faulty Agents," *arXiv preprint arXiv:2408.00989*, 2024. [Online]. Available: https://arxiv.org/abs/2408.00989
 
 [11] Y. Shavit, S. Agarwal, et al., "Practices for Governing Agentic AI Systems," OpenAI Technical Report, Dec. 2023. [Online]. Available: https://cdn.openai.com/papers/practices-for-governing-agentic-ai-systems.pdf
+
+[21] Y. Ishibashi and Y. Nishimura, "Self-Organized Agents: A LLM Multi-Agent Framework toward Ultra Large-Scale Code Generation and Optimization," *arXiv preprint arXiv:2404.02183*, 2024. [Online]. Available: https://arxiv.org/abs/2404.02183
 
 ---
 
@@ -113,7 +111,7 @@ Min et al. introduced FActScore, a fine-grained factuality metric that decompose
 
 **Retrieval-Augmented Generation (RAG)** addressed factuality by grounding generation in retrieved external documents. Lewis et al. proposed a hybrid architecture combining a pre-trained seq2seq model with a dense retrieval component over a non-parametric document index [17]. On knowledge-intensive NLP tasks, RAG models outperformed purely parametric models and produced more specific, diverse, and factual outputs. RAG is the closest architectural precursor to Chirality's sourcing requirement: it mandates that generation be grounded in retrieved material rather than parametric memory alone. However, standard RAG architectures do not enforce that retrieved sources be cited in outputs, do not distinguish between claims that are directly supported by retrieved text and claims that are interpolated from model priors, and do not expose confidence or uncertainty metadata to downstream consumers.
 
-**Constitutional AI (RLAIF)** extended the alignment paradigm to self-supervised critique. As noted in Section 2.1.4, Bai et al. demonstrated that a model trained to critique and revise its own outputs against a written constitution achieves harmlessness comparable to RLHF without requiring human labels for harmful content [9]. The technique is relevant to Chirality's AUDITOR agent tier, which performs structured self-review of ANALYST outputs against invariant contracts. The architectural difference is that Constitutional AI operates as a training-time distribution shift, while Chirality's AUDITOR operates as a runtime architectural check with traceable audit output.
+**Constitutional AI (RLAIF)** extended the alignment paradigm to self-supervised critique. As noted in Section 2.1.4, Bai et al. demonstrated that a model trained to critique and revise its own outputs against a written constitution achieves harmlessness comparable to RLHF without requiring human labels for harmful content [9]. The technique is relevant to Chirality's audit agents (AUDIT_AGENTS, AUDIT_DECOMP, AUDIT_GOVERNANCE, AUDIT_EPISTEMIC), which perform structured post-hoc review of agent outputs against invariant contracts. The architectural difference is that Constitutional AI operates as a training-time distribution shift, while Chirality's audit agents operate as post-hoc architectural checks with traceable audit output.
 
 ### 2.2.4 Confidence Calibration
 
@@ -138,7 +136,7 @@ Retrieval-augmented generation is the closest existing approach to per-claim gro
 No published architecture proposes the following combination of properties:
 
 1. **Mandatory provenance attachment**: every claim in a system output must carry a machine-readable pointer to the source observation or retrieved document from which it was derived, as a structural constraint rather than a generation preference.
-2. **No-invention rule**: a formally specified and runtime-enforced prohibition on agents generating claims that cannot be traced to a source within the defined retrieval scope.
+2. **No-invention rule**: a formally specified prohibition, enforced through declared contract plus audit, on agents generating claims that cannot be traced to a source within the defined retrieval scope.
 3. **Epistemic labelling**: a typed taxonomy distinguishing directly-retrieved fact, inferred conclusion, and uncertain estimate, surfaced to the human principal as part of every output.
 4. **Per-claim transparency**: the epistemic status of individual claims is observable and auditable, rather than a property that can only be assessed at the population level through benchmark evaluation.
 
@@ -150,7 +148,7 @@ This combination constitutes an architectural approach to epistemic transparency
 
 [12] Z. Ji, N. Lee, R. Frieske, T. Yu, D. Su, Y. Xu, E. Ishii, Y. J. Bang, A. Madotto, and P. Fung, "Survey of Hallucination in Natural Language Generation," *ACM Computing Surveys*, vol. 55, no. 12, article no. 248, Mar. 2023. doi: 10.1145/3571730
 
-[13] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen, W. Peng, X. Feng, B. Qin, and T. Liu, "A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions," *ACM Transactions on Information Systems*, 2024. doi: 10.1145/3703155. [Online]. Available: https://arxiv.org/abs/2311.05232
+[13] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen, W. Peng, X. Feng, B. Qin, and T. Liu, "A Survey on Hallucination in Large Language Models: Principles, Taxonomy, Challenges, and Open Questions," *ACM Transactions on Information Systems*, vol. 43, no. 2, pp. 1–55, 2025. doi: 10.1145/3703155. [Online]. Available: https://arxiv.org/abs/2311.05232
 
 [14] J. Maynez, S. Narayan, B. Bohnet, and R. McDonald, "On Faithfulness and Factuality in Abstractive Summarization," in *Proc. 58th Annual Meeting of the Association for Computational Linguistics (ACL)*, Online, 2020, pp. 1906–1919. doi: 10.18653/v1/2020.acl-main.173
 
@@ -170,13 +168,6 @@ This combination constitutes an architectural approach to epistemic transparency
 
 ---
 
-*End of working file — Sections 2.1 and 2.2*
-
----
-
-
----
-
 ## 2.3 Formal Methods and Safety-Critical Systems Engineering
 
 The application of formal methods to safety-critical software represents one of the most mature sub-disciplines in systems engineering. Over five decades, the field has developed rigorous techniques for specifying, verifying, and containing the behavior of deterministic systems — techniques that, as this thesis argues, require principled adaptation before they can be applied to the governance of probabilistic LLM agents.
@@ -185,7 +176,7 @@ The application of formal methods to safety-critical software represents one of 
 
 The foundational work in modern safety engineering is Leveson's *Engineering a Safer World: Systems Thinking Applied to Safety* [1], which introduces the System-Theoretic Accident Model and Processes (STAMP). Leveson challenges the prevailing chain-of-events accident model, arguing that complex sociotechnical systems fail not through linear causal chains but through emergent behavior arising from inadequate constraint enforcement across system components. STAMP models safety as a control problem: accidents occur when safety constraints are violated by inadequate control actions. The companion hazard analysis technique, Systems-Theoretic Process Analysis (STPA), derives safety constraints from control structure rather than failure mode enumeration.
 
-The relevance to Chirality is direct. The Chirality invariant system — particularly the Runtime Invariants (R1–R9) and Interaction Invariants (I1–I10) — can be read as a STAMP-derived safety constraint set applied to a software agent control structure. Where STAMP asks "what control action could violate a safety constraint?", Chirality's gate-controlled workflow asks "what agent action could violate a professional obligation?" The architectural parallel is not coincidental: both frameworks treat safety as an emergent property of constraint enforcement rather than component reliability.
+The relevance to Chirality is direct. The Chirality invariant system — particularly the Workflow Design Requirements (R1–R17) and Decomposition Invariants (I1–I10) — can be read as a STAMP-derived safety constraint set applied to a software agent control structure. Where STAMP asks "what control action could violate a safety constraint?", Chirality's gate-controlled workflow asks "what agent action could violate a professional obligation?" The architectural parallel is not coincidental: both frameworks treat safety as an emergent property of constraint enforcement rather than component reliability.
 
 ### 2.3.2 Avionics Software Assurance: DO-178C
 
@@ -193,7 +184,7 @@ The aviation industry's primary framework for software assurance is DO-178C, *So
 
 A key architectural commitment in DO-178C is the coupling of behavioral objectives to formal requirements traceability: every software behavior must be traceable to a verified requirement, and every requirement must be shown to be satisfied by the implementation. DO-178C's supplement DO-333 extends this framework to formal methods specifically, recognizing that proof-based verification can substitute for certain coverage-based testing objectives.
 
-Chirality's lifecycle state machine — which constrains agent actions to defined phases (LOAD, ACTIVE, SUSPENDED, DECOMMISSIONED) with explicit transition conditions — reflects the DO-178C principle that allowable system behaviors must be formally bounded and traceable to design intent. The analogue to software level assignment appears in Chirality's Type 0/1/2 write scope hierarchy, which classifies agent authority by blast radius rather than failure severity.
+Chirality's deliverable lifecycle state machine — which constrains lifecycle advancement to defined states (OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED) with explicit transition conditions and authorized actors — reflects the DO-178C principle that allowable system behaviors must be formally bounded and traceable to design intent. The analogue to software level assignment appears in Chirality's Agent 0/1/2 runtime hierarchy and write-scope system, which classifies agent authority by blast radius rather than failure severity.
 
 ### 2.3.3 Functional Safety: IEC 61508 and Safety Integrity Levels
 
@@ -209,7 +200,7 @@ The foundational work on fault containment through architectural partitioning is
 
 The contribution to systems engineering theory is the formalization of fault containment as an architectural property rather than a component property: a system can achieve containment even if individual components fail, provided the partition boundaries are correctly specified and enforced. Rushby's requirement that partitioning mechanisms be "absolutely reliable" — meaning their failure would itself be a safety hazard — establishes the design principle that containment infrastructure must be held to a higher assurance level than the functions it contains.
 
-Chirality's write scope system implements precisely this principle. Type 0 agents (read-only) are permanently constrained by their instruction architecture; Type 1 agents (project-scoped write) cannot access coordination infrastructure; Type 2 agents (coordination write) operate under the highest gate scrutiny. The boundaries are enforced in the system prompt layer, which is architecturally isolated from the content layer the agent reasons about. The parallel to spatial partitioning is direct: an agent cannot escape its write scope through reasoning, just as a partitioned process cannot access another partition's memory through software means alone.
+Chirality's write scope system implements precisely this principle. The Agent 0 Supervising Architect is read-only and constrained by its instruction contract; deliverable-local agents have no write path to coordination infrastructure; and coordination-infrastructure writes are confined to designated tool roots under the highest gate scrutiny. The boundaries are enforced in the system prompt layer, which is architecturally isolated from the content layer the agent reasons about. The parallel to spatial partitioning is direct: an agent cannot escape its write scope through reasoning, just as a partitioned process cannot access another partition's memory through software means alone.
 
 ### 2.3.5 Formal Verification in Safety-Critical Domains: Model Checking and Invariant-Based Verification
 
@@ -217,7 +208,7 @@ Two foundational formal methods texts define the verification techniques this th
 
 Model checking, systematized by Clarke, Grumberg, and Peled in *Model Checking* [6] (MIT Press, 1999), provides algorithmic state-space exploration to verify that a finite-state system satisfies a temporal logic specification. Model checking exhaustively explores all reachable states and returns counterexamples when properties are violated, making it particularly suited to concurrent and reactive systems where proof-based verification is intractable. The NASA Formal Methods Symposium series [7], ongoing since 2009, has documented the application of model checking, theorem proving, and runtime verification to space and aviation systems. The 16th symposium (NFM 2024) proceedings, published by Springer in Lecture Notes in Computer Science Vol. 14627, represent the current state of the art in formal verification for safety-critical systems.
 
-Lamport's *Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers* [8] (Addison-Wesley, 2002) provides the specification language most widely used in distributed and concurrent systems verification. TLA+ treats system behavior as a sequence of states and defines correctness as satisfaction of temporal logic formulae over those sequences. The lifecycle state machine formalism used in Chirality — LOAD → ACTIVE → SUSPENDED → DECOMMISSIONED with invariant-preserving transitions — is structurally a TLA+ specification, even if not formally encoded as one.
+Lamport's *Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers* [8] (Addison-Wesley, 2002) provides the specification language most widely used in distributed and concurrent systems verification. TLA+ treats system behavior as a sequence of states and defines correctness as satisfaction of temporal logic formulae over those sequences. The lifecycle state machine formalism used in Chirality — the deliverable lifecycle OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED, with invariant-preserving, actor-authorized transitions — is structurally a TLA+-style specification, even if not formally encoded as one.
 
 The applicability of these techniques to the Chirality system is partial and asymmetric, which is precisely the gap this thesis identifies. Hoare logic, model checking, and TLA+ operate on deterministic systems with enumerable state spaces. LLM agents are neither: their internal state is not enumerable, their transitions are probabilistic, and their outputs cannot be formally specified as functions of inputs. The architectural response — invariant enforcement through external constraints rather than internal verification — is the central thesis contribution.
 
@@ -255,7 +246,7 @@ The standard establishes the "Relying on the Work of Others" framework under whi
 
 The Chirality architecture preserves authentication as an exclusively human gate action. No agent in the system has authority to authenticate a PWP; all authentication paths require human review and explicit approval. This is architecturally enforced through the lifecycle state machine, which holds deliverables in a pre-authentication state until a human gate action advances them to authenticated status.
 
-**AI-Specific Guidance.** As of the date of this thesis, APEGA has not issued AI-specific guidance. The "Relying on the Work of Others" standard applies to AI agent outputs by direct interpretation: AI agents are "others" whose work the professional relies upon. APEGA's general standards for professional judgment, due diligence, and authentication apply without domain-specific modification. This absence of AI-specific guidance is itself a gap that this thesis addresses architecturally.
+**AI-Specific Guidance.** APEGA has issued *Guidance for Registrants Regarding the Use of Artificial Intelligence Tools* (first published July 2025; updated March 23, 2026) [24]. The guidance addresses registrant conduct: licensed professionals remain professionally responsible for work generated by or including AI results, must "demonstrate due diligence in confirming the results are accurate and appropriate," are directed to treat AI results "no differently than results from software, calculators, or lookup tables," and should not use AI tools they lack the training or experience to competently assess. The guidance does not address how AI systems should be architected to make that due diligence tractable, and it does not address the application of the "Relying on the Work of Others" standard to AI agents — so the architectural gap this thesis addresses remains.
 
 ### 2.4.2 Engineers and Geoscientists British Columbia (EGBC)
 
@@ -271,21 +262,21 @@ Professional Engineers Ontario (PEO) has not, as of the date of this thesis, iss
 
 ### 2.4.4 Engineers Canada: National Framework
 
-Engineers Canada, the national organization representing provincial and territorial engineering regulators, has not issued a national guideline specifically addressing AI in professional practice as of the date of this thesis. Engineers Canada's national guidelines and papers define common principles across jurisdictions; the absence of an AI guideline means each province is developing guidance independently, creating potential inconsistency in how the EGBC and APEGA approaches are interpreted nationally [16]. Engineers Canada has published a position statement on AI in autonomous and connected vehicles, recognizing the need for professional engineering expertise in AI development, but this addresses engineers as AI developers rather than engineers as users of AI tools.
+Engineers Canada, the national organization representing provincial and territorial engineering regulators, issued the national position statement *Artificial Intelligence, Machine Learning, and Data Science* in March 2026 [16]. Its operative professional-practice position addresses engineers as users of AI tools: where AI, machine learning, and data science are applied as tools to practise engineering, the work must be undertaken by an engineer licensed in the jurisdiction, and those engineers "have an ethical responsibility to verify the integrity of the output of these tools." This aligns the national posture with the EGBC and APEGA conduct guidance. An earlier, narrower position statement on AI in autonomous and connected vehicles (2019; re-listed 2025) addresses engineers as AI developers rather than users, and Engineers Canada's *Guideline on the Code of Ethics* (2024) likewise holds registrants "ultimately responsible for the outputs" of revolutionary technologies they use. As with the provincial guidance, none of these instruments addresses how AI systems should be architected to support the obligations they impose.
 
 ### 2.4.5 American Professional Engineering Regulation
 
-**NSPE Position Statement on Artificial Intelligence.** The National Society of Professional Engineers (NSPE) has issued Position Statement No. 03-1774 on artificial intelligence [17], which establishes that individuals who design, develop, or oversee AI systems with direct safety impact should be held to professional licensure standards, and that AI-generated technical work requires at least the same level of scrutiny as human-created work. The NSPE Board of Ethical Review has separately addressed AI in engineering practice, confirming that licensed engineers cannot delegate professional judgment to AI systems and must exercise responsible charge over AI-assisted outputs.
+**NSPE Position Statement on Artificial Intelligence.** The National Society of Professional Engineers (NSPE) has issued Position Statement No. 03-1774 on artificial intelligence (adopted September 2023; latest revision February 2025) [17], which establishes that individuals who design, develop, or oversee AI systems with direct safety impact should be held to professional licensure standards, and that AI-generated technical work requires at least the same level of scrutiny as human-created work. The NSPE Board of Ethical Review has separately addressed AI in engineering practice, confirming that licensed engineers cannot delegate professional judgment to AI systems and must exercise responsible charge over AI-assisted outputs.
 
 **ASCE Policy Statement 573.** The American Society of Civil Engineers adopted Policy Statement 573, *Artificial Intelligence and Engineering Responsibility* [18], on July 18, 2024. The policy states directly that "AI cannot serve as a replacement for the professional judgement of a licensed Professional Engineer" and that civil engineers must maintain responsibility for project planning, design, construction, operations, and maintenance. The policy acknowledges that "the rapid advancement of AI technology is outstripping current laws and regulations" and calls for regulatory development. It does not prescribe architectural requirements for AI systems.
 
-**Florida Board of Professional Engineers.** The Florida Board of Professional Engineers (FBPE) has published guidance acknowledging that existing engineering practice statutes apply to AI-assisted work, and that licensed engineers remain responsible for the accuracy and safety of AI-generated outputs regardless of the tool used. No architecture-specific requirements have been issued [SEARCH — FBPE guidance documents not confirmed at time of writing].
+**Florida Board of Professional Engineers.** The Florida Board of Professional Engineers (FBPE) has issued no formal AI rule or guidance document as of this writing. The closest published statement is an FBPE Executive Director column ("Regulation in the AI Era"), which restates the existing framework: "Only a licensed Professional Engineer in responsible charge can take responsibility for engineering work." No architecture-specific requirements exist.
 
 ### 2.4.6 International Frameworks
 
-**Engineers Australia.** Engineers Australia's *Code of Ethics and Guidelines on Professional Conduct* (2022) [19] provides the ethical framework under which Australian engineers practice, including principles of competence, honesty, and public safety. Engineers Australia has not, as of the date of this thesis, issued AI-specific technical guidance equivalent to the EGBC advisory. Australia's national AI Ethics Principles (eight principles including human oversight and accountability) provide a policy context but are not binding on engineers as professional obligations.
+**Engineers Australia.** Engineers Australia's *Code of Ethics and Guidelines on Professional Conduct* (2022) [19] provides the ethical framework under which Australian engineers practice, including principles of competence, honesty, and public safety. Engineers Australia has not, as of this revision (July 2026), issued normative AI practice guidance equivalent to the EGBC advisory; its January 2025 publication on AI and generative technologies is a descriptive research report on the profession's use of AI, not a practice standard. Australia's national AI Ethics Principles (eight principles including human oversight and accountability) provide a policy context but are not binding on engineers as professional obligations.
 
-**UK Engineering Council.** The UK Engineering Council, which licenses Chartered Engineers (CEng) and other titles under the *Engineering Council Standard for Professional Engineering Competence* (UK-SPEC), has not issued AI-specific guidance for professional engineering practice as of the date of this thesis. The UK government's *Implementing the UK's AI Regulatory Principles* guidance (February 2024) [20] establishes cross-sector principles (safety, transparency, fairness, accountability, contestability) that apply to regulated sectors including engineering, but these are addressed to regulators rather than individual licensed professionals. The UK's sector-agnostic regulatory approach means that engineering-specific AI governance obligations remain underdeveloped relative to the Canadian provincial model.
+**UK Engineering Council.** The UK Engineering Council, which licenses Chartered Engineers (CEng) and other titles under the *Engineering Council Standard for Professional Engineering Competence* (UK-SPEC), had not issued AI-specific guidance for professional engineering practice as of the original writing (March 2026; not re-verified at the July 2026 revision). The UK government's *Implementing the UK's AI Regulatory Principles* guidance (February 2024) [20] establishes cross-sector principles (safety, transparency, fairness, accountability, contestability) that apply to regulated sectors including engineering, but these are addressed to regulators rather than individual licensed professionals. The UK's sector-agnostic regulatory approach means that engineering-specific AI governance obligations remain underdeveloped relative to the Canadian provincial model.
 
 ### 2.4.7 Academic Literature: Engineering Regulation and AI
 
@@ -305,7 +296,7 @@ The regulatory literature reviewed above establishes a consistent pattern. Every
 4. Work products must be authenticated only after the professional has validated them.
 5. The professional bears full liability for authenticated work products regardless of the tool used to generate them.
 
-What none of the regulatory frameworks address is *how an AI system should be architecturally designed* to make these obligations structurally satisfiable rather than aspirationally stated. The EGBC advisory tells the engineer they must review AI outputs; it does not address what system design makes that review meaningful rather than perfunctory. The APEGA "Relying on the Work of Others" standard specifies what the professional must confirm; it does not address how AI agent systems should be structured so that the professional can, in fact, confirm it.
+What none of the regulatory frameworks address — including the AI-specific conduct guidance that APEGA, EGBC, and Engineers Canada have now issued — is *how an AI system should be architecturally designed* to make these obligations structurally satisfiable rather than aspirationally stated. The EGBC advisory tells the engineer they must review AI outputs; it does not address what system design makes that review meaningful rather than perfunctory. The APEGA "Relying on the Work of Others" standard specifies what the professional must confirm; it does not address how AI agent systems should be structured so that the professional can, in fact, confirm it.
 
 This is the gap Chirality fills. The agent instruction architecture is designed so that each specific requirement of the "Relying on the Work of Others" standard — reliability confirmation, accuracy validation, regulatory adherence, quality control verification — maps to a specific architectural mechanism: gate-controlled handoff, write scope constraints, provenance tracking, and the authentication lifecycle. The thesis contribution is not to restate the regulatory obligation but to demonstrate that an agent instruction architecture can be purpose-designed to satisfy it.
 
@@ -333,7 +324,7 @@ This is the gap Chirality fills. The agent instruction architecture is designed 
 
 [10] R. Freire et al., "Formal Methods for Safety-Critical Machine Learning: A Systematic Literature Review," *Frontiers in Artificial Intelligence*, 2026. DOI: 10.3389/frai.2026.1749956.
 
-[11] [PLACEHOLDER — author], "From Craft to Constitution: A Governance-First Paradigm for Principled Agent Engineering," arXiv preprint arXiv:2510.13857, Oct. 2025. [Online]. Available: https://arxiv.org/html/2510.13857v1.
+[11] Q. Xu, X. Wen, C. Xu, Z. Li, and J. Zhong, "From Craft to Constitution: A Governance-First Paradigm for Principled Agent Engineering," arXiv preprint arXiv:2510.13857, Oct. 2025. [Online]. Available: https://arxiv.org/abs/2510.13857.
 
 [12] Association of Professional Engineers and Geoscientists of Alberta (APEGA), *Relying on the Work of Others and Outsourcing*, Practice Standard, v4.0. Edmonton, AB: APEGA, May 2021 (enforceable May 2022). [Online]. Available: https://www.apega.ca/docs/default-source/pdfs/standards-guidelines/relying-on-the-work-of-others-and-outsourcing.pdf.
 
@@ -343,13 +334,13 @@ This is the gap Chirality fills. The agent instruction architecture is designed 
 
 [15] Professional Engineers Ontario (PEO), "Knowledge Centre — Practice Advice Resources and Guidelines," Toronto, ON: PEO, 2025. [Online]. Available: https://www.peo.on.ca/knowledge-centre/practice-advice-resources-and-guidelines/practice-guidelines. [Note: PEO references EGBC advisory; no Ontario-specific AI guideline issued as of Mar. 2026.]
 
-[16] Engineers Canada, "National Engineering Guidelines and Engineers Canada Papers," Ottawa, ON: Engineers Canada, 2025. [Online]. Available: https://engineerscanada.ca/regulatory-excellence/national-engineering-guidelines. [Note: No national AI guideline for professional practice confirmed as of Mar. 2026; AI position statement on autonomous vehicles exists but addresses engineers as AI developers.]
+[16] Engineers Canada, "Artificial Intelligence, Machine Learning, and Data Science," National Position Statement, Ottawa, ON: Engineers Canada, Mar. 2026. [Online]. Available: https://engineerscanada.ca/public-policy/national-position-statements
 
-[17] National Society of Professional Engineers (NSPE), "Artificial Intelligence," Position Statement No. 03-1774, Alexandria, VA: NSPE, [SEARCH — exact adoption date not confirmed in public documents]. [Online]. Available: https://www.nspe.org/nspe-advocacy/explore-issues/professional-policies-and-position-statements/artificial-intelligence.
+[17] National Society of Professional Engineers (NSPE), "Artificial Intelligence," Position Statement No. 03-1774, Alexandria, VA: NSPE, adopted Sep. 2023, latest revision Feb. 2025. [Online]. Available: https://www.nspe.org/nspe-advocacy/explore-issues/professional-policies-and-position-statements/artificial-intelligence.
 
 [18] American Society of Civil Engineers (ASCE), "Policy Statement 573 — Artificial Intelligence and Engineering Responsibility," Reston, VA: ASCE, adopted Jul. 18, 2024. [Online]. Available: https://www.asce.org/advocacy/policy-statements/ps573---artificial-intelligence-and-engineering-responsibility.
 
-[19] Engineers Australia, *Code of Ethics and Guidelines on Professional Conduct*. Canberra, ACT: Engineers Australia, 2022. [Online]. Available: https://www.engineersaustralia.org.au/about-us/professional-standards-framework. [Note: No AI-specific engineering practice standard confirmed as of Mar. 2026.]
+[19] Engineers Australia, *Code of Ethics and Guidelines on Professional Conduct*. Canberra, ACT: Engineers Australia, 2022. [Online]. Available: https://www.engineersaustralia.org.au/about-us/professional-standards-framework. [Note: no normative AI practice standard as of Jul. 2026; see also Institution of Engineers Australia, "The impact of AI and generative technologies on the engineering profession," research report, Jan. 2025, ISBN 978-1-925627-92-3.]
 
 [20] Department for Science, Innovation and Technology (UK), *Implementing the UK's AI Regulatory Principles: Initial Guidance for Regulators*, UK Government, London: DSIT, Feb. 2024. [Online]. Available: https://assets.publishing.service.gov.uk/media/65c0b6bd63a23d0013c821a0/implementing_the_uk_ai_regulatory_principles_guidance_for_regulators.pdf.
 
@@ -359,13 +350,11 @@ This is the gap Chirality fills. The agent instruction architecture is designed 
 
 [23] National Society of Professional Engineers (NSPE), "Use of Artificial Intelligence in Engineering Practice," Board of Ethical Review Case, Alexandria, VA: NSPE, 2024. [Online]. Available: https://www.nspe.org/career-growth/ethics/board-ethical-review-cases/use-artificial-intelligence-engineering-practice.
 
+[24] Association of Professional Engineers and Geoscientists of Alberta (APEGA), "Guidance for Registrants Regarding the Use of Artificial Intelligence Tools," Edmonton, AB: APEGA, first published Jul. 2025, updated Mar. 23, 2026. [Online]. Available: https://www.apega.ca/news/2026/03/23/guidance-for-registrants-regarding-the-use-of-artificial-intelligence-tools
+
 ---
 
-*Notes on placeholder entries:*
-- *[11] arXiv:2510.13857 — author list not confirmed; verify before final submission.*
-- *[17] NSPE Position Statement No. 03-1774 — adoption date not publicly visible; confirm via NSPE membership or direct inquiry.*
-- *[19] Engineers Australia — confirm whether any AI-specific guidance has been issued since Nov. 2024.*
-- *[FBPE] — Florida Board of Professional Engineers AI guidance referenced in Section 2.4.5; confirm via fbpe.org before including.*
+*Notes on placeholder entries (updated 2026-07-02): the [11] author list, the [17] NSPE dates, the [19] Engineers Australia status, and the FBPE question were verified against primary sources and are resolved in the entries above.*
 
 ---
 
@@ -375,6 +364,14 @@ This is the gap Chirality fills. The agent instruction architecture is designed 
 ## 2.5 Epistemic Frameworks and Knowledge Engineering
 
 The Chirality architecture makes a claim that is unusual in software systems engineering: that the epistemic status of every claim produced by the system must be architecturally explicit and auditable. This is not a quality aspiration or a style guideline. It is an invariant — K-PROV-1, K-INVENT-1, K-CONFLICT-1 — enforced uniformly across all agents. To situate this contribution, this section surveys the relevant literature in four areas: provenance standards for data and knowledge systems; foundational knowledge representation theory; ontological frameworks for information systems; and social epistemology. The section then identifies the gap that Chirality's architecture addresses: epistemic frameworks have been theorized extensively, but none has been operationalized as an architectural invariant governing LLM-based agent systems.
+
+The review distinguishes the architecture's operational treatment of
+information from the thesis's account of knowing. Provenance systems,
+knowledge representations, and epistemic labels organize information and its
+recorded grounds. They do not make an artifact a knower or exhaust what a
+situated person may know from it. Chapter 3 develops this distinction through
+Polanyi and Smith as philosophical resources rather than treating any
+physical analogy as evidence for the architecture.
 
 ---
 
@@ -412,7 +409,7 @@ Of particular relevance is Sowa's treatment of the relationship between language
 
 Yair Wand and Ron Weber's application of Mario Bunge's ontology to information systems theory produced a foundational framework — the Bunge-Wand-Weber (BWW) model — that has been extensively applied in conceptual modeling, database design, and requirements engineering. The foundational paper, "An Ontological Model of an Information System," was published in *IEEE Transactions on Software Engineering* in 1990 [6]. The paper draws directly on Bunge's *Treatise on Basic Philosophy* to propose an information systems ontology whose core constructs include: things (substantial individuals that possess properties), attributes (functions that map things to values), states (specific value assignments of a thing's attributes at a time), events (changes of state), and couplings (dependencies between things' state spaces).
 
-The subsequent paper "On the Deep Structure of Information Systems," published in *Information Systems Journal* in 1995, extended the BWW ontology into three formal models [7]: (1) the *representational model*, which evaluates the ontological expressiveness of analysis and design grammars; (2) the *state-tracking model*, which specifies four requirements an information system must satisfy to faithfully track the real-world system it models; and (3) the *good-decomposition model*, which establishes three necessary conditions for well-structured IS decomposition. The BWW framework has been applied to evaluate modeling grammars including the Entity-Relationship model, UML, and BPMN, and has generated a substantial secondary literature in IS research [PLACEHOLDER: verify extent of secondary literature — see Allen and March 2006 critical assessment].
+The subsequent paper "On the Deep Structure of Information Systems," published in *Information Systems Journal* in 1995, extended the BWW ontology into three formal models [7]: (1) the *representational model*, which evaluates the ontological expressiveness of analysis and design grammars; (2) the *state-tracking model*, which specifies four requirements an information system must satisfy to faithfully track the real-world system it models; and (3) the *good-decomposition model*, which establishes three necessary conditions for well-structured IS decomposition. The BWW framework has been applied to evaluate modeling grammars including the Entity-Relationship model, UML, and BPMN, and has generated a substantial secondary literature in IS research.
 
 **Relation to Chirality.** The BWW framework provides the philosophical grounding for Chirality's ontological commitments, noted in Chapter 3. The structural invariants K-HIER-1 (flat package-to-deliverable hierarchy) and K-ID-1 (stable identifiers) implement the BWW requirement that the representational model contain no constructs without real-world referents. Every folder corresponds to a real work item; every dependency row corresponds to a real relationship; every status file corresponds to a real lifecycle state. No constructs exist for system convenience alone. The BWW state-tracking model's requirement that an IS faithfully track the state of the real-world system it represents is enforced in Chirality through filesystem-as-single-source-of-truth: the filesystem state is the authoritative project state, and any divergence between the filesystem and the actual project state is a governance failure, not a data inconsistency.
 
@@ -424,9 +421,22 @@ Alvin I. Goldman's *Epistemology and Cognition* (Harvard University Press, 1986)
 
 Goldman's subsequent work *Knowledge in a Social World* (Oxford: Clarendon Press, 1999) extended the reliabilist framework to social and institutional settings [9]. Goldman articulated a "veritistic social epistemology" — a normative discipline concerned with which social practices and institutions best foster the production of true beliefs across a community. The work examines testimony, argumentation norms, information technology, legal epistemology, and democratic deliberation as sites where social institutions either enhance or impede collective epistemic performance. The central claim is that epistemic evaluation applies not only to individual believers but to social systems, and that well-designed institutions can substitute for individual epistemic competence in contexts where reliable individual judgment cannot be guaranteed.
 
-**Relation to Chirality.** Goldman's reliabilist framework is directly applicable to the problem Chirality addresses. In professional engineering practice, the licensed professional who seals a document cannot personally verify every claim in a complex deliverable. What they can verify is whether the process that produced each claim is reliable — i.e., whether it is a process that tends to produce grounded, attributable claims rather than plausible-sounding inventions. Chirality's epistemic architecture operationalizes Goldman's insight at the system level: rather than requiring the individual professional to evaluate every claim's reliability on its merits, the architecture makes the reliability of the production process structurally visible. The FACT/ASSUMPTION/PROPOSAL/TBD label system is a direct implementation of Goldman's key distinction: a claim labeled FACT carries the representation that it was produced by a reliable (source-grounded) process; a claim labeled ASSUMPTION carries the representation that it was produced by an inference process that may not be reliable for the specific value asserted.
+**Relation to Chirality.** Goldman's reliabilism provides a resource for the
+problem Chirality addresses. In a complex deliverable, a licensed
+professional evaluates both particular claims and the processes that produced
+them. Chirality likewise makes process evidence and represented claim status
+inspectable. The FACT/ASSUMPTION/PROPOSAL/TBD labels distinguish direct
+observation, inference, proposed action, and missing information; they are not
+a direct implementation of Goldman's truth-conduciveness criterion.
 
-Goldman's social epistemology also grounds the conflict surfacing mechanism (K-CONFLICT-1). Goldman's veritistic framework implies that suppressing disagreement reduces collective epistemic performance, because the community loses information about the actual state of epistemic uncertainty. Chirality's Conflict Table mechanism — which requires agents to surface disagreements between sources, label proposed resolutions as PROPOSAL, and leave the ruling to the human — is a structural implementation of this principle. The professional who reviews a Conflict Table is operating under Goldman's veritistic ideal: they have access to the competing claims, their sources, and the agent's reasoning, and they can make an informed ruling. The alternative — silent resolution by the agent — would violate the veritistic requirement by suppressing relevant epistemic information.
+Goldman's social epistemology also motivates attention to disagreement:
+suppressing conflict deprives a community of relevant uncertainty. Chirality's
+Conflict Table requires detected source disagreements to be surfaced, proposed
+resolutions to remain `PROPOSAL`, and rulings to remain human acts. The
+framework borrows process and institutional evaluation and the value of
+conflict visibility, but it does not adopt truth-conduciveness or factivity as
+its definition of knowledge. Its own account permits a situated knower to be
+mistaken or later revised.
 
 ---
 
@@ -446,7 +456,7 @@ Jacovi, Marasović, Miller, and Goldberg's "Formalizing Trust in Artificial Inte
 
 The paper's framework is significant for its emphasis on the verifiability of trust conditions: a trust claim about an AI system is only meaningful if there are observable conditions that would falsify it. Jacovi et al. argue that explanations and transparency mechanisms are trust-enabling not because they make the AI more accurate, but because they make the conditions for appropriate trust observable.
 
-More recent work has explicitly addressed epistemic governance architectures for LLM systems. The paper "Externalising Epistemic Governance for Stateless Large Language Models: The CUL/TCL Architecture" (ResearchGate, 2025) [PLACEHOLDER: verify publication venue and author names — paper appears in ResearchGate preprint archive December 2025] proposes a dual-layer architecture in which a Context Utility Layer determines verification requirements and a Truth-Checker Layer assigns one of four truth-states to claims. The paper explicitly frames the architecture as "externalising epistemic governance from model weights to configurable components" — a formulation that parallels Chirality's approach. The CUL/TCL architecture demonstrates that the research community is converging on the position that epistemic governance must be an architectural property, not a model property.
+More recent work has explicitly addressed epistemic governance architectures for LLM systems. Natangelo's "Externalising Epistemic Governance for Stateless Large Language Models: The CUL/TCL Architecture" (Zenodo preprint, December 2025) [12] proposes a dual-layer architecture in which a Context Utility Layer determines verification requirements and a Truth-Checker Layer assigns one of four truth-states to claims. The paper explicitly frames the architecture as "externalising epistemic governance from model weights to configurable components" — a formulation that parallels Chirality's approach. The CUL/TCL architecture demonstrates that the research community is converging on the position that epistemic governance must be an architectural property, not a model property.
 
 **Relation to Chirality.** The Jacovi et al. framework directly grounds Chirality's approach to professional reliance. The APEGA professional practice standard "Relying on the Work of Others and Outsourcing" [CITE:APEGA_RWO2021] requires the licensed professional who seals a document to have a basis for reliance on delegated work. Chirality's epistemic labels, provenance records, and conflict tables are the technical implementation of the "contract" that Jacovi et al. identify as the precondition for appropriate trust: the professional can verify the conditions under which a claim is labeled FACT (it has a cited source), can observe when those conditions are not met (label is ASSUMPTION or TBD), and can verify that conflicts have been surfaced rather than suppressed. The trust contract is architecturally enforced, not asserted.
 
@@ -468,7 +478,7 @@ The gap in the literature is this: **none of these frameworks has been operation
 
 This gap is not incidental. It reflects a structural challenge in the field: most epistemic frameworks were developed for human cognizers (Goldman), database systems with deterministic query semantics (Buneman, Cheney), or distributed protocols with formally specified message-passing (Halpern-Moses). LLM-based agents are neither: they are probabilistic, context-sensitive, and capable of generating plausible-sounding content without any grounding in source material. The failure modes of LLM agents are categorically different from the failure modes these frameworks were designed to address.
 
-The existing literature on epistemic governance of LLM systems (Jacovi et al. [11]; CUL/TCL [PLACEHOLDER]) recognizes the architectural dimension but has not yet produced a complete operational framework — a set of binding invariants that govern every agent in the system, with defined enforcement mechanisms and observable compliance conditions.
+The existing literature on epistemic governance of LLM systems (Jacovi et al. [11]; Natangelo [12]) recognizes the architectural dimension but has not yet produced a complete operational framework — a set of binding invariants that govern every agent in the system, with defined enforcement mechanisms and observable compliance conditions.
 
 **Chirality's contribution** is to close this gap by implementing epistemic concepts as architectural invariants. The distinction that defines the contribution is between two levels of concern:
 
@@ -506,7 +516,7 @@ Chirality implements this distinction through four invariants — K-PROV-1 (mand
 
 [11] A. Jacovi, A. Marasović, T. Miller, and Y. Goldberg, "Formalizing Trust in Artificial Intelligence: Prerequisites, Causes and Goals of Human Trust in AI," in *Proc. 2021 ACM Conf. Fairness, Accountability, and Transparency (FAccT '21)*, Virtual Event, Canada, Mar. 2021, pp. 624–635. doi: 10.1145/3442188.3445923
 
-[PLACEHOLDER — verify] Natangelo, S. et al., "Externalising Epistemic Governance for Stateless Large Language Models: The CUL/TCL Architecture," ResearchGate preprint, Dec. 2025. [PLACEHOLDER: confirm author full names, confirm whether published in conference proceedings or journal, confirm DOI]
+[12] S. Natangelo, "Externalising Epistemic Governance for Stateless Large Language Models: The CUL/TCL Architecture," Zenodo preprint, Dec. 16, 2025. doi: 10.5281/zenodo.17953956
 
 ---
 

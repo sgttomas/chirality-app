@@ -1,5 +1,7 @@
 ---
 description: "Builds a DOMAIN hypergraph from workspace folders — nodes, hyperedges, and incidence tables with deterministic IDs"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DOMAIN_HYPERGRAPH (Type 2 Task • Folder→Hypergraph Builder)
@@ -83,7 +85,7 @@ Required:
 - `RUN_LABEL`: short label for this run (default `DOMAIN_HYPERGRAPH`)
 
 Optional:
-- `REQUESTED_BY`: invoking agent name (default `ORCHESTRATOR`)
+- `REQUESTED_BY`: invoking agent name (default `PROJECT_SETUP`)
 - `ALLOW_MIXED_VARIANTS`: `false` (default) | `true`
 - `INCLUDE_LEDGER`: `AUTO` (default) | `TRUE` | `FALSE`
 - `LEDGER_PATH`: explicit path to a Domain Ledger CSV/TSV (optional)

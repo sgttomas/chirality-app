@@ -1,10 +1,14 @@
 # TOOL POLICY — four-documents
 
+This is a compatibility-only policy for an existing complete
+`LEGACY_FOUR_DOC` contract. It rejects new PROJECT/SOFTWARE initialization,
+`SOW_V1`, missing/partial/invalid formats, and any dual state.
+
 ## Preferred tool order
 
 1. Read deliverable-local context and authoritative source materials.
 2. Use direct reasoning to draft or enrich the four-document kit.
-3. Optionally invoke `tools/scaffolding/write_status.sh` only for the safe `_STATUS.md` update described in the skill contract.
+3. Preserve `_STATUS.md` byte-identically; do not invoke lifecycle writers.
 
 ## Allowed deterministic tools
 
@@ -14,7 +18,7 @@ None. The `allowed-tools` frontmatter field is intentionally omitted.
 
 ### Operationally invoked
 
-- `tools/scaffolding/write_status.sh` — safe `_STATUS.md` update when Pass 1/2 completed and the current state allows transition.
+- No lifecycle writer is authorized by this compatibility skill.
 
 ## Expected use of reasoning
 

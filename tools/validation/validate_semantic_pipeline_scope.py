@@ -4,17 +4,32 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+SOW_COMMON_PATH = Path(__file__).resolve().parents[1] / "scope_of_work" / "common.py"
+_spec = importlib.util.spec_from_file_location("chirality_scope_of_work_common", SOW_COMMON_PATH)
+if _spec is None or _spec.loader is None:
+    raise ImportError(f"cannot load Scope-of-Work common module: {SOW_COMMON_PATH}")
+_common = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = _common
+_spec.loader.exec_module(_common)
+PRODUCTION_FORMATS = _common.PRODUCTION_FORMATS
+SowError = _common.SowError
+require_requested_format = _common.require_requested_format
+resolve_production_format = _common.resolve_production_format
+
 
 STEP_ALLOWED = {
     "semantic": {"_SEMANTIC.md", "_STATUS.md"},
     "lens": {"_SEMANTIC_LENSING.md"},
-    "p3": {"Datasheet.md", "Specification.md", "Guidance.md", "Procedure.md", "_STATUS.md"},
 }
+LEGACY_P3_ALLOWED = {"Datasheet.md", "Specification.md", "Guidance.md", "Procedure.md", "_STATUS.md"}
+SOW_P3_ALLOWED = {"ScopeOfWork.md"}
+STEP_CHOICES = (*STEP_ALLOWED, "p3", "sow-p3")
 ALWAYS_ALLOWED_PREFIXES = ("_run_records/",)
 
 
@@ -27,7 +42,10 @@ class Finding:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate semantic pipeline write scope for one deliverable.")
     parser.add_argument("deliverable_path", help="Path to a deliverable folder")
-    parser.add_argument("--step", choices=sorted(STEP_ALLOWED), required=True, help="Pipeline step to validate")
+    parser.add_argument("--step", choices=sorted(STEP_CHOICES), required=True, help="Pipeline step to validate")
+    parser.add_argument("--production-format", choices=["AUTO", *PRODUCTION_FORMATS], default="AUTO")
+    parser.add_argument("--isolated-migration", action="store_true")
+    parser.add_argument("--migration-authority", default="")
     parser.add_argument("--allow-memory", action="store_true", help="Allow MEMORY.md as closeout evidence")
     parser.add_argument(
         "--strict-repo",
@@ -69,8 +87,14 @@ def validate_changed_paths(
     *,
     allow_memory: bool = False,
     strict_repo: bool = False,
+    production_format: str = "LEGACY_FOUR_DOC",
 ) -> list[Finding]:
-    allowed = set(STEP_ALLOWED[step])
+    if step in STEP_ALLOWED:
+        allowed = set(STEP_ALLOWED[step])
+    elif step == "sow-p3" or production_format in {"SOW_V1", "MIGRATION_DUAL"}:
+        allowed = set(SOW_P3_ALLOWED)
+    else:
+        allowed = set(LEGACY_P3_ALLOWED)
     if allow_memory:
         allowed.add("MEMORY.md")
     findings: list[Finding] = []
@@ -101,6 +125,26 @@ def main() -> int:
         print(f"ERROR: deliverable path is outside repo root: {deliverable_path}", file=sys.stderr)
         return 1
 
+    production_format = args.production_format
+    if args.step in {"p3", "sow-p3"}:
+        resolution = resolve_production_format(
+            deliverable_path,
+            isolated_migration=args.isolated_migration,
+            migration_authority=args.migration_authority,
+        )
+        try:
+            require_requested_format(resolution, args.production_format)
+        except SowError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+        if not resolution.valid:
+            print(f"ERROR: format state is {resolution.state}: {'; '.join(resolution.issues)}", file=sys.stderr)
+            return 2
+        production_format = resolution.state
+        if args.step == "sow-p3" and production_format not in {"SOW_V1", "MIGRATION_DUAL"}:
+            print("ERROR: sow-p3 requires SOW_V1 or MIGRATION_DUAL", file=sys.stderr)
+            return 2
+
     try:
         changed_paths = git_status_paths(repo_root)
     except RuntimeError as exc:
@@ -113,6 +157,7 @@ def main() -> int:
         args.step,
         allow_memory=args.allow_memory,
         strict_repo=args.strict_repo,
+        production_format=production_format,
     )
     if findings:
         print(f"INVALID: {deliverable_rel} ({args.step})")

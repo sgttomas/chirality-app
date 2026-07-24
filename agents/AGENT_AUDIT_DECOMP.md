@@ -1,5 +1,7 @@
 ---
 description: "Audits decomposition quality and coverage — validates filesystem matches decomposition"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_DECOMP (Type 2 Task • Decomposition‑vs‑Filesystem Validation)
@@ -33,7 +35,7 @@ AUDIT_DECOMP may be used as closure evidence for a later handoff, but its own sn
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK (brief-driven) |
-| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/DecompCoverage/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Coverage report + issue log CSV + coverage matrix CSV + summary JSON |
 
@@ -84,7 +86,7 @@ Required:
 
 Optional:
 - `RUN_LABEL`: short label for this run (default `DECOMP_COV`)
-- `REQUESTED_BY`: invoking agent name (default `RECONCILIATION`)
+- `REQUESTED_BY`: invoking agent name (default `EVALUATION`)
 - `PRIOR_RUN_LABEL`: optional label for comparison mode (load prior JSON and compute deltas)
 - `EXPECTED_SOURCE_SNAPSHOT`: optional accepted upstream snapshot path that this audit run is expected to evaluate and cite in outputs
 - `EXPECTED_HANDOFF_PHASE`: optional phase or handoff label so the run can state which closure boundary it supports
@@ -148,9 +150,9 @@ If `EXECUTION_ROOT` is missing or no deliverable folders can be discovered: writ
 
 ## Outputs (write zone)
 
-Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Reconciliation DecompCoverage`
+Bootstrap tool root: `tools/scaffolding/scaffold_tool_root.sh {EXECUTION_ROOT}/_Evaluation DecompCoverage`
 
-Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Reconciliation/DecompCoverage COV {RUN_LABEL}`
+Create snapshot folder: `tools/scaffolding/create_snapshot_folder.sh {EXECUTION_ROOT}/_Evaluation/DecompCoverage COV {RUN_LABEL}`
 
 Snapshot contents (minimum):
 - `Brief.md` (verbatim brief + normalized parameters)
@@ -162,7 +164,7 @@ Snapshot contents (minimum):
 - `Decomp_Coverage_Matrix.csv`
 - `coverage_summary.json`
 
-Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Reconciliation/DecompCoverage {snapshot_folder_name}`
+Update pointer: `tools/scaffolding/update_latest_pointer.sh {EXECUTION_ROOT}/_Evaluation/DecompCoverage {snapshot_folder_name}`
 
 ---
 
@@ -256,7 +258,10 @@ For each deliverable with a matched folder:
 For each deliverable with a matched folder:
 - Read the `AnticipatedArtifacts` list from the Production Units section
 - Scan the folder for files matching each anticipated artifact name (fuzzy filename match)
-- For PROJECT_DECOMP and SOFTWARE_DECOMP: also check for the standard four-doc set (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`)
+- For PROJECT_DECOMP and SOFTWARE_DECOMP: resolve `SOW_V1`, transitional
+  `LEGACY_FOUR_DOC`, authorized isolated `MIGRATION_DUAL`, or a fail-closed
+  invalid/ambiguous state. Validate the selected contract; both formats
+  without exact migration authority are ambiguous and nonconformant.
 - For DOMAIN_DECOMP: check against the Knowledge Type's anticipated Knowledge Subjects (no standard four-doc set assumed)
 - Record: `DeliverableID, ArtifactName, Present (true/false), MatchedFile`
 - If absent: issue `INFO` — "Anticipated artifact '{name}' not found in {folder}"
@@ -319,7 +324,7 @@ When `DECOMP_VARIANT != DOMAIN`:
 
 ### Step 9b — Package-Shape Conformance (Check 9b)
 
-Assess whether the decomposition package conforms to the preferred modular package shape defined in `AGENT_DECOMP_BASE.md`:
+Assess whether the decomposition package conforms to the preferred modular package shape defined in `docs/DECOMPOSITION_STANDARD.md`:
 
 1. **Package-role labeling.** Does the package clearly label authoritative vs derived surfaces? Check for an explicit companion inventory section in the main decomposition document. If absent: issue `WARNING` — "Main decomposition document lacks a companion inventory section; package roles are not discoverable for downstream agents"
 
@@ -452,7 +457,7 @@ If `PRIOR_RUN_LABEL` is provided:
 ## SPEC
 
 A run is valid when:
-- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/`.
+- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Evaluation/DecompCoverage/`.
 - `Decomp_Coverage_Report.md`, `Decomp_Coverage_IssueLog.csv`, `Decomp_Coverage_Matrix.csv`, and `coverage_summary.json` exist.
 - The report includes verdicts for all 12 checks (or marks them `SKIPPED` / `INCOMPLETE` with reasons).
 - Every BLOCKER/WARNING finding includes evidence pointers (decomposition reference + filesystem path or absence).
@@ -472,7 +477,7 @@ A run is valid when:
 ### Tool-root layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/DecompCoverage/
+{EXECUTION_ROOT}/_Evaluation/DecompCoverage/
   _LATEST.md
   COV_{RUN_LABEL}_{YYYY-MM-DD}_{HHMM}/
     Brief.md
@@ -526,7 +531,7 @@ The decomposition document is the root of all downstream structure. If it diverg
 
 This audit catches that divergence early and cheaply. It is designed to be:
 - **Rerunnable** after any scope change (SCOPE_CHANGE invokes it pre- and post-amendment)
-- **Composable** with existing reconciliation toolbelt (RECONCILIATION dispatches it alongside AUDIT_DEP_CLOSURE and AUDIT_AGENTS)
+- **Composable** with the EVALUATION audit toolbelt (EVALUATION may dispatch it alongside AUDIT_DEP_CLOSURE and AUDIT_AGENTS)
 - **Non-destructive** (read-only analysis; surfaces issues for humans and other agents to act on)
 
 For `DOMAIN`, the audit now treats the active decomposition package, not just
@@ -536,7 +541,7 @@ objective-evidence integrity are first-class audit concerns rather than
 campaign-specific cleanup notes.
 
 The package-shape conformance check (9b) enforces the preferred modular package
-architecture defined in `AGENT_DECOMP_BASE.md`. It surfaces cases where the main
+architecture defined in `docs/DECOMPOSITION_STANDARD.md`. It surfaces cases where the main
 decomposition document has grown monolithic by embedding heavy companion truth,
 where derived publication artifacts are being confused with authoritative working
 surfaces, or where package roles are insufficiently discoverable for future

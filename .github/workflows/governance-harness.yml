@@ -1,0 +1,40 @@
+# Phase 5 CI wrapper (plan v3 §Roadmap row 5; CI half re-ruled by owner
+# 2026-07-02 after Phases 3-4 landed — register item 10 addendum).
+#
+# Thin wrapper only: runs the practitioner-harness test suite and self-check.
+# Objective BLOCK findings exit nonzero per the D-GOV-02 contract and fail the
+# run; REVIEW and below exit 0 and never gate (human judgment stays human).
+# This workflow adds no checks and holds no authority — authority stays in
+# authored files (D-GOV-01). The cache half of Phase 5 remains closed:
+# precondition (query pain) unmet.
+name: governance-harness
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: self-check's conditional approval-SHA reachability
+          # (git cat-file) must see old commits; a shallow clone would
+          # misreport reachable SHAs as unreachable.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install harness dependencies
+        run: python3 -m pip install --quiet pyyaml pytest
+      - name: Install zsh (write_status.sh guard is a zsh script; ubuntu runners lack it)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
+      - name: Harness test suite
+        run: python3 -m pytest tools/practitioner_harness -q
+      - name: Self-check (BLOCK findings fail the run per D-GOV-02)
+        run: python3 tools/practitioner_harness/harness.py self-check

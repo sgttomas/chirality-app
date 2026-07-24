@@ -10,8 +10,12 @@
 **/.checkpoints/
 
 # Archives are historical/local, not canonical repo content
+archive/
+Archive/
 .archive/
 .Archive/
+**/archive/
+**/Archive/
 **/.archive/
 **/.Archive/
 **/_archive/
@@ -56,31 +60,51 @@ frontend/artifacts/
 venv/
 env/
 
-# Large or reproducible source corpora and generated source work dirs
+# Source corpora: keep costly text/metadata derivatives, ignore raw/recreatable binaries.
 domains/*/_Sources/**
 !domains/*/_Sources/
+!domains/*/_Sources/**/
 !domains/*/_Sources/.gitkeep
 !domains/*/_Sources/README.md
+!domains/*/_Sources/**/*.md
+!domains/*/_Sources/**/*.csv
+!domains/*/_Sources/**/*.xlsx
+!domains/*/_Sources/**/*.json
+!domains/*/_Sources/**/*.jsonl
+!domains/*/_Sources/**/*.html
+!domains/*/_Sources/**/*.txt
+domains/*/_Sources/**/*.pdf
+domains/*/_Sources/**/*.PDF
+domains/*/_Sources/**/*.zip
+domains/*/_Sources/**/*.png
+domains/*/_Sources/**/*.jpg
+domains/*/_Sources/**/*.jpeg
+domains/*/_Sources/**/*.tif
+domains/*/_Sources/**/*.tiff
+domains/*/_Sources/**/*.mht
+domains/*/_Sources/**/*.bak
+domains/*/_Sources/**/archive/**
+domains/*/_Sources/**/Archive/**
+domains/*/_Sources/**/.archive/**
+domains/*/_Sources/**/.Archive/**
+domains/*/_Sources/**/_archive/**
+domains/*/_Sources/**/_Archive/**
 domains/*/_LocalIndexes/**
 !domains/*/_LocalIndexes/
 !domains/*/_LocalIndexes/.gitkeep
 !domains/*/_LocalIndexes/README.md
 **/*_pdf2md_work/
+!domains/*/_Sources/**/*_pdf2md_work/
+!domains/*/_Sources/**/*_pdf2md_work/**/
 **/*_drawing_extract_work/
 **/*_drawing_extract_work_run*/
 **/*_symbol_instance_diag_work/
 **/_LocalIndexes/
+!domains/*/_LocalIndexes/
+!domains/*/_LocalIndexes/.gitkeep
+!domains/*/_LocalIndexes/README.md
+**/_Aggregation/_pdf_work/
 tools/retrieval/_index/
-**/_Sources/**/*.pdf
-**/_Sources/**/*.PDF
-**/_Sources/**/*.zip
-**/_Sources/**/*.png
-**/_Sources/**/*.jpg
-**/_Sources/**/*.jpeg
-**/_Sources/**/*.tif
-**/_Sources/**/*.tiff
-**/_Sources/**/*.mht
-**/_Sources/**/*.bak
 
 # Zip archives and office temp files
 *.zip
@@ -92,3 +116,10 @@ tools/retrieval/_index/
 exports/*/staging/
 exports/*/staging-*/
 exports/*/latest/
+
+# Practitioner harness generated views (rebuildable; D-GOV-01)
+_harness_generated/
+
+# SQLite transient WAL sidecars (rebuilt at runtime; not canonical)
+*.db-shm
+*.db-wal

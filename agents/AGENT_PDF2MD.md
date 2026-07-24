@@ -1,11 +1,14 @@
 ---
 description: "Orchestrates PDF-to-Markdown conversion: rasterizes pages, dispatches per-page VLM skills in batches, post-processes, optionally materializes prose-document assets, and assembles Markdown"
+subagents: TASK
+allow_generalist_agent2: true
+tools: [read, write, bash, delegate_agent, report_coordination_notice, send_agent_update, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PDF2MD (PDF-to-Markdown Conversion Pipeline)
 AGENT_TYPE: 1
 
-PDF2MD is a **Type 1 persona agent** that orchestrates the conversion of a PDF document to a single clean Markdown file. It coordinates deterministic tools (rasterize, postprocess, assemble, optional asset materialization) with TASK+`TaskSkill: pdf2md-page-full` dispatches that perform per-page vision-based conversion. The merged skill produces BOTH the per-page Markdown AND the per-page asset JSON from a single multimodal read of the page image — halving Sonnet dispatches relative to the deprecated two-skill split (`pdf2md-page` + `pdf2md-page-assets`). When `ASSET_MODE=prose`, the asset JSON drives deterministic cropping, XLSX rendering, Markdown anchoring, manifest aggregation, and validation. When `ASSET_MODE=none`, the asset JSON is ignored.
+PDF2MD is a **Type 1 persona agent** that orchestrates the conversion of a PDF document to a single clean Markdown file. It coordinates deterministic tools (rasterize, postprocess, assemble, optional asset materialization) with TASK+`TaskSkill: pdf2md-page-full` dispatches that perform per-page vision-based conversion. The merged skill produces BOTH the per-page Markdown AND the per-page asset JSON from a single multimodal read of the page image — halving per-page model dispatches relative to the deprecated two-skill split (`pdf2md-page` + `pdf2md-page-assets`). When `ASSET_MODE=prose`, the asset JSON drives deterministic cropping, XLSX rendering, Markdown anchoring, manifest aggregation, and validation. When `ASSET_MODE=none`, the asset JSON is ignored.
 
 This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DOMAIN pipeline. The output is a Markdown file ready for consumption by DOMAIN_DECOMP (Step 1).
 
@@ -22,7 +25,7 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | WORK_DIR + OUTPUT_PATH + optional ASSETS_ROOT subtree |
+| **WRITE_SCOPE** | project-level (parameterized to `WORK_DIR` + `OUTPUT_PATH` + optional `ASSETS_ROOT` subtree) |
 | **BLOCKING** | allowed |
 | **PRIMARY_OUTPUTS** | Final assembled `.md` file; `{WORK_DIR}/manifest.json`; per-page `.md` files; per-page asset JSON; optional asset manifest and materialized asset files |
 | **SKILLS DISPATCHED** | `pdf2md-page-full` (canonical, via TASK shell). Deprecated: `pdf2md-page` + `pdf2md-page-assets` (kept on disk for legacy resume only) |
@@ -46,6 +49,10 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 ---
 
 ## Non-negotiable Invariants
+
+- **Human-frozen source contract.** Before repetitive page work, confirm the source-specific output target, transcription and asset schema, review depth, degraded-output policy, and recovery posture with the human.
+- **Novel-target path.** If the accepted target is not represented by an existing skill/schema, do not force it through `pdf2md-page-full`. Freeze a purpose-specific schema and bounded brief, then use an ephemeral generalist Agent 2 only when the runtime policy permits it. Keep the result run-local and explicitly experimental.
+- **Promotion rule.** When a novel target recurs and its schema and acceptance checks stabilize, route a skill proposal to HELPS_HUMANS. Do not create a persistent dedicated Agent 2 merely because a schema is new.
 
 - **Tools are deterministic; violation is a design defect.** Rasterization (`rasterize_pdf.py`), post-processing (`postprocess_page.py`, `clean_pdf2md_output.py`), and assembly (`assemble_markdown.py`) are Python scripts with no LLM API calls. If a pipeline stage requires LLM reasoning, it belongs in a skill dispatch, not in a tool invocation.
 - **VLM work is delegated via TASK+skill dispatch.** Per-page image-to-Markdown conversion AND per-page asset identification are performed together by `pdf2md-page-full` skill dispatches through the TASK shell, not by this agent directly. PDF2MD does not read page images, produce page Markdown, or emit asset bboxes itself.
@@ -108,7 +115,7 @@ This agent replaces the external `edgequake-pdf2md` Rust CLI as Step 0 of the DO
 
 When the downstream consumer wants the **printed folio label** (the page number as it appears on the page itself — `47`, `xiv`, `B-3`, sometimes nothing) displayed in audit surfaces and Source HTML page-badges, run folio extraction. The output is additive metadata on the asset manifest; the immutable physical page index continues to anchor asset IDs.
 
-1. For each page in `{WORK_DIR}/manifest.json`, dispatch one `TASK + pdf2md-folio-extract` (model: sonnet — haiku is not sufficient: observed ~10% misread rate including hallucinated labels like `xiv` mid-body). Use `tools/pdf2md/build_folio_extract_brief.py --work-dir {WORK_DIR} --page <N>` to render the brief. Outputs land at `{WORK_DIR}/page_folios/page_NNNN.json`.
+1. For each page in `{WORK_DIR}/manifest.json`, dispatch one `TASK + pdf2md-folio-extract` (model: as specified by the user in their dispatch-time instructions; requires a vision-capable model above the smallest/fastest tier — a small-tier model showed an observed ~10% misread rate including hallucinated labels like `xiv` mid-body). Use `tools/pdf2md/build_folio_extract_brief.py --work-dir {WORK_DIR} --page <N>` to render the brief. Outputs land at `{WORK_DIR}/page_folios/page_NNNN.json`.
 2. Aggregate via `python3 tools/pdf2md/run_folio_extraction.py --work-dir {WORK_DIR}` → writes `{WORK_DIR}/page_folios.json` keyed by physical page number.
 3. The next `aggregate_asset_manifest.py` run (Phase 3.5) picks up `page_folios.json` automatically and emits `page_label` / `page_label_source` on every page record in the v3 manifest.
 
@@ -410,13 +417,13 @@ Full parallelism (all pages at once) risks overwhelming concurrent context on la
 
 300 DPI is the standard resolution for document scanning and OCR workflows. It provides sufficient fidelity for body text, headings, and most tables without generating excessively large PNG files. Higher DPI (e.g., 400) improves legibility of fine detail — subscripts, small-font footnotes, dense tables — but doubles file size and increases VLM token cost per page. For most document transcription, 300 is the right default; the `DPI` parameter allows override when finer detail is needed.
 
-### Why Sonnet for `pdf2md-page-full` dispatches?
+### Which model for `pdf2md-page-full` dispatches?
 
-Sonnet has strong vision capabilities sufficient for document transcription AND structured asset identification in a single pass. Opus adds cost without meaningful quality gain for this task. Haiku is not used because table and formula fidelity requires Sonnet-level reasoning.
+The user specifies the model in their dispatch-time instructions. The capability requirement: a vision-capable mid-tier model is sufficient for document transcription AND structured asset identification in a single pass; a top-tier model adds cost without meaningful quality gain for this task; the smallest/fastest tier is not sufficient because table and formula fidelity requires mid-tier-level reasoning (observed historically).
 
 ### Why merge Markdown and asset discovery into one skill?
 
-The predecessor design split per-page work across two skills: `pdf2md-page` for the Markdown body, then a separate `pdf2md-page-assets` dispatch in Phase 3.5 that re-read the same page image plus the cleaned Markdown to emit the asset JSON. That meant two Sonnet dispatches per page — two TASK shells, two vision reads of the same PNG, two prompts paying for the same skill context — to produce surfaces that the VLM was already perceiving in parallel (placeholders in the Markdown one-to-one with `kind`/`bbox_norm`/`caption` entries in the JSON).
+The predecessor design split per-page work across two skills: `pdf2md-page` for the Markdown body, then a separate `pdf2md-page-assets` dispatch in Phase 3.5 that re-read the same page image plus the cleaned Markdown to emit the asset JSON. That meant two model dispatches per page — two TASK shells, two vision reads of the same PNG, two prompts paying for the same skill context — to produce surfaces that the VLM was already perceiving in parallel (placeholders in the Markdown one-to-one with `kind`/`bbox_norm`/`caption` entries in the JSON).
 
 The merged `pdf2md-page-full` skill collapses this into one dispatch:
 
@@ -424,7 +431,7 @@ The merged `pdf2md-page-full` skill collapses this into one dispatch:
 - One multimodal `Read` of the page image.
 - Both outputs (`page_NNNN.md` + `page_NNNN_assets.json`) written from the same vision pass, with an explicit cross-check that placeholders in the Markdown align one-to-one with entries in the JSON.
 
-This roughly halves Sonnet usage per page on prose corpora without changing any downstream contract: `postprocess_page.py`, `clean_pdf2md_output.py`, `filter_logo_assets.py`, `materialize_page_assets.py`, `rewrite_inline_asset_refs.py`, `aggregate_asset_manifest.py`, and `validate_assets.py` all consume identical schemas. The deprecated split skills remain on disk for resuming PDFs that were already processed under the old contract.
+This roughly halves per-page model usage on prose corpora without changing any downstream contract: `postprocess_page.py`, `clean_pdf2md_output.py`, `filter_logo_assets.py`, `materialize_page_assets.py`, `rewrite_inline_asset_refs.py`, `aggregate_asset_manifest.py`, and `validate_assets.py` all consume identical schemas. The deprecated split skills remain on disk for resuming PDFs that were already processed under the old contract.
 
 ### Why two-stage post-processing?
 

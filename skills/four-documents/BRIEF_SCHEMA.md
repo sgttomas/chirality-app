@@ -4,7 +4,9 @@ This file defines the INIT-TASK dispatch contract for `TASK + four-documents`.
 
 ## Purpose
 
-Use this skill when ORCHESTRATOR needs the standard four-document kit (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) drafted or enriched for one PROJECT or SOFTWARE deliverable.
+Use this skill only to maintain or enrich an existing complete transitional
+four-document kit (`LEGACY_FOUR_DOC`) for one PROJECT or SOFTWARE deliverable.
+New initialization must use `TASK + scope-of-work`, `MODE=INIT`.
 
 ## Scope model
 
@@ -15,10 +17,10 @@ Use this skill when ORCHESTRATOR needs the standard four-document kit (`Datashee
 
 | Field | Type | Meaning | Example |
 |---|---|---|---|
-| `PURPOSE` | string | Why this run exists | `Draft the four-document kit for DEL-014-03.` |
+| `PURPOSE` | string | Why this compatibility run exists | `Maintain the existing legacy kit for DEL-014-03.` |
 | `ScopePath` | path | Deliverable-local folder | `/repo/execution/PKG-014/DEL-014-03_Compressor-Controls/` |
 | `TaskSkill` | string | Must equal the skill folder/name | `four-documents` |
-| `AllowedWriteTargets` | list[path] | Kit-doc outputs and optional `_STATUS.md` | `[/.../Datasheet.md, /.../Specification.md, /.../Guidance.md, /.../Procedure.md, /.../_STATUS.md]` |
+| `AllowedWriteTargets` | list[path] | Existing legacy-doc outputs only; `_STATUS.md` is read-only | `[/.../Datasheet.md, /.../Specification.md, /.../Guidance.md, /.../Procedure.md]` |
 | `RuntimeOverrides.DELIVERABLE_PATH` | path | Deliverable folder | `/repo/.../DEL-014-03_Compressor-Controls/` |
 | `RuntimeOverrides.DECOMPOSITION_REF` | path | Decomposition reference | `/repo/execution/_Decomposition/PROJECT_DECOMP.md` |
 | `RuntimeOverrides.RUN_PASSES` | enum | Which passes to run | `P1_P2` |

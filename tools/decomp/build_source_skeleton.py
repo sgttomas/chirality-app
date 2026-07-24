@@ -42,7 +42,8 @@ Usage:
       [--budget-tokens 15000] \\
       [--section-split-threshold 25000] \\
       [--front-matter-overrides JSON] \\
-      [--back-matter-overrides JSON]
+      [--back-matter-overrides JSON] \\
+      [--in-scope-overrides JSON]
 """
 from __future__ import annotations
 
@@ -115,6 +116,9 @@ def parse_args() -> argparse.Namespace:
                    help="JSON array of SectionIDs to force-flag as front matter")
     p.add_argument("--back-matter-overrides", default=None,
                    help="JSON array of SectionIDs to force-flag as back matter")
+    p.add_argument("--in-scope-overrides", default=None,
+                   help="JSON array of SectionIDs to force in scope by clearing "
+                        "front/back-matter flags")
     return p.parse_args()
 
 
@@ -382,14 +386,19 @@ def apply_overrides(
     sections: list[dict],
     front_overrides: list[str],
     back_overrides: list[str],
+    in_scope_overrides: list[str],
 ) -> list[dict]:
     front_set = set(front_overrides)
     back_set = set(back_overrides)
+    in_scope_set = set(in_scope_overrides)
     for s in sections:
         if s["section_id"] in front_set:
             s["is_front_matter"] = True
         if s["section_id"] in back_set:
             s["is_back_matter"] = True
+        if s["section_id"] in in_scope_set:
+            s["is_front_matter"] = False
+            s["is_back_matter"] = False
         s["in_scope_default"] = not (s["is_front_matter"] or s["is_back_matter"])
     return sections
 
@@ -577,8 +586,16 @@ def main() -> int:
 
     front_overrides = json.loads(args.front_matter_overrides) if args.front_matter_overrides else []
     back_overrides = json.loads(args.back_matter_overrides) if args.back_matter_overrides else []
-    if not isinstance(front_overrides, list) or not isinstance(back_overrides, list):
-        return fail("--front-matter-overrides and --back-matter-overrides must be JSON arrays")
+    in_scope_overrides = json.loads(args.in_scope_overrides) if args.in_scope_overrides else []
+    if (
+        not isinstance(front_overrides, list)
+        or not isinstance(back_overrides, list)
+        or not isinstance(in_scope_overrides, list)
+    ):
+        return fail(
+            "--front-matter-overrides, --back-matter-overrides, "
+            "and --in-scope-overrides must be JSON arrays"
+        )
 
     manifest = load_manifest(args.asset_manifest)
     doc_stem = manifest.get("doc_stem") or args.md.stem
@@ -592,7 +609,7 @@ def main() -> int:
     png_index = build_png_to_asset(manifest)
     page_anchors = collect_page_line_index(lines)
     sections = build_sections(lines, headings, prefix, png_index, page_anchors)
-    sections = apply_overrides(sections, front_overrides, back_overrides)
+    sections = apply_overrides(sections, front_overrides, back_overrides, in_scope_overrides)
 
     # Strip internal-only fields before writing
     for s in sections:

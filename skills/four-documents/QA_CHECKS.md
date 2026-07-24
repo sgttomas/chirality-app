@@ -1,5 +1,9 @@
 # QA CHECKS — four-documents
 
+- Input resolved to an existing complete `LEGACY_FOUR_DOC`; no new
+  PROJECT/SOFTWARE initialization or dual-format state was accepted.
+- `_STATUS.md` is byte-identical before and after.
+
 ## Minimum output validity checks
 
 1. The four document files exist after a successful Pass 1 run.

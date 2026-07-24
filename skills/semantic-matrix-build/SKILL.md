@@ -1,9 +1,9 @@
 ---
 name: semantic-matrix-build
-description: Generate the deliverable-local semantic lens (_SEMANTIC.md) by adopting canonical matrices A and B and deriving matrices C, F, D, K, G, X, T, E via semantic algebra, showing all interpretation work.
-compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline (Phase 2.3).
+description: Generate one deliverable-local semantic lens (_SEMANTIC.md) by adopting canonical matrices A and B and deriving C, F, D, K, G, X, T, and E with explicit semantic-algebra working.
+compatibility: Chirality TASK generic shell; normally dispatched by PROJECT_SETUP setup pipeline Phase 2.3 with ScopePath set to one deliverable folder.
 metadata:
-  chirality-skill-version: "1"
+  chirality-skill-version: "2"
   chirality-task-profile: NONE
 ---
 
@@ -11,427 +11,216 @@ metadata:
 
 ## Purpose
 
-Apply semantic algebra to generate structured "semantic matrices" for knowledge work. This skill begins from two canonical input matrices (Orientation and Conceptualization), then derives eight further matrices (Formulation through Evaluation) that express categories, types, behaviors, and values for a given production unit perspective. It supports all three decomposition variants (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP).
+Generate `_SEMANTIC.md`, a deliverable-local semantic lens for one production unit.
 
-The skill does **not** specify particulars—it identifies semantic partitions. Particulars are addresses within those partitions, resolved in subsequent stages beyond this skill's scope.
+The lens is **deliverable-conditioned**: `_CONTEXT.md` and production documents shape the vocabulary and perspective. The lens is **not deliverable-literal**: matrix cells are semantic categories, types, behaviors, and values, not restated requirements, implementation details, code clauses, file paths, event-name lists, numbers, or engineering judgments.
 
-Each invocation is dispatched by ORCHESTRATOR via TASK with a brief specifying one deliverable folder. One `_SEMANTIC.md` file is produced per run.
+Each run starts from canonical Matrix A and Matrix B, then derives exactly these matrices in order:
 
-## Suitable agent shells
+`C, F, D, K, G, X, T, E`
 
-- `TASK` (generic shell mode, no profile)
+The output is one file:
 
-Typical dispatcher: ORCHESTRATOR Phase 2.3 dispatches TASK with `TaskSkill: semantic-matrix-build` (one dispatch per deliverable).
+`{deliverable_folder}/_SEMANTIC.md`
 
-## Foundations: Ontology, Epistemology, Praxeology, Axiology
+## Runtime shell
 
-- **STRUCTURE (Ontology):** the things this skill creates: a deliverable-local semantic lens (`_SEMANTIC.md`) consisting of semantic matrices (types/categories/behaviors/values) conditioned by a deliverable perspective.
-- **SPEC (Epistemology + Axiology):** what counts as a valid lens: correct algebra/interpretation steps, no particulars, and explicit separation of lens vs engineering authority.
-- **PROTOCOL (Praxeology):** how to ingest deliverable context, adopt canonical matrices A and B, derive matrices C, F, D, K, G, X, T, and E, persist `_SEMANTIC.md`, and (optionally) update readiness state.
-- **RATIONALE (Axiology):** why this exists: give WORKING_ITEMS (and humans) a structured lens for asking better questions and detecting missing categories early, without pretending to be an evidence-based design authority.
+Use `TASK` in generic shell mode with `ScopePath` set to the deliverable folder. This skill is fully controlled by its brief and method contract.
 
-## Precedence (conflict resolution)
+Normal dispatch shape:
 
-1. **PROTOCOL** governs sequencing and semantic operations (how to perform the algebra).
-2. **SPEC** governs validity (what constitutes a correct semantic product).
-3. **STRUCTURE** defines the matrices and their construction rules.
-4. **RATIONALE** governs interpretation when ambiguity remains.
+```yaml
+TaskSkill: semantic-matrix-build
+ScopePath: /absolute/path/to/one/deliverable-folder
+RuntimeOverrides:
+  deliverable_folder: /absolute/path/to/one/deliverable-folder
+  decomposition_path: /absolute/path/to/decomposition.md
+  DECOMP_VARIANT: SOFTWARE
+  STATUS_POLICY: PRESERVE_CURRENT
+```
 
-If any instruction appears to conflict, **do not silently reconcile**. Surface the conflict as a contradiction and request human resolution.
+## Method boundary
 
-## Non-negotiable constraints
+This skill is a method pack loaded by TASK. It is not a persona agent.
 
-- **Perspective is Deliverable-bound.** The skill adopts the perspective of the assigned Deliverable. This shapes all semantic operations.
-- **No particulars.** Outputs are types, categories, behaviors, and values—not specific instances or addresses.
-- **Show all work (operations).** Every interpretation operation must display all three steps explicitly (including intermediate sets/collections). Interpretations that skip steps are invalid.
-- **Semantic density over verbosity (cell contents).** Final cell values must be semantically dense while remaining a 2-5 word phrase; working/outworking may be longer.
-- **Order of operations is strict.** Parentheses, then `*` left-to-right, then `+` left-to-right.
-- **List-valued operands require interpretation.** If an operand is list-valued, it must be interpreted with `I(r, c, L)` before downstream use.
-- **One deliverable per run.** Each invocation processes exactly one deliverable folder. No cross-deliverable scanning.
-- **Lens-not-authority separation.** The matrices are a semantic lens, not an engineering authority or evidence-based design output.
+The skill may narrow runtime behavior but must not widen the effective bounded task brief's write authorization. If TASK and this skill disagree about write authorization or tool use, the narrower instruction wins and the run report must surface the contradiction.
 
-## Write scope
+## Precedence
 
-- **Deliverable-local.** May write/overwrite only:
-  - `{deliverable_folder}/_SEMANTIC.md` (primary output), and
-  - `{deliverable_folder}/_STATUS.md` to record readiness (deliverable-local only):
-    - On audit **PASS**: ensure state = `SEMANTIC_READY` and append History.
-    - On audit **FAIL**: do **not** advance state; append failure History.
-- **Do not modify production documents.** Do not edit `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or (for DOMAIN variants) any Knowledge Artifact documents (`KA-*.md`) or `Scoping.md`. Knowledge Subjects are decomposition units, not files. This skill is read-only on all production documents.
+1. TASK hard authorization boundary and active brief
+2. This SKILL.md method contract
+3. QA_CHECKS.md validity contract
+4. TOOL_POLICY.md tool contract
+5. BRIEF_SCHEMA.md dispatch examples
 
-## Glossary
-
-| Term | Meaning |
-|------|---------|
-| **Deliverable perspective** | The deliverable-bound viewpoint that conditions all matrix generation (derived from `_CONTEXT.md` + the production documents; see Production Documents) |
-| **Semantic lens (`_SEMANTIC.md`)** | The persisted semantic matrices for a deliverable; used as a lens in WORKING_ITEMS; not an engineering authority |
-| **SEMANTIC_READY** | Deliverable lifecycle readiness state indicating `_SEMANTIC.md` has been generated (in addition to drafts) |
-| **Semantic Multiplication (`*`)** | Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined |
-| **Semantic Addition (`+`)** | Groups terms into a collection |
-| **Interpretation Operator `I(r, c, L)`** | Coerces a list-valued cell into a single atomic semantic unit conditioned by row and column axes |
-| **Axis anchor** | The product `r * c` that establishes the coordinate frame for a cell |
-| **Projected contributor** | The product `a * t` for each contributor `t` in a list, conditioned by the axis anchor |
-| **Centroid attractor** | The shortest phrase capturing the shared semantic core of all projected contributors |
-| **Semantic matrix** | A grid of semantic products organized by row and column labels |
-| **Dot product (`·`)** | Yields a collection of semantic products that must be interpreted before becoming a usable matrix |
-| **Resolution (semantic constant)** | The fixed term `"resolution"` used in Matrix D construction (`L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`); conditions requirements toward closure before combining with orientation |
+If instructions conflict, do not silently reconcile. Report the contradiction.
 
 ## Inputs
 
 ### Required
 
-- `deliverable_folder` — absolute path to one production unit folder (resolved by ORCHESTRATOR per variant folder patterns)
-- `decomposition_path` — absolute path to the decomposition document (for traceability; do not re-interpret scope)
+- `ScopePath` — TASK local scope root; must resolve to the same folder as `deliverable_folder`.
+- `deliverable_folder` — absolute path to exactly one deliverable / production unit folder.
+- `decomposition_path` — absolute path to the decomposition document used for traceability only.
 
-### Optional
+### Required runtime override
 
-- `DECOMP_VARIANT` — `PROJECT` | `SOFTWARE` | `DOMAIN`. When provided, determines entity terminology in outputs and which production documents to read. When absent, default to `PROJECT` behavior.
+- `DECOMP_VARIANT` — `PROJECT`, `SOFTWARE`, or `DOMAIN`.
 
-## Runtime overrides
+If absent, default to `PROJECT`, but report the default in the run report.
 
-| Key | Meaning | Default | Allowed values |
-|---|---|---|---|
-| `DECOMP_VARIANT` | Decomposition variant determining terminology and production documents | `PROJECT` | `PROJECT`, `SOFTWARE`, `DOMAIN` |
+- `PRODUCTION_FORMAT` — resolver-selected `LEGACY_FOUR_DOC`, `SOW_V1`, or
+  authorized `MIGRATION_DUAL`. Dual mode also requires `FORMAT_AUTHORITY_REF`, an exact
+  in-scope path, and `STATUS_POLICY=NO_STATUS_TOUCH`; otherwise fail closed.
 
-### Variant Awareness
+### Status policy runtime override
 
-This skill uses **Deliverable** terminology throughout. When `DECOMP_VARIANT = DOMAIN`, substitute per this table:
+`STATUS_POLICY` controls `_STATUS.md` behavior.
 
-| Protocol term | PROJECT / SOFTWARE | DOMAIN |
-|---------------|-------------------|--------|
-| Deliverable | Deliverable | Knowledge Type |
-| Package | Package | Category |
-| DEL-ID | DEL-XXX-YY / DEL-XX-YY | KTY-CC-TT_{desc} |
+| Value | Meaning |
+|---|---|
+| `PRESERVE_CURRENT` | Default for PROJECT_SETUP Phase 2.3. Do not change lifecycle state. Record the ruling in `_SEMANTIC.md` and the run report. |
+| `ADVANCE_ON_PASS` | On audit PASS, set or verify `Current State: SEMANTIC_READY`, but only if TASK write authorization allows `_STATUS.md` edits. |
+| `NO_STATUS_TOUCH` | Do not edit `_STATUS.md` at all. Record status untouched in `_SEMANTIC.md` and the run report. |
 
-### Production Documents
+If `STATUS_POLICY=ADVANCE_ON_PASS` but `_STATUS.md` editing is not authorized by TASK/brief, do not edit status. Report `NEEDS_HUMAN_RULING` or `FAILED_INPUTS` according to TASK's run-report convention.
 
-By default, the skill reads the **standard four-document set** (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`) as context for deriving the production unit perspective.
+## Files to read
 
-When `DECOMP_VARIANT = DOMAIN`, the production documents are determined by the Knowledge Type's materialized document set and may differ from this fixed set. Read whatever non-metadata production documents (`.md` files not prefixed with `_`) exist in the folder.
+Read only inside `deliverable_folder`, except the decomposition document used for traceability.
 
-For DOMAIN:
-- treat **Knowledge Subjects** as decomposition-layer topics, not files,
-- treat `KA-*.md` files as the subject-backed production documents,
-- include `Scoping.md` as the Knowledge-Type-level entrypoint when present.
+Read in this order when present:
 
-## Outputs
+1. `_CONTEXT.md` — required. If missing, fail with `FAILED_INPUTS`.
+2. `_STATUS.md` — lifecycle state and phase history.
+3. `_REFERENCES.md` — source corpus and source-state warnings.
+4. `_DEPENDENCIES.md` — dependency notes; do not infer blockers from it.
+5. `MEMORY.md` — if absent, record `not present` in Inputs Read.
+6. Production documents:
+   - `PROJECT` / `SOFTWARE`: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+   - `SOW_V1` or authorized `MIGRATION_DUAL`: `ScopeOfWork.md`; treat its four named
+     philosophical sections and registered IDs as the production contract.
+   - `DOMAIN`: all non-metadata `.md` files not prefixed with `_`, typically `Scoping.md` and `KA-*.md`
 
-- `{deliverable_folder}/_SEMANTIC.md` — semantic lens file (overwritten each run; includes audit result)
-- `{deliverable_folder}/_STATUS.md` — readiness bookkeeping (updated every run):
-  - On audit **PASS**: ensure state = `SEMANTIC_READY` and append a History entry.
-  - On audit **FAIL**: do **not** advance state; append a History entry noting the failure.
-- Run report (skill response): PASS/FAIL + reasons.
+Missing production documents are recorded as absent; they do not fail the run. Do not read sibling deliverable folders. Do not compare across deliverables.
+The resolver must select exactly one accepted format. `MIGRATION_DUAL`
+requires exact path-scoped authority; missing, partial, invalid, ambiguous, or
+unauthorized dual input fails closed.
 
-## Tool usage
+## Write scope
 
-- No deterministic tools. This is a reasoning-first semantic-algebra skill.
-- The `allowed-tools` frontmatter field is intentionally omitted.
+May write only inside `deliverable_folder`:
 
----
+- `_SEMANTIC.md` — primary output; overwrite allowed.
+- `_STATUS.md` — only if `STATUS_POLICY` requires it and TASK/brief authorizes it.
 
-## PROTOCOL
+Never modify production documents, `_CONTEXT.md`, `_REFERENCES.md`, `_DEPENDENCIES.md`, `MEMORY.md`, or files outside the scope.
 
-### Operational — "How to do?"
+## Deliverable perspective
 
-This section defines the procedure for semantic matrix generation: adopting canonical matrices A and B, then deriving matrices C, F, D, K, G, X, T, and E.
+Write a 1–3 sentence Perspective near the top of `_SEMANTIC.md`.
 
-### Straight-Through Run Procedure (deliverable-local)
+The Perspective must:
 
-1. **Locate and read deliverable context**
-   - Read `{deliverable_folder}/_CONTEXT.md` (authoritative identity + description).
-   - Read `{deliverable_folder}/_STATUS.md` (current lifecycle state).
-   - Read production documents (drafts; do not edit):
-     - PROJECT / SOFTWARE: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
-     - DOMAIN: all non-metadata `.md` files in the folder (typically `Scoping.md` plus `KA-*.md` Knowledge Artifact files)
+- name what the deliverable is for at a semantic level;
+- identify the kinds of knowledge the lens must carry;
+- include relevant source-state caveats at a category level when present;
+- avoid engineering correctness claims;
+- avoid exact code clauses, exact event-name lists, exact file paths, line numbers, implementation paths, and other particulars.
 
-2. **Derive the deliverable perspective statement**
-   - Produce a 1–3 sentence **Perspective** that describes what this deliverable is *for* and what kind of knowledge it must carry.
-   - The Perspective must be deliverable-bound and **must not** introduce particulars (no numbers, no specific equipment tags, no code clause citations).
+Good pattern:
 
-3. **Generate semantic matrices (eight-phase)**
-   - Use the canonical Matrix A and Matrix B values defined in STRUCTURE (do not re-derive).
-   - Derive matrices C, F, D, K, G, X, T, E from A and B as defined in STRUCTURE.
-   - For every list-valued cell, apply the interpretation operator `I(r,c,L)` and **show all three steps**.
-   - Maintain "types/categories/behaviors/values" language; avoid instantiating concrete project particulars.
+> This deliverable frames the runtime boundary as a product-owned contract that keeps adapter behavior replaceable while preserving product-owned turn semantics. Its knowledge must carry API shape, adapter quarantine, event compatibility, conformance expectations, and unresolved source-state caveats without treating provider-specific details as public authority.
 
-4. **Write `_SEMANTIC.md`**
-   - Use the Output Format schema in STRUCTURE.
-   - Include: `Generated` date, Deliverable identifiers, the derived Perspective statement, canonical matrices A and B (as-is), full derivation work for each derived matrix C, F, D, K, G, X, T, and E (showing all interpretation steps inline), and a final Matrix Summary section containing the eight derived matrices in compact table form.
+Bad patterns:
 
-5. **Audit final cell values (mandatory before acceptance)**
-   - Scan every cell in every Result table (matrices C, F, D, X, E) for these three failure patterns:
-     1. **Algebra leak:** cell value contains `∩` or `Σ` — intermediate notation that should never survive interpretation.
-     2. **Uninterpreted expansion:** cell value exceeds ~80 characters — legitimate semantic products are 2-5 word phrases; anything longer is almost certainly a raw dot-product expansion.
-     3. **Operator leak:** cell value contains `+` flanked by semantic terms — the addition operator from the construction formula leaked through as literal text.
-   - If **any** cell fails:
-     - Mark the run **FAIL** (do **not** attempt to repair, re-derive, or re-audit).
-     - Leave `_STATUS.md` **state unchanged** (do not advance to `SEMANTIC_READY`), but **append** a History entry noting the audit failure.
-     - Emit the run report with the failed matrix/cell(s) and the failure reason(s).
-     - End the run.
-   - Only if all cells pass may you continue to step 6.
+- Too generic: “This deliverable creates a semantic lens for knowledge work.”
+- Too literal: “This deliverable validates `session:init`, `chat:delta`, and `/api/...` by implementing file X.”
 
-6. **Update readiness state (mandatory on PASS)**
-   - If the audit in step 5 **passed**:
-     - If `{deliverable_folder}/_STATUS.md` current state is `INITIALIZED`, update it to `SEMANTIC_READY`.
-     - If current state is already `SEMANTIC_READY`, keep it as-is.
-     - Append a History entry:
-       - `YYYY-MM-DD — State set/verified as SEMANTIC_READY (TASK+semantic-matrix-build)`
-   - If the audit in step 5 **failed**, the run ends in step 5 and `_STATUS.md` must **not** be advanced.
+## Semantic product style
 
-7. **Report completion**
-   - Report: deliverable ID/name, whether `_SEMANTIC.md` was written, audit **PASS/FAIL**, whether `_STATUS.md` was set to `SEMANTIC_READY`, and (if FAIL) the failing matrix/cell(s) + reason(s).
+Final matrix cells must be:
 
----
+- deliverable-conditioned;
+- category-level, not requirement-level;
+- one phrase only;
+- 2–5 words;
+- preferably 2–3 words when meaning remains complete;
+- free of row/column axis labels;
+- free of `∩`, `Σ`, unresolved `+`, or raw formula text.
 
-### Semantic Algebra Operations
+Target style examples:
 
-#### Semantic Multiplication `*`
+| Too generic | Too literal | Better |
+|---|---|---|
+| adequate evidence | SDK-backed adapter test output | runtime proof |
+| complete record | route/SSE event preservation checklist | compatibility record |
+| quality review | acceptance of exact PRD hash warning | source-state assurance |
+| process audit | Section 8 harness CI premerge summary | summary integrity check |
 
-Combines two terms into their semantic intersection—the meaning that emerges when both concepts are combined. This is the Word2Vec phenomenon.
+## Semantic algebra
 
-**Examples:**
-- `"sufficient" * "reason" = "justification"`
-- `"necessary" * "condition" = "prerequisite"`
-- `"practical" * "knowledge" = "skill"`
+### Multiplication `*`
 
-**Typing rule:** `*` is defined over **single semantic units** (words or phrases). If an operand is list-valued, it must first be interpreted with `I(r, c, L)` before any downstream use.
+Semantic multiplication combines two semantic units into their intersection.
 
-#### Semantic Addition `+`
+Examples:
 
-Groups terms into a collection.
+- `sufficient * reason = justification`
+- `necessary * condition = prerequisite`
+- `practical * knowledge = skill`
 
-#### Order of Operations
+### Addition `+`
 
-1. Parentheses
-2. `*` left-to-right
-3. `+` left-to-right
+Semantic addition groups terms into a collection. It must not leak into final cell values.
 
----
+### Interpretation `I(r, c, L)`
 
-### Interpretation Operator `I(r, c, L)`
+Every list-valued cell must be interpreted into one atomic semantic unit.
 
-#### Purpose
+For every interpreted cell, show exactly these three steps.
 
-`I` coerces a list-valued cell (a collection of contributors) into a **single atomic semantic unit** that:
-- is conditioned by the cell's coordinate axes (**row label r** and **column label c**)
-- does **not** explicitly name those axes (axes are latent constraints)
-- is compact and non-enumerative
-- will be used in downstream `*` operations
+#### Step 1 — Axis anchor
 
-#### Inputs
+Compute and resolve the axis product:
 
-| Input | Description |
-|-------|-------------|
-| `r` | The **row axis term** for the cell (latent constraint) |
-| `c` | The **column axis term** for the cell (latent constraint) |
-| `L` | A **collection** of contributor terms (order-insensitive; treat as a set) |
+`a = r * c = <resolved anchor phrase>`
 
-#### Output
+The anchor phrase should be semantic, not merely `<row>-<column> coordinate frame`.
 
-| Output | Description |
-|--------|-------------|
-| `u` | A **single semantic unit** expressed as a **2-5 word phrase** (no lists) |
+Example:
 
-#### Procedure (mandatory three steps)
+`normative * necessity = binding need`
 
-Interpret one cell at a time, following each of these three steps in sequence. **Show all three steps. Then assemble the matrix from verified cells.**
+#### Step 2 — Projected contributors
 
-##### Step 1: Axis anchor (latent coordinate frame)
+For every contributor `t_n` in `L`, compute and resolve:
 
-For every cell compute:
+`p_n = a * t_n = <anchor phrase> * <contributor phrase> = <resolved projection phrase>`
 
-`a := r * c`
+A projection that only restates the formula is incomplete. Each projection must have a resolved phrase before Step 3.
 
-The product must be written out for each cell.
+Good:
 
-##### Step 2: Coordinate-conditioned projection of contributors
+`p1 = binding need * policy fact = rule entry`
 
-For each cell and every contributor `t ∈ L`, compute a projected contributor:
+Bad:
 
-`p_t := a * t`
+`p1 = (normative * necessity) * (policy threshold * essential fact)`
 
-The projection step must appear explicitly in the working. For each contributor `t`, the product `a * t` must be written out.
+#### Step 3 — Centroid attractor
 
-##### Step 3: Centroid attractor selection (non-enumerative synthesis)
+Select one final cell phrase:
 
-Choose an atomic unit `u` such that the meaning of `u` is the **closest stable attractor** to the centroid of the set `{p_t}`.
+`centroid selects <final phrase>`
 
-Operationally, produce the **shortest** phrase that best captures the **shared semantic core** of `{p_t}`.
+The phrase must capture the shared semantic core of all resolved projections. It must not enumerate contributors.
 
-#### Output Constraints (hard)
+## Matrix construction rules
 
-| Constraint | Description |
-|------------|-------------|
-| One unit only | Output **one** unit only (no lists) |
-| No enumeration | **Do not** repeat or enumerate all contributors |
-| No axis tokens | **Do not** include the literal axis tokens (the **row label** or **column label**) for the cell (axes are latent) |
-| Integrally complete | Produce the most integrally complete phrase that captures the intersection of all contributors |
-| Semantic density | Prioritize semantic density over verbosity **in the final 2-5 word cell phrase** |
-| Explicit projections | Each member of the set `{p_t} := {a*t}` must have its semantic result determined before centroid selection occurs. Interpretations that skip this step are invalid |
+### Matrix A — Orientation (canonical, 3×4)
 
-#### Correct Example of `I(r,c,L)`
-
-##### Step 1
-`a = r * c = mandate * data = authoritative fact`
-
-##### Step 2
-```
-L = {t_1, t_2, t_3, t_4}
-L = {bounded truth, traced proof, conformance indicator, adherence precision}
-
-Projections:
-a * t_1 = p_1 := authoritative fact * bounded truth = "Binding Reality"
-a * t_2 = p_2 := authoritative fact * traced proof = "Verified Authority"
-a * t_3 = p_3 := authoritative fact * conformance indicator = "Compliance Status"
-a * t_4 = p_4 := authoritative fact * adherence precision = "Strict Liability"
-```
-
-##### Step 3
-`Centroid of {p_1, p_2, p_3, p_4} → u = "Binding Compliance Standard"`
-
-#### Incorrect Example (invalid)
-
-```
-L = {bounded truth, traced proof, conformance indicator, adherence precision}
-Axis anchor: mandate * data = authoritative fact
-Centroid attractor: [jumps straight to output]
-```
-
-**Why invalid:** Skips Step 2 (explicit projection of each contributor).
-
----
-
-### Semantic Matrix Operations
-
-#### Dot Product `·`
-
-Dot products yield a **collection** of semantic products, not a single term. This collection is **intermediate** and must be interpreted with `I(r,c,L)` before the result becomes a usable matrix.
-
-**Construction:**
-1. Build the intermediate collection: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
-2. Interpret to atomic cell value: `C(i,j) = I(row_i, col_j, L_C(i,j))`
-
-**Evaluation order note:** `Σ_k` is evaluated in increasing `k`, but treat the resulting contributors as a set.
-
-#### Transpose
-
-Purely structural transform that preserves cell content but changes orientation. Operates only on the final version of matrices.
-
-#### Truncation
-
-Purely structural transform that truncates an entire row or column from a matrix to reduce its size.
-
----
-
-### Skill Does / Does Not
-
-| Does | Does Not |
-|------|----------|
-| Read one deliverable folder's context + drafts | Edit production documents |
-| Adopt canonical A and B; derive matrices C, F, D, K, G, X, T, and E | Specify project particulars (numbers, tags, exact code clauses) |
-| Show interpretation work (3-step `I(r,c,L)`) | Skip steps or "handwave" interpretation |
-| Write/overwrite `_SEMANTIC.md` in the deliverable folder | Write outside the deliverable folder |
-| On audit **PASS**, set `_STATUS.md` state to `SEMANTIC_READY` (idempotent) | Regress lifecycle state or "skip ahead" |
-| Report completion (PASS/FAIL) + missing inputs/audit failures | Pretend missing inputs were present or claim PASS when audit failed |
-
-### QA Contract
-
-After generating `_SEMANTIC.md`, the skill verifies:
-
-| Check | Validation |
-|-------|-----------|
-| All cells populated | No empty cells in any final matrix |
-| Single unit per cell | Each cell contains exactly one semantic unit, not a list |
-| No algebra leaks | No `∩`, `Σ`, or `+` operators in final cell values |
-| No long expansions | No cell value exceeds ~80 characters |
-| No axis tokens in output | Row/column labels do not appear in cell values |
-| All three I() steps shown | Every interpretation includes axis anchor, projections, centroid |
-| Correct dimensions | Matrix dimensions match specification |
-| Phase order correct | Matrices derived in sequence (A, B, C, F, D, K, G, X, T, E) |
-| Status update safe | On audit **PASS**, `_STATUS.md` state is set to `SEMANTIC_READY` (idempotent); on audit **FAIL**, state is not advanced |
-
----
-
-## SPEC
-
-### Normative — "What must it be?"
-
-This section defines requirements for valid semantic matrix generation.
-
-### Semantic Product Validity
-
-| Requirement | Validation |
-|-------------|------------|
-| Single unit output | Each cell is a single **2-5 word phrase** (not a list) |
-| No axis tokens in output | Output does not contain the literal axis tokens (row label or column label) |
-| Non-enumerative | Output does not list or repeat contributors |
-| Semantically dense | Output captures the intersection completely, not partially |
-| Axes are latent | Row and column terms condition but do not appear in the result |
-
-### Interpretation Validity
-
-| Requirement | Validation |
-|-------------|------------|
-| Step 1 explicit | Axis anchor `a = r * c` is computed and shown |
-| Step 2 explicit | Every projection `p_t = a * t` is computed and shown |
-| Step 3 explicit | Centroid selection reasoning is provided |
-| No shortcuts | Interpretation does not skip from Step 1 to Step 3 |
-| All contributors projected | Every `t ∈ L` has a corresponding `p_t` |
-
-### Matrix Validity
-
-| Requirement | Validation |
-|-------------|------------|
-| All cells populated | No empty cells in the final matrix |
-| Correct dimensions | Matrix dimensions match specification |
-| Correct labels | Row and column labels match specification |
-| Phase alignment | Matrix is constructed from appropriate predecessor matrices |
-| Construction formula followed | Matrix uses the specified construction formula |
-
-### Invalid States
-
-| Invalid State | Why |
-|---------------|-----|
-| Cell contains a list | Violates single-unit requirement |
-| Axis token appears in cell value | Axes must be latent |
-| Step 2 skipped | Projections are mandatory |
-| Contributor enumerated in output | Output must be non-enumerative synthesis |
-| Matrix constructed out of sequence | Downstream matrices depend on upstream completion |
-| Particulars specified | Skill identifies types/categories, not instances |
-| Cell value contains `∩` or `Σ` | Intermediate algebra notation leaked into final output; interpretation was not completed |
-| Cell value exceeds ~80 characters | Legitimate semantic products are 2-5 word phrases; longer values are almost certainly uninterpreted dot-product expansions |
-| Cell value contains `+` flanked by semantic terms | The addition operator (e.g. from `L_D`) leaked through as literal text instead of being resolved by interpretation |
-
-### Anti-Patterns
-
-| Anti-Pattern | Why It Fails |
-|--------------|--------------|
-| Jumping from axis anchor to centroid | Skips mandatory projection step; produces ungrounded output |
-| Using axis tokens in output | Violates latent-axes constraint |
-| Listing all contributors | Produces enumeration, not synthesis |
-| Choosing brevity over density | Loses semantic completeness |
-| Computing matrices out of order | Upstream matrices inform downstream construction |
-| Pasting intermediate algebra into cell values | `∩`, `Σ`, or `+` in a final cell means interpretation never ran to completion |
-| Emitting long compound phrases as cell values | A cell over ~80 characters is a dot-product expansion, not a semantic product |
-
----
-
-## STRUCTURE
-
-### Descriptive — "What is it?"
-
-This section defines the eight-phase matrix system and construction rules.
-
-### Matrix A — Orientation (Canonical)
-
-| Property | Value |
-|----------|-------|
-| Phase | Orientation |
-| Size | 3×4 |
-| Columns | `[guiding, applying, judging, reviewing]` |
-| Rows | `[normative, operative, evaluative]` |
-
-**Construction:** Canonical (v2 — 2026-02-14) — use the following fixed values directly. Do not re-derive.
+Use these exact values. Do not derive or edit them.
 
 | | **guiding** | **applying** | **judging** | **reviewing** |
 |---|---|---|---|---|
@@ -439,16 +228,9 @@ This section defines the eight-phase matrix system and construction rules.
 | **operative** | procedural direction | practical execution | performance assessment | process audit |
 | **evaluative** | value orientation | merit application | worth determination | quality appraisal |
 
-### Matrix B — Conceptualization (Canonical)
+### Matrix B — Conceptualization (canonical, 4×4)
 
-| Property | Value |
-|----------|-------|
-| Phase | Conceptualization |
-| Size | 4×4 |
-| Columns | `[necessity, sufficiency, completeness, consistency]` |
-| Rows | `[data, information, knowledge, wisdom]` |
-
-**Construction:** Canonical (v2 — 2026-02-14) — use the following fixed values directly. Do not re-derive.
+Use these exact values. Do not derive or edit them.
 
 | | **necessity** | **sufficiency** | **completeness** | **consistency** |
 |---|---|---|---|---|
@@ -457,256 +239,243 @@ This section defines the eight-phase matrix system and construction rules.
 | **knowledge** | fundamental understanding | competent expertise | thorough mastery | coherent understanding |
 | **wisdom** | essential discernment | adequate judgment | holistic insight | principled reasoning |
 
-### Matrix C — Formulation
+### Matrix C — Formulation (3×4)
 
-| Property | Value |
-|----------|-------|
-| Phase | Formulation |
-| Size | 3×4 |
-| Columns | `[necessity, sufficiency, completeness, consistency]` |
-| Rows | `[normative, operative, evaluative]` |
+Columns: `necessity`, `sufficiency`, `completeness`, `consistency`  
+Rows: `normative`, `operative`, `evaluative`
 
-**Construction:**
-1. Build intermediate collections: `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
-2. Interpret to atomic units: `C(i,j) = I(row_i, col_j, L_C(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
+Formula:
 
-### Matrix F — Requirements
+`L_C(i,j) = Σ_k (A(i,k) * B(k,j))`  
+`C(i,j) = I(row_i, col_j, L_C(i,j))`
 
-| Property | Value |
-|----------|-------|
-| Phase | Requirements |
-| Size | 3×4 |
-| Columns | `[necessity, sufficiency, completeness, consistency]` |
-| Rows | `[normative, operative, evaluative]` |
+### Matrix F — Requirements (3×4)
 
-**Construction:**
-1. Build intermediate collections: `L_F(i,j) = Σ_k (C(i,k) * B(k,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
-2. Interpret to atomic units: `F(i,j) = I(row_i, col_j, L_F(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
+Columns: `necessity`, `sufficiency`, `completeness`, `consistency`  
+Rows: `normative`, `operative`, `evaluative`
 
-### Matrix D — Objectives
+Formula:
 
-| Property | Value |
-|----------|-------|
-| Phase | Objectives |
-| Size | 3×4 |
-| Columns | `[guiding, applying, judging, reviewing]` |
-| Rows | `[normative, operative, evaluative]` |
+`L_F(i,j) = Σ_k (C(i,k) * B(k,j))`  
+`F(i,j) = I(row_i, col_j, L_F(i,j))`
 
-**Construction:**
-1. Create intermediate collection by addition: `L_D(i,j) = A(i,j) + ("resolution" * F(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
-2. Interpret to atomic unit: `D(i,j) = I(row_i, col_j, L_D(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
+### Matrix D — Objectives (3×4)
 
-### Matrix K — Transpose of D
+Columns: `guiding`, `applying`, `judging`, `reviewing`  
+Rows: `normative`, `operative`, `evaluative`
 
-| Property | Value |
-|----------|-------|
-| Size | 4×3 |
-| Columns | `[normative, operative, evaluative]` |
-| Rows | `[guiding, applying, judging, reviewing]` |
+Formula:
 
-**Construction:** `K(i,j) = D(j,i)`
+`L_D(i,j) = A(i,j) + (resolution * F(i,j))`  
+`D(i,j) = I(row_i, col_j, L_D(i,j))`
 
-### Matrix G — Truncation of B
+For D, use exactly two contributors in `L_D`: the A cell and the resolution-transformed F cell.
 
-| Property | Value |
-|----------|-------|
-| Phase | Truncation |
-| Size | 3×4 |
-| Columns | `[necessity, sufficiency, completeness, consistency]` |
-| Rows | `[data, information, knowledge]` |
+### Matrix K — Transpose of D (4×3)
 
-Matrix G is formed by removing the `wisdom` row from canonical Matrix B.
+Formula:
 
-| | **necessity** | **sufficiency** | **completeness** | **consistency** |
-|---|---|---|---|---|
-| **data** | essential fact | adequate evidence | comprehensive record | reliable measurement |
-| **information** | essential signal | adequate context | comprehensive account | coherent message |
-| **knowledge** | fundamental understanding | competent expertise | thorough mastery | coherent understanding |
+`K(i,j) = D(j,i)`
 
-### Matrix X — Verification
+Rows: `guiding`, `applying`, `judging`, `reviewing`  
+Columns: `normative`, `operative`, `evaluative`
 
-| Property | Value |
-|----------|-------|
-| Phase | Verification |
-| Size | 4×4 |
-| Columns | `[necessity, sufficiency, completeness, consistency]` |
-| Rows | `[guiding, applying, judging, reviewing]` |
+### Matrix G — Truncation of B (3×4)
 
-**Construction:**
-1. Build intermediate collections: `L_X(i,j) = Σ_k (K(i,k) * G(k,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
-2. Interpret to atomic units: `X(i,j) = I(row_i, col_j, L_X(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
+Formula:
 
-### Matrix T — Transpose of B
+Remove the `wisdom` row from B.
 
-| Property | Value |
-|----------|-------|
-| Size | 4×4 |
-| Columns | `[data, information, knowledge, wisdom]` |
-| Rows | `[necessity, sufficiency, completeness, consistency]` |
+Rows: `data`, `information`, `knowledge`  
+Columns: `necessity`, `sufficiency`, `completeness`, `consistency`
 
-**Construction:** `T(i,j) = B(j,i)`
+### Matrix X — Verification (4×4)
 
-### Matrix E — Evaluation
+Rows: `guiding`, `applying`, `judging`, `reviewing`  
+Columns: `necessity`, `sufficiency`, `completeness`, `consistency`
 
-| Property | Value |
-|----------|-------|
-| Phase | Evaluation |
-| Size | 4×4 |
-| Columns | `[data, information, knowledge, wisdom]` |
-| Rows | `[guiding, applying, judging, reviewing]` |
+Formula:
 
-**Construction:**
-1. Build intermediate collections: `L_E(i,j) = Σ_k (X(i,k) * T(k,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
-2. Interpret to atomic units: `E(i,j) = I(row_i, col_j, L_E(i,j))`
-   - Show your work: record the intermediate collection and all three interpretation steps (axis anchor, projections, centroid) for each cell in `_SEMANTIC.md`.
+`L_X(i,j) = Σ_k (K(i,k) * G(k,j))`  
+`X(i,j) = I(row_i, col_j, L_X(i,j))`
 
----
+### Matrix T — Transpose of B (4×4)
 
-### Output Format
+Formula:
 
-**File name:** `_SEMANTIC.md`
-**Location:** inside the target production unit folder: `{deliverable_folder}/_SEMANTIC.md`
+`T(i,j) = B(j,i)`
 
-The file must be valid markdown and include:
+Rows: `necessity`, `sufficiency`, `completeness`, `consistency`  
+Columns: `data`, `information`, `knowledge`, `wisdom`
+
+### Matrix E — Evaluation (4×4)
+
+Rows: `guiding`, `applying`, `judging`, `reviewing`  
+Columns: `data`, `information`, `knowledge`, `wisdom`
+
+Formula:
+
+`L_E(i,j) = Σ_k (X(i,k) * T(k,j))`  
+`E(i,j) = I(row_i, col_j, L_E(i,j))`
+
+## Output format
+
+Write `_SEMANTIC.md` in this order.
 
 ```markdown
-# [Production Unit Label]: [ID] [Name]
+# Semantic Lens: [ID] [Name]
 
 **Generated:** [YYYY-MM-DD]
 **DECOMP_VARIANT:** [PROJECT|SOFTWARE|DOMAIN]
-**Perspective:** [1–3 sentence production-unit-bound perspective; no particulars]
+**Perspective:** [1–3 sentences]
 **Framework:** Chirality Semantic Algebra
+**Audit:** [PASS|FAIL]
+**Phase 2.3 Ruling:** [status policy statement]
 **Inputs Read:**
 - _CONTEXT.md — [SourceRef]
-- _STATUS.md — [SourceRef]
-- [list each production document read] — [SourceRef]
-- _REFERENCES.md — [SourceRef or "not read"]
+- _STATUS.md — [SourceRef or not present]
+- _REFERENCES.md — [SourceRef or not present]
+- _DEPENDENCIES.md — [SourceRef or not present]
+- MEMORY.md — [SourceRef or not present]
+- Datasheet.md — [SourceRef or absent]
+- Specification.md — [SourceRef or absent]
+- Guidance.md — [SourceRef or absent]
+- Procedure.md — [SourceRef or absent]
+- [DOMAIN files if applicable] — [SourceRef]
 
-## Matrix A — Orientation (3×4) — Canonical
-| | **guiding** | **applying** | **judging** | **reviewing** |
-|---|---|---|---|---|
-| **normative** | prescriptive direction | mandatory practice | compliance determination | regulatory audit |
-| **operative** | procedural direction | practical execution | performance assessment | process audit |
-| **evaluative** | value orientation | merit application | worth determination | quality appraisal |
+## Matrix A — Orientation (3x4) — Canonical
+[canonical table]
 
-## Matrix B — Conceptualization (4×4) — Canonical
-| | **necessity** | **sufficiency** | **completeness** | **consistency** |
-|---|---|---|---|---|
-| **data** | essential fact | adequate evidence | comprehensive record | reliable measurement |
-| **information** | essential signal | adequate context | comprehensive account | coherent message |
-| **knowledge** | fundamental understanding | competent expertise | thorough mastery | coherent understanding |
-| **wisdom** | essential discernment | adequate judgment | holistic insight | principled reasoning |
+## Matrix B — Conceptualization (4x4) — Canonical
+[canonical table]
 
-## Matrix C — Formulation (3×4)
+## Matrix C — Formulation (3x4)
 ### Construction: Dot product A · B
-[show intermediate collections, then full 3-step I(r,c,L) for each cell]
-
+Intermediate collection and interpretation work for `L_C(i,j) = Σ_k (A(i,k) * B(k,j))`.
+[work table]
 ### Result
-[show final matrix with row and column names]
+[result table]
 
-## Matrix F — Requirements (3×4)
-### Construction: Dot product C · B
-[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+## Matrix F — Requirements (3x4)
+...
 
-### Result
-[show final matrix with row and column names]
+## Matrix D — Objectives (3x4)
+...
 
-## Matrix D — Objectives (3×4)
-### Construction: Addition A + resolution-transformed F
-[show intermediate collections, then full 3-step I(r,c,L) for each cell]
+## Matrix K — Transpose of D (4x3)
+...
 
-### Result
-[show final matrix with row and column names]
+## Matrix G — Truncation of B (3x4)
+...
 
-## Matrix K — Transpose of D (4×3)
-### Construction: K(i,j) = D(j,i)
+## Matrix X — Verification (4x4)
+...
 
-### Result
-[show final matrix with row and column names]
+## Matrix T — Transpose of B (4x4)
+...
 
-## Matrix G — Truncation of B (3×4)
-### Construction: remove `wisdom` row from B
-
-### Result
-[show final matrix with row and column names]
-
-## Matrix X — Verification (4×4)
-### Construction: Dot product K · G
-[show intermediate collections, then full 3-step I(r,c,L) for each cell]
-
-### Result
-[show final matrix with row and column names]
-
-## Matrix T — Transpose of B (4×4)
-### Construction: T(i,j) = B(j,i)
-
-### Result
-[show final matrix with row and column names]
-
-## Matrix E — Evaluation (4×4)
-### Construction: Dot product X · T
-[show intermediate collections, then full 3-step I(r,c,L) for each cell]
-
-### Result
-[show final matrix with row and column names]
+## Matrix E — Evaluation (4x4)
+...
 
 ---
+
+## Matrix Z — Summary Boundary
+
+This delimiter prevents summary tables from being parsed as part of Matrix E result work. It is not a semantic matrix.
 
 ## Matrix Summary
 
-[All eight final matrices (C, F, D, K, G, X, T, E) in compact table form — no derivation, quick-reference lens only]
+[All eight matrices C, F, D, K, G, X, T, E as compact markdown tables. No bullets. No derivation.]
 ```
 
-All matrices must be presented in markdown table format, and must conform to their shape and construction rules defined above. Canonical matrices A and B are reproduced as-is (no derivation). Each derived matrix section (C, F, D, K, G, X, T, E) must contain the full derivation work (construction formula, intermediate collections where applicable, and full 3-step I(r,c,L) for interpreted cells), followed by the completed Result table. The Matrix Summary section at the end presents all eight final matrices in compact table form without derivation.
+### Work table format
 
-> **SourceRef convention:** Use file path + best-effort heading anchors (or "location TBD") to document what inputs were read. You are not claiming those inputs "prove" the matrices; you are recording provenance of the perspective conditioning.
+Use this table shape for C, F, D, X, and E:
 
----
+| Cell | Intermediate collection | Step 1 - Axis anchor | Step 2 - Projected contributors | Step 3 - Centroid attractor |
+|---|---|---|---|---|
+| C[normative,necessity] | ... | `normative * necessity = binding need` | `p1 = binding need * directive fact = source mandate`; ... | centroid selects `policy threshold` |
 
-## RATIONALE
+Requirements:
 
-### Directional — "How to think?"
+- The Cell label may contain row and column names.
+- The final Result cell value must not contain row or column names.
+- Step 2 must resolve every projected contributor into a phrase.
+- Step 3 must name exactly one final phrase.
 
-### Why Semantic Algebra
+## SourceRef convention
 
-Semantic algebra provides a formal method for generating meaning-structures. Multiplication finds intersections; addition collects alternatives. The interpretation operator synthesizes collections into singular concepts. This formalism ensures reproducible, traceable semantic development.
+Each `Inputs Read` line must use one of:
 
-### Why Show All Steps
+- absolute path + best-effort heading anchor;
+- relative path + heading anchor when absolute path is unavailable;
+- `not present`;
+- `absent`;
+- `location TBD` only when the file was read but no anchor can be determined.
 
-The three-step interpretation procedure prevents ungrounded jumps to conclusions. Each projection (`a * t`) anchors a contributor to the cell's coordinate frame. Skipping projections produces outputs disconnected from the algebraic foundation.
+Do not claim an input was read unless it was actually read.
 
-### Why Types Over Particulars
+## Audit before acceptance
 
-This skill partitions semantic space into categories, types, behaviors, and values. Particulars are addresses within that partition—they belong to subsequent resolution stages. Conflating types with instances collapses the partition prematurely.
+Before reporting success, audit all final cell values in:
 
-### Why Latent Axes
+- every Result table for C, F, D, K, G, X, T, and E;
+- every Matrix Summary table.
 
-The row and column labels condition the output but should not appear in it. They are the coordinate frame, not the content. Including axis tokens in output confuses the frame with what it frames.
+Fail the run if any final cell:
 
-### Why Semantic Density
+1. is empty;
+2. is not one phrase;
+3. is under 2 words or over 5 words, except canonical B/G/T cells inherited from B;
+4. exceeds about 80 characters;
+5. contains `∩` or `Σ`;
+6. contains unresolved `+` between semantic terms;
+7. contains a literal row or column axis token for that cell;
+8. contains implementation particulars, exact event names, file paths, code clauses, numeric requirements, equipment tags, or engineering correctness claims.
 
-Brevity can sacrifice completeness. A short phrase that misses semantic content is worse than a longer phrase that captures the full intersection. Density prioritizes completeness without redundancy.
+If audit fails:
 
-### Value Hierarchy
+- mark `_SEMANTIC.md` Audit as `FAIL` if the file is written;
+- do not advance status;
+- do not repair and re-audit in the same run;
+- report failing matrix/cell/reason in the TASK run report.
 
-When trade-offs arise, prioritize:
+## Status handling
 
-1. **Completeness** — capture the full semantic intersection
-2. **Correctness** — follow the procedural steps exactly
-3. **Density** — maximize meaning per word
-4. **Clarity** — ensure the output is interpretable
+After audit:
 
----
+- `STATUS_POLICY=PRESERVE_CURRENT`: do not change current lifecycle state. If `_STATUS.md` history edits are authorized, append a history note that semantic matrix was generated/validated and state was preserved by runtime policy. Otherwise only record this in `_SEMANTIC.md` and the run report.
+- `STATUS_POLICY=ADVANCE_ON_PASS`: on audit PASS, set/verify `SEMANTIC_READY` only when `_STATUS.md` editing is authorized. On audit FAIL, leave state unchanged.
+- `STATUS_POLICY=NO_STATUS_TOUCH`: do not edit `_STATUS.md`.
 
-## QA expectations
+Never regress status.
 
-See `QA_CHECKS.md` for the complete set of invariants and validation checks enforced by this skill.
+## Run report
+
+TASK's normal run report must include:
+
+- `RUN_STATUS`
+- deliverable ID/name
+- resolved `deliverable_folder`
+- `DECOMP_VARIANT`
+- `_SEMANTIC.md` path
+- audit PASS/FAIL
+- status policy and actual status action
+- validator result if the repo validator was available and run
+- missing inputs
+- failing cells, if any
+- confirmation that production documents were not modified
+
+## Validator
+
+When running inside a repo that contains the validator and tool use is permitted, run:
+
+```sh
+python3 tools/validation/validate_semantic_matrix.py "{deliverable_folder}"
+```
+
+If the validator is unavailable, do not claim validator PASS. Report `validator not available`.
+
+## DOMAIN variant note
+
+The skill can run on `DOMAIN` folders only when explicitly dispatched. Standard PROJECT_SETUP DOMAIN setup may skip semantic lensing entirely. If invoked for DOMAIN, read the Knowledge Type's non-metadata markdown documents and use DOMAIN terminology in the header and perspective. The matrix algebra remains unchanged.

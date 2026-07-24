@@ -40,7 +40,10 @@ Typical dispatcher: `EVALUATION` (batched by package, one dispatch per deliverab
 
 ### Optional
 
-- None.
+- `RuntimeOverrides.PRODUCTION_FORMAT` — resolver-selected
+  `LEGACY_FOUR_DOC`, `SOW_V1`, or authorized `MIGRATION_DUAL`.
+- `RuntimeOverrides.FORMAT_AUTHORITY_REF` — required only for
+  `MIGRATION_DUAL`; must bind exact accepted path-scoped migration authority.
 
 ## Runtime overrides
 
@@ -48,6 +51,8 @@ Typical dispatcher: `EVALUATION` (batched by package, one dispatch per deliverab
 |---|---|---|---|
 | `DELIVERABLE_PATH` | Absolute path to the deliverable folder | **Required** | Valid directory path containing `_CONTEXT.md` |
 | `OUTPUT_PATH` | Absolute path to write the digest file | **Required** | Must be under `_Evaluation/content-digests/{PKG-ID}/`; parent directory must already exist |
+| `PRODUCTION_FORMAT` | Production grammar to digest | resolver result | `LEGACY_FOUR_DOC`, `SOW_V1`, authorized `MIGRATION_DUAL` |
+| `FORMAT_AUTHORITY_REF` | Exact dual-format authority | empty | Required only for `MIGRATION_DUAL` |
 
 ## Read boundary
 
@@ -63,6 +68,11 @@ Reads are limited to files within the specified deliverable folder:
 | `Guidance.md` | First 80 lines | Design rationale, principles, considerations |
 | `Procedure.md` | First 80 lines | Execution workflow |
 | `_SEMANTIC.md` | First 40 lines | Framework type, perspective |
+
+In `SOW_V1`, read validated `ScopeOfWork.md` in full instead of the four
+production documents. In authorized `MIGRATION_DUAL`, read it as the candidate
+replacement and read the legacy sources only for parity. Refuse missing,
+partial, invalid, ambiguous, or unauthorized dual input.
 
 The skill must NOT read files outside the specified deliverable folder. It must NOT cross into adjacent deliverable folders or scan package/project-level registers.
 
@@ -92,6 +102,8 @@ Disallowed behavior:
 
 1. Validate `DELIVERABLE_PATH` exists and is a directory. If not: report `RUN_STATUS=FAILED_INPUTS`.
 2. Validate parent directory of `OUTPUT_PATH` exists. If not: report `RUN_STATUS=FAILED_INPUTS`.
+3. Resolve the production format. `MIGRATION_DUAL` requires all four legacy
+   sources, validated `ScopeOfWork.md`, and exact accepted authority.
 
 ### Step 1 — Read deliverable files
 
@@ -103,7 +115,10 @@ From the files read, extract:
 
 - **Identity** (from `_CONTEXT.md`): Package (PKG-ID and name), Discipline, Type, Responsible
 - **Scope** (from `_CONTEXT.md`): Description (1-2 sentence summary), Acceptance Criteria (bulleted list), SOW Traceability IDs, Objective Traceability IDs
-- **Document Kit Summary** (from first 80 lines of each kit document): one-sentence focus summary for Datasheet, Specification, Guidance, Procedure
+- **Document Kit Summary**: in legacy mode, summarize each of the four files;
+  in SOW mode, summarize the four practical lens sections and list
+  `OUT-*`, `REQ-*`, `AC-*`, and `VER-*` identities without changing the
+  seven-section digest schema.
 - **Dependencies** (from `_DEPENDENCIES.md`): Tracking mode (`NOT_TRACKED`/`DECLARED`/`TRACKED`), upstream count, downstream count, key upstream (top 3-5 by name), key downstream (top 3-5 by name)
 - **References** (from `_REFERENCES.md`): list of all referenced documents
 - **Semantic** (from first 40 lines of `_SEMANTIC.md`): whether present (`YES`/`NO`), framework type if identifiable

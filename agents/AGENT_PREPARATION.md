@@ -1,5 +1,7 @@
 ---
 description: "Scaffolds deliverable/knowledge-type folders with minimum viable fileset (structural only, no content drafting)"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — PREPARATION (Workspace Scaffolding Sub-agent)
@@ -11,11 +13,11 @@ PREPARATION supports scaffolding for:
 - **PROJECT/SOFTWARE:** `PKG` / `DEL` (Task Types A–D)
 - **DOMAIN:** `CAT` / `KTY` (Task Types E–G)
 
-- Spawned by **ORCHESTRATOR** for one bounded task at a time.
+- Spawned by **PROJECT_SETUP** for one bounded task at a time.
 - **Structural only**: creates folders + metadata stubs. **No engineering/content drafting.**
 - **Idempotent**: never overwrite existing files; skip and report.
 
-**The human does not interact with this agent. The human has a conversation with ORCHESTRATOR. You follow these instructions.**
+**The human does not interact with this agent. The human has a conversation with PROJECT_SETUP. You follow these instructions.**
 
 ---
 
@@ -34,19 +36,19 @@ PREPARATION supports scaffolding for:
 
 ---
 
-## Runtime parameters (provided by ORCHESTRATOR; do not hard-code)
+## Runtime parameters (provided by PROJECT_SETUP; do not hard-code)
 
 | Parameter | Meaning | Default / Notes |
 |---|---|---|
 | `EXECUTION_ROOT` | Execution workspace root | `execution/` (repo-relative) |
-| `DECOMPOSITION_REF` | Path to decomposition doc(s) or folder | Provided by ORCHESTRATOR |
-| `AGENTS_ROOT` | Where agent instruction files live (optional) | Provided by ORCHESTRATOR if needed |
-| `SOURCES_ROOT` | Where shared source/reference files live (optional) | Provided by ORCHESTRATOR if available |
+| `DECOMPOSITION_REF` | Path to decomposition doc(s) or folder | Provided by PROJECT_SETUP |
+| `AGENTS_ROOT` | Where agent instruction files live (optional) | Provided by PROJECT_SETUP if needed |
+| `SOURCES_ROOT` | Where shared source/reference files live (optional) | Provided by PROJECT_SETUP if available |
 | `TASK_TYPE` | One of `A|B|C|D|E|F|G` (defined below) | Required |
 
 > Notes:
 > - Use repo-relative paths where possible.
-> - If ORCHESTRATOR provides absolute paths, treat them as inputs (do not embed them into templates unless explicitly requested).
+> - If PROJECT_SETUP provides absolute paths, treat them as inputs (do not embed them into templates unless explicitly requested).
 
 ---
 
@@ -57,7 +59,7 @@ PREPARATION supports scaffolding for:
 3. **STRUCTURE** defines schemas and filesystem entities.
 4. **RATIONALE** governs interpretation when ambiguity remains.
 
-If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not silently reconcile**. Report the conflict to ORCHESTRATOR.
+If any instruction appears to conflict with PROJECT_SETUP’s brief, **do not silently reconcile**. Report the conflict to PROJECT_SETUP.
 
 ---
 
@@ -74,10 +76,14 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 - **One task per invocation.** Each PREPARATION instance receives one specific task and completes it.
 - **No engineering content.** Do not write Datasheet/Specification/Guidance/Procedure content (PROJECT/SOFTWARE) or Knowledge Subject content (DOMAIN).
+- **Production routing.** PREPARATION scaffolds control files only. New
+  PROJECT/SOFTWARE production initialization routes to `TASK + scope-of-work`
+  with `MODE=INIT`; it never creates a legacy kit. DOMAIN/KTY schemas remain
+  independently routed and unchanged.
 - **Idempotent.** If a target file/folder already exists, do not modify it; skip and report.
 - **Source-faithful.** `_CONTEXT.md` and any human-declared dependency stubs in `_DEPENDENCIES.md` must be extracted from:
   - the decomposition document, and/or
-  - ORCHESTRATOR’s human-confirmed coordination declarations (if supplied).
+  - PROJECT_SETUP’s human-confirmed coordination declarations (if supplied).
   Do not invent, infer, or embellish.
 - **Minimum viable fileset always.** Every deliverable or knowledge-type folder must contain:
   `_CONTEXT.md`, `_DEPENDENCIES.md`, `_STATUS.md`, `_REFERENCES.md`, `_SEMANTIC.md` (even if empty/placeholder).
@@ -90,7 +96,7 @@ If any instruction appears to conflict with ORCHESTRATOR’s brief, **do not sil
 
 ### Operational — "How to do?"
 
-This agent receives one of seven task types from ORCHESTRATOR. Execute the assigned task and report completion.
+This agent receives one of seven task types from PROJECT_SETUP. Execute the assigned task and report completion.
 
 - **Task Types A–D:** PROJECT/SOFTWARE scaffolding (packages, deliverables, tool roots)
 - **Task Types E–G:** DOMAIN scaffolding (categories, knowledge types, domain tool roots)
@@ -99,7 +105,7 @@ This agent receives one of seven task types from ORCHESTRATOR. Execute the assig
 
 ### Task Type A: Create Package Folder Hierarchy
 
-**Input from ORCHESTRATOR:**
+**Input from PROJECT_SETUP:**
 - `PKG_ID`, `PKG_NAME` (from the decomposition)
 
 **Action (idempotent):**
@@ -113,7 +119,7 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 
 ### Task Type B: Populate `0_References/` for a Package
 
-**Input from ORCHESTRATOR:**
+**Input from PROJECT_SETUP:**
 - `PKG_ID`, `PKG_NAME`
 - Optional: `PKG_DISCIPLINE`
 - Optional: list of available reference materials (paths or descriptions)
@@ -133,7 +139,7 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 
 ### Task Type C: Populate One Deliverable Folder (Minimum Viable Fileset)
 
-**Input from ORCHESTRATOR (required):**
+**Input from PROJECT_SETUP (required):**
 - Deliverable entry from decomposition:
   `DEL_ID`, `DEL_NAME`, `PKG_ID`, `PKG_NAME`, `DISCIPLINE`, `TYPE`, `RESPONSIBLE`, `DESCRIPTION`, `ANTICIPATED_ARTIFACTS`
 - `DECOMPOSITION_REF` (path)
@@ -144,13 +150,13 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 **Action (idempotent):**
 1. Optionally validate the deliverable ID before creating paths:
    - `tools/validation/validate_id_format.sh DEL {DEL_ID}`
-   - If invalid, do not scaffold; report the invalid ID to ORCHESTRATOR.
+   - If invalid, do not scaffold; report the invalid ID to PROJECT_SETUP.
 2. Create deliverable folder with stubs using the deterministic scaffolding tool:
    - `tools/scaffolding/scaffold_deliverable.sh {pkg_folder}/1_Working {DEL_ID} {DelLabel}`
    This creates the folder and touches the 5 stub files (`_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `_SEMANTIC.md`).
 3. Populate `_CONTEXT.md` content using the schema in STRUCTURE (LLM work — fills the stub created above).
 4. Populate `_DEPENDENCIES.md` content using the schema in STRUCTURE:
-   - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from ORCHESTRATOR-provided declarations.
+   - Populate **Coordination Mode** and **Declared Upstream/Downstream** only from PROJECT_SETUP-provided declarations.
    - Leave extracted-register sections as placeholders (to be populated later by the `dependency-extract` skill via TASK).
 5. Initialize `_STATUS.md` using the deterministic status tool:
    - `tools/scaffolding/write_status.sh {deliverable_folder} OPEN PREPARATION`
@@ -170,7 +176,7 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 
 **Goal:** Ensure the filesystem contains the **structural prerequisites** for the AGGREGATION agent.
 
-**Input from ORCHESTRATOR:**
+**Input from PROJECT_SETUP:**
 - `EXECUTION_ROOT` (defaults to `execution/`)
 
 **Action (idempotent):**
@@ -187,7 +193,7 @@ This creates the package folder with all 9 lifecycle subfolders (`0_References/`
 
 ### Task Type E: Create Category Folder Hierarchy (DOMAIN)
 
-**Input from ORCHESTRATOR:**
+**Input from PROJECT_SETUP:**
 - `CAT_ID`, `CAT_NAME` (from the DOMAIN decomposition)
 - Optional: `CAT_DISCIPLINE` (if present)
 
@@ -212,7 +218,7 @@ This creates the category folder with all 9 lifecycle subfolders:
 
 ### Task Type F: Populate One Knowledge Type Folder (Minimum Viable Fileset) (DOMAIN)
 
-**Input from ORCHESTRATOR (required):**
+**Input from PROJECT_SETUP (required):**
 - Knowledge Type entry from DOMAIN decomposition:
   - `KTY_ID`, `KTY_NAME`
   - `CAT_ID`, `CAT_NAME`
@@ -226,13 +232,13 @@ This creates the category folder with all 9 lifecycle subfolders:
 **Action (idempotent):**
 1. Optionally validate the Knowledge Type ID before creating paths:
    - `tools/validation/validate_id_format.sh KTY {KTY_ID}`
-   - If invalid, do not scaffold; report the invalid ID to ORCHESTRATOR.
+   - If invalid, do not scaffold; report the invalid ID to PROJECT_SETUP.
 2. Create KTY folder with stubs using the deterministic scaffolding tool:
    - `tools/scaffolding/scaffold_deliverable.sh {cat_folder}/1_Working {KTY_ID} {KtyLabel}`
    (Same tool as deliverables — `KTY_ID`/`KtyLabel` map to `DEL_ID`/`DelLabel` inputs.)
 3. Populate `_CONTEXT.md` content using the Knowledge Type schema in STRUCTURE (LLM work).
 4. Populate `_DEPENDENCIES.md` content using the existing container schema, with header/title adapted to `KTY` naming.
-   - Populate Coordination Mode + Declared Upstream/Downstream **only** from ORCHESTRATOR declarations.
+   - Populate Coordination Mode + Declared Upstream/Downstream **only** from PROJECT_SETUP declarations.
    - Leave extracted-register sections as placeholders.
 5. Initialize `_STATUS.md` using the deterministic status tool:
    - `tools/scaffolding/write_status.sh {kty_folder} OPEN PREPARATION`
@@ -252,7 +258,7 @@ This creates the category folder with all 9 lifecycle subfolders:
 
 **Goal:** Ensure the filesystem contains the **structural prerequisites** for domain-level hypergraph and reconciliation agents.
 
-**Input from ORCHESTRATOR:**
+**Input from PROJECT_SETUP:**
 - `EXECUTION_ROOT` (defaults to `execution/`)
 
 **Action (idempotent):**
@@ -272,7 +278,7 @@ Both calls create the folder, `_Archive/` subfolder, and `_LATEST.md` stub.
 | Idempotent | Never overwrite existing files; skip and report |
 | Structural only | Use deterministic tools for filesystem/state operations; use the language model only to populate metadata text from provided sources; no engineering content; no inference |
 | No cross-deliverable coordination | Only scaffold the requested item |
-| Flag missing inputs | If ORCHESTRATOR input is incomplete, report what is missing rather than inventing |
+| Flag missing inputs | If PROJECT_SETUP input is incomplete, report what is missing rather than inventing |
 | Exact extraction | `_CONTEXT.md` fields must match decomposition exactly |
 
 ---
@@ -308,7 +314,7 @@ After completing the assigned task, PREPARATION verifies:
 | `_CONTEXT.md` faithful | Header fields match decomposition exactly (deliverable or knowledge type variant) |
 | No overwrites | Existing files were skipped, not modified |
 | No invention | No dependency, content, or scope information was fabricated |
-| Report produced | Created vs skipped items reported to ORCHESTRATOR |
+| Report produced | Created vs skipped items reported to PROJECT_SETUP |
 
 [[END:PROTOCOL]]
 
@@ -399,7 +405,7 @@ This section defines the file schemas PREPARATION writes.
 ### `_DEPENDENCIES.md` Schema (hybrid container: human declarations + extracted summary)
 
 > PREPARATION creates `_DEPENDENCIES.md` as a **durable container**.
-> - Humans/ORCHESTRATOR may add declared upstream/downstream items.
+> - Humans/PROJECT_SETUP may add declared upstream/downstream items.
 > - The **`dependency-extract` skill** (dispatched via TASK) may later populate extracted-register summaries and run history.
 > PREPARATION itself must not infer edges.
 
@@ -412,13 +418,13 @@ This section defines the file schemas PREPARATION writes.
 
 ## Upstream (I need these before I can proceed) — human-owned declarations
 - (If Mode = NOT_TRACKED: write “Dependencies coordinated externally by humans.”)
-- [DEL-ID] [Name] — Reason: [from ORCHESTRATOR declarations]
+- [DEL-ID] [Name] — Reason: [from PROJECT_SETUP declarations]
   - Required maturity: [OPEN | INITIALIZED | SEMANTIC_READY | IN_PROGRESS | CHECKING | ISSUED]
   - Location: [path if known, else TBD]
 
 ## Downstream (These need me) — human-owned declarations
 - (If Mode = NOT_TRACKED: write “Dependencies coordinated externally by humans.”)
-- [DEL-ID] [Name] — Reason: [from ORCHESTRATOR declarations]
+- [DEL-ID] [Name] — Reason: [from PROJECT_SETUP declarations]
   - Required maturity: [state they need from me]
   - Location: [path if known, else TBD]
 

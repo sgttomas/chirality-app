@@ -38,6 +38,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--out-html", required=True)
     p.add_argument("--out-jsonl", required=True)
     p.add_argument("--title", default="Equation audit")
+    p.add_argument(
+        "--crops-dir",
+        default=None,
+        help=(
+            "Optional directory containing per-equation crops named "
+            "page_NNNN_eq_NN.png. Defaults to <out-html-dir>/crops when present."
+        ),
+    )
     return p.parse_args()
 
 
@@ -52,8 +60,9 @@ def main() -> int:
     records = equations.scan_pages(work)
     equations.write_jsonl(records, out_jsonl)
 
+    crops_dir = Path(args.crops_dir).resolve() if args.crops_dir else None
     doc, counts = equations.render_equations_audit_page(
-        records, audit_dir, args.title
+        records, audit_dir, args.title, crops_dir=crops_dir
     )
     out_html.write_text(doc, encoding="utf-8")
 

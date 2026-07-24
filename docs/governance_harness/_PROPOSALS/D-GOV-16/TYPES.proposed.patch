@@ -1,0 +1,54 @@
+--- a/docs/TYPES.md
++++ b/docs/TYPES.md
+@@ -255 +255 @@
+-| `INITIALIZED` | Document kit (Datasheet, Specification, Guidance, Procedure) has been drafted |
++| `INITIALIZED` | The selected production contract exists and validates for its current format (`SOW_V1` or transitional `LEGACY_FOUR_DOC`) |
+@@ -291 +291 @@
+-## 7. Document Kit Types
++## 7. Deliverable Production Contract Types
+@@ -293 +293,3 @@
+-Each deliverable contains a standard four-document kit:
++Each PROJECT or SOFTWARE deliverable contains exactly one canonical production
++contract. DOMAIN/KTY surfaces and analogous packet/case schemas retain their
++own independent production grammars.
+@@ -295 +297,20 @@
+-| Document | Purpose |
++| Format | Files | Meaning |
++|---|---|---|
++| `SOW_V1` | One valid `ScopeOfWork.md` with schema `chirality-deliverable-sow/v1` | Canonical format for new and successfully converted PROJECT/SOFTWARE deliverables |
++| `LEGACY_FOUR_DOC` | Complete `Datasheet.md`, `Specification.md`, `Guidance.md`, and `Procedure.md`; no `ScopeOfWork.md` | Transitional compatibility format for an existing unconverted deliverable |
++| `MIGRATION_DUAL` | Both complete formats | Temporary conversion-workspace state only under an exact accepted migration authority; never an accepted deliverable baseline |
++| `AMBIGUOUS` | Both complete formats without accepted migration authority | Invalid |
++| `INVALID` | Partial legacy kit, invalid `ScopeOfWork.md`, or neither format at or beyond `INITIALIZED` | Invalid |
++
++`ScopeOfWork.md` carries the stable deliverable target. `_STATUS.md ## Remaining`
++records the warranted current delta against that target where the working root
++adopts the remaining-work surface. Format migration does not change lifecycle
++state, acceptance, or professional-reliance status.
++
++### 7.1 Scope-of-Work local identifier kinds
++
++Local identifiers use exactly three decimal digits and are unique within one
++`ScopeOfWork.md`. External references qualify them with the deliverable ID,
++for example `DEL-07-03-AC-001`.
++
++| Prefix | Meaning |
+@@ -297,4 +318,9 @@
+-| `Datasheet.md` | Key parameters, identification, structured metadata |
+-| `Specification.md` | Technical requirements, scope definition, acceptance criteria |
+-| `Guidance.md` | Design guidance, rationale, best practices, contextual direction |
+-| `Procedure.md` | Step-by-step execution workflow, sequencing, checklists |
++| `OUT` | Expected output |
++| `CLM` | Descriptive claim |
++| `REQ` | Normative requirement |
++| `AC` | Acceptance criterion |
++| `VER` | Verification method |
++| `AX` | Governing value, rationale, or authority constraint |
++| `TBD` | Unresolved information |
++| `CON` | Unresolved conflict |
++| `REM` | Remaining item in `_STATUS.md`; not defined in `ScopeOfWork.md` |
+@@ -301,0 +328,4 @@
++Migration dispositions are `PRESERVED`, `MERGED`, `SPLIT`, `SUPERSEDED`,
++`DEFERRED`, and `CONFLICT`. They describe migration handling only and are not
++epistemic labels, lifecycle states, or human rulings.
++

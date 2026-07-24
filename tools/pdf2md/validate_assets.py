@@ -37,7 +37,8 @@ from pathlib import Path
 INLINE_DEST_RE = re.compile(r"(?<!\\)\]\(([^)]+)\)")
 REFERENCE_DEF_RE = re.compile(r"^\s*\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 HTML_IMG_SRC_RE = re.compile(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"']", re.IGNORECASE)
-ASSET_PREFIXES = ("figures/", "tables/", "images/")
+ASSET_DIRS = ("figures", "tables", "images")
+ASSET_PREFIXES = tuple(f"{name}/" for name in ASSET_DIRS)
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,9 +58,14 @@ def extract_asset_links(markdown: str) -> set[str]:
             target = target.split("#", 1)[0].split("?", 1)[0]
             if target.startswith("./"):
                 target = target[2:]
-            if target.startswith(ASSET_PREFIXES):
+            if is_asset_path(target):
                 links.add(target)
     return links
+
+
+def is_asset_path(path: str) -> bool:
+    parts = Path(path).parts
+    return bool(parts) and any(part in ASSET_DIRS for part in parts)
 
 
 def manifest_paths(manifest: dict) -> tuple[set[str], set[str]]:
@@ -157,13 +163,12 @@ def collect_folio_warnings(manifest: dict, manifest_path: Path) -> list[str]:
 
 def disk_asset_paths(root: Path) -> set[str]:
     paths = set()
-    for dirname in ASSET_PREFIXES:
-        directory = root / dirname.rstrip("/")
-        if not directory.is_dir():
+    for path in root.rglob("*"):
+        if not path.is_file():
             continue
-        for path in directory.iterdir():
-            if path.is_file():
-                paths.add(f"{dirname}{path.name}")
+        rel = path.relative_to(root).as_posix()
+        if is_asset_path(rel):
+            paths.add(rel)
     return paths
 
 

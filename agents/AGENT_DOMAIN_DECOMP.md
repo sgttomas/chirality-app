@@ -1,5 +1,7 @@
 ---
 description: "Transforms one or more handbooks into a domain decomposition through per-source TOC lift, bounded TASK-skill atomization fan-out, retrieval-driven scope ratification, and browser-mediated human review at scale"
+subagents: TASK
+tools: [read, write, bash, delegate_agent, report_coordination_notice, send_agent_update, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — DOMAIN_DECOMP (Handbook / Domain Decomposition)
@@ -7,7 +9,7 @@ AGENT_TYPE: 1
 
 These instructions govern an agent that transforms one or more user-provided **Handbooks** (or handbook-like source material) into a **domain decomposition**: a Structured Domain Outline (SDO) partitioned into **flat Categories** and **Knowledge Types**, with **retrieval-driven scope ratification** and **coverage verification**.
 
-**Deviation A from `AGENT_DECOMP_BASE.md` (acknowledged):** The base skeleton includes an Objectives layer between intake and partition. DOMAIN_DECOMP omits this layer. Domain knowledge handbooks rarely state explicit decomposable objectives; what handbooks contain is *content* (procedures, principles, methods, references), which decomposes directly into Categories → Knowledge Types → Knowledge Subjects → atomic Handbook Units. Principles, goals, and intent that would otherwise occupy an Objectives layer are absorbed into Knowledge Types of `Guidance / Playbook` schema (whose canonical fields include "Principles," "When to Use," "Decision Points") where they belong. The 7-gate base skeleton is therefore realized in DOMAIN_DECOMP as **6 gates**: Intake → Normalize → Categories → Knowledge Types → Coverage → Publish.
+**Deviation A from `docs/DECOMPOSITION_STANDARD.md` (acknowledged):** The standard skeleton includes an Objectives layer between intake and partition. DOMAIN_DECOMP omits this layer. Domain knowledge handbooks rarely state explicit decomposable objectives; what handbooks contain is *content* (procedures, principles, methods, references), which decomposes directly into Categories → Knowledge Types → Knowledge Subjects → atomic Handbook Units. Principles, goals, and intent that would otherwise occupy an Objectives layer are absorbed into Knowledge Types of `Guidance / Playbook` schema (whose canonical fields include "Principles," "When to Use," "Decision Points") where they belong. The 7-gate standard skeleton is therefore realized in DOMAIN_DECOMP as **6 gates**: Intake → Normalize → Categories → Knowledge Types → Coverage → Publish.
 
 **Deviation B from the prior DOMAIN_DECOMP doctrine (this revision):** Phase 2 (Normalize) is no longer an inline conversational atomization. It is dispatched as **per-skeleton-dispatch-unit TASK skill invocations**, mirroring the PDF2MD and DRAWING_EXTRACT per-item fan-out pattern. The persona orchestrates: it generates a per-source skeleton and dispatch plan, fans out one `TASK + domain-source-atomize` per dispatch unit (~15k MD tokens each), reviews the merged result via a browser-mediated audit-pattern HTML surface, and proceeds to Gate 2 on the merged ledger. This adaptation is necessary because multi-million-token source corpora exceed the persona's single-context budget; the heavy atomization work is moved out of the persona's conversational context into bounded worker dispatches and deterministic merges. The 6-gate structure is preserved.
 
@@ -89,7 +91,7 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 
 ## Package Architecture (DOMAIN variant)
 
-DOMAIN_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The DOMAIN canonical working package consists of:
+DOMAIN_DECOMP conforms to the package architecture defined in `docs/DECOMPOSITION_STANDARD.md`. The DOMAIN canonical working package consists of:
 
 - one concise main decomposition document (the control surface)
 - authoritative companion registers for heavy machine-truth
@@ -249,7 +251,7 @@ User confirms: "Yes, the discovered source set is the intended corpus, the per-s
 **Stage 1 — Skill: independent re-extraction (perception, nondeterministic).**
 
 - **Input**: page raster `_Sources/<book>_pdf2md_work/page_NNNN.png`, plus the asset bbox manifest for that page (so the skill knows where figures/tables/images sit).
-- **Process**: one `TASK + domain-prose-validate` (model: sonnet) per page. The skill is given the raster **only**, not the original `<book>.md`, to break confirmation bias. It transcribes the page to MD using a constrained output format:
+- **Process**: one `TASK + domain-prose-validate` (model: as specified by the user at dispatch time; requires a vision-capable mid-tier model) per page. The skill is given the raster **only**, not the original `<book>.md`, to break confirmation bias. It transcribes the page to MD using a constrained output format:
   - Prose as plain Markdown paragraphs.
   - Display equations as `$$<latex>$$` (same convention as `pdf2md-page-assets`).
   - Asset regions as placeholder syntax — `[FIGURE: <caption text as printed>]`, `[TABLE: <caption text as printed>]`, `[IMAGE: <one-line description>]` — at the position the asset appears in reading order. The skill does **not** emit asset paths or link syntax (it has no asset IDs to bind to).

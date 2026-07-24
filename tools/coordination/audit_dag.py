@@ -39,6 +39,19 @@ DEFAULT_HUB_THRESHOLD = 20
 Row = dict[str, str]
 EdgePredicate = Callable[[Row], bool]
 
+CANONICAL_ENUMS = {
+    "DependencyClass": {"ANCHOR", "EXECUTION"},
+    "AnchorType": {"IMPLEMENTS_NODE", "TRACES_TO_REQUIREMENT", "NOT_APPLICABLE"},
+    "Direction": {"UPSTREAM", "DOWNSTREAM"},
+    "DependencyType": {"PREREQUISITE", "INTERFACE", "HANDOVER", "CONSTRAINT", "ENABLES", "OTHER"},
+    "TargetType": {"DELIVERABLE", "PACKAGE", "WBS_NODE", "REQUIREMENT", "DOCUMENT", "EQUIPMENT", "EXTERNAL", "UNKNOWN"},
+    "Explicitness": {"EXPLICIT", "IMPLICIT"},
+    "SatisfactionStatus": {"TBD", "PENDING", "IN_PROGRESS", "SATISFIED", "WAIVED", "NOT_APPLICABLE"},
+    "Confidence": {"HIGH", "MEDIUM", "LOW"},
+    "Origin": {"DECLARED", "EXTRACTED"},
+    "Status": {"ACTIVE", "RETIRED"},
+}
+
 
 def read_csv_rows(path: Path) -> tuple[list[str], list[Row], list[dict[str, object]]]:
     """Read CSV while keeping headers normalized and detecting ragged rows."""
@@ -74,6 +87,72 @@ def validate_schema(header: Iterable[str]) -> dict[str, object]:
         "missing_columns": missing,
         "extension_columns": extensions,
     }
+
+
+def validate_canonical_rows(rows: Iterable[Row]) -> list[dict[str, object]]:
+    findings: list[dict[str, object]] = []
+    for line_number, row in enumerate(rows, start=2):
+        dependency_id = row.get("DependencyID", "").strip()
+        for field, allowed in CANONICAL_ENUMS.items():
+            value = row.get(field, "").strip()
+            if value not in allowed:
+                findings.append({
+                    "Line": line_number,
+                    "DependencyID": dependency_id,
+                    "Field": field,
+                    "Value": value,
+                    "Issue": "INVALID_ENUM",
+                    "Allowed": sorted(allowed),
+                })
+
+        dependency_class = row.get("DependencyClass", "").strip()
+        anchor_type = row.get("AnchorType", "").strip()
+        dependency_type = row.get("DependencyType", "").strip()
+        target_type = row.get("TargetType", "").strip()
+        target_deliverable_id = row.get("TargetDeliverableID", "").strip()
+
+        if dependency_class == "ANCHOR" and dependency_type != "OTHER":
+            findings.append({
+                "Line": line_number,
+                "DependencyID": dependency_id,
+                "Field": "DependencyType",
+                "Value": dependency_type,
+                "Issue": "ANCHOR_DEPENDENCY_TYPE_MUST_BE_OTHER",
+            })
+        if dependency_class == "ANCHOR" and anchor_type == "NOT_APPLICABLE":
+            findings.append({
+                "Line": line_number,
+                "DependencyID": dependency_id,
+                "Field": "AnchorType",
+                "Value": anchor_type,
+                "Issue": "ANCHOR_ANCHOR_TYPE_MUST_BE_APPLICABLE",
+            })
+        if dependency_class == "EXECUTION" and anchor_type != "NOT_APPLICABLE":
+            findings.append({
+                "Line": line_number,
+                "DependencyID": dependency_id,
+                "Field": "AnchorType",
+                "Value": anchor_type,
+                "Issue": "EXECUTION_ANCHOR_TYPE_MUST_BE_NOT_APPLICABLE",
+            })
+        if target_type == DELIVERABLE and not target_deliverable_id:
+            findings.append({
+                "Line": line_number,
+                "DependencyID": dependency_id,
+                "Field": "TargetDeliverableID",
+                "Value": target_deliverable_id,
+                "Issue": "DELIVERABLE_TARGET_REQUIRES_TARGET_DELIVERABLE_ID",
+            })
+        if target_type and target_type != DELIVERABLE and target_deliverable_id:
+            findings.append({
+                "Line": line_number,
+                "DependencyID": dependency_id,
+                "Field": "TargetDeliverableID",
+                "Value": target_deliverable_id,
+                "Issue": "NON_DELIVERABLE_TARGET_MUST_NOT_SET_TARGET_DELIVERABLE_ID",
+            })
+
+    return findings
 
 
 def normalized_edge(row: Row) -> tuple[str, str] | None:
@@ -274,7 +353,12 @@ def graph_analysis(
     }
 
 
-def audit_dag(edges_path: Path, nodes_path: Path, hub_threshold: int = DEFAULT_HUB_THRESHOLD) -> dict[str, object]:
+def audit_dag(
+    edges_path: Path,
+    nodes_path: Path,
+    hub_threshold: int = DEFAULT_HUB_THRESHOLD,
+    canonical: bool = False,
+) -> dict[str, object]:
     edge_header, edge_rows, edge_width_issues = read_csv_rows(edges_path)
     node_header, node_rows, node_width_issues = read_csv_rows(nodes_path)
     node_ids = {row.get("DeliverableID", "").strip() for row in node_rows if row.get("DeliverableID", "").strip()}
@@ -285,10 +369,15 @@ def audit_dag(edges_path: Path, nodes_path: Path, hub_threshold: int = DEFAULT_H
     projection_active_rows = [row for row in projection_rows if row.get("Status", "").strip() == ACTIVE]
     projection_candidate_rows = [row for row in projection_rows if row.get("Status", "").strip() == CANDIDATE]
 
+    canonical_findings = validate_canonical_rows(edge_rows) if canonical else []
+
     return {
         "edges_path": str(edges_path),
         "nodes_path": str(nodes_path),
+        "canonical_mode": canonical,
         "edge_schema": validate_schema(edge_header),
+        "canonical_finding_count": len(canonical_findings),
+        "canonical_findings": canonical_findings,
         "node_header_column_count": len(node_header),
         "edge_row_count": len(edge_rows),
         "node_row_count": len(node_rows),
@@ -331,6 +420,7 @@ def strict_passed(summary: dict[str, object]) -> bool:
         bool(edge_schema["valid"])
         and int(summary["endpoint_issue_count"]) == 0
         and int(summary["edge_row_width_issue_count"]) == 0
+        and int(summary.get("canonical_finding_count", 0)) == 0
         and int(active_graph["scc_count"]) == 0
         and int(active_graph["duplicate_edge_count"]) == 0
         and int(active_graph["bidirectional_pair_count"]) == 0
@@ -360,6 +450,7 @@ def render_markdown(summary: dict[str, object]) -> str:
         "- Source of truth: `execution/_DAG/DAG-001/DependencyEdges.csv`.",
         "- Local `Dependencies.csv` files are synchronized mirrors, not independent sequencing authority.",
         "- `CANDIDATE` rows remain non-gating.",
+        f"- Canonical dependency enum mode: {summary.get('canonical_mode', False)}.",
         "",
         "## Schema And Counts",
         "",
@@ -371,6 +462,7 @@ def render_markdown(summary: dict[str, object]) -> str:
         f"- Candidate edges: {summary['candidate_edge_count']}",
         f"- Endpoint issues: {summary['endpoint_issue_count']}",
         f"- Ragged edge rows: {summary['edge_row_width_issue_count']}",
+        f"- Canonical findings: {summary.get('canonical_finding_count', 0)}",
         "",
         "## Active Graph",
         "",
@@ -430,6 +522,17 @@ def render_markdown(summary: dict[str, object]) -> str:
             lines.append(f"- {issue['DependencyID']}: {issue['Field']} `{issue['Value']}` is not in DeliverableNodes.csv")
         lines.append("")
 
+    if summary.get("canonical_findings"):
+        lines += ["## Canonical Dependency Findings", ""]
+        for finding in summary["canonical_findings"][:50]:
+            lines.append(
+                f"- {finding['DependencyID']} line {finding['Line']}: "
+                f"{finding['Issue']} on `{finding['Field']}` = `{finding['Value']}`"
+            )
+        if int(summary.get("canonical_finding_count", 0)) > 50:
+            lines.append(f"- ... {int(summary['canonical_finding_count']) - 50} additional findings omitted")
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -442,6 +545,7 @@ def render_console(summary: dict[str, object]) -> str:
         f"Rows: edges={summary['edge_row_count']} nodes={summary['node_row_count']}",
         f"Status: ACTIVE={summary['active_edge_count']} CANDIDATE={summary['candidate_edge_count']}",
         f"Endpoint issues: {summary['endpoint_issue_count']}",
+        f"Canonical mode: {summary.get('canonical_mode', False)} findings={summary.get('canonical_finding_count', 0)}",
         f"Active graph: edges={active['edge_count']} sccs={active['scc_count']} "
         f"duplicates={active['duplicate_edge_count']} bidirectional={active['bidirectional_pair_count']}",
         f"DEV-001 projection: active_edges={projection['active_edge_count']} "
@@ -462,6 +566,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--json-out", type=Path, help="Write JSON summary to this path.")
     parser.add_argument("--markdown-out", type=Path, help="Write markdown report to this path.")
     parser.add_argument("--hub-threshold", type=int, default=DEFAULT_HUB_THRESHOLD)
+    parser.add_argument(
+        "--canonical",
+        action="store_true",
+        help="Validate edge rows against canonical v3.1 enum and row-rule semantics.",
+    )
     parser.add_argument("--strict", action="store_true", help="Exit non-zero for active graph hygiene failures.")
     return parser.parse_args(argv)
 
@@ -470,7 +579,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     edges_path = args.edges or args.dag_dir / "DependencyEdges.csv"
     nodes_path = args.nodes or args.dag_dir / "DeliverableNodes.csv"
-    summary = audit_dag(edges_path=edges_path, nodes_path=nodes_path, hub_threshold=args.hub_threshold)
+    summary = audit_dag(
+        edges_path=edges_path,
+        nodes_path=nodes_path,
+        hub_threshold=args.hub_threshold,
+        canonical=args.canonical,
+    )
 
     print(render_console(summary))
 

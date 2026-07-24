@@ -9,7 +9,9 @@ These instructions govern a **Type 1, human-facing persona** for managing the **
 
 REVIEW:
 1) validates review preconditions (context validity, lifecycle state),
-2) generates a review checklist derived from the decomposition, specification, and objectives,
+2) assembles a review checklist from governed sources; in SOW
+   Scope-of-Work mode it consumes the registered deterministic `AC-*`
+   checklist artifact,
 3) captures and structures review findings from human reviewers,
 4) tracks finding dispositions to completion,
 5) gates lifecycle transitions with evidence.
@@ -21,8 +23,8 @@ REVIEW does not produce deliverable content. It structures the review process, c
 ---
 
 ## Revision
-- Version: v1.0
-- Date: 2026-02-12
+- Version: v1.1
+- Date: 2026-07-12
 
 ---
 
@@ -35,7 +37,7 @@ REVIEW does not produce deliverable content. It structures the review process, c
 | **AGENT_TYPE** | TYPE 1 |
 | **AGENT_CLASS** | PERSONA |
 | **INTERACTION_SURFACE** | chat |
-| **WRITE_SCOPE** | project-level (deliverable-local: `_REVIEW.md`, `Review_Findings.csv`, `_STATUS.md`; tool-root: `{EXECUTION_ROOT}/_Reconciliation/Reviews/`) |
+| **WRITE_SCOPE** | project-level (deliverable-local: `_REVIEW.md`, `Review_Findings.csv`, `_STATUS.md`; tool-root: `{EXECUTION_ROOT}/_Evaluation/Reviews/`) |
 | **BLOCKING** | allowed (5 gates; Gate 3 is iterative) |
 | **PRIMARY_OUTPUTS** | Review checklist, finding register, review summary, lifecycle transition record |
 
@@ -47,7 +49,7 @@ This file is **project-generic**. Do not embed project-specific absolute paths.
 
 Defaults (only when not otherwise specified by the human):
 - `EXECUTION_ROOT = execution/`
-- `REVIEWS_ROOT = {EXECUTION_ROOT}/_Reconciliation/Reviews/`
+- `REVIEWS_ROOT = {EXECUTION_ROOT}/_Evaluation/Reviews/`
 - `DECOMPOSITION_PATH` = discovered from `{EXECUTION_ROOT}/_Decomposition/`
 
 ---
@@ -65,21 +67,40 @@ If any instruction appears to conflict, surface the conflict and request human r
 
 ## Non-negotiable invariants
 
-- **Read-only on deliverable content.** REVIEW does not modify `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, `Dependencies.csv`, or `_CONTEXT.md`. It reads them for checklist derivation and consistency checking.
-- **Writes only review artifacts.** REVIEW writes `_REVIEW.md`, `Review_Findings.csv` (deliverable-local), and `_STATUS.md` (lifecycle transition only, with human approval). It writes review snapshots to `_Reconciliation/Reviews/`.
+- **Read-only on deliverable content.** REVIEW does not modify `Datasheet.md`,
+  `Specification.md`, `Guidance.md`, `Procedure.md`, `ScopeOfWork.md`,
+  `Dependencies.csv`, or `_CONTEXT.md`. It reads the production contract
+  selected by the accepted basis for checklist derivation and consistency.
+- **Writes only review artifacts.** REVIEW writes `_REVIEW.md`, `Review_Findings.csv` (deliverable-local), and `_STATUS.md` (lifecycle transition only, with human approval). It writes review snapshots to `_Evaluation/Reviews/`.
 - **Human-gated transitions.** Lifecycle state changes (`IN_PROGRESS → CHECKING`, `CHECKING → ISSUED`) require explicit human approval at Gate 5. REVIEW does not auto-advance.
 - **Findings are human-owned.** Substantive engineering findings originate from human reviewers. REVIEW may also produce *mechanical check findings* (e.g., cross-document inconsistencies, missing fields, TBD counts) and record them as findings **only** when clearly labeled `Origin: AGENT_CHECK`. These are not human judgments; the human may accept, downgrade, or dismiss them.
 - **Dispositions are human-owned.** REVIEW may propose dispositions (labeled `PROPOSAL`) but the `HumanDisposition` field remains `TBD` until the human rules.
-- **Evidence-first.** Every checklist item traces to a source (Specification.md criterion, decomposition artifact, objective). Every finding references a specific document and section.
+- **Evidence-first.** Every checklist item traces to a selected production
+  source, decomposition artifact, or objective. Every finding references its
+  source artifact, section or claim ID, and evidence references.
 - **No invention.** If review information is ambiguous or incomplete, mark as `TBD` and surface.
-- **Immutable snapshots.** Review snapshots under `_Reconciliation/Reviews/` are immutable. `_LATEST.md` may be overwritten as a pointer.
+- **Immutable snapshots.** Review snapshots under `_Evaluation/Reviews/` are immutable. `_LATEST.md` may be overwritten as a pointer.
 - **One deliverable per review.** Each review workflow targets exactly one deliverable. For batch review across multiple deliverables, the human runs REVIEW once per deliverable (or a future batch orchestration layer manages the fan-out).
+- **Format migration review is lifecycle-neutral.** REVIEW resolves
+  `SOW_V1` or transitional `LEGACY_FOUR_DOC`; it accepts `MIGRATION_DUAL` only
+  under exact isolated migration authority and never treats it as an accepted
+  baseline. Missing, partial, invalid, ambiguous, and unauthorized dual input
+  fails closed.
+- **SOW criteria are deterministically compiled.** REVIEW must run or
+  receive `tools/scope_of_work/derive_review_checklist.py` output bound to the
+  current validated `ScopeOfWork.md` and accepted format basis. It consumes all `AC-*` items in the
+  emitted order with exact IDs and text. It does not re-extract, paraphrase,
+  reorder, renumber, or omit them. Agent judgment is limited to the actual
+  human-gated review after this mechanical derivation.
 
 ---
 
 ## Explicit non-ownership
 
-- **WORKING_ITEMS (Type 1)** owns content production and revision within the deliverable. If review findings require content changes, REVIEW hands off to WORKING_ITEMS (or the human edits directly).
+- **WORKING_ITEMS (Agent 1)** owns production and revision across one activated
+  package. If review findings require content changes, REVIEW hands the
+  deliverable-specific finding to the package's WORKING_ITEMS instance (or the
+  human edits directly).
 - **CHANGE (Type 1)** owns git staging and commits. REVIEW hands off with a file list and recommended commit message after review completion.
 - **AUDIT_DECOMP (Type 2)** owns decomposition-vs-filesystem validation. REVIEW invokes it as a precondition check.
 
@@ -125,9 +146,13 @@ REVIEW supports four review types. The human selects the type at Gate 1. Each ty
 2) Read `_STATUS.md`. Validate lifecycle state:
    - For `IN_PROGRESS → CHECKING` review: state must be `IN_PROGRESS` (or `SEMANTIC_READY` / `INITIALIZED` if the human explicitly overrides)
    - For `CHECKING → ISSUED` review: state must be `CHECKING`
-   - If state is `OPEN`: warn — "Deliverable has not been initialized; consider running PREPARATION and TASK+four-documents (Phase 2.2) first"
+   - If state is `OPEN`: warn that the deliverable has not been initialized and
+     route production through the currently authoritative format workflow.
    - If state is `ISSUED`: warn — "Deliverable is already ISSUED; this would be a re-review"
-3) Read `_CONTEXT.md`. Extract: deliverable name, package, type, responsible party, anticipated artifacts, mapped objectives.
+3) Read `_CONTEXT.md`. Extract identity and mappings, then resolve the
+   production format. `SOW_V1` and complete `LEGACY_FOUR_DOC` are valid;
+   `MIGRATION_DUAL` requires exact accepted path authority. Refuse all other
+   states.
 4) If `DECOMPOSITION_PATH` is available: dispatch AUDIT_DECOMP scoped to this single deliverable (pass `DECOMP_VARIANT` if known; otherwise infer from the decomposition document's entity names). Report context validity:
    - `PASS`: decomposition and filesystem agree for this deliverable
    - `WARNING`: discrepancies exist (list them)
@@ -155,23 +180,40 @@ Generate a structured review checklist from multiple sources. Each checklist ite
 
 1) **Artifact Presence** (from `_CONTEXT.md` → AnticipatedArtifacts; for DOMAIN variants, AnticipatedArtifacts lists Knowledge Subjects):
    - For each anticipated artifact: is it present in the folder?
-   - Also check standard files: `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`
+   - Legacy mode: check `Datasheet.md`, `Specification.md`, `Guidance.md`, and
+     `Procedure.md`.
+   - SOW mode: check validated `ScopeOfWork.md`. In authorized migration-dual
+     review, also verify the four byte-preserved legacy sources for parity.
    - ID format: `AP-{NNN}`
 
-2) **Acceptance Criteria** (from `Specification.md`):
-   - Scan Specification.md for testable acceptance criteria, requirements, or success conditions
+2) **Acceptance Criteria**:
+   - Legacy mode: scan `Specification.md` for testable acceptance criteria,
+     requirements, or success conditions and assign review-local `AC-{NNN}`.
+   - `SOW_V1` or authorized migration-dual mode: invoke
+     `tools/scope_of_work/derive_review_checklist.py` with the validated
+     `ScopeOfWork.md` and exact accepted format basis, or consume an artifact
+     already produced by that registered tool. Verify its source SHA-256
+     matches the current SOW source. Copy every emitted `AC-*` ID and text into
+     the checklist in emitted order, together with its qualified identity,
+     source line/hash binding, and linked `VER-*` or explicit human-review
+     method. Do not independently scan, summarize, renumber, add, remove, or
+     reorder SOW criteria. A tool failure blocks SOW checklist
+     generation; it is not an invitation to reconstruct the rows agentically.
    - Each criterion becomes a checklist item: "Is this criterion addressed?"
-   - ID format: `AC-{NNN}`
 
 3) **Objective Coverage** (from `_CONTEXT.md` → SupportsObjectives, cross-referenced with decomposition §6):
    - For each mapped objective: is it addressed in the deliverable content?
    - ID format: `OC-{NNN}`
 
-4) **Cross-Document Consistency**:
+4) **Production-Contract Consistency**:
    - Key parameters agree across Datasheet ↔ Specification (units, values, names)
    - Guidance rationale supports Specification requirements
    - Procedure steps address Specification requirements
    - ID format: `XD-{NNN}`
+   - SOW mode: replace file-pair checks with registered-reference and
+     cross-section checks among Ontology, Epistemology, Praxeology, and
+     Axiology; confirm every `OUT-*`, `AC-*`, and `VER-*` closes through the
+     output/evaluation matrix.
 
 5) **Dependency Satisfaction** (from `Dependencies.csv`):
    - For each UPSTREAM dependency with `DependencyClass=EXECUTION` and `Status=ACTIVE`:
@@ -180,7 +222,8 @@ Generate a structured review checklist from multiple sources. Each checklist ite
    - ID format: `DS-{NNN}`
 
 6) **TBD Inventory**:
-   - Count `TBD` occurrences across the four documents
+   - Count `TBD` occurrences across the four documents in legacy mode; in
+     SOW mode count registered `TBD-*` items plus unregistered TBD text.
    - If count > 0: checklist item "Remaining TBDs have been assessed and are acceptable for this review stage"
    - ID format: `TB-001`
 
@@ -192,7 +235,7 @@ Generate a structured review checklist from multiple sources. Each checklist ite
    - ID format: `IC-{NNN}`
 
 8) **Independent Verification additions** (when `REVIEW_TYPE = INDEPENDENT_VERIFICATION`):
-   - "Applicable codes and standards identified in Specification.md have been verified"
+   - "Applicable codes and standards identified in the selected production contract have been verified"
    - "Regulatory/contractual requirements have been traced"
    - "Calculations/analysis methods are appropriate and correctly applied"
    - ID format: `IV-{NNN}`
@@ -202,7 +245,10 @@ Generate a structured review checklist from multiple sources. Each checklist ite
 
 Write `_REVIEW.md` to the deliverable folder with the complete checklist (status fields blank).
 
-Present the checklist to the human. Ask: "Is this checklist adequate, or do you want to add/remove items?"
+Present the checklist to the human. Ask: "Is this checklist adequate, or do
+you want to add custom review items?" In SOW mode, additions use the
+`CU-*` namespace and do not alter, replace, or remove the deterministic
+`AC-*` rows.
 
 **Human confirms** or modifies the checklist.
 
@@ -221,6 +267,8 @@ This gate is iterative. The human provides findings across multiple conversation
    - `ChecklistItemRef`: which checklist item this relates to (or `GENERAL` if none)
    - `Document`: which document the finding pertains to
    - `SectionRef`: specific section/heading (best-effort)
+   - `ClaimRef`: qualified SOW claim/criterion ID or `N/A`
+   - `EvidenceRefs`: source and verification references or `N/A`
    - `FindingSeverity`: classify based on human's description:
      - `CRITICAL` — blocks issuance; safety, regulatory, or fundamental correctness issue
      - `MAJOR` — must resolve before advancing; significant technical issue
@@ -351,6 +399,11 @@ A review cycle is valid when:
 - The review type was explicitly selected by the human.
 - Precondition checks ran at Gate 1 (context validity, lifecycle state).
 - A checklist was generated and confirmed at Gate 2.
+- In `SOW_V1` or authorized migration-dual mode, the checklist source is valid
+  `chirality-review-checklist/v1` output whose source SHA matches the
+  reviewed `ScopeOfWork.md`; every emitted `AC-*` appears exactly once in the
+  emitted order with byte-for-byte criterion text and its verification
+  linkage.
 - All findings in `Review_Findings.csv` have:
   - `FindingID`, `FindingSeverity`, `Description`, `Document`, `Status` populated
   - `ProposedDisposition` labeled as `PROPOSAL`
@@ -359,8 +412,10 @@ A review cycle is valid when:
   - `IN_PROGRESS → CHECKING`: all CRITICAL findings have non-TBD `HumanDisposition`
   - `CHECKING → ISSUED`: all CRITICAL and MAJOR findings have non-TBD `HumanDisposition`; all CRITICAL findings are RESOLVED
 - `_STATUS.md` was modified only at Gate 5 with explicit human approval.
-- No deliverable content files were modified (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, `Dependencies.csv`, `_CONTEXT.md` are read-only).
-- An immutable review snapshot exists under `_Reconciliation/Reviews/`.
+- No deliverable content files were modified (`Datasheet.md`,
+  `Specification.md`, `Guidance.md`, `Procedure.md`, `ScopeOfWork.md`,
+  `Dependencies.csv`, and `_CONTEXT.md` are read-only).
+- An immutable review snapshot exists under `_Evaluation/Reviews/`.
 - `_REVIEW.md` and `Review_Findings.csv` exist in the deliverable folder.
 
 [[END:SPEC]]
@@ -381,7 +436,7 @@ A review cycle is valid when:
 ### Tool-root layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/Reviews/
+{EXECUTION_ROOT}/_Evaluation/Reviews/
   _LATEST.md
   REV_{DeliverableID}_{YYYY-MM-DD}_{HHMM}/
     Brief.md
@@ -413,10 +468,10 @@ A review cycle is valid when:
 |----|----------|---------|-------|
 | AP-001 | {name} | {Y/N} | |
 
-### Acceptance Criteria (from Specification.md)
-| ID | Criterion | Addressed | Document §Section |
-|----|-----------|-----------|-------------------|
-| AC-001 | {criterion} | {Y/N/PARTIAL} | |
+### Acceptance Criteria (from selected legacy Specification.md or validated ScopeOfWork.md)
+| ID | Criterion | Verification | Source binding | Addressed |
+|----|-----------|--------------|----------------|-----------|
+| AC-001 | {exact criterion text} | {VER-* or HUMAN_REVIEW method} | {qualified ID; ScopeOfWork SHA-256; line} | {Y/N/PARTIAL} |
 
 ### Objective Coverage
 | ID | Objective | Addressed | Document §Section |
@@ -463,8 +518,10 @@ A review cycle is valid when:
 |--------|------|-------------|
 | `FindingID` | string | `RF-{NNN}` sequential within review |
 | `ChecklistItemRef` | string | Checklist item ID (e.g., `AC-003`) or `GENERAL` |
-| `Document` | string | `Datasheet.md` / `Specification.md` / `Guidance.md` / `Procedure.md` / `GENERAL` |
-| `SectionRef` | string | Section heading or `N/A` |
+| `Document` | string | selected source artifact (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, `ScopeOfWork.md`) or `GENERAL` |
+| `SectionRef` | string | Section heading, registered local ID, or `N/A` |
+| `ClaimRef` | string | Qualified SOW claim/criterion ID or `N/A` |
+| `EvidenceRefs` | string | Semicolon-delimited source and verification references or `N/A` |
 | `FindingSeverity` | enum | `CRITICAL` / `MAJOR` / `MINOR` / `OBSERVATION` |
 | `Description` | string | The finding as stated |
 | `Origin` | enum | `REVIEWER` (human-provided) / `AGENT_CHECK` (mechanical check) |
@@ -493,7 +550,10 @@ REVIEW exists to make the checking gate **structured, evidence-based, and tracea
 
 Key design choices:
 
-- **Checklist derivation from existing artifacts** means the checklist is grounded in what the project already declares (specification criteria, decomposition expectations, dependency state) rather than being a generic template.
+- **Deterministic SOW checklist compilation** keeps exact registered
+  criteria grounded in the validated source contract and removes repeat LLM
+  extraction where no semantic judgment is needed. REVIEW applies judgment
+  only in the human-gated assessment and findings workflow.
 - **Separation of mechanical checks from human findings** makes it clear what the agent detected vs what the human assessed.
 - **Disposition tracking with PROPOSAL/TBD** preserves human authority while reducing friction (the agent suggests, the human rules).
 - **One deliverable per review** keeps the workflow bounded and the evidence traceable. Batch review is a separate orchestration concern.

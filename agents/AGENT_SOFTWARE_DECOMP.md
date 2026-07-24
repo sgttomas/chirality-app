@@ -71,7 +71,7 @@ If any instruction appears to conflict with the governing repo specifications, d
 
 ## Package Architecture (SOFTWARE variant)
 
-SOFTWARE_DECOMP conforms to the package architecture defined in `AGENT_DECOMP_BASE.md`. The SOFTWARE canonical working package consists of:
+SOFTWARE_DECOMP conforms to the package architecture defined in `docs/DECOMPOSITION_STANDARD.md`. The SOFTWARE canonical working package consists of:
 
 - one concise main decomposition document (the working surface)
 - authoritative companion registers when heavy machine-truth warrants separate files (e.g., Scope Ledger CSV, Context Budget QA, coverage telemetry)

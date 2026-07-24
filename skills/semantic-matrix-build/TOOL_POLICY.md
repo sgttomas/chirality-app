@@ -1,41 +1,87 @@
 # semantic-matrix-build — Tool Policy
 
-## Preferred tool order
-Reasoning-first: this skill is LLM-driven; no deterministic tool ordering applies.
+## Tool posture
+
+Reasoning-first. The semantic derivation is LLM-driven. Deterministic tools are used only for validation and filesystem safety when available.
+
+The `allowed-tools` frontmatter field is intentionally omitted in `SKILL.md`. TASK and the run brief decide whether tool execution is restricted.
+
+## Preferred tool sequence
+
+1. Read files inside `ScopePath` needed by the skill.
+2. Generate `_SEMANTIC.md` by reasoning from the skill contract.
+3. Run the semantic audit specified in `QA_CHECKS.md`.
+4. If available and permitted, run:
+
+```sh
+python3 tools/validation/validate_semantic_matrix.py "{deliverable_folder}"
+```
+
+5. If available and permitted, run the semantic pipeline scope validator used by the project for Phase 2.3.
+6. Write/update the TASK run record according to `AGENT_TASK.md`.
 
 ## Allowed deterministic tools
 
 ### TASK-enforced
-_Tools from the `allowed-tools` frontmatter; enforced by TASK shell at skill load time._
 
-- None — no TASK-enforced deterministic allowlist (the `allowed-tools` frontmatter field is intentionally omitted)
+None declared by this skill frontmatter. If the brief supplies `AllowedTools`, TASK enforces that list.
 
-### Operationally invoked
-_Tools named in `## Tool usage` body; agent-guided, not TASK-enforced._
+### Operational helpers
 
-- None — no operational helpers declared (this is a reasoning-first semantic-algebra skill)
+| Tool | Use | Required? |
+|---|---|---|
+| `python3 tools/validation/validate_semantic_matrix.py` | Validate `_SEMANTIC.md` structure and matrix invariants. | Required in normal repo runs when available and permitted. |
+| `python3 tools/validation/validate_semantic_pipeline_scope.py` | Confirm Phase 2.3 touched only allowed semantic-scope files. | Required when project PROJECT_SETUP policy calls for it and the tool is available. |
+
+If a validator is unavailable, do not claim validator PASS. Report `validator not available`.
 
 ## Expected use of reasoning
-This is a reasoning-first semantic-algebra skill. All phases are reasoning-driven: reading deliverable context (`_CONTEXT.md`, `_STATUS.md`, production documents), deriving the deliverable perspective statement, adopting canonical Matrix A and Matrix B values, deriving matrices C, F, D, K, G, X, T, and E via semantic algebra (with every list-valued cell showing the three-step `I(r,c,L)` interpretation operator: axis anchor, projections, centroid), auditing final cell values, writing `_SEMANTIC.md`, and updating `_STATUS.md` readiness state per audit result.
+
+Reasoning is required for:
+
+- deriving the deliverable perspective;
+- choosing deliverable-conditioned but non-literal semantic phrases;
+- resolving each axis anchor;
+- resolving every projected contributor in Step 2;
+- selecting centroid attractors;
+- auditing final cells for semantic product validity.
 
 ## Disallowed use
-From SKILL.md's Non-negotiable constraints and "Skill Does / Does Not" table:
-- Do not edit production documents (`Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, or for DOMAIN variants any `KA-*.md` or `Scoping.md`)
-- Do not specify project particulars (numbers, tags, exact code clauses)
-- Do not skip steps or handwave interpretation
-- Do not write outside the deliverable folder
-- Do not regress lifecycle state or skip ahead
-- Do not pretend missing inputs were present or claim PASS when audit failed
-- Do not silently reconcile conflicts — surface as contradictions and request human resolution
-- No cross-deliverable scanning (one deliverable per run)
 
-No hidden reliance on tools outside the declared list unless the human expands AllowedTools. No writes outside declared scope.
+Do not use tools or scripts to bypass the semantic reasoning work. A generated table of formulas without resolved semantic phrases is invalid.
+
+Do not:
+
+- edit production documents;
+- edit `_CONTEXT.md`, `_REFERENCES.md`, `_DEPENDENCIES.md`, or `MEMORY.md`;
+- write outside the effective bounded task brief's authorization;
+- scan sibling deliverables;
+- claim cross-deliverable conclusions;
+- claim engineering correctness;
+- claim validator PASS unless the validator actually ran;
+- hide conflicts between TASK write authorization, brief instructions, and skill requirements.
 
 ## Write boundary
-Deliverable-local. May write/overwrite only:
-- `{deliverable_folder}/_SEMANTIC.md` (primary output; overwritten each run; includes audit result)
-- `{deliverable_folder}/_STATUS.md` to record readiness (deliverable-local only):
-  - On audit **PASS**: ensure state = `SEMANTIC_READY` and append History.
-  - On audit **FAIL**: do **not** advance state; append failure History.
 
-Read-only on all production documents.
+Allowed write target:
+
+- `{deliverable_folder}/_SEMANTIC.md`
+
+Conditional write target:
+
+- `{deliverable_folder}/_STATUS.md` only when both conditions are true:
+  1. the brief/runtime override requires a status action; and
+  2. TASK/brief write authorization allows `_STATUS.md` edits.
+
+Normal PROJECT_SETUP Phase 2.3 uses `STATUS_POLICY=PRESERVE_CURRENT`; it may write only `_SEMANTIC.md` unless the brief explicitly authorizes a history note.
+
+## Fallback rules
+
+| Situation | Required fallback |
+|---|---|
+| Validator unavailable | Complete semantic audit manually; report validator unavailable. |
+| `_CONTEXT.md` missing | Fail with `FAILED_INPUTS`. |
+| Production document missing | Record as absent in Inputs Read; continue. |
+| Status edit requested but unauthorized | Do not edit `_STATUS.md`; report the contradiction. |
+| Tool output contradicts the file content | Report discrepancy; do not hide it. |
+| Brief asks for out-of-scope writes | Refuse those writes and report scope violation. |

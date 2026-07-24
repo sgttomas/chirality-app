@@ -1,5 +1,7 @@
 ---
 description: "Audits deliverable content against the epistemic ontology — label coverage, provenance, gaps, conflicts, warrant state"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_EPISTEMIC (Type 2 Task • Epistemic Ontology Compliance Audit)
@@ -24,7 +26,7 @@ This agent operationalizes the epistemology pillar (`DIRECTIVE.md` §2) — it i
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
 | **INTERACTION_SURFACE** | INIT-TASK (brief-driven) |
-| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/`) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Epistemic audit report + issue log + machine-readable summary JSON |
 
@@ -43,7 +45,14 @@ If a human instruction conflicts with this document, obey the human and record t
 
 ## Mission
 
-Given one or more deliverable folders, audit the epistemic state of their content — the document kit (Datasheet.md, Specification.md, Guidance.md, Procedure.md) and the dependency register (Dependencies.csv) — against the epistemic ontology defined in `TYPES.md` §10.
+Given one or more deliverable folders, audit the epistemic state of the
+production contract selected by the accepted basis (`SOW_V1` or transitional
+`LEGACY_FOUR_DOC`) and `Dependencies.csv` against the
+epistemic ontology in `TYPES.md` §10.
+
+In an exactly authorized isolated `MIGRATION_DUAL` workspace, audit the
+candidate `ScopeOfWork.md` and verify the four source documents for parity.
+Missing, partial, invalid, ambiguous, and unauthorized dual states fail closed.
 
 Produce:
 - an epistemic audit report with findings across seven audit passes,
@@ -77,7 +86,7 @@ PURPOSE: Epistemic audit of deliverable content against TYPES.md §10
 SCOPE: <list of deliverable IDs or paths>
 EXECUTION_ROOT: <default execution/>
 RUN_LABEL: <short label for this run; default EPISTEMIC>
-REQUESTED_BY: <invoking agent name; default RECONCILIATION>
+REQUESTED_BY: <invoking agent name; default EVALUATION>
 CONFIG:
   - AUDIT_DEPTH: STANDARD | DEEP
     (STANDARD: structural checks — label presence, provenance fields, TBD markers, parameter consistency)
@@ -95,18 +104,21 @@ NOTES:
 
 If `SCOPE` is missing or empty: write `Brief.md` with `RUN_STATUS = FAILED_INPUTS` and return.
 
-If a deliverable in scope has no document kit (lifecycle state < INITIALIZED): record as `NOT_INITIALIZED` in coverage and skip epistemic analysis for that deliverable.
+If a deliverable in scope has neither a complete legacy kit nor a validated
+SOW production contract, record `NOT_INITIALIZED` in coverage
+and skip epistemic analysis. Partial or unauthorized dual formats are
+`INVALID`, not `NOT_INITIALIZED`.
 
 ---
 
 ## Outputs (write zone)
 
-Tool root: `{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/`
+Tool root: `{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/`
 
 Each run writes a new immutable snapshot folder:
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/
+{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/
   _Archive/
   _LATEST.md
   EpistemicAudit_{DEL-ID}_{YYYY-MM-DD}_{HHmm}/
@@ -120,7 +132,7 @@ Each run writes a new immutable snapshot folder:
 When scope includes multiple deliverables, `{DEL-ID}` in the snapshot folder name is replaced with the `{RUN_LABEL}` (e.g., `EpistemicAudit_EPISTEMIC_2026-03-29_1430/`).
 
 Pointer (overwrite allowed; pointer only):
-- `{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/_LATEST.md` -> snapshot folder name
+- `{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/_LATEST.md` -> snapshot folder name
 
 ---
 
@@ -132,17 +144,22 @@ Pointer (overwrite allowed; pointer only):
 1) Resolve `EXECUTION_ROOT` (default `execution/`).
 2) Resolve deliverables in scope:
    - For each deliverable ID or path, locate the deliverable folder.
-   - Confirm the document kit exists (Datasheet.md, Specification.md, Guidance.md, Procedure.md).
+   - Resolve `LEGACY_FOUR_DOC | SOW_V1 | MIGRATION_DUAL | AMBIGUOUS | INVALID`;
+     accept dual only when the brief cites exact path-scoped migration authority.
    - Check for Dependencies.csv if `INCLUDE_DEPENDENCIES_CSV=true`.
 3) Record inventory: for each deliverable, note which files are present and which are absent.
 4) If zero deliverables resolve: write `Brief.md` with `RUN_STATUS = FAILED_INPUTS` and stop.
-5) If deliverable is not initialized (no document kit): record `NOT_INITIALIZED` and skip to next deliverable.
+5) If no recognized production contract exists: record `NOT_INITIALIZED` and
+   skip. Record partial or unauthorized mixed formats as `INVALID` and stop
+   that deliverable's audit.
 
 ---
 
 ### Pass 1 — Epistemic label coverage scan
 
-For each document in the kit (Datasheet.md, Specification.md, Guidance.md, Procedure.md):
+For each production source: the four files in legacy mode, or each registered
+claim and substantive prose block in validated `ScopeOfWork.md` under the
+accepted SOW/authorized migration basis:
 
 1) Identify **non-trivial claims** — assertions about parameters, requirements, constraints, acceptance criteria, design choices, scope boundaries, or technical values. Exclude boilerplate headings, template placeholders, and structural markup.
 2) For each non-trivial claim, determine whether it carries an epistemic label: `FACT`, `ASSUMPTION`, `PROPOSAL`, or `TBD`.
@@ -191,7 +208,10 @@ Compute **gap count** = total explicit TBD markers + potential unwarranted claim
 
 ### Pass 4 — Conflict detection
 
-Compare key parameters, requirements, and constraints **across documents within the deliverable**:
+In legacy mode, compare key parameters, requirements, and constraints **across
+documents within the deliverable**. In SOW mode, perform the same checks
+across registered claims and the Ontology, Epistemology, Praxeology, and
+Axiology sections:
 
 1) Extract key-value assertions from each document (parameters, limits, acceptance criteria, scope statements, material/code references).
 2) For each key that appears in multiple documents, compare values.
@@ -199,7 +219,9 @@ Compare key parameters, requirements, and constraints **across documents within 
    - The conflicting key,
    - The value in each document (with file + section),
    - Whether a Conflict Table entry already exists for this key.
-4) If a conflict is found that has NOT been recorded in a Conflict Table (or equivalent), flag as `UNRECORDED_CONFLICT` (K-CONFLICT-1 violation).
+4) If a conflict is found that has NOT been recorded in a Conflict Table or a
+registered `CON-*` entry, flag as `UNRECORDED_CONFLICT` (K-CONFLICT-1
+violation).
 
 Compute **conflict count** = total parameter/value conflicts detected.
 
@@ -224,7 +246,7 @@ Produce a **warrant state distribution** for the deliverable:
 
 ### Pass 6 — Cross-document consistency
 
-Compare across the four document kit files for:
+In legacy mode, compare across the four document kit files for:
 
 1) **Scope boundaries:** Do Datasheet, Specification, Guidance, and Procedure agree on what is in scope and what is excluded?
 2) **Key parameters:** Do numeric values, material references, code/standard citations, and acceptance criteria match across documents?
@@ -232,6 +254,14 @@ Compare across the four document kit files for:
 4) **Design intent alignment:** Does the rationale in Guidance.md align with the requirements in Specification.md?
 
 Record inconsistencies as findings with evidence from both documents.
+
+For `SOW_V1` or an authorized migration-dual candidate, replace this pass with cross-section
+and reference-graph consistency: unique registered IDs; resolved compound
+references; output-to-objective coverage; requirement/claim-to-criterion
+coverage; criterion-to-verification coverage; source/warrant coverage; and
+contradictions among Ontology, Epistemology, Praxeology, and Axiology sections.
+REVIEW's `AC-*` namespace is the same SOW acceptance-criterion registry,
+not a parallel audit-generated namespace.
 
 ---
 
@@ -273,7 +303,7 @@ If `INCLUDE_DEPENDENCIES_CSV=true` and Dependencies.csv exists:
 
 A run is valid when:
 
-- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/`.
+- Outputs are written to a new immutable snapshot folder under `{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/`.
 - `Brief.md`, `Epistemic_Audit_Report.md`, `Epistemic_Audit_IssueLog.csv`, `epistemic_audit_summary.json`, and `QA_Report.md` all exist in the snapshot.
 - The report includes findings for all seven audit passes (or marks passes as `INCOMPLETE` or `SKIPPED` with reasons).
 - Every finding in the issue log includes evidence: file path, section or line reference, and claim text.
@@ -299,7 +329,7 @@ A run is **invalid** when:
 ### Tool-root layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/EpistemicAudit/
+{EXECUTION_ROOT}/_Evaluation/EpistemicAudit/
   _Archive/
   _LATEST.md
   EpistemicAudit_{DEL-ID|RUN_LABEL}_{YYYY-MM-DD}_{HHmm}/

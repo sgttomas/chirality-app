@@ -10,6 +10,8 @@ Inputs:
                       <domain-root>/_LocalIndexes/_LATEST.md.
   --domain-root       Domain root override. Defaults to piping-design or the
                       domain_root recorded in meta.json.
+  --repo-root         Repository root for @repo/ manifest-backed source paths.
+                      Defaults to repo_root recorded in meta.json when present.
   --skip-hash-verify  Check hash shape but do not re-hash source files.
   --json              Emit machine-readable findings.
 
@@ -26,7 +28,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from source_database import DEFAULT_DOMAIN_ROOT, SCHEMA_VERSION, sha256_file, text_hash  # noqa: E402
+from source_database import (  # noqa: E402
+    DEFAULT_DOMAIN_ROOT,
+    SCHEMA_VERSION,
+    catalog_path,
+    is_repo_rel_path,
+    sha256_file,
+    text_hash,
+)
 
 
 REQUIRED_TABLES = {
@@ -52,6 +61,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--snapshot", type=Path)
     ap.add_argument("--domain-root", type=Path, default=DEFAULT_DOMAIN_ROOT)
+    ap.add_argument("--repo-root", type=Path)
     ap.add_argument("--skip-hash-verify", action="store_true")
     ap.add_argument("--json", action="store_true", dest="emit_json")
     args = ap.parse_args()
@@ -69,11 +79,12 @@ def main() -> int:
         return 2
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     domain_root = Path(meta.get("domain_root") or args.domain_root).resolve()
+    repo_root = Path(args.repo_root or meta.get("repo_root") or Path.cwd()).resolve()
 
     check_exports(snapshot, findings)
     check_schema(snapshot, findings)
     check_counts(snapshot, meta, findings)
-    check_paths_and_hashes(snapshot, domain_root, args.skip_hash_verify, findings)
+    check_paths_and_hashes(snapshot, domain_root, repo_root, args.skip_hash_verify, findings)
     check_chunks(snapshot, findings)
     check_audit_surfaces(snapshot, domain_root, findings)
 
@@ -199,12 +210,17 @@ def check_counts(snapshot: Path, meta: dict, findings: list[dict]) -> None:
 def check_paths_and_hashes(
     snapshot: Path,
     domain_root: Path,
+    repo_root: Path,
     skip_hash_verify: bool,
     findings: list[dict],
 ) -> None:
     con = open_db(snapshot)
     for row in con.execute("SELECT artifact_id, rel_path, sha256 FROM artifacts").fetchall():
-        path = domain_root / row["rel_path"]
+        try:
+            path = catalog_path(domain_root, row["rel_path"], repo_root)
+        except Exception as exc:
+            add(findings, "BLOCKER", "BAD_PATH_ROOT", f"{row['artifact_id']} cannot resolve {row['rel_path']}: {exc}")
+            continue
         if not path.exists():
             add(findings, "BLOCKER", "MISSING_PATH", f"{row['artifact_id']} path missing: {row['rel_path']}")
             continue
@@ -246,6 +262,8 @@ def check_audit_surfaces(snapshot: Path, domain_root: Path, findings: list[dict]
         WHERE archive_state='ACTIVE' AND audit_dir_rel_path IS NOT NULL
         """
     ).fetchall():
+        if is_repo_rel_path(src["audit_dir_rel_path"] or ""):
+            continue
         audit_dir = domain_root / src["audit_dir_rel_path"]
         for name in expected:
             if not (audit_dir / name).exists():

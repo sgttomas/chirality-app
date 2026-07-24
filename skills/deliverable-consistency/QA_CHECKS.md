@@ -7,8 +7,8 @@ Minimum checks for a valid run:
 3. The findings reference only files inside the deliverable.
 4. Each significant finding includes best-effort evidence location.
 5. Contradictions are surfaced as rulings-needed items, not silently resolved.
-6. If edits were applied, they are limited to authorized files.
-7. `MEMORY.md` captures any durable decisions or accepted proposals.
+6. If edits were applied, they are limited to files authorized by the effective bounded task brief.
+7. `MEMORY.md` captures durable decisions or accepted proposals only when the brief authorized that update.
 
 Recommended reporting groups:
 

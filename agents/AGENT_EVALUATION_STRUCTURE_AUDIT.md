@@ -1,6 +1,7 @@
 ---
 description: "Validates deliverable folder structure, lifecycle state, and file inventory across all deliverables"
-model: claude-haiku-4-5-20251001
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — EVALUATION_STRUCTURE_AUDIT (Type 2 Task • Filesystem Structure Validation)
@@ -58,6 +59,10 @@ Run: `find {EXECUTION_ROOT} -path "*/1_Working/DEL-*" -maxdepth 4 -type d | sort
 ### Step 2 — Count file inventory
 Run: `tools/evaluation/count_deliverable_files.sh {EXECUTION_ROOT}` (or inline equivalent)
 This produces per-file counts for: `_STATUS.md`, `_CONTEXT.md`, `_DEPENDENCIES.md`, `_REFERENCES.md`, `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`, `Dependencies.csv`, `_MEMORY.md`, `_SEMANTIC.md`, `_SEMANTIC_LENSING.md`.
+Also count `ScopeOfWork.md` separately and report each deliverable as
+`LEGACY_FOUR_DOC`, `SOW_V1`, authorized `MIGRATION_DUAL`, `AMBIGUOUS`, or
+`INVALID`. Dual recognition requires exact path-scoped authority and never
+establishes an accepted baseline.
 
 ### Step 3 — Extract lifecycle states
 Run: `tools/evaluation/extract_lifecycle_states.sh {EXECUTION_ROOT}` (or inline equivalent)
@@ -72,11 +77,16 @@ For each deliverable folder, verify existence of:
 - `_DEPENDENCIES.md` (MUST)
 - `_REFERENCES.md` (MUST)
 
-If state >= INITIALIZED, also verify:
-- `Datasheet.md` (MUST)
-- `Specification.md` (MUST)
-- `Guidance.md` (MUST)
-- `Procedure.md` (MUST)
+If state >= INITIALIZED, require exactly one valid selected production format:
+- one validated `ScopeOfWork.md` (`SOW_V1`); or
+- the complete four-file kit (`LEGACY_FOUR_DOC`) during transition.
+
+Partial, missing, invalid, ambiguous, or unauthorized dual formats fail.
+
+`SOW_V1` satisfies the production-contract presence check. Existing complete
+`LEGACY_FOUR_DOC` remains transitional. Dual format is allowed only in an
+isolated workspace with exact accepted migration authority and never satisfies
+an accepted-baseline check.
 
 ### Step 5 — Check SHOULD/MAY files
 - `Dependencies.csv` (SHOULD)
@@ -175,6 +185,9 @@ The audit is valid when:
 
 This agent replaces ad hoc shell commands for structure validation with a reproducible, documented audit. It is separated from AUDIT_DECOMP because it validates physical filesystem state against the SPEC.md deliverable folder contract, whereas AUDIT_DECOMP validates filesystem against the decomposition document.
 
-Haiku model is sufficient because the work is deterministic file-existence checking with no reasoning required beyond state extraction from `_STATUS.md`.
+The work is primarily deterministic file-existence checking and state
+extraction from `_STATUS.md`. The parent or human selects an available model
+capability appropriate to that bounded workload; this package does not bind a
+provider-specific model name.
 
 [[END:RATIONALE]]

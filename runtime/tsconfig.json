@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/contracts" },
+    { "path": "packages/core" },
+    { "path": "packages/engine-claude" },
+    { "path": "packages/engine-pi-omlx" },
+    { "path": "packages/client" },
+    { "path": "packages/daemon" },
+    { "path": "packages/cli" }
+  ]
+}

@@ -1,5 +1,7 @@
 ---
 description: "Audits that a scope change has been fully propagated, remediated, and reconciled"
+dedicated_agent2_approval: D-GOV-13
+tools: [read, write, bash, report_coordination_notice, ack_agent_update]
 ---
 [[DOC:AGENT_INSTRUCTIONS]]
 # AGENT INSTRUCTIONS — AUDIT_SCOPE_CLOSURE (Type 2 Task • Scope Change Closure Audit)
@@ -7,7 +9,7 @@ AGENT_TYPE: 2
 
 These instructions govern a **Type 2** task agent that audits whether a completed scope change — processed by SCOPE_CHANGE and propagated through downstream agents — has been fully remediated and reconciled. The agent verifies that every action in the amendment record was executed, that downstream reruns completed, that no orphaned references remain, and that the project state is consistent with the amended decomposition.
 
-This agent is dispatched by RECONCILIATION as a toolbelt agent. It does not initiate scope changes, modify project state, or resolve findings. It produces an auditable closure report.
+This agent is dispatched by EVALUATION as an audit-toolbelt specialist. It does not initiate scope changes, modify project state, or resolve findings. It produces an auditable closure report.
 
 **The human does not read this document. The human has a conversation. You follow these instructions.**
 
@@ -21,8 +23,8 @@ This agent is dispatched by RECONCILIATION as a toolbelt agent. It does not init
 |---|---|
 | **AGENT_TYPE** | TYPE 2 |
 | **AGENT_CLASS** | TASK |
-| **INTERACTION_SURFACE** | INIT-TASK (brief-driven; dispatched by RECONCILIATION) |
-| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Reconciliation/ScopeClosureAudit/`) |
+| **INTERACTION_SURFACE** | INIT-TASK (brief-driven; dispatched by EVALUATION) |
+| **WRITE_SCOPE** | tool-root-only (`{EXECUTION_ROOT}/_Evaluation/ScopeClosureAudit/`) |
 | **BLOCKING** | never |
 | **PRIMARY_OUTPUTS** | Scope closure audit report, issue log CSV, machine-readable summary JSON, QA report |
 
@@ -65,7 +67,7 @@ If any instruction appears to conflict, surface the conflict in the audit report
 | **Amendment record** | The immutable snapshot under `_ScopeChange/SCA-{NNN}_*/` produced by SCOPE_CHANGE, containing the brief, impact assessment, propagation plan, actions CSV, and run summary |
 | **Closure** | The state in which every action in the amendment record has been executed and all downstream effects have been propagated and verified |
 | **Orphaned reference** | A dependency row, context field, or other artifact that references an entity modified or removed by the scope change but has not been updated to reflect the change |
-| **Downstream rerun** | An agent/skill execution recommended by SCOPE_CHANGE's propagation plan (e.g., TASK+dependency-extract, ESTIMATING rerun) that must complete for closure |
+| **Downstream rerun** | An agent/skill execution recommended by SCOPE_CHANGE's propagation plan (e.g., TASK+dependency-extract or a TASK estimation skill rerun) that must complete for closure |
 | **Stale metadata** | A `_CONTEXT.md`, `_STATUS.md`, or decomposition section that does not reflect the post-change state |
 
 ---
@@ -153,11 +155,11 @@ For each recommended rerun:
 **PREPARATION runs (for ADD actions):**
 - Already verified in Pass 1 (folder + minimum viable fileset existence).
 
-**ESTIMATING reruns:**
+**Estimation-skill reruns:**
 - Check `_Estimates/` for snapshot folders with dates on or after the amendment date that include the affected scope.
 - If no post-change estimate snapshot: finding (MINOR — estimates may be stale).
 
-**SCHEDULING reruns:**
+**PROJECT_SETUP scheduling workflow reruns:**
 - Check `_Schedule/` for snapshot folders with dates on or after the amendment date.
 - If no post-change schedule snapshot: finding (MINOR — schedule may be stale).
 
@@ -341,7 +343,7 @@ contains `KTY_Remediation_Manifest.csv`.
 
 4. Write all output artifacts to snapshot folder.
 5. Update `_LATEST.md` pointer.
-6. Return summary to RECONCILIATION.
+6. Return summary to EVALUATION.
 
 [[END:PROTOCOL]]
 
@@ -399,13 +401,13 @@ DECOMP_VARIANT: PROJECT | SOFTWARE | DOMAIN
 CONSTRAINTS:
   - {any scope limitations or focus areas}
 NOTES:
-  - {context from RECONCILIATION about why this audit was requested}
+  - {context from EVALUATION about why this audit was requested}
 ```
 
 ### Snapshot Layout
 
 ```
-{EXECUTION_ROOT}/_Reconciliation/ScopeClosureAudit/
+{EXECUTION_ROOT}/_Evaluation/ScopeClosureAudit/
   _LATEST.md
   ScopeClosure_{AMENDMENT_ID}_{YYYY-MM-DD}_{HHMM}/
     Brief.md
@@ -540,13 +542,19 @@ Scope changes are the highest-risk modification to a project's structure. SCOPE_
 
 This agent is not a pre-change impact assessment (that's SCOPE_CHANGE Gate 2). It is not a post-change validation (that's SCOPE_CHANGE Gate 5, which runs immediately after the amendment). It is a **closure audit** — run later, after the downstream reruns have had time to execute. The gap between "scope change applied" and "all consequences propagated" is where inconsistency hides. This agent closes that gap.
 
-### Why RECONCILIATION Dispatches It
+### Why EVALUATION Dispatches It
 
-RECONCILIATION is the human-directed manager for cross-deliverable coherence. Scope change closure is inherently cross-deliverable — orphaned references may be in any deliverable's dependency register, metadata staleness may affect any deliverable touched by the change. RECONCILIATION's toolbelt pattern (one task agent at a time, human-directed scope) is the correct orchestration model for this audit.
+EVALUATION is the human-directed manager for structural, dependency, epistemic,
+governance, and cross-deliverable assessment. Scope-change closure is
+inherently cross-deliverable: orphaned references may exist in any dependency
+register and metadata staleness may affect any touched deliverable. Its bounded
+audit dispatch and validated fan-in contract is the correct orchestration
+model. RECONCILIATION may consume an accepted EVALUATION result as evidence in
+a deliverable-corpus concordance run, but does not own this generic audit.
 
 ### Why Orphan Detection Is Critical
 
-A dependency row that targets a RETIRED deliverable is a live reference to a dead entity. It will cause AUDIT_DEP_CLOSURE to report an unresolvable target, ESTIMATING to include phantom scope, and SCHEDULING to sequence non-existent work. Orphaned references are the primary mechanism by which scope change damage propagates silently. Detecting them is the single most important function of this audit.
+A dependency row that targets a RETIRED deliverable is a live reference to a dead entity. It will cause AUDIT_DEP_CLOSURE to report an unresolvable target, estimation skills to include phantom scope, and the PROJECT_SETUP scheduling workflow to sequence non-existent work. Orphaned references are the primary mechanism by which scope change damage propagates silently. Detecting them is the single most important function of this audit.
 
 ### Value Hierarchy
 

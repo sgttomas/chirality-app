@@ -1,7 +1,7 @@
 ---
 name: domain-documents
 description: Draft knowledge-artifact document set for a DOMAIN Knowledge Type deliverable. Produces KA-* files per the variable artifact schema. DOMAIN pipeline only.
-compatibility: Chirality TASK; dispatched by ORCHESTRATOR setup pipeline for DOMAIN variant (Phase 2.2).
+compatibility: Chirality TASK; dispatched by PROJECT_SETUP setup pipeline for DOMAIN variant (Phase 2.2).
 metadata:
   chirality-skill-version: "1"
   chirality-task-profile: NONE
@@ -39,7 +39,7 @@ This refines the "Maximally comprehensive" invariant above: comprehensive in *na
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatcher: ORCHESTRATOR Phase 2.2 (DOMAIN variant) dispatches TASK with `TaskSkill: domain-documents`.
+Typical dispatcher: PROJECT_SETUP Phase 2.2 (DOMAIN variant) dispatches TASK with `TaskSkill: domain-documents`.
 
 ## Inputs
 
@@ -469,7 +469,7 @@ See `QA_CHECKS.md` for the full invariant set. Summary:
 
 ## See also
 
-- `agents/AGENT_ORCHESTRATOR.md` — dispatches this skill via TASK during Phase 2.2 (DOMAIN variant)
+- `agents/AGENT_PROJECT_SETUP.md` — dispatches this skill via TASK during Phase 2.2 (DOMAIN variant)
 - `agents/AGENT_DOMAIN_DECOMP.md` — DOMAIN decomposition (upstream; produces KnowledgeSubjects)
 - `agents/AGENT_PREPARATION.md` — creates Knowledge Type folders this skill populates
 - `skills/four-documents/` — PROJECT/SOFTWARE counterpart (fixed 4-doc kit)

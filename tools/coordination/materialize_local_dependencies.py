@@ -16,10 +16,11 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-from audit_dag import ACTIVE, CANDIDATE, PKG_00, read_csv_rows
+from audit_dag import ACTIVE, CANDIDATE, PKG_00, read_csv_rows, validate_canonical_rows
 
 
 MATERIALIZED_STATUSES = {ACTIVE, CANDIDATE}
+CANONICAL_MATERIALIZED_STATUSES = {ACTIVE}
 
 
 def sort_key(row: dict[str, str]) -> tuple[str, str]:
@@ -54,6 +55,7 @@ def pointer_text(
     generated: str,
     source_label: str,
     source_edges_path: Path,
+    canonical_output: bool = False,
 ) -> str:
     deliverable_id = node.get("DeliverableID", "")
     deliverable_name = node.get("DeliverableName", "")
@@ -70,7 +72,11 @@ def pointer_text(
         "## Authority Boundary",
         f"- Aggregate `{source_label}` remains the sequencing and blocker-computation authority within its approval boundary.",
         "- This local register is a synchronized mirror/evidence surface, not an independent graph authority.",
-        "- `CANDIDATE` rows remain non-gating until later RECONCILIATION plus CHANGE approval.",
+        (
+            "- Candidate rows are excluded from this canonical register and remain in a separate non-authoritative worklist."
+            if canonical_output
+            else "- `CANDIDATE` rows remain non-gating until later RECONCILIATION plus CHANGE approval."
+        ),
         "- `PKG-00` architecture-basis rows are preserved here as injected context evidence; `PKG-00` does not receive local dependency registers.",
         "",
     ])
@@ -91,17 +97,20 @@ def materialize_local_dependencies(
     generated_date: str | None = None,
     source_label: str | None = None,
     deliverable_ids: set[str] | None = None,
+    canonical_output: bool = False,
 ) -> dict[str, object]:
     header, edge_rows, edge_width_issues = read_csv_rows(edges_path)
     _node_header, node_rows, node_width_issues = read_csv_rows(nodes_path)
     generated = generated_date or date.today().isoformat()
     resolved_source_label = source_label or dag_label_from_path(edges_path)
+    canonical_findings = validate_canonical_rows(edge_rows) if canonical_output else []
+    materialized_statuses = CANONICAL_MATERIALIZED_STATUSES if canonical_output else MATERIALIZED_STATUSES
 
     rows_by_from: dict[str, list[dict[str, str]]] = defaultdict(list)
     skipped_status_counts: dict[str, int] = defaultdict(int)
     for row in edge_rows:
         status = row.get("Status", "").strip()
-        if status not in MATERIALIZED_STATUSES:
+        if status not in materialized_statuses:
             skipped_status_counts[status or "BLANK"] += 1
             continue
         from_id = row.get("FromDeliverableID", "").strip()
@@ -153,6 +162,7 @@ def materialize_local_dependencies(
                     generated,
                     resolved_source_label,
                     edges_path,
+                    canonical_output,
                 ),
                 dry_run=dry_run,
             )
@@ -179,6 +189,9 @@ def materialize_local_dependencies(
         "execution_root": str(execution_root),
         "dry_run": dry_run,
         "refresh_pointers": refresh_pointers,
+        "canonical_output": canonical_output,
+        "canonical_finding_count": len(canonical_findings),
+        "canonical_findings": canonical_findings,
         "edge_row_width_issue_count": len(edge_width_issues),
         "node_row_width_issue_count": len(node_width_issues),
         "written_count": len(written),
@@ -204,6 +217,7 @@ def render_console(summary: dict[str, object]) -> str:
         f"Skipped PKG-00 deliverables: {summary['skipped_pkg00_count']}",
         f"Missing execution paths: {summary['missing_execution_path_count']}",
         f"Rows materialized: total={summary['total_rows']} active={summary['total_active_rows']} candidate={summary['total_candidate_rows']}",
+        f"Canonical output: {summary['canonical_output']} canonical_findings={summary['canonical_finding_count']}",
         f"Pointer refresh: {summary['refresh_pointers']}",
         f"Dry run: {summary['dry_run']}",
     ])
@@ -222,6 +236,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--nodes", type=Path, help="Override path to DeliverableNodes.csv.")
     parser.add_argument("--execution-root", type=Path, default=Path("execution"))
     parser.add_argument("--refresh-pointers", action="store_true", help="Rewrite _DEPENDENCIES.md generated pointers.")
+    parser.add_argument(
+        "--canonical-output",
+        action="store_true",
+        help="Materialize only canonical ACTIVE rows and report canonical validation findings.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json-out", type=Path, help="Write materialization summary JSON.")
     parser.add_argument("--source-label", help="Label to write into generated pointer files, e.g. DAG-002.")
@@ -257,12 +276,15 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=args.dry_run,
         source_label=args.source_label,
         deliverable_ids=deliverable_ids,
+        canonical_output=args.canonical_output,
     )
     print(render_console(summary))
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
         args.json_out.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     if int(summary["missing_execution_path_count"]) > 0 and not args.allow_missing_execution_paths:
+        return 1
+    if args.canonical_output and int(summary["canonical_finding_count"]) > 0:
         return 1
     return 0
 

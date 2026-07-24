@@ -1,0 +1,58 @@
+--- a/docs/SPEC.md
++++ b/docs/SPEC.md
+@@ -196,4 +196,5 @@
+-| `Datasheet.md` | MUST | TASK+four-documents | Key parameters and structured metadata |
+-| `Specification.md` | MUST | TASK+four-documents | Technical requirements and scope definition |
+-| `Guidance.md` | MUST | TASK+four-documents | Design guidance, rationale, and best practices |
+-| `Procedure.md` | MUST | TASK+four-documents | Step-by-step execution workflow |
++| `ScopeOfWork.md` | MUST* | TASK+scope-of-work | Canonical PROJECT/SOFTWARE production contract selected by schema marker |
++| `Datasheet.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy key parameters and structured metadata |
++| `Specification.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy technical requirements and scope definition |
++| `Guidance.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy design guidance, rationale, and best practices |
++| `Procedure.md` | MAY* | TASK+four-documents (legacy compatibility) | Legacy step-by-step execution workflow |
+@@ -208 +209,21 @@
+-**Document kit (TASK+four-documents):** `Datasheet.md`, `Specification.md`, `Guidance.md`, `Procedure.md`.
++**Production contract:** At lifecycle state `INITIALIZED` or later, exactly one
++valid production format is required. `SOW_V1` is one valid `ScopeOfWork.md`.
++`LEGACY_FOUR_DOC` is the complete four-file kit retained only for an existing
++unconverted deliverable during the authorized transition. The `MUST*` and
++`MAY*` marks above are resolved by this exclusive format rule, not as five
++simultaneous file requirements.
++
++### 2.2 Production Format Resolution
++
++| Files present | State | Validity |
++|---|---|---|
++| Valid `ScopeOfWork.md` only | `SOW_V1` | Canonical |
++| Complete four-document kit only | `LEGACY_FOUR_DOC` | Transitional compatibility for an existing unconverted deliverable |
++| Both complete formats | `MIGRATION_DUAL` only in an isolated conversion workspace with exact accepted migration authority; otherwise `AMBIGUOUS` | Never an accepted deliverable baseline |
++| Partial legacy kit, invalid `ScopeOfWork.md`, or neither at or beyond `INITIALIZED` | `INVALID` | Invalid |
++
++New PROJECT/SOFTWARE deliverables use `SOW_V1`. A successful legacy conversion
++is prepared and verified in isolation, then integrated as one atomic
++replacement that adds `ScopeOfWork.md` and removes all four legacy production
++files. Git history and the migration receipt preserve the source basis. No
++accepted commit contains two competing canonical formats.
+@@ -209,0 +231,6 @@
++Format migration is lifecycle-neutral and leaves `_STATUS.md` byte-identical.
++An `ISSUED` deliverable additionally requires an explicit human-approved
++administrative representation-replacement record bound to its accepted basis
++and source hashes. Any semantic change fails format migration and proceeds only
++through the governed scope-change process.
++
+@@ -237 +264 @@
+-| `INITIALIZED` | Draft documents generated | TASK+four-documents completes document kit |
++| `INITIALIZED` | Selected production contract exists and validates | TASK+scope-of-work completes `SOW_V1`; retained legacy deliverables preserve their existing state |
+@@ -250 +277 @@
+-| `OPEN → INITIALIZED` | TASK+four-documents |
++| `OPEN → INITIALIZED` | TASK+scope-of-work after `SOW_V1` validation |
+@@ -821,5 +848,4 @@
+-A deliverable folder is **initialized** (state >= `INITIALIZED`) when it additionally contains:
+-- [ ] `Datasheet.md`
+-- [ ] `Specification.md`
+-- [ ] `Guidance.md`
+-- [ ] `Procedure.md`
++A deliverable folder is **initialized** (state >= `INITIALIZED`) when it
++additionally resolves to exactly one valid production format under §2.2:
++`SOW_V1`, or `LEGACY_FOUR_DOC` during the authorized transition. New
++deliverables must resolve to `SOW_V1`.

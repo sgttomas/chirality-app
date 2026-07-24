@@ -1,7 +1,7 @@
 ---
 name: dbm-draft-review
 description: Review a human-prepared draft DBM against the governed knowledge base — build review substrate, prepare candidate findings for human disposition.
-compatibility: Chirality TASK; dispatched by WORKING_ITEMS or ORCHESTRATOR
+compatibility: Chirality TASK; dispatched by WORKING_ITEMS or PROJECT_SETUP
 allowed-tools: python3 tools/review/scan_section_coverage.py:*, python3 tools/review/extract_claims.py:*, python3 tools/review/scan_tbd_markers.py:*, python3 tools/review/check_body_thinness.py:*
 metadata:
   chirality-skill-version: "1"
@@ -22,7 +22,7 @@ The evidence bundle is not a quality gate. Hard gates are limited to process val
 
 - `TASK` (generic shell mode, no profile)
 
-Typical dispatchers: `WORKING_ITEMS` for interactive human-draft review sessions. `ORCHESTRATOR` for batch review.
+Typical dispatchers: `WORKING_ITEMS` for interactive human-draft review sessions. `PROJECT_SETUP` for batch review.
 
 ## Inputs
 

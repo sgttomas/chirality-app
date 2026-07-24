@@ -124,6 +124,19 @@ class LinkExtraction(unittest.TestCase):
         md = "![](unrelated/x.png)"
         self.assertEqual(_MOD.extract_asset_links(md), set())
 
+    def test_nested_campaign_asset_link_extracted(self):
+        links = _MOD.extract_asset_links(
+            "![](13-chapter/source_assets/tables/x.png) and "
+            "<img src='01-chapter/_assets/doc/figures/y.png'>"
+        )
+        self.assertEqual(
+            links,
+            {
+                "13-chapter/source_assets/tables/x.png",
+                "01-chapter/_assets/doc/figures/y.png",
+            },
+        )
+
 
 class ManifestPathExtraction(unittest.TestCase):
     def test_collects_png_and_xlsx_paths(self):
@@ -185,6 +198,28 @@ class DiskWalk(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_walks_nested_campaign_asset_dirs(self):
+        tmp = Path(tempfile.mkdtemp(prefix="test_validate_"))
+        try:
+            for rel in (
+                "01-alpha/_assets/doc/tables/a.xlsx",
+                "02-beta/doc_assets/figures/b.png",
+                "03-gamma/doc_assets/images/c.png",
+            ):
+                target = tmp / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"x")
+            self.assertEqual(
+                _MOD.disk_asset_paths(tmp),
+                {
+                    "01-alpha/_assets/doc/tables/a.xlsx",
+                    "02-beta/doc_assets/figures/b.png",
+                    "03-gamma/doc_assets/images/c.png",
+                },
+            )
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_missing_asset_subdirs_returns_empty(self):
         tmp = Path(tempfile.mkdtemp(prefix="test_validate_"))
         try:
@@ -209,6 +244,23 @@ class EndToEndMain(unittest.TestCase):
                 {"kind": "tbl", "xlsx_path": "tables/t1.xlsx"},
             ],
             disk_files=["figures/x.png", "tables/t1.xlsx"],
+        )
+        rc, output = _run_main(md, manifest, root)
+        self.assertEqual(rc, 0)
+        self.assertIn("asset_validation=PASS", output)
+
+    def test_pass_when_nested_campaign_assets_resolve(self):
+        md, manifest, root = _make_fixture(
+            self.tmp,
+            markdown="![alt](01-alpha/_assets/doc/figures/x.png)\n\n![](02-beta/doc_assets/tables/t1.xlsx)\n",
+            manifest_assets=[
+                {"png_path": "01-alpha/_assets/doc/figures/x.png"},
+                {"kind": "tbl", "xlsx_path": "02-beta/doc_assets/tables/t1.xlsx"},
+            ],
+            disk_files=[
+                "01-alpha/_assets/doc/figures/x.png",
+                "02-beta/doc_assets/tables/t1.xlsx",
+            ],
         )
         rc, output = _run_main(md, manifest, root)
         self.assertEqual(rc, 0)
