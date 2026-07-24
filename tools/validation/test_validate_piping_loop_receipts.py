@@ -1,6 +1,8 @@
 from pathlib import Path
 import sys
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATION_DIR = Path(__file__).resolve().parent
@@ -12,6 +14,10 @@ import validate_piping_loop_receipts as validator
 
 EXAMINED_SHA = "09dd651421fce167c6ad7dd850ecc4f3ff4fe68f"
 LIVE_RECEIPTS = REPO_ROOT / validator.RECEIPTS_RELPATH
+pytestmark = pytest.mark.skipif(
+    not LIVE_RECEIPTS.is_file(),
+    reason="public export intentionally excludes private piping loop receipts",
+)
 
 
 def _contract_prelude() -> bytes:

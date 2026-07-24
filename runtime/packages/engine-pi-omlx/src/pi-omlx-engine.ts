@@ -8,7 +8,7 @@ import {
 } from "@chirality/runtime-contracts";
 
 export const PI_CODING_AGENT_PACKAGE_NAME = "@earendil-works/pi-coding-agent";
-export const PI_CODING_AGENT_PACKAGE_VERSION = "0.80.10";
+export const PI_CODING_AGENT_PACKAGE_VERSION = "0.82.0";
 
 export interface PiTurnRuntimePort {
   preflight(input: AgentEngineRunInput, credential: string): Promise<void>;
