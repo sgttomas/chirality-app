@@ -3,10 +3,16 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "plans" / "reviews" / "PR188_multi_agent_review_2026-07-11.md"
 DISPOSITION = ROOT / "docs" / "governance_harness" / "PR188_REVIEW_DISPOSITION.md"
+pytestmark = pytest.mark.skipif(
+    not SOURCE.is_file() or not DISPOSITION.is_file(),
+    reason="public export intentionally excludes the private PR188 review source",
+)
 
 
 def ids(text: str) -> set[str]:

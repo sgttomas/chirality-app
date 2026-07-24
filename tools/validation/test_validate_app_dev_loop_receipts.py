@@ -2,6 +2,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATION_DIR = Path(__file__).resolve().parent
@@ -14,6 +16,10 @@ import validate_app_dev_loop_receipts as validator
 EXAMINED_SHA = "8384fbc4bfd102ef3f793decdc3717259c01c10b"
 RULING_MERGE_SHA = EXAMINED_SHA
 LIVE_RECEIPTS = REPO_ROOT / validator.RECEIPTS_RELPATH
+pytestmark = pytest.mark.skipif(
+    not LIVE_RECEIPTS.is_file(),
+    reason="public export intentionally excludes private app-development loop receipts",
+)
 
 
 def _contract_prelude() -> bytes:
