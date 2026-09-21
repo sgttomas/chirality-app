@@ -1,0 +1,78 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV43-APPLICATION-20260912
+title: "D-GOV-43 application tranche: Codex host re-platform, topology A2"
+date: 2026-09-12
+basis: e83cb1f47cce55a49aebfc3c84eabc744a32ffad
+
+instruction_surface_paths:
+  - AGENTS.md
+  - docs/CONTRACT.md
+  - docs/SPEC.md
+  - docs/DIRECTIVE.md
+  - docs/TYPES.md
+  - docs/AGENT_WORKFLOW_RUNTIME.md
+  - docs/PLAN.md
+  - docs/PRD_ROOT.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - tools/validation/validate_candidate_whitespace.py
+  - .github/workflows/harness-premerge.yml
+  - .github/workflows/desktop-release-template.yml
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV43-APPLICATION-20260912.yaml
+
+m2_gate:
+  authorization: >-
+    Owner ruling, Ryan Tufts, 2026-09-11 (D-GOV-43_codex_host_replatform.md):
+    "I rule D-GOV-43 accepted as revision 3 at commit 3ef2ef524, with the
+    post-build minimum-not-ceiling clarification. The three folded choices
+    stand." Supplement decision, Ryan Tufts, 2026-09-12
+    (D-GOV-43_supplement_topology_A2.md): "We are all in agreement this is
+    the path forward. You will be handing this off so a third agent can
+    begin implementation." Ruling item 11 authorizes the Root amendments in
+    "Surfaces touched" together with the Runtime and App changes in
+    IMPACT.md under one bounded coordinated authority. Both records were
+    published at git SHA d2878462be59a43b4afc175a8cce85abca9cf696 (merge of
+    PR #767, 2026-09-12). This manifest records the gate and grants no
+    authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-11
+  integration_owner: >-
+    the implementing session for D-GOV-43 (Fable 5.1), with bounded Type 2
+    dispatch
+  merge_gate: owner-authorized-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-12
+    approved_source_sha: 388de6973c32730d130b4084fd78996391899e06
+    note: >-
+      Merge proceeds under the owner's standing Git authorization of
+      2026-09-12 (Root AGENTS.md, Execution and governance); the
+      approved_source_sha named the basis at drafting (e83cb1f47) and now pins
+      the reviewed and built candidate revision; commits after it on the
+      candidate branch are review and evidence records only.
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-12_ROOT_D-GOV-43_CODEX_HOST_REPLATFORM.md
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-12_ROOT_D-GOV-43_CODEX_HOST_REPLATFORM.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-09-12_ROOT_D-GOV-43_CODEX_HOST_REPLATFORM.md
+  rationale: >-
+    The Runtime, App and PEC loops receive records of application under
+    ruling item 11's bounded coordinated authority. The notices record that
+    the Root amendments were applied; they are not adoption requests and do
+    not reopen approval of D-GOV-43.
+
+scope_limits:
+  - >-
+    No release, publishing, or acceptance of unknown future bytes is
+    authorized by this tranche.
+  - >-
+    No local-model work and no Piping integration; both remain deferred per
+    the A2 supplement.
+  - >-
+    No change to the Codex sole-engine rule; local models, when taken up,
+    are Codex model providers.
+  - >-
+    Historical records (D-GOV-20, D-GOV-36, executed checklists and prior
+    evidence) are read with D-GOV-43 and are not rewritten.

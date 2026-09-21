@@ -15,7 +15,6 @@ import {
   runtimeClientOptions,
   type CliRuntimePaths
 } from "./config.js";
-import { LaunchAgentManager } from "./launch-agent.js";
 
 export interface CliIo {
   stdout(text: string): void;
@@ -23,6 +22,11 @@ export interface CliIo {
   readStdin(): Promise<string>;
 }
 
+/**
+ * The v1 Runtime surface the CLI drives. It is a compatibility surface on
+ * the App path: the App-owned Runtime service serves these routes, the CLI
+ * only addresses them over the same Unix socket and token file.
+ */
 export interface RuntimeCliClient {
   daemonStatus(): Promise<unknown>;
   registerProject(request: {
@@ -49,19 +53,9 @@ export interface RuntimeCliClient {
   runAgent1(projectId: string, request: Agent1RunRequest): Promise<RuntimeStream>;
 }
 
-export interface RuntimeLaunchAgent {
-  install(executablePath: string): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  status(): Promise<unknown>;
-  uninstall(): Promise<void>;
-}
-
 export interface CliDependencies {
   client: RuntimeCliClient;
-  launchAgent: RuntimeLaunchAgent;
   paths: CliRuntimePaths;
-  executablePath: string;
   readTextFile(path: string): Promise<string>;
 }
 
@@ -260,6 +254,28 @@ async function readRunRequest(
   };
 }
 
+const USAGE = `Runtime CLI: daemon, project, models, session, run
+
+The Runtime service is started and stopped by the Chirality App; this CLI only
+addresses a running service over its Unix socket (CHIRALITY_USER_DATA,
+CHIRALITY_RUNTIME_SOCKET_PATH, CHIRALITY_RUNTIME_TOKEN_FILE).
+
+  daemon status
+  project register <manifest> [--approved-by ACTOR] [--approval-reference REF]
+  project list
+  project status --project ID
+  models list
+  models activate <model-id> [--approval-reference REF]
+  session create --project ID (--request-file PATH | --role ROLE --adapter ID --provider ID --model ID [--parent-session ID])
+  session list --project ID
+  session replay --project ID --session ID
+  session turn --project ID --session ID [--prompt TEXT | --request-file PATH]   (or the prompt on standard input)
+  session interrupt --project ID --session ID
+  run --project ID --agent ID [--brief-file PATH | --request-file PATH] [--local-model ID [--read-file PATH]] [--approval-reference REF]
+
+Add --json for single-line JSON output and NDJSON event streams.
+`;
+
 export async function runCli(
   argv: readonly string[],
   io: CliIo,
@@ -268,39 +284,20 @@ export async function runCli(
   try {
     const group = argv[0];
     if (!group) throw new CliUsageError("A command is required");
+    if (group === "--help" || group === "help") {
+      io.stdout(USAGE);
+      return 0;
+    }
     const action = group === "run" ? undefined : argv[1];
     const rest = group === "run" ? argv.slice(1) : argv.slice(2);
     const args = parseArguments(rest);
     const json = flag(args, "json");
 
     if (group === "daemon") {
-      if (action === "install") {
-        await deps.launchAgent.install(
-          option(args, "executable") ?? deps.executablePath
-        );
-        printJson(io, { installed: true }, json);
-      } else if (action === "start") {
-        await deps.launchAgent.start();
-        printJson(io, { started: true }, json);
-      } else if (action === "stop") {
-        await deps.launchAgent.stop();
-        printJson(io, { stopped: true }, json);
-      } else if (action === "status") {
-        printJson(
-          io,
-          {
-            launchAgent: await deps.launchAgent.status(),
-            daemon: await deps.client.daemonStatus()
-          },
-          json
-        );
-      } else if (action === "uninstall") {
-        await deps.launchAgent.uninstall();
-        printJson(io, { uninstalled: true }, json);
+      if (action === "status") {
+        printJson(io, await deps.client.daemonStatus(), json);
       } else {
-        throw new CliUsageError(
-          "daemon requires install, start, stop, status, or uninstall"
-        );
+        throw new CliUsageError("daemon requires status");
       }
       return 0;
     }
@@ -434,7 +431,11 @@ export async function runCli(
       return 2;
     }
     if (error instanceof RuntimeError) {
-      io.stderr(`${error.code}: ${error.message}\n`);
+      if (error.code === "RUNTIME_COMPATIBILITY_MISMATCH" || argv.includes("--json")) {
+        io.stderr(`${JSON.stringify({ error: { code: error.code, message: error.message, ...(error.details === undefined ? {} : { details: error.details }) } })}\n`);
+      } else {
+        io.stderr(`${error.code}: ${error.message}\n`);
+      }
       return error.code === "INTERRUPTED" ? 130 : 1;
     }
     if (error instanceof RuntimeTransportError) {
@@ -459,11 +460,6 @@ export function createDefaultCliDependencies(): CliDependencies {
   return {
     paths,
     client: new RuntimeClient(runtimeClientOptions(paths)),
-    launchAgent: new LaunchAgentManager({
-      launchAgentsDirectory: paths.launchAgentsDirectory,
-      runtimeDirectory: paths.runtimeDirectory
-    }),
-    executablePath: process.execPath,
     readTextFile: (path) => readFile(path, "utf8")
   };
 }

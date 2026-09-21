@@ -12,10 +12,19 @@ Checks:
   1. AD_HOC_CLAIMS_LITANY — a scanned line carries three or more distinct
      litany-vocabulary terms (or "not authoritative"-family phrasing) without
      matching a registered boundary-statement text.
-  2. Anchor presence — the PRD section 19.3 notice fragment, the BS-MATURITY
-     app-shell banner, and the report-renderer notice fragment exist on their
-     named surfaces (MISSING_PRD_NOTICE / MISSING_MATURITY_BANNER /
-     MISSING_RENDERER_NOTICE).
+  2. Anchor presence — the PRD section 19.3 notice fragment and the
+     report-renderer notice fragment exist on their named surfaces
+     (MISSING_PRD_NOTICE / MISSING_RENDERER_NOTICE).
+  3. RETIRED_MATURITY_SENTENCE — the retired BS-MATURITY sentence appears on
+     a scanned live surface (DEC-105; the former MISSING_MATURITY_BANNER
+     anchor is removed).
+  4. RETIRED_ACCEPTANCE_SENTENCE — a BS-ACCEPT text appears in product source
+     (apps/desktop/src non-test files), where its placement is retired
+     (DEC-100). Governance surfaces and project documents may still carry it.
+
+Checks 3 and 4 match across wrapped lines (whitespace and leading comment
+markers are ignored). They do not reassemble a sentence split across
+concatenated string literals.
 """
 
 from __future__ import annotations
@@ -49,20 +58,10 @@ LITANY_THRESHOLD = 3
 
 RETIRED_PHRASE = "not authoritative"
 
-# Registered boundary-statement texts, copied verbatim (whitespace unwrapped)
-# from docs/claims_registry.md section 1, plus the PRD section 19.3 notice
-# fragment. Lines carrying one of these — or whose own content is a wrapped
-# contiguous chunk (>= SUPPRESSION_WINDOW characters) of one, for multi-line
-# statements — are registry usage, not ad-hoc litany.
-REGISTERED_TEXTS = (
-    # BS-IP canonical + short variants
-    "OpenPipeStress ships no protected standards content. All code-specific "
-    "values, tables, allowables, and factors are supplied by the user or "
-    "user-controlled private sources, with provenance recorded.",
-    "no protected standards content; code-specific data is user-supplied",
-    "user-supplied data with recorded provenance; no protected standards "
-    "content",
-    # BS-ACCEPT canonical + short variants
+# BS-ACCEPT canonical + short variants, copied verbatim (whitespace unwrapped)
+# from docs/claims_registry.md section 1. They remain registered for
+# non-product surfaces; DEC-100 retired their placement on product surfaces.
+BS_ACCEPT_TEXTS = (
     "Results are engineering decision-support information. Acceptance, "
     "professional judgment, and any certification, sealing, or "
     "code-compliance determination remain with the responsible engineer and "
@@ -75,6 +74,26 @@ REGISTERED_TEXTS = (
     "human review remains required; acceptance stays with the responsible "
     "engineer",
     "decision-support information for review by the responsible engineer",
+)
+
+# Registered boundary-statement texts, copied verbatim (whitespace unwrapped)
+# from docs/claims_registry.md section 1, plus the PRD section 19.3 notice
+# fragment. Lines carrying one of these — or whose own content is a wrapped
+# contiguous chunk (>= SUPPRESSION_WINDOW characters) of one, for multi-line
+# statements — are registry usage, not ad-hoc litany. The retired BS-MATURITY
+# sentence (DEC-105) and the former BS-IP canonical text (DEC-101 (ii)) are
+# not registered: neither carries a litany term, so neither ever suppressed a
+# finding.
+REGISTERED_TEXTS = (
+    # BS-IP canonical + short variants
+    "SWBPIPE ships no protected standards content. All code-specific "
+    "values, tables, allowables, and factors are supplied by the user or "
+    "user-controlled private sources, with provenance recorded.",
+    "no protected standards content; code-specific data is user-supplied",
+    "user-supplied data with recorded provenance; no protected standards "
+    "content",
+    # BS-ACCEPT canonical + short variants (non-product surfaces only)
+    *BS_ACCEPT_TEXTS,
     # BS-VALID canonical + short variants
     "Candidate designs are validated in the user's accepted professional "
     "tools (external-prover correlation, PRD §22.5). Internal benchmarks "
@@ -82,8 +101,6 @@ REGISTERED_TEXTS = (
     "validation occurs in the user's accepted professional tools; this "
     "package is screening and handoff evidence",
     "handoff evidence for external validation, not a validation outcome",
-    # BS-MATURITY canonical
-    "Technical preview — not a released product.",
     # GF-TOKEN canonical
     "Standard claim fence applies (F-PIP-2; claims taxonomy per DEC-081).",
     # PRD section 19.3 report-notice fragment
@@ -101,15 +118,18 @@ ANCHORS = (
         "compliance for professional reliance",
     ),
     (
-        "MISSING_MATURITY_BANNER",
-        "apps/desktop/src/App.tsx",
-        "Technical preview — not a released product.",
-    ),
-    (
         "MISSING_RENDERER_NOTICE",
         "core/reporting/report_renderer/src/lib.rs",
         "decision-support software",
     ),
+)
+
+# Retired BS-MATURITY sentence (DEC-105), recorded in the registry as a former
+# text only. Matched case-insensitively on whitespace-normalized text, with
+# any dash form and without requiring the final period, so a lower-cased or
+# re-punctuated reuse is still reported.
+RETIRED_MATURITY_PATTERN = re.compile(
+    r"technical preview\s*[—–-]+\s*not a released product"
 )
 
 # Top-level docs/ entries excluded from the litany scan (registry authorities
@@ -282,11 +302,88 @@ def _scan_file(path: Path, rel: str) -> list[Finding]:
                 "applicable docs/claims_registry.md text (DEC-081)",
             ))
         if RETIRED_PHRASE in normalized:
+            remedy = (
+                "remove it; BS-ACCEPT is not placed on product surfaces "
+                "(DEC-081, DEC-100)"
+                if _is_product_source(rel)
+                else "use BS-ACCEPT from docs/claims_registry.md (DEC-081)"
+            )
             findings.append(Finding(
                 "AD_HOC_CLAIMS_LITANY", rel, line_no,
                 '"not authoritative"-family phrasing is retired on this '
-                "surface; use BS-ACCEPT from docs/claims_registry.md "
-                "(DEC-081)",
+                "surface; " + remedy,
+            ))
+    return findings
+
+
+_NORMALIZED_BS_ACCEPT = tuple(_normalize(t) for t in BS_ACCEPT_TEXTS)
+_COMMENT_LEAD = re.compile(r"^(?://+|/\*+|\*+(?!/)|#+|>+)\s*")
+
+
+def _joined_text(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """Whitespace-normalized, casefolded file text with leading comment
+    markers dropped, plus (offset, line number) marks for mapping a match
+    back to the line it starts on."""
+    parts: list[str] = []
+    marks: list[tuple[int, int]] = []
+    offset = 0
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        normalized = _COMMENT_LEAD.sub("", _normalize(line))
+        if not normalized:
+            continue
+        marks.append((offset, line_no))
+        parts.append(normalized)
+        offset += len(normalized) + 1
+    return " ".join(parts), marks
+
+
+def _line_at(marks: list[tuple[int, int]], position: int) -> int:
+    line_no = marks[0][1]
+    for offset, candidate in marks:
+        if offset > position:
+            break
+        line_no = candidate
+    return line_no
+
+
+def _is_product_source(rel: str) -> bool:
+    prefix = (PROJECT_RELPATH / "apps" / "desktop" / "src").as_posix() + "/"
+    return rel.startswith(prefix)
+
+
+def _scan_retired_texts(path: Path, rel: str) -> list[Finding]:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    joined, marks = _joined_text(text)
+    if not marks:
+        return []
+    findings: list[Finding] = []
+    for match in RETIRED_MATURITY_PATTERN.finditer(joined):
+        findings.append(Finding(
+            "RETIRED_MATURITY_SENTENCE", rel, _line_at(marks, match.start()),
+            "the BS-MATURITY sentence is retired and no live surface "
+            "carries it; remove it without a replacement (DEC-105)",
+        ))
+    if _is_product_source(rel):
+        spans: list[tuple[int, int]] = []
+        for needle in _NORMALIZED_BS_ACCEPT:
+            start = joined.find(needle)
+            while start != -1:
+                spans.append((start, start + len(needle)))
+                start = joined.find(needle, start + 1)
+        # The canonical text contains its standalone second sentence: report
+        # the outermost occurrence once.
+        outer = [
+            span for span in spans
+            if not any(
+                other != span and other[0] <= span[0] and span[1] <= other[1]
+                for other in spans
+            )
+        ]
+        for start, _end in sorted(set(outer)):
+            findings.append(Finding(
+                "RETIRED_ACCEPTANCE_SENTENCE", rel, _line_at(marks, start),
+                "BS-ACCEPT is not placed on product surfaces; remove the "
+                "sentence without a replacement (DEC-100)",
             ))
     return findings
 
@@ -321,6 +418,7 @@ def validate_claims_language(repo_root: Path) -> list[Finding]:
     for path in iter_scanned_files(repo_root):
         rel = path.relative_to(repo_root).as_posix()
         findings.extend(_scan_file(path, rel))
+        findings.extend(_scan_retired_texts(path, rel))
     findings.extend(_check_anchors(repo_root))
     return sorted(
         findings, key=lambda f: (f.path, f.line if f.line is not None else 0,

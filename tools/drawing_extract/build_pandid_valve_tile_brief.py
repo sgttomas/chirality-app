@@ -54,12 +54,13 @@ def main() -> int:
     )
     lines = [
         f"PURPOSE: Extract pixel-anchored P&ID valve symbol instances from page {args.page} tile {args.tile_id}",
-        "RequestedBy: DRAWING_EXTRACT",
-        "ActingSurface: TASK+pandid-valve-symbol-instance",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {work_dir}",
-        "TaskSkill: pandid-valve-symbol-instance",
+        "Workflow: pandid-valve-symbol-instance",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{output_path}"',
         "",

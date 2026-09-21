@@ -1,0 +1,21 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-LOOP-WORKGRAPH-20260919
+title: App recurrent loop and session work graph alignment
+date: 2026-09-19
+basis: d55432eecd27ac441114369ffbdb4262bf503092
+instruction_surface_paths:
+  - projects/chirality-app-dev/AGENTS.md
+  - projects/chirality-app-dev/loop/LOOP_INIT.md
+  - docs/governance_harness/tranche_manifests/APP-LOOP-WORKGRAPH-20260919.yaml
+m2_gate:
+  authorization: 'Owner directs the recommended App amendment; verbatim direction in projects/chirality-app-dev/execution/_Coordination/AgentRuns/HELP-HUMAN-APP-20260919-LOOP-WORKGRAPH/OWNER_DIRECTION.md'
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-19
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-19_APP_LOOP_WORKGRAPH.md
+  rationale: App development instructions only; own loop notified. Init mirrors, packaged guidance, authority-corpus inputs, root roles and other projects unchanged.

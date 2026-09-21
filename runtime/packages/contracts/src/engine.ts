@@ -7,7 +7,7 @@ import type {
 
 export interface ToolPermission {
   effect: "allow" | "deny";
-  operation: "read" | "write" | "shell" | "network";
+  operation: "read" | "write" | "shell" | "network" | "control";
   roots?: readonly string[];
 }
 
@@ -16,7 +16,28 @@ export interface RuntimeToolDefinition {
   description: string;
   inputSchema: Readonly<Record<string, unknown>>;
   permission: ToolPermission;
-  execute(input: unknown, signal: AbortSignal): Promise<unknown>;
+  execute(input: unknown, signal: AbortSignal, context?: RuntimeToolExecutionContext): Promise<unknown>;
+}
+
+export type NativeChildSelectedRole =
+  | Readonly<{ kind: "configured"; name: string; basisDigest: string }>
+  | Readonly<{ kind: "upstream" }>;
+
+/** Trusted Supplier association attached only to an admitted native-child callback. */
+export interface RuntimeToolExecutionContext {
+  threadId: string;
+  turnId: string;
+  callId: string;
+  nativeChild?: Readonly<{
+    associationId: string;
+    supplierGeneration: string;
+    rootThreadId: string;
+    rootTurnId: string;
+    parentThreadId: string;
+    parentTurnId: string;
+    selectedRole: NativeChildSelectedRole;
+    inheritedToolsDigest: string;
+  }>;
 }
 
 export interface RuntimeEngineTurnInput {

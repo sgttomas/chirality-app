@@ -1,0 +1,76 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV43-RULING-20260911
+title: D-GOV-43 owner ruling and topology supplement recorded (Codex host re-platform)
+date: 2026-09-11
+basis: a75adecf13f055c092ffa92809f66e7817c44242
+
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-43_codex_host_replatform.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/_DECISIONS/D-GOV-43_supplement_topology_A2.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV43-RULING-20260911.yaml
+
+m2_gate:
+  authorization: |-
+    Owner Ryan Tufts, 2026-09-11 (America/Edmonton), in the Chirality v3
+    Codex-only MVP trial session, verbatim:
+    "I rule D-GOV-43 accepted as revision 3 at commit 3ef2ef524, with the
+    post-build minimum-not-ceiling clarification. The three folded choices
+    stand."
+    Merge authorization in the same message, verbatim:
+    "You may push changes and open a PR and merge once the CI goes green."
+    Transcribed with context in
+    plans/steers/chirality_app_v3_codex_host_replatform_direction_2026-09-11.md
+    and recorded in docs/governance_harness/_DECISIONS/D-GOV-43_codex_host_replatform.md.
+    Supplement of 2026-09-12, after the owner reopened ruling items 1 and 7
+    and the source comparison of topologies, verbatim:
+    "We are all in agreement this is the path forward. You will be handing
+    this off so a third agent can begin implementation."
+    Recorded in docs/governance_harness/_DECISIONS/D-GOV-43_supplement_topology_A2.md.
+    This tranche records the ruling, its supplement and their register rows. It applies no
+    change to AGENTS.md or the ratified standards; the coordinated
+    application tranche authorized by the ruling follows under its own
+    manifest. Merge executes as agent-as-proxy under the owner's direction
+    per docs/PRD_ROOT.md annex 5.3.1; approved_source_sha pins the last
+    content commit before this manifest, and the final branch HEAD and
+    merge SHA are recorded at the PR gate and in the trial RUN_LOG.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-11
+  integration_owner: >-
+    HELP_HUMAN is the sole serialized integration owner on branch
+    claude/chirality-v3-mvp-trial-ab05cb: records the ruling, pushes, opens
+    the pull request, and merges once CI is green under the owner's
+    direction
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-11
+    approved_source_sha: "ad682173d7a294091064d4689f2977b390dce399"
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    The ruling record itself changes no downstream instruction. The
+    coordinated application tranche authorized by D-GOV-43 routes notices
+    to the Runtime, App and PEC loops as records of application, as
+    IMPACT.md names them.
+
+scope_limits:
+  - records the owner ruling and register row only; no AGENTS.md change, no application of the ruled amendments
+  - no lifecycle transition, hold lift, pin change, runtime or project-source change, release, reliance or publication
+  - no modification or deletion of trial installations, evidence, Codex homes or credentials
+  - no rebase, force-push or history rewrite
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The Root-owned public export is a derivative of instruction-surface
+    content. Regeneration remains deferred to a later authorized application
+    handoff; this ruling changes no export authority or publication state.

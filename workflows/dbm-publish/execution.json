@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK",
+    "WORKING_ITEMS",
+    "HELPS_HUMANS"
+  ],
+  "tools": {
+    "commands": [
+      "python3 tools/publication/assemble_publication.py:*",
+      "python3 tools/publication/validate_source_supersession.py:*"
+    ]
+  }
+}

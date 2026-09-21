@@ -103,7 +103,7 @@ class InlineRewriteTests(unittest.TestCase):
 
     def test_non_canonical_markdown_image_form_is_drift_not_match(self):
         """The non-canonical `![Fig. ...]` markdown-image form is forbidden by
-        skills/pdf2md-page/SKILL.md RULE 8. The tightened rewriter MUST NOT
+        workflows/pdf2md-page/WORKFLOW.md RULE 8. The tightened rewriter MUST NOT
         match it (matching would silently rewrite a skill-contract violation
         and let drift accumulate). Instead it is surfaced via detect_drift()
         as a warning the orchestrator and human reviewers can see."""

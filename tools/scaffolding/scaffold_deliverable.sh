@@ -19,8 +19,12 @@ WORKING_DIR="${1:?Usage: $0 <WORKING_DIR> <DEL_ID> <DelLabel>}"
 DEL_ID="${2:?Usage: $0 <WORKING_DIR> <DEL_ID> <DelLabel>}"
 DEL_LABEL="${3:?Usage: $0 <WORKING_DIR> <DEL_ID> <DelLabel>}"
 
+set -e
+if [[ "$DEL_ID" == */* || "$DEL_LABEL" == */* || "$DEL_ID" == ".." || "$DEL_LABEL" == ".." ]]; then
+  print -u2 "Identifier and label must be path components"
+  exit 2
+fi
 DEL_DIR="$WORKING_DIR/${DEL_ID}_${DEL_LABEL}"
-mkdir -p "$DEL_DIR"
 
 STUBS=(
   "_STATUS.md"
@@ -30,6 +34,21 @@ STUBS=(
   "_SEMANTIC.md"
 )
 
+# Optional fourth argument --memory includes a blank memory resource.
+if [[ "${4:-}" == "--memory" ]]; then
+  STUBS+=("_MEMORY.md")
+elif [[ -n "${4:-}" ]]; then
+  print -u2 "Unknown option: $4"
+  exit 2
+fi
+if [[ ! -d "$WORKING_DIR" ]]; then
+  print -u2 "Working directory must already exist: $WORKING_DIR"
+  exit 2
+fi
+if [[ ! -d "$DEL_DIR" ]]; then
+  mkdir "$DEL_DIR"
+  echo "CREATED_PATH: $DEL_DIR"
+fi
 created=0
 skipped=0
 
@@ -38,7 +57,9 @@ for stub in "${STUBS[@]}"; do
   if [ -f "$target" ]; then
     skipped=$((skipped + 1))
   else
-    touch "$target"
+    # noclobber protects concurrent reruns; existing bytes are never replaced.
+    (set -o noclobber; : > "$target")
+    echo "CREATED_PATH: $target"
     created=$((created + 1))
   fi
 done

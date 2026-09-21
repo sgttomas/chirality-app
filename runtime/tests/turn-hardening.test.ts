@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type {
   AgentEnginePort,
+  AgentEngineRunInput,
+  IAttachmentResolver,
   OmlxControlPort,
   UIEvent
 } from "@chirality/runtime-contracts";
@@ -18,7 +20,7 @@ import {
 } from "@chirality/runtime-core";
 import { createProjectFixture } from "./helpers.js";
 
-async function setup(engine: AgentEnginePort) {
+async function setup(engine: AgentEnginePort, attachments?: IAttachmentResolver) {
   const root = await mkdtemp(join(tmpdir(), "chirality-turn-hardening-"));
   const { manifestPath } = await createProjectFixture(root, "turn-hardening");
   const runtime = join(root, "runtime");
@@ -39,7 +41,7 @@ async function setup(engine: AgentEnginePort) {
   await residency.activate("qwen", "D-TEST");
   const engines = new EngineRegistry();
   engines.register(engine);
-  const turns = new TurnCoordinator(projects, sessions, engines, residency);
+  const turns = new TurnCoordinator(projects, sessions, engines, residency, attachments);
   const service = new RuntimeService(
     projects,
     sessions,
@@ -451,5 +453,77 @@ describe("turn coordinator hardening", () => {
     await expect(
       service.bootSession("turn-hardening", session.sessionId)
     ).rejects.toMatchObject({ type: "SDK_FAILURE" });
+  });
+});
+
+
+it("persists accepted user input and attachment references before engine execution", async () => {
+  const engine = piEngine(async function* (): AsyncIterable<UIEvent> { throw new Error("not reached"); });
+  engine.preflight = async () => { throw new Error("synthetic preflight failure"); };
+  const { sessions, turns } = await setup(engine, {
+    async resolveAttachmentsToContentBlocks(message) { return { contentBlocks: [{ type: "text", text: message }], errors: [] }; }
+  });
+  const session = await sessions.create({ projectId: "turn-hardening", role: "agent2", engineSelection: { adapterId: "pi", providerId: "omlx", model: "qwen" } });
+  for await (const _ of turns.run("turn-hardening", session.sessionId, { message: "What color is the image?", attachments: ["/synthetic/red.png"] })) { /* drain */ }
+  const replay = await sessions.replay("turn-hardening", session.sessionId);
+  expect(replay[0]).toMatchObject({ type: "turn.accepted", data: { message: "What color is the image?", attachments: ["/synthetic/red.png"] } });
+  expect(replay.map(event => event.type)).toContain("turn.failed");
+
+});
+
+describe("turn coordinator per-turn selection and interruption reasons", () => {
+  it("applies per-turn model and effort overrides to the engine input, records them as last used, and keeps the session default", async () => {
+    const captured: AgentEngineRunInput[] = [];
+    const { sessions, turns } = await setup(
+      piEngine(async function* (input): AsyncIterable<UIEvent> {
+        captured.push(input);
+        yield { type: "session:init", data: { engineSessionId: "engine", adapterId: "pi", providerId: "omlx", model: input.opts.model } };
+        yield { type: "process:exit", data: { exitCode: 0 } };
+      })
+    );
+    const session = await sessions.create({ projectId: "turn-hardening", role: "agent2", engineSelection: { adapterId: "pi", providerId: "omlx", model: "qwen" }, reasoningEffort: "medium" });
+    for await (const _event of turns.run("turn-hardening", session.sessionId, { prompt: "override", model: "qwen-alt", reasoningEffort: "high" })) { /* drain */ }
+    expect(captured[0]).toMatchObject({ reasoningEffort: "high", opts: { model: "qwen-alt" }, session: { engineSelection: { model: "qwen-alt" }, reasoningEffort: "high" } });
+    let stored = await sessions.get("turn-hardening", session.sessionId);
+    expect(stored).toMatchObject({ status: "completed", engineSelection: { model: "qwen" }, reasoningEffort: "medium", lastUsedModel: "qwen-alt", lastUsedReasoningEffort: "high" });
+    const accepted = (await sessions.replay("turn-hardening", session.sessionId)).find((event) => event.type === "turn.accepted");
+    expect(accepted?.data).toMatchObject({ message: "override", model: "qwen-alt", reasoningEffort: "high" });
+
+    for await (const _event of turns.run("turn-hardening", session.sessionId, { prompt: "defaults" })) { /* drain */ }
+    expect(captured[1]).toMatchObject({ reasoningEffort: "medium", opts: { model: "qwen" }, session: { engineSelection: { model: "qwen" } } });
+    stored = await sessions.get("turn-hardening", session.sessionId);
+    expect(stored).toMatchObject({ lastUsedModel: "qwen", lastUsedReasoningEffort: "medium" });
+
+    const malformed = turns.run("turn-hardening", session.sessionId, { prompt: "bad", model: "has space" });
+    await expect(malformed.next()).rejects.toMatchObject({ code: "INVALID_REQUEST", details: { reason: "TURN_MODEL_INVALID" } });
+    const malformedEffort = turns.run("turn-hardening", session.sessionId, { prompt: "bad", reasoningEffort: "" });
+    await expect(malformedEffort.next()).rejects.toMatchObject({ code: "INVALID_REQUEST", details: { reason: "TURN_REASONING_EFFORT_INVALID" } });
+    expect(captured).toHaveLength(2);
+  });
+
+  it("records the interruption reason on the synthesized terminal", async () => {
+    let releaseEngine!: () => void;
+    const held = new Promise<void>((resolve) => { releaseEngine = resolve; });
+    const { sessions, turns } = await setup(
+      piEngine(async function* (input): AsyncIterable<UIEvent> {
+        yield { type: "session:init", data: { engineSessionId: "engine", adapterId: "pi", providerId: "omlx", model: input.opts.model } };
+        await held;
+        yield { type: "process:exit", data: { exitCode: 130, interrupted: true } };
+      })
+    );
+    const session = await sessions.create({ projectId: "turn-hardening", role: "agent2", engineSelection: { adapterId: "pi", providerId: "omlx", model: "qwen" } });
+    const iterator = turns.run("turn-hardening", session.sessionId, { prompt: "hold" })[Symbol.asyncIterator]();
+    await iterator.next();
+    await iterator.next();
+    expect(turns.isActive("turn-hardening", session.sessionId)).toBe(true);
+    const interruption = turns.interrupt("turn-hardening", session.sessionId, "service-shutdown");
+    releaseEngine();
+    await interruption;
+    const events: UIEvent[] = [];
+    while (true) { const next = await iterator.next(); if (next.done) break; events.push(next.value); }
+    const terminal = events.find((event) => event.type === "harness:event" && event.data.type === "turn.interrupted");
+    expect(terminal).toMatchObject({ data: { data: { reason: "service-shutdown" } } });
+    expect(await sessions.get("turn-hardening", session.sessionId)).toMatchObject({ status: "interrupted" });
+    expect(turns.isActive("turn-hardening", session.sessionId)).toBe(false);
   });
 });

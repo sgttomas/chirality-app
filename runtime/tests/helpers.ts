@@ -37,3 +37,18 @@ export async function createProjectFixture(root: string, projectId = "fixture") 
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   return { manifest, manifestPath };
 }
+
+/**
+ * Hosted admission is established without blocking the status poll: the projection reports "establishing" until the
+ * private establishment settles. Poll (bounded) until it does, exactly as the frontend controller keeps polling.
+ */
+export async function settledHostedBootstrapStatus<T extends { admission: string }>(
+  client: { hostedBootstrapStatus(projectId: string): Promise<T> }, projectId: string, timeoutMs = 30_000
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const status = await client.hostedBootstrapStatus(projectId);
+    if (status.admission !== "establishing" || Date.now() > deadline) return status;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}

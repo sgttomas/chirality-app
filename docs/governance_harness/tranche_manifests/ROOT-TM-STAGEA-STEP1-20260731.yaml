@@ -1,0 +1,56 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-STAGEA-STEP1-20260731
+title: Task Management Stage A step 1 — K-TM-1..6 entry into docs/CONTRACT.md
+date: 2026-07-31
+basis: 25330e78d55e608d7ef14f4350db777bdb396ee6
+
+instruction_surface_paths:
+  - docs/CONTRACT.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM-STAGEA-STEP1-20260731.yaml
+
+m2_gate:
+  authorization: |-
+    Owner in-session ruling of 2026-07-31 approving the presented step-1
+    design verbatim ("I approve the step-1 design above.", recorded with
+    byte length and SHA-256 in Loop Receipt 67), executing D-GOV-32
+    Effect 2(a)/Effect 5: K-TM-1..6 are already adopted product
+    invariants; this governed tranche is their reserved entry into the
+    ratified catalog, with row text byte-verbatim from adopted PRD §10
+    (subject SHA-256
+    97e2ae6525ecbfdc52ff22aee85e1182a751c1090c2aa2f52faaf9e080f35d18).
+    Sequencing is Stage-A workplan step 1. Publication merge
+    authorization for this tranche's PR remains a separate owner act on
+    the final branch HEAD; this manifest records a gate and grants
+    nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-31
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) root governance loop session, Task Management
+    Stage A step 1; sole serialized integration owner for this tranche;
+    no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    Loop notification of the Task Management standard is already
+    scheduled by the standing workplan as its own owner-gated steps: the
+    PEC section 16-1 notice at Stage-A step 5 and the three per-loop
+    Stage-B adoption packets at step 7. Routing here would duplicate
+    those instruments; the disposition is completed at those steps.
+
+scope_limits:
+  - >-
+    docs/CONTRACT.md changes are confined to the K-* index (count line
+    and six new index rows), new subsection 1.14 with its provenance
+    note, and the three amended Enforcement Map rows; no existing
+    invariant row byte changes
+  - >-
+    K-TM row text is byte-verbatim from adopted PRD section 10; verified
+    programmatically before commit
+  - >-
+    no register, directory, reader-binding, agent-instruction, or
+    loop-binding act; Stage-A steps 2-8 remain owner-gated and
+    unperformed by this tranche

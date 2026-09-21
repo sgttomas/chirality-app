@@ -1,0 +1,31 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CODEX-MVP-20260910
+title: Codex MVP workflow guidance, trusted instruction sources and source CI adoption
+date: 2026-09-10
+basis: 718b0d47afea3fa9633fc7dc76a814c747fe843f
+instruction_surface_paths:
+- .github/workflows/harness-premerge.yml
+- AGENTS.md
+- docs/AGENT_WORKFLOW_RUNTIME.md
+- docs/governance_harness/tranche_manifests/ROOT-CODEX-MVP-20260910.yaml
+- workflows/review/WORKFLOW.md
+- workflows/reconciliation/WORKFLOW.md
+- workflows/pdf2md-orchestration/WORKFLOW.md
+- workflows/drawing-extract/WORKFLOW.md
+- workflows/dbm-publisher/WORKFLOW.md
+- workflows/index.json
+- tools/validation/build_workflow_index.py
+- tools/validation/test_workflow_catalog.py
+m2_gate:
+  authorization: 'Ryan explicitly directed implementation of the Agent 0 release plan, with Codex as the sole MVP engine, managed account sign-in and native Plan Mode required, workflows created and revised through chat without a separate editor, and the accepted background-skill access policy. This includes coordinated Root, App and Runtime instruction alignment and adoption of source CI to the Codex-only product while preserving separate controlled integration checks under the release plan.'
+  authorized_by: Ryan Tufts (current conversation)
+  authorization_date: 2026-09-10
+  integration_owner: HELP_HUMAN /root
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-10_ROOT_APP_METHOD_AND_ENGINE_POLICY.md
+  - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-10_ROOT_APP_METHOD_AND_ENGINE_POLICY.md
+  rationale: 'Root workflow/context guidance affects App and Runtime consumers. Routed notices identify the changed guidance, preserved historical bases, and remaining owning-loop adoption or pin disposition. No accepted corpus is rewritten by these notices; supplier operations and public release remain separately governed.'

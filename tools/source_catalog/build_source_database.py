@@ -11,7 +11,8 @@ Usage:
       --source-manifest domains/chirality/_Sources/Source_Manifest.csv
 
 Inputs:
-  --domain-root                Domain package root. Defaults to piping-design.
+  --domain-root                Domain package root. May be omitted only when
+                               CWD contains domain-pack.yaml.
   --out-root                   Output root. Defaults to <domain-root>/_LocalIndexes.
   --repo-root                  Repository root used to resolve @repo/ catalog paths.
   --source-manifest            CSV of repo-relative source files. When provided,
@@ -71,6 +72,7 @@ from source_database import (  # noqa: E402
     markdown_chunks,
     media_type_for,
     rel_to,
+    resolve_domain_root,
     sha256_file,
     should_skip_dir,
     source_doc_id_for_rel,
@@ -91,7 +93,11 @@ def main() -> int:
     ap.add_argument("--include-archive-metadata", action="store_true")
     args = ap.parse_args()
 
-    domain_root = args.domain_root.resolve()
+    try:
+        domain_root = resolve_domain_root(args.domain_root).resolve()
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     if not domain_root.exists():
         print(f"ERROR: domain root not found: {domain_root}", file=sys.stderr)
         return 2

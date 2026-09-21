@@ -72,7 +72,7 @@ KIND_DIR = {
     "img": "images",
 }
 
-# Canonical kind literals — must match skills/pdf2md-page-assets/SKILL.md exactly.
+# Canonical kind literals — must match workflows/pdf2md-page-assets/WORKFLOW.md exactly.
 # `fig` / `tbl` / `img` are the only accepted values; the brief-builder
 # (tools/pdf2md/build_page_assets_brief.py) repeats this constraint in
 # CustomInstructions so the skill knows the contract before emitting.
@@ -119,7 +119,7 @@ def bbox_from_asset(asset: dict) -> list[float] | None:
     """Extract bbox_norm as a 4-element list of floats.
 
     STRICT: only accepts the contracted shape `[x0, y0, x1, y1]` (per
-    skills/pdf2md-page-assets/SKILL.md). Returns None on any deviation
+    workflows/pdf2md-page-assets/WORKFLOW.md). Returns None on any deviation
     (missing, wrong length, dict shape, non-numeric entries) — caller
     appends an `invalid_bbox_norm` issue to the asset record."""
     raw = asset.get("bbox_norm")
@@ -179,7 +179,7 @@ def validate_table_data(table_data: dict) -> list[str]:
 def load_assets(path: Path) -> list[dict]:
     """Load and validate page asset JSON per the strict contract.
 
-    Required shape (per skills/pdf2md-page-assets/SKILL.md):
+    Required shape (per workflows/pdf2md-page-assets/WORKFLOW.md):
         {
           "schema_version": "pdf2md-page-assets/v1",
           "run_status": "SUCCESS" | "NO_ASSETS" | "FAILED" | "FAILED_INPUTS",
@@ -201,7 +201,7 @@ def load_assets(path: Path) -> list[dict]:
     if not isinstance(data, dict):
         raise SystemExit(
             f"ERROR: {path} top-level must be a JSON object per "
-            f"skills/pdf2md-page-assets/SKILL.md; got {type(data).__name__}"
+            f"workflows/pdf2md-page-assets/WORKFLOW.md; got {type(data).__name__}"
         )
     if "assets" not in data:
         raise SystemExit(
@@ -226,7 +226,7 @@ def load_assets(path: Path) -> list[dict]:
 def caption_from_asset(asset: dict) -> str:
     """Extract caption per the strict contract: only the `caption` field.
 
-    STRICT: per skills/pdf2md-page-assets/SKILL.md, captions go in the
+    STRICT: per workflows/pdf2md-page-assets/WORKFLOW.md, captions go in the
     `caption` field. The previous fallback chain to `title`/`label`/`name`
     is removed — those alternates masked skill contract drift."""
     value = asset.get("caption")
@@ -333,7 +333,7 @@ def main() -> int:
                     "status": "skipped",
                     "issues": [
                         f"non_canonical_kind:{raw_kind!r}; "
-                        f"expected one of fig/tbl/img per skills/pdf2md-page-assets/SKILL.md"
+                        f"expected one of fig/tbl/img per workflows/pdf2md-page-assets/WORKFLOW.md"
                     ],
                 })
                 continue
@@ -348,7 +348,7 @@ def main() -> int:
                 ordinal_int = counters[kind]
 
             caption = caption_from_asset(asset)
-            # `slug` is an advisory field per skills/pdf2md-page-assets/SKILL.md
+            # `slug` is an advisory field per workflows/pdf2md-page-assets/WORKFLOW.md
             # (line 150: "Downstream tools normalize it and append it to a stable
             # ID"). Prefer the skill-emitted slug when present; fall back to a
             # caption-derived slug. slugify() normalizes either way.
@@ -377,12 +377,12 @@ def main() -> int:
             if kind == "tbl":
                 # STRICT: the legacy `csv_text` field is rejected. The canonical
                 # table representation is the structured `table_data` block per
-                # skills/pdf2md-page-assets/SKILL.md (pdf2md-table/v1).
+                # workflows/pdf2md-page-assets/WORKFLOW.md (pdf2md-table/v1).
                 if "csv_text" in asset:
                     raise SystemExit(
                         f"ERROR: asset {asset_id} carries legacy `csv_text` field. "
                         f"The canonical contract is the structured `table_data` block "
-                        f"(pdf2md-table/v1) per skills/pdf2md-page-assets/SKILL.md. "
+                        f"(pdf2md-table/v1) per workflows/pdf2md-page-assets/WORKFLOW.md. "
                         f"Regenerate via the pdf2md-page-assets skill."
                     )
 

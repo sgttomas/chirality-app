@@ -14,6 +14,8 @@ export type RuntimeScope =
   | "credentials:read"
   | "credentials:write";
 
+export type AccountRuntimeScope = "account:read" | "account:control";
+
 interface ClientRecord {
   clientId: string;
   tokenHash: string;
@@ -40,9 +42,23 @@ export interface RuntimePrincipal {
   scopes: readonly RuntimeScope[];
 }
 
+interface MemoryAccountPrincipalRecord {
+  readonly clientId: string;
+  readonly tokenHash: string;
+  readonly generation: string;
+  readonly scopes: readonly AccountRuntimeScope[];
+}
+
+export interface AccountRuntimePrincipal {
+  clientId: string;
+  generation: string;
+  scopes: readonly AccountRuntimeScope[];
+}
+
 export class AuthRegistry {
   private readonly clientsFile: string;
   private readonly tokensDirectory: string;
+  private readonly memoryAccountPrincipals = new Map<string, MemoryAccountPrincipalRecord>();
 
   constructor(private readonly runtimeDirectory: string) {
     this.clientsFile = join(runtimeDirectory, "auth", "clients.json");
@@ -156,6 +172,52 @@ export class AuthRegistry {
       )
     });
   }
+
+  /** Registers the App account host only in daemon memory. This path never writes a token file. */
+  registerMemoryAccountHost(input: {
+    clientId: string;
+    bearer: string;
+    generation: string;
+    scopes: readonly AccountRuntimeScope[];
+  }): AccountRuntimePrincipal {
+    if (!/^[A-Za-z0-9._:-]{1,128}$/u.test(input.clientId)
+      || !/^[A-Za-z0-9_-]{43}$/u.test(input.bearer)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(input.generation)
+      || input.scopes.length !== 2
+      || !input.scopes.includes("account:read")
+      || !input.scopes.includes("account:control")) {
+      throw new RuntimeError("UNAUTHORIZED", "Invalid memory account principal", 401);
+    }
+    const record = Object.freeze({
+      clientId: input.clientId,
+      tokenHash: this.hash(input.bearer),
+      generation: input.generation,
+      scopes: Object.freeze([...input.scopes])
+    });
+    this.memoryAccountPrincipals.set(input.clientId, record);
+    return { clientId: record.clientId, generation: record.generation, scopes: record.scopes };
+  }
+
+  authenticateMemoryAccountHost(
+    authorization: string | undefined,
+    requiredScope: AccountRuntimeScope,
+    generation: string
+  ): AccountRuntimePrincipal {
+    const match = /^Bearer ([A-Za-z0-9_-]{43})$/u.exec(authorization ?? "");
+    if (match?.[1] === undefined) throw new RuntimeError("UNAUTHORIZED", "An account host bearer is required", 401);
+    const suppliedHash = Buffer.from(this.hash(match[1]), "hex");
+    const record = [...this.memoryAccountPrincipals.values()].find((candidate) => {
+      const expected = Buffer.from(candidate.tokenHash, "hex");
+      return expected.length === suppliedHash.length && timingSafeEqual(expected, suppliedHash);
+    });
+    if (record === undefined || record.generation !== generation) throw new RuntimeError("UNAUTHORIZED", "Invalid account host bearer", 401);
+    if (!record.scopes.includes(requiredScope)) throw new RuntimeError("FORBIDDEN", `Account host lacks ${requiredScope}`, 403);
+    return { clientId: record.clientId, generation: record.generation, scopes: record.scopes };
+  }
+
+  revokeMemoryAccountHost(clientId: string): void { this.memoryAccountPrincipals.delete(clientId); }
+
+  revokeAllMemoryAccountHosts(): void { this.memoryAccountPrincipals.clear(); }
 
   private hash(token: string): string {
     return createHash("sha256").update(token).digest("hex");

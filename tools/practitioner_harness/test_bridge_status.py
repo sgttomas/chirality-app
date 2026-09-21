@@ -187,3 +187,8 @@ def test_bridge_status_reports_pec_profile_as_draft_gate_open(tmp_path):
     assert facts["bridge_status.profile.pec.gate_posture"] == "Gate 2 open"
     assert "| `pec` | `DRAFT` | Gate 2 open | `MANUAL_BRIDGE` |" in md
     assert "D-PEC-01" in md
+
+
+def test_pec_profile_discovery_uses_current_profile_home():
+    pec_candidates = [p for p in cmd_bridge_status.PROFILE_CANDIDATES if "pec" in p]
+    assert pec_candidates == ["_DomainEngines/profiles/pec.yaml"]

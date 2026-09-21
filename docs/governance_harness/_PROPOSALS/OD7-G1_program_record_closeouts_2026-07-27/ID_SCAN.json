@@ -1,0 +1,50 @@
+{
+  "schema": "chirality.od7-g1.candidate-id-scan/v1",
+  "basis_commit": "fb16e32ed60bb4f384cf1e07a83c4a14ff63bbae",
+  "status": "CANDIDATE_ONLY_NOT_RESERVED",
+  "scans": [
+    {
+      "namespace": "D-GOV",
+      "highest_observed": "D-GOV-28",
+      "next_free_candidate": "D-GOV-29",
+      "used_by_this_batch": false
+    },
+    {
+      "namespace": "D-APP",
+      "highest_observed": "D-APP-75",
+      "next_free_candidate": "D-APP-76",
+      "used_by_this_batch": false
+    },
+    {
+      "namespace": "Piping-D",
+      "highest_observed": "D-57",
+      "next_free_candidate": "D-58",
+      "used_by_this_batch": false
+    },
+    {
+      "namespace": "Piping-DEC",
+      "highest_observed": "DEC-090",
+      "next_free_candidate": "DEC-091",
+      "used_by_this_batch": false
+    },
+    {
+      "namespace": "Root-Receipt",
+      "highest_observed": "Receipt 52",
+      "next_free_candidate": "Receipt 53",
+      "used_by_this_batch": true
+    },
+    {
+      "namespace": "App-Receipt",
+      "highest_observed": "Receipt-91",
+      "next_free_candidate": "Receipt-92",
+      "used_by_this_batch": true
+    },
+    {
+      "namespace": "Piping-Receipt",
+      "highest_observed": "Receipt-75",
+      "next_free_candidate": "Receipt-76",
+      "used_by_this_batch": true
+    }
+  ],
+  "rule": "Execution-time deterministic rescan governs. No ID is reserved by proposal creation, validation, hashing, or Git state."
+}

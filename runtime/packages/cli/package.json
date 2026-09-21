@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@chirality/runtime-client": "*",
-    "@chirality/runtime-contracts": "*"
+    "@chirality/runtime-contracts": "*",
+    "@chirality/runtime-core": "*"
   },
   "scripts": {
     "build": "tsc -b",

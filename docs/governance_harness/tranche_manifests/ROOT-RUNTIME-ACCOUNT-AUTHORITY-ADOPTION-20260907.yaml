@@ -1,0 +1,30 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-ACCOUNT-AUTHORITY-ADOPTION-20260907
+title: Exact Runtime account-authority successor adoption
+date: 2026-09-07
+basis: c3e9ab0f8e49314befc1fc81a9e01346641a7344
+instruction_surface_paths:
+  - tools/validation/root_runtime_successors.py
+  - tools/validation/test_root_runtime_successors.py
+  - docs/governance_harness/_DECISIONS/D-GOV-39_runtime_account_authority_successor_adoption.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-ACCOUNT-AUTHORITY-ADOPTION-20260907.yaml
+m2_gate:
+  authorization: >-
+    Existing D-GOV-36 owner approval authorizes the narrow account-only semantics;
+    D-GOV-37 owner direction authorizes bounded Root successor recognition. The
+    consolidated Agent 0 implementation direction expressly authorizes recognizing
+    the exact branch-local accepted SCA-002 to SCA-003 chain as pending publication,
+    with CI and fetched-main backcheck afterward. D-GOV-39 records this application
+    without inventing or requesting a repeated semantic vote.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-07
+  integration_owner: HELPS_HUMANS under consolidated HELP_HUMAN supervision
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_ACCOUNT_AUTHORITY_ADOPTION_2026-09-07.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_ROOT_RUNTIME_ACCOUNT_AUTHORITY_ADOPTION_2026-09-07.md
+  rationale: Root recognition changes consumer-visible governance interpretation; App and Runtime retain their own publication, adoption, implementation, qualification, and release gates.

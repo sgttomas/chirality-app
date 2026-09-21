@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import csv
-import sys
 from pathlib import Path
 
-
-COORDINATION_DIR = Path(__file__).resolve().parent
-if str(COORDINATION_DIR) not in sys.path:
-    sys.path.insert(0, str(COORDINATION_DIR))
 
 from accumulate_supersession_map import SUPERSESSION_COLUMNS, compare_maps, load_all  # noqa: E402
 

@@ -15,7 +15,7 @@ Inputs:
 
 Outputs:
     INIT-TASK brief on stdout. The brief is consumed by TASK with
-    TaskSkill: pdf2md-page.
+    Workflow: pdf2md-page.
 
 Example:
     python3 tools/pdf2md/build_page_brief.py \\
@@ -69,14 +69,14 @@ def main() -> int:
         return 2
 
     brief = f"""PURPOSE: Convert one PDF page image to raw Markdown via multimodal vision
-RequestedBy: PDF2MD
-ActingSurface: TASK+pdf2md-page
+RequestedBy: WORKING_ITEMS
+ActingSurface: TASK
 
 ScopePath: {work_dir}
-TaskSkill: pdf2md-page
+Workflow: pdf2md-page
 
 Tasks:
-  - Read the page image and transcribe its contents to Markdown per the 8 conversion rules in skills/pdf2md-page/SKILL.md
+  - Read the page image and transcribe its contents to Markdown per the 8 conversion rules in workflows/pdf2md-page/WORKFLOW.md
 
 ApplyEdits: true
 

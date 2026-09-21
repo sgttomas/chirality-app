@@ -1,0 +1,90 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-GOV31-PROPAGATION-20260729
+title: D-GOV-31 Step-4 propagation — operative surfaces, grant-aware G4, M6 notices, SHA backfills
+date: 2026-07-29
+basis: ea3db3607fbcbb7ce5f65bab31268a7eca431adb
+
+instruction_surface_paths:
+  - agents/AGENT_CHANGE.md
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - docs/governance_harness/_DECISIONS/D-GOV-31_merge_gate_policy_succession.md
+  - docs/governance_harness/_DECISIONS/D-GOV-30_program_disclosure_and_ratification.md
+  - docs/governance_harness/_PROPOSALS/GRANT-2026-07-29_transition_merge_execution/GRANT_CANDIDATE.md
+  - docs/governance_harness/tranche_manifests/ROOT-GOV31-PROPAGATION-20260729.yaml
+
+m2_gate:
+  authorization: |-
+    The owner's D-GOV-31 adoption of record (2026-07-29, verbatim
+    "APPROVE D-GOV-31 15fba9c3 — Ryan Tufts 2026-07-29") plus the owner's
+    in-session "proceed accordingly" direction of 2026-07-29, together
+    authorizing Step-4 propagation drafting: the nine POLICY_DELTA
+    section-4 obligations attach as Step-4 work per D-GOV-31 Effects 4-5
+    (this tranche performs rows 2-9; row 1 is SCOPE_CHANGE-owned in a
+    sibling run). Publication merge authorization for this tranche's PR
+    is a SEPARATE owner act on the final branch HEAD; this manifest
+    records a gate and grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-29
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-STEP4-OPERATIVE-20260729 under the
+    HELPS_HUMANS lane, supervised by HELP_HUMAN; sole serialized
+    integration owner for this propagation tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+    - projects/pec/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+  rationale: >-
+    This tranche changes the shared agents/AGENT_CHANGE.md, so the
+    AGENTS.md agent-index change-notice rule requires routed notices in
+    the same tranche; one notice per registered loop (app-dev, pec,
+    piping) states the D-GOV-31 adoption, the new AGENT_CHANGE.md
+    SHA-256, and the remaining loop follow-on. Notices are coordination,
+    never authority; stricter local merge discipline remains controlling
+    until each loop acts under its own instruments.
+
+scope_limits:
+  - >-
+    no self-merge; self_merge is false and NO merge_execution_grant block
+    is declared - no grant is issued, and the grant file shipped by this
+    tranche is a candidate only, without effect until owner issuance by
+    token
+  - >-
+    the DEL-04-06 contract-surface reconciliation presumes owner
+    acceptance of the SCA-002 decomposition amendment (sibling run)
+    before this tranche merges; that dependency is recorded in the run
+    HANDOFF_STATE
+  - >-
+    no retroactive cure of the 2026-07-28 window, the PR 416 merge
+    execution, or any historical act; the D-GOV-31 merge-execution note
+    is disclosure, not cure, not precedent
+  - >-
+    record edits are additive-only except each record's own declared
+    PENDING backfill slots; frozen proposals, evidence packages, and
+    receipts are untouched
+  - >-
+    no loop-local App, PEC, or Piping substance; loops are bound only
+    through their own adopt/acknowledge acts
+  - >-
+    no lifecycle, implementation, activation, runtime, dependency,
+    decomposition, scope, estimate, schedule, repin, release, or
+    professional-reliance act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export mirrors agents/ and docs/ surfaces changed here
+    (including agents/AGENT_CHANGE.md pinned at its pre-tranche SHA in
+    export-manifest.csv). Regeneration is deferred to the next export
+    release, which must consume post-merge bytes; the deferral changes
+    no export authority or boundary.

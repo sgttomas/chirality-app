@@ -1,0 +1,73 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-CI-SLOW-OBJECT-HARDENING-20260821
+title: Piping CI slow-object-serving preventive hardening
+date: 2026-08-21
+basis: b1876a5e0f0083e10c0c18255cd92ed0079b63a2
+
+instruction_surface_paths:
+  - .github/workflows/governance-harness.yml
+  - tools/practitioner_harness/test_live_baseline.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - docs/governance_harness/tranche_manifests/PIPING-CI-SLOW-OBJECT-HARDENING-20260821.yaml
+
+m2_gate:
+  authorization: >-
+    Owner direction relayed in-session through HELP_HUMAN on 2026-08-21:
+    preventively harden the Piping Desktop E2E lane against Playwright's
+    implicit GitCommitInfo merge-base fetch and bound the root
+    governance-harness Candidate whitespace step so slow lazy base-blob
+    fetches fail fast with a legible diagnosis. The direction explicitly
+    authorizes the root governance-harness workflow edit and requires the
+    coupled G4 manifest and policy-test update. During owner-authorized
+    closeout repair, the registered practitioner-harness baseline was also
+    advanced for the accepted DEL-07-09 scaffold; that instruction-surface
+    test is therefore declared in this same one-tranche manifest. This
+    manifest records that bounded authorization; it grants no authority
+    (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-21
+  integration_owner: >-
+    HELP_HUMAN for
+    HELP-HUMAN-PIPING-20260821-SCA009-CI-SUPPORT, with the N3 WORKING_ITEMS
+    instance applying the bounded hardening and CHANGE reserved for serialized
+    Git closeout
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No agents/, skills/, policy prose, tool CLI, or project authority corpus
+    changes. The root workflow timeout and its directly coupled policy test
+    preserve the Candidate whitespace validator contract; the registered
+    practitioner-harness baseline advances only for the accepted DEL-07-09
+    scaffold; the project-local Playwright config disables only redundant CI
+    git metadata collection.
+    No project or domain loop pins or mirrors these exact live surfaces, so no
+    routed authority-coordination notice is required.
+
+implementation_paths:
+  - projects/chirality-piping/apps/desktop/playwright.config.ts
+
+scope_limits:
+  - no slow-object-serving reproduction or CI rerun
+  - no merge-base prefetch step and no desktop E2E workflow edit
+  - no dist Playwright config edit because the Piping desktop CI workflow does not execute it
+  - no unsigned-artifact lane and no artifact-proof label
+  - no product behavior, decomposition, lifecycle, release, or acceptance change
+  - no commit, push, merge, or self-acceptance by the N3 WORKING_ITEMS instance
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public Chirality App export manifest mirrors the root
+    governance-harness workflow and G4 policy-test bytes. Regeneration is
+    deferred until an accepted post-merge instruction-surface snapshot exists;
+    the derivative export must not substitute for or pre-empt acceptance of
+    this live tranche.

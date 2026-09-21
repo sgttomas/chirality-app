@@ -1,0 +1,91 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DOMAIN-REPOSITORY-SEPARATION-20260820
+title: External domain repository and public Chirality cutover
+date: 2026-08-20
+basis: 1c5945c4cab675f98db24917148b4251d9c52b9e
+
+instruction_surface_paths:
+  - agents/AGENT_TASK.md
+  - .github/workflows/harness-premerge.yml
+  - docs/DIRECTIVE.md
+  - docs/SPEC.md
+  - docs/TYPES.md
+  - docs/CONTRACT.md
+  - runtime/
+  - tools/decomp/
+  - tools/source_catalog/
+  - tools/retrieval/
+  - tools/run_affected_tests.py
+  - tools/software_workflow/select_affected_checks.py
+  - tools/software_workflow/test_tools_test_routing.py
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - tools/validation/test_public_export_profile.py
+  - docs/governance_harness/tranche_manifests/ROOT-DOMAIN-REPOSITORY-SEPARATION-20260820.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed implementation of the previously aligned repository-
+    separation plan on 2026-08-20 ("Implement the proposed plan"), paused the
+    work for two concurrent PRs, then froze other development and directed
+    continuation after both merged. This authorizes candidate preparation,
+    private snapshot migration, validation, and PR preparation. Because the
+    tranche amends ratified doctrine and AGENT_TASK, exact-candidate merge
+    approval remains human-gated after validation.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-20
+  integration_owner: Codex root session in isolated codex/domain-separation-20260820 worktree
+  approval_status: pending_exact_candidate_ruling
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-20_ROOT_EXTERNAL_WORKING_ROOT.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-20_ROOT_EXTERNAL_WORKING_ROOT.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-08-20_ROOT_EXTERNAL_WORKING_ROOT.md
+    - domains/chirality/_Coordination/NOTICE_2026-08-20_EXTERNAL_REPOSITORY_CUTOVER.md
+  rationale: >-
+    AGENT_TASK is consumed live and appears by SHA in App packaged proofs,
+    Piping evaluations, and immutable root fan-in evidence. Historical
+    snapshots are not rewritten. Each active loop receives a routed notice;
+    the migrated domain coordination surface receives its notice in the new
+    private repository.
+
+external_notice_routes:
+  - source: domains/chirality/_Coordination/NOTICE_2026-07-25_AGENT_CHANGE_MERGE_VERDICT_RULE.md
+    repository: sgttomas/chirality-domains
+    path: domains/chirality/_Coordination/NOTICE_2026-07-25_AGENT_CHANGE_MERGE_VERDICT_RULE.md
+    commit: 5f4c6ffdeefa300521f800f3c50cd27b5fd32a39
+  - source: domains/chirality/_Coordination/NOTICE_2026-08-20_EXTERNAL_REPOSITORY_CUTOVER.md
+    repository: sgttomas/chirality-domains
+    path: domains/chirality/_Coordination/NOTICE_2026-08-20_EXTERNAL_REPOSITORY_CUTOVER.md
+    commit: 5f4c6ffdeefa300521f800f3c50cd27b5fd32a39
+
+source_snapshot:
+  source_commit: 1c5945c4cab675f98db24917148b4251d9c52b9e
+  domains_tree: b35c91f027ce5a50eeaa99294c0f4be3c06cb9d7
+  tracked_files: 36450
+  logical_bytes: 1032907134
+  destination_repository: sgttomas/chirality-domains
+  history_policy: snapshot_only
+
+scope_limits:
+  - no Chirality history rewrite or force-push
+  - no modification, reset, rebase, prune, or deletion of pre-existing worktrees
+  - no credentials or private-domain access in public CI
+  - V1 project manifests remain supported
+  - chirality-app remains a curated release projection
+  - GitHub visibility changes only after publication audit and exact-candidate approval
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: regenerate_in_tranche
+  rationale: >-
+    The release projection is retained as packaging machinery and must reflect
+    the accepted instruction/runtime candidate without serving as a privacy boundary.

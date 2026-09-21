@@ -1,0 +1,80 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-HARNESS-46-PIN-20260726
+title: Bounded live Root practitioner-harness pin refresh for the 46th deliverable
+date: 2026-07-26
+basis: ff04694afa709856a58f9f54a79ca2056b8e0b4e
+
+instruction_surface_paths:
+  - tools/practitioner_harness/test_root_adoption.py
+  - docs/governance_harness/tranche_manifests/ROOT-HARNESS-46-PIN-20260726.yaml
+
+m2_gate:
+  authorization: >-
+    Owner direction of record, in-session 2026-07-26: continue pursuing the
+    Chirality Program Architecture Remediation plan until it is finished,
+    following the Agent 0/1/2 paradigm. Within that accepted objective,
+    HELP_HUMAN (Agent 0) authorized this bounded HELPS_HUMANS/M2 live-baseline
+    pin refresh after PR #369 exposed exactly three stale static assertions:
+    assert 46 total Root status files, lifecycle distribution 45 INITIALIZED
+    plus 1 OPEN, zero mismatch, and the unchanged no-DAG-pointer posture. A
+    subsequent Agent 0 brief amendment includes the module-level LIVE-tree pin
+    summary in the same touched test file, changing only its directly coupled
+    stale 45/all-OPEN facts. Production harness behavior, dynamic assertions,
+    and any Project Setup, audit, scaffold, or adapter-state change are
+    excluded. The state change and its conscious test pin are one atomic
+    acceptance SCC and must remain in PR #369. This manifest records
+    containment and evidence conditions; it grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-26
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) for the serialized
+    ROOT-HARNESS-46-PIN-20260726 M2 tranche; HELPS_HUMANS manages the bounded
+    implementation and holds no Git or merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    A deterministic projects/ and domains/ survey at candidate
+    dd28d201b8bc7c7fb534cf6ff75817da25023120 found no active pin or mirror of
+    tools/practitioner_harness/test_root_adoption.py or the Root tranche
+    manifest directory. The touched test is Root-owned static CI evidence;
+    no agents/ file or downstream authority surface changes. The public export
+    does carry the practitioner-harness test and root docs as derivative bytes,
+    so export regeneration is explicitly deferred below rather than treated
+    as downstream notice routing.
+
+scope_limits:
+  - only the three failing live-root tests and their names/comments/assertions
+  - the directly coupled module-level LIVE-tree pin summary in the same test file
+  - static assertions only; no dynamic pinning
+  - no practitioner-harness production behavior change
+  - no Project Setup, audit, scaffold, adapter-state, decomposition, or runtime change
+  - no Git action in the HELPS_HUMANS implementation return
+
+atomic_scc:
+  nodes:
+    - PR #369 Root PROJECT_SETUP state at dd28d201b
+    - ROOT-HARNESS-46-PIN-20260726 static live-baseline assertions
+  disposition: MERGE — one human-gated PR
+  rationale: >-
+    The state-only PR fails the three 45-file pins, while the 46-file pins
+    cannot pass on the accepted 45-file base ff04694. Neither node is
+    independently acceptable; the pin refresh is a separate commit within PR
+    #369 so the merged state and its conscious pin land atomically.
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export includes tools/practitioner_harness/test_root_adoption.py
+    and root docs/governance_harness content as derivative bytes. Regeneration
+    is excluded from this atomic PR #369 correction and must consume the
+    accepted post-merge source bytes before the next export release. This
+    deferral changes no export boundary or authority.

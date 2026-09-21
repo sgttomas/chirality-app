@@ -60,49 +60,15 @@ frontend/artifacts/
 venv/
 env/
 
-# Source corpora: keep costly text/metadata derivatives, ignore raw/recreatable binaries.
-domains/*/_Sources/**
-!domains/*/_Sources/
-!domains/*/_Sources/**/
-!domains/*/_Sources/.gitkeep
-!domains/*/_Sources/README.md
-!domains/*/_Sources/**/*.md
-!domains/*/_Sources/**/*.csv
-!domains/*/_Sources/**/*.xlsx
-!domains/*/_Sources/**/*.json
-!domains/*/_Sources/**/*.jsonl
-!domains/*/_Sources/**/*.html
-!domains/*/_Sources/**/*.txt
-domains/*/_Sources/**/*.pdf
-domains/*/_Sources/**/*.PDF
-domains/*/_Sources/**/*.zip
-domains/*/_Sources/**/*.png
-domains/*/_Sources/**/*.jpg
-domains/*/_Sources/**/*.jpeg
-domains/*/_Sources/**/*.tif
-domains/*/_Sources/**/*.tiff
-domains/*/_Sources/**/*.mht
-domains/*/_Sources/**/*.bak
-domains/*/_Sources/**/archive/**
-domains/*/_Sources/**/Archive/**
-domains/*/_Sources/**/.archive/**
-domains/*/_Sources/**/.Archive/**
-domains/*/_Sources/**/_archive/**
-domains/*/_Sources/**/_Archive/**
-domains/*/_LocalIndexes/**
-!domains/*/_LocalIndexes/
-!domains/*/_LocalIndexes/.gitkeep
-!domains/*/_LocalIndexes/README.md
+# Domain corpora are maintained in the separate private chirality-domains repo.
+/domains/
+
+# Rebuildable local work areas in selected external working repositories.
 **/*_pdf2md_work/
-!domains/*/_Sources/**/*_pdf2md_work/
-!domains/*/_Sources/**/*_pdf2md_work/**/
 **/*_drawing_extract_work/
 **/*_drawing_extract_work_run*/
 **/*_symbol_instance_diag_work/
 **/_LocalIndexes/
-!domains/*/_LocalIndexes/
-!domains/*/_LocalIndexes/.gitkeep
-!domains/*/_LocalIndexes/README.md
 **/_Aggregation/_pdf_work/
 tools/retrieval/_index/
 
@@ -123,3 +89,8 @@ _harness_generated/
 # SQLite transient WAL sidecars (rebuilt at runtime; not canonical)
 *.db-shm
 *.db-wal
+
+# taskmgmt scan/federation outputs — derived, rebuildable candidate views (D-GOV-01)
+execution/_Coordination/_TaskManagement/.candidates/
+projects/*/execution/_Coordination/_TaskManagement/.candidates/
+_DomainEngines/*/_TaskManagement/.candidates/

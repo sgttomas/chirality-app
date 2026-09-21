@@ -1,0 +1,60 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CANDIDATE-WHITESPACE-20260727
+title: Candidate whitespace prevention and untracked-file guard
+date: 2026-07-27
+basis: fb16e32ed60bb4f384cf1e07a83c4a14ff63bbae
+
+instruction_surface_paths:
+  - .github/workflows/governance-harness.yml
+  - docs/governance_harness/tranche_manifests/ROOT-CANDIDATE-WHITESPACE-20260727.yaml
+  - tools/REGISTRY.md
+  - tools/validation/README.md
+  - tools/validation/test_validate_candidate_whitespace.py
+  - tools/validation/validate_candidate_whitespace.py
+
+m2_gate:
+  authorization: >-
+    Owner direction of record, in-session 2026-07-27: "Also this trailing
+    whitespace issue occurs each and every time. Is there a way to prevent it
+    happening to begin with? If so make the necessary changes now." This
+    manifest records the independent human authorization and the bounded
+    prevention objective; it grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-27
+  integration_owner: >-
+    HELPS_HUMANS managed by HELP_HUMAN for the bounded
+    ROOT-CANDIDATE-WHITESPACE-20260727 M2 tranche; the independent Agent 2
+    reviewer is read-only and holds no integration or merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No agents/ file is changed. The validator, focused tests, validation
+    documentation, tool registry, and governance CI workflow are Root-owned
+    shared tooling; no project or domain authority corpus pins or mirrors the
+    newly introduced validator or hook. The public export is a derivative
+    consumer and is explicitly deferred below rather than treated as a
+    project-loop authority notice.
+
+scope_limits:
+  - no existing corpus whitespace rebaseline or rewrite
+  - no whitespace policy beyond Git diff behavior, trailing spaces or tabs, and surplus terminal blank lines
+  - no ignored or binary-file scan
+  - no product, PRD, decomposition, ScopeOfWork, runtime, or downstream-loop change
+  - no self-merge; the protected instruction-surface PR returns to the owner gate
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries tools/ and tools/REGISTRY.md as derivative
+    bytes. Regeneration is outside this bounded prevention tranche and must
+    consume the accepted post-merge tool bytes before the next public export
+    release. This deferral changes neither export authority nor boundary.

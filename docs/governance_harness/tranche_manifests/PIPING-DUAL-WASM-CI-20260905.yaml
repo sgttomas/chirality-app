@@ -1,0 +1,41 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-DUAL-WASM-CI-20260905
+title: Piping dual-WASM CI provisioning repair evidence
+date: 2026-09-05
+basis: 079f865bc5507fc28ad52bc4b3186e563bb26ce0
+
+instruction_surface_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/PIPING-DUAL-WASM-CI-20260905.yaml
+
+m2_gate:
+  authorization: >-
+    The human user directed Piping UI/toolkit parity implementation through
+    managers and explicitly said "Yes push and open the PR" for
+    sgttomas/chirality branch codex/piping-ui-toolkit-parity, as relayed by
+    HELP_HUMAN in this run. HELP_HUMAN accepted the bounded CI provisioning
+    repair in projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260905-UI-TOOLKIT-PARITY/POST_PUBLICATION_CI_REPAIR_FAN_IN_V1.md
+    and dispatched this minimal derivative evidence amendment in
+    projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260905-UI-TOOLKIT-PARITY/instances/N9_G4_MANIFEST/BRIEF_RUNTIME_V1.json.
+    This manifest records that existing direction and scoped parent repair
+    authorization; it grants no authority and asserts no separate human
+    root-manifest ruling or governance-policy adoption (K-AUTH-1).
+  authorized_by: Human user directing HELP_HUMAN in the Piping UI/toolkit parity session
+  authorization_date: 2026-09-05
+  integration_owner: >-
+    HELP_HUMAN is the single serialized integration owner for PR #715;
+    HELPS_HUMANS packages this bounded derivative manifest and CHANGE performs
+    scoped Git closeout under the existing publication direction
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    HELPS_HUMANS assessed the actual scope and HELP_HUMAN accepted this
+    disposition at fan-in: no agents/, docs policy, skills/, or tools/
+    consumer contract changes. The existing Piping CI workflow repair and
+    this derivative manifest are covered by the same human-gated PR #715;
+    no separate downstream coordination notice is required. This records
+    the routing assessment, not a new authority decision.

@@ -56,6 +56,10 @@
     "./operation-proposal": {
       "types": "./dist/harness/operation-proposal.d.ts",
       "import": "./dist/harness/operation-proposal.js"
+    },
+    "./v3": {
+      "types": "./dist/v3.d.ts",
+      "import": "./dist/v3.js"
     }
   },
   "files": ["dist"],

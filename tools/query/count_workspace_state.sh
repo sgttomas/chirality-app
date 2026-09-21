@@ -24,8 +24,8 @@ echo ""
 pkg_count=$(find "$EXROOT" -maxdepth 1 -type d -name "PKG-*" | wc -l | tr -d ' ')
 echo "Packages: $pkg_count"
 
-# Count deliverables
-del_count=$(find "$EXROOT" -path "*/1_Working/DEL-*" -maxdepth 4 -type d | wc -l | tr -d ' ')
+# Count deliverables (the DEL-* directory itself, not its subdirectories)
+del_count=$(find "$EXROOT" -mindepth 3 -maxdepth 3 -type d -path "*/1_Working/DEL-*" | wc -l | tr -d ' ')
 echo "Deliverables: $del_count"
 echo ""
 
@@ -33,8 +33,11 @@ echo ""
 echo "| State | Count |"
 echo "|-------|-------|"
 
+# Match the single current-state declaration line only. A whole-file match
+# also hits the append-only History section, which names every prior state.
 for state in OPEN INITIALIZED SEMANTIC_READY IN_PROGRESS CHECKING ISSUED; do
-  count=$(find "$EXROOT" -path "*/1_Working/DEL-*/_STATUS.md" -type f -exec grep -l "$state" {} \; 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$EXROOT" -path "*/1_Working/DEL-*/_STATUS.md" -type f \
+    -exec grep -l "^\*\*Current State:\*\* ${state}[[:space:]]*$" {} \; 2>/dev/null | wc -l | tr -d ' ')
   echo "| $state | $count |"
 done
 

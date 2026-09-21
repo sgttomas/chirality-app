@@ -6,9 +6,11 @@ Usage:
     python3 tools/validation/validate_agent_instructions.py agents/AGENT_TASK.md
     python3 tools/validation/validate_agent_instructions.py --json
 
-Checks structural fields and section presence, type/class compatibility,
-R-identifier references, exact AGENT_*.md references, and D-GOV-11 dedicated
-Agent 2 requalification posture. Semantic agent qualification remains a rubric audit.
+Checks the four-role registry, direct entry and delegation eligibility, role
+capability configuration, and the four ordered prose sections. When an explicitly
+selected historical repository has no agents/registry.json, reads its original
+metadata, hierarchy and section contract for compatibility. Semantic role quality
+remains a judgment review.
 
 Exit codes:
     0 = no ERROR findings (WARN findings may remain)
@@ -49,6 +51,7 @@ WRITE_SCOPE_PREFIXES = (
     "repo-wide",
     "project-level",
     "package-level",
+    "loop-register-level",
     "deliverable-local",
     "tool-root-only",
     "workspace-scaffold-only",
@@ -267,8 +270,16 @@ def validate_hierarchy(paths: list[Path], repo_root: Path) -> list[Finding]:
                 add(findings, "ERROR", "SUBAGENT_ROLE_UNRESOLVED", rel, f"subagent role does not exist: {child}")
                 continue
             child_type = child_record[2]
-            if agent_type == "0" and child_type != "1":
-                add(findings, "ERROR", "AGENT0_CHILD_TYPE", rel, f"Agent 0 child {child} must be Agent 1")
+            if agent_type == "0" and not (
+                child_type == "1" or (child == "TASK" and child_type == "2")
+            ):
+                add(
+                    findings,
+                    "ERROR",
+                    "AGENT0_CHILD_TYPE",
+                    rel,
+                    f"Agent 0 child {child} must be Agent 1 or canonical TASK Agent 2",
+                )
             if agent_type == "1" and child_type != "2":
                 add(findings, "ERROR", "AGENT1_CHILD_TYPE", rel, f"Agent 1 child {child} must be Agent 2")
         allows_generalist = re.search(
@@ -276,8 +287,14 @@ def validate_hierarchy(paths: list[Path], repo_root: Path) -> list[Finding]:
             frontmatter_block(text),
             re.MULTILINE,
         )
-        if allows_generalist and agent_type != "1":
-            add(findings, "ERROR", "GENERALIST_PARENT_TYPE", rel, "only Agent 1 may allow ephemeral generalist Agent 2 children")
+        if allows_generalist and agent_type not in ("0", "1"):
+            add(
+                findings,
+                "ERROR",
+                "GENERALIST_PARENT_TYPE",
+                rel,
+                "only Agent 0 or Agent 1 may allow ephemeral generalist Agent 2 children",
+            )
         interaction = fields.get("INTERACTION_SURFACE", "").lower()
         if agent_type == "1" and not (interaction.startswith("chat") or interaction.startswith("both")):
             add(findings, "ERROR", "AGENT1_DIRECT_ENTRY", rel, "Agent 1 must support direct human invocation")
@@ -318,15 +335,78 @@ def resolve_paths(args: argparse.Namespace, repo_root: Path) -> list[Path]:
     return paths
 
 
+def validate_registry(repo_root: Path) -> list[Finding]:
+    findings = []
+    path = repo_root / 'agents/registry.json'
+    registry = json.loads(path.read_text())
+    if not isinstance(registry, dict) or not isinstance(registry.get('roles'), dict):
+        raise ValueError('registry and roles must be mappings')
+    roles = registry['roles']
+    expected = {'HELP_HUMAN': 0, 'HELPS_HUMANS': 1, 'WORKING_ITEMS': 1, 'TASK': 2}
+    def error(code, message):
+        add(findings, 'ERROR', code, path.relative_to(repo_root), message)
+    if registry.get('schema_version') != 1 or set(roles) != set(expected):
+        error('ROLE_REGISTRY', 'schema_version 1 and exactly four canonical roles required')
+    catalog = registry.get('workflow_catalog')
+    if not isinstance(catalog, dict) or set(catalog) != {'schema','catalog','index'}:
+        error('WORKFLOW_CATALOG_REF', 'workflow_catalog must contain stable schema, catalog, and index references')
+    elif catalog.get('schema') != 'chirality-method-index/v1' or catalog.get('catalog') != 'workflows/catalog.yaml' or catalog.get('index') != 'workflows/index.json':
+        error('WORKFLOW_CATALOG_REF', 'workflow_catalog references do not match the Root catalog contract')
+    for name, config in roles.items():
+        if not isinstance(config, dict):
+            error('ROLE_SHAPE', f'{name}: role configuration must be a mapping')
+            continue
+        typ = expected.get(name)
+        if type(config.get('type')) is not int or config.get('type') != typ or config.get('direct_entry') is not (typ in (0, 1)):
+            error('ROLE_ENTRY', f'{name}: invalid type or direct entry')
+        if not isinstance(config.get('description'), str) or not config['description'].strip():
+            error('ROLE_DESCRIPTOR', f'{name}: non-empty description required')
+        if config.get('default_for_new_chat') is not (name == 'HELP_HUMAN'):
+            error('ROLE_DESCRIPTOR', f'{name}: invalid default_for_new_chat')
+        child_list = config.get('delegates_to', [])
+        if not isinstance(child_list, list) or any(not isinstance(x, str) for x in child_list):
+            error('ROLE_SHAPE', f'{name}: delegates_to must be a string list')
+            child_list = []
+        children = set(child_list)
+        required = {'HELPS_HUMANS','WORKING_ITEMS','TASK'} if typ == 0 else {'TASK'} if typ == 1 else set()
+        if children != required or config.get('allow_generalist_agent2') is not (typ in (0, 1)):
+            error('ROLE_DELEGATION', f'{name}: invalid child eligibility')
+        if not isinstance(config.get('tools'), list) or any(not isinstance(x,str) for x in config.get('tools', [])) or not isinstance(config.get('write_scope'), str):
+            error('ROLE_POLICY', f'{name}: tools and write_scope required')
+            continue
+        if typ == 2 and ('delegate_agent' in (config.get('tools') or []) or config.get('allow_generalist_agent2')):
+            error('TYPE2_DELEGATION', 'TASK cannot delegate')
+        instruction = repo_root / str(config.get('instruction', ''))
+        if not instruction.resolve().is_relative_to((repo_root/'agents').resolve()) or not instruction.is_file():
+            error('ROLE_INSTRUCTION', f'{name}: missing or escaping instruction path')
+            continue
+        if instruction.name != f'AGENT_{name}.md':
+            error('ROLE_INSTRUCTION', f'{name}: instruction name mismatch')
+        text = instruction.read_text()
+        headings = re.findall(r'^## (.+)$', text, re.MULTILINE)
+        if headings != ['PROTOCOL', 'SPEC', 'STRUCTURE', 'RATIONALE']:
+            error('ROLE_SECTIONS', f'{name}: requires exactly four ordered sections')
+        if text.startswith('---') or 'AGENT_TYPE' in text or '[[BEGIN:' in text:
+            error('ROLE_PROSE_METADATA', f'{name}: obsolete instruction envelope')
+    actual = {p.name for p in (repo_root/'agents').glob('AGENT_*.md')}
+    if actual != {f'AGENT_{name}.md' for name in expected}:
+        error('ROLE_ROSTER', 'live instruction files differ from registry')
+    return findings
+
+
 def main() -> int:
     args = parse_args()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else Path(__file__).resolve().parents[2]
     try:
         valid_r_ids = canonical_r_ids(repo_root / "docs" / "WORKFLOW_COMPONENT_STANDARD.md")
         paths = resolve_paths(args, repo_root)
-        findings = [finding for path in paths for finding in validate_file(path, repo_root, valid_r_ids)]
-        roster_paths = sorted((repo_root / "agents").glob("AGENT_*.md"))
-        findings.extend(validate_hierarchy(roster_paths, repo_root))
+        if (repo_root / 'agents/registry.json').exists():
+            findings = validate_registry(repo_root)
+        else:
+            # Explicit old snapshots remain readable under their historical contract.
+            findings = [finding for path in paths for finding in validate_file(path, repo_root, valid_r_ids)]
+            roster_paths = sorted((repo_root / "agents").glob("AGENT_*.md"))
+            findings.extend(validate_hierarchy(roster_paths, repo_root))
     except (OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

@@ -214,7 +214,7 @@ APEGA §3.1.2.3 requires that thorough review verify compliance with QC/QA proce
 
 Authentication of a PWP is the act by which a licensed professional represents that they have satisfied the direct supervision and control standard or the thorough review standard, and accepts professional responsibility for the work. The Chirality architecture implements authentication as a controlled gate — the final and irreversible human action in the deliverable lifecycle.
 
-Authentication binds to a specific git SHA. This means that a licensed professional's seal and signature apply to a precisely identified version of the work. Content change after authentication voids the authentication (K-AUTH-2, `docs/CONTRACT.md` §1.2). A deliverable is considered dirty — requiring renewed review before any reliance — if any governed input has changed since its last approved SHA (K-VAL-1, `docs/CONTRACT.md` §1.6). Merge to the main branch is permitted only when branch HEAD equals the approved SHA (K-MERGE-1, `docs/CONTRACT.md` §1.8).
+Authentication binds to a specific git SHA. This means that a licensed professional's seal and signature apply to a precisely identified version of the work. Content change after authentication voids the authentication (K-AUTH-2, `docs/CONTRACT.md` §1.2). A deliverable is considered dirty — requiring renewed review before any reliance — if any governed input has changed since its last approved SHA (K-VAL-1, `docs/CONTRACT.md` §1.6). Git integration follows the owner's standing authorization, required CI and independent review of the actual candidate (K-MERGE-1, `docs/CONTRACT.md` §1.8). It does not constitute professional authentication or acceptance for reliance.
 
 The status is relational: it identifies the accountable actor, the content or
 SHA, the scope, and the reliance purpose. It confers accountable-reliance
@@ -283,11 +283,11 @@ The firm's QC/QA framework for AI-assisted work is implemented through the agent
 | `docs/CONTRACT.md` | The binding K-* invariant catalog with its enforcement map |
 | `docs/SPEC.md` | Physical structures, file formats, schema validation |
 | `docs/TYPES.md` | Controlled vocabulary, enumerated types, lifecycle state machine |
-| `docs/WORKFLOW_COMPONENT_STANDARD.md` | Candidate workflow design requirements (R1–R17), pending explicit owner acceptance |
+| `docs/WORKFLOW_COMPONENT_STANDARD.md` | Ratified workflow design requirements (R1–R17), D-GOV-14 |
 | `docs/DECOMPOSITION_STANDARD.md` | Decomposition invariants (I1–I10) binding on all decomposition agents |
 
-The three-layer model combines candidate R1–R17 workflow requirements,
-candidate I1–I10 decomposition invariants, and the ratified K-* catalog.
+The three-layer model combines the ratified R1–R17 workflow requirements,
+the ratified I1–I10 decomposition invariants, and the ratified K-* catalog.
 Compliance evidence comes from instruction review, managed runtime controls,
 human gates, and deterministic validation; candidate requirements do not
 become authoritative merely through this mapping.
@@ -417,9 +417,9 @@ The firm's conservative choice to apply the "others" classification across the b
 
 ### 6.9.4 The Architecture Is Necessary but Not Sufficient
 
-The Chirality architecture establishes the conditions under which thorough review is tractable and direct supervision is verifiable. It is a necessary condition for professional reliance on AI agent outputs, but not a sufficient one. The sufficiency condition is the licensed professional's competent exercise of judgment at every gate. An architecture that makes evidence available cannot guarantee that the professional uses it well. A professional who treats gates as boxes to check, reviews epistemic labels without engaging their content, or authenticates work they cannot adequately evaluate violates the professional obligations this chapter describes — regardless of what the architecture provides.
+The Chirality architecture establishes the conditions under which thorough review is tractable and direct supervision is verifiable. It is a necessary condition for reliance that can be demonstrated to satisfy those standards — professionals may of course rely on AI outputs without any of this, but not demonstrably within the obligations this chapter maps — and it is not a sufficient one. The sufficiency condition is the licensed professional's competent exercise of judgment at every gate. An architecture that makes evidence available cannot guarantee that the professional uses it well. A professional who treats gates as boxes to check, reviews epistemic labels without engaging their content, or authenticates work they cannot adequately evaluate violates the professional obligations this chapter describes — regardless of what the architecture provides. Each of these failures has the same shape: attention redirected onto the record — the gate, the label, the checklist — instead of through it to the work the record is about.
 
-This limitation is structural, not correctable by further architectural development. The APEGA framework places the accountability burden on the licensed professional precisely because professional judgment cannot be mechanized. The architecture can structure the professional's task, surface the evidence, eliminate hidden information, and prevent unauthorized actions — but it cannot exercise the professional's judgment on the professional's behalf.
+This limitation is structural, not correctable by further architectural development. The APEGA framework places the accountability burden on the licensed professional precisely because professional judgment cannot be mechanized — where "cannot" is an institutional claim, not a speculation about machine cognition: the judgment that concludes review is an act of accountable commitment, and it requires an actor who can be held to account, a status that no degree of capability confers (§9.3.5). The architecture can structure the professional's task, surface the evidence, eliminate hidden information, and prevent unauthorized actions — but it cannot exercise the professional's judgment on the professional's behalf.
 
 ### 6.9.5 Evolving Regulatory Context
 

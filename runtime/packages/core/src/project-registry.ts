@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
+import { access, readFile, realpath, stat } from "node:fs/promises";
+import { constants } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   RuntimeError,
+  CHIRALITY_INSTRUCTION_ROOT_ENV,
+  type ChiralityProjectManifest,
   type ChiralityProjectManifestV1,
+  type ChiralityProjectManifestV2,
   type ProjectStatus,
   type RegisteredProject
 } from "@chirality/runtime-contracts";
@@ -24,14 +28,17 @@ interface RegistryFile {
 export class ProjectRegistry {
   private readonly registryFile: string;
 
-  constructor(private readonly runtimeDirectory: string) {
+  constructor(
+    private readonly runtimeDirectory: string,
+    private readonly environment: Readonly<Record<string, string | undefined>> = process.env
+  ) {
     this.registryFile = join(runtimeDirectory, "projects", "registry.json");
   }
 
   async register(
     manifestPath: string,
     approval: RegisteredProject["approval"],
-    clientId = `project-${randomUUID()}`
+    clientId: string | ((projectId: string) => string) = `project-${randomUUID()}`
   ): Promise<RegisteredProject> {
     const canonicalManifest = await realpath(manifestPath);
     const source = await readFile(canonicalManifest, "utf8");
@@ -50,7 +57,7 @@ export class ProjectRegistry {
       manifestHash: sha256(source),
       registeredAt: new Date().toISOString(),
       approval,
-      clientId,
+      clientId: typeof clientId === "function" ? clientId(manifest.projectId) : clientId,
       enabledAdapterIds: [...manifest.enabledAdapterIds],
       legacySessionRoots: [...(manifest.legacySessionRoots ?? [])]
     };
@@ -86,7 +93,7 @@ export class ProjectRegistry {
     return status.project;
   }
 
-  async readManifest(projectId: string): Promise<ChiralityProjectManifestV1> {
+  async readManifest(projectId: string): Promise<ChiralityProjectManifest> {
     const project = await this.getRecord(projectId);
     return this.parseManifest(await readFile(project.manifestPath, "utf8"));
   }
@@ -94,9 +101,23 @@ export class ProjectRegistry {
   async roots(projectId: string): Promise<{ workingRoot: string; instructionRoot: string }> {
     const project = await this.requireAuthorized(projectId);
     const manifest = await this.readManifest(projectId);
+    const instructionRoot =
+      manifest.schemaVersion === "chirality.project/v1"
+        ? await realpath(resolve(dirname(project.manifestPath), manifest.instructionRoot))
+        : await this.runtimeInstructionRoot();
+    if (
+      manifest.schemaVersion === "chirality.project/v2" &&
+      (isContained(instructionRoot, project.canonicalRoot) ||
+        isContained(project.canonicalRoot, instructionRoot))
+    ) {
+      throw new RuntimeError(
+        "PROJECT_MANIFEST_INVALID",
+        "Runtime instruction root must be disjoint from the working root"
+      );
+    }
     return {
       workingRoot: project.canonicalRoot,
-      instructionRoot: await realpath(resolve(dirname(project.manifestPath), manifest.instructionRoot))
+      instructionRoot
     };
   }
 
@@ -110,7 +131,7 @@ export class ProjectRegistry {
     return record;
   }
 
-  private parseManifest(source: string): ChiralityProjectManifestV1 {
+  private parseManifest(source: string): ChiralityProjectManifest {
     let value: unknown;
     try {
       value = JSON.parse(source);
@@ -120,23 +141,26 @@ export class ProjectRegistry {
     if (!this.isManifest(value)) {
       throw new RuntimeError(
         "PROJECT_MANIFEST_INVALID",
-        "Project manifest does not conform to chirality.project/v1"
+        "Project manifest does not conform to chirality.project/v1 or chirality.project/v2"
       );
     }
     return value;
   }
 
-  private isManifest(value: unknown): value is ChiralityProjectManifestV1 {
+  private isManifest(value: unknown): value is ChiralityProjectManifest {
     if (typeof value !== "object" || value === null) return false;
     const item = value as Record<string, unknown>;
     const profiles = item["profiles"] as Record<string, unknown> | undefined;
     const embeddedUi = item["embeddedUi"] as Record<string, unknown> | undefined;
     return (
-      item["schemaVersion"] === "chirality.project/v1" &&
+      (item["schemaVersion"] === "chirality.project/v1" ||
+        item["schemaVersion"] === "chirality.project/v2") &&
       typeof item["projectId"] === "string" &&
       typeof item["displayName"] === "string" &&
       typeof item["workingRoot"] === "string" &&
-      typeof item["instructionRoot"] === "string" &&
+      (item["schemaVersion"] === "chirality.project/v1"
+        ? typeof item["instructionRoot"] === "string"
+        : this.isRuntimeInstructionRoot(item["instructionRoot"])) &&
       typeof item["defaultExecutionRoot"] === "string" &&
       typeof profiles === "object" &&
       Array.isArray(profiles?.["domain"]) &&
@@ -148,19 +172,39 @@ export class ProjectRegistry {
     );
   }
 
+  private isRuntimeInstructionRoot(value: unknown): value is ChiralityProjectManifestV2["instructionRoot"] {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    const item = value as Record<string, unknown>;
+    return item["mode"] === "runtime" && Object.keys(item).length === 1;
+  }
+
   private async validateReferences(
     manifestDirectory: string,
-    manifest: ChiralityProjectManifestV1
+    manifest: ChiralityProjectManifest
   ): Promise<{ workingRoot: string; instructionRoot: string }> {
     assertSafeIdentifier(manifest.projectId, "projectId");
     assertRelativeManifestPath(manifest.workingRoot, "workingRoot");
-    assertRelativeManifestPath(manifest.instructionRoot, "instructionRoot");
-    const workingRoot = await realpath(resolve(manifestDirectory, manifest.workingRoot));
-    const instructionRoot = await realpath(resolve(manifestDirectory, manifest.instructionRoot));
-    if (!isContained(instructionRoot, workingRoot) && !isContained(workingRoot, instructionRoot)) {
+    const workingRoot = await this.canonicalizeReference(
+      manifestDirectory,
+      manifest.workingRoot,
+      "workingRoot"
+    );
+    const instructionRoot =
+      manifest.schemaVersion === "chirality.project/v1"
+        ? await this.relativeInstructionRoot(manifestDirectory, manifest)
+        : await this.runtimeInstructionRoot();
+    const rootsOverlap =
+      isContained(instructionRoot, workingRoot) || isContained(workingRoot, instructionRoot);
+    if (manifest.schemaVersion === "chirality.project/v1" && !rootsOverlap) {
       throw new RuntimeError(
         "PROJECT_MANIFEST_INVALID",
         "Working and instruction roots must belong to one canonical project tree"
+      );
+    }
+    if (manifest.schemaVersion === "chirality.project/v2" && rootsOverlap) {
+      throw new RuntimeError(
+        "PROJECT_MANIFEST_INVALID",
+        "Runtime instruction root must be disjoint from the working root"
       );
     }
     const paths = [
@@ -178,7 +222,22 @@ export class ProjectRegistry {
     ];
     for (const [label, path] of paths) {
       assertRelativeManifestPath(path, label);
-      const canonical = await realpath(resolve(manifestDirectory, path));
+      // legacySessionRoots is read-if-present downstream: SessionStore.list()
+      // and SessionStore.get() (session-store.ts, listLegacyCandidates /
+      // migrateLegacy) only enumerate or migrate legacy sessions from roots
+      // that actually exist, and treat an absent root as "no legacy sessions".
+      // Registration therefore tolerates a missing legacySessionRoots entry
+      // (its containment check is skipped while absent) but still rejects any
+      // entry that exists and escapes the declared roots. Every other
+      // reference must exist at registration time.
+      const tolerateAbsence = label === "legacySessionRoots";
+      const canonical = await this.canonicalizeReference(
+        manifestDirectory,
+        path,
+        label,
+        tolerateAbsence
+      );
+      if (canonical === undefined) continue;
       if (!isContained(workingRoot, canonical) && !isContained(instructionRoot, canonical)) {
         throw new RuntimeError(
           "PROJECT_MANIFEST_INVALID",
@@ -187,6 +246,75 @@ export class ProjectRegistry {
       }
     }
     return { workingRoot, instructionRoot };
+  }
+
+  private async relativeInstructionRoot(
+    manifestDirectory: string,
+    manifest: ChiralityProjectManifestV1
+  ): Promise<string> {
+    assertRelativeManifestPath(manifest.instructionRoot, "instructionRoot");
+    return this.canonicalizeReference(
+      manifestDirectory,
+      manifest.instructionRoot,
+      "instructionRoot"
+    );
+  }
+
+  private async runtimeInstructionRoot(): Promise<string> {
+    const configured = this.environment[CHIRALITY_INSTRUCTION_ROOT_ENV]?.trim();
+    if (!configured) {
+      throw new RuntimeError(
+        "PROJECT_MANIFEST_INVALID",
+        `${CHIRALITY_INSTRUCTION_ROOT_ENV} is required for chirality.project/v2`
+      );
+    }
+    let canonical: string;
+    try {
+      canonical = await realpath(resolve(configured));
+      await access(canonical, constants.R_OK);
+      if (!(await stat(canonical)).isDirectory()) {
+        throw Object.assign(new Error("not a directory"), { code: "ENOTDIR" });
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR" && code !== "EACCES") throw error;
+      throw new RuntimeError(
+        "PROJECT_MANIFEST_INVALID",
+        `${CHIRALITY_INSTRUCTION_ROOT_ENV} is not a readable directory: ${configured}`
+      );
+    }
+    return canonical;
+  }
+
+  private async canonicalizeReference(
+    manifestDirectory: string,
+    relativePath: string,
+    label: string,
+    tolerateAbsence?: false
+  ): Promise<string>;
+  private async canonicalizeReference(
+    manifestDirectory: string,
+    relativePath: string,
+    label: string,
+    tolerateAbsence: boolean
+  ): Promise<string | undefined>;
+  private async canonicalizeReference(
+    manifestDirectory: string,
+    relativePath: string,
+    label: string,
+    tolerateAbsence = false
+  ): Promise<string | undefined> {
+    try {
+      return await realpath(resolve(manifestDirectory, relativePath));
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+      if (tolerateAbsence) return undefined;
+      throw new RuntimeError(
+        "PROJECT_MANIFEST_INVALID",
+        `${label} references a path that does not exist: ${relativePath}`
+      );
+    }
   }
 
   private readRegistry(): Promise<RegistryFile> {

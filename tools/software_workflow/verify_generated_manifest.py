@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from common import contained_path, sha256
+from software_workflow_common import contained_path, sha256
 
 
 def main() -> int:

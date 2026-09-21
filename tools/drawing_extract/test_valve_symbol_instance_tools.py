@@ -7,10 +7,6 @@ from pathlib import Path
 import pytest
 
 
-DRAWING_EXTRACT_DIR = Path(__file__).resolve().parent
-if str(DRAWING_EXTRACT_DIR) not in sys.path:
-    sys.path.insert(0, str(DRAWING_EXTRACT_DIR))
-
 import aggregate_valve_counts as aggregate_mod  # noqa: E402
 import assign_valve_symbol_geometry_duplicates as geometry_mod  # noqa: E402
 import assemble_valve_candidates_csv as assemble_mod  # noqa: E402

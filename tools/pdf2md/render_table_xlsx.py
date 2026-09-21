@@ -30,7 +30,7 @@ Determinism contract:
 
 Schema:
     The block conforms to `pdf2md-table/v1` as documented in
-    skills/pdf2md-page-assets/SKILL.md. Structural validation runs here as a
+    workflows/pdf2md-page-assets/WORKFLOW.md. Structural validation runs here as a
     last-line check; materialize_page_assets.py also pre-validates.
 """
 
@@ -83,12 +83,12 @@ def load_table_data(arg: str) -> dict[str, Any]:
 
 
 def validate_table_data(td: dict[str, Any]) -> None:
-    """Structural validation matching SKILL.md's pdf2md-table/v1 schema.
+    """Structural validation matching WORKFLOW.md's pdf2md-table/v1 schema.
 
     Raises SystemExit(2) with a contract-pointing error on any defect.
     """
     if not isinstance(td, dict):
-        raise SystemExit("ERROR: table_data must be a JSON object (see SKILL.md pdf2md-table/v1)")
+        raise SystemExit("ERROR: table_data must be a JSON object (see WORKFLOW.md pdf2md-table/v1)")
 
     sv = td.get("schema_version")
     if sv != SCHEMA_VERSION:

@@ -1,0 +1,83 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM112-GRACEFUL-STOP-REPAIR-20260804
+title: TM-ROOT-112 accepted graceful-stop contract and bounded repair
+date: 2026-08-04
+basis: 2b6d53027ea10374dd515a4a5a203f8ed4cf2f04
+
+instruction_surface_paths:
+  - docs/SPEC.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM112-GRACEFUL-STOP-REPAIR-20260804.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts authorized the separate bounded TM-ROOT-112 semantic-contract
+    and implementation/test tranche on 2026-08-03 in
+    execution/_Coordination/AgentRuns/ROOT_TM112_DECISION_PREP_2026-08-03/OWNER_RULING_TRANSCRIPT_2026-08-03.md,
+    SHA-256
+    66b967008f67934b08383291e68ef0af9923463d749cac9dbe7a74090e9cbb06;
+    accepted G2+C1+F1 as the authoritative semantic basis in
+    execution/_Coordination/AgentRuns/ROOT_SEMANTIC_RETURNS_2026-08-03/OWNER_RETURN_TRANSCRIPT_2026-08-03.txt,
+    SHA-256
+    6396dd26c3fb8b6ed922c1cb7da584f67a08188d5b27525d650bf3ca1560c566;
+    and accepted the exact three-file implementation on 2026-08-04 in
+    execution/_Coordination/AgentRuns/ROOT_TM112_IMPLEMENTATION_ACCEPTANCE_2026-08-04/OWNER_RETURN_TRANSCRIPT_2026-08-04.txt,
+    SHA-256
+    a10bda1c05fe1e1249a7efa266401ddf71752e4d9a8ab0448ec96251d5973046.
+    Those recorded acts authorize only the accepted contract and bounded
+    repair, tests, evidence, and ordinary App notice; they grant no App
+    parity acceptance, process/SIGTERM proof, release, reliance, or merge
+    authority.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-03
+  integration_owner: >-
+    Root HELP_HUMAN session on branch
+    codex/root-owner-rulings-2026-08-03; sole serialized integration owner
+    for the accepted docs/SPEC.md contract, bounded runtime-daemon.ts and
+    daemon.test.ts repair, exact evidence carriers, Root register/receipt
+    closure, and owner-authorized Root-to-App notice
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-04_ROOT_TM-ROOT-112_ACCEPTED_GRACEFUL_STOP_REPAIR.md
+  rationale: >-
+    App D-APP-88 is the recorded blocked consumer and TM-APP-036 carries the
+    mandatory non-blocking parity-rerun rider. The byte-identical App notice
+    states the exact accepted product hashes, evidence, Node 22.19 gap, and
+    no-claim limits. App retains sole authority over its rerun, evidence,
+    decisions, registers, lifecycle, release, and reliance.
+
+candidate_paths:
+  - docs/SPEC.md
+  - runtime/packages/daemon/src/runtime-daemon.ts
+  - runtime/tests/daemon.test.ts
+  - execution/_Coordination/AgentRuns/ROOT_TM112_STOP_CONTRACT_2026-08-03/
+  - execution/_Coordination/AgentRuns/ROOT_TM112_SEMANTIC_ACCEPTANCE_2026-08-03/
+  - execution/_Coordination/AgentRuns/ROOT_TM112_IMPLEMENT_2026-08-03/
+  - execution/_Coordination/AgentRuns/ROOT_TM112_IMPLEMENTATION_ACCEPTANCE_2026-08-04/
+  - execution/_Coordination/NOTICE_2026-08-04_ROOT_TM-ROOT-112_ACCEPTED_GRACEFUL_STOP_REPAIR.md
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-04_ROOT_TM-ROOT-112_ACCEPTED_GRACEFUL_STOP_REPAIR.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM112-GRACEFUL-STOP-REPAIR-20260804.yaml
+
+scope_limits:
+  - >-
+    exact accepted graceful-stop contract and three-file bounded repair only;
+    Node 22.19 execution remains an explicit unexecuted compatibility gap
+  - >-
+    no App R2 causality, process/SIGTERM proof, App parity execution or
+    acceptance, cross-consumer compatibility, lifecycle, release, reliance,
+    or merge-to-main authority
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    This tranche carries no public-export release act. Regeneration remains
+    deferred to the next separately authorized export release from accepted
+    integrated state and creates no release or reliance effect.

@@ -30,7 +30,7 @@ The suite is distributed across three types as follows:
 
 The architectural constitution is documentary, not agentic. Ratified root
 governance is authoritative; the workflow-component and decomposition
-standards are candidate implementations pending explicit owner acceptance.
+standards are ratified external standards (D-GOV-14, owner ruling 2026-07-12).
 HELP_HUMAN is the sole Agent 0; HELPS_HUMANS is the Agent 1 manager that
 applies and maintains component governance.
 
@@ -356,8 +356,8 @@ The implementation's planning records identified seven future hardening candidat
 
 The architecture's central claim is supported by the ratified K-* invariant
 catalog and its implemented runtime/tool enforcement. The R1–R17 workflow and
-I1–I10 decomposition series are stated and mapped as candidate standards
-pending explicit owner acceptance.
+I1–I10 decomposition series are stated and mapped in their ratified external
+standards (D-GOV-14, owner ruling 2026-07-12).
 
 The current implementation provides a verified but bounded runtime enforcement
 layer. Permission callbacks and hooks reject out-of-scope reads/writes,

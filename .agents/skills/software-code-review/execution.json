@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK",
+    "WORKING_ITEMS",
+    "HELPS_HUMANS"
+  ],
+  "tools": {
+    "commands": [
+      "python3 tools/software_workflow/select_affected_checks.py:*",
+      "python3 tools/software_workflow/validate_change_scope.py:*",
+      "python3 tools/software_workflow/compare_structured.py:*",
+      "python3 tools/software_workflow/verify_generated_manifest.py:*"
+    ]
+  }
+}

@@ -9,6 +9,7 @@ export type HarnessErrorType =
   | 'INSTRUCTION_ROOT_INVALID'
   | 'SDK_FAILURE'
   | 'ENGINE_UNAVAILABLE'
+  | 'INSTRUCTION_ADOPTION_PENDING'
   | 'MODEL_UNAVAILABLE'
   | 'PROVIDER_AUTH_FAILURE'
   | 'PROVIDER_PROTOCOL_FAILURE'
@@ -75,11 +76,15 @@ export interface EngineSelection {
 
 export interface AdapterSessionMetadata {
   engineSessionId?: string;
+  /** Runtime turn whose provider thread may be resumed on the next delegated turn. */
+  lastRuntimeTurnId?: string;
   transcriptPath?: string;
   storeKey?: string;
   configDir?: string;
   packageName?: string;
   packageVersion?: string;
+  /** Reversible provider-span preparation committed with a v3 selection. */
+  contextSuccessor?: import('./agent-engine-port.js').PreparedContextSuccessor;
 }
 
 export interface SessionCreateRequest {
@@ -155,7 +160,8 @@ export interface SessionListResponse {
 }
 
 export interface BootMetadata {
-  engineSessionId: string;
+  /** Absent when the engine starts its provider thread with the first real turn. */
+  engineSessionId?: string;
   adapterId: string;
   providerId: string;
   model: string;
@@ -240,6 +246,10 @@ export type ContentBlock =
       type: 'file';
       path: string;
       mimeType: string;
+      /** Original display name only; the provider receives the contained staged path. */
+      name?: string;
+      sha256?: string;
+      bytes?: number;
     };
 
 export interface AttachmentError {
@@ -265,6 +275,8 @@ export type UIEvent =
       type: 'session:init';
       data: {
         engineSessionId: string;
+        lastRuntimeTurnId?: string;
+        providerSpanId?: string;
         adapterId: string;
         providerId: string;
         claudeSessionId?: string;
@@ -356,7 +368,8 @@ export interface IPersonaManager {
 export interface IAttachmentResolver {
   resolveAttachmentsToContentBlocks(
     message: string,
-    attachmentPaths: string[]
+    attachmentPaths: string[],
+    context?: { projectId: string; sessionId: string; projectRoot: string }
   ): Promise<ResolvedAttachments>;
 }
 

@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-
-PUBLICATION_DIR = Path(__file__).resolve().parent
-if str(PUBLICATION_DIR) not in sys.path:
-    sys.path.insert(0, str(PUBLICATION_DIR))
 
 from build_section_map import (  # noqa: E402
     parse_status_lifecycle,

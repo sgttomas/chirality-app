@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import csv
-import sys
 from pathlib import Path
 
-
-COORDINATION_DIR = Path(__file__).resolve().parent
-if str(COORDINATION_DIR) not in sys.path:
-    sys.path.insert(0, str(COORDINATION_DIR))
 
 from audit_dag import ACTIVE, CANDIDATE, ARCHITECTURE_BASIS, REQUIRED_COLUMNS, audit_dag, strict_passed  # noqa: E402
 from materialize_local_dependencies import materialize_local_dependencies  # noqa: E402

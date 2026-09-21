@@ -1,0 +1,46 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-CI-ECONOMY-20260920
+title: Piping CI coverage economy and coherent integration cadence
+date: 2026-09-20
+basis: 88c6c7463199d1d69caebde04678fa74facca78f
+instruction_surface_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/PIPING-CI-ECONOMY-20260920.yaml
+m2_gate:
+  authorization: >-
+    Owner Ryan Tufts asked about fewer lower-value tests, fewer/stacked PRs and
+    greater reliance on local validation, then directed: "Make those changes
+    where you find them effective." The supplied direction is retained in the
+    Piping run's OWNER_CI_ECONOMY_DIRECTION_2026-09-20.md. This tranche implements
+    proven duplicate-execution removal, duration-informed grouping, lean and
+    affected CI with full triggers/manual milestones, explicit non-applicability
+    across the monorepo, and fewer coherent integration PRs. Fixed product
+    criteria and the complete local product-integration sweep remain. No GitHub
+    branch protection, account permission, other project workflow or Runtime
+    adoption is changed.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-20
+  integration_owner: HELP_HUMAN Agent 0, GPT-6 Astra; scoped TASK Astra/low
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-20_CI_ECONOMY.md
+  rationale: >-
+    Piping consumes this evidence policy. The peer App/Runtime lead explicitly
+    acknowledged Piping ROOT as the sole writer of the Piping workflow/router
+    and accepted the cheap every-PR selector with explicit non-applicability.
+    Other project checks and protection settings are unchanged. Receiving loops
+    retain their own adoption and qualification responsibilities.
+candidate_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/PIPING-CI-ECONOMY-20260920.yaml
+  - projects/chirality-piping/tools/ci/
+  - projects/chirality-piping/tests/test_ci_e2e_plan.py
+  - projects/chirality-piping/apps/desktop/playwright.config.ts
+  - projects/chirality-piping/apps/desktop/e2e/ui-foundation.spec.ts
+  - projects/chirality-piping/apps/desktop/e2e/workspace-layout.spec.ts
+  - projects/chirality-piping/tools/release/run_evidence_sweep.py
+  - projects/chirality-piping/docs/CI_STRATEGY.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-20_CI_ECONOMY.md

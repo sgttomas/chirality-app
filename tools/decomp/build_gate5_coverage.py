@@ -22,13 +22,15 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "tools" / "source_catalog"))
+from source_database import resolve_domain_root  # noqa: E402
 COVERAGE_CLASSES = ("cov-empty", "cov-low", "cov-mid", "cov-high")
 ZERO_COVERAGE_ISSUE_ID = "OI-024"
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--domain-root", type=Path, default=Path("domains/chirality"))
+    p.add_argument("--domain-root", type=Path)
     p.add_argument("--repo-root", type=Path, default=Path("."))
     p.add_argument("--timestamp", default=None, help="UTC timestamp in YYYYMMDDTHHMMSSZ form")
     p.add_argument("--skip-render", action="store_true", help="Write registers only; do not render coverage HTML")
@@ -760,6 +762,11 @@ def update_companion_inventory(path: Path, package_name: str) -> None:
 
 def main() -> int:
     args = parse_args()
+    try:
+        args.domain_root = resolve_domain_root(args.domain_root)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     repo_root = args.repo_root.resolve()
     domain_root = (repo_root / args.domain_root).resolve() if not args.domain_root.is_absolute() else args.domain_root.resolve()
     decomp_root = domain_root / "_Decomposition"

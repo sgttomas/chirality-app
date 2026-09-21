@@ -1,0 +1,97 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM125-AGENT0-A2-VALIDATOR-ALIGN-20260821
+title: TM-ROOT-125 Agent 0 direct Agent 2 validator and allowlist alignment
+date: 2026-08-21
+basis: e3e18d27740018efd12e73193c02395a9eca93c2
+
+instruction_surface_paths:
+  - agents/AGENT_HELP_HUMAN.md
+  - tools/validation/validate_agent_instructions.py
+  - tools/validation/test_validate_agent_instructions.py
+  - docs/governance_harness/tranche_manifests/ROOT-TM125-AGENT0-A2-VALIDATOR-ALIGN-20260821.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed this Root session on 2026-08-21 to amend the Root
+    agent-instruction validator and tests so Agent 0 may allowlist canonical
+    TASK and explicitly opt into ephemeral generalist Agent 2 dispatch while
+    all other hierarchy rejections remain fail-closed; to align
+    AGENT_HELP_HUMAN.md frontmatter in the same instruction-surface tranche;
+    to route reciprocal coordination notices; and to close through one
+    branch and one PR against main without merge. The direction is transcribed
+    in the Root loop receipt by the integration owner; this manifest records
+    the gate and grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-21
+  integration_owner: >-
+    HELP_HUMAN (Agent 0), with bounded workflow-component implementation by
+    HELPS_HUMANS (Agent 1) under the sealed H1 launch brief
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+    - _DomainEngines/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+  rationale: >-
+    agents/AGENT_HELP_HUMAN.md changed. App, Piping, and domain-engine loops
+    consume the live Root Agent 0 instruction package. No App authority-corpus
+    pin and no Piping/domain SHA-pinned mirror was found. App has derivative
+    packaged-security and parity evidence that SHA-pins the prior bytes; those
+    immutable evidence packages are left untouched and reported as stale for
+    future regeneration under App authority. The App notice also routes the
+    DEL-08-04 post-Root integration check against App commit ac2cd801a and
+    Receipt 172. Notices are coordination, not authority.
+
+candidate_paths:
+  - agents/AGENT_HELP_HUMAN.md
+  - tools/validation/validate_agent_instructions.py
+  - tools/validation/test_validate_agent_instructions.py
+  - docs/governance_harness/tranche_manifests/ROOT-TM125-AGENT0-A2-VALIDATOR-ALIGN-20260821.yaml
+  - execution/_Coordination/AgentRuns/ROOT_CROSS_LOOP_CARRIERS_2026-08-21/
+  - execution/_Coordination/_TaskManagement/REGISTER.csv
+  - execution/_Coordination/_TaskManagement/REGISTER_CLOSED.csv
+  - execution/_Coordination/LOOP_RECEIPTS.md
+  - execution/_Coordination/HANDOFF_STATE.md
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+  - _DomainEngines/_Coordination/NOTICE_2026-08-21_ROOT_TM125_AGENT0_A2_VALIDATOR_ALIGNMENT.md
+
+scope_limits:
+  - >-
+    Agent 0 may name Agent 1 children and canonical TASK Agent 2 only; every
+    other named Agent 2 route remains rejected.
+  - >-
+    Agent 0 and Agent 1 may declare allow_generalist_agent2: true; Agent 2
+    remains rejected, and existing sealed-brief, declared-context, tool,
+    permission, write-containment, evidence, and non-delegation gates remain.
+  - >-
+    HELP_HUMAN WRITE_SCOPE, human authority, manager-owned validation, App
+    harness code, runtime product code, foreign registers, lifecycle, release,
+    reliance, and merge are unchanged.
+  - >-
+    This bounded TM-ROOT-125 tranche does not amend the older Agent-1-only
+    narrative still present in docs/TYPES.md section 4.3,
+    docs/WORKFLOW_COMPONENT_STANDARD.md section 4.1, and
+    docs/DBM_Agent_Instruction_Architecture.md section 2; their concordance
+    disposition remains a separate Root-owned follow-on.
+
+derivative_paths:
+  - projects/chirality-app-dev/execution/PKG-09_Validation_Packaging_Security_and_Release/1_Working/DEL-09-06_Network_Key_Attachment_and_Renderer_Security_Checks/Evidence/Packaged_Security_Proof_2026-08-20/instruction-root/
+  - projects/chirality-app-dev/execution/PKG-09_Validation_Packaging_Security_and_Release/1_Working/DEL-09-06_Network_Key_Attachment_and_Renderer_Security_Checks/Evidence/Packaged_Security_Proof_2026-08-20/Remediation_01/instruction-root/
+  - projects/chirality-app-dev/execution/_Coordination/AgentRuns/APPDEV_DAPP86_HELPER_PARITY_RERUN_2026-08-20/instances/A2-PKG02-PARITY-EXECUTOR-01/evidence/baseline/
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Existing App packaged-security and parity evidence is immutable historical
+    evidence and SHA-pins the pre-tranche HELP_HUMAN bytes; it is not rewritten.
+    App decides whether and when to regenerate current evidence under DEL-08-04
+    or its owning release/security instruments. Public-export regeneration is
+    likewise deferred to a separately authorized release from accepted
+    integrated state. This tranche creates no release or reliance effect.

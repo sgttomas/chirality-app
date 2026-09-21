@@ -3,7 +3,7 @@
 
 Creates RESEARCH_NOTE.md, Query_Log.csv, Evidence_Map.csv, Amendment_Candidates.csv,
 Open_Questions.csv, Conflicts.csv, and HANDOFF_STATE.md with canonical headers (per
-agents/AGENT_RESEARCH.md, via research_packet.py) and refreshes {RESEARCH_ROOT}/_LATEST.md.
+workflows/research-orchestration/WORKFLOW.md, via research_packet.py) and refreshes {RESEARCH_ROOT}/_LATEST.md.
 Refuses to overwrite an existing packet (packets are immutable run snapshots), so the packet
 shape is never re-derived by reasoning.
 
@@ -50,6 +50,7 @@ def main() -> int:
     )
     ap.add_argument("--research-root", type=Path, required=True)
     ap.add_argument("--slug", required=True)
+    ap.add_argument("--output-dir", type=Path, help="Exact fresh directory beneath research-root; nested paths require --no-update-latest")
     ap.add_argument("--topic", default="")
     ap.add_argument("--utc")
     ap.add_argument("--no-update-latest", action="store_true")
@@ -60,7 +61,15 @@ def main() -> int:
     slug = packet_slug(args.slug)
     packet_name = f"RCH_{utc}_{slug}"
     research_root = args.research_root
-    packet_dir = research_root / packet_name
+    packet_dir = args.output_dir or research_root / packet_name
+    resolved_root = research_root.resolve()
+    resolved_packet = packet_dir.resolve()
+    if resolved_packet == resolved_root or not resolved_packet.is_relative_to(resolved_root):
+        ap.error('packet output must remain beneath research-root, including after symlink resolution')
+    if args.output_dir:
+        packet_name = packet_dir.name
+        if not args.no_update_latest and packet_dir.resolve().parent != research_root.resolve():
+            ap.error('nested --output-dir requires --no-update-latest; pointer ownership is research-root only')
 
     if packet_dir.exists():
         print(

@@ -1,0 +1,136 @@
+{
+  "schema": "chirality-method-discovery-fixture/v1",
+  "precedence": ["project", "user", "bundled"],
+  "roleDescriptors": [
+    {"id": "HELP_HUMAN", "agentType": 0, "directEntry": true, "defaultForNewChat": true, "description": "Supervising role", "instruction": "agents/AGENT_HELP_HUMAN.md"},
+    {"id": "HELPS_HUMANS", "agentType": 1, "directEntry": true, "defaultForNewChat": false, "description": "Design manager", "instruction": "agents/AGENT_HELPS_HUMANS.md"},
+    {"id": "WORKING_ITEMS", "agentType": 1, "directEntry": true, "defaultForNewChat": false, "description": "Implementation manager", "instruction": "agents/AGENT_WORKING_ITEMS.md"},
+    {"id": "TASK", "agentType": 2, "directEntry": false, "defaultForNewChat": false, "description": "Bounded executor", "instruction": "agents/AGENT_TASK.md"}
+  ],
+  "packageYamlCases": [
+    {
+      "id": "multiline-and-nested-metadata",
+      "yaml": "name: multiline-example\ndescription: >-\n  A description continued\n  across two lines.\nmetadata:\n  owner: example\n  labels: [one, two]\n",
+      "expected": {"name": "multiline-example", "description": "A description continued across two lines.", "metadata": {"owner": "example", "labels": ["one", "two"]}}
+    },
+    {
+      "id": "quoted-escapes",
+      "yaml": "name: quoted-example\ndescription: \"A \\\"quoted\\\" description\"\n",
+      "expected": {"name": "quoted-example", "description": "A \"quoted\" description"}
+    },
+    {
+      "id": "duplicate-key-rejected",
+      "yaml": "name: first\nname: second\ndescription: Duplicate name must fail\n",
+      "expectedError": "DUPLICATE_KEY"
+    }
+  ],
+  "frontmatterDocumentCases": [
+    {
+      "id": "delimiter-substring-preserved",
+      "document": "---\nname: embedded-delimiter\ndescription: before---after\n---\n\n# Body\n",
+      "expectedDescription": "before---after"
+    }
+  ],
+  "methodNameCases": [
+    {"name": "a-b", "valid": true},
+    {"name": "a--b", "valid": false},
+    {"name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "valid": true},
+    {"name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "valid": false}
+  ],
+  "packageContainmentCases": [
+    {
+      "id": "skill-package-symlink-escape",
+      "kind": "skill",
+      "packagePathType": "directory-symlink-outside-library-root",
+      "expectedError": "PACKAGE_OUTSIDE_LIBRARY_ROOT"
+    },
+    {
+      "id": "skill-collection-symlink-escape",
+      "kind": "skill",
+      "packagePathType": "collection-directory-symlink-outside-library-root",
+      "expectedError": "COLLECTION_OUTSIDE_LIBRARY_ROOT"
+    }
+  ],
+  "workflowExecutionCases": [
+    {
+      "id": "absent-companion-inherits",
+      "executionJson": null,
+      "expectedExecutionRoleIds": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"],
+      "expectedExecution": null
+    },
+    {
+      "id": "empty-compatible-roles-denies-all",
+      "executionJson": {"schema_version": 1, "compatible_roles": []},
+      "expectedExecutionRoleIds": [],
+      "expectedExecution": {"schemaVersion": 1, "compatibleRoles": []}
+    },
+    {
+      "id": "malformed-compatible-roles-type",
+      "executionJson": {"schema_version": 1, "compatible_roles": "TASK"},
+      "expectedError": "MALFORMED_EXECUTION_METADATA"
+    }
+  ],
+  "skillExecutionCases": [
+    {
+      "id": "absent-companion-inherits",
+      "executionJson": null,
+      "expectedExecutionRoleIds": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"],
+      "expectedExecution": null
+    },
+    {
+      "id": "empty-compatible-roles-denies-all",
+      "executionJson": {"schema_version": 1, "compatible_roles": []},
+      "expectedExecutionRoleIds": [],
+      "expectedExecution": {"schemaVersion": 1, "compatibleRoles": []}
+    },
+    {
+      "id": "empty-command-list-denies",
+      "executionJson": {"schema_version": 1, "compatible_roles": ["TASK"], "tools": {"commands": []}},
+      "expectedExecutionRoleIds": ["TASK"],
+      "expectedCommands": []
+    }
+  ],
+  "cases": [
+    {
+      "id": "qualified-collision-precedence",
+      "candidates": [
+        {"kind": "skill", "name": "same-name", "source": "bundled", "sourceRootId": "bundle-A", "state": "valid"},
+        {"kind": "skill", "name": "same-name", "source": "user", "sourceRootId": "user-A", "state": "valid"},
+        {"kind": "skill", "name": "same-name", "source": "project", "sourceRootId": "project-A", "state": "valid"}
+      ],
+      "expected": {
+        "selected": {"kind": "skill", "name": "same-name", "source": "project", "sourceRootId": "project-A"},
+        "collisionCount": 3,
+        "error": null
+      }
+    },
+    {
+      "id": "malformed-higher-source-blocks",
+      "candidates": [
+        {"kind": "workflow", "name": "blocked", "source": "project", "sourceRootId": "project-A", "state": "malformed"},
+        {"kind": "workflow", "name": "blocked", "source": "user", "sourceRootId": "user-A", "state": "valid"}
+      ],
+      "expected": {"selected": null, "collisionCount": 2, "error": "MALFORMED_HIGHER_PRECEDENCE"}
+    },
+    {
+      "id": "resource-symlink-escape",
+      "candidate": {"kind": "workflow", "name": "escape", "source": "project", "sourceRootId": "project-A", "state": "resource-escape"},
+      "expected": {"selected": null, "error": "RESOURCE_OUTSIDE_PACKAGE"}
+    },
+    {
+      "id": "flat-project-markdown-is-document-only",
+      "projectFiles": ["WORKFLOW.md", "notes/workflow.md"],
+      "expected": {"discovered": [], "error": null}
+    },
+    {
+      "id": "converted-legacy-method",
+      "legacyInput": {"TaskSkill": "deliverable-consistency"},
+      "expected": {"kind": "skill", "name": "deliverable-consistency"}
+    },
+    {
+      "id": "public-export-exclusion",
+      "input": {"kind": "skill", "name": "chirality-change", "source": "project", "sourceRootId": "chirality-root-project"},
+      "expected": {"included": false, "missingDiagnostic": false}
+    }
+  ]
+}

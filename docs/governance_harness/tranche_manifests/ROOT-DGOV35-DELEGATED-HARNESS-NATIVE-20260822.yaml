@@ -1,0 +1,106 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV35-DELEGATED-HARNESS-NATIVE-20260822
+title: D-GOV-35 delegated-harness-native Root instruction application
+date: 2026-08-22
+basis: b143444bd497eae1b1b638670a33e6df756d9084
+
+instruction_surface_paths:
+  - AGENTS.md
+  - docs/WORKFLOW_COMPONENT_STANDARD.md
+  - docs/TYPES.md
+  - docs/DBM_Agent_Instruction_Architecture.md
+  - docs/governance_harness/_DECISIONS/D-GOV-35_delegated_harness_native_class.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/README.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/D-GOV-35.proposed.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV35-DELEGATED-HARNESS-NATIVE-20260822.yaml
+
+m2_gate:
+  authorization: |-
+    R1-B — DEL-02-03 M2 application tranche: [click] "Authorize, one tranche,
+      export deferred".
+      Recorded form: one bounded instruction tranche applies the exact
+      `AGENTS.proposed.patch`, propagates the ruled wording to the three
+      concordance sentences named in R1-A, finalizes the N2 draft manifest
+      (`execution/PKG-02_Operative_Instruction_Surface_and_Runtime_Layers/1_Working/DEL-02-03_Delegation_Hierarchy_and_Entry_Rules/_run_records/DEL-02-03-M2-PREP-001/ROOT-DGOV35-DELEGATED-HARNESS-NATIVE-20260822.yaml`,
+      SHA-256 `59f0ed42ce498a6d3fbed9148b70691a0e4ceda49e37c890ed8391c4861ef7da`)
+      into the live manifest corpus, routes the App and Piping coordination
+      notices in the same tranche, and records the Root-owned Chirality App
+      public-export regeneration as an explicit deferral to the next export
+      release. No lifecycle state of DEL-02-03 changes; no hold is lifted.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-22
+  integration_owner: >-
+    HELP_HUMAN (Agent 0), with the bounded D-GOV-35 instruction application
+    managed by HELPS_HUMANS (Agent 1) under sealed instance
+    N1_DGOV35_M2_APPLICATION
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-35_DELEGATED_HARNESS_NATIVE_CLASS.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_D-GOV-35_DELEGATED_HARNESS_NATIVE_CLASS.md
+  rationale: >-
+    Root AGENTS.md delegation doctrine changed. The App loop owns SCA-APP-008
+    and WP-06 follow-on across its contract, SOW, runtime, tests, and generated
+    instruction-root mirror; the Piping loop owns its local AGENTS.md semantic-
+    mirror assessment. Historical corpus snapshots, packaged evidence, and
+    run-basis pins remain immutable. The notices are coordination, not
+    authority, and each loop adopts, amends, declines, or defers under its own
+    instruments and cadence.
+
+candidate_paths:
+  - AGENTS.md
+  - docs/WORKFLOW_COMPONENT_STANDARD.md
+  - docs/TYPES.md
+  - docs/DBM_Agent_Instruction_Architecture.md
+  - docs/governance_harness/_DECISIONS/D-GOV-35_delegated_harness_native_class.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/README.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/D-GOV-35.proposed.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV35-DELEGATED-HARNESS-NATIVE-20260822.yaml
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-35_DELEGATED_HARNESS_NATIVE_CLASS.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_D-GOV-35_DELEGATED_HARNESS_NATIVE_CLASS.md
+  - execution/PKG-02_Operative_Instruction_Surface_and_Runtime_Layers/1_Working/DEL-02-03_Delegation_Hierarchy_and_Entry_Rules/_run_records/DEL-02-03-M2-APPLY-001/
+  - execution/PKG-02_Operative_Instruction_Surface_and_Runtime_Layers/1_Working/DEL-02-03_Delegation_Hierarchy_and_Entry_Rules/_run_records/DEL-02-03-M2-PREP-001/HANDOFF_STATE.md
+  - execution/PKG-02_Operative_Instruction_Surface_and_Runtime_Layers/1_Working/DEL-02-03_Delegation_Hierarchy_and_Entry_Rules/_STATUS.md
+  - execution/_Coordination/AgentRuns/ROOT_V3_PHASE0B_2026-08-22/instances/N1_DGOV35_M2_APPLICATION/
+  - execution/_Coordination/LOOP_RECEIPTS.md
+
+scope_limits:
+  - >-
+    Apply only the exact AGENTS.md patch at SHA-256
+    4455adda4199be5493e1f8d2171ebb4641f40666c35cf09e90adc935ff6355ee
+    against pre-application AGENTS.md SHA-256
+    268becd0bac9da8421b30089e4e4167a5e5f79bf3892d0f72ad41a63180a3aeb.
+  - >-
+    Propagate only the owner-ruled Agent 0 direct bounded-Agent-2 sentence to
+    docs/WORKFLOW_COMPONENT_STANDARD.md, docs/TYPES.md, and
+    docs/DBM_Agent_Instruction_Architecture.md. The standard remains an
+    external normative standard, not an agent.
+  - >-
+    Preserve historical D-GOV-14, D-APP-68, authority-corpus snapshots,
+    packaged proof, and run-basis evidence. Receiving loops own all local
+    semantic adoption and regenerated-current-proof decisions.
+  - >-
+    No agents/**, product-source, runtime, hold, pointer, pin, lifecycle,
+    release, reliance, self-merge, or merge change is authorized.
+  - >-
+    The separate DEL-02-03 M2 application manifest is finalized here; the
+    preparation manifest remains immutable historical run-basis evidence and
+    retains basis 13201dfe7dc3b97c9aa36f6305cae604b48ef80f.
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Per R1-B, the Root-owned Chirality App public export is deferred to the
+    next export release. This tranche records the stale derivative and does
+    not regenerate or publish exports/chirality-app/**. Historical App and
+    Piping evidence remains immutable.

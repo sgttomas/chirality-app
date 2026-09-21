@@ -2,10 +2,10 @@
 
 This appendix consolidates the three layers of formally stated invariants that govern the Chirality agent instruction architecture. The invariants are organized by their layer of origin and scope of application: workflow design requirements (R1–R17) apply universally to workflow-component designs; decomposition invariants (I1–I10) govern decomposition; and system-wide invariants (K-*) are enforced across the full agent suite.
 
-The R-series is reproduced from the candidate
+The R-series is reproduced from the ratified
 `docs/WORKFLOW_COMPONENT_STANDARD.md`; the I-series is reproduced from the
-candidate `docs/DECOMPOSITION_STANDARD.md`. They remain candidate text pending
-explicit owner acceptance. The ratified K-* catalog in `docs/CONTRACT.md`
+ratified `docs/DECOMPOSITION_STANDARD.md` (both ratified under D-GOV-14,
+owner ruling 2026-07-12). The ratified K-* catalog in `docs/CONTRACT.md`
 governs on divergence.
 
 ---
@@ -58,7 +58,7 @@ Defined in `docs/DECOMPOSITION_STANDARD.md`. Apply to all decomposition agents (
 
 ## A.3 System-Wide Invariants (K-*)
 
-Defined in `docs/CONTRACT.md` (reproduced here as of 2026-07-02; 27 invariants). Enforced across the full agent suite. Invariant IDs are stable and never reused; retired invariants are relocated to the retired section of CONTRACT.md with retirement rationale (as of this reproduction, none have been retired).
+Defined in `docs/CONTRACT.md` (reproduced here as of 2026-07-02; 27 invariants, with K-MERGE-1 updated for the owner amendment of 2026-09-12). Enforced across the full agent suite. Invariant IDs are stable and never reused; retired invariants are relocated to the retired section of CONTRACT.md with retirement rationale (as of this reproduction, none have been retired).
 
 ### A.3.1 Hierarchy and Identity (CONTRACT §1.1)
 
@@ -115,7 +115,7 @@ Defined in `docs/CONTRACT.md` (reproduced here as of 2026-07-02; 27 invariants).
 
 | ID | Invariant | Enforcement |
 |----|-----------|-------------|
-| **K-MERGE-1** | Merge to main allowed only when **branch HEAD == approved SHA** for the relevant run. | Human review; future CI check |
+| **K-MERGE-1** | Git integration follows owner-authorized scope, required CI and independent review of the actual candidate under K-MERGE-1 and PRD_ROOT §5.3.1; it is not human acceptance for reliance. | Independent review; required CI; source-HEAD verification |
 
 ### A.3.9 Provenance and Epistemic Integrity (CONTRACT §1.9)
 

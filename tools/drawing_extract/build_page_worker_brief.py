@@ -3,7 +3,7 @@
 build_page_worker_brief.py
 Render a valid INIT-TASK brief for a drawing-extract-page dispatch.
 
-Emits the documented INIT-TASK shape (PURPOSE, ScopePath, TaskSkill,
+Emits the documented INIT-TASK shape (PURPOSE, ScopePath, Workflow,
 AllowedWriteTargets, RuntimeOverrides, CustomInstructions, ExpectedOutputs)
 with format-critical CustomInstructions derived from render_stub().
 
@@ -106,12 +106,13 @@ def main() -> int:
     # --- Emit INIT-TASK brief ---
     lines = [
         f"PURPOSE: Extract top-of-sheet equipment header from drawing page {page} of {args.total_pages}",
-        "RequestedBy: DRAWING_EXTRACT",
-        "ActingSurface: TASK+drawing-extract-page",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {work_dir}",
-        "TaskSkill: drawing-extract-page",
+        "Workflow: drawing-extract-page",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{output_path}"',
         "",

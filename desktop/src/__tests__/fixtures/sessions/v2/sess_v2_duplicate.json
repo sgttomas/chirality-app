@@ -1,0 +1,13 @@
+{
+  "sessionId": "sess_v2_duplicate",
+  "projectRoot": "__PROJECT_ROOT__",
+  "persona": "WORKING_ITEMS",
+  "mode": "direct",
+  "createdAt": "2026-08-30T12:40:00.000Z",
+  "updatedAt": "2026-08-30T12:41:00.000Z",
+  "engineSessionId": "engine_fixture_duplicate_legacy",
+  "claudeSessionId": "engine_fixture_duplicate_legacy",
+  "sdkPackageVersion": "0.3.150",
+  "instructionPath": "agents/AGENT_WORKING_ITEMS.md",
+  "instructionHash": "fixture-instruction-hash"
+}

@@ -1,0 +1,104 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-HARNESS-SCOPE-CORRECTION-20260802
+title: Root harness scope correction and GEN-8 telemetry-pin correction
+date: 2026-08-02
+basis: 1d4abf1cf1a23a33bd7fec59971251f86c010210
+
+instruction_surface_paths:
+  - AGENTS.md
+  - agents/AGENT_WORKING_ITEMS.md
+  - tools/practitioner_harness/test_live_baseline.py
+  - docs/governance_harness/tranche_manifests/ROOT-HARNESS-SCOPE-CORRECTION-20260802.yaml
+
+m2_gate:
+  authorization: |-
+    Owner amendment of 2026-08-02, verbatim: "AMEND:
+    ROOT-HARNESS-SCOPE-CORRECTION-20260802 — on synchronized
+    main@556ae59a34ac2f06ef924d367843a72ea00d1f37, remove the app-harness
+    managed-Bash paragraph from root AGENTS.md and the duplicated managed-Bash
+    item from agents/AGENT_WORKING_ITEMS.md, with no replacement restriction
+    on Codex-native development agents; retain the App-managed Bash policy
+    unchanged in its App-owned decision, PRD, runtime, and test surfaces. Also
+    make the test-only correction in
+    tools/practitioner_harness/test_live_baseline.py so GEN-8 continues to
+    require exactly unacknowledged_control=0, active_unclassified=0, and
+    policy_issues=0 while accepting acknowledged_control as
+    nonnegative-integer telemetry without an exact count pin, consistent with
+    the accepted R10 semantics and practitioner-harness README. Make no
+    validator, classifier, runtime, policy, lifecycle, product, DAG, pointer,
+    or DEC-092 behavior change. Ship the G4 tranche manifest, Root Receipt 80,
+    and coordination notices to app-dev, piping, and PEC; preserve historical
+    records and frozen pins; defer public-export regeneration."
+    Implementation proceeds on the separate current-origin lane cut at
+    ccd9a2178ffd8029fdd1cd779910e954e0612e21; the intervening change from the
+    amendment basis is the PEC DEL-01-06 activation merge and does not change
+    this tranche's bounded subject or write fence. Publication merge remains a
+    separate owner act on the final branch HEAD; this manifest grants nothing.
+    Owner-approved receipt-allocation amendment of 2026-08-02: the separate
+    Task Management instruction-schema repair receives Root Receipt 80 and
+    this harness-scope correction receives Root Receipt 81. This renumbering
+    changes no scope, behavior, authority, or gate. After PR #466 merged as
+    5b19b06d26b7e6d4cd17368fd5233cac0d92db0c, the isolated lane was
+    fast-forwarded to that accepted main basis before final validation; none
+    of the intervening paths overlapped this tranche's seven prepared paths.
+    Before publication, origin/main advanced through App Dev PR #467 to
+    1d4abf1cf1a23a33bd7fec59971251f86c010210; those paths were also
+    disjoint, and the single correction commit was rebased to that final basis.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-02
+  integration_owner: >-
+    HELPS_HUMANS implementation owner in the isolated
+    codex/root-harness-scope-correction worktree, supervised by HELP_HUMAN;
+    sole serialized integration owner for the exact eight-path write fence;
+    no commit, push, PR, merge, or semantic acceptance authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-02_ROOT_HARNESS_SCOPE_CORRECTION.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-02_ROOT_HARNESS_SCOPE_CORRECTION.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-08-02_ROOT_HARNESS_SCOPE_CORRECTION.md
+  rationale: >-
+    This tranche changes root AGENTS.md and agents/AGENT_WORKING_ITEMS.md.
+    Same-tranche notices tell each registered project loop what changed, what
+    remains App-owned, and what local reconciliation may remain. The notices
+    are coordination, never authority, and create no project-local act.
+
+scope_limits:
+  - >-
+    delete only the root AGENTS.md app-harness managed-Bash paragraph and the
+    duplicated AGENT_WORKING_ITEMS Phase-3 item, renumbering the following
+    bounded representation-migration item from 8 to 7; add no replacement
+    restriction on Codex-native development agents
+  - >-
+    retain unchanged the App-managed Bash policy in its App-owned decision,
+    PRD, runtime, and test surfaces; historical PR188 and Receipt-10 evidence,
+    standards, validators, classifiers, runtime, policies, frozen pins, and
+    exports remain unchanged
+  - >-
+    change only the GEN-8 live-baseline assertion so its first three semantic
+    invariants remain exact zeroes and acknowledged_control is accepted as
+    nonnegative-integer telemetry; no aggregate finding count or path set is
+    pinned and no practitioner-harness behavior changes
+  - >-
+    no lifecycle, product, scope, dependency, decomposition, DAG, pointer,
+    activation, DEC-092 implementation, reliance, release, or professional-
+    judgment act
+  - >-
+    implementation lane only; no commit, push, pull request, merge, or owner
+    acceptance act is performed by HELPS_HUMANS
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries root instruction surfaces and frozen hashes that
+    may be affected by the two instruction deletions. Regeneration is deferred
+    to a later authorized export release from post-merge bytes. This deferral
+    changes no current export authority, content boundary, or runtime behavior.

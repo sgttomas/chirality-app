@@ -1,0 +1,15 @@
+{
+  "sessionId": "sess_v2_duplicate",
+  "projectRoot": "__PROJECT_ROOT__",
+  "persona": "WORKING_ITEMS",
+  "mode": "direct",
+  "createdAt": "2026-08-30T12:40:00.000Z",
+  "updatedAt": "2026-08-30T12:45:00.000Z",
+  "engineSessionId": "engine_fixture_duplicate_canonical",
+  "model": "fixture-model",
+  "engineSelection": {
+    "adapterId": "claude-agent-sdk",
+    "providerId": "anthropic",
+    "model": "fixture-model"
+  }
+}

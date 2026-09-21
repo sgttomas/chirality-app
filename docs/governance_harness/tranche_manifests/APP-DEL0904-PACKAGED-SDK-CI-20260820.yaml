@@ -1,0 +1,36 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-DEL0904-PACKAGED-SDK-CI-20260820
+title: DEL-09-04 staged and mounted packaged Agent SDK CI proof
+date: 2026-08-20
+basis: d8c47d9fbc459b32c053c844be0fa789fd1ffab2
+
+instruction_surface_paths:
+  - .github/workflows/desktop-release-template.yml
+  - docs/governance_harness/tranche_manifests/APP-DEL0904-PACKAGED-SDK-CI-20260820.yaml
+
+m2_gate:
+  authorization: >-
+    D-APP-97 C1, ruled by Ryan Tufts on 2026-08-17, expressly authorizes
+    DEL-09-04's packaged-SDK and DMG/dist proofs over unsigned local/CI-only
+    artifacts. Signing, notarization, distribution, release authority,
+    lifecycle advancement, reliance, and professional approval remain fenced.
+    The selected implementation is recorded under HELP_HUMAN run
+    APPDEV_PACKAGED_SDK_PROOF_2026-08-20. This manifest records that authority
+    and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-17
+  integration_owner: >-
+    HELP_HUMAN for APPDEV_PACKAGED_SDK_PROOF_2026-08-20, with the selected
+    PKG-09 WORKING_ITEMS instance as bounded implementation manager; CHANGE
+    owns serialized Git closeout.
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The accepting HELP_HUMAN Agent 0 survey at final fan-in found no cross-loop
+    notice obligation. The changed workflow is App-specific, changes no
+    agents, skills, root governance prose, authority corpus, or shared consumer
+    contract, and creates no authority for another loop.

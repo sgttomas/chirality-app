@@ -1,0 +1,40 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-SCA009-ROOT-LIVE-BASELINE-PIN-20260904
+title: SCA-APP-009 bounded Root practitioner-harness live-baseline pin
+date: 2026-09-04
+basis: fb07aceed1e8a58678f20fe5c3171c71e210dafe
+
+instruction_surface_paths:
+  - tools/practitioner_harness/test_live_baseline.py
+  - docs/governance_harness/tranche_manifests/APP-SCA009-ROOT-LIVE-BASELINE-PIN-20260904.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts answered “Yes” to the SCA-APP-009 Gate-5 execution question
+    preserved as G5-PREPOINTER-EXECUTE in
+    projects/chirality-app-dev/execution/_ScopeChange/SCA-APP-009_2026-09-04_0944_App_V3_Pathway_Seating/Decision_Log.md.
+    That accepted transaction includes the bounded Root practitioner-harness
+    live-baseline postimage
+    e747795d2abf1f3336b87c12efd37d7000d2d132bf2936a49e6eae2cd1a5d198.
+    This manifest records that existing authorization and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-04
+  integration_owner: >-
+    HELP_HUMAN for SCA-APP-009 PR #707; owner merge remains the gate
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The covered Root instruction-surface byte is only the conscious
+    practitioner-harness live-baseline assertion for the owner-approved App
+    decomposition postimage. It changes no harness behavior, public tool
+    contract, agent or skill package, workflow, product, frontend, runtime,
+    or downstream-loop authority.
+
+scope_limits:
+  - exact Root practitioner-harness live-baseline postimage only
+  - no harness behavior or public tool-contract change
+  - no product, frontend, runtime, workflow, lifecycle, or release act

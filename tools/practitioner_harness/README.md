@@ -18,13 +18,19 @@ supersede a D-GOV-* record or arrive as PR review — never a new plan document.
 (read + report only). `domains/*` deferred; `projects/chirality-governance/`
 out of scope by construction; `.archive/` trees excluded from every walk.
 
+**Root working root (D-GOV-21):** the root product is additionally observable
+as `--project root` / `chirality-root` — observation only. See
+[Root working root](#root-working-root---project-root-d-gov-21).
+
 ## Commands
 
 ```sh
 python3 tools/practitioner_harness/harness.py status --project app-dev
 python3 tools/practitioner_harness/harness.py status --project piping
 python3 tools/practitioner_harness/harness.py status --domain-engines
-python3 tools/practitioner_harness/harness.py drift --all            # status-vs-history vs the recorded baseline
+python3 tools/practitioner_harness/harness.py status --project root  # the ROOT working root (observation only)
+python3 tools/practitioner_harness/harness.py drift --project root
+python3 tools/practitioner_harness/harness.py drift --all            # status-vs-history vs the recorded baseline (pilot projects only)
 python3 tools/practitioner_harness/harness.py self-check             # restated-state surface audit
 python3 tools/practitioner_harness/harness.py bridge-status          # bridge owner-shaped act pick-list (the tool never selects)
 python3 tools/practitioner_harness/harness.py next                    # active-work pick-list (the practitioner selects)
@@ -360,6 +366,59 @@ history entries authored, one parser-verified line per file). Ruling record:
 The recorded adapter baseline was re-measured to 0/101 in the same act; the
 live pin in `test_live_baseline.py` carries the matching conscious update.
 
+## Root working root (`--project root`, D-GOV-21)
+
+The root product's working root IS the repository root (`WORKING_ROOT ==
+REPO_ROOT`, `docs/SPEC.md` §0.2.2), so it registers its adapter at
+`execution/_harness/adapter.yaml` with schema `root-harness-adapter/v1` —
+co-located with the root guard registration surface, and outside the public
+export boundary. `tools/validation/validate_root_harness_adapter.py` (G1) is
+that manifest's authority; the loader neither weakens nor duplicates its
+checks, and is stricter only about what the harness itself must have to read
+the manifest at all (baseline integers, non-empty declared pointers).
+
+**Two locations, two schemas, no fallback.** `adapter_loader` probes both
+registered locations under a working root and requires exactly one to carry a
+manifest (both present = ambiguous = exit 2, never a choice). Location and
+schema must agree: a `practitioner-harness-adapter/v1` document at the root
+relpath — or a `root-harness-adapter/v1` document at the project relpath — is
+an operational error, not an invitation to try the other validator.
+
+**Normalization (equivalence, not duplication).** The root shape is mapped
+into the single internal `AdapterManifest` every command already reads:
+
+| `root-harness-adapter/v1` | internal field | note |
+|---|---|---|
+| `product` | `project` | working-root identity string |
+| `prd` | `plan` | the PRD fills the role `plan` serves for a project |
+| `coordination`, `decision_register`, `status_glob`, `states`, `parser_dialect`, `exclude_globs` | same names | same meaning |
+| `baselines.status_files` | `drift_baseline_files` | pinned drift denominator |
+| `baselines.status_mismatch` | `drift_baseline_mismatch` | pinned drift numerator |
+| `baselines.pinned_at` | `baseline_pinned_at` | pin provenance (root only) |
+| `working_root`, `execution_root` | same names | declared explicitly by root only |
+| *(not declared)* | `dag_pointer = ""` | root registers no DAG pointer surface |
+| *(not declared)* | `validation_commands = []` | root declares no validation surfaces |
+
+`manifest.kind` records which shape was loaded; `declares_dag_pointer()` /
+`declares_validation_commands()` are how a command detects an absent field.
+An absent field is never joined onto the working root and never rendered as
+"artifact absent": `status` reports `dag.pointer: not declared by this adapter
+schema (root-harness-adapter/v1)` at `NOT_APPLICABLE`, citing the manifest.
+
+**Observation only — what root supports, and what refuses.**
+
+| Command | `--project root` | Why |
+|---|---|---|
+| `status` | supported | posture, per-state counts, PRD/coordination status lines |
+| `drift` | supported (alone; never folded into `--all`) | pinned baseline lives in `baselines.*` |
+| `brief` | **refuses, exit 2** | no `dag_pointer` to project from, and no fence narrower than the whole repository can be derived — a guessed pointer and a repo-wide fence are worse than a refusal (K-INVENT-1) |
+| `next` | **refuses, exit 2** | its rows carry ready-made `brief` command lines that would not run; `status --project root` gives the per-state counts |
+| `run-validations`, `scope-check`, `evidence-check`, `closeout-digest` | unchanged | these resolve the project from the brief's write fence, and the root is deliberately absent from that reverse alias table: the repository root would prefix-match every write_scope entry and turn "no registered pilot project root" into a wrong answer |
+| `self-check` | unchanged | its scope is the pilot roots + control areas and it prints that scope; it makes no claim about the root `execution/` tree |
+
+Refusals name the command, the alias, and the reason, and exit 2 — never a
+stack trace, never a silently different answer.
+
 ## Project-tree abs-path lint (GEN-8) and agent-registry currency (GEN-9)
 
 **GEN-8 (SPEC §0.2.4).** GEN-1 stays control-area per-line; GEN-8 extends the
@@ -483,6 +542,18 @@ Missing this header on a file under the generated root is a BLOCK
 
 ## Tests
 
+Root adoption (`test_root_adoption.py`): alias resolution to the repository
+root and the root's deliberate absence from the brief-fence alias table (with
+the out-of-project fence refusal pinned as a regression), strict
+`root-harness-adapter/v1` validation and normalization (per-required-key and
+per-baseline-key operational errors, non-integer and over-count baselines,
+`working_root` ≠ `.`, location/schema disagreement in both directions,
+ambiguous double registration), the `NOT_APPLICABLE` absent-`dag_pointer`
+fact, `status`/`drift` over a tmp root fixture, the `brief`/`next`/`drift
+--all` refusals, and LIVE-tree pins (45 files, 0 mismatches, all OPEN, adapter
+pin 0/45) held to the same conscious-pin discipline as the app-dev 0/53 and
+piping 0/101 pins below.
+
 Co-located pytest (`python3 -m pytest tools/practitioner_harness -q`):
 read-only guarantee (byte-identical governed files), drift fixtures modeled on
 the `_DomainEngines/` contradictions, path containment (absolute, `..`,
@@ -559,3 +630,10 @@ prefix. They live as string constants inside `test_`-prefixed modules on
 purpose: loose fixture data files under `tools/` carrying home-dir-absolute
 content would fail `tools/validation/validate_path_anchors.py`, and `tools/`
 ships verbatim into the public export.
+
+
+D-GOV-41 updates current role inventory lookup to `agents/registry.json`.
+GEN-9 reads that registry when present and checks its instruction targets against
+live role files. Historical fixture repositories without the JSON registry keep
+the AGENTS.md token reader. Workflow selection is explicit; see
+`tools/workflow_runtime/README.md` for loading and permission composition.

@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from common import contained_path, matches
+from software_workflow_common import contained_path, matches
 from compare_structured import flatten
 from validate_change_scope import contained
 

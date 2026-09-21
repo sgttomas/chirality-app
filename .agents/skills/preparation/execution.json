@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "HELPS_HUMANS",
+    "WORKING_ITEMS",
+    "TASK"
+  ],
+  "tools": {
+    "capabilities": [
+      "read",
+      "write",
+      "bash",
+      "report_coordination_notice",
+      "ack_agent_update"
+    ]
+  }
+}

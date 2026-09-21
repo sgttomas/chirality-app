@@ -1,0 +1,79 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV35-PROPOSAL-20260822
+title: D-GOV-35 delegated-harness-native proposal candidate
+date: 2026-08-22
+basis: 166efa82748133e90674be62304b81f8a0a8c1b4
+
+instruction_surface_paths:
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/README.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/D-GOV-35.proposed.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/AGENTS.proposed.patch
+  - docs/governance_harness/_PROPOSALS/D-GOV-35_2026-08-22_delegated_harness_native_class/IMPACT.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV35-PROPOSAL-20260822.yaml
+
+m2_gate:
+  authorization: |-
+    OWNER DIRECTION — PR #620 repair and closeout completion (one commit, no rebase, no force-push).
+    1. G4 repair (steer gap acknowledged; N1 write set widened by exactly one file):
+       add docs/governance_harness/tranche_manifests/ROOT-DGOV35-PROPOSAL-20260822.yaml,
+       schema instruction-tranche-manifest/v1, modelled on
+       ROOT-GOV30-DISCLOSURE-20260728.yaml: basis 166efa82748133e90674be62304b81f8a0a8c1b4;
+       instruction_surface_paths = the four D-GOV-35 packet files plus this manifest;
+       m2_gate merge_gate human-gated-pr, self_merge false, authorization = this
+       direction transcribed verbatim; m6_notice disposition pending, routed_to [];
+       scope_limits: proposal-candidate only — no AGENTS.md change, no ruling, the
+       separate DEL-02-03 M2 application manifest stays a draft in its run record;
+       derivative_disposition deferred (public export). Add the new manifest to the
+       N1 README SHA table. Prove locally:
+       python3 tools/validation/validate_instruction_tranche_manifest.py --base origin/main --head HEAD --added-manifests-only
+    2. Sync disposition: the merge of main (166efa827) into the branch was
+       <AUTHORIZED by me in-session — record as owner-authorized / NOT AUTHORIZED —
+       record as an unauthorized sync left in place, no rewrite>.
+    3. Append Receipt 114 to execution/_Coordination/LOOP_RECEIPTS.md and update
+       execution/_Coordination/HANDOFF_STATE.md counts: CHAT_TRANSCRIPTION of the
+       steer and plans/steers/chirality_app_v3_g0_record_2026-08-22.md (SHA-256
+       86b9877c6bea08a9f79c2af2378d5d38722a09c1a10deb37f87211c76d2c290b), per-node
+       write sets including the widening above, every cited SHA/commit, validator
+       outputs, the sync disposition, the G4 failure and its repair, and the open
+       blockers (D-GOV-35 awaiting ruling; SCA-004 awaiting acceptance).
+    4. Re-run validate_candidate_whitespace.py --base-ref origin/main,
+       validate_agent_instructions.py, validate_instruction_entrypoints.py,
+       taskmgmt validate, then push. Do not merge.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-22
+  integration_owner: >-
+    HELP_HUMAN is the sole serialized integration owner for this bounded PR
+    repair; the owner direction grants one normal commit and push, no merge
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    This tranche covers a proposal candidate only. D-GOV-35 remains awaiting
+    owner ruling, so no downstream instruction-change notice is routed by this
+    repair. Any later application notices remain governed by the separate
+    DEL-02-03 M2 application tranche.
+
+scope_limits:
+  - proposal-candidate only; no AGENTS.md change and no D-GOV-35 ruling
+  - >-
+    the separate DEL-02-03 M2 application manifest remains a draft in
+    DEL-02-03-M2-PREP-001 and is not installed into the live manifest corpus
+  - no instruction application, lifecycle transition, hold lift, pin change,
+    runtime or project-source change, release, reliance, or merge
+  - no rebase, force-push, or history rewrite; one normal repair commit only
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The Root-owned public export is a derivative of instruction-surface
+    content. Regeneration remains deferred to the later authorized
+    instruction-application handoff; this proposal repair changes no export
+    authority or publication state.

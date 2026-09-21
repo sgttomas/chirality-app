@@ -1,0 +1,45 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-G4-DIFF-CI-20260802
+title: G4 candidate-range diff-mode wiring in governance-harness CI
+date: 2026-08-02
+basis: 97678a841ef58345c73d3470ed8de57c9b1405d2
+
+instruction_surface_paths:
+  - .github/workflows/governance-harness.yml
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - docs/governance_harness/tranche_manifests/ROOT-G4-DIFF-CI-20260802.yaml
+
+m2_gate:
+  authorization: >-
+    Owner ruling recorded in
+    execution/_Coordination/_TaskManagement/RULING_2026-08-02_ROOT_HARVEST_SLATE.md
+    item 7: wire the existing diff-mode G4 manifest check into CI, with closure
+    on change evidence. The owner then opened this lane through HELP_HUMAN with
+    the explicit requirement that an applicable instruction-surface diff
+    lacking its required manifest fail. This manifest records that bounded
+    authorization; it grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-02
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) for ROOT_FOUR_LANES_2026-08-02, with HELPS_HUMANS as
+    the H1 implementation manager and CHANGE reserved as the sole Git
+    integration owner
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No agents/ file changes. The Root G4 validator, its focused tests, and the
+    governance-harness workflow are Root-owned shared tooling; no project or
+    domain authority corpus pins or mirrors these exact surfaces. No
+    project-local authority or runtime surface changes.
+
+scope_limits:
+  - preserve whole-corpus manifest schema validation and existing diff-mode callers
+  - select newly added candidate-range manifests only for CI path-coverage attribution
+  - no retroactive manifest synthesis or reclassification of disclosed historical gaps
+  - no agent, runtime, project-loop, register, product, decomposition, or lifecycle change
+  - no commit, push, merge, or semantic acceptance by HELPS_HUMANS

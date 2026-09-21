@@ -1,0 +1,69 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV43-PROPOSAL-20260911
+title: D-GOV-43 Codex host re-platform proposal candidate (revision 3, with ruling candidate and handoff pointer)
+date: 2026-09-11
+basis: a75adecf13f055c092ffa92809f66e7817c44242
+
+instruction_surface_paths:
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/README.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/D-GOV-43.proposed.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/AGENTS.proposed.patch
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/IMPACT.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/REVIEW_FEEDBACK_R1.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/REVIEW_FEEDBACK_R2.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/REVIEW_FEEDBACK_R3.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-43_2026-09-11_codex_host_replatform/RULING_CANDIDATE.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV43-PROPOSAL-20260911.yaml
+
+m2_gate:
+  authorization: |-
+    Owner Ryan Tufts, 2026-09-11 (America/Edmonton), in the Chirality v3
+    Codex-only MVP trial session, verbatim:
+    "I approve the second re-platform route. You are right to start with the
+    governance, and any impacted deliverable's and their scopes of work may
+    need to be revised accordingly too."
+    Transcribed with its context in
+    plans/steers/chirality_app_v3_codex_host_replatform_direction_2026-09-11.md.
+    This direction authorizes preparing the D-GOV-43 proposal candidate and
+    its impact assessment. It is not the ruling on D-GOV-43 and applies no
+    change to AGENTS.md or the ratified standards.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-11
+  integration_owner: >-
+    HELP_HUMAN is the sole serialized integration owner for this proposal
+    candidate on branch claude/chirality-v3-mvp-trial-ab05cb; normal
+    commits; push, pull request and merge under the owner's direction of
+    2026-09-11 recorded in ROOT-DGOV43-RULING-20260911.yaml
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-11
+    approved_source_sha: "ad682173d7a294091064d4689f2977b390dce399"
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    This tranche covers a proposal candidate only. D-GOV-43 remains awaiting
+    owner ruling, so no downstream instruction-change notice is routed. The
+    application tranche after ruling routes notices to the Runtime, App and
+    PEC loops named in IMPACT.md.
+
+scope_limits:
+  - proposal-candidate files only; no AGENTS.md change; the D-GOV-43 ruling is recorded under ROOT-DGOV43-RULING-20260911, not by this tranche
+  - no instruction application, lifecycle transition, hold lift, pin change, runtime or project-source change, release, reliance, publication or merge
+  - no modification or deletion of trial installations, evidence, Codex homes or credentials
+  - no rebase, force-push or history rewrite
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The Root-owned public export is a derivative of instruction-surface
+    content. Regeneration remains deferred to a later authorized application
+    handoff; this proposal changes no export authority or publication state.

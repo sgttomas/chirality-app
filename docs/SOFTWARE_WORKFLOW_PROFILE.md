@@ -8,6 +8,9 @@
 > hardening permits a registered check to declare one bounded managed service
 > as specified below. Existing profiles and commands are unchanged.
 
+> **Four-role amendment, D-GOV-41:** role and workflow references below adopt
+> the Root replacement vocabulary. Profile schema and check semantics are unchanged.
+
 ## Purpose
 
 Software development is a specialization of package work, not a separate
@@ -16,7 +19,7 @@ manager role in this tranche. Use:
 ```text
 WORKING_ITEMS Agent 1
 + one project-local software-workflow.json
-+ software-* TASK skills
++ software-* workflows executed by TASK
 + deterministic tools/software_workflow helpers
 ```
 
@@ -32,14 +35,12 @@ A WORKING_ITEMS package activation identifies:
 - the accepted project/decomposition basis;
 - the project-local `software-workflow.json`;
 - changed or expected paths;
-- applicable software TASK skills;
+- applicable software workflows;
 - write ownership and fan-in gates;
 - human decision points.
 
-Novel stacks may use a sealed ephemeral generalist Agent 2. Repeated methods
-graduate into a skill. HELPS_HUMANS may propose a dedicated SOFTWARE_DEV Agent
-1 only after project trials demonstrate stable manager semantics that
-WORKING_ITEMS cannot safely carry.
+Novel stacks may use a sealed ephemeral generalist Agent 2. HELPS_HUMANS helps turn repeated methods into workflows and tools.
+WORKING_ITEMS retains implementation ownership while the selected methods vary.
 
 ## Profile schema
 

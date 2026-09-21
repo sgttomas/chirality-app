@@ -1,0 +1,42 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-OGC-20260725
+title: Owner-gated closeout by adopted recommendation (D-GOV-26) — SPEC notes, guarded-set enumeration, K-WRITE-2 gloss, export deferral disposition
+date: 2026-07-25
+basis: 4aaa664837b4bcf28d069cccf172603162f15242
+instruction_surface_paths:
+  - .github/workflows/harness-premerge.yml
+  - docs/CONTRACT.md
+  - docs/SPEC.md
+  - docs/governance_harness/_DECISIONS/D-GOV-26_owner_gated_closeout.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-OGC-20260725.yaml
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_root_surface_ownership.py
+  - tools/validation/test_validate_root_work_graph_dispatch.py
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/validate_root_surface_ownership.py
+  - tools/validation/validate_root_work_graph_dispatch.py
+m2_gate:
+  authorization: >-
+    Owner ruling, in-session, 2026-07-25, recorded verbatim in
+    docs/governance_harness/_DECISIONS/D-GOV-26_owner_gated_closeout.md:
+    "Delegate to `opus-5` subagents the closeout of those four owner-gated
+    issues by following your recommendations in each case." Approval binds
+    at the human-gated PR merge (K-AUTH-2 vehicle, stated in the record).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: HELP_HUMAN (Agent 0) — serialized integration owner for this tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-26_SPEC_CONTRACT_AMENDMENTS.md
+  rationale: >-
+    Pin survey at basis 4aaa66483: the app-dev authority corpus pins
+    docs/SPEC.md and docs/CONTRACT.md by sha256 — both change here, so a
+    routed notice ships in this tranche. The chirality domain pack's
+    source manifest pins neither file. tools/validation and the
+    harness-premerge trigger line are root-owned surfaces no loop pins;
+    the CLAUDE.md trigger addition changes when CI runs, not what any
+    loop consumes.

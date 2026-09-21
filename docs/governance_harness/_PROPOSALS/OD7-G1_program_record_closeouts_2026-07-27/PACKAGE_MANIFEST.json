@@ -1,0 +1,27 @@
+{
+  "schema": "chirality.governance-proposal-package/v1",
+  "proposal_id": "OD7-G1",
+  "status": "CANDIDATE_NOT_APPROVED_NOT_APPLIED",
+  "basis_commit": "fb16e32ed60bb4f384cf1e07a83c4a14ff63bbae",
+  "accepted_derivative_input": "execution/_Evaluation/CHIRALITY_PROGRAM_OD7_MAINTENANCE_2026-07-26_EF164C20/",
+  "write_scope": "docs/governance_harness/_PROPOSALS/OD7-G1_program_record_closeouts_2026-07-27/",
+  "authoritative_changes": [],
+  "linked_proposal_packages": [
+    "projects/chirality-app-dev/execution/_Coordination/_PROPOSALS/OD7-G1_2026-07-27/",
+    "projects/chirality-piping/execution/_Coordination/_PROPOSALS/OD7-G1_2026-07-27/"
+  ],
+  "artifacts": [
+    "PACKET.md",
+    "ROOT_DGOV27_EFFECTIVE_SHA.patch",
+    "PROPOSED_ROOT_RECEIPT_53.md",
+    "PROPOSED_ROOT_MANIFEST_ROOT-OD7-G1-20260727.yaml",
+    "PROPOSED_NOTICE_D-GOV-26_DETECTOR_CLAIM_CORRECTION_2026-07-27.md",
+    "BATCH_CANDIDATE_MANIFEST.csv",
+    "ID_SCAN.json",
+    "VALIDATION.md",
+    "HANDOFF.md",
+    "PACKAGE_MANIFEST.json",
+    "ARTIFACT_HASHES.sha256"
+  ],
+  "hash_manifest_rule": "ARTIFACT_HASHES.sha256 covers every package artifact except itself; linked package identities are recorded in HANDOFF.md after all three packages freeze"
+}

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import adapter_project
 from adapter_loader import load_adapter
-from harness_common import Report, SourcedFact
+from harness_common import Report, SourcedFact, HarnessOperationalError
 
 # Active = a Current State in this listing precedence order. OPEN is not
 # started and ISSUED is terminal — neither is active work.
@@ -79,6 +79,8 @@ def run_next(repo_root: Path, project_roots: list[Path],
 
     for project_root in project_roots:
         manifest = load_adapter(project_root)
+        if manifest.historical_root():
+            raise HarnessOperationalError("Governance Root historical sources cannot produce a production brief or next recommendation.")
         alias = cli_aliases.get(project_root.resolve())
         rel_root = str(project_root.relative_to(repo_root))
         results = [

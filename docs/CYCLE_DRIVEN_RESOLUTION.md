@@ -100,7 +100,7 @@ The method is supported by shared tooling under `tools/`:
   audit.
 - `tools/coordination/analyze_dep_closure.py` — closure-level analysis (SCCs,
   orphans, hubs, bidirectional pairs).
-- the `dependency-extract` skill and the `AGGREGATION` agent — produce and roll
+- the `dependency-extract` and `aggregation` workflows — produce and roll
   up the deliverable-local dependency registers the graph is built from.
 
 Tooling reports SCC membership and sizes; it does not make cut/merge decisions,
@@ -108,12 +108,12 @@ which are human-gated.
 
 ## 6. How agents and projects apply it
 
-- **Agents.** The shared agent instructions carry the habit: a structural cycle
-  is surfaced like any other conflict and resolved by a named move, never
-  silently linearized (`AGENT_WORKING_ITEMS.md` Conflict-transparency invariant +
-  the Phase 3 Conflict-Table companion; `AGENT_TASK.md` epistemic controls — a
-  bounded worker surfaces an in-slice SCC with the four options rather than
-  choosing an order).
+- **Agents and workflows.** WORKING_ITEMS coordinates cycle resolution through
+  the selected dependency and SCC workflows. TASK returns an observed in-slice
+  SCC and possible moves to its caller. This shared doctrine supplies the
+  recorded-move rule; the runtime contract supplies coordination and evidence
+  boundaries. A structural cycle remains visible until its ordering decision
+  has been resolved.
 - **Projects.** Each project records its own adoption, rollout, and DAG
   re-derivation triggers in its own coordination record, plan, and decision
   register. This doctrine is the shared principle they reference; it is not a

@@ -1,0 +1,310 @@
+{
+  "schema": "chirality-workflow-catalog/v1",
+  "library": {
+    "source": "bundled",
+    "sourceRootId": "chirality-root"
+  },
+  "centralWorkflowNames": [
+    "create-workflow",
+    "project-setup",
+    "project-decomp",
+    "software-decomp",
+    "domain-decomp",
+    "research-orchestration",
+    "scope-change"
+  ],
+  "navigation": {
+    "core": [
+      {
+        "name": "create-workflow"
+      },
+      {
+        "name": "project-setup"
+      },
+      {
+        "name": "project-decomp"
+      },
+      {
+        "name": "software-decomp"
+      },
+      {
+        "name": "domain-decomp"
+      },
+      {
+        "name": "research-orchestration"
+      },
+      {
+        "name": "scope-change"
+      },
+      {
+        "name": "task-management",
+        "displayName": "Manage tasks"
+      },
+      {
+        "name": "review",
+        "displayName": "Review results"
+      },
+      {
+        "name": "reconciliation",
+        "displayName": "Check project status"
+      }
+    ],
+    "specialist": [
+      {
+        "key": "plan-organize",
+        "label": "Plan & organize",
+        "workflows": [
+          {
+            "name": "preparation"
+          },
+          {
+            "name": "scope-of-work"
+          },
+          {
+            "name": "four-documents"
+          },
+          {
+            "name": "kty-metadata-align"
+          },
+          {
+            "name": "aggregation"
+          },
+          {
+            "name": "proposal-format"
+          }
+        ]
+      },
+      {
+        "key": "research-understand",
+        "label": "Research & understand",
+        "workflows": [
+          {
+            "name": "researcher"
+          },
+          {
+            "name": "domain-hypergraph"
+          },
+          {
+            "name": "domain-engine"
+          },
+          {
+            "name": "lens-register"
+          },
+          {
+            "name": "semantic-lensing"
+          },
+          {
+            "name": "semantic-matrix-build",
+            "tier": "supporting"
+          },
+          {
+            "name": "content-digest"
+          },
+          {
+            "name": "software-repository-reconnaissance"
+          }
+        ]
+      },
+      {
+        "key": "extract-documents",
+        "label": "Extract from documents",
+        "workflows": [
+          {
+            "name": "pdf2md"
+          },
+          {
+            "name": "pdf2md-orchestration"
+          },
+          {
+            "name": "pdf2md-page-full",
+            "tier": "supporting"
+          },
+          {
+            "name": "pdf2md-folio-extract",
+            "tier": "supporting"
+          },
+          {
+            "name": "drawing-extract"
+          },
+          {
+            "name": "drawing-extract-page",
+            "tier": "supporting"
+          },
+          {
+            "name": "drawing-titleblock-page",
+            "tier": "supporting"
+          },
+          {
+            "name": "equation-audit"
+          },
+          {
+            "name": "equation-bbox-detect",
+            "tier": "supporting"
+          },
+          {
+            "name": "equation-flag-interpret",
+            "tier": "supporting"
+          },
+          {
+            "name": "dependency-extract"
+          },
+          {
+            "name": "equipment-extract"
+          },
+          {
+            "name": "domain-source-atomize",
+            "tier": "supporting"
+          },
+          {
+            "name": "domain-prose-validate",
+            "tier": "supporting"
+          },
+          {
+            "name": "pandid-valve-symbol-instance",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "create-publish-documents",
+        "label": "Create & publish documents",
+        "workflows": [
+          {
+            "name": "dbm-publisher"
+          },
+          {
+            "name": "domain-documents"
+          },
+          {
+            "name": "dbm-draft-review"
+          },
+          {
+            "name": "dbm-publish",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-section-publish",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-concordance-seed",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-concordance-verify",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-postauthor-concordance",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "build-maintain-software",
+        "label": "Build & maintain software",
+        "workflows": [
+          {
+            "name": "software-bounded-implementation"
+          },
+          {
+            "name": "software-code-review"
+          },
+          {
+            "name": "software-defect-diagnosis"
+          },
+          {
+            "name": "software-test-planning"
+          }
+        ]
+      },
+      {
+        "key": "estimate-cost",
+        "label": "Estimate & cost",
+        "workflows": [
+          {
+            "name": "estimate-prep"
+          },
+          {
+            "name": "estimate-snapshot"
+          },
+          {
+            "name": "equipment-costing-extract"
+          }
+        ]
+      },
+      {
+        "key": "review-check",
+        "label": "Review & check",
+        "workflows": [
+          {
+            "name": "audit-agents"
+          },
+          {
+            "name": "audit-decomp"
+          },
+          {
+            "name": "audit-dep-closure"
+          },
+          {
+            "name": "audit-epistemic"
+          },
+          {
+            "name": "audit-governance"
+          },
+          {
+            "name": "audit-hypergraph-closure"
+          },
+          {
+            "name": "deliverable-consistency"
+          },
+          {
+            "name": "decomposition-package-review"
+          },
+          {
+            "name": "evaluation-protocol"
+          },
+          {
+            "name": "evaluation-report",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "manage-changes",
+        "label": "Manage changes",
+        "workflows": [
+          {
+            "name": "change"
+          },
+          {
+            "name": "scope-change-packet"
+          },
+          {
+            "name": "scc-resolution-case"
+          },
+          {
+            "name": "kty-content-remediate"
+          },
+          {
+            "name": "audit-scope-closure"
+          }
+        ]
+      }
+    ],
+    "superseded": [
+      {
+        "name": "pandid-valve-tile",
+        "replacedBy": "pandid-valve-symbol-instance"
+      },
+      {
+        "name": "pdf2md-page",
+        "replacedBy": "pdf2md-page-full"
+      },
+      {
+        "name": "pdf2md-page-assets",
+        "replacedBy": "pdf2md-page-full"
+      }
+    ]
+  }
+}

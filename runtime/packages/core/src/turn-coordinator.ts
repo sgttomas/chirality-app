@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
+import { describeFailureDetails } from "./retirement-failure.js";
 import {
+  HOSTED_MODEL_ID_PATTERN,
+  HOSTED_REASONING_EFFORT_PATTERN,
   RuntimeError,
   asHarnessError,
   type AgentEngineRunInput,
   type HarnessEvent,
   type IAttachmentResolver,
+  type PreparedContextSuccessor,
   type SessionTurnRequest,
   type UIEvent
 } from "@chirality/runtime-contracts";
@@ -12,10 +16,22 @@ import type { EngineRegistry } from "./engine-registry.js";
 import type { ProjectRegistry } from "./project-registry.js";
 import type { ResidencyCoordinator } from "./residency-coordinator.js";
 import type { SessionStore } from "./session-store.js";
+import type { RuntimeMethodService } from "./runtime-method-service.js";
 
 interface ActiveTurn {
   controller: AbortController;
   engineInterrupt: () => Promise<void>;
+  /** Caller-supplied reason recorded on the synthesized `turn.interrupted` terminal (for example `service-shutdown`). */
+  reason?: string;
+}
+
+/** Per-turn override validation: absent means "use the session's value"; anything else must be a well-formed identifier. */
+function validateTurnOverride(value: unknown, pattern: RegExp, field: "model" | "reasoningEffort"): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !pattern.test(value)) {
+    throw new RuntimeError("INVALID_REQUEST", `Turn ${field} override is malformed`, 400, { reason: field === "model" ? "TURN_MODEL_INVALID" : "TURN_REASONING_EFFORT_INVALID" });
+  }
+  return value;
 }
 
 export interface RequiredToolReceipt {
@@ -60,6 +76,8 @@ function normalizeEngineFailure(error: unknown, local: boolean): RuntimeError {
         harness.message,
         harness.status
       );
+    case "INSTRUCTION_ADOPTION_PENDING":
+      return new RuntimeError("INSTRUCTION_ADOPTION_PENDING", harness.message, harness.status);
     case "ENGINE_UNAVAILABLE":
     case "CONTEXT_EXHAUSTED":
     case "SDK_FAILURE":
@@ -69,6 +87,7 @@ function normalizeEngineFailure(error: unknown, local: boolean): RuntimeError {
 
 export class TurnCoordinator {
   private readonly active = new Map<string, ActiveTurn>();
+  private runtimeMethods?: RuntimeMethodService;
 
   constructor(
     private readonly projects: ProjectRegistry,
@@ -77,6 +96,10 @@ export class TurnCoordinator {
     private readonly residency: ResidencyCoordinator,
     private readonly attachments?: IAttachmentResolver
   ) {}
+
+  configureRuntimeMethods(methods: RuntimeMethodService): void {
+    this.runtimeMethods = methods;
+  }
 
   async *run(
     projectId: string,
@@ -99,35 +122,82 @@ export class TurnCoordinator {
       throw new RuntimeError("INVALID_REQUEST", "Turn message cannot be empty");
     }
     const local = session.engineSelection.providerId === "omlx";
+    const modelOverride = validateTurnOverride(request.model, HOSTED_MODEL_ID_PATTERN, "model");
+    const effortOverride = validateTurnOverride(request.reasoningEffort, HOSTED_REASONING_EFFORT_PATTERN, "reasoningEffort");
+    const turnModel = modelOverride ?? request.opts?.model ?? session.engineSelection.model;
+    const turnEffort = effortOverride ?? session.reasoningEffort;
     let releaseResidency = (): void => undefined;
-    this.active.set(key, {
+    const activeTurn: ActiveTurn = {
       controller,
       engineInterrupt: () => engine.interrupt(sessionId)
-    });
+    };
+    this.active.set(key, activeTurn);
     let processExit: Extract<UIEvent, { type: "process:exit" }> | undefined;
     let turnErrorSeen = false;
     let terminalHarnessEvent: HarnessEvent | undefined;
     let terminalPersisted = false;
     let sessionInitSeen = false;
     let engineEventIndex = 0;
+    let acceptedOwned = false;
+    const contextSuccessor: PreparedContextSuccessor | undefined = session.adapterSession?.contextSuccessor;
+    let successorRecorded = false;
     try {
       releaseResidency = local
         ? await this.residency.admitTurn(session.engineSelection.model)
         : () => undefined;
+      const resolvedContext = this.runtimeMethods === undefined || session.schemaVersion !== "chirality.session/v3" ? undefined : await this.runtimeMethods.resolveForTurn(projectId, session, {
+        interactionMode: request.interactionMode,
+        permissionMode: request.permissionMode,
+        methods: request.methods,
+        workflow: request.workflow,
+        taskSkill: request.taskSkill
+      });
+      if ((request.interactionMode ?? session.interactionMode) === "native-plan") {
+        if (this.runtimeMethods === undefined) throw new RuntimeError("ENGINE_UNAVAILABLE", "Native Plan runtime is unavailable", 503);
+        const capability = await this.runtimeMethods.getNativePlanCapability(projectId, sessionId);
+        if (capability.status === "unavailable") throw new RuntimeError("ENGINE_UNAVAILABLE", capability.reason, 503);
+      }
+      const requestedTools = request.opts?.tools ?? [...toolNames];
+      const admittedTools = resolvedContext === undefined ? requestedTools : await this.runtimeMethods!.restrictRequestedTools(
+        projectId,
+        resolvedContext.response.roleId,
+        request.permissionMode ?? session.permissionMode,
+        resolvedContext.response.methods,
+        requestedTools
+      );
       const input: AgentEngineRunInput = {
-        session,
+        projectId,
+        // The engine sees the effective per-turn selection; the stored session keeps its default engine selection.
+        session: modelOverride === undefined && effortOverride === undefined ? session : {
+          ...session,
+          engineSelection: { ...session.engineSelection, model: turnModel },
+          ...(turnEffort === undefined ? {} : { reasoningEffort: turnEffort })
+        },
         message,
+        interactionMode: request.interactionMode ?? session.interactionMode ?? "chat",
+        ...(turnEffort === undefined ? {} : { reasoningEffort: turnEffort }),
         opts: {
-          model: request.opts?.model ?? session.engineSelection.model,
-          tools: request.opts?.tools ?? [...toolNames],
+          model: turnModel,
+          tools: admittedTools,
           maxTurns: request.opts?.maxTurns ?? 50,
           persona: request.opts?.persona ?? session.persona,
-          mode: request.opts?.mode ?? session.mode,
+          mode: request.permissionMode ?? session.permissionMode ?? request.opts?.mode ?? session.mode,
           ...(request.opts?.subagentGovernance === undefined
             ? {}
             : { subagentGovernance: request.opts.subagentGovernance })
         },
         turnId,
+        ...(contextSuccessor === undefined ? {} : { contextSuccessor }),
+        ...(resolvedContext === undefined ? {} : {
+          instructionContext: resolvedContext.response,
+          runtimeTools: await this.runtimeMethods!.restrictRuntimeTools(
+            projectId,
+            resolvedContext.response.roleId,
+            request.permissionMode ?? session.permissionMode,
+            resolvedContext.response.methods,
+            this.runtimeMethods!.runtimeTools(projectId, sessionId, turnId, admittedTools).filter(tool => tool.permission.operation !== "control" || engine.descriptor.capabilities.runtimeControlTools === true)
+          )
+        }),
         ...(request.attachments === undefined || request.attachments.length === 0
           ? {}
           : this.attachments === undefined
@@ -142,17 +212,22 @@ export class TurnCoordinator {
                 contentBlocks: (
                   await this.attachments.resolveAttachmentsToContentBlocks(
                     message,
-                    request.attachments
+                    request.attachments,
+                    { projectId, sessionId, projectRoot: session.projectRoot }
                   )
                 ).contentBlocks
               })
       };
-      const accepted = await this.sessions.appendEvent(projectId, {
-        sessionId,
-        turnId,
-        type: "turn.accepted",
-        data: { message }
-      });
+      const acceptedData = {
+        message,
+        ...(request.attachments?.length ? { attachments: [...request.attachments] } : {}),
+        ...(modelOverride === undefined ? {} : { model: modelOverride }),
+        ...(effortOverride === undefined ? {} : { reasoningEffort: effortOverride })
+      };
+      const accepted = resolvedContext === undefined
+        ? await this.sessions.appendEvent(projectId, { sessionId, turnId, type: "turn.accepted", data: acceptedData })
+        : (await this.sessions.commitWithAcceptedTurn(session, { sessionId, turnId, type: "turn.accepted", data: acceptedData }, resolvedContext.snapshot)).event;
+      acceptedOwned = true;
       yield { type: "harness:event", data: accepted };
       await engine.preflight(input);
       await this.sessions.update({ ...session, status: "running" });
@@ -214,6 +289,9 @@ export class TurnCoordinator {
           }
           await this.sessions.persistEvent(projectId, received.data);
         }
+        if (received.type === "chat:delta" && received.data.text) {
+          await this.sessions.appendEvent(projectId, { sessionId, turnId, type: "message.delta", data: { text: received.data.text } });
+        }
         if (received.type === "session:init") {
           if (sessionInitSeen || engineEventIndex !== 0) {
             throw new RuntimeError(
@@ -225,7 +303,7 @@ export class TurnCoordinator {
           if (
             received.data.adapterId !== engine.descriptor.adapterId ||
             received.data.providerId !== engine.descriptor.providerId ||
-            (local && received.data.model !== session.engineSelection.model)
+            (local && received.data.model !== turnModel)
           ) {
             throw new RuntimeError(
               "INTERNAL_FAILURE",
@@ -234,18 +312,23 @@ export class TurnCoordinator {
             );
           }
           const residencyStatus = local ? await this.residency.status() : undefined;
+          if (contextSuccessor !== undefined) {
+            await this.sessions.recordProviderSpanSessionInit(projectId, sessionId, contextSuccessor.preparationId, { sessionInitEventId: randomUUID(), engineSessionId: received.data.engineSessionId, providerSpanId: received.data.providerSpanId ?? received.data.engineSessionId });
+            successorRecorded = true;
+          }
+          const adapterSession = { ...(session.adapterSession ?? {}), engineSessionId: received.data.engineSessionId, ...(received.data.lastRuntimeTurnId === undefined ? {} : { lastRuntimeTurnId: received.data.lastRuntimeTurnId }) };
+          delete adapterSession.contextSuccessor;
           session = {
             ...session,
+            status: "running",
             engineSessionId: received.data.engineSessionId,
             engineSelection: {
               adapterId: received.data.adapterId,
               providerId: received.data.providerId,
-              model: received.data.model
+              // A per-turn model override never rewrites the session's default selection.
+              model: modelOverride === undefined ? received.data.model : session.engineSelection.model
             },
-            adapterSession: {
-              ...(session.adapterSession ?? {}),
-              engineSessionId: received.data.engineSessionId
-            },
+            adapterSession,
             ...(received.data.claudeSessionId === undefined
               ? {}
               : { claudeSessionId: received.data.claudeSessionId }),
@@ -253,6 +336,12 @@ export class TurnCoordinator {
               ? {}
               : { residencyEpoch: residencyStatus.epoch.epochId })
           };
+          if (contextSuccessor !== undefined) {
+            delete session.sdkSessionId;
+            delete session.sdkTranscriptPath;
+            delete session.sdkSessionStoreKey;
+            if (received.data.claudeSessionId === undefined) delete session.claudeSessionId;
+          }
           await this.sessions.update(session);
           sessionInitSeen = true;
         }
@@ -306,12 +395,18 @@ export class TurnCoordinator {
           sessionId,
           turnId,
           type: controller.signal.aborted ? "turn.interrupted" : "turn.completed",
-          data: {}
+          data: controller.signal.aborted && activeTurn.reason !== undefined ? { reason: activeTurn.reason } : {}
         });
         terminalHarnessEvent = completed;
         terminalPersisted = true;
         yield { type: "harness:event", data: completed };
       } else {
+        // The supplier reports that it stopped; the Runtime owns why it asked
+        // for interruption. Preserve supplier details while recording that
+        // cause on the same terminal before both persistence and publication.
+        if (terminalHarnessEvent.type === "turn.interrupted" && controller.signal.aborted && activeTurn.reason !== undefined) {
+          terminalHarnessEvent = { ...terminalHarnessEvent, data: { ...terminalHarnessEvent.data, reason: activeTurn.reason } };
+        }
         await this.sessions.persistEvent(projectId, terminalHarnessEvent);
         terminalPersisted = true;
         yield { type: "harness:event", data: terminalHarnessEvent };
@@ -323,23 +418,32 @@ export class TurnCoordinator {
           502
         );
       }
-      yield processExit;
-      await this.sessions.update({
+      await this.sessions.update(withLastUsed({
         ...session,
         status: controller.signal.aborted
           ? "interrupted"
           : terminalHarnessEvent.type === "turn.completed"
             ? "completed"
             : "failed"
-      });
+      }, turnModel, turnEffort));
+      await this.runtimeMethods?.applyPendingMethodChanges(projectId, sessionId, turnId);
+      yield processExit;
     } catch (error) {
       const runtimeError = normalizeEngineFailure(error, local);
+      if (contextSuccessor !== undefined && !successorRecorded) {
+        const currentSuccessor = (await this.sessions.get(projectId, sessionId).catch(() => undefined))?.adapterSession?.contextSuccessor;
+        if (currentSuccessor?.preparationId === contextSuccessor.preparationId) {
+          await engine.cancelContextSuccessor?.(contextSuccessor.preparationId).catch(() => undefined);
+          await this.sessions.failProviderSpanPreparation(projectId, sessionId, contextSuccessor.preparationId, { code: runtimeError.code, message: runtimeError.message }).catch(() => undefined);
+        }
+      }
       if (!terminalPersisted) {
+        const failureDetails = controller.signal.aborted ? undefined : describeFailureDetails(error);
         const failed = await this.sessions.appendEvent(projectId, {
           sessionId,
           turnId,
           type: controller.signal.aborted ? "turn.interrupted" : "turn.failed",
-          data: { code: runtimeError.code, message: runtimeError.message }
+          data: { code: runtimeError.code, message: runtimeError.message, ...(failureDetails ? { details: failureDetails } : {}), ...(controller.signal.aborted && activeTurn.reason !== undefined ? { reason: activeTurn.reason } : {}) }
         });
         yield { type: "harness:event", data: failed };
       }
@@ -348,15 +452,21 @@ export class TurnCoordinator {
           type: "turn:error",
           data: {
             phase: "mid-stream",
-            errorType: "SDK_FAILURE",
+            errorType: runtimeError.code === "INSTRUCTION_ADOPTION_PENDING" ? "INSTRUCTION_ADOPTION_PENDING" : "SDK_FAILURE",
             message: runtimeError.message,
             status: runtimeError.status,
             severity: "error",
             fatal: true,
-            details: { runtimeCode: runtimeError.code }
+            // A machine reason (e.g. MODEL_NOT_IN_CATALOG) lets clients map the failure without parsing text.
+            details: { runtimeCode: runtimeError.code, ...(typeof runtimeError.details?.reason === "string" ? { reason: runtimeError.details.reason } : {}) }
           }
         };
       }
+      if (acceptedOwned) await this.sessions.update(withLastUsed({
+        ...session,
+        status: controller.signal.aborted ? "interrupted" : "failed"
+      }, turnModel, turnEffort));
+      if (acceptedOwned) await this.runtimeMethods?.applyPendingMethodChanges(projectId, sessionId, turnId);
       yield {
         type: "process:exit",
         data: {
@@ -374,20 +484,30 @@ export class TurnCoordinator {
           fatal: true
         }
       };
-      await this.sessions.update({
-        ...session,
-        status: controller.signal.aborted ? "interrupted" : "failed"
-      });
     } finally {
       this.active.delete(key);
       releaseResidency();
     }
   }
 
-  async interrupt(projectId: string, sessionId: string): Promise<void> {
+  /** Whether this coordinator currently owns an active turn for the session. */
+  isActive(projectId: string, sessionId: string): boolean {
+    return this.active.has(`${projectId}\0${sessionId}`);
+  }
+
+  async interrupt(projectId: string, sessionId: string, reason?: string): Promise<void> {
     const active = this.active.get(`${projectId}\0${sessionId}`);
     if (active === undefined) return;
+    if (reason !== undefined && active.reason === undefined) active.reason = reason;
     active.controller.abort();
     await active.engineInterrupt();
   }
+}
+
+/** Records the model and effort the turn actually ran with; the session's default selection is untouched. */
+function withLastUsed<T extends { lastUsedModel?: string; lastUsedReasoningEffort?: string }>(record: T, model: string, reasoningEffort: string | undefined): T {
+  const updated = { ...record, lastUsedModel: model };
+  if (reasoningEffort === undefined) delete updated.lastUsedReasoningEffort;
+  else updated.lastUsedReasoningEffort = reasoningEffort;
+  return updated;
 }

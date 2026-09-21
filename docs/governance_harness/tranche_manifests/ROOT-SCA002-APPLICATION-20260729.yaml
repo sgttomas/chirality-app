@@ -1,0 +1,90 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-SCA002-APPLICATION-20260729
+title: SCA-002 application with owner bracket ruling, Step-4 owner-act transcription, Receipt 63
+date: 2026-07-29
+basis: 204321467b567ede862636a36dd67bcac1ff326a
+
+instruction_surface_paths:
+  - docs/governance_harness/tranche_manifests/ROOT-SCA002-APPLICATION-20260729.yaml
+
+m2_gate:
+  authorization: |-
+    The owner's SCA-002 acceptance of record (2026-07-29, verbatim
+    "ACCEPT SCA-002 271d456a — Ryan Tufts 2026-07-29", bound by token
+    SHA8 to the candidate package commit
+    271d456abe854346b903f1dfbd98d8cc37fdf09e) together with the owner's
+    application ruling of record (2026-07-29, verbatim "BRACKET AS
+    RECOMMENDED: at application, update SOW-042 SourceRef to cite
+    D-GOV-31 adoption — Ryan Tufts 2026-07-29") authorize this tranche's
+    application of the accepted amendment plus the one ruled bracket
+    delta. The owner's merge direction of record (2026-07-29, verbatim
+    "APPROVE HEADS dfc8d4af5 (PR #417) AND e5e8f760 (PR #418); MERGE
+    #417 THEN #418 ON MY BEHALF — Ryan Tufts 2026-07-29") is transcribed
+    in Receipt 63 as the authorization for the already-executed PR #417
+    and PR #418 merges. Publication merge authorization for this
+    tranche's own PR is a SEPARATE owner act on the exact final branch
+    HEAD; this manifest records a gate and grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-29
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-STEP4-APPLICATION-20260729 under the
+    SCOPE_CHANGE and HELPS_HUMANS lanes, supervised by HELP_HUMAN; sole
+    serialized integration owner for this application tranche; no merge
+    authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    This tranche changes no file under agents/ and no surface that a
+    registered downstream loop pins or mirrors: the three applied
+    decomposition surfaces are Root-loop-only working truth, the SCA-002
+    snapshot additions are Root evidence, and the receipt and run records
+    are Root coordination surfaces. The D-GOV-31 policy notices were
+    already routed to all three loops by the
+    ROOT-GOV31-PROPAGATION-20260729 tranche (PR #418); nothing here
+    changes what those notices reported.
+
+scope_limits:
+  - >-
+    application + transcription only - this tranche applies the
+    owner-accepted SCA-002 bytes (with the one owner-ruled bracket
+    delta) and transcribes the 2026-07-29 owner acceptance, bracket
+    ruling, and merge direction; it makes no new policy
+  - >-
+    no self-merge of this tranche; self_merge is false, and publication
+    merge authorization is a separate owner act on the exact final
+    branch HEAD - per the owner's direction, the approvals-process
+    design is the owner's to rework and this tranche pre-claims nothing
+    about it
+  - >-
+    the AUDIT_DECOMP pair obligation is dispositioned as recorded: the
+    deterministic application validation (Gate_5_Validation.json, 33/33
+    PASS) plus the pre-change register baseline stand in, with any full
+    AUDIT_DECOMP run deferred to the next regular audit cycle
+  - >-
+    frozen surfaces untouched: Gate_3_Candidate bytes, receipts 0-62,
+    all prior snapshots, and the _PROPOSALS/ grant candidate (left as an
+    inert draft per the owner's course correction); SCA-002 package
+    changes are appends and new files only
+  - >-
+    no retroactive characterization of any historical act; no lifecycle,
+    implementation, activation, runtime, dependency, estimate, schedule,
+    repin, release, or professional-reliance act; no loop-local App,
+    PEC, or Piping substance
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export mirrors docs/ and execution-adjacent surfaces and
+    remains stale pending the next export release, which must consume
+    post-merge bytes; the deferral changes no export authority or
+    boundary and continues the posture recorded by the
+    ROOT-GOV31-PROPAGATION-20260729 tranche.

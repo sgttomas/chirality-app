@@ -1,0 +1,72 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CONTRACT-KCONTROL1-DESIGN-2026-08-23
+title: K-CONTROL-1 accepted two-socket design amendment
+date: 2026-08-23
+basis: 162fa3be8d62b042177d4a256ef54bf15bd74a03
+
+instruction_surface_paths:
+  - docs/CONTRACT.md
+  - docs/governance_harness/tranche_manifests/ROOT-CONTRACT-KCONTROL1-DESIGN-2026-08-23.yaml
+
+m2_gate:
+  authorization: |-
+    ## N1 — exact row amendment
+
+    Amend exactly one row of `docs/CONTRACT.md`: the **K-CONTROL-1**
+    definition row (line 162; subsection 1.13 Shared Runtime). Draft the exact
+    replacement text in the loop's own words, preserving all of the following
+    semantics:
+
+    1. The existing invariant stands: runtime control uses authenticated,
+       project-scoped HTTP/1.1 over `{userData}/runtime/control.sock` beneath
+       a `0700` directory with a `0600` socket; a TCP control listener is
+       forbidden.
+    2. Add the accepted design: one additional private Unix-domain socket
+       between the daemon and the Delegated-Harness Process Supervisor, never
+       renderer- or CLI-callable, same `0700`/`0600` permission discipline,
+       accepted by R7-A through the DEL-02-07 scope contract (cite the record
+       SHA-256).
+    3. State honestly that the supervisor socket is **accepted design, not
+       yet implemented**: exactly one control socket is live today, and the
+       second socket becomes live only through the separately gated DEL-02-07
+       implementation pathway; the row must not read as a claim of current
+       two-socket operation.
+    4. No third socket and no TCP listener under any configuration.
+    5. Update the row's verification column to add supervisor-socket tests as
+       design-gated (activating with DEL-02-07 implementation), keeping the
+       existing socket-mode, authorization, stale-owner, and listener tests.
+
+    No other row, the K-* index, the invariant count (40 — no ID is added or
+    retired), the enforcement-map summary membership, or any other section may
+    change, except: if the document's own conventions require a dated
+    amendment note, add the minimal note the conventions require and no more.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-23
+  integration_owner: >-
+    HELP_HUMAN through HELPS_HUMANS for the Root K-CONTROL-1 design-amendment
+    tranche; no merge authority is inferred
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    Notice routing is not authorized in this tranche. The App loop retains its
+    own authority and sequencing under A4-B and A5-B.
+
+scope_limits:
+  - design amendment only; the supervisor socket remains unimplemented
+  - no implementation, activation, dispatch, pin, hold, release, or reliance act
+  - no App or other foreign-loop authority and no projects/** write
+  - no third socket and no TCP control listener under any configuration
+  - no invariant ID addition or retirement; the catalog remains at 40 invariants
+
+derivative_paths:
+  - exports/chirality-app/**
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Public-export regeneration is outside this tranche and remains a separately
+    authorized later act.

@@ -5,10 +5,6 @@ import sys
 from pathlib import Path
 
 
-PUBLICATION_DIR = Path(__file__).resolve().parent
-if str(PUBLICATION_DIR) not in sys.path:
-    sys.path.insert(0, str(PUBLICATION_DIR))
-
 import assemble_publication  # noqa: E402
 
 

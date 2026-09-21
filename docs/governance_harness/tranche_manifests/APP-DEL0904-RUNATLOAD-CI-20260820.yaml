@@ -1,0 +1,37 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-DEL0904-RUNATLOAD-CI-20260820
+title: DEL-09-04 packaged LaunchAgent RunAtLoad CI proof
+date: 2026-08-20
+basis: 7584de0a8d53d69a135c22fe39a78cb4a30b6cb2
+
+instruction_surface_paths:
+  - .github/workflows/desktop-release-template.yml
+  - docs/governance_harness/tranche_manifests/APP-DEL0904-RUNATLOAD-CI-20260820.yaml
+
+m2_gate:
+  authorization: >-
+    D-APP-97 C1, ruled by Ryan Tufts on 2026-08-17, expressly authorizes
+    DEL-09-04 packaged-service proof in the unsigned macOS CI artifact
+    workflow. Ryan Tufts further directed on 2026-08-20 that the
+    artifact-proof label trigger this proof at final verification. Signing,
+    notarization, distribution, release authority, lifecycle advancement,
+    reliance, and professional approval remain fenced. The selected
+    implementation is recorded under HELP_HUMAN run
+    APPDEV_LAUNCHAGENT_RUNATLOAD_PROOF_2026-08-20. This manifest records that
+    authority and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-17
+  integration_owner: >-
+    HELP_HUMAN for APPDEV_LAUNCHAGENT_RUNATLOAD_PROOF_2026-08-20, with the
+    selected PKG-09 WORKING_ITEMS instance as bounded implementation manager;
+    CHANGE owns serialized Git closeout.
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The changed workflow is App-specific and changes no agents, skills, root
+    governance prose, authority corpus, or shared consumer contract. It
+    creates no authority for another loop.

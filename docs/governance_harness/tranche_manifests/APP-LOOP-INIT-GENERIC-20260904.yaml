@@ -1,0 +1,46 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-LOOP-INIT-GENERIC-20260904
+title: App-dev loop instruction surface — LOOP_INIT generic loop; workplan optional (D-APP-105 / D-APP-106)
+date: 2026-09-04
+basis: aa8554542e3d6d09a925f69e1114bea8e18532f8
+
+instruction_surface_paths:
+  - tools/validation/validate_instruction_entrypoints.py
+  - tools/validation/test_validate_instruction_entrypoints.py
+  - docs/governance_harness/tranche_manifests/APP-LOOP-INIT-GENERIC-20260904.yaml
+
+m2_gate:
+  authorization: |
+    Owner-directed change, Ryan Tufts, in-session 2026-09-04, recorded in
+    projects/chirality-app-dev/execution/_Coordination/_DECISIONS/D-APP-105_RULING_LOOP_INSTRUCTION_SURFACE_REVERSAL_2026-09-04.md
+    and App Receipt-227. Verbatim directions: "I made a mistake with D-APP-61
+    and 64. I don't recall why I did that but it goes against what I've been
+    trying to get working through loops acting in the manner we've now
+    defined here. Merge the PR #706 unless you want you document the
+    reversal of D-APP-61 and 64 first (we should attend to that matter
+    before finishing this tranche)" and, later in the same session, "Expand
+    you write scope to Root also". Root scope under that direction is the
+    single validator change: validate_instruction_entrypoints.py no longer
+    reports a project that has no WORKPLAN_*.md (a workplan is an optional
+    narrowing overlay under D-APP-105/106), and one test covers the case.
+    Every other check in the validator is unchanged. No agents/, skills/,
+    AGENTS.md, CLAUDE.md, init/, or workflow file changes. This manifest
+    records that direction and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-04
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) for the chirality-app-dev loop, executing directly
+    in an untyped Claude Code session under owner direction; owner merge is
+    the terminal act.
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The validator change only relaxes a requirement. chirality-piping keeps
+    its WORKPLAN_*.md files and its launcher does not select HELP_HUMAN, so
+    its validation outcome is unchanged. No agent, skill, root governance
+    prose, or shared consumer contract changes; no authority is created for
+    another loop.

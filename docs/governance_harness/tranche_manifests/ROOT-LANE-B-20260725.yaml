@@ -1,0 +1,68 @@
+# Instruction-surface tranche manifest (D-GOV-21 M2 / guard G4).
+#
+# Format and semantics: tools/validation/validate_instruction_tranche_manifest.py
+# (docstring "Design of record"). This manifest is the G4 discipline applied to
+# the tranche that ships G4 itself: it records the gate that was taken. It
+# grants no authority and confers none (K-AUTH-1).
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-LANE-B-20260725
+title: >-
+  Lane B — deterministic guard capability G1-G4 (D-GOV-21 §6 step 6):
+  validator code, tests, and governance-harness CI wiring. Capability only;
+  guard state is instantiated later by root Project Setup.
+date: 2026-07-25
+basis: ba2b80bf25b6
+
+# Every protected instruction-surface path this tranche changes. Paths are
+# repo-root-relative. `execution/` run records (the ROOT-LANE-B-20260725
+# orchestration plan, brief, evidence, and return) are working-root records,
+# not instruction surface, and are deliberately not listed here.
+instruction_surface_paths:
+  - tools/validation/validate_root_harness_adapter.py
+  - tools/validation/test_validate_root_harness_adapter.py
+  - tools/validation/validate_root_surface_ownership.py
+  - tools/validation/test_validate_root_surface_ownership.py
+  - tools/validation/validate_root_work_graph_dispatch.py
+  - tools/validation/test_validate_root_work_graph_dispatch.py
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - .github/workflows/governance-harness.yml
+  - docs/governance_harness/tranche_manifests/ROOT-LANE-B-20260725.yaml
+  - tools/REGISTRY.md
+
+m2_gate:
+  authorization: >-
+    Standing authorization: D-GOV-21 §6 step 6 (RULED 2026-07-25, owner
+    approval O-A against candidate SHA
+    c038c493e871c95871823281b45890ba9404624b) directs implementation and
+    validation of guard capability G1-G4. Owner direction of record for this
+    run, in-session 2026-07-25: "Merge PR #345 and proceed with Lane B."
+    Recorded in
+    execution/_Coordination/AgentRuns/ROOT-LANE-B-20260725/ORCHESTRATION_PLAN.md
+    and scoped by
+    execution/_Coordination/WORKPLAN_2026-07-25_root_product_development.md
+    §Lane B. The gate supplies containment and evidence conditions; it does
+    not itself grant authorization (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) for the ROOT-LANE-B-20260725 run — the single
+    serialized integration owner for this tranche; the N1 executor holds no
+    integration authority and does not commit.
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  # Completed by Agent 0 at fan-in (V1), per the pin survey of 2026-07-25.
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    Agent 0 pin survey at fan-in (V1, 2026-07-25): no project or domain loop
+    pins or mirrors any touched surface. The chirality-app-dev
+    AUTHORITY_CORPUS.json pins DIRECTIVE/CONTRACT/SPEC/TYPES/PLAN/PRD and two
+    AGENT_* files - none touched here; no SHA-pinned mirror of
+    tools/validation/, tools/REGISTRY.md, or
+    .github/workflows/governance-harness.yml exists under projects/ or
+    domains/ (grep survey; the hits found are narrative mentions in receipts
+    and decision records, not pins). The agent-index change-notice rule
+    applies to agents/ files, which this tranche does not touch.

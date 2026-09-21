@@ -21,7 +21,7 @@ Takes two Markdown extracts of the same page (the original from
 **1.5-P is purely additive.** This module NEVER writes a verification
 or exemption signal; it only routes attention TO content. A match in
 any class is silent — both extracts can be wrong about the same
-printed content. See `agents/AGENT_DOMAIN_DECOMP.md` Gate 1.5-P for the
+printed content. See `workflows/domain-decomp/WORKFLOW.md` Gate 1.5-P for the
 full doctrine.
 """
 from __future__ import annotations

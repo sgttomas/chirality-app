@@ -1,0 +1,23 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-STAGE2-ADOPTION-20260907
+title: Exact owning-accepted Runtime Stage2 SOW adoption
+date: 2026-09-07
+basis: 9f21e4b86c304343b92ccd9ef10895b28c1a4f48
+instruction_surface_paths:
+  - tools/validation/root_runtime_successors.py
+  - docs/governance_harness/_DECISIONS/D-GOV-38_runtime_stage2_successor_adoption.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-STAGE2-ADOPTION-20260907.yaml
+m2_gate:
+  authorization: "Ryan Tufts: I approve both. Exact Runtime Stage2 subject and matching bounded Root adoption; docs/governance_harness/_DECISIONS/D-GOV-38_runtime_stage2_successor_adoption.md"
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-07
+  integration_owner: HELPS_HUMANS root_custody_prep under App HELP_HUMAN
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_STAGE2_ADOPTION_2026-09-07.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_ROOT_RUNTIME_STAGE2_ADOPTION_2026-09-07.md
+  rationale: Explicit Root adoption changes consumer recognition only; App and Runtime own publication/adoption/activation. No core corpus bytes changed; export and other client version propagation remain owning deferred acts.

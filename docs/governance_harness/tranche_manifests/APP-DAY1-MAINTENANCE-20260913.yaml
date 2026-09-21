@@ -1,0 +1,39 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-DAY1-MAINTENANCE-20260913
+title: Workflow draft review and Day 1 maintenance
+date: '2026-09-13'
+basis: 8f27fa3d8ec5e128e61fd3ac4076e74d7955f355
+instruction_surface_paths:
+  - AGENTS.md
+  - workflows/create-workflow/WORKFLOW.md
+  - workflows/index.json
+  - projects/chirality-app-dev/instructions/AGENTS.md
+  - docs/governance_harness/tranche_manifests/APP-DAY1-MAINTENANCE-20260913.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed: "Attend to these matters. Commit and merge the fixes."
+    The requested creation behavior includes an inspectable workflow and user
+    feedback before registration through UI controls. The owner subsequently
+    confirmed continuing the Day 1 fixes while withdrawing the Excel-popup
+    clarification. This tranche applies that workflow-authoring instruction
+    refinement and the associated App fixes. It does not authorize a release.
+  authorized_by: Ryan Tufts
+  authorization_date: '2026-09-13'
+  integration_owner: HELP_HUMAN on codex/day1-maintenance
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-13_WORKFLOW_DRAFT_REVIEW.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-13_WORKFLOW_DRAFT_REVIEW.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-09-13_WORKFLOW_DRAFT_REVIEW.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-13_WORKFLOW_DRAFT_REVIEW.md
+  rationale: >-
+    App guidance and the shared create-workflow method now prepare drafts for
+    human review before registration. Runtime catalog parsing is reused by the
+    App file handoff; execution discovery retains canonical WORKFLOW.md packages.
+    Historical instruction snapshots remain unchanged.
+scope_limits:
+  - Source integration only; no release or signing/build publication.
+  - Preserve existing accepted workflows and user-edited product guidance.

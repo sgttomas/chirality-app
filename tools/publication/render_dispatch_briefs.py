@@ -19,7 +19,7 @@ Inputs:
   --sections-root          sections/ output folder
   --package-root           package/ snapshot parent
   --package-snapshot-name  Immutable package snapshot folder name (required for determinism)
-  [--skills-root]          Repo skills root (default: {repo}/skills)
+  [--skills-root]          Workflow root (default: {repo}/workflows; --skills-root accepted as legacy option)
   [--section-ids]          Comma/semicolon list of SectionIDs to rerender; default = all
   [--render-package]       yes|no (default yes)
 
@@ -94,7 +94,7 @@ DISPATCH_INDEX_COLUMNS = [
     "DispatchType",
     "RenderMode",
     "SectionID",
-    "TaskSkill",
+    "Workflow",
     "BriefPath",
     "ScopePath",
     "PrimaryOutputs",
@@ -280,7 +280,10 @@ def render_section_brief(
     lines = [
         f"PURPOSE: Publish approved rewritten DBM section {section_id}.",
         f"ScopePath: {section_dir.resolve()}/",
-        "TaskSkill: dbm-section-publish",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
+        "Workflow: dbm-section-publish",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f"  - {body_path.resolve()}",
         f"  - {qa_path.resolve()}",
@@ -347,7 +350,10 @@ def render_package_brief(
     lines = [
         "PURPOSE: Assemble the rewritten DBM and classify publication readiness.",
         f"ScopePath: {paths['publication_root'].resolve()}/",
-        "TaskSkill: dbm-publish",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
+        "Workflow: dbm-publish",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
     ]
     lines.extend([f"  - {path.resolve()}" for path in outputs])
@@ -400,7 +406,10 @@ def render_concordance_verify_brief(
     lines = [
         "PURPOSE: Verify semantic cross-section consistency (optional post-authoring review).",
         f"ScopePath: {package_snapshot_dir.resolve()}/",
-        "TaskSkill: dbm-concordance-verify",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
+        "Workflow: dbm-concordance-verify",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f"  - {report_path.resolve()}",
         f"  - {findings_path.resolve()}",
@@ -422,7 +431,7 @@ def render_concordance_verify_brief(
 
 
 def repo_default_skills_root() -> Path:
-    return SCRIPT_DIR.parent.parent / "skills"
+    return SCRIPT_DIR.parent.parent / "workflows"
 
 
 def infer_source_domain(section_map_rows: Dict[str, List[Dict[str, str]]], publication_root: Path) -> str:
@@ -446,7 +455,7 @@ def main() -> int:
     parser.add_argument("--sections-root", required=True)
     parser.add_argument("--package-root", required=True)
     parser.add_argument("--package-snapshot-name", required=True)
-    parser.add_argument("--skills-root", default=str(repo_default_skills_root()))
+    parser.add_argument("--workflows-root", "--skills-root", dest="skills_root", default=str(repo_default_skills_root()))
     parser.add_argument("--section-ids", default="")
     parser.add_argument("--render-package", choices=["yes", "no"], default="yes")
     args = parser.parse_args()
@@ -512,11 +521,11 @@ def main() -> int:
     if missing_from_map:
         fatal(f"Section map has no rows for selected sections: {', '.join(missing_from_map)}")
 
-    section_brief_schema = paths["skills_root"] / "dbm-section-publish" / "BRIEF_SCHEMA.md"
-    package_brief_schema = paths["skills_root"] / "dbm-publish" / "BRIEF_SCHEMA.md"
-    verify_brief_schema = paths["skills_root"] / "dbm-concordance-verify" / "BRIEF_SCHEMA.md"
+    section_brief_schema = paths["skills_root"] / "dbm-section-publish" / "CONTRACT.md"
+    package_brief_schema = paths["skills_root"] / "dbm-publish" / "CONTRACT.md"
+    verify_brief_schema = paths["skills_root"] / "dbm-concordance-verify" / "CONTRACT.md"
     if not section_brief_schema.exists() or not package_brief_schema.exists() or not verify_brief_schema.exists():
-        fatal("Skill BRIEF_SCHEMA.md files not found under skills root.")
+        fatal("Workflow CONTRACT.md files not found under selected workflow root.")
     required_section_fields = parse_required_brief_fields(section_brief_schema)
     required_package_fields = parse_required_brief_fields(package_brief_schema)
     required_verify_fields = parse_required_brief_fields(verify_brief_schema)
@@ -555,7 +564,7 @@ def main() -> int:
                 "DispatchType": "SECTION",
                 "RenderMode": render_mode,
                 "SectionID": section_id,
-                "TaskSkill": "dbm-section-publish",
+                "Workflow": "dbm-section-publish",
                 "BriefPath": str(brief_path.resolve()),
                 "ScopePath": str(section_dir.resolve()) + "/",
                 "PrimaryOutputs": "; ".join(
@@ -624,7 +633,7 @@ def main() -> int:
                 "DispatchType": "PACKAGE",
                 "RenderMode": render_mode,
                 "SectionID": "",
-                "TaskSkill": "dbm-publish",
+                "Workflow": "dbm-publish",
                 "BriefPath": str(package_brief_path.resolve()),
                 "ScopePath": str(paths["publication_root"].resolve()) + "/",
                 "PrimaryOutputs": "; ".join(
@@ -646,7 +655,7 @@ def main() -> int:
                 "DispatchType": "PACKAGE_VERIFY",
                 "RenderMode": render_mode,
                 "SectionID": "",
-                "TaskSkill": "dbm-concordance-verify",
+                "Workflow": "dbm-concordance-verify",
                 "BriefPath": str(verify_brief_path.resolve()),
                 "ScopePath": str(package_snapshot_dir.resolve()) + "/",
                 "PrimaryOutputs": "; ".join(

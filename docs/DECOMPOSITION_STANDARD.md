@@ -1,36 +1,48 @@
 # Decomposition Standard
 
-> **Status: RATIFIED — D-GOV-14 item 2, owner ruling 2026-07-12.** The exact
-> text at commit `ee35409f5cf3a81ecb29a271527156b991df97b9` is the external
-> decomposition protocol shared by PROJECT_DECOMP, SOFTWARE_DECOMP, and
-> DOMAIN_DECOMP. Ratified root governance governs on disagreement.
+> **Status: PROSPECTIVE CHIRALITY V3 AMENDMENT — implementation authorized by
+> the owner on 2026-09-09.** The owner approved implementing the named grouped
+> checkpoint design. These candidate bytes do not themselves constitute final
+> acceptance, downstream qualification, release, or project-loop adoption. Until
+> the prospective amendment is accepted through its governing closeout, the
+> D-GOV-14 edition at commit `ee35409f5cf3a81ecb29a271527156b991df97b9`
+> remains the ratified decomposition protocol.
 
-This normative document defines the invariant protocol, validity requirements, entity schemas, and required output sections shared by all decomposition managers in this framework. It is an external constraint on runtime agents, not an agent, persona, or delegation position.
+This normative document defines the invariant protocol, validity requirements,
+entity schemas, and required output sections shared by decomposition workflows
+in this framework. It is an external constraint on runtime agents, not an
+agent, persona, or delegation position.
 
-PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP, and future decomposition managers MUST conform to this standard and extend it with domain-specific semantics. HELPS_HUMANS provides conversational design and conformance assistance for decomposition components.
+The `project-decomp`, `software-decomp`, and `domain-decomp` workflows, and
+future decomposition workflows, MUST conform to this standard and extend it
+with domain-specific semantics. HELPS_HUMANS provides conversational design
+and conformance assistance for decomposition components; WORKING_ITEMS
+coordinates their execution.
 
-Where a conforming agent's instruction file disagrees with this standard,
+Where a conforming workflow package disagrees with this standard,
 surface the conflict and apply the repository's authority and conflict rules.
 
 ---
 
-## Conforming managers
+## Conforming workflows
 
-The following agents currently conform to this specification:
+The following central workflows currently conform to this specification:
 
-| Agent | Domain | Partition Entity | Production Unit Entity | ID Width |
+| Workflow | Domain | Partition Entity | Production Unit Entity | ID Width |
 |---|---|---|---|---|
-| **PROJECT_DECOMP** | EPC / design-build projects | Package (`PKG-XX`) | Deliverable (`DEL-XX-YY_{desc}`) | 2-digit |
-| **SOFTWARE_DECOMP** | Software development | Package (`PKG-XX`) | Deliverable (`DEL-XX-YY`) | 2-digit |
-| **DOMAIN_DECOMP** | Handbook / knowledge domains | Category (`CAT-###`) | Knowledge Type (`KTY-CC-TT_{desc}`) | 2–3 digit |
+| **project-decomp** | EPC / design-build projects | Package (`PKG-XX`) | Deliverable (`DEL-XX-YY_{desc}`) | 2-digit |
+| **software-decomp** | Software development | Package (`PKG-XX`) | Deliverable (`DEL-XX-YY`) | 2-digit |
+| **domain-decomp** | Handbook / knowledge domains | Category (`CAT-###`) | Knowledge Type (`KTY-CC-TT_{desc}`) | 2–3 digit |
 
-Each conforming agent binds the abstract entities defined in this specification to domain-specific names, ID formats, type taxonomies, and phase-level actions. See **Extension contract** in STRUCTURE.
+Each conforming workflow binds the abstract entities defined in this
+specification to domain-specific names, ID formats, type taxonomies, and
+stage-level actions. See **Extension contract** in STRUCTURE.
 
 ---
 
 ## Precedence (conflict resolution)
 
-All conforming agents MUST use this precedence order:
+All conforming workflows MUST use this precedence order:
 
 1. **PROTOCOL** governs sequencing and interaction rules (how to run the process).
 2. **SPEC** governs validity (pass/fail requirements; what is considered correct).
@@ -43,14 +55,21 @@ If any instruction appears to conflict, do not silently reconcile. Surface the c
 
 ## Non-negotiable invariants
 
-These invariants MUST hold across all conforming decomposition agents, regardless of domain.
+These invariants MUST hold across all conforming decomposition workflows,
+regardless of domain.
 
-- **I1 — Human-validated decomposition.** The structured outline and decomposition MUST be confirmed by the human at defined gates. No gate may be skipped.
+- **I1 — Human-validated decomposition.** Agents prepare the proposed state and
+  relevant checks before each required human checkpoint. PROJECT and SOFTWARE
+  use three grouped checkpoints. DOMAIN uses one combined source-admission and
+  source-fidelity checkpoint before atomization, followed by three grouped
+  checkpoints expressed in domain terms. A required checkpoint may not be
+  skipped or multiplied merely because a tool or asset-quality check produced
+  evidence.
 - **I2 — No invention.** Do not create atomic units, objectives, partitions, production units, or artifacts beyond what the source material and user intent support. If unknown, mark `TBD` and surface as an open issue.
 - **I3 — Partitions are flat.** Do not create nested partitions. If more granularity is needed, propose additional partitions at the same level.
-- **I4 — No overlap / no gaps at the partition level.** Every IN-scope atomic unit MUST be assigned to exactly one partition. Forced decision if ambiguous; human resolves at gates.
+- **I4 — No overlap / no gaps at the partition level.** Every IN-scope atomic unit MUST be assigned to exactly one partition. Forced decision if ambiguous; human resolves at the applicable grouped checkpoint.
 - **I5 — Stable identifiers.** Once assigned, IDs MUST remain stable across revisions unless the human explicitly requests renumbering.
-- **I6 — Deterministic production-unit ID ↔ partition ID coupling.** The production unit ID MUST be mechanically derived from its parent partition ID. The coupling format is domain-specific (defined by the conforming agent) but the coupling itself is invariant.
+- **I6 — Deterministic production-unit ID ↔ partition ID coupling.** The production unit ID MUST be mechanically derived from its parent partition ID. The coupling format is domain-specific (defined by the conforming workflow) but the coupling itself is invariant.
 - **I7 — Objective mapping is best-effort.** Objectives are derived from the source material. Unmapped objectives MUST be surfaced as open issues.
 - **I8 — Traceable rationale.** Non-trivial assignment decisions MUST be recorded as explicit decisions in the decomposition output.
 - **I9 — Ledger + telemetry.** Every decomposition MUST include a machine-checkable ledger and a Coverage & Telemetry summary. These make coverage provable and quality comparable across revisions.
@@ -80,7 +99,7 @@ These are the abstract entity names used in this specification. Conforming agent
 
 ### Canonical working package
 
-The normative output of every conforming decomposition agent is a **canonical working package**, not a single monolithic document. A canonical working package consists of:
+The normative output of every conforming decomposition workflow is a **canonical working package**, not a single monolithic document. A canonical working package consists of:
 
 - one concise main decomposition document (the control surface)
 - zero or more **authoritative companion registers** (CSV, JSON, or structured markdown files holding heavy machine-truth)
@@ -126,9 +145,9 @@ Every major decomposition artifact should declare its role using one of these la
 
 ### Modular packages are the preferred default
 
-Conforming decomposition agents MUST default to producing modular working packages. Heavy machine-truth (ledgers, registers, telemetry, objective mappings) SHOULD live in companion files rather than being embedded in the main decomposition document.
+Conforming decomposition workflows MUST default to producing modular working packages. Heavy machine-truth (ledgers, registers, telemetry, objective mappings) SHOULD live in companion files rather than being embedded in the main decomposition document.
 
-If a conforming agent produces a monolithic single-file output for publication or review purposes, that output MUST be declared as a derived publication artifact and MUST NOT be treated as the authoritative amendment surface.
+If a conforming workflow produces a monolithic single-file output for publication or review purposes, that output MUST be declared as a derived publication artifact and MUST NOT be treated as the authoritative amendment surface.
 
 ---
 
@@ -137,143 +156,95 @@ If a conforming agent produces a monolithic single-file output for publication o
 
 ### Operational — "How to do?"
 
-All conforming decomposition agents run a **7-phase, gate-controlled conversational workflow**. The protocol below defines the invariant structure. Conforming agents extend each phase with domain-specific actions, outputs, and gate language.
+Conforming decomposition workflows perform the preparation stages below and
+stop only at the grouped human checkpoints. A stage may contain deterministic
+checks, repair loops, or bounded TASK assignments. Those operations produce the
+evidence presented at a checkpoint; they do not create extra approval prompts.
+Conforming workflows extend each stage with domain-specific actions and outputs.
+
+After every required human checkpoint is accepted, finalize a new immutable
+checkpoint snapshot before beginning the next stage. The snapshot contains the
+recorded decision, an accepted artifact manifest with hashes and package roles,
+and a handoff state naming its upstream basis, derivative status, closure
+verdict, rerun requirements, and blockers. Update only that checkpoint's
+authorized pointer after the snapshot is complete. The next stage resolves and
+consumes that accepted snapshot; it does not rely on the mutable working package
+alone. Reopened decisions produce successor snapshots and never overwrite an
+earlier accepted snapshot.
 
 ### Output Target
 
-The agent maintains a **single decomposition document** (living draft) and revises it after human feedback until it passes the gates in SPEC.
+The agent maintains the canonical working package and revises its working
+surface and authoritative companion registers after human feedback until the
+required checkpoints pass.
 
-### Phases
+### Preparation stages and checkpoints
 
-#### Phase 1 — Intake (capture the source reality)
+#### Stage A — Establish and normalize the basis
 
-**Goal:** Receive the source corpus and constraints and reflect them back faithfully.
+Collect the source corpus, constraints, references, and prior accepted state.
+Normalize content into atomic units with stable IDs and `IN | OUT | TBD`
+classification. Develop the Vocabulary Map. For PROJECT and SOFTWARE, derive
+testable objectives and map them to atomic units on a best-effort basis.
 
-**Required actions (all variants):**
-- Collect all input material.
-- Ask clarifying questions only when required to prevent structural ambiguity.
-- Begin a **References** list (what inputs were used).
+Before asking for a decision, the agent prepares the full basis package,
+identifies unsupported or conflicting interpretations, and runs available
+structural checks.
 
-**Required output:**
-- Title (TBD if unknown)
-- Intake summary (high-level)
-- References list
+**PROJECT/SOFTWARE checkpoint group 1 — basis, normalized scope, vocabulary,
+and objectives.** The human confirms this group as the basis for structural
+proposals.
 
-**Gate 1 (confirm intake understanding):**
-Human confirms the intake reflects the source material and context as intended.
+**DOMAIN pre-atomization checkpoint — source admission and fidelity.** DOMAIN
+first presents the proposed admitted corpus together with source-fidelity and
+asset-quality evidence as one combined checkpoint. Repair loops occur before
+the checkpoint where possible. Asset-quality evidence routes repairs and is
+included in the package; it does not create separate human prompts. Atomization
+begins only after the human accepts the admitted source basis and its fidelity
+posture.
 
----
+**DOMAIN checkpoint group 1 — normalized scope and meaning.** After
+atomization, the human confirms the Handbook Units, `IN | OUT | TBD`
+classifications, source bindings, Vocabulary Map, and surfaced meaning
+conflicts as the normalized representation of the admitted corpus.
 
-#### Phase 2 — Normalize (source corpus → atomic units + vocabulary)
+#### Stage B — Propose the structure
 
-**Goal:** Convert the source corpus into normalized, atomic units that can be partitioned without losing meaning.
+Propose flat partitions and assign every IN-scope atomic unit to exactly one.
+If a unit would overlap, split it with human-visible provenance or present the
+forced boundary decision. Define production units within their parent
+partitions with stable coupled IDs, responsibility, type, anticipated artifacts,
+and best-effort mappings. Run coverage, cohesion, sizing, and referential checks
+before presenting the proposal; surface all exceptions and open issues.
 
-**Required actions (all variants):**
-- Normalize content into atomic units (short, testable statements; one concept per unit).
-- Classify each unit as `IN | OUT | TBD`.
-- Start a **Vocabulary Map**: canonical terms, synonyms, notes.
+**PROJECT/SOFTWARE checkpoint group 2 — proposed packages/deliverables,
+coverage findings, and exceptions.** The human decides the proposed structure
+with its coverage evidence and unresolved exceptions together.
 
-**Required output:**
-- Atomic unit list with stable IDs and `IN|OUT|TBD` status
-- Initial objective candidates (derived, not invented)
-- Vocabulary Map (initial)
+**DOMAIN checkpoint group 2 — Category, Knowledge Type, and Knowledge Subject
+structure.** The human decides the proposed domain structure with its
+retrieval-assisted cohesion evidence, mappings, coverage findings, and
+exceptions together.
 
-**Gate 2 (confirm normalization):**
-Human confirms the atomic units reflect the source content, the `IN|OUT|TBD` classifications are correct, and the vocabulary choices are acceptable.
+#### Stage C — Audit and prepare the final package
 
----
+Incorporate the preceding decisions, assemble the canonical working package,
+and dispatch a separate review instance that did not author the candidate. Show
+the final identifiers, mappings, coverage, telemetry, open issues, companion
+inventory, and change record. Publication or output writing occurs around the
+accepted state and does not add a checkpoint.
 
-#### Phase 3 — Define Objectives (derived from source material)
+**PROJECT/SOFTWARE checkpoint group 3 — audited final decomposition accepted
+for downstream use.** The human accepts the reviewed package as the basis for
+downstream work.
 
-**Goal:** Produce high-level success criteria derived from the source material.
+**DOMAIN checkpoint group 3 — audited final acceptance.** The human accepts
+the reviewed domain package as the basis for downstream work.
 
-**Required actions (all variants):**
-- Derive objectives from source intent and success conditions.
-- Ensure objectives are few, meaningful, and testable.
-- Map objectives to atomic units (best-effort).
-
-**Required output:**
-- Objective list with stable `OBJ-NNN` IDs
-- Mapping notes (including unmapped objectives)
-
-**Gate 3 (confirm objectives):**
-Human confirms the objectives represent success as intended.
-
----
-
-#### Phase 4 — Define Partitions (flat, no overlap, no gaps)
-
-**Goal:** Partition IN-scope atomic units into flat partitions.
-
-**Required actions (all variants):**
-- Propose partitions (flat list) with stable IDs, names, scope descriptions, and inclusion/exclusion criteria.
-- Assign each IN-scope atomic unit to exactly one partition.
-- If a unit appears to belong to multiple partitions, either:
-  1. split the unit into smaller units (preferred; user-confirmed), or
-  2. force a decision and surface ambiguity for human resolution at this gate.
-
-**Required output:**
-- Partition list with IDs, names, and scope descriptions
-- Atomic unit → partition assignment (in the Decomposition Ledger)
-
-**Gate 4 (confirm partitions):**
-Human confirms partitions are correct and each IN-scope unit belongs to exactly one partition.
-
----
-
-#### Phase 5 — Define Production Units (within each partition)
-
-**Goal:** Define production units that operationalize the decomposition into bounded, actionable units.
-
-**Required actions (all variants):**
-- Define production units within each partition with:
-  - Stable ID (mechanically coupled to parent partition ID; format defined by conforming agent)
-  - Name, description
-  - Responsible party (`TBD` allowed)
-  - Type (domain-specific taxonomy defined by conforming agent)
-  - Anticipated artifacts (one or more; `TBD` allowed)
-  - Best-effort objective linkage
-  - Best-effort atomic unit linkage
-
-**Required output:**
-- Production unit list grouped by partition
-- Atomic unit → production unit mapping in the Decomposition Ledger (best-effort; gaps surfaced)
-
-**Gate 5 (confirm production units):**
-Human confirms production units (granularity, types, responsibilities) are acceptable.
-
----
-
-#### Phase 6 — Verify Coverage (anti-fragile checks)
-
-**Goal:** Prove that the decomposition covers the source material and make gaps visible and trackable.
-
-**Required actions (all variants):**
-- Verify every IN-scope atomic unit is assigned to exactly one partition (required).
-- Verify every IN-scope atomic unit is mapped to at least one production unit (best-effort; missing mappings are open issues).
-- Verify every production unit belongs to exactly one partition (required).
-- Verify objective mapping is best-effort complete: each objective is supported by at least one production unit, or is flagged as an open issue.
-- Produce **Coverage & Telemetry** summary (required).
-
-**Required output:**
-- Coverage & Telemetry section
-- Open Issues list referencing stable IDs
-
-**Gate 6 (confirm verification):**
-Human confirms coverage, mappings, and open issues list are acceptable.
-
----
-
-#### Phase 7 — Publish the Decomposition (finalize)
-
-**Goal:** Produce the final decomposition document as a single coherent artifact suitable for downstream work.
-
-**Required actions (all variants):**
-- Ensure the document includes all required sections (see STRUCTURE).
-- Summarize what changed since last revision.
-
-**Gate 7 (final acceptance):**
-Human confirms the decomposition is the accepted basis for downstream work.
+If the material basis changes after a checkpoint, reopen only the decisions
+whose warrants, mappings, or consequences are affected. Refresh dependent
+checks before returning to the next applicable checkpoint; do not replay
+unaffected decisions.
 
 [[END:PROTOCOL]]
 
@@ -284,7 +255,8 @@ Human confirms the decomposition is the accepted basis for downstream work.
 
 ### Normative — "What must it be?"
 
-These requirements apply to all conforming decomposition agents. Domain-specific variants MAY add requirements; they MUST NOT weaken these.
+These requirements apply to all conforming decomposition workflows.
+Domain-specific variants MAY add requirements; they MUST NOT weaken these.
 
 ### Completeness requirements
 
@@ -358,7 +330,7 @@ This section defines the abstract entity schemas and required output sections. C
 ### Required entities (abstract)
 
 #### Atomic Unit
-- `UnitID` (stable; format defined by conforming agent)
+- `UnitID` (stable; format defined by conforming workflow)
 - `Statement` (normalized atomic statement)
 - `InOutStatus` (`IN|OUT|TBD`)
 - `SourceRef` (best-effort; `TBD` allowed)
@@ -371,37 +343,39 @@ This section defines the abstract entity schemas and required output sections. C
 - `MappedProductionUnits` (best-effort; may be empty but must be flagged)
 
 #### Partition
-- `PartitionID` (stable; format defined by conforming agent)
+- `PartitionID` (stable; format defined by conforming workflow)
 - `Name`
 - `ScopeDescription`
 - `InclusionCriteria` (optional)
 - `Exclusions` (optional)
 
 #### Production Unit
-- `ProductionUnitID` (stable; mechanically coupled to `ParentPartitionID`; format defined by conforming agent)
+- `ProductionUnitID` (stable; mechanically coupled to `ParentPartitionID`; format defined by conforming workflow)
 - `Name`
 - `ParentPartitionID`
 - `Description`
 - `ResponsibleParty` (`TBD` allowed)
-- `Type` (domain-specific taxonomy defined by conforming agent)
+- `Type` (domain-specific taxonomy defined by conforming workflow)
 - `AnticipatedArtifacts` (list; `TBD` allowed)
 - `CoversUnits` (best-effort; atomic unit IDs)
 - `SupportsObjectives` (best-effort; objective IDs)
 
-Conforming agents MAY add fields (e.g., `ContextEnvelope` in SOFTWARE_DECOMP, `CanonicalSchema` in DOMAIN_DECOMP, `CBSHint` in PROJECT_DECOMP). Added fields MUST NOT conflict with the base schema.
+Conforming workflows MAY add fields (for example, `ContextEnvelope` in
+`software-decomp`, `CanonicalSchema` in `domain-decomp`, or `CBSHint` in
+`project-decomp`). Added fields MUST NOT conflict with the base schema.
 
 #### Artifact
 - `ArtifactID` (optional stable ID)
 - `Name`
 - `ParentProductionUnitID`
-- `Type` (domain-specific taxonomy defined by conforming agent)
+- `Type` (domain-specific taxonomy defined by conforming workflow)
 - `Notes`
 
 ---
 
 ### Required sections in the Decomposition Document
 
-Every conforming agent's output MUST include these sections. Order is recommended but not mandatory.
+Every conforming workflow's output MUST include these sections. Order is recommended but not mandatory.
 
 #### 1) Vocabulary Map (table)
 Minimum columns:
@@ -424,7 +398,10 @@ Minimum columns:
 
 **Hard rule:** every IN-scope `UnitID` has exactly one `PartitionID`.
 
-Conforming agents use domain-specific column names (e.g., `ScopeItemID` / `PackageID` / `DeliverableID(s)` in PROJECT_DECOMP; `UnitID` / `CategoryID` / `KnowledgeTypeID(s)` in DOMAIN_DECOMP). The structural contract — every IN unit maps to exactly one partition — is invariant.
+Conforming workflows use domain-specific column names (for example,
+`ScopeItemID` / `PackageID` / `DeliverableID(s)` in `project-decomp`, or
+`UnitID` / `CategoryID` / `KnowledgeTypeID(s)` in `domain-decomp`). The
+structural contract — every IN unit maps to exactly one partition — is invariant.
 
 #### 3) Coverage & Telemetry (summary block)
 Minimum fields:
@@ -438,7 +415,8 @@ Minimum fields:
 - `OpenIssuesByType` (counts, with IDs)
 - `Revision` identifier and date
 
-Conforming agents MAY add domain-specific telemetry fields (e.g., `ContextEnvelopeCounts` in SOFTWARE_DECOMP). They MUST NOT omit the base fields.
+Conforming workflows MAY add domain-specific telemetry fields (for example,
+`ContextEnvelopeCounts` in `software-decomp`). They MUST NOT omit the base fields.
 
 #### 4) Open Issues list
 Unresolved items referencing stable IDs.
@@ -448,22 +426,26 @@ Non-trivial assignment and boundary decisions, recorded so later work can trace 
 
 ---
 
-### Extension contract (what a conforming agent MUST provide)
+### Extension contract (what a conforming workflow MUST provide)
 
-When creating a new decomposition manager that conforms to this standard, the instruction file MUST:
+When creating a new decomposition workflow that conforms to this standard, its
+package MUST:
 
 1. **Reference this standard.** State conformance to `docs/DECOMPOSITION_STANDARD.md`.
 2. **Bind abstract entities to domain-specific names.** Provide a glossary that maps Source Corpus, Atomic Unit, Partition, Production Unit, and Artifact to domain-specific terms.
 3. **Define ID formats.** Specify the stable ID format and width for each entity (partition IDs, production unit IDs, atomic unit IDs).
 4. **Define the production-unit type taxonomy.** Provide the domain-specific type values (e.g., `API_CONTRACT`, `BACKEND_FEATURE_SLICE` for software; `Procedure`, `Checklist`, `Template` for knowledge domains).
-5. **Extend phase actions.** For each of the 7 phases, add domain-specific actions, outputs, and gate language beyond the base requirements.
-6. **Declare WRITE_SCOPE.** Specify the agent's write scope (`project-level`, `repo-metadata-only`, etc.).
+5. **Extend stage actions.** Add domain-specific actions and outputs while
+   preserving the applicable grouped checkpoint semantics and count.
+6. **Declare execution restrictions when needed.** Put workflow-specific
+   capability or command restrictions in `execution.json`; actual writes remain
+   supplied by the run brief and host.
 7. **Add domain-specific fields, anti-patterns, and SPEC requirements** as needed. These extend the base; they do not replace it.
 8. **Declare domain-specific telemetry fields** beyond the base Coverage & Telemetry schema.
 
 9. **Declare package architecture.** Specify which output surfaces are authoritative working surfaces, which are authoritative companion registers, and which (if any) are derived publication artifacts. Include a companion inventory section in the main decomposition document so downstream agents can discover the package layout.
 
-A conforming agent SHOULD also:
+A conforming workflow SHOULD also:
 - Include domain-specific rationale explaining why the extensions exist.
 - Document any deviations from the base specification with explicit justification.
 
@@ -476,9 +458,20 @@ A conforming agent SHOULD also:
 
 ### Why a base specification exists
 
-The decomposition protocol — intake, normalize, partition, operationalize, verify, publish — is broadly invariant across domains. The three existing decomposition agents (PROJECT_DECOMP, SOFTWARE_DECOMP, DOMAIN_DECOMP) share the precedence order, the non-negotiable invariants, the required output sections (ledger, telemetry, vocabulary map, open issues, decision log), and the completeness and consistency requirements.
+The decomposition method — intake, normalize, partition, operationalize,
+verify, and prepare accepted output — is broadly invariant across domains. The
+three central decomposition workflows share the precedence order, the
+non-negotiable invariants, the required output sections (ledger, telemetry,
+vocabulary map, open issues, decision log), and the completeness and
+consistency requirements.
 
-**Variants may omit phases when the domain ontology does not warrant them.** The base specification establishes the maximal 7-gate skeleton. A conforming variant MAY omit a phase (and its associated entity, gate, and telemetry) when that phase has no meaningful semantics in the variant's ontology. Such deviations MUST be explicitly documented in the variant's own doctrine with rationale. Example: `DOMAIN_DECOMP` omits the Objectives layer (Phase 3 in the base) because domain knowledge handbooks rarely state explicit decomposable objectives; principles, goals, and intent are absorbed into Knowledge Types of `Guidance / Playbook` schema. See `AGENT_DOMAIN_DECOMP.md` deviation note.
+Variants express preparation stages through their own ontology while preserving
+the checkpoint contract above. DOMAIN omits the Objectives layer because domain
+knowledge handbooks rarely state explicit decomposable objectives; principles,
+goals, and intent are absorbed into Knowledge Types of `Guidance / Playbook`
+schema. This changes the domain entities within the grouped checkpoints, not the
+requirement for human confirmation. See `workflows/domain-decomp/WORKFLOW.md`
+and its variant contract.
 
 The remaining differences across variants are in domain-specific semantics: what entities are called, how IDs are formatted, what type taxonomies apply, and what domain-specific constraints are added (e.g., Context Envelope for software sizing).
 
@@ -486,24 +479,25 @@ Extracting the invariant protocol into a normative standard:
 - **Reduces duplication.** The shared contract is defined once and referenced, not copy-pasted.
 - **Makes conformance auditable.** New decomposition variants can be checked against the base specification for completeness and consistency.
 - **Clarifies what is invariant vs what is domain-specific.** The extension contract makes the boundary explicit, preventing accidental drift where one variant evolves a structural change that the others don't track.
-- **Supports future variants.** A new decomposition agent for a different domain (e.g., regulatory compliance, curriculum design, research programs) can conform to this specification and inherit the full protocol with only domain-specific extensions required.
+- **Supports future variants.** A new decomposition workflow for a different domain (e.g., regulatory compliance, curriculum design, research programs) can conform to this specification and inherit the full protocol with only domain-specific extensions required.
 
 ### What stays in the concrete variants
 
 Domain-specific content that cannot be abstracted without losing meaning:
 - Entity names and ID formats
 - Type taxonomies and canonical schemas
-- Phase-level actions specific to the domain (e.g., "domain signal identification" in SOFTWARE_DECOMP Phase 2)
+- Stage-level actions specific to the domain (e.g., domain-signal identification
+  during SOFTWARE normalization)
 - Domain-specific sizing constraints (e.g., Context Envelope)
-- Domain-specific anti-patterns (e.g., "packages are phases" in SOFTWARE_DECOMP)
+- Domain-specific anti-patterns (e.g., "packages are phases" in `software-decomp`)
 - WRITE_SCOPE (varies by domain purpose)
 - Downstream pipeline references (what agents consume the decomposition)
 
 ### References
 - `docs/WORKFLOW_COMPONENT_STANDARD.md` — canonical workflow-component design standard
 - `agents/AGENT_HELPS_HUMANS.md` — component-design manager
-- `AGENT_PROJECT_DECOMP.md` — EPC/design-build conforming agent
-- `AGENT_SOFTWARE_DECOMP.md` — software development conforming agent
-- `AGENT_DOMAIN_DECOMP.md` — handbook/knowledge domain conforming agent
+- `workflows/project-decomp/WORKFLOW.md` — EPC/design-build decomposition workflow
+- `workflows/software-decomp/WORKFLOW.md` — software decomposition workflow
+- `workflows/domain-decomp/WORKFLOW.md` — handbook/knowledge decomposition workflow
 
 [[END:RATIONALE]]

@@ -90,7 +90,6 @@ PROFILE_CANDIDATES = (
     "_DomainEngines/profiles/open_pipe_stress.yaml",
     "_DomainEngines/profiles/open_pipe_stress.DRAFT.yaml",
     "_DomainEngines/profiles/pec.yaml",
-    "_DomainEngines/pec/profile/pec.DRAFT.yaml",
 )
 
 RECEIPTS_RELPATH = "_DomainEngines/bridge/LOOP_RECEIPTS.md"

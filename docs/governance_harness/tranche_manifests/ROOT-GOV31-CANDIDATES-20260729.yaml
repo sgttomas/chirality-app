@@ -1,0 +1,76 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-GOV31-CANDIDATES-20260729
+title: D-GOV-31 dual D-8 successor-policy candidates (candidate-only)
+date: 2026-07-29
+basis: 4f7808acb2802443370d045efa198152934c1674
+
+instruction_surface_paths:
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/PACKET.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/ARTIFACT_HASHES.sha256
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_A_ROOT_ONLY/PRD_ROOT_REV7_CANDIDATE.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_A_ROOT_ONLY/POLICY_DELTA.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_A_ROOT_ONLY/ARTIFACT_HASHES.sha256
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_B_SHARED_CHANGE/PRD_ROOT_REV7_CANDIDATE.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_B_SHARED_CHANGE/POLICY_DELTA.md
+  - docs/governance_harness/_PROPOSALS/D-GOV-31_2026-07-29_merge_gate_policy_succession/CANDIDATE_B_SHARED_CHANGE/ARTIFACT_HASHES.sha256
+  - docs/governance_harness/tranche_manifests/ROOT-GOV31-CANDIDATES-20260729.yaml
+
+m2_gate:
+  authorization: >-
+    The owner's in-session Step-3 direction of record (loop-readiness
+    transition program, HELP_HUMAN session): the owner directed the
+    program to proceed to Step 3 - "proceed to Step 3" - within the
+    approved program plan, whose Step 3 authors the two D-8
+    successor-policy candidates as complete, separately hashed,
+    candidate-only packages. That direction authorizes candidate
+    preparation only; it contains no selection between candidates, no
+    adoption, no PRD amendment, and no merge authorization. This
+    manifest records a gate; it grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-29
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-STEP3-D8-CANDIDATES-20260729 under
+    the HELPS_HUMANS lane, supervised by HELP_HUMAN; sole serialized
+    integration owner for this candidate tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    No agents/ file changes. The tranche adds a dual-candidate proposal
+    package and this manifest under docs/. Whether owner selection or a
+    later adoption produces routed notices to project loops is decided
+    by Agent 0 at fan-in after the owner session; Candidate B, if
+    selected and adopted, would obligate routed M6 notices to every
+    registered loop as enumerated in its POLICY_DELTA.md. The routing
+    decision is recorded, not pre-empted, per the G4 pending convention.
+
+scope_limits:
+  - no self-merge; the instruction-surface PR returns to the owner gate
+  - candidate-only tranche; no owner selection, ruling, or adoption is
+    contained; the live docs/PRD_ROOT.md D-8 row remains fully in force
+  - no edit to docs/PRD_ROOT.md, execution/_Coordination/LOOP_INIT.md,
+    docs/CONTRACT.md, agents/AGENT_CHANGE.md, any register, receipt,
+    decision record, or any other existing file
+  - no D-GOV-31 decision record and no _REGISTER.md row; both are
+    created at adoption per the D-GOV-28 precedent
+  - no retroactive cure of the 2026-07-28 window or any historical act
+  - no grant issued, exercised, or pre-approved; no merge authorized
+  - no loop-local App, PEC, or Piping substance
+  - no LOOP_RECEIPTS.md append in this tranche
+  - no lifecycle, implementation, activation, runtime, dependency,
+    estimate, schedule, repin, release, or professional-reliance act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries docs/ derivatives. Regeneration is deferred
+    to the next export release, which must consume post-merge bytes; the
+    deferral changes no export authority or boundary.

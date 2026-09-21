@@ -1,4 +1,4 @@
-MIT License + Professional Engineering Clause
+MIT License
 
 Copyright (c) 2026 Ryan Tufts
 
@@ -19,5 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-And that all professional engineering work adheres to the standards of PROFESSIONAL_ENGINEERING.md in letter or in spirit, whichever would be the more prudent judgment considering the professional responsibility entailed.

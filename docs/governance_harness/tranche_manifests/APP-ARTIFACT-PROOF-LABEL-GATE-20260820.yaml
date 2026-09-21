@@ -1,0 +1,38 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-ARTIFACT-PROOF-LABEL-GATE-20260820
+title: Label-gate the unsigned macOS artifact CI job
+date: 2026-08-20
+basis: fae5e38ee60fd4c8d4a52ac7f663036a83cdbd7d
+
+instruction_surface_paths:
+  - .github/workflows/desktop-release-template.yml
+  - docs/governance_harness/tranche_manifests/APP-ARTIFACT-PROOF-LABEL-GATE-20260820.yaml
+
+m2_gate:
+  authorization: >-
+    Owner-directed change. Ryan Tufts, by in-session direction on 2026-08-20,
+    directed that the unsigned macOS artifact job stop running on every push:
+    the verify-unsigned-macos job now runs only on workflow_dispatch or when
+    the artifact-proof label is present on the pull request, with the labeled
+    activity type added to the pull_request trigger. Scope is trigger and
+    label gating only; the job's verification content is unchanged. Signing,
+    notarization, distribution, release authority, lifecycle advancement,
+    reliance, and professional approval remain fenced. This manifest records
+    that direction and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-20
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) under owner direction, executing through a
+    dispatched bounded ephemeral generalist Agent 2; CHANGE owns serialized
+    Git closeout.
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The changed workflow is App-specific trigger/label gating only. It
+    changes no agents, skills, root governance prose, or shared consumer
+    contract, alters no verification content, and creates no authority for
+    another loop.

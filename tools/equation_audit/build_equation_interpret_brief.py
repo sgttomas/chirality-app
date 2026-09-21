@@ -15,7 +15,7 @@ Inputs:
   --page-image-path  Optional path to the page PNG (visual context for VLM)
 
 Output (stdout): INIT-TASK brief with the canonical fields
-  PURPOSE, RequestedBy, ActingSurface, ScopePath, TaskSkill,
+  PURPOSE, RequestedBy, ActingSurface, ScopePath, Workflow,
   AllowedWriteTargets, RuntimeOverrides, ExpectedOutputs.
 
 The skill is expected to write a small JSON at OUTPUT_PATH with shape:
@@ -90,12 +90,13 @@ def main() -> int:
 
     lines = [
         f"PURPOSE: Interpret the human's natural-language correction note for the equation on page {page} (hash {args.equation_hash}) and emit a corrected LaTeX expression",
-        "RequestedBy: EQUATION_AUDIT",
-        "ActingSurface: TASK+equation-flag-interpret",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {flagged_path.parent}",
-        "TaskSkill: equation-flag-interpret",
+        "Workflow: equation-flag-interpret",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{output_path}"',
         "",

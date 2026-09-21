@@ -5,6 +5,13 @@ export interface SseFrame {
   event?: string;
   data: string;
   id?: string;
+  /** The Runtime-owned frame sequence when `id` is a non-negative integer (turn subscriptions). */
+  seq?: number;
+}
+
+function sequenceOf(id: string | undefined): number | undefined {
+  if (id === undefined || !/^(0|[1-9][0-9]{0,15})$/u.test(id)) return undefined;
+  return Number(id);
 }
 
 function parseFrame(source: string): SseFrame | undefined {
@@ -23,10 +30,12 @@ function parseFrame(source: string): SseFrame | undefined {
     if (field === "data") data.push(value);
   }
   if (data.length === 0) return undefined;
+  const seq = sequenceOf(id);
   return {
     data: data.join("\n"),
     ...(event === undefined ? {} : { event }),
-    ...(id === undefined ? {} : { id })
+    ...(id === undefined ? {} : { id }),
+    ...(seq === undefined ? {} : { seq })
   };
 }
 
@@ -59,22 +68,16 @@ export async function* parseSse(
   if (finalFrame !== undefined) yield finalFrame;
 }
 
-const uiEventTypes = new Set([
-  "session:init",
-  "chat:delta",
-  "chat:complete",
-  "tool:result",
-  "session:complete",
-  "turn:error",
-  "process:exit",
-  "harness:event"
-]);
-
+/**
+ * Any named event is accepted: the Runtime streams the open UIEvent set and its
+ * `harness:event` passthrough carries every Codex notification, so a closed
+ * type list would silently drop faithful frames. `seq` mirrors the wire `id`.
+ */
 export function parseUiEvent(frame: SseFrame): RuntimeSseFrame {
-  if (frame.event === undefined || !uiEventTypes.has(frame.event)) {
+  if (frame.event === undefined || frame.event.trim() === "") {
     throw new RuntimeError(
       "INTERNAL_FAILURE",
-      "Runtime SSE frame has an unknown UI event type",
+      "Runtime SSE frame lacks an event name",
       502
     );
   }
@@ -88,12 +91,12 @@ export function parseUiEvent(frame: SseFrame): RuntimeSseFrame {
       502
     );
   }
-  if (typeof value !== "object" || value === null) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new RuntimeError(
       "INTERNAL_FAILURE",
       "Runtime UI event data must be a JSON object",
       502
     );
   }
-  return { type: frame.event, data: value } as RuntimeSseFrame;
+  return { type: frame.event, data: value, ...(frame.seq === undefined ? {} : { seq: frame.seq }) } as RuntimeSseFrame;
 }

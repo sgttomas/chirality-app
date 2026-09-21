@@ -90,3 +90,13 @@ def test_cli_exit_2_on_broken_manifest(tmp_path, capsys):
     rc = harness.main(["--repo-root", str(repo), "drift", "--project", "piping"])
     assert rc == 2
     assert "ERROR" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize('extra', ['mode: governance-only\n', 'mode: unknown\n',
+    'parser_dialect: root-historical-v1\n', 'states: [OPEN, RETIRED]\n'])
+def test_ordinary_project_refuses_historical_extensions(tmp_path, extra):
+    text = ADAPTER_YAML.format(project='fixture', baseline_mismatch=0,
+        baseline_files=0, requires_sha='false', sha_field='')
+    root = _project(tmp_path, text + '\n' + extra)
+    with pytest.raises(HarnessOperationalError):
+        adapter_loader.load_adapter(root)

@@ -10,8 +10,12 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
-    "@chirality/runtime-contracts": "*"
+    "@chirality/runtime-contracts": "*",
+    "@earendil-works/pi-coding-agent": "0.82.0",
+    "@earendil-works/pi-ai": "0.82.0"
   }
 }

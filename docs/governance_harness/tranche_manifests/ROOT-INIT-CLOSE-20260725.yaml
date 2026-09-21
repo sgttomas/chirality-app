@@ -1,0 +1,43 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-INIT-CLOSE-20260725
+title: Initialization-phase closing tranche (D-GOV-27) — 45× OPEN→INITIALIZED, live-pin update, ResponsibleParty, register reconciliation, exact-prose packet, D-GOV-26 backfill
+date: 2026-07-25
+basis: 8edb96fb1e569e3277a41afaf60868bf0c4b1013
+instruction_surface_paths:
+  - docs/DIRECTIVE.md
+  - docs/PRD_ROOT.md
+  - docs/TYPES.md
+  - docs/governance_harness/_DECISIONS/D-GOV-26_owner_gated_closeout.md
+  - docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-INIT-CLOSE-20260725.yaml
+  - tools/practitioner_harness/test_root_adoption.py
+m2_gate:
+  authorization: >-
+    Owner rulings, in-session, 2026-07-25, recorded verbatim in
+    docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md:
+    the approved initialization phase plan (one closing tranche for the 45
+    lifecycle transitions and the live CI pin; ResponsibleParty "Ryan Tufts")
+    plus the three closing rulings ("Additive propagation", "Update
+    frontmatter + CON now", "Fold in all four restatements"). Approval binds
+    at the human-gated PR merge (K-AUTH-2 vehicle, stated in the record).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: HELP_HUMAN (Agent 0) — serialized integration owner for this tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    Pin survey at basis 8edb96fb1: the app-dev authority corpus's
+    current-version hashes resolve to the project-local
+    projects/chirality-app-dev/docs/ copies (verified by hashing both
+    candidates), not the root docs/ files amended here; its AGENT_* pins are
+    historical snapshot hashes of agents/ files untouched by this tranche;
+    the harness-premerge instruction-root fixture consumes project-local
+    docs. No project or domain loop pins docs/PRD_ROOT.md, root
+    docs/DIRECTIVE.md, root docs/TYPES.md, or
+    tools/practitioner_harness/test_root_adoption.py. The execution-tree
+    changes (state flips, registers, contracts) are root-loop working-root
+    state no downstream loop consumes.

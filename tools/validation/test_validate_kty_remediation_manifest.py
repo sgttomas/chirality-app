@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import csv
-import sys
 from pathlib import Path
 
-
-VALIDATION_DIR = Path(__file__).resolve().parent
-if str(VALIDATION_DIR) not in sys.path:
-    sys.path.insert(0, str(VALIDATION_DIR))
 
 from validate_kty_remediation_manifest import (  # noqa: E402
     REQUIRED_COLUMNS,
@@ -248,3 +243,17 @@ def test_reclassify_with_subject_membership_context_requires_regeneration(tmp_pa
     findings = validate_manifest(manifest, action_rows=action_rows)
 
     assert any(f.category == "CONTENT_ACTION_MISMATCH" for f in findings)
+
+
+def test_workflow_column_compatibility_and_conflict(tmp_path):
+    import pytest
+    import validate_kty_remediation_manifest as validator
+    path=tmp_path/'input.csv'
+    path.write_text('Workflow,TaskMode\ndomain-documents,SCA_DRIVEN\n')
+    header,rows=validator.read_csv_rows(path)
+    assert 'TaskSkill' in header
+    assert rows[0]['TaskSkill']=='domain-documents'
+    path.write_text('Workflow,TaskSkill\ndomain-documents,other\n')
+    with pytest.raises(ValueError,match='Conflicting'):validator.read_csv_rows(path)
+    path.write_text('Workflow,TaskSkill\ndomain-documents,domain-documents\n')
+    assert validator.read_csv_rows(path)[1][0]['TaskSkill']=='domain-documents'

@@ -1,0 +1,25 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-SUCCESSOR-RECOGNITION-20260906
+title: Root recognition of exact owning-accepted Runtime revisions
+date: 2026-09-06
+basis: e1dee34315ff4ca448b0fbc14e5542b6bad9fac2
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-37_runtime_successor_recognition.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - tools/validation/root_governance_state.py
+  - tools/validation/root_runtime_successors.py
+  - tools/validation/test_root_runtime_successors.py
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-SUCCESSOR-RECOGNITION-20260906.yaml
+m2_gate:
+  authorization: "Ryan Tufts: You have approval to make this change in Root; execution/_Coordination/AgentRuns/ROOT_RUNTIME_SUCCESSOR_RECOGNITION_2026-09-06/OWNER_ACT.md"
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-06
+  integration_owner: HELPS_HUMANS root_custody_prep under App HELP_HUMAN
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_SUCCESSOR_RECOGNITION_2026-09-06.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_ROOT_RUNTIME_SUCCESSOR_RECOGNITION_2026-09-06.md
+  rationale: Shared Root reader changes current revision recognition; project adoption/activation remains with each loop. No core canon/agent bytes or existing authority-corpus pins changed; public export disposition remains explicit in handoff.

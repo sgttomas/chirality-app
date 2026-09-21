@@ -1,0 +1,35 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-STEP8-ACCEPT-20260725
+title: First root decomposition acceptance (D-GOV-25) + root Project Setup guard-state instantiation
+date: 2026-07-25
+basis: ea0ad7a566ddb51d89297bfcf491636f1fc5dd15
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-25_root_decomposition_acceptance.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-STEP8-ACCEPT-20260725.yaml
+m2_gate:
+  authorization: >-
+    Owner ruling, in-session, 2026-07-25, recorded verbatim in
+    docs/governance_harness/_DECISIONS/D-GOV-25_root_decomposition_acceptance.md
+    ("Merge PR #347 (CI green). Candidate SHA for the exact-candidate
+    ruling: ec62af0700e530c1640698fa406398cb1cb45d29 / Decisions: 1. Record
+    a reasoned deferral. 2. Update the labels as warranted. 3. Proceed in
+    the manner you recommend."), following the owner's step-8 release
+    direction of the same date.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: HELP_HUMAN (Agent 0) — serialized integration owner for this tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    Pin survey at basis ea0ad7a56: the touched instruction-surface paths
+    are two new files plus a register row append. The app-dev authority
+    corpus (execution/_Reconciliation/References/AUTHORITY_CORPUS.json)
+    pins DIRECTIVE, CONTRACT, SPEC, TYPES, PLAN, PRD, AGENT_SOFTWARE_DECOMP,
+    AGENT_DOMAIN_ENGINE — none touched by this tranche. Non-instruction
+    changes (execution/_Decomposition ruling application, execution/_harness
+    guard-state instantiation, run record, receipts) are root-loop-local
+    control-plane state that no downstream loop pins or mirrors.

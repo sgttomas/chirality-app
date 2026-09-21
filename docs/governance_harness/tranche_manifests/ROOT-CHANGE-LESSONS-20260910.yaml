@@ -1,0 +1,28 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CHANGE-LESSONS-20260910
+title: Lean change evidence, non-blocking whitespace, and release-test reuse
+date: 2026-09-10
+basis: f082ef23b67921351d2e2800ee6d7516205f2092
+instruction_surface_paths:
+- .github/workflows/governance-harness.yml
+- tools/validation/validate_conflict_markers.py
+- tools/validation/test_validate_conflict_markers.py
+- tools/REGISTRY.md
+- tools/validation/README.md
+- tools/validation/test_validate_candidate_whitespace.py
+- tools/validation/test_validate_instruction_tranche_manifest.py
+- .agents/skills/chirality-change/SKILL.md
+- tools/validation/test_workflow_catalog.py
+- tools/validation/test_public_export_profile.py
+- docs/governance_harness/tranche_manifests/ROOT-CHANGE-LESSONS-20260910.yaml
+m2_gate:
+  authorization: 'Ryan requested lessons from the last PRs, updating the project change skill, and eliminating low-value CI and documentation causes while keeping the work bounded for MVP delivery. Subsequently explicitly directed removal of cosmetic whitespace blocking and duplicate release-wrapper tests while preserving distinct integration checks, in the same future PR.'
+  authorized_by: Ryan Tufts (current conversation)
+  authorization_date: 2026-09-10
+  integration_owner: HELP_HUMAN /root
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: 'Repository-only change skill remains excluded from the App bundle. The owner also withdrew cosmetic whitespace gates from Root CI and the App/PEC loop instructions, and authorized equivalent release-test reuse. No role, execution permission, or accepted corpus/mirror bytes change. The export drops a one-time run-evidence dependency while current policy checks remain. Historical snapshots are preserved; no downstream acceptance or repinning is performed.'

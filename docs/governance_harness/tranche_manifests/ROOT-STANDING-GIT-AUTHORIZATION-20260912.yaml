@@ -1,0 +1,49 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-STANDING-GIT-AUTHORIZATION-20260912
+title: Standing owner authorization for repository Git integration
+date: '2026-09-12'
+basis: 230be0ca9fa6ae7a81b0810ead4f55f193a8189a
+instruction_surface_paths:
+  - .agents/skills/chirality-change/SKILL.md
+  - AGENTS.md
+  - docs/CONTRACT.md
+  - docs/PRD_ROOT.md
+  - docs/governance_harness/tranche_manifests/ROOT-STANDING-GIT-AUTHORIZATION-20260912.yaml
+  - docs/thesis/06_professional_practice.md
+  - docs/thesis/appendix_a_invariant_catalog.md
+  - docs/thesis/appendix_c_apega_mapping.md
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - workflows/change/resources/contract.md
+  - workflows/change/resources/method.md
+  - workflows/task-management/resources/contract.md
+m2_gate:
+  authorization: >-
+    Ryan Tufts approved the standing Git policy and explicitly directed its
+    implementation, independent review, PR creation and merge: "I approve this.
+    Will you carry out the changes and open a PR and merge as now intended?"
+  authorized_by: Ryan Tufts
+  authorization_date: '2026-09-12'
+  integration_owner: HELP_HUMAN on codex/standing-merge-authority
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-12_STANDING_GIT_AUTHORIZATION.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-12_STANDING_GIT_AUTHORIZATION.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-12_STANDING_GIT_AUTHORIZATION.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-09-12_STANDING_GIT_AUTHORIZATION.md
+  rationale: >-
+    Repository-wide standing Git authorization is applied to current loop entry
+    rules; notices record that application without new adoption gates.
+scope_limits:
+  - Git integration of owner-authorized work only; no product release or governed acceptance.
+  - Required CI and independent review must cover the actual candidate; owner holds prevail.
+  - No GitHub protection or account-permission changes and no new approval registry.
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Historical instruction exports, authority snapshots and trial evidence remain
+    unchanged. Future App instruction packaging consumes the updated source at its
+    ordinary regeneration boundary; this policy tranche does not publish a bundle.

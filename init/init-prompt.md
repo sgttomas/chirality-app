@@ -1,6 +1,6 @@
 # Public session init prompt
 
-This public export does not include the private project loop entrypoints. Start
+This release projection does not include project loop entrypoints. Start
 from the target workspace and select an Agent 0 or Agent 1 role from
 `AGENTS.md`.
 

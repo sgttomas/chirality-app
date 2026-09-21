@@ -31,6 +31,22 @@ The ontological commitment is formalized in `TYPES.md`, which defines the canoni
 
 In philosophical terms, the Chirality ontology follows the principle that Bunge [CITE:Bunge_ontology] and Wand and Weber [CITE:Wand_Weber_ontology] applied to information systems: the representational model should reflect the real-world domain it serves, and every construct in the model should correspond to a thing in the domain. In Chirality, every folder corresponds to a real work item. Every dependency row corresponds to a real relationship. Every status file corresponds to a real lifecycle state. There are no constructs that exist only for system convenience.
 
+One distinction within this ontology deserves explicit statement, because
+the rest of the chapter depends on it. The filesystem carries two kinds of
+record. Most records *describe* facts that exist independently of them — a
+claim about a pipe's stress state is answerable to the pipe, and the record
+can be wrong. Some records *constitute* the facts they carry — a ruling, an
+approval, a lifecycle status. There is no fact of a deliverable being ISSUED
+apart from the governed record of its issuance; for this kind of record, the
+maxim that what is not in a versioned file does not exist for purposes of
+reliance is not an evidentiary policy but a literal truth. The seam between
+the two kinds runs exactly along the epistemic primitives of the next
+section: a `Claim` is a descriptive record, answerable to the world and
+warrantable; a `Ruling` is a constitutive record, an act performed in the
+record itself. Keeping the two kinds distinct is what allows the
+architecture to be simultaneously deflationary about institutional facts and
+realist about engineering ones.
+
 ### 3.2.2 Epistemology — What Can Be Known, and How
 
 This is the system's most distinctive and load-bearing contribution, and the section that this chapter develops most fully.
@@ -141,6 +157,19 @@ rulings, and decides whether the aggregate state supports authentication. The
 architecture makes represented warrant states inspectable within its declared
 coverage; it does not guarantee complete claim capture.
 
+One feature of the lifecycle should be flagged, because the uniform notation
+can obscure it. The first transitions mark changes in evidential standing: a
+claim gains a citation, then survives professional examination. The final
+transition marks a change in normative standing: nothing about the claim's
+evidence changes at authentication — what changes is that an accountable
+person has bound themselves to it under duty of care. The arrow from
+REVIEWED to AUTHENTICATED is therefore not one more step of the same kind
+but the point where the epistemology hands off to the axiology — the
+accountability gap of §3.6 traversed by an act rather than closed by
+evidence. Appendix D offers an interpretive reading of this crossing — an
+inner act of assessed assertion and an outer act of binding oneself to that
+stance — as an analogue of, not a definition of, REVIEWED and AUTHENTICATED.
+
 The epistemic architecture is the subject of Chapter 5, which develops the argument in full with worked examples and comparison to alternative approaches. The purpose of this section is to establish that the epistemology is a coherent philosophical commitment with its own formal ontology — not merely a collection of quality rules — and that it addresses a specific, identifiable limitation of LLM-based systems that other approaches do not address at the architectural level.
 
 ### 3.2.3 Praxiology — How Work Is Done
@@ -173,6 +202,20 @@ required, authenticates that PWP for accountable reliance.
 **Evidence is required, not plausibility.** The hierarchy of authority in technical matters — laws and regulations, codes and standards, project specifications, verified engineering analysis, professional judgment — governs all technical decisions. Agent outputs carry no professional authority. This hierarchy is stated in `DIRECTIVE.md` §3.4 and enforced through agent instruction invariants.
 
 These values are not aspirational. They are enforced as architectural invariants (K-AUTH-1, K-AUTH-2, K-BIND-1) and as structural properties of the system (write quarantine, gate control, provenance requirements). A system that merely recommends these values would be a guideline. A system that enforces them architecturally is a governance framework. The distinction matters: guidelines can be ignored under pressure; architectural constraints resist it, because the sanctioned workflow offers no conforming path to the prohibited action and the surrounding layers — write quarantine, gate control, audit — are positioned to catch deviations (the enforcement model and its limits are stated in Chapter 8, §8.6).
+
+A reader will notice that this pillar receives a thinner formal treatment
+than the other three: the ontology has schemas, the epistemology has a
+lifecycle, the praxiology has a hierarchy, while the axiology largely defers
+to the professional code and the person who holds it. The thinness is
+deliberate, not neglect. The axiology is the one pillar that cannot be
+proceduralized without contradicting itself: a mechanized value system would
+relocate commitment into the machinery, which is precisely what the
+architecture exists to refuse. Its architectural expression is therefore
+negative and structural — prohibitions on agent authentication, the human
+gate that no automation may close — while its positive content lives where
+it must: in the professional obligations of Chapter 6 and in the person who
+bears them. The axiology is thin in the document because it is thick in the
+knower.
 
 ---
 
@@ -223,6 +266,18 @@ A pillar is **load-bearing** if removing it causes the system to lose its abilit
 **Remove the epistemology** (no mandatory provenance, no invention allowed, conflicts silently resolved, no epistemic labeling). The ontology still defines entities. The praxiology still gates workflows. The axiology still declares values. But the professional cannot determine which claims are grounded and which are fabricated. The evidence trail does not exist. The system produces outputs that look authoritative but carry no epistemic warrant. The licensed professional cannot conduct thorough review as defined in APEGA §3.1.2 because there is no evidence to review — only plausible-sounding text.
 
 This thought experiment reveals that the epistemology is the pillar whose removal most completely defeats the purpose of the system. The other three pillars are necessary — the system cannot function without them — but they are necessary in service of the epistemology. The ontology gives the epistemic architecture something to operate on. The praxiology enforces it through gates and write quarantine. The axiology anchors it in professional responsibility.
+
+Two senses of priority should be kept distinct here, because the axiology
+case above already hints at the second. The priority this thought experiment
+establishes is architectural: within the design, the other pillars serve the
+epistemology, because the system's product is inspectable warrant. The
+priority of the axiology is justificatory: the reason the design exists at
+all — the reason inspectable warrant matters — is duty of care and the
+public-welfare obligation (Chapter 6). The two orderings answer different
+questions — what organizes the system, and what obligates it — and no
+circularity results: the axiology motivates the epistemology from outside
+the architecture, while inside the architecture everything is arranged so
+that the epistemology can do its work.
 
 The thesis-level claim, then, is:
 
@@ -383,6 +438,21 @@ be delegated away: information may be externalized, while knowing and
 accountable reliance remain situated in persons. The architecture can expose
 the informational substrate and record an accountable relation across the
 gap. It cannot replace the knower with the record.
+
+Polanyi's account of tacit integration gives this limit a positive structure
+[CITE:Polanyi1975]. In the from–to structure of knowing, a person attends
+*from* subsidiary particulars *to* a focal whole, and particulars scrutinized
+in themselves lose the joint meaning they subtend. The governed record is
+designed to occupy the subsidiary position: the practitioner attends from
+claims, warrants, labels, and lifecycle states to the engineering reality
+that remains focal. On this reading, the architecture's program of
+explicitation does not compete with integrated understanding; it fails only
+when the record itself becomes the focal object — a failure mode this thesis
+names directly (§6.9.4, §9.2.6). Several architectural disciplines serve this
+orientation: generated harness output may not claim acceptance in its own
+voice (§6.8.3), and review effort is proportioned to represented uncertainty
+(§5.7), so that the record remains an instrument looked through rather than
+an artifact looked at.
 
 This contribution is narrower than the earlier formulations of the
 framework. `Claim` and `Warrant`, meaning and commitment, and the four

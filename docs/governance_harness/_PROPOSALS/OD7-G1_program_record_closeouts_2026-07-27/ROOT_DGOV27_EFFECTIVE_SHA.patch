@@ -1,0 +1,12 @@
+diff --git a/docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md b/docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
+--- a/docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
++++ b/docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
+@@ -3,7 +3,7 @@
+ Status:       RULED
+ HumanRuling:  Owner, in-session, 2026-07-25, via structured decision prompts; verbatim selections fenced below (K-AUTH-2 vehicle stated)
+ PublicationSHA: 3ed51532751b8404e402f749064d6a2cb240a607 (this record's publication commit; backfilled in the same tranche per precedent)
+-EffectiveSHA: (merge of the closing-tranche PR into `main`; backfilled by a later tranche per precedent)
++EffectiveSHA: bfb21d11a955b98eb0a4885cc7777ad8df27fd75 (merge of PR #355 into `main`, 2026-07-25; backfilled by this closeout tranche)
+ Date:         2026-07-25
+ FramedBy:     Agent-drafted (Agent 0, `HELP_HUMAN` posture); the divergence evidence and options were surfaced from the ROOT-INIT-SOW-20260725 fan-in (Receipt 51)
+ AcceptedBasis: `main@8edb96fb1` (post-PR-#354 — all 45 scopes of work accepted)

@@ -9,6 +9,7 @@ from collections import Counter
 from pathlib import Path
 
 import adapter_domain_engines
+import adapter_loader
 import adapter_project
 import cmd_self_check
 from adapter_loader import load_adapter
@@ -51,8 +52,11 @@ def run_status_project(repo_root: Path, project_root: Path) -> Report:
     report.md(f"# Status — {manifest.project}")
     report.md("")
 
-    # Plan posture.
-    report.md("## Plan posture")
+    # Plan posture. For the root working root the adapter declares `prd` where
+    # a project declares `plan`; the normalized field is the same, so the
+    # heading names the actual surface rather than mislabeling it.
+    report.md("## Plan posture" if manifest.kind != adapter_loader.KIND_ROOT
+              else "## PRD posture (the root adapter's `prd` fills the `plan` role)")
     report.md("")
     for fact in obs.facts:
         if fact.fact_id.endswith(".status_line") or fact.fact_id.endswith(".exists"):
@@ -63,15 +67,20 @@ def run_status_project(repo_root: Path, project_root: Path) -> Report:
 
     # Status distribution.
     dist = Counter((f.current_state or "«missing»").upper() for f in obs.files)
-    report.md("## Deliverable status distribution (Current State fields)")
+    report.md("## Historical source census (not active workload)" if manifest.historical_root()
+              else "## Deliverable status distribution (Current State fields)")
+    if manifest.historical_root():
+        report.md("Root mode: governance-only. Historical sources have no production eligibility; recorded state is observation, not effect confirmation.")
     report.md("")
     report.md("| State | Count |")
     report.md("|---|---|")
     for state, count in sorted(dist.items()):
         report.md(f"| {state} | {count} |")
     report.md("")
+    root_note = (" (the repository root — WORKING_ROOT == REPO_ROOT)"
+                 if manifest.kind == adapter_loader.KIND_ROOT else "")
     report.md(f"Source: {len(obs.files)} file(s) matching `{manifest.status_glob}` "
-              f"under `{project_root.relative_to(repo_root)}` (parser: "
+              f"under `{project_root.relative_to(repo_root)}`{root_note} (parser: "
               f"{manifest.parser_dialect}). Drift audit: run `drift`.")
     report.md("")
 

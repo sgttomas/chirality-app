@@ -49,6 +49,7 @@ Scope notes (v1):
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -162,7 +163,7 @@ _REF_EXTENSIONS = (
     ".js", ".html", ".txt", ".toml",
 )
 _REF_TOP_DIRS = (
-    "docs", "tools", "agents", "skills", "projects", "plans", "_DomainEngines",
+    "docs", "tools", "agents", "skills", "workflows", "projects", "plans", "_DomainEngines",
     "domains", "exports", "init", "bridge", "profiles", "proposals",
     "_DECISIONS", "execution", "core", "schemas",
 )
@@ -859,7 +860,15 @@ def run_self_check(
             "AGENTS.md", None, invariant="K-AGENTS-1"))
     else:
         raw = agents_index.read_text(encoding="utf-8")
-        cited = _registry_file_tokens(raw)
+        registry_json = agents_dir / "registry.json"
+        if registry_json.is_file():
+            try:
+                registry = json.loads(registry_json.read_text(encoding="utf-8"))
+                cited = {Path(item["instruction"]).name: 1 for item in registry["roles"].values()}
+            except (ValueError, KeyError, TypeError):
+                cited = _registry_file_tokens(raw)
+        else:
+            cited = _registry_file_tokens(raw)
         # Forward: every DISTINCT cited file token must resolve under agents/
         # outside .archive; the first citing line is the finding anchor.
         for token, line_no in sorted(cited.items()):

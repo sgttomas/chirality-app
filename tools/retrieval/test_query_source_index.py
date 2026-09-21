@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 
+# query_source_index imports numpy at module level; without this guard the
+# whole file dies at collection on machines without it.
+pytest.importorskip("numpy")
+
 import tools.retrieval.query_source_index as query_tool
 
 

@@ -1,0 +1,56 @@
+{
+  "schema": "chirality-app-dev/session-fixtures/v2",
+  "release": "2.0.0",
+  "placeholders": {
+    "__PROJECT_ROOT__": "replaced with the test's normalized project root when seeded",
+    "__OTHER_PROJECT_ROOT__": "replaced with an unrelated absolute path when seeded"
+  },
+  "fixtures": [
+    {
+      "sessionId": "sess_v2_readable",
+      "files": ["sess_v2_readable.json"],
+      "case": "readable",
+      "expectedKind": "ok",
+      "description": "Well-formed 2.0.0 flat record with engine, boot, and adapter attribution."
+    },
+    {
+      "sessionId": "sess_v2_malformed_truncated",
+      "files": ["sess_v2_malformed_truncated.json"],
+      "case": "malformed",
+      "expectedKind": "malformed",
+      "description": "Flat record truncated mid-value (unterminated JSON string, no closing brace)."
+    },
+    {
+      "sessionId": "sess_v2_unsupported_version",
+      "files": ["sess_v2_unsupported_version.json"],
+      "case": "unsupportedVersion",
+      "expectedKind": "unsupportedVersion",
+      "description": "Well-formed record declaring schemaVersion chirality.session/v9, which this manager does not support."
+    },
+    {
+      "sessionId": "sess_v2_missing_version_fields",
+      "files": ["sess_v2_missing_version_fields.json"],
+      "case": "missingVersionAndFields",
+      "expectedKind": "unsupportedVersion",
+      "description": "Well-formed JSON object with no schemaVersion and without the required v2 fields projectRoot and createdAt."
+    },
+    {
+      "sessionId": "sess_v2_other_project",
+      "files": ["sess_v2_other_project.json"],
+      "case": "otherProject",
+      "expectedKind": "ok",
+      "description": "Readable flat record bound to a different project root; excluded from list for the fixture project."
+    },
+    {
+      "sessionId": "sess_v2_duplicate",
+      "files": [
+        "sess_v2_duplicate.json",
+        "sess_v2_duplicate/session.json",
+        "sess_v2_duplicate/events.jsonl"
+      ],
+      "case": "duplicate",
+      "expectedKind": "ok",
+      "description": "Legacy flat record whose canonical folder already exists; canonical fields win and legacy-only fields (instructionPath, instructionHash, claudeSessionId, sdkPackageVersion) are preserved."
+    }
+  ]
+}

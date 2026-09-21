@@ -64,12 +64,13 @@ def main() -> int:
 
     lines = [
         f"PURPOSE: Detect display-equation bounding boxes on page {args.page_num} and emit normalized coordinates for downstream cropping",
-        "RequestedBy: EQUATION_AUDIT",
-        "ActingSurface: TASK+equation-bbox-detect",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {image_path.parent}",
-        "TaskSkill: equation-bbox-detect",
+        "Workflow: equation-bbox-detect",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{output_path}"',
         "",

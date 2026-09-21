@@ -1,0 +1,94 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-FEDERATION-SURVEY-20260802
+title: Task Management invocation-local federation survey
+date: 2026-08-02
+basis: 3e03b257748822dba2ad7697453f3495fb7578db
+
+instruction_surface_paths:
+  - agents/AGENT_TASK_MANAGEMENT.md
+  - tools/taskmgmt/taskmgmt.py
+  - tools/taskmgmt/test_taskmgmt.py
+  - docs/governance_harness/_DECISIONS/D-GOV-33_task_management_invocation_local_federation_survey.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM-FEDERATION-SURVEY-20260802.yaml
+
+m2_gate:
+  authorization: >-
+    Owner direction of 2026-08-02, persisted in managed run
+    TM-FEDERATION-SURVEY-20260802: "Require the survey whenever
+    TASK_MANAGEMENT is already invoked; do not require loops to invoke
+    TASK_MANAGEMENT." The owner then directed implementation of
+    plans/chirality-task-management/FEDERATION_SURVEY_IMPLEMENTATION_PLAN_2026-08-02.md.
+    This supplies H0 implementation authority for the bounded candidate
+    tranche. On 2026-08-02 the owner subsequently directed, verbatim,
+    "Merge via PR." That direction supplies H2 publication and exact checked-
+    PR merge authority for this bounded tranche; it supplies no direct-main-
+    push or check-bypass authority.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-02
+  integration_owner: >-
+    HELPS_HUMANS under HELP_HUMAN managed run
+    TM-FEDERATION-SURVEY-20260802; sole serialized component integration
+    owner; no publication, semantic-acceptance, or merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+  rationale: >-
+    The tranche changes agents/AGENT_TASK_MANAGEMENT.md. Same-tranche notices
+    identify the shared invocation behavior, applicable authority-reference
+    and SHA-mirror posture, exclusions, and loop-local follow-on for every
+    registered project loop. They are coordination, never authority, and
+    require no local adoption, register edit, or loop-entry change.
+
+candidate_paths:
+  - .gitignore
+  - agents/AGENT_TASK_MANAGEMENT.md
+  - tools/taskmgmt/taskmgmt.py
+  - tools/taskmgmt/test_taskmgmt.py
+  - plans/chirality-task-management/FEDERATION_SURVEY_IMPLEMENTATION_PLAN_2026-08-02.md
+  - docs/governance_harness/_DECISIONS/D-GOV-33_task_management_invocation_local_federation_survey.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM-FEDERATION-SURVEY-20260802.yaml
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+  - projects/pec/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_FEDERATION_PREFLIGHT.md
+  - execution/_Coordination/AgentRuns/TM-FEDERATION-SURVEY-20260802/
+  - execution/_Coordination/LOOP_RECEIPTS.md
+  - execution/_Coordination/HANDOFF_STATE.md
+
+scope_limits:
+  - >-
+    require federation survey only after TASK_MANAGEMENT is invoked; create
+    no LOOP_INIT or workplan binding, automatic or scheduled invocation, CI,
+    daemon, event bus, broker, or App runtime route
+  - >-
+    preserve schema 1.0, adopted PRD bytes, K-TM-1..6, local-only register
+    writes, human-only dispositions, and zero register mutation by the helper
+  - >-
+    no register migration or repair, automatic receiving row, foreign write,
+    product, decomposition, deliverable, dependency, lifecycle, release, or
+    professional-reliance act
+  - >-
+    D-GOV-33 and its register row record the owner ruling as a candidate
+    publication surface; Git identities remain TBD until their respective
+    candidate, publication, and merge acts; H2 authority is recorded without
+    inventing a future SHA
+
+derivative_paths:
+  - execution/_Coordination/_TaskManagement/.candidates/federation.json
+  - projects/*/execution/_Coordination/_TaskManagement/.candidates/federation.json
+  - domains/*/execution/_Coordination/_TaskManagement/.candidates/federation.json
+  - _DomainEngines/*/_TaskManagement/.candidates/federation.json
+
+derivative_disposition:
+  status: rebuildable
+  rationale: >-
+    Federation JSON files are deterministic generated views beside invoking
+    registers, explicitly gitignored, deletable, and never authority. Live
+    validation may regenerate them; register bytes remain the cited truth.

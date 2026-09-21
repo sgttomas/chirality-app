@@ -1,0 +1,37 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-MIGRATION-20260905
+title: Runtime project relocation CI and export integration
+date: 2026-09-05
+basis: 5068899690ab2580fa3360f751f63952e6bdc563
+instruction_surface_paths:
+  - tools/validation/test_public_export_profile.py
+  - exports/chirality-app/export_public.py
+  - .github/workflows/harness-premerge.yml
+  - .github/workflows/desktop-release-template.yml
+  - .github/workflows/pec-tests.yml
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-MIGRATION-20260905.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed "Merge PR #726 then proceed with the migration."
+    The reviewed PLAN_2026-09-05_RUNTIME_PROJECT_MIGRATION.md explicitly
+    includes these three Root workflow changes and M2/G4 integration.
+    Direction and exact scopes are recorded in
+    execution/_Coordination/AgentRuns/ROOT_RUNTIME_MIGRATION_2026-09-05/RUN_CONTROL.md.
+    CI exposed the public exporter as another source-path consumer; the
+    bounded repair preserves its public runtime layout and verifies that
+    project governance files stay excluded. This covers migration paths, not accepted
+    PRD/decomposition changes, runtime release or future PR merge.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-05
+  integration_owner: /root HELP_HUMAN under explicit migration instruction
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_PROJECT_MIGRATION_2026-09-05.md
+    - projects/pec/execution/_Coordination/NOTICE_ROOT_RUNTIME_PROJECT_MIGRATION_2026-09-05.md
+  rationale: >-
+    App and PEC receive exact technical migration changes, checks and pending
+    authority-transfer gates. No shared agent package changes or corpus
+    adoption is asserted; accepted Root canon remains unchanged.

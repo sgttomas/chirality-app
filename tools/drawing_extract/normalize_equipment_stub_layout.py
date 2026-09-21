@@ -137,7 +137,7 @@ def validate_extra_fields_collisions(
 ) -> list[str]:
     """Return a list of collision/validation errors. Empty list means valid.
 
-    Enforces the naming rules from SKILL.md for detailed-target runs:
+    Enforces the naming rules from WORKFLOW.md for detailed-target runs:
     - extra field name matches regex, length bound
     - description non-empty, length bound, single-line
     - no collision with base columns (incl. source_page) or any catalog field

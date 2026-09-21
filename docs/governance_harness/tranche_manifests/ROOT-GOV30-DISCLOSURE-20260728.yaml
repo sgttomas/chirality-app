@@ -1,0 +1,70 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-GOV30-DISCLOSURE-20260728
+title: D-GOV-30 program disclosure and prospective ratification candidate
+date: 2026-07-28
+basis: 85ea0628fa4e57dd6aae53b06139b2b8734a9612
+
+instruction_surface_paths:
+  - docs/governance_harness/_PROPOSALS/D-GOV-30_2026-07-28_program_disclosure_ratification/PACKET.md
+  - docs/governance_harness/_DECISIONS/D-GOV-30_program_disclosure_and_ratification.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-GOV30-DISCLOSURE-20260728.yaml
+
+m2_gate:
+  authorization: |-
+    The owner's in-session authorization of record (2026-07-28,
+    loop-readiness transition program, HELP_HUMAN session), transcribed
+    verbatim at completion:
+    "RATIFY R-1, R-2, R-3, R-4 AS ENUMERATED IN D-GOV-30 PACKET 32b4afbf — Ryan Tufts 2026-07-28"
+    The candidate tranche was authored under the Step-2 direction of that
+    session; the line above is the owner return recorded in the D-GOV-30
+    decision record. This manifest records a gate; it grants no
+    authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-28
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-STEP2-ROOT-20260728 under the
+    HELPS_HUMANS lane, supervised by HELP_HUMAN; sole serialized
+    integration owner for this candidate tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    No agents/ file changes. The tranche adds a new decision candidate,
+    packet, register row, and this manifest under docs/. Whether the
+    owner ruling produces routed notices to project loops is decided by
+    Agent 0 at fan-in after the owner session; the routing decision is
+    recorded, not pre-empted, per the G4 pending convention.
+
+scope_limits:
+  - no self-merge; the instruction-surface PR returns to the owner gate
+  - >-
+    no owner ruling is contained here; all ruling slots hold the fenced
+    placeholder "<<RULING PLACEHOLDER — OWNER RETURN VERBATIM: D-GOV-30>>"
+    and the m2_gate.authorization field holds the placeholder convention
+    noted above, both filled only from the owner session of record
+  - no retroactive cure of the 2026-07-28 self-merge window; disclosure
+    and prospective present-state ratification only
+  - no amendment of D-8, LOOP_INIT.md, PRD_ROOT.md, CONTRACT.md, or any
+    normative document
+  - no loop-local App, PEC, or Piping substance
+  - no LOOP_RECEIPTS.md append in this tranche; Receipt 60 is drafted in
+    the packet and appended only in the post-session completion commit
+  - no edit to the frozen OD7-G1 proposal packages or evidence packages
+  - no lifecycle, implementation, activation, runtime, dependency,
+    estimate, schedule, repin, release, or professional-reliance act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries docs/ derivatives. Regeneration is deferred
+    to the next export release, which must consume post-merge bytes; the
+    deferral changes no export authority or boundary.

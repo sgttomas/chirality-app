@@ -1,0 +1,73 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-D8-SIMPLIFICATION-20260729
+title: Merge-execution policy simplified to owner direction in ordinary closeout evidence; grant apparatus removed
+date: 2026-07-29
+basis: 2dace6ec6e3342a415342a539d5630969cbba39c
+
+instruction_surface_paths:
+  - docs/PRD_ROOT.md
+  - agents/AGENT_CHANGE.md
+  - tools/validation/validate_instruction_tranche_manifest.py
+  - tools/validation/test_validate_instruction_tranche_manifest.py
+  - docs/governance_harness/_PROPOSALS/GRANT-2026-07-29_transition_merge_execution/GRANT_CANDIDATE.md
+  - docs/governance_harness/tranche_manifests/ROOT-D8-SIMPLIFICATION-20260729.yaml
+
+m2_gate:
+  authorization: |-
+    The owner's direction of record (in-session, 2026-07-29; 181 bytes
+    UTF-8, SHA-256
+    d89bcdef36398ec7c345a48e0b3d65b30c635cf09aed0bf8f2a5a3c89c1b33d0;
+    transcribed verbatim with fence markers in Receipt 64), verbatim on
+    the next line:
+    You can plan and execute just such a targeted fix now with a subagent.  Your choice is acceptable: "the owner’s direction, recorded in the loop’s ordinary closeout evidence” .
+    It approves replacing the D-GOV-31 bounded-grant mechanism with
+    owner direction recorded in the loop's ordinary closeout evidence.
+    Earlier in the same session the owner stated the governing
+    epistemology: telling the agent to merge is sufficient; owner-typed
+    and agent-as-proxy execution carry the same authority; no grant
+    record, registry, or log is to exist. Change vehicle: PR review per
+    the register's terminal-artifact rule; no new D-GOV record. This
+    manifest records a gate and authorizes nothing by itself (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-29
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-D8-SIMPLIFICATION-20260729 under the
+    HELPS_HUMANS lane, supervised by HELP_HUMAN; sole serialized
+    integration owner for this tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+    - projects/pec/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_D-GOV-31_MERGE_GATE_POLICY_SUCCESSION.md
+  rationale: >-
+    This tranche changes agents/AGENT_CHANGE.md, a surface every
+    registered loop pins or mirrors, and simplifies the merge-gate policy
+    the earlier D-GOV-31 notices reported before any loop acted on it.
+    Dated update sections were appended to the same three notice files in
+    this tranche; each loop's follow-on is unchanged (adopt, acknowledge,
+    amend, decline, or defer under its own instruments). Coordination,
+    never authority.
+
+scope_limits:
+  - >-
+    owner-directed simplification only - the D-8 row, annex 5.3.1,
+    LOOP_INIT section 7, AGENT_CHANGE, SOW-042/DEL-04-06 surfaces, and G4
+    owner_direction schema semantics are restated to owner direction in
+    ordinary closeout evidence; no other policy is made
+  - >-
+    the unruled grant candidate under _PROPOSALS/ is deleted as obsolete
+    cleanup (never issued; mechanism rejected by the owner); the D-GOV-31
+    decision record is unedited and remains historical
+    (supersede-never-edit)
+  - >-
+    no self-merge of this tranche; self_merge is false, and publication
+    merge authorization is a separate owner act on the exact final branch
+    HEAD
+  - >-
+    no retroactive characterization of any historical act; frozen
+    records, receipts 0-63, prior snapshots, and SHA-pinned mirrors are
+    untouched

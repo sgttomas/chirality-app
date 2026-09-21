@@ -25,7 +25,7 @@ Inputs:
 
 Outputs:
     INIT-TASK brief on stdout. The brief is consumed by TASK with
-    TaskSkill: pdf2md-page-full.
+    Workflow: pdf2md-page-full.
 """
 
 from __future__ import annotations
@@ -90,15 +90,15 @@ def main() -> int:
         return 2
 
     brief = f"""PURPOSE: Convert one PDF page image to BOTH raw Markdown AND asset JSON from a single multimodal vision read
-RequestedBy: PDF2MD
-ActingSurface: TASK+pdf2md-page-full
+RequestedBy: WORKING_ITEMS
+ActingSurface: TASK
 
 ScopePath: {work_dir}
-TaskSkill: pdf2md-page-full
+Workflow: pdf2md-page-full
 
 Tasks:
   - Read the page image ONCE via multimodal vision
-  - Transcribe its contents to Markdown per the 8 conversion rules in skills/pdf2md-page-full/SKILL.md (including [FIGURE:]/[TABLE:]/[... logo] placeholders in reading order)
+  - Transcribe its contents to Markdown per the 8 conversion rules in workflows/pdf2md-page-full/WORKFLOW.md (including [FIGURE:]/[TABLE:]/[... logo] placeholders in reading order)
   - Identify visible figures, tables, and meaningful images; emit the strict-schema asset JSON (pdf2md-page-assets/v1) with bbox_norm, table_data for legible tables, and one-to-one correspondence with the Markdown placeholders
 
 ApplyEdits: true
@@ -127,7 +127,7 @@ CustomInstructions:
     * Per-asset kind MUST be one of three 3-letter literals: "fig", "tbl", "img".
     * Per-asset bbox_norm MUST be a 4-element JSON array [x0, y0, x1, y1], NOT an object.
     * Captions go in "caption" (NOT "label", "title", "name").
-    * For kind="tbl": emit a structured "table_data" object conforming to pdf2md-table/v1 (see skills/pdf2md-page-assets/SKILL.md for the schema, row/cell shape, cell types, footnotes, and worked example). If a table is visible but cannot be safely transcribed, OMIT table_data and set "needs_extraction": true plus an issue.
+    * For kind="tbl": emit a structured "table_data" object conforming to pdf2md-table/v1 (see workflows/pdf2md-page-assets/WORKFLOW.md for the schema, row/cell shape, cell types, footnotes, and worked example). If a table is visible but cannot be safely transcribed, OMIT table_data and set "needs_extraction": true plus an issue.
     * Do NOT emit the legacy "csv_text" field anywhere.
   - bbox_norm MUST generously include the full asset, the visible caption, AND ~3-5% of surrounding page whitespace.
   - A/B CONSISTENCY: every [FIGURE:]/[TABLE:]/[... logo|emblem|seal|cover|photograph|photo|image] placeholder in the Markdown must have a corresponding entry in the JSON, in the same reading order, and vice versa.

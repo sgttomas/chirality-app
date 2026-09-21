@@ -1,0 +1,97 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-AGENT0-DIRECT-A2-ALIGN-20260816
+title: Root Agent 0 direct Agent 2 dispatch alignment (AGENT_HELP_HUMAN.md prose)
+date: 2026-08-16
+basis: b67197f5b647fbf0b972eee158e94c7215db9e6c
+
+instruction_surface_paths:
+  - agents/AGENT_HELP_HUMAN.md
+  - docs/governance_harness/tranche_manifests/ROOT-AGENT0-DIRECT-A2-ALIGN-20260816.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed the tranche in-session on 2026-08-16, verbatim: "As
+    Agent 0 dispatch a subagent to make those revisions accordingly." (the
+    three enumerated revisions: the "Managers own management" bypass clause,
+    SPEC item 3, and the frontmatter subagents allowlist of
+    agents/AGENT_HELP_HUMAN.md, aligned to root AGENTS.md 2026-08-02
+    doctrine). After the dispatched Agent 2 reported that the allowlist change
+    fails tools/validation/validate_agent_instructions.py (AGENT0_CHILD_TYPE)
+    and that the App harness type rule still blocks Agent 0 to Agent 2
+    delegation, Ryan Tufts ruled on 2026-08-16, verbatim: "I want Option 1."
+    (Option 1 = prose alignment only; frontmatter, root validator, and App
+    harness alignment parked as follow-ons). Both acts are transcribed in
+    execution/_Coordination/AgentRuns/ROOT_AGENT0_DIRECT_A2_ALIGN_2026-08-16/OWNER_RULING_TRANSCRIPT_2026-08-16.md,
+    SHA-256
+    65214c24b90727cb9bae12fb677d0d7413572bab8ebc19c06f68f2b741959507
+    (CHAT_TRANSCRIPTION — EVIDENCE, NOT RULING RECORD). Those acts authorize
+    only the bounded prose alignment, this manifest, AgentRuns evidence, the
+    root receipt, and ordinary coordination notices; they grant no validator,
+    harness, or subagents change and no release, reliance, or merge
+    authority.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-16
+  integration_owner: >-
+    HELP_HUMAN (Agent 0, session minder) — serialized integration owner;
+    executed by one directly dispatched ephemeral Agent 2 generalist under
+    sealed brief
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+    - _DomainEngines/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+  rationale: >-
+    AGENTS.md agent-index change-notice rule: one agents/ file changed. Pin
+    search (AgentRuns PIN_SEARCH.md) found no live pin or mirror of
+    agents/AGENT_HELP_HUMAN.md in App or Piping reconciliation references or
+    harness surfaces (App AUTHORITY_CORPUS.json confirmed not pinning); the
+    only blob pin is a frozen historical evaluation basis. App and Piping
+    HELP_HUMAN sessions read the live file, and domain-engine loops receive
+    root notices at _DomainEngines/_Coordination/ (PEC has no notice inbox),
+    so one informational notice is routed to each. Each notice states the two
+    parked follow-ons (root validator/test/allowlist; App harness type rule).
+    Notices are coordination, not authority; each loop adopts under its own
+    instruments and cadence.
+
+candidate_paths:
+  - agents/AGENT_HELP_HUMAN.md
+  - docs/governance_harness/tranche_manifests/ROOT-AGENT0-DIRECT-A2-ALIGN-20260816.yaml
+  - execution/_Coordination/AgentRuns/ROOT_AGENT0_DIRECT_A2_ALIGN_2026-08-16/
+  - execution/_Coordination/LOOP_RECEIPTS.md
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+  - _DomainEngines/_Coordination/NOTICE_2026-08-16_ROOT_AGENT0_DIRECT_A2_DISPATCH_ALIGNMENT.md
+
+scope_limits:
+  - >-
+    prose alignment of agents/AGENT_HELP_HUMAN.md only: the "Managers own
+    management" invariant, the "Hierarchy-mediated coordination" relay
+    clause, and SPEC item 3, plus one factual sentence naming the surfaces
+    that still enforce Agent-1-only children
+  - >-
+    no subagents: frontmatter change; no change to
+    tools/validation/validate_agent_instructions.py or its tests; no App
+    harness (managed-delegation.ts, subagent-governance.ts) change; those are
+    parked follow-ons stated in the notices
+  - >-
+    WRITE_SCOPE and the "No project-content writes" invariant untouched; no
+    other agents/, skills/, tools/, or docs/ surface changed
+  - >-
+    no release, reliance, lifecycle, or merge-to-main authority; merge is
+    the owner's gate
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    This tranche carries no public-export release act. Regeneration remains
+    deferred to the next separately authorized export release from accepted
+    integrated state and creates no release or reliance effect.

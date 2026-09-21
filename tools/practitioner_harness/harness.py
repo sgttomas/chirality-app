@@ -25,6 +25,17 @@ diff range: citation resolution, decision-register coverage, named
 precedent presence where packet-shaped records call for it, and
 machine-absolute paths on diff-added lines (HB-10; SPEC §0.2.4).
 
+Working roots: the pilot projects, plus the ROOT product (`--project root` /
+`chirality-root`), whose working root is the repository root itself (D-GOV-21;
+docs/SPEC.md §0.2.2) and whose adapter is `execution/_harness/adapter.yaml`
+(schema `root-harness-adapter/v1`, guarded by
+`tools/validation/validate_root_harness_adapter.py`). Root citizenship is
+OBSERVATION ONLY: `status` and `drift` report on it; `brief` and `next` refuse
+it by name with the reason (no DAG pointer surface, no derivable write fence),
+and the brief-fenced commands (`run-validations`, `scope-check`,
+`evidence-check`, `closeout-digest`) keep resolving projects through the
+project alias table alone, so their existing refusals are unchanged.
+
 Exit codes (D-GOV-02): 0 = ran, no BLOCK; 1 = >=1 BLOCK (or >=1 REVIEW under
 --strict); 2 = operational error or refusal.
 
@@ -58,14 +69,24 @@ from harness_common import (
     resolve_repo_root,
 )
 
+# The root product's working root IS the repository root (D-GOV-21;
+# docs/SPEC.md §0.2.2), so its alias rel-path is the current directory.
+ROOT_RELPATH = "."
+
 PROJECT_ALIASES: dict[str, str] = {
+    "runtime": "projects/chirality-runtime",
+    "chirality-runtime": "projects/chirality-runtime",
     "app-dev": "projects/chirality-app-dev",
     "chirality-app-dev": "projects/chirality-app-dev",
     "piping": "projects/chirality-piping",
     "chirality-piping": "projects/chirality-piping",
     "pec": "projects/pec",
     "chirality-pec": "projects/pec",
+    "root": ROOT_RELPATH,
+    "chirality-root": ROOT_RELPATH,
 }
+
+ROOT_ALIASES = ("root", "chirality-root")
 
 FULL_CITIZENSHIP_PROJECTS = (
     "app-dev",
@@ -74,13 +95,40 @@ FULL_CITIZENSHIP_PROJECTS = (
     "chirality-piping",
 )
 
+# Working roots the observation commands (`status`, `drift`) can report on.
+# The root product is observable but NOT a full-citizenship project: it has no
+# DAG pointer surface and no derivable write fence, so the brief-shaped
+# commands refuse it by name (ROOT_COMMAND_REFUSALS below).
+RUNTIME_ALIASES = ("runtime", "chirality-runtime")
+OBSERVABLE_PROJECTS = FULL_CITIZENSHIP_PROJECTS + ROOT_ALIASES + RUNTIME_ALIASES
+
+ROOT_COMMAND_REFUSALS: dict[str, str] = {
+    "brief": (
+        "`brief` projects a tranche brief from the working root's DAG pointer "
+        "and a write fence under that root. The root adapter "
+        "(root-harness-adapter/v1, execution/_harness/adapter.yaml) declares "
+        "no dag_pointer, and the root working root IS the repository root, so "
+        "no containing fence can be derived from it. Refusing rather than "
+        "emitting a brief with a guessed pointer and a repo-wide fence "
+        "(K-INVENT-1)."),
+    "next": (
+        "`next` emits a ready-made `brief` command line per active "
+        "deliverable, and `brief` does not support the root working root (run "
+        "`brief --project root` for the reason). Refusing rather than "
+        "emitting a pick-list whose commands would not run (K-INVENT-1). Use "
+        "`status --project root` for the root's per-state counts."),
+}
+
 
 def _project_root(repo_root: Path, name: str) -> Path:
     rel = PROJECT_ALIASES.get(name)
     if rel is None:
         raise HarnessOperationalError(
             f"Unknown --project {name!r}; known: {sorted(set(PROJECT_ALIASES))}")
-    root = repo_root / rel
+    # `.` is the root product's working root. pathlib drops a lone "." segment
+    # on join (`Path("/a") / "." == Path("/a")`), but the identity is made
+    # explicit here so the resolver can never emit a `…/.`-shaped path.
+    root = repo_root if rel == ROOT_RELPATH else repo_root / rel
     if not root.is_dir():
         raise HarnessOperationalError(f"Project root absent: {root}")
     return root
@@ -90,13 +138,30 @@ def _alias_by_root(repo_root: Path) -> dict[Path, str]:
     """Reverse of PROJECT_ALIASES for `next`: resolved project root -> the
     CLI `--project` alias (where two aliases share a root, the shorter wins).
     A root missing from this mapping gets no ready-made `brief` command —
-    `next` labels it instead of fabricating one (K-INVENT-1)."""
+    `next` labels it instead of fabricating one (K-INVENT-1).
+
+    The root working root is deliberately EXCLUDED: this mapping is also the
+    fence-resolution table for the brief-shaped commands (`run-validations`,
+    `evidence-check`, `closeout-digest`), where the repository root would
+    prefix-match every write_scope entry and turn their "no registered project
+    root" refusal into a wrong answer. Root citizenship is observation only."""
     by_root: dict[Path, str] = {}
     for alias, rel in PROJECT_ALIASES.items():
+        if rel == ROOT_RELPATH:
+            continue
         root = (repo_root / rel).resolve()
         if root not in by_root or len(alias) < len(by_root[root]):
             by_root[root] = alias
     return by_root
+
+
+def _refuse_root(command: str, project: str | None) -> None:
+    """Refuse, by name and with the reason, a command that cannot meaningfully
+    operate on the root working root. Never a stack trace, never a guess."""
+    if project in ROOT_ALIASES and command in ROOT_COMMAND_REFUSALS:
+        raise HarnessOperationalError(
+            f"{command} does not support --project {project}: "
+            f"{ROOT_COMMAND_REFUSALS[command]}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -125,14 +190,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_status = sub.add_parser("status", parents=[common],
                               help="One-page sourced posture view")
     g = p_status.add_mutually_exclusive_group(required=True)
-    g.add_argument("--project", choices=FULL_CITIZENSHIP_PROJECTS)
+    g.add_argument("--project", choices=OBSERVABLE_PROJECTS)
     g.add_argument("--domain-engines", action="store_true")
 
     p_drift = sub.add_parser("drift", parents=[common],
                              help="Current State vs history-assertion drift audit")
-    p_drift.add_argument("--project", choices=FULL_CITIZENSHIP_PROJECTS)
+    p_drift.add_argument("--project", choices=OBSERVABLE_PROJECTS)
     p_drift.add_argument("--all", action="store_true",
-                         help="Audit both pilot projects (default)")
+                         help="Audit both pilot projects (default; the root "
+                              "working root is never folded into --all — "
+                              "request it with --project root)")
     p_drift.add_argument("--include-domain-engines", action="store_true",
                          help="Fold in the domain-engine control-area surface audit")
 
@@ -151,7 +218,7 @@ def build_parser() -> argparse.ArgumentParser:
     # Generate mode requires --project/--deliverable; verify mode takes ONLY
     # the path. Both are optional at parse level and enforced manually so the
     # two modes can share the subcommand without argparse contortions.
-    p_brief.add_argument("--project", choices=FULL_CITIZENSHIP_PROJECTS)
+    p_brief.add_argument("--project", choices=OBSERVABLE_PROJECTS)
     p_brief.add_argument("--deliverable", metavar="DEL-NN-MM")
     p_brief.add_argument("--objective", default=None)
     p_brief.add_argument("--tranche-id", default=None)
@@ -163,7 +230,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_next = sub.add_parser("next", parents=[common],
                             help="Sourced pick-list of active work — the "
                                  "practitioner selects; the tool never selects")
-    p_next.add_argument("--project", choices=FULL_CITIZENSHIP_PROJECTS,
+    p_next.add_argument("--project", choices=OBSERVABLE_PROJECTS,
                         help="One project only (default: both pilot projects)")
 
     p_runval = sub.add_parser(
@@ -247,6 +314,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         repo_root = resolve_repo_root(getattr(args, "repo_root", None))
         out_dir = Path(getattr(args, "out_dir", repo_root / GENERATED_ROOT_NAME))
+        _refuse_root(args.command, getattr(args, "project", None))
 
         report: Report
         if args.command == "status":
@@ -256,6 +324,11 @@ def main(argv: list[str] | None = None) -> int:
                 report = cmd_status.run_status_project(
                     repo_root, _project_root(repo_root, args.project))
         elif args.command == "drift":
+            if args.project in ROOT_ALIASES and args.all:
+                raise HarnessOperationalError(
+                    f"drift --all audits the pilot projects only; --project "
+                    f"{args.project} must be requested on its own. Refusing "
+                    "rather than silently dropping the requested root.")
             if args.project and not args.all:
                 roots = [_project_root(repo_root, args.project)]
             else:
@@ -301,7 +374,8 @@ def main(argv: list[str] | None = None) -> int:
                         "--verify-adoption <path>.")
                 project_root = _project_root(repo_root, args.project)
                 others = sorted(
-                    {repo_root / rel for rel in PROJECT_ALIASES.values()} - {project_root})
+                    {repo_root / rel for rel in PROJECT_ALIASES.values()
+                     if rel != ROOT_RELPATH} - {project_root})
                 report = cmd_brief.run_brief(
                     repo_root, project_root, [p for p in others if p.is_dir()],
                     deliverable=args.deliverable, objective=args.objective,

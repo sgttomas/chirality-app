@@ -6,8 +6,8 @@ Mirror of `tools/drawing_extract/build_page_worker_brief.py`. The orchestrator
 calls this tool once per unit_id to render the brief that TASK consumes.
 
 The brief is intentionally narrow: the rich method-level guidance lives in
-`skills/domain-source-atomize/{SKILL.md, BRIEF_SCHEMA.md, TOOL_POLICY.md,
-QA_CHECKS.md}` (loaded by TASK at dispatch time via the skill-hydration
+`workflows/domain-source-atomize/{WORKFLOW.md, CONTRACT.md, CONTRACT.md,
+CONTRACT.md}` (loaded by TASK at dispatch time via the skill-hydration
 contract). This tool emits only the runtime parameters (paths, ID ranges,
 target sections) and a short defensive CustomInstructions block.
 
@@ -122,12 +122,13 @@ def main() -> int:
         f"(dispatch unit {args.unit_id}; ~{est_tokens} estimated MD tokens; "
         f"{len(target_section_ids)} target section{'s' if len(target_section_ids) != 1 else ''})"
         f"{' [oversized — single-section dispatch]' if oversized else ''}",
-        "RequestedBy: DOMAIN_DECOMP",
-        "ActingSurface: TASK+domain-source-atomize",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {scope_path}",
-        "TaskSkill: domain-source-atomize",
+        "Workflow: domain-source-atomize",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{args.output_ledger_path}"',
         f'  - "{args.output_vocab_seed_path}"',

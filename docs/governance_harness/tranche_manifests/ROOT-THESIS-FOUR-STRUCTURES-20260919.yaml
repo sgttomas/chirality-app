@@ -1,0 +1,92 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-THESIS-FOUR-STRUCTURES-20260919
+title: Thesis chapters 4 and 9 name all four graph structures and their convergence with project delivery practice
+date: 2026-09-19
+basis: 355031032fb3facfcf5871db212b17ceb733d5b1
+
+instruction_surface_paths:
+  - docs/thesis/04_architecture.md
+  - docs/thesis/09_discussion.md
+  - docs/thesis/README.md
+  - docs/governance_harness/tranche_manifests/ROOT-THESIS-FOUR-STRUCTURES-20260919.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed, in a working session on 2026-09-19 (in chat), that the
+    insight that the four graph structures are how large-project delivery
+    already organizes complex interdependent work by many agents "belongs in
+    the thesis"; that section four be reviewed and revised "so that it isn't
+    limited to describing just any limited subset of these 4 graph
+    structures"; that section four clarify that today the folder structure
+    and file versions alone carry the information that maps to the four
+    structures, and that the intended development is a knowledge
+    decomposition over the application file directory, a structuring of that
+    knowledge into the corresponding graph structures, and a BM25 and vector
+    store search tool an agent calls through a workflow or skill; and to
+    create a pull request and merge. The owner's words are recorded verbatim in
+    plans/evidence/2026-09-19_owner_words_four_graph_structures.md. Section
+    9.4.8 of the thesis is an agent-proposed future-work item that follows
+    from the directed text and was not itself directed. The thesis is nonbinding and is not a
+    governance surface (its README, Warrant Status). This manifest records
+    the gate and grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-19
+  integration_owner: >-
+    the SWBPIPE implementation session's Agent 0 (HELP_HUMAN posture, Claude
+    Fable 5.1), which drafted the text itself and dispatched one independent
+    read-only review
+  merge_gate: owner-authorized-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-19
+    approved_source_sha: a92a28f534452321c0fbe207811639130d0e72ab
+    note: >-
+      Merge proceeds under the owner's standing Git authorization of
+      2026-09-12 (Root AGENTS.md, Execution and governance) and the owner's
+      direction in session to create a pull request and merge. The
+      approved_source_sha names the independently reviewed candidate; later
+      commits on the branch are merges of main and this manifest's pin only.
+      Independent read-only review by Claude Opus 5: FINDINGS (2 blocking, 11
+      minor, 6 trivial), all applied; backcheck: all closed, four new (3 minor,
+      1 trivial), all applied; second backcheck: PASS at the pinned commit.
+      No owner review of the text is implied.
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The thesis binds nothing and no project loop pins it. The change amends no
+    agent instruction, skill, workflow, contract, type or validator, and the
+    normative ANCHOR and EXECUTION edge classes of docs/TYPES.md section 3 are
+    unchanged. The new text is marked agent-drafted and UNWARRANTED pending a
+    sourced pass.
+
+candidate_paths:
+  - docs/thesis/04_architecture.md
+  - docs/thesis/09_discussion.md
+  - docs/thesis/README.md
+  - docs/governance_harness/tranche_manifests/ROOT-THESIS-FOUR-STRUCTURES-20260919.yaml
+  - plans/four_graphs_of_knowledge_work_2026-09-19.html
+  - plans/four_graphs_agent_orientation_2026-09-19.md
+  - plans/evidence/2026-09-19_owner_words_four_graph_structures.md
+
+scope_limits:
+  - >-
+    No governing document changes: DIRECTIVE.md, CONTRACT.md, SPEC.md,
+    TYPES.md, AGENTS.md, the role files and every project's instructions are
+    untouched. Section 4.3.4 of the thesis and the edge-class definitions it
+    reports are unchanged.
+  - >-
+    The intended development (knowledge decomposition over the file
+    directory, derived graph structures, a BM25 and vector store search tool)
+    is described as direction only. Nothing is built or scheduled by this
+    tranche, and it is stated as a rebuildable projection of versioned files
+    consistent with DIRECTIVE.md section 2.5; it does not admit an external
+    store as a source of execution truth.
+  - >-
+    The added text cites no sources and is labelled UNWARRANTED; the thesis
+    remains CITED/REVIEWED and nonbinding. No acceptance or authentication is
+    claimed.
+  - >-
+    The two files under plans/ are dated drafts and are not instructions.

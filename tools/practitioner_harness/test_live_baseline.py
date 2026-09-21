@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LIVE-tree baseline tests (skippable when the live roots are absent or when
 CHIRALITY_SKIP_LIVE_TESTS=1). Pins the ruled drift baseline (piping 0/101,
-app-dev 0/53 — conscious pin update 2026-07-02: the original 92/101 class was
+app-dev 0/54 — conscious pin update 2026-07-02: the original 92/101 class was
 resolved by the owner's class-wide K-CONFLICT-1 ruling, header IN_PROGRESS
 authoritative, recorded at projects/chirality-piping/execution/_Reconciliation/
 LifecycleCorrection/LIFECYCLE_CORRECTION_2026-07-02_2050/Decision_Log.md),
@@ -47,31 +47,43 @@ def _fact(report, fact_id):
     raise AssertionError(f"fact {fact_id} missing: {[f.fact_id for f in report.facts]}")
 
 
+@pytest.fixture(scope="module")
+def live_self_check():
+    """One shared live self-check for every test in this module. The report is
+    read-only and the tree cannot change mid-run, so per-test re-runs (each a
+    full repo scan) would assert against byte-identical reports."""
+    return cmd_self_check.run_self_check(LIVE_REPO)
+
+
 @live
-def test_live_drift_baseline_0_of_101_and_0_of_53():
+def test_live_drift_baseline_0_of_102_and_0_of_54():
     # Conscious pin update 2026-07-02 (was 92/101): the STATUS_HISTORY_MISMATCH
     # class was resolved by the owner's class-wide K-CONFLICT-1 ruling ("all
     # shall be IN_PROGRESS"); one parser-verified reversal history line was
     # appended per file. Ruling record: projects/chirality-piping/execution/
     # _Reconciliation/LifecycleCorrection/LIFECYCLE_CORRECTION_2026-07-02_2050/
-    # Decision_Log.md. Pin updates here are conscious, never silent.
+    # Decision_Log.md. Pin updates here are conscious, never silent. SCA-009
+    # added DEL-07-09 as the 102nd Piping status file on 2026-08-21; it has no
+    # asserted lifecycle state, so matches remain 101 and mismatches remain 0.
+    # SCA-APP-009 adds DEL-09-07 as the 54th App status file on 2026-09-04;
+    # all 54 App statuses parse and match, so the combined total is 156.
     report = cmd_drift.run_drift(LIVE_REPO, [
         LIVE_REPO / "projects" / "chirality-app-dev",
         LIVE_REPO / "projects" / "chirality-piping",
     ])
     piping = _fact(report, "drift.chirality-piping").value
-    assert "files=101" in piping
+    assert "files=102" in piping
     assert "mismatches=0" in piping
     assert "unparseable_docs=0" in piping
     app_dev = _fact(report, "drift.chirality-app-dev").value
-    assert "files=53" in app_dev
+    assert "files=54" in app_dev
     assert "mismatches=0" in app_dev
-    assert report.summary["files_total"] == 154
+    assert report.summary["files_total"] == 156
     assert report.summary["mismatches_total"] == 0
 
 
 @live
-def test_live_self_check_catches_the_three_retained_surfaces():
+def test_live_self_check_catches_the_three_retained_surfaces(live_self_check):
     # Conscious pin update (owner ruling 2026-07-02, in-session): the D-T0
     # stale-title/TBD-SHA drift was cleaned and backfilled to the tier-0
     # publication commit 6e70b5aace4a3a7c4ebb20490a3bf57bfd912f45 per the
@@ -79,7 +91,7 @@ def test_live_self_check_catches_the_three_retained_surfaces():
     # DOMAIN_ENGINE_INDEX stale PEC-proposal annotation; the remaining live
     # fixture surfaces MUST keep firing (asserted individually below, then
     # pinned as exact counts).
-    report, refusal = cmd_self_check.run_self_check(LIVE_REPO)
+    report, refusal = live_self_check
     assert refusal is None
     keyed = {(f.code, f.source_path, f.source_line) for f in report.findings}
     assert ("STALE_RULING_ANNOTATION",
@@ -107,42 +119,38 @@ def test_live_self_check_catches_the_three_retained_surfaces():
 
 
 @live
-def test_live_self_check_abs_path_in_evidence_reports_are_pinned():
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+def test_live_self_check_abs_path_in_evidence_reports_are_pinned(live_self_check):
+    report, _ = live_self_check
     hits = [f for f in report.findings if f.code == "ABS_PATH_IN_EVIDENCE"]
-    assert len(hits) == 2
+    assert len(hits) == 1
     assert {(h.source_path, h.source_line) for h in hits} == {
-        ("_DomainEngines/profiles/_validation/pec.validation.json", 5),
         ("_DomainEngines/profiles/_validation/open_pipe_stress.validation.json", 5),
     }
 
 
 @live
-def test_live_bridge_status_reports_pec_adopted_gate_closed():
-    # Conscious live-pin update (workplan step-4 convention): the owner adopted the
-    # PEC profile at Gate 2 on 2026-07-05 (D-T0-12 packet, dated adoption note), so
-    # the prior DRAFT / "Gate 2 open" pin is superseded in the same PR as the flip.
+def test_live_bridge_status_reports_pec_adopted_read_only_profile():
+    # Conscious live-pin update: D-T0-27 O-A materializes the exact PEC v2
+    # profile as ADOPTED / READ_ONLY; application effectiveness remains governed.
     report = cmd_bridge_status.run_bridge_status(LIVE_REPO)
     assert _fact(report, "bridge_status.profile.pec.profile_status").value == "ADOPTED"
     assert _fact(report, "bridge_status.profile.pec.gate_posture").value == (
         "Gate 2 adopted"
     )
     md = report.render_markdown()
-    # integration level pin updated 2026-07-05: D-T0-18 O-A advanced pec to
-    # OPERATION_PROPOSAL (L3, imports scope) — conscious pin update, same PR.
-    assert "| `pec` | `ADOPTED` | Gate 2 adopted | `OPERATION_PROPOSAL` |" in md
+    assert "| `pec` | `ADOPTED` | Gate 2 adopted | `READ_ONLY` |" in md
 
 
 @live
-def test_live_self_check_stale_open_issue_is_zero():
+def test_live_self_check_stale_open_issue_is_zero(live_self_check):
     # Post-cleanup live corpus: open_issues entries are annotated in place and
     # the D-T0-06 ruling condition carries its "[Condition met ...]" note.
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+    report, _ = live_self_check
     assert [f for f in report.findings if f.code == "STALE_OPEN_ISSUE"] == []
 
 
 @live
-def test_live_self_check_live_binding_gate_drift_is_detected():
+def test_live_self_check_live_binding_gate_drift_is_detected(live_self_check):
     # Conscious pin inversion 2026-07-04: this test originally pinned the
     # HB-8 STALE_LIVE_BINDING_GATE finding at profile :145 (the line still
     # named the cleared tier-0-adoption and piping D-21 gates). The
@@ -151,15 +159,15 @@ def test_live_self_check_live_binding_gate_drift_is_detected():
     # to the single genuinely open gate (app-dev F3), so the live corpus now
     # lawfully carries ZERO findings of this code. Detector behaviour on
     # synthetic stale input stays covered by the HB-8 fixture tests.
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+    report, _ = live_self_check
     hits = [f for f in report.findings if f.code == "STALE_LIVE_BINDING_GATE"]
     assert hits == []
 
 
 @live
-def test_live_self_check_draft_basis_pins():
+def test_live_self_check_draft_basis_pins(live_self_check):
     from harness_common import Severity
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+    report, _ = live_self_check
     assert [f for f in report.findings if f.code == "DRAFT_BASIS_AS_BINDING"] == []
     info = [f for f in report.findings if f.code == "DRAFT_BASIS_RULED_CLOSED"]
     # The seven D-GOV records' `FramedBy: governance_harness_plan_v3` lines:
@@ -181,7 +189,7 @@ def test_live_self_check_draft_basis_pins():
 
 
 @live
-def test_live_pointer_currency_first_detection_target():
+def test_live_pointer_currency_first_detection_target(live_self_check):
     # The 2026-07-01 consistency audit's live reproduction case: the piping
     # reconciliation pointer designated the 2026-05-09 DEV001 run summary,
     # retired to .archive/ on 2026-06-03 (349a2ab33). The owner ruled the
@@ -192,7 +200,7 @@ def test_live_pointer_currency_first_detection_target():
     pointer = (LIVE_REPO / "projects" / "chirality-piping" / "execution"
                / "_Reconciliation" / "_LATEST.md")
     first_line = pointer.read_text(encoding="utf-8").splitlines()[0]
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+    report, _ = live_self_check
     hits = [f for f in report.findings if f.code == "POINTER_TARGET_UNRESOLVED"]
     if "2026-05-09_DEV001" in first_line:  # pre-disposition tree
         assert [(f.source_path, f.source_line) for f in hits] == [
@@ -210,20 +218,21 @@ def test_live_pointer_currency_first_detection_target():
     # Every other live pointer resolves and is the newest of its class.
     assert [f for f in report.findings
             if f.code == "POINTER_TARGET_NOT_NEWEST"] == []
-    # docs/governance_harness and projects/pec carry no pointer files ->
-    # NOT_APPLICABLE.
+    # docs/governance_harness carries no pointer files -> NOT_APPLICABLE.
+    # Conscious pin update 2026-07-24 (was: projects/pec listed here too):
+    # the D-PEC-60 decomposition session created
+    # projects/pec/execution/_Decomposition/_LATEST.md (Gate 7 accepted same
+    # day), so pec entered pointer-currency scope and its pointer must
+    # resolve quietly (asserted by the zero-findings checks above).
     from harness_common import Severity
     na = [f for f in report.findings if f.code == "POINTER_CHECK_NOT_APPLICABLE"]
-    assert {f.source_path for f in na} == {
-        "docs/governance_harness",
-        "projects/pec",
-    }
+    assert {f.source_path for f in na} == {"docs/governance_harness"}
     assert all(f.severity is Severity.NOT_APPLICABLE for f in na)
 
 
 @live
-def test_live_gen8_semantic_portability_invariants():
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+def test_live_gen8_semantic_portability_invariants(live_self_check):
+    report, _ = live_self_check
     assert [f for f in report.findings if f.code in {
         "ABS_PATH_IN_PROJECT_SURFACE",
         "ABS_PATH_IN_UNCLASSIFIED_SURFACE",
@@ -231,16 +240,19 @@ def test_live_gen8_semantic_portability_invariants():
     assert [f for f in report.findings
             if f.code.startswith("PORTABILITY_POLICY_")] == []
     piping = _fact(report, "abs_path_lint.chirality-piping.semantic_invariants")
-    assert piping.value == (
-        "unacknowledged_control=0; active_unclassified=0; "
-        "policy_issues=0; acknowledged_control=3")
-    # Growth is telemetry only: no exact finding count or path set is pinned.
+    assert re.fullmatch(
+        r"unacknowledged_control=0; active_unclassified=0; "
+        r"policy_issues=0; acknowledged_control=[0-9]+",
+        piping.value,
+    )
+    # Valid acknowledged-control and historical growth are telemetry only:
+    # no exact finding count or path set is pinned.
     historical = _fact(report, "abs_path_lint.chirality-piping.historical")
     assert re.fullmatch(r"files=\d+; hit_lines=\d+", historical.value)
 
 
 @live
-def test_live_gen9_registry_currency_zero_drift():
+def test_live_gen9_registry_currency_zero_drift(live_self_check):
     # Consistency-audit §4 item 3 was the check's first detection target: the
     # registry indexed DELIVERABLE_TASK as live (AGENTS.md:89 at 4e01db61e)
     # while the file existed only under the gitignored agents/.archive/. The
@@ -249,7 +261,7 @@ def test_live_gen9_registry_currency_zero_drift():
     # the live registry is pinned clean in BOTH directions. A regression in
     # either direction is a conscious pin update, never a silent one; the
     # detector itself is proven by test_agent_registry_fixtures.py.
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+    report, _ = live_self_check
     assert [f for f in report.findings
             if f.code == "REGISTRY_TARGET_MISSING"] == []
     assert [f for f in report.findings
@@ -259,8 +271,8 @@ def test_live_gen9_registry_currency_zero_drift():
 
 
 @live
-def test_live_self_check_reports_root_ratified_governance_and_exits_clean():
-    report, _ = cmd_self_check.run_self_check(LIVE_REPO)
+def test_live_self_check_reports_root_ratified_governance_and_exits_clean(live_self_check):
+    report, _ = live_self_check
     for name in ("DIRECTIVE.md", "CONTRACT.md", "SPEC.md", "TYPES.md"):
         fact = _fact(report, f"root_governance.{name}")
         assert "RATIFIED" in fact.value

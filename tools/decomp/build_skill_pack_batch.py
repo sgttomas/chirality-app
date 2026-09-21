@@ -19,6 +19,10 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+TOOLS_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(TOOLS_ROOT / "source_catalog"))
+from source_database import resolve_domain_root  # noqa: E402
+
 
 BATCH_ID = "BATCH4_SKILL_PACKS_20260614T000000Z"
 BATCH_NAME = "Batch 4 - Skill Packs"
@@ -87,7 +91,7 @@ SLUG_RE = re.compile(r"[^A-Za-z0-9]+")
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--repo-root", type=Path, default=Path("."))
-    p.add_argument("--domain-root", type=Path, default=Path("domains/chirality"))
+    p.add_argument("--domain-root", type=Path)
     p.add_argument("--source-manifest", type=Path, default=None)
     p.add_argument("--batch-id", default=None)
     p.add_argument("--budget-tokens", type=int, default=15000)
@@ -280,6 +284,11 @@ def update_companion_inventory(path: Path, rows: list[dict]) -> None:
 
 def main() -> int:
     args = parse_args()
+    try:
+        args.domain_root = resolve_domain_root(args.domain_root)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     repo_root = args.repo_root.resolve()
     domain_root = (repo_root / args.domain_root).resolve() if not args.domain_root.is_absolute() else args.domain_root.resolve()
     source_manifest = args.source_manifest or (domain_root / "_Sources" / "Source_Manifest.csv")

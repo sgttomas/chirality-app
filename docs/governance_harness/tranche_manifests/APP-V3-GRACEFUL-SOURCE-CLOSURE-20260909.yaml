@@ -1,0 +1,44 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-V3-GRACEFUL-SOURCE-CLOSURE-20260909
+title: App V3 graceful source closeout and fail-closed deferred release workflow
+date: 2026-09-09
+basis: 533332349a4607eee561d4ef90fb05a62d86519e
+
+instruction_surface_paths:
+  - .github/workflows/desktop-release-template.yml
+  - docs/governance_harness/tranche_manifests/APP-V3-GRACEFUL-SOURCE-CLOSURE-20260909.yaml
+
+m2_gate:
+  authorization: |-
+    Owner direction recorded verbatim in
+    execution/_Coordination/AgentRuns/APP_V3_CONSOLIDATED_RESUME_2026-09-07/owner-graceful-pause-pr-2026-09-08/OWNER_DIRECTION.json:
+    "Gracefully bring your current work to completion and then I'll give you
+    further instructions." and "merge with PR so things are properly documented
+    and accounted for." The Root control-plane disposition subsequently bounded
+    this closeout to reviewed App and Runtime source, compact evidence, and no
+    product release or activation. Root's five-path repair disposition and
+    delegated documentation grant authorize the reviewed fail-closed workflow
+    correction and this required G4 record. This manifest records those acts; it
+    does not claim the owner personally inspected the pinned source bytes and
+    grants no product-release, supplier-source, acquisition, packaging, native,
+    activation, or account authority.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-08
+  integration_owner: >-
+    CHANGE Agent 1 under serialized HELP_HUMAN supervision for PR 761; sole
+    integration owner for the bounded publication closeout
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-08
+    approved_source_sha: f8c9b22cfbc9192c14ee2b6b142371d5bb69f7a5
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No agents, skills, agent-index, or mirrored instruction-package file changes.
+    The only instruction-surface change is the App release workflow's reviewed
+    deferred-S0 fail-closed hold; its owning manager, independent review, Root
+    disposition, and publication selection are included in this tranche.

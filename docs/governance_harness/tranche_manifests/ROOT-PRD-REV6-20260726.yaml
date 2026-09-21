@@ -1,0 +1,57 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-PRD-REV6-20260726
+title: D-GOV-28 adoption — Root PRD Revision 6 runtime-stewardship amendment
+date: 2026-07-26
+basis: 18e5dda568689daadaa05aff65bd4b810489409b
+
+instruction_surface_paths:
+  - docs/PRD_ROOT.md
+  - docs/governance_harness/_DECISIONS/D-GOV-28_root_runtime_stewardship.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-PRD-REV6-20260726.yaml
+
+m2_gate:
+  authorization: >-
+    Owner ruling, in-session, 2026-07-26, recorded verbatim in
+    docs/governance_harness/_DECISIONS/D-GOV-28_root_runtime_stewardship.md:
+    "APPROVE: D-GOV-28 Option O-A." The ruling adopts the exact Root PRD
+    Revision 6 candidate at commit
+    f78a83621cbd679e6af2c41199845aca74073480, SHA-256
+    0e36a03abc16b86f99024aa2a17c467ae7f4303f9740be3a6ba2e9dd1dfb2f2d,
+    and authorizes its publication and application through this M2/CHANGE
+    closeout. It authorizes no decomposition or implementation change.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-26
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) — sole serialized integration owner for the
+    ROOT-PRD-REV6-20260726 instruction-surface tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-28_ROOT_RUNTIME_STEWARDSHIP_PRD.md
+    - projects/pec/execution/_Coordination/NOTICE_D-GOV-28_ROOT_RUNTIME_STEWARDSHIP_PRD.md
+  rationale: >-
+    A deterministic pin/mirror survey at basis 18e5dda56 found no project or
+    domain SHA pin of docs/PRD_ROOT.md. Notices nevertheless route to App and
+    PEC because adopted O-11 explicitly names them as generic-runtime clients
+    and the amendment is the accepted Root basis for later boundary work.
+    These notices coordinate only; each receiving loop retains its own
+    authority and cadence.
+
+coordination_notice_paths:
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-28_ROOT_RUNTIME_STEWARDSHIP_PRD.md
+  - projects/pec/execution/_Coordination/NOTICE_D-GOV-28_ROOT_RUNTIME_STEWARDSHIP_PRD.md
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+scope_limits:
+  - no decomposition or SCOPE_CHANGE gate
+  - no package, deliverable, scope-item, write-locus, or implementation change
+  - no App or PEC scope change
+  - no contract repin

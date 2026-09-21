@@ -8,7 +8,7 @@ Meet Help Human, the assistant inside Chirality App. Bring a complex task, work 
 
 ## Get started
 
-Version **3.0.0** is available for **Apple Silicon Macs running macOS 15 or newer**. It uses Codex through your ChatGPT account. Local-model support is planned for a later release.
+Version **3.0.1** is available for **Apple Silicon Macs running macOS 15 or newer**. It uses Codex through your ChatGPT account. Local-model support is planned for a later release.
 
 1. Download the `.dmg` from the [latest release](https://github.com/sgttomas/chirality-app/releases/latest).
 2. Open it and drag Chirality to Applications. The release is signed and notarized.
@@ -31,7 +31,7 @@ Use **Report issue** in the App or [open a GitHub issue](https://github.com/sgtt
 
 ## Source and development
 
-This repository is the curated Chirality desktop release projection, hosting public installers, release notes, and user issue reports. The desktop application source is not currently included here. Current application and instruction development takes place in **[sgttomas/chirality](https://github.com/sgttomas/chirality)**. Retained folders such as `runtime/` are source snapshots, separate from the versioned installers; use the main repository for current source and build instructions.
+This repository is the curated Chirality desktop release projection, hosting public installers, release notes, user issue reports, and the versioned desktop application source. The desktop source for this projection is in [`desktop/`](desktop/); the generic runtime source is in `runtime/`. Current application and instruction development takes place in **[sgttomas/chirality](https://github.com/sgttomas/chirality)**. These source snapshots are separate from the versioned installers; use the main repository for current development history and build instructions.
 
 - [App source and development setup](https://github.com/sgttomas/chirality#develop-and-contribute)
 - [Roles and instructions](https://github.com/sgttomas/chirality/tree/main/agents)

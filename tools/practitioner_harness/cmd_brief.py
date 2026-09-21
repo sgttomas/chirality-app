@@ -87,6 +87,7 @@ INSTRUCTION_SURFACE_PROHIBITED = (
     "tools/**",
     "agents/**",
     "skills/**",
+    "workflows/**",
     "docs/**",
 )
 
@@ -104,6 +105,8 @@ def run_brief(
         raise HarnessOperationalError(
             f"--deliverable must look like DEL-NN-MM (got {deliverable!r}).")
     manifest = load_adapter(project_root)
+    if manifest.historical_root():
+        raise HarnessOperationalError("Governance Root historical sources cannot produce a production brief or next recommendation.")
 
     # Locate the deliverable directory via the manifest status glob.
     status_files = adapter_project.collect_status_files(manifest)

@@ -1,0 +1,79 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-GOV31-ADOPTION-20260729
+title: D-GOV-31 adoption — Candidate B merge-gate policy succession (PRD Rev 7)
+date: 2026-07-29
+basis: 4f7808acb2802443370d045efa198152934c1674
+
+instruction_surface_paths:
+  - docs/PRD_ROOT.md
+  - docs/governance_harness/_DECISIONS/D-GOV-31_merge_gate_policy_succession.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-GOV31-ADOPTION-20260729.yaml
+
+m2_gate:
+  authorization: |-
+    The owner's in-session adoption act of record (2026-07-29,
+    loop-readiness transition program), returned to the HELP_HUMAN
+    Agent 0 session of record and transcribed verbatim:
+    "APPROVE D-GOV-31 15fba9c3 — Ryan Tufts 2026-07-29"
+    The token adopts the exact Candidate B subject
+    CANDIDATE_B_SHARED_CHANGE/PRD_ROOT_REV7_CANDIDATE.md, SHA-256
+    15fba9c36a197b36b281297af123115bcd3f282fe6c6f2fae05cd703b3743748
+    (token SHA8 = 15fba9c3), within candidate commit
+    3ad43c27bbab0da7d43cb1921ff9c8b186d1b2cd. Publication merge
+    authorization is a SEPARATE owner act on the final branch HEAD,
+    still to come; this tranche's PR remains human-gated under the
+    still-current D-8. This manifest records a gate; it grants no
+    authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-29
+  integration_owner: >-
+    Bounded Agent 2 AUTHOR run GOV-STEP3-D8-ADOPTION-20260729 under the
+    HELPS_HUMANS lane, supervised by HELP_HUMAN; sole serialized
+    integration owner for this adoption tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    No agents/ file changes in this tranche. Adoption of Candidate B
+    obligates routed M6 coordination notices to every registered loop's
+    coordination surface (at this basis: app-dev, pec, and piping) as
+    Step-4 work per the POLICY_DELTA.md section-4 row enumeration;
+    routing is recorded here as an obligation, not performed in this
+    tranche, per the G4 pending convention. Notices are coordination,
+    never authority.
+
+scope_limits:
+  - no self-merge; the instruction-surface PR returns to the owner gate
+  - adoption tranche only; publication merge authorization is a separate
+    owner act on the final branch HEAD; the successor policy never
+    consumes its own not-yet-effective merge exception
+  - no grant issued, exercised, or pre-approved; the default remains
+    human-gated permission-required
+  - no retroactive cure of the 2026-07-28 window or any historical act
+  - no Step-4 propagation performed; the nine POLICY_DELTA obligations
+    and the routed M6 notices are enumerated in the decision record only
+  - no loop-local App, PEC, or Piping substance; loops are bound only
+    through their own adopt/acknowledge acts, and stricter local merge
+    discipline remains controlling until then
+  - Candidate A remains an unselected frozen proposal, superseding
+    nothing; no candidate or proposal file is edited
+  - no lifecycle, implementation, activation, runtime, dependency,
+    decomposition, scope, estimate, schedule, repin, release, or
+    professional-reliance act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries docs/ derivatives (including
+    docs/PRD_ROOT.md). Regeneration is deferred to the next export
+    release, which must consume post-merge bytes; the deferral changes
+    no export authority or boundary.

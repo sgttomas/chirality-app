@@ -1,0 +1,2 @@
+{"schemaVersion":1,"eventId":"evt_fixture_duplicate_1","sessionId":"sess_v2_duplicate","turnId":"turn_fixture_1","timestamp":"2026-08-30T12:40:05.000Z","type":"turn.accepted","data":{"message":"Fixture turn."}}
+{"schemaVersion":1,"eventId":"evt_fixture_duplicate_2","sessionId":"sess_v2_duplicate","turnId":"turn_fixture_1","timestamp":"2026-08-30T12:45:00.000Z","type":"turn.completed","data":{"summary":"Fixture turn completed."}}

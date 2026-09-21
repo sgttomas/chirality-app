@@ -3,14 +3,14 @@ from pathlib import Path
 import tools.source_catalog.research_packet as rp
 
 # rp.__file__ = <repo>/tools/source_catalog/research_packet.py -> repo root is parents[2].
-_AGENT_RESEARCH = Path(rp.__file__).resolve().parents[2] / "agents" / "AGENT_RESEARCH.md"
+_RESEARCH_CONTRACT = Path(rp.__file__).resolve().parents[2] / "workflows" / "research-orchestration" / "resources" / "contract.md"
 
 
-def test_agent_research_doc_headers_match_packet_constants():
-    """The AGENT_RESEARCH.md STRUCTURE block restates the packet column headers in prose.
+def test_research_workflow_headers_match_packet_constants():
+    """The selected research workflow contract resource restates the packet column headers in prose.
     The tools import these constants, but the doc copy is unguarded — assert each canonical
-    header appears verbatim in the doc so the agent contract and the tools cannot drift."""
-    lines = {ln.strip() for ln in _AGENT_RESEARCH.read_text(encoding="utf-8").splitlines()}
+    header appears verbatim in the doc so the workflow contract and the tools cannot drift."""
+    lines = {ln.strip() for ln in _RESEARCH_CONTRACT.read_text(encoding="utf-8").splitlines()}
     for label, cols in {
         "Query_Log": rp.QUERY_LOG_COLUMNS,
         "Evidence_Map": rp.EVIDENCE_MAP_COLUMNS,
@@ -20,8 +20,8 @@ def test_agent_research_doc_headers_match_packet_constants():
     }.items():
         header = ",".join(cols)
         assert header in lines, (
-            f"{label} header drifted: AGENT_RESEARCH.md is missing the canonical line "
-            f"'{header}'. Update the doc STRUCTURE block or research_packet.py so they agree."
+            f"{label} header drifted: research-orchestration/resources/contract.md is missing the canonical line "
+            f"'{header}'. Update the workflow contract or research_packet.py so they agree."
         )
 
 

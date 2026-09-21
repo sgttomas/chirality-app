@@ -4,6 +4,8 @@ import {
   type AgentEngineRunInput,
   type EngineDescriptor,
   type ProviderCredentialPort,
+  type ContextSuccessorRequest,
+  type PreparedContextSuccessor,
   type UIEvent
 } from "@chirality/runtime-contracts";
 
@@ -22,6 +24,8 @@ export interface PiTurnRuntimePort {
     }
   ): AsyncIterable<UIEvent>;
   interrupt(sessionId: string): Promise<void>;
+  prepareContextSuccessor(request: ContextSuccessorRequest): Promise<PreparedContextSuccessor>;
+  cancelContextSuccessor(preparationId: string): Promise<void>;
 }
 
 export interface PiOmlxEngineOptions {
@@ -43,7 +47,8 @@ export function createPiOmlxEngineAdapter(options: PiOmlxEngineOptions): AgentEn
       attachments: false,
       interruption: true,
       durableResume: false,
-      compaction: true
+      compaction: true,
+      runtimeControlTools: true
     }
   };
   const credential = async (): Promise<string> => {
@@ -89,6 +94,12 @@ export function createPiOmlxEngineAdapter(options: PiOmlxEngineOptions): AgentEn
     },
     interrupt(sessionId) {
       return options.runtime.interrupt(sessionId);
+    },
+    prepareContextSuccessor(request) {
+      return options.runtime.prepareContextSuccessor(request);
+    },
+    cancelContextSuccessor(preparationId) {
+      return options.runtime.cancelContextSuccessor(preparationId);
     }
   };
 }

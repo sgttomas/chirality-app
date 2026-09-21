@@ -20,6 +20,7 @@ import pytest
 import cmd_run_validations
 import evidence_records
 import harness
+import harness_template_cache
 from harness_common import (
     GENERATED_ROOT_NAME,
     HarnessOperationalError,
@@ -127,15 +128,10 @@ def build_run_repo(
 ) -> Path:
     """Tmp git repo: fixture allowlist, one pilot project with a manifest
     declaring HARMLESS validation commands, one committed brief, one tracked
-    governed file the mutation tests can touch."""
-    repo = tmp_path / "repo"
-    _write(repo / ".gitignore", GENERATED_ROOT_NAME + "/\n" + gitignore_extra)
-    if with_allowlist:
-        _write(repo / "docs" / "governance_harness" / "human_actors.md",
-               FIXTURE_ACTORS_MD)
-    _write(repo / PROJECT_REL / "_harness" / "adapter.yaml",
-           ADAPTER_TEMPLATE.format(commands=_yaml_commands(commands)))
-    _write(repo / PROJECT_REL / "tracked.md", "governed fixture file\n")
+    governed file the mutation tests can touch.
+
+    Repos with identical build parameters are built once per session and
+    copied per test (harness_template_cache); tests mutate their own copy."""
     if brief_validation_lines is None:
         brief_validation_lines = [
             f"- {vc['command']} (cwd: {vc.get('cwd', '.')}) — declared in "
@@ -146,15 +142,29 @@ def build_run_repo(
         evidence_target_lines = [
             f"- `{GENERATED_ROOT_NAME}/evidence/{TID}/` (under the declared "
             "generated root; D-GOV-01)"]
-    _write(repo / BRIEF_RELPATH, BRIEF_TEMPLATE.format(
-        tid=TID, state=brief_state, adopted_by=adopted_by,
-        write_scope=write_scope,
-        validation_lines="\n".join(brief_validation_lines),
-        evidence_target_lines="\n".join(evidence_target_lines)))
-    _git(repo, "init", "-q")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "fixture repo")
-    return repo
+    key = ("run_repo", json.dumps(commands, sort_keys=True), brief_state,
+           adopted_by, with_allowlist, gitignore_extra,
+           tuple(brief_validation_lines), write_scope,
+           tuple(evidence_target_lines))
+
+    def _build(repo: Path) -> None:
+        _write(repo / ".gitignore", GENERATED_ROOT_NAME + "/\n" + gitignore_extra)
+        if with_allowlist:
+            _write(repo / "docs" / "governance_harness" / "human_actors.md",
+                   FIXTURE_ACTORS_MD)
+        _write(repo / PROJECT_REL / "_harness" / "adapter.yaml",
+               ADAPTER_TEMPLATE.format(commands=_yaml_commands(commands)))
+        _write(repo / PROJECT_REL / "tracked.md", "governed fixture file\n")
+        _write(repo / BRIEF_RELPATH, BRIEF_TEMPLATE.format(
+            tid=TID, state=brief_state, adopted_by=adopted_by,
+            write_scope=write_scope,
+            validation_lines="\n".join(brief_validation_lines),
+            evidence_target_lines="\n".join(evidence_target_lines)))
+        _git(repo, "init", "-q")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "fixture repo")
+
+    return harness_template_cache.materialize(key, _build, tmp_path / "repo")
 
 
 def _run_direct(repo: Path, timeout_seconds: int = 60, list_only: bool = False):

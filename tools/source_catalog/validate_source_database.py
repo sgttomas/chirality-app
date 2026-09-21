@@ -8,8 +8,8 @@ Usage:
 Inputs:
   --snapshot          Snapshot directory or _LATEST.md pointer. Defaults to
                       <domain-root>/_LocalIndexes/_LATEST.md.
-  --domain-root       Domain root override. Defaults to piping-design or the
-                      domain_root recorded in meta.json.
+  --domain-root       Domain root override. May be omitted when meta.json
+                      records it or CWD contains domain-pack.yaml.
   --repo-root         Repository root for @repo/ manifest-backed source paths.
                       Defaults to repo_root recorded in meta.json when present.
   --skip-hash-verify  Check hash shape but do not re-hash source files.
@@ -33,6 +33,7 @@ from source_database import (  # noqa: E402
     SCHEMA_VERSION,
     catalog_path,
     is_repo_rel_path,
+    resolve_domain_root,
     sha256_file,
     text_hash,
 )
@@ -78,7 +79,13 @@ def main() -> int:
         print(f"ERROR: missing meta.json under {snapshot}", file=sys.stderr)
         return 2
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    domain_root = Path(meta.get("domain_root") or args.domain_root).resolve()
+    try:
+        domain_root = Path(
+            meta.get("domain_root") or resolve_domain_root(args.domain_root)
+        ).resolve()
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     repo_root = Path(args.repo_root or meta.get("repo_root") or Path.cwd()).resolve()
 
     check_exports(snapshot, findings)
@@ -112,8 +119,9 @@ def main() -> int:
     return 1 if blockers else 0
 
 
-def resolve_snapshot(snapshot_arg: Path | None, domain_root: Path) -> Path:
+def resolve_snapshot(snapshot_arg: Path | None, domain_root: Path | None) -> Path:
     if snapshot_arg is None:
+        domain_root = resolve_domain_root(domain_root)
         snapshot_arg = domain_root / "_LocalIndexes" / "_LATEST.md"
     path = snapshot_arg.resolve()
     if path.is_dir():

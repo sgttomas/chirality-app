@@ -19,7 +19,7 @@ from pathlib import Path, PurePosixPath
 import adapter_git_state
 import prose_bullet_v1
 from adapter_loader import AdapterManifest
-from harness_common import SourcedFact
+from harness_common import SourcedFact, HarnessOperationalError
 
 SHA_FIELD_RE = re.compile(r"\b([0-9a-f]{7,64})\b")
 DECISION_ID_RE = re.compile(r"\bD-(?:APP|T0|GOV)-\d+\b|\bD-\d+[A-Za-z]?\b")
@@ -79,6 +79,11 @@ def collect_status_files(manifest: AdapterManifest) -> list[Path]:
         if _excluded(rel, manifest.exclude_globs):
             continue
         out.append(path)
+    if manifest.historical_root():
+        expected = {row["path"] for row in manifest.governance_state["source_statuses"]}
+        actual = {path.relative_to(root).as_posix() for path in out}
+        if actual != expected:
+            raise HarnessOperationalError("Historical Root census differs from the accepted exact source set.")
     return out
 
 
@@ -108,9 +113,17 @@ def _blocked_on_tokens(text: str) -> tuple[tuple[str, ...], int | None]:
 
 
 def analyze_status_file(path: Path, manifest: AdapterManifest, repo_root: Path) -> StatusFileResult:
-    text = path.read_text(encoding="utf-8")
-    doc = prose_bullet_v1.parse_status_document(text)
-    assertion, trailing = prose_bullet_v1.last_state_assertion(doc.history, manifest.states)
+    if manifest.historical_root():
+        from root_historical_status import parse_historical_status
+        doc = parse_historical_status(path, manifest.project_root, manifest.governance_state)
+        text = path.read_text(encoding="utf-8")
+        assertion, trailing = prose_bullet_v1.last_state_assertion(doc.history, [*prose_bullet_v1.STATE_VOCAB, "RETIRED"])
+    else:
+        text = path.read_text(encoding="utf-8")
+        doc = prose_bullet_v1.parse_status_document(text)
+        if doc.current_state == "RETIRED" or any("State set to RETIRED" in h.raw for h in doc.history):
+            raise HarnessOperationalError("RETIRED is reserved for explicit Root historical mode.")
+        assertion, trailing = prose_bullet_v1.last_state_assertion(doc.history, manifest.states)
     current = doc.current_state
     unparseable_doc = doc.doc_caveat_class == prose_bullet_v1.UNPARSEABLE
     mismatch = False
@@ -187,6 +200,19 @@ def parse_decision_register(path: Path) -> dict[str, int]:
 def dag_pointer_facts(manifest: AdapterManifest, repo_root: Path) -> list[SourcedFact]:
     root = manifest.project_root
     assert root is not None
+    if not manifest.declares_dag_pointer():
+        # The loaded schema registers no DAG pointer surface (root-harness-
+        # adapter/v1). "Not declared" is reported as such — an empty relpath is
+        # never joined onto the working root and never read as "artifact
+        # absent" (K-INVENT-1).
+        return [SourcedFact(
+            fact_id="dag.pointer",
+            value=f"not declared by this adapter schema ({manifest.schema})",
+            source_path=manifest.manifest_relpath(repo_root),
+            authority_status="declared-in-manifest",
+            parse_status="NOT_APPLICABLE",
+            caveat="This working root registers no DAG pointer surface; "
+                   "DAG-dependent commands refuse rather than guess one.")]
     path = root / manifest.dag_pointer
     rel = str(path.relative_to(repo_root)) if path.is_file() else manifest.dag_pointer
     facts: list[SourcedFact] = []

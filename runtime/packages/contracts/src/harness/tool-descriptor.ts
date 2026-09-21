@@ -33,6 +33,7 @@ export type HarnessToolPermission =
   | 'shell'
   | 'subagent'
   | 'coordination'
+  | 'control'
   | 'danger';
 
 export type HarnessToolPathScope =

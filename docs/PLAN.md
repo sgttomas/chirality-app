@@ -6,7 +6,8 @@
 > D-GOV-01..07 rulings of 2026-07-01 (ruled and SHA-bound at commit
 > `82a35c545`; see `docs/governance_harness/_DECISIONS/_REGISTER.md`); per
 > K-INVENT-1 nothing is invented. The Control-Plane Boundary is unchanged
-> from the 2026-06-15 restoration; §1 is unchanged except for the
+> from the 2026-06-15 restoration; §1 now records D-GOV-41 candidate direction.
+> Its preceding edition included the
 > domain-engine containment bullet added 2026-07-02 at owner direction
 > (restating the D-GOV-06-ruled direction and `CONTRACT.md` K-DOMAIN-1..4;
 > nothing invented).
@@ -27,40 +28,21 @@ competing roadmap surface.
 
 ## 1. Current Architectural Direction
 
-The established direction (reflected in `AGENTS.md` and the agent suite):
+The D-GOV-41 owner-directed candidate replaces the role and method architecture:
 
-- **Agent 0/1/2 are runtime delegation positions.** HELP_HUMAN is the sole
-  Agent 0; Agent 1 managers remain direct human entry points; Agent 2 may be
-  TASK plus a skill, an ephemeral bounded generalist, or an approved dedicated
-  specialist. Standards constrain all layers from outside the hierarchy.
-- **Multi-agent orchestration supports terminal fan-out/fan-in, supervised
-  many-to-many agency, and arbitrary dependency-valid mixed work graphs.** The
-  human may prescribe or delegate pattern selection. Agent 0 manages
-  cross-package work; package-level WORKING_ITEMS manages intra-package work.
-- **`TASK` is the default recurring-method Agent 2 shell.** A dedicated
-  specialist requires evidence that TASK and ephemeral-generalist forms are
-  inadequate, a HELPS_HUMANS proposal, and explicit human approval.
-- **Workflow-component standards are separate from applying personas.**
-  `docs/WORKFLOW_COMPONENT_STANDARD.md` is the normative design surface;
-  HELPS_HUMANS applies and maintains it as an Agent 1 manager. Existing agents
-  requalify under the same agent/skill/tool/brief boundary as new components
-  (D-GOV-11, superseding conflicting D-GOV-10 conclusions).
-- **Method logic lives in `skills/`; deterministic operations live in
-  `tools/`; Agent 1 managers handle human-facing orchestration.**
-- **Governance is two-layered.** The framework root (`AGENTS.md`, root `docs/`,
-  `agents/`, `skills/`, `tools/`) defines Chirality-wide rules; working roots
-  specialize them without weakening framework invariants (`CONTRACT.md`
-  K-AGENTS-1).
-- **One shared instruction root serves many working roots** under `projects/*`
-  and `domains/*`; path anchoring and task write-scope containment make
-  per-working-root and git-worktree isolation safe (`SPEC.md` §0.2;
-  `CONTRACT.md` K-WRITE-2).
-- **Chirality is the governed environment around domain engines, not the
-  solver.** Domain engines own authoritative domain truth; Chirality governs
-  the work around them — profiles, manifests, proposals, review gates, records
-  (`CONTRACT.md` K-DOMAIN-1..4; tier-0 OpenPipeStress profile ADOPTED, affirmed
-  by D-GOV-06). The division of labor: agents propose, domain engines compute,
-  humans rule, the record binds.
+- HELP_HUMAN (0) maintains human alignment and coordinates managers.
+  HELPS_HUMANS (1) develops workflows, tools, and projects with the human.
+  WORKING_ITEMS (1) implements bounded undertakings and integrates results.
+  TASK (2), or an ephemeral bounded executor, performs assigned contributions.
+- Human direct entry remains available through Type 0 or either Type 1.
+  Workflow methods are selected explicitly and loaded as needed. Role prose,
+  runtime configuration, workflow methods, tools, and briefs have separate homes.
+- Source migration and validation occur in Root. App and Runtime retain their
+  accepted instruction bases until their owning loops adopt compatible consumers.
+  Root export staging does not imply publication or public release.
+- Shared governance, source provenance, human decisions, domain-engine authority,
+  checkout containment, and accepted-state requirements remain in force. The
+  instruction root serves separately scoped working roots.
 
 Details of in-flight work live in issue/branch/release records, not in this
 planning surface.
@@ -88,7 +70,7 @@ applicability register (deferred).
 - **Root governance restoration + path anchoring.** Ratify the root `docs/`
   governance set (DIRECTIVE/SPEC/TYPES/CONTRACT/PLAN); wire the `K-WRITE-2`
   ScopePath-containment rule (`SCOPE_OUTSIDE_WORKTREE`) into `AGENT_TASK.md`;
-  derive `REPO_ROOT` in `init/init-prompt.md` and de-absolutize
+  derive `REPO_ROOT` in `init/dev-loop-init-prompt.md` and de-absolutize
   coordination/handoff files. Basis:
   `plans/monorepo_root_governance_and_path_anchoring_2026-06-15.md`.
   **Amended 2026-07-01 per D-GOV-05:** ratification is sequenced — the minimal
@@ -159,6 +141,11 @@ logs.
 ---
 
 ## 6. Shared Runtime Execution Order
+
+Note (2026-09-12): the D-GOV-20 sequence below is historical text and is read
+with D-GOV-43 as ruled and supplemented (topology A2): the per-user daemon,
+its CLI installation, and local-model residency in steps 4 and 5 are retired,
+and the App owns a Runtime service child that hosts stock Codex.
 
 D-GOV-20 activates the following bounded sequence:
 

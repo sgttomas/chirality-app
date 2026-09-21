@@ -1,0 +1,81 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-STAGEA-STEP45-20260731
+title: Task Management Stage A steps 4-5 — TASK_MANAGEMENT agent in lieu of reader binding; PEC section-16-1 notice
+date: 2026-07-31
+basis: a91edd1342db7dae9f9e6616e32405f76a07d055
+
+instruction_surface_paths:
+  - agents/AGENT_TASK_MANAGEMENT.md
+  - AGENTS.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM-STAGEA-STEP45-20260731.yaml
+
+m2_gate:
+  authorization: |-
+    Owner in-session ruling of 2026-07-31 (188 bytes UTF-8, SHA-256
+    043339d7c7e880af3a546e0e2280c944cfa96be81a434ebf43f8f0845c26e433,
+    verbatim in workplan Amendment 1 and Loop Receipt 69): the owner
+    counter-proposed a standalone Task Management agent in lieu of the
+    step-4 LOOP_INIT reader binding, expressly reversed the Stage-A
+    no-agent-instruction-changes posture for exactly this package, and
+    directed "proceed accordingly". Scope is precisely one new Agent 1
+    package (agents/AGENT_TASK_MANAGEMENT.md) plus its AGENTS.md index
+    row; the root loop thereby exercises the adopted PRD section-14
+    adopt/amend/decline clause without amending the PRD bytes. A
+    follow-on owner direction of the same session (223 bytes UTF-8,
+    SHA-256
+    9d46dded314e40bc93a408c35da66debf5ee5a842b60be6e3c6ed9f45c904f7d,
+    verbatim in workplan Amendment 2) added resolution orchestration to
+    the same package before merge: ruled items are worked through the
+    nine domains per item and discharged via deliverable-amendment/SCA
+    handoff, TASK/Agent 2 dispatch, or rare owner-named direct action.
+    Publication merge authorization for this tranche's PR remains a
+    separate owner act on the final branch HEAD; this manifest records a
+    gate and grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-31
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) root governance loop session, Task Management
+    Stage A steps 4-5; sole serialized integration owner for this
+    tranche; no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_AGENT_INDEX_TASK_MANAGEMENT_2026-07-31.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_AGENT_INDEX_TASK_MANAGEMENT_2026-07-31.md
+    - projects/pec/execution/_Coordination/NOTICE_AGENT_INDEX_TASK_MANAGEMENT_2026-07-31.md
+    - projects/pec/execution/_Coordination/NOTICE_D-GOV-32_TASK_MANAGEMENT_ADOPTION.md
+  rationale: >-
+    This tranche changes agents/ and AGENTS.md, so the agent-index
+    change-notice rule requires routed notices in the same tranche - one
+    per registered loop stating the TASK_MANAGEMENT addition, its
+    SHA-256, and the (empty) required follow-on. The fourth notice is
+    the separate workplan step-5 obligation per D-GOV-32 Effect 3 (PEC
+    PRD section-16 decision 1 decided for the Action Item register
+    class), carried here because both steps were ruled together.
+    Notices are coordination, never authority.
+
+scope_limits:
+  - >-
+    exactly one agent package is added; no existing agents/ file, skill,
+    tool, workflow, or LOOP_INIT byte changes; the step-4 reader binding
+    is declined, not deferred - LOOP_INIT.md is deliberately untouched
+  - >-
+    the agent binds no loop: registers for App-dev, Piping, and PEC
+    still exist only after those loops' own Stage-B rulings (D-GOV-32
+    Effect 4)
+  - >-
+    no skill, tool, scheduler, or automation is created; augmentation
+    arrives only through later governed tranches ("for now, just the
+    agent")
+  - >-
+    resolution orchestration adds no authority: sibling Agent 1
+    instruments are reached only by routed handoff, dispositions and
+    grants remain owner acts, and direct execution requires an explicit
+    in-session owner grant naming item and write target
+  - >-
+    no lifecycle, decomposition, scope, estimate, schedule, release, or
+    professional-reliance act; step 6 (owner triage) remains unperformed
+    and on the PRD section-19.1 clock

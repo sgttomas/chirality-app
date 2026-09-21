@@ -1,0 +1,27 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-SOW-SUCCESSOR-ADOPTION-20260907
+title: Exact Runtime DEL-02-06 and DEL-02-09 SOW successor adoption
+date: 2026-09-07
+basis: c5192790f98ec024e7c2728cb1d4df3ae2b2a2dd
+instruction_surface_paths:
+  - tools/validation/root_runtime_successors.py
+  - tools/validation/test_root_runtime_successors.py
+  - docs/governance_harness/_DECISIONS/D-GOV-40_runtime_sow_successor_adoption.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-SOW-SUCCESSOR-ADOPTION-20260907.yaml
+m2_gate:
+  authorization: >-
+    D-GOV-37 records the owner's existing direction authorizing bounded Root
+    recognition of owning-accepted Runtime successors. D-GOV-40 applies that
+    authority to the exact Runtime acceptance package without a new semantic vote.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-07
+  integration_owner: HELPS_HUMANS under HELP_HUMAN supervision
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_SOW_SUCCESSOR_ADOPTION_2026-09-07.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_ROOT_RUNTIME_SOW_SUCCESSOR_ADOPTION_2026-09-07.md
+  rationale: Root recognizes only the exact accepted Runtime pair; App DEL-02-05 and each loop's implementation, qualification, concordance and release acts remain outside this tranche.

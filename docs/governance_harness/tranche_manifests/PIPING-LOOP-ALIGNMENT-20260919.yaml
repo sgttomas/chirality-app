@@ -1,0 +1,22 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-LOOP-ALIGNMENT-20260919
+title: Owner-accepted Piping standing-loop alignment
+date: 2026-09-19
+basis: 29453e367b2f9f2cfb87b712660c31256191db0d
+instruction_surface_paths:
+  - projects/chirality-piping/AGENTS.md
+  - projects/chirality-piping/loop/LOOP_INIT.md
+  - projects/chirality-piping/loop/WORKPLAN_2026-09-19_piping_loop.md
+  - docs/governance_harness/tranche_manifests/PIPING-LOOP-ALIGNMENT-20260919.yaml
+m2_gate:
+  authorization: 'accepted.  Proceed accordingly. — exact owner text and proposal bindings in projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260919-LOOP-ALIGNMENT/OWNER_ACCEPTANCE.md'
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-19
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-19_STANDING_LOOP_ALIGNMENT.md
+  rationale: Project-local instructions; Piping continuation notified, no identified active other-project mirror pin.

@@ -54,3 +54,29 @@ def test_no_update_latest_flag(tmp_path, monkeypatch):
     )
     assert rc == 0
     assert not (root / "_LATEST.md").exists()
+
+
+def test_exact_output_and_pointer_ownership(tmp_path, monkeypatch):
+    root=tmp_path/'research';root.mkdir()
+    (root/'_LATEST.md').write_text('accepted pointer')
+    output=root/'nested'/'authorized-output'
+    assert run(['--research-root',str(root),'--slug','demo','--output-dir',str(output),'--no-update-latest'],monkeypatch)==0
+    assert (output/'RESEARCH_NOTE.md').is_file()
+    assert (root/'_LATEST.md').read_text()=='accepted pointer'
+    import pytest
+    with pytest.raises(SystemExit):run(['--research-root',str(root),'--slug','demo','--output-dir',str(tmp_path/'elsewhere')],monkeypatch)
+
+
+
+def test_output_containment_independent_of_pointer_flag(tmp_path, monkeypatch):
+    import pytest
+    root=tmp_path/'research';root.mkdir()
+    outside=tmp_path/'outside';outside.mkdir()
+    (root/'escape').symlink_to(outside,target_is_directory=True)
+    for output in (outside/'packet',root/'escape'/'packet'):
+        for pointer_flags in ([],['--no-update-latest']):
+            with pytest.raises(SystemExit) as caught:
+                run(['--research-root',str(root),'--slug','demo','--output-dir',str(output),*pointer_flags],monkeypatch)
+            assert caught.value.code==2
+            assert not output.exists()
+    assert not (root/'_LATEST.md').exists()

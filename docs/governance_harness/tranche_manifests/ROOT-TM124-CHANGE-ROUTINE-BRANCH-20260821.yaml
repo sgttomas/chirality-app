@@ -1,0 +1,87 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM124-CHANGE-ROUTINE-BRANCH-20260821
+title: D-GOV-34 and TM-ROOT-124 clean-basis routine CHANGE amendment
+date: 2026-08-21
+basis: 33e871fc38d8ef4bb51f7c25cdc6ca2e8dcb69e0
+
+instruction_surface_paths:
+  - agents/AGENT_CHANGE.md
+  - docs/governance_harness/_DECISIONS/D-GOV-34_change_clean_basis_lane_routine.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM124-CHANGE-ROUTINE-BRANCH-20260821.yaml
+
+m2_gate:
+  authorization: >-
+    Mint D-GOV-34 — I rule that clean-basis branch/worktree-lane creation is
+    routine CHANGE execution and dirty-basis lanes remain non-routine,
+    confirming my 2026-07-19 ruling (App LOOP_RECEIPTS.md Receipt-74
+    Owner-Direction). D-GOV-34 binds exactly the TM-ROOT-124 amendment to
+    agents/AGENT_CHANGE.md §Routine closeout, its G4 tranche manifest, and
+    routed notices to the App, Piping, and domain-engine loops. It grants
+    nothing else.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-21
+  integration_owner: >-
+    HELP_HUMAN (Agent 0), with the bounded D-GOV-34 instruction-surface
+    implementation performed by HELPS_HUMANS (Agent 1) under sealed instance
+    N3-HELPS-HUMANS-DGOV34
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+    - _DomainEngines/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+  rationale: >-
+    agents/AGENT_CHANGE.md changed. App and Piping coordination slates pin its
+    prior SHA-256, and immutable App packaged-security and helper-parity
+    evidence also captures the prior bytes. Piping has a concordant local
+    branch-creation clause. No domain-engine authority snapshot or SHA-pinned
+    mirror of the touched file was found. Each notice identifies the exact
+    pre/post hashes and routes the loop-owned acknowledgment or corpus-repin
+    follow-on without changing foreign authority.
+
+candidate_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-34_change_clean_basis_lane_routine.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - agents/AGENT_CHANGE.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM124-CHANGE-ROUTINE-BRANCH-20260821.yaml
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+  - _DomainEngines/_Coordination/NOTICE_2026-08-21_ROOT_DGOV34_CHANGE_ROUTINE_BRANCH.md
+  - execution/_Coordination/AgentRuns/ROOT_DEL0206_ACCEPTANCE_DGOV34_2026-08-21/instances/N3-HELPS-HUMANS-DGOV34/
+
+scope_limits:
+  - >-
+    Routine treatment applies only to branch and, when warranted, worktree-lane
+    creation from a verified clean exact integration-branch basis with no Git
+    operation in progress and a recorded base SHA.
+  - >-
+    Dirty-basis lanes and switches that would discard or carry uncommitted work
+    remain non-routine. Merge, rebase, reset, force push, cleanup, history
+    rewrite, and all other state-changing actions retain their existing gates.
+  - >-
+    Receiving loops own adoption, amendment, decline, deferral, and any repin
+    or evidence regeneration. The notices write no foreign register and grant
+    no foreign-loop authority.
+  - >-
+    The tranche creates no implementation, lifecycle, release, publication,
+    professional-reliance, or merge authority.
+
+derivative_paths:
+  - projects/chirality-app-dev/execution/_Coordination/APP_NEXT_WORK_SLATE_2026-07-29.md
+  - projects/chirality-piping/execution/_Coordination/PIPING_NEXT_WORK_SLATE_2026-07-29.md
+  - projects/chirality-app-dev/execution/PKG-09_Validation_Packaging_Security_and_Release/1_Working/DEL-09-06_Network_Key_Attachment_and_Renderer_Security_Checks/Evidence/Packaged_Security_Proof_2026-08-20/instruction-root/
+  - projects/chirality-app-dev/execution/PKG-09_Validation_Packaging_Security_and_Release/1_Working/DEL-09-06_Network_Key_Attachment_and_Renderer_Security_Checks/Evidence/Packaged_Security_Proof_2026-08-20/Remediation_01/instruction-root/
+  - projects/chirality-app-dev/execution/_Coordination/AgentRuns/APPDEV_DAPP86_HELPER_PARITY_RERUN_2026-08-20/instances/A2-PKG02-PARITY-EXECUTOR-01/evidence/baseline/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The two current-work slates retain the prior AGENT_CHANGE SHA and are
+    routed for loop-owned repin or succession. App evidence packages are
+    immutable historical evidence and remain valid for their recorded runs;
+    they are not overwritten. App decides whether current-byte proof requires
+    a new evidence run. No domain-engine pinned derivative was found.

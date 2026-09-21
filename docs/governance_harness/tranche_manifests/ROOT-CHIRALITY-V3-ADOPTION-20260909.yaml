@@ -1,0 +1,30 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CHIRALITY-V3-ADOPTION-20260909
+title: Chirality v3 role, skill, and workflow adoption
+date: 2026-09-09
+basis: c16812685831a1cae3d44bf478d08b033c605c3a
+instruction_surface_paths:
+- .github/workflows/harness-premerge.yml
+- AGENTS.md
+- agents/**
+- .agents/skills/**
+- workflows/**
+- tools/validation/**
+- tools/workflow_runtime/**
+- docs/**
+m2_gate:
+  authorization: 'Owner direction in the current Codex conversation: PLEASE IMPLEMENT THIS PLAN, followed by the complete Chirality v3.0 Role, Skill, and Workflow Adoption plan; recorded in D-GOV-42.'
+  authorized_by: Ryan Tufts (owner, current Codex conversation)
+  authorization_date: 2026-09-09
+  integration_owner: WORKING_ITEMS /root/root_adoption under HELP_HUMAN /root
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-09_CHIRALITY_V3_ROLE_SKILL_WORKFLOW_ADOPTION.md
+  - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-09_CHIRALITY_V3_ROLE_SKILL_WORKFLOW_ADOPTION.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-09_CHIRALITY_V3_ROLE_SKILL_WORKFLOW_ADOPTION.md
+  - projects/pec/execution/_Coordination/NOTICE_2026-09-09_CHIRALITY_V3_ROLE_SKILL_WORKFLOW_ADOPTION.md
+  - _DomainEngines/_Coordination/NOTICE_2026-09-09_CHIRALITY_V3_ROLE_SKILL_WORKFLOW_ADOPTION.md
+  rationale: 'Five affected coordination surfaces receive the candidate contract, catalog identity, grouped-checkpoint change, and explicit receiving-loop adoption boundary. Notices communicate changes and do not accept or repin another loop.'

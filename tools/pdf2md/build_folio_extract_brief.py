@@ -11,7 +11,7 @@ Usage:
 Outputs the brief on stdout. The brief instructs the TASK agent to read
 one page raster and emit a single JSON file at
 `<work_dir>/page_folios/<page>.json` containing the printed-folio
-extraction result per `skills/pdf2md-folio-extract/BRIEF_SCHEMA.md`.
+extraction result per `workflows/pdf2md-folio-extract/CONTRACT.md`.
 """
 from __future__ import annotations
 
@@ -53,17 +53,18 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     brief = f"""PURPOSE: Extract the printed folio label visible on one PDF page
-RequestedBy: PDF2MD
-ActingSurface: TASK+pdf2md-folio-extract
+RequestedBy: WORKING_ITEMS
+ActingSurface: TASK
 
 ScopePath: {work_dir}
-TaskSkill: pdf2md-folio-extract
+Workflow: pdf2md-folio-extract
 
 RuntimeOverrides:
   IMAGE_PATH: {image_path}
   OUTPUT_PATH: {output_path}
   PAGE_NUM: {args.page}
 
+ApplyEdits: true
 AllowedWriteTargets:
   - {output_path}
 

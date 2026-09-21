@@ -1,0 +1,48 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-HARNESS-STATUS-REPIN-2026-08-23
+title: Root practitioner-harness status repin after R7 carrier initialization
+date: 2026-08-23
+basis: 3389adabfa2919b66f64bbd9cd04d7d29b9838b4
+
+instruction_surface_paths:
+  - execution/_harness/adapter.yaml
+  - tools/practitioner_harness/test_root_adoption.py
+  - tools/validation/test_validate_root_harness_adapter.py
+  - docs/governance_harness/tranche_manifests/ROOT-HARNESS-STATUS-REPIN-2026-08-23.yaml
+
+m2_gate:
+  authorization: |
+    ### N1 — Acceptance transcription, lifecycle initialization, harness repin
+    Write targets, exactly: the seven `ScopeOfWork.md` frontmatter status lines; the seven carrier `_STATUS.md` files; `execution/_harness/adapter.yaml`; `tools/practitioner_harness/test_root_adoption.py`; `tools/validation/test_validate_root_harness_adapter.py`; one new live manifest `docs/governance_harness/tranche_manifests/ROOT-HARNESS-STATUS-REPIN-2026-08-<DD>.yaml`.
+    1. In each accepted SOW, change only the frontmatter line `status: DRAFT_AWAITING_OWNER_ACCEPTANCE` → `status: ACCEPTED_BY_OWNER_R7 (record SHA-256 dc62fb222bf2badd521e0b388f9cfa711b980a90f73db9c77de8726d7ec7cd53)` (exact one-line diff per file, shown in the receipt; no other SOW byte changes).
+    2. Transition each carrier `_STATUS.md` from `OPEN` to `INITIALIZED` per the house lifecycle convention, appending the dated history entry citing R7-A and the accepted SOW SHA; no other lifecycle content invented.
+    3. Consciously repin the live practitioner-harness baseline in the same PR (the #637 precedent): update `execution/_harness/adapter.yaml` and the two pinned test files to the exactly measured post-transition values (expected shape: 53 status files, 53 INITIALIZED, 0 OPEN, zero mismatches; unparseable count as actually measured after the history entries are written — measure, never guess). Cover the three instruction-surface paths plus the manifest itself with the new live manifest (schema v1; basis = current `main`; `m2_gate` human-gated-pr, `self_merge: false`, authorization = this steer section verbatim; `m6_notice: pending`, `routed_to: []`; `derivative_disposition: deferred` for `exports/chirality-app/**`).
+    Check surface: seven one-line SOW diffs; seven `_STATUS.md` transitions with exactly one new history entry each; `python3 -m pytest tools/practitioner_harness/test_root_adoption.py tools/validation/test_validate_root_harness_adapter.py -q` fully green on the post-transition tree; CI-form G4 PASS with the added manifest covering every instruction-surface path.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-23
+  integration_owner: >-
+    HELP_HUMAN for Root v3 Phase 3; no merge authority is inferred
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    M6 notice disposition remains pending for the accepting fan-in act; this
+    manifest grants no downstream authority.
+
+scope_limits:
+  - seven R7-accepted SOW status-line transcriptions only
+  - seven OPEN-to-INITIALIZED lifecycle transitions only
+  - measured Root practitioner-harness live-baseline repin only
+  - no implementation, activation, estimate, schedule, pin, hold, runtime, project, or App act
+
+derivative_paths:
+  - exports/chirality-app/**
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Public-export regeneration is excluded from this tranche and remains a
+    separately authorized later act.

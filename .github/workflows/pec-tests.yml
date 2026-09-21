@@ -1,0 +1,52 @@
+# PEC project test suite (coverage ruling, 2026-07-31): 356 tests across
+# the core/server/agent-sidecar workspaces previously ran nowhere
+# automatically. Also runs when its shared runtime dependency changes.
+name: pec-tests
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/pec-tests.yml"
+      - "projects/pec/**"
+      - "projects/chirality-runtime/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pec-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          # The runtime project is required: @pec/server depends on
+          # runtime-client/contracts via file:../../chirality-runtime/packages/.
+          sparse-checkout: |
+            projects/pec
+            projects/chirality-runtime
+      - uses: actions/setup-node@v4
+        with:
+          # engines requires >= 23.6 (native TS type-stripping)
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            projects/pec/package-lock.json
+            projects/chirality-runtime/package-lock.json
+      - name: Build shared runtime (dist consumed by the file dependency)
+        run: |
+          npm ci
+          npm run build
+        working-directory: projects/chirality-runtime
+      - name: Install dependencies
+        run: npm ci
+        working-directory: projects/pec
+      - name: Run workspace test suites
+        run: npm test
+        working-directory: projects/pec

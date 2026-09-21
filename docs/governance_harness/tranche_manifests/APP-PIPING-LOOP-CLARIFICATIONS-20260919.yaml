@@ -1,0 +1,27 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-PIPING-LOOP-CLARIFICATIONS-20260919
+title: Owner-approved App and Piping loop clarifications
+date: 2026-09-19
+basis: 2fabfcda85bbb7f89f17c2365d8046e025bcf292
+instruction_surface_paths:
+  - init/dev-loop-init-prompt.md
+  - projects/chirality-piping/init/dev-loop-init-prompt.md
+  - projects/chirality-app-dev/init/dev-loop-init-prompt.md
+  - projects/chirality-piping/loop/LOOP_INIT.md
+  - projects/chirality-app-dev/loop/LOOP_INIT.md
+  - projects/chirality-app-dev/AGENTS.md
+  - projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/ROOT/CONTINUATION_STEER_2026-09-19.md
+  - docs/governance_harness/tranche_manifests/APP-PIPING-LOOP-CLARIFICATIONS-20260919.yaml
+m2_gate:
+  authorization: 'Owner approved scope for both directories; verbatim approval in projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260919-LOOP-CLARIFICATIONS/OWNER_DIRECTION.md'
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-19
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-19_LOOP_CLARIFICATIONS.md
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-19_LOOP_CLARIFICATIONS.md
+  rationale: Both owning loops notified; matching root launcher catalog entries synchronized. Other launchers, roles, packaged instructions and authority-corpus inputs unchanged.

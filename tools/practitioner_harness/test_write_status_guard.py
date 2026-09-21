@@ -549,3 +549,40 @@ def test_missing_last_updated_anchor_falls_back_to_current_state(tmp_path):
         "required field silently dropped without Last Updated anchor"
     )
     assert "**Authorization Basis:**" in text
+
+
+@pytest.mark.parametrize('state,override', [('OPEN', False), ('INITIALIZED', False), ('INITIALIZED', True)])
+def test_root_governance_write_refused_before_override(tmp_path, state, override):
+    repo, _, _ = make_repo(tmp_path, MANIFEST_NO_SHA_SCHEMA, 'OPEN')
+    root_adapter = repo / 'execution/_harness/adapter.yaml'
+    root_adapter.parent.mkdir(parents=True)
+    root_adapter.write_text('schema: root-harness-adapter/v1\nmode: governance-only\n')
+    target = repo / 'execution/PKG-01/1_Working/DEL-01-01_Fixture'
+    target.mkdir(parents=True)
+    if state != 'OPEN':
+        (target / '_STATUS.md').write_text(STATUS_TEMPLATE.format(state='OPEN'))
+    before = list(target.iterdir())
+    previous = read_status(target) if before else None
+    args = [target, state, 'human']
+    if override: args += ['--force-human-override', 'fixture attempt']
+    result = run_guard(repo, *args)
+    assert result.returncode == 1
+    assert 'Root source write refused' in result.stderr
+    assert list(target.iterdir()) == before
+    if before: assert read_status(target) == previous
+
+@pytest.mark.parametrize('existing,override', [(False,False),(False,True),(True,False),(True,True)])
+def test_root_governance_symlink_alias_cannot_create_or_activate(tmp_path,existing,override):
+    repo,_,_=make_repo(tmp_path,MANIFEST_NO_SHA_SCHEMA,'OPEN')
+    adapter=repo/'execution/_harness/adapter.yaml';adapter.parent.mkdir(parents=True)
+    adapter.write_text('schema: root-harness-adapter/v1\nmode: governance-only\n')
+    target=repo/'execution/PKG-01/1_Working/DEL-01-01_Alias';target.mkdir(parents=True)
+    status=target/'_STATUS.md'
+    if existing:status.write_text(STATUS_TEMPLATE.format(state='INITIALIZED'))
+    before=status.read_bytes() if existing else None
+    alias=repo/'alias';alias.symlink_to(target,target_is_directory=True)
+    args=[alias,'IN_PROGRESS' if existing else 'OPEN','human']
+    if override:args+=['--force-human-override','fixture bypass attempt']
+    result=run_guard(repo,*args)
+    assert result.returncode==1 and 'Root source write refused' in result.stderr
+    assert (status.read_bytes() if status.exists() else None)==before

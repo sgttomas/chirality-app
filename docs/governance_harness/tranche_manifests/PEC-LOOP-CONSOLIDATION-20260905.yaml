@@ -1,0 +1,53 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PEC-LOOP-CONSOLIDATION-20260905
+title: PEC canonical loop migration, generic init, run boundary, and workplan retirement (D-PEC-80 A-D)
+date: 2026-09-05
+basis: 7458e9c1eb9399ed259da464207d9a507acdea2e
+
+instruction_surface_paths:
+  - init/dev-loop-init-prompt.md
+  - tools/practitioner_harness/BACKLOG.md
+  - tools/practitioner_harness/cmd_bridge_status.py
+  - tools/practitioner_harness/test_bridge_status.py
+  - tools/taskmgmt/test_taskmgmt.py
+  - tools/validation/test_validate_instruction_entrypoints.py
+  - tools/validation/test_validate_pec_loop_receipts.py
+  - tools/validation/validate_instruction_entrypoints.py
+  - tools/validation/validate_pec_loop_receipts.py
+  - docs/governance_harness/tranche_manifests/PEC-LOOP-CONSOLIDATION-20260905.yaml
+
+m2_gate:
+  authorization: |
+    Owner-directed PEC loop consolidation and retirement under D-PEC-80 A-D.
+    Original task and exact additional Root/tools grant are recorded in
+    projects/pec/execution/_Coordination/_DECISIONS/D-PEC-80_LOOP_HOME_2026-09-05/OWNER_DIRECTIONS.md;
+    supplementary retirement direction is in its D_RETIREMENT/OWNER_DIRECTION.md.
+    Verbatim merge direction: "merge PR #721", recorded in
+    projects/pec/execution/_Coordination/_DECISIONS/D-PEC-80_RULING_2026-09-05.md.
+    Additional owner grant, verbatim: "I grant you write permission to
+    `docs/governance_harness/tranche_manifests/PEC-LOOP-CONSOLIDATION-20260905.yaml`
+    so you can add it, rerun CI, and merge."
+    Recorded in the packet's MERGE_REPAIR/OWNER_GRANT.md. This manifest
+    records those acts and grants none.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-05
+  integration_owner: >-
+    Codex acting as HELP_HUMAN for PEC, direct serialized integration;
+    role not mechanically enforced. No agent-index change occurred.
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-09-05
+    approved_source_sha: d22653f8ae9669af111083e64c53ab01212dbf0b
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No agents files, agent corpus contracts, or skill interfaces change.
+    All cross-project writes are the owner's exact granted locator and
+    validator changes. The root catalog mirrors the PEC launcher. The
+    app-dev rehearsal's evidence locator follows PEC's move; no receiving
+    loop duty, product behavior, gate, authority, or lifecycle change is
+    created. D-PEC-80 records the relocation and each granted path.

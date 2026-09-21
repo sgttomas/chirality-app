@@ -35,6 +35,48 @@ class FakeOmlx implements OmlxControlPort {
 }
 
 describe("central sessions", () => {
+  it("preserves absent, empty, and bounded brief scopes as distinct session state", async () => {
+    const root = await mkdtemp(join(tmpdir(), "chirality-session-scopes-"));
+    const { manifestPath } = await createProjectFixture(root);
+    const runtime = join(root, "user-data", "runtime");
+    const projects = new ProjectRegistry(runtime);
+    await projects.register(manifestPath, {
+      approvedBy: "test",
+      approvalReference: "D-TEST"
+    });
+    const sessions = new SessionStore(runtime, projects);
+    const base = {
+      projectId: "fixture",
+      role: "agent1" as const,
+      engineSelection: { adapterId: "stub", providerId: "stub", model: "fixture" }
+    };
+
+    const inherited = await sessions.create(base);
+    const denied = await sessions.create({
+      ...base,
+      declaredContext: [],
+      allowedWriteTargets: []
+    });
+    const boundedContext = [join(root, "execution", "PKG-01")];
+    const boundedWrites = [join(root, "execution", "PKG-01", "output.md")];
+    const bounded = await sessions.create({
+      ...base,
+      declaredContext: boundedContext,
+      allowedWriteTargets: boundedWrites
+    });
+
+    expect(await sessions.get("fixture", inherited.sessionId)).not.toHaveProperty("declaredContext");
+    expect(await sessions.get("fixture", inherited.sessionId)).not.toHaveProperty("allowedWriteTargets");
+    expect(await sessions.get("fixture", denied.sessionId)).toMatchObject({
+      declaredContext: [],
+      allowedWriteTargets: []
+    });
+    expect(await sessions.get("fixture", bounded.sessionId)).toMatchObject({
+      declaredContext: boundedContext,
+      allowedWriteTargets: boundedWrites
+    });
+  });
+
   it("lazily copies a legacy record without modifying the source", async () => {
     const root = await mkdtemp(join(tmpdir(), "chirality-session-"));
     const { manifestPath } = await createProjectFixture(root);
@@ -83,6 +125,44 @@ describe("central sessions", () => {
       phase: "NO_MODEL",
       acceptingLocalTurns: false
     });
+  });
+});
+
+describe("service shutdown settlement", () => {
+  it("settles sessions left running by a service that ended without settlement when the next service starts", async () => {
+    const root = await mkdtemp(join(tmpdir(), "chirality-session-restart-"));
+    const { manifestPath } = await createProjectFixture(root);
+    const runtime = join(root, "user-data", "runtime");
+    const projects = new ProjectRegistry(runtime);
+    await projects.register(manifestPath, { approvedBy: "test", approvalReference: "D-TEST" });
+    const sessions = new SessionStore(runtime, projects);
+    const stuck = await sessions.create({ projectId: "fixture", role: "agent1", engineSelection: { adapterId: "stub", providerId: "stub", model: "fixture" } });
+    const idle = await sessions.create({ projectId: "fixture", role: "agent1", engineSelection: { adapterId: "stub", providerId: "stub", model: "fixture" } });
+    await sessions.appendEvent("fixture", { sessionId: stuck.sessionId, turnId: "turn-7", type: "turn.accepted", data: {} });
+    await sessions.update({ ...(await sessions.get("fixture", stuck.sessionId)), status: "running" });
+    expect(await sessions.settleRunningOnStart("fixture")).toEqual([stuck.sessionId]);
+    expect(await sessions.get("fixture", stuck.sessionId)).toMatchObject({ status: "interrupted" });
+    expect(await sessions.get("fixture", idle.sessionId)).toMatchObject({ status: "idle" });
+    expect((await sessions.replay("fixture", stuck.sessionId)).filter((event) => event.type === "turn.interrupted")).toEqual([expect.objectContaining({ turnId: "turn-7", data: { reason: "service-restart" } })]);
+    expect(await sessions.settleRunningOnStart("fixture")).toEqual([]);
+  });
+
+  it("records turn.interrupted with the reason for a still-running session and leaves settled sessions alone", async () => {
+    const root = await mkdtemp(join(tmpdir(), "chirality-session-shutdown-"));
+    const { manifestPath } = await createProjectFixture(root);
+    const runtime = join(root, "user-data", "runtime");
+    const projects = new ProjectRegistry(runtime);
+    await projects.register(manifestPath, { approvedBy: "test", approvalReference: "D-TEST" });
+    const sessions = new SessionStore(runtime, projects);
+    const created = await sessions.create({ projectId: "fixture", role: "agent1", engineSelection: { adapterId: "stub", providerId: "stub", model: "fixture" } });
+    expect(await sessions.markInterruptedOnShutdown("fixture", created.sessionId, "turn-idle")).toBe(false);
+    await sessions.update({ ...(await sessions.get("fixture", created.sessionId)), status: "running" });
+    expect(await sessions.markInterruptedOnShutdown("fixture", created.sessionId, "turn-1")).toBe(true);
+    expect(await sessions.get("fixture", created.sessionId)).toMatchObject({ status: "interrupted" });
+    const events = await sessions.replay("fixture", created.sessionId);
+    expect(events.filter((event) => event.type === "turn.interrupted")).toEqual([expect.objectContaining({ turnId: "turn-1", data: { reason: "service-shutdown" } })]);
+    expect(await sessions.markInterruptedOnShutdown("fixture", created.sessionId, "turn-1")).toBe(false);
+    expect((await sessions.replay("fixture", created.sessionId)).filter((event) => event.type === "turn.interrupted")).toHaveLength(1);
   });
 });
 

@@ -73,11 +73,12 @@ def main() -> int:
     output_path = reext_dir / f"page_{args.page:04d}.reextract.md"
 
     brief = f"""PURPOSE: Independently re-extract one page's prose for Gate 1.5-P Stage 1
-RequestedBy: DOMAIN_DECOMP Gate 1.5-P
-ActingSurface: TASK+domain-prose-validate
+RequestedBy: WORKING_ITEMS
+ParentWorkflow: domain-decomp
+ActingSurface: TASK
 
 ScopePath: {work_dir.parent}
-TaskSkill: domain-prose-validate
+Workflow: domain-prose-validate
 
 RuntimeOverrides:
   IMAGE_PATH: {image_path}
@@ -85,11 +86,12 @@ RuntimeOverrides:
   OUTPUT_PATH: {output_path}
   PAGE_NUM: {args.page}
 
+ApplyEdits: true
 AllowedWriteTargets:
   - {output_path}
 
 ANTI-CONFIRMATION-BIAS CLAUSE:
-  The skill MUST NOT read any pre-existing `page_NNNN.md` or `<book>.md`
+  The executor MUST NOT read any pre-existing `page_NNNN.md` or `<book>.md`
   file. The re-extract must be produced from the raster alone. This is
   the cornerstone of 1.5-P — match between two extracts is silent but
   NOT verification.

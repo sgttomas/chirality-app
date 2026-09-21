@@ -8,10 +8,6 @@ from pathlib import Path
 import pytest
 
 
-DRAWING_EXTRACT_DIR = Path(__file__).resolve().parent
-if str(DRAWING_EXTRACT_DIR) not in sys.path:
-    sys.path.insert(0, str(DRAWING_EXTRACT_DIR))
-
 from normalize_equipment_stub_layout import (  # noqa: E402
     build_column_order,
     parse_stub,

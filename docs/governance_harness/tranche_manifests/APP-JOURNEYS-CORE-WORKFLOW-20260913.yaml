@@ -1,0 +1,50 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-JOURNEYS-CORE-WORKFLOW-20260913
+title: Core workflow authoring and focused release experience
+date: '2026-09-13'
+basis: 6ac4055690e20ddffd6aa5fff58a8e7ddd3c072f
+instruction_surface_paths:
+  - AGENTS.md
+  - projects/chirality-app-dev/AGENTS.md
+  - projects/chirality-app-dev/instructions/AGENTS.md
+  - workflows/create-workflow/WORKFLOW.md
+  - workflows/README.md
+  - workflows/catalog.yaml
+  - workflows/catalog.schema.json
+  - workflows/index.json
+  - tools/validation/build_workflow_index.py
+  - tools/validation/test_workflow_catalog.py
+  - tools/validation/test_public_export_profile.py
+  - docs/governance_harness/tranche_manifests/APP-JOURNEYS-CORE-WORKFLOW-20260913.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed creation of a CORE workflow that agents follow when
+    making workflows, covering Chirality's packaging and reuse conventions
+    while leaving domain method design to the agent and context. He also
+    directed hiding Skills UI for this release while retaining background use,
+    and authorized the associated user-journey repairs and native interactions.
+    This records the 2026-09-12 conversation, not a new grant or release decision.
+  authorized_by: Ryan Tufts
+  authorization_date: '2026-09-12'
+  integration_owner: HELP_HUMAN on codex/user-journey-plan-20260912
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-13_CORE_WORKFLOW_AUTHORING.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-13_CORE_WORKFLOW_AUTHORING.md
+  rationale: >-
+    App packaging and Runtime catalog/context consumers receive the new
+    workflow and updated selective guidance in one coordinated source tranche.
+    Other applications retain their accepted instruction basis.
+scope_limits:
+  - Add create-workflow first in Core and central metadata; preserve other method identities.
+  - No other workflow body or canonical skill body changes, reclassification campaign or editor.
+  - Preserve stock Codex, native skill discovery, prior supplied instructions and historical evidence.
+  - No credentials, identity-state manipulation, new human gates or publishing.
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The next consolidated candidate regenerates packaged instructions from the
+    reviewed source. Existing builds and accepted snapshots remain unchanged.

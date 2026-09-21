@@ -5,9 +5,15 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": [
-    { "path": "../contracts" },
-    { "path": "../core" }
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../core"
+    }
   ]
 }

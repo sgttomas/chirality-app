@@ -27,6 +27,7 @@ export interface RuntimeEvent<T = unknown> {
     adapterId: string;
     providerId: string;
     model: string;
+    reasoningEffort?: string;
     packageName?: string;
     packageVersion?: string;
     residencyEpoch?: string;

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "sourceReferences": [
+    "../docs/SPEC.md#19.3",
+    "../docs/PRD.md#12.4"
+  ],
+  "statusVocabulary": ["pass", "fail"],
+  "checks": [
+    {
+      "id": "section9.runtime_engine_contract",
+      "sourceReferences": ["../docs/SPEC.md#10", "../docs/CONTRACT.md#K-ENGINE-1"],
+      "testFiles": ["src/__tests__/lib/engine-conformance.test.ts"],
+      "evidenceFiles": ["src/lib/harness/agent-runtime-contract.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.adapter_turn_engine_event_log",
+      "sourceReferences": ["../docs/SPEC.md#10.3", "../docs/CONTRACT.md#K-EVENT-1"],
+      "testFiles": ["src/__tests__/lib/turn-engine.test.ts"],
+      "evidenceFiles": ["src/lib/harness/turn-engine.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.adapter_message_mapper",
+      "sourceReferences": ["../docs/SPEC.md#10.3", "../docs/CONTRACT.md#K-SDK-3"],
+      "testFiles": ["src/__tests__/lib/sdk-message-mapper.test.ts"],
+      "evidenceFiles": ["src/lib/harness/sdk-message-mapper.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.session_event_replay",
+      "sourceReferences": ["../docs/SPEC.md#9.2", "../docs/CONTRACT.md#K-EVENT-5"],
+      "testFiles": ["src/__tests__/lib/session-events.test.ts", "src/__tests__/lib/transcript-replay.test.ts"],
+      "evidenceFiles": ["src/lib/harness/session-events.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.reliance_boundary_register",
+      "sourceReferences": ["../docs/SPEC.md#19.3", "../docs/PRD.md#12.4"],
+      "testFiles": ["src/__tests__/docs/reliance-boundary-register.test.ts", "src/__tests__/contract-pins.test.ts"],
+      "evidenceFiles": ["../docs/harness/reliance_boundary_register.md"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.settingsources_isolation",
+      "sourceReferences": ["../docs/CONTRACT.md#K-SDK-1", "../docs/PRD.md#FR-117"],
+      "testFiles": ["src/__tests__/lib/sdk-options-builder.test.ts"],
+      "evidenceFiles": ["src/lib/harness/sdk-options-builder.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.sdk_session_link_resume",
+      "sourceReferences": ["../docs/SPEC.md#19.3", "../docs/CONTRACT.md#K-SDK-3"],
+      "testFiles": ["src/__tests__/lib/sdk-options-builder.test.ts", "src/__tests__/lib/session-manager.test.ts", "src/__tests__/lib/transcript-replay.test.ts"],
+      "evidenceFiles": ["src/lib/harness/session-manager.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.permission_overlay_hard_deny_precedence",
+      "sourceReferences": ["../docs/CONTRACT.md#K-PERM-1", "../docs/SPEC.md#14.3"],
+      "testFiles": ["src/__tests__/lib/permission-overlay.test.ts"],
+      "evidenceFiles": ["src/lib/harness/permission-overlay.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.tool_runtime_read_file",
+      "sourceReferences": ["../docs/SPEC.md#14", "../docs/CONTRACT.md#K-TOOL-1"],
+      "testFiles": ["src/__tests__/lib/chirality-read-mcp.test.ts"],
+      "evidenceFiles": ["src/lib/harness/mcp/read-tools.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.chirality_mcp_status_dependencies",
+      "sourceReferences": ["../docs/SPEC.md#14.1", "../docs/CONTRACT.md#K-MCP-1"],
+      "testFiles": ["src/__tests__/lib/chirality-read-mcp.test.ts", "src/__tests__/lib/dependencies-register-contract.test.ts"],
+      "evidenceFiles": ["src/lib/harness/mcp/read-tools.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.path_containment_hook",
+      "sourceReferences": ["../docs/SPEC.md#15.2", "../docs/CONTRACT.md#K-PATH-2"],
+      "testFiles": ["src/__tests__/lib/chirality-hooks.test.ts", "src/__tests__/lib/permission-overlay.test.ts"],
+      "evidenceFiles": ["src/lib/harness/tool-path-policy.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.instruction_root_protection_hook",
+      "sourceReferences": ["../docs/SPEC.md#15.2", "../docs/CONTRACT.md#K-PATH-3"],
+      "testFiles": ["src/__tests__/lib/harness-instruction-root.test.ts", "src/__tests__/scripts/verify-instruction-root-integrity.test.ts"],
+      "evidenceFiles": ["src/lib/harness/tool-path-policy.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.tool_result_budget",
+      "sourceReferences": ["../docs/CONTRACT.md#K-EVENT-7", "../docs/PRD.md#FR-096"],
+      "testFiles": ["src/__tests__/lib/tool-evidence.test.ts", "src/__tests__/lib/tool-result-artifacts.test.ts", "src/__tests__/lib/sdk-message-mapper.test.ts", "src/__tests__/lib/chirality-hooks.test.ts"],
+      "evidenceFiles": ["src/lib/harness/tool-result-artifacts.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.context_compaction_boundary",
+      "sourceReferences": ["../docs/SPEC.md#15.2", "../docs/PRD.md#FR-098"],
+      "testFiles": ["src/__tests__/lib/sdk-message-mapper.test.ts", "src/__tests__/lib/session-events.test.ts"],
+      "evidenceFiles": ["src/lib/harness/sdk-message-mapper.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.subagent_governance_hook",
+      "sourceReferences": ["../docs/CONTRACT.md#K-SUBAGENT-1", "../docs/PRD.md#FR-101"],
+      "testFiles": ["src/__tests__/lib/harness-subagent-governance.test.ts", "src/__tests__/lib/agent-runtime-contract.test.ts"],
+      "evidenceFiles": ["src/lib/harness/subagent-governance.ts"],
+      "warnings": [], "blockers": []
+    },
+    {
+      "id": "section9.domain_profile_validation",
+      "sourceReferences": ["../docs/SPEC.md#19.3", "../docs/PRD.md#12.4"],
+      "testFiles": ["src/__tests__/lib/domain-profile-registry.test.ts", "src/__tests__/contract-pins.test.ts"],
+      "evidenceFiles": ["src/lib/harness/mcp/domain-profile-registry.ts"],
+      "warnings": [], "blockers": []
+    }
+  ]
+}

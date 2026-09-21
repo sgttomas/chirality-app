@@ -1,0 +1,66 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-AGENTSMD-SIMPLIFICATION-20260802
+title: Owner-authored AGENTS.md simplification (orchestration/runtime mirror-text removal; Agent 0 direct dispatch)
+date: 2026-08-02
+basis: 81bcd8376066fd0e79811bb2bf3a129fa5d7abaa
+
+instruction_surface_paths:
+  - AGENTS.md
+  - docs/governance_harness/tranche_manifests/ROOT-AGENTSMD-SIMPLIFICATION-20260802.yaml
+
+m2_gate:
+  authorization: |-
+    Owner-authored rewrite of root AGENTS.md in the 2026-08-02 root
+    session: AGENTS.md directs the agents developing the program and
+    should not restate app-runtime or harness mechanics whose authority
+    and enforcement live elsewhere. Removes the Multi-Agent
+    Orchestration and Shared Runtime Doctrine sections (concepts retain
+    ruled homes in docs/WORKFLOW_COMPONENT_STANDARD.md per D-GOV-14 and
+    in the agent instruction packages); adds Agent 0 direct dispatch of
+    bounded Agent 2 instances and an Agent 1 workflow-responsibility
+    note. Owner rulings recorded verbatim with SHA-256 in Loop Receipt
+    80, including the disposition that dev-time Bash/worktree
+    containment is harness-owned (172-byte ruling SHA-256
+    476f61060466a25388663cc804e1f719fdcdd4af036ad36f973e032b5763083e)
+    and the close-out direction (72-byte ruling SHA-256
+    9af59779a91af21009316947853523a0c15d37e4a1581f7105e5be047b241dee).
+    Subsumes the convergent PR #468 deletion of the managed-Bash
+    paragraph (three-way merge verified strict superset). Merge of this
+    tranche's PR was pre-authorized by the owner's in-session direction
+    and is executed as owner proxy on the exact final branch HEAD
+    (K-AUTH-1; PRD_ROOT section 5.3.1 facts on the PR).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-02
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) root governance loop session of 2026-08-02;
+    sole serialized integration owner for this tranche; merge executed
+    as owner proxy under recorded owner direction
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    No files under agents/ change, so the agent-index change-notice rule
+    does not fire. Loop sessions read root AGENTS.md live at entry (no
+    loop pins it by SHA); the domains/chirality self-domain corpus pin
+    will surface as ordinary corpus drift through its own deterministic
+    checks. Removed sections are mirror-text whose authoritative homes
+    (D-GOV-14 standard, D-GOV-20 decision records, agent packages, app
+    CONTRACT) are unchanged.
+
+scope_limits:
+  - >-
+    Text removal and role-table clarification only: no invariant,
+    decision, standard, or app-runtime contract is amended; D-GOV-14,
+    D-GOV-20, and docs/CONTRACT.md are untouched and remain
+    authoritative.
+  - >-
+    The Pi/oMLX capability-expansion sequencing (TM-APP-024; owner
+    intent record of 2026-08-01) and all app-harness containment gates
+    are unaffected.
+  - >-
+    Known residue, flagged not repaired: docs/PRD_ROOT.md O-2 cites the
+    deleted AGENTS.md section "Shared Runtime Doctrine"; citation
+    repair belongs to a PRD concordance act.

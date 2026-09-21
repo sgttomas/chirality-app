@@ -19,6 +19,20 @@ export interface ChiralityProjectManifestV1 {
   legacySessionRoots?: readonly string[];
 }
 
+export interface ChiralityProjectManifestV2
+  extends Omit<ChiralityProjectManifestV1, "schemaVersion" | "instructionRoot"> {
+  schemaVersion: "chirality.project/v2";
+  instructionRoot: {
+    mode: "runtime";
+  };
+}
+
+export type ChiralityProjectManifest =
+  | ChiralityProjectManifestV1
+  | ChiralityProjectManifestV2;
+
+export const CHIRALITY_INSTRUCTION_ROOT_ENV = "CHIRALITY_INSTRUCTION_ROOT";
+
 export interface RegisteredProject {
   projectId: string;
   displayName: string;

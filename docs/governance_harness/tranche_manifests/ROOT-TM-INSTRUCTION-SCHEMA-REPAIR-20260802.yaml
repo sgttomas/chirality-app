@@ -1,0 +1,69 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-INSTRUCTION-SCHEMA-REPAIR-20260802
+title: Task Management instruction-schema conformance repair
+date: 2026-08-02
+basis: 03f4eb031c209508cb25d2213c6cf98bdaf8e788
+
+instruction_surface_paths:
+  - agents/AGENT_TASK_MANAGEMENT.md
+  - tools/validation/validate_agent_instructions.py
+  - tools/validation/test_validate_agent_instructions.py
+  - docs/governance_harness/tranche_manifests/ROOT-TM-INSTRUCTION-SCHEMA-REPAIR-20260802.yaml
+
+m2_gate:
+  authorization: >-
+    Owner direction of 2026-08-02: "ROOT-HARNESS-SCOPE-CORRECTION-20260802
+    validator disposition: C, as recommended." Option C was presented as a
+    separate repair-first PR for the nine inherited
+    AGENT_TASK_MANAGEMENT instruction-schema findings, rather than expanding
+    the harness-scope correction tranche or merging with a red full validator.
+    The owner then approved the recommended receipt amendment: this repair-
+    first tranche receives Root Receipt 80 and the harness-scope correction
+    receives Root Receipt 81.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-02
+  integration_owner: >-
+    single serialized Task Management instruction-schema repair lane in the
+    isolated codex/task-management-instruction-schema-repair worktree,
+    supervised by HELP_HUMAN; no self-merge or semantic-acceptance authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_INSTRUCTION_SCHEMA_REPAIR.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_INSTRUCTION_SCHEMA_REPAIR.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-08-02_TASK_MANAGEMENT_INSTRUCTION_SCHEMA_REPAIR.md
+  rationale: >-
+    The tranche changes agents/AGENT_TASK_MANAGEMENT.md. Same-tranche notices
+    report the conformance-only change and the new loop-register-level
+    metadata class to each registered project loop. They are coordination,
+    never authority, and create no project-local act.
+
+scope_limits:
+  - >-
+    add the eight required PROTOCOL, SPEC, STRUCTURE, and RATIONALE boundary
+    markers with sections that restate the existing contract without changing
+    Task Management authority, invocation, modes, resolution paths, register
+    semantics, or human gates
+  - >-
+    classify the existing narrow write scope as loop-register-level and add
+    that exact prefix to the validator's closed taxonomy with positive and
+    negative unit coverage; do not broaden the described write scope
+  - >-
+    no register, policy, runtime, classifier, lifecycle, product, dependency,
+    decomposition, DAG, pointer, DEC-092, reliance, release, or professional-
+    judgment act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Public-export regeneration remains deferred to a later authorized release
+    from accepted post-merge bytes. Existing exports, historical records, and
+    frozen pins remain unchanged.

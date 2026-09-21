@@ -127,13 +127,16 @@ def run_drift(
                     example, None, invariant="K-PROV-1"))
 
         measured_mism = mism_parsed + mism_assumed
+        # Cite the manifest the loader actually read: project adapters live at
+        # `<root>/_harness/adapter.yaml`, the root adapter at
+        # `execution/_harness/adapter.yaml`.
         report.add_finding(make_finding(
             Severity.INFO, "DRIFT_BASELINE_COMPARISON", "staleness/drift",
             f"{manifest.project}: measured {measured_mism} mismatch(es) over "
             f"{len(files)} file(s) vs recorded baseline "
             f"{manifest.drift_baseline_mismatch}/{manifest.drift_baseline_files} "
             "(trend statement only).",
-            str((project_root / "_harness" / "adapter.yaml").relative_to(repo_root)),
+            manifest.manifest_relpath(repo_root),
             None, invariant="K-STATUS-1"))
         report.add_fact(SourcedFact(
             fact_id=f"drift.{manifest.project}",

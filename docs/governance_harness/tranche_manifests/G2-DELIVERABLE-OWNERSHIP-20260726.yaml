@@ -1,0 +1,62 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: G2-DELIVERABLE-OWNERSHIP-20260726
+title: Bounded G2 nested-deliverable ownership validation correction
+date: 2026-07-26
+basis: 2db2c712825af13d6b5425c34d31ff9daf470c89
+
+instruction_surface_paths:
+  - tools/validation/validate_root_surface_ownership.py
+  - tools/validation/test_validate_root_surface_ownership.py
+  - docs/governance_harness/tranche_manifests/G2-DELIVERABLE-OWNERSHIP-20260726.yaml
+
+m2_gate:
+  authorization: >-
+    Owner direction of record, in-session 2026-07-26: "APPROVE the bounded G2
+    capability correction via HELPS_HUMANS/M2: teach G2 to validate kind:
+    deliverable entries against their actual nested tree, requiring (a) the
+    declared tree exists, (b) it is contained within the owning package's
+    tree, and (c) the entry matches the deliverable register. Add deterministic
+    positive and negative tests, including a foreign-tree deliverable entry
+    that must still BLOCK and proof that package-entry validation is unchanged.
+    No other validator behavior or ownership policy changes. Land the
+    correction as its own commit/PR, then resume PROJECT_SETUP, require G0-G4
+    PASS, run the 46/46 AUDIT_DECOMP, and present Git closeout. Route 2 is
+    declined." This manifest records the independent human authorization and
+    containment/evidence conditions; it grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-26
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) for the bounded
+    G2-DELIVERABLE-OWNERSHIP-20260726 M2 tranche; HELPS_HUMANS manages the
+    implementation and holds no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    A deterministic projects/ and domains/ survey at basis
+    2db2c712825af13d6b5425c34d31ff9daf470c89 found no pin or mirror of the
+    G2 validator, its test, the G2 state surface, or the Lane-B tranche
+    manifest. No agents/ file changes. The correction is Root-local guard
+    capability and does not amend a downstream loop's authority surface.
+
+scope_limits:
+  - no schema or ownership-policy change
+  - no other validator behavior change
+  - no Project Setup, decomposition, product, runtime, or downstream-loop change
+  - no Git closeout in the HELPS_HUMANS implementation return
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export currently carries the G2 validator and test as derivative
+    bytes. Regeneration is deliberately excluded from this bounded capability
+    correction and must consume the accepted post-merge tool bytes before the
+    next export release. This deferral changes no export boundary or authority.

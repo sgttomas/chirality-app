@@ -1,0 +1,58 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-OD7-G1-20260727
+title: OD7-G1 Root D-GOV-27 identity closeout and D-GOV-26 detector-claim correction
+date: 2026-07-27
+basis: fb16e32ed60bb4f384cf1e07a83c4a14ff63bbae
+
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
+  - docs/governance_harness/tranche_manifests/ROOT-OD7-G1-20260727.yaml
+  - docs/governance_harness/_PROPOSALS/OD7-G1_program_record_closeouts_2026-07-27/
+  - docs/governance_harness/_PROPOSALS/OD7-G1_ROOT_MANIFEST_G4_CORRECTION_2026-07-27/
+
+m2_gate:
+  authorization: >-
+    Effective only after Ryan Tufts explicitly approves the exact OD7-G1
+    candidate package staged at
+    docs/governance_harness/_PROPOSALS/OD7-G1_program_record_closeouts_2026-07-27/
+    and the exact G4 correction staged at
+    docs/governance_harness/_PROPOSALS/OD7-G1_ROOT_MANIFEST_G4_CORRECTION_2026-07-27/.
+    The owner acts supply authority; this manifest and deterministic checks
+    do not. Root Receipt 53 records the applied closeout.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-27
+  integration_owner: >-
+    HELPS_HUMANS through CHANGE — sole serialized integration owner for the
+    approved Root OD7-G1 closeout
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-26_DETECTOR_CLAIM_CORRECTION_2026-07-27.md
+  rationale: >-
+    The earlier Root-issued notice falsely claimed that the App authority
+    corpus deterministically detected Root docs/SPEC.md and docs/CONTRACT.md.
+    The additive correction withdraws only that detector/repin claim. It
+    changes no App corpus member, resolver, hash, scope, or authority.
+
+coordination_notice_paths:
+  - projects/chirality-app-dev/execution/_Coordination/NOTICE_D-GOV-26_DETECTOR_CLAIM_CORRECTION_2026-07-27.md
+
+derivative_deferrals:
+  - path: exports/chirality-app/
+    source: docs/governance_harness/_DECISIONS/D-GOV-27_initialization_closing_rulings.md
+    disposition: regenerate-at-next-export
+    rationale: >-
+      The D-GOV-27 source changes only its already-determined EffectiveSHA.
+      Existing exported bytes are not represented as current after this
+      closeout. The next export must regenerate from then-current source.
+
+scope_limits:
+  - no new D-GOV decision or register row
+  - no App corpus membership or resolver change
+  - no contract or authority-corpus repin
+  - no universal pinning or detector redesign
+  - no decomposition or SCOPE_CHANGE change
+  - no product, runtime, lifecycle, release, or professional-reliance effect

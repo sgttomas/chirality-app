@@ -1,0 +1,64 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-DGOV34-DGOV35-SHA-BACKFILL-2026-08-23
+title: D-GOV-34 and D-GOV-35 Git-act SHA backfill
+date: 2026-08-23
+basis: 8635e40995b05f494ae35c6083dabdd50068bb52
+
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-34_change_clean_basis_lane_routine.md
+  - docs/governance_harness/_DECISIONS/D-GOV-35_delegated_harness_native_class.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV34-DGOV35-SHA-BACKFILL-2026-08-23.yaml
+
+m2_gate:
+  authorization: |-
+    ### N2 — Decision-record SHA backfill (HELPS_HUMANS lane): D-GOV-34 and D-GOV-35
+    Write targets, exactly: `docs/governance_harness/_DECISIONS/D-GOV-35_delegated_harness_native_class.md`, `docs/governance_harness/_DECISIONS/D-GOV-34_change_clean_basis_lane_routine.md`, the two records' rows in `docs/governance_harness/_DECISIONS/_REGISTER.md` if they carry SHA or status text, and one new live manifest `docs/governance_harness/tranche_manifests/ROOT-DGOV34-DGOV35-SHA-BACKFILL-2026-08-<DD>.yaml` (schema v1; basis = current `main`; `instruction_surface_paths` = the files this node changes plus the manifest; `m2_gate` human-gated-pr, `self_merge: false`, authorization = this steer section verbatim; `m6_notice: pending`, `routed_to: []`; `derivative_disposition: deferred` for `exports/chirality-app/**`).
+    Values: D-GOV-35 `CandidateSHA` `294e846bc762b96ac780d49f0137f61eb4dde779` (N1 commit of PR #622), `PublicationSHA` `ade6ecf33d4e10dab1441aeedb240061e140ff1b` (PR #622 head), `EffectiveSHA` `8deca1489a3e5921288f71d4960d555e183a6f3f` (merge of PR #622); status line → `RULED — APPLIED 2026-08-22; EFFECTIVE 8deca1489…`. D-GOV-34: derive the three SHAs from Receipt 113/114 and the `ROOT_DEL0206_ACCEPTANCE_DGOV34_2026-08-21` run's publication evidence, citing the receipt lines; if any slot cannot be established from recorded evidence, leave it `TBD` and say so — do not infer.
+    Check surface: each record changes only its declared SHA/status slots (show as one-line diffs); **G4 in the CI form** `validate_instruction_tranche_manifest.py --base origin/main --head HEAD --added-manifests-only` PASS; `validate_agent_instructions.py`, `validate_instruction_entrypoints.py` pass; `AGENTS.md` and `agents/**` untouched; `validate_candidate_whitespace.py --base-ref origin/main` clean.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-23
+  integration_owner: >-
+    HELP_HUMAN (Agent 0), with the bounded D-GOV-34/D-GOV-35 Git-act SHA
+    backfill executed by sealed instance N2_DGOV_SHA_BACKFILL
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: pending
+  routed_to: []
+  rationale: >-
+    This routine backfill records already-completed Git acts in Root decision
+    evidence. Whether any downstream notice is required remains pending at
+    HELP_HUMAN fan-in; no receiving-loop authority is inferred.
+
+candidate_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-34_change_clean_basis_lane_routine.md
+  - docs/governance_harness/_DECISIONS/D-GOV-35_delegated_harness_native_class.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-DGOV34-DGOV35-SHA-BACKFILL-2026-08-23.yaml
+  - execution/_Coordination/AgentRuns/ROOT_V3_PHASE0C_2026-08-23/instances/N2_DGOV_SHA_BACKFILL/
+
+scope_limits:
+  - >-
+    Backfill only the recorded Git-act SHA slots of D-GOV-34 and D-GOV-35,
+    the owner-prescribed D-GOV-35 status slot, and affected status/SHA text in
+    the exact live decision-register row.
+  - >-
+    D-GOV-34 values are established only from Receipt 113, the
+    ROOT_DEL0206_ACCEPTANCE_DGOV34_2026-08-21 publication evidence, and the
+    recorded PR #607 Git chain; no value is inferred from semantic content.
+  - >-
+    No AGENTS.md, agents/**, decomposition, scope-change, Task Management,
+    lifecycle, hold, pin, pointer, runtime, project, plan, tool, CI, or export
+    change is authorized.
+
+derivative_paths:
+  - exports/chirality-app/**
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    Root-owned Chirality App public-export regeneration is deferred. This
+    tranche records decision-publication Git identities only and does not
+    regenerate, alter, or publish exports/chirality-app/**.

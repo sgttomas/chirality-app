@@ -11,12 +11,17 @@ Usage:
     --output-report <snapshot>/Domain_Integrity_Report.md \\
     --output-findings <snapshot>/Domain_Integrity_Findings.csv \\
     [--scope-change-snapshot <snapshot>] \\
+    [--scope-change-snapshot-mode {active,candidate}] \\
+    [--expected-active-snapshot <accepted-predecessor> | --expected-no-active-snapshot] \\
     [--package-subfolder <name>]
 
 Inputs:
   --decomposition-root: directory containing DOMAIN annex CSVs.
-  --scope-change-snapshot: optional SCA snapshot used to validate active
-    snapshot artifact completeness, _LATEST parity, and KTY manifest rollup.
+  --scope-change-snapshot: optional SCA snapshot used to validate artifact
+    completeness, pointer state, and KTY manifest rollup. Active mode is the
+    default and requires _LATEST parity with this snapshot. Candidate mode
+    requires exactly one explicit pointer posture: an accepted predecessor, or
+    no active SCA snapshot for a first amendment.
   --package-subfolder: optional name of a single direct subfolder under
     --decomposition-root from which to resolve annex CSVs (transitional
     dual-layout support). When omitted and the root has no annex matches
@@ -482,8 +487,60 @@ def manifest_rollup(rows: list[dict[str, str]]) -> str:
     return "COMPLETE"
 
 
-def validate_snapshot(snapshot: Path) -> list[Finding]:
+def _latest_pointer_target(latest: Path, allow_legacy_single_line: bool) -> str | None:
+    lines = [line.strip() for line in latest.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+    targets: list[str] = []
+    patterns = (
+        r"Latest:\s*(?P<target>.+)",
+        r"Latest snapshot:\s*(?P<target>.+)",
+        r"-\s*\*\*Latest snapshot:\*\*\s*(?P<target>.+)",
+        r"\|\s*Snapshot\s*\|\s*(?P<target>[^|]+)\|",
+    )
+    for line in lines:
+        for pattern in patterns:
+            match = re.fullmatch(pattern, line, flags=re.IGNORECASE)
+            if match:
+                targets.append(match.group("target").strip().strip("`").rstrip("/"))
+                break
+    if len(targets) == 1:
+        return targets[0]
+    if allow_legacy_single_line and len(lines) == 1 and ":" not in lines[0]:
+        return lines[0].strip("`").rstrip("/")
+    return None
+
+
+def _pointer_matches(target: str | None, snapshot: Path, pointer_parent: Path) -> bool:
+    if target is None:
+        return False
+    if target == snapshot.name:
+        return (pointer_parent / target).resolve() == snapshot.resolve()
+    path = Path(target)
+    if path.is_absolute():
+        return path.resolve() == snapshot.resolve()
+    return any((anchor / path).resolve() == snapshot.resolve() for anchor in (pointer_parent, *pointer_parent.parents))
+
+
+def validate_snapshot(
+    snapshot: Path,
+    mode: str = "active",
+    expected_active_snapshot: Path | None = None,
+    expected_no_active_snapshot: bool = False,
+) -> list[Finding]:
     findings: list[Finding] = []
+    if mode not in {"active", "candidate"}:
+        raise ValueError("scope-change snapshot mode must be active or candidate")
+    if mode == "candidate":
+        if (expected_active_snapshot is None) == (not expected_no_active_snapshot):
+            raise ValueError("candidate mode requires exactly one of --expected-active-snapshot or --expected-no-active-snapshot")
+        if expected_active_snapshot is not None:
+            if expected_active_snapshot.resolve() == snapshot.resolve():
+                raise ValueError("candidate snapshot cannot be its own expected active predecessor")
+            if not expected_active_snapshot.is_dir():
+                raise ValueError("expected active snapshot does not exist")
+            if expected_active_snapshot.parent.resolve() != snapshot.parent.resolve():
+                raise ValueError("expected active snapshot must be a sibling of the candidate")
+    elif expected_active_snapshot is not None or expected_no_active_snapshot:
+        raise ValueError("expected active snapshot options are only valid in candidate mode")
     if not snapshot.exists() or not snapshot.is_dir():
         return [Finding("CRITICAL", "SNAPSHOT_MISSING", str(snapshot), "snapshot", "Scope-change snapshot does not exist")]
     for name in REQUIRED_SNAPSHOT_ARTIFACTS:
@@ -500,10 +557,14 @@ def validate_snapshot(snapshot: Path) -> list[Finding]:
             findings.append(Finding("CRITICAL", "SUPERSESSION_DELTA_MISSING", str(delta), "SupersessionBindingPresent", "Supersession_Delta.csv is required because one or more actions declare SupersessionBindingPresent=YES"))
 
     latest = snapshot.parent / "_LATEST.md"
-    if latest.exists():
-        text = latest.read_text(encoding="utf-8", errors="replace")
-        if snapshot.name not in text and str(snapshot) not in text:
-            findings.append(Finding("MAJOR", "LATEST_POINTER_MISMATCH", str(latest), "_LATEST.md", f"_LATEST.md does not point to active snapshot {snapshot.name}"))
+    if mode == "candidate" and expected_no_active_snapshot:
+        if latest.exists():
+            findings.append(Finding("MAJOR", "LATEST_POINTER_UNEXPECTED", str(latest), "_LATEST.md", "_LATEST.md must remain absent for a first-amendment candidate"))
+    elif latest.exists():
+        latest_target = snapshot if mode == "active" else expected_active_snapshot
+        pointer_target = _latest_pointer_target(latest, allow_legacy_single_line=True)
+        if not _pointer_matches(pointer_target, latest_target, latest.parent):
+            findings.append(Finding("MAJOR", "LATEST_POINTER_MISMATCH", str(latest), "_LATEST.md", f"_LATEST.md does not point exactly to active snapshot {latest_target.name}"))
     else:
         findings.append(Finding("MAJOR", "LATEST_POINTER_MISSING", str(latest), "_LATEST.md", "_LATEST.md is missing"))
 
@@ -569,7 +630,10 @@ def write_report(path: Path, findings: list[Finding]) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate DOMAIN decomposition package integrity")
     parser.add_argument("--decomposition-root", required=True, type=Path, help="Path to DOMAIN _Decomposition directory")
-    parser.add_argument("--scope-change-snapshot", type=Path, help="Optional active SCA snapshot path")
+    parser.add_argument("--scope-change-snapshot", type=Path, help="Optional active or candidate SCA snapshot path")
+    parser.add_argument("--scope-change-snapshot-mode", choices=("active", "candidate"), default="active", help="Validate an active snapshot or a preacceptance candidate")
+    parser.add_argument("--expected-active-snapshot", type=Path, help="Accepted predecessor that _LATEST must retain in candidate mode")
+    parser.add_argument("--expected-no-active-snapshot", action="store_true", help="Require _LATEST to remain absent for a first-amendment candidate")
     parser.add_argument("--output-report", required=True, type=Path, help="Markdown report output")
     parser.add_argument("--output-findings", required=True, type=Path, help="Findings CSV output")
     parser.add_argument(
@@ -633,7 +697,9 @@ def main() -> int:
             findings.extend(validate_domain_rows(paths, rows))
             findings.extend(validate_coverage(paths, rows))
         if args.scope_change_snapshot:
-            findings.extend(validate_snapshot(args.scope_change_snapshot))
+            findings.extend(validate_snapshot(args.scope_change_snapshot, args.scope_change_snapshot_mode, args.expected_active_snapshot, args.expected_no_active_snapshot))
+        elif args.scope_change_snapshot_mode != "active" or args.expected_active_snapshot is not None or args.expected_no_active_snapshot:
+            raise ValueError("snapshot mode options require --scope-change-snapshot")
         write_findings_csv(args.output_findings, findings)
         write_report(args.output_report, findings)
     except (FileNotFoundError, NotADirectoryError, ValueError, OSError, csv.Error) as exc:

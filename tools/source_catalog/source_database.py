@@ -19,7 +19,7 @@ from typing import Iterable
 
 
 SCHEMA_VERSION = "chirality-source-db/v2"
-DEFAULT_DOMAIN_ROOT = Path("domains/piping-design")
+DEFAULT_DOMAIN_ROOT: Path | None = None
 DEFAULT_OUT_ROOT_NAME = "_LocalIndexes"
 SNAPSHOT_PREFIX = "SRCIDX"
 REPO_PATH_PREFIX = "@repo/"
@@ -409,8 +409,21 @@ def parse_latest_pointer(path: Path) -> str:
     raise ValueError(f"no Latest line found in {path}")
 
 
-def resolve_snapshot_path(snapshot_arg: Path | None, domain_root: Path) -> Path:
+def resolve_domain_root(domain_root: Path | None, cwd: Path | None = None) -> Path:
+    """Use an explicit root or require a domain pack as the current directory."""
+    if domain_root is not None:
+        return domain_root
+    candidate = (cwd or Path.cwd()).resolve()
+    if (candidate / "domain-pack.yaml").is_file():
+        return candidate
+    raise ValueError(
+        "--domain-root is required unless the current directory contains domain-pack.yaml"
+    )
+
+
+def resolve_snapshot_path(snapshot_arg: Path | None, domain_root: Path | None) -> Path:
     if snapshot_arg is None:
+        domain_root = resolve_domain_root(domain_root)
         snapshot_arg = domain_root / DEFAULT_OUT_ROOT_NAME / "_LATEST.md"
     path = snapshot_arg.resolve()
     if path.is_dir():

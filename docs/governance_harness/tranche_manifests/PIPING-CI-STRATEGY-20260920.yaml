@@ -1,0 +1,39 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-CI-STRATEGY-20260920
+title: Piping affected CI selection and isolated full-run shards
+date: 2026-09-20
+basis: 002dff0f244976f98b36517d920b3761f6f88704
+instruction_surface_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/PIPING-CI-STRATEGY-20260920.yaml
+m2_gate:
+  authorization: >-
+    Owner Ryan Tufts requested a reduced CI suite for PR825 after its full
+    hosted run took over half an hour, then explicitly directed on2026-09-20:
+    "Fix and merge the PR. Resolve a new CI strategy to reduce wasteful test
+    time, knowing that the full suite takes well over a half hour." Exact
+    supplied direction and its custody are retained in the Piping run's
+    OWNER_RESUME_2026-09-20.md. Scope is Piping CI routing/orchestration and
+    related evidence, with no protected assertion/limit or branch-policy change.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-20
+  integration_owner: HELP_HUMAN Agent0, GPT-6 Astra; scoped CI TASK Astra/low
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-20_DESKTOP_CI_STRATEGY.md
+  rationale: >-
+    The Piping loop consumes hosted desktop evidence and adopts the owner-directed
+    selection strategy while preserving local DEC025. The shared App/Runtime
+    lead acknowledged Piping-specific CI ownership; other project CI and shared
+    governance are unchanged. No other consumer adopts this workflow.
+candidate_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - .github/actions/setup-piping-e2e/action.yml
+  - docs/governance_harness/tranche_manifests/PIPING-CI-STRATEGY-20260920.yaml
+  - projects/chirality-piping/tools/ci/
+  - projects/chirality-piping/tests/test_ci_e2e_plan.py
+  - projects/chirality-piping/docs/CI_STRATEGY.md
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-20_DESKTOP_CI_STRATEGY.md

@@ -18,7 +18,7 @@ Detailed target adds per-field count columns plus QA heuristic columns:
     missing_required_fields
     identical_value_flags
 
-See skills/drawing-extract-page/QA_CHECKS.md sections
+See workflows/drawing-extract-page/CONTRACT.md sections
 "Required-fields warnings" and "Detail capture rate" for metric semantics.
 """
 

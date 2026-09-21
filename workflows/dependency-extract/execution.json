@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK",
+    "WORKING_ITEMS",
+    "HELPS_HUMANS"
+  ],
+  "tools": {
+    "commands": [
+      "python3 tools/validation/validate_dependencies_schema.py:*",
+      "python3 tools/validation/validate_enum.py:*"
+    ]
+  }
+}

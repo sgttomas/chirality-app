@@ -1,0 +1,101 @@
+{
+  "schema": "chirality-sem5-legacy-normalization-cases/v1",
+  "cases": [
+    {
+      "id": "converted-task-skill-alone",
+      "input": {"taskSkill": "converted_skill"},
+      "outcome": {
+        "methods": [{"kind": "skill", "name": "converted-skill"}],
+        "compatibilityInputs": ["TaskSkill"],
+        "decisions": [
+          {
+            "field": "TaskSkill",
+            "original": "converted_skill",
+            "normalizedAlias": "converted-skill",
+            "mapping": "converted-alias",
+            "resolved": {"sourceRootId": "fixture-bundle", "source": "bundled", "kind": "skill", "name": "converted-skill"}
+          }
+        ]
+      }
+    },
+    {
+      "id": "equal-converted-aliases",
+      "input": {"workflow": "converted-skill", "taskSkill": "converted-skill"},
+      "outcome": {
+        "methods": [{"kind": "skill", "name": "converted-skill"}],
+        "compatibilityInputs": ["Workflow", "TaskSkill"],
+        "decisions": [
+          {
+            "field": "Workflow",
+            "original": "converted-skill",
+            "mapping": "converted-alias",
+            "resolved": {"sourceRootId": "fixture-bundle", "source": "bundled", "kind": "skill", "name": "converted-skill"}
+          },
+          {
+            "field": "TaskSkill",
+            "original": "converted-skill",
+            "normalizedAlias": "converted-skill",
+            "mapping": "converted-alias",
+            "resolved": {"sourceRootId": "fixture-bundle", "source": "bundled", "kind": "skill", "name": "converted-skill"}
+          }
+        ]
+      }
+    },
+    {
+      "id": "genuinely-different-identities-conflict",
+      "input": {"workflow": "example", "taskSkill": "converted-skill"},
+      "error": {"code": "CONFLICTING_METHOD_SELECTION", "messagePattern": "conflicting Workflow/TaskSkill"}
+    },
+    {
+      "id": "unknown-task-skill-alias-fails",
+      "input": {"taskSkill": "unknown"},
+      "error": {"code": "UNKNOWN_LEGACY_METHOD", "messagePattern": "unknown legacy method alias"}
+    },
+    {
+      "id": "explicit-qualified-historical-workflow",
+      "input": {"workflow": "fixture-bundle:bundled:workflow:example"},
+      "outcome": {
+        "methods": [{"sourceRootId": "fixture-bundle", "source": "bundled", "kind": "workflow", "name": "example"}],
+        "compatibilityInputs": ["Workflow"],
+        "decisions": [
+          {
+            "field": "Workflow",
+            "original": "fixture-bundle:bundled:workflow:example",
+            "mapping": "explicit-qualified-historical-workflow",
+            "resolved": {"sourceRootId": "fixture-bundle", "source": "bundled", "kind": "workflow", "name": "example"}
+          }
+        ]
+      }
+    },
+    {
+      "id": "ordered-modern-methods-preserved",
+      "input": {
+        "methods": [
+          {"kind": "skill", "name": "converted-skill"},
+          {"kind": "workflow", "name": "example"}
+        ]
+      },
+      "outcome": {
+        "methods": [
+          {"kind": "skill", "name": "converted-skill"},
+          {"kind": "workflow", "name": "example"}
+        ],
+        "compatibilityInputs": [],
+        "decisions": []
+      }
+    },
+    {
+      "id": "foreign-qualified-origin-rejected",
+      "input": {"workflow": "foreign:user:workflow:example"},
+      "error": {"code": "UNSUPPORTED_METHOD_ORIGIN", "messagePattern": "outside the declared Root catalog"}
+    },
+    {
+      "id": "same-name-different-origin-not-deduplicated",
+      "input": {
+        "methods": [{"sourceRootId": "foreign", "source": "user", "kind": "skill", "name": "converted-skill"}],
+        "taskSkill": "converted-skill"
+      },
+      "error": {"code": "UNSUPPORTED_METHOD_ORIGIN", "messagePattern": "outside the declared Root catalog"}
+    }
+  ]
+}

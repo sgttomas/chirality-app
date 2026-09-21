@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "aliases": {
+    "AGGREGATION": {
+      "role": "TASK",
+      "workflow": "aggregation"
+    },
+    "AUDIT_AGENTS": {
+      "role": "TASK",
+      "workflow": "audit-agents"
+    },
+    "AUDIT_DECOMP": {
+      "role": "TASK",
+      "workflow": "audit-decomp"
+    },
+    "AUDIT_DEP_CLOSURE": {
+      "role": "TASK",
+      "workflow": "audit-dep-closure"
+    },
+    "AUDIT_EPISTEMIC": {
+      "role": "TASK",
+      "workflow": "audit-epistemic"
+    },
+    "AUDIT_GOVERNANCE": {
+      "role": "TASK",
+      "workflow": "audit-governance"
+    },
+    "AUDIT_HYPERGRAPH_CLOSURE": {
+      "role": "TASK",
+      "workflow": "audit-hypergraph-closure"
+    },
+    "AUDIT_SCOPE_CLOSURE": {
+      "role": "TASK",
+      "workflow": "audit-scope-closure"
+    },
+    "CHANGE": {
+      "role": "WORKING_ITEMS",
+      "workflow": "change",
+      "canonical_successor": {
+        "kind": "skill",
+        "name": "chirality-change",
+        "scope": "project"
+      },
+      "compatibility_note": "Legacy CHANGE runs retain the historical change workflow; new Chirality repository change work may select the project-only chirality-change skill."
+    },
+    "DBM_PUBLISHER": {
+      "role": "WORKING_ITEMS",
+      "workflow": "dbm-publisher"
+    },
+    "DOMAIN_DECOMP": {
+      "role": "WORKING_ITEMS",
+      "workflow": "domain-decomp"
+    },
+    "DOMAIN_ENGINE": {
+      "role": "WORKING_ITEMS",
+      "workflow": "domain-engine"
+    },
+    "DOMAIN_HYPERGRAPH": {
+      "role": "TASK",
+      "workflow": "domain-hypergraph"
+    },
+    "DRAWING_EXTRACT": {
+      "role": "WORKING_ITEMS",
+      "workflow": "drawing-extract"
+    },
+    "EQUATION_AUDIT": {
+      "role": "WORKING_ITEMS",
+      "workflow": "equation-audit"
+    },
+    "EVALUATION": {
+      "role": "WORKING_ITEMS",
+      "workflow": "evaluation-protocol"
+    },
+    "EVALUATION_DEPENDENCY_AUDIT": {
+      "role": "TASK",
+      "tool": "tools/evaluation/audit_dependencies.py"
+    },
+    "EVALUATION_REPORT": {
+      "role": "TASK",
+      "workflow": "evaluation-report"
+    },
+    "EVALUATION_STRUCTURE_AUDIT": {
+      "role": "TASK",
+      "tool": "tools/evaluation/audit_structure.py"
+    },
+    "PDF2MD": {
+      "role": "WORKING_ITEMS",
+      "workflow": "pdf2md-orchestration"
+    },
+    "PREPARATION": {
+      "role": "TASK",
+      "workflow": "preparation",
+      "canonical_successor": {
+        "kind": "skill",
+        "name": "preparation"
+      }
+    },
+    "PROJECT_DECOMP": {
+      "role": "WORKING_ITEMS",
+      "workflow": "project-decomp"
+    },
+    "PROJECT_SETUP": {
+      "role": "WORKING_ITEMS",
+      "workflow": "project-setup"
+    },
+    "RECONCILIATION": {
+      "role": "WORKING_ITEMS",
+      "workflow": "reconciliation"
+    },
+    "RESEARCH": {
+      "role": "WORKING_ITEMS",
+      "workflow": "research-orchestration"
+    },
+    "RESEARCHER": {
+      "role": "TASK",
+      "workflow": "researcher",
+      "canonical_successor": {
+        "kind": "skill",
+        "name": "researcher"
+      }
+    },
+    "REVIEW": {
+      "role": "WORKING_ITEMS",
+      "workflow": "review"
+    },
+    "SCOPE_CHANGE": {
+      "role": "WORKING_ITEMS",
+      "workflow": "scope-change"
+    },
+    "SOFTWARE_DECOMP": {
+      "role": "WORKING_ITEMS",
+      "workflow": "software-decomp"
+    },
+    "TASK_MANAGEMENT": {
+      "role": "WORKING_ITEMS",
+      "workflow": "task-management"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-STAGEA-STEP8-20260731
+title: Task Management Stage A step 8 — taskmgmt v0 (scan/validate)
+date: 2026-07-31
+basis: b73260330319f0ee45afa04f93d4f6d1c1687e73
+
+instruction_surface_paths:
+  - tools/taskmgmt/taskmgmt.py
+  - tools/taskmgmt/test_taskmgmt.py
+  - docs/governance_harness/tranche_manifests/ROOT-TM-STAGEA-STEP8-20260731.yaml
+
+m2_gate:
+  authorization: |-
+    Owner in-session ruling of 2026-07-31 ("Step 8 can proceed when
+    ready", within the 211-byte normalized ruling SHA-256
+    937b4128c501973811d3918fbbdeccbb7c76995ccdf49a573e09bcd609f9e1e8,
+    verbatim in Loop Receipt 72), executing workplan step 8 and D-GOV-32
+    Effect 2(e): taskmgmt scan/validate v0 per adopted PRD section 9 as
+    a human-gated tools tranche under tools/taskmgmt/. The tool is
+    deterministic and judgment-free (PRD 9.3); scan output is a
+    gitignored rebuildable projection (D-GOV-01); the register stays
+    file-native and the tool deletable (K-TM-4 kill-test posture).
+    Publication merge authorization for this tranche's PR remains a
+    separate owner act on the final branch HEAD; this manifest records a
+    gate and grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-31
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) root governance loop session, Task Management
+    Stage A step 8; sole serialized integration owner for this tranche;
+    no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    A new bounded deterministic tool; no agents/ file or AGENTS.md
+    change, so the agent-index change-notice rule does not fire; no loop
+    obligation is created or altered (K-TM-3/K-TM-4 - the tool reads
+    surfaces and validates form only; other loops learn of Task
+    Management through the already-routed step-5/7 notices and packets).
+
+scope_limits:
+  - >-
+    v0 implements scan and validate only; staleness and closure-echo
+    checks (PRD 6.4/6.5) and per-document token mode are later governed
+    tranches; unimplemented scan classes are declared in every output
+    (no silent caps)
+  - >-
+    the tool never writes a register, never judges content, and its
+    output is never citable as authority
+  - >-
+    no harness/CI wiring: taskmgmt is invoked on demand (root pattern);
+    wiring into governance-harness CI would create a standing read
+    obligation and is deliberately not done (K-TM-4)

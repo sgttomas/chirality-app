@@ -106,7 +106,7 @@ if [ ! -d "$DEL_PATH" ]; then
   echo "ERROR: DEL_PATH is not an existing directory: $DEL_PATH" >&2
   exit 2
 fi
-DEL_ABS=$(cd "$DEL_PATH" && pwd) || exit 2
+DEL_ABS=$(cd "$DEL_PATH" && pwd -P) || exit 2
 
 # Actor normalization (reconciled with transition.ts normalizeActor):
 # upper-case, whitespace -> underscore; USER/OPERATOR/HUMAN* -> HUMAN.
@@ -123,7 +123,32 @@ fi
 
 # Repo root resolved at runtime from the deliverable's location (never hardcoded).
 REPO_ROOT=$(git -C "$DEL_ABS" rev-parse --show-toplevel 2>/dev/null)
-if [ -n "$REPO_ROOT" ]; then IN_GIT=1; else IN_GIT=0; fi
+if [ -n "$REPO_ROOT" ]; then
+  REPO_ROOT=$(cd "$REPO_ROOT" && pwd -P) || exit 2
+  IN_GIT=1
+else IN_GIT=0; fi
+
+# Root governance mode is a hard read-only source boundary. This check runs
+# before the ordinary human-override machinery and cannot be overridden.
+if [ "$IN_GIT" -eq 1 ] && [[ "$DEL_ABS" == "$REPO_ROOT/execution/"* ]]; then
+  ROOT_ADAPTER="$REPO_ROOT/execution/_harness/adapter.yaml"
+  if [ -f "$ROOT_ADAPTER" ]; then
+    python3 - "$ROOT_ADAPTER" <<'PYROOT'
+import sys
+try:
+    import yaml
+    data = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("Root adapter is not a mapping")
+    if "mode" in data:
+        raise ValueError("Explicit Root mode prohibits ordinary source lifecycle writes; use its governed instrument")
+except Exception as exc:
+    print(f"BLOCK: Root source write refused: {exc}", file=sys.stderr)
+    sys.exit(1)
+PYROOT
+    [ $? -eq 0 ] || exit 1
+  fi
+fi
 
 # Adapter-manifest discovery: walk up from DEL_PATH looking for _harness/adapter.yaml;
 # stop at repo root (when in a git repo) or filesystem root.

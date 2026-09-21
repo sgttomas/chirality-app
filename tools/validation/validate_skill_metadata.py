@@ -3,20 +3,18 @@
 validate_skill_metadata.py
 Validate repo-native skill folders under skills/.
 
-Checks:
+Canonical checks:
   1. Each skill folder contains SKILL.md
   2. SKILL.md begins with YAML frontmatter delimited by ---
   3. Frontmatter includes name and description
   4. name matches the skill folder name
   5. name uses lowercase letters, digits, and hyphens only, max 64 chars
-  6. description is a single-line scalar
-  7. metadata.chirality-skill-version is present
-  8. metadata.chirality-task-profile is present and valid
-  9. allowed-tools, when present, follows the canonical TASK-consumed format
- 10. allowed-tools tool paths resolve to existing files under tools/
- 11. BRIEF_SCHEMA.md is present in the skill folder
- 12. TOOL_POLICY.md is present in the skill folder
- 13. QA_CHECKS.md is present in the skill folder
+  6. description is a non-empty string
+
+The historical Chirality TASK contract (metadata fields, allowed-tools syntax,
+and three mandatory companion files) is available only with
+--legacy-task-contract. Canonical skills require no TASK-specific metadata or
+fixed companion-file set.
 
 Usage:
     python3 validate_skill_metadata.py
@@ -40,8 +38,12 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
 
-NAME_RE = re.compile(r"^[a-z0-9-]{1,64}$")
+from build_workflow_index import _frontmatter, parse_execution
+
+
+NAME_RE = re.compile(r"^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$")
 PROFILE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 TOP_LEVEL_KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):(?:\s*(.*))?$")
 
@@ -53,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         default="skills",
         help="Path to the skills root directory (default: skills)",
+    )
+    parser.add_argument(
+        "--legacy-task-contract",
+        action="store_true",
+        help="Apply the retired repo-native TASK skill validation contract",
     )
     parser.add_argument(
         "--json",
@@ -123,69 +130,13 @@ def parse_allowed_tools(raw_value: str, repo_root: Path) -> list[str]:
 
 
 def extract_frontmatter(skill_md: Path) -> tuple[dict[str, object], list[str]]:
-    issues: list[str] = []
-    text = skill_md.read_text(encoding="utf-8", errors="replace")
-
-    if not text.startswith("---\n"):
-        return {}, ["SKILL.md must begin with YAML frontmatter delimited by ---"]
-
-    lines = text.splitlines()
-    end_index = None
-    for idx in range(1, len(lines)):
-        if lines[idx].strip() == "---":
-            end_index = idx
-            break
-
-    if end_index is None:
-        return {}, ["SKILL.md frontmatter is missing a closing --- delimiter"]
-
-    frontmatter_lines = lines[1:end_index]
-    data: dict[str, object] = {}
-    current_key: str | None = None
-
-    for raw_line in frontmatter_lines:
-        if not raw_line.strip():
-            continue
-
-        if raw_line.startswith((" ", "\t")):
-            if current_key == "description":
-                issues.append("description must be a single-line scalar, not a block or nested value")
-
-            if current_key is None:
-                issues.append(f"unexpected indented line in frontmatter: {raw_line.rstrip()}")
-                continue
-
-            match = TOP_LEVEL_KEY_RE.match(raw_line.strip())
-            if not match:
-                issues.append(f"could not parse nested frontmatter line: {raw_line.rstrip()}")
-                continue
-
-            nested_key = match.group(1)
-            nested_value = strip_matching_quotes(match.group(2) if match.group(2) is not None else "")
-            existing = data.get(current_key)
-            if not isinstance(existing, dict):
-                existing = {}
-                data[current_key] = existing
-            existing[nested_key] = nested_value
-            continue
-
-        match = TOP_LEVEL_KEY_RE.match(raw_line)
-        if not match:
-            current_key = None
-            continue
-
-        key = match.group(1)
-        value = strip_matching_quotes(match.group(2) if match.group(2) is not None else "")
-        data[key] = value
-        current_key = key
-
-        if key == "description" and value.strip() in {"", "|", ">"}:
-            issues.append("description must be present as a single-line scalar")
-
-    return data, issues
+    try:
+        return _frontmatter(skill_md), []
+    except (OSError, ValueError, yaml.YAMLError) as error:
+        return {}, [str(error)]
 
 
-def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
+def validate_skill_dir(skill_dir: Path, repo_root: Path, legacy_task_contract: bool = False) -> dict:
     issues: list[str] = []
     skill_md = skill_dir / "SKILL.md"
 
@@ -196,26 +147,17 @@ def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
             "issues": ["SKILL.md is missing"],
         }
 
-    brief_schema_md = skill_dir / "BRIEF_SCHEMA.md"
-    if not brief_schema_md.is_file():
-        issues.append(
-            "BRIEF_SCHEMA.md is missing "
-            "(required by WORKFLOW_COMPONENT_STANDARD skill contract)"
-        )
-
-    tool_policy_md = skill_dir / "TOOL_POLICY.md"
-    if not tool_policy_md.is_file():
-        issues.append("TOOL_POLICY.md is missing (required by WORKFLOW_COMPONENT_STANDARD skill contract)")
-
-    qa_checks_md = skill_dir / "QA_CHECKS.md"
-    if not qa_checks_md.is_file():
-        issues.append(
-            "QA_CHECKS.md is missing "
-            "(required by WORKFLOW_COMPONENT_STANDARD skill contract)"
-        )
+    if legacy_task_contract:
+        for filename in ("BRIEF_SCHEMA.md", "TOOL_POLICY.md", "QA_CHECKS.md"):
+            if not (skill_dir / filename).is_file():
+                issues.append(f"{filename} is missing (required by legacy TASK skill contract)")
 
     data, fm_issues = extract_frontmatter(skill_md)
     issues.extend(fm_issues)
+    try:
+        parse_execution(skill_dir, repo_root, required=False)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        issues.append(str(error))
 
     name = data.get("name")
     description = data.get("description")
@@ -232,36 +174,36 @@ def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
 
     if not isinstance(description, str) or description == "":
         issues.append("frontmatter must include non-empty description")
-    else:
-        if "\n" in description:
-            issues.append("description must be single-line")
+    elif legacy_task_contract and "\n" in description:
+        issues.append("description must be single-line under the legacy TASK contract")
 
-    if allowed_tools is not None:
+    if legacy_task_contract and allowed_tools is not None:
         if not isinstance(allowed_tools, str):
             issues.append("allowed-tools must be a single-line scalar when present")
         else:
             issues.extend(parse_allowed_tools(allowed_tools, repo_root))
 
-    if not isinstance(metadata, dict):
-        issues.append("frontmatter must include metadata mapping")
-        metadata = {}
+    if legacy_task_contract:
+        if not isinstance(metadata, dict):
+            issues.append("frontmatter must include metadata mapping")
+            metadata = {}
 
-    skill_version = metadata.get("chirality-skill-version")
-    if not isinstance(skill_version, str) or skill_version == "":
-        issues.append("metadata.chirality-skill-version must be present as a non-empty scalar")
+        skill_version = metadata.get("chirality-skill-version")
+        if not isinstance(skill_version, str) or skill_version == "":
+            issues.append("metadata.chirality-skill-version must be present as a non-empty scalar")
 
-    task_profile = metadata.get("chirality-task-profile")
-    if not isinstance(task_profile, str) or task_profile == "":
-        issues.append("metadata.chirality-task-profile must be present as a non-empty scalar")
-    else:
-        if task_profile != "NONE" and not PROFILE_RE.fullmatch(task_profile):
-            issues.append("metadata.chirality-task-profile must be NONE or an uppercase token")
-        if task_profile != "NONE":
-            expected_profile_file = repo_root / "agents" / f"AGENT_{task_profile}.md"
-            if not expected_profile_file.is_file():
-                issues.append(
-                    f"metadata.chirality-task-profile must resolve to an agent instruction file ({expected_profile_file.name})"
-                )
+        task_profile = metadata.get("chirality-task-profile")
+        if not isinstance(task_profile, str) or task_profile == "":
+            issues.append("metadata.chirality-task-profile must be present as a non-empty scalar")
+        else:
+            if task_profile != "NONE" and not PROFILE_RE.fullmatch(task_profile):
+                issues.append("metadata.chirality-task-profile must be NONE or an uppercase token")
+            if task_profile != "NONE":
+                expected_profile_file = repo_root / "agents" / f"AGENT_{task_profile}.md"
+                if not expected_profile_file.is_file():
+                    issues.append(
+                        f"metadata.chirality-task-profile must resolve to an agent instruction file ({expected_profile_file.name})"
+                    )
 
     return {
         "skill_dir": skill_dir.name,
@@ -271,9 +213,13 @@ def validate_skill_dir(skill_dir: Path, repo_root: Path) -> dict:
 
 
 def main() -> int:
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] == '--json') or any(Path(arg).name == 'workflows' for arg in sys.argv[1:]):
+        from validate_workflow_metadata import main as workflow_main
+        return workflow_main()
+    # Explicit historical skills/ input keeps the former validation contract.
     args = parse_args()
     skills_root = Path(args.skills_root).expanduser().resolve()
-    repo_root = skills_root.parent
+    repo_root = skills_root.parent.parent if skills_root.parent.name == ".agents" else skills_root.parent
 
     if not skills_root.exists():
         print(f"ERROR: skills root does not exist: {skills_root}", file=sys.stderr)
@@ -283,7 +229,7 @@ def main() -> int:
         return 1
 
     skill_dirs = sorted([path for path in skills_root.iterdir() if path.is_dir()])
-    results = [validate_skill_dir(skill_dir, repo_root) for skill_dir in skill_dirs]
+    results = [validate_skill_dir(skill_dir, repo_root, args.legacy_task_contract) for skill_dir in skill_dirs]
 
     valid_count = sum(1 for item in results if item["valid"])
     invalid_count = len(results) - valid_count

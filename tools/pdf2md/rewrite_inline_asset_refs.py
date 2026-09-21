@@ -66,7 +66,7 @@ ASSET_BLOCK_RE = re.compile(
 _BAL = r"(?:[^\[\]\n]|\[[^\[\]\n]*\])"
 _BODY = rf"{_BAL}+"
 
-# CANONICAL placeholder patterns — exactly what skills/pdf2md-page/SKILL.md
+# CANONICAL placeholder patterns — exactly what workflows/pdf2md-page/WORKFLOW.md
 # RULE 8 specifies the pdf2md-page skill must emit. Drift patterns (e.g.
 # `![Fig. ...](...)` markdown-image syntax, bare-bracketed `[Fig. 1.1 ...]`
 # without the FIGURE: prefix) are NOT matched here — surfacing those as
@@ -82,7 +82,7 @@ INLINE_PATTERNS = [
 ]
 
 # Drift patterns: shapes the pdf2md-page skill is forbidden from emitting per
-# RULE 8 in skills/pdf2md-page/SKILL.md. When detected, the rewriter emits
+# RULE 8 in workflows/pdf2md-page/WORKFLOW.md. When detected, the rewriter emits
 # a warning to stderr (it does NOT rewrite them — that would mask the skill
 # defect). Listed here so the patrol surfaces drift instead of swallowing it.
 # Body matches the same nested-bracket-aware shape as canonical placeholders.
@@ -249,7 +249,7 @@ def main() -> int:
         print(
             f"WARNING: page={page} has {len(drift)} non-canonical placeholder(s) "
             f"the rewriter is not configured to handle. The pdf2md-page skill is "
-            f"emitting drift from skills/pdf2md-page/SKILL.md RULE 8. Examples:",
+            f"emitting drift from workflows/pdf2md-page/WORKFLOW.md RULE 8. Examples:",
             file=sys.stderr,
         )
         for label, snippet in drift[:5]:

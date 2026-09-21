@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+
+from common import load_catalog  # noqa: E402
+from check_boundary_owner_resolution import check_document  # noqa: E402
 MIGRATION_AUTHORITY = "D-GOV-16@7584718aa32b112e415331736d1a8e68c12ac176"
 ISSUED_ACCEPTED_BASIS = "execution/_Decomposition/SOFTWARE_DECOMP.md@abc123"
 CONVERT = HERE / "convert_four_documents_to_scope_of_work.py"
@@ -516,6 +519,177 @@ def test_review_checklist_is_exact_source_ordered_linked_and_deterministic(tmp_p
     assert sow_only_report["items"] == report["items"]
 
 
+def test_qualified_upstream_ids_are_not_harvested_as_local_references() -> None:
+    local_re = load_catalog().local_re
+    # Both qualified spellings in play upstream: slash-separated and
+    # hyphen-separated. Neither is a local reference of THIS contract.
+    assert local_re.findall("DEL-01-02/REQ-003") == []
+    assert local_re.findall("DEL-01-02-REQ-004") == []
+    # The B2 collision class: an upstream CLM-009 must not be read as the
+    # authoring contract's own CLM-009.
+    assert local_re.findall("DEL-01-01-CLM-009") == []
+    assert local_re.findall("DEL-01-01/CLM-009") == []
+
+
+def test_bare_local_ids_are_still_harvested() -> None:
+    local_re = load_catalog().local_re
+    assert local_re.findall("REQ-004") == ["REQ-004"]
+    assert local_re.findall("bare CLM-009 here") == ["CLM-009"]
+    # A qualified citation alongside a genuine local reference keeps the local
+    # one and drops only the qualified tail.
+    assert local_re.findall("See DEL-07-11/AC-004 and REQ-003") == ["REQ-003"]
+
+
+def test_qualified_upstream_citation_does_not_break_a_valid_contract(tmp_path: Path) -> None:
+    deliverable = fixture(tmp_path)
+    assert convert(deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY).returncode == 0
+    sow = deliverable / "ScopeOfWork.md"
+    baseline = run(VALIDATE, deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY)
+    assert baseline.returncode == 0, baseline.stdout
+
+    text = sow.read_text(encoding="utf-8")
+    text = text.replace(
+        "## Requirements\n",
+        "## Requirements\n\nUpstream basis: DEL-01-02/REQ-003 and DEL-01-02-REQ-004.\n",
+        1,
+    )
+    sow.write_text(text, encoding="utf-8")
+    result = run(VALIDATE, deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY)
+    assert result.returncode == 0, result.stdout
+
+
+def test_blockquote_id_exemption_is_unchanged_by_the_left_context_guard(tmp_path: Path) -> None:
+    deliverable = fixture(tmp_path)
+    assert convert(deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY).returncode == 0
+    sow = deliverable / "ScopeOfWork.md"
+    text = sow.read_text(encoding="utf-8")
+    text = text.replace(
+        "## Requirements\n",
+        "## Requirements\n\n> Upstream quotation: REQ-777 and CLM-888 are source context.\n",
+        1,
+    )
+    sow.write_text(text, encoding="utf-8")
+    result = run(VALIDATE, deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY)
+    assert result.returncode == 0, result.stdout
+
+
+def test_review_checklist_warns_on_row_grouped_acceptance_without_changing_output(tmp_path: Path) -> None:
+    deliverable = fixture(tmp_path)
+    assert convert(deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY).returncode == 0
+    sow = deliverable / "ScopeOfWork.md"
+    text = sow.read_text(encoding="utf-8")
+    text = text.replace(
+        "- **AC-001** — The mapped source content is complete and internally resolvable.\n",
+        "- **AC-001** — The mapped source content is complete and internally resolvable.\n"
+        "- **AC-002** — Human approval is recorded exactly.\n",
+    )
+    text = text.replace(
+        "- **VER-001** — Run the deterministic claim map and parity report.\n",
+        "- **VER-001** — Run the deterministic claim map and parity report.\n"
+        "- **VER-002** — Inspect the recorded approval evidence.\n",
+    )
+    ungrouped = tmp_path / "checklist-ungrouped.json"
+    result = run(
+        CHECKLIST,
+        deliverable,
+        "--isolated-migration",
+        "--migration-authority",
+        MIGRATION_AUTHORITY,
+        "--output",
+        ungrouped,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "WARNING: matrix row" not in result.stderr
+
+    matrix_line = next(line for line in text.splitlines() if "| AC-001 | VER-001 |" in line)
+    grouped_line = matrix_line.replace("| AC-001 | VER-001 |", "| AC-001, AC-002 | VER-001, VER-002 |")
+    sow.write_text(text.replace(matrix_line, grouped_line), encoding="utf-8")
+
+    first = tmp_path / "checklist-grouped-1.json"
+    second = tmp_path / "checklist-grouped-2.json"
+    for output in (first, second):
+        result = run(
+            CHECKLIST,
+            deliverable,
+            "--isolated-migration",
+            "--migration-authority",
+            MIGRATION_AUTHORITY,
+            "--output",
+            output,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "WARNING: matrix row OUT-001 groups 2 acceptance criteria with 2 verification" in result.stderr
+
+    # The warning is stderr-only: derivation stays deterministic and the JSON is
+    # exactly the row-scoped superset it was before the warning existed.
+    assert first.read_bytes() == second.read_bytes()
+    report = json.loads(first.read_text(encoding="utf-8"))
+    assert [item["id"] for item in report["items"]] == ["AC-001", "AC-002"]
+    for item in report["items"]:
+        assert [entry["id"] for entry in item["verification"]] == ["VER-001", "VER-002"]
+
+
+def test_review_checklist_warns_when_a_matrix_row_carrying_acs_is_skipped(tmp_path: Path) -> None:
+    deliverable = fixture(tmp_path)
+    assert convert(deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY).returncode == 0
+    sow = deliverable / "ScopeOfWork.md"
+    text = sow.read_text(encoding="utf-8")
+    # Define AC-002 and link it in a well-formed row, so the malformed row added
+    # below is the only thing that changes between the two derivations.
+    text = text.replace(
+        "- **AC-001** — The mapped source content is complete and internally resolvable.\n",
+        "- **AC-001** — The mapped source content is complete and internally resolvable.\n"
+        "- **AC-002** — Human approval is recorded exactly.\n",
+    )
+    matrix_line = next(line for line in text.splitlines() if "| AC-001 | VER-001 |" in line)
+    requirement_ref = matrix_line.split("|")[3].strip()
+    text = text.replace(
+        matrix_line,
+        matrix_line + "\n"
+        f"| OUT-001 | SOW-001 OBJ-007 | {requirement_ref} | AC-002 | "
+        "HUMAN_REVIEW: owner inspects approval evidence | Human ruling |",
+    )
+    sow.write_text(text, encoding="utf-8")
+
+    clean = tmp_path / "checklist-clean.json"
+    result = run(
+        CHECKLIST, deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY,
+        "--output", clean,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "matrix row skipped" not in result.stderr
+
+    # A row whose cell 0 is not a bare OUT-NNN but which still carries AC
+    # references. The deriver has always skipped these silently; the warning
+    # names the real origin of the downstream "AC has no links entry" error.
+    malformed = "| notes | continued from above | see AC-002 | AC-002 | VER-001 | ref |"
+    sow.write_text(text.replace(matrix_line, matrix_line + "\n" + malformed), encoding="utf-8")
+    after = tmp_path / "checklist-after.json"
+    result = run(
+        CHECKLIST, deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY,
+        "--output", after,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "WARNING: matrix row skipped" in result.stderr
+    assert "it contains AC references" in result.stderr
+    # stderr-only: the skipped row contributes nothing to the derivation, so
+    # every derived linkage is identical. Source hashes necessarily differ —
+    # the contract file itself changed between the two runs — so compare the
+    # substantive fields rather than raw bytes.
+    def linkage(path: Path) -> list[dict[str, object]]:
+        return [
+            {
+                "id": item["id"],
+                "text": item["text"],
+                "output_refs": item["output_refs"],
+                "verification": item["verification"],
+            }
+            for item in json.loads(path.read_text(encoding="utf-8"))["items"]
+        ]
+
+    assert linkage(after) == linkage(clean)
+
+
 def test_review_checklist_rejects_padded_ruled_authority_without_output(tmp_path: Path) -> None:
     deliverable = fixture(tmp_path)
     assert convert(deliverable, "--isolated-migration", "--migration-authority", MIGRATION_AUTHORITY).returncode == 0
@@ -595,3 +769,134 @@ def test_review_checklist_ignores_id_shaped_definitions_inside_migrated_source(t
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["items"][0]["text"] == "The mapped source content is complete and internally resolvable."
+
+
+# --- boundary-owner resolution (P7 §4, deterministic half) -------------------
+
+BOUNDARY_SOW_TEMPLATE = """---
+schema: chirality-deliverable-sow/v1
+---
+
+## Purpose and Objective Traceability
+
+## Deliverable Definition — Ontology
+
+- **CLM-012** — The acts that consume this model are owned by other
+  deliverables and are cited here, never discharged: parsing the feeds is
+  `DEL-02-01` through `DEL-02-07` (`SOW-011`); the rebuild is `DEL-03-01`.
+
+## Completion and Reliance Basis — Epistemology
+
+{requirements}
+
+## Production and Verification Method — Praxeology
+
+## Governing Values and Decisions — Axiology
+
+## Output and Evaluation Matrix
+"""
+
+
+def boundary_doc(tmp_path: Path, requirements: str) -> tuple[Path, str]:
+    path = tmp_path / "ScopeOfWork.md"
+    raw = BOUNDARY_SOW_TEMPLATE.format(requirements=requirements)
+    return path, raw
+
+
+def test_boundary_owner_resolution_passes_when_owners_are_named_by_the_cited_claim(tmp_path: Path) -> None:
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-011** — This deliverable shall perform no act owned by another "
+        "deliverable. In particular it shall run no rebuild (`DEL-03-01`); each "
+        "is cited to its owner in CLM-012 and none is discharged here.\n",
+    )
+    report = check_document(path, raw)
+    assert report.status == "OK"
+    assert report.checked == 1
+    assert [f for f in report.findings if f.category == "UNRESOLVED_OWNER"] == []
+
+
+def test_boundary_owner_resolution_flags_an_owner_absent_from_the_cited_claim(tmp_path: Path) -> None:
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-011** — This deliverable shall perform no act owned by another "
+        "deliverable. In particular it shall classify no drift (`DEL-03-03`); "
+        "each is cited to its owner in CLM-012 and none is discharged here.\n",
+    )
+    report = check_document(path, raw)
+    assert report.status == "FAIL"
+    unresolved = [f for f in report.findings if f.category == "UNRESOLVED_OWNER"]
+    assert len(unresolved) == 1
+    assert unresolved[0].owners == ("DEL-03-03",)
+
+
+def test_boundary_owner_resolution_expands_a_deliverable_range_in_the_claim(tmp_path: Path) -> None:
+    # CLM-012 names `DEL-02-01` through `DEL-02-07`; DEL-02-04 is inside that
+    # span but is not a literal token, so a naive membership test would fail it.
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-011** — This deliverable shall perform no act owned by another "
+        "deliverable. In particular it shall parse no feed (`DEL-02-04`); each "
+        "is cited to its owner in CLM-012 and none is discharged here.\n",
+    )
+    report = check_document(path, raw)
+    assert report.status == "OK"
+
+
+def test_boundary_owner_resolution_reports_per_act_clauses_as_not_checkable(tmp_path: Path) -> None:
+    # A positive requirement carrying a per-act exclusion whose owner is not
+    # syntactically bound to a claim. This is the skill's QA territory, and it
+    # must not be reported as a contract failure.
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-003** — Every entity shall carry provenance. The act of "
+        "attaching citations is `DEL-04-03`'s under `SOW-007`; this requirement "
+        "obliges the model to hold what that act needs, and no more.\n",
+    )
+    report = check_document(path, raw)
+    assert report.status == "OK"
+    assert report.not_checkable == 1
+    assert [f.category for f in report.findings] == ["NOT_CHECKABLE"]
+
+
+def test_boundary_owner_resolution_reports_out_of_grammar_contracts(tmp_path: Path) -> None:
+    # Legacy conversions define no REQ-NNN; they must be reported as
+    # out-of-grammar rather than silently passing.
+    path, raw = boundary_doc(tmp_path, "- **CLM-020** — A converted claim only.\n")
+    report = check_document(path, raw)
+    assert report.status == "NOT_APPLICABLE"
+    assert report.checked == 0
+
+
+def test_boundary_owner_resolution_ignores_ids_inside_blockquotes(tmp_path: Path) -> None:
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-011** — This deliverable shall perform no act owned by another "
+        "deliverable; each is cited to its owner in CLM-012 and none is "
+        "discharged here.\n"
+        "\n"
+        "> Legacy source quotation naming `DEL-09-09` as an owner.\n",
+    )
+    report = check_document(path, raw)
+    # `DEL-09-09` lives only in a blockquote, so it is source context and is
+    # never harvested as an excluded owner.
+    assert report.status == "OK"
+
+
+def test_boundary_owner_resolution_counts_an_uncited_exclusion_separately(tmp_path: Path) -> None:
+    # A whole-requirement exclusion that cites no claim at all. Its owners
+    # cannot be resolved against anything, so it is neither a pass nor a
+    # per-act clause: it gets its own category and counter.
+    path, raw = boundary_doc(
+        tmp_path,
+        "- **REQ-011** — This deliverable shall perform no act owned by another "
+        "deliverable; the rebuild (`DEL-03-01`) is not discharged here.\n",
+    )
+    report = check_document(path, raw)
+    assert report.no_cited_claim == 1
+    assert report.not_checkable == 0
+    assert report.checked == 0
+    assert [f.category for f in report.findings] == ["NO_CITED_CLAIM"]
+    # Unresolvable, but not a contract failure — it is reported, not gated.
+    assert report.status == "OK"
+    assert report.as_dict()["requirements_without_cited_claim"] == 1

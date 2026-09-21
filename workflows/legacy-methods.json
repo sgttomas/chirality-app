@@ -1,0 +1,197 @@
+{
+  "schema": "chirality-legacy-methods/v1",
+  "convertedWorkflowAliases": {
+    "content-digest": {
+      "kind": "workflow",
+      "name": "content-digest"
+    },
+    "dbm-concordance-seed": {
+      "kind": "workflow",
+      "name": "dbm-concordance-seed"
+    },
+    "dbm-concordance-verify": {
+      "kind": "workflow",
+      "name": "dbm-concordance-verify"
+    },
+    "dbm-draft-review": {
+      "kind": "workflow",
+      "name": "dbm-draft-review"
+    },
+    "dbm-postauthor-concordance": {
+      "kind": "workflow",
+      "name": "dbm-postauthor-concordance"
+    },
+    "dbm-publish": {
+      "kind": "workflow",
+      "name": "dbm-publish"
+    },
+    "dbm-section-publish": {
+      "kind": "workflow",
+      "name": "dbm-section-publish"
+    },
+    "decomposition-package-review": {
+      "kind": "workflow",
+      "name": "decomposition-package-review"
+    },
+    "deliverable-consistency": {
+      "kind": "skill",
+      "name": "deliverable-consistency"
+    },
+    "dependency-extract": {
+      "kind": "workflow",
+      "name": "dependency-extract"
+    },
+    "domain-documents": {
+      "kind": "workflow",
+      "name": "domain-documents"
+    },
+    "domain-prose-validate": {
+      "kind": "workflow",
+      "name": "domain-prose-validate"
+    },
+    "domain-source-atomize": {
+      "kind": "workflow",
+      "name": "domain-source-atomize"
+    },
+    "drawing-extract-page": {
+      "kind": "workflow",
+      "name": "drawing-extract-page"
+    },
+    "drawing-titleblock-page": {
+      "kind": "skill",
+      "name": "drawing-titleblock-page"
+    },
+    "equation-bbox-detect": {
+      "kind": "workflow",
+      "name": "equation-bbox-detect"
+    },
+    "equation-flag-interpret": {
+      "kind": "workflow",
+      "name": "equation-flag-interpret"
+    },
+    "equipment-costing-extract": {
+      "kind": "workflow",
+      "name": "equipment-costing-extract"
+    },
+    "equipment-extract": {
+      "kind": "workflow",
+      "name": "equipment-extract"
+    },
+    "estimate-prep": {
+      "kind": "workflow",
+      "name": "estimate-prep"
+    },
+    "estimate-snapshot": {
+      "kind": "workflow",
+      "name": "estimate-snapshot"
+    },
+    "evaluation-protocol": {
+      "kind": "workflow",
+      "name": "evaluation-protocol"
+    },
+    "four-documents": {
+      "kind": "workflow",
+      "name": "four-documents"
+    },
+    "kty-content-remediate": {
+      "kind": "workflow",
+      "name": "kty-content-remediate"
+    },
+    "kty-metadata-align": {
+      "kind": "workflow",
+      "name": "kty-metadata-align"
+    },
+    "lens-register": {
+      "kind": "workflow",
+      "name": "lens-register"
+    },
+    "pandid-valve-symbol-instance": {
+      "kind": "workflow",
+      "name": "pandid-valve-symbol-instance"
+    },
+    "pandid-valve-tile": {
+      "kind": "workflow",
+      "name": "pandid-valve-tile"
+    },
+    "pdf2md": {
+      "kind": "workflow",
+      "name": "pdf2md"
+    },
+    "pdf2md-folio-extract": {
+      "kind": "workflow",
+      "name": "pdf2md-folio-extract"
+    },
+    "pdf2md-page": {
+      "kind": "workflow",
+      "name": "pdf2md-page"
+    },
+    "pdf2md-page-assets": {
+      "kind": "workflow",
+      "name": "pdf2md-page-assets"
+    },
+    "pdf2md-page-full": {
+      "kind": "workflow",
+      "name": "pdf2md-page-full"
+    },
+    "preparation": {
+      "kind": "skill",
+      "name": "preparation"
+    },
+    "proposal-format": {
+      "kind": "skill",
+      "name": "proposal-format"
+    },
+    "research-orchestration": {
+      "kind": "workflow",
+      "name": "research-orchestration"
+    },
+    "researcher": {
+      "kind": "skill",
+      "name": "researcher"
+    },
+    "scc-resolution-case": {
+      "kind": "workflow",
+      "name": "scc-resolution-case"
+    },
+    "scope-change-packet": {
+      "kind": "workflow",
+      "name": "scope-change-packet"
+    },
+    "scope-of-work": {
+      "kind": "workflow",
+      "name": "scope-of-work"
+    },
+    "semantic-lensing": {
+      "kind": "workflow",
+      "name": "semantic-lensing"
+    },
+    "semantic-matrix-build": {
+      "kind": "workflow",
+      "name": "semantic-matrix-build"
+    },
+    "software-bounded-implementation": {
+      "kind": "workflow",
+      "name": "software-bounded-implementation"
+    },
+    "software-code-review": {
+      "kind": "skill",
+      "name": "software-code-review"
+    },
+    "software-defect-diagnosis": {
+      "kind": "skill",
+      "name": "software-defect-diagnosis"
+    },
+    "software-repository-reconnaissance": {
+      "kind": "workflow",
+      "name": "software-repository-reconnaissance"
+    },
+    "software-test-planning": {
+      "kind": "workflow",
+      "name": "software-test-planning"
+    }
+  },
+  "historicalOnly": [
+
+  ],
+  "unknownLegacyBehavior": "error"
+}

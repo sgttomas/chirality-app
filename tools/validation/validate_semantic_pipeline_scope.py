@@ -24,6 +24,7 @@ resolve_production_format = _common.resolve_production_format
 
 
 STEP_ALLOWED = {
+    "init": {"ScopeOfWork.md", "_STATUS.md"},
     "semantic": {"_SEMANTIC.md", "_STATUS.md"},
     "lens": {"_SEMANTIC_LENSING.md"},
 }
@@ -78,6 +79,16 @@ def git_status_paths(repo_root: Path) -> list[str]:
             continue
         paths.append(normalize_status_path(line[3:]))
     return paths
+
+
+def init_blocked_by_existing_contract(production_state: str) -> bool:
+    """`INIT` requires no production contract.
+
+    Only an already-present production contract disqualifies an `INIT` run. A
+    genuine pre-INIT deliverable resolves to `INVALID` ("missing production
+    contract"), which is the expected starting state and must not be blocked.
+    """
+    return production_state in {"SOW_V1", "MIGRATION_DUAL"}
 
 
 def validate_changed_paths(
@@ -143,6 +154,20 @@ def main() -> int:
         production_format = resolution.state
         if args.step == "sow-p3" and production_format not in {"SOW_V1", "MIGRATION_DUAL"}:
             print("ERROR: sow-p3 requires SOW_V1 or MIGRATION_DUAL", file=sys.stderr)
+            return 2
+    elif args.step == "init":
+        # `INIT` requires no production contract (skills/scope-of-work/SKILL.md).
+        # Resolution is advisory for this step and its validity is deliberately
+        # NOT gated on: a genuine pre-INIT deliverable resolves INVALID with
+        # "missing production contract", which is the expected starting state.
+        # Only an already-present production contract disqualifies an INIT run.
+        resolution = resolve_production_format(
+            deliverable_path,
+            isolated_migration=args.isolated_migration,
+            migration_authority=args.migration_authority,
+        )
+        if init_blocked_by_existing_contract(resolution.state):
+            print("ERROR: init requires no existing production contract", file=sys.stderr)
             return 2
 
     try:

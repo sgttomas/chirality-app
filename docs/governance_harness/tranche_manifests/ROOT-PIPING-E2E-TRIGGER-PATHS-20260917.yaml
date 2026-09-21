@@ -1,0 +1,60 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-PIPING-E2E-TRIGGER-PATHS-20260917
+title: Narrow the piping Desktop E2E pull-request trigger to product-affecting paths
+date: 2026-09-17
+basis: 8468a33c86adb622b25e98f98b0eaf28c7e9fa0e
+
+instruction_surface_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/ROOT-PIPING-E2E-TRIGGER-PATHS-20260917.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts, in the HELP_HUMAN UI design session on 2026-09-17 (in chat),
+    observed that a records-only pull request (#790) ran the full Desktop E2E
+    suite twice, directed "Start that CI trigger task in the background", and
+    then directed "get PR #791 to merge." The tranche replaces the
+    pull_request paths filter of .github/workflows/piping-desktop-e2e.yml,
+    formerly the whole projects/chirality-piping/** tree, with an explicit
+    allowlist derived from the job's own inputs: the workflow file, the piping
+    package.json and package-lock.json, apps/**, core/**, fixtures/** and
+    schemas/**. workflow_dispatch, the concurrency block and every job step
+    are unchanged. Branch protection on main requires only the harness
+    status, so the filter cannot strand a pull request on a missing required
+    status. This manifest records the gate and grants no authority (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-17
+  integration_owner: >-
+    the HELP_HUMAN UI design session (Claude Fable 5.1, Claude Code), with the
+    workflow edit and its verification executed by a bounded background
+    general-purpose child (Claude Opus 5) in an isolated worktree
+  merge_gate: owner-authorized-pr
+  self_merge: true
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-17_DESKTOP_E2E_TRIGGER_PATHS.md
+  rationale: >-
+    The piping loop treats hosted Desktop E2E as additional evidence for
+    user-visible desktop changes and cites its runs in acceptance records.
+    The loop receives a record of which paths now start that run so that
+    product-affecting changes outside the allowlist are recognised and the
+    allowlist is extended rather than silently bypassed. No other loop consumes
+    this workflow.
+
+candidate_paths:
+  - .github/workflows/piping-desktop-e2e.yml
+  - docs/governance_harness/tranche_manifests/ROOT-PIPING-E2E-TRIGGER-PATHS-20260917.yaml
+  - projects/chirality-piping/execution/_Coordination/NOTICE_2026-09-17_DESKTOP_E2E_TRIGGER_PATHS.md
+
+scope_limits:
+  - >-
+    No change to .github/workflows/governance-harness.yml, to the harness
+    required status, or to any job step of the Desktop E2E workflow.
+  - >-
+    No change to the piping loop's evidence posture: host-executed Playwright
+    surfaces required by DEC-025 remain required; hosted CI remains additional
+    evidence.
+  - >-
+    No release, acceptance or lifecycle effect in any loop.

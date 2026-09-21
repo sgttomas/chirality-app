@@ -7,7 +7,6 @@ export interface CliRuntimePaths {
   runtimeDirectory: string;
   socketPath: string;
   tokenFile: string;
-  launchAgentsDirectory: string;
 }
 
 export function resolveCliRuntimePaths(
@@ -29,10 +28,6 @@ export function resolveCliRuntimePaths(
     tokenFile: resolve(
       environment["CHIRALITY_RUNTIME_TOKEN_FILE"] ??
         join(runtimeDirectory, "auth", "tokens", "operator.token")
-    ),
-    launchAgentsDirectory: resolve(
-      environment["CHIRALITY_LAUNCH_AGENTS_DIRECTORY"] ??
-        join(homeDirectory, "Library", "LaunchAgents")
     )
   };
 }

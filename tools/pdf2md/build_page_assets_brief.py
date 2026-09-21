@@ -17,7 +17,7 @@ Inputs:
 
 Outputs:
     INIT-TASK brief on stdout. The brief is consumed by TASK with
-    TaskSkill: pdf2md-page-assets.
+    Workflow: pdf2md-page-assets.
 
 Example:
     python3 tools/pdf2md/build_page_assets_brief.py \
@@ -68,10 +68,10 @@ def main() -> int:
         raise SystemExit(f"ERROR: output parent directory does not exist: {output_json.parent}")
 
     brief = f"""PURPOSE: Identify extractable prose-document assets on one PDF page
-RequestedBy: PDF2MD
+RequestedBy: WORKING_ITEMS
 
 ScopePath: {work_dir}
-TaskSkill: pdf2md-page-assets
+Workflow: pdf2md-page-assets
 
 Tasks:
   - Read one page raster and its clean Markdown context
@@ -110,7 +110,7 @@ CustomInstructions:
     * Captions go in the "caption" field (NOT "label", "title", or "name").
     * For kind="tbl" entries: do NOT emit the legacy "csv_text" field. The canonical
       table representation is a structured "table_data" object conforming to
-      "pdf2md-table/v1" — see skills/pdf2md-page-assets/SKILL.md for the schema,
+      "pdf2md-table/v1" — see workflows/pdf2md-page-assets/WORKFLOW.md for the schema,
       field rules, and worked example (rows/cells with row_span/col_span/is_header,
       cell `type` of text|number|fraction|missing|formula|boolean, optional `unit`
       and `raw`, table-level `header_rows`, `section_dividers`, `footnotes`,

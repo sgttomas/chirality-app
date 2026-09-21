@@ -1,0 +1,77 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-INIT-PIPING-RESUME-RETIREMENT-20260803
+title: Retire the consumed piping D-41 one-time resume prompt from init/
+date: 2026-08-03
+basis: 789c9598faea838a37bd1d848c59b3eae127c9ec
+
+instruction_surface_paths:
+  - init/piping-resume-one-time.md
+  - docs/governance_harness/tranche_manifests/ROOT-INIT-PIPING-RESUME-RETIREMENT-20260803.yaml
+
+m2_gate:
+  authorization: |-
+    Owner direction of 2026-08-03, in-session, verbatim: "the dirty deletion
+    is my own action and I'm fine with it, so clean up the git state and
+    leave the file removed." The deletion was the owner's own working-tree
+    act; this tranche publishes it. Merge authorization of 2026-08-03,
+    in-session, verbatim: "Merge PR #507". Merge executes as agent-as-proxy
+    under that direction per docs/PRD_ROOT.md annex 5.3.1 as simplified by
+    owner direction 2026-07-29 (Receipt 64). approved_source_sha below pins
+    the deletion commit; the manifest commit rides the same branch and the
+    final branch HEAD is the approved HEAD recorded at the PR gate. This
+    manifest records that the gate was taken; it grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-03
+  integration_owner: >-
+    HELP_HUMAN coordination session of 2026-08-03 (Agent 0); sole serialized
+    integration owner for the bounded write fence (one init/ file deletion,
+    this manifest)
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-08-03
+    approved_source_sha: "6bb723fc373db30206d36505fa4194d97af756ff"
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The affected loop was already notified: the root TM generational-pass
+    closeout (PR #506) routed
+    projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-03_ROOT_PIPING_RESUME_RESIDUALS.md,
+    which carries the three residual owner acts the retired prompt was the
+    last live carrier of (PKG-06/07/08 attribution defect, stale W3 pause
+    entry, addendum-9 frozen-evidence question) for row minting at Piping's
+    next TM generation. This tranche only deletes the consumed launcher
+    file, which is unreachable from the launcher catalog
+    (init/dev-loop-init-prompt.md never listed it); no new notice is owed.
+
+scope_limits:
+  - >-
+    one deletion only: init/piping-resume-one-time.md, a one-time resume
+    prompt for the chirality-piping D-41 deliverable-concordance run that
+    is complete (R6 backcheck closed; R7 DEC-076/PDU-077 re-extraction
+    done; both worktrees the prompt names no longer exist); prior content
+    remains retrievable at def4437d1 and earlier
+  - >-
+    no launcher-catalog, agent-instruction, tool, register, receipt,
+    lifecycle, product, scope, dependency, decomposition, pointer,
+    activation, reliance, release, or professional-judgment act
+  - >-
+    the residual owner acts formerly carried by the prompt are not
+    dispositioned here; they travel via the routed Piping notice named in
+    m6_notice.rationale
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export manifest pins init/piping-resume-one-time.md.
+    Regeneration is deferred to the next authorized export release from
+    post-merge bytes per the standing disposition (D-GOV-26 item 4), now
+    also carried by register row TM-ROOT-120 (export-release trigger).

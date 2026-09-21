@@ -1,0 +1,44 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: APP-PRODUCT-GUIDANCE-UPDATES-20260912
+title: Automatic App guidance and public release discovery
+date: '2026-09-12'
+basis: ce6f3ade0f55e173a9bb18309ed37577e2634cc1
+instruction_surface_paths:
+  - AGENTS.md
+  - docs/AGENT_WORKFLOW_RUNTIME.md
+  - docs/governance_harness/tranche_manifests/APP-PRODUCT-GUIDANCE-UPDATES-20260912.yaml
+  - projects/chirality-app-dev/AGENTS.md
+  - projects/chirality-app-dev/instructions/AGENTS.md
+  - projects/chirality-app-dev/docs/CONTRACT.md
+  - projects/chirality-app-dev/docs/BUILD_AND_RELEASE.md
+m2_gate:
+  authorization: >-
+    Ryan Tufts requested automatic primary and subagent instruction delivery,
+    revisiting the saved product AGENTS.md and implementing it now, public
+    updates from https://github.com/sgttomas/chirality-app/releases, and the
+    Turn into workflow label. He clarified that all instructions are open
+    source and the purpose is to make the agents work properly.
+  authorized_by: Ryan Tufts
+  authorization_date: '2026-09-12'
+  integration_owner: HELP_HUMAN on codex/ui-refinement-packaged-handoff-20260912
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-12_PRODUCT_GUIDANCE_AND_UPDATES.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-12_PRODUCT_GUIDANCE_AND_UPDATES.md
+  rationale: >-
+    Root entry and shared context contract clarify App-specific delivery.
+    App and Runtime implement the owner's coordinated refinement. Other
+    applications are not directed to adopt this product default.
+scope_limits:
+  - Stock Codex only; preserve base instructions, user configuration and project discovery.
+  - Preserve prior packages, instructions, session evidence and user customizations.
+  - No credentials, identity-state manipulation, new governance gates or publishing.
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The next consolidated replacement build regenerates its instruction bundle
+    from the reviewed merge and verifies source correspondence. Earlier
+    artifacts and accepted snapshots remain historical and unchanged.

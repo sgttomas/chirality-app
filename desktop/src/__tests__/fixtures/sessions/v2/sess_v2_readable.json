@@ -1,0 +1,26 @@
+{
+  "sessionId": "sess_v2_readable",
+  "projectRoot": "__PROJECT_ROOT__",
+  "persona": "WORKING_ITEMS",
+  "mode": "direct",
+  "createdAt": "2026-08-30T12:00:00.000Z",
+  "updatedAt": "2026-08-30T12:05:00.000Z",
+  "engineSessionId": "engine_fixture_readable",
+  "claudeSessionId": "engine_fixture_readable",
+  "bootFingerprint": "fixture-boot-fingerprint-readable",
+  "bootedAt": "2026-08-30T12:00:01.000Z",
+  "model": "fixture-model",
+  "engineSelection": {
+    "adapterId": "claude-agent-sdk",
+    "providerId": "anthropic",
+    "model": "fixture-model"
+  },
+  "adapterSession": {
+    "engineSessionId": "engine_fixture_readable",
+    "packageName": "@anthropic-ai/claude-agent-sdk",
+    "packageVersion": "0.3.150"
+  },
+  "sdkPackageVersion": "0.3.150",
+  "agentType": 1,
+  "agentInstanceId": "WI-FIXTURE-READABLE"
+}

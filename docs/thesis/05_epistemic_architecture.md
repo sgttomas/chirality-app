@@ -167,7 +167,7 @@ Together, they address the four failure modes of LLM-assisted professional work:
 
 *[Note added 2026-07-01: R5, R6, and R7 govern provenance, invention, and conflicts respectively; the labeling act itself is enforced at audit time per D-GOV-08 (2026-07-01).]*
 
-The common thread is **visibility**. Each mechanism makes a category of epistemic failure visible to the reviewer rather than hiding it in the model's output. The system does not prevent epistemic failures — it makes them structurally detectable. This is a design choice: prevention is impossible to guarantee for LLM outputs, but detection can be architecturally enforced.
+The common thread is **visibility**. Each mechanism makes a category of epistemic failure visible to the reviewer rather than hiding it in the model's output. The system does not prevent epistemic failures — it makes them structurally detectable. This is a design choice: prevention is impossible to guarantee for LLM outputs, but detection can be architecturally enforced. It is also the architectural form of an older result: a verification argument relates artifacts to artifacts — Smith's relative consistency between program and specification, never model-to-world correctness [CITE:Smith1985] — so the honest design goal is detectability before a human judgment, not machine-certified correctness.
 
 ---
 

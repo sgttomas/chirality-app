@@ -19,6 +19,11 @@ EXROOT="${1:?Usage: $0 <EXECUTION_ROOT> <PKG_ID> <PkgLabel>}"
 PKG_ID="${2:?Usage: $0 <EXECUTION_ROOT> <PKG_ID> <PkgLabel>}"
 PKG_LABEL="${3:?Usage: $0 <EXECUTION_ROOT> <PKG_ID> <PkgLabel>}"
 
+set -e
+if [[ "$PKG_ID" == */* || "$PKG_LABEL" == */* ]]; then
+  print -u2 "Identifier and label must be path components"
+  exit 2
+fi
 PKG_DIR="$EXROOT/${PKG_ID}_${PKG_LABEL}"
 
 SUBDIRS=(
@@ -33,6 +38,14 @@ SUBDIRS=(
   "3_Issued/_Archive"
 )
 
+if [[ ! -d "$EXROOT" ]]; then
+  print -u2 "Execution root must already exist: $EXROOT"
+  exit 2
+fi
+if [[ ! -d "$PKG_DIR" ]]; then
+  mkdir "$PKG_DIR"
+  echo "CREATED_PATH: $PKG_DIR"
+fi
 created=0
 existed=0
 
@@ -42,6 +55,7 @@ for sub in "${SUBDIRS[@]}"; do
     existed=$((existed + 1))
   else
     mkdir -p "$target"
+    echo "CREATED_PATH: $target"
     created=$((created + 1))
   fi
 done

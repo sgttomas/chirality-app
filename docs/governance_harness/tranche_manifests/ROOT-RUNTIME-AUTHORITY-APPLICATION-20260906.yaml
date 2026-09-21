@@ -1,0 +1,39 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-RUNTIME-AUTHORITY-APPLICATION-20260906
+title: Exact accepted runtime authority and Root governance canon application
+date: 2026-09-06
+basis: 8209bc54e0d133b19437c93b184cd50ba3d43489
+instruction_surface_paths:
+  - docs/PRD_ROOT.md
+  - docs/DIRECTIVE.md
+  - docs/SPEC.md
+  - docs/TYPES.md
+  - docs/governance_harness/tranche_manifests/ROOT-RUNTIME-AUTHORITY-APPLICATION-20260906.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts approved the complete Gate3 amendment including runtime decomposition
+    and the PRD revision rule, then approved Gate4 and authorized merging PR727 to
+    execute the plan through delegated managers. The exact owner records are
+    plans/steers/root_runtime_migration_gate3_approval_2026-09-05.md and
+    plans/steers/root_runtime_migration_gate4_approval_2026-09-05.md, published on
+    origin/main at 8209bc54e0d133b19437c93b184cd50ba3d43489.
+    The Gate4 approved WRITE_TARGETS.csv selects exact four-canon postimage hashes.
+    Application waits for guard/successor readiness and preserves the immutable
+    Revision8 predecessor and accepted D13 instrument. No Gate5 confirmation,
+    effective transfer, pointer move, runtime activation or release is inferred.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-05
+  integration_owner: /root HELP_HUMAN; scoped actual HELPS_HUMANS authority manager
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_ROOT_RUNTIME_AUTHORITY_2026-09-06.md
+    - projects/pec/execution/_Coordination/NOTICE_ROOT_RUNTIME_AUTHORITY_2026-09-06.md
+  rationale: >-
+    Root canon ownership and path-model changes require receiving-loop currency
+    and pin/mirror disposition. Notices identify the exact accepted subject and
+    actual application-record location without asserting client adoption or release.
+    No agent instruction package changed. Guard/tool changes use the separately
+    owned ROOT-RUNTIME-GATE4-GUARDS-20260906 manifest and these same routes.

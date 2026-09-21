@@ -1,0 +1,46 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-CLOSEOUT-20260725
+title: Post-step-9 closeout — practitioner-harness root adoption, CHANGE merge-verdict rule, fileset completion, historical reconciliation
+date: 2026-07-25
+basis: 9d0cbc53681b66a29ec71485866a47167f0085ff
+instruction_surface_paths:
+  - agents/AGENT_CHANGE.md
+  - tools/practitioner_harness/README.md
+  - tools/practitioner_harness/adapter_loader.py
+  - tools/practitioner_harness/adapter_project.py
+  - tools/practitioner_harness/cmd_drift.py
+  - tools/practitioner_harness/cmd_status.py
+  - tools/practitioner_harness/harness.py
+  - tools/practitioner_harness/test_root_adoption.py
+  - tools/validation/validate_root_harness_adapter.py
+  - docs/governance_harness/tranche_manifests/ROOT-CLOSEOUT-20260725.yaml
+m2_gate:
+  authorization: >-
+    Owner direction, in-session, 2026-07-25: "let's close out what we can
+    now before proceeding to the per-deliverable initialization and creation
+    of scopes of work." — releasing the dormant agent-closeable items: the
+    separately-recorded practitioner-harness adoption of the root adapter
+    (G1 docstring open item; N2/M1 returns), the CHANGE merge-verdict
+    standing rule (parked follow-on, content pre-specified in the
+    2026-07-25 workplan), the SPEC §2.1 fileset completion, and the
+    D-GOV-21 packet §7(b) historical receipt reconciliation.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: HELP_HUMAN (Agent 0) — serialized integration owner for this tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - domains/chirality/_Coordination/NOTICE_2026-07-25_AGENT_CHANGE_MERGE_VERDICT_RULE.md
+  rationale: >-
+    Pin survey at basis 9d0cbc536: the app-dev authority corpus pins
+    DIRECTIVE, CONTRACT, SPEC, TYPES, PLAN, PRD, AGENT_SOFTWARE_DECOMP,
+    AGENT_DOMAIN_ENGINE — none touched. The chirality domain pack DOES pin
+    agents/AGENT_CHANGE.md (SRC-AGENTS-AGENT-CHANGE, sha256 in
+    domains/chirality/_Sources/Source_Manifest.csv row 37, atomized by
+    line anchor + content hash in its Gate-3 ledger) — a routed notice
+    ships in this tranche per the AGENTS.md agent-index change-notice
+    rule. tools/practitioner_harness is root-owned tooling not pinned by
+    any loop; its behavior change for the pilot projects is nil
+    (byte-identical outputs, verified in the H1 return).

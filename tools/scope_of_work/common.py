@@ -60,7 +60,12 @@ class Catalog:
     @property
     def local_re(self) -> re.Pattern[str]:
         prefixes = "|".join(re.escape(key) for key in self.definitions)
-        return re.compile(rf"\b(?:{prefixes})-\d{{{self.width}}}\b")
+        # Local-ID syntax is deliverable-scoped. The left-context guard stops a
+        # qualified upstream citation (`DEL-01-02/REQ-003`, `DEL-01-02-REQ-004`)
+        # being harvested as this contract's local `REQ-003`/`REQ-004`, which
+        # would either collide with a local definition or scan as an unresolved
+        # local reference. A standalone `REQ-003` still matches.
+        return re.compile(rf"(?<![-/\w])(?:{prefixes})-\d{{{self.width}}}\b")
 
     @property
     def definition_re(self) -> re.Pattern[str]:

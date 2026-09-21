@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { readFile, realpath, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { constants, type BigIntStats } from "node:fs";
+import { lstat, open, readFile, realpath } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   RuntimeError,
   type Agent1RunRequest,
@@ -46,6 +47,9 @@ export interface RuntimeToolBindingPort {
 }
 
 export interface GovernedAgent1RunOptions {
+  hookDrainTimeoutMs?: number;
+  /** Absolute Runtime control and transcript roots excluded from bound reads. */
+  protectedPaths?: readonly string[];
   projects: ProjectRegistry;
   sessions: SessionStore;
   turns: TurnCoordinator;
@@ -91,6 +95,8 @@ interface AgentRunRecord {
   };
   status: "running" | "completed" | "failed" | "interrupted";
   failureCode?: string;
+  reconciliationRequired?: boolean;
+  progressRecordedAt?: string;
   approvalReference: string;
   createdAt: string;
   completedAt?: string;
@@ -102,7 +108,10 @@ export class GovernedAgent1RunCoordinator {
     { projectId: string; controller: AbortController; childSessionId?: string }
   >();
 
-  constructor(private readonly options: GovernedAgent1RunOptions) {}
+  constructor(private readonly options: GovernedAgent1RunOptions) {
+    const timeout = options.hookDrainTimeoutMs ?? 5000;
+    if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 30000) throw new RuntimeError("INVALID_REQUEST", "Invalid manager hook drain bound");
+  }
 
   isActive(projectId: string, sessionId: string): boolean {
     return this.active.get(sessionId)?.projectId === projectId;
@@ -183,7 +192,24 @@ export class GovernedAgent1RunCoordinator {
           status: "launched" | "completed" | "failed" | "interrupted";
         }
       | undefined;
+    let reviewClaimed = false;
+    let delegationClaimed = false; // A consumed admission attempt is never reset after asynchronous failure.
     let review: { decision: "accepted" | "rejected"; rationaleHash: string } | undefined;
+    let hooksOpen = true;
+    const pendingHooks = new Set<Promise<unknown>>();
+    const assertHookLive = () => { if (!hooksOpen || controller.signal.aborted) throw new RuntimeError("INTERRUPTED", "Manager hook authority has ended", 499); };
+    const trackHook = <T>(operation: () => Promise<T>): Promise<T> => {
+      assertHookLive();
+      const promise = operation(); pendingHooks.add(promise);
+      void promise.then(() => pendingHooks.delete(promise), () => pendingHooks.delete(promise));
+      return promise;
+    };
+    let persistence: Promise<void> = Promise.resolve();
+    const persistHook = (record: AgentRunRecord): Promise<void> => {
+      const next = persistence.then(async () => { assertHookLive(); await this.persistAgentProgress(projectId, runId, record); });
+      persistence = next.catch(() => undefined);
+      return next;
+    };
     await this.persistAgentRun(projectId, runId, {
       schemaVersion: "chirality.agent-run/v1",
       runId,
@@ -205,8 +231,9 @@ export class GovernedAgent1RunCoordinator {
     });
     try {
       yield { type: "harness:event", data: accepted };
-      const hooks: Agent1ManagerHooks = {
+      const rawHooks: Agent1ManagerHooks = {
       delegate: async ({ sealedBrief }) => {
+        assertHookLive();
         if (controller.signal.aborted) {
           throw new RuntimeError("INTERRUPTED", "Agent 1 run was interrupted", 499);
         }
@@ -217,13 +244,15 @@ export class GovernedAgent1RunCoordinator {
             403
           );
         }
-        if (child !== undefined) {
+        if (delegationClaimed) {
           throw new RuntimeError(
             "DELEGATION_POLICY_VIOLATION",
             "Agent 1 may launch at most one local child in this milestone",
             403
           );
         }
+        // Reserve synchronously before residency, storage or tool binding can yield.
+        delegationClaimed = true;
         if (request.readOnlyTool?.name !== "read_file") {
           throw new RuntimeError(
             "DELEGATION_POLICY_VIOLATION",
@@ -255,6 +284,7 @@ export class GovernedAgent1RunCoordinator {
             403
           );
         }
+        assertHookLive();
         const childSession = await this.options.sessions.create({
           projectId,
           role: "agent2",
@@ -275,7 +305,8 @@ export class GovernedAgent1RunCoordinator {
         };
         const active = this.active.get(managerSession.sessionId);
         if (active !== undefined) active.childSessionId = child.sessionId;
-        await this.persistAgentRun(projectId, runId, {
+        assertHookLive();
+        await persistHook({
           schemaVersion: "chirality.agent-run/v1",
           runId,
           projectId,
@@ -307,6 +338,7 @@ export class GovernedAgent1RunCoordinator {
           turnId: childTurnId,
           relativePath: request.readOnlyTool.relativePath
         });
+        assertHookLive();
         const release = await this.options.tools.bind(childSession.sessionId, [tool]);
         const interruptChild = (): void => {
           void this.options.turns
@@ -386,6 +418,7 @@ export class GovernedAgent1RunCoordinator {
           projectId,
           childSession.sessionId
         );
+        assertHookLive();
         child.selection = completedChild.engineSelection;
         child.returnHash = sha256(text);
         child.evidenceReference = {
@@ -394,7 +427,7 @@ export class GovernedAgent1RunCoordinator {
           source: "canonical-session-events"
         };
         child.status = "completed";
-        await this.persistAgentRun(projectId, runId, {
+        await persistHook({
           schemaVersion: "chirality.agent-run/v1",
           runId,
           projectId,
@@ -428,13 +461,16 @@ export class GovernedAgent1RunCoordinator {
         };
       },
       review: async (input) => {
-        if (child === undefined || input.childSessionId !== child.sessionId) {
+        assertHookLive();
+        if (!input || !["accepted", "rejected"].includes(input.decision) || typeof input.rationale !== "string" || !input.rationale.trim() || input.rationale.length > 65536) throw new RuntimeError("INVALID_REQUEST", "Invalid child review");
+        if (reviewClaimed || child === undefined || input.childSessionId !== child.sessionId || child.status !== "completed" || child.returnHash === undefined || child.evidenceReference === undefined) {
           throw new RuntimeError(
             "DELEGATION_POLICY_VIOLATION",
             "Review must refer to this manager's governed child",
             403
           );
         }
+        reviewClaimed = true;
         review = {
           decision: input.decision,
           rationaleHash: sha256(input.rationale)
@@ -450,8 +486,9 @@ export class GovernedAgent1RunCoordinator {
             rationaleHash: review.rationaleHash
           }
         });
+        assertHookLive();
         await this.options.sessions.persistEvent(projectId, event);
-        await this.persistAgentRun(projectId, runId, {
+        await persistHook({
           schemaVersion: "chirality.agent-run/v1",
           runId,
           projectId,
@@ -482,6 +519,10 @@ export class GovernedAgent1RunCoordinator {
           createdAt
         });
       }
+      };
+      const hooks: Agent1ManagerHooks = {
+        delegate: input => trackHook(() => rawHooks.delegate(input)),
+        review: input => trackHook(() => rawHooks.review(input))
       };
       let failure: RuntimeError | undefined;
       try {
@@ -529,7 +570,7 @@ export class GovernedAgent1RunCoordinator {
         failure = new RuntimeError("INTERRUPTED", "Agent 1 run was interrupted", 499);
       } else if (
         request.localModel !== undefined &&
-        (child === undefined || review === undefined)
+        (child === undefined || child.status !== "completed" || child.returnHash === undefined || child.evidenceReference === undefined || review === undefined)
       ) {
         failure = new RuntimeError(
           "REQUIRED_DELEGATION_MISSING",
@@ -544,6 +585,25 @@ export class GovernedAgent1RunCoordinator {
             ? error
             : new RuntimeError("INTERNAL_FAILURE", "Agent 1 run failed", 500);
       }
+      // A manager may finish its own iterator while a callback is still executing.
+      // Revoke new/late authority first, then drain the work it already launched.
+      const hadPendingHooks = pendingHooks.size > 0;
+      hooksOpen = false;
+      let reconciliationRequired = false;
+      if (failure !== undefined || hadPendingHooks) {
+        failure ??= new RuntimeError("REQUIRED_DELEGATION_MISSING", "Manager returned with an unfinished callback", 409);
+        controller.abort();
+        const interruptions = [Promise.resolve().then(() => this.options.manager.interrupt?.(managerSession.sessionId)),
+          Promise.resolve().then(() => child === undefined ? undefined : this.options.turns.interrupt(projectId, child.sessionId))];
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const drained = await Promise.race([
+          Promise.allSettled([...pendingHooks, ...interruptions, persistence]).then(() => true),
+          new Promise<false>(resolve => { timer = setTimeout(() => resolve(false), this.options.hookDrainTimeoutMs ?? 5000); })
+        ]);
+        clearTimeout(timer);
+        reconciliationRequired = !drained;
+      }
+      // Queued publications are fenced; a drain timeout remains explicit reconciliation.
       if (failure !== undefined && child?.status === "launched") {
         child.status = failure.code === "INTERRUPTED" ? "interrupted" : "failed";
         const childSession = await this.options.sessions
@@ -596,7 +656,8 @@ export class GovernedAgent1RunCoordinator {
             }
           }),
       ...(review === undefined ? {} : { review }),
-      ...(failure === undefined ? {} : { failureCode: failure.code })
+      ...(failure === undefined ? {} : { failureCode: failure.code }),
+      ...(reconciliationRequired ? { reconciliationRequired: true } : {})
       };
       await this.persistAgentRun(projectId, runId, record);
       const terminal = await this.options.sessions.appendEvent(projectId, {
@@ -653,6 +714,8 @@ export class GovernedAgent1RunCoordinator {
       }
       };
     } finally {
+      hooksOpen = false;
+      controller.abort();
       this.active.delete(managerSession.sessionId);
     }
   }
@@ -665,18 +728,51 @@ export class GovernedAgent1RunCoordinator {
     relativePath: string;
   }): Promise<{ tool: RuntimeToolDefinition; receipt: RequiredToolReceipt }> {
     const { projectId, projectRoot, sessionId, turnId, relativePath } = input;
-    if (relativePath.length === 0 || resolve(relativePath) === relativePath) {
+    const denied = (): RuntimeError => new RuntimeError(
+      "FORBIDDEN", "read_file target left its authorized regular-file boundary", 403
+    );
+    const maxBytes = 1024 * 1024;
+    if (!relativePath || relativePath.length > 4096 || isAbsolute(relativePath) || /[\x00-\x1f\x7f]/u.test(relativePath)) {
       throw new RuntimeError("INVALID_REQUEST", "read_file path must be relative");
     }
-    const canonicalRoot = await realpath(projectRoot);
-    const canonicalPath = await realpath(resolve(canonicalRoot, relativePath));
-    if (!isContained(canonicalRoot, canonicalPath)) {
-      throw new RuntimeError("FORBIDDEN", "read_file path escapes the project", 403);
+    const canonicalRoot = projectRoot;
+    const canonicalPath = resolve(canonicalRoot, relativePath);
+    if (!isAbsolute(canonicalRoot) || resolve(canonicalRoot) !== canonicalRoot ||
+        !isContained(canonicalRoot, canonicalPath) || canonicalRoot === canonicalPath ||
+        (this.options.protectedPaths ?? []).some((path) => isContained(resolve(path), canonicalPath))) {
+      throw denied();
     }
-    const metadata = await stat(canonicalPath);
-    if (!metadata.isFile() || metadata.size > 1024 * 1024) {
-      throw new RuntimeError("FORBIDDEN", "read_file target must be a file no larger than 1 MiB", 403);
+    const sameIdentity = (a: BigIntStats, b: BigIntStats): boolean =>
+      a.dev === b.dev && a.ino === b.ino && a.mode === b.mode;
+    const sameFile = (a: BigIntStats, b: BigIntStats): boolean =>
+      sameIdentity(a, b) && a.nlink === b.nlink && a.size === b.size &&
+      a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
+    // Pin every component at authorization. Never canonicalize a replacement
+    // symlink into fresh authority, including a replacement of the project root.
+    const paths = [canonicalRoot];
+    for (const component of relative(canonicalRoot, canonicalPath).split(sep)) {
+      paths.push(resolve(paths[paths.length - 1]!, component));
     }
+    const inspect = async (): Promise<BigIntStats[]> => {
+      if (await realpath(canonicalRoot) !== canonicalRoot || await realpath(canonicalPath) !== canonicalPath) throw denied();
+      const stats: BigIntStats[] = [];
+      for (const [index, path] of paths.entries()) {
+        const info = await lstat(path, { bigint: true });
+        if (info.isSymbolicLink() || (index < paths.length - 1 && !info.isDirectory())) throw denied();
+        stats.push(info);
+      }
+      const file = stats[stats.length - 1]!;
+      if (!file.isFile() || file.nlink !== 1n || file.size > BigInt(maxBytes)) throw denied();
+      return stats;
+    };
+    const authorized = await inspect();
+    const metadata = authorized[authorized.length - 1]!;
+    const checkContinuity = async (): Promise<void> => {
+      const current = await inspect();
+      if (!current.every((info, index) => index === current.length - 1
+        ? sameFile(authorized[index]!, info)
+        : sameIdentity(authorized[index]!, info))) throw denied();
+    };
     let completed = false;
     const tool: RuntimeToolDefinition = {
       name: "read_file",
@@ -718,7 +814,32 @@ export class GovernedAgent1RunCoordinator {
           if (signal.aborted) {
             throw new RuntimeError("INTERRUPTED", "Read interrupted", 499);
           }
-          const content = await readFile(canonicalPath, "utf8");
+          if (!_input || typeof _input !== "object" || Array.isArray(_input) || Object.keys(_input).length !== 0) throw denied();
+          await checkContinuity();
+          const handle = await open(canonicalPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+          let content: string;
+          let byteLength: number;
+          try {
+            const before = await handle.stat({ bigint: true });
+            if (!before.isFile() || !sameFile(metadata, before)) throw denied();
+            await checkContinuity();
+            // Fixed allocation and an extra byte bound growth even during a race.
+            const buffer = Buffer.alloc(maxBytes + 1);
+            let offset = 0;
+            while (offset < buffer.length) {
+              if (signal.aborted) throw new RuntimeError("INTERRUPTED", "Read interrupted", 499);
+              const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+              if (bytesRead === 0) break;
+              offset += bytesRead;
+            }
+            if (offset > maxBytes || BigInt(offset) !== before.size || !sameFile(before, await handle.stat({ bigint: true }))) throw denied();
+            await checkContinuity();
+            if (signal.aborted) throw new RuntimeError("INTERRUPTED", "Read interrupted", 499);
+            content = new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, offset));
+            byteLength = offset;
+          } finally {
+            await handle.close();
+          }
           await this.options.sessions.appendEvent(projectId, {
             sessionId,
             turnId,
@@ -727,7 +848,7 @@ export class GovernedAgent1RunCoordinator {
               ...evidence,
               durationMs: Date.now() - startedAt,
               resultMetadata: {
-                byteLength: Buffer.byteLength(content),
+                byteLength,
                 rawOutputPersisted: false
               }
             }
@@ -786,6 +907,15 @@ export class GovernedAgent1RunCoordinator {
     runId: string,
     record: AgentRunRecord
   ): Promise<void> {
+    await this.writeAgentRun(projectId, runId, record, "run.json");
+  }
+
+  /** Non-authoritative immutable progress; late I/O cannot replace the terminal run record. */
+  private async persistAgentProgress(projectId: string, runId: string, record: AgentRunRecord): Promise<void> {
+    await this.writeAgentRun(projectId, runId, { ...record, progressRecordedAt: new Date().toISOString() }, `progress-${randomUUID()}.json`);
+  }
+
+  private async writeAgentRun(projectId: string, runId: string, record: AgentRunRecord, filename: string): Promise<void> {
     const project = await this.options.projects.requireAuthorized(projectId);
     const manifest = await this.options.projects.readManifest(projectId);
     const executionRoot = await realpath(resolve(project.canonicalRoot, manifest.defaultExecutionRoot));
@@ -793,7 +923,7 @@ export class GovernedAgent1RunCoordinator {
       throw new RuntimeError("FORBIDDEN", "Execution root escapes the project", 403);
     }
     await atomicWriteJson(
-      join(executionRoot, "_Coordination", "AgentRuns", "runtime", runId, "run.json"),
+      join(executionRoot, "_Coordination", "AgentRuns", "runtime", runId, filename),
       record
     );
   }

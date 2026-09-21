@@ -18,6 +18,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
+# materialize_page_assets execs render_table_xlsx at import, which raises
+# SystemExit when openpyxl is missing — skip before that import runs.
+pytest.importorskip("openpyxl")
+
 
 _HERE = Path(__file__).resolve().parent
 _SPEC = importlib.util.spec_from_file_location(
@@ -35,7 +41,7 @@ def _write_json(payload, tmpdir: Path) -> Path:
 
 
 class LoadAssetsStrict(unittest.TestCase):
-    """The contracted shape per skills/pdf2md-page-assets/SKILL.md is strict."""
+    """The contracted shape per workflows/pdf2md-page-assets/WORKFLOW.md is strict."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="test_mat_"))

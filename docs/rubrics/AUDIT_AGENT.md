@@ -1,193 +1,68 @@
-# Agent Instruction Conformance and Disposition Rubric
+# Agent and Workflow Review Rubric
 
-**Normative basis:** `docs/WORKFLOW_COMPONENT_STANDARD.md`, with inherited
-authority from `DIRECTIVE.md`, `CONTRACT.md`, `SPEC.md`, `TYPES.md`, and
-`AGENTS.md`. `AGENT_HELPS_HUMANS.md` is the applying persona, not the canon.
+Use the [component standard](../WORKFLOW_COMPONENT_STANDARD.md) and
+[runtime contract](../AGENT_WORKFLOW_RUNTIME.md) as the design basis. Record the
+reviewed revision, files, evidence boundary, and applicable human decisions.
+Run the role and workflow validators to establish structural findings before
+reviewing the substance.
 
-Use this rubric for semantic review of every live `AGENT_*.md` file. Run
-`tools/validation/validate_agent_instructions.py` first; do not spend semantic
-review time rediscovering mechanically detectable structure errors.
+## Roles
 
-## 1. Audit metadata
+Read each role as a way of participating in the work. Assess:
 
-- Auditor:
-- Date:
-- Git SHA / branch:
-- Files audited:
-- Workflow-component standard SHA:
-- Root governance SHA:
-- Live `AGENTS.md` SHA:
-- Deterministic validator result:
-- Declared observation boundary:
+- The characteristic attention and judgment are clear and distinct.
+- PROTOCOL, SPEC, STRUCTURE, and RATIONALE contribute to that role without
+  repeating one another.
+- The role’s relationship to the human and other roles is coherent with the
+  four-role design.
+- Specialized methods, machine metadata, and run-specific contracts have their
+  appropriate homes in workflows, runtime configuration, or briefs.
+- The instruction is concise enough that its prominent commitments remain clear.
 
-## 2. Finding scheme
+Review HELPS_HUMANS for making intention inspectable through inquiry and concrete
+proposals, including correction of its own framing. Review WORKING_ITEMS for
+integration of the undertaking and TASK for a usable bounded contribution.
 
-### Conformance
+## Workflows and tools
 
-- `CONFORMS` — contract is coherent within the declared boundary.
-- `PARTIAL` — directionally aligned but ambiguous, incomplete, or stale.
-- `NONCONFORMANT` — contradicts authority, exceeds permissions, or cannot
-  execute its claimed contract safely.
-- `NOT_APPLICABLE` — check does not apply; reason required.
+Follow the method from input through return, including branches and recovery.
+Assess whether:
 
-### Severity
+- Participating roles, delegation, review independence, and human decisions
+  support the actual undertaking.
+- Inputs, outputs, source authority, and acceptance checks agree with their
+  consumers and current tools.
+- Detailed resources are selected where needed rather than loaded by default.
+- Claims have support proportional to their strength; gaps and conflicting
+  evidence remain visible.
+- Partial execution, subject defects, and tool failures have distinct returns.
+- Snapshot, pointer, and handoff rules match the artifact’s authority class.
+- Capabilities and write targets remain within the effective run contract.
+- Repeated deterministic operations have reliable tool implementations and
+  regression evidence appropriate to their consequences.
 
-- `BLOCKER` — unsafe authority/write behavior, unbounded execution, invalid
-  structural contract, or active contradiction with a binding invariant.
-- `HIGH` — changes outcomes, decision rights, or handoff/closure reliability.
-- `MEDIUM` — material drift, duplication, compatibility risk, or avoidable
-  execution ambiguity.
-- `LOW` — localized hygiene or clarity issue.
-- `INFO` — relevant fact, including a migration candidate with no current
-  defect.
+A workflow can coordinate many contributions. Its orchestration belongs to
+WORKING_ITEMS; TASK receives a bounded workflow or brief. A tool performs a
+defined operation, whose successful execution does not establish acceptance of
+its subject.
 
-Every `PARTIAL` or `NONCONFORMANT` finding includes:
+## Findings and disposition
 
-1. agent excerpt and section;
-2. governing excerpt and section;
-3. impact;
-4. minimal correction or transformation; and
-5. whether human judgment is required.
+For every finding record the observed excerpt or behavior, applicable contract,
+practical impact, proposed correction, and unresolved decision. Use these levels:
 
-Do not overstate a structural check as proof of semantic safety.
-
-## 3. Per-agent file card
-
-| Field | Entry |
+| Severity | Meaning |
 |---|---|
-| Agent | |
-| Current type/class/surface | |
-| Current write scope | |
-| Human interaction/gates | |
-| Decision or escalation rights | |
-| Shell/context/authorization semantics | |
-| State/handoff ownership | |
-| Main callers/dispatchers | |
-| Primary outputs and authority classes | |
-| Referenced skills/tools | |
-| Compatibility obligations | |
+| BLOCKER | Invalid authority, capability, scope, or executable contract |
+| HIGH | Changes substantive results, decisions, or reliable handoff |
+| MEDIUM | Material ambiguity, duplication, or compatibility drift |
+| LOW | Local clarity or hygiene defect |
+| INFO | Relevant observation without a demonstrated defect |
 
-## 4. Universal conformance checks
+Distinguish structural validation from semantic review. Neither establishes an
+unobserved host enforcement claim or comparative model-performance result.
 
-### 4.1 Authority and precedence
-
-- Does the file defer to root governance, `AGENTS.md`, and the workflow-
-  component standard without redefining them?
-- Does it distinguish a human ruling from agent execution, validation, commit,
-  push, report generation, or recommendation?
-- Can lower-level instructions narrow but not silently weaken higher
-  authority?
-
-### 4.2 Write authorization
-
-- Is the declared write scope consistent with every described write?
-- For TASK execution, are `AllowedWriteTargets` distinct from read scope?
-- Is active-checkout containment preserved?
-- Are protected/authoritative paths identified where applicable?
-
-### 4.3 Epistemic integrity
-
-- Are non-trivial governed claims provenance-bearing or explicitly gaps?
-- Are unknowns `TBD` rather than invented?
-- Are conflicts surfaced for human ruling?
-- Does claim strength comply with K-CLAIM-1?
-- Does the file avoid incorrectly requiring producer-emitted FACT/warrant-state
-  labels contrary to D-GOV-08?
-
-### 4.4 Artifact authority
-
-- Are outputs classified as authoritative truth, candidates, derivative
-  packages, evidence, generated views, or convenience state?
-- Can any generated or derivative output feed back as shadow authority?
-- Are snapshot and pointer rules appropriate to the artifact class rather than
-  applied universally?
-
-### 4.5 Multi-phase integration
-
-Where applicable:
-
-- accepted upstream snapshot named;
-- derivative-package currency tracked;
-- explicit handoff state emitted;
-- closure verdict includes audit and blockers;
-- rerun requirements recorded;
-- cycle behavior follows the recorded-move rule.
-
-### 4.6 Runtime contract
-
-- Inputs, outputs, failure posture, and stopping conditions are explicit.
-- Human gates occur only at consequential decisions.
-- Straight-through execution contains no mid-run human decision.
-- Tool use respects the skill/tool boundary.
-- Repeated prompt text is not substituting for a skill contract.
-
-### 4.7 Lifecycle and compatibility
-
-- Is active/deprecated/retired status explicit?
-- Are stale names or callers present?
-- If transformed, are replacement, compatibility scope, dispatcher updates,
-  and removal condition defined?
-
-## 5. Agent requalification test
-
-Answer each with evidence:
-
-| Question | Yes/No | Evidence |
-|---|---|---|
-| Distinct human interaction or gate lifecycle? | | |
-| Distinct decision-right or escalation contract? | | |
-| Distinct shell-level context/invocation/authorization semantics? | | |
-| Durable workflow-state or handoff ownership? | | |
-| Write posture impossible to express through bounded TASK? | | |
-| Recurring reasoning method separable into a skill? | | |
-| Deterministic operations separable into tools? | | |
-| Run-specific material that belongs only in briefs? | | |
-
-An agent needs at least one substantiated agent-level distinction. A dedicated
-topic, output schema, tool sequence, or snapshot location does not qualify it.
-
-For Type 2 agents other than TASK, require evidence that their shell behavior
-cannot be represented by TASK. Absence of such evidence makes
-`CONVERT_TO_SKILL` or `CONVERT_TO_TOOL` the default proposal, not an automatic
-retirement act.
-
-## 6. Disposition
-
-Choose exactly one primary disposition:
-
-| Disposition | Meaning |
-|---|---|
-| `RETAIN` | Agent-level contract is justified and current. |
-| `SLIM` | Agent remains; reusable method and deterministic detail move down. |
-| `MERGE` | Authority/interaction surface belongs in another persona. |
-| `CONVERT_TO_SKILL` | Bounded reasoning moves under TASK. |
-| `CONVERT_TO_TOOL` | Deterministic behavior moves to tools; any residual reasoning is separately classified. |
-| `RETIRE` | No live role remains after compatibility closure. |
-
-Required disposition record:
-
-- Primary disposition:
-- Confidence and evidence boundary:
-- Retained agent-level contract, if any:
-- Skill candidate(s):
-- Tool candidate(s):
-- Target dispatcher/owner:
-- Active callers to migrate:
-- Compatibility window:
-- Removal condition:
-- Required validation:
-- Human decision still needed:
-
-## 7. Suite-level synthesis
-
-The audit package includes:
-
-1. one file card and disposition per live agent;
-2. cross-agent overlap and missing-ownership findings;
-3. proposed target topology;
-4. migration waves ordered by dependency and compatibility risk;
-5. registry and narrative updates per wave;
-6. deterministic tool/validator gaps;
-7. unresolved human decisions; and
-8. explicit statement that disposition proposals do not retire components by
-   themselves.
+A migration review accounts for every source component, verifies destination
+interfaces, and records compatibility and downstream adoption work. Historical
+records retain their original bytes; amendments identify what supersedes their
+live architectural prescriptions. Proposals alone do not supply human acceptance.

@@ -1,0 +1,75 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: PIPING-SWBPIPE-A1-CLAIMS-LINT-20260918
+title: Piping claims lint follows the claims registry after the D-71 rulings (SWBPIPE Tranche A1)
+date: 2026-09-18
+basis: 04aefa9803a6a9d26dae39ad6bbc06c470963fad
+
+instruction_surface_paths:
+  - tools/validation/validate_claims_language.py
+  - tools/validation/test_validate_claims_language.py
+  - docs/governance_harness/tranche_manifests/PIPING-SWBPIPE-A1-CLAIMS-LINT-20260918.yaml
+
+m2_gate:
+  authorization: >-
+    Ryan Tufts authorized implementation of the SWBPIPE interface design in
+    session on 2026-09-18 and, asked whether he directs the edit of the root
+    claims lint in Tranche A1, selected "Yes, edit the root lint in Tranche A1".
+    The messages are recorded verbatim with SHA-256 (stored-transcript custody)
+    in projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/ROOT/ACTIVATION_2026-09-18.md.
+    The acts executed are the owner's D-71 rulings codified as DEC-100, DEC-101,
+    DEC-102 and DEC-105 in the piping project's SOFTWARE_DECOMP.md section 12,
+    each of which states that the lint, the registry and the product text change
+    in the same tranche. This manifest records the gate and grants no authority
+    (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-18
+  integration_owner: >-
+    the SWBPIPE implementation run's ROOT (Claude Fable 5.1, HELP_HUMAN), with
+    the lint and registry change executed by a bounded Type 2 TASK dispatch
+    (Claude Fable 5.1) under sealed brief A1-LINT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The validator scans only projects/chirality-piping (PROJECT_RELPATH) and is
+    run by that project's tests and by the practitioner harness self-check as
+    GEN-13 against that project alone. No other loop's live authority corpus or
+    contract mirror pins these two files; the remaining references are frozen
+    historical run records and export manifests. The change retires one required
+    anchor, follows the amended registry texts and adds two findings for retired
+    sentences; its interface (arguments, exit codes, output shape) is unchanged.
+
+candidate_paths:
+  - tools/validation/validate_claims_language.py
+  - tools/validation/test_validate_claims_language.py
+  - docs/governance_harness/tranche_manifests/PIPING-SWBPIPE-A1-CLAIMS-LINT-20260918.yaml
+  - projects/chirality-piping/docs/claims_registry.md
+  - projects/chirality-piping/docs/PRD.md
+  - projects/chirality-piping/docs/report_notice_template.md
+  - projects/chirality-piping/apps/desktop/
+  - projects/chirality-piping/core/
+  - projects/chirality-piping/docs/
+  - projects/chirality-piping/tests/
+  - projects/chirality-piping/tools/release/
+  - projects/chirality-piping/.github/ISSUE_TEMPLATE/
+  - projects/chirality-piping/README.md
+  - projects/chirality-piping/CONTRIBUTING.md
+  - projects/chirality-piping/execution/_ScopeChange/_LATEST.md
+  - projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/
+
+scope_limits:
+  - >-
+    No agent instruction, skill, workflow, or other root tool changes. The
+    retirement of "not authoritative"-family phrasing and the litany rule are
+    unchanged and stay enforced.
+  - >-
+    This tranche is the visible rename. Document kinds, schema namespaces,
+    package, crate and binary names are not changed; the owner ruled that
+    openpipestress_jcs_ijson_v1, openpipestress_result_semantics_v0_2, the
+    .opsproj extension and the store filename do not rename.
+  - >-
+    No release, lifecycle promotion, governed acceptance or professional claim
+    follows from this tranche. The new Apple App ID remains the owner's act.

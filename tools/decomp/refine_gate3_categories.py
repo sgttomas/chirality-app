@@ -25,7 +25,7 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "tools" / "source_catalog"))
-from source_database import resolve_snapshot_path  # noqa: E402
+from source_database import resolve_domain_root, resolve_snapshot_path  # noqa: E402
 
 
 CATEGORY_REFINEMENTS: dict[str, dict[str, str]] = {
@@ -389,14 +389,18 @@ BOUNDARY_DECISIONS: list[dict[str, str]] = [
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--domain-root", type=Path, default=Path("domains/chirality"))
+    ap.add_argument("--domain-root", type=Path)
     ap.add_argument("--repo-root", type=Path, default=Path("."))
-    ap.add_argument("--snapshot", type=Path, default=Path("domains/chirality/_LocalIndexes/_LATEST.md"))
+    ap.add_argument("--snapshot", type=Path)
     ap.add_argument("--timestamp", default=None)
     ap.add_argument("--cosine-threshold", type=float, default=0.75)
     args = ap.parse_args()
 
-    domain_root = args.domain_root
+    try:
+        domain_root = resolve_domain_root(args.domain_root)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     decomp_root = domain_root / "_Decomposition"
     timestamp = args.timestamp or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     generated_iso = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")

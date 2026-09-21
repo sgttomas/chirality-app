@@ -32,7 +32,7 @@ Conversion is lifecycle-neutral: it must not modify `_STATUS.md`, change a
 lifecycle state, imply content acceptance, or turn proposed content into
 accepted content. Substantive additions, deletions, or reinterpretations are
 not format conversion. Record them as `CONFLICT` and route them through
-SCOPE_CHANGE or a human ruling.
+WORKING_ITEMS through the scope-change workflow or a human ruling.
 
 An `ISSUED` deliverable may be converted only as an explicitly human-approved
 administrative representation replacement. Its four source documents,
@@ -114,7 +114,7 @@ SOW definitions and references remain outside quotations.
 The registered deterministic checklist tool consumes the validated
 deliverable `AC-*` definitions and emits them in source order with exact text,
 qualified identity, production-contract hash and source location, and matrix-linked
-`VER-*` records or explicit `HUMAN_REVIEW: <method>`. REVIEW consumes that
+`VER-*` records or explicit `HUMAN_REVIEW: <method>`. The review workflow consumes that
 artifact; it must not mint a second acceptance-criterion namespace,
 re-extract, paraphrase, reorder, renumber, or silently omit criteria. Agent or
 human judgment begins only in an actual human-gated review and remains

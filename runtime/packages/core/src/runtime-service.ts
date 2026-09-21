@@ -1,8 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { describeFailureDetails } from "./retirement-failure.js";
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 import {
+  CODEX_ENGINE_ADAPTER_ID,
   HarnessError,
+  HOSTED_MODEL_ID_PATTERN,
+  HOSTED_REASONING_EFFORT_PATTERN,
   RuntimeError,
   type Agent1RunRequest,
   type AgentDefinitionSummary,
@@ -27,6 +31,7 @@ import type { ProjectRegistry } from "./project-registry.js";
 import type { ResidencyCoordinator } from "./residency-coordinator.js";
 import type { SessionStore } from "./session-store.js";
 import type { TurnCoordinator } from "./turn-coordinator.js";
+import { RuntimeMethodService, type TrustedNativePlanAdapterRegistry, type ProductInstructionOptions } from "./runtime-method-service.js";
 
 export interface RuntimeCredentialStore extends ProviderCredentialPort {
   set(providerId: string, value: string): Promise<void>;
@@ -45,6 +50,30 @@ export interface PermissionDecisionPort {
   ): Promise<void>;
 }
 
+/** Narrow view of the delegated runtime's approval answer; declared here so the broker compiles against the method name only. */
+export interface DelegatedApprovalAnswerPort {
+  answerApprovalByToolUseId(projectId: string, sessionId: string, toolUseId: string, verdict: "allow" | "deny" | "allowForSession"): Promise<unknown>;
+}
+
+/**
+ * Permission broker for the stock Codex composition: a `PermissionDecisionRequest`
+ * names the tool-use id (the Codex item id carried by `tool.permission`) and the
+ * broker forwards the verdict to the delegated runtime's approval answer.
+ */
+export function createDelegatedPermissionBroker(port: DelegatedApprovalAnswerPort): PermissionDecisionPort {
+  return {
+    async submit(projectId, sessionId, request) {
+      if (typeof request.requestId !== "string" || request.requestId.trim() === "") {
+        throw new RuntimeError("INVALID_REQUEST", "Permission decision requires the tool-use id as requestId", 400, { reason: "PERMISSION_REQUEST_ID_INVALID" });
+      }
+      if (request.decision !== "allow" && request.decision !== "deny") {
+        throw new RuntimeError("INVALID_REQUEST", "Permission decision must be allow or deny", 400, { reason: "PERMISSION_DECISION_INVALID" });
+      }
+      await port.answerApprovalByToolUseId(projectId, sessionId, request.requestId, request.decision);
+    }
+  };
+}
+
 export interface Agent1RunPort {
   run(projectId: string, request: Agent1RunRequest): AsyncIterable<UIEvent>;
   interrupt?(projectId: string, sessionId: string): Promise<void>;
@@ -57,10 +86,27 @@ export interface DefaultSessionPolicy {
     persona: string;
     mode: string;
     agentType: 0 | 1;
-  }): Promise<{ role: "agent0" | "agent1"; engineSelection: EngineSelection }>;
+    /** Client catalog choice; a policy that honours it returns the same model and reasoningEffort. */
+    modelSelection?: { model: string; reasoningEffort: string };
+  }): Promise<{ role: "agent0" | "agent1"; engineSelection: EngineSelection; reasoningEffort?: string }>;
+}
+
+/**
+ * Pre-catalog shape gate: a request must carry exactly `model` and `reasoningEffort`
+ * before any catalog can be consulted. Catalog membership is decided only by
+ * `resolveHostedModelSelection` in the daemon's default session policy.
+ */
+function validateModelSelection(value: unknown): { model: string; reasoningEffort: string } {
+  const invalid = () => new RuntimeError("INVALID_REQUEST", "modelSelection requires exactly model and reasoningEffort", 400, { reason: "MODEL_SELECTION_INVALID" });
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "model,reasoningEffort") throw invalid();
+  const { model, reasoningEffort } = value as Record<string, unknown>;
+  if (typeof model !== "string" || !HOSTED_MODEL_ID_PATTERN.test(model) || typeof reasoningEffort !== "string" || !HOSTED_REASONING_EFFORT_PATTERN.test(reasoningEffort)) throw invalid();
+  return { model, reasoningEffort };
 }
 
 export class RuntimeService {
+  readonly methods: RuntimeMethodService;
+  private readonly bootingSessions = new Set<string>();
   constructor(
     readonly projects: ProjectRegistry,
     readonly sessions: SessionStore,
@@ -72,8 +118,13 @@ export class RuntimeService {
     private readonly scaffoldPort?: ProjectScaffoldPort,
     private readonly agent1Runs?: Agent1RunPort,
     private readonly permissions?: PermissionDecisionPort,
-    private readonly defaultSessionPolicy?: DefaultSessionPolicy
-  ) {}
+    private readonly defaultSessionPolicy?: DefaultSessionPolicy,
+    nativePlan?: TrustedNativePlanAdapterRegistry,
+    productInstructions?: ProductInstructionOptions
+  ) {
+    this.methods = new RuntimeMethodService(projects, sessions, engines, nativePlan, productInstructions);
+    this.turns.configureRuntimeMethods(this.methods);
+  }
 
   async registerProject(
     manifestPath: string,
@@ -115,13 +166,17 @@ export class RuntimeService {
 
   async createSession(request: CreateSessionRequest) {
     const project = await this.projects.requireAuthorized(request.projectId);
-    const persona = request.persona ?? "UNTYPED";
+    const persona = request.persona ?? request.roleId ?? "HELP_HUMAN";
     const mode = request.mode ?? "direct";
-    const roster = await this.listAgents(request.projectId, true);
-    const rosterEntry =
-      persona.trim().toUpperCase() === "UNTYPED"
-        ? { name: persona, type: 1 as const }
-        : roster.find((entry) => entry.name === persona);
+    const selectedRoleId = request.roleId ?? (request.persona === undefined ? "HELP_HUMAN" : undefined);
+    const v3Role = selectedRoleId === undefined ? undefined : (await this.methods.listRoles(request.projectId)).roles.find(value => value.id === selectedRoleId);
+    if (selectedRoleId !== undefined && (v3Role === undefined || !v3Role.directEntry)) {
+      throw new HarnessError("INVALID_REQUEST", 400, `Role '${selectedRoleId}' is not available for direct chat`);
+    }
+    const roster = v3Role === undefined ? await this.listAgents(request.projectId, true) : [];
+    const rosterEntry = v3Role === undefined
+      ? (persona.trim().toUpperCase() === "UNTYPED" ? { name: persona, type: 1 as const } : roster.find((entry) => entry.name === persona))
+      : { name: v3Role.id, type: v3Role.agentType };
     if (rosterEntry?.type !== 0 && rosterEntry?.type !== 1) {
       throw new HarnessError(
         "INVALID_REQUEST",
@@ -131,11 +186,16 @@ export class RuntimeService {
     }
     let role = request.role;
     let engineSelection = request.engineSelection;
+    let reasoningEffort: string | undefined;
+    const modelSelection = request.modelSelection === undefined ? undefined : validateModelSelection(request.modelSelection);
     if ((role === undefined) !== (engineSelection === undefined)) {
       throw new RuntimeError(
         "INVALID_REQUEST",
         "Explicit role and engineSelection must be supplied together"
       );
+    }
+    if (modelSelection !== undefined && engineSelection !== undefined) {
+      throw new RuntimeError("INVALID_REQUEST", "modelSelection cannot be combined with an explicit engineSelection", 400, { reason: "MODEL_SELECTION_INVALID" });
     }
     if (role === undefined || engineSelection === undefined) {
       if (this.defaultSessionPolicy === undefined) {
@@ -149,10 +209,16 @@ export class RuntimeService {
         projectId: request.projectId,
         persona,
         mode,
-        agentType: rosterEntry.type
+        agentType: rosterEntry.type,
+        ...(modelSelection === undefined ? {} : { modelSelection })
       });
       role = resolved.role;
       engineSelection = resolved.engineSelection;
+      reasoningEffort = resolved.reasoningEffort;
+      // A policy that cannot validate the request must not quietly fall back to its default.
+      if (modelSelection !== undefined && (engineSelection.model !== modelSelection.model || reasoningEffort !== modelSelection.reasoningEffort)) {
+        throw new RuntimeError("INVALID_REQUEST", "modelSelection is not supported by this project's session policy", 400, { reason: "MODEL_SELECTION_UNSUPPORTED", model: modelSelection.model, reasoningEffort: modelSelection.reasoningEffort });
+      }
     }
     if (role === "agent2") {
       throw new RuntimeError(
@@ -161,7 +227,9 @@ export class RuntimeService {
         403
       );
     }
-    if (!project.enabledAdapterIds.includes(engineSelection.adapterId)) {
+    // Codex is the sole engine (D-GOV-43); manifests written before the
+    // re-platform list other adapters and must not lock the user out.
+    if (engineSelection.adapterId !== CODEX_ENGINE_ADAPTER_ID && !project.enabledAdapterIds.includes(engineSelection.adapterId)) {
       throw new RuntimeError(
         "DELEGATION_POLICY_VIOLATION",
         `Engine adapter is not enabled for project ${request.projectId}: ${engineSelection.adapterId}`,
@@ -176,20 +244,50 @@ export class RuntimeService {
         403
       );
     }
-    return this.sessions.create({
+    const created = await this.sessions.create({
       ...request,
       role,
       engineSelection,
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
       persona,
       mode
     });
+    if (selectedRoleId === undefined && request.selectedMethods === undefined && request.interactionMode === undefined && request.permissionMode === undefined) return created;
+    const roleId = selectedRoleId ?? (role === "agent0" ? "HELP_HUMAN" : "WORKING_ITEMS");
+    const seeded = { ...created, schemaVersion: "chirality.session/v3" as const, roleId,
+      interactionMode: request.interactionMode ?? "chat", permissionMode: request.permissionMode ?? "ask",
+      selectedMethods: [], methodSelectionRevision: 0, instructionBasisId: "basis-pending" };
+    const resolved = await this.methods.resolveForTurn(request.projectId, seeded, { methods: request.selectedMethods ?? [] });
+    const updated = { ...seeded, selectedMethods: resolved.response.methods.map(value => ({ sourceRootId: value.sourceRootId, source: value.source, kind: value.kind, name: value.name })), instructionBasisId: resolved.response.basisPreview.id };
+    await this.sessions.update(updated);
+    return updated;
   }
 
-  async bootSession(
+  listRoles(projectId: string) { return this.methods.listRoles(projectId); }
+  listMethods(projectId: string) { return this.methods.listMethods(projectId); }
+  inspectMethod(projectId: string, qualifiedId: string) { return this.methods.inspectMethod(projectId, qualifiedId); }
+  resolveSelectedContext(projectId: string, sessionId: string, request: import("@chirality/runtime-contracts").ResolveSelectedContextRequest) { return this.methods.resolveSelectedContext(projectId, sessionId, request); }
+  replaceSelectedMethods(projectId: string, sessionId: string, request: import("@chirality/runtime-contracts").ReplaceSelectedMethodsRequest) { return this.methods.replaceSelectedMethods(projectId, sessionId, request); }
+  getNativePlanCapability(projectId: string, sessionId: string) { return this.methods.getNativePlanCapability(projectId, sessionId); }
+  listNativePlanRevisions(projectId: string, sessionId: string) { return this.methods.listNativePlanRevisions(projectId, sessionId); }
+  listNativePlanClarifications(projectId: string, sessionId: string) { return this.methods.listNativePlanClarifications(projectId, sessionId); }
+  replyNativePlanClarification(projectId: string, sessionId: string, request: import("@chirality/runtime-contracts").ReplyNativePlanClarificationRequest) { return this.methods.replyNativePlanClarification(projectId, sessionId, request); }
+  exportNativePlan(projectId: string, sessionId: string, request: import("@chirality/runtime-contracts").ExportNativePlanRequest) { return this.methods.exportNativePlan(projectId, sessionId, request); }
+
+  async bootSession(projectId: string, sessionId: string, opts: HarnessOpts = {}, expectedSelection?: EngineSelection, signal?: AbortSignal): Promise<SessionBootResponse> {
+    const key = `${projectId}:${sessionId}`;
+    if (this.bootingSessions.has(key)) throw new RuntimeError("SESSION_TURN_IN_PROGRESS", "Session boot is still settling", 409, { sessionId });
+    this.bootingSessions.add(key);
+    try { return await this.performBootSession(projectId, sessionId, opts, expectedSelection, signal); }
+    finally { this.bootingSessions.delete(key); }
+  }
+
+  private async performBootSession(
     projectId: string,
     sessionId: string,
     opts: HarnessOpts = {},
-    expectedSelection?: EngineSelection
+    expectedSelection?: EngineSelection,
+    signal?: AbortSignal
   ): Promise<SessionBootResponse> {
     let session = await this.sessions.get(projectId, sessionId);
     if (
@@ -207,8 +305,14 @@ export class RuntimeService {
     }
     const project = await this.projects.requireAuthorized(projectId);
     const persona = opts.persona ?? session.persona;
-    const mode = opts.mode ?? session.mode;
-    if (persona.trim().toUpperCase() !== "UNTYPED") {
+    // A v3 session boots under its persisted permission mode, exactly as its
+    // turns do (TurnCoordinator). The legacy chat `mode` (PORTAL, ...) is not a
+    // permission mode and only remains the fallback for pre-v3 sessions.
+    const mode = session.permissionMode ?? opts.mode ?? session.mode;
+    if (session.schemaVersion === "chirality.session/v3") {
+      const role = (await this.methods.listRoles(projectId)).roles.find(value => value.id === session.roleId);
+      if (role === undefined || !role.directEntry || persona !== role.id) throw new HarnessError("INVALID_REQUEST", 400, `Persona '${persona}' is not available for direct chat`);
+    } else if (persona.trim().toUpperCase() !== "UNTYPED") {
       const roster = await this.listAgents(projectId, true);
       if (!roster.some((agent) => agent.name === persona)) {
         throw new HarnessError(
@@ -219,12 +323,43 @@ export class RuntimeService {
       }
     }
     const engine = this.engines.resolve(session.engineSelection);
+    if (engine.descriptor.boot === "none") {
+      // No boot turn: the engine keeps a durable provider thread per session
+      // and starts it with the first real turn. Readiness is recorded now.
+      const bootedAt = new Date().toISOString();
+      const fingerprint = this.runtimeFingerprint(engine, session.engineSelection);
+      const bootFingerprint = sha256(JSON.stringify([project.manifestHash, session.persona, session.mode, fingerprint]));
+      const updated = { ...session, bootFingerprint, runtimeFingerprint: fingerprint, bootedAt };
+      await this.sessions.update(updated);
+      return {
+        session: updated,
+        boot: {
+          ...(session.engineSessionId === undefined ? {} : { engineSessionId: session.engineSessionId }),
+          adapterId: session.engineSelection.adapterId,
+          providerId: session.engineSelection.providerId,
+          model: session.engineSelection.model,
+          bootFingerprint,
+          runtimeFingerprint: fingerprint,
+          bootedAt
+        }
+      };
+    }
+    const turnId = randomUUID();
+    const resolvedContext = session.schemaVersion === "chirality.session/v3" ? await this.methods.resolveForTurn(projectId, session) : undefined;
+    const requestedTools = opts.tools ?? [];
+    const admittedTools = resolvedContext === undefined ? requestedTools : await this.methods.restrictRequestedTools(projectId, resolvedContext.response.roleId, session.permissionMode, resolvedContext.response.methods, requestedTools);
     const input: AgentEngineRunInput = {
+      projectId,
       session,
-      message: "",
+      // Boot is a real adapter turn with a reserved compatibility message.
+      // Production adapters use this value to distinguish an attributed boot
+      // from an ordinary turn while still carrying Runtime's frozen context.
+      message: "bootstrap",
+      ...(signal === undefined ? {} : { signal }),
+      interactionMode: session.interactionMode ?? "chat",
       opts: {
         model: opts.model ?? session.engineSelection.model,
-        tools: opts.tools ?? [],
+        tools: admittedTools,
         maxTurns: opts.maxTurns ?? 1,
         persona,
         mode,
@@ -232,9 +367,30 @@ export class RuntimeService {
           ? {}
           : { subagentGovernance: opts.subagentGovernance })
       },
-      turnId: randomUUID()
+      turnId,
+      ...(resolvedContext === undefined ? {} : {
+        instructionContext: resolvedContext.response,
+        runtimeTools: await this.methods.restrictRuntimeTools(projectId, resolvedContext.response.roleId, session.permissionMode, resolvedContext.response.methods, this.methods.runtimeTools(projectId, sessionId, turnId, admittedTools))
+      }),
+      ...(session.adapterSession?.contextSuccessor === undefined ? {} : { contextSuccessor: session.adapterSession.contextSuccessor })
     };
-    await engine.preflight(input);
+    if (resolvedContext !== undefined) await this.sessions.commitWithAcceptedTurn(session, { sessionId, turnId, type: "turn.accepted", data: { message: input.message, boot: true } }, resolvedContext.snapshot);
+    const failBoot = async (error: unknown): Promise<void> => {
+      if (resolvedContext === undefined) return;
+      const failure = error instanceof Error ? error : new Error("Boot failed");
+      const details = describeFailureDetails(error);
+      await this.sessions.appendEvent(projectId, { sessionId, turnId, type: "turn.failed", data: { code: error instanceof RuntimeError ? error.code : "ENGINE_UNAVAILABLE", message: failure.message, boot: true, ...(details ? { details } : {}) } }).catch(() => undefined);
+      const current = await this.sessions.get(projectId, sessionId);
+      const adapterSession = { ...(current.adapterSession ?? {}) };
+      delete adapterSession.contextSuccessor;
+      await this.sessions.update({ ...current, status: "failed", adapterSession }).catch(() => undefined);
+      if (input.contextSuccessor !== undefined) {
+        await engine.cancelContextSuccessor?.(input.contextSuccessor.preparationId).catch(() => undefined);
+        await this.sessions.failProviderSpanPreparation(projectId, sessionId, input.contextSuccessor.preparationId, { code: error instanceof RuntimeError ? error.code : "BOOT_FAILED", message: failure.message }).catch(() => undefined);
+      }
+    };
+    const cancelled = () => new RuntimeError("ENGINE_UNAVAILABLE", "Session boot was cancelled before completion", 503, { reason: "BOOT_CANCELLED", sessionId });
+    try { if (signal?.aborted) throw cancelled(); await engine.preflight(input); } catch (error) { await failBoot(error); throw error; }
     let engineSessionId: string | undefined;
     let adapterId: string | undefined;
     let providerId: string | undefined;
@@ -245,7 +401,12 @@ export class RuntimeService {
     let fatalTurnError = false;
     let eventIndex = 0;
     const harnessEvents: HarnessEvent[] = [];
-    for await (const event of engine.startTurn(input)) {
+    let interruption: Promise<void> | undefined;
+    let interruptionError: unknown;
+    const interrupt = () => { if (!engine.handlesAbortSignal) interruption ??= engine.interrupt(sessionId).catch(error => { interruptionError = error; }); };
+    signal?.addEventListener("abort", interrupt, { once: true });
+    try { for await (const event of engine.startTurn(input)) {
+      if (signal?.aborted) interrupt();
       if (processExit !== undefined) {
         throw new HarnessError(
           "SDK_FAILURE",
@@ -313,6 +474,7 @@ export class RuntimeService {
         model = event.data.model;
         claudeSessionId =
           providerId === "anthropic" ? event.data.claudeSessionId : undefined;
+        if (input.contextSuccessor !== undefined) await this.sessions.recordProviderSpanSessionInit(projectId, sessionId, input.contextSuccessor.preparationId, { sessionInitEventId: randomUUID(), engineSessionId: event.data.engineSessionId, providerSpanId: event.data.providerSpanId ?? event.data.engineSessionId });
       }
       if (event.type === "turn:error" && event.data.fatal) {
         fatalTurnError = true;
@@ -321,7 +483,9 @@ export class RuntimeService {
         processExit = event;
       }
       eventIndex += 1;
-    }
+    } } catch (error) { await failBoot(error); throw error; }
+    finally { signal?.removeEventListener("abort", interrupt); await interruption; }
+    if (interruptionError !== undefined) { await failBoot(interruptionError); throw interruptionError; }
     if (
       processExit === undefined ||
       processExit.data.exitCode !== 0 ||
@@ -333,17 +497,67 @@ export class RuntimeService {
       (terminalHarnessEvent !== undefined &&
         terminalHarnessEvent.type !== "turn.completed")
     ) {
-      throw new HarnessError(
-        "SDK_FAILURE",
-        500,
-        "Boot turn did not initialize and complete a conformant engine session",
-        processExit === undefined ? undefined : { exitCode: processExit.data.exitCode }
-      );
+      const failure = signal?.aborted && processExit?.data.interrupted === true
+        ? new RuntimeError("ENGINE_UNAVAILABLE", "Session boot was interrupted before completion", 503, {
+            reason: signal.reason?.name === "TimeoutError" ? "BOOT_TIMEOUT" : "BOOT_CANCELLED", operation: "boot", sessionId
+          })
+        : new HarnessError("SDK_FAILURE", 500, "Boot turn did not initialize and complete a conformant engine session",
+            processExit === undefined ? undefined : { exitCode: processExit.data.exitCode });
+      await failBoot(failure);
+      throw failure;
     }
     for (const event of harnessEvents) {
       await this.sessions.persistEvent(projectId, event);
     }
     const bootedAt = new Date().toISOString();
+    const fingerprint = this.runtimeFingerprint(engine, { adapterId, providerId, model });
+    const bootFingerprint = sha256(
+      JSON.stringify([project.manifestHash, session.persona, session.mode, fingerprint])
+    );
+    const updated = {
+      ...session,
+      engineSessionId,
+      engineSelection: { adapterId, providerId, model },
+      adapterSession: {
+        ...session.adapterSession,
+        engineSessionId,
+        packageName: engine.descriptor.packageName,
+        packageVersion: engine.descriptor.packageVersion
+      },
+      ...(providerId === "anthropic" && claudeSessionId !== undefined
+        ? { claudeSessionId }
+        : {}),
+      bootFingerprint,
+      runtimeFingerprint: fingerprint,
+      bootedAt
+    };
+    if (updated.adapterSession !== undefined) delete updated.adapterSession.contextSuccessor;
+    if (input.contextSuccessor !== undefined) {
+      delete updated.sdkSessionId;
+      delete updated.sdkTranscriptPath;
+      delete updated.sdkSessionStoreKey;
+      if (claudeSessionId === undefined) delete updated.claudeSessionId;
+    }
+    await this.sessions.update(updated);
+    return {
+      session: updated,
+      boot: {
+        engineSessionId,
+        adapterId,
+        providerId,
+        model,
+        bootFingerprint,
+        runtimeFingerprint: fingerprint,
+        bootedAt,
+        ...(updated.claudeSessionId === undefined
+          ? {}
+          : { claudeSessionId: updated.claudeSessionId })
+      }
+    };
+  }
+
+  private runtimeFingerprint(engine: ReturnType<EngineRegistry["resolve"]>, attribution: { adapterId: string; providerId: string; model: string }): SessionBootResponse["boot"]["runtimeFingerprint"] {
+    const { adapterId, providerId, model } = attribution;
     const fingerprint = {
       schemaVersion: "chirality.runtime-fingerprint/v2",
       personaComposerVersion: "shared-runtime/v1",
@@ -367,42 +581,7 @@ export class RuntimeService {
       fingerprintSha256: ""
     };
     fingerprint.fingerprintSha256 = sha256(JSON.stringify(fingerprint));
-    const bootFingerprint = sha256(
-      JSON.stringify([project.manifestHash, session.persona, session.mode, fingerprint])
-    );
-    const updated = {
-      ...session,
-      engineSessionId,
-      engineSelection: { adapterId, providerId, model },
-      adapterSession: {
-        ...session.adapterSession,
-        engineSessionId,
-        packageName: engine.descriptor.packageName,
-        packageVersion: engine.descriptor.packageVersion
-      },
-      ...(providerId === "anthropic" && claudeSessionId !== undefined
-        ? { claudeSessionId }
-        : {}),
-      bootFingerprint,
-      runtimeFingerprint: fingerprint,
-      bootedAt
-    };
-    await this.sessions.update(updated);
-    return {
-      session: updated,
-      boot: {
-        engineSessionId,
-        adapterId,
-        providerId,
-        model,
-        bootFingerprint,
-        runtimeFingerprint: fingerprint,
-        bootedAt,
-        ...(updated.claudeSessionId === undefined
-          ? {}
-          : { claudeSessionId: updated.claudeSessionId })
-      }
-    };
+    return fingerprint;
   }
 
   async listAgents(
@@ -460,9 +639,9 @@ export class RuntimeService {
     await this.permissions.submit(projectId, sessionId, request);
   }
 
-  async interruptSession(projectId: string, sessionId: string): Promise<void> {
+  async interruptSession(projectId: string, sessionId: string, reason?: string): Promise<void> {
     await Promise.all([
-      this.turns.interrupt(projectId, sessionId),
+      this.turns.interrupt(projectId, sessionId, reason),
       this.agent1Runs?.interrupt?.(projectId, sessionId) ?? Promise.resolve()
     ]);
   }

@@ -27,6 +27,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
+# render_table_xlsx raises SystemExit at import when openpyxl is missing —
+# skip before importing either it or openpyxl itself.
+pytest.importorskip("openpyxl")
+
 from openpyxl import load_workbook
 
 

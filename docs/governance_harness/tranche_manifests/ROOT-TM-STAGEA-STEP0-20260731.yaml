@@ -1,0 +1,54 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-STAGEA-STEP0-20260731
+title: Task Management Stage A step 0 — D-GOV-32 PublicationSHA/EffectiveSHA backfill
+date: 2026-07-31
+basis: e38d332aa21792d40d7528b5ee9a3908325a13a7
+
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-32_task_management_prd_adoption.md
+  - docs/governance_harness/tranche_manifests/ROOT-TM-STAGEA-STEP0-20260731.yaml
+
+m2_gate:
+  authorization: |-
+    D-GOV-32 itself declares the two PENDING_BACKFILL slots and their fill
+    rule ("backfilled by the Stage-A execution tranche", RecordConvention:
+    "publication/effective SHA backfill follows the established
+    convention"), per the D-GOV-18/19/21/22/31 precedent. Sequencing is
+    the owner-selected Stage-A workplan, step 0
+    (execution/_Coordination/WORKPLAN_2026-07-31_task_management_stage_a.md,
+    selected via PR #425 merge e38d332aa) under the owner's recorded
+    2026-07-31 sequencing direction. Edits are confined to the two
+    declared PENDING slots; no other record byte changes. Publication
+    merge authorization for this tranche's PR remains a separate owner
+    act on the final branch HEAD; this manifest records a gate and grants
+    nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-31
+  integration_owner: >-
+    HELP_HUMAN (Agent 0) root governance loop session, Task Management
+    Stage A step 0; sole serialized integration owner for this tranche;
+    no merge authority
+  merge_gate: human-gated-pr
+  self_merge: false
+
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    Record-local backfill of the record's own declared PENDING slots. No
+    agents/ file, shared instruction semantics, or loop obligation
+    changes; the D-GOV-32 Effect 3/4 notices to other loops are separate
+    Stage-A/B steps (5 and 7) with their own vehicles.
+
+scope_limits:
+  - >-
+    edits are confined to the two declared PENDING_BACKFILL slots of
+    D-GOV-32 (supersede-never-edit holds for all other record bytes)
+  - >-
+    this tranche discloses, and does not cure, the absence of a tranche
+    manifest on the PR #424 record-publication tranche; the disclosure
+    lives in Loop Receipt 66
+  - >-
+    no adoption, lifecycle, decomposition, register, contract, or
+    instruction-semantics act; Stage-A steps 1-8 remain owner-gated and
+    unperformed by this tranche

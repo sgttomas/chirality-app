@@ -1,0 +1,18 @@
+{
+  "schema": "chirality.governance-proposal-correction/v1",
+  "proposal_id": "OD7-G1-ROOT-G4-CORRECTION",
+  "status": "CANDIDATE_NOT_APPROVED_NOT_APPLIED",
+  "basis_commit": "fb16e32ed60bb4f384cf1e07a83c4a14ff63bbae",
+  "corrects_package_manifest_sha256": "d6421ce6076238fd49dc0469d1160f8dc7698b2e730d8833e57136baaa957aa0",
+  "write_scope": "docs/governance_harness/_PROPOSALS/OD7-G1_ROOT_MANIFEST_G4_CORRECTION_2026-07-27/",
+  "authoritative_changes": [],
+  "artifacts": [
+    "PACKET.md",
+    "CORRECTED_ROOT_MANIFEST_ROOT-OD7-G1-20260727.yaml",
+    "CORRECTED_ROOT_RECEIPT_53.md",
+    "PACKAGE_MANIFEST.json",
+    "VALIDATION.md",
+    "ARTIFACT_HASHES.sha256"
+  ],
+  "hash_manifest_rule": "ARTIFACT_HASHES.sha256 covers every package artifact except itself"
+}

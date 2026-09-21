@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from common import load_profile
+from software_workflow_common import load_profile
 
 
 def as_text(value: str | bytes | None) -> str:

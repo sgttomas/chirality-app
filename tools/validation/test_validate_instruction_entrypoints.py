@@ -48,9 +48,9 @@ def _write_project(
         "Read `{WORKING_ROOT}/loop/LOOP_INIT.md` and follow it.\n"
         "</init-prompt>\n"
     )
-    (project / "init" / "init-prompt.md").write_text(prompt, encoding="utf-8")
+    (project / "init" / "dev-loop-init-prompt.md").write_text(prompt, encoding="utf-8")
     (tmp_path / "init").mkdir()
-    (tmp_path / "init" / "init-prompt.md").write_text(
+    (tmp_path / "init" / "dev-loop-init-prompt.md").write_text(
         f"# Root launcher catalog\n\n{prompt}", encoding="utf-8"
     )
     (project / "loop" / "LOOP_INIT.md").write_text(loop_text, encoding="utf-8")
@@ -65,6 +65,12 @@ def _write_project(
 
 def test_accepts_help_human_entry_with_separated_loop(tmp_path: Path) -> None:
     _write_project(tmp_path)
+    assert validator.validate(tmp_path) == []
+
+
+def test_accepts_project_without_workplan(tmp_path: Path) -> None:
+    project = _write_project(tmp_path)
+    (project / "loop" / "WORKPLAN_2026-07-18_test.md").unlink()
     assert validator.validate(tmp_path) == []
 
 
@@ -102,7 +108,7 @@ def test_rejects_project_agents_without_software_profile_reference(
 
 def test_rejects_root_project_launcher_drift(tmp_path: Path) -> None:
     project = _write_project(tmp_path)
-    (tmp_path / "init" / "init-prompt.md").write_text(
+    (tmp_path / "init" / "dev-loop-init-prompt.md").write_text(
         "# Root launcher catalog\n\n"
         "<init-prompt>\n"
         "Set project path to `projects/chirality-app-dev`.\n"
@@ -111,18 +117,18 @@ def test_rejects_root_project_launcher_drift(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert validator.validate(tmp_path) == [
-        f"{project.relative_to(tmp_path)}/init/init-prompt.md does not byte-match the "
+        f"{project.relative_to(tmp_path)}/init/dev-loop-init-prompt.md does not byte-match the "
         "tagged root launcher for projects/chirality-app-dev"
     ]
 
 
 def test_stale_untagged_copy_cannot_mask_tagged_launcher_drift(tmp_path: Path) -> None:
     project = _write_project(tmp_path)
-    local_prompt = (project / "init" / "init-prompt.md").read_text(encoding="utf-8")
+    local_prompt = (project / "init" / "dev-loop-init-prompt.md").read_text(encoding="utf-8")
     stale = local_prompt.replace("<init-prompt>", "<stale-copy>").replace(
         "</init-prompt>", "</stale-copy>"
     )
-    (tmp_path / "init" / "init-prompt.md").write_text(
+    (tmp_path / "init" / "dev-loop-init-prompt.md").write_text(
         "# Root launcher catalog\n\n"
         f"{stale}\n"
         "<init-prompt>\n"
@@ -132,7 +138,7 @@ def test_stale_untagged_copy_cannot_mask_tagged_launcher_drift(tmp_path: Path) -
         encoding="utf-8",
     )
     assert validator.validate(tmp_path) == [
-        f"{project.relative_to(tmp_path)}/init/init-prompt.md does not byte-match the "
+        f"{project.relative_to(tmp_path)}/init/dev-loop-init-prompt.md does not byte-match the "
         "tagged root launcher for projects/chirality-app-dev"
     ]
 
@@ -352,8 +358,8 @@ def test_help_human_activation_does_not_require_markdown_backticks(
         ),
     )
     for path in (
-        project / "init" / "init-prompt.md",
-        tmp_path / "init" / "init-prompt.md",
+        project / "init" / "dev-loop-init-prompt.md",
+        tmp_path / "init" / "dev-loop-init-prompt.md",
     ):
         text = path.read_text(encoding="utf-8")
         text = text.replace("`HELP_HUMAN`", "HELP_HUMAN").replace(
@@ -366,3 +372,10 @@ def test_help_human_activation_does_not_require_markdown_backticks(
 
 def test_entire_current_repository_passes() -> None:
     assert validator.validate(REPO_ROOT) == []
+
+
+def test_pec_entrypoint_and_catalog_are_covered(tmp_path: Path) -> None:
+    project = _write_project(tmp_path, project_name="pec")
+    assert validator.validate(tmp_path) == []
+    (project / "loop" / "LOOP_INIT.md").unlink()
+    assert "projects/pec/loop/LOOP_INIT.md is missing" in validator.validate(tmp_path)

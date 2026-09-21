@@ -29,12 +29,13 @@ def main() -> int:
     template = render_template_for_brief(args.source_pdf_name, page, args.corner_width_ratio, args.corner_height_ratio)
     lines = [
         f"PURPOSE: Extract drawing sheet titleblock metadata from page {page} of {args.total_pages}",
-        "RequestedBy: DRAWING_EXTRACT",
-        "ActingSurface: TASK+drawing-titleblock-page",
+        "RequestedBy: WORKING_ITEMS",
+        "ActingSurface: TASK",
         "",
         f"ScopePath: {work_dir}",
-        "TaskSkill: drawing-titleblock-page",
+        "Workflow: drawing-titleblock-page",
         "",
+        "ApplyEdits: true",
         "AllowedWriteTargets:",
         f'  - "{output_path}"',
         "",

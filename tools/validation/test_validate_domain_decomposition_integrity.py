@@ -6,10 +6,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 VALIDATION_DIR = Path(__file__).resolve().parent
-if str(VALIDATION_DIR) not in sys.path:
-    sys.path.insert(0, str(VALIDATION_DIR))
 
 from validate_domain_decomposition_integrity import (  # noqa: E402
     REQUIRED_SNAPSHOT_ARTIFACTS,
@@ -179,6 +179,101 @@ def test_supersession_delta_required_only_when_action_declares_binding(tmp_path:
 
     assert not any(f.category == "SUPERSESSION_DELTA_MISSING" for f in no_binding_findings)
     assert any(f.category == "SUPERSESSION_DELTA_MISSING" for f in with_binding_findings)
+
+
+def test_snapshot_active_mode_preserves_latest_parity_default(tmp_path: Path) -> None:
+    snapshot = tmp_path / "_ScopeChange" / "SCA-ACTIVE"
+    write_snapshot(snapshot, "NO")
+    assert validate_snapshot(snapshot) == []
+
+
+def test_snapshot_candidate_mode_keeps_accepted_predecessor_active(tmp_path: Path) -> None:
+    predecessor = tmp_path / "_ScopeChange" / "SCA-ACCEPTED"
+    candidate = tmp_path / "_ScopeChange" / "SCA-CANDIDATE"
+    write_snapshot(predecessor, "NO")
+    write_snapshot(candidate, "NO")
+    (candidate.parent / "_LATEST.md").write_text(f"Latest: {predecessor.name}\nUpdated: 2026-09-09\n")
+    assert validate_snapshot(candidate, "candidate", predecessor) == []
+
+
+def test_snapshot_candidate_mode_rejects_missing_or_wrong_predecessor(tmp_path: Path) -> None:
+    active = tmp_path / "_ScopeChange" / "SCA-ACTIVE"
+    wrong = tmp_path / "_ScopeChange" / "SCA-WRONG"
+    candidate = tmp_path / "_ScopeChange" / "SCA-CANDIDATE"
+    write_snapshot(active, "NO")
+    write_snapshot(wrong, "NO")
+    write_snapshot(candidate, "NO")
+    (candidate.parent / "_LATEST.md").write_text(f"Latest: {active.name}\nUpdated: 2026-09-09\n")
+    with pytest.raises(ValueError, match="requires exactly one"):
+        validate_snapshot(candidate, "candidate")
+    with pytest.raises(ValueError, match="does not exist"):
+        validate_snapshot(candidate, "candidate", candidate.parent / "SCA-MISSING")
+    findings = validate_snapshot(candidate, "candidate", wrong)
+    assert any(f.category == "LATEST_POINTER_MISMATCH" for f in findings)
+
+
+def test_snapshot_postacceptance_validates_as_active(tmp_path: Path) -> None:
+    candidate = tmp_path / "_ScopeChange" / "SCA-CANDIDATE"
+    write_snapshot(candidate, "NO")
+    assert validate_snapshot(candidate, "active") == []
+
+
+def test_first_amendment_candidate_requires_no_pointer(tmp_path: Path) -> None:
+    candidate = tmp_path / "_ScopeChange" / "SCA-FIRST"
+    write_snapshot(candidate, "NO")
+    (candidate.parent / "_LATEST.md").unlink()
+    assert validate_snapshot(candidate, "candidate", expected_no_active_snapshot=True) == []
+    (candidate.parent / "_LATEST.md").write_text(f"Latest: {candidate.name}\nUpdated: 2026-09-09\n")
+    findings = validate_snapshot(candidate, "candidate", expected_no_active_snapshot=True)
+    assert any(f.category == "LATEST_POINTER_UNEXPECTED" for f in findings)
+
+
+def test_candidate_pointer_comparison_is_exact(tmp_path: Path) -> None:
+    predecessor = tmp_path / "_ScopeChange" / "SCA-001"
+    candidate = tmp_path / "_ScopeChange" / "SCA-001-candidate"
+    write_snapshot(predecessor, "NO")
+    write_snapshot(candidate, "NO")
+    latest = candidate.parent / "_LATEST.md"
+    latest.write_text(f"Latest: {candidate.name}\nNote: predecessor was {predecessor.name}\n")
+    findings = validate_snapshot(candidate, "candidate", predecessor)
+    assert any(f.category == "LATEST_POINTER_MISMATCH" for f in findings)
+
+
+@pytest.mark.parametrize("pointer", [
+    "SCA-001\n",
+    "Latest: SCA-001\nUpdated: 2026-09-09\n",
+    "Latest snapshot: `SCA-001/`\n",
+    "- **Latest snapshot:** `SCA-001/`\n",
+    "| Snapshot | `SCA-001/` |\n",
+])
+def test_candidate_accepts_known_exact_pointer_formats(tmp_path: Path, pointer: str) -> None:
+    predecessor = tmp_path / "_ScopeChange" / "SCA-001"
+    candidate = tmp_path / "_ScopeChange" / "SCA-002"
+    write_snapshot(predecessor, "NO")
+    write_snapshot(candidate, "NO")
+    (candidate.parent / "_LATEST.md").write_text(pointer)
+    assert validate_snapshot(candidate, "candidate", predecessor) == []
+
+
+def test_candidate_accepts_repo_relative_snapshot_table_pointer(tmp_path: Path) -> None:
+    predecessor = tmp_path / "execution/_ScopeChange/SCA-001"
+    candidate = tmp_path / "execution/_ScopeChange/SCA-002"
+    write_snapshot(predecessor, "NO")
+    write_snapshot(candidate, "NO")
+    (candidate.parent / "_LATEST.md").write_text("| Snapshot | `execution/_ScopeChange/SCA-001/` |\n")
+    assert validate_snapshot(candidate, "candidate", predecessor) == []
+
+
+def test_candidate_rejects_foreign_path_with_same_basename(tmp_path: Path) -> None:
+    predecessor = tmp_path / "_ScopeChange" / "SCA-001"
+    candidate = tmp_path / "_ScopeChange" / "SCA-002"
+    write_snapshot(predecessor, "NO")
+    write_snapshot(candidate, "NO")
+    foreign = tmp_path / "foreign" / predecessor.name
+    foreign.mkdir(parents=True)
+    (candidate.parent / "_LATEST.md").write_text(f"Latest: {foreign}\n")
+    findings = validate_snapshot(candidate, "candidate", predecessor)
+    assert any(f.category == "LATEST_POINTER_MISMATCH" for f in findings)
 
 
 # ---------------------------------------------------------------------------

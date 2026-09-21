@@ -18,6 +18,10 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+TOOLS_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(TOOLS_ROOT / "source_catalog"))
+from source_database import resolve_domain_root  # noqa: E402
+
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 WORD_RE = re.compile(r"\S+")
@@ -92,7 +96,7 @@ COMPANION_FIELDS = ["Filename", "PackageRole", "Description"]
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--repo-root", type=Path, default=Path("."))
-    p.add_argument("--domain-root", type=Path, default=Path("domains/chirality"))
+    p.add_argument("--domain-root", type=Path)
     p.add_argument("--source-manifest", type=Path, default=None)
     p.add_argument("--decomp-root", type=Path, default=None)
     p.add_argument("--budget-tokens", type=int, default=15000)
@@ -435,7 +439,7 @@ The manifest-backed SourceRef form is accepted for Phase 2 atomization:
 @repo/<RepoRelPath>:L####|domains/chirality/_Decomposition/source_review_html/<SourceDocID>.html#<SectionID>
 ```
 
-This preserves live repo provenance and keeps the HTML half pointed at the Batch 0 review surface. `tools/decomp/build_atomization_brief.py` emits `SOURCE_REF_BASE` for the worker, and `skills/domain-source-atomize` explicitly accepts the repo-backed form for manifest-backed sources.
+This preserves live repo provenance and keeps the HTML half pointed at the Batch 0 review surface. `tools/decomp/build_atomization_brief.py` emits `SOURCE_REF_BASE` for the worker, and `workflows/domain-source-atomize` explicitly accepts the repo-backed form for manifest-backed sources.
 
 ## LICENSE.md Disposition
 
@@ -489,6 +493,11 @@ Do not proceed to Phase 2 atomization until Gate 1 is accepted.
 
 def main() -> int:
     args = parse_args()
+    try:
+        args.domain_root = resolve_domain_root(args.domain_root)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     repo_root = args.repo_root.resolve()
     domain_root = (repo_root / args.domain_root).resolve() if not args.domain_root.is_absolute() else args.domain_root.resolve()
     source_manifest = args.source_manifest or (domain_root / "_Sources" / "Source_Manifest.csv")

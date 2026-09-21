@@ -1,0 +1,106 @@
+{
+  "schema": "chirality.prd-transcription-concordance/v1",
+  "scope": "Every exact-source sentence introduced or textually changed by the Rev 6 amendment and labeled TRANSCRIBED: two O-1 sentences from SPEC §0.2.1 and ten D-GOV-20 §Ruled architecture statements. Inherited Rev 5 provenance-labeled synthesis is not represented as verbatim transcription by this check.",
+  "basis_commit": "918bb48b8fcee66c031d0d6d4040a46089f96067",
+  "candidate_path": "docs/governance_harness/_PROPOSALS/D-GOV-28_root_runtime_stewardship/PRD_ROOT_REV6_CANDIDATE.md",
+  "open_items_path": "docs/governance_harness/_PROPOSALS/D-GOV-28_root_runtime_stewardship/OPEN_ITEMS.csv",
+  "source_files": [
+    {
+      "path": "docs/SPEC.md",
+      "blob_sha256": "988c4b90287753d1249f53d01838819028ecb959a8fa1cbecf873e50c0fb62db"
+    },
+    {
+      "path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "blob_sha256": "a6a4fc4f0c8136f0cdf25eab155c98a03276248776ed9ff779df6c4b88523f11"
+    }
+  ],
+  "allowed_open_statuses": [
+    "OPEN",
+    "PROPOSED"
+  ],
+  "required_open_item_ids": [
+    "RUNTIME-OPEN-001",
+    "RUNTIME-OPEN-002",
+    "RUNTIME-OPEN-003",
+    "RUNTIME-OPEN-004",
+    "RUNTIME-OPEN-005",
+    "RUNTIME-OPEN-006"
+  ],
+  "required_candidate_markers": [
+    "| **O-11** | **Continuing Root stewardship of the generic runtime.**"
+  ],
+  "transcriptions": [
+    {
+      "id": "SPEC-0.2.1-O1-01",
+      "source_path": "docs/SPEC.md",
+      "source_anchor": "§0.2.1 instruction-surface paragraph, sentence 1",
+      "text": "`REPO_ROOT` is the home of the **shared instruction surface** (`AGENTS.md`, `CLAUDE.md`, `agents/`, `skills/`, `tools/`, root `docs/`, `init/`, `.github/workflows/`) — the release-managed agent operating system (the **instruction root**; see `DIRECTIVE.md` §2.6)."
+    },
+    {
+      "id": "SPEC-0.2.1-O1-02",
+      "source_path": "docs/SPEC.md",
+      "source_anchor": "§0.2.1 instruction-surface paragraph, sentence 4",
+      "text": "The instruction surface is read-mostly: changing it is a repo-wide governance action, not ordinary working-root execution."
+    },
+    {
+      "id": "D-GOV-20-ARCH-01",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 1",
+      "text": "Chirality’s executable agent harness becomes a root-owned `runtime/` workspace with provider-neutral contracts, orchestration, daemon, client, CLI, and safe engine adapters."
+    },
+    {
+      "id": "D-GOV-20-ARCH-02",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 2",
+      "text": "One opt-in per-user headless daemon exclusively owns runtime engines, credentials, sessions, delegation, tools, turn locks, interruption, and local-model residency."
+    },
+    {
+      "id": "D-GOV-20-ARCH-03",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 3",
+      "text": "The packaged Electron application supplies daemon mode so the existing app identity and encrypted `safeStorage` credential boundary remain single-owner."
+    },
+    {
+      "id": "D-GOV-20-ARCH-04",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 4",
+      "text": "Local control uses an authenticated project-scoped HTTP/1.1 API over a protected Unix-domain socket. No TCP control listener is authorized."
+    },
+    {
+      "id": "D-GOV-20-ARCH-05",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 5",
+      "text": "Runtime state beneath user data is operational and non-authoritative. Governed project truth, manifests, instructions, AgentRuns, approvals, and acceptance evidence remain checkout-contained."
+    },
+    {
+      "id": "D-GOV-20-ARCH-06",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 6",
+      "text": "Tracked `chirality.project.json` manifests declare stable project identity and authority references without secrets or machine-specific absolute paths. Registration stores resolved local paths and approval metadata outside the checkout; authority-affecting manifest changes require explicit re-registration."
+    },
+    {
+      "id": "D-GOV-20-ARCH-07",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 7",
+      "text": "Agent 0, Agent 1, and Agent 2 remain authority and responsibility contracts independent of engine or model. No durable model-to-role preference is established."
+    },
+    {
+      "id": "D-GOV-20-ARCH-08",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 8",
+      "text": "Humans and external agents may invoke Agent 1 directly; Agent 0 may govern Agent 1 managers; Agent 1 may delegate Agent 2 workers; Agent 2 may not delegate."
+    },
+    {
+      "id": "D-GOV-20-ARCH-09",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 9",
+      "text": "The initial vertical slice is one real Agent 1 run that delegates one bounded read-only task to one Pi/oMLX Agent 2 using the explicitly resident model, reviews the return, and emits canonical evidence and actual-model attribution."
+    },
+    {
+      "id": "D-GOV-20-ARCH-10",
+      "source_path": "docs/governance_harness/_DECISIONS/D-GOV-20_shared_runtime_local_agent_pilot.md",
+      "source_anchor": "Ruled architecture item 10",
+      "text": "The generic runtime, CLI, contracts, and safe adapters are eligible for the public Chirality App export. Credentials, machine state, and private PEC or Piping adapters are excluded."
+    }
+  ]
+}

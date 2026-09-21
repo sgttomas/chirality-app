@@ -1,0 +1,21 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-MANUAL-THEORY-20260919
+title: Theory-first project management manual draft for AI software teams
+date: 2026-09-19
+basis: 35d8b93aed1831c7579986d305b383521ca47c80
+instruction_surface_paths:
+  - docs/ai_software_project_management/01_theory.md
+  - docs/ai_software_project_management/02_worked_example_method.md
+  - docs/ai_software_project_management/README.md
+  - docs/governance_harness/tranche_manifests/ROOT-MANUAL-THEORY-20260919.yaml
+m2_gate:
+  authorization: 'Owner directs Agent 0 to proceed with the theory-first manual and effective delegation; transcription and scope in plans/evidence/2026-09-19_manual_theory/OWNER_DIRECTION.md'
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-19
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: New explanatory nonbinding draft, not a changed live instruction or pinned contract. No workflow is registered, no project loop adopts this text, and no existing mirrored authority source is changed.

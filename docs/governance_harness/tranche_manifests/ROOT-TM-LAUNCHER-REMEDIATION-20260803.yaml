@@ -1,0 +1,98 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-TM-LAUNCHER-REMEDIATION-20260803
+title: TM-loop launcher and coupling remediation before the next TM generation
+date: 2026-08-03
+basis: cf6bc15b966346f1d6c5bd27af6312c7b8e6a5c3
+
+instruction_surface_paths:
+  - init/dev-loop-init-prompt.md
+  - init/taskmgmt-init-prompt.md
+  - tools/taskmgmt/taskmgmt.py
+  - docs/governance_harness/tranche_manifests/ROOT-TM-LAUNCHER-REMEDIATION-20260803.yaml
+
+m2_gate:
+  authorization: |-
+    Owner direction of 2026-08-03, in-session, verbatim: "I'm holding on one
+    worktree completing the work and merging before I launch the TM loops.
+    I saw you identified several defects in terms of tying together work
+    status completion and procedural issues in the TM loops and several
+    other things.  What do you recommend completing now in this session as
+    remediation work prior to the next TM loops, and what do you want to
+    append to registers, and what else would you recommend as fixes?  You
+    can also bring your worktree up to sync with `origin/main` before
+    setting out." The recommended remediation slate was executed in this
+    tranche. Merge authorization of 2026-08-03, in-session, verbatim:
+    "that work will not land for some time.  You can merge here unless you
+    are concerned about doing so?" Merge executes as agent-as-proxy under
+    that direction per docs/PRD_ROOT.md annex 5.3.1 as simplified by owner
+    direction 2026-07-29 (Receipt 64); the approved source HEAD and
+    effective merge SHA are recorded in the PR's ordinary closeout comment.
+    approved_source_sha below pins the last content commit before this
+    manifest; the manifest commit rides the same branch and the final
+    branch HEAD is the approved HEAD recorded at the PR gate. This manifest
+    records that the gate was taken; it grants nothing (K-AUTH-1).
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-08-03
+  integration_owner: >-
+    HELP_HUMAN session in the project-first-impressions-06aed9 worktree;
+    sole serialized integration owner for the bounded write fence (root and
+    project TM launchers, root dev launcher catalog, tools/taskmgmt helper,
+    root HANDOFF_STATE, root LOOP_RECEIPTS Receipt 86, one root coordination
+    notice, three routed project notices, this manifest)
+  merge_gate: human-gated-pr
+  self_merge: true
+  owner_direction:
+    directed_by: Ryan Tufts
+    direction_date: 2026-08-03
+    approved_source_sha: "446584562c9195f27451c081f361a4712a883493"
+
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-08-03_TM_LAUNCHER_REMEDIATION.md
+    - projects/chirality-piping/execution/_Coordination/NOTICE_2026-08-03_TM_LAUNCHER_REMEDIATION.md
+    - projects/pec/execution/_Coordination/NOTICE_2026-08-03_TM_LAUNCHER_REMEDIATION.md
+  rationale: >-
+    The tranche amends each project loop's taskmgmt-init-prompt.md entry
+    surface and the shared taskmgmt helper. Same-tranche notices tell each
+    loop what changed and that no local act is required; the notices are
+    coordination, never authority.
+
+scope_limits:
+  - >-
+    launcher text only: explicit per-loop archive --register command,
+    closeout-receipt append per AGENT_TASK_MANAGEMENT.md §Closeout, manual
+    marker-class sweep in harvest, triage steer example; no agent
+    instruction, mode semantics, register schema, or K-TM change
+  - >-
+    tools/taskmgmt/taskmgmt.py: archive --register becomes required (the
+    one mutating verb loses its root-register default); no other verb,
+    schema, discovery, or federation behavior changes; 49/49 tests pass
+  - >-
+    init/dev-loop-init-prompt.md: remove the "newest standing workplan"
+    selection phrasing banned by LOOP_INIT §2 from the root §2 block and
+    §2/§4/§5 descriptive prose; validated project launcher blocks are
+    byte-unchanged (validate_instruction_entrypoints.py PASS)
+  - >-
+    root coordination surfaces: HANDOFF_STATE §1 register counts refreshed
+    and §4 fired trigger recorded (D-PEC-73 correction); Receipt 86
+    appended (retroactive TM discovery breadcrumb plus this tranche); one
+    TM-candidates notice persisting session-only reconnaissance findings;
+    discovery breadcrumbs and candidates only — no duty, priority, or
+    selection effect (K-TM-3/4/5)
+  - >-
+    no lifecycle, product, scope, dependency, decomposition, DAG, pointer,
+    activation, register-row, reliance, release, or professional-judgment
+    act
+
+derivative_paths:
+  - exports/chirality-app/export-manifest.csv
+  - exports/chirality-app/export-report.md
+  - exports/chirality-app/staging/
+
+derivative_disposition:
+  status: deferred
+  rationale: >-
+    The public export carries init/ and tools/ surfaces this tranche
+    touches. Regeneration is deferred to the next authorized export release
+    from post-merge bytes per the standing disposition (D-GOV-26 item 4).

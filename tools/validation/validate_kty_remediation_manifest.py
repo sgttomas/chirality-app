@@ -154,7 +154,16 @@ def read_csv_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
         header = [h.strip() for h in reader.fieldnames]
         rows: list[dict[str, str]] = []
         for row in reader:
-            rows.append({(k or "").strip(): (v or "").strip() for k, v in row.items()})
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"Malformed CSV row at line {reader.line_num}: {path}")
+            normalized = {(k or "").strip(): (v or "").strip() for k, v in row.items()}
+            if 'Workflow' in normalized:
+                if 'TaskSkill' in normalized and normalized['TaskSkill'] != normalized['Workflow']:
+                    raise ValueError(f"Conflicting Workflow/TaskSkill at line {reader.line_num}")
+                normalized['TaskSkill'] = normalized['Workflow']
+            rows.append(normalized)
+        if 'Workflow' in header and 'TaskSkill' not in header:
+            header.append('TaskSkill')  # Internal legacy schema; source remains unchanged.
         return header, rows
 
 

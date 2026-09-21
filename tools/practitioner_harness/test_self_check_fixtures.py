@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import cmd_self_check
+import harness_template_cache
 from harness_common import Severity
 
 # --- Fixture material (verbatim pre-cleanup forms) -----------------------------
@@ -215,26 +216,31 @@ def build_project(repo: Path, project: str, statuses: dict[str, str],
 
 def build_mini_repo(tmp_path: Path, with_allowlist: bool = True) -> Path:
     """Shared fixture tree: two projects (aliased names, spaces in paths),
-    a pre-cleanup _DomainEngines area, and root governance docs."""
-    repo = tmp_path / "repo"
-    repo.mkdir(exist_ok=True)
-    for name in ("DIRECTIVE.md", "CONTRACT.md", "SPEC.md", "TYPES.md"):
-        _write(repo / "docs" / name, GOV_DOC_MD.format(name=name))
-    if with_allowlist:
-        _write(repo / "docs" / "governance_harness" / "human_actors.md",
-               HUMAN_ACTORS_MD)
-    build_domain_engines(repo)
-    build_project(repo, "chirality-piping", {
-        "DEL-01-01_Fixture deliverable with spaces": STATUS_MISMATCH,
-        "DEL-01-02_Second fixture": STATUS_MATCH,
-        "DEL-01-03_Third fixture": STATUS_UNPARSEABLE_HISTORY,
-        "DEL-01-04_Fourth fixture": STATUS_MISSING_CURRENT_STATE,
-    }, baseline_mismatch=1, baseline_files=4)
-    build_project(repo, "chirality-app-dev", {
-        "DEL-02-01_Match one": STATUS_MATCH,
-        "DEL-02-02_Match two": STATUS_MATCH,
-    }, baseline_mismatch=0, baseline_files=2)
-    return repo
+    a pre-cleanup _DomainEngines area, and root governance docs.
+
+    Built once per session per parameter shape and copied per test
+    (harness_template_cache); tests customize/mutate their own copy."""
+    def _build(repo: Path) -> None:
+        repo.mkdir(parents=True, exist_ok=True)
+        for name in ("DIRECTIVE.md", "CONTRACT.md", "SPEC.md", "TYPES.md"):
+            _write(repo / "docs" / name, GOV_DOC_MD.format(name=name))
+        if with_allowlist:
+            _write(repo / "docs" / "governance_harness" / "human_actors.md",
+                   HUMAN_ACTORS_MD)
+        build_domain_engines(repo)
+        build_project(repo, "chirality-piping", {
+            "DEL-01-01_Fixture deliverable with spaces": STATUS_MISMATCH,
+            "DEL-01-02_Second fixture": STATUS_MATCH,
+            "DEL-01-03_Third fixture": STATUS_UNPARSEABLE_HISTORY,
+            "DEL-01-04_Fourth fixture": STATUS_MISSING_CURRENT_STATE,
+        }, baseline_mismatch=1, baseline_files=4)
+        build_project(repo, "chirality-app-dev", {
+            "DEL-02-01_Match one": STATUS_MATCH,
+            "DEL-02-02_Match two": STATUS_MATCH,
+        }, baseline_mismatch=0, baseline_files=2)
+
+    return harness_template_cache.materialize(
+        ("mini_repo", with_allowlist), _build, tmp_path / "repo")
 
 
 # --- Assertions helpers ---------------------------------------------------------

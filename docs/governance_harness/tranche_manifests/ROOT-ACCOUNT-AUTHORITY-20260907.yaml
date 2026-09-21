@@ -1,0 +1,34 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-ACCOUNT-AUTHORITY-20260907
+title: Narrow account-only public Unix authority boundary
+date: 2026-09-07
+basis: 1ffa47863b9a53ab359d84e1c72ca7d93a69b47d
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-36_managed_auth_custody_exception.md
+  - docs/governance_harness/_DECISIONS/_REGISTER.md
+  - docs/governance_harness/tranche_manifests/ROOT-ACCOUNT-AUTHORITY-20260907.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts stated "I approve this narrow authority amendment" on 2026-09-07.
+    The exact substantive referent and safe-pause qualification are preserved at
+    execution/_Coordination/AgentRuns/ROOT_ACCOUNT_AUTHORITY_AMENDMENT_2026-09-07/author/OWNER_RULING.md.
+    This approves the narrow account-only authority boundary and supplies the M2
+    authority for its faithful reviewed Root application. The application evidence,
+    Root Receipt 148 and CHANGE closeout record exact postimage and matching-head
+    identities; this manifest does not grant or enlarge the owner act.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-07
+  integration_owner: HELPS_HUMANS under the consolidated App HELP_HUMAN run
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: routed
+  routed_to:
+    - projects/chirality-app-dev/execution/_Coordination/NOTICE_2026-09-07_ROOT_D-GOV-36_ACCOUNT_ONLY_PUBLIC_UNIX_AUTHORITY.md
+    - projects/chirality-runtime/execution/_Coordination/NOTICE_2026-09-07_ROOT_D-GOV-36_ACCOUNT_ONLY_PUBLIC_UNIX_AUTHORITY.md
+  rationale: >-
+    Exact candidate postimages exist inside the sealed author evidence for the two
+    Root-origin notices and their paired App/Runtime receiving copies. The authorized
+    applier routes those four bytes in the same application tranche before final G4
+    validation and the Root receipt. Candidate preparation is not actual routing;
+    receiving-loop adoption remains an owning-loop act.

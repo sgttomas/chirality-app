@@ -10,7 +10,7 @@ const runtimeErrorCodes = new Set<string>(RUNTIME_ERROR_CODES);
 export class RuntimeTransportError extends Error {
   readonly cause?: unknown;
 
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: unknown, readonly reason: "timeout" | "transport" = "transport", readonly operation?: "boot", readonly sessionId?: string) {
     super(message);
     this.name = "RuntimeTransportError";
     if (cause !== undefined) this.cause = cause;

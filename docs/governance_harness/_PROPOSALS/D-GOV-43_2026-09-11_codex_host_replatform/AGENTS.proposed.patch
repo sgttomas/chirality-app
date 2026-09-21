@@ -1,0 +1,54 @@
+diff --git a/AGENTS.md b/AGENTS.md
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -45,14 +45,10 @@ that a tool is available.
+ Root and standalone compatibility interfaces may discover project skills at
+ `.agents/skills/<name>/SKILL.md` and user skills at
+-`~/.agents/skills/<name>/SKILL.md`. Ordinary App skill resolution is narrower:
+-only the App-supplied reviewed bundled skill library is trusted for agent
+-context.
+-Project and user skill definitions remain readable standalone-compatibility
+-inputs and historical origins, but the ordinary App catalog does not discover
+-or activate them, whether or not their files still exist. Read-only replay may
+-render preserved historical bytes and origin without activating the skill for a
+-new turn. Continuing from such a selection requires an explicit drop or change
+-to an eligible bundled skill; it is never silently rebound to a same-named
+-bundled definition.
++`~/.agents/skills/<name>/SKILL.md`. In the App, skill availability follows
++Codex's native discovery of project, user, and bundled skills, and the App
++catalog displays Codex's effective skill set with each skill's origin.
++Read-only replay may render preserved historical bytes and origin without
++activating a skill for a new turn, and a historical selection is never
++silently rebound to a same-named definition from another origin.
+-
++
+ Project workflows live at `.chirality/workflows/<name>/WORKFLOW.md`; user
+@@ -64,6 +60,7 @@ identity. Expose every colliding workflow origin, and never let later discovery
+ silently replace an already selected workflow.
+-
++
+-Ordinary App context may include bundled skill names and descriptions. Load a
+-skill body and its resources only when selected or needed. Select a workflow
++Ordinary App context may include the names and descriptions of the skills
++Codex reports as available. Load a skill body and its resources only when
++selected or needed. Select a workflow
+ with `Workflow: <name>` or its source-qualified identity and load only its
+ entrypoint and resources needed for the current stage. Consult the generated
+@@ -135,4 +132,16 @@ other engines or providers, but they do not establish qualified MVP support and
+ never substitute for required Codex capability.
+-
++
++The App hosts a stock Codex App Server owned by the App's own host process,
++speaking the published protocol in full, against the user's shared Codex
++configuration and resources, with authentication separated for Chirality and
++custodied by Codex (D-GOV-43). Chirality supplies roles, workflows, and
++project context through supported additive instruction inputs that preserve
++Codex's own base instructions, and records evidence from the complete event
++stream. It does not filter Codex's notifications, leave a server request
++unanswered, veto the user's Codex configuration, pin approval or sandbox
++policy, or run a patched supplier. Approval and sandbox policy are the user's
++choice per project and per turn; changing them grants nothing beyond what the
++host enforces. Local models are Codex model providers, not a second engine.
++
+ The shared governance is in `docs/DIRECTIVE.md`, `docs/CONTRACT.md`,
+ `docs/SPEC.md`, and `docs/TYPES.md`, with accepted amendments. Component design

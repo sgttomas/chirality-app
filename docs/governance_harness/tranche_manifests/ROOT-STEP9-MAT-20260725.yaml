@@ -1,0 +1,30 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-STEP9-MAT-20260725
+title: Step-9 materialization of the accepted root decomposition + D-GOV-25 EffectiveSHA backfill
+date: 2026-07-25
+basis: 653fabc9b3e8abf369f5e776a7d3ee24bf235e7a
+instruction_surface_paths:
+  - docs/governance_harness/_DECISIONS/D-GOV-25_root_decomposition_acceptance.md
+  - docs/governance_harness/tranche_manifests/ROOT-STEP9-MAT-20260725.yaml
+  - tools/validation/test_validate_root_materialization_fence.py
+m2_gate:
+  authorization: >-
+    Owner direction, in-session, 2026-07-25: "Merge PR #348 then proceed
+    with Step 9." — releasing D-GOV-21 §6 step 9 (materialize PKG-*/DEL-*
+    under root execution/ from the accepted decomposition only, with G0-G4
+    passing), against the decomposition accepted through D-GOV-25.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-07-25
+  integration_owner: HELP_HUMAN (Agent 0) — serialized integration owner for this tranche
+  merge_gate: human-gated-pr
+  self_merge: false
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The instruction-surface changes are a SHA backfill inside the D-GOV-25
+    record and this manifest — neither pinned nor mirrored by any downstream
+    loop (the app-dev authority corpus pins DIRECTIVE, CONTRACT, SPEC,
+    TYPES, PLAN, PRD, and two agent files — none touched). The materialized
+    execution/PKG-* trees and the adapter baseline update are root-loop
+    control-plane and working-root state that no downstream loop consumes.

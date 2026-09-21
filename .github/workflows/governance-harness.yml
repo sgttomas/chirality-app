@@ -17,24 +17,117 @@ on:
 permissions:
   contents: read
 
+# Superseded runs on the same PR carry no information; cancel them (PR
+# pushes in quick succession previously ran every intermediate commit to
+# completion). Push runs on main are never cancelled.
+concurrency:
+  group: governance-harness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   harness:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           # Full history: self-check's conditional approval-SHA reachability
           # (git cat-file) must see old commits; a shallow clone would
-          # misreport reachable SHAs as unreachable.
+          # misreport reachable SHAs as unreachable. blob:none keeps every
+          # commit/tree (reachability and `git log` walks still work) while
+          # skipping historical blob download; the harness never reads
+          # historical file contents.
           fetch-depth: 0
+          filter: blob:none
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/workflows/governance-harness.yml
       - name: Install harness dependencies
-        run: python3 -m pip install --quiet pyyaml pytest
-      - name: Install zsh (write_status.sh guard is a zsh script; ubuntu runners lack it)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
-      - name: Harness test suite
-        run: python3 -m pytest tools/practitioner_harness -q
+        # numpy: tools/retrieval imports it; installed so those tests stay
+        # gated here rather than skipping (coverage ruling 2026-07-31)
+        run: python3 -m pip install --quiet pyyaml pytest pytest-xdist numpy
+      - name: Configure canonical Ubuntu package sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /etc/os-release
+          test -n "${VERSION_CODENAME}"
+          test -f /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          sudo tee /etc/apt/sources.list.d/ubuntu.sources >/dev/null <<EOF
+          Types: deb
+          URIs: https://archive.ubuntu.com/ubuntu/
+          Suites: ${VERSION_CODENAME} ${VERSION_CODENAME}-updates ${VERSION_CODENAME}-backports
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: https://security.ubuntu.com/ubuntu/
+          Suites: ${VERSION_CODENAME}-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+
+      - name: Install zsh (write_status.sh guard is a zsh script)
+        timeout-minutes: 3
+        run: command -v zsh >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq zsh; }
+      - name: Four-role and workflow contracts
+        run: |
+          python3 tools/validation/validate_agent_instructions.py --json
+          python3 tools/validation/validate_workflow_metadata.py --json
+      - name: Unresolved conflict markers
+        env:
+          CONFLICT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ! git rev-parse --verify --quiet "${CONFLICT_BASE_REF}^{commit}" >/dev/null; then
+            CONFLICT_BASE_REF=HEAD^
+          fi
+          python3 tools/validation/validate_conflict_markers.py --base "${CONFLICT_BASE_REF}" --head HEAD
+      # The tools/ test estate. PRs run only the suites the change set
+      # touches, selected deterministically by tools/run_affected_tests.py
+      # from tools/tools-test-routing.json (live-tree gate suites —
+      # practitioner_harness, validation — always run; per-tool suites run
+      # when their paths changed; the selection JSON with per-suite reasons
+      # is printed into this log). Pushes to main always run the FULL
+      # estate, so the routing is an economy, never the authority: a
+      # mis-routed rule is caught at merge, not silently skipped. Needs
+      # only pytest/pyyaml/numpy; optional-dep suites skip cleanly.
+      - name: Tools test suite (routed on PRs; full on main pushes)
+        env:
+          ROUTING_BASE: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ] \
+            && git rev-parse --verify --quiet "${ROUTING_BASE}^{commit}" >/dev/null; then
+            python3 tools/run_affected_tests.py --base "${ROUTING_BASE}"
+          else
+            python3 -m pytest -q -n auto --dist loadscope tools/
+          fi
       - name: Self-check (BLOCK findings fail the run per D-GOV-02)
         run: python3 tools/practitioner_harness/harness.py self-check
+      # G0-G4 validator self-tests now run in the combined pytest step above;
+      # each step below runs only the live gate itself, keeping per-gate
+      # failure attribution (D-GOV-21 §5.3 step naming).
+      - name: G0 root materialization fence (D-GOV-21 §5.3; BLOCK fails the run)
+        run: python3 tools/validation/validate_root_materialization_fence.py
+      # G1-G4: guard capability per D-GOV-21 §6 step 6. Capability only — guard
+      # state (adapter, ownership register, first accepted work graph) is
+      # instantiated later by root Project Setup, so each guard is PASS-idle on
+      # the clean tree. BLOCK findings exit nonzero and fail the run (D-GOV-02).
+      - name: G1 root harness adapter (D-GOV-21 §5.3; BLOCK fails the run)
+        run: python3 tools/validation/validate_root_harness_adapter.py
+      - name: G2 root surface-ownership register (D-GOV-21 §5.3; BLOCK fails the run)
+        run: python3 tools/validation/validate_root_surface_ownership.py
+      - name: G3 root work-graph pre-dispatch check (D-GOV-21 §5.3; BLOCK fails the run)
+        run: python3 tools/validation/validate_root_work_graph_dispatch.py
+      - name: G4 instruction-surface tranche manifest (D-GOV-21 §5.3; BLOCK fails the run)
+        env:
+          G4_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git rev-parse --verify --quiet "${G4_BASE_REF}^{commit}" >/dev/null; then
+            python3 tools/validation/validate_instruction_tranche_manifest.py \
+              --base "${G4_BASE_REF}" --head HEAD --added-manifests-only
+          else
+            python3 tools/validation/validate_instruction_tranche_manifest.py \
+              --base HEAD^ --head HEAD --added-manifests-only
+          fi

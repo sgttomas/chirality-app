@@ -1,0 +1,170 @@
+{
+  "name": "chirality-frontend",
+  "version": "3.0.1",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "description": "Frontend workspace bootstrap for Chirality desktop runtime",
+  "author": "Chirality Project",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n NEXT,ELECTRON \"npm run dev:next\" \"npm run dev:electron\"",
+    "dev:next": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
+    "dev:electron": "npm run build:electron && wait-on tcp:3000 && electron dist-electron/main.js",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build && npm run build:electron",
+    "build:electron": "node ./scripts/build-electron.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --incremental false && tsc -p tsconfig.electron.json --noEmit --incremental false",
+    "harness:validate:section8": "node ./scripts/validate-harness-section8.mjs",
+    "harness:validate:section9": "node ./scripts/validate-harness-section9.mjs",
+    "harness:validate:premerge": "node ./scripts/validate-harness-premerge.mjs",
+    "harness:validate:agentsdk-dev-turn": "vitest run src/__tests__/api/harness/agent-sdk-dev-turn.test.ts",
+    "harness:validate:agentsdk-mcp-probe": "vitest run src/__tests__/lib/agent-sdk-mcp-behavior-probe.test.ts",
+    "harness:validate:agentsdk-packaged-proof": "node ./scripts/verify-packaged-agent-sdk-runtime.mjs",
+    "harness:validate:agentsdk-packaged-live-read-tool": "node ./scripts/run-live-packaged-agent-sdk-read-tool-proof.mjs",
+    "harness:validate:pi-packaged-proof": "node ./scripts/run-packaged-pi-runtime-proof.mjs",
+    "harness:validate:contract-deps": "node ./scripts/assert-harness-contract-deps.mjs",
+    "harness:generate-tool-catalog": "node ./scripts/generate-tool-catalog.mjs",
+    "validate:release-quality": "npm run harness:validate:contract-deps && node ./scripts/validate-release-quality-evidence.mjs",
+    "instruction-root:integrity": "node ./scripts/verify-instruction-root-integrity.mjs",
+    "instruction-root:prepare": "node ./scripts/prepare-packaged-instruction-root.mjs --source-root ../../.. --docs-root ../../../docs --output-root node_modules/.cache/chirality-instruction-root",
+    "proof:secret-scan": "node ./scripts/scan-secret-evidence.mjs",
+    "proof:network-policy": "node ./scripts/run-network-policy-proof.mjs",
+    "proof:packaged-security": "node ./scripts/run-packaged-security-proof.mjs",
+    "pi:lock-integrity": "node ./scripts/normalize-pi-lock-integrity.mjs",
+    "pi:supply-chain": "node ./scripts/verify-pi-supply-chain.mjs",
+    "electron:supply-chain": "node ./scripts/verify-electron-dist.mjs",
+    "runtime:build": "npm --prefix ../../chirality-runtime run build",
+    "desktop:verify-dependencies": "node ./scripts/verify-packaged-dependency-boundary.mjs",
+    "desktop:verify-codex-pin": "node ./scripts/verify-codex-pin.mjs",
+    "desktop:prepare": "npm run instruction-root:prepare && npm run runtime:build && npm run build && node ./scripts/pack-electron.mjs",
+    "desktop:pack": "node ./scripts/pack-electron.mjs && npm run desktop:verify-dependencies && npm run desktop:verify-codex-pin && npm run instruction-root:integrity",
+    "desktop:dist": "node ./scripts/pack-electron.mjs --target dmg && npm run desktop:verify-dependencies && npm run desktop:verify-codex-pin -- --after-signing && npm run instruction-root:integrity",
+    "sbom:generate": "node ./scripts/generate-sbom.mjs",
+    "notices:generate": "node ./scripts/generate-third-party-notices.mjs",
+    "verify:version-identity": "node ./scripts/verify-version-identity.mjs"
+  },
+  "dependencies": {
+    "@chirality/runtime-cli": "file:../../chirality-runtime/packages/cli",
+    "@chirality/runtime-client": "file:../../chirality-runtime/packages/client",
+    "@chirality/runtime-contracts": "file:../../chirality-runtime/packages/contracts",
+    "@chirality/runtime-core": "file:../../chirality-runtime/packages/core",
+    "@chirality/runtime-daemon": "file:../../chirality-runtime/packages/daemon",
+    "@openai/codex": "0.154.0",
+    "ansi_up": "^6.0.6",
+    "next": "15.5.25",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.150",
+    "@anthropic-ai/sdk": "0.93.0",
+    "@chirality/engine-claude": "file:../../chirality-runtime/packages/engine-claude",
+    "@chirality/engine-pi-omlx": "file:../../chirality-runtime/packages/engine-pi-omlx",
+    "@earendil-works/pi-agent-core": "0.82.0",
+    "@earendil-works/pi-ai": "0.82.0",
+    "@earendil-works/pi-coding-agent": "0.82.0",
+    "@earendil-works/pi-tui": "0.82.0",
+    "@types/node": "24.12.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/react-test-renderer": "^18.3.1",
+    "concurrently": "9.2.4",
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.1",
+    "react-test-renderer": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.10",
+    "wait-on": "^8.0.1"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.11",
+    "body-parser": "2.3.0",
+    "brace-expansion": "5.0.8",
+    "fast-uri": "4.1.1",
+    "hono": "4.12.31",
+    "postcss": "8.5.22",
+    "protobufjs": "8.7.1",
+    "sharp": "0.35.4"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "build": {
+    "appId": "com.chirality.app",
+    "productName": "Chirality",
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
+    "afterPack": "./scripts/finalize-electron-resources.mjs",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist-electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "!node_modules/@chirality/**",
+      "!node_modules/@openai/**",
+      "package.json",
+      "next.config.mjs"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin",
+        "to": "codex",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "dist-runtime/runtime-service",
+        "to": "runtime-service",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "dist-runtime/runtime-cli",
+        "to": "runtime-cli",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/.cache/chirality-instruction-root",
+        "to": "instruction-root",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "sign": "./scripts/sign-electron-runtime-v2.mjs",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "15.0.0",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools"
+    }
+  }
+}

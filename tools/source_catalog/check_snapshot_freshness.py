@@ -42,6 +42,7 @@ sys.path.insert(0, str(REPO_ROOT / "tools" / "source_catalog"))
 from source_database import (  # noqa: E402
     DEFAULT_DOMAIN_ROOT,
     catalog_path,
+    resolve_domain_root,
     resolve_snapshot_path,
     sha256_file,
 )
@@ -76,7 +77,13 @@ def main() -> int:
         print(f"ERROR: missing meta.json under {snapshot}", file=sys.stderr)
         return 2
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    domain_root = Path(meta.get("domain_root") or args.domain_root).resolve()
+    try:
+        domain_root = Path(
+            meta.get("domain_root") or resolve_domain_root(args.domain_root)
+        ).resolve()
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     repo_root = Path(args.repo_root or meta.get("repo_root") or Path.cwd()).resolve()
 
     con = open_db(snapshot)

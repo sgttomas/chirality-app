@@ -1,0 +1,29 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-PUBLIC-EXPORT-WHITESPACE-20260920
+title: Public export source whitespace repair
+date: 2026-09-20
+basis: c687750387ec0fea7f753c992e7bf292128c9cb1
+instruction_surface_paths:
+  - .github/actions/setup-piping-e2e/action.yml
+  - docs/governance_harness/tranche_manifests/ROOT-PUBLIC-EXPORT-WHITESPACE-20260920.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed that the public Chirality App export be brought up to
+    date. The regenerated public diff check identified trailing blank lines in
+    two canonical public-source files, so this repair removes only those
+    whitespace defects before publication.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-20
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The repair changes no instruction content or downstream authority-corpus
+    pin. It only preserves a clean public export diff and updates the
+    separately published chirality-app projection.
+scope_limits:
+  - Only the two trailing blank lines and regenerated export metadata change.
+  - No product behavior, workflow, role, permission, or release artifact changes.

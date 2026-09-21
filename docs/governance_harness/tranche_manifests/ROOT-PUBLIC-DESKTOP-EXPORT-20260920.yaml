@@ -1,0 +1,29 @@
+schema: instruction-tranche-manifest/v1
+tranche_id: ROOT-PUBLIC-DESKTOP-EXPORT-20260920
+title: Public desktop-source export and completed adoption-hold removal
+date: 2026-09-20
+basis: 15e8b7a72ce0ed440f1f46b9b6ca83503af9c02c
+instruction_surface_paths:
+  - tools/validation/test_public_export_profile.py
+  - docs/governance_harness/tranche_manifests/ROOT-PUBLIC-DESKTOP-EXPORT-20260920.yaml
+m2_gate:
+  authorization: >-
+    Ryan Tufts directed that the completed adoption hold be removed and that
+    the public Chirality App export be brought up to date with the v3.0.1
+    desktop source in projects/chirality-app-dev/frontend.
+  authorized_by: Ryan Tufts
+  authorization_date: 2026-09-20
+  integration_owner: HELP_HUMAN ROOT
+  merge_gate: owner-authorized-pr
+  self_merge: true
+m6_notice:
+  disposition: none-required
+  routed_to: []
+  rationale: >-
+    The change updates the root export profile and its focused regression
+    check. It does not alter a shared instruction package or a downstream
+    authority-corpus pin; the regenerated public projection is reviewed and
+    published separately through chirality-app.
+scope_limits:
+  - No role, permission, workflow, source-of-truth, or project-DAG amendment.
+  - No private project governance, execution evidence, credentials, or build output enters the public export.

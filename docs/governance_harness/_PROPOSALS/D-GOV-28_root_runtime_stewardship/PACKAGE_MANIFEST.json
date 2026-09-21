@@ -1,0 +1,56 @@
+{
+  "schema": "chirality.governance-proposal-package/v1",
+  "proposal_id": "D-GOV-28",
+  "status": "CANDIDATE_NOT_RULED",
+  "basis_commit": "918bb48b8fcee66c031d0d6d4040a46089f96067",
+  "write_scope": "docs/governance_harness/_PROPOSALS/D-GOV-28_root_runtime_stewardship/",
+  "authoritative_changes": [],
+  "artifacts": [
+    {
+      "path": "PACKET.md",
+      "role": "candidate decision instrument",
+      "authority_class": "proposal"
+    },
+    {
+      "path": "PRD_ROOT_REV6_CANDIDATE.md",
+      "role": "full Root PRD amendment candidate",
+      "authority_class": "proposal"
+    },
+    {
+      "path": "TRANSCRIPTION_SPEC.json",
+      "role": "machine-readable exact-byte concordance specification",
+      "authority_class": "derivative validation input"
+    },
+    {
+      "path": "validate_transcriptions.py",
+      "role": "runnable deterministic concordance validator",
+      "authority_class": "proposal-local tool"
+    },
+    {
+      "path": "CONCORDANCE_REPORT.json",
+      "role": "deterministic validator output",
+      "authority_class": "derivative evidence"
+    },
+    {
+      "path": "OPEN_ITEMS.csv",
+      "role": "stable uncovered-runtime-seam register",
+      "authority_class": "proposal"
+    },
+    {
+      "path": "HANDOFF.md",
+      "role": "owner-gate and rerun state",
+      "authority_class": "handoff"
+    },
+    {
+      "path": "PACKAGE_MANIFEST.json",
+      "role": "package membership and authority classification",
+      "authority_class": "manifest"
+    },
+    {
+      "path": "ARTIFACT_HASHES.sha256",
+      "role": "sha256 identities for every other package artifact",
+      "authority_class": "integrity manifest"
+    }
+  ],
+  "hash_manifest_rule": "ARTIFACT_HASHES.sha256 covers every package artifact except itself"
+}

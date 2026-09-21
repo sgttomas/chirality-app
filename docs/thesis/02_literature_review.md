@@ -210,6 +210,8 @@ Model checking, systematized by Clarke, Grumberg, and Peled in *Model Checking* 
 
 Lamport's *Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers* [8] (Addison-Wesley, 2002) provides the specification language most widely used in distributed and concurrent systems verification. TLA+ treats system behavior as a sequence of states and defines correctness as satisfaction of temporal logic formulae over those sequences. The lifecycle state machine formalism used in Chirality — the deliverable lifecycle OPEN → INITIALIZED → SEMANTIC_READY → IN_PROGRESS → CHECKING → ISSUED, with invariant-preserving, actor-authorized transitions — is structurally a TLA+-style specification, even if not formally encoded as one.
 
+The verification tradition also contains its own limit argument, stated at the height of the verification debates. Smith's "The Limits of Correctness" [25] argues that what is called a proof of correctness establishes the compatibility of two formal objects — program and specification — and is better described as relative consistency; nothing in the verification process itself reaches the relationship between the model and the world, which is why reliability and responsibility cannot be reduced to proved correctness. MacKenzie's historical sociology of mechanized proof [26] complements this from the epistemic side: in the disputes over what counts as proof — from the DeMillo–Lipton–Perlis controversy to the VIPER verification dispute — the authority of mechanized verification rested on socially situated human judgment, with automated provers functioning as aids to, not replacements for, the judging collectivity. Both results are premises this thesis builds on: verification relates artifacts to artifacts, and the decision to rely remains a human act outside the proof.
+
 The applicability of these techniques to the Chirality system is partial and asymmetric, which is precisely the gap this thesis identifies. Hoare logic, model checking, and TLA+ operate on deterministic systems with enumerable state spaces. LLM agents are neither: their internal state is not enumerable, their transitions are probabilistic, and their outputs cannot be formally specified as functions of inputs. The architectural response — invariant enforcement through external constraints rather than internal verification — is the central thesis contribution.
 
 ### 2.3.6 Formal Methods and AI Safety: An Emerging Field
@@ -352,6 +354,10 @@ This is the gap Chirality fills. The agent instruction architecture is designed 
 
 [24] Association of Professional Engineers and Geoscientists of Alberta (APEGA), "Guidance for Registrants Regarding the Use of Artificial Intelligence Tools," Edmonton, AB: APEGA, first published Jul. 2025, updated Mar. 23, 2026. [Online]. Available: https://www.apega.ca/news/2026/03/23/guidance-for-registrants-regarding-the-use-of-artificial-intelligence-tools
 
+[25] B. C. Smith, "The Limits of Correctness," *ACM SIGCAS Computers and Society*, vol. 14–15, no. 1–4, pp. 18–26, Jan. 1985. doi: 10.1145/379486.379512
+
+[26] D. MacKenzie, *Mechanizing Proof: Computing, Risk, and Trust*. Cambridge, MA, USA: MIT Press, 2001. ISBN: 978-0-262-13393-7.
+
 ---
 
 *Notes on placeholder entries (updated 2026-07-02): the [11] author list, the [17] NSPE dates, the [19] Engineers Australia status, and the FBPE question were verified against primary sources and are resolved in the entries above.*
@@ -372,6 +378,22 @@ recorded grounds. They do not make an artifact a knower or exhaust what a
 situated person may know from it. Chapter 3 develops this distinction through
 Polanyi and Smith as philosophical resources rather than treating any
 physical analogy as evidence for the architecture.
+
+Two further precedents frame the survey from the side of software practice.
+Naur argued that a program is a theory held by its builders — that program
+text and documentation have "proved insufficient as a carrier of some of the
+most important design ideas," and that when the theory-holding team is gone,
+solving the problem afresh is preferable to revival from the text [13].
+Collins's later taxonomy distinguishes relational, somatic, and collective
+tacit knowledge, and locates the strong case in the collective kind, acquired
+only through socialization — a kind for which, in his phrase, "we know of no
+way" to make machines that possess it [14]. Neither author is a source for
+the architecture; together they mark the boundary the architecture respects.
+The governed record does not claim to carry the builders' theory or the
+practitioner's tacit integration. It claims only to organize the
+externalizable remainder — claims, warrants, statuses, decisions — so that
+regeneration and review rebuild understanding against a record that
+constrains them.
 
 ---
 
@@ -473,6 +495,7 @@ The preceding survey establishes that robust theoretical foundations exist for e
 - Goldman [8][9] establishes the reliabilist and social-epistemic framework: epistemic evaluation applies to processes and institutions, not merely to individual claims, and social systems can be designed to enhance collective epistemic performance.
 - Halpern and Moses [10] establish that distributed systems cannot assume consistent knowledge states and must treat divergence as a structural condition requiring explicit resolution.
 - Jacovi et al. [11] establish that trust in AI systems requires observable, verifiable contractual conditions.
+- Naur [13] and Collins [14] establish the limit from the practice side: the builders' theory and the collective tacit remainder are not carried by any text, record, or machine.
 
 The gap in the literature is this: **none of these frameworks has been operationalized as architectural invariants governing an LLM-based multi-agent system in professional practice.** The frameworks exist at three levels — philosophical (Goldman), formal-theoretical (Halpern-Moses, Buneman-Cheney), and standards (W3C PROV) — but all share the property that they describe epistemic requirements without providing a mechanism for enforcing them as binding constraints on autonomous agents.
 
@@ -517,6 +540,10 @@ Chirality implements this distinction through four invariants — K-PROV-1 (mand
 [11] A. Jacovi, A. Marasović, T. Miller, and Y. Goldberg, "Formalizing Trust in Artificial Intelligence: Prerequisites, Causes and Goals of Human Trust in AI," in *Proc. 2021 ACM Conf. Fairness, Accountability, and Transparency (FAccT '21)*, Virtual Event, Canada, Mar. 2021, pp. 624–635. doi: 10.1145/3442188.3445923
 
 [12] S. Natangelo, "Externalising Epistemic Governance for Stateless Large Language Models: The CUL/TCL Architecture," Zenodo preprint, Dec. 16, 2025. doi: 10.5281/zenodo.17953956
+
+[13] P. Naur, "Programming as Theory Building," *Microprocessing and Microprogramming*, vol. 15, no. 5, pp. 253–261, May 1985. doi: 10.1016/0165-6074(85)90032-8
+
+[14] H. Collins, *Tacit and Explicit Knowledge*. Chicago, IL, USA: University of Chicago Press, 2010. ISBN: 978-0-226-11380-7.
 
 ---
 
