@@ -26,8 +26,8 @@ Project DAG,project dependency graph,Production relationships; not the current a
 Current work graph,undertaking graph,"File holding selected work, owners, prerequisites, returns and continuation."
 Structured scope of work,SSOW;ScopeLedger,"Project-level normalized scope, prior to deliverable production contracts."
 Scope of Work,SoW;production contract,Later local technical output/interface/criterion/evidence commitments derived from accepted allocation.
-Package,work-domain partition,Group2 flat accountable home; no Packages proposed in this draft.
-Deliverable,bounded production unit,Group2 smallest durable production contribution; distinct from a TASK assignment.
+Package,work-domain partition,Group2 proposed flat accountable home for every IN/OUT/TBD scope item; human structural confirmation remains pending.
+Deliverable,bounded production unit,Group2 proposed smallest durable production contribution with a bounded context; distinct from a TASK assignment.
 Verification,requirement examination,Candidate-specific conformity examination; not human fitness-for-use judgment.
 Validation,practitioner validation,Owner/practitioner assessment of fitness for intended activity.
 Acceptance,identified human decision,Decision with content/scope/purpose; composite basis acceptance differs from Group1 confirmation.

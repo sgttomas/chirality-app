@@ -1,0 +1,74 @@
+{
+  "standing": "GROUP2_PROPOSED_NOT_ACCEPTED",
+  "accepted_group1": "checkpoint_snapshots/GROUP1-20260927T222641Z",
+  "ScopeItemCount": 262,
+  "StatusCounts": {
+    "IN": 234,
+    "OUT": 15,
+    "TBD": 13
+  },
+  "PackageCount": 11,
+  "DeliverableCount": 41,
+  "ObjectiveCount": 10,
+  "UnassignedScopeItems": 0,
+  "InScopeItemsWithoutDeliverableMapping": 0,
+  "OutOrTbdWithDeliverableMapping": 0,
+  "UnmappedObjectives": 0,
+  "ContextEnvelopeCounts": {
+    "L": 8,
+    "M": 31,
+    "S": 2
+  },
+  "retired_unaccepted_draft_ids": [
+    "DEL-09-03",
+    "DEL-09-04",
+    "DEL-09-08"
+  ],
+  "checks": {
+    "exact_accepted_scope_fields_preserved": true,
+    "objective_meaning_preserved": true,
+    "unique_two_digit_coupled_ids": true,
+    "all_active_description_references_resolve": true,
+    "named_artifacts_interfaces_verification_in_descriptions": true,
+    "no_production_folders_or_SoWs_created": true
+  },
+  "xrg": {
+    "command": "python3 -B tools/validation/validate_decomposition_registers.py projects/chirality-app-v4/execution --families XRG --strict --json <report-path>",
+    "exit_code": 0,
+    "error_count": 0,
+    "warning_count": 0,
+    "findings": [],
+    "tool_sha256": "5442049efb41762d102448a8a64332950e4c08acfdf85d84722fef04223126f5"
+  },
+  "id_format": {
+    "tool": "tools/validation/validate_id_format.sh",
+    "result": "all11 Packages and41 Deliverables pass; additional exact two-digit/coupling assertions pass"
+  },
+  "limits": "Document/register checks, not product verification, dependency readiness, accepted DAG or human Group2 acceptance. Feature checks and joined witnesses remain future commitments.",
+  "inputs": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Packages.csv",
+      "sha256": "c38eea82568a915990605b5418248057ffae1dfc77db6dcf365722f1ef6ed791"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Deliverables.csv",
+      "sha256": "0657db651a95bff0f8c0be64f563f1977be42f762ba41cb2fc7331da01b7e835"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ScopeLedger.csv",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Objectives.csv",
+      "sha256": "9cbfcdda38f6e3b0f09085657088ffbe7dee578f7c922e475ae126ca16eded3c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ContextBudgetQA.csv",
+      "sha256": "837ae64f74fac345f861491196c0953a1f677684d077489cd98700553bfa0641"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Allocation_Rationale.csv",
+      "sha256": "b3969e6363a4f60452410994dfa61ae6e8a08da9cafac9a746304694301f68e2"
+    }
+  ]
+}
