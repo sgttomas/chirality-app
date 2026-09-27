@@ -48,11 +48,11 @@
   "inputs": [
     {
       "path": "projects/chirality-app-v4/execution/_Decomposition/Packages.csv",
-      "sha256": "c38eea82568a915990605b5418248057ffae1dfc77db6dcf365722f1ef6ed791"
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Decomposition/Deliverables.csv",
-      "sha256": "0657db651a95bff0f8c0be64f563f1977be42f762ba41cb2fc7331da01b7e835"
+      "sha256": "06c5f740763997adb3511ffc4c8c402a3f4be46b13c96a6327ca9b1b2052df36"
     },
     {
       "path": "projects/chirality-app-v4/execution/_Decomposition/ScopeLedger.csv",
@@ -70,5 +70,13 @@
       "path": "projects/chirality-app-v4/execution/_Decomposition/Allocation_Rationale.csv",
       "sha256": "b3969e6363a4f60452410994dfa61ae6e8a08da9cafac9a746304694301f68e2"
     }
-  ]
+  ],
+  "affected_clarification": {
+    "source": "projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md",
+    "source_sha256": "9fc0cce822402c7c69bd4c3f9e7f9a37938f4bc0d8528a94ede7e0aaf886cecf",
+    "scope": "PKG-01 name/description; DEL-01-05 native authentication wording; cross-cutting selective-reuse approach",
+    "counts_ids_mappings_envelopes_unchanged": true,
+    "prior_broad_review": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md",
+    "group2_standing": "DISCUSSING_NOT_CONFIRMED"
+  }
 }

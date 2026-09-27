@@ -1,6 +1,6 @@
 # Chirality App v4 — Group2 structural proposal
 
-**Standing: GROUP1_CONFIRMED / GROUP2_PROPOSED. Revision G2-draft-1, 2026-09-27.** Package role: working surface. No Group2 acceptance, Group3 audit, production setup or implementation is claimed.
+**Standing: GROUP1_CONFIRMED / GROUP2_PROPOSED. Revision G2-draft-2-clarification, 2026-09-27.** Package role: working surface. No Group2 acceptance, Group3 audit, production setup or implementation is claimed.
 
 ## Accepted basis and current subject
 
@@ -12,7 +12,7 @@ That snapshot binds APP-V4-BASIS-20260926, the accepted clarification, all 262 s
 
 | Package | Cohesive work domain | Deliverables | Scope IN / OUT / TBD |
 |---|---|---:|---:|
-| PKG-01 | Native App experience and supplier lifecycle | 6 | 41 / 10 / 0 |
+| PKG-01 | Native App and third-party harness integration | 6 | 41 / 10 / 0 |
 | PKG-02 | Workflow and role portability | 4 | 29 / 1 / 0 |
 | PKG-03 | Host capability and operation contracts | 4 | 35 / 1 / 1 |
 | PKG-04 | Human acts, autonomy and run evidence | 3 | 19 / 0 / 2 |
@@ -48,6 +48,12 @@ These are proposed contribution/interface paths, not an accepted DAG or schedule
 4. Use one standalone qualification dossier and one local host qualification packet, retaining their named scenarios as task-sized cases. Unaccepted draft IDs DEL-09-03, DEL-09-04 and DEL-09-08 were retired into DEL-09-02 and DEL-09-07; no ID was reused or other unit renumbered. DEL-09-09 remains distinct because external-control recovery and the extension-claim trace use a different receiving boundary.
 5. Keep project definition/practice and adoption/continuity as concrete named-reader outputs. The 42 method constraints qualify coherent results, not one Deliverable per rule or copied manuals. File-native undertaking controls work before PKG-06 product support. The project DAG may represent pending external contributions; delivered PEC/SWB capability is not a prerequisite to honestly defining it. Shared renewal is confined to accepted responsibilities and consumer effects, not directory rearchitecture.
 
+## Implementation approach
+
+The [scoped owner clarification](../_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md) confirms Codex is sufficient initially and explains implementation sourcing. PKG-01 owns native App integration of the stock third-party harness, including Codex-native OAuth/sign-in in DEL-01-05; it is not a new Chirality App agent engine. “Owned” identifies behavior, receiving-contract fit and maintenance responsibility, not mandatory original authorship.
+
+Assess relevant Pi, T3 Code, v3 and other exemplars and selectively reuse/adapt suitable components or patterns against the receiving contract. Preserve significant source/version/attribution and adaptation rationale in existing SoW/PR records, then qualify the actual code/versions and applicable reuse terms. The retained dated reports locate candidates; they do not certify present fitness or licensing. No dedicated research Package, per-row checklist, mandatory copy, whole-application fork or generic multi-harness gateway is introduced. Pi runtime adoption remains a distinct architecture choice; minimal-host receiving, external construction and conditional shared allocation stay as accepted.
+
 ## Coverage, context and carried decisions
 
 [Coverage_Telemetry.json](Coverage_Telemetry.json) records actual stage checks. Proposed counts: 262 scope items; 11 Packages; 41 Deliverables; 10 objectives; no unassigned scope, no IN item without production mapping, no OUT/TBD production mapping, no unmapped objective. Envelopes:2 S /31 M /8 L /0 XL.
@@ -60,7 +66,7 @@ The [workflow](../_Coordination/WORKFLOW_UPSTREAM_COMPARISON_2026-09-27.md) and 
 
 ## Checkpoint and next stage
 
-The [Group2 reader](../_Coordination/Reviews/APP-V4-GROUP2-20260927/READER.md) and manifest identify this proposal for confirmation or correction, including coverage findings and context/boundary qualifications. Its [independent review](../_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md) carries the actual-candidate verdict.
+The [Group2 reader](../_Coordination/Reviews/APP-V4-GROUP2-20260927-CANDIDATE-2/READER.md) and manifest identify this proposal for confirmation or correction, including coverage findings and context/boundary qualifications. Its [independent review](../_Coordination/Reviews/APP-V4-GROUP2-20260927-CANDIDATE-2/REVIEW.md) carries the actual-candidate verdict.
 
 Only after the human confirms Group2 will its immutable snapshot/pointer be written. Group3 then assembles the accepted decisions and receives its separate independent final audit and human acceptance before downstream setup. Existing owner authorization carries the undertaking forward through those real checkpoints; routine Git integration does not replace them.
 

@@ -1,0 +1,228 @@
+{
+  "candidate_id": "APP-V4-GROUP2-20260927-CANDIDATE-2",
+  "standing": "GROUP2_PROPOSED_NOT_ACCEPTED",
+  "purpose": "Clarified successor structure/coverage proposal under discussion; no Group2 confirmation",
+  "accepted_group1": {
+    "snapshot": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP1-20260927T222641Z",
+    "pointer": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md",
+    "decision_sha256": "b8ddaab0466ca6fc1600b5f9756abac453bc4d726657d94ddb88fac08ede4dc1",
+    "accepted_manifest_sha256": "e7ece4931c1acc28d55152445afb6cc1acce973029615fc30f1c0bdfee29fae7",
+    "handoff_sha256": "b2a78e53227543624b654446ab107cd660cf8e6555345d79e63a3cac57278eac",
+    "presented_candidate_id": "APP-V4-GROUP1-20260927-CANDIDATE-2",
+    "source_recovery_commit": "434f31863e8bc82a40797115fc915a59f2b39732"
+  },
+  "integration_base": "7e0125a7bcbf9c778273a4a3153d956a94525aa5",
+  "selected_method": {
+    "identity": "chirality-root:bundled:workflow:software-decomp",
+    "stage": "Group2",
+    "original_definition_basis": "4087a4f8c500a84b85dc9e8652b632550ab21a5a",
+    "unchanged_current_method_resources": [
+      {
+        "path": "workflows/software-decomp/WORKFLOW.md",
+        "sha256": "f08ae6ea7ead63e2325945cff4740e613c0e2b304122c8166b0b7a96a74681e4"
+      },
+      {
+        "path": "workflows/software-decomp/execution.json",
+        "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+      },
+      {
+        "path": "workflows/software-decomp/resources/contract.md",
+        "sha256": "26f783694801d99606d1212ed899f7a239d154b5e9ccbbcb90982c8a224b98ba"
+      },
+      {
+        "path": "workflows/software-decomp/resources/method.md",
+        "sha256": "2ff2af63e756f1dbe09951836764acc4a7e8d481dcb3b8861c8c608bf4082804"
+      }
+    ]
+  },
+  "counts": {
+    "ScopeItems": 262,
+    "IN": 234,
+    "OUT": 15,
+    "TBD": 13,
+    "Packages": 11,
+    "Deliverables": 41,
+    "Objectives": 10,
+    "ContextEnvelopes": {
+      "S": 2,
+      "M": 31,
+      "L": 8,
+      "XL": 0
+    }
+  },
+  "canonical_files": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md",
+      "package_role": "working surface",
+      "sha256": "6df42cb2ab10b9b15c53d700352074ec7d11c5f84e9f4e8e5d8ed2b3ce40aab1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Packages.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Deliverables.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "06c5f740763997adb3511ffc4c8c402a3f4be46b13c96a6327ca9b1b2052df36"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ScopeLedger.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Objectives.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "9cbfcdda38f6e3b0f09085657088ffbe7dee578f7c922e475ae126ca16eded3c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Vocabulary_Map.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "92418d80670dc49276be589050d4d6cbc1965fbacfd3d33b47078128e90fc617"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ContextBudgetQA.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "837ae64f74fac345f861491196c0953a1f677684d077489cd98700553bfa0641"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Allocation_Rationale.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "b3969e6363a4f60452410994dfa61ae6e8a08da9cafac9a746304694301f68e2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "2540ab76b737fd1454bb7aae6ade865e66d57ca073e7997ebd49c5d2a9bc187c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "1a6e3f5de5241d66e99ae8019b480d9ce1f05a5abffb202a76946816b6555187"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Companion_Inventory.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "7bb3fa52d19c805736fbb0a90aae88449d8e57f6e4c5866869366a995dada951"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Source_Coverage.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "20e717cc62cd16a7dc2a8b11cccc3a2a194a64b404db6db7ddbac972d7621adc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Source_Sections.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "2e57c3678f484f3920f1b4777d7117615c7298bdbeebcbf4236d359654ab2045"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Scope_Classification.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "d884ed9833572dc4e3dc7a4990edc158762ca5829810c01f5a485e8652420ed8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Consolidated_Coverage.csv",
+      "package_role": "authoritative companion register within proposed structure",
+      "sha256": "df7a204581a1f95beab3a1d1bae5c715940e8fc6fe128a3ad4cfb3b81b6e5f7f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Coverage_Telemetry.json",
+      "package_role": "derived check artifact",
+      "sha256": "906cddd78ce44c122faf0f120091872f51db90ffaa1193d76f145c3b5073a268"
+    }
+  ],
+  "reader": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927-CANDIDATE-2/READER.md",
+    "package_role": "derived publication artifact",
+    "sha256": "6d5fb449402dfab61462cfdb7851586db2622f648a09b1ec026b8281779a2186"
+  },
+  "review_record": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927-CANDIDATE-2/REVIEW.md",
+  "retired_unaccepted_draft_ids": [
+    "DEL-09-03",
+    "DEL-09-04",
+    "DEL-09-08"
+  ],
+  "scope_change_limit": "No change to11/41/262 counts, scope meanings, IDs, status, mappings, context envelopes or accepted Group1. Only PKG-01/DEL-01-05 wording, cross-cutting implementation approach and related navigation/identities change.",
+  "human_group2_decision": "DISCUSS_CHANGES_BEFORE_CONFIRMATION; NOT_ACCEPTED",
+  "later_stage_limit": "No accepted Group2 pointer/snapshot, Group3 work, production folders/contracts or setup",
+  "delegation": {
+    "mechanism": "delegated-harness-native fresh terminal TASKs",
+    "parent": "/root/renewal_research_strategy",
+    "roles": [
+      "WORKING_ITEMS author/integrator",
+      "TASK structure producer",
+      "TASK independent alternative-boundary critique",
+      "TASK fresh actual-candidate reviewer"
+    ],
+    "scope_boundary": "brief restrictions narrower than host filesystem permissions; no new worker worktree"
+  },
+  "source_origins": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "docs/DECOMPOSITION_STANDARD.md",
+      "sha256": "69f0fa1748d6cc2f69708c85abf17784428cdf702a27fd96fa60970edadbfa47"
+    }
+  ],
+  "prior_review_evidence": [
+    "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP1-20260927/REVIEW.md",
+    "projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/REVIEW.md",
+    "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md"
+  ],
+  "predecessor": {
+    "candidate_id": "APP-V4-GROUP2-20260927-CANDIDATE-1",
+    "recovery_commit": "17b8083da50f0ddc9851e017b2f3e51c48a8da19",
+    "manifest_path": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/CP2_DRAFT_MANIFEST.json",
+    "manifest_sha256": "1d3084868816d332aa4649bae25fa36fdea66aa6a60760d366870c67003d9cf5",
+    "reader_sha256": "b1686012e69a5ddad8daa23bf5f8f825104a7056383868f0b7f3fed98ed2cd1c",
+    "broad_review_path": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md",
+    "broad_review_sha256": "5401269bdc793319c981aba2568e6cf34c5e4d53519d89041cea706cddde121d"
+  },
+  "scoped_owner_clarification": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md",
+    "sha256": "9fc0cce822402c7c69bd4c3f9e7f9a37938f4bc0d8528a94ede7e0aaf886cecf",
+    "standing": "Initial Codex sufficiency and implementation approach clarified; not Group2 confirmation"
+  },
+  "historical_exemplar_leads": [
+    {
+      "path": "projects/chirality-app-v4/conceptual/MAINTAINABILITY_ANALYSIS.md",
+      "sha256": "bbee852ca99f836f9e2755e94b1eaf71540b10e5aaea46ca7a7d7c6c87424c51",
+      "standing": "Dated retained source, not current fitness/licensing certification"
+    },
+    {
+      "path": "projects/chirality-app-v4/conceptual/DECISIONS.md",
+      "sha256": "abe26074667b77863c2d917331d4ffba3a6996189273c551e1cf722d84e0430a",
+      "standing": "Dated retained source, not current fitness/licensing certification"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/T8-t3code.return.md",
+      "sha256": "a2d7e244f84e56bae08daab34f7334ccede34921bbdf2323ca32de574242e658",
+      "standing": "Dated retained source, not current fitness/licensing certification"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/T10-pi-libraries.return.md",
+      "sha256": "87d66bab2fb33c97aa843ef26c3143326f200cd60d0f7a3f6641f72166738ace",
+      "standing": "Dated retained source, not current fitness/licensing certification"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/V4-CONCEPT-20260925/tasks/T7-supplier-landscape.return.md",
+      "sha256": "bab8ab93c9f9a2f258d51d7fbf6e310620e3af76dc4ce8d2fd9671f8401fbaf3",
+      "standing": "Dated retained source, not current fitness/licensing certification"
+    }
+  ]
+}
