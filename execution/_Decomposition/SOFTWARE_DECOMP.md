@@ -1,6 +1,6 @@
 # Chirality App v4 — Group1 normalization
 
-**Standing: DRAFT_GROUP1_UNCONFIRMED. Revision G1-draft-2-repair01, 2026-09-26.** Package role: **working surface**. This is the complete proposed basis/SSOW/vocabulary/objective package for checkpoint Group1; the human has not confirmed this normalization.
+**Standing: DRAFT_GROUP1_UNCONFIRMED. Revision G1-draft-3-clarification, 2026-09-27.** Package role: **working surface**. This is a revised proposed normalization. The scoped clarification is accepted; these revised Group1 bytes are not confirmed. A focused comparison with the relevant completed upstream work is planned before renewed presentation; it is not a new governance gate or a PEC product-completion requirement.
 
 The accepted input is [APP-V4-BASIS-20260926](../_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), identified by [COMPOSITE_BASIS.json](../_Coordination/Acceptances/APP-V4-BASIS-20260926/COMPOSITE_BASIS.json): five original seed files from `9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c`, accepted recommendations HTML-D01–HTML-D07, and full owner messages J–O. Later owner directions qualify recommendations, which amend original statements. The original draft headers and old pending author checklist remain historical. Newly consolidated five-document bytes express that composite and require fidelity checking; they are not future bytes previously hash-approved by the owner.
 
@@ -8,7 +8,7 @@ The selected method is `chirality-root:bundled:workflow:software-decomp`, Group1
 
 ## Normalization boundaries
 
-App/shared contracts, the minimal shared host loop/components, App receiving duties, integration planning and relevant examination remain IN. SWB provider implementation and PEC provider construction have external owners. Domains provider ownership/allocation remains TBD (OI-026); the limited scope of this TASK does not exclude that accepted program capability. [External_Dependencies.csv](External_Dependencies.csv) preserves each supplier, contribution, point of need and fallback. Human-relayed files coordinate the outside SWB session; prepared files are not delivered or adopted handoffs.
+Host capabilities, App/shared receiving contracts, agreed reusable contributions, integration planning and relevant examination remain IN. Host-specific loop/panel construction stays with its owner; common implementation is conditional on an agreed repeated responsibility and allocation. SWB provider implementation and PEC provider construction have external owners. Domains knowledge develops outside this repository; provider/tool deployment and ownership/allocation remain separate open matters (OI-026); the limited scope of this TASK does not exclude that accepted program capability. [External_Dependencies.csv](External_Dependencies.csv) preserves each supplier, contribution, point of need and fallback. Human-relayed files coordinate the outside SWB session; prepared files are not delivered or adopted handoffs.
 
 Domains develops in parallel and joins a later increment: query → source-grounded research context → design candidate → human approval. It is not an initial HTML-D05 gate. “SWB Piping Designer” describes an application capability using the same four roles.
 
@@ -16,20 +16,22 @@ Accepted commitments remain IN while their design choices appear separately as u
 
 The owner governs repository work; manuals provide core working practice; Root provides conceptual and organisational context; product technical commitments belong in SoWs and derivatives. This draft creates no new precedence tree and edits no instructions. The complete thesis, old records and historical evidence remain preserved.
 
+The [scoped clarification](../_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md) retains required definition/receiving work as IN while linked Open Issues hold undecided values. SOW-131–135/144/147/217/248/249 express that included work; no process split, pin, allocation or wire format is chosen here. Reuse rows 125–129 preserve behavior without mandating old implementation.
+
 ## Proposed objectives and work-domain signals
 
-Scope_Classification.csv labels Product versus ProjectMethodConstraint. Administrative M/N custody and acceptance facts are accounted in Source_Coverage without SSOW items. The ten proposed objectives concern: the standalone workflow loop; chosen architecture/model access; portable workflows/four roles; host operation semantics and receiving contracts; human acts/provenance; file-based fleet coordination; optional connectors and later Domains integration; candidate-specific examination; staged adoption/replacement; and manual-led project definition. Each maps to concrete scope and a proposed examination in Objectives.csv. These are source-grounded signals for later structure, **not proposed Packages**.
+Scope_Classification.csv labels Product versus ProjectMethodConstraint. Method constraints qualify coherent results/practices, not a software Deliverable or extra human gate per row. The 262 rows are coverage statements, not a required task count; no IDs were removed or arbitrarily renumbered. Administrative M/N custody and acceptance facts are accounted in Source_Coverage without SSOW items. The ten proposed objectives concern: the standalone workflow loop; chosen architecture/model access; portable workflows/four roles; host operation semantics and receiving contracts; human acts/provenance; file-based fleet coordination; optional connectors and later Domains integration; candidate-specific examination; staged adoption/replacement; and manual-led project definition. Each maps to concrete scope and a proposed examination in Objectives.csv. These are source-grounded signals for later structure, **not proposed Packages**.
 
 ## Coverage and telemetry
 
 | Measure | Draft value |
 |---|---:|
 | Scope items | 262 |
-| IN / OUT / TBD | 224 / 15 / 23 |
+| IN / OUT / TBD | 234 / 15 / 13 |
 | Objectives | 10 |
 | Packages / Deliverables | 0 / 0 — Group2 not started |
 | Unassigned scope items | 262 — expected before Group2 |
-| IN items without Deliverable mapping | 224 — expected before Group2 |
+| IN items without Deliverable mapping | 234 — expected before Group2 |
 | Unmapped objectives to Deliverables | 10 — OI-025, deferred to Group2 |
 | Objectives without scope mapping | 0 |
 | Context Envelope S / M / L / XL | 0 / 0 / 0 / 0 — not applicable yet |
@@ -58,15 +60,13 @@ None requires an extra prompt before presenting Group1. OI-015 was resolved from
 
 [Companion_Inventory.csv](Companion_Inventory.csv) lists every working surface/register, role and named reader. ScopeLedger, Objectives, Vocabulary_Map, Open_Issues, External_Dependencies, Source_Coverage, Source_Sections, Scope_Classification and Consolidated_Coverage are authoritative companion registers within this draft. No derived publication replaces them.
 
-The [tracked run summary](../_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/VALIDATION.md) links independent review and exact candidate identity. Detailed run evidence (a recovery locator, not a permanent product-check dependency) is at `.chirality/research/chirality-renewal-2026-09-26/project-definition/scope-extraction/`: READ_MANIFEST.csv, SOURCE_IDENTITY_CHECKS.json, TELEMETRY.json, CHECKS.md and candidate hashes. The producer checked exact input identities, original byte equality, stable/unique IDs, allowed status, source coverage, reciprocal objective mapping, issue links and intentional stage blanks. Independent review of the prior candidate returned REVISE_BEFORE_GROUP1_PRESENTATION. REPAIR_01 addresses those findings; [independent backcheck passed](../_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/GROUP1_RECHECK_01.md). The five frozen consolidated files are mapped through all 144 clause IDs (136 retained and eight sourced aliases) in Consolidated_Coverage.csv. Their [independent substantive seed-fidelity review passed](../_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md); they are not a new authority source. Status-only seed header updates preserve all substantive bytes and clause locations. No product tests, CONCEPT-D16/HX-01 or E1 witnesses ran here.
+The prior seed/normalization reviews remain evidence for their identified candidates. Current changes and one independent affected-scope review are recorded in [APP-V4-CLARIFICATION-20260927](../_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md). The previous candidate manifest and reader remain unchanged; recover their canonical bytes at Git commit `c26677c8a981fa609d8f8e3e1facdb359669fe3c` rather than treating current working files as those old hashes. Detailed source/alias companions remain candidate evidence with named readers; they are not competing maintained authorities or a new review packet required for every turn.
 
-The general owner grant to proceed with decomposition and project definition remains in force. Group1 is the selected method’s next human checkpoint; it is not a newly narrowed authorization or a request to re-accept the seed.
+The downstream route remains selected setup/local SoWs, dependency evidence/closure, an examined and accepted current project DAG toward 30%, then local undertaking work graphs. No setup or later stage starts from this unconfirmed revision.
 
-## Actual checkpoint question
+## Next presentation
 
-**Do you confirm this Group1 package—its identified composite basis, normalized IN/OUT/TBD scope, vocabulary and ten proposed objectives, with the recorded open matters and external dependencies—as the basis for Package/Deliverable proposals, or what should change?**
-
-This question confirms normalization, not the already accepted seed or implementation. After that act, the manager records the exact accepted Group1 hashes in an immutable snapshot and pointer before Group2. No acceptance snapshot/pointer exists from this preparation.
+No renewed Group1 confirmation is requested now. After the practical final comparison of relevant completed PEC/workflow outputs, prepare the actual revised package for the selected method's Group1 confirmation. Independent App definition and routine Git integration can proceed; PEC product completion is not a blanket prerequisite. No Packages, Deliverables, accepted checkpoint snapshots or pointers are created here.
 
 ## Source identity aliases
 
@@ -77,3 +77,5 @@ This question confirms normalization, not the already accepted seed or implement
 - G1-draft-2-repair01: Created stable SOW-001–SOW-264 and OBJ-001–OBJ-010; retired mistaken administrative candidate IDs SOW-262/SOW-263 without reuse or renumbering. All retained items derive from the accepted composite. Corrected OI-015 from apparent conflict to source-resolved cross-engine evidence without renumbering. Producer checks and consolidation reconciliation are recorded separately; later repairs must preserve identities.
 
 - REPAIR_01: Removed premature Domains ownership statements; made distribution-answer obligation SOW-117 IN with unresolved answer OI-007; rebuilt all dependency/section joins by source meaning; classified staging/adoption duties as project method; reconciled 144 consolidated clause identities without adding scope IDs. Preserved local privacy at Domains receiving OI-023. Independent backcheck passed; Group1 human confirmation remains pending.
+
+- G1-draft-3-clarification: applied the accepted scoped interpretation, preserved all 262 IDs and ten objectives, kept technical/policy values open, and refreshed readiness at c5d852c4. Prior candidate/acceptance identities are retained. Final upstream comparison and actual Group1 decision remain separate.

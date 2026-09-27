@@ -4,6 +4,8 @@ Status: **PREPARED FOR HUMAN RELAY — not delivered, acknowledged or adopted by
 
 The owner accepted HTML recommendation HTML-D05 with SWB implementation retained by its existing outside session. The intended first activity uses invented engineering material: inspect a model, propose an adjustment, request a non-mutating check, encounter an intervening edit, and recover the actual outcome/receipt. A reusable workflow carries its identity, assumptions, tool needs and human checkpoints between App and host. The useful operation, autonomy scope and candidate environment remain to be selected. This is a coordinated contract and staged examination, not a single all-or-nothing test or authorization to run a supplier experiment.
 
+The owner reports SWBPIPE is still building and has not reached agent-action integration. This is readiness information, not a withdrawal of the later connected activity; independent App definition can continue. Domains knowledge development is outside this repository, which does not choose provider/tool deployment or relax the local/privacy contract.
+
 ## Responsibilities and requested information
 
 | Subject | App v4 / shared-contract contribution | Requested SWB contribution | Point of need |
