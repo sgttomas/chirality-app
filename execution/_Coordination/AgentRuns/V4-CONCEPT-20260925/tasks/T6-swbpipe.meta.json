@@ -1,0 +1,11 @@
+{
+ "model": "claude-opus-5-5",
+ "started": "2026-09-25T19:58:39.684Z",
+ "returned": "2026-09-25T20:10:23.036Z",
+ "records": 391,
+ "brief_chars": 4722,
+ "return_chars": 35695,
+ "handback_input_keys": [
+  "message"
+ ]
+}

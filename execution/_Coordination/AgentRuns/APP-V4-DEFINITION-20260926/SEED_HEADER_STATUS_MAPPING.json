@@ -1,0 +1,31 @@
+{
+  "change": "Only line4 pending-review phrase replaced with completed-review receipt link; every other byte and line count unchanged",
+  "files": {
+    "projects/chirality-app-v4/docs/PRD.md": {
+      "original_review_sha256": "7e8b7fffd30c7f6d64ffb750b5c2962805d5ff2792a5e16dbd85fb98dd25ef89",
+      "final_sha256": "657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573",
+      "git_blob": "c95f086008ed7fa85797b9f6db1e42e533fd21b5"
+    },
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md": {
+      "original_review_sha256": "877d886f471052323a5a0d0b3421527ceba8601d41f2872f50c6a223fe4b64d7",
+      "final_sha256": "c3ae766ee2d660fb391b7db0aa99526f84d21421cf3a6b692ddd17e42687e533",
+      "git_blob": "00dda1da9c240d1d54dec80844c4b7e31fd92f9f"
+    },
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": {
+      "original_review_sha256": "6efbd2615cd466715a333913176e135c4d0fd1135e15b75647f865d891e5e3f2",
+      "final_sha256": "08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da",
+      "git_blob": "e9c60f5bfd081e2fdc8db6eab63a041beec82f96"
+    },
+    "projects/chirality-app-v4/docs/EXAMINATION.md": {
+      "original_review_sha256": "71630a35c9602195cbd0d4097b440ef969fcc00d530c807ac4ca3877cacce63a",
+      "final_sha256": "1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19",
+      "git_blob": "9fe0ce9cffaf9f564ca5f405ccb44e154ee2c9e6"
+    },
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md": {
+      "original_review_sha256": "e9d90c756b5e7098b046965787f4f66d9de7e8229578b680af7a4a73f0b8208e",
+      "final_sha256": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd",
+      "git_blob": "e659aeb9b85522d1b2bb21460e25f1e4a3b9b376"
+    }
+  },
+  "git_blob_note": "ReadSnapshot in Consolidated_Coverage identifies Git content, available once staged/committed; Document and SHA256 also identify the exact bytes. No ignored local research path is required by this map."
+}

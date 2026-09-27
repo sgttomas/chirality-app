@@ -1,0 +1,572 @@
+{
+ "archives": {
+  ".archive": {
+   "bytes": 7803872672,
+   "digest": "c8a4ba146004b57887c08e306f1b2d028e19fbf164594210074054841f8b4708",
+   "files": 46211,
+   "subtrees": {
+    "067f025afa9610709c25ce4f64985d0fc48a5b5f52c0fb8e897d4515869b7536": {
+     "bytes": 15291331,
+     "digest": "9c3a2856599234aca2ff4045825f6cda4861eda5d956ed318b07f3efb756fb0f",
+     "files": 12
+    },
+    "0a21db8ac5bb9a26a1e03369165aa7cf3c5fda67a13e0f6709b972c044c80ae2": {
+     "bytes": 45527,
+     "digest": "c36cdd9fc2e20fb7d762a9d5f8cb9829260fb86dee2f8dd0510f4bf0e023bb73",
+     "files": 4
+    },
+    "0b1a875423aa2cb5adbecda91814ffcc02cfcff64816eed3d0de541f896d12f0": {
+     "bytes": 7413352561,
+     "digest": "6aa964312f7df50edf3c5621178c0d241444943815506e1138d0e22d3dcd0d4b",
+     "files": 39553
+    },
+    "0fac53cd924cd8dfa81c9a89927b18c7642664a7774178513af189a42cafcef7": {
+     "bytes": 57966004,
+     "digest": "37b7a66bd731e8835953ae7cce7e4681ad7dcc3278b91ed8dfaee2f7aba72df3",
+     "files": 765
+    },
+    "108174a204e5cd0d3c94ebb7b6a77824536175b7e54edf74887f322711bccb61": {
+     "bytes": 140637961,
+     "digest": "55a879e3e3e869022bd101dc9a2ff9d4a43a241706e4f9ee6010a35478ff7961",
+     "files": 1472
+    },
+    "1fb6b820346c8d85d9cbf022536d7c35bcf341cba04841cfc02d731da37fb9a0": {
+     "bytes": 117354,
+     "digest": "c69c54fe0b14d5c29209a881520482f2e4cbc1040dbc3721d93ed748ebd8728c",
+     "files": 12
+    },
+    "207e3af2ef9a345f6ee78d63efeb69118aa973a79679c27961ca5765a922fdd8": {
+     "bytes": 19318890,
+     "digest": "51dea0c66cd9b4dac21a2465ffb8513bd852a2a74db6036a3cf53507f432ddc1",
+     "files": 9
+    },
+    "3e5be7b9fa04741e6c38cdac2bb42d181a907b2f2588abdf1daec6e252338375": {
+     "bytes": 35037684,
+     "digest": "f0c8b65866811791e8e061d20721c8b6614b595d94384dd6f513fad86f8817e8",
+     "files": 2911
+    },
+    "4540159eddcb8e451fdc0fe2cb37fc53fda9de166a0221d38786fb8f212be76b": {
+     "bytes": 554,
+     "digest": "b09015813582a3a266ba68da0c80e8b5709f4e095892b16391c3fddc0d00537c",
+     "files": 1
+    },
+    "5c66579819eefe5c17d4e9c3b3604e03943813907296db89c14d13fefd9c7383": {
+     "bytes": 1184610,
+     "digest": "e39ca8a8b7f1aebcda6ae69bdaf567e989f902295f795f4f08514dc33b251b3a",
+     "files": 6
+    },
+    "5dd01cd22cb1a54110c87643de10576aeaf12b3e11d03fd5009c496ceea62f59": {
+     "bytes": 69143,
+     "digest": "76864d94f1f4ed890a4feb92d85bea7e1fe8f473e4e69493d10d9fde65fa7a9b",
+     "files": 17
+    },
+    "695c2cbba82e0ebf9f516d9b35ba8cbd55fc1be49e042ec4ee5f6e33db7eb424": {
+     "bytes": 48560,
+     "digest": "4012bf5f8d10457378edd616b2b60f065624c392ac90d79bad1e24f3a8ab9923",
+     "files": 8
+    },
+    "789e7cefa10684d868b3bedc4d0f9cdd364402c7b46e1192bf5cfe1f702a3cc1": {
+     "bytes": 251258,
+     "digest": "a866852ab1d68093f230fabb764e725223e57b91688552aaef60b7d54447cfeb",
+     "files": 16
+    },
+    "7e98798ef15ad280a9127baec0bdd6138e0b5f4e06b348f81a9c95e23970f805": {
+     "bytes": 22868,
+     "digest": "157766f7215082e99d8c8fede36555ba709b7945b236e46c076fc714f397cb52",
+     "files": 2
+    },
+    "81235523a10279086ba3a5e29200c60ecfdcaa9d92a1f0675092db1df4b68879": {
+     "bytes": 59805288,
+     "digest": "469a51250e5330e9dda00ea1597cfc32599b190d97678389588eda9c07bd2446",
+     "files": 879
+    },
+    "8d0bcb5030bd3e1f1d703d30544b91b168f5b82fbbb042ac126c5697ab3fe6ab": {
+     "bytes": 396813,
+     "digest": "01d435ffafcf4b8ff8b9487a21d16ed5dfb64920f818ca574c9d0c8921a0975a",
+     "files": 11
+    },
+    "9ae1b47d2acd0901cda478e93fdbd5937f014d8242fb6aba9044b95edf0defb5": {
+     "bytes": 336057,
+     "digest": "5af14e7b59b94152a602da499c08a97d1f48ba1ad6a12e8522b0fe1d59493f15",
+     "files": 8
+    },
+    "a98ec902f03469bf43fdd35971074f7f48705eea07f46007388e8da8e78aca60": {
+     "bytes": 4414131,
+     "digest": "b1869f759357b58c36b7ece6bda9652200ffe684e78cf34cd8c4e177985c8208",
+     "files": 5
+    },
+    "b6f44e1995608c88c2a525d0290556541e46e9d7bc60af04ac8dfbf65bbd1201": {
+     "bytes": 55101293,
+     "digest": "d95623e6d96e2b4059d81c8a256a48db586b6e85431faca24c6b09c14e04e26e",
+     "files": 483
+    },
+    "bd3f497b5edc1a2826291162876c9515750ee9d36c0ac4aafc660ea9ab5e73da": {
+     "bytes": 127716,
+     "digest": "4ccc5cf13ad324da6583a03045122a0d279304808daaf4a7b7ea8fcf30414965",
+     "files": 17
+    },
+    "c0e9219eb8501bc23902a3f1c2e769222548004f358293e45fe83fdd6cb14f58": {
+     "bytes": 267322,
+     "digest": "fd8e3bc72cc4a515efecc7d3b187bd926c1926636bc2077b750b88b9f317ca81",
+     "files": 13
+    },
+    "e3ef6688bbeefecc5b5a871e3cd12384d87b1f04890c47ecbf400bfa3f15b6fe": {
+     "bytes": 26842,
+     "digest": "d2e6b545341b929ab9a9df96b83aae04e94897e610839a1ed19ffbfc1d1f7638",
+     "files": 4
+    },
+    "f208a0dfb1e79571762ffd8bb5a232d72c0f70b773190e28b0a680bf0a318275": {
+     "bytes": 52905,
+     "digest": "dc23b4c2723bb1415c5e10d34171a4acdc1a3f6f4f1e7f6004e212b35586a7dc",
+     "files": 3
+    }
+   }
+  },
+  "_DomainEngines/bridge/BRIDGE_2026-06-21_tier0-prep": {
+   "bytes": 61996,
+   "digest": "187bc5e8fa511d90b54cf59321b25117a33bf35e40687bbafc2271bfcfcac9a6",
+   "files": 15
+  },
+  "_DomainEngines/pec": {
+   "bytes": 30016,
+   "digest": "ce90d2ea16bc406584b658d215118c2d0cbfa1ae37deacbf3eb9641281757135",
+   "files": 1
+  },
+  "_harness_generated": {
+   "bytes": 1010738,
+   "digest": "16d46cdd57a2dc32eb27ccf5426924d773c69fb23d5251bbc0f4ae25932f03eb",
+   "files": 43,
+   "subtrees": {
+    "5d012694d821536aa88af88e5f0c6daaddd9e4f1ad86b048e7746fec3bf0c8f4": {
+     "bytes": 1005104,
+     "digest": "fb55b6fa93cfde28951f892dd64697a915433132ef33c9a8f13ff8545bd4a2fd",
+     "files": 42
+    },
+    "b00d429f431e520c2f73b400a141bbdffb21e887c2f6ce1435b90612923a9106": {
+     "bytes": 5634,
+     "digest": "6c1f11509152299290cad61ed5053f9c1413a8141e9e53d5e03984a94ed219a3",
+     "files": 1
+    }
+   }
+  },
+  "domains": {
+   "bytes": 7379095676,
+   "digest": "331e86f275663eefe0b06d3b66a228558eed0abd76214fb2ea431c5551c48c1d",
+   "files": 7634,
+   "subtrees": {
+    "38a78d66fda441ff55ce9ae24698c7f9f489a6c54fa781421f9059e7d1d368c8": {
+     "bytes": 312644633,
+     "digest": "f7465e2798d4b86ab47e8cf928ff269349026790fce2869b02b57bb0d2f0b5f6",
+     "files": 16
+    },
+    "605b7de8f39fb4eab8a6ca92be03b7e2f2d17d3029288a9ee6db175725602469": {
+     "bytes": 546959651,
+     "digest": "a4fba1af30307ab1e9dfd3f5d77b968f8622254709f300c4ac9bf11783e885b0",
+     "files": 142
+    },
+    "8680542d0c8ecb6d731a92587b4d64d28839e895362d895fa771e824c7fba2e6": {
+     "bytes": 238693960,
+     "digest": "e06e51f5cb59f4efb9a9bc8ed5bbe9483faca33e69569123f4893faad738ad4c",
+     "files": 13
+    },
+    "cd3b0f140a3dfa94622908b92e917ec3fa14c98cd5e8f6ad58e66508596b4be2": {
+     "bytes": 6059972403,
+     "digest": "5295f99f24ea9c4b155beedb959062235b23c0c7a05f85df931fdfc8992dac28",
+     "files": 7439
+    },
+    "e510c969dd703a3d923864f015134a369266e0d644c6de5680403d8104b01625": {
+     "bytes": 220825029,
+     "digest": "17469856592ff8ad72c8633628a4d75ce35a7b4ee5f976a89e8ed6f93d0393a4",
+     "files": 24
+    }
+   }
+  },
+  "exports/chirality-app/staging": {
+   "bytes": 5651005,
+   "digest": "6f59ba5a68a8314bf5b5df602cb7c6c8d258804154928a63f64cafe241f9e774",
+   "files": 534,
+   "subtrees": {
+    "37f24394999a97856a4980420b18826e346a9044a607a9fc6daebda98dbcde85": {
+     "bytes": 11307,
+     "digest": "17d3e5de1efe9dfbcc30ac488ce7e61f6147d65e526718ee0d5a0c924700cf24",
+     "files": 3
+    },
+    "6055924452eca64a953bf1c5b4ac9980488f5226688c9cec801c433b4ae44769": {
+     "bytes": 1427,
+     "digest": "8f3fca9c0bedc5d039728da507ff8ed5bc73c9f04d5f0a2dd66e5cb5f47bfec7",
+     "files": 1
+    },
+    "6716c56c5a5885daaafb584681f06f24fee8d8d3f5a31b3dbd855adb7c11f9fa": {
+     "bytes": 87967,
+     "digest": "3fe4a610ef30ef25e2ad023b02fa1cba01a9359058bb56c872ab419ad36a75b9",
+     "files": 6
+    },
+    "83c89480c895cf2def7786906d85e9f58f76137405877c394a2593d29f98cbac": {
+     "bytes": 877875,
+     "digest": "59a36fb527aa509fa92891e7c97a40db45ef3a988ad030ade21b714a5495394f",
+     "files": 42
+    },
+    "91d87265ef75c6eec7f225d05ef93256d57d3109214cc083c55cf0f6cfb67532": {
+     "bytes": 986548,
+     "digest": "95f5431c1abba7698b8f301cd3ca38425d4a4a913d3fb679c2c5eb0a2a2128b7",
+     "files": 38
+    },
+    "c795d484fb432efcd49afc8b4f4894d356d17f1a68fa1f32c3bc1d7c7e590697": {
+     "bytes": 879635,
+     "digest": "614cbe95c3af2c6f0d633df60a6f70df4bd53afcf046e5462874b87d6c9b2d1c",
+     "files": 157
+    },
+    "de25c4b946188eefc02db3dc14f03fd6c955d48844792f428d41bfadefa29f73": {
+     "bytes": 2806246,
+     "digest": "9137cbb6f5b27760a268068f6282370eeafb6bec593a5d0dfcaef9621535cc28",
+     "files": 287
+    }
+   }
+  },
+  "plans/.archive": {
+   "bytes": 1226546,
+   "digest": "a663dd006b8a2a09a2824faa9623f5dfb9b5574e8f492b4f350573ad38567872",
+   "files": 72,
+   "subtrees": {
+    "084b8140e85549de9f8f2e323eb5cc5e6b51bcedf9e07c1676f82903fbed34f1": {
+     "bytes": 360878,
+     "digest": "8c9b106355a83a0000d86cd03c220ce2026aeae529db5cda56feb0af8ff62c72",
+     "files": 9
+    },
+    "2e3b731ce597066f02820429af6a573d9819d9fadf1086b5981e348bcac8fb66": {
+     "bytes": 147244,
+     "digest": "d25299769468a7ea5b449d53f83651dde3778567f50c7def4d9f1d78f02b59c5",
+     "files": 12
+    },
+    "5e94d05f02b49ab1d7248e0e89535a73a893f2a83b7c1beae1621eb046220aa2": {
+     "bytes": 718424,
+     "digest": "24cbf344981336478483cf71e2f4c616e8665c5cb103c35ba03e3d99f31c610d",
+     "files": 51
+    }
+   }
+  },
+  "plans/evidence/2026-09-19_manual_theory.zip": {
+   "bytes": 33733,
+   "digest": "b808ed11f805cf38e696cc9f319f3e8f26550d6bccc31e721a94485890c32f6e",
+   "files": 1
+  },
+  "projects/chirality-app-dev/.archive": {
+   "bytes": 15959469,
+   "digest": "3fbc7cf61c9b117dd9cf95ae721af2cb33f5de232862b69a78c3a89c2404cb67",
+   "files": 2313,
+   "subtrees": {
+    "0a545ed7d1e758037ddf8d532ad5b303fc165b715d825bb769defc6fd54f5d30": {
+     "bytes": 472402,
+     "digest": "5d360eb584ad545b1e71a55997cfab6a5a12596f48eff5548620e33a3d2dbdf8",
+     "files": 65
+    },
+    "1a0d78dcf434f4c846d3c2bfe0bf1f367182d476ff76234a9ca16b09edffc009": {
+     "bytes": 1778,
+     "digest": "85b352e14959b6b6e113a9608a0cd95d653ea9c55bf03ac892ed830c025f99dd",
+     "files": 2
+    },
+    "208c9d40a0dc4134e310aeacfc094e168fc3ff46181d32becbfac55e260a0107": {
+     "bytes": 36903,
+     "digest": "0bcf6003f0f2d3a2cc3bafa5a5db37c47cb8240540aef30ab0dd761ed432d9c4",
+     "files": 25
+    },
+    "249536a9187ca72fe30d65d524bba813d568176b52234f82a4b5570bc7ec4839": {
+     "bytes": 190405,
+     "digest": "f2541abbc150e71bbf2a63961485f3d3fe90d10062a563f0dab7c20cfd6967a4",
+     "files": 11
+    },
+    "29c1d50fb5d8fb4d5eaf5685efc74b32809ba8f3334b116aa748863575b2c76b": {
+     "bytes": 510338,
+     "digest": "4cab065f6760b57f9c0300649e09ec322612421192750879f360c5b572c3aa98",
+     "files": 36
+    },
+    "2ae64669a2d088e0b77f01bd60208bd59e29702320fcaa901d1663a292495a25": {
+     "bytes": 467192,
+     "digest": "aa38075e50fa867b869e5f912fc0ccc4f609b8b53eec74b1c26634f7c316a2b4",
+     "files": 65
+    },
+    "319bfa333fb02b7f0cd31f07d80c2f1c77dfa5c71ad8b44da4d1492146e64e21": {
+     "bytes": 2285806,
+     "digest": "f4190fee36adc4f1a93ce011d2d3c93db673a5e0fc51e5bb1fb16182333ed362",
+     "files": 837
+    },
+    "495d5471230b40f621845ac283e5aee1cf82c5d7d7dfea36db4dcdacf2771273": {
+     "bytes": 85687,
+     "digest": "e5134aec6f831d8888dd8b13425f3c910b047db452f63c106930fc13574312da",
+     "files": 6
+    },
+    "5359443e658f55e6e16e9d54fbead75166cbc84ba076a4d1d8270b8410aa9954": {
+     "bytes": 763844,
+     "digest": "2be61e411691761e396299f47367b21c0f80b949b331addad427d5175ebc8606",
+     "files": 51
+    },
+    "5859eb1fcf1f348c5c18fcc581eaa420c3dc1801ad568e7cb73b6db4ef5b9f5b": {
+     "bytes": 483915,
+     "digest": "a2b7bdc9e7525f934c398a9cba58efb793d2dcfe5688559588aae294d08f7716",
+     "files": 68
+    },
+    "646d9831849ee67034d1ca11ccea4d664836da42eb7cfed9815b1bde26032970": {
+     "bytes": 168,
+     "digest": "ab1e080d015db6e42ed23328cd28cb099f0e9da09277244dea8f868c1650d61d",
+     "files": 1
+    },
+    "6d93e260bd4390d41871ca8907bb9f445b2a83a5f57d666de413235db7a87a62": {
+     "bytes": 676,
+     "digest": "6462bb3f16588d1fdd9228e7479efbff81d1126c37e2f4d3e4222e13d44bae41",
+     "files": 1
+    },
+    "7658d76c2e650c8d84a309a3bf28b2e2de447bfb0687968a256b2f044240e30e": {
+     "bytes": 1455042,
+     "digest": "a0f24a205398f8912cf838c062694a10b9c36876c1291760c852f3b663a0ab15",
+     "files": 120
+    },
+    "77c0bfa5ffcbc7ddb2f9edf4ed96638c86ad42fded20c17c9383de090efebd1f": {
+     "bytes": 385123,
+     "digest": "e1c83aa6ddf751d4bd5a21ce30416c81e51204541c1d13c0dd2ff60613f13c60",
+     "files": 52
+    },
+    "7b40e31a4ddf3a468e03559d6c42dcf82c8bb555ec07735f24af84b297a59632": {
+     "bytes": 1013975,
+     "digest": "5df9a452f8ce715709d6f160092ab8e80607fde56d122b8fdac859b030beeef2",
+     "files": 72
+    },
+    "7e21e4c2c80e76601feaee843f9de6e55a004cdb7201375be20e51ae39f271fa": {
+     "bytes": 39723,
+     "digest": "804ce604c6d28c591f84ab55d6f106c43f7e1944c592318b5ca66c5df0ec1bee",
+     "files": 7
+    },
+    "8c05607282e62fab616e3e88e2826a30e067bc0035859e22dbe04d339c095fc6": {
+     "bytes": 615221,
+     "digest": "de472a952e49eff6a7cd2c92148b73cc8e0fcce0bff36724e2d0e9bbaf2276ab",
+     "files": 123
+    },
+    "8d1171d188706933bcd9302209e3f7cf9e416d5bb5be84a5ac4266c96899b4a1": {
+     "bytes": 9179,
+     "digest": "3be984fef75ecc2f73a35135eb2d4078750b523007b40c30ea1a265bee621a57",
+     "files": 8
+    },
+    "917bf50d912f45e2c5ecd9c6f8fea1bf23c288593800a06f1dd9ddedebda5f0a": {
+     "bytes": 5595,
+     "digest": "27c3a0f4446eeafc4faa59a7e9eceed544486746cad01bea01eb5d5d02eb6063",
+     "files": 8
+    },
+    "9200df11337b2fff70580645bb988220e159ac3a2c82d98b0c390bb9569a972d": {
+     "bytes": 594824,
+     "digest": "1fb154ce86f1fda9fa1dcb985fbc51876d95314a516f28f3d10f7a3fc808d8de",
+     "files": 78
+    },
+    "92161e366fe58ac252760788b594a3b5df51889358e22088d39fd5037d8848fc": {
+     "bytes": 355618,
+     "digest": "ff1bef18ad485d93bf1b40c229c28c6e83ef5f6b0281eefb43fadb88c955f9ca",
+     "files": 8
+    },
+    "9c1bc12ffe71943f89f5cfb69096a2a9aabf45116c03a8be82c10f89000dc64b": {
+     "bytes": 262089,
+     "digest": "88e7a5ec6bf42538013cc61911389ac474b0154ed37d45f11b46de1b2efd002d",
+     "files": 102
+    },
+    "a0ee8fa2e7fe2a06dfa806df5155d7c87bcc24a9d8bb545989922af868fca0e5": {
+     "bytes": 464830,
+     "digest": "06629028e23366118014701f62e4b952c8ca6ecf47c1fa78a9dc6bd5a1d4c461",
+     "files": 65
+    },
+    "a6df92c4794f6d1e0d8abb6e34678ff43788c6a155df844b107830b36a0bc6ad": {
+     "bytes": 529964,
+     "digest": "1a2bb720d26cc5e0bf29023d71b0555fbcc0e44b530a7f01315e3a3b17ba0c87",
+     "files": 65
+    },
+    "a840c41838eb1e7148211cb413a7554e2a289c0f47d7d455413deb3be815c6e9": {
+     "bytes": 245967,
+     "digest": "afbcf9ae0ba86645cd1dd53608a2b753129319425d09107d36eddfbdc5232856",
+     "files": 4
+    },
+    "ac855630ce5dafd6defcdd41ca0c4ce94fca4db5e4e8d42b2b177702aa597246": {
+     "bytes": 1145860,
+     "digest": "bd7a3eb54c5ce9f20bda79e5070285d450369fcf64188fdd30374a7626aa186c",
+     "files": 84
+    },
+    "aee64b60346ffbd802449985befaf6038d6068910011182c6e94693d27a6e8b9": {
+     "bytes": 11206,
+     "digest": "adb0016796e3d90bcab462c13b11d84d94afd8bde492f8551ee6c8041094e02d",
+     "files": 4
+    },
+    "b675ab18bb0ca5bfb86845cc0d5c452f71fedc2245730423144b686ade2930b4": {
+     "bytes": 644156,
+     "digest": "577a8ced248240089111010d0156effb1a391c3a726b1d8b9dffcd3e770c1838",
+     "files": 79
+    },
+    "d1f0a15d0746573eb2c1ea20f9f1973d27c2d33984840ef80275b82a4cbae4bc": {
+     "bytes": 330398,
+     "digest": "dc5fdf4c719c2430eaec5e4d3de1bff37e0f06ecc40d77aaae8b0696b6cae0ff",
+     "files": 24
+    },
+    "d6913c48a36616194b8f8e8758653f51fdda8bc657d011946aa395a5285566b6": {
+     "bytes": 13351,
+     "digest": "08d1723e99a163663e76c1195667f4e307b70ba0781d148da80923d8b9002d81",
+     "files": 1
+    },
+    "db69e6a79ee6aff337b0c19b6a681543c3ee3ea9ebf7df6c33576210bd0fe65d": {
+     "bytes": 593567,
+     "digest": "48ef4852273374cbed09319abc1431dfe650b6ef3255f7befd536225f4221237",
+     "files": 78
+    },
+    "f4f90f8a932513828269bd8cc41e43a800a242722d0de505ee3b364609c90981": {
+     "bytes": 572259,
+     "digest": "0b4d36d0608985f85634e99a52aeebb95ab075f1e700f89e83f71b920e19ce49",
+     "files": 37
+    },
+    "fb0b380e88ed78fe0579c44a34385da4041932f4f5581c4b220de3a1064be902": {
+     "bytes": 915251,
+     "digest": "39a878c4c1534a6746da4eb41b720a7e08f118e93872d9df2533e1cbe9679019",
+     "files": 65
+    },
+    "fb42b1db04cf71b4158dc3a018ecef79c8bc9174edbd0297053f355d3b0301dd": {
+     "bytes": 447926,
+     "digest": "c5a9c23d2c290e615ac5b41e997b8811ff963905e09c912f6c5a463e31715ab6",
+     "files": 53
+    },
+    "fce455ffa6c7a9ba613eae34ca83d46c8299619a7ab7be53a56cc4a412815029": {
+     "bytes": 9231,
+     "digest": "f16c1ae8a627480af31a8d13c0f8921158912e107aa049a811f37ca0cb857512",
+     "files": 8
+    }
+   }
+  },
+  "projects/chirality-app-dev/chirality-app-dev.zip": {
+   "bytes": 4804151,
+   "digest": "c2ef086e8e577853a00da6214c526e5411d18a0a5f31c2039a162ef8953c0a2a",
+   "files": 1
+  },
+  "projects/chirality-app-dev/execution/_Decomposition/.archive": {
+   "bytes": 169097,
+   "digest": "0cbdfe8a83115f94cf4b342930180683bb967c98e58b9d388b128233ff443b06",
+   "files": 3
+  },
+  "projects/chirality-app-dev/frontend/.chirality": {
+   "bytes": 3211448,
+   "digest": "8f8f5224fb689eaf5fb96900cb9cbc5d1ee9d03f80c6df6f179752f7fe7764ac",
+   "files": 24,
+   "subtrees": {
+    "87b0172a13fac456b7fd6b1dfd911e55a3f11501c5d9ebf933eab38e5b535d26": {
+     "bytes": 3211448,
+     "digest": "8f8f5224fb689eaf5fb96900cb9cbc5d1ee9d03f80c6df6f179752f7fe7764ac",
+     "files": 24
+    }
+   }
+  },
+  "projects/chirality-app-dev/frontend/artifacts": {
+   "bytes": 101178,
+   "digest": "e2208408694cdbe713aa06448060442f5c52702461fff8540438d6946d6cc513",
+   "files": 14,
+   "subtrees": {
+    "4b8b20c9cb2db69855b1916aafb76790683267a70b10f7dffb889a96c05e81f3": {
+     "bytes": 101178,
+     "digest": "e2208408694cdbe713aa06448060442f5c52702461fff8540438d6946d6cc513",
+     "files": 14
+    }
+   }
+  },
+  "projects/chirality-app-dev/frontend/dist": {
+   "bytes": 266164339,
+   "digest": "bfd2f75962757f8acbd1f9e9debc5759eeb02b0de885ebf05371f106f4cc7c85",
+   "files": 4,
+   "subtrees": {
+    "089f4093d110df0667e4b41901da524400bf5962097d9541d062599a12d1c2f6": {
+     "bytes": 266164339,
+     "digest": "bfd2f75962757f8acbd1f9e9debc5759eeb02b0de885ebf05371f106f4cc7c85",
+     "files": 4
+    }
+   }
+  },
+  "projects/chirality-piping/.archive": {
+   "bytes": 1100937,
+   "digest": "0de0bda7559ef34bd16bf1004df392337332143342d2ea6a94b4645ef80ca8ba",
+   "files": 102,
+   "subtrees": {
+    "7be8aa0eebcfea439f435c00d4ec07024f2b546f59edd9ea0ec5cc67de6a7d0d": {
+     "bytes": 585914,
+     "digest": "9285d56cd59bee83db66c6f1f09eca2c7071979cdb760a8459fa4a4bca4549ad",
+     "files": 67
+    },
+    "f6748f137d45cb7d033f0e78bb9fc779582f3e14234e289b86f95f5995f6f0e9": {
+     "bytes": 515023,
+     "digest": "0f503527f7b690d118f5e2f3be04f57ca378a87a42f3812a0c7b4d24affb3228",
+     "files": 35
+    }
+   }
+  },
+  "projects/pec/backups": {
+   "bytes": 2215936,
+   "digest": "0a176515dd2952ca96d08418d8043bd7392c6d2afa6448e9d01f690340ae231a",
+   "files": 1
+  },
+  "projects/pec/pilot-scratch": {
+   "bytes": 27829008,
+   "digest": "c43bdc3bd58fa0a659686a4f40e04e1ae0dc9ea6c77665ba4c10ff2cc761b85b",
+   "files": 99,
+   "subtrees": {
+    "1b98181513f1d6756e6d5e497b6ee96e35461a3ce1b4f5f9245693da36717aaa": {
+     "bytes": 22988053,
+     "digest": "555a9ed861dacf6ae5d6a55c27443c48dde26b9a1692a5871278c45997e2e380",
+     "files": 40
+    },
+    "46b117241d39098b90be65c07d21c23232a7d55a1bed28613abfea9eed3c6755": {
+     "bytes": 2191360,
+     "digest": "5884e0823b9df9b53d7e78ce17cfcc7e3af9307375b3e47e810c0453cac758cf",
+     "files": 3
+    },
+    "80ffffff12d838e97a8427a99c6f6bbbe071b4354bc03c1ae2dfc973052a1c10": {
+     "bytes": 1208377,
+     "digest": "7ae936867398e76f23275009c5bad4f3a25b3b86f482ac0a163988067bd5c274",
+     "files": 22
+    },
+    "8532b4e8e40435c1b7ff4fd60061fc273a9f699400da10dfb9e13e4816862242": {
+     "bytes": 445189,
+     "digest": "0f4b790c30462bf3e352178f5b26e0bf79bfd1d537f275b1c7554904586f9aec",
+     "files": 10
+    },
+    "8b170ad3a1637296a839ffcc37ffacf7b274bda4b4077227290291fd470e769e": {
+     "bytes": 426695,
+     "digest": "e59c11fac00d43ad3c5cc6b54e359b741410d705ab4a549b4fcb2cb995b666a9",
+     "files": 5
+    },
+    "ab7edcf0f70ae657d48d373fe4efb2f6ae06ee56cb3b9e0c1ffa3bea859f6931": {
+     "bytes": 24562,
+     "digest": "b4427f71a95da41978c2f7631de83d0e6bd4e1ab56dcd3b7f8a170f6af479883",
+     "files": 4
+    },
+    "c6cea02148a5cd1baad818db7e8b15b3059ee787f5fae44d5e3f4326deaca84c": {
+     "bytes": 3556,
+     "digest": "b7516eaacdafbbcb1cecbe5faee7397ea1dab95c5c5794a0bb62159833ba7810",
+     "files": 1
+    },
+    "fd459e51d2eb8c062f9a528536c6ba202d6d910baab722f1938cfa5cc7f51403": {
+     "bytes": 541216,
+     "digest": "3d1b779fd92e456f6d976f00d9e360290eedb0a02df0655c09b01736d3fc005b",
+     "files": 14
+    }
+   }
+  },
+  "skills": {
+   "bytes": 0,
+   "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "files": 0
+  },
+  "workflows/Software_PRD_Workflow_Draft_v1.zip": {
+   "bytes": 29872,
+   "digest": "82064492587dee1db3edb8ba582323101c229ec861b61334e1202242061558b5",
+   "files": 1
+  }
+ },
+ "recorded_at": "2026-09-25T20:19:17Z",
+ "root": "/Users/ryan/ai-env/projects/chirality",
+ "schema": "chirality-v4-archive-digests/v2",
+ "skip_dirs": [
+  ".next",
+  ".pytest_cache",
+  "__pycache__",
+  "node_modules",
+  "target"
+ ],
+ "subtree_keys": "sha256 of the subtree path relative to root"
+}

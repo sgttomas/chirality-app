@@ -1,0 +1,35 @@
+{
+  "standing": "Consolidated expression prepared after accepted composite;not claimed previously hash-approved",
+  "files": [
+    {
+      "path": "projects/chirality-app-v4/docs/PRD.md",
+      "snapshot": "PRD.md",
+      "sha256": "7e8b7fffd30c7f6d64ffb750b5c2962805d5ff2792a5e16dbd85fb98dd25ef89",
+      "unchanged_during_copy": true
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+      "snapshot": "ARCHITECTURE.md",
+      "sha256": "877d886f471052323a5a0d0b3421527ceba8601d41f2872f50c6a223fe4b64d7",
+      "unchanged_during_copy": true
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+      "snapshot": "HOST_INTEGRATION.md",
+      "sha256": "6efbd2615cd466715a333913176e135c4d0fd1135e15b75647f865d891e5e3f2",
+      "unchanged_during_copy": true
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/EXAMINATION.md",
+      "snapshot": "EXAMINATION.md",
+      "sha256": "71630a35c9602195cbd0d4097b440ef969fcc00d530c807ac4ca3877cacce63a",
+      "unchanged_during_copy": true
+    },
+    {
+      "path": "projects/chirality-app-v4/docs/OPERATING_METHOD.md",
+      "snapshot": "OPERATING_METHOD.md",
+      "sha256": "e9d90c756b5e7098b046965787f4f66d9de7e8229578b680af7a4a73f0b8208e",
+      "unchanged_during_copy": true
+    }
+  ]
+}

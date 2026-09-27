@@ -1,0 +1,52 @@
+{
+  "id": "APP-V4-BASIS-20260926",
+  "standing": "accepted composite basis for App v4.0 decomposition,including stated open matters and external dependencies",
+  "source_handoff_commit": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c",
+  "acceptance_record": "ACCEPTANCE.md",
+  "scope_order": "Later explicit owner directions qualify accepted recommendations,which amend original seed statements; unselected alternatives and merely evidential assertions are not new commitments.",
+  "components": [
+    {
+      "component": "original-draft",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md",
+      "origin": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c:projects/chirality-app-v4/docs/PRD.md",
+      "sha256": "ff57362886b76da07df6feaed1630661f427c071dc5720c38c0a61d7d9e90491"
+    },
+    {
+      "component": "original-draft",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md",
+      "origin": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c:projects/chirality-app-v4/docs/ARCHITECTURE.md",
+      "sha256": "8d1474213fd5c8924d52dbe47f8a9fdf1cc6bf9dd42944cf080e3e9b6e7a7dc8"
+    },
+    {
+      "component": "original-draft",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md",
+      "origin": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c:projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+      "sha256": "dec2110dc40946345379684b172d94dd444e19719d4e70e2238852ab43e08414"
+    },
+    {
+      "component": "original-draft",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md",
+      "origin": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c:projects/chirality-app-v4/docs/EXAMINATION.md",
+      "sha256": "a1490b1e101864c6db6280deaa9a617a6201c323ac9af574c4582177b0199419"
+    },
+    {
+      "component": "original-draft",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md",
+      "origin": "9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c:projects/chirality-app-v4/docs/OPERATING_METHOD.md",
+      "sha256": "8f53b266564df3bfd191ad675e8f76493998ebcf53ccc21ae8924a16b51e8a04"
+    },
+    {
+      "component": "accepted-recommendations",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html",
+      "sha256": "02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8",
+      "accepted_scope": "Recommendations HTML-D01\u2013HTML-D07 with their stated open matters and later owner qualifications; alternatives/evidence are not selected merely by inclusion"
+    },
+    {
+      "component": "subsequent-owner-directions-and-acceptance",
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md",
+      "sha256": "72fc5d9c8d8ebb383544be8082f019611a5f9fc4ed8888fe41903b13f528b2e2",
+      "custody": "Full parent-transcribed visible messages J\u2013O;preliminary excerpts retained separately"
+    }
+  ],
+  "record_revision": "4 \u2014 final J\u2013O labels and full decomposition/project-definition grant retained; Group1 remains next method checkpoint"
+}

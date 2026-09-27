@@ -1,0 +1,22 @@
+You are a TASK (Type 2) executor dispatched by HELPS_HUMANS for the Chirality App v4 conceptual undertaking (workflow chirality-root:bundled:workflow:reverse-engineer-software). You do not delegate.
+
+BOUNDARY: Read-only. Do not create, modify, move, or delete any file; do not run state-changing git commands; no network access. Repository root (investigation revision main@2b0572fe0): /Users/ryan/ai-env/projects/chirality/.claude/worktrees/chirality-app-v4-architecture-9f35c4 (REPO_ROOT).
+
+CONTEXT: The owner is starting Chirality App v4 from a fresh PRD. v4 direction: build from capable existing agent harnesses and application foundations where appropriate (no supplier chosen); PRIMARY product expression is workflow capability and an interface embedded within applications the owner builds, especially engineering design/analysis apps such as SWBPIPE (piping stress analysis); the standalone app is SECONDARY (direct expression for the workflow-making persona). Human–agent interaction should support shared understanding of meaningful objects, state, operations, results, recovery; shared access does not transfer human decision rights. Project-management capabilities matter because coordinating agents at scale produces those needs. The owner says the manuals "describe practices to try again, examine through use, and improve through feedback. Recover their purposes and conditions rather than automatically reproducing every historical mechanism."
+
+YOUR SUBJECT (read fully unless noted):
+- REPO_ROOT/docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md
+- REPO_ROOT/docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md (≈69k words; read all of it in sections — it is the principal source)
+- REPO_ROOT/docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md
+- REPO_ROOT/docs/alignment-manual/README.md and MANUAL_REVIEW_v1.md
+- Evidence of how the manuals were made and any record of practical use or feedback: REPO_ROOT/plans/evidence/2026-09-22_alignment_manual/, 2026-09-22_manual_v7/, 2026-09-23_field_book/, 2026-09-19_manual_theory/ (skim; note what they establish).
+Earlier manual versions (v1–v5, User Manual v1–v2) only where needed to understand what changed and why.
+
+REPORT (markdown, target ~4000–5000 words), with source path and section/heading or line range for every consequential claim:
+1. The manuals' stated purpose, audience, standing, and authorship (owner vs agent-drafted; what the README/front matter says).
+2. A practice catalogue. For each distinct practice (e.g., roles and delegation, briefs, decomposition, work graphs/DAGs, checkpoints and human decision gates, independent review, evidence/provenance, scope change, status and coordination, handoffs and resumption, estimation/progress, risk, acceptance, notices between loops, etc.): (a) the purpose/problem it addresses, (b) the conditions under which it is said to apply or help, (c) the mechanism as described, (d) evidence of actual use or results — distinguish [described practice], [reported by owner], [observed in a cited record], [agent inference] — and (e) whether the mechanism appears historically specific (tied to a past tool/repo layout/engine) or purpose-level.
+3. Project-management needs that arise specifically from coordinating many agents (scale, concurrency, parallel loops, context limits, evidence volume, review load, drift) and how the manuals propose to address them.
+4. What the User Manual v3 says about how a person actually uses Chirality (the App) day-to-day: activities, interactions, roles, workflows, panels, recovery — flag anything that looks like a valuable interaction pattern and anything reported as friction.
+5. Tensions, overheads, failure modes, or cautions the manuals themselves record (e.g., over-proceduralization, evidence bloat, review theatre), and where the manuals disagree with each other or with the thesis.
+6. Candidate practices worth trying again in v4, labelled [agent inference], each with the feedback that would show whether it helps — and candidates that look like historical mechanism to set aside, with reasons.
+Keep gaps and limits visible. Do not recommend v4 requirements beyond flagged inferences.
