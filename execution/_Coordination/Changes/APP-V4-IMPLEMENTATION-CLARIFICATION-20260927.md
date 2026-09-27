@@ -1,3 +1,5 @@
+> **Subsequent act:** [Group2 was approved](../../_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/DECISION.md) after this clarification. The clarification itself was not that approval. Its [exact original bytes](../../_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/presentation/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md) remain frozen; the historical account below is unchanged.
+
 # Initial harness and implementation sourcing — scoped owner clarification
 
 HELP_HUMAN supplied this exact owner clarification during the Group2 discussion:

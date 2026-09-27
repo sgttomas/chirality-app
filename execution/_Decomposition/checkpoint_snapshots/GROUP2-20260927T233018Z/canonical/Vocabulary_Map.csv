@@ -1,0 +1,35 @@
+CanonicalTerm,Synonyms,Notes
+Chirality App,App for Creating Workflows;standalone App,Standalone Codex/Tauri application and workflow-making exemplar; distinct from an embedded host.
+Host application,host;engineering host;SWBPIPE,"Application holding domain objects, validation and accepted domain truth; SWBPIPE is the first external provider."
+Harness,Codex;agent engine,Supplier agent program; App uses stock Codex published embedding interface.
+Embedded agent loop,minimal loop;host agent,Minimal Chat Completions loop in a host; not a second App harness.
+Role,HELP_HUMAN;HELPS_HUMANS;WORKING_ITEMS;TASK,Contribution relationship; exactly four standing roles.
+SWB Piping Designer,Piping Designer agent,Application-specific agent capability using Domains/research for design candidates; not a fifth role.
+Workflow,method guidance;WORKFLOW.md,Reusable prose with declared inputs/tools/checkpoints/outputs/evidence; selection retains origin.
+Skill,SKILL.md,Reusable bounded guidance distinct from workflow and role.
+Declared checkpoint,human checkpoint,Run waits for an identified human act even when direct operation autonomy exists.
+Capability catalog,catalog,"Single host operation contract for human, embedded and external channels."
+Semantic parity,parity,"Equivalent operation meaning across reads, validation, outcomes and recovery; not identical gestures."
+Automatic catalog extension,all-actor extension;V4-PAR-05,Separately qualified pending promise; existing parity does not establish it.
+Proposal,proposed edit,Queued change awaiting permitted human acceptance; not applied or professionally approved.
+Application,apply;applied operation,Actual host mutation through validation route; distinct from acceptance and professional reliance.
+Human act,accept;mark checked;approve;rely,Attributable act bound to content/scope/purpose; exact always-reserved list remains open.
+Professional reliance,engineering approval;certification,Accountable professional judgment; never inferred from tool success or edit acceptance.
+Receipt,host receipt,"Host evidence of an operation outcome, referenced by run records; not proof of human acceptance by itself."
+Basis,read basis;candidate basis,Identified content/revision relevant to a statement or action; catalog basis includes workspace/generation/model/hash.
+Standing,observed;proposed;assumed;open;decided;unknown,Claim or outcome posture; a state label does not establish its truth.
+Autonomy,graduated autonomy,Person-granted operation scope for direct application versus proposal; no invented human acts.
+Domains,domain knowledge;knowledge database/search,"Knowledge capability independent of PEC; provider ownership/allocation and deployment are open, with source-grounded research and later integration. Local privacy remains applicable."
+PEC,Project Execution Coordination,Optional coordination-state provider; receiving scope/release/adoption/freshness remain explicit.
+Source-file route,file fallback,Recover relevant facts from owned files when connectors absent/limited; preserves responsibility.
+Project DAG,project dependency graph,Production relationships; not the current assignment graph or an automatic schedule.
+Current work graph,undertaking graph,"File holding selected work, owners, prerequisites, returns and continuation."
+Structured scope of work,SSOW;ScopeLedger,"Project-level normalized scope, prior to deliverable production contracts."
+Scope of Work,SoW;production contract,Later local technical output/interface/criterion/evidence commitments derived from accepted allocation.
+Package,work-domain partition,Group2 proposed flat accountable home for every IN/OUT/TBD scope item; human structural confirmation remains pending.
+Deliverable,bounded production unit,Group2 proposed smallest durable production contribution with a bounded context; distinct from a TASK assignment.
+Verification,requirement examination,Candidate-specific conformity examination; not human fitness-for-use judgment.
+Validation,practitioner validation,Owner/practitioner assessment of fitness for intended activity.
+Acceptance,identified human decision,Decision with content/scope/purpose; composite basis acceptance differs from Group1 confirmation.
+Staged coexistence,transition;adoption,Consumers adopt identified scope while history and continuing obligations remain preserved.
+Current manual editions,Field Book v1;Consolidated v7;Agent User Manual v3,Core practice; exact project adoption pins remain identified separately from this run read manifest.

@@ -1,3 +1,5 @@
+> **Subsequent standing:** the owner approved Group2 and all five recommendations. [The actual decision](../../../_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/DECISION.md) binds the presented/discussed composite and its checked consolidation; it does not claim prior owner hash review of Candidate2. The exact discussion-stage reader is [preserved here](../../../_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/presentation/READER.md). The historical text below remains as written; its old discussion labels do not state current standing.
+
 # App v4 — Group2 structural decision
 
 **Proposal: 11 flat Packages and 41 Deliverables. Group2 is not yet confirmed.** Candidate APP-V4-GROUP2-20260927-CANDIDATE-2 is bound by its [manifest](CP2_DRAFT_MANIFEST.json); [independent checking](REVIEW.md) records the actual verdict. This reader is a derived publication, not the canonical amendment surface.
