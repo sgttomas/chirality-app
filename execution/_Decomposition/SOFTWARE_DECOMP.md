@@ -1,8 +1,8 @@
 # Chirality App v4 — Group1 normalization
 
-**Standing: DRAFT_GROUP1_UNCONFIRMED. Revision G1-draft-3-clarification, 2026-09-27.** Package role: **working surface**. This is a revised proposed normalization. The scoped clarification is accepted; these revised Group1 bytes are not confirmed. A focused comparison with the relevant completed upstream work is planned before renewed presentation; it is not a new governance gate or a PEC product-completion requirement.
+**Standing: DRAFT_GROUP1_UNCONFIRMED. Revision G1-draft-4-currency, 2026-09-27.** Package role: **working surface**. This is a revised proposed normalization. The scoped clarification is accepted; these revised Group1 bytes are not confirmed. The bounded PEC and workflow comparisons are complete for this checkpoint. Their remaining input/cleanup items have points of need and do not impose a blanket hold. The current review subject is identified in the revised Group1 reader and manifest.
 
-The accepted input is [APP-V4-BASIS-20260926](../_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), identified by [COMPOSITE_BASIS.json](../_Coordination/Acceptances/APP-V4-BASIS-20260926/COMPOSITE_BASIS.json): five original seed files from `9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c`, accepted recommendations HTML-D01–HTML-D07, and full owner messages J–O. Later owner directions qualify recommendations, which amend original statements. The original draft headers and old pending author checklist remain historical. Newly consolidated five-document bytes express that composite and require fidelity checking; they are not future bytes previously hash-approved by the owner.
+The accepted input is [APP-V4-BASIS-20260926](../_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), identified by [COMPOSITE_BASIS.json](../_Coordination/Acceptances/APP-V4-BASIS-20260926/COMPOSITE_BASIS.json): five original seed files from `9375abccaa5bccc9ca79b5ce6b8f5d26a30b977c`, accepted recommendations HTML-D01–HTML-D07, and full owner messages J–O. Later owner directions qualify recommendations, which amend original statements. The original draft headers and old pending author checklist remain historical. The consolidated five-document expression was independently checked for fidelity; it is not future bytes previously hash-approved by the owner.
 
 The selected method is `chirality-root:bundled:workflow:software-decomp`, Group1 only. [ScopeLedger.csv](ScopeLedger.csv) is the proposed structured scope of work, [Vocabulary_Map.csv](Vocabulary_Map.csv) preserves the meanings used, and [Objectives.csv](Objectives.csv) derives ten testable success conditions. All remain unconfirmed. The authoritative-companion label identifies the working location of each draft register; it does not imply human acceptance.
 
@@ -48,7 +48,7 @@ None requires an extra prompt before presenting Group1. OI-015 was resolved from
 
 | Normalization decision | Treatment |
 |---|---|
-| N-01 Accepted identity | Normalize the exact accepted composite; later consolidation requires reconciliation. |
+| N-01 Accepted identity | Normalize the exact accepted composite and accepted clarification; the consolidated expression and corrections have independent fidelity/affected checks. |
 | N-02 Stage boundary | Scope/objectives only; no Packages, Deliverables, production contracts, setup, accepted pointers or implementation. |
 | N-03 Qualified parity | Preserve meaningful parity IN; retain absolute automatic extension as OI-003/TBD. |
 | N-04 Human acts | Preserve truthful attribution; keep exact reserved/classifier policies open under HTML-D03. |
@@ -62,11 +62,11 @@ None requires an extra prompt before presenting Group1. OI-015 was resolved from
 
 The prior seed/normalization reviews remain evidence for their identified candidates. Current changes and one independent affected-scope review are recorded in [APP-V4-CLARIFICATION-20260927](../_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md). The previous candidate manifest and reader remain unchanged; recover their canonical bytes at Git commit `c26677c8a981fa609d8f8e3e1facdb359669fe3c` rather than treating current working files as those old hashes. Detailed source/alias companions remain candidate evidence with named readers; they are not competing maintained authorities or a new review packet required for every turn.
 
-The downstream route remains selected setup/local SoWs, dependency evidence/closure, an examined and accepted current project DAG toward 30%, then local undertaking work graphs. No setup or later stage starts from this unconfirmed revision.
+The downstream route remains accepted decomposition, selected setup and local scope-of-work INIT contracts, dependency evidence/closure where the chosen tracking mode calls for it, an examined and accepted current project DAG toward 30%, then local undertaking work graphs. New software work does not inherit legacy four-document conversion requirements. Later dependency EvidenceFile cells name one actual intended source in an allowed form; existence is not identity, and these field rules do not rewrite ScopeLedger SourceRef conventions. No setup or later stage starts from this unconfirmed revision.
 
 ## Next presentation
 
-No renewed Group1 confirmation is requested now. After the practical final comparison of relevant completed PEC/workflow outputs, prepare the actual revised package for the selected method's Group1 confirmation. Independent App definition and routine Git integration can proceed; PEC product completion is not a blanket prerequisite. No Packages, Deliverables, accepted checkpoint snapshots or pointers are created here.
+The [revised Group1 reader](../_Coordination/Reviews/APP-V4-GROUP1-20260927/READER.md) and manifest identify the concrete package for confirmation or correction: normalized scope, vocabulary and objectives, with recorded open matters and external dependencies. The [workflow comparison](../_Coordination/WORKFLOW_UPSTREAM_COMPARISON_2026-09-27.md) and [PEC comparison](../_Coordination/PEC_UPSTREAM_COMPARISON_2026-09-27.md) support ending the practical blanket wait. SCA-APP-012 derivative closure remains its owning session's work; any later generic defect or consequential provider contract affects only its specific warrant. After the actual Group1 act, finalize its snapshot/pointer before Group2. No Packages, Deliverables, accepted checkpoint snapshots or pointers exist now.
 
 ## Source identity aliases
 
@@ -79,3 +79,5 @@ No renewed Group1 confirmation is requested now. After the practical final compa
 - REPAIR_01: Removed premature Domains ownership statements; made distribution-answer obligation SOW-117 IN with unresolved answer OI-007; rebuilt all dependency/section joins by source meaning; classified staging/adoption duties as project method; reconciled 144 consolidated clause identities without adding scope IDs. Preserved local privacy at Domains receiving OI-023. Independent backcheck passed; Group1 human confirmation remains pending.
 
 - G1-draft-3-clarification: applied the accepted scoped interpretation, preserved all 262 IDs and ten objectives, kept technical/policy values open, and refreshed readiness at c5d852c4. Prior candidate/acceptance identities are retained. Final upstream comparison and actual Group1 decision remain separate.
+
+- G1-draft-4-currency: completed the bounded merged-source comparisons, retained all normalized scope/objective/vocabulary bytes, clarified later INIT/evidence handling, and prepared a successor review identity. This is presentation preparation, not Group1 acceptance.
