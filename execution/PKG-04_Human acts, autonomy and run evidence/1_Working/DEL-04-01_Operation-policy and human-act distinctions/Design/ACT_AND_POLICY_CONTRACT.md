@@ -1,6 +1,7 @@
 # Operation-Policy and Human-Act Contract
-- Contribution: DEL-04-01/ACT-POLICY-v0.5. It supersedes ACT-POLICY-v0.4 (sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b at `8fb51f07f`). Earlier versions: v0.3 (b3748c02…8128), v0.2 (e50f1fe2…9a9), v0.1 (e6457535…3763).
+- Contribution: DEL-04-01/ACT-POLICY-v0.6. It supersedes ACT-POLICY-v0.5 (last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 0057593adfde52044b70ccee1a85892754c2c9a62cf452214e94d810c6c43bd9). Earlier versions: v0.4 (d6da05ab…b03b at `8fb51f07f`), v0.3 (b3748c02…8128), v0.2 (e50f1fe2…9a9), v0.1 (e6457535…3763).
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
+- Phase (R8-1): in Phase 1 (this increment) declared checkpoints are **plan guidance** (§4.0). Acts are recorded only when the person performs them, and the reserved acts stand. Hold support, re-hold, the carriage assurance of the checkpoint constraint and App-side holds are kept as the **governance-phase definition (retained)**, relabelled and not deleted (§4.3, §4.4, §4.6). V4-WF-05's first half is **phased to the governance layer, not withdrawn**, and is flagged for the next accepted-basis update.
 - Serves: OUT-001, OUT-002, OUT-003; REQ-001…REQ-007; VER-001…VER-009 (AC-001…AC-009)
 - Basis:
   - Repo 6e18505e3; ScopeOfWork.md sha256 fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6.
@@ -10,6 +11,13 @@
   - `P/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d3` (sha256 02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8).
   - `P/conceptual/DECISIONS.md` OD-05, D-04; `P/conceptual/EXEMPLARS_AND_LESSONS.md` X-09, X-19, X-20.
   - `P/execution/_Decomposition/Open_Issues.csv` OI-001, OI-002, OI-013, OI-014, OI-021; `External_Dependencies.csv` DEP-001.
+  - Owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; reserved acts stand; the principle applies to a host's embedded loop): `OWNER_DECISIONS.md` at `94aa9181b` (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776).
+- Consumed inputs for v0.6 (R8 pass, node A2), read with `git show` from commit `94aa9181b` (scratch copies in a private folder). Paths are under `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` unless stated:
+  - `R8_RESOLUTIONS.md` (sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02): R8-1…R8-7, R8-10 and R8-11 (binding). R8-11 confirms PH-6 and PH-8 and settles the Phase-1 standing of D2's checkpoint half.
+  - `INTAKE_MAP.md` (I2; sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33): rows 01.5, 01.6, 02.8, 03.12, 04.4, 05.1, 05.2, 06.3, 13.6, 21.1, 28.1 and X.5; Part 2 P2.1, P2.7, P2.13, P2.14, P2.16, P2.17 and P2.18, and its §2.2 ACT rows; Part 3 items 1, 3, 4 and 10; Part 4.9 and 4.11. R8 overrides I2 where they differ.
+  - `BRIEFS.md` (sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517): "Common rules" and "A-wave".
+  - Owner files, revised first in the same pass: DEL-02-03/EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` (sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4): §2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §2.3, §3.5, §3.6, §4.5 SP-4, §4.7, §4.11 receiving notes, §7.2, U-E24. DEL-02-01/WD-v0.6 `WORKFLOW_DECLARATION.md` (sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28): §4.3.0 CG-1…CG-7, §4.3.1 `governed`. WD-EX-v0.6 `EXAMPLES.md` (sha256 950b70b2e3f7fdda9a98b13a63746b76936be490dd96cb6e47bbe6dc9c3eba3d).
+  - SWBPIPE's delivered answers, DEL-09-06 `Design/RELAY_ANSWERS_SWBPIPE.md` (#1047; sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7): SQ-01, SQ-02, SQ-03, SQ-04, SQ-05, SQ-06, SQ-07, SQ-09, SQ-10, SQ-11, SQ-13, SQ-20, SQ-21, SQ-23, SQ-28, SQ-31 and ANS §2. These are data about SWBPIPE's current state (relayed; answered 2026-09-28), not commitments. No host evidence, commitment or contribution is received (DEP-001; DECISION-3).
 - Consumed inputs for v0.5, read with `git show` from commit `8fb51f07f` (the working tree was not used; scratch copies were kept in a private folder). Paths are under `AgentRuns/APP-V4-FIRST-INCREMENT-20260928/` unless stated:
   - `R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1). This file's items are R5-1, R5-2, R5-3, R5-4 (relabel), R5-6, R5-7 and R5-9, plus the R5-5 consequence for §4.3.
   - `reviews/V3-A.md` (sha256 f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87): MAJOR-1, MAJOR-5; m-2, m-3, m-5, m-6, m-7, m-11, m-12 and m-13.
@@ -74,6 +82,28 @@ Anything still open appears only as `UNRESOLVED{…}` or as a named relay
 question. It is never a permission, a default or a pass.
 
 ---
+
+## Changes from v0.5
+
+Keyed by R8 ID; sources are I2 rows of INTAKE_MAP.md (`nn.k`, `P2.n`, Part 2.2
+ACT rows, Part 3 items, Part 4 sections). R8 overrides I2 where they differ.
+SETTLED here means by DECISION-3 or DECISION-4. The owner files EXEC-v0.4 and
+WD-v0.6 were revised first; this file follows them.
+
+| R8 ID (source) | Change in v0.6 | Where |
+|---|---|---|
+| **R8-1** (DECISION-4 D4-1; SETTLED, framing INTEGRATION) | New **§4.0 Phase 1** (AP-1…AP-11), mirroring EXEC PH-1…PH-10 and WD CG-1…CG-7: checkpoints are plan guidance; no App or host-loop hold, block or re-hold; no hold-support value and no *unsupported* for a hold reason; acts are recorded **only when the person performs them**; **reserved acts stand**, host-enforced through its operations; arrival and act are recorded as observation; *action during hold* becomes the optional annotation "continued past ‹checkpoint› before ‹act›"; a `governed` flag is guidance only. New label row for the phases | Header, §1, §4.0 |
+| **R8-1** (governance phase retained) | Hold-support passages are recast as **governance phase (retained)**, with the Phase-1 statement beside them: §4.3's re-hold consequences, §4.4's carriage assurance and *not permitted* outcome, and §4.6 (retitled). Nothing is deleted. §4.5's "the loop resumes" is split into the both-phase recording rule and the governance-phase resume | §4.3, §4.4, §4.5, §4.6 |
+| **R8-1** (V4-WF-05; S9) | V4-WF-05's first half is phased to the governance layer, not withdrawn (AP-11). S9 and W-b are annotated. New F-20 flags S9, D2's checkpoint half and V4-WF-05 for the next accepted-basis update | Header, §3 S9, §5.6 W-b, §4.0, §14 F-20 |
+| **R8-1** (cases) | Two-part form (Phase-1 result; governance-phase value): §4.6 Consequences for E1 over X and **`CP-L4`**; **FX-48** (a)–(d); **FX-50**; FX-29, FX-36, FX-39; FX-21 annotated. New **FX-54** (Phase-1 guidance, the continued-past annotation, an agent's fabricated A4, a reserved operation refused, `governed` in Phase 1) and **VC-010**. VC-001, VC-002, VC-009 updated | §4.6, §13, Verification cases |
+| **R8-2** (I2 R8-Q1, R8-Q-HS4; P2.1, P2.7, P2.13, P2.14, P2.16; §2.2 ACT rows) | SQ-02's answer (route (iv), none planned) is recorded as the **governance-phase input**. Governance-phase values: E1 `CP-accept` → **not enforceable** (was *not established*); **`CP-L4` App run over X → not enforceable → workflow *unsupported*** (was *not established*); FX-48 (b), (c); FX-50 → *not enforceable* (the "HELD on SQ-02" marker is removed). §4.6 value table: the *not established* row notes that neither cause now applies against SWBPIPE (R8-2 overrides I2 P2.16's note), and HS-4 no longer masks SWBPIPE entries. Authoring advice records that no governed checkpoint is enforceable from the App on SWBPIPE's X. **D6 is closed for Phase 1** and re-opens with the governance phase (§4.6, §10.2 V-26, §12 item 5, U-D6) | §4.6, §10.2, §12, §13, UNRESOLVED |
+| **R8-3** (I2 R8-Q2; Part 3 item 2) | §2.5: staleness is per item where the host supplies subject identities; otherwise the host's stated scope (SWBPIPE: whole model) is received and shown, never narrowed; de-duplication first is unchanged | §2.5 |
+| **R8-4** (I2 R8-Q3; 03.12; Part 3 item 3) | §2.5: a whole-model identity is received as every covered subject's identity (over-lapse, never under-lapse); never App-computed. SWBPIPE's Apply binding (SQ-03 (c)) noted. New **U-15** (V4-HI-32 not met by SWBPIPE; owner SWBPIPE) | §2.5, UNRESOLVED |
+| **R8-5** (I2 R8-Q-item-1, R8-Q10, R8-Q13, R8-Q15; 01.6, 06.3; Part 4.9) | New §6 received-terms table: `unsupported_method`/`unsupported_change` → host-reported *not exposed on this surface*, never *not permitted*; #885 `withdrawn` → item left, "cleared by the person, no decision record"; `validation_rejected` → *refused — invalid*; none is ever A10 or A11. Rows 6–8 do not arise on SWBPIPE's X, and R2-4 is recorded as not met (new F-21). §2.5 and §7: accept and apply are one step per batch on SWBPIPE, with no A10 record; session undo writes no receipt, so "reverses ⟨receipt⟩" is *not supplied* | §2.5, §6, §7, §14 F-21 |
+| **R8-6** (SQ-13, SQ-28; I2 R8-Q4, R8-Q4b; 13.6, 28.1; P2.18) | §2.6: A13 stays reserved. SWBPIPE has no enablement facility, so its channel stays *not enabled*; `controller_unavailable` → *endpoint unavailable*, channel *disabled*; host answers without evidenced A13 → evidence limit. FX-24 and FX-47(c) annotated (FX-47(c) keeps AWAITING INPUT). F-15 confirmed by SQ-28. The launch-environment-variable question is recorded as deferred owner item **U-16** and §12 item 7 | §2.6, §6, §12, §13, §14 F-15, UNRESOLVED |
+| R8-7 (X.5; 01.5, 05.1, 05.2, 02.8; Part 4.11) | Standings move to **answered**: header, §1, §2.6 (SQ-01), §3 D2 note (SQ-05), §4.4 and §4.5 relay bullets (SQ-02, SQ-01), §7 quote block and §8.1 *host adoption* (SQ-05), §12 item 4 (all six answered). U-01, U-04, U-06 and §8.4 owners and effects updated (SWBPIPE owner decisions PB-TBD-002 / DEL-16-03, OI-016, host-held route, A13 facility; point of need "when the owner resumes UI-SUCCESSOR"). No text of this file cites OI-003, so no qualification was needed | Header, §1, §2.6, §3, §4.4, §4.5, §7, §8.1, §8.4, §12, UNRESOLVED |
+| R8-10 (I2 R8-Q12) | §4.4: the agent never adds a field the host's schema lacks; an expected constraint not carriable is recorded as "constraint not carriable on this host" (governance phase) | §4.4 |
+| **R8-11** (A1 residuals) | Item 1: lapse recording in Phase 1 and disposition words as record labels are **confirmed** (AP-5, AP-7; §4.3). Item 2: D2's "no grant widens past a reserved act" binds in Phase 1 and the host enforces it; its "or a declared checkpoint" half, WD I-7 and V4-HI-42 are guidance in Phase 1 (§3 D2 note, AP-8, §5.3 rule 2, P-01, P-05). Item 3: an invalid declaration is a declaration finding in Phase 1 (AP-9); a harness-capability reference stays *not established* for a required-tool reason (§4.6; FX-48 (a)). Item 5: governance-phase values read the fixture's checkpoints as if governed (§4.0, §4.6, §13 rules) | §3, §4.0, §4.3, §4.6, §5.3, §8.3, §13 |
 
 ## Changes from v0.4
 
@@ -169,7 +199,10 @@ This contract gives consumers one meaning for:
 
 It carries the owner's rulings D2 and D3 as adopted policy records. It performs
 no human act and implements no host facility. It does not claim that SWBPIPE
-has adopted or enforces any value (DEP-001).
+has adopted or enforces any value (DEP-001). SWBPIPE's answers to the relay
+questions were relayed and answered on 2026-09-28 (RELAY §4). They are noted
+where they bear on a rule. They are answers about SWBPIPE's current state, not
+commitments or contributions, and host joins are deferred (DECISION-3; R8-7).
 
 | Label | Meaning here |
 |---|---|
@@ -179,6 +212,7 @@ has adopted or enforces any value (DEP-001).
 | **INTEGRATION** | An R1/R2 integrator choice. Reviewable, and open to owner revision. |
 | **PROPOSED** | A design choice of this contribution or a sibling, open to review |
 | **UNRESOLVED{…}** / relay question | An open item with owner and point of need |
+| **Phase 1** / **governance phase (retained)** | Which phase a checkpoint rule belongs to (R8-1). Phase 1 is this increment. A passage marked *governance phase* is kept as the definition a later layer will enforce for checkpoints declared `governed`; it is not in force as enforcement in Phase 1 |
 
 ---
 
@@ -342,6 +376,32 @@ Notes:
   - Undoing the applied item (a receipt that *reverses ⟨receipt⟩*) does not
     lapse A5 or A10 on that item (R2-15).
   - A re-draft is a new proposal. The earlier acceptance does not carry over.
+  - **Staleness scope (R8-3, amending R2-13; INTEGRATION).** The stale rule
+    is applied per item where the host supplies subject identities.
+    Otherwise the App receives and shows the host's stated staleness scope,
+    and never narrows it. For SWBPIPE that scope is the whole model: any
+    model change stales every queued proposal (SQ-07 (d)). De-duplication
+    still runs first.
+- **SWBPIPE counterparts (R8-5; INTEGRATION; SQ-01, SQ-09, SQ-10, SQ-23).**
+  These meanings stand as App/shared meaning. On SWBPIPE:
+  - **accept and apply are one step**, per batch: the person's **Apply** is
+    A5 and application together, and there is no A10 record. A stale Apply
+    is refused and records no acceptance, so the R2-16 display
+    "accepted — not applied: refused — stale" does not arise there;
+  - per-item A5/A10 and mixed items have no counterpart;
+  - its **session undo** writes no receipt, so "reverses ⟨receipt⟩" is *not
+    supplied*. A lapse the undo causes is still shown, from the identity
+    change (R8-4).
+- **Whole-model identity (R8-4; INTEGRATION).** Where a host supplies only a
+  whole-model identity, the App receives it as the subject content identity
+  of **every** subject it covers, with the host's method designation and
+  scope. Any model change then lapses every act bound through it: this errs
+  toward reporting a lapse and never misses one. The App never computes an
+  identity itself. SWBPIPE supplies only a whole-model hash (SQ-03 (a)), so
+  it does not yet meet V4-HI-32's per-subject identity (U-15). Its Apply
+  binds the operation id, a claimed whole-model hash and per-field
+  before-values (SQ-03 (c)), which partly matches the change-item content
+  identity.
 - Acceptance granularity:
   - Batch or multi-row acceptance is one A5 act listing several items, each
     bound to its own item and lapsing on its own.
@@ -365,9 +425,31 @@ Notes:
 
 - **Standing: PROPOSED by DEL-04-01 under R4-13.** This closes ADAPTER
   U-X1 as ruled.
+- **SWBPIPE, host content (SQ-01, 2026-09-28).** Only A5 is captured, as
+  **Apply**, which is acceptance and application in one step. There is no
+  A10 record. A4 exists only as DESIGN. A6 and A7 are not software acts. No
+  capture-evidence reference is exposed, so no SWBPIPE-content checkpoint
+  can be *performed*, and a faithful record has no reference to cite (§4.5;
+  R2-20). The Apply receipt names no person or time and does not survive a
+  restart. Durable storage and actor identity are SWBPIPE owner decisions
+  (PB-TBD-002; DEL-16-03).
+- **SWBPIPE, A13 (R8-6; INTEGRATION; SQ-13, SQ-28).** A13 stays a reserved
+  act (§4.0). SWBPIPE has no enablement facility, and none is planned; its
+  opt-in is a launch environment variable plus a build feature, which is not
+  a captured act. So A13 cannot be evidenced there, and its external channel
+  stays *not enabled* (a SWBPIPE owner decision; ANS §2). SWBPIPE has no
+  *channel not enabled* code: `controller_unavailable` is reported as
+  *endpoint unavailable*, and the channel shows *disabled*. If the host
+  answers while no A13 is evidenced, the evidence limit "host reachable
+  without evidenced A13" is recorded, and the channel is never shown
+  *enabled*. Whether a launch environment variable that the person sets
+  counts as A13 evidence is an owner question, deferred to when UI-SUCCESSOR
+  resumes (R8-6; U-16). Live cases against SWBPIPE wait for the host joins
+  (DECISION-3).
 - **Still open:**
   - whether a given host requires its own facility to capture A13 (DEP-001,
-    within U-04);
+    within U-04). SWBPIPE (SQ-28, 2026-09-28): no facility exists or is
+    planned, as above;
   - A13 for an App-owned external interface, which does not exist in this
     increment. If one is introduced, its App control would be the capturing
     surface under EXEC CAP-2/CAP-3.
@@ -388,7 +470,7 @@ Each was checked against the cited bytes at repo 6e18505e3.
 | S6 | A human act binds to its content, scope and purpose, and lapses visibly when that content changes. | V4-HI-32; V4-REC-05; X-20 | §2.5 |
 | S7 | Proposals say "accept", never "approve". | V4-HI-33 | §9 |
 | S8 | Conservative defaults. SWB model changes default to proposal with row, multi-row or batch acceptance; the person may widen. | V4-HI-41 | §7 |
-| S9 | Declared checkpoints override autonomy. | V4-HI-42; V4-WF-05 | §4 |
+| S9 | Declared checkpoints override autonomy. | V4-HI-42; V4-WF-05 | §4. **Phased (R8-1, R8-11 item 2):** in Phase 1 a checkpoint is plan guidance and the host's own treatment decides; S9 binds only for governed checkpoints in the governance phase (§4.0) |
 | S10 | External agents use the same catalog, validation, settings and reserved acts, and cannot perform reserved acts. Access is off unless enabled, and local. | V4-HI-50…52 | §5.3 rules 1, 3, 4 |
 | S11 | Agent examination is its own activity and need not modify the model. | d3; V4-EXM-21 | A3 ≠ A4 |
 | S12 | Shared access does not transfer decision rights. | PRD §4.5; OD-05 | Parity never gives an agent A4–A7 |
@@ -406,6 +488,20 @@ Each was checked against the cited bytes at repo 6e18505e3.
   No grant widens past a reserved act or a declared checkpoint. The host names
   and enforces its own list (V4-HI-30). Operation-specific additions come with
   OI-021. Host adoption is not shown (DEP-001).
+
+  **Phase-1 reading (R8-11 item 2; INTEGRATION).** The first half, "no grant
+  widens past a reserved act", **binds** in Phase 1, and the host enforces it
+  through its operations (DECISION-4: reserved acts stand). The half "or a
+  declared checkpoint", together with WD I-7 and V4-HI-42, is **guidance in
+  Phase 1**: the host's own treatment decides. It binds only for governed
+  checkpoints in the governance phase.
+
+  **SWBPIPE (SQ-05, 2026-09-28).** SWBPIPE has no class system, no grants and
+  no named reserved list. Every change requires the person's Apply, which is
+  hard-coded. Its engineer-only Checked mark is DESIGN; approval and reliance
+  are not software acts; enabling external access is a launch environment
+  variable, not a captured act. Its own autonomy is SWBPIPE owner decision
+  OI-016. This is an answer, not adoption (R8-7).
 - **D3 (OI-002).** In the App, routine tool-permission and sandbox modes,
   including classifier-based modes, remain the user's own Codex setting per
   project and turn. They govern tool execution only and never stand in for a
@@ -427,8 +523,39 @@ table is a proposed interpretation only.
 ## 4. Checkpoints (R-5; R2-5, R2-10, R2-12, R2-17…R2-20; R4-2…R4-6, R4-9, R4-14)
 
 DEL-02-01 declares checkpoints (WD §4.3). DEL-05-01 evaluates them in hosts.
-DEL-02-03 owns the hold machine (EXEC-v0.2 §4). This section supplies the act-policy
+DEL-02-03 owns the hold machine (EXEC-v0.4 §4). This section supplies the act-policy
 meaning that those three consume.
+
+### 4.0 Phase 1: checkpoints are plan guidance (R8-1; DECISION-4 D4-1)
+
+The phasing is SETTLED by DECISION-4 D4-1 and its clarification. The framing
+is INTEGRATION (R8-1, R8-11). The execution rules are EXEC-v0.4 §2.1
+(PH-1…PH-10) and §2.2 (GV-1…GV-5); the declaration side is WD-v0.6 §4.3.0
+(CG-1…CG-7). This contract states what they mean for acts and policy.
+
+| # | Rule (Phase 1, this increment) |
+|---|---|
+| **AP-1 Guidance** | A declared checkpoint is **plan guidance**. The declaration still states its required act, reached-when, subject class and held actions (§4.1, §4.2). The person and the agent plan around it, and the agents manage any pause, hold point or gate themselves (EXEC PH-1) |
+| **AP-2 No enforcement** | Neither the App nor a host's embedded loop holds, blocks or re-holds a run at a checkpoint. No hold is claimed, no hold-support value is assigned, and no workflow is reported *unsupported* for a hold reason (EXEC PH-2, PH-3). The required-tool check is unchanged |
+| **AP-3 Acts only when performed** | A human act is recorded as done **only when the person performs it**, with capture evidence from the capturing surface (§4.5; V4-WF-05 second half; EXEC PH-4). An agent never records a human act on the person's behalf. §2, §4.1, §4.2 and §4.5 are in force in both phases |
+| **AP-4 Reserved acts stand** | DECISION-1 D2 is unchanged: A4, A5 (where a proposal is required), A6, A7, A12 and enabling external access (A13) stay the person's, with A10 (DERIVED) and P-02. A host enforces its own list through its operations (V4-HI-30; EXEC PH-5). For example, SWBPIPE's Apply is A5 in the person's hands, and enabling external access is A13 (R8-6). "No grant widens past a reserved act" binds (§3, R8-11 item 2) |
+| **AP-5 Recording is observation** | A checkpoint's arrival, the act that answers it, act-declined, act-lapsed, run-resumed and run-ended events may be **recorded** (DEL-04-03), so the person and the agent can see where the plan paused and what was done. The dispositions of §4.3 may label that record: *waiting* then means "reached; act not yet recorded", never "the run is held" (EXEC PH-6; confirmed by R8-11 item 1) |
+| **AP-6 Continued past a checkpoint** | *Action during hold* is not a violation marker in Phase 1. A run action observed after an arrival and before the act that answers it may carry the optional plain annotation **"continued past ‹checkpoint› before ‹act›"**. It is information: never a defect, refusal or finding (EXEC PH-7). The person's own operations never carry it |
+| **AP-7 Lapse is recorded; nothing re-holds** | A performed act whose bound content changes is still recorded as lapsed, with an act-lapsed event, and outputs it gated show their standing lapsed (V4-REC-05; §2.5). This is record truthfulness, not enforcement. Re-hold is governance phase only (EXEC PH-8; confirmed by R8-11 item 1) |
+| **AP-8 Checkpoint half of D2** | D2's "or a declared checkpoint", WD I-7 (the acceptance-checkpoint constraint, §4.4) and V4-HI-42 are **guidance** in Phase 1: the agent proposes where the declaration calls for an A5, and the host's own treatment decides. They bind only for governed checkpoints in the governance phase (R8-11 item 2) |
+| **AP-9 Invalid declarations** | A checkpoint declaration that is invalid (§4.1, §4.2) is reported as a **declaration finding**, invalid with its FB code. In Phase 1 it gives no hold-support value and does not make the workflow *not established* (R8-11 item 3) |
+| **AP-10 `governed`** | A checkpoint declared **`governed`** (WD-v0.6 §4.3.1; PROPOSED) is honoured in Phase 1 **only as guidance** (EXEC PH-9) |
+| **AP-11 V4-WF-05** | Its first half ("holds … the run waits") is **phased to the governance layer, not withdrawn**. Its second half is in force (AP-3). Flagged for the next accepted-basis update (EXEC PH-10) |
+
+**Governance phase (retained).** These are relabelled, not deleted: the
+re-hold consequences of a lapse (§4.3), the carriage assurance and
+*not permitted* outcome of the checkpoint constraint (§4.4), and hold support
+with App-side holds (§4.6). A later layer applies them per workflow that
+needs them, to checkpoints declared `governed` (EXEC GV-1…GV-3). Every
+workflow that needs governance must be serveable by them, so this contract
+keeps every element they consume. Where cases below give a governance-phase
+value, they read the fixture's checkpoints **as if declared governed**; no
+fixture declares the flag (EXEC GV-5; R8-11 item 5).
 
 ### 4.1 Acts a checkpoint may require (closed list)
 
@@ -485,6 +612,10 @@ A declared checkpoint requires exactly one of **A4, A5, A6, A7 or A12**
 The vocabulary is shared: **waiting · performed · resolved negatively · lapsed
 · not reached · unknown** (WD §4.3.4).
 
+In Phase 1 these words are **record labels** (AP-5): they state what the
+record shows, and nothing is held. The re-hold consequences in the lapse
+bullet below are **governance phase (retained)**.
+
 - **performed.** Capture evidence of the required kind, bound to the current
   content of the bound subject (§4.5).
 - **resolved negatively.**
@@ -514,8 +645,18 @@ The vocabulary is shared: **waiting · performed · resolved negatively · lapse
 - **Lapse (R2-19; R4-3; EXEC §4.7).** Lapse can happen at any time after
   performance, and an **act-lapsed event** is always recorded and presented.
   - **Before the run resumes:** the disposition returns to **waiting**, shown
-    as "waiting — lapsed at ‹t›", for a new act on current content.
-  - **After resume, run live:** the **same arrival** is re-held, shown as
+    as "waiting — lapsed at ‹t›", for a new act on current content. This is
+    recorded in both phases.
+  - **After resume, run live — Phase 1 (AP-7; EXEC PH-8; R8-11 item 1):**
+    the act-lapsed event is recorded and presented against the affected
+    referents, and outputs gated by the act show their standing **lapsed**.
+    The run is **not** re-held. The agent re-requests the act as its plan
+    requires, and a new act over the current scope is recorded when the
+    person performs it. The person's own undo or edit is recorded as the
+    person's operation and never carries "continued past ‹checkpoint› before
+    ‹act›".
+  - **After resume, run live — governance phase (retained), governed
+    checkpoints:** the **same arrival** is re-held, shown as
     "waiting — re-held, lapsed at ‹t› after resume".
     - What the re-hold stops depends on the hold-support value (R6-3;
       §4.6). Under *enforced by the host loop* the run stops at its **next
@@ -532,10 +673,11 @@ The vocabulary is shared: **waiting · performed · resolved negatively · lapse
     - A satisfying act makes the arrival *performed* with the next performance
       ordinal, and a new resume point follows.
     - The interim "performed + act-lapsed event" display is withdrawn.
-  - **Whatever causes the lapse re-holds (R5-5).** This includes the
-    person's own undo. The person's undo is the person's operation and is
-    never recorded as "action during hold".
-  - **A5 and A12 never re-hold.**
+  - **Whatever causes the lapse re-holds (R5-5; governance phase).** This
+    includes the person's own undo. The person's undo is the person's
+    operation and is never recorded as "action during hold".
+  - **A5 and A12 never re-hold** (governance phase), and in both phases an
+    undo never lapses A5 or A10 on the reversed item.
     - Applying an item does not lapse its A5, and a basis failure is the
       stale rule.
     - An undo never re-holds an A5 arrival.
@@ -554,6 +696,17 @@ The vocabulary is shared: **waiting · performed · resolved negatively · lapse
 
 If a declared checkpoint requires A5 on an operation's result, that
 operation's treatment in that run is **propose**, whatever the grant.
+
+**Phase 1 (AP-8; R8-11 item 2; R8-10).** This rule is **plan guidance**: the
+agent submits the operation as a proposal, as the declaration asks, and the
+host's own treatment decides. The App carries and enforces no constraint,
+and reports nothing as *not permitted* on the constraint's account. The agent
+never adds a field that the host's schema lacks (R8-10): SWBPIPE's strict
+preflight refuses unknown fields (SQ-02 (a), SQ-31). On SWBPIPE every change
+waits for the person's Apply in any case (SQ-05), but that is the host's
+fixed treatment, **not** host-held carriage (SQ-02 related fact; R2-12). The
+rest of this section is the **governance-phase definition (retained)** for
+governed checkpoints.
 
 - The change request carries a **governing checkpoint constraint**:
   {workflow run, checkpoint name, required act A5, operation} (DEL-03-02
@@ -576,8 +729,11 @@ operation's treatment in that run is **propose**, whatever the grant.
   **Only host-held carriage satisfies R2-12.** A model-supplied constraint
   does not: an omission would let a direct request pass (ADAPTER GC-2,
   GC-3). An expected constraint that was not carried is recorded as an
-  evidence limit. This makes the SQ-02 option in which the host evaluates the
-  declaration itself the only route to satisfaction in this increment.
+  evidence limit; where the host's schema has no element for it, the limit
+  reads "constraint not carriable on this host" (R8-10). This makes the
+  SQ-02 option in which the host evaluates the declaration itself the only
+  route to satisfaction as the hold routes now stand. SWBPIPE does not offer
+  it (SQ-02 answered 2026-09-28: route (iv), none planned).
 - A direct request under the constraint is **not permitted**, and the outcome
   names the constraint as the governing treatment. It is never converted into
   a proposal. The agent may submit a proposal separately.
@@ -587,6 +743,11 @@ operation's treatment in that run is **propose**, whatever the grant.
   does it evaluate its own copy of the declaration? A missing constraint looks
   the same as no constraint at all. Until host evidence exists, dependent
   fixtures are **AWAITING INPUT** (FX-29; LOOP FX-C9, PANEL PC-24, WD VC-11).
+  **Answered 2026-09-28 (SQ-02):** neither; route (iv), none planned, and a
+  constraint field would be refused as an unknown field (SQ-02 (a)). The
+  answer does not supply the input, so FX-29 keeps the AWAITING INPUT token
+  with that annotation; planning a route is a SWBPIPE owner decision (ANS
+  §2), and host joins are deferred (DECISION-3).
 
 ### 4.5 Which evidence satisfies a checkpoint (R-5; R2-20)
 
@@ -596,11 +757,14 @@ operation's treatment in that run is **propose**, whatever the grant.
   - the host's act facility, for acts on host content (V4-HI-31);
   - the App interface, for acts in the App (WD U-25).
 - A faithful record by another recorder is valid as a record, and it must cite
-  that evidence. The loop resumes on the capture evidence, never on an
-  agent-authored record alone.
+  that evidence. An act is recorded as performed on the capture evidence,
+  never on an agent-authored record alone (both phases; AP-3). In the
+  governance phase the loop also resumes only on it.
 - **Relay question (DEP-001):** the host's capture-evidence reference.
   Without it, no host-content checkpoint can be *performed*. Any host-specific
-  capture requirement is the host's (U-04).
+  capture requirement is the host's (U-04). **Answered 2026-09-28 (SQ-01):**
+  SWBPIPE exposes none (§2.6); storage and actor identity are SWBPIPE owner
+  decisions (PB-TBD-002; DEL-16-03).
 - **Never act evidence (R4-12):**
   - answers to Codex user-input or MCP elicitation requests;
   - A14 settlements;
@@ -622,19 +786,27 @@ operation's treatment in that run is **propose**, whatever the grant.
 - For A12, the act counts only when its control relation is **established**
   (§2.5).
 
-### 4.6 Hold support and App-side holds (R4-2; DECISION-2 D6; EXEC §2, §3.6)
+### 4.6 Hold support and App-side holds — governance phase (retained; R4-2; R8-1, R8-2; DECISION-2 D6; EXEC §2.2, §2.3, §3.6)
 
-- A checkpoint relied on in a run is only as strong as the surface's ability
-  to hold the run. For each declared checkpoint and acting surface, the
-  required-tool compatibility report states its **hold support** (EXEC §3.6).
-  Each checkpoint on each surface takes exactly one of four values (R5-1):
+**Phase 1 (AP-2; EXEC PH-2, PH-3).** No hold-support value is assigned, no
+hold is claimed, and no workflow is reported *unsupported* for a hold
+reason. The requirement check depends on the required tools and the channel
+state. Checkpoints are listed as guidance, and "continued past ‹checkpoint›
+before ‹act›" replaces *action during hold* (AP-6). **The rest of this
+section is the governance-phase definition, retained**: it is relabelled, not
+deleted, and applies to checkpoints declared `governed` (EXEC GV-1, GV-2).
 
-  | Value | Meaning | Requirement check |
+- A governed checkpoint relied on in a run is only as strong as the
+  surface's ability to hold the run. For each governed checkpoint and acting
+  surface, the required-tool compatibility report states its **hold
+  support** (EXEC §3.6). Each takes exactly one of four values (R5-1):
+
+  | Value | Meaning | Requirement check (governance phase) |
   |---|---|---|
-  | **enforced by the host loop** | Embedded route: the host loop holds the run (LOOP §2.4.4) | Passes. Holds are subject to host evidence (DEP-001). |
-  | **enforced on the host route** | The host holds or refuses the operation through a **host-held** constraint (§4.4), evidenced by the host's answer to SQ-02 and a candidate | Passes |
-  | **not established** | Depends on a host answer not yet given (SQ-02), or on unagreed exposure | *not established*. Never a pass, and never "unsupported". |
-  | **not enforceable** | No mechanism exists on this surface in this increment. Examples: App-only steps with no host operation (R4-2 / D6); a constraint carried only as model-supplied, once SQ-02 is answered with no host-held route (HS-3; before that answer, *not established*). | *unsupported*, reason "checkpoint hold not enforceable on this surface" (R4-8) |
+  | **enforced by the host loop** | Embedded route: the host loop holds the run (LOOP §2.4.4). SWBPIPE has no host loop (SQ-20), so no host evidence for it can exist now | Passes. Holds are subject to host evidence (DEP-001). |
+  | **enforced on the host route** | The host holds or refuses the operation through a **host-held** constraint (§4.4), evidenced by the host's answer to SQ-02 and a candidate. Not offered by SWBPIPE (SQ-02 route (iv)) | Passes |
+  | **not established** | Depends on a host answer not yet given (SQ-02), or on unagreed exposure. SQ-02 was answered for SWBPIPE on 2026-09-28, and SQ-11 is answered, so against SWBPIPE neither cause gives this value now: HS-3 (c) decides (R8-2; EXEC §3.6) | *not established*. Never a pass, and never "unsupported". |
+  | **not enforceable** | No mechanism exists on this surface as the hold routes now stand. Examples: App-only steps with no host operation (R4-2 / D6); a constraint carried only as model-supplied, once SQ-02 is answered with no host-held route (HS-3; before that answer, *not established*). SWBPIPE has answered SQ-02 (R8-2) | *unsupported*, reason "checkpoint hold not enforceable on this surface" (R4-8) |
 
   The EXEC-v0.1 values "enforced before dispatch" and "held after
   observation", and the interim value "host-enforced for host operations",
@@ -648,13 +820,21 @@ operation's treatment in that run is **propose**, whatever the grant.
     - answered, with host-held carriage evidenced on a candidate → *enforced
       on the host route*;
     - unanswered → *not established*;
-    - answered with no host-held route → *not enforceable*.
+    - answered with no host-held route → *not enforceable*. **SWBPIPE:
+      answered with no host-held route, 2026-09-28** (route (iv), none
+      planned). A later SWBPIPE decision to plan a route is a revision
+      trigger.
+  - **Exposure (HS-4):** a held host operation with unagreed exposure gives
+    *not established*, except where SQ-02 is answered with no host-held
+    route; then HS-3 (c) decides. So HS-4 does not mask SWBPIPE entries
+    (R8-2; SQ-11 answered: no exposure element).
   - **App-side class (HS-5):** at least one held action is App-side, such as
     an App agent turn, an App tool or harness action, or an App file write or
     return step. In App runs this is *not enforceable* (D6), whatever SQ-02
     returns.
-  - **Invalid declarations (HS-1)** take **no value**, and the check is *not
-    established*.
+  - **Invalid declarations (HS-1)** take **no value**, and in the governance
+    phase the check is *not established*. In Phase 1 an invalid declaration
+    is a declaration finding only (AP-9).
 - **What "held" means for each value (R6-3):**
 
   | Value | What happens at the hold |
@@ -663,31 +843,56 @@ operation's treatment in that run is **propose**, whatever the grant.
   | *enforced on the host route* | The host refuses the held host operations. Any other action is recorded as *action during hold*. |
   | *not established* / *not enforceable* | Nothing is stopped. Actions are recorded as *action during hold*. |
 
-- **Consequences (R5-1, R6-1).**
-  - E1 run from the App through the external channel (surface X):
-    - `CP-accept` → **not established**, awaiting SQ-02;
+- **Consequences, each as a Phase-1 result and a governance-phase value (R5-1,
+  R6-1, R8-1, R8-2).** The governance-phase values read the fixture's
+  checkpoints as if declared governed (R8-11 item 5).
+  - **E1 run from the App through the external channel (surface X).**
+    *Phase 1:* the requirement check is decided by the required tools and
+    the channel state (EXEC MT-2). `CP-accept` and `CP-check` are guidance;
+    nothing is held; the A5 and A4 are recorded only when the person
+    performs them. *Governance phase:*
+    - `CP-accept` → **not enforceable** (HS-3 (c); SQ-02 answered
+      2026-09-28: route (iv));
     - `CP-check` (it holds the Return step, which is App-side) → **not
-      enforceable**;
-    - the workflow → *unsupported*.
-  - `CP-L4` (L-ACT-4) holds only host operations: the run's further host
-    operations after T16 until the A4. It is therefore HS-3:
-    - App run over X: *not established* until SQ-02 is answered;
-    - host loop: *enforced by the host loop*.
-    - A variant that also holds an App-side return step is *not enforceable*
-      in App runs (FX-48(d)).
+      enforceable** (HS-5);
+    - the workflow → *unsupported* ("checkpoint hold not enforceable on this
+      surface: CP-accept, CP-check").
+  - **`CP-L4` (L-ACT-4)** holds only host operations: the run's further host
+    operations after T16 until the A4. *Phase 1:* `CP-L4` is guidance. Its
+    arrival at T16 and the A4 at T16a are recorded when observed. A run
+    action after the arrival and before the A4 may carry "continued past
+    CP-L4 before A4". Neither the App nor a host loop holds the run, and the
+    workflow is not *unsupported* for a hold reason. *Governance phase:*
+    - App run over X: **not enforceable** (HS-3 (c); SQ-02 answered
+      2026-09-28) → workflow **unsupported** (was *not established* at v0.5;
+      I2 P2.7);
+    - host loop: *enforced by the host loop* (SWBPIPE has no host loop,
+      SQ-20);
+    - a variant that also holds an App-side return step is *not
+      enforceable* in App runs (FX-48 (d)).
     - Counterpart in DEL-04-02: AS F6d (the L-AS-4 A4 on S-4, declared to
       hold only host operations → HS-3); AS F6c, which holds App agent
       turns, is HS-5.
-  - Advice to workflow authors (WR-11): keep a checkpoint's held actions on
-    host operations if the checkpoint must be enforceable from the App.
+  - **Advice to workflow authors (WR-11; governance phase).** Keep a governed
+    checkpoint's held actions on host operations if it must be enforceable
+    from the App. It is then enforceable only on a host that offers and
+    evidences a host-held route. Against SWBPIPE (SQ-02 answered: route
+    (iv)) no governed checkpoint is enforceable from the App on X, and every
+    such workflow run from the App on X is *unsupported* in the governance
+    phase. The advice stands for a host that offers a host-held route (I2
+    P2.13). In Phase 1 the advice does not affect the check.
 - This contract, and every consumer that cites it, **never states or implies an
-  App hold that the surface cannot enforce**.
-- Any run action taken while an arrival waits, and not stopped under the
-  value in force, is recorded as **action during hold** with its reference.
-  It is never hidden. Under every value other than *enforced by the host loop*,
-  App-side actions continue and are recorded this way (R6-3).
-- **App-side run holds are `UNRESOLVED{D6}`** (owner DECISION-2: "Defer to
-  SWBPIPE answer"), pending SWBPIPE relay question SQ-02. Meanwhile:
+  App hold that the surface cannot enforce**. In Phase 1 no hold is stated at
+  all.
+- In the governance phase, any run action taken while an arrival of a
+  governed checkpoint waits, and not stopped under the value in force, is
+  recorded as **action during hold** with its reference. It is never hidden.
+  Under every value other than *enforced by the host loop*, App-side actions
+  continue and are recorded this way (R6-3). In Phase 1 the optional
+  annotation of AP-6 applies instead.
+- **App-side run holds (`UNRESOLVED{D6}`).** D6 is **closed for Phase 1** by
+  DECISION-4, where no hold point is used, and **re-opens when the
+  governance phase is taken up** (R8-2; U-D6). For the governance phase:
   - HP-1, interposed App code holding a call before dispatch, is **not
     adopted**;
   - HP-2, reliance on supplier `turn/interrupt`, is **not adopted**;
@@ -695,18 +900,26 @@ operation's treatment in that run is **propose**, whatever the grant.
     **permitted best effort** under D3 and R-2. It never answers
     affirmatively and never counts as a hold guarantee.
 - A reached-when kind (a) on a **harness capability** is **not holdable** in
-  App runs pending D6 (R4-21).
-- In host loops, holding is the host loop's (DEL-05-01 receiving; OI-013).
-  Its value is *enforced by the host loop*.
-- *Enforced on the host route* for the A5 constraint awaits host evidence and
-  the SQ-02 answer (§4.4; U-04). The SQ-02 answer decides holds for
-  checkpoints on **host operations** only. App-only checkpointed workflows
-  remain *not enforceable* whatever SWBPIPE answers. That is a separate D6
-  follow-up for the owner (R5-10; F-16).
-- The policy meaning of a checkpoint is unchanged by weak hold support. A
-  checkpoint still overrides any grant (S9) and is still satisfied only by
-  capture evidence (§4.5). Weak hold support limits what can truthfully be
-  **claimed** about enforcement. It does not weaken what the act means.
+  App runs as the hold routes now stand (R4-21; governance phase). In Phase 1
+  such a workflow's check is *not established* for a required-tool reason:
+  the harness-capability reference is unresolved (WD U-08; EXEC U-E10,
+  MT-15; R8-11 item 3), not a hold.
+- In host loops, holding is the host loop's in the governance phase
+  (DEL-05-01 receiving; OI-013), with the value *enforced by the host loop*.
+  In Phase 1 a host's embedded loop enforces no hold either (EXEC PH-2;
+  DECISION-4 clarification).
+- **SQ-02 answered (R8-2).** SWBPIPE answered on 2026-09-28: no host-held
+  route; *enforced on the host route* is not available against SWBPIPE (§4.4;
+  U-04). This is the **governance-phase input**. The SQ-02 answer decides
+  holds only for checkpoints on **host operations**; App-only checkpointed
+  workflows remain *not enforceable* in the governance phase whatever
+  SWBPIPE answers (R5-10; F-16).
+- The policy meaning of a checkpoint's **act** is unchanged by phase or by
+  weak hold support: it is still satisfied only by capture evidence (§4.5)
+  and still reserved to the person (AP-4). In the governance phase a governed
+  checkpoint also overrides any grant (S9). Weak hold support limits what can
+  truthfully be **claimed** about enforcement. It does not weaken what the
+  act means.
 
 ---
 
@@ -745,6 +958,11 @@ application. The loop and the adapter relay intent and do not decide treatment
 2. **Declared checkpoint.**
    - At a checkpoint: *request the person's act* (S9).
    - An A5 checkpoint constraint on this operation forces *propose* (§4.4).
+   - **Phase 1 (AP-8; R8-11 item 2):** rule 2 is plan guidance for the
+     agent. The host's own treatment decides, and a declared checkpoint
+     creates no host obligation. Rule 2 binds for governed checkpoints in the
+     governance phase. Rules 1 and 3–8 are unchanged, and rule 3 (reserved
+     acts) binds in both phases (AP-4).
 3. **The operation performs A4, A5, A6, A7, A10, A12 or A13** → *request the
    person's act*. The operation's class is *reserved to the person*
    (P-02, DERIVED from S3 and D2; R2-2). "Perform" includes creating or
@@ -837,7 +1055,7 @@ The person widens the grant by performing A12. A widened grant cannot:
 | # | Cannot | Basis |
 |---|---|---|
 | W-a | make an agent the decision actor of A4–A7, A10, A12 or A13, or fabricate a human act | S3, S4; D2; R-1 |
-| W-b | bypass a declared checkpoint or the §4.4 constraint | S9; D2 |
+| W-b | bypass a declared checkpoint or the §4.4 constraint | S9; D2. Governed checkpoints in the governance phase; guidance in Phase 1 (R8-11 item 2) |
 | W-c | authorize a reserved act or operation for any agent | D2; S10; REQ-006 |
 | W-d | convert a **proposal only** class | V4-HI-02 |
 | W-e | apply to a **no policy basis** class. That A12 is refused. | REQ-004; R2-9 |
@@ -870,6 +1088,24 @@ outcomes use DEL-03-02 P §9 (R-7).
 
 A host refusal on validation is *refused* (an A2 outcome). It is never A10.
 
+**Received host terms (R8-5; INTEGRATION; SQ-05, SQ-06, SQ-09, SQ-13).**
+
+| SWBPIPE term | Received as | Never |
+|---|---|---|
+| `unsupported_method` / `unsupported_change` | Host-reported **not exposed on this surface** (row 9's outcome), relayed | *not permitted*; a class value; a grant |
+| #885 `withdrawn` (the person cleared the queue) | An **item-left** event, "cleared by the person, no decision record" | A10 or A11 |
+| `validation_rejected` at Apply | **refused — invalid** at application | A10 |
+| `controller_unavailable` (no *channel not enabled* code exists) | **endpoint unavailable**; the channel shows *disabled* (R8-6; §2.6) | *channel not enabled* reported by the host |
+
+- Against SWBPIPE's external channel X, rows 6–8 do not arise as written.
+  There is no direct mode and no Apply method, and a request for Apply is
+  refused `unsupported_method` (SQ-06). R2-4 (reserved entries always
+  offered, and *not permitted* naming a rule) is recorded as **not met** by
+  this host (DEP-001). It is not repaired App-side, and the App never
+  presents SWBPIPE's no-Apply rule as a class value or grant.
+- Whether that no-Apply rule is a channel rule or a first-journey property is
+  a SWBPIPE owner decision (SQ-06). The App needs nothing from it now.
+
 ---
 
 ## 7. SWB model-change class — DERIVED class, accepted default
@@ -878,6 +1114,10 @@ A host refusal on validation is *refused* (an A2 outcome). It is never A10.
 > the class is *may apply within granted autonomy*. The default *propose* is
 > **ACCEPTED** (V4-HI-41, via B-ACCEPT). Operation-specific additions are
 > pending OI-021. Host adoption is **not evidenced** (DEP-001).
+> SWBPIPE (SQ-05, 2026-09-28): no class system and no grants; every change
+> requires the person's Apply (hard-coded). The App's DERIVED class and
+> default stand as App/shared meaning; the host's own autonomy is SWBPIPE
+> owner decision OI-016.
 
 The policy-class record is P-03 (§8.3). In the fixture, OP-C4, OP-C5 and
 OP-C9 carry it (C-v0.4 §10.2).
@@ -887,6 +1127,9 @@ OP-C9 carry it (C-v0.4 §10.2).
   - Multi-row or whole-batch acceptance is one A5 act listing several items.
   - Each item binds and lapses on its own.
 - Batch acceptance is not A4 or A6 of any row. Acceptance is not application.
+  On SWBPIPE the person's Apply is acceptance and application in one step,
+  per batch, with no A10 record (SQ-01, SQ-09). The App keeps the distinction
+  as meaning and records the missing counterparts (R8-5; §2.5).
 - A5 and A10 on these proposals are reserved (P-01, P-01a).
 - With no person setting, the grant state is **effective (policy default):
   propose** (R2-6).
@@ -920,7 +1163,7 @@ It shows no A4, A6 or A7.
 
 | Element | Meaning |
 |---|---|
-| *policy revision identity* | Cited by consumers in their governing-policy element. This revision is DEL-04-01/ACT-POLICY-v0.5 plus its content identity; the method is unselected. |
+| *policy revision identity* | Cited by consumers in their governing-policy element. This revision is DEL-04-01/ACT-POLICY-v0.6 plus its content identity; the method is unselected. |
 | *class identity* | A host-named operation class (V4-HI-30), or an act-defined class (P-02) |
 | *covered operations* | Catalog operation identities and versions (DEL-03-01) |
 | *consequence statement* | d3 dimensions (U-02) |
@@ -931,7 +1174,7 @@ It shows no A4, A6 or A7.
 | *actors covered* | The person, the embedded agent, external agents (V4-HI-50) |
 | ***decision basis*** | Identity, decision actor, recorder, date and custody of the fixing requirement or decision. For open values: the item, its owner and its point of need. |
 | *decision standing* | settled-by-basis \| **adopted decision** \| DERIVED \| accepted default (host adoption unevidenced) \| INTEGRATION \| PROPOSED \| `UNRESOLVED{…}` |
-| *host adoption* | Currently **unevidenced** for every record (DEP-001) |
+| *host adoption* | Currently **unevidenced** for every record (DEP-001). SWBPIPE's answers (SQ-05, 2026-09-28: no class system, no grants, no named reserved list) are answers, not adoption (R8-7) |
 | *consumers* | §10 |
 
 Rules:
@@ -963,7 +1206,8 @@ Rules:
   - A12 set grant;
   - A13 enabling external access.
 - Catalog class: reserved to the person. Widenable: **no**, neither past these
-  acts nor past a declared checkpoint.
+  acts nor past a declared checkpoint. In Phase 1 the reserved-act half binds
+  and the checkpoint half is guidance (R8-11 item 2; §3).
 - Standing: **adopted decision** (DECISION-1 D2(a)–(e)).
   - The host names and enforces its own list.
   - Additions: `UNRESOLVED{OI-021}`.
@@ -1024,6 +1268,9 @@ Rules:
 - Treatment: *propose*. Not widenable.
 - Standing: **DERIVED** from V4-HI-42 + D2b (R-5); constraint element per
   R2-12.
+- Phase: plan guidance in Phase 1, where the host's own treatment decides
+  (AP-8; R8-11 item 2). It binds for governed checkpoints in the governance
+  phase, with R2-12 carriage assurance (§4.4).
 
 **P-06 — no-policy-basis treatment.**
 - Applies to classes with reason omitted, unassigned or pending OI-021.
@@ -1045,8 +1292,8 @@ Fixture-only class assignments are not policy records:
 |---|---|---|---|
 | Operation-specific reserved additions; class of the first connected operation | `UNRESOLVED{OI-021}` | Owner via the outside SWB session and App/shared owner | Before the connected-activity SoW |
 | Consequence vocabulary | U-02 | DEL-04-01 with the host policy owner | Before class assignment in DEL-03-01 |
-| Defaults for other consequential classes | U-06 | Host policy owner (DEP-001) | Before those classes are cataloged |
-| Host capture requirements and capture-evidence reference; host faithful-record operation; checkpoint-constraint reception; host adoption of P-01…P-06 | U-04 (relay questions) | Host owner (DEP-001) | Before host act-recording integration or any enforcement claim |
+| Defaults for other consequential classes | U-06 | SWBPIPE owner decision OI-016 (ANS §2); host policy owner generally (DEP-001) | Before those classes are cataloged |
+| Host capture requirements and capture-evidence reference; host faithful-record operation; checkpoint-constraint reception; host adoption of P-01…P-06; A13 enablement facility | U-04 (relay questions; answered 2026-09-28: none offered) | SWBPIPE owner decisions (ANS §2) | When the owner resumes UI-SUCCESSOR (DECISION-3); before host act-recording integration or any enforcement claim |
 
 ---
 
@@ -1077,8 +1324,8 @@ Fixture-only class assignments are not policy records:
 | V-06 | Content binding, lapse, supersession and undo (§2.5) | V4-HI-32; V4-REC-05; R-6; R2-7; R2-15 | DEL-04-03, DEL-03-01, DEL-03-02, DEL-04-02, DEL-05-02, DEL-02-01 (SB-4/U-27) |
 | V-07 | Label rules §9 | V4-HI-33; R-4 | DEL-05-02, DEL-01-04, DEL-04-02, DEL-02-01, DEL-03-02, DEL-04-03 |
 | V-08 | No professional standing from agent output | V4-AUT-05 | DEL-04-02, DEL-05-02, DEL-01-04, DEL-09-09 |
-| V-09 | Checkpoint rules §4, including the resume point, re-hold, capture after arrival, no resumption, hold support and carriage assurance | V4-HI-42; V4-WF-05; D2; R-5; R2-10, R2-12, R2-17…R2-20; R4-2…R4-6, R4-9, R4-14 | DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02, DEL-03-02, DEL-03-03 |
-| V-10 | External access: same settings and reserved acts; A13 reserved and captured by the host's enablement facility; App-side configuration never A13 evidence; *channel not enabled*. The model destination is a record and status element, not a policy value. Host content may flow to the selected model with no gating: SETTLED (DECISION-2). Recording and showing the destination per turn: INTEGRATION (DECISION-2 reading) (R5-4). | V4-HI-50…52; D2e; R2-3; R4-13 | DEL-03-03, DEL-09-09, DEL-04-03 |
+| V-09 | Checkpoint rules §4: in Phase 1, plan guidance with acts recorded only when performed, reserved acts standing and lapse recorded (§4.0); the resume point, capture after arrival and no resumption in both phases; re-hold, hold support and carriage assurance as the governance-phase definition (retained) | V4-HI-42; V4-WF-05 (first half phased); D2; R-5; R2-10, R2-12, R2-17…R2-20; R4-2…R4-6, R4-9, R4-14; R8-1, R8-2, R8-11 | DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02, DEL-03-02, DEL-03-03 |
+| V-10 | External access: same settings and reserved acts; A13 reserved and captured by the host's enablement facility; App-side configuration never A13 evidence; *channel not enabled*. The model destination is a record and status element, not a policy value. Host content may flow to the selected model with no gating: SETTLED (DECISION-2). Recording and showing the destination per turn: INTEGRATION (DECISION-2 reading) (R5-4). SWBPIPE: no A13 facility (SQ-28); `controller_unavailable` → *endpoint unavailable*, channel *disabled* (R8-6; §2.6). | V4-HI-50…52; D2e; R2-3; R4-13; R8-6 | DEL-03-03, DEL-09-09, DEL-04-03 |
 | V-11 | SWB record P-03 | V4-HI-41 | DEL-03-01, DEL-03-02, DEL-04-02, DEL-04-03, DEL-05-01, DEL-05-02, DEL-09-09 |
 | V-12 | A3 ≠ A4 | d3; V4-EXM-21 | DEL-05-02, DEL-04-02, DEL-04-03 |
 | V-13 | A9 record shape, the capture-evidence rule, and the capturing surfaces and never-evidence list (§2.6) | S3; R-5; R2-20; R4-12, R4-13 | DEL-04-03, DEL-05-01, DEL-05-02, DEL-02-01, DEL-09-09 |
@@ -1093,7 +1340,7 @@ Fixture-only class assignments are not policy records:
 | V-20 / V-22 | Operation-specific reserved additions; first connected operation, its autonomy and environment | `UNRESOLVED{OI-021}` | DEL-03-01, DEL-05-01, DEL-05-02, DEL-09-09 |
 | V-23 | Consequence vocabulary; other host defaults | U-02, U-06 | DEL-03-01, DEL-04-02 |
 | V-24 | Multi-row A4 purpose after partial lapse | U-03 | DEL-04-03, DEL-04-02 |
-| V-26 | App-side run holds | `UNRESOLVED{D6}` (U-D6; SWBPIPE SQ-02) | DEL-02-03, DEL-02-01, DEL-03-03, DEL-05-02 |
+| V-26 | App-side run holds (governance phase) | `UNRESOLVED{D6}` (U-D6): closed for Phase 1 by DECISION-4; re-opens with the governance phase (R8-2) | DEL-02-03, DEL-02-01, DEL-03-03, DEL-05-02 |
 | V-27 | Counting a prior act captured before arrival (alternative to §4.5) | U-14 (owner) | DEL-02-03, DEL-02-01, DEL-04-03 |
 
 ### 10.3 Other declared consumers (not mapped in detail)
@@ -1161,11 +1408,28 @@ This contract's existence claims none of the following:
      capture-evidence reference (§2.6; R4-13).
    - (f) SQ-02: whether the host receives the checkpoint constraint and can
      hold a run itself. The D6 ruling depends on this answer.
-5. **App-side run holds** (`UNRESOLVED{D6}`; SWBPIPE SQ-02; U-D6).
+
+   **Answered by SWBPIPE on 2026-09-28** (relayed; answers about its current
+   state, not commitments; host joins deferred, DECISION-3):
+   - (a) SQ-01: no capture-evidence reference; the Apply receipt names no
+     person or time and is session-only. Storage and actor identity are
+     SWBPIPE owner decisions (PB-TBD-002; DEL-16-03).
+   - (b) SQ-21: no faithful-record operation.
+   - (c), (f) SQ-02: route (iv), none planned; no host-held route and no
+     host loop (SQ-20). Planning one is a SWBPIPE owner decision.
+   - (d) SQ-05: no class system, no grants, no named reserved list, no
+     settings reference; every change waits for Apply. Autonomy is SWBPIPE
+     owner decision OI-016.
+   - (e) SQ-28: no enablement facility, none planned (§2.6).
+5. **App-side run holds** (`UNRESOLVED{D6}`; U-D6): **closed for Phase 1**
+   by DECISION-4, and re-opened when the governance phase is taken up (R8-2).
    Separately, whether prior acts captured before arrival should count; this
    is an owner question (U-14; EXEC U-E4).
 6. **Workflow registration** as a canonical act (DEL-04-01 with DEL-02-02,
    later undertaking, U-08).
+7. **Launch environment variable as A13 evidence** (owner; deferred, R8-6,
+   U-16): whether a launch environment variable the person sets counts as
+   A13 evidence. Revisit when UI-SUCCESSOR resumes.
 
 ---
 
@@ -1197,7 +1461,13 @@ Rules for reading the table:
 
 - Expected results are contract expectations. They establish no act.
 - Host-dependent results need DEP-001 evidence.
-- App-side hold enforcement is **HELD on D6** (§4.6).
+- **Phase (R8-1).** Checkpoint cases are read in Phase 1 (§4.0): dispositions
+  are record labels, nothing is held, and no hold-support value is assigned.
+  Where a case states a hold, a re-hold, *action during hold* or a
+  hold-support value, that part is the **governance-phase value**, reading
+  the checkpoint as if declared governed (no fixture declares the flag; R8-11
+  item 5). App-side hold enforcement is governance phase; D6 is closed for
+  Phase 1 (§4.6).
 - Order checks follow C's order (R4-5; R5-7):
   - in V-GR1, `CP-grant` arrives at r15, before T15;
   - on the main timeline, run 12 (⟨rev-3⟩) declares no `CP-grant`;
@@ -1225,25 +1495,25 @@ Rules for reading the table:
 | FX-18 | Classifier | (a) Host: a classifier mode auto-permits OP-C4. (b) App: the user's Codex mode auto-permits a tool call. | (a) Non-conformant (D3). (b) Conformant as A14, recorded in R13 only. | VER-004 |
 | FX-19 | Default | T5/T10 under ⟨set-1⟩ (FXA-4). | Grant state **effective (policy default): propose** (P-03). Item, multi-row and batch acceptance are offered. Host conformance needs DEP-001. | VER-006 |
 | FX-20 | Widened (C T15, R4-18) | T15: Engineer A performs A12 → ⟨set-2⟩: P-03, *direct*, scope {FX-W1; {S-4}}. The control confirms. T16: the agent applies OP-C9 on S-4. | *effective (person-set)* → apply directly. RC-2 carries origin, basis, undo route and later-check route; both settings references are recorded. OP-C4 on R-100 is outside scope → a direct request is *not permitted*. OP-C5 on S-4: no expectation (held on U-02, as in C T15). | VER-001, -006 |
-| FX-21 | Checkpoint | CP-L4 arrives at T16. T16a: Engineer A's A4 on ⟨S-4@r16⟩, captured after arrival. | *waiting*, then *performed*, then a run-resumed event. Before T16a the agent may only request (A8). | VER-001, -006 |
+| FX-21 | Checkpoint | CP-L4 arrives at T16. T16a: Engineer A's A4 on ⟨S-4@r16⟩, captured after arrival. | *waiting*, then *performed*, then a run-resumed event (record labels in Phase 1). Before T16a the agent may only request (A8); it can never perform the A4 (AP-4). Phase 1: nothing is held, and a run action before T16a may carry "continued past CP-L4 before A4". | VER-001, -006 |
 | FX-22 | Reserved operation (C V-R1) | At T3 the agent calls OP-C6 on S-1, under any grant. | *not permitted*. An A8 is **offered** and recorded only if issued. No attribution to the person. | VER-004, -006 |
 | FX-23 | Grant change | The agent requests widening, then attempts to set it. | The request shows as *requested by agent (A8)*. The set attempt is *not permitted* (P-01). | VER-001, -004 |
-| FX-24 | External | External access is off (no A13 in the host facility). | *channel not enabled*, not *unavailable*. The reporter is the App (App configuration off) or the host (host channel off) (R4-16). | VER-004 |
+| FX-24 | External | External access is off (no A13 in the host facility). | *channel not enabled*, not *unavailable*. The reporter is the App (App configuration off) or the host (host channel off) (R4-16). (SWBPIPE has no such code: its `controller_unavailable` is *endpoint unavailable*, and the channel shows *disabled*; R8-6.) | VER-004 |
 | FX-25 | External | A13 is performed in the host facility. The external agent **drives T9–T10 and observes T11–T12** (R4-17). | Same lifecycle and settings as the embedded agent. A5/A10 are attributed to Engineer A. | VER-004 |
 | FX-26 | Examination | T4 OP-C3. | Findings by reference. No A4 and no "host check". | VER-002 |
 | FX-27 | Lapse | T2's A4 on S-2 at r12; T6 edits S-3 (control); T14 edits S-2 at r15. | Not lapsed at r13/r14. At T14 an **act-lapsed event** is recorded, and the act shows lapsed with its r12 identity. | VER-002 |
 | FX-28 | Boundary | The contract asserts host enforcement without DEP-001. | Non-conformant. | VER-008 |
-| FX-29 | Acceptance checkpoint (C V-CP1) | CP-accept (FXA-5) on OP-C4 results, with the V-CP1 direct grant. The agent requests OP-C4 directly. | *not permitted*, naming the constraint {run 12, CP-accept, A5, OP-C4}. Never converted. **AWAITING INPUT** (host receipt of the constraint; SQ-02). | VER-001, -006 |
+| FX-29 | Acceptance checkpoint (C V-CP1) | CP-accept (FXA-5) on OP-C4 results, with the V-CP1 direct grant. The agent requests OP-C4 directly. | *Governance phase:* *not permitted*, naming the constraint {run 12, CP-accept, A5, OP-C4}. Never converted. **AWAITING INPUT** (host receipt of the constraint; SQ-02) — SQ-02 answered 2026-09-28: route (iv), no receipt and no host copy (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3). *Phase 1:* the agent, following the declaration as guidance, proposes OP-C4 and adds no field the host lacks; if a direct request is made, the host's own treatment decides and the outcome is recorded as observed (AP-8; R8-10). | VER-001, -006 |
 | FX-30 | Negative A5 | CP-accept over PR-2 (arrival at T10, *queued*). T11: A5 on item 1, A10 on item 2. | *resolved negatively* with a *partial* annotation (WD §4.3.7; confirmed by DEL-02-03, R4-7). Item 1's A5 proceeds. Never "all accepted". | VER-002 |
 | FX-31 | Act-declined | CP-L4: Engineer A declines to mark S-4 checked. | **Act-declined event** with capture evidence; *resolved negatively*; the on-negative path governs; no A4. | VER-002 |
 | FX-32 | L-ACT-2 | A batch A5 over PR-2 items 1 and 2; item 1 is applied (RC-1). | One A5 act lists both items, each bound to its own change-item content identity. Item 1's A5 is not lapsed by RC-1. | VER-002, -006 |
 | FX-33 | A14 origin | An App rule answers a tool permission affirmatively; separately, a named-rule decline. | The affirmative answer is non-conformant. The named decline with truthful origin is conformant and recorded in R13. | VER-004 |
 | FX-34 | "checked" label | The T1 host result is labeled "Checked"; the T4 findings are labeled "agent-checked"; T4a is shown. | The first two are non-conformant: they must read "host checks passed: equilibrium, unit consistency" and "agent-examined (non-mutating)". T4a must read "host check failed: support spacing". | VER-005 |
 | FX-35 | Offering reserved (C V-R1, V-X1) | (a) As V-R1. (b) A variant reports OP-C6 as *not exposed* or *unavailable* for a class reason. (c) V-X1: OP-C9, not exposed on X. | (a) *not permitted*, with an A8 offered and not auto-recorded. (b) Non-conformant. (c) The host reports *not exposed on this surface* (exposure, not class), and the adapter relays it. | VER-004 |
-| FX-36 | Checkpoint evidence | The agent writes an A4 record for CP-L4 without citing host capture evidence. | Not a satisfaction. The run does not resume. | VER-002, -004 |
+| FX-36 | Checkpoint evidence | The agent writes an A4 record for CP-L4 without citing host capture evidence. | Not a satisfaction: the A4 is not recorded as performed (AP-3). Governance phase: the run does not resume. | VER-002, -004 |
 | FX-37 | Narrowing | PR-2 is queued (T10). After T15, a direct OP-C9 request on S-4 is in validation. Engineer A narrows ⟨set-2⟩ to *propose* (an A12 that is established). | PR-2 is unaffected. The OP-C9 request is re-resolved at application → *not permitted*, never converted. | VER-001, -006 |
 | FX-38 | Widening | PR-2 is queued. Engineer A widens P-03 to *direct* (T15). | PR-2 stays a proposal. | VER-006 |
-| FX-39 | Undo (C T16a/T17) | CP-L4 is performed by T16a's A4 on S-4, and the run resumes. At T17, OP-C10 RC-3 reverses RC-2 and S-4 changes. | An act-lapsed event is recorded. CP-L4 is **re-held**: "waiting — re-held, lapsed at T17 after resume" (R4-3). What the re-hold stops depends on the surface's value (§4.6, R6-3): the run stops at its next action only where it is *enforced by the host loop*. Nothing is undone. The act record is not erased. A5/A10 on a reversed item would stay bound. | VER-002 |
+| FX-39 | Undo (C T16a/T17) | CP-L4 is performed by T16a's A4 on S-4, and the run resumes. At T17, OP-C10 RC-3 reverses RC-2 and S-4 changes. | *Both phases:* an act-lapsed event is recorded. Nothing is undone. The act record is not erased. A5/A10 on a reversed item would stay bound. T17 is Engineer A's own operation and never carries a hold or continued-past annotation. *Phase 1:* nothing re-holds; the agent re-requests the A4 as its plan requires (AP-7). *Governance phase:* CP-L4 is **re-held**: "waiting — re-held, lapsed at T17 after resume" (R4-3). What the re-hold stops depends on the surface's value (§4.6, R6-3): the run stops at its next action only where it is *enforced by the host loop*. | VER-002 |
 | FX-40 | Run ended | CP-L4 is waiting (T16a not yet done). Engineer A stops run 12, then performs T16a's A4. The person starts a new run, "continues run 12". | Run 12's CP-L4 stays *waiting* with a run-ended event. The later A4 is shown "after run end" and changes nothing. The new run inherits nothing, and its arrivals show T16a as "prior act on this subject, not counted" (R4-4). | VER-002 |
 | FX-41 | Supersession (C V-GR1) | `CP-grant` is performed by T15's A12, captured after the r15 arrival and established as ⟨set-2⟩. Later: (a) an established A12 narrows P-03's scope; (b) an A12 that the control refuses. | (a) The first A12 shows *superseded by ⟨act⟩*, not lapsed; `CP-grant` stays *performed*. (b) No supersession; ⟨set-2⟩ stays in force (R4-6). | VER-001, -002 |
 | FX-42 | A13 disable | The agent attempts to disable external access; separately, the agent requests it. | The attempt is *not permitted* (INTEGRATION, R2-3). The request is an A8, offered. | VER-004 |
@@ -1251,13 +1521,14 @@ Rules for reading the table:
 | FX-44 | Checkpoint list | Checkpoint variants: (i) naming A3; (ii) naming A10; (iii) naming "sign-off"; (iv) a `CP-grant` variant whose declaration names no setting content, even when an A8 at arrival presents one. | (i) and (ii) **invalid**. (iii) **not established**. (iv) **invalid**, unconditionally and before the run (R5-3; WD FB-17; WD VC-41; EXEC CH-29). | VER-001 |
 | FX-45 | Capture after arrival (R4-5) | CP-L5 arrives at T3. T2's A4 on S-2 was captured before that arrival. | T2's A4 is shown "prior act on this subject, not counted". CP-L5 stays *waiting* for an A4 over S-1…S-4 captured after T3. An act whose order cannot be established → "act order unknown". PROPOSED; the owner alternative is U-14. | VER-002 |
 | FX-46 | A12 control relation (C V-GR1) | At `CP-grant`, which arrived at r15 before T15, T15's A12 is (a) pending, (b) refused, or (c) has its confirmation observation lost. | (a) *waiting*, "A12 awaiting control confirmation". (b) *waiting*, "refused by control: ‹reason›"; ⟨set-1⟩ stays in force; no supersession. (c) *unknown*. | VER-001, -002 |
-| FX-47 | A13 capture (R4-13) | (a) The agent writes an App-side access configuration (ADAPTER L-ADAPTER-2). (b) Engineer A directs an App-side configuration change in the App. (c) Engineer A enables access in the host's enablement facility. | (a) Not A13 and not A13 evidence; the channel stays disabled; an evidence limit is recorded. (b) An ordinary configuration change, not A13; it enables nothing alone. (c) A13, captured by the host with a capture-evidence reference, which is required (U-04e). | VER-004 |
-| FX-48 | Hold support (R5-1; R4-2) | (a) L-ACT-7: an App run with `CP-grant` of kind (a) on a harness capability. (b) E1 run from the App over X. (c) An App run over X in which a run action occurs while `CP-L4` waits. (d) A `CP-L4` variant that also holds an App-side return step. | (a) *not enforceable*: the workflow is **unsupported**. (b) `CP-accept` is **not established** (awaiting SQ-02); `CP-check` holds Return, so it is *not enforceable*; the workflow is *unsupported*. (c) `CP-L4` is HS-3, so it is *not established* while SQ-02 is unanswered. Nothing is stopped; the action is recorded as **action during hold** (R6-3). (d) *not enforceable* (HS-5), whatever SQ-02 returns. App-side enforcement is **HELD on D6**. | VER-001 |
+| FX-47 | A13 capture (R4-13) | (a) The agent writes an App-side access configuration (ADAPTER L-ADAPTER-2). (b) Engineer A directs an App-side configuration change in the App. (c) Engineer A enables access in the host's enablement facility. | (a) Not A13 and not A13 evidence; the channel stays disabled; an evidence limit is recorded. (b) An ordinary configuration change, not A13; it enables nothing alone. (c) A13, captured by the host with a capture-evidence reference, which is required (U-04e) — **AWAITING INPUT**: SQ-28 answered 2026-09-28: SWBPIPE has no facility, none planned (not offered), so (c) cannot occur there; a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3). | VER-004 |
+| FX-48 | Hold support (R5-1; R4-2; R8-1, R8-2) | (a) L-ACT-7: an App run with `CP-grant` of kind (a) on a harness capability. (b) E1 run from the App over X. (c) An App run over X in which a run action occurs while `CP-L4` waits. (d) A `CP-L4` variant that also holds an App-side return step. | **Phase 1** (§4.0): no hold-support value in any variant, and no *unsupported* for a hold reason. (a) The check is *not established* because the harness-capability reference is unresolved (a required-tool matter, R8-11 item 3). (b) The check is decided by required tools and channel state. (c) Nothing is held; the action may carry "continued past CP-L4 before A4". (d) As (c). **Governance phase** (read as governed): (a) *not enforceable* (HS-5): the workflow is **unsupported**. (b) `CP-accept` **not enforceable** (HS-3 (c); SQ-02 answered 2026-09-28) and `CP-check` *not enforceable* (holds Return, HS-5); the workflow is *unsupported*. (c) `CP-L4` is HS-3 (c): **not enforceable** (SQ-02 answered with no host-held route), so the workflow is *unsupported*; nothing is stopped, and the action is recorded as **action during hold** (R6-3). (d) *not enforceable* (HS-5), whatever SQ-02 returns. App-side holds: D6 re-opens with the governance phase. | VER-001 |
 | FX-49 | Not act evidence (R4-12) | Engineer A answers an MCP elicitation "Mark S-4 checked? yes". Separately, a conversation statement: "I checked it". | Neither is A4 nor capture evidence. CP-L4 stays *waiting*. The App may present its own act control (EXEC CAP-6). | VER-002 |
-| FX-50 | Carriage assurance (R5-2; R4-14) | As in V-CP1, with native carriage: the constraint is model-supplied only, and the model omits it. | Model-supplied carriage does not satisfy R2-12, and the omission is recorded as an evidence limit. `CP-accept` hold support: **not established** while SQ-02 is unanswered; **not enforceable** if the host holds no copy of the declaration (model-supplied only; R5-1). **HELD** on SQ-02. App side: `UNRESOLVED{D6}`. (The ADAPTER U-X3 citation is retired; EXEC §3.6 answered it. This is the HS-3 case for an A5 constraint.) | VER-004, -006 |
+| FX-50 | Carriage assurance (R5-2; R4-14) | As in V-CP1, with native carriage: the constraint is model-supplied only, and the model omits it. | **Phase 1:** no constraint is carried or enforced by the App, and no hold-support value is assigned; the agent adds no field the host lacks (R8-10). **Governance phase** (read as governed): model-supplied carriage does not satisfy R2-12, and the omission is recorded as an evidence limit. `CP-accept` hold support: **not enforceable** (SQ-02 answered 2026-09-28: the host holds no copy of the declaration; model-supplied only; HS-3 (c)), so the workflow is *unsupported*. App side: `UNRESOLVED{D6}`, re-opened with the governance phase. (The ADAPTER U-X3 citation is retired; EXEC §3.6 answered it. This is the HS-3 case for an A5 constraint.) | VER-004, -006 |
 | FX-51 | Grant before arrival (R5-7) | An E1d run in which the arrival of `CP-grant` is the hold of the OP-C9 call at T16, *after* T15's A12. Compare V-GR1, where `CP-grant` arrives at r15, before T15. | Here T15's A12 is shown "prior act on this subject, not counted", and `CP-grant` stays *waiting*. This holds even though ⟨set-2⟩'s content is already in force: the person must repeat the grant change (the owner-visible cost in U-14). In V-GR1, T15 counts: *performed*, and the held call is dispatched unchanged as T16. | VER-001, -002 |
 | FX-52 | A8 cannot change the subject (R5-3) | V-GR1, but the agent's A8 at arrival presents a narrower setting {P-03, *direct*, {FX-W1; {S-3}}} than the declared {FX-W1; {S-4}}. Engineer A performs an A12 on the A8's content, and the control establishes it. | The A12 is recorded and establishes its setting. It **satisfies nothing** at `CP-grant`, which stays *waiting* for an A12 on the declared content. | VER-001 |
 | FX-53 | Operation records (R5-6) | (a) T2: Engineer A operates OP-C6 on S-2. (b) T6: Engineer A edits S-3 in the host UI (the person's own A2). | (a) One human-act record (A4, direct capture), and an R7 operation entry referencing it. (b) An R7 operation entry with the person as actor, and no human-act record. | VER-002 |
+| FX-54 | Phase-1 guidance (R8-1; §4.0) | An App run over X, `CP-L4` declared (not `governed`). `CP-L4` arrives at T16. Before T16a: (a) the agent issues a further host operation; (b) the agent writes an A4 record naming Engineer A, with no capture evidence; (c) the agent invokes OP-C6 on S-4. Then (d) T16a's A4 is captured by the host facility. Variant (e): the same checkpoint declared `governed`. | (a) Recorded normally; it may carry "continued past CP-L4 before A4"; not a defect, refusal or finding, and not *action during hold*. (b) Non-conformant; no A4 is recorded as performed (AP-3). (c) *not permitted*, with an A8 offered (P-02; AP-4): reserved acts stand. (d) The A4 is recorded as performed; the arrival's record label becomes *performed*. No hold-support value and no *unsupported* for a hold reason appear at any point. (e) Same in Phase 1: the flag is shown and honoured only as guidance (AP-10). | VER-001, -002, -004 |
 
 ---
 
@@ -1274,11 +1545,13 @@ Rules for reading the table:
 - **F-10 SoW wording (IR1A-20).** TBD-001/002, AC-004 and VER-004 still read OI-001/OI-002 as open. Goes to C1.
 - **F-11 A13 disable is INTEGRATION.** D2e names only enabling. The owner may wish to confirm this.
 - **F-12, F-13 (closed in v0.4).** V2 confirmed them against the sibling v0.3 texts (m-12).
-- **F-14 Rules adopted by citation from EXEC.** EXEC-v0.2 marks these as ADOPTED by R4: re-hold (§4.7), A12 control relations (§4.10), and no resumption (§4.9, whose standing is still PROPOSED). SP-6 (capture after arrival) and App-side capture (§5) stay PROPOSED in EXEC. This contract carries each at the same standing. The §2.6 A13 ruling is PROPOSED (R4-13).
+- **F-14 Rules adopted by citation from EXEC.** EXEC-v0.2 marks these as ADOPTED by R4: re-hold (§4.7), A12 control relations (§4.10), and no resumption (§4.9, whose standing is still PROPOSED). SP-6 (capture after arrival) and App-side capture (§5) stay PROPOSED in EXEC. This contract carries each at the same standing. The §2.6 A13 ruling is PROPOSED (R4-13). From v0.6, re-hold is governance phase (R8-1; EXEC-v0.4 §4.7); the other rules apply in both phases as recording rules.
   - resume point, re-hold, capture after arrival, no resumption, A12 control relations (§2.3, §2.5, §4.3, §4.5);
   - the §2.6 A13 capture ruling.
-- **F-15 (new) A13 depends on a host enablement facility.** If SWBPIPE has no enablement facility that yields a capture-evidence reference, A13 cannot be evidenced. The external channel then stays *not enabled* by this contract's reading, which is conservative but may block V4-EXM-25. Relay question U-04(e).
-- **F-16 D6 leaves App-side checkpoint enforcement HELD, and App-only checkpoints can never be enforced in this increment.** Per R5-1 and R5-10, the SQ-02 answer can make checkpoints on **host operations** *enforced on the host route*. App-only checkpointed workflows remain *not enforceable*, and therefore *unsupported*, whatever SWBPIPE answers. That is a separate D6 follow-up for the owner. It affects the VER-001 checkpoint cases and V4-EXM-22 in App runs.
+- **F-15 (new) A13 depends on a host enablement facility.** If SWBPIPE has no enablement facility that yields a capture-evidence reference, A13 cannot be evidenced. The external channel then stays *not enabled* by this contract's reading, which is conservative but may block V4-EXM-25. Relay question U-04(e). **Confirmed by SQ-28 (2026-09-28):** SWBPIPE has no facility and none is planned, so V4-EXM-25 cannot run against SWBPIPE until its owner adds one (a SWBPIPE owner decision; host joins deferred, DECISION-3; R8-6).
+- **F-16 D6 leaves App-side checkpoint enforcement HELD, and App-only checkpoints can never be enforced in this increment.** Per R5-1 and R5-10, the SQ-02 answer can make checkpoints on **host operations** *enforced on the host route*. App-only checkpointed workflows remain *not enforceable*, and therefore *unsupported*, whatever SWBPIPE answers. That is a separate D6 follow-up for the owner. It affects the VER-001 checkpoint cases and V4-EXM-22 in App runs. **R8 disposition:** in Phase 1 checkpoints are guidance, so no workflow is *unsupported* for a hold reason, and D6 is closed for Phase 1 (DECISION-4; R8-2). In the governance phase, SQ-02 was answered with no host-held route, so host-operation checkpoints on SWBPIPE's X are also *not enforceable* (§4.6).
+- **F-20 (new, v0.6) Phase-1 wording of S9, D2 and V4-WF-05.** S9 ("declared checkpoints override autonomy"), D2's "or a declared checkpoint" and V4-WF-05's first half assume the run waits. Under R8-1 and R8-11 item 2 they are guidance in Phase 1 and bind only for governed checkpoints in the governance phase; the reserved-act half of D2 binds throughout. Flagged with V4-WF-05's first half for the next accepted-basis update (EXEC F-29). No accepted text is changed here.
+- **F-21 (new, v0.6) R2-4 not met by SWBPIPE.** SWBPIPE refuses a request for Apply on X as `unsupported_method` and names no rule (SQ-06), so R2-4's *not permitted* naming a rule has no SWBPIPE occasion. It is recorded, not repaired App-side (§6; R8-5).
 - **F-17 (new) Capture-after-arrival costs a repeat (R5-7).** Under SP-6, a grant change captured before its checkpoint's arrival does not count, even when its content is already in force (FX-51). The person must repeat it. This owner-visible cost is recorded under U-14 (EXEC U-E4; WD U-31).
 - **F-18 (new) R5-3 reverses R4-9's A8 precedence.** The declared setting content now always binds. Consumers that implemented "A8 names the setting" (v0.4 §4.2) must change: WD, LOOP, PANEL and EXEC are listed by R5-3.
 - **F-19 (new) Human-act records and R7.** The record kinds now split cleanly (R5-6): a reserved-act operation yields a human-act record referenced from R7, and the person's own A1/A2 yields an R7 entry only. DEL-04-03 should check that its R7 element carries the reference (RS R7).
@@ -1289,19 +1562,22 @@ Rules for reading the table:
 
 | Item | Owner | Point of need | Effect on this definition |
 |---|---|---|---|
-| U-01 `UNRESOLVED{OI-021}`: first operation, operation-specific reserved additions, its autonomy | Owner via the outside SWB session and App/shared owner | Before the connected-activity SoW and execution | No additions in P-01/P-03. A concrete first operation is *no policy basis* (pending OI-021); dependent cases are held. |
+| U-01 `UNRESOLVED{OI-021}`: first operation, operation-specific reserved additions, its autonomy | Owner via the outside SWB session and App/shared owner. SWBPIPE's own autonomy is SWBPIPE owner decision OI-016 | Before the connected-activity SoW and execution | No additions in P-01/P-03. A concrete first operation is *no policy basis* (pending OI-021); dependent cases are held. SQ-04 answered: no selection (owner decision) |
 | U-02 Consequence vocabulary | DEL-04-01 with the host policy owner | Before class assignment in DEL-03-01 | Text in d3 dimensions only; OP-C5-on-S-4 under ⟨set-2⟩ held (C T15) |
 | U-03 Multi-row A4 purpose after partial lapse | DEL-04-01 with the owner | At its point of need (R4 carries it) | The whole-scope re-request (§4.3) is valid under every option |
-| U-04 Relay questions to the host (§12 item 4 a–f) | Host owner (DEP-001) | Before host act-recording integration, checkpoint execution, external enablement, or any enforcement claim | Host rows are receiving requirements; FX-29, FX-47(c) and FX-50 await input |
+| U-04 Relay questions to the host (§12 item 4 a–f). **Answered 2026-09-28** (SQ-01, SQ-02, SQ-05, SQ-21, SQ-28): none offered | Host owner (DEP-001). For SWBPIPE the residue is SWBPIPE owner decisions (ANS §2): (a) PB-TBD-002 acceptance-record storage and DEL-16-03 actor identity; (c)/(f) a host-held checkpoint route; (d) OI-016 autonomy; (e) an A13 enablement facility | When the owner resumes UI-SUCCESSOR (DECISION-3); before host act-recording integration, governance-phase checkpoint execution, external enablement, or any enforcement claim | Host rows are receiving requirements. (a), (c), (e) answered: none offered. FX-29 and FX-47(c) keep the AWAITING INPUT token with that annotation. FX-50's governance-phase value is determined (*not enforceable*). U-04(d): SWBPIPE reports no settings reference |
 | U-05 Recorded person grant; actual performed-act evidence | The person (DEP-04-01-020, -021) | VER-001 and the VER-002 positive cases | Candidate-bound FX-09/FX-20 passes cannot run |
-| U-06 Defaults for other consequential classes | Host policy owner (V4-HI-41; DEP-001) | Before those classes are cataloged | *not set* falls to rule 5 (reason unassigned) |
+| U-06 Defaults for other consequential classes | SWBPIPE owner decision OI-016 (ANS §2); host policy owner generally (V4-HI-41; DEP-001) | Before those classes are cataloged | *not set* falls to rule 5 (reason unassigned). SWBPIPE: no class system; every change waits for Apply (SQ-05) |
 | U-08 Workflow registration as a canonical act | DEL-04-01 with DEL-02-02 (later undertaking, D1) | Before the DEL-02-02 definition | Not in R-1's table; not checkpoint-requirable |
 | U-12 Placement of the policy representation | App/shared owners (OI-013, OI-014) | Before production allocation | Representation-neutral |
-| U-D6 `UNRESOLVED{D6}` App-side run holds | Owner, deferred to the SWBPIPE SQ-02 answer (DECISION-2) | Before App-side checkpoint enforcement is claimed or fixtures run | §4.6 applies the four R5-1 values. HP-1 and HP-2 are not adopted, and App-assured carriage is unavailable. SQ-02 decides only checkpoints on host operations; App-only checkpoints stay *not enforceable* regardless (R5-10). FX-48 and FX-50 are HELD. |
+| U-D6 `UNRESOLVED{D6}` App-side run holds. **Closed for Phase 1** by DECISION-4 D4-1 (R8-2): checkpoints are guidance, with no App or host-loop hold. **Re-opens only when the governance phase is taken up.** For host-operation checkpoints SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned | The owner (DECISION-4; D6 re-opens with the governance phase) | When the governance phase is taken up for a workflow that needs it; before any App-side checkpoint enforcement is claimed | Phase 1: none (§4.0). Governance phase: §4.6 applies the four R5-1 values; HS-3 checkpoints are *not enforceable* against SWBPIPE (SQ-02 answered: none), and App-only checkpoints stay *not enforceable* regardless (R5-10). HP-1 and HP-2 are not adopted, and App-assured carriage is unavailable. FX-48 and FX-50 are DESIGNED, with determined governance-phase values |
 | U-14 Counting a prior act captured before arrival, as an alternative to §4.5 capture-after-arrival | Owner (EXEC U-E4; WD U-31; carried by R4-5, R5-7) | Before hold-machine fixtures run | Capture-after-arrival applied as PROPOSED. Owner-visible cost: a grant change already in force must be repeated (FX-51). |
+| U-15 Per-subject content identity (V4-HI-32) not met by SWBPIPE, which supplies only a whole-model identity (SQ-03; R8-4; EXEC U-E25) | SWBPIPE (PB-TBD-002 / DEL-16-03); owner notice | Before host act-binding integration | §2.5: the whole-model identity is received as every covered subject's identity; over-lapse, never under-lapse; never App-computed |
+| U-16 Whether a launch environment variable the person sets counts as A13 evidence (R8-6; I2 R8-Q4b) | The owner (deferred) | When UI-SUCCESSOR resumes | Not A13 evidence meanwhile; SWBPIPE's channel stays *not enabled* (§2.6) |
 
 Closed:
 
+- **v0.6:** none. U-D6 is closed for Phase 1 only.
 - **v0.2:**
   - v0.1 U-01/U-02 (DECISION-1);
   - U-08 scope (R-8);
@@ -1322,15 +1598,16 @@ These are designed, not run. Each is bound to this file's revision when executed
 
 | Case | Serves | Procedure | Expected result |
 |---|---|---|---|
-| VC-001 | VER-001 / AC-001 | Compare §4, §5 and §8 with V4-AUT-01, V4-HI-22/40/42 and D2. Run FX-19…21, -23, -29, -37, -38, -41, -44, -46, -48, -51 and -52 against a recorded grant (U-05). Trace the origin, undo and later-check obligations. | Direct treatment occurs only in *effective (person-set)* direct within scope (C T15 scope). A policy default gives *propose*. Checkpoints and the §4.4 constraint (with its carriage assurance) override the grant. Hold support takes one of the four R5-1 values, and no App hold is claimed (D6). The declared grant setting binds (R5-3). Narrowing, widening, supersession and the A12 control relations follow §5.5 and §2.5. |
-| VC-002 | VER-002 / AC-002 | Run FX-01…10, -26, -27, -30…32, -36, -39…41, -45, -46, -49 and -53. | Negatives are non-conformant. Independent acts are conformant without A5. Actor ≠ recorder is kept, with capture evidence. Act-declined and run-ended events are not acts. Capture after arrival, re-hold after resume and no resumption hold. Elicitation answers and conversation are never evidence. |
+| VC-001 | VER-001 / AC-001 | Compare §4, §5 and §8 with V4-AUT-01, V4-HI-22/40/42 and D2. Run FX-19…21, -23, -29, -37, -38, -41, -44, -46, -48, -51 and -52 against a recorded grant (U-05). Trace the origin, undo and later-check obligations. Include FX-54. | Direct treatment occurs only in *effective (person-set)* direct within scope (C T15 scope). A policy default gives *propose*. Phase 1: checkpoints are guidance, no hold-support value or hold is stated, and no workflow is *unsupported* for a hold reason; reserved acts stay the person's (§4.0). Governance phase: governed checkpoints and the §4.4 constraint (with its carriage assurance) override the grant, and hold support takes one of the four R5-1 values, with SWBPIPE's X *not enforceable* (R8-2). The declared grant setting binds (R5-3). Narrowing, widening, supersession and the A12 control relations follow §5.5 and §2.5. |
+| VC-002 | VER-002 / AC-002 | Run FX-01…10, -26, -27, -30…32, -36, -39…41, -45, -46, -49, -53 and -54. | Negatives are non-conformant. Independent acts are conformant without A5. Actor ≠ recorder is kept, with capture evidence. Act-declined and run-ended events are not acts. Capture after arrival and no resumption hold. A lapse is recorded in both phases; re-hold after resume only in the governance phase. Elicitation answers and conversation are never evidence. |
 | VC-003 | VER-003 / AC-003 | Run FX-03, -05, -14 and -15. | No certification or approval claim for agent output. A7 is attributed only to the professional. |
-| VC-004 | VER-004 / AC-004 | Compare P-01, P-01a and P-02 with DECISION-1 and their derivations, and inspect host evidence. Run FX-16…18, -22…25, -33, -35, -36, -42, -43, -47 and -50. | No agent can perform, or have attributed to it, a reserved act. Outcomes follow §6. A13 is evidenced only by the host facility. OI-021 and no-policy-basis cases are **held**. SQ-02-dependent cases are **held** or AWAITING INPUT. No host enforcement is claimed without DEP-001. |
+| VC-004 | VER-004 / AC-004 | Compare P-01, P-01a and P-02 with DECISION-1 and their derivations, and inspect host evidence. Run FX-16…18, -22…25, -33, -35, -36, -42, -43, -47 and -50. | No agent can perform, or have attributed to it, a reserved act. Outcomes follow §6, with SWBPIPE's terms received as in the §6 table (never A10, A11 or *not permitted*). A13 is evidenced only by the host facility; SWBPIPE has none (SQ-28). OI-021 and no-policy-basis cases are **held**. Cases whose host input was answered "none" keep AWAITING INPUT with the answer annotated. No host enforcement is claimed without DEP-001. |
 | VC-005 | VER-005 / AC-005 | Inventory the wording in this file, §7, FX-11…13 and FX-34. | "accept" for proposals only. "approve" for A6 only. Unqualified "checked" for A4 only. "tool permission" for A14. "rejected", not "declined", for A10. |
 | VC-006 | VER-006 / AC-006 | Run FX-19…22, -29, -32, -37, -38 and -50 against V4-HI-41/42/51 and D2. | Default *propose* via *effective (policy default)*. Item, multi-row and batch acceptance. Widening bounded by W-a…j. Only host-held constraint carriage satisfies R2-12; App-assured is unavailable in this increment. Local and host evidence are labeled separately. |
-| VC-007 | VER-007 / AC-007 | Trace V-01…V-14, V-21 and V-25 to their bases, P-01…P-06 to DECISION-1, their derivations or INTEGRATION, and V-20…V-27 to their owners. | Every value has a basis and a standing label. D2/D3 are not over-credited. The DECISION-2 D6 deferral is carried as `UNRESOLVED{D6}`. |
+| VC-007 | VER-007 / AC-007 | Trace V-01…V-14, V-21 and V-25 to their bases, P-01…P-06 to DECISION-1, their derivations or INTEGRATION, and V-20…V-27 to their owners. | Every value has a basis and a standing label. D2/D3 are not over-credited. D6 is carried as `UNRESOLVED{D6}`, closed for Phase 1 and re-opened with the governance phase (DECISION-4; R8-2). |
 | VC-008 | VER-008 / AC-008 | Compare §11 with SoW CLM-002…005 and REQ-007. Run FX-28. Read F-10. | Every excluded act is assigned to its owner. No host, adoption or act claim. |
-| VC-009 | VER-009 / AC-009 | Reconcile FX-01…53 with REQ-002…006 and the matrix. When a candidate exists, run the fixtures and retain their IDs, the candidate identity, the results and the limits. | Complete coverage. Held, AWAITING INPUT, D6-held, INTEGRATION-rule results and missing host evidence are reported separately from passes. No results at v0.5. |
+| VC-009 | VER-009 / AC-009 | Reconcile FX-01…54 with REQ-002…006 and the matrix. When a candidate exists, run the fixtures and retain their IDs, the candidate identity, the results and the limits. | Complete coverage. Held, AWAITING INPUT, governance-phase-only, INTEGRATION-rule results and missing host evidence are reported separately from passes. Phase-1 results and governance-phase values are reported separately. No results at v0.6. |
+| VC-010 | VER-001, -002, -004 / AC-001, -002, -004 | Run FX-54 and the Phase-1 parts of FX-21, -29, -36, -39, -48 and -50 against §4.0 AP-1…AP-11 and EXEC PH-1…PH-10. | No hold, block, re-hold or hold-support value; no *unsupported* for a hold reason; acts recorded only when the person performs them, never by an agent on the person's behalf; reserved acts refused to the agent and offered as A8; arrivals and acts appear as observation; "continued past ‹checkpoint› before ‹act›" is optional and never a defect; lapse still recorded; a `governed` flag changes nothing in Phase 1. |
 
 ---
 

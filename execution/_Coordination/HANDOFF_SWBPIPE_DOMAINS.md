@@ -49,7 +49,19 @@ deduplicated set of 32 questions developed against the App/shared definitions:
 (DEL-09-06/RELAY-v0.3). The owner relayed it to the SWBPIPE session on
 2026-09-28 (owner's statement). SWBPIPE's answers were received the same day:
 [`RELAY_ANSWERS_SWBPIPE.md`](../PKG-09_Candidate%20examination%20and%20connected%20journeys/1_Working/DEL-09-06_Connected%20activity%20contract%20and%20workflow%20round%20trip/Design/RELAY_ANSWERS_SWBPIPE.md).
-The owner deferred the host joins (DECISION-3, run APP-V4-SWBPIPE-INTAKE-20260928). Its top
+The owner deferred the host joins (DECISION-3, run APP-V4-SWBPIPE-INTAKE-20260928).
+
+**Note for SWBPIPE (owner direction, DECISION-4 D4-2).**
+
+- SWBPIPE's recorded embedded direction, the "embedded Runtime" adoption
+  (RUNTIME-ADOPT; D-58), predates App v4's D-20. The v4 direction is a minimal
+  Chirality agent loop in the host (V4-ARC-10), as defined in DEL-05-01 LOOP
+  and DEL-05-02 PANEL.
+- SWBPIPE's embedded plan should be updated to the v4 loop when UI-SUCCESSOR
+  resumes. That update is SWBPIPE's to make.
+- Under DECISION-4, workflow checkpoints are plan guidance in the current
+  phase: a host loop does not enforce holds, and reserved human acts stay with
+  the person through the host's operations. Its top
 questions are:
 
 - SQ-01: the capture-evidence reference for the person's acts;

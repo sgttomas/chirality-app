@@ -12,5 +12,10 @@ Parent: HELP_HUMAN.
 | #1047 | SWBPIPE delivered the answers (`6f01add3…`) and fact sheet into DEL-09-06 `Design/`. The branch merged main (`1b2bc3d4d`, add/add conflict resolved to SWBPIPE's delivered version). RELAY ledger and GUIDE pin updated |
 | DECISION-4 clarified | Recorded (exact). R8 written |
 | A1 | EXEC-v0.4, WD-v0.6 and WD-EX-v0.6: RETURNED; fence verified. Six residuals ruled in R8-11 |
-| A2–A5 | Parallel clusters at the A1 commit: ACTIVE |
+| A2 | ACT, AS and RS → v0.6: RETURNED; fence verified |
+| A3 | C and P → v0.6; ADAPTER → v0.4: RETURNED; fence verified |
+| A4 | LOOP, PANEL and HOSTING → v0.6: RETURNED; fence verified. V4-HOST-02 left unchanged and marked pending |
+| A5 | CA and XT → v0.4; RELAY status only: RETURNED; fence verified |
+| R8-12 | Residuals ruled. The HANDOFF gets the SWBPIPE loop note (integrator) |
+| A6 | Closing pass and GUIDE v0.3: ACTIVE |
 | Owner merge direction | Owner (chat, 2026-09-28): "You should have the ability to monitor PRs and merge once the CI goes green.  I want you to do that.  Tell me if something is blocking." Method: once a PR's candidate has an independent review with no BLOCKING items, the recorder enables GitHub auto-merge (merge commit) and the CI monitor, so failures, conflicts and comments wake this session. Auto-merge is never enabled before that review |

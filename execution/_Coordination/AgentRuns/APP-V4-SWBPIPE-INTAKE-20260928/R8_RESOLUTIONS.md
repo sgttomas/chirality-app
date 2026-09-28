@@ -220,3 +220,36 @@ R2-13 is amended:
    read the fixture's checkpoints as if they were governed. Say so where the
    values are stated.
 6. **Accepted:** the R8-2 override of I2 P2.16's wording.
+
+## R8-12 A2–A5 residuals (integrator)
+
+1. **Phase-1 lapse label (A2 vs A4).**
+   - In Phase 1, a lapse after the resume point is recorded as **"act lapsed
+     at ‹t›"**. Nothing says "waiting" and nothing is re-held.
+   - A new act is recorded when performed.
+   - LOOP G-7 and PANEL F-10 change from "waiting — lapsed at ‹t›" to this
+     label. RS L-12 and AS OV-5 add it.
+2. **FX-C9 / PC-24 confirmed.** When the active grant lets the host apply
+   directly, no proposal arises and no A5 is required (D2: "wherever the
+   active autonomy requires a proposal"). The checkpoint is guidance in
+   Phase 1.
+3. **C §8 map cells stay *unagreed*.**
+   - The map records the host's agreement. SWBPIPE described its state; it
+     agreed to nothing.
+   - The note beneath the map is kept.
+4. **ADAPTER F-22.** The channel state (*disabled*) and a request outcome
+   (*endpoint unavailable*) are different facts and are shown together. No
+   new channel state is added.
+5. **Evidence-limit labels.** "host reachable without evidenced A13" and
+   "constraint not carriable on this host" are adopted in RS R11. The second
+   is backed by R8-10's principle.
+6. **ADAPTER F-24.** Under R8-4, a whole-model identity satisfies RD-2 for a
+   host that supplies only that, so a SWBPIPE read can be cited.
+7. **Closing pass (node A6):**
+   - EXEC U-E24 is closed in place by R8-11 item 2.
+   - RELAY: the header's consumed-inputs line ("none received") and VC-R-04's
+     expected text are corrected. These are App metadata; R8-7 protects only
+     the relayed question body, §0–§3.
+   - Sibling version citations across CA, XT, LOOP, PANEL and the others are
+     refreshed to the post-R8 versions.
+   - GUIDE → v0.3, re-pinned last.
