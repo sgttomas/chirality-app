@@ -89,7 +89,7 @@ In [OWNER_DECISIONS.md](OWNER_DECISIONS.md):
 
 - No product code, qualification, host delivery or adoption, human act, or
   live witness.
-- The SWBPIPE relay has not been delivered. V6 confirmed RELAY-v0.3 is ready,
+- The SWBPIPE relay has not been delivered. V6 confirmed RELAY-v0.3 is ready.
   The owner's condition (relay after final review) is met once the final
   PR's review (V7) returns MERGE.
 - Every checkpointed workflow run from the App through the external channel is
