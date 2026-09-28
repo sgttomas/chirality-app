@@ -107,11 +107,11 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | COMPLETE — `DEL-01-01/PIN-SPIKE-v0.1`; 18 findings into DEL-01-01 v0.2 |
 | A1 Set-wide sweep under [R4](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R4_RESOLUTIONS.md) (V2 residuals, W7/W8/W9 findings, D5/D6) | All Design files (Wave 1 → v0.4; W7/W8 → v0.2) | V2, W7–W9, DECISION-2 | Residuals fixed or carried with reason | ACTIVE |
 | V2 Wave-1 consistency check | `reviews/V2.md` | R3 at `ba0b37123` | Verdict | COMPLETE — MERGE AS v0.3 DRAFTS |
-| V3 Receiver comparisons, Wave 2 | Run folder | W7–W10, A1 | As V1 | PLANNED |
+| V3 Final bounded consistency check (V3-A, V3-B) | `reviews/V3-*.md` | Full set at `9fc77baa3`; [R5_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R5_CANDIDATES.md) | Verdict | ACTIVE |
 | IR1/IR2 Independent review | Read-only; `reviews/IR1-*.md` | P2 / P3 candidates | Findings resolved or dispositioned; R2 alignment pass | IR1 ACTIVE |
 | P3 PR-3: Wave-2 definitions | W7–W11, V2 | IR2 | PR merged | PLANNED |
-| D0 DAG currency recheck | Read-only | P3 | Manifests; any relationship change routed to project-dag | PLANNED |
-| C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | Affected DEL `_REFERENCES.md`/`_STATUS.md` as authorized; CASE-002 pointer | P3 | Commitment↔result both directions | PLANNED |
+| D0 DAG currency recheck | Read-only | P3 | Manifests; any relationship change routed to project-dag | COMPLETE at `9fc77baa3` — both DAG-001 manifests pass; no register/SoW/decomposition/DAG byte changed. Register findings (missing mirror rows and candidate new arcs) are NOT applied → C1 proposed changes → successor route |
+| C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | `closeout/C1-*.md` only. SoWs, registers and `_STATUS` are bound by the DAG-001 SOURCE_MANIFEST, so their changes are returned as **proposed** for a successor route | V3/R5 final set | Commitment↔result both directions per DEL; proposed SoW/register changes; lifecycle observation | PLANNED (brief ready) |
 | M1 MEMORY rows | Affected `MEMORY.md` | C1 | Terse rows → receipt | PLANNED |
 | RC Central receipt | `AgentRuns/<RunID>/RECEIPT.md` | C1 | Result/checks/limits | PLANNED |
 | F1 Final PR | All | C1, M1, RC, review | Final PR merged | PLANNED |

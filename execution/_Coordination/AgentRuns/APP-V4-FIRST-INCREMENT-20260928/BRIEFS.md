@@ -406,3 +406,81 @@ PREPARED FOR HUMAN RELAY — not delivered.
 
 Keep the OI-003 extension ruling separate: record it, never perform it. Use
 FX-PIPE-01 and the ADAPTER fixture inventory. Show every input still missing.
+
+## V3 — final bounded consistency check of the full set (two independent reviewers)
+
+Candidate: commit `9fc77baa3`, 16 Design files. List them with
+`git ls-tree -r --name-only 9fc77baa3 -- projects/chirality-app-v4/execution | grep /Design/`,
+excluding `generated/`. Rulings: R1–R4, OWNER_DECISIONS (DECISION-1 and -2).
+Use a private scratch folder: `<scratchpad>/v3-<letter>/`.
+
+For every R4 ruling, check each file it names, and any other file that touches
+the subject, against the actual text: holds / partial / fails, with file and
+section evidence. Also check:
+
+- (a) act names, the five class values, dispositions, events and carriage
+  vocabulary are consistent;
+- (b) every fixture ID cited exists in C-v0.4 §10, or is a declared local
+  `L-‹file›-n` with a reason;
+- (c) no file claims implementation, qualification, host delivery or adoption,
+  a performed human act, or relay delivery;
+- (d) D5 and D6 are applied faithfully and not over-credited;
+- (e) cross-file citations point at the current versions;
+- (f) assess each item in [R5_CANDIDATES.md](R5_CANDIDATES.md).
+
+Write only `reviews/V3-<letter>.md`. Give BLOCKING / MAJOR / MINOR residuals,
+each with the side to change, and a verdict: **MERGE AS DRAFTS** or **DO NOT
+MERGE**.
+
+- **V3-A:** DEL-04-01, 04-02, 04-03, 02-01 (plus EXAMPLES), 02-03, 05-01,
+  05-02. R5 items Y-2, Y-3, Y-4, Y-5, Y-6.
+- **V3-B:** DEL-03-01, 03-02, 03-03, 03-04, 01-01 (HOSTING, and PIN_SPIKE as
+  context), 09-06 (CA, RELAY), 09-09. R5 items Y-1, Y-7, Y-8, Y-9. Also check
+  that RELAY-v0.2 covers every host item named in the other files. For each
+  host item, confirm that its question is there and that the "App assumes
+  meanwhile" text matches the current rulings.
+
+## C1 — bounded closeout comparisons (`chirality-root:bundled:workflow:bounded-reconciliation`)
+
+**Integrated candidate:** the final Design set after R5, at the commit named in
+the dispatch message.
+
+**Boundary decision (HELP_HUMAN, recorded in the graph).** The DAG-001
+`SOURCE_MANIFEST.sha256` binds all 41 `ScopeOfWork.md`, `Dependencies.csv` and
+`_DEPENDENCIES.md` files. Editing any of them would move DAG-001 currency, and
+register additions change graph relationships, which requires project-dag
+departure. This closeout therefore **does not edit** SoWs, registers,
+`_STATUS.md`, `_CONTEXT.md` or `_REFERENCES.md`. Each warranted change to
+those files is returned as a **precise proposed change** (file, section or
+row, current text, proposed text or row, grounds), for application through the
+owning route in a successor undertaking.
+
+**Write scope:** `closeout/C1-<group>.md` in this run folder only.
+
+**Per deliverable, record:**
+
+1. **Commitment → result:** each OUT/REQ in the SoW mapped to the Design
+   section(s) that develop it at 60% level. State whether each is *developed*,
+   *partially developed* (and what remains) or *not addressed*. Distinguish
+   missing definition from obligations that only implementation, qualification
+   or a witness can meet.
+2. **Result → commitment:** anything the Design files define beyond or outside
+   the SoW, such as integration additions or new elements, with its authority
+   (R-ruling, owner decision) or flagged as unsupported.
+3. **Proposed SoW corrections:** for example, TBD entries whose open issue is
+   now ruled (DECISION-1 D2/D3, DECISION-2), text superseded by rulings
+   (canonical content hash, one-effect, "checked" wording), and gaps
+   (e.g. DEL-02-03 REQ-002 App hold under D6).
+4. **Proposed register changes:** missing mirror rows and missing arcs, from the
+   V1/IR1/V2/V3 register findings and the Design files' findings sections. Mark
+   each *mirror only* (same arc, no topology change) or *new arc* (topology
+   change; would need DAG-002).
+5. **Open items** that remain: each with its owner and point of need.
+6. **Lifecycle observation:** the actual state is INITIALIZED. Say whether
+   IN_PROGRESS would now be the truthful state. Do not change it.
+
+Do not repeat design content; cite sections.
+
+- **C1-A:** DEL-04-01, 04-02, 04-03, 02-01, 02-03.
+- **C1-B:** DEL-03-01, 03-02, 03-03, 03-04, 01-01.
+- **C1-C:** DEL-05-01, 05-02, 09-06, 09-09.
