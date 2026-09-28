@@ -2,8 +2,9 @@
 - Contribution: DEL-09-06/RELAY-v0.3. It supersedes RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a162372541f65, committed at `9fc77baa3`), which superseded RELAY-v0.1 (sha256 3e34575def8d1fef63b5f5e64f0f90a0984d03b8b42f61fe899dd2eab023b2d1, `b4030fe4b`). R5 pass under R5_RESOLUTIONS.md (R5-4, R5-9, R5-10; R5-1/R5-2 as they bear on SQ-02).
 - Status: **PREPARED FOR HUMAN RELAY — not delivered.** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Delivery, acknowledgment, answer, commitment and adoption: **not observed**. The owner relays this file after the undertaking's final review.
 - Serves: OUT-004 (human-relayed external questions and proposed interfaces; the contribution/evidence account is in `CONNECTED_ACTIVITY_CONTRACT.md` §9); REQ-005; AC-005 through designed VER-005. Also OUT-001's "decision/input account needed to finalize the exact operation-specific definition" (REQ-001, TBD-001).
-- Basis: repo 6e18505e3 (accepted basis); DEL-09-06 ScopeOfWork.md sha256 511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §1, V4-HI-03, V4-HI-11, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-50…52, §11; `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) §1, V4-EXM-14, §4; `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-EXT-01, OQ-10, OQ-11; `P/execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (sha256 6e7a2f0427acdc0553bd5ea9cceaeceeff5bd82bf1165ed5930c389532e15ef4, working tree; not edited); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D2, D3; R1_RESOLUTIONS.md sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R2_RESOLUTIONS.md sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088 (R2-2, R2-12, R2-13, R2-14, R2-20); R3_RESOLUTIONS.md sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R4_RESOLUTIONS.md at `f05c7e4cd` sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24 (R4-1, R4-2, R4-8, R4-13, R4-14, R4-20); OWNER_DECISIONS.md at `f05c7e4cd` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c (`APP-V4-FIRST-INCREMENT-20260928-DECISION-2`: D5 settled — the model destination is recorded and shown, not gated; D6 deferred to this file's SQ-02); BRIEFS.md working copy sha256 77a42f8a8c8260285b4142d3a6392a07daead16010b209139efc0d3efc60a21f ("Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W9")
+- Basis: repo 6e18505e3 (accepted basis); DEL-09-06 ScopeOfWork.md sha256 511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §1, V4-HI-03, V4-HI-11, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-50…52, §11; `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) §1, V4-EXM-14, §4; `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-EXT-01, OQ-10, OQ-11; `P/execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (sha256 6e7a2f0427acdc0553bd5ea9cceaeceeff5bd82bf1165ed5930c389532e15ef4, working tree; not edited); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D2, D3; R1_RESOLUTIONS.md sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R2_RESOLUTIONS.md sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088 (R2-2, R2-12, R2-13, R2-14, R2-20); R3_RESOLUTIONS.md sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R4_RESOLUTIONS.md at `f05c7e4cd` sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24 (R4-1, R4-2, R4-8, R4-13, R4-14, R4-20); OWNER_DECISIONS.md at `f05c7e4cd` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c (`APP-V4-FIRST-INCREMENT-20260928-DECISION-2`: D5 settled — host content may flow to the conversation's selected model, with no App gate; recording and showing the destination is INTEGRATION, the recorder's reading of DECISION-2 (R4-1, R5-4); D6 deferred to this file's SQ-02); BRIEFS.md working copy sha256 77a42f8a8c8260285b4142d3a6392a07daead16010b209139efc0d3efc60a21f ("Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W9")
 - Consumed inputs:
+  - **R6 micro-pass inputs (in place, no version bump):** R6_RESOLUTIONS.md sha256 8703e85aa7324e233fab285321e277d720923d3e36e342c865917b55083cb841 (R6-1, R6-4, R6-5); `reviews/V4-A.md` sha256 121deafc40c4baf0dec71f96eb449083b0d93456c2bd448f89a279951ca2eab1; `reviews/V4-B.md` sha256 1569cd15b490a07c1fda44114fd6d017f794c16dfe533c65a27d04aad02c2cfc; DEL-02-03/EXEC-v0.3 working tree sha256 b147d9862fe9e0228139c72ba13c50392dcf66930109c4357587bf97bbdebf42 (§3.5; §3.6 HS-1…HS-5 by held actions; fixture classification table; MT-2, MT-16; U-E23). Current sibling labels (not re-read in full at this pass): Wave-1 v0.5 (C-v0.5 states V-ED1's branching and V-GR1), EXEC-v0.3, ADAPTER-v0.3 (XF-42 DESIGNED), GUIDE-v0.2.
   - **v0.3 inputs (R5 pass; binding rulings R5_RESOLUTIONS.md at `8fb51f07f`, sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1; V3-A and V3-B reviews in the same commit).** Every sibling Design file is read at commit `8fb51f07f` (the committed texts; the working-tree revisions their owners are making in parallel under R5 were not read), and body citations use these versions: DEL-03-01/C-v0.4 sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c; DEL-03-02/P-v0.4 sha256 0d3960a2e6bd3520368006cdd2b1b67a1fe4eb06e23184aded9d5b98d6c5e361; DEL-04-01/ACT-POLICY-v0.4 sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b; DEL-04-02/AS-v0.4 sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab; DEL-04-03/RS-v0.4 sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199; DEL-02-01/WD-v0.4 sha256 e492ff635de972466c8a932355beeae848e1f3d3f60de7304e88963352d8e88e and WD-EX-v0.4 sha256 60ce307a25fe1f9aaad0826985e02aaa6ebd68d86a6d972b1d5a1e39b3128ca4; DEL-05-01/LOOP-v0.4 sha256 ffc3048333f3370ba09a9ce124159b94f2c80ce69b5f593bfb82cc552f95934e; DEL-05-02/PANEL-v0.4 sha256 cb71bc4bd3d8a2034cd236437670d5cd6dad10f8dfcc0d6c75b277573ce84419; DEL-01-01/HOSTING-BOUNDARY-v0.4 sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58; DEL-02-03/EXEC-v0.2 sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0; DEL-03-03/ADAPTER-v0.2 sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc; DEL-03-04/GUIDE-v0.1 sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8. R5 bumps those files (Wave-1 to v0.5, EXEC/ADAPTER to v0.3, GUIDE to v0.2) in parallel with this pass; where R5 fixes a meaning they will carry (the four hold-support values R5-1, host-held carriage R5-2, destination per turn R5-4, V-GR1 R5-7), this file states the R5 ruling directly and cites R5. The entries below are the history of earlier bases.
   - **v0.2 sweep inputs (working tree after `f05c7e4cd`; the coordinator reports these four as finished):** DEL-03-01/C-v0.4 `CATALOG_AND_READ_BASIS.md` sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c (FXA-1…FXA-5, editions e1/e2, V-ED1, LIB-A1, LIB-A2, AF-1, U-C list); DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc (§3.4, §5.3, §5.6 PI-1…PI-6, §12 XQ → SQ map, F-15, F-17, XF-40…XF-42); DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0 (§2 HP-1…HP-4, HP-H; §3.6 hold support; F-17…F-21); DEL-04-01/ACT-POLICY-v0.4 `ACT_AND_POLICY_CONTRACT.md` sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b (§2.6 A13 capture, §4.6 hold support, §12 item 4 (a)–(f), F-15). Where this file cites EXEC, ADAPTER, ACT or C by version, it cites these.
   - **Wave-1 v0.3 at commit `ba0b37123`** (for the Wave-1 files other than C and ACT, whose v0.4 texts were not declared final at this sweep). The brief names `main` merge `98b1723b`; that object is not present in this clone. DISPATCH.md records it as the merge of head `1c36b6d97`. Every Wave-1 Design blob is identical at `ba0b37123`, `1c36b6d97` and `e20a3ae8d` (verified by blob id), so these bytes are the merged v0.3 bytes for these paths:
@@ -148,13 +149,15 @@ the answer form requested.
   (ADAPTER GC-2). The App cannot hold a model-issued external call before
   dispatch in native realization (ADAPTER GC-5; EXEC F-10). A host-held
   evaluation would close both gaps. **The owner has deferred D6 to this
-  answer** (DECISION-2). The answer decides holds **only for checkpoints on
-  host operations** (EXEC HP-H: host operations only). Checkpoints on
-  App-only steps — App content such as an A4 on an App file, or a run halt
-  after an App-side output — stay **not enforceable**, and their workflows
-  *unsupported* on the App surface, **whatever SWBPIPE answers**; that is a
-  separate D6 follow-up for the owner, not something this question can
-  settle (R5-10; EXEC §3.6, F-17).
+  answer** (DECISION-2). The answer decides holds **only for checkpoints
+  whose every held action is a host operation** — what matters is what the
+  checkpoint must hold, not how it arrives (R6-1; EXEC HP-H: host operations
+  only). A checkpoint that must hold **any App-side action** — an App agent
+  turn such as a Return or summary step, an App tool, an App file write, or
+  App content such as an A4 on an App file — stays **not enforceable**, and
+  its workflow *unsupported* on the App surface, **whatever SWBPIPE answers**;
+  that is a separate D6 follow-up for the owner, not something this question
+  can settle (R5-10; EXEC §3.6, F-17, U-E23).
 - **Point of need.** Before V-CP1, LOOP FX-C9, PANEL PC-24, WD VC-11, EXEC
   CH-27 and ADAPTER XF-25 are executed; before the App fixes its realization
   family (TBD-007).
@@ -166,20 +169,26 @@ the answer form requested.
   is host-held (R5-2). Hold support takes one of four values (R5-1): *enforced
   by the host loop* (embedded route); *enforced on the host route* (host-held
   constraint, once your answer and a candidate evidence it); *not
-  established* (awaiting this answer); *not enforceable* (no mechanism: App-only
-  steps, or a constraint carried only as model-supplied → workflow
-  *unsupported*, R4-8). So, until you answer, E1 run from the App through the
+  established* (while this is unanswered, for checkpoints whose held actions
+  are all host operations); *not enforceable* (any App-side held action; or,
+  once you have answered with no host-held route, a constraint carried only
+  as model-supplied → workflow *unsupported*, R4-8). So, until you answer, E1 run from the App through the
   external channel has `CP-accept` **not established**; its `CP-check` arrives
   on the App agent's own report and holds only App steps, so it is App-only
   and **not enforceable**, and E1 via the external channel is **unsupported
-  whatever you answer** (EXEC-v0.3 HS-5, MT-2). Your answer can move only
-  `CP-accept`; App-only checkpoints go to the owner's separate D6 follow-up
-  (EXEC U-E23). The App claims no
+  whatever you answer** (EXEC-v0.3 HS-5, MT-2). The same holds for the
+  fixture workflows E1c and E1d: their `CP-check` holds only the App-side
+  return of the result, so both are unsupported via the external channel;
+  E1d's `CP-grant`, which holds the OP-C9 call, is *not established* until you
+  answer (EXEC-v0.3 MT-16). Your answer can move only checkpoints whose held
+  actions are all host operations; the rest go to the owner's separate D6
+  follow-up (EXEC U-E23). The App claims no
   hold it cannot enforce, relies neither on interposed code (HP-1) nor on turn
   interruption (HP-2), and records every run action observed while a
   checkpoint waits as **action during hold** (ADAPTER XF-42). V-CP1, FX-C9,
   PC-24, VC-11, CH-27 and XF-25 stay AWAITING INPUT; XF-26 (model-supplied
-  only) is *not enforceable*; XF-42 records action during hold. Host-loop runs on the embedded surface are unaffected in
+  only) is *not established* now and *not enforceable* if you answer with no
+  host-held route; XF-42 records action during hold. Host-loop runs on the embedded surface are unaffected in
   meaning (the host loop holds); their evidence is DEP-001.
 - **Answer form.** Choose one or more of (a) per-request receipt, (b)
   host-held declaration, (c) host-held run association, (d) none planned; a
@@ -1011,7 +1020,7 @@ occurred.
 
 | Field | Current value |
 |---|---|
-| Prepared | 2026-09-28, DEL-09-06/RELAY-v0.1, by W9 (Type 2 TASK); revised to RELAY-v0.3 in sweep A1 (R4; DECISION-2). The owner relays it after the undertaking's final review |
+| Prepared | 2026-09-28 by W9 (Type 2 TASK): RELAY-v0.1 (initial, `b4030fe4b`); RELAY-v0.2 in sweep A1 under R4 and DECISION-2 (`9fc77baa3`); RELAY-v0.3 in the R5 pass (`d3cebd1cc`), then changed in place without a version bump by the EXEC-v0.3 alignment (`816c917f0`) and the R6 micro-pass. The owner relays it after the undertaking's final review |
 | Relayed to the SWBPIPE session (by whom, when, what bytes) | **not observed** |
 | Acknowledged | **not observed** |
 | Answers received (per SQ; source, revision, date, custody) | **none** |
@@ -1040,6 +1049,9 @@ v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a16
 | **R5-10 / R5-4** (V3-B m-1) | SQ-16 no longer over-credits D5: "may flow to the selected model, no gate" is SETTLED (D5); "record and show", now per turn with requested and effective kept apart, is INTEGRATION (DECISION-2 reading) |
 | **R5-10** (V3-B m-8) | SQ-09 assumption: "outcome unknown" applies to submissions only; a read with no stated result is an error as observed |
 | **R5-10** (V3-B MAJOR-3, coverage) | New sub-questions: SQ-03 (e) RS U-12; SQ-05 (g) P U-P6, (h) AS U-04, (i) ACT U-06; SQ-07 (g) C U-C4, (h) C U-C10; SQ-18 (e) C U-C6; SQ-19 (d) WD U-09. WD U-10 added to "Not included" with its D1 reason. §3 map and new VC-R-08 record the nine items |
+| **R6-1** (V4-A MAJOR-1/2) — in place | SQ-02 "Why it matters" and "App assumes meanwhile" classify by held actions: only checkpoints whose every held action is a host operation can be moved by the answer; any App-side held action → *not enforceable* whatever SWBPIPE answers. E1c/E1d via X also unsupported; E1d's `CP-grant` not established (EXEC-v0.3 MT-16) |
+| **R6-5** (V4-B m-1, m-2, m-8) — in place | Basis line: only "flow, no gate" credited to D5 as SETTLED; "record and show" INTEGRATION. SQ-02: model-supplied → *not enforceable* only once SQ-02 is answered with no host-held route (XF-26 *not established* now). §4 ledger "Prepared" row version history corrected |
+| V4-B m-7 — in place | Byte states of RELAY-v0.3: `82dcaca5eed8b92240f4005479453155020b0e0720ed1f95dce3a0e9eaca3db4` at `d3cebd1cc`; `89b6b9c9eb14a5b356db34de202f5c8e0640707ea19524adf3fcbb01d168bdd7` at `816c917f0`/`c7f5513db`; this R6 state is recorded by the coordinator at commit. Question count unchanged: 32 |
 | **R5-1 (EXEC-v0.3 alignment)** — in-place fix, no version bump | Per EXEC-v0.3 (commit `d3cebd1cc`, sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e) HS-5, MT-2, U-E23: SQ-02's assumption now says E1's `CP-check` is App-only → *not enforceable*, so E1 via the external channel is unsupported whatever SQ-02 returns; the answer can move only `CP-accept` |
 | **R5-1, R5-2** | SQ-02 assumption uses the four ruled hold-support values; `CP-accept` on X is *not established* until answered; model-supplied-only is *not enforceable*; a host loop's own evaluation is host-held; question (a) asks whether a received constraint is verified against the host's own declaration copy (a merely received constraint keeps its source's assurance) |
 | **R5-9** | Body citations re-pointed to the current sibling versions (P, WD, RS, AS, LOOP, PANEL, HOSTING at v0.4; CA/XT at v0.3); header lists every sibling at `8fb51f07f` with sha256 |

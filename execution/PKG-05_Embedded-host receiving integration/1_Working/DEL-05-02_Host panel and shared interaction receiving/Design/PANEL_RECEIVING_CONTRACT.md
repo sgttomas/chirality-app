@@ -11,7 +11,7 @@
     - DEL-02-01/WD-v0.4 (e492ff63…d8e88e): §4.2.4 (R4-8 string), §4.3 — *read*; WD-EX-v0.4 (60ce307a…128ca4) E1d — *read*;
     - DEL-03-02/P-v0.4 (0d3960a2…c5e361); DEL-04-01/ACT-POLICY-v0.4 (d6da05ab…b03b); DEL-04-02/AS-v0.4 (774728d0…f4dab); DEL-04-03/RS-v0.4 (56806b64…40199) — cited for currency;
     - DEL-09-06/RELAY-v0.2 (48dc5a1f…41f65) §3 coverage map — *read*: Q-1 → SQ-02; Q-2 → SQ-01; Q-3 → SQ-22; Q-4 → SQ-23, SQ-10; Q-5 → SQ-21; Q-6 → SQ-18 (a); Q-7 → SQ-24; Q-8 → SQ-05 (c), (e); Q-9 → SQ-20.
-  - **R5 elements not yet in sibling text** (V-GR1 in C §10.4; the four hold-support values in EXEC §3.6) are marked "per R5-n".
+  - **Current sibling versions at `c7f5513db` (R6-4; in place):** EXEC-v0.3 889e4881…ee548e; C-v0.5 a6306bd4…be7a29 (V-GR1 present); P-v0.5 a5ee4946…cd1b7 (§3.3 per R5-2 present); WD-v0.5 32acdd27…45e7c9; WD-EX-v0.5 296875c9…4702f; ACT-POLICY-v0.5 86975a90…5380e7; AS-v0.5 c49be8bb…729e1; RS-v0.5 37bc586e…c27ea; ADAPTER-v0.3 c9195851…225cff4; HOSTING-v0.5 873e76f6…b0eaa; RELAY-v0.3 89b6b9c9…68bdd7. EXEC-v0.3 §3.6 (HS-1…HS-5; R6-1) is *read*; the rest are cited for currency. R6_RESOLUTIONS.md 8703e85a…cb841 and reviews/V4-A.md 121deafc…eab1 are *read*.
   - **DEL-05-01/LOOP-v0.5.** Co-drafted by this executor.
   - **DEP-001.** Host panel/view evidence has not been received. D6 (App-side holds) is deferred to SWBPIPE SQ-02.
 - Receivers: DEL-02-01 (OUT-003; REQ-005; VER-005) and DEL-05-01 (OUT-004; REQ-005; VER-007) per CASE-002 M1; W9 relay file (§8 questions); external SWBPIPE owner via App-manager preparation and human file relay (DEP-05-02-018); DEL-05-02 itself for OUT-003 (VER-002, VER-003, VER-005) and OUT-002/OUT-004 (VER-004, VER-006)
@@ -66,6 +66,8 @@
 | R5-7 (V3-A MAJOR-3/5) | PC-21f re-pointed to C named variant **V-GR1**; `L-PANEL-2` dropped. PC-21i: T15 before the arrival is "prior act, not counted". F-7 closed |
 | R5-9; V3-A m-3, m-4, m-8, m-12 | FA-n → FXA-n. Unsupported reason aligned to WD's string "checkpoint hold not enforceable on this surface: ‹name›". Holding library marked confirmed (EXEC §6.2). Sibling versions at `8fb51f07f` cited. The R4-n UNRESOLVED row is closed. §8 maps Q-n to RELAY-v0.2 SQ numbers |
 | R5-5 | W-5e: a lapse caused by the person's own undo re-holds like any lapse. The undo is never shown as *action during hold*. An undo never re-holds an A5 arrival |
+| R6-1 (in place) | §3.2: invalid declarations take **no value** (check *not established*). App-run checkpoints are classified by held actions (EXEC-v0.3 HS-3/HS-5). R6-3 per-value meaning of "held" is shown |
+| R6-4 (in place; V4-A m-1) | EXEC-v0.3 and the current sibling versions cited. "R5 elements not yet in sibling text" markers removed |
 | R5-4 | No PANEL text credited D5 with recording or showing the destination, so no relabel is needed (checked) |
 
 ## Changes from v0.3
@@ -178,7 +180,7 @@ Panel content rules (PROPOSED):
 | Aspect | Receiving requirement |
 |---|---|
 | Person does | Chooses the workflow for a run; sees what it needs, where it stops, and why |
-| Panel presents | <ul><li>**Identity**: {kind, origin, source root, name, revision} + derived-from (WD §6.1). An unadapted carried workflow keeps its origin. A host adaptation is a new host-origin identity with derived-from. There is no "App-origin".</li><li>**Holding library** beside the origin for any carried workflow, so that a *project*-origin workflow held in a host library is legible. It **never takes part in identity equality**. Collision reports list the holding library with each origin (R2-20; WD §6.4; **confirmed by EXEC §6.2**).</li><li>**Declared checkpoints**: name; required act (A4, A5, A6, A7 or A12); reached-when; subject class; scope; **purpose**; negative path.</li><li>**Required tools**, each with its WD §4.2.4 outcome: *present*; *missing*; *not exposed on this surface*; *version mismatch*; *present, currently unavailable* (with reason); *channel not enabled*; *not established* (with reason). Each is shown with its **necessity** (required, or optional with the stated effect).</li><li>**Workflow-level states** (WD §3.4, §4.7): *declared*; *declared empty*; *requirements undeclared*; *unsupported* (with reason, including **"checkpoint hold not enforceable on this surface: ‹name›"**, R4-8, in WD's wording).</li><li>**Hold support** per declared checkpoint and acting surface, in exactly one of the **four values ruled in R5-1**:<ul><li>*enforced by the host loop*: embedded route, the host loop holds (LOOP §2.4.4); the check passes, with holds subject to host evidence (DEP-001);</li><li>*enforced on the host route*: the host holds or refuses the operation through a host-held constraint, evidenced by SQ-02 and a candidate; the check passes;</li><li>*not established*: depends on a host answer not yet given (SQ-02) or on unagreed exposure; shown *not established*, never a pass and never "unsupported";</li><li>*not enforceable*: no mechanism on this surface in this increment (App-only steps under D6; a constraint carried only as model-supplied); the workflow is *unsupported* with the R4-8 reason.</li></ul>Host-panel runs are *enforced by the host loop*. Residual limits are shown, including **action during hold**. The panel never shows a hold as enforced when it is not. App-side holds remain `UNRESOLVED{D6}`.</li></ul> |
+| Panel presents | <ul><li>**Identity**: {kind, origin, source root, name, revision} + derived-from (WD §6.1). An unadapted carried workflow keeps its origin. A host adaptation is a new host-origin identity with derived-from. There is no "App-origin".</li><li>**Holding library** beside the origin for any carried workflow, so that a *project*-origin workflow held in a host library is legible. It **never takes part in identity equality**. Collision reports list the holding library with each origin (R2-20; WD §6.4; **confirmed by EXEC §6.2**).</li><li>**Declared checkpoints**: name; required act (A4, A5, A6, A7 or A12); reached-when; subject class; scope; **purpose**; negative path.</li><li>**Required tools**, each with its WD §4.2.4 outcome: *present*; *missing*; *not exposed on this surface*; *version mismatch*; *present, currently unavailable* (with reason); *channel not enabled*; *not established* (with reason). Each is shown with its **necessity** (required, or optional with the stated effect).</li><li>**Workflow-level states** (WD §3.4, §4.7): *declared*; *declared empty*; *requirements undeclared*; *unsupported* (with reason, including **"checkpoint hold not enforceable on this surface: ‹name›"**, R4-8, in WD's wording).</li><li>**Hold support** per declared checkpoint and acting surface, in exactly one of the **four values ruled in R5-1**:<ul><li>*enforced by the host loop*: embedded route, the host loop holds (LOOP §2.4.4); the check passes, with holds subject to host evidence (DEP-001);</li><li>*enforced on the host route*: the host holds or refuses the operation through a host-held constraint, evidenced by SQ-02 and a candidate; the check passes;</li><li>*not established*: depends on a host answer not yet given (SQ-02) or on unagreed exposure; shown *not established*, never a pass and never "unsupported";</li><li>*not enforceable*: no mechanism on this surface in this increment (App-only steps under D6; a constraint carried only as model-supplied); the workflow is *unsupported* with the R4-8 reason.</li></ul>Invalid or not-established declarations take **no value**; they are shown invalid / not established, and the check is *not established* (EXEC-v0.3 HS-1; R6-1). An App-run checkpoint is classified by **what it must hold**: all held actions are host operations → the value follows SQ-02 (*enforced on the host route* / *not established* / *not enforceable*); any App-side held action → *not enforceable* (D6) (EXEC-v0.3 HS-3/HS-5; R6-1). What "held" means per value is shown (R6-3): *enforced by the host loop* → the run stops at its next action; *enforced on the host route* → the host refuses held host operations, and other actions are shown as *action during hold*; *not established* / *not enforceable* → nothing is stopped, and actions are shown as *action during hold*. Host-panel runs are *enforced by the host loop*. Residual limits are shown, including **action during hold**. The panel never shows a hold as enforced when it is not. App-side holds remain `UNRESOLVED{D6}`.</li></ul> |
 | Runnable rule (IR1C-13) | The panel shows the **requirement check passes** only when every reference whose necessity is *required* is *present* or *present, currently unavailable*. The latter is shown as a **run-time hold** with its reason, not as missing. Any other outcome for a required reference means the check does not pass, and the reason is shown. A workflow with *requirements undeclared* stays **selectable**, labeled "requirements undeclared — check not established". It is never labeled runnable-by-check or "no requirements". *Unsupported* is shown with its reason |
 | Host objects/results | The run is associated with the selected identity tuple (V4-HI-70) |
 | Consumed definitions | WD declaration, identity, §4.2.4 and §3.4 vocabulary; C exposure element 9; ACT act names; DEL-04-03 run record |
@@ -234,7 +236,7 @@ Rules:
 
 ### 3.5 Declared checkpoints in the panel
 
-This section consumes LOOP-v0.5 §2.4 and §2.4.4, EXEC-v0.2 §4, WD §4.3 and ACT §4.
+This section consumes LOOP-v0.5 §2.4 and §2.4.4, EXEC-v0.3 §4, WD §4.3 and ACT §4.
 
 - W-5a. **Reached.**
   - Shown only when the loop reports that the reached-when condition was
@@ -536,7 +538,7 @@ Accounting states (IR1-B B-m5; mapping owned by C):
 
 Present state: every case is DEFINED or AWAITING INPUT, except PC-23 and PC-28
 (HELD) and PC-24 (AWAITING INPUT on host constraint evidence).
-PC-19b, PC-20, PC-21d, PC-21f, PC-21g and PC-21i rest on EXEC-v0.2 §4, which is
+PC-19b, PC-20, PC-21d, PC-21f, PC-21g and PC-21i rest on EXEC-v0.3 §4, which is
 PROPOSED (W7).
 
 ## 8. Concrete questions prepared for the external host owner
@@ -602,7 +604,7 @@ SQ-24, SQ-05 (c)/(e) and SQ-20 (Q-1…Q-9 in order).
 | DEP-001 host panel/views, act capture (Q-2), constraint handling (Q-1), treatment, list adoption | SWBPIPE outside implementation session | Before corresponding integration/examination and fallback-replacement decision | All PC unexecuted; PC-24 AWAITING INPUT |
 | DEP-05-02-017 actual human acts for positive cases | Person performing the act | When PC-07, PC-18, PC-19 and PC-21 execute | Defined only |
 | C U-C5 findings location | DEL-03-01 with host owner | Before PC-12 execution | P-1/H-3 apply to referenced rows |
-| Hold machine confirmation (EXEC-v0.2 §4, PROPOSED (W7)): re-hold, no resumption, SP-6, refused A12, MX rules | DEL-02-03, at the next integration review | Before dependent panel implementation | W-5b/c/e/f/g follow it as proposed |
+| Hold machine confirmation (EXEC-v0.3 §4, PROPOSED (W7)): re-hold, no resumption, SP-6, refused A12, MX rules | DEL-02-03, at the next integration review | Before dependent panel implementation | W-5b/c/e/f/g follow it as proposed |
 | U-E4 alternative to SP-6 (counting prior acts) | Owner | Before hold-machine implementation | W-5c follows SP-6. Owner-visible cost: PC-21i (repeat an A12 already in force; R5-7) |
 | U-03 multi-row A4 purpose after partial lapse | DEL-04-01 with Owner | At its point of need | W-5e requests the whole scope |
 | D6 App-side run holds | Owner via SWBPIPE SQ-02 (DECISION-2 deferred) | Before App-side hold implementation | The panel never claims an App hold |
@@ -611,7 +613,7 @@ SQ-24, SQ-05 (c)/(e) and SQ-20 (Q-1…Q-9 in order).
 | DEL-04-02 consumption (F-3) | Register owner / SoW decision at C1 | C1 | §3.6 applied pending |
 | Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment | Classes as supplied |
 | R2-n sibling v0.3 elements | — | — | **Confirmed by V2**. T15 re-pointed per R4-18 |
-| R5-n elements not yet in sibling text (V-GR1 in C §10.4; the four hold-support values in EXEC §3.6) | DEL-03-01, DEL-02-03 | Next integration review | Adopted per R5-n. The R4-n row is **closed**: RS, WD and ACT v0.4 carry the R4 elements (R5-9) |
+| (closed, R6-4) Sibling elements pending | — | — | V-GR1 (C-v0.5) and the R5-1 values (EXEC-v0.3) are present at `c7f5513db`. No pending sibling element remains |
 
 ## Verification cases
 
@@ -621,7 +623,7 @@ These are designed, not run.
 |---|---|---|---|
 | VC-01 | Trace §3.1–§3.6 to V4-HOST-04/SOW-019 and to the consumed definitions (C, P, WD, ACT and AS at `28bd00499`, plus R2-n) | All four interactions, plus checkpoints and grant. Consumed definitions named with versions; missing inputs visible | VER-001 |
 | VC-02 | Review §2, §4 and PC-06/09/09b/10/10b/12–15/26/29 against V4-HI-10–25 and V4-EXM-20/21. On a candidate, observe them | H-1…H-6 each have a positive or rejection case. Stale-after-accept, resubmission and undo displays hold | VER-002 |
-| VC-03 | Review §3.2 (hold support), §3.3–§3.6, §5 and PC-07/07b/08/11/12b/16–25/27/28 against HI, AUT, D2/D3, ACT/AS and EXEC-v0.2 §4 with R5-1 | "Accept" wording; actor, recorder and capture evidence; act-declined vs run-ended; SP-6 "prior act not counted"; re-hold after resume and after the person's undo; "after run end" and continuation; MX rules; A12 supersedes only when established; declared A12 setting binds; hold support in the four R5-1 values; no-policy-basis HELD | VER-003 |
+| VC-03 | Review §3.2 (hold support), §3.3–§3.6, §5 and PC-07/07b/08/11/12b/16–25/27/28 against HI, AUT, D2/D3, ACT/AS and EXEC-v0.3 §3.6/§4 with R5-1/R6-1 | "Accept" wording; actor, recorder and capture evidence; act-declined vs run-ended; SP-6 "prior act not counted"; re-hold after resume and after the person's undo; "after run end" and continuation; MX rules; A12 supersedes only when established; declared A12 setting binds; hold support in the four R5-1 values; no-policy-basis HELD | VER-003 |
 | VC-04 | Compare §6 with the anticipated artifacts, the Clarification, V4-ARC-20 and OI-013/014 | Candidates name consumers or "not established"; none agreed; host construction external | VER-004 |
 | VC-05 | Account for PC-01…PC-29 (including sub-cases) in the §7 states | One state each; no missing input counted as a pass | VER-005 |
 | VC-06 | Inspect OUT-004 | Conditional; no component | VER-006 |

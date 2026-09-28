@@ -58,7 +58,7 @@ Settled distinctions relied on (cited, not re-decided):
 | S-X10 | Checkpoints override autonomy; an A5 checkpoint forces *propose* for the operation in that run and is carried as a governing checkpoint constraint {workflow run, checkpoint name, required act A5, operation} | V4-HI-42; R-5; R2-12; ACT §4.4 |
 | S-X11 | **Model destination (D5; R4-1; R5-4).** SETTLED by DECISION-2 D5: host content read by the App's Codex through the external channel may flow to the model the person selected for the App conversation, cloud included, and the App does not gate enablement, reads or submissions on the destination. **INTEGRATION (DECISION-2 reading; R4-1, R5-4)**, not SETTLED: the App records the destination per turn where the supplier reports it (requested and effective kept separate, reroutes included, unobserved turns *unknown*), the run-level value is the set observed, and the channel status shows it as information only. A host may restrict its own channel (DEP-001). V4-HOST-02 still governs the host's embedded agent | DECISION-2 D5; R4-1; R5-4; HOSTING §8.3 |
 | S-X12 | **D6 deferred (DECISION-2; R4-2; R5-1).** How the App holds its own runs at checkpoints is `UNRESOLVED{D6}` pending SWBPIPE SQ-02. Meanwhile: per-checkpoint *hold support* takes one of the four R5-1 values (§5.3); no App hold is claimed that cannot be enforced; *action during hold* is recorded; neither interposed App code (HP-1) nor reliance on `turn/interrupt` (HP-2) is adopted; HP-3 (named-rule decline of a tool-permission request) stays a permitted best effort under D3; HP-4 (the App initiates nothing for a holding run) is applied; HP-H (a host-side hold) is pending SQ-02 | DECISION-2 D6; R4-2; R5-1; EXEC §2, §3.6 |
-| S-X13 | **Carriage assurance (R4-14; final per R5-2).** *Host-held*: the constraint originates on the host side — from a declaration copy or run association the host holds, evaluated by the host route, or derived by the host loop from the resolved declaration it evaluates. A constraint the host merely **received** from an outside caller keeps its source's assurance: *model-supplied* or *App-assured*. *App-assured* is **not available in this increment** (R4-2: no interposed App code). **Only host-held carriage satisfies R2-12** | R4-14; R5-2 |
+| S-X13 | **Carriage assurance (R4-14; final per R5-2).** *Host-held*: the constraint originates on the host side — from a declaration copy or run association the host holds, evaluated by the host route, or derived by the host loop from the resolved declaration it evaluates. A constraint the host **received** and then **verified against its own copy** of the declaration is host-held; a constraint the host merely **received** from an outside caller keeps its source's assurance: *model-supplied* or *App-assured*. *App-assured* is **not available in this increment** (R4-2: no interposed App code). **Only host-held carriage satisfies R2-12** | R4-14; R5-2 |
 
 ---
 
@@ -412,7 +412,8 @@ ACT §4.4, WD §4.2.2 and R2-12) says how the element reached the host:
 - **model-supplied** — composed by the model as a tool argument; observed
   and compared by the App, but not guaranteed. A constraint the host merely
   **receives** in such a request stays model-supplied: receipt alone does not
-  make it host-held (R5-2);
+  make it host-held. If the host verifies the received constraint against
+  its own copy of the declaration, it is host-held (R5-2);
 - **App-assured** — added or verified by App code on the dispatch path.
   **Not available in this increment** (R4-2: no interposed App code; S-X12);
 - **absent** — not carried; recorded as an evidence limit (RS R11).
@@ -455,16 +456,37 @@ ACT §4.4, WD §4.2.2 and R2-12) says how the element reached the host:
   the external channel the consequence is sharp: if the model omits it and
   requests direct application under an effective direct grant, the host would
   apply directly and the checkpoint would be bypassed (contrary to W-b).
-- **GC-3 Hold support for an A5 checkpoint on X (R4-14; R5-1; R5-2).**
+- **Classification by held actions (R6-1).** The hold-support value is
+  decided by **what the checkpoint must hold**, not by how it arrives (EXEC
+  §3.6):
+  - **host-held class (HS-3):** every action the checkpoint must hold is a
+    **host operation** on the external channel (the governed operation, or
+    the host operations after arrival until the act). The value follows the
+    SQ-02 status — GC-3 for an A5 constraint, GC-5 for other host-operation
+    holds;
+  - **App-side class (HS-5):** at least one held action is App-side (an App
+    agent turn, an App tool or harness action, an App file write or return
+    step). In App runs the value is **not enforceable** (D6), whatever SQ-02
+    returns;
+  - host-loop holds (HS-2) and invalid declarations (HS-1: no value; the
+    check is *not established*) are unchanged; multi-checkpoint precedence is
+    EXEC §3.5's.
+- **GC-3 Hold support for an A5 checkpoint on X (R4-14; R5-1; R5-2; R6-1).**
+  Applies when every held action is a host operation (HS-3); if the
+  checkpoint also holds any App-side action, it is *not enforceable* (HS-5).
   Only host-held carriage satisfies R2-12. The adapter supplies the carriage
   facts; DEL-02-03 computes and reports the value (EXEC §3.6, value set owned
-  there and ruled by R5-1):
+  there and ruled by R5-1/R6-1):
 
   | Situation on X | Hold-support value | Requirement check |
   |---|---|---|
   | The host's SQ-02 answer shows a host-held constraint, **and** it is evidenced on an identified candidate | *enforced on the host route* | passes (host evidence, DEP-001) |
   | SQ-02 not yet answered, so whether the constraint can be host-held is unknown (the state today) | **not established** | does not pass; never *unsupported*; cases AWAITING INPUT (SQ-02) |
   | SQ-02 answered and no host-held route exists, so the constraint could travel only as model-supplied (or absent) | **not enforceable** | *unsupported*, reason "checkpoint hold not enforceable on this surface" (R4-8) |
+
+  Model-supplied carriage leads to *not enforceable* **only** in the last
+  row, once SQ-02 has been answered with no host-held route; before that
+  answer the value is *not established* (R6-5).
 
   *Enforced on the host route* is never assumed: it is used only after an
   SQ-02 answer **and** candidate evidence (R5-1). The v0.1 values *enforced
@@ -485,15 +507,20 @@ ACT §4.4, WD §4.2.2 and R2-12) says how the element reached the host:
   starts no turn and issues no App-initiated call for it — including an
   App-initiated `mcpServer/tool/call`, where the App is the caller (HOSTING
   §6.8) — but this does not stop actions Codex takes inside a turn already
-  running. Values on X (R5-1):
-  - checkpoint on a **host operation**, kind (a): *not established* until
-    SQ-02 (d) is answered; *enforced on the host route* only once the host
-    holds such calls and that is evidenced on a candidate; *not enforceable*
-    if the answer is no;
-  - checkpoint on **App-only** steps (no host operation, e.g. an App-content
-    act, or a kind (b)/(c) run halt): **not enforceable** whatever SWBPIPE
-    answers (R5-1; R5-10) — a separate D6 follow-up for the owner, not
-    something SQ-02 can resolve.
+  running. Values on X, classified by held actions (R5-1; R6-1):
+  - **all held actions are host operations** (HS-3) — for example kind (a)
+    before dispatch of a host operation, or host operations after arrival
+    until the act: *not established* while SQ-02 is unanswered; *enforced on
+    the host route* only once the host holds or refuses them and that is
+    evidenced on a candidate; *not enforceable* if SQ-02 is answered with no
+    host-held route;
+  - **any held action is App-side** (HS-5) — an App agent turn, an App tool
+    or harness action (including kind (a) on a harness capability), an App
+    file write or return step, or a kind (b)/(c) run halt **other than an A5
+    constraint** (GC-3 covers A5, whose held action is the governed host
+    operation): **not enforceable** in App runs whatever SWBPIPE answers
+    (R5-10; R6-1) — a separate D6 follow-up for the owner, not something
+    SQ-02 can resolve.
   In every case an external dispatch observed after an arrival while the
   checkpoint is *waiting* is recorded as **action during hold** (RS R11;
   R4-11) and is not prevented (§7.7).
@@ -697,6 +724,10 @@ Under D6 (S-X12; `UNRESOLVED{D6}`) the adapter:
   person's own operations — including the person's own undo (OP-C10) — are
   never recorded as action during hold (R5-5); a lapse they cause re-holds
   per EXEC, and an undo never re-holds an A5 arrival;
+- applies R6-3's meaning of "held": under *enforced on the host route* the
+  host refuses the held host operations and any other action is recorded as
+  action during hold; under *not established* / *not enforceable* nothing is
+  stopped and actions are recorded as action during hold;
 - makes **no claim of an App hold**: the display never says the run "is
   held" on X; it says what the checkpoint waits for and lists any action
   during hold (L-ADAPTER-13).
@@ -763,7 +794,7 @@ controller, and no ordinary live endpoint or actual-human witness has been
 recorded. Whether its operations are catalog-derived, whether its opt-in is a
 person's captured A13, and how its outcomes map to P §9 are not stated.
 
-| Id | Choice | Options | Evidence at pin 0.158.0 and observed context | What depends on it | Owner / point of need | Relay (RELAY-v0.2) |
+| Id | Choice | Options | Evidence at pin 0.158.0 and observed context | What depends on it | Owner / point of need | Relay (RELAY-v0.3) |
 |---|---|---|---|---|---|---|
 | OC-1 | Transport family the host offers | (a) MCP server; (b) CLI over the live controller; (c) both | MCP: stable client methods and `mcpToolCall` items (`observed-in-generated-types`). CLI: Codex command execution with A14 approval kinds (`observed-in-generated-types`). PR #885: a CLI instance (evidence only) | §3.5 observation; §4.5 mapping; §5.2 carriage; VER-001/002 | Host owner selects with App owner agreement | SQ-12 |
 | OC-2 | App realization family | N-MCP; N-CLI; I-DT; I-PX | **Interposed families not adopted in this increment (R4-2, D6)**; they stay registered options pending SQ-02. I-DT needs the experimental opt-in (`dynamicTools` experimental-only; S-F-05). I-PX is an App-side server — tension with SoW OUT-001 "without prescribing … a new server" (F-6) | Carriage assurance (§5.2), GC-3/GC-5 holds, PI-4 | App owner, after XQ-3/XQ-5 answers | SQ-02; SQ-08 |
@@ -879,29 +910,31 @@ AC-006 and AC-007 are served by review of §§1, 9, 12 and this inventory
 | Expect from | DEL-04-02/AS-v0.4 | Grant display states incl. *effective (policy default)*; settings references |
 | Expect from | DEL-01-01/HOSTING-v0.4 and the pin record | Supplier surfaces at 0.158.0 (§3.5); A14 origins (R7–R9); native delivery (H6) |
 | Expect from | DEL-02-01 / DEL-02-03 | Checkpoint declarations and derived constraints (WD §4.2.2); hold machine; per-checkpoint hold support (EXEC §3.6) computed from §5.3/§7.7 inputs; App holds `UNRESOLVED{D6}` |
-| Expect from | DEL-09-06/RELAY-v0.2 | SQ-01…SQ-32 (this file uses SQ-01…SQ-03, SQ-06…SQ-09, SQ-11…SQ-16, SQ-28) as the single relay channel for this file's host questions (§12) |
+| Expect from | DEL-09-06/RELAY-v0.3 | SQ-01…SQ-32 (this file uses SQ-01…SQ-03, SQ-06…SQ-09, SQ-11…SQ-16, SQ-28) as the single relay channel for this file's host questions (§12) |
 | Expect from | External host owner (SWBPIPE) | Endpoint contract; enablement facility and its read; catalog-derived native surface and mapping; exposure on X; outcome statements; capture-evidence references; constraint receipt; identity issuance and durable de-duplication; locality; caller authentication (§12) |
 | Provide to | DEL-09-09 | This account; the §10 inventory and, when executed, its candidate-bound test-double results labeled by family; the §9 register; the external requirements still missing (§12); rehearsals for XT XC-05 and XC-06 (XF-40, XF-41); never a joined-witness claim |
 | Provide to | DEL-03-04 | §§1–9 for the guide's "Optional external catalog access" row |
-| Provide to | DEL-04-03 | External dispatch entries (§5.1) for R7; faithfully recorded acts for R9; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; resubmission without prior observation; App-restart interruption; action during hold); model destination per run (R4-1); A14 observations for R13 |
+| Provide to | DEL-04-03 | External dispatch entries (§5.1) for R7; faithfully recorded acts for R9; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; resubmission without prior observation; App-restart interruption; action during hold, with its turn initiator — person-directed / agent / App rule (R6-5)); model destination per turn, run-level set observed (R5-4); A14 observations for R13 |
 | Provide to | DEL-02-03 | External-channel observations and hold-support inputs (§7.7); action during hold; required-tool outcomes on X (channel not enabled; not established; unsupported — checkpoint hold not enforceable on this surface) |
 | Provide to | DEL-04-01 | Nothing open: U-X1 is closed by ACT-v0.4 §2.6; E-3/E-4 align with it |
 | Provide to | DEL-01-01 | Observed MCP/dynamic-tool facts (§3.5) for the classification R4-12 assigns to HOSTING |
 
 ---
 
-## 12. Relay questions for SWBPIPE — mapped to DEL-09-06 RELAY-v0.2
+## 12. Relay questions for SWBPIPE — mapped to DEL-09-06 RELAY-v0.3
 
 The v0.1 relay questions XQ-1…XQ-12 are consolidated, without loss, into
-DEL-09-06/RELAY (v0.1 at `b4030fe4b`; cited here at v0.2, read at
-`8fb51f07f`), which is the single relay file
+DEL-09-06/RELAY (v0.1 at `b4030fe4b`; cited here at **v0.3**, sha256
+89b6b9c9eb14a5b356db34de202f5c8e0640707ea19524adf3fcbb01d168bdd7, read at
+`816c917f0`; the SQ identifiers used here are unchanged from v0.2), which is
+the single relay file
 prepared for the human relay to the SWBPIPE owner (DEP-001). This file no
 longer keeps its own question text; it cites the SQ identifiers. The mapping
 below reproduces RELAY §3's source-to-question map for this file, plus
 SQ-28, which RELAY-v0.2 added for the A13 enablement facility (R5-9).
 Preparing or citing questions is not delivery, agreement or adoption.
 
-| v0.1 id | Subject | RELAY-v0.2 | Used here in |
+| v0.1 id | Subject | RELAY-v0.3 | Used here in |
 |---|---|---|---|
 | XQ-1 | Seam; catalog derivation; native-to-catalog mapping | SQ-12 | §4.1 NM-1…NM-4; OC-1, OC-8 |
 | XQ-2 | Enablement: person's captured act and its capture-evidence reference; "opt-in"; channel not enabled; enablement read; disable with queued proposals | **SQ-28** (enablement facility for A13 and its capture-evidence reference; gates the whole external channel, R5-10); SQ-13 (enablement behavior) | §3.1, §3.2, E-8; OC-4; XF-01…07, XF-35 |
@@ -916,7 +949,7 @@ Preparing or citing questions is not delivery, agreement or adoption.
 | XQ-11 | Data boundary — now only: does the host restrict its channel by destination, and what must the App state (D5 settles the App side) | SQ-16 | §3.4; XF-36 |
 | XQ-12 | Locality; callers; sandbox reach | SQ-15; SQ-14 (callers) | E-7; OC-5, OC-6, OC-12; XF-07 |
 
-Also relevant from RELAY-v0.2: SQ-04/SQ-05 (first connected activity and its
+Also relevant from RELAY-v0.3: SQ-04/SQ-05 (first connected activity and its
 policy, `UNRESOLVED{OI-021}`) and SQ-26 (the one new operation for the
 extension trace, `UNRESOLVED{OI-003}`).
 
@@ -982,13 +1015,13 @@ DEL-02-03 (U-X3) is now `UNRESOLVED{D6}`; the v0.1 question to DEL-01-01
 
 ### 13.3 New findings at v0.3
 
-- **F-18 EXEC-v0.2 §3.6 value names and mapping are superseded by R5-1.**
+- **F-18 (closed under R6: EXEC-v0.3 HS-3 aligned) EXEC-v0.2 §3.6 value names and mapping are superseded by R5-1.**
   EXEC-v0.2 names "host-enforced for host operations" and maps a
   model-supplied constraint to *not established*; R5-1 names *enforced on the
   host route* and maps model-supplied-only carriage to *not enforceable*.
   This file follows R5-1 (GC-3). EXEC-v0.3 is expected to align; if it does
   not, the two will disagree on XF-26.
-- **F-19 "Not established" versus "not enforceable" depends on the state of
+- **F-19 (closed under R6: confirmed by EXEC-v0.3 HS-3 and R6-5) "Not established" versus "not enforceable" depends on the state of
   SQ-02, not on the carriage alone.** Before SQ-02 is answered, a checkpoint
   whose constraint can only be model-supplied today is still *not
   established* (the host might yet hold it). Only once SQ-02 is answered
@@ -1047,6 +1080,12 @@ v0.2 = ADAPTER-v0.2 (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d
 | V3-B m-5 | HP-4 (the App initiates nothing for a holding run, including App-initiated `mcpServer/tool/call`) and HP-H (host-side hold) added to S-X12 and GC-5 |
 | V3-B m-9 | XF-42 stated **DESIGNED** (a recording case); the hold itself stays `UNRESOLVED{D6}` |
 | ACT-v0.4 §2.6 (R4-13, PROPOSED by DEL-04-01) | U-X1 closed: A13 on the host interface is captured by the host's enablement facility; the App-side configuration change is an ordinary configuration change, not a second A13 (E-1, E-4, §3.1, §11, §12). The UNRESOLVED row is replaced by the SQ-28 host input |
+| **R6-1** (in place; V4-A MAJOR-1/2; V4-B m-4(a)) | New "classification by held actions" bullet before GC-3: all held actions host operations → HS-3 by SQ-02 status; any App-side held action → *not enforceable* (HS-5); HS-1/HS-2 and precedence unchanged. GC-3 states it applies only when every held action is a host operation. GC-5 rewritten by held actions, with the explicit exception "a kind (b)/(c) run halt **other than an A5 constraint** (GC-3 covers A5)" (R6-4) |
+| **R6-5** (in place; V4-B m-2) | GC-3 and VC-X-03 state that model-supplied carriage → *not enforceable* only once SQ-02 is answered with no host-held route; before that, *not established*. §11 R11 action-during-hold input carries the turn initiator (person-directed / agent / App rule) |
+| R6-3 (in place) | §7.7 notes what "held" means per value |
+| V4-B m-4 (in place) | (b) §11 model destination per turn (R5-4); (c) F-18 and F-19 marked closed; (d) S-X13 and §5.1: a received constraint verified against the host's own copy is host-held (R5-2) |
+| V4-B m-6 (in place) | §12 heading and relay citations re-pointed to **RELAY-v0.3** (sha256 89b6b9c9…, `816c917f0`); SQ identifiers unchanged |
+| V4-B m-9 (confirmed) | XF-42 stays stated **DESIGNED** |
 | Header | v0.3; supersession chain; R5, V3-A, V3-B and the current sibling texts added to Basis/Consumed inputs with hashes; R5 successors not read and noted as such |
 
 Identifiers: all v0.2 identifiers kept. Added: F-18…F-21 (§13.3). Closed: U-X1 (by ACT-v0.4 §2.6). Retired: the v0.1 hold-support values.
@@ -1091,7 +1130,7 @@ committed) — and the policy records used (R5-9).
 |---|---|---|---|
 | VC-X-01 Receiving comparison | For the selected family, run XF-08…13, 37, 39 against the simulated endpoint; compare identity/version (via mapping), availability reasons, standing, basis and subject identities with C-v0.4/P-v0.4 expectations | Every element preserved; mapping named; hints and Codex exposure never used as catalog elements; endpoint labeled simulated | VER-001 (AC-001) |
 | VC-X-02 Enablement and locality | Run XF-01…07, 35, 36; inspect App configuration changes and every request destination the App makes | Read per R4-13 (SQ-28 gates every live case): "no host request" applies to the App's own requests, and the host's refusal is the authoritative off. Disabled: no App request; host *channel not enabled* relayed; App-side (including agent-written) configuration never A13 evidence and never enables; enablement leaves grant display unchanged; endpoint local; no destination added; model destination recorded per turn (requested and effective separate, reroutes, unknown turns) and shown as information, never gating (no-gate SETTLED D5; record-and-show INTEGRATION, R5-4); supplier-initiated traffic attributed to the supplier | VER-002 (AC-002) |
-| VC-X-03 Same route and policy | Run XF-22…29, 34, 42 under the identified adopted records (P-01…P-06, ⟨set-1⟩, ⟨set-2⟩); inspect App code/configuration for any path that applies outside the host route | Every outcome per RP-3; no conversion; reserved entries offered; no bypass route found; checkpoint cases report hold support in the four R5-1 values only (today *not established* for CP-accept on X; *not enforceable* for model-supplied-only carriage and App-only checkpoints; *enforced on the host route* never assumed) and record action during hold, with no App hold claimed (D6); host-enforcement claims deferred to host evidence | VER-003 (AC-003) |
+| VC-X-03 Same route and policy | Run XF-22…29, 34, 42 under the identified adopted records (P-01…P-06, ⟨set-1⟩, ⟨set-2⟩); inspect App code/configuration for any path that applies outside the host route | Every outcome per RP-3; no conversion; reserved entries offered; no bypass route found; checkpoint cases report hold support in the four R5-1 values only (today *not established* for CP-accept on X; *not enforceable* for model-supplied-only carriage once SQ-02 is answered with no host-held route (R6-5), and for any checkpoint holding an App-side action (R6-1); *enforced on the host route* never assumed) and record action during hold, with no App hold claimed (D6); host-enforcement claims deferred to host evidence | VER-003 (AC-003) |
 | VC-X-04 Adverse outcomes | Run XF-14…21, 30, 40, 41 with an injected intervening edit, later selection, duplicate submission (including two sends before any acknowledgment), lost acknowledgment, endpoint restart and App restart | Stale with both bases; no retarget; retry answered from recorded state; *outcome unknown* observer App; no one-effect claim from transport or session de-duplication; durable conclusions deferred to DEL-09-09 | VER-004 (AC-004) |
 | VC-X-05 Acts | Run XF-04, 16, 18, 23, 27, 30…33, 38; inspect the act-mapping code/configuration | No act from success, queued, receipt, A14, A8, elicitation or model text; positive faithful record with actor ≠ recorder, bound content identity and capture-evidence reference (AWAITING INPUT until supplied); independent A4 kept without acceptance | VER-005 (AC-005) |
 | VC-X-06 Documentation review | Check §1 one-for-one against SoW REQ-005 exclusions; check §§3–9 and UNRESOLVED against OI-001/002 (as ruled by DECISION-1), OI-003/013/014/021, DEP-001, TBD-007 and CLM-001…004; check D2/D3 attribution (R2-11) and markings | Every excluded act has its owner; every open item has owner, point of need and effect; no wire field, transport, common service or host-delivery claim; PR #885 cited as evidence only | VER-006 (AC-006) |

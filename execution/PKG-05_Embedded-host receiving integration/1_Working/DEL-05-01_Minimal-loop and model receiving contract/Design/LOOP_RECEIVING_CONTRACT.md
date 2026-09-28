@@ -12,7 +12,7 @@
     - DEL-02-01/WD-v0.4 `WORKFLOW_DECLARATION.md` e492ff63…d8e88e and WD-EX-v0.4 `EXAMPLES.md` 60ce307a…128ca4 (E1d `label-with-grant`) — *read* at §4.2.4, §4.3;
     - DEL-04-01/ACT-POLICY-v0.4 d6da05ab…b03b; DEL-04-02/AS-v0.4 774728d0…f4dab; DEL-04-03/RS-v0.4 56806b64…40199 (continues ⟨run⟩ present); DEL-03-03/ADAPTER-v0.2 a2905dda…674bc; DEL-01-01/HOSTING-BOUNDARY-v0.4 201ea320…c7e58;
     - DEL-09-06/RELAY-v0.2 `RELAY_QUESTIONS_SWBPIPE.md` 48dc5a1f…41f65: §3 coverage map (this file's Q-1…Q-7 → SQ-02, SQ-01, SQ-03 (d), SQ-19 (a), SQ-21, SQ-08 (b)/SQ-07 (d), SQ-11; §5/§7/§8 items → SQ-29…SQ-32) — *read*.
-  - **R5 elements not yet in sibling text** (V-GR1 in C §10.4; the four hold-support values in EXEC §3.6; P §3.3 carriage-assurance amendment) are taken from R5_RESOLUTIONS and marked "per R5-n".
+  - **Current sibling versions at `c7f5513db` (R6-4; in place):** EXEC-v0.3 889e4881…ee548e; C-v0.5 a6306bd4…be7a29 (V-GR1 present); P-v0.5 a5ee4946…cd1b7 (§3.3 per R5-2 present); WD-v0.5 32acdd27…45e7c9; WD-EX-v0.5 296875c9…4702f; ACT-POLICY-v0.5 86975a90…5380e7; AS-v0.5 c49be8bb…729e1; RS-v0.5 37bc586e…c27ea; ADAPTER-v0.3 c9195851…225cff4; HOSTING-v0.5 873e76f6…b0eaa; RELAY-v0.3 89b6b9c9…68bdd7. EXEC-v0.3 §3.6 (HS-1…HS-5; R6-1) is *read*; the rest are cited for currency. R6_RESOLUTIONS.md 8703e85a…cb841 and reviews/V4-A.md 121deafc…eab1 are *read*.
   - **DEL-05-02/PANEL-v0.5.** Co-drafted by this executor.
   - **Missing inputs.** DEP-05-01-024 has an UNKNOWN supplier and is not supplied. DEP-001 host evidence has not been received. D6 (App-side holds) is deferred to SWBPIPE SQ-02.
 - Receivers: DEL-02-01 (OUT-001, OUT-003; REQ-002, REQ-005; VER-005) and DEL-05-02 (OUT-001, OUT-003; REQ-001, REQ-005; VER-001, VER-005) per CASE-002 M1/M4; DEL-02-03 (hold machine, W7); DEL-09-06/W9 relay file (§13 questions); external SWBPIPE owner via App-manager preparation and human file relay (DEP-05-01-021); DEL-05-01 itself for OUT-003 when host evidence arrives
@@ -95,6 +95,8 @@
 | R5-4 (V3-A m-11) | §1 item 5 relabeled. "Host content may flow to the selected model; no gating" is SETTLED by DECISION-2. "Record and show the destination" is **INTEGRATION (DECISION-2 reading)**. §2.1 notes per-turn model-setting records, and that a switch starts no new run |
 | R5-5 | C-4: a lapse re-holds whatever caused it, including the person's own undo. The person's undo is never *action during hold*. An undo never re-holds an A5 arrival |
 | R5-7 (V3-A MAJOR-3/5; closes G-2) | FX-C11 re-pointed to C named variant **V-GR1**; `L-LOOP-C11` dropped. T15 before the arrival does **not** count (FX-C11b). The owner-visible cost of SP-6 is recorded under U-E4 |
+| R6-1 (in place; V4-A m-5) | §2.4.4: invalid or not-established declarations take **no value** (EXEC HS-1/F-22), and the check is *not established*. App-run checkpoints are classified by **held actions** (HS-3 host-operation class by SQ-02 status; HS-5 any App-side held action → *not enforceable*). R6-3: at the hold, the run stops at its next action |
+| R6-4 (in place; V4-A m-1, m-6, m-7) | LOOP-local HS-0…HS-4 renamed **LH-0…LH-4** throughout. G-5 closed. EXEC-v0.3 and the other current sibling versions cited. The "R5 elements not yet in sibling text" markers are removed. §10.1/§10.3 standing text updated |
 | R5-9 (V3-A m-3, m-8, m-12) | Current sibling versions cited. FA-n → **FXA-n**. Holding library marked confirmed (EXEC §6.2). The UNRESOLVED row "R4-n elements not yet in sibling text" is closed. §13 cites RELAY-v0.2 SQ numbers |
 
 ## Changes from v0.3
@@ -400,7 +402,7 @@ set (IR1C-14a).
 Dispositions (shared): **waiting · performed · resolved negatively · lapsed ·
 not reached · unknown**. Everything else is an annotation (EXEC §4.3).
 
-The hold-machine semantics are **EXEC-v0.2 §4** (DEL-02-03, PROPOSED (W7)).
+The hold-machine semantics are **EXEC-v0.3 §4** (DEL-02-03, PROPOSED (W7)).
 In host loops the loop realizes them (EXEC §2). Construction and placement
 are external (`UNRESOLVED{OI-013}`), and sharing is `UNRESOLVED{OI-014}`.
 Arrivals are identified by {run, checkpoint, **arrival ordinal**}. A
@@ -625,30 +627,31 @@ values ruled in R5-1**:
 | Kind (a) on a host catalog operation | **enforced by the host loop**: the loop holds the schema-conformant call (§2.4.1) | None for the held call. Other calls already in flight are recorded as *action during hold* |
 | Kinds (b)/(c) | **enforced by the host loop**: on the arrival event the loop dispatches nothing further and produces no declared output (HD-1/HD-2) | A dispatch or output issued between the arrival event and the loop's observation of it is recorded as **action during hold**, never hidden (HD-4; MA-3) |
 | A5 checkpoint (kind (c) *queued*; host-held constraint, C-6) | **enforced by the host loop** (the loop stops after *queued*; the host route resolves *propose* from the host-held constraint) | Host evidence that the route honours the constraint: AWAITING INPUT (§13 Q-1 → SQ-02; DEP-001) |
-| Invalid or not established declaration | **not established**: reported, never evaluated (EXEC §4.14) | — |
-| Kind (a) on a harness capability; App-only steps | Does not arise in host loops (§1). In App runs: **not enforceable** (R4-21; R5-1) | — |
+| Invalid or not established declaration | **No value** (EXEC-v0.3 HS-1; F-22; R6-1): reported as invalid / not established and never evaluated. The workflow check is *not established* | — |
+| Kind (a) on a harness capability; App-only steps | Does not arise in host loops (§1). In App runs a checkpoint is classified by **what it must hold** (R6-1; EXEC-v0.3 HS-3/HS-5): if every held action is a host operation, the value follows SQ-02 (*enforced on the host route* / *not established* / *not enforceable*); if any held action is App-side, *not enforceable* (D6) | — |
 
 The workflow requirement check passes for *enforced by the host loop*, with
-holds subject to host evidence (DEP-001). The retired v0.4 values "enforced
+holds subject to host evidence (DEP-001). At the hold, the run stops at its
+next action (R6-3). The retired v0.4 values "enforced
 before dispatch" and "held after observation" are replaced by the residual
 limits above. "Enforced on the host route" is not a host-loop value; it
 applies to App runs over surface X under SQ-02 (EXEC, R5-1).
 
-- HS-0. Sibling calls in the same model response that are not yet
+- LH-0. Sibling calls in the same model response that are not yet
   dispatched when an arrival is observed are **not dispatched**. The model
   receives "held at checkpoint" results for them. Only calls already
   dispatched count as *action during hold* (see MC-8, T-OPEN-1).
-- HS-1. While holding, the agent may still explain the request and issue an
+- LH-1. While holding, the agent may still explain the request and issue an
   A8 request. Conversation is not run progress (HD-2).
-- HS-2. Host lifecycle continues independently. For example, after the
+- LH-2. Host lifecycle continues independently. For example, after the
   person's A5 the host may apply an item while the run holds (HD-3).
-- HS-3. **App-side holds are not this contract's.** How the App holds its own
+- LH-3. **App-side holds are not this contract's.** How the App holds its own
   runs is `UNRESOLVED{D6}` (DECISION-2, deferred to SWBPIPE SQ-02). This
   contract never claims an App hold. It adopts neither interposed App code
   (HP-1) nor reliance on `turn/interrupt` (HP-2). HP-3, a named-rule decline
   of a tool-permission request, is App-side and does not arise in host loops
   (§9 A-5).
-- HS-4. The compatibility report (EXEC §3) shows each checkpoint's hold
+- LH-4. The compatibility report (EXEC §3) shows each checkpoint's hold
   support before the run. The panel shows it (PANEL §3.2).
 
 ## 3. Operating sequence (one turn)
@@ -930,13 +933,13 @@ Verdict form: "continued usability observed for X on candidate Y".
 | Panel assembly | Excluded | DEL-05-02 (receiving) | Owns | OI-013 | Open |
 | Native networking, endpoint, key | Excluded; defines §5 cases | — | Owns | N-OPEN-1/2 | Not received |
 | Treatment resolution, exposure evaluation, de-duplication | Excluded; relays | ACT (policy), C/P | Host route | DEP-001; §13 | Not received |
-| Catalog, read basis, exposure, fixture | Consumes | DEL-03-01 | Implements | TBD-003 | C-v0.4 read at `8fb51f07f`; V-GR1 per R5-7 |
-| Proposal and outcomes | Consumes | DEL-03-02 | Route, receipts | TBD-002 | R2-12/13/14 confirmed by V2; R4-14 carriage assurance per R4 |
-| Declarations | Consumes | DEL-02-01 | Host workflows | OI-014; OI-013 | R2-17/R3-1/R3-2 confirmed by V2; R4-9 per R4 |
-| Hold machine | Evaluates reached-when and realizes EXEC §4 in host loops (§2.4.4) | DEL-02-03 (EXEC-v0.2 §4, PROPOSED (W7)) | Host construction | OI-013; OI-014; D6 (App side) | EXEC-v0.1 read at `f05c7e4cd` |
-| Act policy | Consumes | DEL-04-01 | Enforces own list; offers and captures acts | OI-021; consequence vocabulary | ACT-v0.2 read; R2-1…R2-10 to confirm |
-| Grant display states | Carries | DEL-04-02 | Controls | Register gap (C1) | R2-6 confirmed by V2 |
-| Record format | Consumes | DEL-04-03 | Receipts, acts | — | Per R-n / R2-n |
+| Catalog, read basis, exposure, fixture | Consumes | DEL-03-01 | Implements | TBD-003 | C-v0.5 at `c7f5513db` (V-GR1 present) |
+| Proposal and outcomes | Consumes | DEL-03-02 | Route, receipts | TBD-002 | P-v0.5 at `c7f5513db` (carriage assurance per R5-2 present) |
+| Declarations | Consumes | DEL-02-01 | Host workflows | OI-014; OI-013 | WD-v0.5 at `c7f5513db` (R5-3 present) |
+| Hold machine | Evaluates reached-when and realizes EXEC §4 in host loops (§2.4.4) | DEL-02-03 (EXEC-v0.3 §4, PROPOSED (W7)) | Host construction | OI-013; OI-014; D6 (App side) | EXEC-v0.3 at `c7f5513db` |
+| Act policy | Consumes | DEL-04-01 | Enforces own list; offers and captures acts | OI-021; consequence vocabulary | ACT-POLICY-v0.5 at `c7f5513db` |
+| Grant display states | Carries | DEL-04-02 | Controls | Register gap (C1) | AS-v0.5 at `c7f5513db` |
+| Record format | Consumes | DEL-04-03 | Receipts, acts | — | RS-v0.5 at `c7f5513db` |
 | Model-interface basis | Receives or agrees | — | Unknown | DEP-05-01-024 (UNKNOWN) | Not supplied |
 | Host evidence | Receives, audits | Joined witness DEL-09-06 | Supplies | DEP-001 | Not received |
 | Common loop implementation | Not allocated | OI-014 owners | — | OI-014/013 | No agreed repeated responsibility |
@@ -954,16 +957,16 @@ Verdict form: "continued usability observed for X on candidate Y".
 
 ### 10.3 Required inputs and standing
 
-| Input | Supplier | Standing at v0.3 |
+| Input | Supplier | Standing at v0.5 (R6-4) |
 |---|---|---|
-| Entry elements 1–9; five class values; edition; exposure; basis; subject identities; FX-PIPE-01 | DEL-03-01 | C-v0.4 read at `8fb51f07f`; confirmed by V2 |
-| Outcomes; identities; constraint; resulting objects; de-duplication; carriage assurance | DEL-03-02 | Confirmed by V2 (v0.3). R4-14 carriage assurance pending P-v0.4 |
-| Checkpoint elements; subject classes; §4.3.7; identity tuple; holding library | DEL-02-01 | Confirmed by V2 (v0.3). R4-9 pending WD-v0.4 |
-| Hold machine; resume point; re-hold; no resumption; SP-6; refused A12; MX rules; recovery | DEL-02-03 | EXEC-v0.2 read at `8fb51f07f` (PROPOSED (W7)); adopted per R4-3…R4-7 |
-| Act names; decline; treatment map; reserved operations | DEL-04-01 | ACT-v0.2 read. R2-1…R2-10 pending |
-| Grant states incl. policy default | DEL-04-02 | Confirmed by V2 (v0.3) |
-| Record inventory | DEL-04-03 | Per R-n / R2-n |
-| Panel needs | DEL-05-02 | PANEL-v0.3, same executor |
+| Entry elements 1–9; five class values; edition; exposure; basis; subject identities; FX-PIPE-01 | DEL-03-01 | C-v0.5 (V-GR1 present) |
+| Outcomes; identities; constraint; resulting objects; de-duplication; carriage assurance | DEL-03-02 | P-v0.5 (carriage assurance per R5-2) |
+| Checkpoint elements; subject classes; §4.3.7; identity tuple; holding library | DEL-02-01 | WD-v0.5 (R5-3 grant-setting subject) |
+| Hold machine; resume point; re-hold; no resumption; SP-6; refused A12; MX rules; recovery | DEL-02-03 | EXEC-v0.3 (PROPOSED (W7)); §3.6 values per R5-1/R6-1 |
+| Act names; decline; treatment map; reserved operations | DEL-04-01 | ACT-POLICY-v0.5 |
+| Grant states incl. policy default | DEL-04-02 | AS-v0.5 |
+| Record inventory | DEL-04-03 | RS-v0.5 |
+| Panel needs | DEL-05-02 | PANEL-v0.5, same executor |
 | Model interface | UNKNOWN (DEP-05-01-024) | Not supplied |
 | Host candidate and evidence | SWBPIPE (DEP-001) | Not received |
 
@@ -1069,13 +1072,12 @@ adoption.
 - **G-2 (closed by R5-7).** A12-at-checkpoint fixtures use C named variant
   V-GR1. `L-LOOP-C11` is dropped.
 - **G-3 (retained; relayed as SQ-31).** Undispatched sibling calls are held,
-  not run, during a hold (HS-0). T-OPEN-1 should confirm this.
+  not run, during a hold (LH-0). T-OPEN-1 should confirm this.
 - **G-4 (retained).** One executor drafted LOOP and PANEL, so the v0.5 pair
   needs an independent check.
-- **G-5 (new).** R5-1's "not enforceable" example includes "a constraint
-  carried only as model-supplied". EXEC-v0.2 §3.6 (iii) instead classes
-  that case as *not established*. This file follows R5-1. The case does not
-  arise in host loops, where carriage is host-held. EXEC-v0.3 should align.
+- **G-5 (closed, R6-4).** EXEC-v0.3 HS-3 (c) gives model-supplied carriage
+  *not enforceable* after SQ-02 and *not established* only before, matching
+  R5-1.
 
 ## UNRESOLVED
 
@@ -1087,7 +1089,7 @@ adoption.
 | DEP-001 host evidence, including Q-1…Q-7 | SWBPIPE outside implementation session | Before corresponding integration/examination and fallback-replacement decision | All host conformance NOT-OBSERVED; FX-C9 AWAITING INPUT |
 | OI-021 first connected operation; operation-specific reserved additions; OP-C11 class | Owner via outside SWB session and App/shared owner | Before connected SoW and execution | FX-NP1 HELD; fixtures invented |
 | Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment | Classes as supplied |
-| Hold machine confirmation (EXEC-v0.2 §4, PROPOSED (W7)): resume point, re-hold, no resumption, refused A12, MX rules | DEL-02-03, at the next integration review | Before dependent host-loop implementation | C-4, C-7, C-8 and §2.4.1 adopted as proposed |
+| Hold machine confirmation (EXEC-v0.3 §4, PROPOSED (W7)): resume point, re-hold, no resumption, refused A12, MX rules | DEL-02-03, at the next integration review | Before dependent host-loop implementation | C-4, C-7, C-8 and §2.4.1 adopted as proposed |
 | C U-C5 findings location | DEL-03-01 with host owner | Before E-5 route (b) is used | E-5 conditional |
 | C U-C3 / R2-13 staleness rule host confirmation | Host owner with DEL-03-01/03-02 | Before FX-D2/FX-O1 execution | §6.3 R-c meaning only |
 | C U-C6 entry-version mismatch | Host input | Before FX-D-series execution | O-3 |
@@ -1098,10 +1100,10 @@ adoption.
 | Seat role mapping (U-09) | DEL-02-01 with SWB owner and DEL-02-04 | Before record fixtures | *unknown* allowed |
 | Holding library (U-24) | Confirmed by EXEC §6.2 (HL-1…HL-3) | — | Carried (§2.1) |
 | R2-n sibling v0.3 elements | — | — | **Confirmed by V2** (reviews/V2.md). T15 re-pointed per R4-18 |
-| D6 App-side run holds | Owner via SWBPIPE SQ-02 (DECISION-2 deferred) | Before App-side hold implementation | Not this contract's. §2.4.4 HS-3 claims no App hold |
+| D6 App-side run holds | Owner via SWBPIPE SQ-02 (DECISION-2 deferred) | Before App-side hold implementation | Not this contract's. §2.4.4 LH-3 claims no App hold |
 | U-E4 SP-6 alternative (count prior acts bound to current content) | Owner | Before hold-machine implementation | SP-6 adopted as PROPOSED; FX-C4b and FX-C11b follow it. Owner-visible cost: the person may repeat an A12 whose content is already in force (R5-7) |
 | U-03 multi-row A4 purpose after partial lapse | DEL-04-01 with Owner | At its point of need | C-4 partial-lapse variant held |
-| R5-n elements not yet in sibling text (V-GR1 in C §10.4; the four hold-support values in EXEC §3.6; P §3.3 amendment per R5-2) | DEL-03-01, DEL-02-03, DEL-03-02 | Next integration review | Adopted per R5-n. The R4-n row is **closed**: RS, P, WD and ACT v0.4 carry the R4 elements (R5-9) |
+| (closed, R6-4) Sibling elements pending | — | — | V-GR1 (C-v0.5), the R5-1 values (EXEC-v0.3) and P §3.3 (P-v0.5) are present at `c7f5513db`. No pending sibling element remains |
 
 ## Verification cases
 
@@ -1116,5 +1118,5 @@ These are designed, not run.
 | VC-05 | Exercise FX-M, FX-V1, FX-U1 and FX-O1 against a test double once DEP-05-01-024 and C are supplied | Zero dispatch for rejected calls; de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
 | VC-06 | Review §8. On host observations, check candidate, configuration and placement | No threshold; results limited to observed scenarios | VER-006 |
 | VC-07 | Compare §10 with SoW CLM-001/002/003, REQ-006, OI-013/014, DEP-001 and the Clarification | Every excluded act has its owner; no common construction allocated | VER-007 |
-| VC-08 | Review §2.3, §2.4, §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.2 §4, WD, ACT, P and AS | Declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 ordering; re-hold after resume and after the person's undo; no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established; hold support in the four R5-1 values; constraint host-held | VER-008 |
+| VC-08 | Review §2.3, §2.4, §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.3 §4, WD, ACT, P and AS | Declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 ordering; re-hold after resume and after the person's undo; no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established; hold support in the four R5-1 values; constraint host-held | VER-008 |
 | VC-09 | Audit every claim for a §12 label and an exact identity. Audit every R4-n element against sibling text at the next review | No HOST-OBSERVED claim without candidate evidence; HELD and AWAITING cases not counted as passes | VER-009 |

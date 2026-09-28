@@ -141,3 +141,16 @@ authors were resumed; siblings read at `f05c7e4cd`.
 | A1-W9 | DEL-09-06/09-09 W9 files → v0.2 (DECISION-2, R4, G-3 addendum) | ACTIVE |
 
 Scratchpad note: W10 found a shared scratchpad folder overwritten by a concurrent agent. It re-extracted its pinned inputs and verified their hashes. Later briefs use per-agent scratch folders.
+
+## V3, R5, V4 and C1 (2026-09-28)
+
+| Node | Result |
+|---|---|
+| V3-A / V3-B | Both MERGE AS DRAFTS: 0 BLOCKING, 10 MAJOR, 26 MINOR ([V3-A](reviews/V3-A.md), [V3-B](reviews/V3-B.md)) |
+| R5 pass (9 authors resumed) | Wave-1 files → v0.5; EXEC, ADAPTER and W9 files → v0.3; all fences verified. Integrator pass-through rulings: HP-4 and person-directed turns; multi-checkpoint precedence; App-only HS-5; SQ-02-status mapping. `d3cebd1cc` |
+| CA/RELAY E1 correction | E1 via the external channel is unsupported (EXEC MT-2). `816c917f0` |
+| GUIDE v0.2 | CC-1…CC-11 pass. `c7f5513db` |
+| V4-A / V4-B | Independent review of the final candidate `c7f5513db`: ACTIVE |
+| C1-A / C1-B / C1-C | Bounded closeout comparisons, proposing edits only: ACTIVE |
+
+Agents after W10 used private scratch folders.

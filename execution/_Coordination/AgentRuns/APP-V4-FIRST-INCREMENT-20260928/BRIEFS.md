@@ -484,3 +484,37 @@ Do not repeat design content; cite sections.
 - **C1-A:** DEL-04-01, 04-02, 04-03, 02-01, 02-03.
 - **C1-B:** DEL-03-01, 03-02, 03-03, 03-04, 01-01.
 - **C1-C:** DEL-05-01, 05-02, 09-06, 09-09.
+
+## V4 — independent review of the final Wave-2 candidate
+
+**Candidate:** the commit named in the dispatch message. It includes every R5
+edit (Wave-1 files at v0.5; EXEC, ADAPTER, CA, RELAY and XT at v0.3; GUIDE at
+v0.2).
+
+**Why it is needed:** V3 reviewed the pre-R5 texts. The standing Git authority
+requires independent review that covers the actual candidate.
+
+**Scope, bounded:**
+1. Every R5 ruling, R5-1 through R5-10, checked against each file it names,
+   and against any other file that touches the subject: holds / partial /
+   fails, with file and section evidence.
+2. The integrator's pass-through rulings, each checked against the text:
+   - HP-4 and person-directed turns (EXEC §2);
+   - multi-checkpoint precedence (EXEC §3.5);
+   - App-only (HS-5);
+   - the SQ-02-status mapping (HS-3);
+   - E1 via X is unsupported (CA §2.2 and RELAY SQ-02).
+3. GUIDE-v0.2 in full. This is its first independent review.
+4. A no-over-claim sweep of all 17 Design files: no claim of implementation,
+   qualification, host delivery or adoption, a performed human act, or relay
+   delivery.
+5. The four hold-support values are the only values used anywhere.
+
+**Write scope:** `reviews/V4-<letter>.md` only. Use a private scratch folder.
+Read-only git; no network.
+
+**Verdict:** MERGE AS DRAFTS, or DO NOT MERGE with a list of BLOCKING items.
+
+- **V4-A:** DEL-04-01, 04-02, 04-03, 02-01 (plus EXAMPLES), 02-03, 05-01,
+  05-02.
+- **V4-B:** DEL-03-01, 03-02, 03-03, 03-04, 01-01, 09-06 (CA, RELAY), 09-09.

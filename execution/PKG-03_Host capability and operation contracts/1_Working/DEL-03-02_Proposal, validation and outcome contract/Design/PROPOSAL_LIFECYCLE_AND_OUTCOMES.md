@@ -176,7 +176,10 @@ evidence limit (V4-HI-71; V1-B D-17).
 constraint is supplied by the actor's side, so the host cannot tell an
 omitted constraint from none. Only *host-held* carriage supports the R2-12
 treatment (R5-2); with *model-supplied* or *absent* carriage an omission can
-only be recorded afterwards. On the embedded surface the host loop's own
+only be recorded afterwards. For hold support, a checkpoint whose held actions
+are host operations and whose constraint is only model-supplied is **not
+established** while SQ-02 is unanswered, and **not enforceable** only once
+SQ-02 is answered with no host-held route (R6-1, R6-5; EXEC HS-3). On the embedded surface the host loop's own
 evaluation is host-held; on the external surface R2-12 depends on the host
 holding the declaration itself (SWBPIPE SQ-02). Relay question (DEP-001, U-P10): does the host
 route receive the per-request constraint, or evaluate its own copy of the
@@ -328,7 +331,8 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
   **where hold support allows**. Hold support takes one of four values per
   checkpoint and surface (R5-1; DEL-02-03 EXEC §3.6): *enforced by the host
   loop*; *enforced on the host route* (host-held constraint, evidenced via
-  SQ-02); *not established*; *not enforceable*. App-only checkpoints and
+  SQ-02); *not established*; *not enforceable* — assigned by what the
+  checkpoint must hold, not by how it arrives (R6-1). App-only checkpoints and
   App-run holds are `UNRESOLVED{D6}` (R4-2) — never claimed as held.
 
 ### 4.5 Undo (R2-15)
@@ -609,6 +613,8 @@ v0.4 = P-v0.4 (committed; unchanged at `8fb51f07f`).
 | **R5-6** | §10 rules: person's own A1/A2 are R7 operations; reserved-act operations produce the human-act record referenced by R7 |
 | **R5-9** (V3-B m-2, Y-7) | §4.3 and §1 "confirms at W7" → confirmed by DEL-02-03; UNRESOLVED mixed-item row closed; C citations → C-v0.5; header states EXEC/ADAPTER/XT v0.2 not read |
 | R5-4 | Not applicable: P states no destination text |
+| R6-1, R6-5 (V4-B m-2 context; in place, no version bump; R6_RESOLUTIONS sha256 8703e85a…b841) | §3.3 authority limit: model-supplied-only carriage gives *not established* while SQ-02 is unanswered, *not enforceable* only after SQ-02 is answered with no host-held route; §4.4 hold-support values assigned by held actions |
+| R6-2, R6-4 | No P text affected; no stale markers found |
 
 ## Changes from v0.3
 
