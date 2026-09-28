@@ -1,0 +1,39 @@
+{
+  "recorded_at_utc": "2026-09-28T05:36:07.295633+00:00",
+  "frozen_entry_subject_files": 315,
+  "entry_drift": [],
+  "assembler_protected_input_count": 268,
+  "protected_input_drift": [],
+  "current_git_head": "36d8ce5aab5c69c5196363c489d3f4b6e1533fee",
+  "current_commit_subject_mismatch": [],
+  "package_unknown_classification_count": 32,
+  "classification_missing": [],
+  "additional_consulted_files": [
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md",
+      "sha256": "0aafefb12e9aa728592fb9e5b268ec4c9fba51d61401bb11bef8613e7f095032"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "cf4bd6c237f614ab34234f02694f7ef10b6cc0c77c2cc482d4a9ccb992ea2a55"
+    },
+    {
+      "path": "tools/coordination/audit_dag.py",
+      "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/INTEGRATION_REVIEW.md",
+      "sha256": "55c2741af55dccb06f2a8e47eb53580ba831257b852f818d05d3fa2b7a548b23"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md",
+      "sha256": "dd4a9151d985de9eac2056eb2386f13af98621084e762d30a3a0a6f57b12665a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+      "sha256": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9"
+    }
+  ],
+  "review_script_sha256": "9ebfc0197c799a7389e6a70190c8930334a003b9c4b89989e8291124d4014866",
+  "checks_json_sha256": "ae54aa4be81295fd80567ebeaf9107d5e16a88ace99a0946af1b981c374469cf"
+}
