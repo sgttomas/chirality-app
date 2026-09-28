@@ -46,7 +46,30 @@ sections.
 
 | Node | Type | Brief | Write fence | State |
 |---|---|---|---|---|
-| V1-A | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-A.md` | ACTIVE |
-| V1-B | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-B.md` | ACTIVE |
-| V1-C | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-C.md` | ACTIVE |
-| W11 | general-purpose TASK (npm + local codex in scratch, CODEX_HOME scratch) | BRIEFS W11 | DEL-01-01 `Design/PIN_SPIKE_0.158.0.md`, `Design/generated/0.158.0/` | ACTIVE |
+| V1-A | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-A.md` | RETURNED: 19 agree / 25 disagree (1 BLOCKING) |
+| V1-B | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-B.md` | RETURNED: 24 agree / 23 disagree (2 BLOCKING); ran one read-only `git rev-parse` outside brief (no effect) |
+| V1-C | general-purpose independent reviewer | BRIEFS V1 | `comparisons/V1-C.md` | RETURNED: 19 agree / 28 disagree (1 BLOCKING) |
+| W11 | general-purpose TASK (npm + local codex in scratch, CODEX_HOME scratch) | BRIEFS W11 | DEL-01-01 `Design/PIN_SPIKE_0.158.0.md`, `Design/generated/0.158.0/` | RETURNED. Fence held; the agent ran read-only `git rev-parse`/`status` outside the brief (no effect). The supplier itself fetched `openai/plugins.git` on each fresh CODEX_HOME start, and in one run its git children outlived it; none were running at parent check. The parent re-selected the committed form: TS trees moved to scratch (hashed in the manifest), JSON Schema bundles + manifest + `_spike/` committed. |
+
+## R1 repair (dispatched 2026-09-28)
+
+Integrator resolutions: [R1_RESOLUTIONS.md](R1_RESOLUTIONS.md). Repairs were
+sent by `SendMessage` to the **original Wave-1 authors**, resuming them with
+their v0.1 context. The same write fences apply. Independence comes from V1 and
+the planned IR1 review, not from the repairers.
+
+| Node | Agent (resumed) | Files | State |
+|---|---|---|---|
+| R1-W1 | W1 author | DEL-04-01 v0.2 | RETURNED v0.2; fence verified |
+| R1-W2 | W2 author | DEL-04-03, DEL-04-02 v0.2 | RETURNED v0.2; fence verified |
+| R1-W3 | W3 author | DEL-03-01, DEL-03-02 v0.2 | RETURNED v0.2; fence verified |
+| R1-W4 | W4 author | DEL-02-01 v0.2 | RETURNED v0.2; fence verified |
+| R1-W5 | W5 author | DEL-05-01, DEL-05-02 v0.2 | RETURNED v0.2; fence verified |
+| R1-W6 | W6 author | DEL-01-01 v0.2 (with spike findings S-F-01…18) | RETURNED v0.2; fence verified |
+
+R1 returns: every R1 resolution was applied without divergence. The repairers
+drew sibling v0.2 elements from R1_RESOLUTIONS and did not read the siblings'
+text. Their cross-file findings are collected in [R2_CANDIDATES.md](R2_CANDIDATES.md).
+The DEL-04-02/03 repairer's line-count wildcard included DEL-04-01's file
+(lines counted, contents not read). The parent corrected one stale row in
+PIN_SPIKE_0.158.0.md (DEL-01-01 F-17).

@@ -92,17 +92,17 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | W4 Portable workflow declaration v0.1 | DEL-02-01 `Design/` only | Accepted basis; Root workflow format as reuse source; C/act refs by name | Declared-part draft + examples; responsibility map rows | COMPLETE (v0.1) — `DEL-02-01/WD-v0.1` + examples |
 | W5 Loop and panel receiving needs v0.1 | DEL-05-01, DEL-05-02 `Design/` only | Accepted basis; C/P/record refs by name | Four-subject boundary; case matrices; interaction trace | COMPLETE (v0.1) — `DEL-05-01/LOOP-v0.1`, `DEL-05-02/PANEL-v0.1` |
 | W6 Codex hosting boundary (version-independent) v0.1 | DEL-01-01 `Design/` only | Accepted basis; no pin | Boundary invariants; request register; OI-008 proposal; fixture/upgrade method | COMPLETE (v0.1) — `DEL-01-01/HOSTING-BOUNDARY-v0.1`; OI-008 proposal O-1 |
-| V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | ACTIVE |
-| R1 Repair to v0.2 against V1 findings | Same Design folders | V1 | Findings dispositioned; affected comparisons rechecked | PLANNED |
+| V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | COMPLETE — [V1-A](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-A.md), [V1-B](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-B.md), [V1-C](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-C.md): 4 BLOCKING, 37 MAJOR, 35 MINOR; 24 register findings → C1/D0 |
+| R1 Repair to v0.2 against V1 findings | Same Design folders | V1; [R1_RESOLUTIONS](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md) | Findings dispositioned; affected comparisons rechecked at IR1 | COMPLETE (v0.2 × 9 files); cross-file items → [R2_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R2_CANDIDATES.md) |
 | P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
 | P2 PR-2: Wave-1 definitions v0.2 + comparisons | W1–W6, V1, R1 outputs | R1; independent review IR1 | PR merged under standing Git authority | PLANNED |
 | W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | W4, W1, W2, W3 v0.2 | Compatibility report, checkpoint hold, transfer trace | PLANNED |
 | W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | W3, W1 v0.2 | Enablement states; policy cases; transport-neutral fixtures | PLANNED |
 | W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | PLANNED |
 | W10 Host receiving matrix and checklist | DEL-03-04 `Design/` | W1–W9 | Every receiving-map row cites a contribution version or `UNRESOLVED` | PLANNED |
-| W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | ACTIVE |
+| W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | COMPLETE — `DEL-01-01/PIN-SPIKE-v0.1`; 18 findings into DEL-01-01 v0.2 |
 | V2 Receiver comparisons, Wave 2 | Run folder | W7–W10 | As V1 | PLANNED |
-| IR1/IR2 Independent review | Read-only | P2 / P3 candidates | Findings resolved or dispositioned | PLANNED |
+| IR1/IR2 Independent review | Read-only; `reviews/IR1-*.md` | P2 / P3 candidates | Findings resolved or dispositioned; R2 alignment pass | IR1 ACTIVE |
 | P3 PR-3: Wave-2 definitions | W7–W11, V2 | IR2 | PR merged | PLANNED |
 | D0 DAG currency recheck | Read-only | P3 | Manifests; any relationship change routed to project-dag | PLANNED |
 | C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | Affected DEL `_REFERENCES.md`/`_STATUS.md` as authorized; CASE-002 pointer | P3 | Commitment↔result both directions | PLANNED |
@@ -125,15 +125,18 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: V1 (three reviewers) and W11 running; then R1 repair to v0.2
-  applying D2/D3 and V1 findings; then IR1 and PR-2.
+- Next work: IR1 (fresh reviewers, v0.2↔v0.2 plus the R2 candidates);
+  then R2 rulings, alignment repair, PR-2; then Wave 2 (W7–W10).
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.
 - Graph maintainer: HELP_HUMAN, this session.
 - Open deferrals: SWBPIPE relay (DEP-001, OI-021) not delivered; local
-  `codex` CLI install (0.130.0) is broken (missing vendor binary) — relevant to
-  W11 only.
+  `codex` CLI install (0.130.0) is broken (missing vendor binary; the user's own
+  tool, not changed by this run). W11 observation for owner/DEL-01-05: a fresh
+  Codex 0.158.0 home fetches `openai/plugins.git` at app-server start with no
+  sign-in (S-F-10). Scratch install `<scratchpad>/codex-0.158.0` holds the TS
+  output; retain until IR1, then delete.
 - Current graph ref: branch above until PR-1 merges.
 
 | Completed work / node | What changed and was checked | Unresolved consequence |
