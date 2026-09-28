@@ -1034,12 +1034,13 @@ inside the named question.
 
 ## 4. Relay and return ledger (to be kept by the App manager)
 
-The ledger records facts only when evidence exists. Nothing below has
-occurred.
+The ledger records facts only when evidence exists, and names the source of
+each entry. The relay (2026-09-28) is recorded from the owner's statement.
+Nothing else below has occurred.
 
 | Field | Current value |
 |---|---|
-| Prepared | 2026-09-28 by W9 (Type 2 TASK): RELAY-v0.1 (initial, `b4030fe4b`); RELAY-v0.2 in sweep A1 under R4 and DECISION-2 (`9fc77baa3`); RELAY-v0.3 in the R5 pass (`d3cebd1cc`), then changed in place without a version bump by the EXEC-v0.3 alignment (`816c917f0`), the R6 micro-pass (`375c3970c`), an in-place text fix (`2f42fba02`), and in place by R7 (commit recorded in the run's WORK_GRAPH; bytes pinned by GUIDE-v0.2). The owner relays it after the undertaking's final review |
+| Prepared | 2026-09-28 by W9 (Type 2 TASK): RELAY-v0.1 (initial, `b4030fe4b`); RELAY-v0.2 in sweep A1 under R4 and DECISION-2 (`9fc77baa3`); RELAY-v0.3 in the R5 pass (`d3cebd1cc`), then changed in place without a version bump by the EXEC-v0.3 alignment (`816c917f0`), the R6 micro-pass (`375c3970c`), an in-place text fix (`2f42fba02`), and in place by R7 (`c6f81a4f2`, sha256 `a8cae06f…`). The owner's direction was to relay it after the undertaking's final review; the relay is recorded in the next row |
 | Relayed to the SWBPIPE session (by whom, when, what bytes) | 2026-09-28, by the owner, to the SWBPIPE session. Recorded from the owner's statement in the App v4 HELP_HUMAN chat. The bytes sent were not stated; the committed RELAY-v0.3 at the time was sha256 `a8cae06fd4b208087614e9c4cc7e2b91e36f3b98cd11e6f4093fd946d1177f2b` (`c6f81a4f2`, merged in #1043 `df6d59e3`) |
 | Acknowledged | The owner reports the SWBPIPE session's agent is working on answers (2026-09-28). Not observed directly |
 | Answers received (per SQ; source, revision, date, custody) | **none** |
@@ -1080,6 +1081,7 @@ v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a16
 | **R7-4 m-2** (V5 m-2) — in place | SQ-31 "App assumes meanwhile" and the §3 map row: the remaining LOOP label "HS-0" → **LH-0** (LOOP-v0.5 rename, R6-4). The two header/Depends citations of LOOP-v0.4 keep their "renamed LH-0 at LOOP-v0.5" note |
 | R7 ledger — in place | Byte states: `f815adbff0e694a4541432d297598968371544735a7be3756da857d7bdbc69e2` at `375c3970c` (R6); `4db4906da50becf33bb86f9714b8332751509950d39a6414262334df3bd049f3` at `2f42fba02`; the R7 byte state is pinned in GUIDE-v0.2's input table and its commit is recorded in the run's WORK_GRAPH. §4 "Prepared" row adds the R6 and `2f42fba02` commits and "in place by R7". Status unchanged: **PREPARED FOR HUMAN RELAY — not delivered** |
 | Relay recorded — in place | Header status and the §4 "Relayed" and "Acknowledged" rows are recorded from the owner's statement (2026-09-28). VC-R-04 now reads status against the ledger. No question, value or answer changes |
+| Relay recorded — V8 fixes (in place) | The §4 preamble names the owner's statement as the source of the relay entry (V8 B-2). The "Prepared" row cites the R7 commit and past tense (V8 m-1). No question or value changes |
 
 Question count: **32** (SQ-01…SQ-32), unchanged; nine sub-questions added. No SQ id renumbered or retired.
 
