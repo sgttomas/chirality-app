@@ -10,3 +10,5 @@ Parent: HELP_HUMAN.
 | I2 | Intake map RETURNED (INTAKE_MAP.md, against the recorder's copy `64ea4e59…`); fence verified |
 | Owner questions | D6, loop and residency asked. Answers recorded as DECISION-4; clarification in progress |
 | #1047 | SWBPIPE delivered the answers (`6f01add3…`) and fact sheet into DEL-09-06 `Design/`. The branch merged main (`1b2bc3d4d`, add/add conflict resolved to SWBPIPE's delivered version). RELAY ledger and GUIDE pin updated |
+| DECISION-4 clarified | Recorded (exact). R8 written |
+| A1 | EXEC (v0.4) then WD + EXAMPLES (v0.6): ACTIVE |

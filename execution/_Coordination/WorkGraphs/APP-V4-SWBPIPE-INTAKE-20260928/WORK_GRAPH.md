@@ -46,8 +46,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | I0 Graph, decision, briefs | This folder; run folder | DECISION-3 | Committed | COMPLETE |
 | I1 Receipt record | RELAY §4 ledger; GUIDE RELAY pin; answers copy | I0 | Ledger names source, revision, date, custody and hashes; no value change; GUIDE pins match | COMPLETE — RELAY `dfb62587…` re-pinned; handoff status updated |
 | I2 Intake map | Run folder `INTAKE_MAP.md` only (read-only on Design) | I1 | Every SQ answer → dependent file/section → effect class (value change / assumption contradicted / confirms / no effect); the 12 §3 items each mapped; proposed edits per file; rulings needed | COMPLETE (against `64ea4e59…`; delta check pending): 221 rows (V 86, A 71, C 27, N 37) |
-| I3 R8 intake rulings | Run folder `R8_RESOLUTIONS.md` | I2 | Each ruling-needed item decided or routed to the owner | BLOCKED — owner discussion (DECISION-4) |
-| I4 Apply | Affected Design files (parallel by file cluster) | I3 | Every R8 item applied; change rows; GUIDE re-pinned last | PLANNED |
+| I3 R8 intake rulings | Run folder `R8_RESOLUTIONS.md` | I2 | Each ruling-needed item decided or routed to the owner | COMPLETE — [R8](../../AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md) under DECISION-4 (phased checkpoints); V4-HOST-02 keep/drop pending owner |
+| I4 Apply | Affected Design files (parallel by file cluster) | I3 | Every R8 item applied; change rows; GUIDE re-pinned last | ACTIVE — A1 EXEC+WD first, then A2… |
 | V9 Independent review | `reviews/V9.md` | I4 | Verdict covering the actual candidate | PLANNED |
 | F Receipt, MEMORY, PR | Run folder; affected `MEMORY.md` | V9 | PR merged | PLANNED |
 
@@ -60,8 +60,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
   `RELAY_ANSWERS_SWBPIPE.md` sha256 `6f01add3…` and `FACTS_SQ01_SQ32.md`
   `733fb88a…`. These supersede the recorder's earlier copy (`64ea4e59…`). The
   RELAY ledger and GUIDE pin cite the delivered version.
-- **I2 basis delta:** INTAKE_MAP was built against the earlier copy. A delta
-  check against `6f01add3…` is needed before R8.
+- **I2 basis delta:** INTAKE_MAP was built against the earlier copy. Delta check done:
+  clarifications only; no answer or I2 class changed (R8 header).
 - **Held for owner discussion:** DECISION-4 (D6 direction; loop paradigm;
   residency). R8 is not written until they are clarified.
 - **#1046 merge note:** #1046 was merged while one check (App Runtime

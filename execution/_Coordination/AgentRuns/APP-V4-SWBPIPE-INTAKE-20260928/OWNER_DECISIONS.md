@@ -93,3 +93,57 @@ transcribed by the recorder. The questions were raised from
   clarified with the owner before R8 is written.
 - **The loop and residency questions are open for discussion.** No ruling is
   made yet.
+
+## DECISION-4 clarification (owner, exact, 2026-09-28)
+
+The recorder asked three things:
+
+- whether its reading of the D6 direction was right;
+- whether reserved acts stand, and whether the principle applies to a host's
+  embedded loop;
+- for the loop and residency questions, it gave an explanation and a
+  recommendation.
+
+The owner replied:
+
+> "1. Yes that's right.  Yes reserved acts should stand.  Yes the principle should also apply to a host's own embedded loop.  My objective is get the basic workflow and agent behaviours worked out before adding in governance layers in addition.  You may not need to do a full scope change if we consider this phased development approach, with an aim to eventually implement the more rigorous controls when it's called for.  Not all workflows should have such governance, but every workflow that needs such governance will have to be served by what we build.
+> 2. keep the App's loop and panel contracts (DEL-05-01 and DEL-05-02) as the v4 direction. Add a note for SWBPIPE that its embedded plan predates D-20 and should be updated to the v4 loop when UI-SUCCESSOR resumes.
+> 3. The cloud model should work using OAuth too, not just an API key.  There doesn't need to be a "default" there should just be options.  I don't know what you mean by "stray network destinations""
+
+## Effects, stated at the scope decided
+
+- **D4-1 Phased checkpoints.**
+  - **Phase 1 (now).** A workflow's declared checkpoints are plan guidance.
+    The person and the agent work out the plan, and the agents manage any
+    pause, hold point or gate themselves. Neither the App nor a host's
+    embedded loop enforces a hold, blocks a run, or reports a workflow
+    *unsupported* because a hold cannot be enforced.
+  - **In force now.** A human act is recorded as done only when the person
+    performs it (the second half of V4-WF-05).
+  - **Reserved acts stand.** DECISION-1 D2 (OI-001) is unchanged: the five
+    reserved acts stay the person's, and a host enforces its own list through
+    its operations (V4-HI-30).
+  - **Governance phase (later).** Enforced checkpoints are a later layer,
+    applied when a workflow needs them. Not every workflow will have them. The
+    Phase-1 design must keep a path to serve every workflow that needs them:
+    - declarations keep the checkpoint fields (required act, reached-when,
+      subject, held actions);
+    - the hold machinery and hold-support values are retained as the
+      governance-phase definition, not deleted.
+  - **Route.** The owner judged that a full scope change may not be needed
+    under this phasing. V4-WF-05's first half ("holds … the run waits") is
+    **phased to the governance layer**, not withdrawn. The recorder notes the
+    phasing in the affected Design files and flags it for the next
+    accepted-basis update.
+- **D4-2 Loop and panel.** DEL-05-01 and DEL-05-02 keep the v4 direction:
+  V4-ARC-10, the minimal Chirality loop, per D-20. A note for SWBPIPE records
+  two things: SWBPIPE's embedded plan (the "embedded Runtime" adoption, and
+  D-58) predates D-20, and it should be updated to the v4 loop when
+  UI-SUCCESSOR resumes. That note is SWBPIPE's to act on.
+- **D4-3 Model access.**
+  - A cloud model works through OAuth sign-in as well as an API key.
+  - There is no default between local and cloud, only options the person
+    chooses among. This revises V4-HOST-01's "local by default" and its
+    "API key" wording at the next accepted-basis update.
+  - The "no other destination" property (V4-HOST-02) is being clarified with
+    the owner.

@@ -74,3 +74,30 @@ Owner decision: [DECISION-3](OWNER_DECISIONS.md).
 
 **Return:** a summary, the counts by effect class, and the list of rulings
 needed with your recommendations.
+
+## A-wave — applying R8 (Type 2 repairers)
+
+**Basis:**
+- R8_RESOLUTIONS.md;
+- INTAKE_MAP.md (the I2 rows give exact locations and proposed edits; R8
+  overrides where it differs);
+- OWNER_DECISIONS.md (DECISION-3, DECISION-4);
+- SWBPIPE's delivered answers.
+
+**Rules:**
+- Bump versions per R8 "Application".
+- Add a "## Changes from ‹prev›" table keyed by R8 IDs, and use the I2 row IDs
+  as sources.
+- Recast hold-support passages as **governance phase (retained)**, with the
+  Phase-1 statement beside them. Never delete the governance definitions.
+- Keep the DRAFT status line. Claim no implementation, host join, adoption or
+  performed human act.
+- Read siblings with `git show <commit>:"<path>"` at the commit named in your
+  dispatch, or at the later commit your dispatch names for owner files
+  already revised.
+
+**Write scope:** the Design files named in your dispatch only. Use a private
+scratch folder. Read-only git; no commits; no network.
+
+**Return:** the files changed, the R8 rows, the post-edit sha256 of each file,
+and anything R8 did not settle.
