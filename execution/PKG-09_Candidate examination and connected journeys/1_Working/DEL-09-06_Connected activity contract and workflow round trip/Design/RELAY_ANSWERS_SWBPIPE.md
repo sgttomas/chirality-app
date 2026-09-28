@@ -1,14 +1,14 @@
 # SWBPIPE answers to the App v4 relay questions (RELAY-v0.3)
 
-- **Answers:** `RELAY_QUESTIONS_SWBPIPE.md` RELAY-v0.3, as committed on main at `c6f81a4f2` (sha256 `a8cae06fd4b208087614e9c4cc7e2b91e36f3b98cd11e6f4093fd946d1177f2b`), SQ-01…SQ-32. That file is in `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Design/`.
-- **Answering party:** the SWBPIPE (chirality-piping) ROOT session, a HELP_HUMAN agent working on the owner's Mac at the owner's request, 2026-09-28. The owner relays this file.
+- **Answers:** `RELAY_QUESTIONS_SWBPIPE.md` RELAY-v0.3, as committed on main at `c6f81a4f2` (sha256 `a8cae06fd4b208087614e9c4cc7e2b91e36f3b98cd11e6f4093fd946d1177f2b`), SQ-01…SQ-32. Main `d1cc97ce4` (#1046) later changed that file in place (sha256 `83466d67a44328c53b25b8a4b0b5d4b6b378ca1b6cde81d5e772abe1d998dd53`): the header status, the §4 ledger and change-log rows, and VC-R-04. No question text changed, so these answers apply to it unchanged. That file is in `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Design/`.
+- **Answering party:** the SWBPIPE (chirality-piping) ROOT session, a HELP_HUMAN agent working on the owner's Mac at the owner's request, 2026-09-28. At the owner's direction, this session placed this file and its fact sheet beside the questions (see §6).
   - **These are not the owner's personal answers, and no commitment is made on the owner's behalf.** Every item that is the owner's to decide is marked **OWNER DECISION** and left open.
   - In the terms of the App's return ledger (§4 of the questions), every entry here is an **answer** about the current state of SWBPIPE. None is a *commitment*, a *delivered contribution* or an owner's *stated intention*. Where a SWBPIPE record states a plan, it is cited as the record's plan.
-- **The ROOT session's own standing:** it runs SWBPIPE's T3 numerical-integrity work (solver correctness, result publication, and the both-entry and T9 gates). The agent-facing work these questions concern is outside T3 and is currently deferred by the owner (see A-2 below). Facts outside T3 come from a read-only research pass, which ROOT reviewed.
+- **The ROOT session's own standing:** it runs SWBPIPE's T3 numerical-integrity work (solver correctness, result publication, and T3's both-entry gate and T9 byte check, both defined under SQ-27). The agent-facing work these questions concern is outside T3 and is currently deferred by the owner (see A-2 below). Facts outside T3 come from a read-only research pass, which ROOT reviewed.
 - **SWBPIPE basis:**
-  - main `24dea2dae`. Main has since moved to `df6d59e3c`, but that delta touches only `projects/chirality-app-v4/`, so the piping tree is identical;
+  - main `24dea2dae`. Main has since moved to `d1cc97ce4`, the base of the delivery, but that delta touches only `projects/chirality-app-v4/`, so the piping tree is identical;
   - draft PR #885 (sgttomas/chirality), head `12907f393`: **open, unmerged, deferred**.
-- **Evidence:** every statement below rests on a file:line citation in the fact sheet `FACTS_SQ01_SQ32.md`, kept beside this file (sha256 in `SHA256SUMS`). Paths use `P/` = `projects/chirality-piping/`.
+- **Evidence:** every statement below rests on a file:line citation in the fact sheet `FACTS_SQ01_SQ32.md`, kept beside this file (sha256 `733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e`). The exception is T3's own facts (result receipts, integrity standing, T9 and the both-entry gate): ROOT states them from its own work and cites them inline. Paths use `P/` = `projects/chirality-piping/` and `T3/` = `P/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/CONTINUATION_2026-09-24/NUMERICAL_INTEGRITY_T3/`.
 
 **Standing labels used below.**
 
@@ -31,12 +31,13 @@
 - **A-2. The only external seam is draft PR #885, and it is deferred.**
   - It is a macOS-local JSON CLI, `swbpipe-control`: inspect, preview, submit, status. It has **no Apply**; Apply stays with the person in the app.
   - The owner's route direction of 2026-09-25 moved the live-control integration, human-witness and final steps into the deferred **UI-SUCCESSOR**. **UI-SUCCESSOR resumes when the owner directs** (`P/execution/_Coordination/WorkGraphs/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/WORK_GRAPH.md:46-60`, `:120-122`).
+  - **The owner's bounded live-controller activation of 2026-09-24 persists.** The deferral moves where the work completes; it is not abandonment (work graph `:12`, `:60`; `P/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/CONTINUATION_2026-09-24/OWNER_ROUTE_DIRECTION_2026-09-25.md:25`).
 - **A-3. Content identity and staleness are whole-model.**
   - The identity is a sha256 over the RFC 8785 canonical JSON of the whole model payload. There is no per-row or per-object identity.
   - Any model change stales **every** queued proposal, on main and in PR #885.
 - **A-4. SWBPIPE records name a different caller and a different embedded direction from the App's.**
   - The external caller named in SWBPIPE records is a **development Codex** controller, first. The App v4 and its Codex are not named.
-  - The embedded direction recorded is a later **"embedded Runtime" adoption** (work graph row RUNTIME-ADOPT, planned). The successor embedded mechanism is unresolved under SWBPIPE's D-58.
+  - The embedded direction recorded is a later **"embedded Runtime" adoption** (work graph row RUNTIME-ADOPT, PLANNED, contingent on a concrete need and authority). The successor embedded mechanism is unresolved under SWBPIPE's D-58.
   - **No SWBPIPE record acknowledged the App v4 handoff, OI-021 or these relay questions before this file.**
 - **A-5. Consequence for the App's priority groups:**
   - **P1 (SQ-01…03):** SWBPIPE has no capture-evidence reference, no host-held checkpoint route (**none planned**), and no subject content identities. The App's positive host-content checkpoint cases therefore have no host input to wait on at present.
@@ -102,7 +103,7 @@
   - **Reads:** the model read, and in DRAFT #885, `inspect`.
   - **Non-mutating checks:**
     - validate-only preview;
-    - the mechanics solve, whose published result carries **host-named integrity standing**: Passed, Sensitive, or refused with a named `NUMERICAL_INTEGRITY_*` diagnostic (T3's work);
+    - the mechanics solve, whose published result carries **host-named integrity standing**: `checks_passed`, `sensitive`, `unresolved` or `failed`, with named `NUMERICAL_INTEGRITY_*` diagnostics (T3's work; `P/schemas/results.schema.yaml:3601-3608`; `P/core/product_physics/src/lib.rs:1068-1092`, `:1265-1284`);
     - user rule checks (`USER_RULE_CHECKED` / `USER_RULE_FAILED`).
     - PR #885 exposes only the validate-only preview as a check.
 - **(b)** Host-named checks exist: rule checks and solve integrity standing. PR #885's first journey uses validation only.
@@ -112,7 +113,7 @@
   - PR #885 head `12907f393`, unmerged;
   - the development desktop started with `SWBPIPE_LIVE_CONTROL=1`;
   - the CLI built with the feature `live-control-cli`.
-  - **Readiness, in SWBPIPE's words:** implementation reviewed. A clean DEC-025 sweep, the native witnesses I1/I2, the actual-human witnesses H1/H2 and a final review are outstanding. It is deferred to UI-SUCCESSOR. There is no date.
+  - **Readiness, in SWBPIPE's words:** implementation reviewed. A clean DEC-025 sweep, the native witnesses I1/I2, the actual-human witnesses H1/H2 and a final review are outstanding. It is deferred to UI-SUCCESSOR, with the owner's activation still in force (A-2). There is no date.
 
 #### SQ-05 Policy for the selected operation (answered for Node `position.x`, and generally)
 
@@ -137,6 +138,7 @@
 
 #### SQ-06 Direct application on the external channel
 
+- **Same grant as the person's?** No: no grants or classes exist (SQ-05).
 - **Answer: not (a).** There is no class assignment. SWBPIPE records word the no-Apply rule both as **(b) a channel rule** ("no external Apply") and as **(c) a property of the first journey**, with later automatic apply "a separate bounded choice". Which label governs is an **OWNER DECISION**.
 - **Outcome of a direct external request (DRAFT #885):** Apply is not a method. The request is refused as **`unsupported_method`** ("Only inspect, preview, submit and status are supported"). It is **not** *not permitted* naming a rule.
 
@@ -162,7 +164,7 @@
   - **(c) No.** Associations live only in the running controller. A restart expires handles or yields `outcome_unknown`.
   - **(d)** Yes, within the session: `status` by ticket.
   - **(e)** The committed receipt binds one model transition (before and after revision and hash), with one undo checkpoint per batch. Duplicate-submission witnesses are required but **not yet performed**.
-- **Durable de-duplication across restart:** a current hold ("durable receipt carrier"), an **OWNER DECISION** per SWBPIPE's live-control contract draft.
+- **Durable de-duplication across restart:** a current hold ("any required durable receipt carrier") in SWBPIPE's live-control contract draft. The draft names no decider; this answer treats it as an **OWNER DECISION**.
 
 #### SQ-09 Outcome statements, errors and unknown outcomes
 
@@ -173,13 +175,17 @@
 | refused (invalid) | `blocked` with blocking diagnostics (main); #885 `invalid_request`, `unsupported_change` |
 | refused (stale) | `OP-STALE-BEFORE-VALUE`, `OP-CLAIMED-MODEL-HASH-MISMATCH` (main); #885 `stale_basis`, `expired` |
 | queued | #885 `queued`, only after the controller observes publication |
+| accepted | no separate state: the person's Apply is the acceptance (SQ-01) |
 | applied with receipt | `applied_to_session_model` (main); #885 `committed` |
 | rejected | no record on main. #885 `rejected: validation_rejected` means **the engine** rejected at the person's Apply, not a person's rejection |
 | withdrawn | #885 `withdrawn`: the person cleared the queue |
+| application error | none distinct: a failure at Apply is `blocked` (main) or `rejected: validation_rejected` (#885) |
 | channel not enabled | **no code.** The attempt appears as `controller_unavailable` or an attachment failure |
 | not exposed on this surface | `unsupported_change` / `unsupported_method` |
 | outcome unknown | #885 `outcome_unknown` |
 | unavailable / not permitted / error | #885 `busy`, `capacity`, `not_ready`, `unauthorized`, `wrong_app`, `wrong_workspace`, `internal_error`, and others; each carries `retryable` and `next_action` |
+
+- **Evaluated basis:** DRAFT #885's committed receipt carries the before and after model revision and hash (SQ-08 (e)), and `stale_basis` names a basis refusal. The fact sheet records no evaluated-basis field on the other outcomes.
 
 - **Transport status is separate from these outcomes.**
 - **(b)** Batches are atomic: all or nothing. There is no partial application.
@@ -210,7 +216,7 @@
 #### SQ-12 External seam and derivation
 
 - **Seam:** the CLI (DRAFT #885), not MCP.
-- **MCP:** SWBPIPE records allow an MCP adapter later **only if** the actual Codex client meets the owner's modern stateless MCP condition of 2026-07-28. The tested bundled client used a legacy handshake and failed it. Any MCP choice returns to the owner: **OWNER DECISION**.
+- **MCP:** SWBPIPE records allow an MCP adapter later **only if** the actual Codex client meets the owner's condition (2026-09-20) that it follow the stateless MCP revision 2026-07-28. The tested bundled client used a legacy handshake and failed it. Any MCP choice returns to the owner: **OWNER DECISION**.
 - **Derivation: hand-built and narrow.** The preview calls the same atomic engine as the UI, but the CLI's method set is fixed in code, not generated from or checked against a catalog.
 - **Mapping to catalog operation identity and version: No.** No per-operation identity or version exists; there is one engine crate version.
 
@@ -228,6 +234,7 @@
   - `author_type: agent`;
   - `source` {`source_ref: local_json_cli:<controller session>:<request id>`, `source_channel: local_json_cli`, `source_role: external_agent_proposal`};
   - the receipt's `origin` {actor type, channel, request id}.
+- **Can the App read the origin mark?** In DRAFT #885, yes: `status` returns the committed receipt with its `origin` (SQ-01). On main, no external read exists.
 - **Verified: none.** Records state the caller is "not verified Codex identity", and that MCP clientInfo "is not authentication".
 - **Main:** the batch envelope carries `source_identity_verification: "not_performed_asserted_metadata_only"`.
 - **Conversation and workflow run:** not recorded.
@@ -236,7 +243,7 @@
 
 #### SQ-15 Locality and sandbox
 
-- **Transport: strictly local** (DRAFT #885). A macOS Unix domain socket and descriptor in a randomly named private directory under the macOS system temporary directory (`private/tmp`) (directory 0700, entries 0600). There is no network listener.
+- **Transport: strictly local** (DRAFT #885). A macOS Unix domain socket and descriptor in a randomly named private directory under the system-wide tmp directory (under macOS's `private` root), not the per-user TMPDIR (directory 0700, entries 0600). There is no network listener.
 - **Sandbox:** not addressed in any SWBPIPE record.
   - By construction, the caller must read the descriptor file and connect to the socket in that directory. So a sandbox that forbids that path would block the CLI.
   - That is an inference from the design, **not observed**.
@@ -258,7 +265,7 @@
 - **SQ-17 Receiving App workflows.** **(a) No. (b) No.**
   - The SWBPIPE product has no workflow library, reader or declaration parser. In SWBPIPE product code, "workflow" means a user journey.
   - (c) Not applicable: there are no host runs. (d) Not decided.
-- **SQ-18 Adaptation and library identity.** (a) No host workflows exist. (b)–(d) No. (e) Not applicable: operation intents carry no operation version.
+- **SQ-18 Adaptation and library identity.** (a) No host workflows exist. (b)–(d) None exist, none is planned in any SWBPIPE record, and none is decided. (e) Not applicable: operation intents carry no operation version.
 - **SQ-19 Host run records and supplied guidance.**
   - (a)–(c) **No.** There is no host loop. SWBPIPE's "run records" are solver analysis run records.
   - (d) **The premise is not established.** SWBPIPE records do not define an agent "seat" or role meanings. The UX design has one agent panel with Conversation, Proposals, Checks and Accepted tabs (persistence is gap G-17). Not decided.
@@ -283,7 +290,7 @@
   - No findings storage on main.
   - DESIGN: agent cards (Check, Open issue, Evidence summary) held by reference, with open and resolved states, persisted with the project (gaps G-19, G-21).
   - Whether storing a finding is a change through the route: not decided.
-- **SQ-25 Acts on host content captured through the App.** **Host facility only.**
+- **SQ-25 Acts on host content captured through the App.** **Host facility only, per current records;** any App-side proxy would be an **OWNER DECISION**.
   - SWBPIPE records: the bridge assigns actor = agent, the human acceptance is recorded separately in the app, external tools cannot Apply, and computer-use clicks are not human acceptance.
   - There is no proxy.
 
@@ -297,15 +304,15 @@
   - **(a)** SWBPIPE identifies a contribution by commit SHA and PR merge commit, and records with it:
     - hosted CI run ids, with the full-SHA E2E dispatch;
     - the DEC-025 local sweep;
-    - T9 byte identity (Mac-only on the owner's Mac);
+    - T3's **T9** check: the committed outputs are regenerated and must show zero byte difference, run Mac-only on the owner's Mac (`T3/DESIGN_NUMERICS/S11G_GUARD.md:549`). This is T3's check, not the work graph's T9 tranche (coverage and validation assessment);
     - native witness records and executable hashes;
     - all of it in AgentRuns `_run_records` with SHA256SUMS.
   - **(b) Checks for the first-activity kind of work:** the operation contract corpus (81 invented cases) and PR #885's focused live-control tests.
     - Outstanding: the clean sweep, native I1/I2 and actual-human H1/H2.
-    - For any solve or check in an activity: T3's frozen references, the both-entry gate and T9.
+    - For any solve or check in an activity: T3's frozen references; the **both-entry gate**, which runs every case through the product's captured solve entry and its historical typed entry and requires that no case with a failed covered comparison is published as passed (`T3/DESIGN_NUMERICS/DESIGN.md:894-895`); and T9.
   - **(c)** No relay form is agreed. SWBPIPE evidence is files in the repository with hashes, relayed by the human.
   - **(d) Later:** the human witness step (LIVE-HUMAN) is blocked until live implementation and owner participation, and it is deferred.
-  - **(e) What SWBPIPE needs from the App side: nothing at present.** What moves these answers is the **owner's** direction (§2), not an App input.
+  - **(e) What SWBPIPE needs from the App side: no SWBPIPE record names an App-side input it needs.** What moves these answers is the **owner's** direction (§2), not an App input.
 
 ### P8
 
@@ -317,7 +324,7 @@
 - **SQ-30 Endpoint and key boundary.**
   - **(a)** No endpoint configuration and no key custody exist. `api_key` appears only as a key name to redact.
   - **(b)–(e)** Not decided.
-  - **Conflict for the App to note:** SWBPIPE's **DEC-051 open residency** allows an owner-configured provider, cloud included, with no app-side guard, gate or indicator ("for now"). SPEC §4.4 lists key management, secret storage and provider and egress configuration as TBD. That differs from the App's V4-HOST-02 local-only expectation. **Reconciling them is an OWNER DECISION.**
+  - **Conflict for the App to note:** SWBPIPE's **DEC-051 open residency** allows an owner-configured provider, cloud included, with no app-side guard, gate or indicator ("for now"). SPEC §4.4 lists key management, secret storage and provider and egress configuration as TBD. That differs from the App's V4-HOST-02 local-only expectation. SWBPIPE's own fence F-PIP-1 still reads "local-only operation — no cloud…", subject to owning rulings, so the tension is partly inside SWBPIPE's records too (`P/loop/WORKPLAN_2026-07-18b_piping_loop.md:161-164`). **Reconciling them is an OWNER DECISION.**
   - Endpoint-redirect refusal: not decided.
 - **SQ-31 Malformed calls and validation order.** There is no loop, so (a)–(d) are not decided for a loop.
   - **Engine-side analogues (FACT):**
@@ -328,6 +335,7 @@
 - **SQ-32 Responsiveness.**
   - Placement: not decided.
   - **FACT:** the solve already runs as a background job with poll and cancel.
+  - Cancelling a running stream: not applicable; there is no loop or stream. The solve's cancel is the only analogue.
   - Relaying observations: possible when a loop exists.
   - Numeric threshold: not decided. The owner decides R-OPEN-1.
 
@@ -337,10 +345,10 @@
 
 | Decision | SWBPIPE record | Moves |
 |---|---|---|
-| Whether and when UI-SUCCESSOR, including live control, resumes; and whether the App v4 (its Codex) becomes a named caller of that channel | work graph `:60` (resumes on the owner's direction) | SQ-04, SQ-12…16, SQ-27, SQ-28 |
+| When UI-SUCCESSOR, including live control, resumes (the activation persists); and whether the App v4 (its Codex) becomes a named caller of that channel | work graph `:12`, `:60` (activation persists; resumes on the owner's direction) | SQ-04, SQ-12…16, SQ-27, SQ-28 |
 | Agent autonomy level: classes, grants, direct or automatic apply | OI-016, "human product decision" | SQ-05, SQ-06 |
 | A durable receipt carrier and durable de-duplication | the live-control contract draft, "current holds" | SQ-01, SQ-08, SQ-09 |
-| Acceptance-record storage, and the actor identity model | `PB-TBD-002`; DEL-16-03 TBD | SQ-01, SQ-03 |
+| Acceptance-record storage, and the actor identity model | `PB-TBD-002` (owned by future persistence, report and governance deliverables); DEL-16-03 TBD (no owner named) | SQ-01, SQ-03 |
 | The Checked-mark implementation tranche | DEC-104 (D-71 addendum) | SQ-01, SQ-03, SQ-05 |
 | Any MCP adapter (the modern-client condition) | the owner's 2026-09-20 CLI and protocol disposition | SQ-12 |
 | The successor embedded-agent mechanism | D-58 / DEC-091 | SQ-19, SQ-20, SQ-29…32 |
@@ -356,7 +364,7 @@
 4. **"Opt-in"** is an environment variable plus a build feature. It is not a person's act, it has no "channel not enabled" code, and its state is not readable (SQ-13, SQ-28).
 5. **The queue-time basis** is true of main's offline intake. PR #885 freezes the inspected basis, but it is unmerged (SQ-07 (c)).
 6. **The caller:** SWBPIPE records name a development Codex, not the App's Codex.
-7. **The embedded direction:** SWBPIPE plans a later "embedded Runtime" adoption, with its successor unresolved. The App HANDOFF's "minimal host loop" does not appear in SWBPIPE records (SQ-20, SQ-29).
+7. **The embedded direction:** SWBPIPE's work graph records a later "embedded Runtime" adoption as PLANNED, contingent on a concrete need and authority (RUNTIME-ADOPT). D-58 currently keeps Piping outside the Root-runtime and App-harness client sets, with no successor adopted. The App HANDOFF's "minimal host loop" does not appear in SWBPIPE records (SQ-20, SQ-29).
 8. **Local-only:** SWBPIPE's DEC-051 allows cloud providers with no guard ("for now") (SQ-30).
 9. **"Single agent seat"** is not a SWBPIPE concept (SQ-19 (d)).
 10. **`withdrawn`** in PR #885 is the person clearing the queue, not the proposer withdrawing (SQ-05 (g), SQ-09).
@@ -375,8 +383,11 @@ When any of these happens, SWBPIPE records it in its own work graph and decision
 
 - **Research method:** read-only, over product source and schemas at main, SWBPIPE decision and design records, and PR #885's head files. Nothing was run to produce these answers, and no candidate was built.
 - **Standing of draft facts:** "DRAFT #885" facts describe unmerged code, which may change before any merge.
-- **No App file was changed.** This file is kept in SWBPIPE's records. The owner places a copy beside the questions in the App project, which records returns in its own ledger.
+- **No existing App file was changed.** This file and the fact sheet were added as two new files beside the questions (§6). The App project records returns in its own ledger.
 
-## 6. SWBPIPE-side record
+## 6. Delivery and SWBPIPE-side record
 
-This file and the fact sheet are kept on the SWBPIPE records branch `codex/piping-numerical-integrity-20260926`, under `projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/CONTINUATION_2026-09-24/APP_V4_RELAY_2026-09-28/`, with SHA256SUMS. It is the first SWBPIPE record of the App v4 relay.
+- **Delivered:** 2026-09-28, at the owner's direction, as two new files in this `Design/` folder beside `RELAY_QUESTIONS_SWBPIPE.md`: this file and the fact sheet `FACTS_SQ01_SQ32.md`. The main commit that adds them is the delivery's revision (`git log -- RELAY_ANSWERS_SWBPIPE.md`).
+- **Fact sheet:** delivered as the researcher prepared it, except line 366 (SQ-15's socket location). ROOT reworded that line twice after preparation: to remove an absolute path, for the repository's GEN-8 check (records commit `7092582d8`), and then to name the directory unambiguously (review RV15, N-7). Its opening line says nothing in it was relayed to the App; that describes it when it was prepared.
+- **Review:** an independent reviewer (RV15) checked this delivery before merge; its should-fix findings are applied here.
+- **SWBPIPE-side record:** identical copies of both files are kept in SWBPIPE's records under `projects/chirality-piping/execution/_Coordination/AgentRuns/HELP-HUMAN-PIPING-20260918-UI-IMPLEMENTATION/instances/CONTINUATION_2026-09-24/APP_V4_RELAY_2026-09-28/`, with SHA256SUMS, on the SWBPIPE records branch `codex/piping-numerical-integrity-20260926`. They reach main with SWBPIPE's next records PR. This is the first SWBPIPE record of the App v4 relay.
