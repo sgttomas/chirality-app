@@ -25,6 +25,7 @@ The v0.3 → v0.4 change table is preserved in RS-v0.4 at commit `cc58211c5`.
 | R6-3 (in place; V4-A m-4) | L-12, OE-8 and R11: the run **stops** only under *enforced by the host loop*; under *enforced on the host route* the host refuses the held host operations and every other run action is *action during hold*; under *not established* / *not enforceable* nothing is stopped and actions are *action during hold* |
 | R6-5 (in place; V4-A m-13; EXEC F-24) | R11 *action during hold* carries the **turn initiator**: person-directed · agent · App rule |
 | R6-4 / V4-A m-1 (in place) | Stale markers removed: V-GR1 is cited from C-v0.5 (run 13; GR-1…GR-3, GR-P/GR-R/GR-S) instead of "per R5-7; C adds it"; header cites C-v0.5 and EXEC-v0.3. R6-2: V-GR1's `CP-grant` via X is *not established* (HS-3, SQ-02 unanswered) |
+| R7-4 m-3 (in place; V5 m-3) | E7 (V-GR1 via X) adds "; E1d's `CP-check` is *not enforceable*, so the run via X is *unsupported* (EXEC MT-16)". Run 13 inherits E1c's `CP-check` (HS-5), so the workflow result via X is *unsupported* whatever SQ-02 returns. No value changes (V5 §3) |
 
 ## 0. Reading this definition
 
@@ -465,7 +466,9 @@ GR-P *pending* → waiting "A12 awaiting control confirmation", then *unknown* w
 "A12 refused by control: ‹reason›", ⟨act:5⟩ supersedes nothing and **⟨set-1⟩** stays in force; GR-S a later
 **established** A12 narrowing the scope → ⟨act:5⟩ *superseded*, arrival stays
 *performed* with the supersession shown. From the App via X, `CP-grant` hold
-support is **not established** (HS-3 on OP-C9, SQ-02 unanswered; R6-2). An A12
+support is **not established** (HS-3 on OP-C9, SQ-02 unanswered; R6-2); E1d's
+`CP-check` is *not enforceable*, so the run via X is *unsupported* (EXEC
+MT-16). An A12
 captured before the arrival would be "prior act not counted" (L-13).
 
 **E8 — Stale after acceptance (V-S1).** After T11, S-2 edited before T12

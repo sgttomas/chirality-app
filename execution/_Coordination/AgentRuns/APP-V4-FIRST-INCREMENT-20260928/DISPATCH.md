@@ -154,3 +154,14 @@ Scratchpad note: W10 found a shared scratchpad folder overwritten by a concurren
 | C1-A / C1-B / C1-C | Bounded closeout comparisons, proposing edits only: ACTIVE |
 
 Agents after W10 used private scratch folders.
+
+## V5 and R7 (2026-09-28)
+
+| Node | Result |
+|---|---|
+| V4-A / V4-B | MERGE AS DRAFTS: 0 BLOCKING, 5 MAJOR, 23 MINOR. R6 applied: `375c3970c`, `2f42fba02` |
+| C1-A / C1-B / C1-C | RETURNED; proposals only. Combined in `closeout/CLOSEOUT_ACCOUNT.md` |
+| V5 | Bounded check of R6 at `2f42fba02`: MERGE AS DRAFTS, 0 BLOCKING, 3 MAJOR, 8 MINOR ([V5](reviews/V5.md)) |
+| R7 repair | One Type 2 applied [R7](R7_RESOLUTIONS.md) in place to 12 Design files (HOSTING, P, LOOP, PANEL and SPIKE untouched), with GUIDE re-pinned last. RETURNED; fence verified |
+| R7 integrator close | Confirmed the repairer's reading of R7-3: an A5 checkpoint's derived held actions (the governed operations) take precedence over the kind (b)/(c) default, as in EXEC §3.6. Qualified PANEL §3.2 (model-supplied, R6-5) and ACT FX-39 (re-hold, R6-3), replaced RELAY's "uncommitted at repair" placeholders, and re-pinned GUIDE for PANEL, ACT and RELAY. All 16 GUIDE pins match the working tree; both DAG-001 manifests pass |
+| V6 | Bounded check of R7 at the Wave-2 candidate: PLANNED |

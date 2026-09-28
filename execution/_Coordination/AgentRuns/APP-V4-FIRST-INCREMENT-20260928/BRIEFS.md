@@ -538,3 +538,40 @@ Read-only git; no network.
 git; no network.
 
 **Verdict:** MERGE AS DRAFTS, or DO NOT MERGE with a list of BLOCKING items.
+
+## R7 — in-place repair of the V5 residuals (one Type 2)
+
+**Basis:** candidate `2f42fba02`, [V5](reviews/V5.md) and
+[R7_RESOLUTIONS.md](R7_RESOLUTIONS.md). R1–R6 stand.
+
+**Task:** apply R7-1 through R7-4 and the carried observation in place, with
+no version bump. Record each change under an R7 ID in the file's latest
+"Changes from …" table (in the change table, not inside a verification-case
+table). Read siblings with `git show 2f42fba02:"<path>"` or from the working
+tree, and do GUIDE's re-pin (m-1) last, from the post-edit working-tree bytes.
+
+**Write scope:** the 16 Design files other than PIN_SPIKE. Use a private
+scratch folder. Read-only git only; no commits and no network.
+
+**Return:**
+
+- the files changed;
+- the R7 rows added;
+- the post-edit sha256 of each file;
+- anything R7 did not settle.
+
+## V6 — bounded independent check of R7
+
+**Candidate:** the commit named in the dispatch message.
+
+**Scope:**
+
+- Check each R7 item against its files: holds / fails.
+- Recompute E1, E1c, E1d and V-GR1 on E and on X, plus the L-WDEX-17-absent
+  row, and confirm that every file agrees.
+- Confirm RELAY is ready for the owner to relay.
+- Confirm GUIDE's pins match the candidate's bytes.
+
+**Write scope:** `reviews/V6.md` only. Read-only git; no network.
+
+**Verdict:** MERGE AS DRAFTS, or DO NOT MERGE with the BLOCKING items listed.

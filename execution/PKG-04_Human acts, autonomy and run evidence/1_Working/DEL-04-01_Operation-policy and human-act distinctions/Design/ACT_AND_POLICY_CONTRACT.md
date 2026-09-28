@@ -93,6 +93,10 @@ question. It is never a permission, a default or a pass.
 | R6-1 (V4-A MAJOR-1/2; in place, no version bump) | §4.6 classifies hold support by **held actions**: HS-2 host loop; HS-3 host operations only, valued by SQ-02 status; HS-5 any App-side held action, *not enforceable* in App runs; HS-1 invalid, no value. E1 `CP-check` → *not enforceable*. `CP-L4` holds host operations only, so it is HS-3 (*not established* over X; *enforced by the host loop* on E). FX-48 gains (c) and (d). |
 | R6-3 (V4-A minor; in place) | §4.6 gains a table of what "held" means per value, and the action-during-hold bullet is aligned: under any value other than *enforced by the host loop*, App-side actions continue and are recorded. |
 | R6-4 (V4-A m-1, m-9; in place) | FX-44 cites WD VC-41 and EXEC CH-29 (EXEC has no VC-41). The "not yet in C" and "C will add" markers for V-GR1 are removed (present in C-v0.5 §10.4). The §8.1 policy revision identity now reads ACT-POLICY-v0.5. |
+| R7-4 m-4 (V5 m-4; in place) | §4.3 lapse bullet "after resume, run live": "the run stops at its next action boundary" is qualified per R6-3. The run stops only where the value is *enforced by the host loop*; under *enforced on the host route* the held host operations are refused; otherwise nothing is stopped and the action is recorded as *action during hold* (§4.6). |
+| R7-4 m-5 (V5 m-5; in place) | §4.6 value table: "a constraint carried only as model-supplied" → *not enforceable* is qualified "once SQ-02 is answered with no host-held route (HS-3; before that answer, *not established*)". |
+| R7 carried observation (V5 §6; in place) | §4.6 `CP-L4` bullet adds a one-line cross-reference to its DEL-04-02 counterpart AS F6d (and notes that AS F6c, holding App agent turns, is HS-5). No value changes. |
+| R7-4 m-4 (V5 m-4 class; integrator, in place) | FX-39 re-hold wording is qualified per R6-3 in the same way as §4.3. No value changes. |
 
 ## Changes from v0.3
 
@@ -513,8 +517,13 @@ The vocabulary is shared: **waiting · performed · resolved negatively · lapse
     as "waiting — lapsed at ‹t›", for a new act on current content.
   - **After resume, run live:** the **same arrival** is re-held, shown as
     "waiting — re-held, lapsed at ‹t› after resume".
-    - The run stops at its **next action boundary**. Actions in flight
-      complete and are observed. Nothing done is recalled or undone.
+    - What the re-hold stops depends on the hold-support value (R6-3;
+      §4.6). Under *enforced by the host loop* the run stops at its **next
+      action boundary**; under *enforced on the host route* the host refuses
+      the held host operations and any other action is recorded as *action
+      during hold*; under *not established* or *not enforceable* nothing is
+      stopped and actions are recorded as *action during hold*. Actions in
+      flight complete and are observed. Nothing done is recalled or undone.
     - Actions taken between the resume point and the lapse stay recorded.
       Outputs whose promised standing names this checkpoint as gating show
       standing **lapsed** for the affected referents.
@@ -625,7 +634,7 @@ operation's treatment in that run is **propose**, whatever the grant.
   | **enforced by the host loop** | Embedded route: the host loop holds the run (LOOP §2.4.4) | Passes. Holds are subject to host evidence (DEP-001). |
   | **enforced on the host route** | The host holds or refuses the operation through a **host-held** constraint (§4.4), evidenced by the host's answer to SQ-02 and a candidate | Passes |
   | **not established** | Depends on a host answer not yet given (SQ-02), or on unagreed exposure | *not established*. Never a pass, and never "unsupported". |
-  | **not enforceable** | No mechanism exists on this surface in this increment. Examples: App-only steps with no host operation (R4-2 / D6); a constraint carried only as model-supplied. | *unsupported*, reason "checkpoint hold not enforceable on this surface" (R4-8) |
+  | **not enforceable** | No mechanism exists on this surface in this increment. Examples: App-only steps with no host operation (R4-2 / D6); a constraint carried only as model-supplied, once SQ-02 is answered with no host-held route (HS-3; before that answer, *not established*). | *unsupported*, reason "checkpoint hold not enforceable on this surface" (R4-8) |
 
   The EXEC-v0.1 values "enforced before dispatch" and "held after
   observation", and the interim value "host-enforced for host operations",
@@ -666,6 +675,9 @@ operation's treatment in that run is **propose**, whatever the grant.
     - host loop: *enforced by the host loop*.
     - A variant that also holds an App-side return step is *not enforceable*
       in App runs (FX-48(d)).
+    - Counterpart in DEL-04-02: AS F6d (the L-AS-4 A4 on S-4, declared to
+      hold only host operations → HS-3); AS F6c, which holds App agent
+      turns, is HS-5.
   - Advice to workflow authors (WR-11): keep a checkpoint's held actions on
     host operations if the checkpoint must be enforceable from the App.
 - This contract, and every consumer that cites it, **never states or implies an
@@ -1231,7 +1243,7 @@ Rules for reading the table:
 | FX-36 | Checkpoint evidence | The agent writes an A4 record for CP-L4 without citing host capture evidence. | Not a satisfaction. The run does not resume. | VER-002, -004 |
 | FX-37 | Narrowing | PR-2 is queued (T10). After T15, a direct OP-C9 request on S-4 is in validation. Engineer A narrows ⟨set-2⟩ to *propose* (an A12 that is established). | PR-2 is unaffected. The OP-C9 request is re-resolved at application → *not permitted*, never converted. | VER-001, -006 |
 | FX-38 | Widening | PR-2 is queued. Engineer A widens P-03 to *direct* (T15). | PR-2 stays a proposal. | VER-006 |
-| FX-39 | Undo (C T16a/T17) | CP-L4 is performed by T16a's A4 on S-4, and the run resumes. At T17, OP-C10 RC-3 reverses RC-2 and S-4 changes. | An act-lapsed event is recorded. CP-L4 is **re-held**: "waiting — re-held, lapsed at T17 after resume" (R4-3). The run stops at its next action; nothing is undone. The act record is not erased. A5/A10 on a reversed item would stay bound. | VER-002 |
+| FX-39 | Undo (C T16a/T17) | CP-L4 is performed by T16a's A4 on S-4, and the run resumes. At T17, OP-C10 RC-3 reverses RC-2 and S-4 changes. | An act-lapsed event is recorded. CP-L4 is **re-held**: "waiting — re-held, lapsed at T17 after resume" (R4-3). What the re-hold stops depends on the surface's value (§4.6, R6-3): the run stops at its next action only where it is *enforced by the host loop*. Nothing is undone. The act record is not erased. A5/A10 on a reversed item would stay bound. | VER-002 |
 | FX-40 | Run ended | CP-L4 is waiting (T16a not yet done). Engineer A stops run 12, then performs T16a's A4. The person starts a new run, "continues run 12". | Run 12's CP-L4 stays *waiting* with a run-ended event. The later A4 is shown "after run end" and changes nothing. The new run inherits nothing, and its arrivals show T16a as "prior act on this subject, not counted" (R4-4). | VER-002 |
 | FX-41 | Supersession (C V-GR1) | `CP-grant` is performed by T15's A12, captured after the r15 arrival and established as ⟨set-2⟩. Later: (a) an established A12 narrows P-03's scope; (b) an A12 that the control refuses. | (a) The first A12 shows *superseded by ⟨act⟩*, not lapsed; `CP-grant` stays *performed*. (b) No supersession; ⟨set-2⟩ stays in force (R4-6). | VER-001, -002 |
 | FX-42 | A13 disable | The agent attempts to disable external access; separately, the agent requests it. | The attempt is *not permitted* (INTEGRATION, R2-3). The request is an A8, offered. | VER-004 |

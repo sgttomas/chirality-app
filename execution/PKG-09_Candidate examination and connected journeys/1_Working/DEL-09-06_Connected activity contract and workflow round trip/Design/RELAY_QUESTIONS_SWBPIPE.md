@@ -136,11 +136,16 @@ the answer form requested.
   proposal? (d) For checkpoints of the kind "before dispatch of a named
   operation", will the host hold such a call itself, on the embedded and on
   the external surface? (e) What evidence would show which of these applies?
+  (f) When a checkpoint arrives on an observed output or host outcome, will
+  your route refuse that run's further host operations until the act, on
+  each surface? (The evidence asked in (e) covers this case too.)
 - **Depends.** R2-12; P-v0.4 §3.3, U-P10; WD-v0.4 I-7, U-19, VC-11; C-v0.4
   V-CP1; LOOP-v0.4 §13 Q-1, FX-C9; PANEL-v0.4 §8 Q-1, PC-24; ACT-v0.4 §4.4,
   U-04(c), U-04(f), §4.6; R5-1, R5-2, R5-10; EXEC-v0.2 §2 HP-H, §3.6 hold support, MT-2, CH-27,
   U-E1, U-E13, F-17, F-18; ADAPTER-v0.2 §5.3 GC-1…GC-5, OC-7, OC-11, XF-25,
-  XF-26, XF-42; R4-2, R4-8, R4-14; DECISION-2 D6;
+  XF-26, XF-42; R4-2, R4-8, R4-14; DECISION-2 D6; for question (f), the
+  host operations held after arrival until the act (R6-1; R7-2): ACT-v0.5
+  `CP-L4` (L-ACT-4, §4.6), AS-v0.5 F6d, ADAPTER-v0.3 GC-5;
   `CONNECTED_ACTIVITY_CONTRACT.md` W14-04; DEL-09-09
   `EXTERNAL_TRACE_CASES.md` XC-10.
 - **Why it matters.** An omitted constraint is indistinguishable from none
@@ -152,7 +157,10 @@ the answer form requested.
   answer** (DECISION-2). The answer decides holds **only for checkpoints
   whose every held action is a host operation** — what matters is what the
   checkpoint must hold, not how it arrives (R6-1; EXEC HP-H: host operations
-  only). A checkpoint that must hold **any App-side action** — an App agent
+  only). Such checkpoints include one reached on an observed output or host
+  outcome that holds only the run's further host operations until the act
+  (question (f); ACT `CP-L4`, AS F6d). A checkpoint that must hold **any
+  App-side action** — an App agent
   turn such as a Return or summary step, an App tool, an App file write, or
   App content such as an A4 on an App file — stays **not enforceable**, and
   its workflow *unsupported* on the App surface, **whatever SWBPIPE answers**;
@@ -190,14 +198,24 @@ the answer form requested.
   only) is *not established* now and *not enforceable* if you answer with no
   host-held route; XF-42 records action during hold. Host-loop runs on the embedded surface are unaffected in
   meaning (the host loop holds); their evidence is DEP-001.
-- **Answer form.** Choose one or more of (a) per-request receipt, (b)
-  host-held declaration, (c) host-held run association, (d) none planned; a
-  yes/no for (c) *not permitted* naming the constraint; a yes/no for host
-  holds before dispatch per surface; for (a), whether you verify a received
-  constraint against your own declaration copy; and the evidence you would
-  supply. If
-  none of (a)–(c) is planned for the first increment, please say so plainly:
-  the App will then report checkpoints on host operations as not
+- **Answer form.** Options (i)–(iv) are answer options; letters (a)–(f)
+  refer to the questions above.
+  - **Route:** choose one or more of option (i) per-request receipt
+    (question (a)); option (ii) host-held declaration (question (b));
+    option (iii) host-held run association (question (b)); option (iv) none
+    planned.
+  - **Question (a):** if you chose option (i), whether you verify a received
+    constraint against your own declaration copy (yes/no).
+  - **Question (c):** *not permitted* naming the constraint (yes/no).
+  - **Question (d):** host holds before dispatch of a named operation —
+    yes/no on the embedded surface; yes/no on the external surface.
+  - **Question (f):** refusal of the run's further host operations after an
+    arrival until the act — yes/no on the embedded surface; yes/no on the
+    external surface.
+  - **Question (e):** the evidence you would supply.
+
+  If none of options (i)–(iii) is planned for the first increment, please say
+  so plainly: the App will then report checkpoints on host operations as not
   enforceable on its surface rather than claim a hold.
 
 #### SQ-03 Content identities used to bind acts
@@ -879,7 +897,8 @@ the App asks for the facts it must receive, not for a design.
   candidate; before hold-support claims for host loops.
 - **App assumes meanwhile.** Settled: parse, "not offered" and schema
   failures are never dispatched; no empty-argument execution. Proposed:
-  valid siblings run; undispatched siblings are held at a checkpoint (HS-0).
+  valid siblings run; undispatched siblings are held at a checkpoint (LOOP
+  LH-0).
 - **Answer form.** Yes/no/planned for (a)–(d), with any difference in words.
 
 #### SQ-32 Responsiveness of the host interface during loop work
@@ -967,7 +986,7 @@ inside the named question.
 | | Per-turn supplied guidance | SQ-19 |
 | LOOP-v0.4 (addendum, GUIDE G-3) | DEP-05-01-024 model interface and fixture basis | SQ-29 |
 | | §5 endpoint/key boundary; N-OPEN-1, N-OPEN-2, N-OPEN-3; local default; no cloud fallback | SQ-30 |
-| | §6 validation order; §7 MC-1…MC-9; T-OPEN-1; HS-0 held-not-run | SQ-31 |
+| | §6 validation order; §7 MC-1…MC-9; T-OPEN-1; LH-0 held-not-run (label renamed at LOOP-v0.5, R6-4) | SQ-31 |
 | | §8 responsiveness; R-OPEN-1 | SQ-32 |
 | GUIDE-v0.1 | G-3 / CC-5 (row 7 host evidence without an SQ) | SQ-29…SQ-32 |
 | | G-4 (CA/RELAY/XT describe D5/D6 as pending) | SQ-02, SQ-16 rewritten (and CA-v0.3, XT-v0.3) |
@@ -1020,7 +1039,7 @@ occurred.
 
 | Field | Current value |
 |---|---|
-| Prepared | 2026-09-28 by W9 (Type 2 TASK): RELAY-v0.1 (initial, `b4030fe4b`); RELAY-v0.2 in sweep A1 under R4 and DECISION-2 (`9fc77baa3`); RELAY-v0.3 in the R5 pass (`d3cebd1cc`), then changed in place without a version bump by the EXEC-v0.3 alignment (`816c917f0`) and the R6 micro-pass. The owner relays it after the undertaking's final review |
+| Prepared | 2026-09-28 by W9 (Type 2 TASK): RELAY-v0.1 (initial, `b4030fe4b`); RELAY-v0.2 in sweep A1 under R4 and DECISION-2 (`9fc77baa3`); RELAY-v0.3 in the R5 pass (`d3cebd1cc`), then changed in place without a version bump by the EXEC-v0.3 alignment (`816c917f0`), the R6 micro-pass (`375c3970c`), an in-place text fix (`2f42fba02`), and in place by R7 (commit recorded in the run's WORK_GRAPH; bytes pinned by GUIDE-v0.2). The owner relays it after the undertaking's final review |
 | Relayed to the SWBPIPE session (by whom, when, what bytes) | **not observed** |
 | Acknowledged | **not observed** |
 | Answers received (per SQ; source, revision, date, custody) | **none** |
@@ -1057,6 +1076,9 @@ v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a16
 | **R5-1, R5-2** | SQ-02 assumption uses the four ruled hold-support values; `CP-accept` on X is *not established* until answered; model-supplied-only is *not enforceable*; a host loop's own evaluation is host-held; question (a) asks whether a received constraint is verified against the host's own declaration copy (a merely received constraint keeps its source's assurance) |
 | **R5-9** | Body citations re-pointed to the current sibling versions (P, WD, RS, AS, LOOP, PANEL, HOSTING at v0.4; CA/XT at v0.3); header lists every sibling at `8fb51f07f` with sha256 |
 | V3-B m-7 | v0.1→v0.2 change table: the "SQ count 28" row now says 28 before the G-3 addendum and 32 after |
+| **R7-2** (V5 MAJOR-2, m-7) — in place | SQ-02 gains question **(f)**: "When a checkpoint arrives on an observed output or host outcome, will your route refuse that run's further host operations until the act, on each surface?" This asks about the HS-3 case R6-1 added (host operations held after arrival until the act). "Depends" adds ACT `CP-L4`, AS F6d and ADAPTER GC-5 for (f); "Why it matters" names the case. The answer form is rewritten with route options **(i)–(iv)**, so its labels cannot be confused with the question letters (a)–(f), and gives (d) and (f) each a per-surface yes/no slot. No value changes: such checkpoints stay *not established* until SQ-02 is answered. Question count unchanged: 32 |
+| **R7-4 m-2** (V5 m-2) — in place | SQ-31 "App assumes meanwhile" and the §3 map row: the remaining LOOP label "HS-0" → **LH-0** (LOOP-v0.5 rename, R6-4). The two header/Depends citations of LOOP-v0.4 keep their "renamed LH-0 at LOOP-v0.5" note |
+| R7 ledger — in place | Byte states: `f815adbff0e694a4541432d297598968371544735a7be3756da857d7bdbc69e2` at `375c3970c` (R6); `4db4906da50becf33bb86f9714b8332751509950d39a6414262334df3bd049f3` at `2f42fba02`; the R7 byte state is pinned in GUIDE-v0.2's input table and its commit is recorded in the run's WORK_GRAPH. §4 "Prepared" row adds the R6 and `2f42fba02` commits and "in place by R7". Status unchanged: **PREPARED FOR HUMAN RELAY — not delivered** |
 
 Question count: **32** (SQ-01…SQ-32), unchanged; nine sub-questions added. No SQ id renumbered or retired.
 

@@ -516,11 +516,12 @@ ACT §4.4, WD §4.2.2 and R2-12) says how the element reached the host:
     host-held route;
   - **any held action is App-side** (HS-5) — an App agent turn, an App tool
     or harness action (including kind (a) on a harness capability), an App
-    file write or return step, or a kind (b)/(c) run halt **other than an A5
-    constraint** (GC-3 covers A5, whose held action is the governed host
-    operation): **not enforceable** in App runs whatever SWBPIPE answers
-    (R5-10; R6-1) — a separate D6 follow-up for the owner, not something
-    SQ-02 can resolve.
+    file write or return step, or a kind (b)/(c) run halt **whose held
+    actions include any App-side step**: **not enforceable** in App runs
+    whatever SWBPIPE answers (R5-10; R6-1; R7-1) — a separate D6 follow-up
+    for the owner, not something SQ-02 can resolve. A run halt holding only
+    host operations is HS-3, above; GC-3 covers A5, whose held action is the
+    governed host operation.
   In every case an external dispatch observed after an arrival while the
   checkpoint is *waiting* is recorded as **action during hold** (RS R11;
   R4-11) and is not prevented (§7.7).
@@ -1080,12 +1081,13 @@ v0.2 = ADAPTER-v0.2 (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d
 | V3-B m-5 | HP-4 (the App initiates nothing for a holding run, including App-initiated `mcpServer/tool/call`) and HP-H (host-side hold) added to S-X12 and GC-5 |
 | V3-B m-9 | XF-42 stated **DESIGNED** (a recording case); the hold itself stays `UNRESOLVED{D6}` |
 | ACT-v0.4 §2.6 (R4-13, PROPOSED by DEL-04-01) | U-X1 closed: A13 on the host interface is captured by the host's enablement facility; the App-side configuration change is an ordinary configuration change, not a second A13 (E-1, E-4, §3.1, §11, §12). The UNRESOLVED row is replaced by the SQ-28 host input |
-| **R6-1** (in place; V4-A MAJOR-1/2; V4-B m-4(a)) | New "classification by held actions" bullet before GC-3: all held actions host operations → HS-3 by SQ-02 status; any App-side held action → *not enforceable* (HS-5); HS-1/HS-2 and precedence unchanged. GC-3 states it applies only when every held action is a host operation. GC-5 rewritten by held actions, with the explicit exception "a kind (b)/(c) run halt **other than an A5 constraint** (GC-3 covers A5)" (R6-4) |
+| **R6-1** (in place; V4-A MAJOR-1/2; V4-B m-4(a)) | New "classification by held actions" bullet before GC-3: all held actions host operations → HS-3 by SQ-02 status; any App-side held action → *not enforceable* (HS-5); HS-1/HS-2 and precedence unchanged. GC-3 states it applies only when every held action is a host operation. GC-5 rewritten by held actions: a kind (b)/(c) run halt is HS-5 only when its held actions include any App-side step; a run halt holding only host operations is HS-3; GC-3 covers A5 (row corrected in place by R7-1) |
 | **R6-5** (in place; V4-B m-2) | GC-3 and VC-X-03 state that model-supplied carriage → *not enforceable* only once SQ-02 is answered with no host-held route; before that, *not established*. §11 R11 action-during-hold input carries the turn initiator (person-directed / agent / App rule) |
 | R6-3 (in place) | §7.7 notes what "held" means per value |
 | V4-B m-4 (in place) | (b) §11 model destination per turn (R5-4); (c) F-18 and F-19 marked closed; (d) S-X13 and §5.1: a received constraint verified against the host's own copy is host-held (R5-2) |
 | V4-B m-6 (in place) | §12 heading and relay citations re-pointed to **RELAY-v0.3** (sha256 89b6b9c9…, `816c917f0`); SQ identifiers unchanged |
 | V4-B m-9 (confirmed) | XF-42 stays stated **DESIGNED** |
+| **R7-1** (in place; V5 MAJOR-1) | GC-5 HS-5 bullet: the pre-R6 exception for a kind (b)/(c) run halt "other than an A5 constraint" is replaced by "a kind (b)/(c) run halt whose held actions include any App-side step. A run halt holding only host operations is HS-3, above; GC-3 covers A5." GC-5 now agrees with the classification bullet, its own HS-3 bullet, EXEC §3.6 HS-3, ACT `CP-L4` and AS F6d. The R6-1 row above is corrected to match. No value recomputed in V5 §3 changes; a run halt holding only host operations takes HS-3 (*not established* today), as EXEC §3.6 already states |
 | Header | v0.3; supersession chain; R5, V3-A, V3-B and the current sibling texts added to Basis/Consumed inputs with hashes; R5 successors not read and noted as such |
 
 Identifiers: all v0.2 identifiers kept. Added: F-18…F-21 (§13.3). Closed: U-X1 (by ACT-v0.4 §2.6). Retired: the v0.1 hold-support values.

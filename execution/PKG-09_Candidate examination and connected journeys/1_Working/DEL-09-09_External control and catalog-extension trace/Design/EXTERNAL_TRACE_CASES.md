@@ -393,7 +393,7 @@ undertaking.
 | # | Disposition |
 |---|---|
 | F-9 | Stands; R5-10 states that SQ-28 gates the whole external channel (§3.3 "Gate") |
-| F-10 | **Amended by R5-1**: XC-10's A5 case is *not established* (awaiting SQ-02), not "unsupported"; only model-supplied carriage or App-only checkpoints are *not enforceable* |
+| F-10 | **Amended by R5-1**: XC-10's A5 case is *not established* (awaiting SQ-02), not "unsupported"; only model-supplied carriage, once SQ-02 is answered with no host-held route (*not established* before that answer), or App-only checkpoints are *not enforceable* (qualified by R7-4 m-5) |
 | F-11 | Stands |
 | F-12 | **Closed by R5-4**: destination per turn where reported; run-level set; a switch starts no new run |
 | F-13 | Stands for ADAPTER-v0.2; R5-9 assigns the re-point to ADAPTER-v0.3 |
@@ -426,6 +426,7 @@ v0.2 = XT-v0.2 (sha256 28ff092e114f386a723ea7f19d1a6e23a3963b92b44a1383d6308d0c1
 | **R6-1** (V4-A MAJOR-1/2) — in place | S-10, IN-25 and UNRESOLVED classify by held actions: host-held class (every held action a host operation; value by SQ-02 status) versus App-side class (*not enforceable* whatever SQ-02 returns) |
 | **R6-5** (V4-B m-1, m-2; in place) | IN-14: only "flow, no gate" SETTLED; "record and show" INTEGRATION. S-10, IN-25, XC-10 and UNRESOLVED: model-supplied → *not enforceable* only once SQ-02 is answered with no host-held route (XF-26's variant); *not established* before. TBD-007 cited as DEL-03-03's. F-15 and F-16 closed (§9.5) |
 | V4-B m-6 — in place | §4.1 cites C-v0.5's own V-ED1 statement; header adds R6 inputs and current sibling labels |
+| **R7-4 m-5** (V5 m-5) — in place | §9.3 F-10 disposition: "model-supplied carriage … *not enforceable*" is qualified "once SQ-02 is answered with no host-held route (*not established* before that answer)", matching S-10, IN-25 and XC-10 (R6-5). No value changes |
 | **R5-1** (V3-B MAJOR-5) | S-10, IN-25, XC-10 and UNRESOLVED use the four ruled values. XF-25 → *not established* until SQ-02, then *enforced on the host route*; XF-26 (model-supplied only) → *not enforceable* (*unsupported*); XF-42 → DESIGNED recording case (V3-B m-9); F-10 amended |
 | **R5-2** | S-10: only host-held carriage counts; a received constraint keeps its source's assurance unless verified against the host's own copy |
 | **R5-4** (V3-B m-1) | S-9 relabelled: D5 SETTLED part vs INTEGRATION (DECISION-2 reading) record-and-show, now per turn; XC-02 updated; F-12 closed |

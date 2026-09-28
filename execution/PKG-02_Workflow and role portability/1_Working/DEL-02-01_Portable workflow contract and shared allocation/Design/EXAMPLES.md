@@ -22,6 +22,7 @@ not reused.
 | R6-2 (V4-A m-3) — in place | R-16 (iv): in V-GR1's GR-R the refused A12 is T15's own, so **⟨set-1⟩** stays in force (⟨set-2⟩ never takes effect). R-16 (ii)/(iii)/(v) cite GR-1…GR-3, GR-S, GR-P. |
 | R6-3 — in place | E8 states what "held" means per value (run stops only under *enforced by the host loop*). |
 | R6-4 (V4-A m-1) — in place | "C-v0.5 to add" markers removed; V-GR1 cited in C-v0.5. |
+| **R7-3** (V5 MAJOR-3; INTEGRATION, option (a)) — in place | E8 row "L-WDEX-17 with its held-actions element absent": `CP-grant` (kind (a)) has its held actions **derived** as the held OP-C9 call (WD §4.3.1), so it is HS-3 → today **not established** (was HS-5 default → *not enforceable* → *unsupported*). Its workflow result follows EXEC §3.5 precedence with the run's other checkpoints: L-WDEX-17 has none, so today **not established**; after an evidenced SQ-02 answer with a host-held route it passes; answered with none, **unsupported**. A note after the "held" paragraph states the derivation and the scope of the HS-5 default. No other E8 value changes |
 
 ## Changes from v0.3
 
@@ -395,7 +396,7 @@ established**.
 | | `CP-check` (Return, App-side; from E1c) | HS-5 → **not enforceable** | |
 | L-WDEX-15: a workflow whose checkpoint is kind (a) before a Codex **harness capability** (e.g., a shell command), App run | that checkpoint (an App harness action) | HS-5 → **not enforceable** (R4-21) | **unsupported** (WD FB-18) |
 | L-WDEX-17 (new; E1d variant with no `CP-check`, needed to show HS-3 alone): `CP-grant` only, App run via X | `CP-grant` (host operations only: OP-C9) | HS-3: today **not established**; after an evidenced SQ-02 answer with host-held route → **enforced on the host route**; answered with none → **not enforceable** | today **not established**; then passes or **unsupported** accordingly |
-| L-WDEX-17 with its held-actions element absent | `CP-grant` (undeclared) | HS-5 default → **not enforceable** | **unsupported** |
+| L-WDEX-17 with its held-actions element absent | `CP-grant` (undeclared; derived as the held OP-C9 call, kind (a); WD §4.3.1, R7-3) | HS-3: today **not established**; after an evidenced SQ-02 answer with host-held route → **enforced on the host route**; answered with none → **not enforceable** | By EXEC §3.5 precedence with the run's other checkpoints; L-WDEX-17 has none, so today **not established**; then passes or **unsupported** accordingly. (Were it combined with E1c's `CP-check`, as in E1d, the run would be **unsupported**.) |
 
 **What "held" means (R6-3).** Under *enforced by the host loop* the run stops
 at its next action. Under *enforced on the host route* the host refuses the
@@ -405,6 +406,12 @@ Engineer A runs E1 from the App anyway, each arrival records its value and,
 e.g., a file Codex writes while `CP-check` waits is recorded as **action during
 hold**. HP-3 (an App named-rule *decline* of a tool-permission request) may be
 used as a best effort under D3; it never makes a hold *enforced*.
+
+When the held-actions element is absent, an A5 checkpoint's held actions are
+derived as its governed operation(s) and a kind (a) checkpoint's as its held
+call; the HS-5 default applies only to a kind (b)/(c) checkpoint with no
+held-actions element, or one whose declared held actions do not show host
+operations only (WD §4.3.1; R7-3).
 
 SQ-02's answer can move HS-3 rows only; checkpoints holding an App-side step
 (Return) stay *not enforceable* pending the owner's D6 follow-up (R5-10). An
