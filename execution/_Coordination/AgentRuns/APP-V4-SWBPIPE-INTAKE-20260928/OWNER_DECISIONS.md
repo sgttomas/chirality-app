@@ -64,3 +64,32 @@ After the SWBPIPE answers were received (`RELAY_ANSWERS_SWBPIPE.md`, sha256
   - DEC-051 residency;
   - a host-held checkpoint route;
   - an A13 enablement facility.
+
+---
+
+# Owner answers to the intake questions (2026-09-28): DECISION-4, recorded, being clarified
+
+**Custody:** the owner's answers to a structured question in the active chat,
+transcribed by the recorder. The questions were raised from
+[INTAKE_MAP.md](INTAKE_MAP.md) (I2).
+
+| Question presented | Owner's answer (exact) |
+|---|---|
+| D6: SWBPIPE has no host-held checkpoint route and no host loop, so no checkpoint can be enforced when an App workflow runs against SWBPIPE. How should App-run checkpointed workflows against SWBPIPE be treated? | "I don't want checkpoints in workflows to be programmed into the app to respond in a certain manner.  There too many reasons and ways for that to unnecessarily impede work.  I want the human and agent to work out the plan and any pause or hold point or gate are the agents to manage their own behaviour accordingly." |
+| SWBPIPE's "embedded Runtime" direction (D-58) vs the App's minimal host loop (V4-ARC-10): what should LOOP/PANEL do? | "I don't know what the distinction is, but SWBPIPE is working from the old paradigm.  Let's discuss further." |
+| SWBPIPE DEC-051 (open residency) vs V4-HOST-02 (local-only): how should this be handled? | "I can't really tell what the implications of this are without further discussion" |
+
+## Recorder's notes
+
+- **D6.** The answer is a direction. It amends the accepted PRD requirement
+  **V4-WF-05** ("The product holds a workflow's declared checkpoints …") and
+  the hold-support machinery built on it:
+  - EXEC §3.6;
+  - WD §4.3;
+  - LOOP §2.4.4;
+  - R4-2, R4-8, R5-1, R6-1 and R7-3.
+
+  An accepted-basis amendment follows `scope-change`. Its reach is being
+  clarified with the owner before R8 is written.
+- **The loop and residency questions are open for discussion.** No ruling is
+  made yet.
