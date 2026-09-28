@@ -121,3 +121,23 @@ PR #1039 merged 2026-09-28 as merge commit `98b1723b1b263cf3672db5fbb83b9e670773
 | W9 | general-purpose TASK | DEL-09-06, DEL-09-09 `Design/` (3 files) | RETURNED (461/796/391 lines); fence verified |
 
 Owner decision 2 was recorded after an interrupted session turn (auto-mode classifier outages). The owner then directed "continue, defer SWBPIPE until final review".
+
+## A1 sweep and W10 (dispatched 2026-09-28)
+
+Rulings: [R4_RESOLUTIONS.md](R4_RESOLUTIONS.md) (`f05c7e4cd`). The original
+authors were resumed; siblings read at `f05c7e4cd`.
+
+| Node | Files | State |
+|---|---|---|
+| A1-W1 | DEL-04-01 → v0.4 | RETURNED; fence verified |
+| A1-W2 | DEL-04-03, DEL-04-02 → v0.4 | RETURNED; fence verified |
+| A1-W3 | DEL-03-01, DEL-03-02 → v0.4 | RETURNED; fence verified |
+| A1-W4 | DEL-02-01 → v0.4 | RETURNED; fence verified |
+| A1-W5 | DEL-05-01, DEL-05-02 → v0.4 | RETURNED; fence verified |
+| A1-W6 | DEL-01-01 → v0.4 | RETURNED; fence verified |
+| A1-W7 | DEL-02-03 → v0.2 | RETURNED; fence verified |
+| A1-W8 | DEL-03-03 → v0.2 | RETURNED; fence verified |
+| W10 | DEL-03-04 GUIDE-v0.1 (new general-purpose TASK; inputs at `f05c7e4cd` + R4) | RETURNED (575 lines); CC-5 gap G-3 relayed to W9 author |
+| A1-W9 | DEL-09-06/09-09 W9 files → v0.2 (DECISION-2, R4, G-3 addendum) | ACTIVE |
+
+Scratchpad note: W10 found a shared scratchpad folder overwritten by a concurrent agent. It re-extracted its pinned inputs and verified their hashes. Later briefs use per-agent scratch folders.

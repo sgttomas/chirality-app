@@ -1,10 +1,10 @@
 # Stock Codex hosting boundary
-- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.3
+- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.4
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, OI-008 *proposal*, local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
 - Basis: branch base 6e18505e3; ScopeOfWork.md sha256 eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
-- Consumed inputs: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
-- Receivers: DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022 and DEP-01-01-024; DEL-01-06 (distribution identity for packaging) via DEP-01-01-023; DEL-02-04 (additive guidance, seam S-6; register row missing, V1-C RF-6, routed to C1); DEL-02-01 / DEL-05-01 / DEL-05-02 (J9: guidance carriage, answer origin); App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then.
+- Consumed inputs: DEL-01-01/HOSTING-BOUNDARY-v0.3 (sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e, commit ba0b37123); **at commit f05c7e4cd, read with `git show`:** `R3_RESOLUTIONS.md` (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R3-1…R3-4 read, none addressed to HOSTING), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24; R4-1, R4-2, R4-12, R4-13, R4-19 applied), `OWNER_DECISIONS.md` with Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; D5, D6), DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8; §2 hold points HP-1…HP-3, §3.6, §5 CAP-1…CAP-9, F-9, U-E20), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074; §3.4, §3.5, OC-3, F-3, F-9); the committed 0.158.0 JSON Schema bundle `json-schema/experimental/codex_app_server_protocol.v2.schemas.json` and `_spike/inventory.txt` (for the MCP surface and `turn/interrupt` facts in §6.7–§6.8). Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e at that time), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
+- Receivers: DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022 and DEP-01-01-024; DEL-01-06 (distribution identity for packaging) via DEP-01-01-023; DEL-02-04 (additive guidance, seam S-6; register row missing, V1-C RF-6, routed to C1); DEL-02-01 / DEL-05-01 / DEL-05-02 (J9: guidance carriage, answer origin); DEL-02-03 (EXEC hold points HP-2/HP-3, CAP-6: §6.7, R9); DEL-03-03 (MCP surfaces, channel status, model destination: §6.8, §8.3); App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then.
 
 **Reading note.** Element names defined by this file (for example *request
 identity*, *generation*, *version identity record*) are **semantic** names,
@@ -28,6 +28,17 @@ that contain "approval" (for example `item/commandExecution/requestApproval`)
 are quoted as supplier names and denote A14 subjects.
 
 ---
+
+## Changes from v0.3
+
+| R4 ID / source finding | Change in v0.4 |
+|---|---|
+| R4-12 (W7 EXEC F-9; W8 ADAPTER F-3) | R9 and §6.1: answers to Codex user-input and MCP elicitation requests are **not act evidence and never host act capture** (EXEC CAP-6); the "standing open" wording is removed. New **§6.8** classifies the MCP status, configuration, OAuth, agent-call, App-initiated `mcpServer/tool/call` / `mcpServer/resource/read`, elicitation, event-stream and dynamic-tool surfaces from the committed 0.158.0 bundle; the App-initiated call is App-origin and never used to act as the agent or for any person's act. §5 client-request records gain an **initiator** element. VC-23, VC-24; U-24; F-19 |
+| R4-13 (W8 F-4) | §6.8: supplier status `disabled` and any App-side configuration (agent-writable) are never A13 evidence |
+| R4-2 (D6 deferred, DECISION-2) | New **§6.7**: App run holds `UNRESOLVED{D6}` (U-23); `turn/interrupt` (HP-2) recorded as `observed-in-generated-types` only and **not relied upon**; HP-3 named-rule decline stays a permitted best effort under D3; HP-1 not adopted; the boundary makes no hold claim. §10 still-to-observe extended (EXEC U-E20). VC-25 |
+| R4-1 (D5, DECISION-2) | New **§8.3** observed model destination (requested, supplier-reported effective, re-route) supplied per thread/turn to DEL-04-03 and DEL-03-03 without gating; class from DEL-01-05's configuration. S-4, S-7 updated; VC-26; F-20, F-21; U-18 note |
+| R4-19 (V2 m-13) | Consumed inputs now list R3 (no HOSTING item) and R4, DECISION-2, EXEC-v0.1 and ADAPTER-v0.1 with hashes at f05c7e4cd |
+| Other | None of R4-3…R4-11, R4-14…R4-18, R4-20, R4-21 is addressed to HOSTING; no change |
 
 ## Changes from v0.2
 
@@ -318,10 +329,12 @@ from closing or hiding a window (V4-EXE-01, V4-EXM-11). Sequence:
   request (has an identity, expects an answer), or malformed. An
   uncorrelated response is surfaced, not dropped.
 - **Client requests.** Each outbound request records: generation, request
-  identity, method, send position, write result (`written` /
-  `write-failed`), outcome (`response-observed(result|error)` /
-  `unknown-no-response`) and, for requests carrying additive guidance, the
-  carried-content identities (§8.2). A wait limit ends *waiting*, not the
+  identity, method, **initiator** (`person-directed` via an owning interface,
+  `app-rule:<name>`, or `receiver:<deliverable>` for the generic request path;
+  §6.8), send position, write result (`written` / `write-failed`), outcome
+  (`response-observed(result|error)` / `unknown-no-response`) and, for
+  requests carrying additive guidance, the carried-content identities
+  (§8.2). A wait limit ends *waiting*, not the
   outcome (H10; F-04).
 - **Supplier refusal of an App request.** At 0.158.0 an unknown client
   method is answered with error code -32600 ("Invalid request: unknown
@@ -367,8 +380,8 @@ outputs agree on these kinds — 10 stable, 11 experimental; SPIKE §4):
 | `item/fileChange/requestApproval` | A14 | known-answerable |
 | `item/permissions/requestApproval` | A14 | known-answerable |
 | `execCommandApproval`, `applyPatchApproval` (legacy v1) | A14 | known-answerable if raised (whether they are raised on the v2 surface is not-observed) |
-| `item/tool/requestUserInput` | input to the agent (not A14); standing as act evidence undefined (V1-C AB-11; WD U-25; DEL-02-03 at W7) | known-answerable; answered only by the person (R9) |
-| `mcpServer/elicitation/request` | as above | known-answerable; answered only by the person (R9) |
+| `item/tool/requestUserInput` | input to the agent (not A14); **not act evidence, never host act capture** (R4-12; EXEC CAP-6) | known-answerable; answered only by the person (R9) |
+| `mcpServer/elicitation/request` (modes include form and URL) | as above; the prompt is authored by an MCP server or the agent | known-answerable; answered only by the person (R9) |
 | `item/tool/call` (dynamic tools; `dynamicTools` is experimental-only on thread start) | App-offered tool | known-app-unsupported unless the App registers dynamic tools (none defined in this increment) |
 | `account/chatgptAuthTokens/refresh` | account | known-app-unsupported unless DEL-01-05 adopts external-token login |
 | `attestation/generate` | account/attestation | unfamiliar while `requestAttestation` is declared false |
@@ -442,9 +455,13 @@ reports one, is recorded as observed; it is never inferred.
   - **Person-input kinds** (`item/tool/requestUserInput`,
     `mcpServer/elicitation/request` at 0.158.0): answered with content only
     by the person via DEL-01-04 (`person-via-interaction`); a named App rule
-    may only decline or error. Their standing as act evidence stays open
-    (WD U-25; DEL-02-03 at W7); an answer is never presented as a
-    checkpoint act.
+    may only decline or error. **Answers are not act evidence and are never
+    host act capture** (R4-12; EXEC §5 CAP-6): they are conversation input
+    to the agent, even when the person gives them, and never satisfy a
+    checkpoint, never record A4–A7, A12 or A13, and never stand for an act on
+    host content. An agent question asked this way may be an A8 request; the
+    App may answer it by presenting its own act control (EXEC CAP-2), which
+    settles no pending supplier request (EXEC CAP-9).
   - **Named service kinds** (at 0.158.0 only `currentTime/read`, when the
     experimental opt-in is declared): may be answered with content by a
     named App rule (`app-rule:<name>`); they carry no person's decision.
@@ -492,6 +509,51 @@ reaching the App. The boundary:
   `person-via-interaction` and `app-rule`.
 
 It never presents a supplier-internal decision as the person's answer.
+
+### 6.7 Run holds and the supplier (R4-2; owner decision D6 deferred)
+
+App-side run holds at checkpoints are `UNRESOLVED{D6}` pending the SWBPIPE
+answer to SQ-02 (DECISION-2). The hold machine and its hold points are
+DEL-02-03's (EXEC §2, §3.6). This boundary supplies only these facts and
+limits:
+
+- **HP-2 `turn/interrupt`.** A stable client method at 0.158.0 (parameters:
+  thread identity, turn identity; empty result) —
+  `observed-in-generated-types` only. Its live effect (what stops, when, and
+  what the supplier completes first) is **not observed** (U-19; EXEC U-E20).
+  This file and its receivers **do not rely on it** for any hold (R4-2). If
+  the App sends it for another purpose (a person's explicit stop, V4-EXE-01),
+  the outcome is recorded as observed, and any action completed after the
+  request is recorded as observed, never as prevented.
+- **HP-3 named-rule decline.** While a run is held, an App named rule may
+  *decline* a tool-permission request that reaches the App (R7), with origin
+  `app-rule:<name>`. This is a permitted **best effort** under D3: requests
+  that the user's own Codex mode settles inside the supplier (§6.6) never
+  reach the App and are not held; a decline is never an affirmative answer
+  and never a hold guarantee.
+- **HP-1 interposed App code** in the supplier's dispatch path is not
+  adopted (R4-2). Nothing in this boundary sits between the supplier and its
+  own tool dispatch.
+- The boundary makes **no hold claim**. It delivers the native items and
+  notifications from which DEL-02-03 records "action during hold".
+
+### 6.8 MCP surfaces at 0.158.0 (R4-12; ADAPTER F-3)
+
+Classified from the committed 0.158.0 JSON Schema bundle and the spike
+inventory; all rows are `observed-in-generated-types` unless marked, none
+exercised live. "Caller" is who initiates the MCP-side effect.
+
+| Surface (supplier name) | Kind / variant | Caller | Boundary treatment | Receiver; evidence standing |
+|---|---|---|---|---|
+| `mcpServerStatus/list` (optional thread identity, detail, paging); `mcpServer/startupStatus/updated` notification | Client request (stable); notification (stable) | App (read) / supplier (report) | Generic request path; native delivery (H6) | DEL-03-03 channel state. A supplier status `disabled` is an **App-side configuration fact, never A13** (R4-13) |
+| `config/mcpServer/reload`; `config/value/write`, `config/batchWrite` (write a key path into the user's Codex configuration) | Client requests (stable) | App, only as **person-directed** through the owning interface (DEL-03-03 OC-3; DEL-01-05) | Carries the change and records initiator; never initiated by an App rule or on an agent's instruction (H9: the person's own Codex configuration) | App-side configuration is **never A13 evidence**; any configuration an agent could write is not act evidence (R4-13). The host's refusal is the authoritative "off" (ADAPTER) |
+| `mcpServer/oauth/login`; `mcpServer/oauthLogin/completed` | Client request; notification (stable) | App, person-directed | As above; credentials stay with the supplier | DEL-01-05 / DEL-03-03 (OC-6); not an act |
+| Thread item `mcpToolCall` {server, tool, arguments, status, result, error, …}; `item/mcpToolCall/progress` | Items and notification (stable) | **The agent** (model-issued call) | Native delivery only; the boundary never alters, retries or answers these calls | DEL-03-03 dispatch observation; host outcome per DEL-03-02/03-03. Whether an MCP tool call raises an A14 request at 0.158.0 is **not observed** |
+| `mcpServer/tool/call` (server, thread identity, tool, arguments, `_meta`; result content, structured content, is-error, `_meta`) | Client request (stable) | **The App** | App-origin only: recorded with initiator (§5) and never presented as the agent's call. It is **never used to act as the agent**, to perform, request on the person's behalf or record any person's act (A4–A7, A12, A13), or to submit a host operation in the agent's name. No use on a host channel is defined in this increment; a use needs DEL-03-03's definition and its own origin in the host's terms. It requires a thread identity; whether the call or its result enters that thread's items or model context is **not observed** | DEL-03-03 (OC-2/OC-7); results are App-origin evidence only |
+| `mcpServer/resource/read` | Client request (stable) | The App | As `mcpServer/tool/call`: App-origin read; content reaches the App, not the model, unless the App supplies it | DEL-03-03; App-origin |
+| `mcpServer/elicitation/request` | Server request (stable) | MCP server / agent → person | R9 person-input kind | Not act evidence; never host act capture (R4-12) |
+| `mcpServer/event/stream/start`, `…/stop`; `mcpServer/event/stream/notification` | Start/stop experimental-only; notification in the stable set | App | Not used; unfamiliar/unused unless the experimental opt-in is declared and DEL-03-03 defines a use | — |
+| `item/tool/call` (dynamic tools, experimental-only registration) | Server request | Agent → App | known-app-unsupported (§6.1); choosing dynamic tools changes the familiar set for the whole App (ADAPTER F-9; S-F-05) | DEL-03-03 OC-2 |
 
 ## 7. Supplier version identity and verification
 
@@ -587,10 +649,10 @@ content-identity check does not execute the binary and has no such effect.
 | S-1 lifecycle and register | DEL-01-02 | §4 states with generation; App stop record; `unknown-no-response`; register interface §6; exit and descendant facts; receipt positions | Durable custody, reconnect/relaunch, persistence, recovery reads, settlement fixtures, descendant policy (U-16, joint) |
 | S-2 version identity + plan/revision | DEL-01-03 | Version identity record with each `ready(g)`; native plan items and plan updates unchanged with generation and receipt position; generic request path for plan interactions. At 0.158.0 each plan update carries the **whole plan with no revision identity**, plan deltas must not be assumed to concatenate to the completed item, and plan mode is experimental-only (S-F-13) | Revision identity (DEL-01-03 derives it from turn/item identities and receipt positions), registry, storage, export, UI, checker (SOW-128) |
 | S-3 request answering | DEL-01-04 | Register operations; refusal reasons incl. `origin-not-permitted`; settlement; supplier-internal decision notifications (§6.6) | Request cards, answer UX, attachments, outcome presentation |
-| S-4 embedding and provider | DEL-01-05 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); §8.1 account; recorded-exchange evidence per §9; the fresh-home network observation (L-4) | Sign-in/API-key flows, account home (OI-009), provider configuration, server-substitution checks |
+| S-4 embedding and provider | DEL-01-05; DEL-03-03 (channel status); DEL-04-03 via S-7 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); **observed model destination** per thread/turn (§8.3; R4-1); §8.1 account; recorded-exchange evidence per §9; the fresh-home network observation (L-4) | Sign-in/API-key flows, account home (OI-009), provider configuration, server-substitution checks |
 | S-5 distribution identity | DEL-01-06 | Distribution content identity over the vendor tree, version label, launcher record; spike-observed signing facts (Developer ID, hardened runtime) as observations only | Packaging, signing, notarisation, relocation of the vendor tree (not-observed), distribution |
 | S-6 additive guidance | DEL-02-04 (inputs from DEL-02-01/02-02) | Carriage unchanged through the supplier's supported inputs (at 0.158.0 `baseInstructions` and `developerInstructions` on thread start and resume); per-thread/turn content-identity evidence (§8.2) | Guidance composition, role files, workflow semantics, idle-boundary change policy |
-| S-7 evidence | DEL-04-03 (through DEL-01-02) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities. A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act |
+| S-7 evidence | DEL-04-03 (through DEL-01-02) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities, observed model destination (§8.3), client-request initiators (incl. App-initiated MCP calls, §6.8). A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act |
 
 The 0.158.0 inventory in SPIKE §4 (170 client methods, 11 server-request
 kinds, 85 notifications in the TS experimental output) is the input to
@@ -628,6 +690,32 @@ overrides apply to an already-loaded thread (v3 observed that 0.154 ignored
 them; at 0.158.0 not-observed) — is separate evidence and is not implied.
 Launch configuration identity (§7.1) is not a substitute: it is per child
 start, not per thread/turn.
+
+### 8.3 Observed model destination (R4-1; owner decision D5)
+
+D5 (DECISION-2, recorder's reading) lets host content read through the
+external channel flow to whatever model the person selected for the App
+conversation, cloud included; the App does not gate enablement on it, but
+**records** each run's model destination (DEL-04-03) and **shows** it in the
+channel status (DEL-03-03), as information only. This boundary supplies the
+facts, per thread and turn, with generation and receipt position:
+
+- the provider and model the App **requested** (carried from the person's
+  choice through DEL-01-05; at 0.158.0 `modelProvider` and model on thread
+  start/resume);
+- the provider and model the supplier **reports as effective** (at 0.158.0
+  the thread start/resume responses carry `model` and `modelProvider`,
+  `observed-in-generated-types`);
+- any supplier **re-route** (at 0.158.0 the stable notification
+  `model/rerouted` {thread, turn, from-model, to-model, reason},
+  `observed-in-generated-types`; provider-model fallback is an
+  experimental-only thread-start element, not requested by this boundary).
+
+The destination **class** (local or cloud) is derived from the provider
+configuration the person chose (DEL-01-05), not inferred by this boundary.
+Whether requested and effective values can differ in practice is not
+observed (U-19). D5 concerns host content reaching the conversation's model;
+it does not address the supplier's own start-up traffic (L-4, U-18).
 
 ## 9. Recorded-exchange fixture method (M-7, V4-EXM-02, REQ-006)
 
@@ -756,7 +844,11 @@ review decisions live; plan revision request live; post-restart thread
 reads; resume-override adoption; per-conversation provider effect and L-2/L-3
 with an identified local server; whether the plugin fetch (L-4) is
 configurable; relocation of the vendor tree (DEL-01-06); outbound frames
-without the version member. Live items need the owner's credential or an
+without the version member; the live effect of `turn/interrupt` (HP-2, not
+relied upon; EXEC U-E20); whether an MCP tool call raises an A14 request
+and by which kind; whether an App-initiated `mcpServer/tool/call` enters the
+thread's items or model context; per-thread MCP configuration; whether
+requested and effective model/provider can differ. Live items need the owner's credential or an
 identified local provider.
 
 ## 11. Owner / act boundary (REQ-007, REQ-008, AC-007, VER-007)
@@ -871,6 +963,24 @@ v3 code is evidence of behavior, not qualified v4 material.
   attribution to the spike not established and a separate person-owned Codex
   process present. Relevant to OI-009 (shared vs separate home); no
   conclusion drawn.
+- **F-19 App-initiated MCP calls are thread-bound (0.158.0).** The
+  generated `mcpServer/tool/call` parameters **require** a thread identity.
+  An App-origin call therefore names a conversation whose model and history
+  may or may not see it (not observed). This is why §6.8 forbids using it to
+  act as the agent and defines no host-channel use; DEL-03-03 OC-2/OC-7
+  should weigh it before choosing any App-side realization that calls MCP
+  tools itself.
+- **F-20 Supplier-reported effective settings exist at 0.158.0.** Thread
+  start/resume responses report the effective `model`, `modelProvider`,
+  `approvalPolicy`, `approvalsReviewer`, `sandbox` and `instructionSources`
+  (`observed-in-generated-types`). They could serve R4-1 (effective
+  destination) and possibly the P-15 "adopted" question (instruction
+  sources). They are not relied upon until observed live (U-19); routed to
+  DEL-04-03 and DEL-02-04 as candidate evidence.
+- **F-21 D5 does not settle U-18.** The owner's flexibility ruling covers
+  host content reaching the conversation's model. The supplier's own
+  fresh-home plugin fetch (L-4) is a separate matter for the owner with
+  DEL-01-05.
 
 ## UNRESOLVED
 
@@ -893,11 +1003,13 @@ v3 code is evidence of behavior, not qualified v4 material.
 | U-15 Reference generator output (O-R1/O-R2/O-R3) | App implementation owner | Before R2/R5 implementation and conformance | Options in §7.3 |
 | U-16 Supplier descendant handling on stop/restart/overlap | DEL-01-02 with App implementation owner | Before lifecycle implementation | H11 requires detection and recording; policy open |
 | U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | Both recorded; composition open |
-| U-18 Supplier network fetch at start: acceptability under priority 3; configurability | Owner with DEL-01-05 | Before any local-operation claim | Observed; no claim of local-only operation |
+| U-18 Supplier network fetch at start: acceptability under priority 3; configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim | Observed; no claim of local-only operation |
 | U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed |
 | U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal only; R9 classes fixed as INTEGRATION, membership open |
 | U-21 Supplier's `[experimental]` label on app-server/generators; dependence on experimental API (F-12, F-13) | Owner visibility; App implementation owner at pin re-examination | Before implementation | Recorded; supplier direction not reopened |
 | U-22 L-2 provider wire interface (Responses) and L-3 | DEL-01-05 | Before provider qualification | Not observed |
+| U-23 `UNRESOLVED{D6}` App-side run holds (pending SWBPIPE SQ-02) | Owner, via DEL-02-03 after the SWBPIPE answer | Before App-side hold implementation | §6.7: no hold claim; `turn/interrupt` not relied upon; HP-3 decline best effort only |
+| U-24 Any App-initiated use of `mcpServer/tool/call` / `mcpServer/resource/read` on a host channel | DEL-03-03 (OC-2/OC-7) with App implementation owner | Before any such use | None defined; App-origin rules of §6.8 bind any later use |
 
 ## Verification cases
 
@@ -930,3 +1042,7 @@ yet, and spike runs (SV-nn) are evidence, not passes.
 | VC-20 Classification by declared capabilities | Double; experimental opt-in false | Double raises `currentTime/read` and `attestation/generate` | Both `unfamiliar` → explicit error; with opt-in declared, `currentTime/read` becomes familiar | Yes (double) | VER-001, VER-002 |
 | VC-21 Supplier refusal of an App request | Spike transcript (unknown client method → -32600) | Replay | Outcome `response-observed(error)`, not unknown; connection continues | Yes (transcript) | VER-001 |
 | VC-22 Answer origin by kind (R9) | Double; opt-in declared | App rule attempts a content answer to `item/tool/requestUserInput`, an affirmative answer to `item/fileChange/requestApproval`, a decline of an elicitation, and a content answer to `currentTime/read` | First two refused `origin-not-permitted`; decline recorded `app-rule:<name>`; `currentTime/read` answered `app-rule:<name>`; no answer presented as a checkpoint act | Yes (double) | VER-001, VER-007 |
+| VC-23 Person-input answer is not act evidence (R4-12) | Double seeded with an elicitation request on a host-content subject | Person answers "yes, accepted" in the elicitation | Settlement `person-via-interaction`; delivered as conversation input only; no human-act record, no checkpoint satisfaction, host item stays queued | Yes (double) | VER-007 |
+| VC-24 MCP surface classification (R4-12) | Double; status list, startup notification, `mcpToolCall` item, App-initiated `mcpServer/tool/call` | Replay each | Status `disabled` reported as App-side configuration, never A13; agent's `mcpToolCall` delivered natively; App-initiated call recorded with App initiator, never shown as the agent's call or as any person's act | Yes (double) | VER-001, VER-007 |
+| VC-25 No hold claim (R4-2) | Held run (DEL-02-03 state); a tool-permission request reaches the App; a second tool settled by the user's mode | Named App rule declines the first | Decline recorded `app-rule:<name>`; the auto-settled tool is delivered natively as completed; no hold claimed; `turn/interrupt` not sent for the hold | Yes (double) | VER-001, VER-007 |
+| VC-26 Model destination facts (R4-1) | Thread start with a selected provider; a constructed re-route notification | Inspect S-4/S-7 facts | Requested and effective provider/model and the re-route recorded per thread/turn; no gate on enablement; class taken from DEL-01-05's configuration | Partly (constructed re-route with a double; live start needs credential or local provider) | VER-005 |

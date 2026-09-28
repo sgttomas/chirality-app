@@ -1,9 +1,9 @@
 # Proposal, validation and outcome contract
-- Contribution: DEL-03-02/P-v0.3
+- Contribution: DEL-03-02/P-v0.4
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (proposal, relied-on basis, origin, governing checkpoint constraint, change-item content identity and outcome schema meaning), OUT-002 (lifecycle, one route, actor parity, host ownership and receiving interfaces), OUT-003 (designed contract fixtures); REQ-001–REQ-013; AC-001–AC-014; VER-001–VER-014
-- Basis: repo 6e18505e3; ScopeOfWork.md sha256 42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7d…60da) §1, §§3–5 (V4-HI-11, V4-HI-20–25, V4-HI-30–33), §6 V4-HI-40–42, §7 V4-HI-50–52, §9 V4-HI-70–71, §10, §11; `P/docs/PRD.md` V4-PAR-04, V4-AUT-01–05, V4-REC-01, V4-CST-05/06, §9 OQ-02/OQ-11; `P/docs/ARCHITECTURE.md` V4-ARC-20; `P/docs/EXAMINATION.md` V4-EXM-20/22/25; DECISION_BRIEF #d2/#d3/#d4/#d5; SCC-CASE-002 Case_Datasheet rows M1-P, M3-CP (sha256 6acdc6c4…a71a6); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f3…81f2e) D2/D3; R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
-- Consumed inputs: DEL-03-01/C-v0.3 (co-revised in this run: §3 elements incl. exposure, §3.1 five class values, §4.1 results with reporters, §4.4 precondition vs validation error, §5 basis, subject content identities and per-item "no longer holds" rule, §10 FX-PIPE-01 incl. OP-C10–C12 and variants); sibling v0.2 texts read from commit `28bd00499` where an R2 ruling touches a join — DEL-04-01/ACT-POLICY-v0.2 (sha256 e50f1fe2…93a9: §2.1–§2.5, §5.1–§5.5, §6, §8.3), DEL-04-03/RS-v0.2 (sha256 56a3f839…1c69: §5 outcome entries, OE-6, §7), DEL-05-01/LOOP-v0.2 (sha256 1151d432…62c9: §6.2 dispatch record incl. checkpoint constraint, §6.3 retry, MC-8), DEL-02-01/WD-v0.2 (sha256 c25bccc5…a55c: §4.3.7 item-level rule, §4.4 promised standing); DEL-04-02 grant display states by R-8/R2-6 meaning; host facilities (route, views, receipts, act capture, constraint receipt): not supplied (DEP-03-02-023)
+- Basis: repo 6e18505e3; ScopeOfWork.md sha256 42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7d…60da) §1, §§3–5 (V4-HI-11, V4-HI-20–25, V4-HI-30–33), §6 V4-HI-40–42, §7 V4-HI-50–52, §9 V4-HI-70–71, §10, §11; `P/docs/PRD.md` V4-PAR-04, V4-AUT-01–05, V4-REC-01, V4-CST-05/06, §9 OQ-02/OQ-11; `P/docs/ARCHITECTURE.md` V4-ARC-20; `P/docs/EXAMINATION.md` V4-EXM-20/22/25; DECISION_BRIEF #d2/#d3/#d4/#d5; SCC-CASE-002 Case_Datasheet rows M1-P, M3-CP (sha256 6acdc6c4…a71a6); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f3…81f2e) D2/D3; R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; R3_RESOLUTIONS.md (sha256 202d52c7…afbf) R3-3, R3-4; R4_RESOLUTIONS.md at `f05c7e4cd` (sha256 50a009b2…2a24) R4-3–R4-7, R4-12–R4-15, R4-19; OWNER_DECISIONS DECISION-2 D5/D6 (via R4-1/R4-2); review V2 (sha256 75ba1dff…e6ef) m-3, m-9, m-11; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
+- Consumed inputs: Wave-2 sibling texts read from commit `f05c7e4cd` — DEL-03-03/ADAPTER-v0.1 (sha256 58b2409c…a074: F-1, F-3, F-8), DEL-02-03/EXEC-v0.1 (sha256 e0ede76e…18e8: §4.7 resume/re-hold, MX-3/MX-6/MX-8 confirmation, CAP-1…9), DEL-09-09/XT-v0.1 (sha256 8f098c79…f1df: L-XT-1); DEL-03-01/C-v0.4 (co-revised in this sweep: §4.1 channel reporters and model-destination note, §10 FXA-n, K-7, V-ED1); earlier: DEL-03-01/C-v0.3 (co-revised: §3 elements incl. exposure, §3.1 five class values, §4.1 results with reporters, §4.4 precondition vs validation error, §5 basis, subject content identities and per-item "no longer holds" rule, §10 FX-PIPE-01 incl. OP-C10–C12 and variants); sibling v0.2 texts read from commit `28bd00499` where an R2 ruling touches a join — DEL-04-01/ACT-POLICY-v0.2 (sha256 e50f1fe2…93a9: §2.1–§2.5, §5.1–§5.5, §6, §8.3), DEL-04-03/RS-v0.2 (sha256 56a3f839…1c69: §5 outcome entries, OE-6, §7), DEL-05-01/LOOP-v0.2 (sha256 1151d432…62c9: §6.2 dispatch record incl. checkpoint constraint, §6.3 retry, MC-8), DEL-02-01/WD-v0.2 (sha256 c25bccc5…a55c: §4.3.7 item-level rule, §4.4 promised standing); DEL-04-02 grant display states by R-8/R2-6 meaning; host facilities (route, views, receipts, act capture, constraint receipt): not supplied (DEP-03-02-023)
 - Receivers: DEL-04-02 (OUT-001, OUT-002; REQ-003–005; VER-003–005) via DEP-03-02-018; DEL-04-03 (OUT-001, OUT-002, OUT-004; REQ-002, REQ-003, REQ-005; VER-001, VER-004, VER-006) via DEP-03-02-019; DEL-03-03 (OUT-001, OUT-003; REQ-001, REQ-004; VER-001, VER-004) via DEP-03-02-020; DEL-05-01 (OUT-001, OUT-003; REQ-003, REQ-007; VER-008); DEL-05-02 (OUT-001, OUT-003; REQ-001–003; VER-001–003); DEL-09-09 (OUT-001; REQ-001, REQ-004; VER-001, VER-004) via DEP-03-02-022; DEL-03-01 (OUT-001, OUT-003; REQ-001, REQ-004; VER-004) as the M3-CP return (DEP-03-01-026); DEL-03-04 responsibility map via DEP-03-02-021; DEL-02-01 / DEL-02-03 (checkpoint constraint, item dispositions, item-left events); external host proposal-view receiving via DEP-03-02-024
 
 ## 0. How to read this definition
@@ -20,8 +20,8 @@ policy appears only as `UNRESOLVED{OI-nnn}`. **DERIVED**, **INTEGRATION** and
 they say (R2-11).
 
 §9 is the **canonical outcome taxonomy** for proposals and operations
-(R-7). DEL-04-03, DEL-05-01 and DEL-05-02 adopt it and C-v0.3 §4.1
-unchanged. Fixtures use the shared catalogue FX-PIPE-01 (C-v0.3 §10); step
+(R-7). DEL-04-03, DEL-05-01 and DEL-05-02 adopt it and C-v0.4 §4.1
+unchanged. Fixtures use the shared catalogue FX-PIPE-01 (C-v0.4 §10); step
 labels T… and variants V-… refer to it.
 
 Settled distinctions relied on (cited, not re-decided):
@@ -58,7 +58,7 @@ Settled distinctions relied on (cited, not re-decided):
 | Grant display states and settings versions | DEL-04-02 (R-8; R2-6) | Supplied: origin and direct-autonomy semantics; consumes settings references |
 | Human-act and run-record format | DEL-04-03 | Supplied: outcomes, receipt links, change-item content identity, item-left events |
 | Workflow identity; checkpoint declaration; hold machine | DEL-02-01 (declares); DEL-05-01 (evaluates in hosts); DEL-02-03 (hold, W7) | Consumed in origin; governing checkpoint constraint element supplied (§3.3) |
-| External receiving adapter | DEL-03-03 (host owns endpoint) | Supplied: this same contract, including constraint carriage |
+| External receiving adapter | DEL-03-03 (host owns endpoint) | Supplied: this same contract, including constraint carriage assurance |
 | Integrated host guide | DEL-03-04 | Supplied: §1 and §13 |
 | Joined external witness, extension trace | DEL-09-09 | Supplied: fixtures and outcome expectations |
 
@@ -73,15 +73,16 @@ is never a person's rejection (§4.1).
   host validation/application route. The channel is attribution (§3.3), never
   a route selector.
 - **Treatment is resolved on the host route** at validation and again at
-  application (R-3 point 1). The loop (DEL-05-01) and the external adapter
-  (DEL-03-03) relay the actor's intent — *propose* or *apply directly* — and
-  any governing checkpoint constraint (§3.3); they do not decide treatment.
+  application (R-3 point 1). The loop (DEL-05-01) and, where one is on the
+  dispatch path, the external adapter (DEL-03-03) relay the actor's intent —
+  *propose* or *apply directly* — and any governing checkpoint constraint
+  with its carriage assurance (§3.3); they do not decide treatment.
 - **Equivalence rule.** For equivalent operation identity/version, arguments,
   relied-on basis and applicable authority, every channel receives the same
   outcome and the same error meaning (identity and text).
 - **Permitted difference is authority only** (grant, reserved acts, class,
   checkpoint constraint). It is reported as *not permitted* naming the
-  governing treatment — policy-class record (C-v0.3 §3.1) or governing
+  governing treatment — policy-class record (C-v0.4 §3.1) or governing
   checkpoint constraint — never as a different validation error. Per the R-3
   map and R2:
   - a request to apply directly without an *effective direct* treatment →
@@ -92,7 +93,7 @@ is never a person's rejection (§4.1).
   - a request to perform a reserved act (S-P14) as the person → *not
     permitted*, with an A8 request *offered*; an A8 exists only if the agent
     actually issues it, with the requester identified (IR1A-10);
-  - a *no policy basis* class (C-v0.3 §3.1) → direct *not permitted*; a
+  - a *no policy basis* class (C-v0.4 §3.1) → direct *not permitted*; a
     proposal is available but confers no permission — any effect requires the
     person's A5 and host application (R2-1, R2-9, INTEGRATION).
 - A denial by the App user's Codex tool permission (A14) happens App-side
@@ -112,7 +113,7 @@ is never a person's rejection (§4.1).
 | Proposal identity | Stable identity of *this* proposal from drafting onward; the unit for one-effect (§7). A **retry** (resubmission after a lost acknowledgment or *outcome unknown*) keeps the same identity and unchanged content (R-7; V1-C AB-05). A **re-draft** receives a new identity (§5) |
 | Lineage | For a re-draft: the identity of the proposal it replaces and why (e.g. stale) |
 | Change items | One or more items, each with its own item identity within the proposal |
-| **Change-item content identity** | An identity of the item's content: operation identity and version, bound targets, old values, new values and the relied-on basis (with relied-on target identities). Method unselected; carries a method designation (C-v0.3 §5.1) (R-6) |
+| **Change-item content identity** | An identity of the item's content: operation identity and version, bound targets, old values, new values and the relied-on basis (with relied-on target identities). Method unselected; carries a method designation (C-v0.4 §5.1) (R-6) |
 
 Rules (R-6):
 
@@ -134,7 +135,7 @@ Rules (R-6):
    extends is the drafter's choice, not a loop merge. Grouping mechanics:
    U-P9 (= LOOP T-OPEN-1).
 
-### 3.2 Consumed catalog meaning (from DEL-03-01/C-v0.3)
+### 3.2 Consumed catalog meaning (from DEL-03-01/C-v0.4)
 
 | Element | From C | Rule here |
 |---|---|---|
@@ -151,7 +152,7 @@ This contract defines no separate basis authority (CLM-003).
 | Semantic element | Meaning | Source |
 |---|---|---|
 | Author type | person or agent | V4-HI-21 |
-| Author identity | The person, or the agent seat instance | V4-HI-21; V4-HOST-05 |
+| Author identity | The person, or the agent seat instance; or **unverified** where the host cannot verify the caller (e.g. over the external channel). *Unverified* is never presented as a verified person or agent; DEL-04-03 R11 records it as an evidence limit | V4-HI-21; V4-HOST-05; R4-15 |
 | Seat role meaning | The role meaning in force for the seat, or *unknown* if it cannot be determined | DEL-02-01 SEAT-1 |
 | Channel | host interface, embedded agent, external agent | V4-PAR-02 (attribution only) |
 | Conversation | Conversation the agent change came from | V4-HI-21 |
@@ -160,19 +161,23 @@ This contract defines no separate basis authority (CLM-003).
 | Standing at drafting | DEL-04-02 grant display state — effective · **effective (policy default)** · requested by agent · set by person, not yet confirmed · unconfirmed · not set · refused (reason) — with **grant value** (direct / propose) and scope, as known when drafted | R-8; R2-6; R-3 point 6 |
 | Settings reference at route decision | The DEL-04-02 settings version identity (or, for *effective (policy default)*, the policy-class record reference and its default) used when the host resolved treatment at validation | R-8; R2-6 |
 | Settings reference at application | The settings version in force at application, **host-reported**; otherwise *unconfirmed* | R-8 |
-| **Governing checkpoint constraint** | Present when a declared workflow checkpoint requires A5 on this operation's result: {workflow run identity, checkpoint name, required act A5, operation identity}. Carried on every dispatch by the host loop (DEL-05-01 §6.2) **and** the external adapter (DEL-03-03). Absent otherwise | R2-12 |
+| **Governing checkpoint constraint** | Present when a declared workflow checkpoint requires A5 on this operation's result: {workflow run identity, checkpoint name, required act A5, operation identity}. Absent otherwise | R2-12 |
+| **Constraint carriage assurance** | How the constraint reached the host route: **App-assured** (an App process on the dispatch path — the host loop per DEL-05-01 §6.2, or an App adapter — adds it from the declaration), **host-held** (the host evaluates its own copy of the selected workflow's declaration), **model-supplied** (the model composed it into the call, as in native external realization) or **absent**. **Model-supplied carriage alone does not satisfy R2-12** for treatment resolution; the host may record it but does not rely on it | R4-14 |
 | Reason | Why the change is proposed, in the proposer's words | V4-HI-24 |
 
 Origin and constraint are preserved through submission, every lifecycle
 transition and outcome reporting; every dispatch carries origin, seat role
-meaning, the grant in force and any governing checkpoint constraint (R-7;
-R2-12). The App-side request origin is recorded by DEL-04-03; the **host
+meaning, the grant in force and any governing checkpoint constraint with
+its carriage assurance (R-7; R2-12; R4-14). The App-side request origin is recorded by DEL-04-03; the **host
 origin mark** is linked, not copied, and a mismatch between the two is an
 evidence limit (V4-HI-71; V1-B D-17).
 
-**Constraint authority limit (R2-12; IR1-B X-9).** A dispatch-carried
+**Constraint authority limit (R2-12; IR1-B X-9; R4-14).** A dispatch-carried
 constraint is supplied by the actor's side, so the host cannot tell an
-omitted constraint from none. Relay question (DEP-001, U-P10): does the host
+omitted constraint from none. Only *App-assured* or *host-held* carriage
+supports the R2-12 treatment; with *model-supplied* or *absent* carriage an
+omission can only be recorded afterwards, which strengthens the host-held
+option (SWBPIPE SQ-02). Relay question (DEP-001, U-P10): does the host
 route receive the per-request constraint, or evaluate its own copy of the
 selected workflow's declaration? If the host uses its own copy, the dispatch
 element is still carried for record comparison. For an App-carried run, an
@@ -271,9 +276,13 @@ Reporting rules:
   checkpoint dispositions is **WD §4.3.7** (PROPOSED; DEL-02-03 confirms at
   W7). "Partial" is a per-item annotation, never a seventh disposition; a
   *performed* over a reduced subject is never presented as "all items
-  accepted" (R2-18). A performed A5 checkpoint stays performed when an
-  accepted item is later refused stale; the declared output is then not
-  produced, and how the hold machine treats that is DEL-02-03's (W7).
+  accepted" (R2-18). Confirmed by DEL-02-03 (R4-7), with WD §4.3.7 MX-3 (a
+  lost decision observation → *unknown*), MX-6 (every item left → the arrival
+  is closed "replaced" by the next arrival) and MX-8 (application error or
+  *outcome unknown* after A5 → disposition unchanged, annotated). A performed
+  A5 checkpoint stays performed when an accepted item is later refused stale;
+  the declared output is then not produced, with an annotation (R3-3). A5
+  never re-holds after resume (R4-3).
 
 ### 4.4 Direct-autonomy branch (V4-HI-22; S-P3)
 
@@ -302,8 +311,9 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
   act, R-4). These are abstract host contributions, host-owned.
 - The basis check applies exactly as for proposals.
 - **Acceptance checkpoint constraint (R-5; R2-12, DERIVED from V4-HI-42 +
-  D2b).** When the request carries a governing checkpoint constraint, the host
-  route resolves *propose* for that operation in that run. A request to
+  D2b).** When a governing checkpoint constraint applies — carried App-assured or
+  held by the host (model-supplied carriage alone is not relied on, R4-14) —
+  the host route resolves *propose* for that operation in that run. A request to
   **apply directly** is **not permitted**, naming the constraint as the
   governing treatment; it is **never converted** into a proposal (R-3.3). The
   proposer may then submit a proposal separately; that proposal's queued
@@ -317,8 +327,9 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
 ### 4.5 Undo (R2-15)
 
 - An undo is a **change through the one route** (§2) via the catalog's undo
-  operation (C-v0.3 OP-C10): its own origin, its own relied-on basis and
-  basis check, its own treatment, its own outcome and its own receipt.
+  operation (C-v0.4 OP-C10): its own origin, its own relied-on basis and
+  basis check, its own treatment — governed by the policy record of the
+  operation whose receipt it reverses (R3-4, INTEGRATION) — its own outcome and its own receipt.
 - Its applied outcome carries the relation **reverses ⟨receipt⟩**, naming the
   reversed change's receipt; the run record additionally links the reversed
   entry. It may equally be *refused*, meet an *application error* or be
@@ -415,7 +426,7 @@ witness is host-owned evidence.
 
 Every non-success outcome carries the **evaluated basis** where the host
 evaluated one. Outcomes apply per change item where items exist. Reporter
-rules for non-success results follow C-v0.3 §4.1.
+rules for non-success results follow C-v0.4 §4.1.
 
 | Outcome | Meaning | Carries | Establishes | Does **not** establish |
 |---|---|---|---|---|
@@ -438,7 +449,7 @@ rules for non-success results follow C-v0.3 §4.1.
 
 Item-left events (§4.3) accompany the refusal/withdrawal outcomes of queued
 items. Whether the host receipt *itself* carries the relied-on basis or the
-resulting objects is a host observation recorded at comparison (C-v0.3
+resulting objects is a host observation recorded at comparison (C-v0.4
 VC-C-04), not assumed.
 
 ## 10. Execution versus human acts (REQ-010, REQ-012; SOW-177; #d3)
@@ -459,25 +470,29 @@ Canonical act names (R-1; DEL-04-01 §2.1).
 | A7 rely (reserved) | Accountable professional | Its own record | Any of the above |
 | A8 request | Agent | Request record, only when actually issued | — it establishes nothing; a failed call is not an A8 |
 | A9 record (faithful recording) | Recorder ≠ decision actor | Reference to the capturing surface's evidence of the act | — it never satisfies a checkpoint by itself (R-5); never made through a reserved act-performing operation (R2-2) |
-| A12 set grant (reserved) | The person | Control act evidence, bound to the setting content (classes, grant values, scope); a later A12 **supersedes** an earlier one (R2-7, PROPOSED) | Agent request (A8) |
+| A12 set grant (reserved) | The person | Control act evidence, bound to the setting content (classes, grant values, scope); a later **established** A12 **supersedes** an earlier one (R2-7, PROPOSED) | Agent request (A8) |
 | A13 enable / disable external access (reserved; disable INTEGRATION) | The person | Control act evidence | Agent request (A8) |
 | Act-declined event (A4, A6, A7, A12) | The person | Capture evidence of the decision not to act | — it is not the act and not A10 (R2-5) |
-| Run-ended event | Loop / run owner | Run record | — the checkpoint stays *waiting* (R2-5) |
+| Run-ended event | The person stopping the run, or an observed end; **reporter**: the loop (V2 m-11) | Run record | — the checkpoint stays *waiting* (R2-5). An ended run is never resumed; acts after the end are shown "after run end" and change nothing; continuation is a new run with **continues ⟨run⟩**, inheriting nothing (R4-4, PROPOSED). An interruption is not a run end |
 | A14 answer tool permission | Person or the user's own Codex mode | App-side R13 record only (R2-8) | — never a professional act, A5 or a grant |
 
 Rules: one act never establishes another; no synthetic prerequisite between
 acts is introduced; checkpoint satisfaction requires attributable evidence
 from the capturing surface — the host's act facility for acts on host content
 (R-5). Whether a particular host exposes a capture-evidence reference is a
-DEP-001 relay question (R2-20). Operation-specific reserved additions await
-`UNRESOLVED{OI-021}`.
+DEP-001 relay question (R2-20). Answers to Codex user-input or MCP
+elicitation requests are **not act evidence** and never host act capture
+(R4-12). An act counts toward a checkpoint only if captured at or after that
+checkpoint's arrival; earlier acts are shown "prior act not counted" (R4-5,
+PROPOSED). A refused or pending A12 supersedes nothing and does not count
+(R4-6). Operation-specific reserved additions await `UNRESOLVED{OI-021}`.
 
 ## 11. M3-CP read-then-action comparison design (return to DEL-03-01)
 
 This is the distinct return retained from SCC-CASE-004 (CASE-002 M3-CP;
 DEP-03-01-026). It supplies DEL-03-01 with designed refusal/application
 behavior and a comparison plan; DEL-03-01 compares basis elements only.
-Steps are the FX-PIPE-01 timeline (C-v0.3 §10.3).
+Steps are the FX-PIPE-01 timeline (C-v0.4 §10.3).
 
 | Step | Action | Basis observed | Proposal reference | Expected P behavior |
 |---|---|---|---|---|
@@ -500,7 +515,7 @@ the association references B2, r14 and the resulting objects; T13 returns
 recorded state; no step rewrites a reference; whether RC-1 itself carries B2
 is recorded as a host observation.
 
-**Evidence labels:** per the C-v0.3 mapping — *illustrative* (this table),
+**Evidence labels:** per the C-v0.4 mapping — *illustrative* (this table),
 *test-double*, *actual host* (candidate-bound SWBPIPE observation, DEL-09-09).
 The first executable return is a candidate-bound test-double observation; it
 is not host evidence (V1-B X-08).
@@ -523,14 +538,14 @@ check before reliance (HI §11).
 
 | Direction | Counterpart | Content |
 |---|---|---|
-| Expect from | DEL-03-01/C-v0.3 | §3.2 elements; §3.1 five class values; §4.1 results and reporters; §4.4; content identities and method designation; per-item "no longer holds" rule; exposure; FX-PIPE-01 incl. OP-C10 undo |
+| Expect from | DEL-03-01/C-v0.4 | §3.2 elements; §3.1 five class values; §4.1 results and reporters; §4.4; content identities and method designation; per-item "no longer holds" rule; exposure; FX-PIPE-01 incl. OP-C10 undo |
 | Expect from | DEL-04-01 | A1–A14 names; class records P-01…P-06 with revision identity; treatment → outcome map; act-declined event; residual `UNRESOLVED{OI-021}` additions |
 | Expect from | DEL-04-02 | Grant display states incl. *effective (policy default)*; grant value and scope per class; settings version identities |
 | Expect from | DEL-02-01 | Workflow identity; checkpoint declarations (required act, subject class, reached-when); §4.3.7 item rule |
 | Expect from | Host owner | Route, de-duplication, treatment resolution, constraint receipt (U-P10), validation outcomes, receipts, resulting objects, origin marks, undo route, views, captured acts with capture-evidence references, settings version at application, stale rule confirmation (U-C3), generation meaning (U-C2), one-effect evidence |
 | Provide to | DEL-04-02 | Direct-branch entry condition and origin semantics (§4.4); standing per outcome (§9) incl. "applied, then reversed" and accepted-then-stale display |
 | Provide to | DEL-04-03 | Canonical §9 taxonomy; per-submission recording and precedence (§5, §7); applied association with resulting objects; change-item content identity for A5/A10 lapse (L-1); origin and constraint (§3.3); act/evidence table (§10); undo relation *reverses ⟨receipt⟩* (§4.5); item-left events (§4.3) |
-| Provide to | DEL-03-03 | This contract unchanged for the external channel; constraint carriage (§3.3); *channel not enabled*, relayed *not exposed*, *not permitted* |
+| Provide to | DEL-03-03 | This contract unchanged for the external channel; constraint carriage assurance (§3.3; model-supplied alone insufficient); *unverified* author identity; *channel not enabled* (App or host reporter), relayed *not exposed*, *not permitted* |
 | Provide to | DEL-05-01 | §9 unchanged; observer-attributed *outcome unknown*; retry keeps identity and precedence; origin, seat role, grant in force and constraint on every dispatch; sibling-draft rule (§3.1 rule 5) |
 | Provide to | DEL-05-02 | Per-item dispositions with actors and annotations, lineage, stale indication, item-left events, "accept" wording (§8) |
 | Provide to | DEL-02-01 / DEL-02-03 | Governing constraint semantics and *not permitted* outcome (§4.4); per-item dispositions, item-left events and all-items-decided indication (§4.3); resulting objects for subject binding (§9) |
@@ -541,7 +556,7 @@ check before reliance (HI §11).
 
 ## 14. Examples (FX-PIPE-01 fixture subjects)
 
-All material is **invented** and taken from the shared catalogue (C-v0.3
+All material is **invented** and taken from the shared catalogue (C-v0.4
 §10). Labels are fixture labels, not identities, wire names or SWBPIPE
 commitments.
 
@@ -567,6 +582,25 @@ commitments.
 | V-S1 | "Item 1 accepted by Engineer A — not applied: refused — stale (relied B2, current ⟨B-r14′⟩)" | "Item 1 accepted" alone; "item 1 applied"; "acceptance lapsed" |
 | V-NP1 proposal of OP-C11 | "Renumber nodes proposed (queued). This operation has no policy basis yet (pending OI-021); proposing grants nothing" | "Renumber nodes permitted" |
 | T17 undo of RC-2 | "Label change RC-2 reversed by RC-3; your check mark on S-4 (T16a) has lapsed because S-4 changed" | "RC-2 deleted"; "check mark still current" |
+
+## Changes from v0.3
+
+v0.3 = P-v0.3 (committed; unchanged at `f05c7e4cd`).
+
+| R4 / source item | Change |
+|---|---|
+| **R4-14** (ADAPTER F-1) | §3.3 new element **constraint carriage assurance** {App-assured, host-held, model-supplied, absent}; model-supplied alone does not satisfy R2-12; §2, §1, §13, VC-P-04 and U-P10 no longer say "the external adapter carries" |
+| **R4-15** (ADAPTER F-8) | §3.3 author identity may be **unverified**; RS R11 evidence limit named |
+| R4-3, R4-7 (EXEC §4.7, F-1) | §4.3 cites DEL-02-03's confirmation with MX-3/MX-6/MX-8; A5 never re-holds |
+| R4-4 (EXEC F-4) | §10 run-ended row: no resumption of an ended run; *continues ⟨run⟩* |
+| R4-5, R4-6 (EXEC F-3, F-5) | §10 rules: capture after arrival; A12 supersedes only when established |
+| R4-12 (EXEC F-9; ADAPTER F-3) | §10 rules: elicitation/user-input answers are not act evidence |
+| **R4-19** / V2 m-3 | §4.5 and U-P8 cite **R3-4**; U-P8 narrowed to mechanism and availability |
+| R4-19 / V2 m-9 | R3 and R4 hashes added to the header |
+| R4-19 / V2 m-11 | Run-ended actor = the person or an observed end; reporter = the loop |
+| R4-19 / V2 m-12 | Nothing in P to close |
+| V2 §3 ("conversation K-7") | K-7 now declared in C-v0.4 §10.1 |
+| C-v0.4 | References to C re-pointed from v0.3 to v0.4 (IDs unchanged; FXA-n rename does not affect P) |
 
 ## Changes from v0.2
 
@@ -612,9 +646,9 @@ v0.2 = P-v0.2 (sha256 942c1a3a…8c89, 575 lines, committed at `c387730fb`).
 | U-P5 Host refusal at application: whether the host distinguishes it from validation refusal in its records | Host owner | Before outcome recording | Refusals never recorded as A10 |
 | U-P6 Operation-specific withdraw/reject rules beyond R-1 | Host owner (V4-HI-30); OI-021 for the connected operation | Before withdrawal implementation | A11 proposer-only; A10 reserved wherever A5 is |
 | U-P7 Item application grouping | Host owner | Before application-path implementation | Item-level dispositions defined |
-| U-P8 Undo route availability, scope, mechanism and treatment (OP-C10) | Host owner | Before undo implementation | §4.5 semantics only |
+| U-P8 Undo mechanism and availability (OP-C10). Treatment is settled: governed by the policy record of the operation whose receipt it reverses (R3-4, INTEGRATION) | Host owner | Before undo implementation | §4.5 semantics; treatment per R3-4 |
 | U-P9 Sibling-draft grouping mechanics (= LOOP T-OPEN-1) | DEL-05-01 with DEL-03-02 and host owner | Before FX-M8 / loop fixtures | §3.1 rule 5 PROPOSED |
-| U-P10 Host receipt of the governing checkpoint constraint, or host evaluation of its own declaration copy (relay, R2-12) | Host owner with DEL-03-02, DEL-05-01, DEL-03-03 (DEP-001) | Before V-CP1 / LOOP FX-C9 / PANEL PC-24 / WD VC-11 execution | Those fixtures AWAITING INPUT; omitted constraint indistinguishable from none |
+| U-P10 Host receipt of the governing checkpoint constraint, or host evaluation of its own declaration copy (relay, R2-12; SWBPIPE SQ-02); which carriage assurances a host can distinguish (R4-14) | Host owner with DEL-03-02, DEL-05-01, DEL-03-03 (DEP-001) | Before V-CP1 / LOOP FX-C9 / PANEL PC-24 / WD VC-11 execution | Those fixtures AWAITING INPUT; omitted constraint indistinguishable from none |
 | Mixed item decisions → checkpoint disposition (WD §4.3.7, PROPOSED) | DEL-02-01; DEL-02-03 confirms at W7 | Before hold-machine fixtures | P supplies item data and item-left events only |
 | U-C2 / U-C3 / U-C4 (shared with DEL-03-01) generation; host confirmation of the per-item stale rule and subject-identity scope; multi-read reliance | Host owner with DEL-03-01/DEL-03-02 | Before stale implementation | Contract rule fixed as INTEGRATION (R2-13) |
 | Register: DOWNSTREAM mirror of DEP-03-01-026; mirrors to DEL-05-01/05-02; UPSTREAM row from DEL-04-02; SatisfactionStatus TBD vs PENDING (V1-B RF-06/08/09; V1-C RF-2) | Register owner at closeout C1 | C1 | None on content |
@@ -622,16 +656,16 @@ v0.2 = P-v0.2 (sha256 942c1a3a…8c89, 575 lines, committed at `c387730fb`).
 
 ## Verification cases
 
-Designed, **not run**. Evidence labels per the C-v0.3 mapping (*illustrative*
+Designed, **not run**. Evidence labels per the C-v0.4 mapping (*illustrative*
 / *test-double* / *actual host*, with LOOP and PANEL equivalents). Steps and
-variants refer to FX-PIPE-01 (C-v0.3 §10.3–§10.4).
+variants refer to FX-PIPE-01 (C-v0.4 §10.3–§10.4).
 
 | Case | Design | Expected result | Serves |
 |---|---|---|---|
-| VC-P-01 Coverage | Map §§1–13 to the twelve scope rows (SOW-070, 090, 091, 170–178), V4-HI-20–25, C-v0.3 elements, R-1–R-9 and R2-1–R2-21 | Every scope row covered; every representation choice named as open with owner; DERIVED/INTEGRATION/PROPOSED markings match R1/R2 | VER-001 |
+| VC-P-01 Coverage | Map §§1–13 to the twelve scope rows (SOW-070, 090, 091, 170–178), V4-HI-20–25, C-v0.4 elements, R-1–R-9 and R2-1–R2-21 | Every scope row covered; every representation choice named as open with owner; DERIVED/INTEGRATION/PROPOSED markings match R1/R2 | VER-001 |
 | VC-P-02 Channel parity | Same OP-C4 proposal, arguments, basis, authority via person, embedded, external; plus invalid (E-location-occupied), stale, direct-without-grant and V-CP1 variants | One route identity; identical outcome/error meanings; direct-without-grant and V-CP1 → *not permitted* on every channel naming the governing treatment/constraint, never converted | VER-002 |
 | VC-P-03 Host authority / no upgraded result | T10 with no A5 captured | Reported *queued*; never *accepted*; domain truth only in host | VER-003 |
-| VC-P-04 Origin, constraint and basis preservation | Trace PR-2 from T9 to T12; V-CP1 dispatch | Author type, seat role, channel, conversation, full workflow identity and run, standing at drafting, both settings references, relied basis B2 and target identities identical at every step; V-CP1 carries the constraint on the loop and adapter dispatch | VER-004 |
+| VC-P-04 Origin, constraint and basis preservation | Trace PR-2 from T9 to T12; V-CP1 dispatch | Author type, seat role, channel, conversation, full workflow identity and run, standing at drafting, both settings references, relied basis B2 and target identities identical at every step; V-CP1 carries the constraint with its carriage assurance; a model-supplied-only V-CP1 variant is not relied on for treatment and is recorded as such; an external caller the host cannot verify shows author identity *unverified* | VER-004 |
 | VC-P-05 Lifecycle branches + direct case | T10→T11→T12; item 2 rejected; a withdrawn proposal; T7 stale; T16 direct; a direct request under *unconfirmed* and under *effective (policy default)* | Each disposition with actor and evidence; applied carries association with resulting objects; T16 records no acceptance; unconfirmed / policy default (propose) → direct *not permitted* | VER-005 |
 | VC-P-06 Unknown outcomes | (a) V-OU1; (b) a submission whose application is not established; (c) application error with effect *unknown* | All report *outcome unknown*, attributed to the observer, with last observed state; no inferred success, failure or act | VER-006 |
 | VC-P-07 Stale, re-draft, stale-after-accept | T5–T9; V-S1 | T7 per-item refusal with failing target S-3, B1, B2, item-left events; PR-2 new identity and lineage citing B2; V-S1 → *refused — stale* at application, A5 not lapsed, display per §4.2, no carry to re-draft | VER-007 |
