@@ -1,3 +1,7 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
 # SCC-CASE-002 open questions and missing inputs
 
 No question below records a ruling. Ruling_Register.csv is intentionally header-only. These prepare the manager's existing project-dag basis checkpoint; they do not create an extra blanket human checkpoint.

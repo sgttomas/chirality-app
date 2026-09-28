@@ -1,3 +1,7 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
 # SCC-CASE-004 questions for the real checkpoint
 
 No answer or owner ruling is recorded by this inquiry. These are concrete questions prepared for WORKING_ITEMS integration, not new approval prompts raised by this TASK.

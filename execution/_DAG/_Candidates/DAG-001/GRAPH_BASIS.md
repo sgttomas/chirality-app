@@ -1,6 +1,6 @@
 # DAG-001 — proposed initial project-graph basis
 
-**Candidate APP-V4-DAG-BASIS-20260928-CANDIDATE-1. Checkpoint1 is pending.** Trigger INITIAL; no predecessor or accepted DAG. The human has already accepted the11 Packages/41 Deliverables and INITIAL setup. This proposal decides the graph's basis, limitations and case tracking; it does not repeat those acceptances.
+**Basis confirmed by APP-V4-DAG-BASIS-20260928-DECISION-1; graph version is not yet accepted.** Trigger INITIAL; no predecessor or accepted DAG. The human has already accepted the11 Packages/41 Deliverables and INITIAL setup. This proposal decides the graph's basis, limitations and case tracking; it does not repeat those acceptances.
 
 ## Intended milestone and objective
 
@@ -47,7 +47,7 @@ An acyclic admitted layer does not resolve or supply held inputs. Held candidate
 
 Abbreviated IDs in this table mean App-v4 DEL-* and SCC-CASE-*. Exact member sets, contributions/OUT/REQ, receivers, alternatives, evidence and next steps are in the linked [reader](READER.md) and stable case folders.
 
-**Case-match proposal reserved to the human in this checkpoint:** continue SCC-CASE-002 as the record for the new13-member component, preserving its original nine-member history and SCC-CASE-004's original two-member inquiry as traceable constituent history. Keep both case IDs/files; do not treat this as a Deliverable, responsibility or product merge. The source-supported extra trace arc exposed a larger existing coupling. Neither case is automatically reassigned or closed before this ruling. Other five member sets match exactly, though positional SCC labels changed.
+**Case match confirmed in [BASIS_DECISION.md](BASIS_DECISION.md):** continue SCC-CASE-002 as the record for the new13-member component, preserving its original nine-member history and SCC-CASE-004's original two-member inquiry as traceable constituent history. Keep both case IDs/files; do not treat this as a Deliverable, responsibility or product merge. The source-supported extra trace arc exposed a larger existing coupling. The actual ruling now continues CASE-002 and links CASE-004 history; it closes no SCC and merges no Deliverables. Other five member sets match exactly, though positional SCC labels changed.
 
 ## What changes the characterized holds
 
@@ -59,4 +59,7 @@ Routine future candidates, review recipients, source sets and contract versions 
 
 A narrower initial-production projection is an explicit alternative described in case/design evidence. It would require named objective-relative selection/cut rulings and retain later obligations outside its admitted layer; it cannot stand for a complete lifecycle order. It is not applied or recommended instead of the full contribution account with characterized candidates.
 
-After actual basis/case-match confirmation, apply that recorded choice, assemble the exact41-node version with complete row accounting, run canonical strict audit on its admitted layer, and obtain separate independent version review. Present that concrete qualified initial version for the method's second human decision. Unresolved SCCs may remain characterized candidates; no further SCC resolution or interface-production tranche is inserted as a pre30 condition. Only after actual version acceptance is its immutable snapshot/pointer/handoff written. Product implementation, input fulfilment, lifecycle and the30% decision remain separate.
+With actual basis/case-match confirmation recorded, assemble the exact41-node version with complete row accounting, run canonical strict audit on its admitted layer, and obtain separate independent version review. Present that concrete qualified initial version for the method's second human decision. Unresolved SCCs may remain characterized candidates; no further SCC resolution or interface-production tranche is inserted as a pre30 condition. Only after actual version acceptance is its immutable snapshot/pointer/handoff written. Product implementation, input fulfilment, lifecycle and the30% decision remain separate.
+
+
+Checkpoint1 decision reference: [BASIS_DECISION.md](BASIS_DECISION.md). Exact presented proposal and79-member manifest recover from Git2a461a47adee03bb868e433a73048265cc0be808; this current graph-version basis is its decision-applied derivative, not future bytes claimed as previously seen.

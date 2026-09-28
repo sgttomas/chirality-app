@@ -1,3 +1,7 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
 # SCC-CASE-006 — questions for the concrete graph-basis checkpoint
 
 - **Q1 — objective/treatment (human with App dependency owner):** For DAG-001's production-order and route-selection objective, retain R1's explicit candidate coupling, select the precisely bounded initial-graph cut R2, or rule graph-only group R3? The cut's exact covered rows, excluded later-use meaning and reconsideration trigger must be stated if chosen. No default answer is recorded.

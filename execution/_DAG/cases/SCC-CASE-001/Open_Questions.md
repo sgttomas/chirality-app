@@ -1,3 +1,7 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
 # SCC-CASE-001 questions for the real project-dag checkpoint
 
 - **Q1 — Graph-basis treatment.** Does the human choose coordinated existing-owner contributions and consider a merge-group for joint SOW-149 qualification (R1), retain unresolved coupling (R3), or define the strictly narrower objective needed to assess R2? Both IDs and all production obligations remain. No ruling has been supplied.

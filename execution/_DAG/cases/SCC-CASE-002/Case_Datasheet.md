@@ -1,5 +1,13 @@
 # SCC-CASE-002 — Workflow, policy-record and host receiving joins
 
+## Current confirmed tracking
+
+CaseState: EVIDENCE_ACCUMULATING. Actual CP1 confirms initial graph basis/candidate characterization and this tracking disposition, through [BASIS_DECISION.md](../../_Candidates/DAG-001/BASIS_DECISION.md), SHA5a269b838d8e923cd4b9c4911b1128244d4854e33c0f4f1c7ab061d18b2acb60. Continuing case for the current13-member component: DEL-01-04;DEL-02-01;DEL-02-02;DEL-02-03;DEL-02-04;DEL-03-01;DEL-03-02;DEL-03-03;DEL-04-02;DEL-04-03;DEL-05-01;DEL-05-02;DEL-09-09. Originalnine-member and CASE004history are preserved. No SCC resolution, input fulfilment, product activation or30% advancement is inferred. Technical remedies remain future proposals at actual points of need.
+
+## Preserved inquiry history
+
+The previously pending proposal and original source observations below are retained as history; current tracking is the confirmed account above.
+
 > **30% framing (current owner clarification):** this case characterizes unresolved work and its later/post30 route. A fully resolved DAG, completed interfaces or supplied future witness inputs are not prerequisites to the30% gate. Input-specific limitations apply only when the corresponding work needs them; no whole-Deliverable/project hold follows. Qualified initial graph-basis/version decisions and the actual30% decision remain separate. See the [recorded clarification](../../../_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md#owner-clarification--30-and-unresolved-sccs).
 
 - CaseState: HUMAN_RULINGS_PENDING. Current thirteen-member continuation/matching and treatment are **PROPOSED** for the existing CP1; no actual matching ruling or remedy has been applied.

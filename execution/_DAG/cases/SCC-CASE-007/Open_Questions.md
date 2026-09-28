@@ -1,3 +1,7 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
 # SCC-CASE-007 open questions
 
 These questions prepare later owner decisions. They are not a request to perform replacement or retire an arrangement now.

@@ -25,3 +25,10 @@ Actual command `python3 -B tools/validation/validate_scc_resolution_case.py proj
 Manager current-framing integration: added the actual owner clarification that characterized unresolved SCCs are expected later/post30 work, with no full-resolution/interface-completion pre30 requirement. Existing source conditions, contributions, case lineage, remedies and absence of rulings remain unchanged. This is current proposal framing, not a rewritten historical observation.
 
 Affected case validator executed after the framing insertion: PASS, exit0.
+
+
+## Actual CP1 application
+
+WORKING_ITEMS verified all79 presented members in Git2a461a47adee03bb868e433a73048265cc0be808 before recording actual confirmation. E-CP1-ACT/CP1-20260928 records only accepted basis/case tracking. Current CaseState EVIDENCE_ACCUMULATING supersedes the earlier pending-basis label; unresolved source contributions/remedies and no-closure standing remain. Unchanged stable member set, characterized unresolved for later/post30 work. No source CSV/index/SoW/status changed.
+
+Actual case validator after the decision-record update: PASS, exit0.

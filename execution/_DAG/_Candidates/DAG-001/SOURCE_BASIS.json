@@ -1,6 +1,6 @@
 {
   "GraphID": "DAG-001",
-  "standing": "CP1_PROPOSAL_NOT_CONFIRMED; refreshed source audit and bounded case characterization complete",
+  "standing": "BASIS_CONFIRMED; QUALIFIED_INITIAL_VERSION_ASSEMBLY_PENDING; VERSION_AND_30_NOT_ACCEPTED",
   "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
   "working_state": "All130 source members remain committed at85dcc17c; current case/reader/owner-framing records are subsequent manager integration, not source-row changes.",
   "manifest": "SOURCE_MANIFEST.sha256",
@@ -204,5 +204,35 @@
       "closure": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
       "standing": "Completed pre-refinement observation; immutable."
     }
-  ]
+  ],
+  "basis_decision": {
+    "path": "BASIS_DECISION.md",
+    "sha256": "5a269b838d8e923cd4b9c4911b1128244d4854e33c0f4f1c7ab061d18b2acb60",
+    "presented_revision": "2a461a47adee03bb868e433a73048265cc0be808",
+    "question_item_id": [
+      "request_user_input_async",
+      "call_W9gLbagdmDVMsYQF93kMzulA",
+      0
+    ]
+  },
+  "case_match": {
+    "SCC-002": "SCC-CASE-002",
+    "members": [
+      "DEL-01-04",
+      "DEL-02-01",
+      "DEL-02-02",
+      "DEL-02-03",
+      "DEL-02-04",
+      "DEL-03-01",
+      "DEL-03-02",
+      "DEL-03-03",
+      "DEL-04-02",
+      "DEL-04-03",
+      "DEL-05-01",
+      "DEL-05-02",
+      "DEL-09-09"
+    ],
+    "retained_history": "SCC-CASE-004",
+    "standing": "Actual basis/case-tracking confirmation; no Deliverable or graph merge-group ruling."
+  }
 }
