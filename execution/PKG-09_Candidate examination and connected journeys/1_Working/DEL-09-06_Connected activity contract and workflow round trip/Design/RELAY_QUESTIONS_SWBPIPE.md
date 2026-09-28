@@ -169,8 +169,12 @@ the answer form requested.
   established* (awaiting this answer); *not enforceable* (no mechanism: App-only
   steps, or a constraint carried only as model-supplied → workflow
   *unsupported*, R4-8). So, until you answer, E1 run from the App through the
-  external channel has `CP-accept` **not established** (its check does not
-  pass), and any App-only checkpoint is **not enforceable**. The App claims no
+  external channel has `CP-accept` **not established**; its `CP-check` arrives
+  on the App agent's own report and holds only App steps, so it is App-only
+  and **not enforceable**, and E1 via the external channel is **unsupported
+  whatever you answer** (EXEC-v0.3 HS-5, MT-2). Your answer can move only
+  `CP-accept`; App-only checkpoints go to the owner's separate D6 follow-up
+  (EXEC U-E23). The App claims no
   hold it cannot enforce, relies neither on interposed code (HP-1) nor on turn
   interruption (HP-2), and records every run action observed while a
   checkpoint waits as **action during hold** (ADAPTER XF-42). V-CP1, FX-C9,
@@ -1036,6 +1040,7 @@ v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a16
 | **R5-10 / R5-4** (V3-B m-1) | SQ-16 no longer over-credits D5: "may flow to the selected model, no gate" is SETTLED (D5); "record and show", now per turn with requested and effective kept apart, is INTEGRATION (DECISION-2 reading) |
 | **R5-10** (V3-B m-8) | SQ-09 assumption: "outcome unknown" applies to submissions only; a read with no stated result is an error as observed |
 | **R5-10** (V3-B MAJOR-3, coverage) | New sub-questions: SQ-03 (e) RS U-12; SQ-05 (g) P U-P6, (h) AS U-04, (i) ACT U-06; SQ-07 (g) C U-C4, (h) C U-C10; SQ-18 (e) C U-C6; SQ-19 (d) WD U-09. WD U-10 added to "Not included" with its D1 reason. §3 map and new VC-R-08 record the nine items |
+| **R5-1 (EXEC-v0.3 alignment)** — in-place fix, no version bump | Per EXEC-v0.3 (commit `d3cebd1cc`, sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e) HS-5, MT-2, U-E23: SQ-02's assumption now says E1's `CP-check` is App-only → *not enforceable*, so E1 via the external channel is unsupported whatever SQ-02 returns; the answer can move only `CP-accept` |
 | **R5-1, R5-2** | SQ-02 assumption uses the four ruled hold-support values; `CP-accept` on X is *not established* until answered; model-supplied-only is *not enforceable*; a host loop's own evaluation is host-held; question (a) asks whether a received constraint is verified against the host's own declaration copy (a merely received constraint keeps its source's assurance) |
 | **R5-9** | Body citations re-pointed to the current sibling versions (P, WD, RS, AS, LOOP, PANEL, HOSTING at v0.4; CA/XT at v0.3); header lists every sibling at `8fb51f07f` with sha256 |
 | V3-B m-7 | v0.1→v0.2 change table: the "SQ count 28" row now says 28 before the G-3 addendum and 32 after |
