@@ -105,3 +105,13 @@ terms found only change-log or negation mentions.
 
 The authors of DEL-02-01, DEL-04-01, DEL-05-01/02 and DEL-03-01 made in-place
 edits without a version bump and reported no new findings.
+
+## V2 and Wave 2 start (dispatched 2026-09-28)
+
+| Node | Type | Scope | State |
+|---|---|---|---|
+| V2 | general-purpose independent reviewer | Bounded consistency check of v0.3 at `ba0b37123` → `reviews/V2.md` | RETURNED: MERGE AS v0.3 DRAFTS; 0 BLOCKING / 1 MAJOR / 13 MINOR |
+| W7 | general-purpose TASK | DEL-02-03 `Design/` (inputs pinned at `ba0b37123`) | ACTIVE |
+| W8 | general-purpose TASK (read-only `gh pr view 885` permitted) | DEL-03-03 `Design/` | ACTIVE |
+
+Wave-2 files are kept out of PR #1039, which carries Wave 1 only.

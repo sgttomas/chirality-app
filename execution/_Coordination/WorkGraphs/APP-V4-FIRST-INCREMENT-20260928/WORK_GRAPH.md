@@ -95,13 +95,15 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | COMPLETE — [V1-A](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-A.md), [V1-B](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-B.md), [V1-C](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-C.md): 4 BLOCKING, 37 MAJOR, 35 MINOR; 24 register findings → C1/D0 |
 | R1 Repair to v0.2 against V1 findings | Same Design folders | V1; [R1_RESOLUTIONS](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md) | Findings dispositioned; affected comparisons rechecked at IR1 | COMPLETE (v0.2 × 9 files); cross-file items → [R2_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R2_CANDIDATES.md) |
 | P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
-| P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2 outputs | R2 v0.3 returned; affected checks; CI | PR merged under standing Git authority | ACTIVE — draft [#1039](https://github.com/sgttomas/chirality/pull/1039) |
-| W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | W4, W1, W2, W3 v0.2 | Compatibility report, checkpoint hold, transfer trace | PLANNED |
-| W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | W3, W1 v0.2 | Enablement states; policy cases; transport-neutral fixtures | PLANNED |
+| P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2, R3, V2 outputs | V2 verdict MERGE (0 BLOCKING); CI green | PR merged under standing Git authority | ACTIVE — [#1039](https://github.com/sgttomas/chirality/pull/1039) ready for merge at candidate recorded in the PR |
+| W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Compatibility report, checkpoint hold, transfer trace; resolves the W7-held items | ACTIVE |
+| W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Enablement states; policy cases; transport-neutral fixtures; MCP/CLI open-choice register | ACTIVE |
 | W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | PLANNED |
 | W10 Host receiving matrix and checklist | DEL-03-04 `Design/` | W1–W9 | Every receiving-map row cites a contribution version or `UNRESOLVED` | PLANNED |
 | W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | COMPLETE — `DEL-01-01/PIN-SPIKE-v0.1`; 18 findings into DEL-01-01 v0.2 |
-| V2 Receiver comparisons, Wave 2 | Run folder | W7–W10 | As V1 | PLANNED |
+| A1 Wave-1 residual sweep (V2 MAJOR-1, m-1…m-13) | Wave-1 `Design/` files | V2 | Residuals fixed or carried with reason | PLANNED |
+| V2 Wave-1 consistency check | `reviews/V2.md` | R3 at `ba0b37123` | Verdict | COMPLETE — MERGE AS v0.3 DRAFTS |
+| V3 Receiver comparisons, Wave 2 | Run folder | W7–W10, A1 | As V1 | PLANNED |
 | IR1/IR2 Independent review | Read-only; `reviews/IR1-*.md` | P2 / P3 candidates | Findings resolved or dispositioned; R2 alignment pass | IR1 ACTIVE |
 | P3 PR-3: Wave-2 definitions | W7–W11, V2 | IR2 | PR merged | PLANNED |
 | D0 DAG currency recheck | Read-only | P3 | Manifests; any relationship change routed to project-dag | PLANNED |
@@ -125,14 +127,19 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: R2 alignment (v0.3) running; then a bounded consistency
-  check of R2 rulings in the v0.3 texts, PR-2 ready and merge; then Wave 2
-  (W7–W10).
+- Next work: V2 consistency check on v0.3 (`ba0b37123`); then PR #1039
+  ready → merge. W7 and W8 running in parallel; then W9 (connected activity +
+  relay) and W10 (guide), V3, PR-3.
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.
 - Graph maintainer: HELP_HUMAN, this session.
-- Open deferrals: SWBPIPE relay (DEP-001, OI-021) not delivered; local
+- Open deferrals: V2 residuals ([reviews/V2.md](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/reviews/V2.md)):
+  MAJOR-1 (T15 grant re-point in DEL-04-01/02/03, DEL-05-02, WD EXAMPLES) and
+  MINOR m-1…m-13 (fixture naming, R3-1 class in DEL-04-02/03, OP-C10 class in
+  EXAMPLES, R3 citations in headers, closing "to be confirmed at V2" markers).
+  Owner: node **A1**, a Wave-1 alignment sweep in PR-3 before V3.
+- SWBPIPE relay (DEP-001, OI-021) not delivered; local
   `codex` CLI install (0.130.0) is broken (missing vendor binary; the user's own
   tool, not changed by this run). W11 observation for owner/DEL-01-05: a fresh
   Codex 0.158.0 home fetches `openai/plugins.git` at app-server start with no

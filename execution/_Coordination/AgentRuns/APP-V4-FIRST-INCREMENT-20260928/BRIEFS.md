@@ -290,3 +290,62 @@ once the listed BLOCKING items are fixed.
   DEL-05-02 and DEL-01-01. Include an independent LOOP↔PANEL check (single
   author) and the HOSTING boundary against PIN_SPIKE_0.158.0.md. R2 items
   X-9, X-10, X-11, X-12, X-14, X-17, X-18.
+
+## Wave 2 — common additions (W7–W10)
+
+The Common brief applies, with three changes:
+
+- Read-only git is permitted.
+- Wave-1 inputs are the **v0.3 Design files at commit `ba0b37123`**. Read them
+  with `git show ba0b37123:"<path>"` and cite that commit plus the file sha256
+  in Consumed inputs.
+- The binding integration rulings are [R1](R1_RESOLUTIONS.md) as amended by
+  [R2](R2_RESOLUTIONS.md) and [R3](R3_RESOLUTIONS.md), together with the owner
+  rulings in [OWNER_DECISIONS.md](OWNER_DECISIONS.md).
+
+Use canonical act names A1–A14, the five class values, the shared fixture
+FX-PIPE-01 from DEL-03-01 C-v0.3 §10 (cite its IDs; name any local case
+`L-‹file›-n` and give its reason), and the checkpoint vocabulary from DEL-02-01
+WD-v0.3. The contribution version starts at v0.1. Items that Wave-1 files hold
+for these nodes must be answered or explicitly carried forward:
+- DEL-02-03 (W7) owns: re-hold after lapse following resume; resumption of an
+  ended run; refused A12 at a checkpoint; confirmation of WD §4.3.7 (mixed
+  items, accepted-then-stale); the holding library; App-side capture (U-25).
+
+## W7 — DEL-02-03 Workflow execution compatibility and round trip
+
+Folder: `PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support`.
+File: `Design/EXECUTION_COMPATIBILITY.md`. Contents:
+- the required-tool compatibility report (consuming WD §4.2.4 and C
+  exposure/availability);
+- the checkpoint hold state machine, which evaluates WD reached-when and
+  subject classes with the six dispositions and the events (act-lapsed,
+  act-declined, run-ended), including interruption and replay, and resolves
+  the held items listed above;
+- the App→host transfer and host→App refinement trace
+  (selected → resolved → supplied → provider-adopted → observed; original and
+  revised identities; derived-from; holding library);
+- missing-tool, checkpoint-hold and round-trip fixture cases on FX-PIPE-01.
+
+Receivers: DEL-02-01, DEL-05-01, DEL-09-06, DEL-04-03.
+
+## W8 — DEL-03-03 Local external-agent receiving adapter
+
+Folder: `PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter`.
+File: `Design/ADAPTER_ENABLEMENT_AND_RECEIVING.md`. Contents:
+- the transport-neutral enablement account: disabled / enabled /
+  endpoint-unavailable / operation-unavailable. Enablement is A13 by the
+  person and grants no autonomy or data destination;
+- how the App's Codex (DEL-01-01 HOSTING v0.3: MCP as a native Codex
+  capability, or a CLI tool) would receive catalog entries, with native-tool
+  identity, availability, standing and basis preserved;
+- carriage of the governing checkpoint constraint (R2-12), origin, grant in
+  force and proposal identity on retry;
+- the same route and policy as the host UI (P one route; not permitted;
+  channel not enabled; not exposed);
+- a transport-neutral consumer fixture inventory, labeled simulated;
+- the owner/act map and an open-choice register for the MCP vs CLI choice
+  (TBD-007), with observed context: draft Piping PR #885 (a private
+  live-control JSON CLI), cited as evidence only and not as a commitment.
+
+Receivers: DEL-09-09, DEL-03-04.
