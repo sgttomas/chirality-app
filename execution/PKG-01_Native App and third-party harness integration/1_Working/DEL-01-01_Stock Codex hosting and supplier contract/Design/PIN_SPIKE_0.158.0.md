@@ -22,7 +22,8 @@ qualification (DEP-005)").
   generator subcommands (and their `--help`); `app-server` over stdio with an
   empty scratch `CODEX_HOME` for the handshake and unknown-method behavior.
 - Not performed: sign-in, model turns, `~/.codex` use, global npm prefix, git
-  operations. Two extra help pages (`app-server proxy --help`,
+  write operations (read-only `git rev-parse`/`git status` were run to record
+  repo state; see DISPATCH.md). Two extra help pages (`app-server proxy --help`,
   `app-server daemon --help`) and two handshake variants beyond the brief's
   minimum (unknown method before `initialize`; `SIGTERM` instead of stdin
   close) were run to answer P-05/P-07; no request other than `initialize` and
@@ -97,7 +98,7 @@ byte-identical between runs):
 | JSON Schema stable | 314 (37 top-level incl. 2 bundles, 2 `v1/`, 275 `v2/`) | 3,534,610 | f4901c6aafb9870a5f6d9b6329c2283bdc1eff8c2b024f02eeb7ade35b527aa4 |
 | JSON Schema experimental | 440 (+126, 0 removed) | 4,280,228 | 95942cbe0624f6685f61727e3feae27e86ffcf67ca161a846295f9e676e6f6c9 |
 
-**What is committed** (`generated/0.158.0/`, total ≈2.93 MB with `_spike/`):
+**What the spike proposed to commit** (`generated/0.158.0/`, total ≈2.93 MB with `_spike/`; superseded by the parent re-selection below and by `generated/0.158.0/COMMITTED_STATE.md`):
 all of `ts/stable/` and `ts/experimental/`; from JSON Schema experimental only
 the two self-contained bundles `codex_app_server_protocol.schemas.json`
 (862,263 B) and `codex_app_server_protocol.v2.schemas.json` (750,395 B), which
@@ -335,7 +336,7 @@ Status per case: RUN (in this spike, result shown) or DESIGNED (not run).
 | Case | Action | Expected result | Status / result | Serves |
 |---|---|---|---|---|
 | SV-01 Regeneration determinism | `_spike/generate.sh <scratch>` with the same package; compare per-variant manifests and `MANIFEST.sha256` | All 2,359 lines match; run1 = run2 per variant | RUN: identical (4/4 variants) | VER-002 |
-| SV-02 Committed-file integrity | `grep -v '^#' MANIFEST.sha256 \| shasum -a 256 -c` in `generated/0.158.0/` | 1,607 OK; 752 reported missing (omitted JSON Schema files) and no mismatch | RUN: 1,607 OK, 752 missing, 0 mismatched | VER-002 |
+| SV-02 Committed-file integrity | `grep -v '^#' MANIFEST.sha256 \| shasum -a 256 -c` in `generated/0.158.0/` | 1,607 OK; 752 reported missing (omitted JSON Schema files) and no mismatch | RUN at spike time (before the parent re-selection): 1,607 OK, 752 missing, 0 mismatched. On the committed tree: 2 OK, 2,357 missing, 0 mismatched; see `generated/0.158.0/COMMITTED_STATE.md` | VER-002 |
 | SV-03 Binary identity | `shasum -a 256` of the vendor binary; `codesign --verify` | 788a818f…35c8; valid | RUN: as expected | VER-001, VER-006 |
 | SV-04 Handshake reproduction | `node _spike/handshake.mjs <scratch> A bin` on a fresh home | 4-field initialize result; `remoteControl/status/changed`; unknown method → -32600; 2nd init → "Already initialized"; exit 0 on stdin close | RUN: as expected (plus plugin fetch, S-F-10) | VER-001, VER-005 |
 | SV-05 Inventory | `python3 _spike/inventory.py` on both schema variants; TS `"method":` count | Counts as §4 | RUN: as §4 | VER-002 |

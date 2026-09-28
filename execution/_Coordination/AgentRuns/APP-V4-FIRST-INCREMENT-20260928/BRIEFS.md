@@ -256,3 +256,37 @@ binary content hash; generator availability and flags; determinism (run
 twice and compare); method/request inventory counts; handshake observations;
 unknown-method response; per-P-item observed / not observed / contradicts
 HOSTING_BOUNDARY v0.1; findings that require a v0.2 change.
+
+## IR1 — independent review of the v0.2 set (fresh reviewers)
+
+**Purpose.** Independently review the nine v0.2 Design files (commit
+`c387730fb`) before PR-2. The R1 repairers built sibling elements from
+[R1_RESOLUTIONS.md](R1_RESOLUTIONS.md), not from sibling text, so the core
+check is **actual v0.2 ↔ v0.2 alignment** at each join. Secondary checks:
+fidelity to each ScopeOfWork (no obligation dropped, no scope added, no
+selected wire/transport/placement), correct use of owner decisions D2–D4
+(no over-claiming), and truthful standing (nothing claims implementation,
+qualification, host delivery or a human act).
+
+**Write scope.** Only `reviews/IR1-<letter>.md` in this run folder.
+Everything else is read-only. No git or network operations.
+
+**Record.** Files reviewed, with sha256. For each join: which of its R1
+resolutions actually hold in both texts, and any residual disagreement (with
+quotes, severity BLOCKING/MAJOR/MINOR, and the side that should change). For
+each assigned [R2_CANDIDATES.md](R2_CANDIDATES.md) item: *agree with the
+proposed treatment*, *amend it* (give the wording) or *reject it* (give
+reasons). Also give SoW-fidelity findings, over-claiming findings and a
+prioritized R2 list. Say plainly if the set is fit to merge as v0.2 drafts
+once the listed BLOCKING items are fixed.
+
+- **IR1-A (policy & records):** DEL-04-01, DEL-04-02, DEL-04-03 against
+  each other and against the policy/record consumers in the other six files.
+  R2 items X-1, X-2, X-3, X-4, X-13, X-15.
+- **IR1-B (catalog & proposal):** DEL-03-01, DEL-03-02 against DEL-04-01/02/03,
+  DEL-05-01/02 and DEL-02-01. Also the shared fixture FX-PIPE-01 (C §10),
+  checked against every file that cites it. R2 items X-5, X-6, X-7, X-8, X-9.
+- **IR1-C (workflow, loop, panel, hosting):** DEL-02-01, DEL-05-01,
+  DEL-05-02 and DEL-01-01. Include an independent LOOP↔PANEL check (single
+  author) and the HOSTING boundary against PIN_SPIKE_0.158.0.md. R2 items
+  X-9, X-10, X-11, X-12, X-14, X-17, X-18.
