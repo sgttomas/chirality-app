@@ -1,0 +1,447 @@
+{
+  "subject_status": "PASS",
+  "failures": [],
+  "assembly_manifest_members": 36,
+  "source_manifest_members": 130,
+  "historical_presentation_members": 79,
+  "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
+  "reviewed_current_revision": "36d8ce5aab5c69c5196363c489d3f4b6e1533fee",
+  "nodes": 41,
+  "packages": 11,
+  "source_counts": {
+    "TotalRows": 759,
+    "AnchorRows": 355,
+    "RetiredRows": 1,
+    "ActiveExecution": 403
+  },
+  "layers": {
+    "DependencyEdges.csv": 109,
+    "CandidateEdges.csv": 52,
+    "ExcludedRows.csv": 242
+  },
+  "topological_source_rows": 201,
+  "representative_arcs": 161,
+  "exclusions": {
+    "NOT_TOPOLOGICAL": 202,
+    "MIRROR": 38,
+    "SAME_ARC": 2
+  },
+  "non_topological_targets": {
+    "EXTERNAL": 144,
+    "PACKAGE": 18,
+    "DOCUMENT": 26,
+    "UNKNOWN": 14
+  },
+  "satisfaction": {
+    "TBD": 278,
+    "PENDING": 125
+  },
+  "required_maturity": {
+    "TBD": 208,
+    "INITIALIZED": 195
+  },
+  "source_core_field_count": 29,
+  "representative_core_comparisons": 4669,
+  "sccs": [
+    [
+      "DEL-01-01",
+      "DEL-01-05"
+    ],
+    [
+      "DEL-01-04",
+      "DEL-02-01",
+      "DEL-02-02",
+      "DEL-02-03",
+      "DEL-02-04",
+      "DEL-03-01",
+      "DEL-03-02",
+      "DEL-03-03",
+      "DEL-04-02",
+      "DEL-04-03",
+      "DEL-05-01",
+      "DEL-05-02",
+      "DEL-09-09"
+    ],
+    [
+      "DEL-01-06",
+      "DEL-09-01"
+    ],
+    [
+      "DEL-07-01",
+      "DEL-07-02",
+      "DEL-08-01"
+    ],
+    [
+      "DEL-10-02",
+      "DEL-10-04"
+    ],
+    [
+      "DEL-11-01",
+      "DEL-11-03"
+    ]
+  ],
+  "self_loops": [],
+  "admitted_isolated_nodes": [],
+  "raw_hubs": {
+    "DEL-04-03": 21
+  },
+  "mirror_differences": {
+    "Statement": 40,
+    "DependencyType": 37,
+    "RequiredMaturity": 0,
+    "ProposedMaturity": 0,
+    "SatisfactionStatus": 13
+  },
+  "status_counts": {
+    "INITIALIZED": 41
+  },
+  "accepted_pointer_exists": false,
+  "per_register": {
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Dependencies.csv": {
+      "TotalRows": 24,
+      "AnchorRows": 15,
+      "RetiredRows": 0,
+      "ActiveExecution": 9,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 8
+    },
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Dependencies.csv": {
+      "TotalRows": 21,
+      "AnchorRows": 17,
+      "RetiredRows": 0,
+      "ActiveExecution": 4,
+      "DependencyEdges.csv": 3,
+      "ExcludedRows.csv": 1
+    },
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv": {
+      "TotalRows": 18,
+      "AnchorRows": 10,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 2,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv": {
+      "TotalRows": 19,
+      "AnchorRows": 6,
+      "RetiredRows": 0,
+      "ActiveExecution": 13,
+      "DependencyEdges.csv": 3,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 8
+    },
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv": {
+      "TotalRows": 16,
+      "AnchorRows": 11,
+      "RetiredRows": 0,
+      "ActiveExecution": 5,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Dependencies.csv": {
+      "TotalRows": 12,
+      "AnchorRows": 5,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 1,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv": {
+      "TotalRows": 24,
+      "AnchorRows": 16,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 4,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv": {
+      "TotalRows": 19,
+      "AnchorRows": 11,
+      "RetiredRows": 1,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 2,
+      "CandidateEdges.csv": 4,
+      "ExcludedRows.csv": 1
+    },
+    "PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv": {
+      "TotalRows": 21,
+      "AnchorRows": 8,
+      "RetiredRows": 0,
+      "ActiveExecution": 13,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 4,
+      "ExcludedRows.csv": 8
+    },
+    "PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv": {
+      "TotalRows": 16,
+      "AnchorRows": 9,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 2,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv": {
+      "TotalRows": 30,
+      "AnchorRows": 21,
+      "RetiredRows": 0,
+      "ActiveExecution": 9,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv": {
+      "TotalRows": 26,
+      "AnchorRows": 15,
+      "RetiredRows": 0,
+      "ActiveExecution": 11,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 3,
+      "ExcludedRows.csv": 7
+    },
+    "PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv": {
+      "TotalRows": 12,
+      "AnchorRows": 5,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 4
+    },
+    "PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Dependencies.csv": {
+      "TotalRows": 20,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 16,
+      "DependencyEdges.csv": 15,
+      "ExcludedRows.csv": 1
+    },
+    "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Dependencies.csv": {
+      "TotalRows": 21,
+      "AnchorRows": 11,
+      "RetiredRows": 0,
+      "ActiveExecution": 10,
+      "DependencyEdges.csv": 1,
+      "ExcludedRows.csv": 9
+    },
+    "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv": {
+      "TotalRows": 14,
+      "AnchorRows": 6,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 5
+    },
+    "PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv": {
+      "TotalRows": 20,
+      "AnchorRows": 10,
+      "RetiredRows": 0,
+      "ActiveExecution": 10,
+      "ExcludedRows.csv": 10
+    },
+    "PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv": {
+      "TotalRows": 24,
+      "AnchorRows": 13,
+      "RetiredRows": 0,
+      "ActiveExecution": 11,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 6,
+      "ExcludedRows.csv": 4
+    },
+    "PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv": {
+      "TotalRows": 18,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 14,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 5,
+      "ExcludedRows.csv": 8
+    },
+    "PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv": {
+      "TotalRows": 13,
+      "AnchorRows": 6,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 4,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/Dependencies.csv": {
+      "TotalRows": 16,
+      "AnchorRows": 7,
+      "RetiredRows": 0,
+      "ActiveExecution": 9,
+      "DependencyEdges.csv": 3,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv": {
+      "TotalRows": 15,
+      "AnchorRows": 8,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv": {
+      "TotalRows": 15,
+      "AnchorRows": 9,
+      "RetiredRows": 0,
+      "ActiveExecution": 6,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv": {
+      "TotalRows": 16,
+      "AnchorRows": 7,
+      "RetiredRows": 0,
+      "ActiveExecution": 9,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 7
+    },
+    "PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv": {
+      "TotalRows": 12,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 2,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv": {
+      "TotalRows": 30,
+      "AnchorRows": 12,
+      "RetiredRows": 0,
+      "ActiveExecution": 18,
+      "DependencyEdges.csv": 6,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 10
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Dependencies.csv": {
+      "TotalRows": 31,
+      "AnchorRows": 8,
+      "RetiredRows": 0,
+      "ActiveExecution": 23,
+      "DependencyEdges.csv": 12,
+      "ExcludedRows.csv": 11
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/Dependencies.csv": {
+      "TotalRows": 13,
+      "AnchorRows": 5,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 6,
+      "ExcludedRows.csv": 2
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv": {
+      "TotalRows": 24,
+      "AnchorRows": 11,
+      "RetiredRows": 0,
+      "ActiveExecution": 13,
+      "DependencyEdges.csv": 4,
+      "ExcludedRows.csv": 9
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Dependencies.csv": {
+      "TotalRows": 25,
+      "AnchorRows": 10,
+      "RetiredRows": 0,
+      "ActiveExecution": 15,
+      "DependencyEdges.csv": 1,
+      "ExcludedRows.csv": 14
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv": {
+      "TotalRows": 20,
+      "AnchorRows": 6,
+      "RetiredRows": 0,
+      "ActiveExecution": 14,
+      "DependencyEdges.csv": 2,
+      "CandidateEdges.csv": 4,
+      "ExcludedRows.csv": 8
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/Dependencies.csv": {
+      "TotalRows": 11,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 7,
+      "DependencyEdges.csv": 3,
+      "ExcludedRows.csv": 4
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/Dependencies.csv": {
+      "TotalRows": 10,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 6,
+      "DependencyEdges.csv": 2,
+      "ExcludedRows.csv": 4
+    },
+    "PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/Dependencies.csv": {
+      "TotalRows": 14,
+      "AnchorRows": 6,
+      "RetiredRows": 0,
+      "ActiveExecution": 8,
+      "DependencyEdges.csv": 2,
+      "ExcludedRows.csv": 6
+    },
+    "PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Dependencies.csv": {
+      "TotalRows": 22,
+      "AnchorRows": 11,
+      "RetiredRows": 0,
+      "ActiveExecution": 11,
+      "DependencyEdges.csv": 1,
+      "ExcludedRows.csv": 10
+    },
+    "PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/Dependencies.csv": {
+      "TotalRows": 13,
+      "AnchorRows": 10,
+      "RetiredRows": 0,
+      "ActiveExecution": 3,
+      "DependencyEdges.csv": 1,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 1
+    },
+    "PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Dependencies.csv": {
+      "TotalRows": 20,
+      "AnchorRows": 7,
+      "RetiredRows": 0,
+      "ActiveExecution": 13,
+      "DependencyEdges.csv": 10,
+      "ExcludedRows.csv": 3
+    },
+    "PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/Dependencies.csv": {
+      "TotalRows": 14,
+      "AnchorRows": 4,
+      "RetiredRows": 0,
+      "ActiveExecution": 10,
+      "DependencyEdges.csv": 2,
+      "CandidateEdges.csv": 1,
+      "ExcludedRows.csv": 7
+    },
+    "PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/Dependencies.csv": {
+      "TotalRows": 12,
+      "AnchorRows": 7,
+      "RetiredRows": 0,
+      "ActiveExecution": 5,
+      "DependencyEdges.csv": 3,
+      "ExcludedRows.csv": 2
+    },
+    "PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/Dependencies.csv": {
+      "TotalRows": 22,
+      "AnchorRows": 7,
+      "RetiredRows": 0,
+      "ActiveExecution": 15,
+      "DependencyEdges.csv": 2,
+      "ExcludedRows.csv": 13
+    },
+    "PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/Dependencies.csv": {
+      "TotalRows": 16,
+      "AnchorRows": 5,
+      "RetiredRows": 0,
+      "ActiveExecution": 11,
+      "DependencyEdges.csv": 3,
+      "CandidateEdges.csv": 2,
+      "ExcludedRows.csv": 6
+    }
+  }
+}

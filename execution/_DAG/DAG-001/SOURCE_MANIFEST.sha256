@@ -1,0 +1,130 @@
+008863b143a87d1c1880e54c173c88631a58e4792ed9d6d966780c1765a5b783  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Dependencies.csv
+eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/ScopeOfWork.md
+b3f8bdbda038b26ef5283e3c9ee90e068a371bbe3144af8660fe1a23a26590db  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_DEPENDENCIES.md
+84451e124cf2718581a4e86c97e62d4598838ac202ec371ddc12f2e4ebc55948  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Dependencies.csv
+057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/ScopeOfWork.md
+2f40aa30435a6654cab7b6b91843257cfff19ff40ca49ba16c64dd23d8b9898e  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_DEPENDENCIES.md
+9ac820166dd07dde8bbad59ba1c2b0818ab7f4ff4b435c6991cc2d887ddeedf4  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv
+b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md
+fe49681791ad749e98353a9cc02bac5503bcfe5c37606927988e1bddc95ddb0e  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_DEPENDENCIES.md
+45546cfeeac2509b975d42dccb132fee6f1baf62600d1c9b8559c7ac665f61e3  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv
+7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/ScopeOfWork.md
+3caaec7fb441ac3fa4110738e806f08f05beb096d1c0954ddc86b3088228f74f  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_DEPENDENCIES.md
+3b038c98f97cd6855b42b10e1602a24c34152f3defa582c037d6ee642f4796a6  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv
+baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md
+7f9f3f8101ccbdcd0dca2bb6f6a4d75217c35802a4940542f83e82530a9030b0  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_DEPENDENCIES.md
+19c3eb3574e9bdf263cac37a4f7bb2ff0328fc239180c3f72c2e32c6d0037f86  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Dependencies.csv
+08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md
+3610b878100892b397271979bb344420ffd323b4cbef8561674aafaf7ba7b3a0  PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_DEPENDENCIES.md
+539520b43bdc74f91024aac112b86823add8db40d8971efa10342f7c99395e96  PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv
+080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294  PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md
+c27258ad74d955df8fa578cce70f8be025ea3e90020ae16fb3c06959cf29a5c8  PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_DEPENDENCIES.md
+01cc89fa7e4fbbc16d8ab51d19df122efe98547657c1610049fe5859616386d0  PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv
+b0a1a8a4aa6f53057c8db4bb33c65c5e697f45ae509088a570a70ff8cee295ec  PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/ScopeOfWork.md
+28ff604013909784c91f82591444b5e468e4971042b78415daae82959a2f43bd  PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_DEPENDENCIES.md
+be8c2c02491ed181f9c9c66a1da89b2c2ef9347bae61bd2535d74bad0f664f75  PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv
+9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb  PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/ScopeOfWork.md
+c461be9b42de5d2e309d27abe50958ce9054bb3e89f7ca3a32efa3e208ce886b  PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_DEPENDENCIES.md
+0cb255b3270dfe616f434e8974795eb6b9a9e37aceb5da9972823d5a3cf0a267  PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv
+3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601  PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md
+0b91e27612ca67ee379505d0c72c02227b53c2b8b146d02b5bcf1b2c89835c5c  PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_DEPENDENCIES.md
+36f9efd7cfeb78aa3c70a8ded53dc1c6959dbddb2e070c6966674fcb86ef2ad8  PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv
+179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84  PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md
+b564d35aa593e1c0ddfa327f9b0f8c789655926aa76b10c491150f5f6a48eae2  PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md
+adabeccc3726b249830f584bc8618342358779a0116335e0c58a73895c0c5e2d  PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv
+42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a  PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md
+ad94c12dc5937bab8269e04d3090b2e8f2a52175ee42068364ca4a3d1ddfe43e  PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md
+a962d4d5007fd037b07a8e65bce42957d995a8e34bc3f17581d0eda3748067cf  PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv
+5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6  PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/ScopeOfWork.md
+95efc22df551f741c558167811842c03437990c6f214b5561eadce61a425e2f0  PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_DEPENDENCIES.md
+b41eacd01cdef10e455017cda7afdfae85b2a2a2e989fad481d697f4e862ac17  PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Dependencies.csv
+203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436  PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/ScopeOfWork.md
+87c9fdf1227ae59dcf709755b1be6a6d003c8f5961abd09899f9ed41632407d5  PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_DEPENDENCIES.md
+1cae4948f4e9d5297d8e8d3ec31bd06ed3faf0bf4af77dfbec937d3141d2a133  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Dependencies.csv
+fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/ScopeOfWork.md
+1d12620c4115a8066755c95747d3def945649766e7b030abcdcc1670e9fbb3e4  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_DEPENDENCIES.md
+eb5303694f0d19816e1fbbe7ab1f0937365dceefb68071224b4972e0875db739  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv
+23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/ScopeOfWork.md
+edd367078d5561f82ddb25706bab6c53b92f31680240420a6e0ebc31b1d82285  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_DEPENDENCIES.md
+a44e67f4bfd69be6dd2565db42564a4970129151ba4bf0b9532b33ca471634e9  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv
+74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/ScopeOfWork.md
+a64cf419f391bac9dabc1bc412b9e66dbc8b2d6c6ac47e8d30117efc566c295d  PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_DEPENDENCIES.md
+fd44d166f9396d0e9a9ed7a516d1dc6054d5d8337817a9d007ddfd8cd1daf5dd  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv
+6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/ScopeOfWork.md
+46bbb080e248cb2dcf0d46b2221b95caa4f489265426d5c570325e59d43a9d63  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_DEPENDENCIES.md
+92067b628007cee18b20e2f2a4282549e7e1e21354bbbae1394f38df117618fc  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv
+5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/ScopeOfWork.md
+abf784e0c13cedffca64324866c0656087a4f8a9ea6104d10fc24f411485c975  PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_DEPENDENCIES.md
+ddcf0d0efd17b1076fbe7a28fa397cad867d685afc67836b1d636de067530a3c  PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv
+50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9  PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/ScopeOfWork.md
+e1da95edef6c76c4f57c3752d924932f18492d6fc83ff8ffc151198b3b2314cc  PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_DEPENDENCIES.md
+732a2809db079b8fa46f6468d5aae5dc6cc72720cc687dfd1817b8f2cdb5466e  PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/Dependencies.csv
+3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7  PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md
+baecd737c3873555ab5a76ffbdd3ea7dd5b9333fca22908cf75b01b9d9b2fe53  PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_DEPENDENCIES.md
+62fc67a92d230f27bb5b3b62d4a65772245dc1810ef0b74f05df749c94308fa3  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv
+5e2fba1d2191d97832a3f09feeb91f4f4231775a6a99b2b6c769a54c43edc5e3  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/ScopeOfWork.md
+12bb5cd64ebcce13f62357ef5871c4f86f8d88d5c0f95a130e95c4e7dd07e202  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_DEPENDENCIES.md
+42b737be974b711a72570e910b716a834782ffaba5e693dd23988163170f9122  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv
+6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md
+3b1d0e1f0f578707a6a3aad94e754ed41612d3efcc1d00f65bebe53bc8dc8d19  PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_DEPENDENCIES.md
+99605b53b22a4c0a127316660bad70f32f6dc03ea560db4e3e2e1b81fdd94c1b  PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv
+581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1  PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md
+9351dc2673dafa05e5feed3b34c875276a524133d1b992cebebad3215a134696  PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_DEPENDENCIES.md
+18b0ab8b79e9faac97161c92f0441197f9f609342c5beb5aa0e241b1158b88de  PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv
+43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006  PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/ScopeOfWork.md
+c25bbca746d422d43c0f269c688b0b0f39f6006db861f4dfd49ac01f42a54d12  PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_DEPENDENCIES.md
+96ea447bba37f1225d305569226e822123ab52d9aa2e2e5c8f48e5200e5352f9  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv
+8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md
+68a9010c3e1c6c008b047cc9b7c6061b0cb34de0bf3fd514d9f085c8bfaffebf  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_DEPENDENCIES.md
+8da5bece8198cc1fd74394d7764b3c0f4ac019e8e359ba5e1de6a07ffbfff15a  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Dependencies.csv
+327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/ScopeOfWork.md
+62386305c3ff65e4604561b08c3f1e9de8ba911c2904350c049800d23b7611c5  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_DEPENDENCIES.md
+eeb2059436caa01f6f7ddde6dcce105348f2da70d5c6598604fe5159c60c26af  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/Dependencies.csv
+35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/ScopeOfWork.md
+3943a27b61854a121e9af5f4340a26997e78294ed2c2a8aa149ef829fa7f1f33  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_DEPENDENCIES.md
+ce3218a22a8629a731a05f5d24093e9aee6660b011a63414b1589c828e4297ed  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv
+511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/ScopeOfWork.md
+0943c9beccc31781aa20ecfd49945664001ab398c83ea6fd4d1057f482711f08  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_DEPENDENCIES.md
+a18008ceb3e1b1e7632775255cba1cd4e6842b35cd66e47bf1681167ae90bf75  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Dependencies.csv
+36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/ScopeOfWork.md
+6705cd6f038e6effb566800d8b49bc4af7a8be9f24c1e7114774ca564aeb5776  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_DEPENDENCIES.md
+02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv
+082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md
+bd82758a315e989473ea213c946d353542dfa43e836befa4640ee8db277c57a3  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_DEPENDENCIES.md
+98b586fb2c9432ac2d2383db800676315f15a424f3590d6f4f408a5dc406c146  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/Dependencies.csv
+a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md
+1d36ee704b0edb8bd5c09cc606184218b06c8df29d9f3500642a9b960d8b9b68  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_DEPENDENCIES.md
+ccc0817502711be66f49b345fda0e600aa8087ce7f6016561fe58c262bd307b5  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/Dependencies.csv
+e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md
+32f5860572dc640c04743548f08599306713ddaddbdfe30236570a1516079aa9  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_DEPENDENCIES.md
+8af979f146694fd743bb734a45416a02255d312c3a68e99eabe348258823780c  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/Dependencies.csv
+40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md
+7ee7713ed5657755500df2e05ddc41a9877c56ba097bfecf0a04a5edfd2b1924  PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_DEPENDENCIES.md
+ec95f7c0246bc83b6a53c2a1a5d7d9c59a21550375cfdb255a814f7a339ec7c9  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Dependencies.csv
+7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/ScopeOfWork.md
+09cfadc160c43e31d51054f41cdb702282be257f3c4e5d30015494a63df23028  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_DEPENDENCIES.md
+42a7edd14cb1d48c628c1f961d59a951dfd7d62c827a7459b0c318d5d4187cdd  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/Dependencies.csv
+d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md
+407470ba03edb25aba451568d854768130a41749ad7b8ebd8af53c1fd2b6df3b  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_DEPENDENCIES.md
+589e50c3c9ff138f9bb89ebb762bfc0f3720de91e5aaf7d0909ea744cf529ddd  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Dependencies.csv
+4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md
+ddd0bf51db31f7c95b7602536af17d00862b116293410f41f5ab2f5a44920ccb  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_DEPENDENCIES.md
+2469ec61bdf3017d18abda563d872b9fae89c76d693e371acf0ff0095ca66011  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/Dependencies.csv
+fb62502a0f59b226607ed6a04cbbd9ffbafab35edcfe45a1a7307cfcc80d2177  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md
+84047d3585009eb3226d628553e76e42b673c08499a33eb6247db2735baa245c  PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_DEPENDENCIES.md
+523c702c824c0fd4271ca7fdd898ac1be304640070093ffea9c108e0198259a8  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/Dependencies.csv
+272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/ScopeOfWork.md
+8da9cbc6bc3d2c89a1dbdbfe2a0d2aa18da22b5caf9c09d0d3114369067406a2  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_DEPENDENCIES.md
+788eea0c3db616c06e618c5039c00c2887a3b41c71d0c956562fdb9d5ef7797d  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/Dependencies.csv
+2d962646f8b24a1b76fcd30307859f7c7632c25e78864c28b5fd04fb687a057c  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md
+dd3ad632f54056be25be0d8764df764934cb8e1ecfc635204c35194abba018f0  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_DEPENDENCIES.md
+96d3e9326705fc5d82a914a244a7651f1d07549152f31d0b8c50d8dc45d9b2e3  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/Dependencies.csv
+0177354357b07ea177491cffc2b1c75ffac578e179ba96e63e91d6ba34dcf5b6  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md
+8452503d8ef5d1def447c266c7da71efa9779dbe8d3b75e1648d1b77b03e632f  PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_DEPENDENCIES.md
+8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9  _Coordination/_COORDINATION.md
+14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982  _Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
+bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb  _Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv
+e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248  _Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv
+b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd  _Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv
+363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73  _Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv
+d5d873b3b918fd508685871abf177e90104b98524c5cea52944dfa2f5a695ead  _Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md

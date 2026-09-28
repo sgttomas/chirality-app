@@ -1,0 +1,34 @@
+{
+  "result": "PASS",
+  "actor": "/root",
+  "takeover": "Interrupted manager usage limit; owner authorized finishing30closeout;60hold retained",
+  "snapshot_files_verified": 59,
+  "gate_members_verified": 125,
+  "currency": "CURRENT",
+  "consulted_origins": [
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "sha256": "0c2fe7a3097ad26c93c0267e4da6aaf90c9264489df8dc368fad657bcac69183"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "sha256": "9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450"
+    },
+    {
+      "path": "workflows/project-dag/resources/method.md",
+      "sha256": "4a5566bfbc9f3d6b12f8faa574c5187d22a27bb913b0ff1302e68c220d698d6b"
+    },
+    {
+      "path": "workflows/project-dag/resources/currency.md",
+      "sha256": "d2927ed4ac96ebc750c1917726bc0b598832d414d0cd2f31343ddc994deac466"
+    },
+    {
+      "path": "workflows/project-setup/resources/contract.md",
+      "sha256": "e9f0d11ba520397da5b51f8271b01341bd77c1239f857046b60a7b1885ec218e"
+    }
+  ]
+}
