@@ -1,12 +1,12 @@
 # SWBPIPE answers to the App v4 relay questions (RELAY-v0.3)
 
-- **Answers:** `RELAY_QUESTIONS_SWBPIPE.md` RELAY-v0.3, as committed on main at `c6f81a4f2` (sha256 `a8cae06fd4b208087614e9c4cc7e2b91e36f3b98cd11e6f4093fd946d1177f2b`), SQ-01…SQ-32. That file is in `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Design/`.
+- **Answers:** `RELAY_QUESTIONS_SWBPIPE.md` RELAY-v0.3, as committed on main at `c6f81a4f2` (sha256 `a8cae06fd4b208087614e9c4cc7e2b91e36f3b98cd11e6f4093fd946d1177f2b`), SQ-01…SQ-32. Main `d1cc97ce4` (#1046) later changed that file in place (sha256 `83466d67a44328c53b25b8a4b0b5d4b6b378ca1b6cde81d5e772abe1d998dd53`): the header status, the §4 ledger and change-log rows, and VC-R-04. No question text changed, so these answers apply to it unchanged. That file is in `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Design/`.
 - **Answering party:** the SWBPIPE (chirality-piping) ROOT session, a HELP_HUMAN agent working on the owner's Mac at the owner's request, 2026-09-28. At the owner's direction, this session placed this file and its fact sheet beside the questions (see §6).
   - **These are not the owner's personal answers, and no commitment is made on the owner's behalf.** Every item that is the owner's to decide is marked **OWNER DECISION** and left open.
   - In the terms of the App's return ledger (§4 of the questions), every entry here is an **answer** about the current state of SWBPIPE. None is a *commitment*, a *delivered contribution* or an owner's *stated intention*. Where a SWBPIPE record states a plan, it is cited as the record's plan.
 - **The ROOT session's own standing:** it runs SWBPIPE's T3 numerical-integrity work (solver correctness, result publication, and the both-entry and T9 gates). The agent-facing work these questions concern is outside T3 and is currently deferred by the owner (see A-2 below). Facts outside T3 come from a read-only research pass, which ROOT reviewed.
 - **SWBPIPE basis:**
-  - main `24dea2dae`. Main has since moved to `65e2d6c2a`, the base of the delivery, but that delta touches only `projects/chirality-app-v4/`, so the piping tree is identical;
+  - main `24dea2dae`. Main has since moved to `d1cc97ce4`, the base of the delivery, but that delta touches only `projects/chirality-app-v4/`, so the piping tree is identical;
   - draft PR #885 (sgttomas/chirality), head `12907f393`: **open, unmerged, deferred**.
 - **Evidence:** every statement below rests on a file:line citation in the fact sheet `FACTS_SQ01_SQ32.md`, kept beside this file (sha256 `2f61d3ba4e1cc9bedb799bf15c600d67e4820b7305741a1269d4a08355b4ddfc`). Paths use `P/` = `projects/chirality-piping/`.
 
