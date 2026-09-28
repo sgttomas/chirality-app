@@ -1,6 +1,6 @@
 # App v4 project-definition work graph
 
-Status: ACTIVE — correction merged; PEC and merged-source workflow comparisons complete; Groups 1/2 accepted; Group3 final assembly and independent audit active. Owner WORKING_ITEMS under HELP_HUMAN. The prior definition package merged via PR999 (`c26677c8a`); that did not accept Group1. The current [direction](../../Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md) authorizes settled corrections and retains the broader definition undertaking.
+Status: ACTIVE — correction merged; PEC and merged-source workflow comparisons complete; all three decomposition groups accepted; INITIAL setup proposal awaits the coordination choice. Owner WORKING_ITEMS under HELP_HUMAN. The prior definition package merged via PR999 (`c26677c8a`); that did not accept Group1. The current [direction](../../Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md) authorizes settled corrections and retains the broader definition undertaking.
 
 | Node | Result / prerequisite | Owner | State | Evidence / next |
 |---|---|---|---|---|
@@ -15,9 +15,10 @@ Status: ACTIVE — correction merged; PEC and merged-source workflow comparisons
 | CP1 | Confirm identified normalization and preserve actual act | Human via HELP_HUMAN | COMPLETE | [Accepted Group1 pointer](../../../_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md); exact question/answer, hashes and byte-preserving snapshot recorded |
 | GROUP2 | Cohesive flat Packages and bounded Deliverables from accepted Group1 | WORKING_ITEMS | COMPLETE | 11 Packages/41 Deliverables approved; broad and clarification reviews PASS; [accepted Group2 pointer](../../../_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md) records composite custody and exact consolidation |
 | CP2 | Decide structure, coverage findings and exceptions | Human via HELP_HUMAN | COMPLETE | Exact approval of all five recommendations and Group2 in [decision](../../../_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/DECISION.md); no prior owner byte-review claim for consolidated C2 |
-| GROUP3 | Assemble accepted decisions and perform separate independent final audit | WORKING_ITEMS / fresh TASK auditor | ACTIVE | [Final reader](../../Reviews/APP-V4-GROUP3-20260927/READER.md); only stage housekeeping changes, no production setup |
-| CP3 | Accept final decomposition for downstream use or return affected parts | Human via HELP_HUMAN | FUTURE | Actual final audit and human act required; no _LATEST_ACCEPTED pointer or setup yet |
-| DEFINITION | Selected setup/local SoWs → dependency evidence/closure → accepted current project DAG → undertaking graphs | WORKING_ITEMS | FUTURE | Select needed stages/activation; retain external consumer boundaries and actual method decisions |
+| GROUP3 | Assemble accepted decisions and perform separate independent final audit | WORKING_ITEMS / fresh TASK auditor | COMPLETE | [Final audit PASS](../../Reviews/APP-V4-GROUP3-20260927/REVIEW.md); source68fbdb27b merged asffb2b6289 viaPR1027 after required CI |
+| CP3 | Accept final decomposition for downstream use or return affected parts | Human via HELP_HUMAN | COMPLETE | Exact owner act and19 byte-identical copies in [final accepted pointer](../../../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md) |
+| SETUP-CHOICE | INITIAL coordination representation, tracking/rules and lifecycle policy | Human via HELP_HUMAN | WAITING | [Concrete grouped proposal](../../INITIAL_SETUP_PROPOSAL_2026-09-27.md); no repeat acceptance of decomposition or general definition authorization |
+| DEFINITION | Selected setup/local SoWs → dependency evidence/closure → accepted current project DAG → undertaking graphs | WORKING_ITEMS | READY_AFTER_CHOICE |11/41 definition scope; terminal TASKs with disjoint SoW/check targets, bounded fan-in and independent checking; retain external boundaries and actual graph checkpoints |
 
 Current PEC comparison pin is acc7d3cc7f5183152752c35995c73ad34673011b. D104/D105 applied derivative/contract changes and D106 fixtures are present; PEC production source, API contracts/config, PRD and tier-0 profile are unchanged since c5d852c4. D107 directs limited follow-on reviews/task management under a freeze. No outside-session message, sibling edit, provider implementation or live supplier experiment occurs. The comparison record and its review/PR provide source and checking details; no Group1 or later-stage acceptance is inferred.
 
@@ -36,3 +37,28 @@ Group3 continuation: consumed GROUP2-20260927T233018Z after its snapshot/pointer
 Parent-reported consultations during this continuation, from the same checkout (SHA256): agents/AGENT_HELP_HUMAN.md: 0c2fe7a3097ad26c93c0267e4da6aaf90c9264489df8dc368fad657bcac69183; chirality-change SKILL: 1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450; software-decomp WORKFLOW: f08ae6ea7ead63e2325945cff4740e613c0e2b304122c8166b0b7a96a74681e4; resources/method.md: 2ff2af63e756f1dbe09951836764acc4a7e8d481dcb3b8861c8c608bf4082804; resources/contract.md: 26f783694801d99606d1212ed899f7a239d154b5e9ccbbcb90982c8a224b98ba. This records the parent's wider consultation, not additional role activation by this manager.
 
 Actual final-audit dispatch: fresh terminal TASK /root/renewal_research_strategy/group3_final_audit reads the two accepted snapshots and final candidate; its only write is Reviews/APP-V4-GROUP3-20260927/REVIEW.md. No production, supplier experiments, sibling changes or delegated sub-audit is authorized.
+
+Final-acceptance continuation at `ffb2b6289dde79a35f22f5d87256df0aa4d3289a`: HELP_HUMAN relayed the exact owner answer “The human accepts it as the basis for downstream use.” The decision records parent-transcribed custody without an invented platform timestamp. Snapshot GROUP3-20260928T001055Z preserves16 canonical files plus reader/manifest/final audit; standing changes through the decision. New branch: `codex/app-v4-initial-setup-20260927`. No package/scaffold/local SoW existed at entry; INITIAL is observed, and no coordination choice was found.
+
+Post-presentation PEC currency: [D108](../../../../../pec/execution/_Coordination/_DECISIONS/D-PEC-108_D1_REACCEPTANCE_2026-09-27.md), present atffb2b6289, accepts all RV1 findings as-is, re-accepts four exact D1 files, and retires CU-001. RF-001 is RESOLVED by ACCEPT_AS_IS, retaining MAJOR severity and partly met AC-002. Both deliverables remain CHECKING; no correction, lifecycle, release, readiness or reliance act. Current OI-022/DEP-002 carry that disposition; the accepted snapshot retains its earlier source-pinned observation. No structure/scope decision is reopened.
+
+Selected continuation methods: `chirality-root:bundled:workflow:project-setup`, with effective ordered skill descriptor `{kind: skill, name: preparation, source: bundled, sourceRootId: chirality-root}` resolved to the repository `.agents/skills/preparation/SKILL.md`; scope-of-work INIT, dependency-extract, audit-dep-closure and project-dag are the bounded downstream route, loaded only as needed. Only acceptance/current-state maintenance and setup proposal preparation have executed; downstream mutations remain held for Phase1.2/1.3 choice. Parent's targeted consultations of project-setup entry/contract/method through2.2b, project-dag entry, scope-of-work entry, SPEC§5.3–5.4 and FieldBook§1–4 support this coordination plan; they do not activate another role or optional pipeline.
+
+Actual current source hashes (SHA256, same recorded Git basis; targeted section reads where noted above):
+
+- `AGENTS.md`: `c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd`
+- `agents/AGENT_WORKING_ITEMS.md`: `9ae4bea25bd95750a6878a9d53fbbbd7cd058d72c652a36baf4aa90601799665`
+- `agents/AGENT_TASK.md`: `1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7`
+- `.agents/skills/chirality-change/SKILL.md`: `1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450`
+- `workflows/index.json`: `2bfa2c5faae1081c55ce95fd3d81c00b1d87ba1f51d0bc13e03c8fcb6ccdafb3`
+- `workflows/project-setup/WORKFLOW.md`: `7aa4c30a09183b83341937960a637a89eb8da2f8800aa88a12ec8de7ab14dd6d`
+- `workflows/project-setup/resources/contract.md`: `e9f0d11ba520397da5b51f8271b01341bd77c1239f857046b60a7b1885ec218e`
+- `workflows/project-setup/resources/method.md`: `febfecdd367d3f1b6004218adb552fabbf0820fe8cccaa749a5680503a2d26c9`
+- `.agents/skills/preparation/SKILL.md`: `0662dc88b5c1deff27280480395d355e5b073a3eb5eb9887f1459861ced96d38`
+- `.agents/skills/preparation/references/scaffold-contract.md`: `aa95078f13af0586a3d8617f5122e2c6337ce389fc59850fccc33c6948e4cda4`
+- `workflows/scope-of-work/WORKFLOW.md`: `84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b`
+- `workflows/scope-of-work/resources/brief.md`: `1696cd9a0c13aeda4151ebdd666fff7d0450450c88ea1aa00f7435fdcbf492bc`
+- `workflows/project-dag/WORKFLOW.md`: `e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b`
+- `docs/SPEC.md`: `feb5e79c0b60b5156ea9ad2b00e32e338ab42c4351da0b0cbca6f30df5f3109e`
+- `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md`: `cf4bd6c237f614ab34234f02694f7ef10b6cc0c77c2cc482d4a9ccb992ea2a55`
+- `projects/pec/execution/_Coordination/_DECISIONS/D-PEC-108_D1_REACCEPTANCE_2026-09-27.md`: `dcfd7aaa3be28e8eb5cf355b4a6edc95947753133ff6eb2890415fc06288eec0`

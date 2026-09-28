@@ -1,12 +1,12 @@
-# Chirality App v4 — final decomposition candidate
+# Chirality App v4 — accepted decomposition and current definition
 
-**Standing: GROUP1_CONFIRMED / GROUP2_APPROVED / GROUP3_CANDIDATE. Revision G3-draft-1, 2026-09-27.** Package role: working surface. The final audit and actual Group3 decision are distinct from the two recorded approvals; no downstream setup or implementation has begun.
+**Standing: GROUP1_CONFIRMED / GROUP2_APPROVED / GROUP3_ACCEPTED. Current working surface after acceptance, 2026-09-27.** The [final accepted pointer](checkpoint_snapshots/_LATEST_ACCEPTED.md) binds the exact presented bytes and separate final audit PASS. Current receiving metadata carries subsequent PEC D108 without changing that frozen subject. Downstream setup awaits the coordination choice; product implementation has not begun.
 
 ## Accepted basis and current subject
 
 Group1 was actually confirmed through the question and answer in [DECISION.md](checkpoint_snapshots/GROUP1-20260927T222641Z/DECISION.md). Resolve the [accepted pointer](checkpoint_snapshots/_LATEST_GROUP1.md), manifest and handoff before this proposal. Its fourteen frozen subject/evidence copies retain the exact presented bytes, including historical draft labels and relative links; those labels do not reverse the decision.
 
-That snapshot binds APP-V4-BASIS-20260926, the accepted clarification, all 262 stable ScopeItemIDs (234 IN / 15 OUT / 13 TBD), vocabulary and ten objectives. Original seed/composite/thesis and earlier candidates are unchanged. The selected method remains chirality-root:bundled:workflow:software-decomp. The [Group2 pointer](checkpoint_snapshots/_LATEST_GROUP2.md) resolves the actual approval of all five recommendations and the 11/41 structure plus discussed clarifications. Candidate2 is its checked faithful consolidation, not bytes claimed to have been previously hash-reviewed by the owner. Package/Deliverable mappings are now accepted Group2 structure; Group3 final acceptance is still pending.
+That snapshot binds APP-V4-BASIS-20260926, the accepted clarification, all 262 stable ScopeItemIDs (234 IN / 15 OUT / 13 TBD), vocabulary and ten objectives. Original seed/composite/thesis and earlier candidates are unchanged. The selected method remains chirality-root:bundled:workflow:software-decomp. The [Group2 pointer](checkpoint_snapshots/_LATEST_GROUP2.md) resolves the actual approval of all five recommendations and the 11/41 structure plus discussed clarifications. Candidate2 is its checked faithful consolidation, not bytes claimed to have been previously hash-reviewed by the owner. Package/Deliverable mappings are accepted Group2 structure, and the owner accepted the final Group3 subject for downstream use. The frozen final snapshot, not later working-state edits, is the authoritative accepted definition basis.
 
 ## Accepted flat work domains
 
@@ -71,12 +71,12 @@ The structured scope of work is ScopeLedger.csv; Deliverables.csv carries the an
 - Group1: actual confirmation and exact presented subject preserved in GROUP1-20260927T222641Z.
 - Group2: actual approval of all five recommendations and the 11-Package/41-Deliverable structure, with Codex/exemplar clarifications, preserved in GROUP2-20260927T233018Z. Candidate1 and Candidate2 history remains recoverable.
 - Final assembly: no scope, structure, mapping, artifact, interface or context-envelope change. Objective standing and OI-025 now reflect completed mapping; DEP-002 no longer says the workflow comparison is pending. OI-022/DEP-002 retain the later PEC RV1 OPEN MAJOR and actual owner disposition as receiving inputs, without a new scope or blanket gate. Current navigation links historical discussion-stage text to the actual act.
-- Any substantive final-audit finding is recorded separately and returned for its affected decision rather than silently changing accepted scope. Group3 remains unaccepted until its real human act.
+- The separate final audit passed; the actual Group3 act is recorded in the accepted snapshot. A later material change reopens only its affected warrant rather than silently changing accepted scope.
 
 ## Checkpoint and next stage
 
-The [Group3 reader](../_Coordination/Reviews/APP-V4-GROUP3-20260927/READER.md) and manifest identify this final candidate. Its [separate independent final audit](../_Coordination/Reviews/APP-V4-GROUP3-20260927/REVIEW.md) reports the actual verdict; prior Group2 broad/clarification checks remain evidence for their own subjects.
+The [final accepted snapshot](checkpoint_snapshots/_LATEST_ACCEPTED.md) preserves the exact Group3 reader, manifest and separate independent final audit PASS. The current working surface carries only the later standing and receiving-currency updates; prior Group2 broad/clarification checks remain evidence for their own subjects.
 
-Both accepted snapshots/pointers now exist and were consumed before this assembly. After the independent Group3 audit, the human accepts the final decomposition as the basis for downstream use or returns affected parts for repair. Only an actual Group3 act creates its immutable snapshot and _LATEST_ACCEPTED.md handoff; project setup remains later work under its selected method and actual inputs. Routine Git integration does not replace the final decision.
+All three accepted snapshots/pointers now exist. The owner accepted the audited final decomposition for downstream use; its immutable snapshot and _LATEST_ACCEPTED.md handoff precede INITIAL setup. The [setup proposal](../_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md) carries the remaining human-owned coordination choice and the already-authorized definition route. Routine Git integration does not replace a future graph or lifecycle decision.
 
 [Companion_Inventory.csv](Companion_Inventory.csv) identifies each working/register/check surface and its reader. No production Package/Deliverable folders or local ScopeOfWork contracts have been created.
