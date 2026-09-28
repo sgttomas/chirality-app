@@ -1,0 +1,149 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Independently verify one stable SOFTWARE ScopeOfWork INIT candidate against actual accepted sources; no production edits",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-02/VERIFY.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-02/VERIFY_VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-085",
+      "SOW-086",
+      "SOW-087",
+      "SOW-088",
+      "SOW-089"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-006"
+    ],
+    "MODE": "VERIFY",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-06-02",
+    "PackageID": "PKG-06",
+    "Name": "Return, waiting and human-decision workspace",
+    "Description": "Let the coordinator examine returns, understand waiting causes and decide from exact-act packages rebuilt from project files. Interfaces: Consumes DEL-06-01 work graph and PKG-04 actual-act records; native running-state observations remain distinct from returned/reviewed/integrated work; DEL-09-05 owns the joined fleet witness. Verification: Rebuilt views preserve ownership, pending review, alternatives/consequences and actual decisions while remaining derived from the files.",
+    "Type": "UX_UI_SLICE",
+    "ResponsibleParty": "App fleet-experience owner",
+    "AnticipatedArtifacts": "CODE: return-review queue and waiting-cause views;CODE: prepared decision-package view;TEST: cross-session rebuild and queue/decision fixtures;DOC: view derivation and ownership boundary",
+    "CoversScopeItems": "SOW-085;SOW-086;SOW-087;SOW-088;SOW-089",
+    "SupportsObjectives": "OBJ-006",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: App fleet work proceeds from its file/native contracts without PEC availability."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-085",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Show returned work awaiting examination as a visible queue.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-PM-03",
+      "PackageID": "PKG-06",
+      "DeliverableIDs": "DEL-06-02",
+      "ObjectiveIDs": "OBJ-006",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-086",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Explain waiting work by its cause.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-PM-03",
+      "PackageID": "PKG-06",
+      "DeliverableIDs": "DEL-06-02",
+      "ObjectiveIDs": "OBJ-006",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-087",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Prepare human decision packages stating the exact act, alternatives and consequences.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-PM-04",
+      "PackageID": "PKG-06",
+      "DeliverableIDs": "DEL-06-02",
+      "ObjectiveIDs": "OBJ-006",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-088",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Recover coordination status across sessions from project files.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-PM-05",
+      "PackageID": "PKG-06",
+      "DeliverableIDs": "DEL-06-02",
+      "ObjectiveIDs": "OBJ-006",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-089",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Build coordination views from files so views can be rebuilt without becoming authority.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-PM-06",
+      "PackageID": "PKG-06",
+      "DeliverableIDs": "DEL-06-02",
+      "ObjectiveIDs": "OBJ-006",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve each accepted open issue owner and exact point of need separately.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "2376e1dbf5e6b79e01e58b8eaaa55be9d79f337412c98eefc15fd6e80cc1df9c",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Define product return-review, waiting/decision and coordination views while ordinary records remain authoritative. Preserve actual return, checking, integration and human acts as separate states; a projection or notification cannot decide them. Keep accountable integration and whole-journey receiving interfaces visible, with file-native bootstrap and optional PEC.",
+  "candidate_sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7",
+  "author_brief": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-02/BRIEF.json",
+  "verification_guidance": "Read actual source clauses and assigned scope/artifact/owner interfaces. Check no invented policy, input readiness, implementation choices or transfers; preserve open points. Pilot lessons about separately evidenced acts apply. Contract and matrix verification is semantic, not just schema. Run candidate validation, checklist derivation twice, boundary tool and manual owner check. Reuse pilot DEL-01-05/VERIFY_VALIDATION.txt invalid/unauthorized-dual QA18 tool evidence if the relevant tool hashes are unchanged; record reuse honestly rather than repeating identical negative tool tests per contract. This does not replace this candidate checks. Report concise outcome, concrete findings, source loci and actual hashes, preferably400\u2013900words plus necessary validation ledger; no source snapshots or packet chains. Original findings and repaired-candidate backchecks stay in one review if repair occurs."
+}

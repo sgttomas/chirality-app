@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-001 traces the assigned basis to the actual Group1/2/3 and setup decisions without repeating approval, promoting future/unseen bytes to prior owner review, or overwriting historical sources; unresolved inputs preserve their owner and point of need. Verified by VER-001 against REQ-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-001",
+          "source_line": 85,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare OUT-001 against A, B's assigned ledger/definition rows, the three actual checkpoint decisions, Q and O's source chronology. Follow each claimed acceptance to its actor, exact subject and limits. Check that required later work is distinguished from acts already performed and that historical sources are referenced intact. Retain candidate identity, checked loci and any mismatch; supports AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 71,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-001 distinguishes inspected and historical manual sources from actual adopted editions, and carries recoverable edition/content/method identities and adopting scope; OI-017 is either resolved by its owning record before dependent reliance or visibly retained as that specific unsatisfied input. The retained issue alone is not reported as fulfillment of the pin output. Verified by VER-002 against REQ-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-002",
+          "source_line": 86,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "For each manual/method named in OUT-001, recover the cited edition/source bytes, compare content identity and inspect the actual selecting/adopting record and scope. Contrast the historical seed candidate pins, current reading evidence and actual adoption. Check OI-017's exact owner and point of need; missing adoption evidence remains an unsatisfied input for dependent reliance. Retain comparisons and their supported extent; supports AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-002 gives setup/local-SoW consumers a source-faithful handoff covering accepted identities, working/checking/issued purposes, present preparation and remaining work, using Q's actual coordination and lifecycle decisions; INITIALIZED is never substituted for artifact/input satisfaction or a later graph decision. Verified by VER-003 against REQ-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-003",
+          "source_line": 87,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Walk the handoff as a setup/local-contract reader: resolve accepted identity and source, locate existing preparation/control/production records and identify remaining work without overwriting it. Compare with Q and W's downstream/lifecycle clauses. Check that missing artifact/input evidence is still missing even when a valid contract exists. Retain the inspected record identities and discrepancies; supports AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 73,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-002 describes all six developmental positions without effort arithmetic or lifecycle equivalence, retains the DAG-before-30% relationship and permits uneven project maturity. Verified by VER-004 against REQ-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-004",
+          "source_line": 88,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the six-position explanation against F §1, M §1.7 and U §5. Check separate treatment of project position, local lifecycle, assignment completion and actual acceptance, including a project with parts at different maturity and a prepared DAG that has not passed the human gate. Retain the comparison; supports AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 74,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-003 uses the three manuals for their stated roles, links actual treatments to their purposes, and identifies consequential departures for their real decision-maker; it neither creates product scope nor silently drops accepted obligations or reinstates superseded instruction defaults. Verified by VER-005 against REQ-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-005",
+          "source_line": 89,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Read the application/departure account against the three manuals and O V4-OPS-10–13/§7. For each relevant treatment, follow purpose to actual mechanism and consumer; inspect whether a departure affects an accepted commitment and has the appropriate owning decision. Reject new product requirements derived solely from manual examples and unsupported restoration of superseded defaults. Retain scoped findings, not a checklist per manual paragraph; supports AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 75,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "OUT-001 and OUT-002 preserve separately evidenced actors, subjects and standing for definition, execution, checks, validation, acceptance/approval and reliance. A faithfully recorded actual owner decision is usable with its custody limits, while fabricated acceptance from output/check success and an invented universal act-order dependency are rejected. Verified by VER-006 against REQ-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-006",
+          "source_line": 90,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine the actual Group1/2/3 and Q decision records as a positive faithful-recording case: owner decision and agent recorder remain distinct, parent-transcribed custody stays visible and no unseen bytes are claimed as previously hash-approved. Contrast negative claims that a generated account, valid SoW, completed check, merge or recorded proposal itself proves human acceptance, validation or reliance; also reject a blanket invented requirement that every act await acceptance first. Apply only the specific sequence the applicable method establishes. Retain source-bound findings; supports AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 76,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "Each output has a named use/reader, and affected adoption information reaches the correct PKG-11/receiving-owner interface with source identity and point of need; the account remains coherent and introduces no per-rule deliverables, copied corpus or new product/coordination commitments. Verified by VER-007 against REQ-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-007",
+          "source_line": 91,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace each output to its named reader/use and any affected PKG-11 receiving interface. Compare the resulting obligations against all nine assigned scope rows, B's artifact list/PKG-10 exclusions and DEP-006. Confirm one coherent home for each contribution without duplicate systems or ownership transfer; supports AC-007."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-01-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 77,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+      },
+      "text": "The local definition and exclusions preserve every named owner and act in CLM-003 through CLM-005, including separate setup/lifecycle recording, DAG and receiving-adoption responsibility; no documentary handoff claims those acts were performed or decides their open choices. Verified by VER-008 against REQ-008.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-10-01-VER-008",
+          "source_line": 92,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Enumerate the acts in REQ-008 and compare each one-for-one with CLM-003, CLM-004 or CLM-005 and its cited owning source. Run the registered boundary-owner checker; resolve every failure and manually examine any NOT_CHECKABLE or NO_CITED_CLAIM case, including human/setup actors outside its deliverable-token grammar. Retain checker output plus the semantic ownership finding; supports AC-008."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-10-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-10",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+  },
+  "tool_version": "1"
+}

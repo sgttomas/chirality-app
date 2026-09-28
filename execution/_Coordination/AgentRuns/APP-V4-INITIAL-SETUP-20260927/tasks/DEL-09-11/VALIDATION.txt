@@ -1,0 +1,60 @@
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --json
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined acceptance criteria missing from matrix: AC-005, AC-006",
+    "defined verification methods missing from matrix: VER-005, VER-006"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md",
+  "valid": false
+}
+
+exit=1
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-11/CHECKLIST.json
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: defined acceptance criteria missing from matrix: AC-005, AC-006; defined verification methods missing from matrix: VER-005, VER-006
+
+exit=1
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-11/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+exit=0
+
+
+Repair: matrix requires one output token per row; rows AC-005 and AC-006 now bind a single output while their criteria/evidence retain both artifacts. Invalid checklist derivation above emitted no CHECKLIST.json: True
+
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md",
+  "valid": true
+}
+
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-11/CHECKLIST.json
+
+exit=0
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-11/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md [stdout compared in memory to CHECKLIST.json]
+exit=0; byte_identical=True; sha256=c56448a3cc21ba360b77c15201a71dc1175beda33017a74feea9c80b4af924ae
+
+status_sha256=64786492f6c7b6c2d59985d11a60e8468af919e1de3643bc353d696a7a2c7c35
+brief_original_status_sha256=64786492f6c7b6c2d59985d11a60e8468af919e1de3643bc353d696a7a2c7c35
+unchanged=True
+
+production_sha256=e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae
+
+Author semantic/structural QA: six checklist criteria exactly match source order/text/hash; one criterion per matrix row, each paired only with its own same-numbered method. Status exact hash matches brief.
+Boundary semantic QA: REQ-006 record format/writer/reader/lapse implementation -> CLM-001 App DEL-04-03; host-journey execution/qualification -> CLM-001 App DEL-09-07; host implementation/domain mutation/solve/receipt production -> CLM-002 external SWBPIPE implementation owner; actual human acceptance/checking/approval -> CLM-002 actual person; professional reliance -> CLM-002 accountable professional; unresolved policy/activity decision -> CLM-003 exact OI owners. Faithful recording/examination retained locally. NOT_CHECKABLE=0; NO_CITED_CLAIM=0; natural-language owners additionally examined because deterministic tool resolves deliverable tokens only.
+Mode QA: INIT no prior production or legacy kit observed; only scoped production/run artifacts intentionally written; NO_STATUS_TOUCH. Conversion-only QA 2,5-7,10-12,14,17 not applicable; HTML QA15 not applicable; revision QA22 not applicable. Initial invalid matrix did fail checklist derivation without output; repaired candidate then passed. No product scenario was run and no independent review claimed by author.

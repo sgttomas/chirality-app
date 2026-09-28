@@ -1,0 +1,10 @@
+[
+  {
+    "findings": [],
+    "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md",
+    "requirements_checked": 1,
+    "requirements_not_checkable": 0,
+    "requirements_without_cited_claim": 0,
+    "status": "OK"
+  }
+]

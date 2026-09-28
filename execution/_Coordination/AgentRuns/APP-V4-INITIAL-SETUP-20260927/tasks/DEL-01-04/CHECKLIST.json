@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-04-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "The identified candidate renders native approvals/questions and routes grant, deny, answer and explicit decline with their actual meanings; supplied unknown-request errors remain explicit and neither silence nor observer closure becomes a response. Verify by VER-001. Grounds: REQ-001; N and R.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-001",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "On an identified App candidate and selected native supplier basis, exercise approval grant and denial, question answer and explicit decline, supplied unknown-request error, silence and observer closure. Compare visible native semantics and routed response evidence with the session/request interface. Retain fixture inputs, rendered observations and response evidence; distinguish a sent attempt from received acknowledgment. Checks AC-001 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-04-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "Outcome and recovered-view cases distinguish observation from execution, preserve outstanding requests, separate settlement/write attempts from acknowledgment, retain unknown outcomes, and do not turn primary completion into descendant completion. Verify by VER-002. Grounds: REQ-002; R.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-002",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Drive the native presentation with observed turn outcomes, unavailable outcomes, outstanding requests, settlement with missing acknowledgment, observer close/reload/reopen and primary completion with an active descendant. Compare displayed state to the execution owner's available evidence and record unknowns. This verifies receiving/presentation behavior, while App DEL-01-02 retains durable recovery qualification and the joined witness retains its own evidence. Checks AC-002 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-04-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "Attachment and local draft-transition cases preserve actual supplied-content identity across selection, handoff and display, detect mismatched or same-named substituted content, and make no unsupported provider-adoption or outcome claim. Verify by VER-003. Grounds: REQ-003; D row DEL-01-04 and R.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-003",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Follow distinguishable attachment contents and local draft content through selection, actual handoff and rendered reference. Include changed content and same-named different content; compare identity to the actual supplied material, including an unavailable provider-adoption observation. Record actual content identity and observation limits using the receiving contract's agreed representation. This method prescribes no hash algorithm, storage location or supplier field. Checks AC-003 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-04-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "The draft receiving contract and candidate surface preserve source-qualified content identity, distinguish draft from actual reviewed registration, and carry workspace collision/refusal results without silently overwriting or rebinding; the full workflow-making owner remains identified. Verify by VER-004. Grounds: REQ-004; W and CLM-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-004",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the receiving document with the workflow-experience integration interface and exercise draft, changed draft, reviewed/registered, collision/refusal and same-named source alternatives. Compare visible transitions and identities with the actual workflow-owner evidence; confirm no local transition invents review or registration and identify where the complete journey is verified. Checks AC-004 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-04-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "Act-presentation cases retain execution, proposal acceptance, checking, approval and professional reliance as separate evidenced subjects, label proposal decisions “accept”, show an actually performed human act faithfully with decision actor and recorder distinct, show received lapse after bound-content change, and reject fabricated acts or inferred professional standing. Verify by VER-005. Grounds: REQ-005; H and CLM-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-005",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare UI labels and attribution against the adopted PKG-04 interface. Use separately evidenced execution, proposal acceptance, checking, approval and reliance cases, including an independently evidenced act without a preceding acceptance record. Include a positive faithful-recording case: the person actually performs the act on identified content and a separate recorder preserves it; then a content-change/lapse case. Negative cases include success alone, missing human-act evidence and agent text claiming professional approval. Confirm none is promoted into another act or stronger standing. A concrete unresolved policy-dependent operation remains subject to its own OI-001/OI-002 ruling; test construction does not decide it. Checks AC-005 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-04-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 68,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "The receiving contract assigns every excluded act enumerated in REQ-006 to its cited owner, describes this slice's local native/attachment/draft contribution, records optional-reuse treatment, and retains open owner/point-of-need pairs without claiming them decided. Verify by VER-006. Grounds: REQ-006, REQ-007; D, C and O.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-006",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the receiving document against D, C, H and O. Trace every REQ-006 exclusion one-for-one to CLM-002 through CLM-005 and the actual owner; verify local coverage, optional-reuse treatment and each distinct open point of need. Compare proposed shared placement or process division only against an actual recorded decision, reporting absence explicitly. Checks AC-006 only."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-04-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+      },
+      "text": "The request and attachment fixture artifact covers the local cases in AC-001 through AC-005, identifies the actual App candidate and supplier basis used, and reports observations, failures and unknowns without claiming unperformed joined workflow, recovery or professional validation. Verify by VER-007. Grounds: OUT-003; D, R and W.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-01-04-VER-007",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect and run the delivered interaction fixture suite against its declared candidate/basis; trace the cases to AC-001 through AC-005 and their methods, preserving results and limitations. Report what was simulated, what was observed in the native App and what joined checks remain with integration owners. The fixtures substantiate this slice and do not qualify the full V4-EXM-10/V4-EXM-11 journeys alone. Checks AC-007 only."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-01-04",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-01",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+  },
+  "tool_version": "1"
+}

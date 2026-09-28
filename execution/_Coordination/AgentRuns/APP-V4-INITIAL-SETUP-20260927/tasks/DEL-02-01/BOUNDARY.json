@@ -1,0 +1,10 @@
+[
+  {
+    "findings": [],
+    "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+    "requirements_checked": 1,
+    "requirements_not_checkable": 0,
+    "requirements_without_cited_claim": 0,
+    "status": "OK"
+  }
+]

@@ -1,0 +1,100 @@
+$ python3 tools/scope_of_work/validate_scope_of_work.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --json
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "matrix output lacks acceptance or verification reference: OUT-003",
+    "matrix output lacks acceptance or verification reference: OUT-003",
+    "matrix output lacks acceptance or verification reference: OUT-004",
+    "defined acceptance criteria missing from matrix: AC-003, AC-004",
+    "defined verification methods missing from matrix: VER-003, VER-004, VER-005, VER-006, VER-007"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+  "valid": false
+}
+exit=1
+
+ScopeOfWork SHA256 82ac99bb39dd8e44f9a0825df4ac0ec0a3dc37040c937afb5b663ff98d629ef5
+_STATUS SHA256 0b774e91ae9370f4fcde7bc650b44298e5c59053ff1b84b1c0de0b078b641c75
+
+Corrected matrix formatting (one output per row; explicit verification columns):
+$ python3 tools/scope_of_work/validate_scope_of_work.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/CHECKLIST.json
+exit=0
+
+Repeated checklist byte-identical: True
+SHA256 a35b4d4c3d3e955b29ba94dca7eead00a0cff549e991ef56bbaa75a8b9542f7d
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+[
+  {
+    "findings": [],
+    "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+    "requirements_checked": 1,
+    "requirements_not_checkable": 0,
+    "requirements_without_cited_claim": 0,
+    "status": "OK"
+  }
+]
+
+ScopeOfWork SHA256 3e9f60c1e68e1c4f620ebc28a8a8dad22b3dfe5b398c31c32731345f95fc5a4d
+_STATUS SHA256 0b774e91ae9370f4fcde7bc650b44298e5c59053ff1b84b1c0de0b078b641c75
+
+QA18 in-memory negative inputs; actual common resolver and checklist CLI, patched input reads only, output writes forbidden:
+invalid-schema: exit=1; output writes=0; ERROR: format state is INVALID; validated ScopeOfWork.md is required: schema must equal chirality-deliverable-sow/v1
+unauthorized-dual-format: exit=1; output writes=0; ERROR: format state is AMBIGUOUS; validated ScopeOfWork.md is required: dual production formats require an isolated conversion workspace and exact migration authority
+Checklist semantic linkage: 7 exact source-order ACs, each only its matching VER; production hash binding PASS.
+_STATUS original SHA256 equality PASS.
+
+Independent-check bounded repair: prior candidate 3e9f60c1e68e1c4f620ebc28a8a8dad22b3dfe5b398c31c32731345f95fc5a4d
+Finding: REQ-006 operation-policy decisions overstated DEL-04-01 duties; accepted row defines/carries adopted policy while owner/host policy owner decides unresolved classes.
+Exact two-line contract diff (no other contract edits):
+--- ScopeOfWork.md before
++++ ScopeOfWork.md repaired
+@@ -60 +60 @@
+-- **CLM-002** — Within the App v4 project, `DEL-03-01` owns capability-catalog/read-basis semantics and supplies required-tool capability descriptors; `DEL-04-01` owns operation-policy and human-act distinctions; `DEL-04-03` owns human-act/run record fields and App record handling; `DEL-05-01` owns minimal-loop receiving requirements and `DEL-05-02` owns host-panel receiving requirements. `DEL-02-02` owns App workflow authoring/review/registration experience, `DEL-02-03` owns workflow execution compatibility and transfer behavior, and `DEL-02-04` owns App role selection and additive supply. These are receiving interfaces, not transferred implementation assignments. Source: Accepted decomposition, Deliverables.csv corresponding rows and Packages.csv PKG-02 through PKG-05.
++- **CLM-002** — Within the App v4 project, `DEL-03-01` owns capability-catalog/read-basis semantics and supplies required-tool capability descriptors; `DEL-04-01` defines and carries adopted operation policy and human-act distinctions; the owner and host policy owner retain decisions on unresolved classes (OI-001/OI-002); `DEL-04-03` owns human-act/run record fields and App record handling; `DEL-05-01` owns minimal-loop receiving requirements and `DEL-05-02` owns host-panel receiving requirements. `DEL-02-02` owns App workflow authoring/review/registration experience, `DEL-02-03` owns workflow execution compatibility and transfer behavior, and `DEL-02-04` owns App role selection and additive supply. These are receiving interfaces, not transferred implementation assignments. Source: Accepted decomposition, Deliverables.csv corresponding rows, Packages.csv PKG-02 through PKG-05 and Open_Issues.csv OI-001/OI-002.
+@@ -81 +81 @@
+-- **REQ-006** — This deliverable shall perform no act owned by another deliverable: catalog-semantic definition by `DEL-03-01`, operation-policy decisions by `DEL-04-01`, human-act/run-field definition and record implementation by `DEL-04-03`, loop receiving design by `DEL-05-01`, panel receiving design by `DEL-05-02`, App workflow workspace/registration construction by `DEL-02-02`, execution/transfer implementation by `DEL-02-03`, and role selection/supply implementation by `DEL-02-04` remain with the owners named in CLM-002. Its responsibility map records and receives these contributions. Host catalog/domain/receipt/loop/panel construction remains with the external SWBPIPE implementation owner in CLM-003; actual human checking, acceptance, approval and professional reliance remain with the person, with professional assertions retained by the accountable professional in CLM-003. Shared placement decisions remain with the App/shared contract owners in CLM-004. Source: Accepted decomposition Deliverables.csv, Packages.csv, DEP-001, OI-014 and OI-013; HTML-D02/03.
++- **REQ-006** — This deliverable shall perform no act owned by another deliverable: catalog-semantic definition by `DEL-03-01`, operation-policy contract definition and carrying adopted policy by `DEL-04-01`, human-act/run-field definition and record implementation by `DEL-04-03`, loop receiving design by `DEL-05-01`, panel receiving design by `DEL-05-02`, App workflow workspace/registration construction by `DEL-02-02`, execution/transfer implementation by `DEL-02-03`, and role selection/supply implementation by `DEL-02-04` remain with the owners named in CLM-002. Its responsibility map records and receives these contributions. Host catalog/domain/receipt/loop/panel construction remains with the external SWBPIPE implementation owner in CLM-003; actual human checking, acceptance, approval and professional reliance remain with the person, with professional assertions retained by the accountable professional in CLM-003. Shared placement decisions remain with the App/shared contract owners in CLM-004. Source: Accepted decomposition Deliverables.csv, Packages.csv, DEP-001, OI-014 and OI-013; HTML-D02/03.
+
+$ python3 tools/scope_of_work/validate_scope_of_work.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py 'projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md' --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-01/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+Repaired production SHA256 080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294
+Repeated checklist byte-identical: True
+7 source-order criteria and exact one-method linkage: PASS
+Semantic affected check: DEL-04-01 defines/carries adopted policy; owner and host policy owner retain unresolved-class decisions, consistent with TBD-003 and OI-001/OI-002.
+_STATUS original SHA256 equality: PASS

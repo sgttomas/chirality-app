@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "An examiner can recover the undertaking's selected route, owners, input/hold grounds, meaningful returns and next work from one current graph and its source links, keeping production DAG, actual execution and contract maturity distinct; no future fleet/PEC availability is required for file-native use. Verified by VER-001. Basis: REQ-001, CLM-003, CLM-004; B1 DEL-10-02 interface; B5.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-001",
+          "source_line": 87,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the identified current graph, source links and actual return evidence. Walk selected work through its input grounds, owner, permitted action, check and continuation; inspect an unresolved input where present. Confirm accepted-DAG currency is used when one exists, and that pre-DAG authorized definition is described on its own warranted basis. Check that file-native controls remain usable without fleet UI or PEC. Record scope/gaps; do not infer an executed product scenario from the walkthrough."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 73,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "The selected role arrangement and bounded brief/return records support the actual work without a compulsory hierarchy, identify actual parentage/mechanism and receiving ownership, and distinguish a prepared assignment, executing child, returned work, examined work and integration. Verified by VER-002. Basis: REQ-002; B2 V4-OPS-03; B4 Field Book §§2/5.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-002",
+          "source_line": 88,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the actual arrangement, a bounded brief and its returned evidence with B4 Field Book §§2/5 and User Manual §§3/10. Reconcile parentage, role/context, permitted writes and required checks with the actual contribution and recipient; distinguish launch intent from observed execution and review/integration standing. Use available completed records or explicitly retain missing returns as pending."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 74,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "Each maintained register has a named reader/use; primary change history resolves to Git/reviewed PRs; evidence and decision links support recovery without duplicate current systems or per-rule paperwork. Actual human acts can be faithfully recorded with actor/custody distinct from the recorder; unsupported acceptance, approval, checking or reliance claims are rejected. Verified by VER-003. Basis: REQ-003; B2 V4-OPS-31/32; B5.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-003",
+          "source_line": 89,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the maintained record set against the reader/use table, following change and decision references to their authoritative sources. Examine a positive faithful-recording case: B5 preserves an actual reported owner response and exact subject, identifies parent-transcribed custody, and keeps recorder distinct from decision actor. Examine negative inferences such as treating an agent's successful check, authored file or merged PR as an unobserved human act; reject them. Confirm the same act is not reauthored into a competing authority record. This is record examination, not a new human-act policy or fabricated live event."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 75,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "The actual capability/isolation account names the evidence and limitations for enforced boundaries and separately states instruction-only restrictions, including relevant shared checkout/resource exposure; it does not upgrade compliance or a worktree into a complete sandbox claim. Verified by VER-004. Basis: REQ-004; B2 V4-OPS-30.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-004",
+          "source_line": 90,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the scoped brief with actual supplied host permissions, tool availability and checkout/shared-resource information for the identified run. State what is host-reported, directly observed, instruction-asserted or untested. Assess whether the claims match those grounds without probing prohibited operations; specifically challenge worktree-equals-sandbox and instruction-equals-enforcement inferences."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 76,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "The checking account binds the identified candidate and applicable basis to actual author checks, independent reviewer separation, findings and affected backchecks, preserving exposed/unexposed model identity and unresolved limitations without inferring human approval or reliance. Verified by VER-005. Basis: REQ-005; B2 V4-OPS-30/34.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-005",
+          "source_line": 91,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Follow the candidate/basis bindings through author checks, separate review and any changed-candidate backcheck. Inspect actual reviewer parentage/context and exposed model evidence; record unknown identity without claiming diversity. Check that findings remain open until their disposition is supported and that a review or successful rerun is not treated as proof of another act or of repair without examining the change."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 77,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "Each observed practice note is located at its work node, identifies conditions and the relevant manual section/edition, and distinguishes observation from inference or proposed change using existing work evidence; absence of an observed event is stated without inventing a note. Verified by VER-006. Basis: REQ-006; B2 V4-OPS-20.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-006",
+          "source_line": 92,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace each applicable note to its node, observed conditions, evidence and exact manual section/edition. Check useful, ill-fitting and ambiguous descriptions against what happened; record which classes were actually observed instead of requiring invented examples of every class. Verify an existing central record is linked where it already carries the needed detail."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 78,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "The applicable stage/selected-method account traces relevant practice notes to the owner's actual scoped disposition or a clearly pending decision, distinguishing proposed revision, deliberate scoped departure and no change; it retains consequential-gap and revision-authorship open matters at their proper owners/points of need. Verified by VER-007. Basis: REQ-007; B1 SOW-222 and OI-019/020; B2 V4-OPS-21/22/23.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-007",
+          "source_line": 93,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "At the applicable discussion, compare the prepared notes with the actual decision evidence and resulting scoped follow-through. Distinguish a proposed revision from an adopted change, a project departure from universal adoption, and no change from an unmade decision. Verify undecided OI-019/020 treatment remains with the named owners and deadlines, and identify any required discussion still ahead without inventing its result."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-02-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 79,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+      },
+      "text": "All boundary exclusions preserve the named owner and remaining local obligation, and the outputs neither implement sibling product/DAG/adoption work nor claim another actor's enforcement, examination or decision. Verified by VER-008. Basis: REQ-008 and CLM-001 through CLM-006; B1 allocation.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-10-02-VER-008",
+          "source_line": 94,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare REQ-008's enumerated acts one-for-one with CLM-001 through CLM-006 and B1/B2/B5. Use the registered boundary-owner resolver for syntactically supported ownership, then examine any NOT_CHECKABLE or NO_CITED_CLAIM result semantically. Check the local output/evaluation mapping preserves every assigned scope item and all three anticipated artifacts while leaving sibling production and actual actor responsibilities with their owners."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-10-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-10",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+  },
+  "tool_version": "1"
+}

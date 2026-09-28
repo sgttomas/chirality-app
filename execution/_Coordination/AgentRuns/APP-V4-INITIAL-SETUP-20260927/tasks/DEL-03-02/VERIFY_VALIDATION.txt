@@ -1,0 +1,233 @@
+INDEPENDENT VERIFY — original stable candidate
+
+Mechanism: native fresh-context terminal TASK; parent /root/renewal_research_strategy WORKING_ITEMS; inherited model; no model-family independence or sandbox isolation claimed.
+
+Write boundary: only VERIFY.md and VERIFY_VALIDATION.txt. Production, author reports and controls read-only. No Git/network/product experiments/delegation.
+
+Candidate SHA256: 281828dde0e52d184baf8b9c7695ed68bc0e4da8c919a3fd5423c418533b7177
+
+Source/method/brief hashes before checks:
+
+{
+  "AGENTS.md": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd",
+  "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+  "workflows/scope-of-work/WORKFLOW.md": "84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b",
+  "workflows/scope-of-work/resources/brief.md": "1696cd9a0c13aeda4151ebdd666fff7d0450450c88ea1aa00f7435fdcbf492bc",
+  "workflows/scope-of-work/resources/checks.md": "44ab41ace2fb14549ef0268c357ced42e798d97b01a325d62a60226767adf188",
+  "workflows/scope-of-work/resources/tools.md": "fbd07771140f6350e964445014ba4f8f79f5d1f5c86df3379607b0489e6e5cc7",
+  "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md": "26c8254aaf2e2894e7d32096ec1e0d71b3ad881c1445094945031be19741433c",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv": "fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134",
+  "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_CONTEXT.md": "dcf6b2490a0f5f746070c4db8d6d20abe61d647c08d4e5f3efe6c83ca70fdfd1",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_REFERENCES.md": "00dd7efdfa4cf8817df0c0f42f428b357e4f2478d55c023b5f174d5338334d05",
+  "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv": "47530ffa5240cc65e3d20d6c0fbd6740866ccb21cef436b3e7152af9e33f0565",
+  "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv": "055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-02/VERIFY_BRIEF.json": "e258b8ca478451ac5c81e4178835250ef69dfedd017911291fc6a760754570cf",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-02/BRIEF.json": "de9b2a8cf853cfb04c7cd4c200f88f21665e8b072b159627fa01dd1028b5c84e",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/ACCEPTED_MANIFEST.csv": "33004257fdf2a5ff05635c4f2837bf6a27802526d801d3b0879201242de9234b",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md": "72fc5d9c8d8ebb383544be8082f019611a5f9fc4ed8888fe41903b13f528b2e2",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html": "02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md": "ff57362886b76da07df6feaed1630661f427c071dc5720c38c0a61d7d9e90491",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md": "dec2110dc40946345379684b172d94dd444e19719d4e70e2238852ab43e08414",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md": "8d1474213fd5c8924d52dbe47f8a9fdf1cc6bf9dd42944cf080e3e9b6e7a7dc8",
+  "projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md": "78d3aa2e7ac0e70267441161caf2a24e26358537a43fe49bd3ee09226ba32c3b",
+  "tools/scope_of_work/common.py": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+  "tools/scope_of_work/id_catalog.json": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+  "tools/scope_of_work/validate_scope_of_work.py": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+  "tools/scope_of_work/derive_review_checklist.py": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+  "tools/scope_of_work/check_boundary_owner_resolution.py": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a"
+}
+
+Control hashes before checks:
+
+{
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_CONTEXT.md": "dcf6b2490a0f5f746070c4db8d6d20abe61d647c08d4e5f3efe6c83ca70fdfd1",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_STATUS.md": "54069ca6a4dade6f215717dd1069ff2a5b15e9ad9c9e5a5d0b27701d78155a1c",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_SEMANTIC.md": "093d326868ea381aac400506f2cf79aa857574a9003cf2d3d01874b369d90bfd",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md": "71c2c58e272fceb4d39585d9fa4a01638f04fa15d83934d521bb07d0d49edfd0",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_REFERENCES.md": "00dd7efdfa4cf8817df0c0f42f428b357e4f2478d55c023b5f174d5338334d05"
+}
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract', '--json']
+
+Exit: 0
+
+stdout:
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract",
+  "valid": true
+}
+
+
+stderr:
+
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md']
+
+Exit: 0
+
+stdout:
+<captured in memory; SHA256 0d4339984222db9f582784d6deb56ab59ff329b139354023dd0fc9a775dd7441>
+
+stderr:
+
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md']
+
+Exit: 0
+
+stdout:
+<captured in memory; SHA256 0d4339984222db9f582784d6deb56ab59ff329b139354023dd0fc9a775dd7441>
+
+stderr:
+
+
+PASS: two stdout derivations byte-identical to each other and author CHECKLIST.json; exact 14 AC texts, order, qualified IDs, source line/hash and one-to-one methods checked.
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_CONTEXT.md']
+
+Exit: 1
+
+stdout:
+
+
+stderr:
+ERROR: ScopeOfWork.md must begin with --- frontmatter
+
+
+PASS: invalid non-contract input fails without emitting stdout artifact; no unauthorized output path supplied.
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md', '--show-not-checkable']
+
+Exit: 0
+
+stdout:
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+stderr:
+
+
+Independent in-memory boundary JSON equality: PASS
+
+{
+  "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md",
+  "status": "OK",
+  "requirements_checked": 1,
+  "requirements_not_checkable": 0,
+  "requirements_without_cited_claim": 0,
+  "findings": []
+}
+
+PASS: independently read accepted ScopeLedger assignment exactly equals all twelve brief/frontmatter scope IDs; objective refs exactly OBJ-004/OBJ-005.
+
+PASS: all read source/method/brief/control hashes unchanged during checks; stable production candidate unchanged; original OPEN status SHA256 unchanged.
+
+Product acceptance criteria were inspected as future obligations, not executed; schema/checklist/boundary checks establish only definition-quality evidence.
+
+Semantic finding F-001 remains despite tool boundary OK: host owns offering/recording/presentation, not the person's actual act. See VERIFY.md.
+
+
+AFFECTED REPAIR BACKCHECK — manager-authorized in same VERIFY run
+
+Original candidate: 281828dde0e52d184baf8b9c7695ed68bc0e4da8c919a3fd5423c418533b7177
+
+Repaired candidate: 42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a
+
+Independent orchestration-memory comparison found exactly lines 41 CLM-002, 83 AC-011, 104 VER-011 and 137 AC-011 matrix evidence changed; all other lines identical. No local IDs changed.
+
+Accepted-manifest exact-copy comparison: PASS for canonical/Packages.csv, canonical/Deliverables.csv, canonical/ScopeLedger.csv, canonical/Objectives.csv, canonical/Open_Issues.csv, canonical/External_Dependencies.csv
+
+Original source/method/brief/control rehash: PASS; candidate repairs are the separately authorized changed input.
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract', '--json']
+
+Exit: 0
+
+stdout:
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract",
+  "valid": true
+}
+
+
+stderr:
+
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md']
+
+Exit: 0
+
+stdout:
+<captured in memory; SHA256 74aac4be64f9f56d3f4241cac61d729e950ead237a4e07b51363016bb07e1c09>
+
+stderr:
+
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md']
+
+Exit: 0
+
+stdout:
+<captured in memory; SHA256 74aac4be64f9f56d3f4241cac61d729e950ead237a4e07b51363016bb07e1c09>
+
+stderr:
+
+
+PASS: regenerated checklist matches repaired candidate; exact text/order/hash/line, qualified IDs, 14 one-to-one AC/VER methods, repeated byte equality and equality with author artifact.
+
+Command: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md', '--show-not-checkable']
+
+Exit: 0
+
+stdout:
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+stderr:
+
+
+Repaired boundary JSON matches author artifact:
+
+{
+  "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md",
+  "status": "OK",
+  "requirements_checked": 1,
+  "requirements_not_checkable": 0,
+  "requirements_without_cited_claim": 0,
+  "findings": []
+}
+
+Independent semantic closure F-001: host facilities/records explicitly separated from actual attributable person-performed acts. No reserved/classifier choice added.
+
+Independent semantic closure F-002: execution success alone implies no act; each act-specific claim requires its own evidence; VER-011 includes independently evidenced acts and no cross-act inference.
+
+No other scope, output, ownership, open-choice or matrix method changed. Product ACs remain unexecuted future obligations.
+
+FINAL ARTIFACT HASHES
+
+{
+  "CHECKLIST.json": "74aac4be64f9f56d3f4241cac61d729e950ead237a4e07b51363016bb07e1c09",
+  "BOUNDARY.json": "45837f39b61e1ced1d5c07e1c165268957f5dd522decde86926e4690fee69685",
+  "VALIDATION.txt": "6b5e3987c06858c7d2b43b41407008cafe9fc8e02d312119d414cd79a4be64b1",
+  "AUTHOR_RETURN.md": "ff072d7d8337cb7521ef00233f496beb5db0207ecad72f502aeeb7c6b5da944f"
+}
+
+Status SHA256: 54069ca6a4dade6f215717dd1069ff2a5b15e9ad9c9e5a5d0b27701d78155a1c
+
+AFFECTED VERIFICATION RESULT: PASS; original findings preserved and closed by observed source-grounded repairs.
+
+Final evidence-account check: independently read the current R1 header at the opening of AUTHOR_RETURN.md (not its preserved historical tail); current candidate, four-line repair, artifact hashes and source/custody limits match this verification.

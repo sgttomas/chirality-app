@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The identified App candidate uses Tauri 2, React and Vite and starts the identified unmodified pinned Codex App Server as its own child over published JSON-RPC stdio; child/protocol ownership stays in the main process and the supplier seam explicitly errors on an unknown request. Evaluate REQ-001 with VER-001. [D verification; A V4-ARC-01/02 and section 3 properties]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-001",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect candidate stack/configuration, stock binary identity and process/protocol responsibility; use a recorded protocol exchange or controlled candidate fixture to demonstrate stdio handling and the explicit unknown-request error. Evidence names supplier/App candidate identities and observed outcome; durable recovery is a separate receiver's witness. Verifies AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The candidate's protocol types are generated from its selected Codex pin, with traceable provenance and a separately identified small experimental supplement; the receiving seam preserves the selected native fields/items. Evaluate REQ-002 with VER-002. [A V4-ARC-05; L SOW-121]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-002",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Regenerate or compare the protocol types against the selected supplier's generation output, inspect the experimental supplement and check representative native field/item exchanges consumed by the seam. Bind output/provenance and fixture results to that candidate. Verifies AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The supplier contract and candidate expose the selected-version identity and verification result plus native plan/revision information needed by the plan receiver; the responsibility account identifies the App v4 DEL-01-03 presentation contribution and keeps registry/checker means as design choices. Evaluate REQ-003 with VER-003. [D; L SOW-128; K]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-003",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace selected-version identification/check evidence and a representative native plan/revision exchange through the supplier contract to the named plan receiver; inspect the allocation of presentation and the still-optional registry/checker design. This verifies the local contribution without asserting the receiving UI witness passed. Verifies AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The responsibility account records the App implementation owner's Rust/TypeScript allocation beyond the fixed invariants, the ordered design priorities, mainstream-stack constraint and the optional-reuse assessment, without treating reused code as qualified merely because it existed in v3. Evaluate REQ-004 with VER-004. [L SOW-097/101/131; I OI-008; K]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-004",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the responsibility/optional-reuse account against [A] fixed invariants, [I] OI-008, the accepted priority order and mainstream-stack constraint, and [K]'s outcome/means distinction. Record the actual decision source and any unresolved value; do not mark the completed-allocation criterion met while the choice is open. Verifies AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The selected embedding protocol is qualified on the identified candidate and the account/provider receiver has an explicit local-provider protocol requirement account separating supplier claims from observed capability; qualification does not assert that account flows or server substitution are completed here. Evaluate REQ-005 with VER-005. [D; L SOW-149; A section 6; E DEP-005]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-005",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the chosen Codex embedding behavior against its identified published protocol using recorded exchange fixtures and the applicable candidate witness; inspect local-provider requirements handed to the App account/provider owner against the selected protocol. Record unsupported/unobserved portions explicitly; native sign-in and server-substitution evidence is received from its own owner when needed. Verifies AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The qualification record identifies the actually selected stock supplier pin, App candidate, generated schema/supplement and recorded exchanges; selected-version checks and applicable protocol regression outcomes are recorded, with deliberate-upgrade comparison and unresolved incompatibilities explicit. Historical examples are not used as adoption evidence. Evaluate REQ-006 with VER-006. [D; L SOW-100/135; A M-7 and section 8; I OI-012]",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-006",
+          "source_line": 82,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review pin-selection evidence and run the selected-version check plus applicable recorded protocol regressions on the candidate; for a supplier upgrade compare the candidate's generated schema, experimental supplement and exchange outcomes with the prior qualified basis. Record the actual pin, candidate, checks and failures rather than assuming an upgrade from a version label. Prefer recorded exchanges for seam regressions, with live checks only where they establish a required fact. Verifies AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+      },
+      "text": "The responsibility account resolves every excluded production act in REQ-007 and REQ-008 to its cited owner while preserving this deliverable's included hosting, protocol, selection and qualification work. It distinguishes execution, proposal acceptance, checking, approval and professional reliance by actor and evidence; none is inferred from another, and no universal acceptance-before-checking or acceptance-before-reliance sequence is invented. Evaluate REQ-007 and REQ-008 with VER-007. [D, P, R sections 4.5/4.7, K]",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-01-01-VER-007",
+          "source_line": 83,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Perform a one-for-one boundary review of the enumerated acts against CLM-004 through CLM-006 and the accepted owner rows. Inspect candidate/qualification statements for any transfer of sibling/supplier/host work or unsupported human-act claim. Confirm that offering/recording/presenting an act is distinct from performing it and that one act's evidence is neither another act's proof nor an invented universal prerequisite. Verifies AC-007."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-01-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-01",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+  },
+  "tool_version": "1"
+}

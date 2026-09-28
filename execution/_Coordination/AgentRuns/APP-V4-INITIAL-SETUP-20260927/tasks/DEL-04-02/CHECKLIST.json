@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-04-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "Active autonomy is visible by operation class and reflects the actual granted scope before and after a during-work change; a requested but unestablished change or operation success supplies no broader grant, and checkpoint state is not falsely shown as discharged. Verify REQ-001 with VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-001",
+          "source_line": 94,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the receiving interface with an identified adopted policy, person-set direct/proposal scope, a during-work scope change, an unestablished change and a declared-checkpoint case. Compare visible active scope with the actual effective grant and checkpoint evidence; retain the before/after observations for AC-001. A fixture may not decide unresolved operation policy."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-04-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "Each exercised run's visible autonomy settings, including an exercised during-work change, correspond to the settings recorded through the record-owner interface. Missing or unconfirmed settings remain explicit, with no second record authority introduced. Verify REQ-002 with VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-002",
+          "source_line": 95,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the displayed settings and run identity with the input/output of the App DEL-04-03 record interface for a run and a during-work change. Exercise missing/unconfirmed settings; preserve the record references and comparison proving AC-002 without creating a substitute run record authority."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-04-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 71,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "A direct-application case exposes attributable origin and the supplied host undo/later-checking routes; an exercised undo interaction preserves the host's observed outcome. Missing host capability or evidence does not become available undo, a successful undo or a performed check. Verify REQ-003 with VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-003",
+          "source_line": 96,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Use direct-application and undo interface fixtures with identified host origins/receipts. Inspect origin and later-checking access, invoke the fixture's supplied undo route and compare displayed outcome with the host response; exercise absent route/evidence and unobserved outcome cases. Record which observations satisfy AC-003 locally and which require actual host evidence."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-04-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "Current, historical, checked, limited and lapsed result cases preserve the standing actually received; absent evidence and unobserved outcomes remain visible limitations. The displayed standing supports inspection without promoting execution or record visibility into human or professional standing. Verify REQ-004 with VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-004",
+          "source_line": 97,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Supply current, historical, checked, limited, content-lapsed and missing/unobserved result evidence to the receiving components. Compare each visible standing and inspectable evidence link with the supplied source, including changed-content lapse received from the record owner; retain observations for AC-004. Do not treat a display or schema check alone as proof of an upstream act or host capability."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-04-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 73,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "A positive case faithfully displays an actually performed human act with human decision actor and recorder distinct. Cases with only an agent proposal, execution success, agent examination or permission grant manufacture no human acceptance, checking, approval or reliance; an independently evidenced act remains displayable without inventing a different prior act. Proposal labels use \"accept\". Verify REQ-005 with VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-005",
+          "source_line": 98,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the act-distinction cases in AC-005, including positive faithful recording with separate human decision actor and recorder, unsupported/fabricated attribution negatives, and an independently evidenced act without a different prior act. Inspect actor/subject/evidence, displayed meaning and proposal labels against P V4-AUT-03/05, H V4-HI-25/31/33 and S d3. This receiving check supplies no new human-act permission or global reserved list."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-04-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 74,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "The delivered interface contract identifies policy, record and host inputs, the agreed receiving allocation, each excluded act and its cited owner, and the exact open-choice owners and points of need. It selects no unruled policy or allocation and claims no missing host delivery/adoption. Verify REQ-006 and REQ-007 with VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-006",
+          "source_line": 99,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review OUT-002 and its implementation references against B, I and CLM-001 through CLM-005: trace each consumed policy/record/host input; resolve each REQ-007 excluded act one-for-one to its actual owner; compare each open issue's owner and point of need verbatim with the accepted/current register; inspect evidence supporting any host delivery/adoption assertion. Retain gaps and unresolved decisions for AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-04-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 75,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+      },
+      "text": "The delivered mid-run autonomy/standing and undo fixtures cover the receiving obligations in AC-001 through AC-005 and report actual results against an identified component/contract candidate. Local fixture results remain distinguishable from external host evidence and a connected integration witness. Verify OUT-003 with VER-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-04-02-VER-007",
+          "source_line": 100,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the delivered fixture inventory against AC-001 through AC-005 and execute the bounded mid-run autonomy/standing and undo suite against the identified receiving candidate. Record case, input identity, observed outcome and limitation references, checking coverage and truthful attribution for AC-007 without substituting fixtures for an external host witness."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-04-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-04",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+  },
+  "tool_version": "1"
+}

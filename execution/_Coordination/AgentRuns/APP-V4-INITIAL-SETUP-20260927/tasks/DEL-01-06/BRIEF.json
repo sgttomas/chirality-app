@@ -1,0 +1,123 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Author exactly one source-grounded SOFTWARE ScopeOfWork.md in MODE=INIT; no implementation",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/AUTHOR_RETURN.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/CHECKLIST.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/BOUNDARY.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-098",
+      "SOW-117",
+      "SOW-134"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-002"
+    ],
+    "MODE": "INIT",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-01-06",
+    "PackageID": "PKG-01",
+    "Name": "macOS packaging and distribution evidence",
+    "Description": "Provide the scoped macOS package and its signing/entitlement evidence, with the written sign-in distribution response obtained at the public-release point of need. Interfaces: Packages the identified DEL-01-01 binary and App; PKG-09 uses the packaged candidate; external SWB packaging knowledge may be received but does not qualify this package. Verification: Packaged target starts with identified binaries and required entitlements; unresolved terms block public distribution only, not owner use or independent development.",
+    "Type": "CI_CD_CHANGE",
+    "ResponsibleParty": "App packaging owner; owner obtains supplier terms",
+    "AnticipatedArtifacts": "CONFIG: macOS Apple Silicon packaging/signing/notarisation;DOC: entitlement and binary identity record;TEST: package install/launch witness;DOC: written distribution-terms response before public release",
+    "CoversScopeItems": "SOW-098;SOW-117;SOW-134",
+    "SupportsObjectives": "OBJ-002",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: define and build the App against its selected supplier inputs; external host/provider completion is not a start gate."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-098",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Target macOS on Apple Silicon for v4.0.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-CST-02",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-06",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-117",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Obtain the stated written sign-in distribution terms before public release beyond the owner's use; any future Claude sign-in has its own terms question.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#9;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#6",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-06",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "TRUE",
+      "Notes": "OI-007; DEP-004; obtaining the stated written answer is a conditional accepted pre-public-release obligation; the answer/terms remain unresolved, not the obligation. Future Claude terms apply only if that need arises."
+    },
+    {
+      "ScopeItemID": "SOW-134",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Define Tauri signing/notarisation for the App and Codex binaries, including any code-mode entitlement.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#3;projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-06",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926;APP-V4-CLARIFICATION-20260927",
+      "OpenIssue": "TRUE",
+      "Notes": "OI-011 Required definition/receiving work is included; the linked Open Issue retains the undecided value or allocation. This reclassification neither decides that issue nor adds a human gate or a separate Deliverable per row."
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve each accepted open issue\u2019s exact owner and point of need separately; do not collapse different timing conditions into a later generic implementation gate.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "0d6bdd4876c7df64f491d9aa641cc47e5507077fbd283d991326acf78d851523",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Preserve macOS-first native packaging and supplier qualification/terms responsibilities. Cross-engine examination is portability/maintainability evidence, not automatic Windows shipping scope. Do not make legal conclusions or adopt signing/distribution prerequisites beyond actual accepted conditions, including any conditional entitlement wording."
+}

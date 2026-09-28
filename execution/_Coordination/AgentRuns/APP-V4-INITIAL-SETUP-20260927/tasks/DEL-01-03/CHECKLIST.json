@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-03-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "Representative native plans and their revisions remain visible and interactive under REQ-001, with the required behavior preserved irrespective of the assessed registry implementation. Verify using VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-001",
+          "source_line": 74,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Replay selected-version native plan items and revisions through the views and inspect the person's planning/revision interaction. Compare the displayed plan and revision sequence with the source items, including updated content. Retain candidate-bound fixture/input identities and observations for AC-001. Sources: D verification; P V4-APP-01/04; E local V4-EXM-10 observations."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-03-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "Representative substantive tool activity and successful, failed or unavailable outcomes render from native items under REQ-002; missing observations remain unknown and no Chirality event translation supplies invented meaning. Verify using VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-002",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Replay recorded substantive native tool activity and observed success/failure/unavailable-result cases. Compare displayed activity/outcomes with the native source, inspect the presentation path for event renaming/semantic translation, and confirm unavailable outcomes are still unknown. Record evidence for AC-002. Sources: D; A V4-ARC-05; E V4-EXM-02/11."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-03-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "Representative delegated work retains native descendant identity/activity and the fleet receiving seam under REQ-003, including a completed primary turn with an active descendant. No unobserved return, review or integration is inferred. Verify using VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-003",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise a native delegated-work fixture and its receiving identity linkage, including a primary-turn completion while a descendant remains active. Compare source identities/activity to both local display and the defined fleet seam; inspect for invented return/review/integration completion. Record evidence for AC-003. Sources: D; A §3; E V4-EXM-11/13 local observations."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-03-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "Presented selected-version identity and the native types/fixtures correspond to the supplied supplier basis under REQ-004, and a missing or mismatched basis cannot be reported as verified compatibility. Verify using VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-004",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare visible supplier version and fixture/type identities with the actual supplier input from CLM-002. Exercise missing/mismatched identity evidence and verify it is not reported as confirmed compatibility. Record the supplier qualification reference and this slice's observation separately for AC-004. Sources: D SOW-128/local verification; A §3; O OI-012/DEP-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-03-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "Tool execution alone produces no invented human acceptance, checking, approval or professional-reliance status; a separately evidenced actual human act can be faithfully shown with its decision actor distinct from the recorder and its content/scope/purpose intact under REQ-005. Verify using VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-005",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect presentation fixtures for (a) execution success without any human-act evidence, (b) an attempted inference of approval/reliance from a session entry and (c) a separately evidenced human act with identified actor, content, scope and purpose recorded by the system/agent. Verify negatives do not fabricate an act and the positive faithfully renders the actual actor/recorder distinction. Use synthetic material for fixtures; do not report synthetic acts as real owner decisions. Confirm no invented acceptance-first ordering for independently evidenced acts. Record evidence for AC-005. Sources: P V4-AUT-03/05 and V4-REC-03/05; H decision 03; I §5."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-03-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "The feature/reuse map covers all assigned scope and anticipated artifacts, preserves required behavior while recording conditional reuse, and resolves the enumerated exclusions to their named owners under REQ-006/007. Open means and policy stay assigned to their actual decision owners and points of need. Verify using VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-006",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the native feature/reuse map against D's assigned scope, artifacts and interfaces, H's conditional-reuse clarification, CLM-001…004 and the O issue rows. Trace each excluded act in REQ-007 to its cited actual owner; check local versus joint contributions, required behavior versus reuse choices, and each retained choice's point of need. Record evidence for AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-03-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+      },
+      "text": "The pinned-native-item fixture set and its reported results meet REQ-008 and account for the local plan/tool/delegation observations without claiming the full workflow-making, fleet or host journey passed. Verify using VER-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-01-03-VER-007",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect fixture provenance and the candidate/configuration/date/outcome record, confirm coverage of AC-001…005 and cross-engine/native evidence under REQ-008, and mark unavailable witnesses with their actual status. Confirm local fixture results are not advertised as full workflow-making/fleet/host qualification. Record evidence for AC-007. Sources: D; E §1–3; O OI-015."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-01-03",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-01",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+  },
+  "tool_version": "1"
+}

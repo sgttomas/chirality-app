@@ -1,0 +1,90 @@
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --json
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined acceptance criteria missing from matrix: AC-008",
+    "defined verification methods missing from matrix: VER-008"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md",
+  "valid": false
+}
+exit=1
+
+Repair: matrix parser requires a single OUT per row; bind the cross-output boundary account to OUT-004.
+
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json
+exit=0
+
+Repeated checklist derivation byte-identical: True
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md SHA256: b6cf27db2d2277b79bd94a3180db8d1f32f1cf7f5b001a5dab567e541a557a5c
+
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json SHA256: 98fccac9a4970d23a173a3d513d2a8318606cdb664003a9ba04f47d130f90d64
+
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/BOUNDARY.json SHA256: 010b03e4c424f972eb44d0d6fcea7bd5e2ee291f29415a2063724503596ff873
+
+projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_STATUS.md SHA256: 11f49dada535dd891048d8cc13721cfadf2e793ce2898e47752968b3f74a03fe
+
+Status hash unchanged; lifecycle remains OPEN.
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/NONEXISTENT_INPUT
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+exit=1
+Missing-input derivation failed; no checklist emitted or new input/output artifact created.
+Semantic QA: all 8 AC definitions retain source order, each matrix row uses its own single verification method; 4 OUT artifacts cover every assigned source scope item.
+Boundary semantic QA: REQ-008 individually resolves host loop/native enforcement to external host owner via CLM-003; later workflow/integration to App DEL-08-02, host design implementation/application to external SWBPIPE owner, actual approval to human and human-relayed coordination via CLM-004; fallback implementation to App DEL-07-02, fallback coordination to managers/human, broader witness to App DEL-09-10 via CLM-005. Provider construction remains allocation TBD under CLM-002/OI-026. Deterministic NOT_CHECKABLE=0; NO_CITED_CLAIM=0; natural-person/external-owner portions additionally checked semantically.
+Composite QA: accepted normalized IN scope and later decisions govern; original pending meaning/corpus structure not reinstated; external knowledge location does not select allocation/transport/deployment/privacy. No substantive source conflict identified.
+Checks 2,5,6,7,10,11,12,14,17 are CONVERT-only and NOT_APPLICABLE; check 15 HTML is NOT_APPLICABLE; check 22 REVISE is NOT_APPLICABLE. No converter, claim mapping, parity, finalizer or renderer invoked. Independent verification remains parent-owned.
+
+Programmatic checklist comparison PASS: every AC exact text/source order/production hash and its single VER exact text match the production definitions.
+
+Verifier-requested citation precision repair: B5 PRD allocation locator corrected from section 7 (Interfaces) to section 6, whose allocation paragraph is current lines 405–411. Only that source-section locator changed in ScopeOfWork.md; no scope/owner/policy change.
+Previous production SHA256: b6cf27db2d2277b79bd94a3180db8d1f32f1cf7f5b001a5dab567e541a557a5c
+Corrected production SHA256: 581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json
+exit=0
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+Citation-only corrected candidate: schema PASS; repeated checklist byte-identical; exact AC/VER text/order/hash linkage PASS; boundary OK; status remains OPEN and byte-identical. Prior semantic/source coverage findings unchanged.
+
+projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md SHA256: 581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1
+
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/CHECKLIST.json SHA256: f056b3ec23ce8e5b5ce2a36bebe33f529890c84673a3cccc4e8f3845af08bf94
+
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-08-01/BOUNDARY.json SHA256: 010b03e4c424f972eb44d0d6fcea7bd5e2ee291f29415a2063724503596ff873
+
+projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_STATUS.md SHA256: 11f49dada535dd891048d8cc13721cfadf2e793ce2898e47752968b3f74a03fe

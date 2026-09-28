@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-06-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "A representative brief preserves all seven bounded-assignment elements in REQ-001, and distinguishes declared limits from observed host enforcement; a prepared brief without native dispatch evidence makes no executed-child claim. Verify by VER-001. Grounding: SOW-083 and BASIS verification.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-001",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect a populated brief against the seven source elements and its actual native/enforcement evidence; contrast an observed dispatch with a written but undispatched brief and a declared limit unsupported by host enforcement. Preserve fixture, candidate identity and observed distinction for AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-06-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "A record fixture has one identifiable current undertaking graph showing selected work, prerequisites, owners, results and continuation, including independent ready work and dependent work whose input is still outstanding. Recovering the graph preserves those facts and its distinction from a project DAG. Verify by VER-002. Grounding: SOW-084, OPS V4-OPS-02 and EXAM V4-EXM-13.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-002",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Save and recover a current graph fixture from files; compare the selected work, outstanding prerequisite, independent ready contribution, owners, result references and next work against the source fixture. Inspect its current-selector meaning and separate project-DAG reference. Record the recovered comparison for AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-06-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "App record round trips preserve the observed native child/parent association and source evidence without translating the native identity into a fabricated execution event. A no-dispatch case and an unknown-outcome case remain distinguishable from observed execution. Verify by VER-003. Grounding: BASIS CODE artifact and native-identity interface, ARCH §3.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-003",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the candidate App reader/writer and native-delegation association using the identified native supplier interface from DEL-01-03; compare the saved and recovered child/parent identity and evidence links. Include no-dispatch and unknown-outcome inputs and examine that no event is invented. Bind results to the candidate and supplier basis for AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "After changed basis and interrupted observation, record recovery retains actual worker/resource ownership, returned work, independent findings and continuation, including a return awaiting review and the separate evidence for reviewed/integrated work. It does not promote a return or a reconnected conversation to integration. Verify by VER-004. Grounding: BASIS TEST artifact, COMPOSITE decisions 05/07 and EXAM V4-EXM-13.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-004",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise local record continuation with a changed basis and interruption, preserving an active worker, returned work pending review, an independent finding and separately evidenced review/integration. Compare pre-interruption evidence and recovered facts. These are record fixtures contributing to DEL-09-05's joined witness, not a claim to have performed it. Retain the comparison for AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "The record/evidence interface faithfully carries a referenced, actually performed human act with its actor, content, scope and purpose, while preserving a separate recorder identity. Negative cases do not manufacture human acceptance, checking, approval or reliance from a successful tool action or returned artifact. Independently evidenced acts retain their actual order without an invented universal acceptance gate. Verify by VER-005. Grounding: CLM-002, REQ-004 and COMPOSITE decision 03.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-005",
+          "source_line": 82,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the PKG-04 reference interface with a positive actual-human-act record and a distinct recorder, then fabrication negatives based only on successful execution or return. Include independently evidenced acts in their actual order and check that no extra acceptance prerequisite appears. Inspect content/scope/purpose and actor references against the source records for AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-06-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 68,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "The compatibility account identifies record versions and consumers and traces a proposed format change to its affected PEC coverage and adoption consequences, leaving provider response/wire details and receiving qualification with their actual owners. Verify by VER-006. Grounding: SOW-185, HOST V4-HI-63 and CLM-004.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-006",
+          "source_line": 83,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the identified format/consumer account and a bounded proposed-change example with the responsible format and receiving owners' contributions distinguishable; trace the example's affected feed coverage and required receiving adoption evidence. Confirm unresolved response details remain at OI-022 rather than invented locally. Retain the version/coverage comparison for AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-06-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "A file-only record exercise with PEC absent still supports brief/graph read/write, actual ownership and continuation; absence supplies no empty-work, readiness or permission conclusion and does not block independent file-native practice. Verify by VER-007. Grounding: BASIS phase/interface limits, HOST V4-HI-61…63 and COMPOSITE decision 06.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-007",
+          "source_line": 84,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Run the local file record exercise without PEC and compare persisted assignment, current graph, ownership and continuation against the same source facts. Check that missing observation does not alter record authority or create a readiness/permission/empty-work conclusion. Retain observed file-route behavior for AC-007."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-06-01-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+      },
+      "text": "The delivered record definitions, App behavior, fixtures and compatibility documentation cover the local outputs while preserving every named interface owner in REQ-006 and the distinct open issue owners and points of need below. Local fixtures claim only their record coverage; the joined fleet witness and receiving adoption remain separately evidenced. Verify by VER-008. Grounding: BASIS deliverable/artifact allocation, OPEN and CLM-001 through CLM-005.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-06-01-VER-008",
+          "source_line": 85,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the candidate artifacts and evidence to the accepted SOW rows, anticipated artifact classes, interface claims and open-issue table. Check each excluded act against its named owner one-for-one and distinguish local test results from DEL-09-05 examination and PEC release/adoption. Record gaps and the exact candidate basis for AC-008."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-06-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-06",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+  },
+  "tool_version": "1"
+}

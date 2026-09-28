@@ -1,0 +1,126 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Independently verify one stable SOFTWARE ScopeOfWork INIT candidate against actual accepted sources; no production edits",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-02/VERIFY.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-02/VERIFY_VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-195",
+      "SOW-196",
+      "SOW-197"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-001",
+      "OBJ-002",
+      "OBJ-003",
+      "OBJ-008"
+    ],
+    "MODE": "VERIFY",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-09-02",
+    "PackageID": "PKG-09",
+    "Name": "Standalone App candidate qualification",
+    "Description": "Qualify one identified standalone App candidate through its complete workflow-making loop, interruption/restart behavior and concurrently configured access modes; retain each named scenario within one durable dossier. Interfaces: Consumes focused feature checks from PKG-01 and PKG-02, then joins native interactions, reviewed registration/checkpoints and PKG-04 evidence on the same App candidate; feeds DEL-11-03. This does not replace or duplicate account implementation tests. Verification: From an empty project observe revised planning, substantive tools, reviewed registration, reuse and two refinements; observe stop/window loss/relaunch, grant/deny, surviving requests/descendants and unknown outcomes; run each of ChatGPT/API-key/local access with all configured. Results bind candidate and actual configuration.",
+    "Type": "TEST_SUITE",
+    "ResponsibleParty": "App workflow-experience integration owner; independent candidate examiner assembles qualification",
+    "AnticipatedArtifacts": "TEST: joined V4-EXM-10/11/12 candidate scenarios;DOC: standalone qualification dossier linking feature-local checks, actual workflow registration, recovery and three-mode outcomes",
+    "CoversScopeItems": "SOW-195;SOW-196;SOW-197",
+    "SupportsObjectives": "OBJ-001;OBJ-002;OBJ-003;OBJ-008",
+    "ContextEnvelope": "L",
+    "ContextEnvelopeNotes": "One standalone App qualification dossier with one integration owner and candidate identity. Named scenarios are work-graph cases rather than separate durable Deliverables; feature owners retain their local implementation checks.",
+    "PhaseHint": "Nonbinding: examine each identified candidate when its named contributions are available; not a late testing phase."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-195",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Examine the App journey from empty project through planning/revision, tool execution, reviewed workflow registration, reuse on new inputs and two refinements, observing declared method and overwrite protection.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-10",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-02",
+      "ObjectiveIDs": "OBJ-001;OBJ-003;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-196",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Examine stop, window close/reopen, approval grant/deny and application relaunch/continuation, including surviving requests and truthful observed state.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-11",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-02",
+      "ObjectiveIDs": "OBJ-001;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-197",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Examine one conversation with each of concurrently configured ChatGPT, API-key and local-server access and selection between them.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-12",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-02",
+      "ObjectiveIDs": "OBJ-002;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve exact source-defined scenario quantities and each open issue owner/point of need; do not invent thresholds or turn missing product inputs into a passed/failed executed witness.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "ecf6453d2a7bf46cb2b3089eab4c13bfd27dafcafc0ec0f82c1d9582f5e7496d",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Own one integrated standalone qualification dossier covering V4-EXM-10/11/12: empty-project complete workflow-making with the source-required two refinements, interruption/recovery and all three access modes concurrently configured. Preserve DEL-02-02 complete-result ownership and feature-local checks; add joined/independent value instead of duplicating each feature acceptance check. No resurrection of retired draft Deliverable IDs, no claimed live execution.",
+  "candidate_sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d",
+  "author_brief": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-02/BRIEF.json",
+  "verification_guidance": "Read actual source clauses and assigned scope/artifact/owner interfaces. Check no invented policy, input readiness, implementation choices or transfers; preserve open points. Pilot lessons about separately evidenced acts apply. Contract and matrix verification is semantic, not just schema. Run candidate validation, checklist derivation twice, boundary tool and manual owner check. Reuse pilot DEL-01-05/VERIFY_VALIDATION.txt invalid/unauthorized-dual QA18 tool evidence if the relevant tool hashes are unchanged; record reuse honestly rather than repeating identical negative tool tests per contract. This does not replace this candidate checks. Report concise outcome, concrete findings, source loci and actual hashes, preferably400\u2013900words plus necessary validation ledger; no source snapshots or packet chains. Original findings and repaired-candidate backchecks stay in one review if repair occurs."
+}

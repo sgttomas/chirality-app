@@ -1,0 +1,166 @@
+{
+  "item_count": 6,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-03-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "The focused responsibility map covers SOW-230 and the named shared contract interfaces, separates concepts/guidance/technical commitments, and gives each affected contribution a supported owner and consuming contract or an explicit unresolved allocation. Verified by VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-001",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the assembled map against BASIS SOW-230 and the CLM-001–006 owner/interface statements. Follow each affected entry to its accepted contract source; compare meaning, ownership, consumer and open allocation. Record omissions, contradictory assignments and the candidate identity supporting AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-10-03-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "Every promise affected by the bounded renewal retains its accepted identity, current decision-qualified obligation, accountable SoW and derivative/evaluation path; unavailable artifacts and open choices are visible without a silently lost or weakened promise. Verified by VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-002",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Perform a two-way comparison between the bounded population of affected accepted promises and OUT-002. Follow each source obligation through later qualifying decisions to its SoW, derivative/interface and evaluation path, then reverse-check account entries for unsupported promises. Examine absent derivative and relocation cases explicitly; record retained obligations, missing links and owning points of need for AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-03-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "Every historical statement included in the account has a supported present-applicability treatment and preserved original reference; thesis continuity and another consumer's ongoing obligations are retained, and superseded seed defaults do not reappear as current requirements. Verified by VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-003",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare applicability entries to original records and later accepted direction, including SEED's Root-first precedence, thin-loop default and shared TypeScript wording against HTML/OPS/ARCH. Confirm original/thesis preservation references and identify any current consumer obligation that continues despite v4's different direction. Treat historical successful repairs as bounded evidence, not topology-only proof or a v4 qualification. Record the comparison supporting AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-10-03-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "For each proposed affected placement/supply change, the account provides identified current-source consumer/packaging/tool-path checks or an explicit outstanding check and point-of-need hold; it does not assert adoption, runtime delivery or behavior from source inspection. Verified by VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-004",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the selected current source/selector/tool-path chain for each affected placement or supply change, starting from relevant known leads such as CLM-007. Compare proposed placement with actual references and supplied-basis identity; name each affected Root/Runtime/App/Piping consumer and owner. Separate static trace from build/runtime evidence; an unavailable check records the gap and prevents the affected placement/supply reliance, without stopping independent definition. Return source identities, findings and limits for AC-004; execute no network experiment or consumer migration under this contract-initialization task."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-03-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "The account maps compatible workflow, identity, human-act, catalog and evidence obligations to their actual App/shared/host owners, retains the chosen Codex/Tauri/minimal-loop direction, and leaves unjustified common execution and open placement unselected. Verified by VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-005",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the account against the PKG-02/03/04/05 accepted interface rows and ARCH decisions. Check workflow/checkpoint, identity, human-act, catalog and evidence coverage, the retained App/host direction, and whether proposed common implementation has a concrete repeated responsibility and named consumers. Compare all placement choices to TBD-001/002 so an open choice remains open. Record compatibility questions and owner decisions needed for AC-005; an interface comparison alone is not a joined-product pass."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-10-03-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+      },
+      "text": "The account preserves the excluded acts and owners in REQ-006 and attributes actual acts only to their evidence: faithful recording of an actually performed human act is distinguishable from fabrication and from the recorder, while execution/checking/acceptance/approval/reliance/adoption are not inferred from one another. Verified by VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-10-03-VER-006",
+          "source_line": 82,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine each exclusion in REQ-006 against the act its cited claim assigns, including non-deliverable human/host owners. Inspect actual-act statements and their custody. Use a positive documentary case of an actually performed human decision faithfully recorded with distinct actor/recorder and identified subject; use negative cases where a successful operation, check, prepared notice or silent interval is incorrectly presented as acceptance/adoption/reliance. Confirm rejection of those unsupported inferences without denying faithful recording or imposing an unaccepted order among distinct acts. Record the semantic comparison supporting AC-006."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-10-03",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-10",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+  },
+  "tool_version": "1"
+}

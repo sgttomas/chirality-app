@@ -1,0 +1,277 @@
+Verifier custody
+{
+  "agent": "/root/renewal_research_strategy/verify_sow_del_09_01",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "mechanism": "native fresh-context terminal TASK; inherited model; no override; no different-family claim",
+  "mode": "VERIFY of INIT",
+  "method": "chirality-root:bundled:workflow:scope-of-work",
+  "recording_time_utc": "2026-09-28T01:53:32.671081+00:00",
+  "write_boundary": "VERIFY.md and VERIFY_VALIDATION.txt only; instructional; host filesystem broader"
+}
+
+Initial identity
+{
+  "candidate_sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+  "expected_candidate": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+  "matches": true,
+  "status_sha256": "862adb8d08062f5bcbb44f06722fa16f07d0df53d9ba5ba5fb3c159b99109a2c",
+  "expected_status": "862adb8d08062f5bcbb44f06722fa16f07d0df53d9ba5ba5fb3c159b99109a2c",
+  "status_matches": true
+}
+
+COMMAND ['python3', '-B', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md', '--json']
+{
+  "exit": 0,
+  "stdout": "{\n  \"format\": \"SOW_V1\",\n  \"issues\": [],\n  \"target\": \"projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md\",\n  \"valid\": true\n}\n",
+  "stderr": ""
+}
+
+COMMAND ['python3', '-B', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md']
+{
+  "exit": 0,
+  "stdout_bytes": 12313,
+  "stdout_sha256": "e6c7718fc7124c7d0c685ba74fd5577c3a2679a748e806d68c89b2ca94b98945",
+  "stderr": "",
+  "note": "stdout captured in memory; no file output"
+}
+
+COMMAND ['python3', '-B', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md']
+{
+  "exit": 0,
+  "stdout_bytes": 12313,
+  "stdout_sha256": "e6c7718fc7124c7d0c685ba74fd5577c3a2679a748e806d68c89b2ca94b98945",
+  "stderr": "",
+  "note": "stdout captured in memory; no file output"
+}
+
+COMMAND ['python3', '-B', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md', '--show-not-checkable']
+{
+  "exit": 0,
+  "stdout": "\nContracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0\n",
+  "stderr": ""
+}
+
+Checklist binding and matrix checks
+{
+  "byte_identical_repeat": true,
+  "identical_to_author_CHECKLIST": true,
+  "nine_items": true,
+  "exact_ac_order_text_lines": true,
+  "candidate_binding": true,
+  "own_method_equals_derived": true,
+  "one_ac_per_matrix_row": true
+}
+
+Candidate boundary JSON (in memory)
+[
+  {
+    "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md",
+    "status": "OK",
+    "requirements_checked": 1,
+    "requirements_not_checkable": 0,
+    "requirements_without_cited_claim": 0,
+    "findings": []
+  }
+]
+
+Boundary matches author
+true
+
+Accepted manifest used-register binding
+{
+  "Deliverables.csv": true,
+  "Packages.csv": true,
+  "Objectives.csv": true,
+  "ScopeLedger.csv": true,
+  "Open_Issues.csv": true,
+  "External_Dependencies.csv": true
+}
+
+Brief rows against actual accepted register
+{
+  "deliverable_exact": true,
+  "nine_scope_rows_exact": true
+}
+
+Open owners and points of need
+[
+  {
+    "id": "OI-001",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-002",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-003",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-005",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-011",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-012",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-016",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-021",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-023",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  },
+  {
+    "id": "OI-026",
+    "owner_exact": true,
+    "point_of_need_exact": true,
+    "current_equal_frozen": true
+  }
+]
+
+OI-015
+{
+  "OpenIssueID": "OI-015",
+  "Type": "resolved",
+  "Title": "Cross-engine versus native-platform examination",
+  "Status": "RESOLVED_BY_SOURCE",
+  "ScopeItemIDs": "SOW-155",
+  "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#8;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-04",
+  "Owner": "Source reconciliation",
+  "PointOfNeed": "Resolved before Group1 presentation",
+  "RequiredResolution": "Retain both WebKit and Chromium interface examination; native smoke witnesses follow in-scope platforms.",
+  "Consequence": "Original OWNER_MESSAGES M-06/M-07 and MAINTAINABILITY_ANALYSIS section11.3 resolve apparent conflict; no new human ruling.",
+  "BlocksGroup1": "FALSE"
+}
+
+QA18 reused common negative proof
+{
+  "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt",
+  "sha256": "e15ca7c5c10171845a7fd390b501e9ae5ec9e247046813b992d8c04490de3969",
+  "tool_matches": {
+    "tools/scope_of_work/validate_scope_of_work.py": {
+      "sha256": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+      "matches_pilot_record": true
+    },
+    "tools/scope_of_work/derive_review_checklist.py": {
+      "sha256": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+      "matches_pilot_record": true
+    },
+    "tools/scope_of_work/common.py": {
+      "sha256": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+      "matches_pilot_record": true
+    },
+    "tools/scope_of_work/id_catalog.json": {
+      "sha256": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+      "matches_pilot_record": true
+    },
+    "tools/scope_of_work/check_boundary_owner_resolution.py": {
+      "sha256": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+      "matches_pilot_record": true
+    }
+  },
+  "case_evidence": "invalid_schema_in_memory and unauthorized_dual_in_memory: exit 1, empty stdout, zero write_text/mkdir attempts; no on-disk fixture run. Reused rather than re-executed.",
+  "applicability": "same registered derivation/format code and catalog; candidate-specific validation and double derivation executed above"
+}
+
+Author recorded source/tool hashes compared
+{
+  "count": 37,
+  "mismatches": []
+}
+
+Actual read-source/method and executable dependency whole-file SHA256 inventory (selective clause reads, not full-corpus examination)
+{
+  "AGENTS.md": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd",
+  "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+  "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md": "26c8254aaf2e2894e7d32096ec1e0d71b3ad881c1445094945031be19741433c",
+  "projects/chirality-app-v4/conceptual/DECISIONS.md": "abe26074667b77863c2d917331d4ffba3a6996189273c551e1cf722d84e0430a",
+  "projects/chirality-app-v4/docs/ARCHITECTURE.md": "c3ae766ee2d660fb391b7db0aa99526f84d21421cf3a6b692ddd17e42687e533",
+  "projects/chirality-app-v4/docs/EXAMINATION.md": "1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19",
+  "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": "08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da",
+  "projects/chirality-app-v4/docs/OPERATING_METHOD.md": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd",
+  "projects/chirality-app-v4/docs/PRD.md": "657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573",
+  "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+  "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_CONTEXT.md": "dbbf34b059dee70e011d7cc6c0abb210d8a74624acfbed539176714f683c303a",
+  "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_REFERENCES.md": "f00527dc6b6fbd53c811984c67e7e42354844b7bababddd3df6a4ff815fc469f",
+  "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_STATUS.md": "862adb8d08062f5bcbb44f06722fa16f07d0df53d9ba5ba5fb3c159b99109a2c",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html": "02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS_EXCERPTS.md": "2330d38ff8ebc4364a919aaa92c98368bdfe50b0c89196853fbade001052bd71",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md": "8d1474213fd5c8924d52dbe47f8a9fdf1cc6bf9dd42944cf080e3e9b6e7a7dc8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md": "a1490b1e101864c6db6280deaa9a617a6201c323ac9af574c4582177b0199419",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md": "8f53b266564df3bfd191ad675e8f76493998ebcf53ccc21ae8924a16b51e8a04",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md": "ff57362886b76da07df6feaed1630661f427c071dc5720c38c0a61d7d9e90491",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt": "e15ca7c5c10171845a7fd390b501e9ae5ec9e247046813b992d8c04490de3969",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-01/AUTHOR_RETURN.md": "1d291281d3e943284465485ed0abdcb6c12c9741434c14f536cdf0c43c2a04d6",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-01/BOUNDARY.json": "8a465d557601a6b3306286fe3857c6f4f805f6b75b1f1a65181b3b15959695c4",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-01/CHECKLIST.json": "e6c7718fc7124c7d0c685ba74fd5577c3a2679a748e806d68c89b2ca94b98945",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-01/VALIDATION.txt": "bad487e788d8fbbc3fb6a254e22b23433dc8f16bb46f81c97823cc27d28d8169",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-01/VERIFY_BRIEF.json": "0eb2dfe4b899cbe854fbb2db617a66b7a1e08ecd757f0ddb7d1f1e2ec98da1d0",
+  "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9",
+  "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv": "055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e",
+  "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv": "47530ffa5240cc65e3d20d6c0fbd6740866ccb21cef436b3e7152af9e33f0565",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/ACCEPTED_MANIFEST.csv": "33004257fdf2a5ff05635c4f2837bf6a27802526d801d3b0879201242de9234b",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv": "fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73",
+  "tools/scope_of_work/check_boundary_owner_resolution.py": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+  "tools/scope_of_work/common.py": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+  "tools/scope_of_work/derive_review_checklist.py": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+  "tools/scope_of_work/id_catalog.json": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+  "tools/scope_of_work/validate_scope_of_work.py": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+  "workflows/scope-of-work/WORKFLOW.md": "84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b",
+  "workflows/scope-of-work/resources/brief.md": "1696cd9a0c13aeda4151ebdd666fff7d0450450c88ea1aa00f7435fdcbf492bc",
+  "workflows/scope-of-work/resources/checks.md": "44ab41ace2fb14549ef0268c357ced42e798d97b01a325d62a60226767adf188",
+  "workflows/scope-of-work/resources/tools.md": "fbd07771140f6350e964445014ba4f8f79f5d1f5c86df3379607b0489e6e5cc7"
+}
+
+Semantic boundary QA
+REQ-008 nine enumerated deliverable-owned exclusions resolve through CLM-005 and actual accepted Deliverables.csv. Feature production/focused tests resolve through CLM-001/005 to feature owners; external SWB construction through CLM-006 and EXM section 1/U1/U5; actual human acts to the person and open policy decisions to TBD-001 owners. NOT_CHECKABLE=0, NO_CITED_CLAIM=0; manual check also covers non-deliverable role owners outside detector grammar. No owner transferred.
+
+Execution limitation
+All executed checks concern this definition. Product, browser, native, live model, host and practitioner scenarios NOT_RUN. No converter, claim map, parity, finalizer, HTML, revision, Git, network or delegation. Preparatory CSV query first used nonexistent IssueID and failed with KeyError; corrected to actual OpenIssueID and comparisons succeeded; no artifact written by failed query.
+
+Final candidate/status binding
+{
+  "candidate_sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+  "candidate_unchanged": true,
+  "status_sha256": "862adb8d08062f5bcbb44f06722fa16f07d0df53d9ba5ba5fb3c159b99109a2c",
+  "status_unchanged": true
+}
+
+Final report custody 2026-09-28T01:54:35.128974+00:00
+VERIFY.md SHA256 c412bfad3328955cd895193fb7fab23a3263b507773393c2031fafdee1afbb32
+Production SHA256 8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a
+Status SHA256 862adb8d08062f5bcbb44f06722fa16f07d0df53d9ba5ba5fb3c159b99109a2c

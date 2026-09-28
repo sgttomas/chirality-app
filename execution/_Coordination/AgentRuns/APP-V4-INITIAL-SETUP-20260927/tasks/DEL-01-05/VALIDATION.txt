@@ -1,0 +1,30 @@
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md', '--json']
+exit=0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md",
+  "valid": true
+}
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/CHECKLIST.json']
+exit=0
+
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/BOUNDARY.json', '--show-not-checkable']
+exit=0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+$ repeated derivation ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/CHECKLIST.json']
+exit=0
+
+byte_identical=True
+checklist_sha256=e77e0730792a4607a3e67e0a3c40648539487dea7f4c1acbc2f2b631fd8348a6
+
+Author post-check: exact source order/text and one-AC-per-matrix-row inspection
+{
+  "checklist_count_matches": true,
+  "exact_ac_source_order_and_text": true,
+  "all_matrix_rows_single_ac": true,
+  "status_sha256": "a7c9c827db44d061b8ba42edf32e58d20895d52d7682116e90b1ce24a8cd04e4"
+}

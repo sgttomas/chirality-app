@@ -1,0 +1,41 @@
+DEL-09-12 MODE=INIT definition validation; no production/use evaluation executed.
+
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md --json
+exit=0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md",
+  "valid": true
+}
+
+
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-12/CHECKLIST.json
+exit=0
+
+
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-12/CHECKLIST.json
+exit=0
+
+
+Repeated checklist derivation is byte-identical: PASS SHA256 7a5d8997787e0bae6889efc6fdc493dcf4bdff3297490dffeab117cff54a1239
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-12/BOUNDARY.json --show-not-checkable
+exit=0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+Input/source/control hashes remain unchanged: PASS
+STATUS remains OPEN and byte-identical: PASS
+No legacy format files, converter, mapping/parity/finalization or HTML used: NOT_APPLICABLE under INIT.
+Candidate SHA256 40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_STATUS.md
+exit=1
+ERROR: ScopeOfWork.md must begin with --- frontmatter
+Invalid-document guard: PASS; no JSON emitted, existing checklist unchanged. No dual-format fixture authored within the exact write boundary.
+Checklist exact source-order/text/hash/one-to-one method binding: PASS; 6 criteria, 6 methods, review_status null.
+Semantic QA: all 3 allocated scope items and 3 anticipated DOC artifacts covered; 2 objective references retained. REQ-006 act/owner enumeration checked against CLM-003/004/005 and B1/B2/B4/B5/B6. Named prose owners (owner, feature owners, external host owner, actual human) were reviewed manually; ID resolution alone does not verify them. NOT_CHECKABLE=0; NO_CITED_CLAIM=0; neither category is silently counted as a pass.

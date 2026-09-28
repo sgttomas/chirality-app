@@ -1,6 +1,6 @@
 # Chirality App v4 — accepted decomposition and current definition
 
-**Standing: GROUP1_CONFIRMED / GROUP2_APPROVED / GROUP3_ACCEPTED. Current working surface after acceptance, 2026-09-27.** The [final accepted pointer](checkpoint_snapshots/_LATEST_ACCEPTED.md) binds the exact presented bytes and separate final audit PASS. Current receiving metadata carries subsequent PEC D108 without changing that frozen subject. Downstream setup awaits the coordination choice; product implementation has not begun.
+**Standing: GROUP1_CONFIRMED / GROUP2_APPROVED / GROUP3_ACCEPTED. Current working surface after acceptance, 2026-09-27.** The [final accepted pointer](checkpoint_snapshots/_LATEST_ACCEPTED.md) binds the exact presented bytes and separate final audit PASS. Current receiving metadata carries subsequent PEC D108 without changing that frozen subject. The owner approved INITIAL setup coordination; source-grounded scaffolding and local contract definition are underway, while product implementation has not begun.
 
 ## Accepted basis and current subject
 
@@ -77,6 +77,6 @@ The structured scope of work is ScopeLedger.csv; Deliverables.csv carries the an
 
 The [final accepted snapshot](checkpoint_snapshots/_LATEST_ACCEPTED.md) preserves the exact Group3 reader, manifest and separate independent final audit PASS. The current working surface carries only the later standing and receiving-currency updates; prior Group2 broad/clarification checks remain evidence for their own subjects.
 
-All three accepted snapshots/pointers now exist. The owner accepted the audited final decomposition for downstream use; its immutable snapshot and _LATEST_ACCEPTED.md handoff precede INITIAL setup. The [setup proposal](../_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md) carries the remaining human-owned coordination choice and the already-authorized definition route. Routine Git integration does not replace a future graph or lifecycle decision.
+All three accepted snapshots/pointers now exist. The owner accepted the audited final decomposition for downstream use; its immutable snapshot and _LATEST_ACCEPTED.md handoff precede INITIAL setup. The [setup proposal](../_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md) and [_COORDINATION.md](../_Coordination/_COORDINATION.md) carry the actual approved coordination choice and definition route. Routine Git integration does not replace a future graph or lifecycle decision.
 
 [Companion_Inventory.csv](Companion_Inventory.csv) identifies each working/register/check surface and its reader. No production Package/Deliverable folders or local ScopeOfWork contracts have been created.

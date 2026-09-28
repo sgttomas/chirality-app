@@ -1,0 +1,50 @@
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md', '--json']
+exit=1
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined acceptance criteria missing from matrix: AC-006",
+    "defined verification methods missing from matrix: VER-005"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+  "valid": false
+}
+
+
+Repair: final matrix row uses canonical single OUT identifier; evidence still refers to all relevant artifacts.
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md', '--json']
+exit=0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+  "valid": true
+}
+
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/CHECKLIST.json']
+exit=0
+
+
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/BOUNDARY.json', '--show-not-checkable']
+exit=0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md']
+exit=0
+Repeated derivation stdout byte-identical to CHECKLIST.json: True
+_STATUS.md SHA256 unchanged: 0d6bdd4876c7df64f491d9aa641cc47e5507077fbd283d991326acf78d851523
+Candidate SHA256: 08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795
+
+Invalid-input fail-closed probe uses the run directory with no production contract; output target is an allowed, not-yet-created author artifact.
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-06/AUTHOR_RETURN.md']
+exit=1
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+AUTHOR_RETURN.md absent after failure: True
+Exact checklist AC order/text/source hash and criterion-specific VER sets: PASS (6 AC; 5 VER).
+Semantic boundary QA: REQ-005 enumerates stock hosting/pin/protocol (App DEL-01-01, CLM-001), joined checks (App PKG-09, CLM-001), external SWBPIPE construction/package (external implementation owner, CLM-004), OI-011 definition decision (App implementation owner with SWB owner, CLM-002), terms answer (supplier), obtaining answer (owner), distribution decision (owner, CLM-003). All resolve one-for-one. NOT_CHECKABLE=0; NO_CITED_CLAIM=0. Human/external owners were checked semantically because the deterministic detector only resolves deliverable-ID tokens.
+Relevant frozen/current OI-007, OI-011, DEP-004 and DEP-005 complete rows compare equal: PASS.
+Final candidate hash remains 08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795; _STATUS.md unchanged at original brief hash.

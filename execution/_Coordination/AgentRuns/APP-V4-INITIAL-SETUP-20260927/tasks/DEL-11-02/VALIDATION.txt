@@ -1,0 +1,66 @@
+COMMAND ["python3", "tools/scope_of_work/validate_scope_of_work.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md", "--json"]
+EXIT 1
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined acceptance criteria missing from matrix: AC-006",
+    "defined verification methods missing from matrix: VER-006"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md",
+  "valid": false
+}
+
+
+STATUS_SHA256 c3b03593d0708a1f717dd40bb28860e5450e3d296c3a48acfb929798a81db694
+CONTRACT_SHA256 e6646806c353b62da8045cfa081ede5bde5e679ecac2d79fa2e6d64975e0baf8
+
+After matrix syntax correction: one output per row; no scope or criterion changed.
+COMMAND ["python3", "tools/scope_of_work/validate_scope_of_work.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md", "--json"]
+EXIT 0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md",
+  "valid": true
+}
+
+
+COMMAND ["python3", "tools/scope_of_work/derive_review_checklist.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md", "--output", "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-02/CHECKLIST.json"]
+EXIT 0
+
+
+COMMAND ["python3", "tools/scope_of_work/check_boundary_owner_resolution.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md", "--json", "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-02/BOUNDARY.json", "--show-not-checkable"]
+EXIT 0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+COMMAND ["python3", "tools/scope_of_work/derive_review_checklist.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md"]
+EXIT 0
+STDOUT byte-identical to CHECKLIST.json: True
+CHECKLIST_SHA256 2dff7e1778867f12a83e41786b75279c88f74eeb46e4a5f097f4f89c204094cb
+STATUS_SHA256 c3b03593d0708a1f717dd40bb28860e5450e3d296c3a48acfb929798a81db694
+CONTRACT_SHA256 2d962646f8b24a1b76fcd30307859f7c7632c25e78864c28b5fd04fb687a057c
+
+Supplemental author checks (read-only inputs; mocked dual-format presence, no fixture writes):
+COMMAND ["python3", "-B", "tools/scope_of_work/derive_review_checklist.py", "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_STATUS.md", "--output", "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-02/CHECKLIST.json"]
+EXIT 1
+
+ERROR: ScopeOfWork.md must begin with --- frontmatter
+
+Invalid frontmatter rejected before output; CHECKLIST.json unchanged.
+IN-MEMORY CHECK: mock Path.is_file only for four legacy names in this deliverable; invoke real format resolver and checklist main without isolation/migration authority.
+Resolved format: AMBIGUOUS
+Checklist exit: 1
+ERROR: format state is AMBIGUOUS; validated ScopeOfWork.md is required: dual production formats require an isolated conversion workspace and exact migration authority
+
+Ambiguous format rejected before output; CHECKLIST.json unchanged; no legacy files created.
+Source/tool/instruction hashes unchanged: 36
+Deliverable underscore controls unchanged: 5
+Checklist AC text/order/source hash and exact one-to-one VER linkage: PASS (6 criteria).
+Semantic boundary QA: REQ-007 excludes seven act groups; allocation -> CLM-002/DEL-10-03; package contract definitions -> CLM-002/PKG-02/03/04/05 owners; consumer adoption/changes/checks -> CLM-003/receiving owners; SWB implementation/human relay -> CLM-003; preservation/obligations -> CLM-004/DEL-11-01; replacement evidence -> CLM-004/DEL-11-03; replacement/retirement decisions -> CLM-004/owner with affected consumers.
+NOT_CHECKABLE=0; NO_CITED_CLAIM=0. Named non-deliverable owners reviewed semantically; tool token resolution alone does not establish that mapping.
+Source-fidelity QA: all five accepted scope rows and three anticipated artifacts mapped. OI-014/017/018/019/020/024 exact owners and points of need retained. No unresolved semantic conflict. Original precedence/thin-loop defaults reconciled through accepted composite, not introduced as requirements.
+No upstream local ID is used. No unsourced thresholds or invented API/wire fields. No instruction/control/sibling edits, Git, network/supplier experiments, implementation, external messages or delegation were performed by this TASK.
+INIT: conversion/mapping/parity/finalization checks 2,5-7,10-12,14,17 NOT_APPLICABLE; HTML check15 NOT_APPLICABLE; revision check22 NOT_APPLICABLE. Initial OPEN had no production/legacy files; status unchanged. Independent content review belongs to caller.

@@ -1,0 +1,36 @@
+MODE=INIT; source-grounded direct production authoring; no lifecycle writes.
+Initial validation attempt: INVALID because matrix Output cells listed multiple OUT identifiers. Checklist refused output. Boundary check: no unresolved owners.
+Repair: one output per matrix row, identical single AC/VER pairing retained; no semantic criterion change.
+$ ['python3', '-B', 'tools/scope_of_work/validate_scope_of_work.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md', '--json']
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md",
+  "valid": true
+}
+
+
+exit=0
+$ ['python3', '-B', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md', '--output', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-04/CHECKLIST.json']
+
+
+exit=0
+$ ['python3', '-B', 'tools/scope_of_work/check_boundary_owner_resolution.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md', '--json', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-04/BOUNDARY.json']
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+exit=0
+$ ['python3', '-B', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md', '--output', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-02-04/CHECKLIST.json']
+
+
+exit=0
+Repeated checklist byte-identical: True
+Status unchanged: 0b8f337022b4dc6400bbfaf7880126ee98fec0e66a52c21b1b0ae31cb28dc244
+ScopeOfWork SHA256: 3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601
+CHECKLIST SHA256: 37d8143c5ffa597ca07b7d2872f23e03e0a1dea6a34cd7734b7016824dbf535d
+BOUNDARY SHA256: d53bf515d62aa627b2e3221682de5f0db79c5d3a180ee56561cb7a9695c5ad23
+Final source-basis integrity check: PASS; 31 initial whole-file hashes unchanged.
+Semantic QA: 6 ACs, one matching VER per matrix row; all five scope items and CODE/DOC/TEST outputs covered. Boundary acts checked one-for-one including non-deliverable actors.
+Final checklist semantic binding: PASS; six production AC definitions match exact generated text and source order. Each maps to its own single VER.
+Accepted open-issue owner/point-of-need text comparison: PASS for all eight carried issues.

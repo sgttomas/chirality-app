@@ -1,0 +1,1069 @@
+[
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_tool_root.sh",
+      "projects/chirality-app-v4/execution",
+      "_Coordination"
+    ],
+    "exit_code": 0,
+    "stdout": "Created projects/chirality-app-v4/execution/_Coordination/_LATEST.md\nTool root ready: projects/chirality-app-v4/execution/_Coordination\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_tool_root.sh",
+      "projects/chirality-app-v4/execution",
+      "_Decomposition"
+    ],
+    "exit_code": 0,
+    "stdout": "Created projects/chirality-app-v4/execution/_Decomposition/_LATEST.md\nTool root ready: projects/chirality-app-v4/execution/_Decomposition\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_tool_root.sh",
+      "projects/chirality-app-v4/execution",
+      "_Sources"
+    ],
+    "exit_code": 0,
+    "stdout": "Created projects/chirality-app-v4/execution/_Sources/_LATEST.md\nTool root ready: projects/chirality-app-v4/execution/_Sources\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-01",
+      "Native App and third-party harness integration"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-02",
+      "Workflow and role portability"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-03",
+      "Host capability and operation contracts"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-04",
+      "Human acts, autonomy and run evidence"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-05",
+      "Embedded-host receiving integration"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-06",
+      "File-based fleet coordination"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-07",
+      "PEC receiving and connector fallback"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-08",
+      "Domains research receiving"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-08_Domains research receiving\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-09",
+      "Candidate examination and connected journeys"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-10",
+      "Project definition and manual-led practice"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_package.sh",
+      "projects/chirality-app-v4/execution",
+      "PKG-11",
+      "Adoption and replacement continuity"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/0_References\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/0_References/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/_Archive\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/2_Checking\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/2_Checking/From\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/2_Checking/To\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/3_Issued\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/3_Issued/_Archive\nPackage: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity\nCreated: 9 subfolders\nAlready existed: 0 subfolders\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-01",
+      "Stock Codex hosting and supplier contract"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-02",
+      "Durable execution and request recovery"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-03",
+      "Native plans, tools and delegation views"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-04",
+      "Native requests, outcomes and attachments"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-04 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-05",
+      "Native OAuth-sign-in, API-key and local-provider access"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-05 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working",
+      "DEL-01-06",
+      "macOS packaging and distribution evidence"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-01-06 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working",
+      "DEL-02-01",
+      "Portable workflow contract and shared allocation"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-02-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working",
+      "DEL-02-02",
+      "Workflow-making workspace and registration"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-02-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working",
+      "DEL-02-03",
+      "Workflow execution compatibility and round-trip support"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-02-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working",
+      "DEL-02-04",
+      "Additive role selection and supply"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-02-04 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working",
+      "DEL-03-01",
+      "Capability catalog and read-basis contract"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-03-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working",
+      "DEL-03-02",
+      "Proposal, validation and outcome contract"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-03-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working",
+      "DEL-03-03",
+      "Local external-agent receiving adapter"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-03-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working",
+      "DEL-03-04",
+      "Host boundary and integration guide"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-03-04 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working",
+      "DEL-04-01",
+      "Operation-policy and human-act distinctions"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-04-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working",
+      "DEL-04-02",
+      "Visible autonomy and result standing"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-04-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working",
+      "DEL-04-03",
+      "Content-bound decisions and compact run records"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-04-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working",
+      "DEL-05-01",
+      "Minimal-loop and model receiving contract"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-05-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working",
+      "DEL-05-02",
+      "Host panel and shared interaction receiving"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-05-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working",
+      "DEL-06-01",
+      "Bounded delegation and current work-graph records"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-06-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working",
+      "DEL-06-02",
+      "Return, waiting and human-decision workspace"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-06-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working",
+      "DEL-07-01",
+      "PEC first-consumer contract and adoption evidence"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-07-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working",
+      "DEL-07-02",
+      "Connector limitation and source-file recovery paths"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-07-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working",
+      "DEL-08-01",
+      "Domains query, admission and freshness contract"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-08-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working",
+      "DEL-08-02",
+      "Later research-to-design receiving activity"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-08-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-01",
+      "Candidate examination infrastructure and evidence protocol"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-02",
+      "Standalone App candidate qualification"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-05",
+      "Fleet coordination and longer-work recovery witness"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-05 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-06",
+      "Connected activity contract and workflow round trip"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-06 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-07",
+      "Local host candidate qualification"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-07 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-09",
+      "External control and catalog-extension trace"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-09 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-10",
+      "Optional connector consumption witness"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-10 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-11",
+      "Later run reconstruction witness"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-11 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working",
+      "DEL-09-12",
+      "Practitioner validation and feedback disposition"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-09-12 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working",
+      "DEL-10-01",
+      "Project execution basis and manual application"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-10-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working",
+      "DEL-10-02",
+      "Proportionate undertaking controls and practice feedback"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-10-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working",
+      "DEL-10-03",
+      "Shared commitments and consumer responsibility account"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-10-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working",
+      "DEL-10-04",
+      "Project production dependency DAG"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-10-04 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working",
+      "DEL-11-01",
+      "Preserved history and coexistence account"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-11-01 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working",
+      "DEL-11-02",
+      "Consumer-specific renewed-basis adoption"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-11-02 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "zsh",
+      "tools/scaffolding/scaffold_deliverable.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working",
+      "DEL-11-03",
+      "Owner replacement evidence packet"
+    ],
+    "exit_code": 0,
+    "stdout": "CREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_STATUS.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_CONTEXT.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_DEPENDENCIES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_REFERENCES.md\nCREATED_PATH: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_SEMANTIC.md\nDeliverable: projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet\nCreated: 5 files\nSkipped (exist): 0 files\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "bash",
+      "tools/validation/check_min_viable_fileset.sh",
+      "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet"
+    ],
+    "exit_code": 0,
+    "stdout": "PASS: DEL-11-03 \u2014 all 5 minimum viable files present\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,241 @@
+DEL-03-01 independent verification execution
+{
+  "time": "2026-09-28T01:10:12.484161+00:00",
+  "task": "/root/renewal_research_strategy/verify_sow_del_03_01",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "mechanism": "native fresh-context child, inherited model/no override",
+  "workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "scope_restriction": "Instructional. Broader host filesystem permissions; no sandbox isolation or model-family independence claimed.",
+  "writes": "Only VERIFY.md and VERIFY_VALIDATION.txt. PYTHONDONTWRITEBYTECODE=1; generated tool reports kept in memory."
+}
+
+Initial bound identity
+{
+  "candidate_sha256": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84",
+  "matches_brief": true,
+  "status_sha256": "7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095",
+  "status_matches": true,
+  "status_text": "# Status: DEL-03-01 Capability catalog and read-basis contract\n\n**Current State:** OPEN\n**Last Updated:** 2026-09-27\n\n## History\n- 2026-09-27 — State set to OPEN (WORKING_ITEMS applying preparation)\n",
+  "peer_sha256": "42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a",
+  "peer_matches_checked_R1": true
+}
+
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md', '--json']
+{
+  "exit": 0,
+  "stdout": "{\n  \"format\": \"SOW_V1\",\n  \"issues\": [],\n  \"target\": \"projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md\",\n  \"valid\": true\n}\n",
+  "stderr": ""
+}
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md']
+{
+  "exit": 0,
+  "stdout": "{\n  \"item_count\": 8,\n  \"items\": [\n    {\n      \"id\": \"AC-001\",\n      \"output_refs\": [\n        \"OUT-001\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-001\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 63,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 provides one catalog entry definition covering all fields in REQ-002 and both read and change meanings in REQ-001. Examples distinguish stable operation identity/version from read-basis content identity and show declared error and availability meanings. Adopted and unresolved class assignments are distinguishable. Verified by VER-001.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-001\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-001\",\n          \"source_line\": 78,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Inspect the catalog definition and representative read/change examples against H V4-HI-01–02 and the assigned scope rows. Check each declared field, operation identity/version and adopted/unresolved class treatment. Record the candidate schema identity and relevant policy source, or the precise held assignment. Evidence: field-to-source comparison and schema/example checks for AC-001.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-002\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-002\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 64,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 preserve the same meaningful tables/results/diagnostics and standing across human, embedded and external contract representations for the same operation/basis; the recorded comparison identifies any absent actual consumer evidence without claiming integration. Verified by VER-002.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-002\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-002\",\n          \"source_line\": 79,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare the corresponding read contract fixtures for human, embedded and external consumers on an identified operation and basis. Compare table/result/diagnostic meaning and host standing, recording consumer versions and whether evidence is a schema fixture, adapter result or actual host observation. Evidence: comparison with mismatches/absent integrated paths explicit for AC-002; matching types alone cannot close an actual consumer claim.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-003\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-003\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 65,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 represent an unavailable operation identically across the three channels, including the failed precondition and same unavailable reason, and do not turn unavailability into a successful empty result. Verified by VER-003.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-003\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-003\",\n          \"source_line\": 80,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Exercise an operation whose stated precondition does not hold in the shared contract fixtures. Compare unavailable result and reason across all channels and check that a success/empty-result encoding does not hide refusal. Evidence: availability comparison bound to candidate/operation/basis for AC-003. The concrete precondition comes from the identified host example, not an invented universal rule.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-004\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-004\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 66,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 carry all four basis elements for every fixture read and preserve the relied-on basis in a subsequent action reference, including an intervening basis change that cannot silently rewrite that reference. Canonicalization/serialization choices not yet agreed are named, not supplied as invented API fields. Verified by VER-004.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-004\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-004\",\n          \"source_line\": 81,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Inspect each fixture read for workspace identity, generation, model revision and canonical content hash, then trace a subsequent action to that received basis. Include an intervening basis change and demonstrate that the reference remains the original relied-on basis; proposal refusal/application behavior is received from App v4 DEL-03-02 rather than implemented here. Evidence: read-to-action basis comparison and named unresolved representation decisions for AC-004.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-005\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-005\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 67,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 preserve current/historical status, checks passed and limitations without stronger agent standing; fixture evidence distinguishes actual human acts from operation success and permits faithful recording of a host-evidenced human act with decision actor distinct from recorder. Verified by VER-005.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-005\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-005\",\n          \"source_line\": 82,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare current and historical result fixtures, checks passed and known limitations with host standing. Include a successful operation and an agent finding that do not invent human checking/acceptance/approval/reliance. Include a separately evidenced actual human act faithfully carried in the read result, retaining the person's attribution and distinguishing the recorder. Do not require one independent act as a synthetic prerequisite to another. Evidence: standing/attribution cases for AC-005, with actual versus illustrative evidence labeled.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-006\",\n      \"output_refs\": [\n        \"OUT-002\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-006\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 68,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-002 accounts for human, embedded and external generation/conformance surfaces, remaining adapter work and named receiving responsibilities for PKG-02 tool descriptors, App v4 DEL-03-02 basis/identity and App v4 DEL-04-01 adopted policy. Host catalog/domain implementation remains externally owned; type compatibility alone is not an integration pass. Verified by VER-006.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-006\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-006\",\n          \"source_line\": 83,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Review the map against the three consumer surfaces, D's named interfaces and CLM-001 through CLM-003. For every listed generated or checked portion, inspect its declared conformance route and remaining adapter responsibility; confirm allocation remains open where not agreed. Evidence: catalog-to-surface and owner/receiving-point map for AC-006.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-007\",\n      \"output_refs\": [\n        \"OUT-002\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-007\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 69,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-002 preserves the original absolute extension promise, its unresolved owner disposition and evidence route, without advertising automatic availability/savings or silently selecting a narrower criterion. It identifies that an extension trace and the owner's retain/narrow/defer ruling are needed before that dependent claim is fixed. Verified by VER-007.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-007\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-007\",\n          \"source_line\": 84,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare the map's extension treatment with S V4-PAR-05/V4-HI-03, B #d4, I OI-003 and E V4-EXM-24. Check that original promise, available evidence, missing trace and decision owner are explicit. A future operation trace records generated behavior, additional work, availability reasons and semantic outcomes across the three surfaces; only the explicit retain/narrow/defer disposition fixes the corresponding later criterion. Evidence: source/disposition account for AC-007, not a claimed automatic-extension demonstration.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-008\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-002\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-008\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 70,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001, OUT-002 and OUT-003 satisfy the ownership exclusions in REQ-007 and carry each unresolved input with responsible owner, point of need and reliance consequence. No local fixture pass, initialized contract or prepared handoff is represented as host delivery, policy acceptance or joined qualification. Verified by VER-008.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-008\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-008\",\n          \"source_line\": 85,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Audit each excluded act against its cited ownership claim and accepted row/source; inspect the open-input account for owner, point of need and consequence. Distinguish schema/fixture evidence, actual host/consumer delivery and human decisions. Evidence: local boundary and unresolved-input review for AC-008; no inferred external adoption or product completion.\"\n        }\n      ]\n    }\n  ],\n  \"schema\": \"chirality-review-checklist/v1\",\n  \"source\": {\n    \"deliverable_id\": \"DEL-03-01\",\n    \"document\": \"ScopeOfWork.md\",\n    \"format\": \"SOW_V1\",\n    \"migration_authority\": null,\n    \"package_id\": \"PKG-03\",\n    \"schema\": \"chirality-deliverable-sow/v1\",\n    \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n  },\n  \"tool_version\": \"1\"\n}\n",
+  "stderr": ""
+}
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md']
+{
+  "exit": 0,
+  "stdout": "{\n  \"item_count\": 8,\n  \"items\": [\n    {\n      \"id\": \"AC-001\",\n      \"output_refs\": [\n        \"OUT-001\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-001\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 63,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 provides one catalog entry definition covering all fields in REQ-002 and both read and change meanings in REQ-001. Examples distinguish stable operation identity/version from read-basis content identity and show declared error and availability meanings. Adopted and unresolved class assignments are distinguishable. Verified by VER-001.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-001\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-001\",\n          \"source_line\": 78,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Inspect the catalog definition and representative read/change examples against H V4-HI-01–02 and the assigned scope rows. Check each declared field, operation identity/version and adopted/unresolved class treatment. Record the candidate schema identity and relevant policy source, or the precise held assignment. Evidence: field-to-source comparison and schema/example checks for AC-001.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-002\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-002\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 64,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 preserve the same meaningful tables/results/diagnostics and standing across human, embedded and external contract representations for the same operation/basis; the recorded comparison identifies any absent actual consumer evidence without claiming integration. Verified by VER-002.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-002\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-002\",\n          \"source_line\": 79,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare the corresponding read contract fixtures for human, embedded and external consumers on an identified operation and basis. Compare table/result/diagnostic meaning and host standing, recording consumer versions and whether evidence is a schema fixture, adapter result or actual host observation. Evidence: comparison with mismatches/absent integrated paths explicit for AC-002; matching types alone cannot close an actual consumer claim.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-003\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-003\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 65,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 represent an unavailable operation identically across the three channels, including the failed precondition and same unavailable reason, and do not turn unavailability into a successful empty result. Verified by VER-003.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-003\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-003\",\n          \"source_line\": 80,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Exercise an operation whose stated precondition does not hold in the shared contract fixtures. Compare unavailable result and reason across all channels and check that a success/empty-result encoding does not hide refusal. Evidence: availability comparison bound to candidate/operation/basis for AC-003. The concrete precondition comes from the identified host example, not an invented universal rule.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-004\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-004\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 66,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 carry all four basis elements for every fixture read and preserve the relied-on basis in a subsequent action reference, including an intervening basis change that cannot silently rewrite that reference. Canonicalization/serialization choices not yet agreed are named, not supplied as invented API fields. Verified by VER-004.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-004\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-004\",\n          \"source_line\": 81,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Inspect each fixture read for workspace identity, generation, model revision and canonical content hash, then trace a subsequent action to that received basis. Include an intervening basis change and demonstrate that the reference remains the original relied-on basis; proposal refusal/application behavior is received from App v4 DEL-03-02 rather than implemented here. Evidence: read-to-action basis comparison and named unresolved representation decisions for AC-004.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-005\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-005\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 67,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001 and OUT-003 preserve current/historical status, checks passed and limitations without stronger agent standing; fixture evidence distinguishes actual human acts from operation success and permits faithful recording of a host-evidenced human act with decision actor distinct from recorder. Verified by VER-005.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-005\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-005\",\n          \"source_line\": 82,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare current and historical result fixtures, checks passed and known limitations with host standing. Include a successful operation and an agent finding that do not invent human checking/acceptance/approval/reliance. Include a separately evidenced actual human act faithfully carried in the read result, retaining the person's attribution and distinguishing the recorder. Do not require one independent act as a synthetic prerequisite to another. Evidence: standing/attribution cases for AC-005, with actual versus illustrative evidence labeled.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-006\",\n      \"output_refs\": [\n        \"OUT-002\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-006\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 68,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-002 accounts for human, embedded and external generation/conformance surfaces, remaining adapter work and named receiving responsibilities for PKG-02 tool descriptors, App v4 DEL-03-02 basis/identity and App v4 DEL-04-01 adopted policy. Host catalog/domain implementation remains externally owned; type compatibility alone is not an integration pass. Verified by VER-006.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-006\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-006\",\n          \"source_line\": 83,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Review the map against the three consumer surfaces, D's named interfaces and CLM-001 through CLM-003. For every listed generated or checked portion, inspect its declared conformance route and remaining adapter responsibility; confirm allocation remains open where not agreed. Evidence: catalog-to-surface and owner/receiving-point map for AC-006.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-007\",\n      \"output_refs\": [\n        \"OUT-002\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-007\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 69,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-002 preserves the original absolute extension promise, its unresolved owner disposition and evidence route, without advertising automatic availability/savings or silently selecting a narrower criterion. It identifies that an extension trace and the owner's retain/narrow/defer ruling are needed before that dependent claim is fixed. Verified by VER-007.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-007\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-007\",\n          \"source_line\": 84,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Compare the map's extension treatment with S V4-PAR-05/V4-HI-03, B #d4, I OI-003 and E V4-EXM-24. Check that original promise, available evidence, missing trace and decision owner are explicit. A future operation trace records generated behavior, additional work, availability reasons and semantic outcomes across the three surfaces; only the explicit retain/narrow/defer disposition fixes the corresponding later criterion. Evidence: source/disposition account for AC-007, not a claimed automatic-extension demonstration.\"\n        }\n      ]\n    },\n    {\n      \"id\": \"AC-008\",\n      \"output_refs\": [\n        \"OUT-001\",\n        \"OUT-002\",\n        \"OUT-003\"\n      ],\n      \"qualified_id\": \"DEL-03-01-AC-008\",\n      \"review_status\": null,\n      \"source_identity\": {\n        \"document\": \"ScopeOfWork.md\",\n        \"line\": 70,\n        \"section\": \"Completion and Reliance Basis — Epistemology\",\n        \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n      },\n      \"text\": \"OUT-001, OUT-002 and OUT-003 satisfy the ownership exclusions in REQ-007 and carry each unresolved input with responsible owner, point of need and reliance consequence. No local fixture pass, initialized contract or prepared handoff is represented as host delivery, policy acceptance or joined qualification. Verified by VER-008.\",\n      \"verification\": [\n        {\n          \"id\": \"VER-008\",\n          \"kind\": \"VER\",\n          \"qualified_id\": \"DEL-03-01-VER-008\",\n          \"source_line\": 85,\n          \"source_section\": \"Production and Verification Method — Praxeology\",\n          \"text\": \"Audit each excluded act against its cited ownership claim and accepted row/source; inspect the open-input account for owner, point of need and consequence. Distinguish schema/fixture evidence, actual host/consumer delivery and human decisions. Evidence: local boundary and unresolved-input review for AC-008; no inferred external adoption or product completion.\"\n        }\n      ]\n    }\n  ],\n  \"schema\": \"chirality-review-checklist/v1\",\n  \"source\": {\n    \"deliverable_id\": \"DEL-03-01\",\n    \"document\": \"ScopeOfWork.md\",\n    \"format\": \"SOW_V1\",\n    \"migration_authority\": null,\n    \"package_id\": \"PKG-03\",\n    \"schema\": \"chirality-deliverable-sow/v1\",\n    \"sha256\": \"179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84\"\n  },\n  \"tool_version\": \"1\"\n}\n",
+  "stderr": ""
+}
+
+Fresh deterministic checklist and manual-source linkage comparison
+{
+  "two_stdout_derivations_byte_identical": true,
+  "identical_to_author_CHECKLIST": true,
+  "sha256": "9267cf6dddef8848a326331109ada644204901e551c064332cbf3b2f7a735e10",
+  "exact_order_text_hash_line_and_qualified_identity": true,
+  "criteria": 8,
+  "matrix_rows": 14,
+  "one_AC_per_row_own_VER_set_only": true,
+  "OUTs": [
+    "OUT-001",
+    "OUT-002",
+    "OUT-003"
+  ]
+}
+
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md', '--show-not-checkable']
+{
+  "exit": 0,
+  "stdout": "\nContracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0\n",
+  "stderr": ""
+}
+
+Registered boundary function report captured in memory; matches author BOUNDARY.json
+[
+  {
+    "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md",
+    "status": "OK",
+    "requirements_checked": 1,
+    "requirements_not_checkable": 0,
+    "requirements_without_cited_claim": 0,
+    "findings": []
+  }
+]
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_CONTEXT.md']
+{
+  "exit": 1,
+  "stdout": "",
+  "stderr": "ERROR: ScopeOfWork.md must begin with --- frontmatter\n"
+}
+
+Candidate-context invalid-input result
+PASS: non-contract input refused; no output target supplied, stdout empty, no output artifact created.
+
+Accepted rows and frontmatter independently compared
+{
+  "scope_rows_match_brief": true,
+  "assigned_scope_count": 18,
+  "deliverable_row_matches_brief": true,
+  "frontmatter_scope_objective_basis_exact": true
+}
+
+Accepted-manifest verification of all used canonical registers
+{
+  "Deliverables.csv": true,
+  "Packages.csv": true,
+  "Objectives.csv": true,
+  "ScopeLedger.csv": true,
+  "Open_Issues.csv": true,
+  "External_Dependencies.csv": true
+}
+
+Frozen/current relevant Open_Issues.csv
+{
+  "equal": true,
+  "count": 4
+}
+
+Frozen/current relevant External_Dependencies.csv
+{
+  "equal": true,
+  "count": 1
+}
+
+Author cited source/method hashes independently checked
+{
+  "count": 36,
+  "mismatches": []
+}
+
+QA18 common negative-tool proof reuse
+{
+  "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt",
+  "source_sha256": "e15ca7c5c10171845a7fd390b501e9ae5ec9e247046813b992d8c04490de3969",
+  "proof_locus": "lines 205–223",
+  "cases": [
+    "invalid_schema_in_memory",
+    "unauthorized_dual_in_memory"
+  ],
+  "original_method": "registered main with exact-path read_text/is_file mocking; write_text/mkdir traps; each exit 1, stdout empty, zero write/mkdir attempts",
+  "current_run": "Reused unchanged implementation proof; not represented as freshly executed disk dual fixture. Fresh candidate validation/checklist/boundary and invalid-context check run above.",
+  "tool_identity": {
+    "tools/scope_of_work/common.py": {
+      "current_sha256": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+      "pilot_sha256": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+      "identical": true
+    },
+    "tools/scope_of_work/id_catalog.json": {
+      "current_sha256": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+      "pilot_sha256": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+      "identical": true
+    },
+    "tools/scope_of_work/validate_scope_of_work.py": {
+      "current_sha256": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+      "pilot_sha256": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+      "identical": true
+    },
+    "tools/scope_of_work/derive_review_checklist.py": {
+      "current_sha256": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+      "pilot_sha256": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+      "identical": true
+    },
+    "tools/scope_of_work/check_boundary_owner_resolution.py": {
+      "current_sha256": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+      "pilot_sha256": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+      "identical": true
+    }
+  }
+}
+
+Manual semantic checks performed
+PASS: all 18 normalized scope rows; CONFIG/DOC/TEST products; every AC with its own actual VER; identity/version versus workspace/generation/model revision/canonical hash; current/historical checks/limitations; unavailable result/reason across channels; original basis handoff; host domain/catalog/validation/application/receipt/UI ownership; human actual act versus recording; no invented class/representation/extension promise; point-of-need owners; only definition maturity. REQ-007 owner-by-owner resolution: CLM-001 host and person; CLM-002 App DEL-03-02/03-03/04-01/04-03 plus actual owner/App/SWB policy decision; CLM-003 owner/host extension decision. No NOT_CHECKABLE/NO_CITED_CLAIM item. Peer join checked only at DEL-03-02 CLM-002/003, REQ-003/006, AC-004/007/011, VER-004/007/011 and open inputs; no second audit claimed.
+
+Actual consulted source/method/input SHA256 inventory (whole bytes hashed; relevant clauses/rows read, not blanket instruction activation)
+{
+  "AGENTS.md": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd",
+  "agents/AGENT_TASK.md": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+  "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md": "26c8254aaf2e2894e7d32096ec1e0d71b3ad881c1445094945031be19741433c",
+  "projects/chirality-app-v4/docs/ARCHITECTURE.md": "c3ae766ee2d660fb391b7db0aa99526f84d21421cf3a6b692ddd17e42687e533",
+  "projects/chirality-app-v4/docs/EXAMINATION.md": "1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19",
+  "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": "08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da",
+  "projects/chirality-app-v4/docs/OPERATING_METHOD.md": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd",
+  "projects/chirality-app-v4/docs/PRD.md": "657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_CONTEXT.md": "35d018b273cee7d0e567e74e7deaa1e5a784c950c176c7c22ceff214f1f9e60b",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md": "d759ddd347792daa93c29bde43311d583ba71fca569bf615b4025dcbe50c750b",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_REFERENCES.md": "01fd037c39c659a5e55c19d668cdd1a67b4e6b2069c2430165b32501c59d4967",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_SEMANTIC.md": "a6636c77b0c74fbc55a9ee2358a371eac717e494f53bba380633dfee5a44ddb7",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_STATUS.md": "7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095",
+  "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md": "42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md": "0d8e5b2774c26cde277fbb98b394fdc74a4bf6c171f1fea89904d7a6062565e8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html": "02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS_EXCERPTS.md": "2330d38ff8ebc4364a919aaa92c98368bdfe50b0c89196853fbade001052bd71",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md": "dec2110dc40946345379684b172d94dd444e19719d4e70e2238852ab43e08414",
+  "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md": "ff57362886b76da07df6feaed1630661f427c071dc5720c38c0a61d7d9e90491",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt": "e15ca7c5c10171845a7fd390b501e9ae5ec9e247046813b992d8c04490de3969",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/AUTHOR_RETURN.md": "7bb45c2d1f211eceeebbdd9946477bbf8441835de808eb3ce494596b8f42eda7",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/BOUNDARY.json": "643d2808b036a75bc982e3d9d55f76f3a05270c7ce1119d62047be3713d4a100",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/BRIEF.json": "3e8510d630062cdbe42b6c01a2bb804a2fd118205b1bd0a5a818f18f500bbb66",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/CHECKLIST.json": "9267cf6dddef8848a326331109ada644204901e551c064332cbf3b2f7a735e10",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/VALIDATION.txt": "de054e8210f17656a478082867c041ac9fc3e6c2f8220a675d49d8f7e3e9cb64",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/VERIFY_BRIEF.json": "ab75cbe6c20d1a6464e1da2ac93b6f0b214a2874860afe23836c358a539594d5",
+  "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-02/VERIFY.md": "514c94fc1b967a90af9efa42bc947fe9bc2c058fc0b2ec15597082153c7ab2ee",
+  "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9",
+  "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv": "055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e",
+  "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv": "47530ffa5240cc65e3d20d6c0fbd6740866ccb21cef436b3e7152af9e33f0565",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/ACCEPTED_MANIFEST.csv": "33004257fdf2a5ff05635c4f2837bf6a27802526d801d3b0879201242de9234b",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv": "fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd",
+  "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73",
+  "tools/scope_of_work/check_boundary_owner_resolution.py": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+  "tools/scope_of_work/common.py": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+  "tools/scope_of_work/derive_review_checklist.py": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+  "tools/scope_of_work/id_catalog.json": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+  "tools/scope_of_work/validate_scope_of_work.py": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+  "workflows/index.json": "2bfa2c5faae1081c55ce95fd3d81c00b1d87ba1f51d0bc13e03c8fcb6ccdafb3",
+  "workflows/scope-of-work/WORKFLOW.md": "84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b",
+  "workflows/scope-of-work/resources/brief.md": "1696cd9a0c13aeda4151ebdd666fff7d0450450c88ea1aa00f7435fdcbf492bc",
+  "workflows/scope-of-work/resources/checks.md": "44ab41ace2fb14549ef0268c357ced42e798d97b01a325d62a60226767adf188",
+  "workflows/scope-of-work/resources/tools.md": "fbd07771140f6350e964445014ba4f8f79f5d1f5c86df3379607b0489e6e5cc7"
+}
+
+Final preservation check
+{
+  "changed_source_method_candidate_author_or_control_paths": [],
+  "candidate_sha256": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84",
+  "status_sha256": "7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095",
+  "peer_sha256": "42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a",
+  "scope": "Only inspected input paths checked; no repository-wide isolation assertion."
+}
+
+Author output-artifact table independently confirmed
+{
+  "ScopeOfWork.md": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84",
+  "CHECKLIST.json": "9267cf6dddef8848a326331109ada644204901e551c064332cbf3b2f7a735e10",
+  "BOUNDARY.json": "643d2808b036a75bc982e3d9d55f76f3a05270c7ce1119d62047be3713d4a100",
+  "VALIDATION.txt": "de054e8210f17656a478082867c041ac9fc3e6c2f8220a675d49d8f7e3e9cb64"
+}
+
+Final report custody 2026-09-28T01:11:51.983781+00:00
+VERIFY.md SHA256 ff554ffbc8c72ab2dba7401c77aed670c4426ee7f407da1bca8704121171e074
+Production SHA256 179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84
+Status SHA256 7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095

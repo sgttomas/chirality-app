@@ -1,0 +1,166 @@
+{
+  "item_count": 6,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-11-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 48,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "OUT-001 contains an actually completed read-and-compare reconstruction by a named reader separate from the source-run author, from one identified V4-EXM-20 host-run record set, with dates evidencing the required week-later observation. The host journey and elapsed interval are evidenced, not inferred from a defined test or contract maturity. Verified by VER-001. [REQ-001; S1, S3, S6]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-001",
+          "source_line": 59,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine source-journey evidence, reader/run-author identities, input-set identity and both observation dates; inspect the reader's actual reconstruction return. Confirm the V4-EXM-31 week-later witness occurred on the named journey, rather than accepting a schedule, test definition or synthetic clock advancement as the witness. Record incomplete timing, missing journey or absent reader execution as an unfulfilled witness. [S1, S3, S6]"
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-11-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 49,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "OUT-002 reconstructs the request, proposal, actual engineer acceptance and actual change using identified project records, workflow/version, conversation, model, autonomy, requested operations and outcomes, with resolvable host receipt/hash/origin references supporting each claimed change. Missing facts are explicitly retained, and the completed-witness judgment distinguishes material missing evidence from demonstrated reconstruction. Verified by VER-002. [REQ-002; S1, S4–S6]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-002",
+          "source_line": 60,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace each reconstructed request, proposal, engineer acceptance and actual-change assertion to identified project records and authoritative host receipt/hash/origin references. Check the compact record's workflow/version, conversation, model, autonomy, operations and outcomes against the sources. Resolve references without replacing host truth; record unresolved claims and their effect on completion. [S4 V4-REC-01…05; S5 V4-HI-70…71; S6 V4-EXM-31]"
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-11-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 50,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "The reconstruction faithfully records an actually performed human act with actor distinct from recorder and content/scope/purpose intact, and preserves the visible lapse of a content-bound act where that content changed. Supporting positive and negative checks distinguish faithful recording from fabrication: execution or receipt success alone does not establish acceptance, checking, engineering approval or professional reliance; the scope of each separately evidenced act is retained without invented ordering. Verified by VER-003. [REQ-003; S2, S4–S6]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-003",
+          "source_line": 61,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare a faithfully recorded actual human act with its source, actor, recorder and bound content/scope/purpose. Use identified content-change evidence to examine visible lapse; retain supporting fixture provenance separately when the source journey does not contain that change. Check fabrication negatives in the record/read path: tool or transport success, a receipt, agent findings, or silence cannot establish an unperformed human act. Check any independently evidenced acts individually without creating an acceptance prerequisite, and distinguish edit acceptance from engineering approval and reliance. These checks implement the record/act criteria; they do not select the open reserved-act policy. [S2 decision 03; S4 V4-AUT-03, V4-REC-05; S5 V4-HI-25, V4-HI-31…33; S1 App DEL-04-03]"
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-11-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 51,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "Unknown or unavailable host/provider outcomes remain unknown in OUT-002 even when source resolution or transport succeeded; missing, partial, conflicting, blocked, not-run or inconclusive evidence is explicitly distinguished from the completed reconstruction witness. Private memory, harness/session transcripts or derived projections supply no unsupported act or host-change claim. Verified by VER-004. [REQ-004; S1, S4, S6]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-004",
+          "source_line": 62,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the reader's account with source gaps and available outcomes, including an unobserved outcome despite a resolved source or successful transport, using identified supporting evidence where needed. Verify that no private recollection, transcript or derived view fills the gap; distinguish truthful negative/partial evidence from fulfillment of the actual week-later reconstruction. Preserve the evidence's actual result without forcing a pass. [S1, S4 V4-REC-01…04; S6 §§1–2 and V4-EXM-31]"
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-11-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 52,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "OUT-001 and OUT-002 identify the candidate, source run, reader, date and required configuration, record the observed examination outcome and limits, and state which affected checks must be revisited when the candidate or material basis changes. Neither a previous pass nor this witness is represented as whole-product validation, human approval or professional reliance. Verified by VER-005. [REQ-005; S6 §§1–2]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-005",
+          "source_line": 63,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect result metadata and findings against the candidate and input basis actually examined. Check configuration/date/reader identity, observed outcome, limitations and applicability after changes. Verify that the stated conclusion reaches only the reconstructed journey and contains no inferred favorable approval, validation-in-use or professional reliance. [S6 V4-EXM-01/03/05 and §§1–2; S4 V4-AUT-02…05]"
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-11-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 53,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+      },
+      "text": "The reconstruction account identifies the actual supplied compact records and V4-EXM-20/receipt contribution, their responsible parties, the external host boundary, and any unresolved policy or activity choice affecting its criterion. It retains the owners and points of need in TBD-001 through TBD-003 without treating a handoff, defined contract or non-gating label as satisfaction. The excluded acts in REQ-006 remain with their named owners. Verified by VER-006. [CLM-001, CLM-002, CLM-003; S1, S7–S8]",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-09-11-VER-006",
+          "source_line": 64,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the input and responsibility account with S1, S5 §1 and S7. Check each excluded act one-for-one against CLM-001 through CLM-003; check the exact unresolved owners and points of need and distinguish proposed, received, adopted and executed contributions. Return any missing input or unresolved consequential policy to the App evidence examination owner, without claiming it supplied or deciding it. [S1–S2, S4–S8]"
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-09-11",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-09",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+  },
+  "tool_version": "1"
+}

@@ -1,0 +1,98 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Author exactly one source-grounded SOFTWARE ScopeOfWork.md in MODE=INIT; no implementation",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/AUTHOR_RETURN.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/CHECKLIST.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/BOUNDARY.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-205"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-007",
+      "OBJ-008"
+    ],
+    "MODE": "INIT",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-09-10",
+    "PackageID": "PKG-09",
+    "Name": "Optional connector consumption witness",
+    "Description": "Examine connector receiving behavior and actual source-file fallback, including the original absent-PEC/stale-Domains combination. Interfaces: Consumes PKG-07 receiving/fallback and PKG-08 source contract independently; later Domains research witness remains DEL-08-02. Verification: Coverage/freshness/standing and permitted receiving action trace to actual source pins; missing/unqualified delivery remains limited evidence and cannot imply readiness or permission.",
+    "Type": "TEST_SUITE",
+    "ResponsibleParty": "App connector examination owner; provider owners supply identified qualification/response evidence",
+    "AnticipatedArtifacts": "TEST: EXM-30 qualified/limited/stale/partial/failing/absent cases;DOC: source-pin-through-receiving-action and fallback-responsibility evidence",
+    "CoversScopeItems": "SOW-205",
+    "SupportsObjectives": "OBJ-007;OBJ-008",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: examine each identified candidate when its named contributions are available; not a late testing phase."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-205",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Examine qualified, limited/stale/failing and absent connector consumption with source pin, coverage/freshness and actual fallback, retaining the original absent-PEC/stale-Domains case.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-30;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d6",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-10",
+      "ObjectiveIDs": "OBJ-007;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": "HTML-D06 accepted receiving conditions; Domains-specific receiving evidence joins the later increment; no connector startup gate."
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve each exact open owner/point of need and each source-defined scenario quantity. When a source requires a completed live witness, distinguish that completion from retained negative, partial, blocked, not-run or inconclusive evidence; honest absence reporting alone does not fulfill it. Do not require favorable human approval unless the accepted source actually does.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "49d867811dd19fba8c0c9e1fca5a55b2999db4bc369df4bab7ab75571950a496",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Preserve independent optional connector availability, qualified/limited/absent states, fallback duties and source-pin/response/action evidence across PEC and Domains. D108 as-is acceptance is not repaired criteria or service readiness. Missing connectors do not gate independent development, but missing required witness inputs remain unavailable rather than passed. Do not allocate providers or choose deployment/data destinations."
+}

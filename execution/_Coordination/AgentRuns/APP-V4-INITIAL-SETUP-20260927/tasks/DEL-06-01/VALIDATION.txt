@@ -1,0 +1,44 @@
+MODE=INIT; SOURCE_STATE=OPEN; no production contract or legacy kit present.
+Approved exact brief paths only; host write access is broader.
+PRE_CONTROL_HASHES={"projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_CONTEXT.md": "22443b6fe3b301608359f6a147ac5893a8196728d7a3f992165fa45e2f722421", "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_DEPENDENCIES.md": "40037afdea69ebf5f45a0c0c61a4252d1627b1bc58122f70c20552cddb2dc2a7", "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_REFERENCES.md": "721f26352d438f0ab1a8d20ea50161d85f878a41239d313fb4ccf16ecae316ff", "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_SEMANTIC.md": "c37640880b9bd126d042232c1452f3ee17d3364730272b873f0ff114ab34d784", "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_STATUS.md": "562dec795825c07947e05d8ad78a220f32b7c3be03811a4da367d25f60b1e134"}
+
+Invalid pre-INIT input fail-closed check
+COMMAND ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-01/CHECKLIST.json']
+EXIT 1
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+No output artifact: PASS
+
+COMMAND ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records', '--json']
+EXIT 0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records",
+  "valid": true
+}
+
+COMMAND ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-01/CHECKLIST.json']
+EXIT 0
+
+COMMAND ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-06-01/BOUNDARY.json', '--show-not-checkable']
+EXIT 0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+COMMAND repeated deterministic checklist derivation (same command above)
+EXIT 0
+Byte-identical: PASS
+CHECKLIST_SHA256=1ca4cde9560103ab8e1e1a50d40467b7d5678ee8957a68c7521fba2895171f61
+All preflight underscore control hashes unchanged: PASS
+
+COMMAND in-memory dual-format-presence simulation of registered checklist CLI; legacy presence mocked, no files created
+EXIT 1
+ERROR: format state is AMBIGUOUS; validated ScopeOfWork.md is required: dual production formats require an isolated conversion workspace and exact migration authority
+No output write attempted; existing checklist unchanged: PASS
+Checklist source order/exact AC identity and one intended VER per AC: PASS (AC-001 through AC-008).
+Semantic boundary QA: REQ-006 exclusions resolve one-for-one: native presentation to CLM-001/DEL-01-03; act/run format and lapse handling to CLM-002/DEL-04-03; human decisions to actual human actor in CLM-002; views to CLM-003/DEL-06-02; joined witness to CLM-003/DEL-09-05; manager review/integration to actual managers in CLM-003; PEC receiving/adoption to CLM-004/DEL-07-01; fallback behavior to CLM-004/DEL-07-02; provider construction to PEC owning project in CLM-004; current practice to CLM-005/DEL-10-02; project DAG/acceptance accounting to CLM-005/DEL-10-04 and actual owner. No NOT_CHECKABLE or NO_CITED_CLAIM findings; positive requirements preserve local record contributions.
+Semantic source QA: all three assigned SOWs covered; CONFIG/CODE/TEST/DOC covered; current clauses and composite decisions read alongside historical seed. Technical encoding/pin and policy/PEC choices remain open at named owners/points of need. No source conflict found.
+INIT non-applicability: checks 2,5-7,10-12,14,17 are conversion-only; 15 HTML not requested; 22 REVISE-only. No converter, claim-mapper, parity, finalizer or renderer invoked.
+Scope limitation: contract definition and deterministic/author semantic checks only; no product implementation, product fixture execution, Git, network experiment, delegated child or lifecycle act. Independent review is caller-owned and pending this return.
+Final source/method hashes recorded in AUTHOR_RETURN.md; production SHA256=50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9
+Final status still original/OPEN; allowed writes: ScopeOfWork.md, AUTHOR_RETURN.md, CHECKLIST.json, BOUNDARY.json, VALIDATION.txt.

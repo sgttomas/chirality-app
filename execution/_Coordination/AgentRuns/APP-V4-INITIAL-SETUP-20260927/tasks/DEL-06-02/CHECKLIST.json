@@ -1,0 +1,201 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "Given a recorded return awaiting examination, the queue exposes it with recorded ownership and pending-review state; native completion or success without review/integration evidence does not promote it. Verified by VER-001. Sources: REQ-001; SOW-085; Allocation DEL-06-02.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-001",
+          "source_line": 97,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the queue with a returned item awaiting examination and a native-completion/success observation without review or integration evidence; compare the displayed return/owner/state to the source records. Check promotion occurs only on evidence of its own act, never merely on notification."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "Waiting fixtures preserve and show the evidenced cause and ownership for dependent work and pending review alongside independently supported ready work; an unavailable cause or unsupported readiness remains visible as a limitation. Verified by VER-002. Sources: REQ-002; SOW-086; Recovery V4-EXM-13.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-002",
+          "source_line": 98,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise recorded dependency waiting, pending review and separately ready work, plus an unavailable cause/basis; compare displayed causes, ownership and limitations to the exact file inputs without imposing an invented exhaustive cause taxonomy."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 68,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "A pending human decision is presented as the exact requested act with subject/basis, alternatives and consequences; proposal acceptance is labeled accept and does not establish checking, approval or professional reliance. Verified by VER-003. Sources: REQ-003; SOW-087; Host V4-HI-25/30/33.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-003",
+          "source_line": 99,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect a pending decision package against its source: exact act, subject/basis, alternatives and consequences are present, and accept/check/approval/reliance labels preserve their subjects. Record source-to-view differences."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "An actually performed human decision can be faithfully presented from its record with human actor distinct from recorder and applicable content binding/lapse visible; absent human evidence, tool success or a view rebuild cannot fabricate that act. Independently evidenced checking/application remains visible without invented prior acceptance. Verified by VER-004. Sources: REQ-003, REQ-004; SOW-087, SOW-089; CLM-002.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-004",
+          "source_line": 100,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Pair a positive faithful-recording case (a performed human act, human actor distinct from recorder, content-bound record and visible lapse when that content changes) with negative cases lacking actual human evidence. Include independently evidenced checking/application without prior acceptance and operation success without acceptance; verify the view preserves only the respective warranted acts."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-06-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "After cross-session reconstruction and an interruption with a changed basis, the views recover the file-backed return, review/integration standing, resource/worker ownership, waiting causes and pending choices, preserving gaps and lapse rather than treating a recovered conversation or native observation as their proof. Rebuild does not alter the source records or perform the represented acts. Verified by VER-005. Sources: REQ-005; SOW-088, SOW-089; Recovery V4-EXM-13.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-005",
+          "source_line": 101,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Rebuild the local views in another session from the same ordinary project files, then exercise interrupted review/integration and a changed basis. Compare recovered returns, owners, waiting, pending decisions and actual reviewed/integrated standing to those files; compare input hashes before/after rebuild. Keep native observation and conversation-recovery evidence separate and report unrecoverable facts. These fixtures contribute to, rather than replace, the joined V4-EXM-13 witness."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003",
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-06-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 71,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "With PEC absent, the queue/waiting/decision views remain reconstructable from sufficient project files and managers retain review/integration ownership; a simulated limited or unavailable observation never supplies readiness, permission or empty-work conclusions. The documented bootstrap permits file-native undertaking controls before product views. Verified by VER-006. Sources: REQ-006; SOW-088, SOW-089; CLM-003, CLM-004.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-006",
+          "source_line": 102,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise file-backed view reconstruction with no PEC and with a limited/missing observation. Verify that sufficient files support the view, unsupported conclusions remain limited, and ownership is retained. Inspect the documented path from pre-existing file-native controls to the later product views. No PEC wire-field experiment or provider qualification is part of this check."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003",
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-06-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+      },
+      "text": "The derivation/boundary documentation and local evidence identify each consumed file/record interface, actual review/integration responsibility, human actor versus recorder, unresolved decisions and points of need; they provide the local fixture results to DEL-09-05 without asserting a joined fleet pass or taking over the acts enumerated in REQ-007. Verified by VER-007. Sources: REQ-007; SOW-085, SOW-086, SOW-087, SOW-088, SOW-089; Allocation DEL-06-02 and DEL-09-05.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-06-02-VER-007",
+          "source_line": 103,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review OUT-004 and the candidate-bound local fixture handoff against CLM-001 through CLM-004, REQ-007 and the Allocation rows. Check every excluded act's named owner, each receiving interface and each open matter's owner/point of need, and confirm the local evidence does not claim the joined witness or any unperformed human act."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-06-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-06",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+  },
+  "tool_version": "1"
+}

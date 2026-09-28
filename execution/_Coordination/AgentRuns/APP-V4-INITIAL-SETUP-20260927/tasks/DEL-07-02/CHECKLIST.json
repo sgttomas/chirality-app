@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-07-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 53,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "Receiving evidence distinguishes qualified/current, absent, stale, partial and failing material, shows the available source/standing/coverage/freshness information and names unsupported conclusions; unavailable values remain visibly limited rather than fresh, complete or authoritative. Verified by VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-001",
+          "source_line": 69,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect App receiving behavior and presentation against the accepted limitation clauses; compare supplied source identities, standing, coverage/freshness and missing metadata with displayed results for qualified/current and each limited/absent condition. Use the relevant agreed connector meanings, recording any undecided comparison as pending."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-07-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 54,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "Each absence/staleness/partiality/failure case exposes the affected question's source-file route and gaps, including total absence with no response. A missing underlying source yields an explicit unresolved need and responsible route, not a fabricated answer or an assertion that file access supplied authority. Verified by VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-002",
+          "source_line": 70,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Follow the same affected question through absent, stale, partial and failing fixtures, including no response and unavailable underlying sources. Inspect the visible source route, locate the cited files/revisions when available, and compare conclusions/gaps and the responsible recovery path with their source support."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-07-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 55,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "Failure and reconstruction evidence contains no unsupported empty-work, readiness or permission conclusion and retains separate execution, proposal-acceptance, checking, approval and professional-reliance subjects/actors/evidence. Evidence of one act supplies neither another act nor an invented prerequisite ordering. Verified by VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-003",
+          "source_line": 71,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect failure and recovered records for inferred empty work, readiness or permission. Compare each execution/acceptance/checking/approval/reliance assertion with its actual subject, actor and evidence, including cases with only one act evidenced and others unknown. Check that applicable prerequisites are sourced and no generic acceptance-before-other-acts dependency is introduced."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-07-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 56,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "The documented recovery route can be followed from ordinary source files without PEC or later fleet software; it identifies agent discovery/comparison, manager review/integration and human cross-undertaking work and distinguishes prepared, performed and outstanding duties. Verified by VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-004",
+          "source_line": 72,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Walk the recovery document using only available project graphs, decisions, revisions and other source records, with PEC and later fleet views unavailable. Trace agent reconstruction, manager review/integration and human coordination assignments, then compare claimed performed duties with actual records; list any remaining source or actor input."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-07-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 57,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "Independent-availability cases show PEC receiving with Domains absent, Domains receiving with PEC absent, both absent, and absent PEC with a stale Domains source. Each affected path retains its own limitations and missing inputs while independently supported work can proceed; neither delivery becomes a blanket v4 start condition. Verified by VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-005",
+          "source_line": 73,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the four independent-availability combinations in AC-005 against the receiving contracts or explicitly simulated equivalents. Compare each connector's limitation/recovery result, verify independent supported continuation and inspect that waiting questions keep their actual unsatisfied inputs and data-boundary constraints."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-07-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 58,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "A later PEC join uses the exact coverage and qualification/release/App-adoption standing supplied by the App receiving owner, preserves source recovery for unsupported material and introduces no blanket restart gate. A prepared, unqualified, unreleased or unadopted case remains visibly limited, including when D108 acceptance is present. Verified by VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-006",
+          "source_line": 74,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine a file-route-to-PEC join with the App DEL-07-01 evidence account: compare declared coverage, current limitations, qualification, release and App adoption with the consumed envelope. Repeat with each prerequisite absent or unsupported and inspect continuation/source routing. Treat simulated joins as development evidence; actual adoption requires its own evidence, including any accepted provider limitations."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-07-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "The fixture/evidence account binds its App candidate, source question and source/input identities, records checks against these criteria and distinguishes simulation from actual receiving operation. Missing external inputs and unexecuted checks remain explicit rather than passing or proving finished-product failure. Verified by VER-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-007",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Audit fixture and execution records for candidate/source/input binding, same-question continuity, criterion coverage, performed outcomes, simulation labels and pending inputs. Compare them with V4-EXM-30's receiving/limited/absent examination, without claiming this local fixture set completes the separately owned joined connector witness."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-07-02-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+      },
+      "text": "The responsibility document, receiving paths and verification assertions preserve every excluded act in REQ-008 with its CLM-003 or CLM-005 owner, including the unresolved Domains allocation; the fallback slice neither takes over sibling/provider/human acts nor depends on a future fleet implementation to reconstruct files. Verified by VER-008.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-07-02-VER-008",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review each excluded act in REQ-008 against the cited owner claims, accepted allocation and receiving code/documentation/test assertions. Check named App deliverable owners and the external/manager/human owners that deterministic ID matching cannot establish; inspect for invented Domains allocation, provider delivery, policy ruling or fleet prerequisite."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-07-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-07",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+  },
+  "tool_version": "1"
+}

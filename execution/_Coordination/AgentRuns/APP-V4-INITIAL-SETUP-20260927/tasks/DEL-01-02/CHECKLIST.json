@@ -1,0 +1,241 @@
+{
+  "item_count": 9,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 56,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "Closing, hiding and reloading an observer window leave ongoing work and outstanding approvals under main-process custody, with no stop or approval inferred from visibility loss. Verify REQ-001 with VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-001",
+          "source_line": 72,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Observe main-process child/session/request custody while a run has ongoing work and an outstanding approval. Close, hide and reload its observer window; compare execution/request observations before and after and inspect any emitted stop/approval action. Sources: CLM-002; V4-EXM-11. Implements AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 57,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "An explicit native stop is distinguishable from observation loss, and the reported outcome reflects the observed interruption or remaining uncertainty, including any separately observed active descendant. Verify REQ-002 with VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-002",
+          "source_line": 73,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Invoke native stop deliberately and trace the request and observed provider result. Contrast an observer loss and an unavailable stop acknowledgment. Include a separately active descendant where the native supplier exposes one; verify the report does not infer its stop from primary-turn completion. Sources: CLM-002; V4-EXM-11. Implements AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 58,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "Known requests support actual grants, denials, answers and explicit declines; their outstanding state is preserved across observation loss, and silence, timeout or recovery never becomes approval. Verify REQ-003 with VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-003",
+          "source_line": 74,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise known request grant, denial, question answer and explicit decline using the selected native request types. Interrupt observation while a request is outstanding and restore it; exercise silence/timeout without granting permission. Compare actual replies and recovered outstanding state. Sources: SOW-063, SOW-064, SOW-122; V4-EXM-11. Implements AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "An unknown server request receives an explicit error through the selected supplier interface; missing acknowledgment remains unobserved even if a reply write or local settlement occurred. Verify REQ-004 with VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-004",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Supply an unknown server request at the supplier boundary and inspect its explicit error. Exercise an unavailable acknowledgment after reply writing/local settlement and check that the report makes no acknowledgment or success claim unsupported by observation. Sources: SOW-123, SOW-065; CLM-002. Implements AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "After loss and restoration of connection, the recovered execution and outstanding-request state is grounded in Codex observations; stale local rendered/transcript state cannot establish an outcome. Verify the reconnect part of REQ-005 with VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-005",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Disconnect and reconnect with outstanding work/requests and deliberately stale rendered or copied-transcript state. Compare recovered state with native Codex observations; retain uncertainty wherever actual outcomes cannot be recovered. Sources: SOW-062, SOW-124; CLM-002. Implements AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "After App quit/relaunch or restart, the person can continue the conversation and access prior events, while recovered, currently outstanding and unavailable facts remain distinguishable. Verify the continuation part of REQ-005 with VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-006",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Quit and relaunch the identified native App, then continue the conversation and inspect prior-event access and any outstanding/unknown state. Record actual supplier recovery behavior without assuming process survival during quit. Sources: SOW-008, SOW-066; V4-EXM-11. Implements AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "The UI/evidence handoff preserves observed events and unknown outcomes, including a faithfully recorded actual human response with decision actor distinct from recorder. Fabricated human acts and stronger unsupported outcome claims are rejected; no additional act is inferred from execution, settlement, acknowledgment or recovery, and no independently evidenced act is erased merely because another act is absent. Verify REQ-006 with VER-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-007",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the receiving state/evidence handoff for observed and unavailable outcomes. Include an actually supplied human answer/act recorded with its subject, actor and recorder distinguished, and negatives containing absent human evidence, transport-only success, lost acknowledgment and conversation-only recovery. Confirm execution, acceptance, checking, approval and reliance retain separate evidence; an independently evidenced act stays recordable without inventing other acts. Sources: CLM-004; REQ-006; V4-EXM-11. Implements AC-007 within this slice's handoff, not the sibling record schema."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-02-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "The delivered fixtures and results cover this slice's window loss, explicit interruption, known/unknown requests, denial, timeout, reconnect, restart and missing-acknowledgment transitions against identified candidates, without substituting historical passes for current behavior. Verify REQ-008 with VER-008.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-008",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the fixture inventory and candidate-bound result records against REQ-001…REQ-006 and the delivered code interfaces. Check coverage of the named transitions, actual executed/not-run standing and configuration identity; trace each asserted product result to its relevant observation. Sources: CLM-001; V4-EXM-01…05 and V4-EXM-11. Implements AC-008."
+        }
+      ]
+    },
+    {
+      "id": "AC-009",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-02-AC-009",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+      },
+      "text": "Documentation accounts for unknown outcomes, recovery/evidence interfaces, all four anticipated artifact classes, optional old-client reuse and the unresolved means, with the named receiving and decision owners retained. Required behavior remains covered whether reuse is selected or declined. Verify REQ-007 and REQ-009 with VER-009.",
+      "verification": [
+        {
+          "id": "VER-009",
+          "kind": "VER",
+          "qualified_id": "DEL-01-02-VER-009",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the documentation against the accepted DEL-01-02 artifact/interface row, SOW-125, the clarification and current Architecture §3. Check the optional-reuse rationale, receiving responsibilities and open choices; trace each excluded act to CLM-003 or CLM-004 and its actual owner. Confirm the receiving supplier boundary stays stock/directly hosted and no transcript copy or local settlement is given unsupported authority. Implements AC-009."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-01-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-01",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+  },
+  "tool_version": "1"
+}

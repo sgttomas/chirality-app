@@ -1,0 +1,166 @@
+{
+  "item_count": 6,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-01-06-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 42,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "OUT-001 identifies a macOS Apple Silicon package and its App/Codex input identities consistently with the selected App hosting basis; its configuration contains the defined signing/notarisation arrangement for those binaries. Verify with VER-001. [REQ-001, REQ-002]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-001",
+          "source_line": 53,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the package configuration and its App/Codex identity references against the identified App hosting inputs and selected macOS Apple Silicon target. Check that both binaries are covered by the arrangement defined under OI-011; retain candidate-bound configuration/identity evidence. A browser build or unqualified historical package cannot establish this result. [AC-001]"
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-06-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 43,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "OUT-002 links the candidate package and binary identities to the actual required entitlement and signing/notarisation evidence. Applicable code-mode entitlement treatment is grounded in that candidate; unresolved OI-011 detail is not asserted resolved by inherited v3 or SWBPIPE evidence. Verify with VER-002. [REQ-001, REQ-002]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-002",
+          "source_line": 54,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect OUT-002 against the actual package and the OI-011 definition: compare App/Codex identities, signing/notarisation evidence and required entitlements, including the applicability and treatment of any code-mode entitlement. Report absent or unresolved evidence explicitly; do not infer the v4 requirement from the old v3 entitlement or from another project's success. [AC-002]"
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-01-06-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 44,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "OUT-003 records an actual install/launch witness on the scoped macOS Apple Silicon target showing startup with the identified binaries and required entitlements, with candidate, configuration and date sufficient to associate the observation with OUT-001 and OUT-002. Verify with VER-003. [REQ-003]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-003",
+          "source_line": 55,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Install and launch the identified package on the scoped macOS Apple Silicon target in authorized production verification, recording observed startup, configuration, date, binary identities and the required entitlement evidence. Distinguish observed failure or unavailable evidence from a pass; changed candidates reopen affected checks. Browser-only results do not satisfy this method. [AC-003; B7: V4-EXM-01, V4-EXM-03, V4-EXM-04]"
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-06-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 45,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "OUT-004 contains the actual written supplier response obtained by the owner before public release beyond owner use. Before that response exists, the record reports the conditional obligation as unresolved rather than claiming this criterion satisfied. Any future Claude sign-in has its own response only if that need arises. Verify with VER-004. [REQ-004]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-004",
+          "source_line": 56,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the terms record with the actual written response and its available custody evidence, supplier identity, distributed-sign-in applicability and owner's obtaining act. At the public-release point of need, an absent response leaves AC-004 unsatisfied. Verify faithful recording of a genuinely evidenced supplier response/owner act with actor distinct from recorder; also check that a draft request, unconfirmed assumption, package pass or recorder assertion cannot fabricate a supplier answer or owner distribution decision. A missing public distribution decision stays unclaimed; terms receipt itself does not establish it. [AC-004, AC-005; B3: OI-007; B4: DEP-004]"
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-01-06-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 46,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "OUT-004 distinguishes supplier position, owner's obtaining act and owner's public distribution decision from the recorder's act and package test results; the record preserves actual source/custody and does not fabricate supplier confirmation or owner release. It faithfully records an actually evidenced owner or supplier act without treating the recorder as the actor. Verify with VER-004. [REQ-004, REQ-005]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-004",
+          "source_line": 56,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the terms record with the actual written response and its available custody evidence, supplier identity, distributed-sign-in applicability and owner's obtaining act. At the public-release point of need, an absent response leaves AC-004 unsatisfied. Verify faithful recording of a genuinely evidenced supplier response/owner act with actor distinct from recorder; also check that a draft request, unconfirmed assumption, package pass or recorder assertion cannot fabricate a supplier answer or owner distribution decision. A missing public distribution decision stays unclaimed; terms receipt itself does not establish it. [AC-004, AC-005; B3: OI-007; B4: DEP-004]"
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-01-06-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 47,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+      },
+      "text": "The package evidence and handoff retain the owner boundaries in CLM-001 through CLM-004, both distinct open-issue points of need, and the native-witness requirement. Cross-engine browser results, external host evidence or an available package do not claim Windows shipping, supplier terms resolution, joined App examination or public release. Verify with VER-005. [REQ-001, REQ-003, REQ-004, REQ-005]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-01-06-VER-005",
+          "source_line": 57,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare package evidence and handoff with the accepted scope and owner claims: App hosting input and local package qualification, App PKG-09 joined examination, external SWBPIPE ownership, OI-011 and OI-007 owners/timing, and conditional future supplier terms. Check negative substitutions (browser evidence for native launch, SWBPIPE success for App qualification, package availability for terms/release) while allowing records of actual separately evidenced acts. Preserve source-qualified App and external-project identities. [AC-006]"
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-01-06",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-01",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+  },
+  "tool_version": "1"
+}

@@ -1,0 +1,124 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Author exactly one source-grounded SOFTWARE ScopeOfWork.md in MODE=INIT; no implementation",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/ScopeOfWork.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-04/AUTHOR_RETURN.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-04/CHECKLIST.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-04/BOUNDARY.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-04/VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-005",
+      "SOW-014",
+      "SOW-129"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-001",
+      "OBJ-002"
+    ],
+    "MODE": "INIT",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-01-04",
+    "PackageID": "PKG-01",
+    "Name": "Native requests, outcomes and attachments",
+    "Description": "Provide the native request, response, turn/outcome and attachment interactions required by the App and expose the workflow workspace receiving interface. Interfaces: DEL-01-02 owns outstanding requests and truthful outcomes; DEL-02-02 owns reviewed drafts/registration; PKG-04 supplies act distinctions. Old UI reuse remains optional. Verification: Grant, deny, answer, explicit decline and unknown outcomes are presented correctly; attachments and workflow-draft transitions preserve actual supplied content identity.",
+    "Type": "UX_UI_SLICE",
+    "ResponsibleParty": "App native-interaction owner",
+    "AnticipatedArtifacts": "CODE: native approval/question cards and response interactions;CODE: turn/outcome and attachment presentation;TEST: request and attachment interaction fixtures;DOC: receiving contract for workflow draft UI",
+    "CoversScopeItems": "SOW-005;SOW-014;SOW-129",
+    "SupportsObjectives": "OBJ-001;OBJ-002",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: define and build the App against its selected supplier inputs; external host/provider completion is not a start gate."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-005",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "The App presents and handles native approvals and questions.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-01",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-04",
+      "ObjectiveIDs": "OBJ-001",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-014",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Present Codex plans, tool activity, delegation and requests in their native form without a Chirality-specific event vocabulary.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-04;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#V4-ARC-05",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-03;DEL-01-04",
+      "ObjectiveIDs": "OBJ-001",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-129",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Retain required user-visible and native request, plan, draft, turn/outcome and attachment interactions under the accepted contract; reuse of old UI components is conditional.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#3;projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-03;DEL-01-04",
+      "ObjectiveIDs": "OBJ-001;OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926;APP-V4-CLARIFICATION-20260927",
+      "OpenIssue": "FALSE",
+      "Notes": " The accepted 2026-09-27 clarification distinguishes required behavior from optional legacy implementation reuse; original wording is preserved historically."
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve each accepted open issue\u2019s exact owner and point of need separately; do not collapse different timing conditions into a later generic implementation gate.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "c099087ad302dcec4c8a0c71c9f6f5456007dcdcf2287b652c83e68debd22651",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Keep native request/response cards, outcomes, attachments and draft interactions distinct from durable execution/request custody in DEL-01-02 and the complete workflow-making owner in DEL-02-02. No silence-as-approval or inferred outcome. Preserve actual Codex semantics and open UI/storage choices."
+}

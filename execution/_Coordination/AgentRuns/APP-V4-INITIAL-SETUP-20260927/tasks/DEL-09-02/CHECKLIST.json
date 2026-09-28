@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "V4-EXM-10 evidence on the identified candidate shows the complete empty-project plan/revision, substantive tool execution, draft, review, explicit registration, new-input reuse and exactly the source-required two refinements, with none replaced by a prior component pass. Verified by VER-001. Sources: SOW-195; Exam-original/Exam V4-EXM-10; REQ-001/REQ-002.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-001",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Observe the identified App from an empty project through the ordered V4-EXM-10 journey. Retain native plan/revision and substantive tool evidence, workflow draft/review/registration identity, the new reuse inputs and each of the two refinements. Compare those observations with REQ-002 and report the actual outcome; a scripted definition or component pass cannot stand in for the joined run."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "The workflow journey exposes its declared inputs/tools/checkpoints/outputs/evidence and source-qualified identity, keeps changed material in draft until reviewed explicit registration, and demonstrates that collision or revision does not silently overwrite or rebind a selected workflow. Verified by VER-002. Sources: SOW-195; Product V4-WF-01…03; REQ-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-002",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the workflow's declared part and source-qualified selected/registered bytes through the same journey. Exercise a relevant revision/source-collision condition and compare before/after selection and registered content, confirming explicit reviewed registration and no silent overwrite/rebinding. Link the focused DEL-02-02 evidence while checking the behavior at the joined App seam."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "Joined registration/checkpoint records faithfully show a human act actually performed against identified content, scope and purpose with decision actor distinct from recorder, and show that a pending or unperformed act is not fabricated from tool success, another act, silence or timeout. The observed acts keep their separate meanings under the applicable adopted policy. Verified by VER-003. Sources: Rows DEL-09-02 interfaces; Product V4-WF-02/05, V4-AUT-03 and V4-REC-05; REQ-003/REQ-009.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-003",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Join the actual review/registration/checkpoint interaction to the PKG-04 content-bound record. Examine a positive faithful-recording case where a person actually performs the act, then the pending/unperformed case where execution success, another act, silence or timeout cannot supply it. Compare actual actor and observed event with recorded actor/content/scope/purpose; check settled attribution distinctions without choosing unresolved OI-001/OI-002 policy."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "V4-EXM-11 evidence during V4-EXM-10 covers the explicit turn stop, close/reopen, one denied and another granted approval, quit/relaunch and continuation; work and outstanding requests survive observer closure and previously observed work remains accessible. Verified by VER-004. Sources: SOW-196; Exam-original/Exam V4-EXM-11; REQ-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-004",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "During the V4-EXM-10 run, carry out and observe the V4-EXM-11 sequence in REQ-004. Record explicit stop versus window closure, continuity of work and outstanding requests after reopening, separate denial/grant outcomes, and App quit/relaunch with conversation continuation. Link recovery/request local checks and native observations to the same candidate."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "Recovery evidence distinguishes actual provider and rendered state, primary-turn completion and surviving descendants, and request settlement and received acknowledgment; unavailable outcomes remain unknown, with no invented done state, implied approval or claim of whole-undertaking recovery from conversation recovery. Verified by VER-005. Sources: SOW-196; Exam V4-EXM-11; Architecture §3; REQ-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-005",
+          "source_line": 82,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect actual provider events, rendered presentation, outstanding-request state and native descendant evidence at the recovery seam. Include lost or unavailable acknowledgment/outcome and surviving-descendant conditions using supported recorded seam evidence where possible; compare with the joined observation. Confirm unknown stays unknown and a primary turn's completion does not mark active descendants done. State evidence limits if any required condition cannot be observed; do not infer whole-undertaking recovery."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 68,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "V4-EXM-12 evidence shows all three access modes configured together and one conversation using each of ChatGPT sign-in, API key and a local model server, with observed selection between them and each actual configuration/result identified. Verified by VER-006. Sources: SOW-197; Exam-original/Exam V4-EXM-12; REQ-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-006",
+          "source_line": 83,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Receive identified account/provider inputs and their focused checks. On the same App candidate keep ChatGPT sign-in, API key and the local server configured concurrently, select each for one conversation and observe switching and actual outcomes. Bind the selected harness/model/server configuration without exposing credentials. Failure to obtain a required usable mode is a named input gap or observed failure as warranted, never a substitute-mode pass."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "The single dossier accounts for V4-EXM-10/11/12, binds all results and applicable upstream feature evidence to their actual candidate/configuration/date, preserves honest outcome and input-gap standing, separates native and browser evidence, and identifies affected rechecks after candidate changes without weakening criteria. Verified by VER-007. Sources: Rows; Exam §§1–3; REQ-001/REQ-007.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-007",
+          "source_line": 84,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Independently examine the assembled dossier against the three named cases and evidence rules. Check candidate/configuration/date identity, feature-evidence applicability, actual execution versus definition/history, missing inputs, honest outcome classification, native versus browser scope, and re-examination of affected scenarios after changes. Preserve criteria during repair; report actual reviewer separation and available model identity without inventing a different model family."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-02-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+      },
+      "text": "The return to DEL-11-03 identifies the standalone candidate, each scenario result and its evidence/limits, retains the App workflow-experience integration owner and independent examiner, and preserves the owner/feature/decision boundaries in CLM-001, CLM-002 and CLM-003. It claims no joined host witness, replacement, release, retirement or professional reliance from standalone qualification. Verified by VER-008. Sources: Rows DEL-09-02/DEL-11-03; Exam §7; Product §8; REQ-008/REQ-009.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-09-02-VER-008",
+          "source_line": 85,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the handoff to DEL-11-03 against the accepted deliverable/interface rows, checking single-dossier coverage, exact integration/examiner custody, upstream owner boundaries and the standalone evidence's limits. Trace each replacement-facing statement to the actual App evidence; keep the separate host witness and owner decision with their owning contributions."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-09-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-09",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+  },
+  "tool_version": "1"
+}

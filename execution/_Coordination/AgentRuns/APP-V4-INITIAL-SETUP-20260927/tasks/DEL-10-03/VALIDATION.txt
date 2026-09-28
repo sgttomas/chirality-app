@@ -1,0 +1,29 @@
+MODE=INIT; production absent at preflight; no legacy kit; status OPEN matches original_status_sha256.
+Initial validate_scope_of_work.py --json: INVALID: defined acceptance criteria missing from matrix AC-006; defined verification methods missing from matrix VER-006. Repaired final matrix row to its single OUT-001 responsibility-map output; retains cross-account examination.
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md', '--json']
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-03/CHECKLIST.json']
+exit=0
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-03/BOUNDARY.json', '--show-not-checkable']
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+Repeated identical checklist derivation: PASS byte-identical
+Current status unchanged: cbbb2fa35e7e05fb26df6e1011c8f57e0cbe1b2f835f30d1615d552462bbe53a
+Contract SHA256: 4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92
+
+Checklist semantic extraction: PASS all six ACs exact once, source order/text/hash and matching sole VER.
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-03/UNDEFINED_INPUT.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-03/CHECKLIST.json']
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+exit=1
+Missing/invalid input probe: PASS existing output unchanged; no artifact emitted. No separately constructed ambiguous-format fixture in this write scope.
+Boundary semantic QA: PASS REQ-006 enumerates each excluded act with CLM-002/003/004/005/006 assigning the same act; human/host/professional owners also checked semantically. REQ-001 local contribution, REQ-002 non-discharge, REQ-003 preservation interface, REQ-004 evidence distinctions, REQ-005 open placement and REQ-007 actual-act attribution retain the same named owners. NOT_CHECKABLE=0; NO_CITED_CLAIM=0.
+Scope coverage: SOW-230 OUT-001/REQ-001/AC-001; SOW-231 OUT-002/REQ-002/AC-002; SOW-232 OUT-003/REQ-003/AC-003; SOW-233 OUT-003/REQ-004/AC-004; SOW-234 OUT-001/REQ-005/AC-005. All support OBJ-010. Three anticipated documentary artifacts covered.
+Checks 2,5,6,7,10,11,12,14,17,22: NOT_APPLICABLE to INIT. Check15 NOT_APPLICABLE: no HTML requested. Source mapping is semantic INIT trace, not migration map/parity.
+No contract changes after stable hash notification. Product/account production verification remains future work; current checks establish contract form and author source/ownership QA only.

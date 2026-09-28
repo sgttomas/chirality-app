@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-11-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 55,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-001 accounts for every preservation class in REQ-001 within the identified coexistence scope, gives retained material a recoverable source route and stated standing, and explicitly exposes missing inputs or unexamined coverage; new v4 files are not represented as removal, migration, freeze or retirement of any existing lane. Verify with VER-001. Basis: D1; SOW-114/SOW-253; B7.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-001",
+          "source_line": 67,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare OUT-001 against REQ-001 and the B7 preservation list. Inspect source/recovery routes and standing for the identified fallback, old projects/archives, reviewed methods, work, obligations and evidence. Record examined coverage and gaps; inspect that existing active lanes remain scoped and are not treated as automatically replaced. Evidence: focused coverage and retention findings bound to the account revision."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-11-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 56,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-001 lets a reader find the applicable source/selector for each identified affected scope or consumer and trace it to supplied PKG-10 applicability and DEL-11-02 adoption evidence; historical pins, run selection, actual supply and wider adoption are distinguishable, with unavailable or conflicting evidence surfaced instead of resolved by location. Verify with VER-002. Basis: SOW-251; B7; M0 V4-OPS-11/V4-OPS-14.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-002",
+          "source_line": 68,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Starting from OUT-001, follow the current selector for each listed scope/consumer to its identified source and compare with the supplied PKG-10 map and DEL-11-02 receiving status. Examine a historical pin and absent/uncertain adoption case to ensure neither becomes current authority by file presence or run selection. Evidence: source/selector trace and unresolved-input findings; no new navigation technology is prescribed."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-11-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 57,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-002 establishes unchanged complete thesis membership and bytes against CLM-007's identified basis, retaining attribution and nonbinding standing; missing, added or modified thesis content is exposed as a discrepancy rather than accepted as unchanged. Verify with VER-003. Basis: SOW-252; B7; P0 §11.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-003",
+          "source_line": 69,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the full thesis file set and bytes with the preservation basis stated in CLM-007; retain a reproducible comparison and inspect the attribution/standing record. In a non-authoritative test fixture or in-memory comparison, demonstrate that omitted, added or changed content is detected. Evidence: identified basis/candidate, complete comparison coverage, identity results and attribution/standing check. Do not mutate the thesis to run a negative case."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-11-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 58,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-002 identifies the source and compared candidate for the preserved useful material in OUT-001, reports the actual identity-check result and coverage, and makes a changed or missing item visible without claiming a complete archive audit or a historical pass as a current check. Verify with VER-004. Basis: SOW-253; B7; E0 §2.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-004",
+          "source_line": 70,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "For the useful material named in OUT-001, compare preserved content identity to its identified original basis and record the compared set, results and gaps. Exercise a missing/changed item case without changing authoritative content; confirm historical research or checks are not reported as evidence of an unexamined current candidate. Evidence: candidate-bound identity results and limitation account."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-11-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-003 accounts for continuing users, actual work, archives and pending obligations in the identified retirement scope; each relied-on disposition names its accountable owner and supporting act/evidence, and unresolved matters retain the CLM-006 owner and point of need. An arrangement with an unresolved continuing obligation is not shown as eligible for retirement merely from fallback replacement. Verify with VER-005. Basis: SOW-114/SOW-253/SOW-258; D2 OI-024; B7; P0 OQ-12.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-005",
+          "source_line": 71,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace OUT-003's obligations to the supplied active-work/consumer record and their accountable owners. For each intended retirement, inspect its continuing-obligation dispositions and actual decision evidence; include unresolved obligation and fallback-only replacement cases, which must not establish retirement. Evidence: obligation-to-disposition trace, open owner/point-of-need account and any explicit hold on affected retirement."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-11-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "OUT-003 can faithfully record a sourced, actually performed owner act with decision actor distinct from recorder and without expanding the act's subject or custody strength; an absent, proposed or inferred act remains unperformed/unknown. A fallback replacement never serves as evidence of consumer adoption, all-project retirement or professional reliance. Verify with VER-006. Basis: B0/D0; B7; P0 §8; H0 §5/§9; E0 §7.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-006",
+          "source_line": 72,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare an actual sourced human act with its account entry: actor, subject, scope, evidence and transcription/observation limits remain faithful while recorder stays distinct. Compare proposed or absent acts and ensure none is recorded as performed. Check that replacement, adoption, execution, checking, approval and professional reliance are neither conflated nor forced into an unsupported dependency sequence. Evidence: positive faithful-recording and fabrication/conflation-negative findings bound to the account; use existing records or clearly labelled fixtures, not fabricated live acts."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-11-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      },
+      "text": "The outputs retain the one-for-one responsibility separation in REQ-005 and explicitly retain unresolved adoption/retirement choices; local preservation evidence neither transfers another owner's act nor closes that owner's scope. Verify with VER-007. Basis: D1/D2; B7; CLM-003 through CLM-006.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-11-01-VER-007",
+          "source_line": 73,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review each act enumerated in REQ-005 against CLM-003 through CLM-006 and D1/D2. Confirm the local account only references the separately owned adoption, renewal and replacement contributions, carries unresolved choices, and supplies continuity evidence without performing those acts. Evidence: semantic responsibility-resolution findings, including any limitation of deterministic owner checking."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-11-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-11",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+  },
+  "tool_version": "1"
+}

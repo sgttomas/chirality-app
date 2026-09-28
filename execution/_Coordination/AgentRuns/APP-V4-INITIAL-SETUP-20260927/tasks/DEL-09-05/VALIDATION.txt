@@ -1,0 +1,223 @@
+$ python3 'tools/scope_of_work/validate_scope_of_work.py' 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness' '--json'
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness",
+  "valid": true
+}
+exit=0
+
+$ python3 'tools/scope_of_work/derive_review_checklist.py' 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness' '--output' 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-05/CHECKLIST.json'
+exit=0
+
+$ python3 'tools/scope_of_work/derive_review_checklist.py' 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness'
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-05-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 45,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-001 retains two bounded delegations and one human decision, with complete briefs and a connected file graph, return queue and exact-act decision package; actual child execution is supported independently of brief existence. Verify by VER-001. Source: REQ-001, CLM-001, S2/S3.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-001",
+          "source_line": 57,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "On the identified candidate, observe the two brief-bound delegations through native child identities/events, graph, return queue and one exact-act decision package; compare each brief with required fields and link actual launches/returns rather than infer them from authored records. Produces OUT-001 fixture evidence for AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-05-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 46,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-001 includes every longer-work condition in REQ-002 and permits observation of the corresponding state distinctions through the change of basis and interruption, including a still-active worker and a return awaiting review. Verify by VER-002. Source: S1/S2/S4.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-002",
+          "source_line": 58,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the fixture's dependent/ready work, outstanding review, actual worker ownership, changed basis and interruption of review/integration; observe before/interruption/resumption states and retain active, returned, reviewed, integrated and waiting distinctions. Produces OUT-001 evidence for AC-002; no elapsed-time or staffing threshold is imposed."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-05-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 47,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-002 reconstructs file-derived cross-session views with actual ownership, prerequisites, results, next work, waiting causes, independent findings, reviewed/integrated history and pending decisions intact; missing observations remain unknown. Verify by VER-003. Source: REQ-002/REQ-003, S3/S4.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-003",
+          "source_line": 59,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Rebuild the coordination views across sessions from the source files, correlate live worker observations, and compare reconstructed state with the retained evidence. Check every REQ-002/REQ-003 distinction, including pending choices and unknown outcomes. Produces OUT-002 reconstruction evidence for AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-05-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 48,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-002 preserves a faithfully recorded performed human decision with decision actor distinct from recorder, and rejects unsupported attribution from tool success, silence, timeout or another act; other independently evidenced acts retain their own standing. Verify by VER-004. Source: REQ-004, CLM-002, S2/S3.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-004",
+          "source_line": 60,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the observed human decision and its bound subject against the record, confirming distinct actor/recorder attribution. Examine unsupported success/silence/timeout-derived attribution and confirm it cannot invent a human act; inspect separately evidenced execution/checking/acceptance/approval/reliance without imposing an unstated sequence. Produces OUT-002 attribution evidence for AC-004 under the actual adopted policy."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-05-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 49,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-002 links candidate/configuration/date, actual workers and returns, supplied basis, independent findings, observed outcomes and limits, including affected checks reopened after a candidate/basis change without weakening their criteria. Verify by VER-005. Source: REQ-005, S1/S4/S5.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-005",
+          "source_line": 61,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Independently examine result identity and standing, worker/return provenance and enforcement descriptions, the changed-basis history and affected-check reopening. Trace findings to the actual candidate and ensure criterion protection. Produces OUT-002 evidence for AC-005; absent product inputs are blocked/not run/inconclusive as warranted, not an executed pass or failure."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-05-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 50,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "OUT-002 identifies the separate joined evidence added beyond a first-host slice, conversation recovery, file-native practice and component checks; none alone is presented as fulfilled longer-work coverage, practitioner validation or replacement approval. Verify by VER-006. Source: REQ-005/REQ-006, CLM-003, S2/S4/S5.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-006",
+          "source_line": 62,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the joined evidence coverage with the bounded first-host, conversation-only and component evidence; identify what this witness actually adds and remaining limits. Check that it makes no unsupported validation or replacement decision claim. Produces OUT-002 coverage evidence for AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-05-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 51,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+      },
+      "text": "Both outputs preserve named contribution owners and unresolved choices at their actual points of need, without adding fleet features, assigning external construction, inventing policy, or equating definition maturity with required input availability. Verify by VER-007. Source: REQ-006, S1/S3/S6/S7.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-09-05-VER-007",
+          "source_line": 63,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review both outputs against S1/S6 contribution ownership, REQ-006 and the open matters below, confirming local scope and conditional points of need. Produces the ownership/open-input account for AC-007 without deciding those matters."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-09-05",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-09",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+  },
+  "tool_version": "1"
+}
+exit=0
+
+Repeated checklist derivation: byte-identical, SHA256 89292f9ba53c20e46301f5634e51080ef7f4d75ee8c92ee52e52805383d4d9f9
+
+$ python3 'tools/scope_of_work/check_boundary_owner_resolution.py' 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness' '--json' 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-05/BOUNDARY.json' '--show-not-checkable'
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+Status unchanged OPEN: ab6e1f0db3faadbafda1f882ae6f75782450b9e8af0a49c90902fe19c87606ae
+
+ScopeOfWork SHA256 35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063
+
+Semantic definition QA: PASS by author (not independent review). All seven AC definitions preserve exact source order/text and contract SHA256 in the deterministic checklist; each receives only its corresponding VER. AC-007 appears in two single-criterion rows with the identical VER-007 set, deriving once. Both outputs cover their assigned scope/objectives and anticipated TEST/DOC artifacts. All Markdown source links resolve.
+Boundary semantic QA: REQ-006 enumerates construction of graph/brief/association, queue/wait/decision UI, native presentation, adopted-policy definition, record implementation, common harness, later host reconstruction, practitioner coordination and replacement packet; CLM-001/002/003 bind each one-for-one to its named App deliverable and owner. Unresolved policy decision, actual human/professional act, SWBPIPE construction, practitioner act and replacement decision separately bind their real actors in CLM-002/003. No construction/decision ownership transfers. NOT_CHECKABLE=0; NO_CITED_CLAIM=0; no residual unbound exclusion identified.
+Composite/content QA: exact two delegations and one human decision retained; dependent/ready work, active/returned/reviewed/integrated distinctions, pending choices, independent findings, changed basis and interrupted review/integration retained. Faithful human-act recording included alongside fabrication negatives; no acceptance-first synthetic dependency. Open choices retain exact source owners/timing, condition affected work only. No unresolved source conflict identified.
+Workflow QA: INIT only. Conversion checks 2,5-7,10-12,14,17 and REVISE check22 not applicable; HTML check15 not applicable. No converter, mapper, parity, finalizer or HTML invoked. Status unchanged, independent review/lifecycle act reserved to caller. No separate malformed/dual-format scratch fixture created because write authority is limited to the five named targets; fail-closed invalid/ambiguous behavior is a tool guarantee, not claimed as an executed negative test in this run.
+Execution-substrate finding: native fresh-context TASK, no model override or delegation; scope/write restrictions instructional under broader host filesystem access. Definition tools only; no product scenario, supplier experiment, Git, implementation or network execution.

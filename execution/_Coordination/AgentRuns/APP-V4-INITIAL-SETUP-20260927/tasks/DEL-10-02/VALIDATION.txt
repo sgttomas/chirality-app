@@ -1,0 +1,104 @@
+DEL-10-02 MODE=INIT / NO_STATUS_TOUCH
+Preflight: no production/legacy contract; status OPEN and exact original hash matched.
+Read basis: targeted selected clauses and row/heading locator queries, not a whole-corpus audit.
+Source hashes observed before authoring (mutable graph is current observation, not adopted snapshot):
+c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd  AGENTS.md
+1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7  agents/AGENT_TASK.md
+84dadde4c573b1d3d9ecd65e1e1be12efee1a95299b4115806c02e9c9cdebc2b  workflows/scope-of-work/WORKFLOW.md
+1696cd9a0c13aeda4151ebdd666fff7d0450450c88ea1aa00f7435fdcbf492bc  workflows/scope-of-work/resources/brief.md
+44ab41ace2fb14549ef0268c357ced42e798d97b01a325d62a60226767adf188  workflows/scope-of-work/resources/checks.md
+fbd07771140f6350e964445014ba4f8f79f5d1f5c86df3379607b0489e6e5cc7  workflows/scope-of-work/resources/tools.md
+26c8254aaf2e2894e7d32096ec1e0d71b3ad881c1445094945031be19741433c  docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md
+14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
+bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv
+b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv
+e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv
+b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv
+fa2922f7a4d8c5b31e86752ef44fb654ec037cc46995153ced6345e90c84c134  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv
+8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9  projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md
+47530ffa5240cc65e3d20d6c0fbd6740866ccb21cef436b3e7152af9e33f0565  projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv
+055703d9a7147ab982731b783366b5fde2ef1ba805a9fe60b6c2b742182aa56e  projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv
+32997977cd63b1953ad0822be6eeced11e3afa9cb9902aa84b0b38a1d0a0f3e5  projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_CONTEXT.md
+b18bb16a7407eb5d0dc8592d09d31da5b89c35e5dfe60ffbe887e814fb330d78  projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_REFERENCES.md
+657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573  projects/chirality-app-v4/docs/PRD.md
+c3ae766ee2d660fb391b7db0aa99526f84d21421cf3a6b692ddd17e42687e533  projects/chirality-app-v4/docs/ARCHITECTURE.md
+08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da  projects/chirality-app-v4/docs/HOST_INTEGRATION.md
+1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19  projects/chirality-app-v4/docs/EXAMINATION.md
+98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd  projects/chirality-app-v4/docs/OPERATING_METHOD.md
+0aafefb12e9aa728592fb9e5b268ec4c9fba51d61401bb11bef8613e7f095032  docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md
+cf4bd6c237f614ab34234f02694f7ef10b6cc0c77c2cc482d4a9ccb992ea2a55  docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md
+df0297c5d77440df531e0cd38497eefb227ee465e376cbe56c7ba07f9bee0cde  docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md
+e281547b5d305798e2c95e8b2871277a33f1cd6b85b48375c4160e6b9796916c  projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/BRIEF.json
+491d106554651e83351e2a0ce5069800e980ccb54a9b5f5287130dff11e80d8f  projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_STATUS.md
+363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73  projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv
+8f53b266564df3bfd191ad675e8f76493998ebcf53ccc21ae8924a16b51e8a04  projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md
+2330d38ff8ebc4364a919aaa92c98368bdfe50b0c89196853fbade001052bd71  projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS_EXCERPTS.md
+02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8  projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
+143f017a531a6531426372b1bdf39e4071c45585a27c6574b51532d0b6cb0d13  projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md
+d7050cf6deae075c291b0a3bcb5a9990ff5ee198ea72da05e28a4fc4f0e50205  projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md
+7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757  tools/scope_of_work/id_catalog.json
+f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe  tools/scope_of_work/validate_scope_of_work.py
+bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109  tools/scope_of_work/derive_review_checklist.py
+22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a  tools/scope_of_work/check_boundary_owner_resolution.py
+
+Definition checks
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md', '--json']
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md",
+  "valid": true
+}
+exit=0
+
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/CHECKLIST.json']
+exit=0
+
+$ derive_review_checklist.py [same candidate to stdout] vs CHECKLIST.json
+byte-identical=True
+exit=0
+
+$ ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/BOUNDARY.json', '--show-not-checkable']
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+exit=0
+
+CANDIDATE_SHA256 d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad
+STATUS_SHA256 491d106554651e83351e2a0ce5069800e980ccb54a9b5f5287130dff11e80d8f
+STATUS_UNCHANGED True
+
+QA18 reused negative-tool evidence, not a new run:
+projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt SHA256 e15ca7c5c10171845a7fd390b501e9ae5ec9e247046813b992d8c04490de3969
+Pilot log lines205–223: actual checklist entrypoint with in-memory invalid-schema and unauthorized-dual read substitutions; both exited1, empty stdout, zero write/mkdir attempts. Not on-disk fixtures. All five executable/parser/catalog hashes match:
+{
+  "tools/scope_of_work/common.py": {
+    "pilot": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+    "current": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389",
+    "same": true
+  },
+  "tools/scope_of_work/id_catalog.json": {
+    "pilot": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+    "current": "7a1f8a1251147f7134c50058d633bb242979d2955285ce4a146cc886220be757",
+    "same": true
+  },
+  "tools/scope_of_work/validate_scope_of_work.py": {
+    "pilot": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+    "current": "f0f10590538b5aab788c120a0993a66addba6e106b352959fe11ee97511fecfe",
+    "same": true
+  },
+  "tools/scope_of_work/derive_review_checklist.py": {
+    "pilot": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+    "current": "bfb64dc9509d0cdf042e5304675e40238e7c56cd0174ab31f5adfaf41cef0109",
+    "same": true
+  },
+  "tools/scope_of_work/check_boundary_owner_resolution.py": {
+    "pilot": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+    "current": "22ef57e0c6364dc2476df956d8c0f8da26bf95c95656dad815fb0d169c0ae16a",
+    "same": true
+  }
+}
+
+Semantic definition QA: PASS (author self-check; independent review pending).
+REQ-008 act-to-owner: execution basis/manual-adoption contribution -> App DEL-10-01 / CLM-002; production-DAG construction -> App DEL-10-04 / CLM-003; fleet record implementation -> App DEL-06-01 / CLM-004; return/waiting/decision UI -> App DEL-06-02 / CLM-004. Consequential/stage/DAG decisions -> actual human actors in CLM-001/002/003; enforcement -> host and independent examination -> examiner in CLM-005; unresolved instruction/revision policies -> exact owners in CLM-006. These actor checks are semantic, not a claimed capability of owner-ID syntax. NOT_CHECKABLE=0; NO_CITED_CLAIM=0.
+Matrix: 8 rows, one AC and its own VER per row; all3 OUT/8AC/8VER consumed. Scope coverage7/7; anticipated artifacts3/3. No bare upstream local IDs. No converter/parity/finalizer/HTML. QA2,5,6,7,10,11,12,14,17,22 NOT_APPLICABLE under INIT; QA15 NOT_APPLICABLE (HTML false). QA1 exact brief/write scope applies.
+Author writes are confined to the five exact allowed artifacts; no controls, siblings, instructions, reusable workflows, Git operations, implementation, network experiments or delegation. This is an action-account, not a whole-checkout changed-path audit; other workers share the checkout. _STATUS remained byte-identical at author checks.

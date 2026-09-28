@@ -1,0 +1,253 @@
+{
+  "item_count": 9,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001 and OUT-002 require local-first selection, explicit person choice plus supplied key for cloud use, and configured-server-only local traffic; OUT-003 includes allowed local, disallowed destination and cloud-choice/key-absence cases with their expected outcomes. Verification: VER-001. Sources: REQ-001 and its assigned source clauses.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-001",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace model-selection and destination cases in OUT-002/003 to PRD V4-HOST-01/02 and Architecture V4-ARC-11. Inspect the expected local/cloud choice/key outcomes and evidence separation; later host execution observations must identify configuration and observed destinations. Record missing host observations explicitly."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001, OUT-002 and OUT-003 identify the host native network enforcement point and require keys to remain outside interface scripts; fixture evidence is labelled separately from actual native enforcement evidence. Verification: VER-002. Sources: REQ-001, CLM-001 and Architecture V4-ARC-12.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-002",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the native-network receiving contract and endpoint/key cases against Architecture V4-ARC-12. Require evidence of the actual native routing/enforcement and script/key separation before claiming host conformance; model fixtures alone verify only the expressed receiving expectations."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-05-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001 and OUT-002 describe minimal Chat Completions tool-call capability and all four replaceable boundary subjects—messages, tools, events and checkpoints—while keeping App Codex interfaces separate, exact supplier/version/wire choices open and Pi unselected. Verification: VER-003. Sources: REQ-002 and Architecture V4-ARC-10/14.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-003",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the loop contract and interface fixtures for all four replacement subjects and minimal Chat Completions tool calls; compare their interface identity to the distinct App Codex boundary and inspect the open supplier/version/wire choices and Pi exclusion against Architecture V4-ARC-10/14 and §§3/6."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001, OUT-002 and OUT-003 require catalog-schema validation before domain validation and include schema-invalid and schema-valid/domain-invalid cases; passing the first check does not bypass the second or constitute a human act. Verification: VER-004. Sources: REQ-003, Architecture V4-ARC-13 and Host V4-HI-20/25.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-004",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine validation-order cases and, when supplied, host traces showing catalog-schema rejection before domain validation and schema-valid input proceeding to domain validation, which may reject it. Bind checks to adopted catalog identity and keep host application/human acts distinct."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001, OUT-002 and OUT-003 include truncated and malformed tool calls with expected reported failures and no empty-argument execution; a valid-call comparison distinguishes legitimate execution from rejected input. Verification: VER-005. Sources: REQ-003 and Architecture §4 failure property.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-005",
+          "source_line": 79,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review and exercise conformance fixtures for malformed and truncated tool calls plus valid comparison calls; inspect failure reporting and absence of empty-argument dispatch for rejected input. Label fixture execution separately from received actual-host execution evidence."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001 and OUT-003 require a usable host interface during long parsing and model streaming, identify how actual host responsiveness will be observed, and avoid an invented latency limit or mandatory thread placement. Verification: VER-006. Sources: REQ-004 and Architecture §4 responsiveness property.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-006",
+          "source_line": 80,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the host responsiveness case definition for concurrent long parsing/streaming and interface interaction. Receive the host owner's candidate-bound observations of continued usability before claiming actual responsiveness; record environment, observations, implementation choice and limitations without inventing quantitative thresholds."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-05-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-004 names the App/shared contribution, each excluded act's owner, required incoming contract meanings and external host evidence, and the OI-013/OI-014 decisions and points of need. Host internals stay with their owner, and common construction has no allocation absent a concrete agreed repeated responsibility. Verification: VER-007. Sources: REQ-005/006, CLM-001/002/003, Basis, Issues and Clarification.",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-007",
+          "source_line": 81,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Independently compare the allocation/open-choice account to accepted Deliverables, Packages, OI-013/OI-014, DEP-001 and Clarification. Check excluded acts one-for-one against CLM-001/002/003; confirm required receiving work remains included and every proposed common construction identifies an agreed repeated responsibility before allocation."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-05-01-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 66,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-001 and OUT-003 preserve separate event/evidence subjects for execution, proposal acceptance, checking, approval and professional reliance; cases reject success-as-acceptance and cross-act inference, retain the actual person as actor of reserved acts, and honor each declared checkpoint without fabricating a universal acceptance prerequisite. Verification: VER-008. Sources: REQ-007, CLM-004, Host human-act clauses and sealed brief distinct-acts clarification.",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-008",
+          "source_line": 82,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review checkpoint/event/evidence examples against adopted workflow, policy and record inputs. Check success-only, actual acceptance, independently evidenced checking, approval and reliance as distinct observations; reject cross-act inference and agent impersonation, and verify that a declared checkpoint awaits its own specified act."
+        }
+      ]
+    },
+    {
+      "id": "AC-009",
+      "output_refs": [
+        "OUT-003",
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-05-01-AC-009",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+      },
+      "text": "OUT-003 and OUT-004 distinguish completed local contract checks from unresolved receiving inputs and absent actual-host evidence. Any later host conformance result identifies the received host candidate and observed evidence; an authored contract, fixture pass or owner-reported construction does not claim deployed behavior, adopted handoff, joined witness or product qualification. Verification: VER-009. Sources: Basis DEL-05-01 verification, Issues DEP-001, Clarification and Setup.",
+      "verification": [
+        {
+          "id": "VER-009",
+          "kind": "VER",
+          "qualified_id": "DEL-05-01-VER-009",
+          "source_line": 83,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Audit the conformance and owner account for exact source/candidate identity, actual observations and evidence gaps. Compare the claimed host standing to received DEP-001 material; require the host-specific evidence for any actual host claim and route any joined-journey claim to its owning examination contribution rather than infer it from this contract."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-05-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-05",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+  },
+  "tool_version": "1"
+}

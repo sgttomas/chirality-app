@@ -1,0 +1,152 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Independently verify one stable SOFTWARE ScopeOfWork INIT candidate against actual accepted sources; no production edits",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-07/VERIFY.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-07/VERIFY_VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-199",
+      "SOW-200",
+      "SOW-201",
+      "SOW-202",
+      "SOW-239"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-004",
+      "OBJ-005",
+      "OBJ-008",
+      "OBJ-009"
+    ],
+    "MODE": "VERIFY",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-09-07",
+    "PackageID": "PKG-09",
+    "Name": "Local host candidate qualification",
+    "Description": "Qualify the identified local host activity through one joined dossier covering proposed model changes, non-mutating findings, adopted graduated autonomy, actual human acts and endpoint-only operation. Interfaces: Uses DEL-09-06 agreed activity and PKG-02/03/04/05 contracts; external host supplies model/views/validation/solve/traffic/undo evidence and adopted operation policy. Feature owners retain local checks; feeds DEL-11-03. Verification: Trace original basis through row acceptance/rejection, stale refusal, application/solve and actual receipts; findings attach by reference without table mutation or false Checked acts; direct low-consequence actions retain origin/undo; human checkpoints override autonomy; all local traffic stays on the configured endpoint. Unknown outcomes remain unknown.",
+    "Type": "TEST_SUITE",
+    "ResponsibleParty": "App connected-activity examination owner; external SWB owner supplies candidate execution/traffic/receipts; independent examiner checks joined dossier",
+    "AnticipatedArtifacts": "TEST: coordinated V4-EXM-20/21/22/23 cases on an identified local host candidate;DOC: local qualification dossier linking model change/solve, checking, autonomy/checkpoints, traffic and receipt evidence",
+    "CoversScopeItems": "SOW-199;SOW-200;SOW-201;SOW-202;SOW-239",
+    "SupportsObjectives": "OBJ-004;OBJ-005;OBJ-008;OBJ-009",
+    "ContextEnvelope": "L",
+    "ContextEnvelopeNotes": "One local host candidate and adopted-policy qualification context with named scenario cases and one joined evidence packet. Host construction stays external; contract definition, external-agent extension trace and later Domains activity remain separate.",
+    "PhaseHint": "Nonbinding: examine each identified candidate when its named contributions are available; not a late testing phase."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-199",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Coordinate the invented-model local SWB journey from catalog reads through support/run-adjustment proposals, row acceptance/rejection, application and solve, retaining views, receipts, origins and stale-refusal evidence.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-20;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d5;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md#J",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-07",
+      "ObjectiveIDs": "OBJ-004;OBJ-008;OBJ-009",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": "DEP-001; App-owned contract/examination coordination, not execution of outside session work."
+    },
+    {
+      "ScopeItemID": "SOW-200",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Define and coordinate non-mutating agent examination of an engineer-edited model with findings attached by reference to rows/results.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-21",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-07",
+      "ObjectiveIDs": "OBJ-004;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-201",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Examine direct low-consequence application with origin/undo, geometry proposals and a human checkpoint overriding autonomy.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-22",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-07",
+      "ObjectiveIDs": "OBJ-005;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-202",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Coordinate observation of all host network traffic during the local-model journey to check endpoint-only transmission.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md#V4-EXM-23",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-07",
+      "ObjectiveIDs": "OBJ-004;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-239",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Include intervening edits and actual outcome/receipt recovery in the connected activity.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d5;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md#J;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md#O",
+      "PackageID": "PKG-09",
+      "DeliverableIDs": "DEL-09-07",
+      "ObjectiveIDs": "OBJ-004;OBJ-008",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Preserve each exact open owner/point of need and each source-defined scenario quantity. When a source requires a completed live witness, distinguish that completion from retained negative, partial, blocked, not-run or inconclusive evidence; honest absence reporting alone does not fulfill it. Do not require favorable human approval unless the accepted source actually does.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "16fce19677a110e821b1f9b9cbce88a579cde95ae8c974f5d86f02767d3c243c",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Preserve the consolidated local-host candidate qualification: source-defined change/privacy/checking/autonomy cases in one durable dossier, with external host implementation and feature-local checks retained. Distinguish observer/caller authority, requested operation, actual host outcome and human act. Keep exact quantities and open choices; fixture/schema passes do not prove native enforcement or a completed live witness.",
+  "candidate_sha256": "36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0",
+  "author_brief": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-07/BRIEF.json",
+  "verification_guidance": "Read actual source clauses and assigned scope/artifact/owner interfaces. Check no invented policy, input readiness, implementation choices or transfers; preserve open points. Pilot lessons about separately evidenced acts apply. Contract and matrix verification is semantic, not just schema. Run candidate validation, checklist derivation twice, boundary tool and manual owner check. Reuse pilot DEL-01-05/VERIFY_VALIDATION.txt invalid/unauthorized-dual QA18 tool evidence if the relevant tool hashes are unchanged; record reuse honestly rather than repeating identical negative tool tests per contract. This does not replace this candidate checks. Report concise outcome, concrete findings, source loci and actual hashes, preferably400\u2013900words plus necessary validation ledger; no source snapshots or packet chains. Original findings and repaired-candidate backchecks stay in one review if repair occurs."
+}

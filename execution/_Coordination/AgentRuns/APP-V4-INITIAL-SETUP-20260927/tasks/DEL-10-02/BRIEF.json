@@ -1,0 +1,181 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Author exactly one source-grounded SOFTWARE ScopeOfWork.md in MODE=INIT; no implementation",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/AUTHOR_RETURN.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/CHECKLIST.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/BOUNDARY.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-02/VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-212",
+      "SOW-213",
+      "SOW-221",
+      "SOW-222",
+      "SOW-225",
+      "SOW-226",
+      "SOW-227"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-006",
+      "OBJ-010"
+    ],
+    "MODE": "INIT",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-10-02",
+    "PackageID": "PKG-10",
+    "Name": "Proportionate undertaking controls and practice feedback",
+    "Description": "Use current work graphs, bounded roles and proportionate records to carry authorized work, record actual enforcement and improve practice at the applicable decisions. Interfaces: Use file-native undertaking controls immediately; PKG-06 product views may later render them and are not a prerequisite to this undertaking or their own construction. Git/reviewed PRs remain primary change records; adopted manual sections from DEL-10-01 anchor useful/ill-fitting observations. Verification: Each register names its reader/use; node notes identify observed conditions and source section; stage dispositions distinguish proposed manual revisions, scoped departures and no change without duplicate systems.",
+    "Type": "DOC_UPDATE",
+    "ResponsibleParty": "App undertaking manager; human at applicable stage decisions",
+    "AnticipatedArtifacts": "DOC: scoped work-graph control and return/reader conventions;DOC: actual permission/isolation and independent-check account;DOC: node-linked practice observations and stage dispositions",
+    "CoversScopeItems": "SOW-212;SOW-213;SOW-221;SOW-222;SOW-225;SOW-226;SOW-227",
+    "SupportsObjectives": "OBJ-006;OBJ-010",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: complete each definition/control output at its stated point of need; accepted DAG precedes the 30% position."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-212",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Traverse the current file-based undertaking work graph to select and carry work.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-02",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-006;OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-213",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Use the four roles with teams, subagents or solitary work as appropriate to each authorized undertaking.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-03",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-221",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Record useful, ill-fitting or ambiguous practice briefly at the work-graph node with its manual section.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-20",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-222",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "At stage gates review practice notes with the owner for proposed revision, deliberate project departure or no change.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-21",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-225",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Describe actual permission/worktree enforcement separately from manual intent and independent checking.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-30",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-226",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Keep records proportional to decision, reliance and recovery needs, using Git history and reviewed PRs as the primary change record without duplicate parallel systems.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-31",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-227",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Give each emitted register a named reader and consumption point.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md#V4-OPS-32",
+      "PackageID": "PKG-10",
+      "DeliverableIDs": "DEL-10-02",
+      "ObjectiveIDs": "OBJ-010",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Preserve the exact accepted deliverable/artifact/interface contribution and named integration owner. Technical means remain open where their accepted source is open. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification. Additional verified lessons: a deliverable that defines/carries adopted policy is not the actor deciding unresolved policy; retain actual owner/host policy decision responsibility. False attribution is prohibited, but faithful recording of an actually performed human act is allowed with decision actor distinct from recorder. Include a positive faithful-recording case when this distinction is part of the assigned scope, alongside fabrication negatives; do not invent a new policy or per-deliverable ritual. Read relevant selected core manual/method clauses on demand, guided by assigned source references; preserve each exact open owner/point of need. No older-manual substitution, whole-corpus audit, new reusable workflow or extra execution-state system.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_REFERENCES.md",
+    "projects/chirality-app-v4/docs/PRD.md",
+    "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+    "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+    "projects/chirality-app-v4/docs/EXAMINATION.md",
+    "projects/chirality-app-v4/docs/OPERATING_METHOD.md"
+  ],
+  "original_status_sha256": "491d106554651e83351e2a0ce5069800e980ccb54a9b5f5287130dff11e80d8f",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "CompositeSourceRule": "Original-seed wording is historical material inside an accepted composite, not a standalone current commitment. Read the assigned normalized accepted scope and relevant later owner/HTML decisions, then the consolidated current clauses alongside the original. Use the relevant clauses, not a full-corpus reread. Do not reintroduce withdrawn drafting defaults, blanket reserved-act lists, obsolete compulsory reuse or fixed shared allocation. If a real mismatch remains, report its exact source loci rather than silently choose.",
+  "DeliverableFocus": "Define proportionate file-native undertaking controls, actual permissions/isolation/independent checking and node-linked practice feedback. Name each record\u2019s reader/use; ordinary Git/PR evidence remains primary change history. Do not require future PKG06 software, PEC, duplicate databases or a new record per manual rule. Existing authorized setup records may be identified as current evidence, not blanket fulfillment or lifecycle acceptance.",
+  "CorePracticeSources": [
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md",
+    "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+    "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md"
+  ]
+}

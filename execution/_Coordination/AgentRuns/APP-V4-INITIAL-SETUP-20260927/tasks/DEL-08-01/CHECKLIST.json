@@ -1,0 +1,216 @@
+{
+  "item_count": 8,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-08-01-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 58,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "The query contract identifies its intended research consumption and request/result meanings, preserves source references/availability/limitations, and distinguishes retrieval success from membership, standing, applicability and authority without inventing interface technology. Verifies REQ-001 through VER-001. [B1/SOW-023/SOW-024, B5, B6, B9]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-001",
+          "source_line": 71,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the query definition against the assigned scope and V4-CON-01/V4-HI-60. Trace a candidate query result back to its source reference and inspect a successful hit whose membership/standing/suitability is unestablished; confirm the contract does not promote retrieval into authority. Identify unresolved query meanings before dependent implementation. Evidence: source-to-contract comparison and query/reference case result or an explicit unsupplied-input limit."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-08-01-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "The admission contract establishes the evidence needed to identify source standing and limitations for the intended use, identifies unresolved admission detail and responsibility, and treats a search hit or PEC state as insufficient to establish source admission. Verifies REQ-002 through VER-002. [B1/SOW-024/SOW-247/SOW-249, B2, B3, B6]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-002",
+          "source_line": 72,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine the admission definition and source evidence for an admitted test source and a located but unadmitted source. Check that applicability/standing/limitations arise from the identified admission basis rather than search or PEC availability; repeat the contract assessment with PEC absent. Evidence: admission/source comparison, responsible-party/open-detail account and case observations."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-08-01-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "Current, stale and unestablished freshness are distinguishable against the identified source/admission basis; stale or unknown freshness carries a visible reliance limit and no ungrounded time threshold. Verifies REQ-003 through VER-003. [B1/SOW-025/SOW-249, B2, B6, B9]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-003",
+          "source_line": 73,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare displayed/recorded freshness and receiving treatment with the identified source/admission basis for current, stale and unknown-freshness cases. Check that no retrieval timestamp or responsive feed alone substitutes for source currency and no unsupported age limit is imposed. Evidence: source/freshness basis and observed receiving limits."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-08-01-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "Candidate fixtures bind the identified query contract and admitted source basis and preserve references, standing, freshness and limitations for the specified supported and limitation cases; missing input and unexercised cases remain explicit, without a claim of live provider delivery. Verifies REQ-004 through VER-004. [B1 anticipated artifacts, B6, B7]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-004",
+          "source_line": 74,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect candidate query/result fixtures against their identified contract and admitted source inputs. Account for each REQ-004 case, retained reference/standing/freshness/limitation, and any missing input or unexercised case. Evidence: fixture-to-source/contract comparison and actual preparation/execution status; fixture identity is not live provider qualification."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-08-01-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 62,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "Unavailable, unsuitable and stale input cases preserve the actual limitation and supported recovery/responsibility route without invented context, readiness or permission; the absent-PEC/stale-Domains case retains both connectors' independence. Verifies REQ-005 through VER-005. [B1 anticipated artifacts, B5–B7]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-005",
+          "source_line": 75,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise the local unavailable, unsuitable and stale-source cases when the required inputs exist; inspect source-based fallback and responsible coordination through the common receiving policy. Include absent PEC with stale Domains and independent connector availability. Evidence: identified candidate/fixture and observation linking the input limit to the permitted receiving action, with any unsupported or unexercised outcome stated."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-08-01-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 63,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "The decision account identifies each unresolved allocation/interface choice, exact owner and point of need, records any actual supplied decision with its actor and evidence distinct from its recorder, and treats the local data boundary as a required receiving condition without deciding transport or provider allocation from external knowledge-development location. Verifies REQ-006 through VER-006. [B1/SOW-249, B2–B6]",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-006",
+          "source_line": 76,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the decision account to OI-023/OI-026, DEP-003 and V4-HOST-02/PKG-05. Check positive faithful recording of the owner's reported external knowledge-development location with its attributed custody, and reject inference of selected provider ownership, transport, deployment, an additional data destination or readiness. Where an actual later resolution is supplied, check its subject, actor and evidence separately from the recorder; otherwise retain the exact open owner and point of need. Assess the selected query/tool arrangement's compatibility only when that arrangement and evidence exist. Evidence: decision/source comparison, unresolved-choice account and applicable compatibility evidence or identified missing input."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-08-01-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 64,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "The later-increment handoff preserves the query/admission/freshness contribution, actual standing and outstanding inputs for App v4 DEL-08-02, distinguishes provider/tool/workflow/host/human acts, and claims neither external agreement/delivery nor an initial Domains prerequisite. Verifies REQ-007 through VER-007. [B1, B2, B3, B5–B7]",
+      "verification": [
+        {
+          "id": "VER-007",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-007",
+          "source_line": 77,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the receiving handoff against App v4 DEL-08-02's accepted interface and DEP-003. Trace source/admission/freshness limits and actual readiness to the later contribution, and check that a prepared handoff or successful query cannot be evidence of outside agreement, host execution or a human approval. Verify the separate points of need and initial-activity independence. Evidence: bounded handoff/interface comparison, supplied-return references and explicit outstanding inputs."
+        }
+      ]
+    },
+    {
+      "id": "AC-008",
+      "output_refs": [
+        "OUT-004"
+      ],
+      "qualified_id": "DEL-08-01-AC-008",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 65,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+      },
+      "text": "The output set preserves every excluded act's actual owner in CLM-003 through CLM-005 and keeps provider construction allocation unresolved in CLM-002, while fully accounting for this deliverable's accepted DOC, CONFIG and TEST contributions. Verifies REQ-008 through VER-008. [B1, B2, B6–B8]",
+      "verification": [
+        {
+          "id": "VER-008",
+          "kind": "VER",
+          "qualified_id": "DEL-08-01-VER-008",
+          "source_line": 78,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Audit the output boundary against the accepted deliverable/package rows and CLM-002 through CLM-005. Enumerate each excluded act and verify its owner one-for-one; check that unresolved provider allocation remains open without being dropped from program intent. Evidence: artifact-coverage and owner-resolution comparison, including semantic checking of any deterministic boundary-tool limitation."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-08-01",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-08",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+  },
+  "tool_version": "1"
+}

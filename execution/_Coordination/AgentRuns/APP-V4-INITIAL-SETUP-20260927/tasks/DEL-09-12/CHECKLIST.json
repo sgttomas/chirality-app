@@ -1,0 +1,166 @@
+{
+  "item_count": 6,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-12-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "OUT-001 identifies both App and SWBPIPE, realistic owner-selected activities, agreed period, eligible material and the actual agreement evidence; if agreement or use has not occurred, the affected obligation remains explicitly unmet rather than presented as validation. Verify with VER-001.",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-001",
+          "source_line": 97,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the arrangement against B1/B3/B4/B6 and the actual owner agreement source. Confirm both expressions, selected work, period, material and agreement provenance. An unsigned proposal or missing owner evidence remains pending; do not invent a duration or activities. Compare planned coverage with actual performed coverage when use evidence exists. Evaluates AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-12-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "OUT-002 retains actual practitioner observations and unobserved coverage for all four design aims in REQ-002, with candidate/configuration/date, grounds and limitations; automated or fixture-only success cannot pass as practitioner validation, and no numeric score or positive outcome is required. Verify with VER-002.",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-002",
+          "source_line": 98,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review actual use records and owner observations against V4-EXM-40/41 and the agreed arrangement. Check candidate/configuration/date and each design aim, separating observed absence of an issue from missing observation. Confirm that a replay, invented fixture or automated pass without practitioner use is insufficient; actual owner use with invented material is eligible. Where useful like work is compared, distinguish preparation, review, repair, integration, recovery and waiting by cause; source size or historical elapsed time alone cannot establish lifetime benefit. Record gaps and unfavorable findings without numerical fitness thresholds. Evaluates AC-002."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-12-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 71,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "The records preserve the actor, subject and evidence of each actual act under REQ-003, allow faithful transcription with separate recorder attribution, and reject fabricated human acts or inflated reliance; success of one act supplies no evidence of another and no invented precedence between them. Verify with VER-003.",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-003",
+          "source_line": 99,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace attributed acts to their real source and concerned content. Check a faithful-recording case: an evidenced owner judgment may be recorded by the coordinator with owner as actor and coordinator as recorder. Check fabrication negatives: a tool receipt alone, prepared proposal or verification pass cannot supply an unperformed human agreement, approval or reliance act. Retain the separate evidence for independently performed checking or execution without demanding unrelated prior acceptance. Missing real-act evidence remains missing; illustrative cases used to inspect the record definition are not actual practitioner observations. Evaluates AC-003."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-09-12-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "OUT-003 traces every recorded use observation to its owning requirement, workflow or method and responsible recipient; dispositions preserve proposed versus actual decisions, their actor and scope, and any proposed successor-basis change without presuming acceptance. Method feedback uses the selected source section and existing work record where applicable. Verify with VER-004.",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-004",
+          "source_line": 100,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Follow the observation-to-commitment-to-recipient-to-disposition links. For method feedback inspect the selected section, observed conditions and existing work record, then the actual stage decision if one occurred. Check the distinction among proposed change, scoped departure and no change; verify any successor-basis proposal remains traceable with its actual standing. An unresolved recipient or unmade decision is reported, not invented. Evaluates AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-12-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 73,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "The arrangement and feedback retain each applicable unresolved owner and point of need in REQ-005, with no invented period, selected operation, autonomy policy, candidate environment or retirement decision; independent definition is not represented as satisfying later inputs or human decisions. Verify with VER-005.",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-005",
+          "source_line": 101,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare applicable open matters with B6 and the arrangement/feedback records. Verify exact owners and points of need in TBD-001–004, and actual resolution evidence before a dependent activity relies on it. Confirm that an initialized contract, prepared handoff or independent component pass is not used to infer actual agreement, external readiness, use, adoption or retirement. Evaluates AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-09-12-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 74,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      },
+      "text": "OUT-003 and its linked records preserve REQ-006's one-for-one ownership boundaries, including the named App integration/feedback consumers and external SWBPIPE owner, without taking over implementation, policy decisions, transition decisions or professional reliance. Verify with VER-006.",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-09-12-VER-006",
+          "source_line": 102,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review each excluded act in REQ-006 against CLM-003–005 and their source rows/clauses. Confirm local coordination and reporting remain distinct from each named owner's act; resolve both deterministic owner-ID results and any prose-owner cases by semantic review. Follow feature changes to their feature owner, method feedback to App `DEL-10-02`, and external contributions through human relay. Evaluates AC-006."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-09-12",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-09",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+  },
+  "tool_version": "1"
+}

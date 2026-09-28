@@ -1,0 +1,67 @@
+DEL-09-10 MODE=INIT definition checks. Product scenarios were not run.
+Initial source check: every brief read_basis path exists; no production or legacy contract existed; status OPEN and SHA256 matched brief.
+COMMAND: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md', '--json']
+EXIT: 1
+STDOUT:
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined outputs missing from matrix: OUT-001",
+    "defined acceptance criteria missing from matrix: AC-001, AC-002, AC-003, AC-004",
+    "defined verification methods missing from matrix: VER-001, VER-002, VER-003, VER-004"
+  ],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md",
+  "valid": false
+}
+
+STDERR:
+
+STATUS_UNCHANGED: True 49d867811dd19fba8c0c9e1fca5a55b2999db4bc369df4bab7ab75571950a496
+CONTRACT_SHA256: 9e82408dacc0da19a5c09aa65f5669229150e34dd9c44b7f5b24bf2247985a71
+Repair: matrix output cell parser requires one output ID; associated rows now identify their primary output. Scope and criteria unchanged.
+COMMAND: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md', '--json']
+EXIT: 0
+STDOUT:
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md",
+  "valid": true
+}
+
+STDERR:
+
+COMMAND: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/CHECKLIST.json']
+EXIT: 0
+STDOUT:
+
+STDERR:
+
+COMMAND: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/CHECKLIST.json']
+EXIT: 0
+STDOUT:
+
+STDERR:
+
+REPEATED_CHECKLIST_BYTE_IDENTICAL: True
+COMMAND: ['/Library/Frameworks/Python.framework/Versions/3.13/bin/python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-09-10/BOUNDARY.json', '--show-not-checkable']
+EXIT: 0
+STDOUT:
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+STDERR:
+
+STATUS_UNCHANGED: True 49d867811dd19fba8c0c9e1fca5a55b2999db4bc369df4bab7ab75571950a496
+CONTRACT_SHA256: a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa
+CHECKLIST_SEMANTIC_QA: PASS; exact five source-order AC texts/lines/hash, once each, each linked only to matching VER.
+CHECKLIST_FAIL_CLOSED_GATE INVALID: PASS; injected resolution state, exit=1, no output write. ERROR: format state is INVALID; validated ScopeOfWork.md is required: controlled fail-closed gate check
+CHECKLIST_FAIL_CLOSED_GATE AMBIGUOUS: PASS; injected resolution state, exit=1, no output write. ERROR: format state is AMBIGUOUS; validated ScopeOfWork.md is required: controlled fail-closed gate check
+BOUNDARY_SEMANTIC_QA: PASS; REQ-006 cited CLM-002 and CLM-003 enumerate receiver, fallback, source-admission, later-research, PEC provider, SWB, allocation, manager and human acts one-for-one with their source-carried owners. Observing/faithfully recording supplied evidence does not perform those acts.
+BOUNDARY_DETECTOR_LIMITS: 0 NOT_CHECKABLE and 0 NO_CITED_CLAIM; no unresolved owners/claims. Human and project-owner prose checked semantically; detector verifies named deliverable tokens only.
+MATRIX_SEMANTIC_QA: PASS; one AC per row and exactly its own VER method; source-driven criteria cover both anticipated artifact classes.
+UPSTREAM_ID_QA: PASS; PEC local AC is project-qualified as PEC DEL-00-01/AC-002, and App DEL-08-02 is explicitly project-identified where necessary; no bare external local IDs.
+METHOD_QA: INIT direct production authoring; CONVERT-only checks 2,5-7,10-12,14,17 NOT_APPLICABLE; HTML item15 NOT_APPLICABLE; REVISE item22 NOT_APPLICABLE. Path authority is exact INIT brief, not conversion pilot variance.
+SOURCE_QA: SOW-205 / OBJ-007 / OBJ-008 and named scope/interfaces/owner preserved; scenario quantity one source pin and original absent-PEC/stale-Domains case retained; no assigned provider, API fields, technology, numeric budget or deployment destination.
+EXECUTION_QA: no implementation, live scenario, network experiment, external Domains inspection, Git operation, child delegation, lifecycle change or sibling/control write performed. Independent source-grounding verification remains the parent-coordinated next act.

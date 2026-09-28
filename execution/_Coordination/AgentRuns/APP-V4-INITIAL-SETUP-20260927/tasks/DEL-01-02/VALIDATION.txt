@@ -1,0 +1,36 @@
+$ python3 'tools/scope_of_work/validate_scope_of_work.py' 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery' '--json'
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery",
+  "valid": true
+}
+
+exit=0
+
+$ python3 'tools/scope_of_work/derive_review_checklist.py' 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/ScopeOfWork.md' '--output' 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-02/CHECKLIST.json'
+
+exit=0
+
+$ python3 'tools/scope_of_work/derive_review_checklist.py' 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/ScopeOfWork.md' '--output' 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-02/CHECKLIST.json'
+
+exit=0
+
+Repeated checklist derivation: byte-identical; SHA256 f610f104e7cbb1766ea60eaa571160fb4e99004e4c6b6db7afb852047c1d646f
+
+$ python3 'tools/scope_of_work/check_boundary_owner_resolution.py' 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/ScopeOfWork.md' '--json' 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-02/BOUNDARY.json' '--show-not-checkable'
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+exit=0
+
+All source reference links resolve. Accepted assigned ScopeLedger rows were compared with BRIEF.json and match exactly.
+
+Unchanged _STATUS.md: ec2ffbc9477cab670a219997c27262f36715e74b2e6123b059325ff69d41e5d4; Current State OPEN.
+
+No legacy production files present; INIT wrote production ScopeOfWork.md directly. No converter, mapping, parity, finalizer or HTML run.
+
+$ PYTHONDONTWRITEBYTECODE=1 python3 (in-memory checklist QA; imports actual derive_review_checklist.main; Path virtual fixtures only, no fixture files)
+Exact checklist audit: 9 AC definitions once each, original order/text/line/hash, one matching VER per row; PASS.
+In-memory CLI INVALID negative: exit=1; output writes=0; ERROR: format state is INVALID; validated ScopeOfWork.md is required: schema must equal chirality-deliverable-sow/v1
+In-memory CLI AMBIGUOUS negative: exit=1; output writes=0; ERROR: format state is AMBIGUOUS; validated ScopeOfWork.md is required: dual production formats require an isolated conversion workspace and exact migration authority

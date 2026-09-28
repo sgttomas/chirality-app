@@ -1,0 +1,141 @@
+{
+  "item_count": 5,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-10-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 52,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+      },
+      "text": "The qualified case contains a completed trace of one actual source pin through identified qualified PEC extraction/response to a permitted receiving action for the selected consumer, with examined-through/source identity, coverage, freshness, limitations and qualification/release/adoption evidence inspectable. Missing required input leaves this witness unavailable or incomplete, with its cause recorded; it does not pass this criterion. Verified by VER-001. [Basis: REQ-001; EXAM V4-EXM-30; HTML06.]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-09-10-VER-001",
+          "source_line": 65,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the qualified-case execution record against the selected consumer's adopted envelope: follow the actual source pin, extraction and response to the observed receiving action, compare citations/standing/coverage/freshness, and check the identified provider qualification/release and consumer-adoption evidence. An envelope-only check or missing link cannot verify AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-10-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 53,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+      },
+      "text": "Absent, stale, partial and failing cases answer the same coordination question, expose unsupported conclusions and show actual source-file recovery with its responsible agents/managers/human or the specific sound-basis limitation preventing recovery. No case treats missing feed data as empty work, readiness or permission. Verified by VER-002. [Basis: REQ-002; EXAM V4-EXM-30; HTML06.]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-09-10-VER-002",
+          "source_line": 66,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Compare the absent, stale, partial and failing observations with the qualified case's coordination question. Follow the actual fallback sources and actor actions, inspect unsupported conclusions and any unavailable basis, and check that no inferred empty-work/readiness/permission conclusion appears. This verifies AC-002 without treating honest blocked evidence as a completed qualified case."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-09-10-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 54,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+      },
+      "text": "The suite retains the original absent-PEC/stale-Domains case and its observed file fallback, and the evidence distinguishes PEC and Domains availability independently without implying readiness from the other's presence, gating independent development, or claiming the later Domains research witness. Verified by VER-003. [Basis: REQ-003; ORIGINAL; EXAM V4-EXM-30/32; DECOMP.]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-09-10-VER-003",
+          "source_line": 67,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect the original PEC-stopped/Domains-stale execution and its file recovery; compare connector availability cases to confirm independent availability/limits and independent supported work. Check that later research-to-design claims remain App DEL-08-02's contribution. This verifies AC-003 without inventing an exhaustive combination count."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-10-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 55,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+      },
+      "text": "Each result names the candidate, actual configuration and date, records its observed outcome and evidence limits, and identifies affected checks reopened by candidate changes. Unqualified, negative, partial, blocked, not-run or inconclusive material remains distinguishable from a completed qualified witness; fixtures and component evidence are not promoted into unobserved joined outcomes. Verified by VER-004. [Basis: REQ-004; EXAM §§1–2 and V4-EXM-30.]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-09-10-VER-004",
+          "source_line": 68,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Audit the candidate/configuration/date and evidence standing of each result, its capture/replay/native/browser provenance as applicable, and any affected re-examination after change. Compare completion claims with actual joined observations and protected source criteria. This verifies AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-09-10-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 56,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+      },
+      "text": "The witness account preserves the current provider limitation, actual release/adoption envelope, unresolved owners/points of need and the production/decision boundaries in CLM-002 and CLM-003. Where an actual human act is in the trace, it is faithfully recordable with actor distinct from recorder and with its actual subject/scope; absent acts are not fabricated and no execution/approval/qualification/reliance act is inferred from another. Verified by VER-005. [Basis: REQ-005, REQ-006; CURRENT; HTML06; HOST §8.1.]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-09-10-VER-005",
+          "source_line": 69,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the dossier against CLM-002…CLM-004, CURRENT and the open matters below. Check release/adoption evidence and D108 limitations, one-for-one ownership of excluded acts, and faithful-recording cases where human acts actually occur alongside negative checks for fabricated acts or inferred authority. Keep actual actor distinct from recorder; verify AC-005 without requiring a new or favorable human decision to pass the connector scenario."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-09-10",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-09",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+  },
+  "tool_version": "1"
+}

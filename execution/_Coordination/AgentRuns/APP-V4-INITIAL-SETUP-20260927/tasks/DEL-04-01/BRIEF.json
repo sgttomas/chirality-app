@@ -1,0 +1,182 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Author exactly one source-grounded SOFTWARE ScopeOfWork.md in MODE=INIT; no implementation",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/ScopeOfWork.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-04-01/AUTHOR_RETURN.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-04-01/CHECKLIST.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-04-01/BOUNDARY.json",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-04-01/VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-074",
+      "SOW-079",
+      "SOW-082",
+      "SOW-179",
+      "SOW-180",
+      "SOW-181",
+      "SOW-182",
+      "SOW-235"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-004",
+      "OBJ-005"
+    ],
+    "MODE": "INIT",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-04-01",
+    "PackageID": "PKG-04",
+    "Name": "Operation-policy and human-act distinctions",
+    "Description": "Define and carry the adopted policy for direct application, proposals and reserved acts, preserving checking, edit acceptance, approval and professional reliance as different subjects. Interfaces: PKG-03 catalogs refer to adopted classes; PKG-02 checkpoints override autonomy; PKG-05/SWB receive conservative proposal defaults and host-owned enforcement responsibilities. Verification: No agent impersonates a human act or claims professional certification; proposal decisions say accept; a concrete unruled operation waits for OI-001/OI-002 before dependent implementation.",
+    "Type": "API_CONTRACT",
+    "ResponsibleParty": "App/shared human-act contract owner; owner and host policy owner decide unresolved classes",
+    "AnticipatedArtifacts": "DOC: operation/autonomy and human-act contract;CONFIG: adopted policy-class representation;TEST: reserved-act and semantic-label fixtures",
+    "CoversScopeItems": "SOW-074;SOW-079;SOW-082;SOW-179;SOW-180;SOW-181;SOW-182;SOW-235",
+    "SupportsObjectives": "OBJ-004;OBJ-005",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: settle affected policy/record details before dependent operation implementation or reliance."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-074",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Allow the person to set direct application or proposal requirements per operation class and consequence.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-AUT-01;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-22;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-40;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d3",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-079",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Agents may prepare human decisions but never falsely originate or record a human act in the person's name.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-AUT-03;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-31;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d3",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-082",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Do not present agent outputs as professionally certified, sealed, approved or code-compliant.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-AUT-05",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-179",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Name and enforce the human acts reserved by the adopted operation policy, including against external agents, without treating the pending global list as settled.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-30;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-51;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d3",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-180",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Label proposal decisions as accept rather than approve because edit acceptance is distinct from engineering approval.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-33",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-181",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Use conservative defaults for consequential host operations.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-41",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-004;OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": "Shared interface commitment; host implementation owned in DEP-001."
+    },
+    {
+      "ScopeItemID": "SOW-182",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Keep SWB model changes proposal-based by default with row, multi-row or batch acceptance while allowing the person to widen granted autonomy.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md#V4-HI-41",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-004;OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": "Shared interface commitment; host implementation owned in DEP-001."
+    },
+    {
+      "ScopeItemID": "SOW-235",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Keep proposing, applying, marking checked, accepting an edit and professional reliance distinct in product contracts and presentation.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html#d3",
+      "PackageID": "PKG-04",
+      "DeliverableIDs": "DEL-04-01",
+      "ObjectiveIDs": "OBJ-005",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Operation-policy/human-act contract: distinguish the obligation todefine reserved-act and routine-classifier policy from actually choosing unsettled values. Owner/actualgovernedchoices stayat their recorded points. No blanketapproval/classifier rule, syntheticdependency betweenacts or newfifthstandingrole. Pilot lesson: execution, proposal acceptance, checking, approval and professional reliance each retain their own actor/evidence. Successalone impliesnone; evidenceofoneactdoesnotestablishanother, and there is no synthetic dependency requiringacceptance before anyother independentlyevidencedact. Hostowns offering/recording/presentingacts, not theperson actualact. Ground OUT/AC/VER in assignedsource evidence, relevantseedclauses and acceptedopenissues; testsexpressverificationbutnevercreatescope. JointmappedSOWitems mustbequalifiedtothislocalcontribution. Cover allanticipatedartifacts with coherentoutputs, notoneritualpermetadata rule. Enumerate excludedacts withactualownerclaims. Matrixrows groupACsonlyif identicalverification sets; preferoneACperrow. QualifyupstreamlocalIDs; externalsupplier/projectDEL IDs maycollide withApp IDs\u2014preserve projectidentity. No unsourcedthresholds, guessedAPI/wirefields, ownershiptransfer, solvereservedchoices, productimplementation, sibling/control edits, Git/networkexperiments or delegation. No converter/parity/finalizer/HTML; authorproductionINIT directly. Keep AUTHOR_RETURN concise: scope/owner/open/validation findings andactualsourcehashes, no newpacket/snapshotchain. Sendstablehash assoon ascontract/checklist/boundarychecks pass foroverlappingverification.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_REFERENCES.md"
+  ],
+  "original_status_sha256": "2d6431d191b1b564b6f627cd1da17088c47555a8afbb79ba1f0260b084532ffc",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation."
+}

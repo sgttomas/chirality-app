@@ -1,0 +1,15 @@
+# App v4 local-contract milestone
+
+All **11 Packages and41 Deliverables** are scaffolded. Each Deliverable has a source-grounded `ScopeOfWork.md`, an independent definition check and a separately recorded `INITIALIZED` state under the approved setup policy. The [contract index](AgentRuns/APP-V4-INITIAL-SETUP-20260927/WORK_ITEMS.csv) provides paths and actual member states; [integration inputs](AgentRuns/APP-V4-INITIAL-SETUP-20260927/INTEGRATION_INPUTS.json) bind current contract/review/status identities.
+
+Coverage preserves262 scope IDs:234 IN are covered by their accepted Deliverable assignments;15 OUT and13 TBD retain their accepted Package homes. All ten objectives, source meanings and open matters remain traceable. The accepted seeds, whole thesis and prior snapshots are unchanged.
+
+The checks found and closed a few bounded definition defects: preserve actual human acts separately from host recording; require evidence of each particular act without a synthetic acceptance prerequisite; distinguish policy-definition responsibility from the actual decision owner; retain qualified false-attribution wording and positive faithful recording; preserve distinct open-issue deadlines; and distinguish a completed live witness from partial absence evidence. One source-section locator was corrected. Original findings and affected rechecks remain in the same task records. No new product or ownership choice was made by those repairs.
+
+The [current execution basis](CURRENT_EXECUTION_BASIS.md) records Consolidated v7, Field Book v1 and Agent User Manual v3 with exact source identities for this App-v4 definition run. Current OI-017 carries that scoped manager-owned selection; frozen Group3 retains its historical open record. Edition selection does not mean every agent received the full body or that another project adopted it.
+
+Independent integration review is recorded in [INTEGRATION_REVIEW.md](AgentRuns/APP-V4-INITIAL-SETUP-20260927/INTEGRATION_REVIEW.md). It reuses individual source checks and examines the combined hashes, coverage, interfaces, current-state delta, status acts and directory durability. The ordinary PR carries actual candidate/CI/publication identity.
+
+The authorized continuation is conservative, deliverable-local dependency extraction, closure examination and a concrete project-DAG basis/version process. `INITIALIZED` establishes checked contract maturity only. Each required technical artifact, human decision, host/provider contribution, qualification or adoption still needs its own evidence. Boundary-owner lists and reference adjacency are not execution edges. External PEC/Piping/unknown Domains inputs retain their project identity and standing.
+
+The selected project-DAG workflow retains its real human checkpoints; neither this milestone, a closure observation nor Git integration accepts a graph or passes30%. Product implementation, live supplier/host/practitioner scenarios and provider construction have not occurred in this definition work. The earlier declined E1 tour and withdrawn HX01 remain unrun.

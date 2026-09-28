@@ -1,0 +1,46 @@
+DEL-03-01 production INIT validation
+Initial format: no ScopeOfWork or legacy production documents; lifecycle OPEN.
+Expected unchanged _STATUS.md SHA-256: 7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095
+Initial validator run returned INVALID: multi-output matrix cells were not recognized, leaving OUT-003 and AC/VER-002/003/004/005/008 unlinked. Repaired by splitting one output per row; identical AC-to-VER sets retained. No tool was changed.
+
+$ python3 tools/scope_of_work/validate_scope_of_work.py projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md --json
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md",
+  "valid": true
+}
+
+
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/CHECKLIST.json
+
+
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md --output projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/CHECKLIST.json
+
+
+exit=0
+PASS: repeated checklist derivation byte-identical; SHA-256 9267cf6dddef8848a326331109ada644204901e551c064332cbf3b2f7a735e10
+
+$ python3 tools/scope_of_work/check_boundary_owner_resolution.py projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md --json projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/BOUNDARY.json --show-not-checkable
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+exit=0
+
+$ python3 tools/scope_of_work/derive_review_checklist.py projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-03-01/BRIEF.json
+
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+
+exit=1
+PASS: invalid non-contract input fails without output artifact (stdout invocation). No ambiguous dual input exists or is authorized in this INIT.
+PASS: unchanged status SHA-256 7e0c73ac5f8944eb91c0fe3524553b42aaa51532568bc8ceb439542280fdd095
+Production candidate SHA-256 179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84
+
+Semantic/checklist inspection: PASS. All 8 AC definitions occur exactly once in source order with exact text and candidate hash; each derived verification set equals its criterion's named method. Matrix rows have one AC each; repeated output rows use the identical method. All 18 assigned scope IDs are traceable.
+Boundary semantic QA: REQ-007 resolves host catalog/domain/table/diagnostic/validation/application/receipt/UI acts and actual human checking/acceptance/approval/reliance to CLM-001; App DEL-03-02 proposal contract, DEL-03-03 external adapter, DEL-04-01 adopted policy, DEL-04-03 records and owner/App/SWB unresolved policy decision to CLM-002; owner/host extension decision to CLM-003. No NOT_CHECKABLE or NO_CITED_CLAIM findings; prose-named external/human owners reviewed semantically because the deterministic check recognizes only deliverable tokens.
+Author tool writes were limited to ScopeOfWork.md, AUTHOR_RETURN.md, CHECKLIST.json, BOUNDARY.json and VALIDATION.txt. No underscore/control, sibling, implementation or Git/network operations performed.

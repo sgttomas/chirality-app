@@ -1,0 +1,67 @@
+DEL-10-04 MODE=INIT author checks; no graph construction or acceptance performed.
+COMMAND ['python3', 'tools/scope_of_work/validate_scope_of_work.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md', '--json']
+EXIT 1
+{
+  "format": "INVALID",
+  "issues": [
+    "format state is INVALID",
+    "defined acceptance criteria missing from matrix: AC-008, AC-009",
+    "defined verification methods missing from matrix: VER-008, VER-009"
+  ],
+  "target": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md",
+  "valid": false
+}
+
+
+
+REPAIR: matrix output cell accepts one OUT ID; split AC-008/009 into one output per row with identical per-criterion method. No scope or criteria change.
+COMMAND ['python3', 'tools/scope_of_work/validate_scope_of_work.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md', '--json']
+EXIT 0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md",
+  "valid": true
+}
+
+
+COMMAND ['python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md', '--output', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-04/CHECKLIST.json']
+EXIT 0
+
+
+COMMAND ['python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md', '--output', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-04/CHECKLIST.json']
+EXIT 0
+
+
+REPEATED_CHECKLIST_BYTE_IDENTICAL PASS SHA256 6b12a926b861a94ddd7984e6c1a4ede43f9035a5a1fb2e3000ef9e09a6390ad4
+COMMAND ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md', '--json', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-04/BOUNDARY.json', '--show-not-checkable']
+EXIT 0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+NO_STATUS_TOUCH PASS 9f4ec288d53566f33f8e39be18657376f793fd6b89e821810e67305f47398133
+CONTRACT_SHA256 fb62502a0f59b226607ed6a04cbbd9ffbafab35edcfe45a1a7307cfcc80d2177
+
+Preflight: no production contract or legacy four-document kit; source lifecycle OPEN; author controls limited to the five exact brief targets.
+SOURCE_CURRENCY: all 43 pre-authoring whole-file SHA256 values unchanged at return. Scope of reading was selected rows/sections, not a whole-corpus audit.
+CHECKLIST_EXACTNESS: PASS; all 9 AC definitions exactly once in source order, exact text, source hash, and exactly the corresponding VER. AC-008/009 each bind both outputs through separate matrix rows.
+BOUNDARY_SEMANTIC: PASS; REQ-009 acts enumerated one-for-one. CLM-002 owns App DEL-10-01 execution-basis/manual work, DEL-10-02 work-graph/feedback, DEL-10-03 shared promise allocation, and source-record amendments through their owning workflows/human declarations/extraction owners.
+BOUNDARY_SEMANTIC: CLM-001 preserves human basis/version/cut/merge/departure decisions; CLM-003 preserves human 30% continuation and external supplier/receiving acts through the six-row interface account. Generic non-implication statements preserve separate acts, not a new blanket approval policy.
+BOUNDARY_LIMITS: report has 1 checked requirement, 0 NOT_CHECKABLE and 0 NO_CITED_CLAIM; deterministic tool resolves deliverable tokens only. Human/external textual owners were checked semantically against cited source rows and method clauses.
+SCOPE_COVERAGE: SOW-211 maps to OUT-001/002 and OBJ-006/010. Both anticipated artifact classes are defined. All nine acceptance criteria have an exact verification method and matrix evidence expectation.
+SOURCE_FIDELITY: accepted Group3 scope read with later OWNER_DIRECTIONS J-O/HTML 01,05,06,07 and current V4-OPS-02; no older manual substitution, Root-first hierarchy, fixed shared construction, or new reserved-act policy introduced.
+RELIANCE: INITIALIZED is contract maturity only; pending external contributions remain represented; definition and initial work-graph preparation have no prerequisite on an already accepted DAG. Candidate cycle exclusion does not provide missing inputs.
+ACCEPTANCE_CASES: VER-006 includes faithful actual-human recording with recorder distinct from actor, plus fabricated/misattributed/unseen-subject/observation-pointer negatives. No synthetic acceptance-before-all-other-acts dependency.
+OPEN_MATTERS: graph basis/version checkpoints remain future human decisions. OI-017/018/019/020 and external OI-021/022/023/026 preserve owner and point of need. D108 receiving metadata retained as later disposition with limitation, no release or App adoption inference.
+INIT_LIMITS: conversion checks 2,5-7,10-12,14,17 NOT_APPLICABLE; HTML check15 and revision check22 NOT_APPLICABLE. No converter/parity/finalizer/HTML run.
+EXPERIMENT_LIMITS: no implementation, graph assembly, graph audit execution, scheduling, network/supplier experiment, Git action, control/sibling/workflow edits or delegation by this terminal TASK. Independent review and any later INITIALIZED recording remain caller acts.
+FAIL_CLOSED_CHECK: invalid no-contract source directory rejected before output; existing checklist bytes preserved. Unauthorized dual-format guard inspected in derive_review_checklist.py main; no forbidden legacy/control fixture was created.
+COMMAND ['python3', 'tools/scope_of_work/derive_review_checklist.py', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-04', '--output', '/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-10-04/CHECKLIST.json']
+EXIT 1
+
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+
+CONTRACT_SHA256 fb62502a0f59b226607ed6a04cbbd9ffbafab35edcfe45a1a7307cfcc80d2177
+CHECKLIST_SHA256 6b12a926b861a94ddd7984e6c1a4ede43f9035a5a1fb2e3000ef9e09a6390ad4
+BOUNDARY_SHA256 69f8463352ab6ca69edcaf8e8acbb8feb1239784e4466768c0552d96e487cbed

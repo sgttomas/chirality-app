@@ -1,0 +1,120 @@
+---
+schema: chirality-deliverable-sow/v1
+deliverable_id: DEL-02-04
+package_id: PKG-02
+decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+project_scope_refs: [SOW-013, SOW-057, SOW-058, SOW-059, SOW-126]
+package_objective_refs: [OBJ-001, OBJ-002, OBJ-003]
+---
+
+# DEL-02-04 — Additive role selection and supply
+
+## Purpose and Objective Traceability
+
+Provide the four selectable App working relationships and supply their guidance additively, preserving the active harness's own instructions. Make bounded TASK nondelegation and the actual limits of harness enforcement clear. The responsible party is the **App role-guidance owner**. This is the accepted SOFTWARE `BACKEND_FEATURE_SLICE` within PKG-02, Workflow and role portability; its local contribution does not claim completion of the package or of another consumer's adoption.
+
+| Accepted scope | Local contribution | Objective contribution | Evaluation |
+|---|---|---|---|
+| SOW-013 | Offer HELP_HUMAN, HELPS_HUMANS, WORKING_ITEMS and TASK as selectable working relationships | OBJ-003: portable four-role guidance | OUT-001; AC-001 |
+| SOW-057 | Supply role guidance in addition to the harness's own instructions | OBJ-003 | OUT-001; AC-002 |
+| SOW-058 | Preserve bounded TASK nondelegation | OBJ-003 | OUT-001; AC-003 |
+| SOW-059 | Expose unenforced role limits truthfully | OBJ-003 | OUT-002; AC-004 |
+| SOW-126 | Preserve additive guidance, source identity and role configuration; qualify any old composition implementation reuse | OBJ-001: the guidance contribution to the native workflow-making loop; OBJ-002: the guidance contribution to the chosen App architecture | OUT-001; OUT-002; AC-005; AC-006 |
+
+Source keys below identify the assigned accepted basis. The source register locates evidence; it does not elevate historical wording above its later qualifications.
+
+| Key | Evidence and applicable loci |
+|---|---|
+| A | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; its `canonical/Deliverables.csv` row DEL-02-04 and named interfaces; `Packages.csv` row PKG-02; `ScopeLedger.csv` rows SOW-013, SOW-057, SOW-058, SOW-059, SOW-126; `Objectives.csv` rows OBJ-001, OBJ-002, OBJ-003 |
+| B | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md`, V4-APP-03 and V4-ROLE-01…03; same directory `ARCHITECTURE.md` §3. Original sources are read inside the accepted composite, not as independent current commitments. |
+| C | `projects/chirality-app-v4/docs/PRD.md`, §0, V4-APP-03, V4-HOST-05, V4-SHR-01…03, V4-ROLE-01…03; `projects/chirality-app-v4/docs/ARCHITECTURE.md` §3 and §5, including V4-ARC-20 |
+| D | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment of SOW-125–129; required outcomes remain IN and old implementation is optional reuse |
+| E | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html`, decisions 01, 02 and 07; `OWNER_DIRECTIONS.md` in that directory, J/U1, L/U3, M/U4 and O/U5 |
+| F | `projects/chirality-app-v4/docs/OPERATING_METHOD.md`, V4-OPS-03, V4-OPS-10…14 and V4-OPS-30…31; `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §1; `projects/chirality-app-v4/docs/EXAMINATION.md` V4-EXM-14, source/supply/adoption/behavior distinctions |
+| G | Accepted snapshot `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`; current `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`, used only for identified subsequent dispositions. The relevant open owners and points of need are retained below. |
+
+## Deliverable Definition — Ontology
+
+- **OUT-001** — CODE: four-role selection and additive instruction supply, including the role-configuration behavior and TASK restriction, integrated through the native supplier and portable receiving contracts. Covers SOW-013, SOW-057, SOW-058, SOW-126; supports OBJ-001, OBJ-002, OBJ-003. The implementation choice remains open within the accepted behavior. [A–D]
+- **OUT-002** — DOC: an account of the supplied guidance's source identity, actual supplied bytes and enforcement limits, with the receiving contributions and adoption distinction sufficient for the existing record and adoption owners. Covers SOW-057, SOW-059, SOW-126; supports OBJ-001, OBJ-002, OBJ-003. [A, C, E, F]
+- **OUT-003** — TEST: role-selection and supplied-basis fixtures, with candidate-bound results demonstrating the criteria below, including unsupported enforcement and optional reuse treatment. Covers SOW-013, SOW-057, SOW-058, SOW-059, SOW-126; supports OBJ-001, OBJ-002, OBJ-003. These tests implement verification of the accepted obligations; they create no additional product scope. [A–F]
+
+- **CLM-001** — A names the App role-guidance owner as this contribution's responsible party. The anticipated code, documentation and fixtures above are future production outputs. This initialized contract defines them; it does not assert they exist or have qualified.
+- **CLM-002** — The accepted interface allocation in A gives native Codex hosting and supplier-protocol qualification to App `DEL-01-01`, owned by the App supplier-integration owner; portable four-role receiving semantics and shared allocation to App `DEL-02-01`, owned by the App/shared workflow-contract owner with affected consumer owners confirming responsibilities; operation-policy definition to App `DEL-04-01`, whose App/shared human-act contract owner carries policy while the owner and host policy owner decide unresolved classes; content-bound run-record format to App `DEL-04-03`, owned by the App/shared evidence-record owner; and consumer-specific adoption to App `DEL-11-02`, coordinated by the App adoption coordinator, with each receiving consumer owner deciding and performing its adoption. PKG-04 records identity and PKG-11 carries adoption; this deliverable supplies their role-specific evidence rather than owning those acts or systems.
+- **CLM-003** — The responsible host implementation owner owns the embedded minimal loop and host panel/integration, with SWBPIPE construction in its external session. The human coordinates that session through files. Hosts may express the same four roles behind a single agent seat and selected workflow; the App's four-role choice does not mandate a four-role host picker. [C V4-HOST-05; E J/U1 and O/U5; F host integration §1]
+- **CLM-004** — Selection or source resolution, actual instruction supply, provider adoption and observed behavior are distinct facts. An instruction restriction is not proof of enforcement by the host. Publication, packaging or relocation does not prove consumer adoption or that an active agent received changed instructions. [C architecture §3; E decisions 01/07; F V4-OPS-14, V4-OPS-30 and V4-EXM-14]
+
+## Completion and Reliance Basis — Epistemology
+
+- **REQ-001** — Present exactly the four standing working relationships: HELP_HUMAN for alignment with the human, HELPS_HUMANS for design, WORKING_ITEMS for managed execution and TASK for bounded execution. Preserve their identities through selection and supply; a domain-specific expression such as SWB Piping Designer does not create a fifth durable role. [SOW-013; A, C V4-APP-03 and V4-ROLE-01/03; E L/U3]
+- **REQ-002** — Supply the selected role's guidance additively through the accepted native receiving contract, preserving the active harness's own instructions. Retain the required role-configuration behavior without substituting a historical Root product default, old packaging location or prior implementation as present v4 authority. [SOW-057, SOW-126; A–F]
+- **REQ-003** — Bounded TASK guidance shall prohibit further delegation. Describe the active harness's actual enforcement separately: when it cannot enforce a role limit, say so rather than claiming tool denial or isolation that has not been established. Preserve the required native delegation capability for roles whose applicable boundaries permit it. [SOW-058, SOW-059; C V4-ROLE-03 and architecture §3; F V4-OPS-30]
+- **REQ-004** — Make the supplied role guidance traceable to its source identity and actual bytes, and distinguish selection, supply, provider adoption, observed behavior and consumer adoption as in CLM-004. Provide the role-specific identity and limit evidence to the existing record/adoption interfaces in CLM-002. A recorded actual adoption may be reported faithfully with its decision actor and scope; an agent recorder or publication event must not be substituted for the adopting consumer's act. Exact record fields and distribution mechanism remain with their owning contracts and open decisions. [SOW-059, SOW-126; A; C architecture §3/§5; E decision 07; F V4-OPS-14]
+- **REQ-005** — Preserve required additive guidance, source identity and role-configuration behavior whether the old instruction-composition implementation is reused or replaced. Any reused code must meet the actual new receiving contract and candidate checks; historical tests, location, or successful earlier operation do not qualify the v4 candidate. No common service or fixed shared-component allocation follows merely from common role meaning. [SOW-126; A, C architecture §3/§5, D, E decision 02]
+- **REQ-006** — This deliverable shall perform no act owned by another deliverable or external owner: supplier hosting/protocol qualification belongs to App `DEL-01-01`; portable shared-contract allocation belongs to App `DEL-02-01`; operation-policy definition and its unresolved policy decisions remain with App `DEL-04-01` and its named owner/host policy decision actors; shared record-format construction belongs to App `DEL-04-03`; consumer adoption coordination and decisions remain with App `DEL-11-02` and each receiving consumer owner, all as stated in CLM-002. External host loop/panel construction belongs to the responsible host implementation owner, and outside-session coordination to the human, as stated in CLM-003. The local selection, guidance supply, interface evidence and fixtures remain required.
+
+- **AC-001** — The App offers the four named relationships with their accepted meanings, and selection traces to the corresponding supplied guidance. A domain-specific agent expression retains the applicable standing role instead of adding another. Verify with VER-001. [REQ-001; SOW-013]
+- **AC-002** — For each selected role, evidence at the actual supplier receiving boundary demonstrates additive guidance with the harness's own instructions intact. Role-specific source identity and supplied bytes remain inspectable. Verify with VER-002. [REQ-002; SOW-057, SOW-126]
+- **AC-003** — TASK's supplied guidance prohibits further delegation, and the candidate reports observed behavior and available enforcement without treating the instruction alone as a technical guarantee. The role restriction does not remove authorized native delegation from the other roles. Verify with VER-003. [REQ-003; SOW-058]
+- **AC-004** — For a role limit the active harness cannot enforce, the candidate makes that limitation explicit and its documentation agrees with actual available controls; neither a brief restriction nor a worktree is reported as stronger enforced isolation. Verify with VER-004. [REQ-003; SOW-059]
+- **AC-005** — The evidence account distinguishes selected source, actual supplied bytes, provider adoption, behavior and consumer adoption, preserving each supported fact and each unknown. An actually evidenced consumer adoption is faithfully attributable to its actor and scope, separately from the recorder; published or merely supplied guidance alone cannot establish that adoption. The account is usable by the existing PKG-04 and PKG-11 interfaces without defining their schema or deciding the open distribution mechanism. Verify with VER-005. [REQ-004; SOW-126]
+- **AC-006** — The receiving account identifies whether old composition/role-configuration implementation is reused. If reused, candidate evidence shows it meets the new contract and all applicable local criteria; if replaced, the same required behavior and source identity remain covered. The account preserves the named supplier, portable-contract, record, adoption and external-host owners and does not derive a common service, new precedence tree, or extra App UI from historical practice. Verify with VER-006. [REQ-005, REQ-006; SOW-126]
+
+Completion requires the code, identity/limit account and fixtures to satisfy these candidate-bound criteria, with the applicable receiving evidence. A valid SoW or INITIALIZED lifecycle is defined-contract maturity only. Actual input availability, implementation, testing, qualification and adoption need their own evidence; no such success is claimed here.
+
+## Production and Verification Method — Praxeology
+
+The App role-guidance owner develops the local implementation against the identified supplier and portable receiving contracts, supplies role-specific evidence to the record and adoption owners, and obtains focused candidate checks. Resolve only the affected open choice at its stated point of need; independent authorized work may continue. The method does not select a supplier version, protocol wire field, file hierarchy, numeric performance threshold or implementation allocation.
+
+- **VER-001** — Exercise each App role selection and inspect its named meaning and resulting role guidance. Check a domain-specific expression retains one of the four standing identities. Retain candidate identity, chosen role, supplied source and outcomes, including any mismatch. [AC-001; A, C V4-ROLE-01/03]
+- **VER-002** — Inspect and exercise the candidate's actual additive supply path for each role against App DEL-01-01's identified supported supplier contract. Compare the selected role source with what the boundary actually supplied; examine the composition for replacement or loss of the harness's own instructions. Retain observable supply evidence and identify any unobservable provider-internal fact rather than inferring it. [AC-002; A, C V4-ROLE-02 and architecture §3]
+- **VER-003** — Inspect TASK's supplied restriction and exercise a further-delegation attempt in the applicable candidate fixture. Record the response, any enforcing mechanism and any inability to enforce; an observed violation is a finding, never a passing technical-guarantee claim. Check another role's authorized native delegation remains available under its applicable limits. Distinguish instruction conformance, observed behavior and host enforcement. [AC-003; C V4-ROLE-03 and architecture §3; F V4-OPS-30]
+- **VER-004** — Exercise a receiving configuration where the harness cannot enforce a role limit and compare the presented limit account with actual controls. Check instruction-only restrictions and worktree presence are not reported as sandbox enforcement. Retain the supported/enforceable and unsupported/unenforced distinctions, rather than requiring an invented enforcement feature. [AC-004; C V4-ROLE-03; F V4-OPS-30]
+- **VER-005** — Trace a role fixture from selected source identity to actual supply, reported provider adoption and observed behavior, carrying absent evidence as unknown. At the record/adoption interface, check both an actually evidenced consumer adoption with its proper actor/scope and a publication/supply-only case with no adoption claim. The positive case may faithfully record a human act already performed; the recorder does not become that decision actor. Confirm the role account can be consumed through PKG-04/PKG-11 without claiming those owners' work complete. [AC-005; A; E decision 07; F V4-OPS-14 and V4-EXM-14]
+- **VER-006** — Review the candidate's reuse decision and receiving contract against A, C, D and E. For any reused composition path, examine its actual role-selection, additive-supply and limit evidence against AC-001 through AC-005; for a replacement, examine that same coverage. Inspect the contribution/owner mapping in CLM-002 and CLM-003 and the open choices below. Record uncovered behavior, transferred ownership, automatic adoption, invented UI or unsupported allocation as findings. [AC-006; A, D; C architecture §3/§5; E decisions 01/02/07]
+
+These verification definitions specify future candidate evidence; this INIT run performs contract validation and independent source checking only. Integrated qualification and consumer adoption remain with their named owners. A fixture result may support a claim only within its observed coverage.
+
+## Governing Values and Decisions — Axiology
+
+- **AX-001** — The exact accepted Group3 decision in A establishes the decomposition for this definition work. Read original seed B through the later accepted composite qualifications C–F and the normalized scope in A. The source record preserves original wording; D resolves compulsory legacy reuse into required behavior with conditional implementation reuse.
+- **AX-002** — The same four roles have portable meaning. Harness instructions remain intact, TASK remains a bounded executor, and actual enforcement stays distinguishable from instruction-asserted limits. No fifth standing role or supplier-base replacement is authorized. [SOW-013, SOW-057, SOW-058, SOW-059]
+- **AX-003** — Manuals and selected methods guide work; SoWs hold product commitments. Neither every manual practice nor every historical Root default is an App feature or automatically adopted v4 policy. Receiving adoption is identified by scope and consumer, with source identity and historical standing retained. [E decisions 01/07; F V4-OPS-10…14]
+- **AX-004** — This contract does not settle permission policy or turn role selection into professional authority. Execution, proposal acceptance, checking, approval and professional reliance retain their own actor and evidence; none follows from another act's success. PKG-04 owns the applicable act/policy contract. [C V4-AUT-03/04; CLM-002]
+
+The following accepted open matters qualify this contribution's interfaces. They are not silently solved by this SoW, nor collapsed into a generic implementation gate. Owners and point-of-need wording are retained from G.
+
+| Open matter | Exact owner | Exact point of need | Local consequence |
+|---|---|---|---|
+| OI-001 — Reserved human acts | Owner with App/SWB contract owners | Before operation-policy production contracts | Role selection/supply does not decide an always-reserved act list; policy is carried through App DEL-04-01. |
+| OI-002 — Classifier routine permissions | Owner with App/SWB contract owners | Before permission-policy implementation | No historical App/host classifier default is adopted through role configuration. |
+| OI-008 — App process division | App implementation owner | Before architecture production contracts | The Rust/TypeScript placement of guidance composition is not fixed here. |
+| OI-012 — Codex version pin | App implementation owner | Before protocol generation and qualification | Use the identified supplier contract when exercising actual supply; historical version examples are not v4 pins. |
+| OI-014 — Shared contract/component placement | App/shared contract owners | Before structural/production contract allocation | Shared role meaning does not settle where common code lives; App DEL-02-01 carries receiving allocation. |
+| OI-017 — Project manual pins | Owning project-definition manager | Before dependent execution relies on manual editions | Reading a manual or this contract does not perform project adoption. |
+| OI-018 — Instruction distribution/adoption mechanism | Owner with shared/project instruction owners | Before instruction changes or dependent supply | Preserve source/supply evidence without inventing a new precedence tree or distributing changed instructions prematurely. |
+| OI-024 — Staged adoption and retirement | Owner with affected consumers | Before each adoption/retirement decision | Supply and publication do not decide any consumer transition or retire its prior arrangement. |
+
+- **TBD-001** — The implementation and receiving choices in that table remain open where the accepted sources leave them open. DEP-006 identifies the **Owners of affected Root/Runtime/App/Piping consumers** as suppliers of identified adoption, instruction packaging/tool-path consequences and continuing-obligation disposition, needed **Before each consumer transitions or old arrangement retires**. Prepared coordination files and this role contract do not satisfy that external contribution. The role-guidance owner supplies its local identity/limit account; receiving owners decide and evidence adoption through PKG-11. [G; A App DEL-11-02; E decision 07]
+
+## Output and Evaluation Matrix
+
+Each row's verification set applies to its single criterion. Repeated output references express one coherent code/documentation/fixture contribution, not separate rituals or new deliverables.
+
+| Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
+|---|---|---|---|---|---|
+| OUT-001 | OBJ-003 | REQ-001; CLM-001 | AC-001 | VER-001 | Four-role selection and source-correspondence results, with domain expression retaining its standing role |
+| OUT-003 | OBJ-003 | REQ-001; CLM-001 | AC-001 | VER-001 | Four-role selection and source-correspondence results, with domain expression retaining its standing role |
+| OUT-001 | OBJ-001, OBJ-002, OBJ-003 | REQ-002; CLM-004 | AC-002 | VER-002 | Actual receiving-boundary composition/supply evidence; intact harness instruction basis; identified limits of observation |
+| OUT-002 | OBJ-001, OBJ-002, OBJ-003 | REQ-002; CLM-004 | AC-002 | VER-002 | Actual receiving-boundary composition/supply evidence; intact harness instruction basis; identified limits of observation |
+| OUT-003 | OBJ-001, OBJ-002, OBJ-003 | REQ-002; CLM-004 | AC-002 | VER-002 | Actual receiving-boundary composition/supply evidence; intact harness instruction basis; identified limits of observation |
+| OUT-001 | OBJ-003 | REQ-003; CLM-004 | AC-003 | VER-003 | TASK supplied restriction, attempted-delegation outcome and actual controls; permitted native delegation coverage |
+| OUT-003 | OBJ-003 | REQ-003; CLM-004 | AC-003 | VER-003 | TASK supplied restriction, attempted-delegation outcome and actual controls; permitted native delegation coverage |
+| OUT-002 | OBJ-003 | REQ-003; CLM-004 | AC-004 | VER-004 | Unenforced-limit presentation checked against actual harness controls and documentation |
+| OUT-003 | OBJ-003 | REQ-003; CLM-004 | AC-004 | VER-004 | Unenforced-limit presentation checked against actual harness controls and documentation |
+| OUT-001 | OBJ-001, OBJ-002 | REQ-004; CLM-002; CLM-004 | AC-005 | VER-005 | Source/supply/adoption/behavior account; faithful positive adoption attribution and no-adoption case; record/adoption interface evidence |
+| OUT-002 | OBJ-001, OBJ-002 | REQ-004; CLM-002; CLM-004 | AC-005 | VER-005 | Source/supply/adoption/behavior account; faithful positive adoption attribution and no-adoption case; record/adoption interface evidence |
+| OUT-003 | OBJ-001, OBJ-002 | REQ-004; CLM-002; CLM-004 | AC-005 | VER-005 | Source/supply/adoption/behavior account; faithful positive adoption attribution and no-adoption case; record/adoption interface evidence |
+| OUT-001 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |
+| OUT-002 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |
+| OUT-003 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |

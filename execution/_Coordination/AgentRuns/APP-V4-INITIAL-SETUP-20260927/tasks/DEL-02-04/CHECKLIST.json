@@ -1,0 +1,175 @@
+{
+  "item_count": 6,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 56,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "The App offers the four named relationships with their accepted meanings, and selection traces to the corresponding supplied guidance. A domain-specific agent expression retains the applicable standing role instead of adding another. Verify with VER-001. [REQ-001; SOW-013]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-001",
+          "source_line": 69,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise each App role selection and inspect its named meaning and resulting role guidance. Check a domain-specific expression retains one of the four standing identities. Retain candidate identity, chosen role, supplied source and outcomes, including any mismatch. [AC-001; A, C V4-ROLE-01/03]"
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 57,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "For each selected role, evidence at the actual supplier receiving boundary demonstrates additive guidance with the harness's own instructions intact. Role-specific source identity and supplied bytes remain inspectable. Verify with VER-002. [REQ-002; SOW-057, SOW-126]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-002",
+          "source_line": 70,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect and exercise the candidate's actual additive supply path for each role against App DEL-01-01's identified supported supplier contract. Compare the selected role source with what the boundary actually supplied; examine the composition for replacement or loss of the harness's own instructions. Retain observable supply evidence and identify any unobservable provider-internal fact rather than inferring it. [AC-002; A, C V4-ROLE-02 and architecture §3]"
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-001",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 58,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "TASK's supplied guidance prohibits further delegation, and the candidate reports observed behavior and available enforcement without treating the instruction alone as a technical guarantee. The role restriction does not remove authorized native delegation from the other roles. Verify with VER-003. [REQ-003; SOW-058]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-003",
+          "source_line": 71,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect TASK's supplied restriction and exercise a further-delegation attempt in the applicable candidate fixture. Record the response, any enforcing mechanism and any inability to enforce; an observed violation is a finding, never a passing technical-guarantee claim. Check another role's authorized native delegation remains available under its applicable limits. Distinguish instruction conformance, observed behavior and host enforcement. [AC-003; C V4-ROLE-03 and architecture §3; F V4-OPS-30]"
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 59,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "For a role limit the active harness cannot enforce, the candidate makes that limitation explicit and its documentation agrees with actual available controls; neither a brief restriction nor a worktree is reported as stronger enforced isolation. Verify with VER-004. [REQ-003; SOW-059]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-004",
+          "source_line": 72,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Exercise a receiving configuration where the harness cannot enforce a role limit and compare the presented limit account with actual controls. Check instruction-only restrictions and worktree presence are not reported as sandbox enforcement. Retain the supported/enforceable and unsupported/unenforced distinctions, rather than requiring an invented enforcement feature. [AC-004; C V4-ROLE-03; F V4-OPS-30]"
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 60,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "The evidence account distinguishes selected source, actual supplied bytes, provider adoption, behavior and consumer adoption, preserving each supported fact and each unknown. An actually evidenced consumer adoption is faithfully attributable to its actor and scope, separately from the recorder; published or merely supplied guidance alone cannot establish that adoption. The account is usable by the existing PKG-04 and PKG-11 interfaces without defining their schema or deciding the open distribution mechanism. Verify with VER-005. [REQ-004; SOW-126]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-005",
+          "source_line": 73,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Trace a role fixture from selected source identity to actual supply, reported provider adoption and observed behavior, carrying absent evidence as unknown. At the record/adoption interface, check both an actually evidenced consumer adoption with its proper actor/scope and a publication/supply-only case with no adoption claim. The positive case may faithfully record a human act already performed; the recorder does not become that decision actor. Confirm the role account can be consumed through PKG-04/PKG-11 without claiming those owners' work complete. [AC-005; A; E decision 07; F V4-OPS-14 and V4-EXM-14]"
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-001",
+        "OUT-002",
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-02-04-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 61,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+      },
+      "text": "The receiving account identifies whether old composition/role-configuration implementation is reused. If reused, candidate evidence shows it meets the new contract and all applicable local criteria; if replaced, the same required behavior and source identity remain covered. The account preserves the named supplier, portable-contract, record, adoption and external-host owners and does not derive a common service, new precedence tree, or extra App UI from historical practice. Verify with VER-006. [REQ-005, REQ-006; SOW-126]",
+      "verification": [
+        {
+          "id": "VER-006",
+          "kind": "VER",
+          "qualified_id": "DEL-02-04-VER-006",
+          "source_line": 74,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the candidate's reuse decision and receiving contract against A, C, D and E. For any reused composition path, examine its actual role-selection, additive-supply and limit evidence against AC-001 through AC-005; for a replacement, examine that same coverage. Inspect the contribution/owner mapping in CLM-002 and CLM-003 and the open choices below. Record uncovered behavior, transferred ownership, automatic adoption, invented UI or unsupported allocation as findings. [AC-006; A, D; C architecture §3/§5; E decisions 01/02/07]"
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-02-04",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-02",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+  },
+  "tool_version": "1"
+}

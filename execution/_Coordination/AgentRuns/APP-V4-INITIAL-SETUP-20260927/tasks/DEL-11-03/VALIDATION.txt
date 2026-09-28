@@ -1,0 +1,42 @@
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md', '--json']
+exit=0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md",
+  "valid": true
+}
+
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-03/CHECKLIST.json']
+exit=0
+
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-03/CHECKLIST.json']
+exit=0
+
+
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-03/BOUNDARY.json', '--show-not-checkable']
+exit=0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+
+Repeated checklist derivation: BYTE_IDENTICAL; SHA256 bdc7379dd70caea26fe50625215124295511cbab7100fb6740fc02b88afb9354
+
+Status unchanged: OPEN; SHA256 a2b53e3d998e76c0431c9987e5583a9d97d30134ccd89438e3b6cb3c91ca5ca8
+
+Production SHA256 0177354357b07ea177491cffc2b1c75ffac578e179ba96e63e91d6ba34dcf5b6
+
+Checklist item_count 6
+
+Semantic QA: one AC per matrix row; every OUT maps to assigned scope and OBJ-009; every AC has its exact VER; all three anticipated artifacts retained. Boundary semantic review follows in AUTHOR_RETURN.md.
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-03/BRIEF.json', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-11-03/CHECKLIST.json']
+exit=1
+ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+
+PASS: invalid production input rejected without emitting or changing CHECKLIST.json. No ambiguity fixture created outside the exact write boundary.
+PASS: checklist exact AC order/text, production hash binding and one-to-one VER links asserted independently of derivation.
+PASS: no legacy kit or HTML derivative; ScopeOfWork.md is the only production format.
+Semantic boundary QA: REQ-006 is checked; all acts map to CLM-001/002/003/004. Host recording is distinct from actual human judgment. No NOT_CHECKABLE or NO_CITED_CLAIM entries exist. These tool categories therefore need no additional per-entry disposition; human-owner and excluded-act semantics were reviewed separately.

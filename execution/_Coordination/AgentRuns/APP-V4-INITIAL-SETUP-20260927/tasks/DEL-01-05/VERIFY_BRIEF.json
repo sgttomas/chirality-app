@@ -1,0 +1,182 @@
+{
+  "role": "TASK",
+  "terminal": true,
+  "mechanism": "native fresh-context child; no model override",
+  "parent": "/root/renewal_research_strategy WORKING_ITEMS",
+  "PURPOSE": "Independently verify one stable SOFTWARE ScopeOfWork INIT candidate against its actual accepted sources; no production edits",
+  "ScopePath": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access",
+  "Workflow": "chirality-root:bundled:workflow:scope-of-work",
+  "AllowedWriteTargets": [
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY.md",
+    "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/VERIFY_VALIDATION.txt"
+  ],
+  "RuntimeOverrides": {
+    "DELIVERABLE_PATH": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access",
+    "DECOMPOSITION_BASIS": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6",
+    "PROJECT_SCOPE_REFS": [
+      "SOW-009",
+      "SOW-010",
+      "SOW-011",
+      "SOW-012",
+      "SOW-132",
+      "SOW-133",
+      "SOW-149",
+      "SOW-150"
+    ],
+    "PACKAGE_OBJECTIVE_REFS": [
+      "OBJ-002",
+      "OBJ-004"
+    ],
+    "MODE": "VERIFY",
+    "SOURCE_STATE": "OPEN",
+    "STATUS_POLICY": "NO_STATUS_TOUCH",
+    "DECOMP_VARIANT": "SOFTWARE",
+    "RENDER_HTML": false
+  },
+  "ExpectedOutputs": [
+    "source-grounded production ScopeOfWork.md",
+    "validschema and independent-ready source mapping",
+    "deterministically derived CHECKLIST.json with byte-identical repeatedderivation",
+    "BOUNDARY.json plus semantic QA for NOT_CHECKABLE/NO_CITED_CLAIM",
+    "AUTHOR_RETURN.md with actualsource/method hashes, candidate/status hashes, scope coverage, checks/limits/conflicts and exact custody",
+    "VALIDATION.txt command/output record"
+  ],
+  "accepted_deliverable_row": {
+    "DeliverableID": "DEL-01-05",
+    "PackageID": "PKG-01",
+    "Name": "Native OAuth/sign-in, API-key and local-provider access",
+    "Description": "Connect the App to Codex-native ChatGPT sign-in/OAuth, API-key and local-server access, keep the modes configured together, and choose per conversation through Codex-owned credentials and supported provider methods. Interfaces: Consumes selected protocol/pin from DEL-01-01; App UI exposes per-conversation choice; PKG-05 receives applicable local-server capability requirements without an extra App harness. Verification: Each mode starts the intended conversation while all remain configured; native sign-in is exercised through the selected Codex account flow; supported compliant servers can substitute; account-home and API-key details are decided before dependent implementation.",
+    "Type": "BACKEND_FEATURE_SLICE",
+    "ResponsibleParty": "App account/provider integration owner",
+    "AnticipatedArtifacts": "CODE: Codex-native OAuth/sign-in receiving and account/provider selection;CONFIG: supported local provider settings;DOC: account-home/API-key protocol decisions;TEST: native sign-in, concurrent-mode and compliant-server substitution checks",
+    "CoversScopeItems": "SOW-009;SOW-010;SOW-011;SOW-012;SOW-132;SOW-133;SOW-149;SOW-150",
+    "SupportsObjectives": "OBJ-002;OBJ-004",
+    "ContextEnvelope": "M",
+    "ContextEnvelopeNotes": "One bounded behavior or contract slice; named interfaces and focused checks constrain required context. File counts remain production-definition estimates, not model limits.",
+    "PhaseHint": "Nonbinding: define and build the App against its selected supplier inputs; external host/provider completion is not a start gate."
+  },
+  "accepted_scope_rows": [
+    {
+      "ScopeItemID": "SOW-009",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "The App offers ChatGPT account sign-in through Codex's account methods with credentials held by Codex.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-02;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#V4-ARC-04",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-010",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "The App offers API-key access through Codex's account methods with credentials held by Codex.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-02;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#V4-ARC-04",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-011",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "The App offers local model servers as Codex model providers.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-02;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#V4-ARC-04",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-012",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Users may configure account, API-key and local-server access together and choose per conversation.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md#V4-APP-02;projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#V4-ARC-04",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-132",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Choose whether Chirality Codex sign-in remains separated from other Codex clients or shares their account home.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#3;projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926;APP-V4-CLARIFICATION-20260927",
+      "OpenIssue": "TRUE",
+      "Notes": "OI-009 Required definition/receiving work is included; the linked Open Issue retains the undecided value or allocation. This reclassification neither decides that issue nor adds a human gate or a separate Deliverable per row."
+    },
+    {
+      "ScopeItemID": "SOW-133",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Define API-key sign-in details for the chosen pinned Codex protocol.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#3;projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002",
+      "DecisionRef": "APP-V4-BASIS-20260926;APP-V4-CLARIFICATION-20260927",
+      "OpenIssue": "TRUE",
+      "Notes": "OI-010 Required definition/receiving work is included; the linked Open Issue retains the undecided value or allocation. This reclassification neither decides that issue nor adds a human gate or a separate Deliverable per row."
+    },
+    {
+      "ScopeItemID": "SOW-149",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Qualify the selected Codex embedding and local-server interfaces against the required pinned protocols.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#6",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-01;DEL-01-05",
+      "ObjectiveIDs": "OBJ-002;OBJ-004",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    },
+    {
+      "ScopeItemID": "SOW-150",
+      "InOutStatus": "IN",
+      "ScopeItemStatement": "Permit substitution of compliant local model servers.",
+      "SourceRef": "projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md#6",
+      "PackageID": "PKG-01",
+      "DeliverableIDs": "DEL-01-05",
+      "ObjectiveIDs": "OBJ-002;OBJ-004",
+      "DecisionRef": "APP-V4-BASIS-20260926",
+      "OpenIssue": "FALSE",
+      "Notes": ""
+    }
+  ],
+  "CustomInstructions": "Leave account-home choice open for v4; do not import v3 Root auth separation as settled v4 product choice. Do not guess current supplier API behavior or certify a version. Preserve stock Codex native OAuth/sign-in/API-key/local-provider modes and retained open protocol/pin decisions. Ground definitions in accepted source evidence; read relevant seed clauses through SourceRef and accepted companion files, not just names. Retain unresolved details explicitly at their point of need; do not require those decisions merely to write an honest contract. Scope IDs assigned jointly to more than one deliverable must be qualified to this contribution, preserving named integration owners. Enumerate exclusions and cite claims naming each actual owning contribution. Requirements/ACs must state testable outcomes without inventing numbers/technical choices. Per matrix row, group ACs only if verification methods are identical; prefer oneACperrow. Upstream local IDs must be qualified. No full research sweep, current network/supplier experiments, provider/sibling source edits, underscore edits, Git mutations or delegation. Manager can authorize bounded repair of this unaccepted initialized draft without using a spurious amendment.",
+  "read_basis": [
+    "AGENTS.md",
+    "agents/AGENT_TASK.md",
+    "workflows/scope-of-work/WORKFLOW.md",
+    "workflows/scope-of-work/resources/brief.md",
+    "workflows/scope-of-work/resources/checks.md",
+    "workflows/scope-of-work/resources/tools.md",
+    "docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv",
+    "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_CONTEXT.md",
+    "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_REFERENCES.md",
+    "projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv",
+    "projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv"
+  ],
+  "original_status_sha256": "a7c9c827db44d061b8ba42edf32e58d20895d52d7682116e90b1ce24a8cd04e4",
+  "enforcement": "Write targets are brief restrictions; host filesystem is broader. No claimed independent modelfamily or sandbox isolation.",
+  "candidate_sha256": "baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6",
+  "author_brief": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-05/BRIEF.json",
+  "additional_structural_check": "Read-only check the41new scaffold control files against accepted metadata and SCAFFOLD_RETURN; inspect current_COORDINATION actual approval. No fullscope or siblingSoW reaudit. Report real source/state inconsistencies, not cosmeticformat concerns."
+}

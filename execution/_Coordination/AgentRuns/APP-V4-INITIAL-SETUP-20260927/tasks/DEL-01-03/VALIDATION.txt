@@ -1,0 +1,39 @@
+DEL-01-03 MODE=INIT / NO_STATUS_TOUCH
+Preflight: OPEN; no production contract or partial legacy kit; status matches sealed brief.
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views']
+exit=1
+stdout=
+stderr=ERROR: format state is INVALID; validated ScopeOfWork.md is required: missing production contract
+
+PASS: missing-production input failed without a checklist artifact (stdout mode). This does not claim the unexecuted dual-format/legacy variance cases.
+
+$ ['python3', 'tools/scope_of_work/validate_scope_of_work.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md', '--json']
+exit=0
+{
+  "format": "SOW_V1",
+  "issues": [],
+  "target": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md",
+  "valid": true
+}
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md', '--output', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-03/CHECKLIST.json']
+exit=0
+
+$ ['python3', 'tools/scope_of_work/check_boundary_owner_resolution.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md', '--json', 'projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/tasks/DEL-01-03/BOUNDARY.json', '--show-not-checkable']
+exit=0
+
+Contracts: 1 (0 out-of-grammar) | boundary requirements checked: 1 | per-act exclusions for skill QA: 0 | boundary requirements citing no claim: 0 | contracts failing: 0
+
+$ ['python3', 'tools/scope_of_work/derive_review_checklist.py', 'projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md']
+exit=0
+PASS: repeated derivation stdout byte-identical to CHECKLIST.json; sha256=80aebfb3acfc723d1bfafac2994103efc41e55bfa946d279d05b1b0e0cd854fe
+PASS: status before/after=e12eeb66c3905d03ef76344f593ba319a053ff004a3439852d289f2e5becf6a7
+Production sha256=b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2
+
+Semantic/source QA: PASS all source links resolve; 7 distinct AC definitions and 7 single-AC matrix rows; 3 outputs cover all anticipated artifacts; all 7 assigned scope IDs mapped.
+Boundary QA: REQ-007 enumerates supplier hosting/types/pin -> CLM-002/App DEL-01-01; durable execution/recovery -> CLM-002/App DEL-01-02; request/response, turn/outcome, attachment/draft transitions -> CLM-003/App DEL-01-04; complete workflow journey/registration -> CLM-003/App DEL-02-02; fleet graph/return/waiting/decision views -> CLM-003/App PKG-06; agent engine -> CLM-001/Codex; unresolved policy -> CLM-004/owner with affected App-host contract owners; professional reliance -> CLM-004/person. PKG-06, Codex and human owners are semantically checked beyond deterministic deliverable-ID recognition.
+NOT_CHECKABLE=0; NO_CITED_CLAIM=0. No unresolved source conflict; normalized/current clauses qualify historical carry wording. Positive faithful recording and fabrication negatives included in AC-005/VER-005; no universal acceptance-first ordering.
+CONVERT-only checks 2,5-7,10-12,14,17 and REVISE-only 22: NOT_APPLICABLE. HTML check15: NOT_APPLICABLE, not requested. Product execution and independent verification: not performed by this author.
+
+Final checklist inspection: PASS exact AC order/text/source lines/production hash and one verifying method per criterion. Source-basis comparison: PASS all 30 pre-authoring hashes unchanged. Tool/runtime hashes recorded in AUTHOR_RETURN.md. Stable candidate unchanged on final author check.

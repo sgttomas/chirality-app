@@ -1,0 +1,191 @@
+{
+  "item_count": 7,
+  "items": [
+    {
+      "id": "AC-001",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-08-02-AC-001",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 67,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-001 defines a research path from the admitted query/source basis to source-grounded context and an identified candidate for human approval, retaining source references, standing/freshness, inference, gaps and suitability limits; its App DEL-08-01, PKG-02 and PKG-04 receiving interfaces are explicit. Verified by VER-001. [REQ-001; S1, S3, S4, S5]",
+      "verification": [
+        {
+          "id": "VER-001",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-001",
+          "source_line": 86,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Inspect OUT-001 and trace a candidate research-context account from query/source references to evidence, inference, gaps and candidate output. Compare the expected transitions and receiving interfaces to S1, S3 V4-CON-01/-05 and S4 §8.1. Report unsupported claims or missing interface meanings; do not substitute a test fixture for an admitted source contract. Verifies AC-001."
+        }
+      ]
+    },
+    {
+      "id": "AC-002",
+      "output_refs": [
+        "OUT-001"
+      ],
+      "qualified_id": "DEL-08-02-AC-002",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 68,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-001's contribution account states the provider, query-tool, workflow, host and App/shared contributions with the owners/open allocation and points of need in REQ-003; Domains remains parallel/later and the initial D05 route can proceed without it or PEC. Verified by VER-002. [REQ-003; CLM-002, CLM-005; S1, S2 K, S3 §3.1, S4 §8.1]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-002",
+          "source_line": 87,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the contribution account and host handoff against S1/S2/S3/S4/S6/S7. Check each contribution's owner or unresolved allocation and point of need, parallel/later placement, human-relay/received-evidence standing, local-data-boundary preservation, conditional shared implementation and four-role scope. Enumerate each REQ-007 excluded act and resolve its owner to the cited claim and source, retaining open owners exactly. Check that neither a new UI nor provider/host implementation or a technical choice is smuggled into the local contribution. Verifies AC-002, AC-003 and AC-007."
+        }
+      ]
+    },
+    {
+      "id": "AC-003",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-08-02-AC-003",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 69,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-002 identifies the App/shared receiving contribution, the externally owned host construction and actual returned evidence/answers distinctly from proposals. The handoff preserves human relay, unresolved provider allocation and compatible local-data-boundary resolution before reliance or dependent implementation. No written proposal is counted as an external commitment, usable capability or host adoption. Verified by VER-002. [REQ-004; CLM-004, CLM-005; S1, S3, S4, S7]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-002",
+          "source_line": 87,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the contribution account and host handoff against S1/S2/S3/S4/S6/S7. Check each contribution's owner or unresolved allocation and point of need, parallel/later placement, human-relay/received-evidence standing, local-data-boundary preservation, conditional shared implementation and four-role scope. Enumerate each REQ-007 excluded act and resolve its owner to the cited claim and source, retaining open owners exactly. Check that neither a new UI nor provider/host implementation or a technical choice is smuggled into the local contribution. Verifies AC-002, AC-003 and AC-007."
+        }
+      ]
+    },
+    {
+      "id": "AC-004",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-08-02-AC-004",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 70,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-003 demonstrates the later V4-EXM-32 path with identified provider/query contract, admitted sources, research workflow, external host integration, source-backed context and candidate identity, and, for a completed live witness, records an actual content-bound human decision and its scope. Favorable approval is not required and professional reliance is not implied. Its claim is limited to the concrete candidate and observed contributions; negative or partial absence evidence is retained without claiming live-witness completion, and a prepared handoff or simulated case cannot stand in for that witness. Verified by VER-003. [REQ-001, REQ-006; S1, S5]",
+      "verification": [
+        {
+          "id": "VER-003",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-003",
+          "source_line": 88,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Coordinate the subsequent V4-EXM-32 examination through the human with the external SWB owner after the provider/query, admitted source, workflow and host inputs are actually available. Observe the query-to-context-to-candidate path and an actual content-bound human decision with its scope for the completed live witness; retain candidate/input identities, the evidence observed and limitations. Favorable approval is not required and no professional reliance is inferred. Retain negative or partial evidence of missing inputs or an unobserved act honestly, without claiming live-witness completion. Verifies AC-004."
+        }
+      ]
+    },
+    {
+      "id": "AC-005",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-08-02-AC-005",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 71,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-003 includes unavailable or unsuitable research input and relevant stale/limited-source behavior, showing the resulting limits or hold on dependent research without fabricated context, candidate standing or human approval; independently supported work remains possible. Verified by VER-004. [REQ-002, REQ-006; S3 V4-CON-03, S4 V4-HI-62, S5]",
+      "verification": [
+        {
+          "id": "VER-004",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-004",
+          "source_line": 89,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "In the later receiving examination, supply admitted unavailable/unsuitable and relevant stale/limited-input cases under the actual query contract. Inspect reported source limitations, withheld unsupported context or decision claims and continuation of independent sound-basis work. State whether observations came from receiving fixtures or the actual host path; fixture success alone does not qualify the live path. Verifies AC-005."
+        }
+      ]
+    },
+    {
+      "id": "AC-006",
+      "output_refs": [
+        "OUT-003"
+      ],
+      "qualified_id": "DEL-08-02-AC-006",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 72,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-002's act contract and OUT-003's evidence distinguish candidate approval, edit acceptance, execution/application, checking and professional reliance. They support faithful recording of an actual human act with actor distinct from recorder, expose the limits of its content/subject binding, and reject claims derived solely from success, receipt or an unperformed act. They retain unresolved OI-001/OI-002 custody without adding a blanket reserved-act policy or synthetic acceptance dependency. Verified by VER-005. [REQ-005; CLM-006; S1, S2 decision 03, S3, S4, S5]",
+      "verification": [
+        {
+          "id": "VER-005",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-005",
+          "source_line": 90,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Examine an actual, content-bound human decision and its faithful recording/presentation, keeping the human actor distinct from the host or agent recorder. Compare its exact subject with separately evidenced edit acceptance, application, checking and professional reliance, without requiring one act merely to prove another. Examine claims based only on tool success/receipt, a missing human act and changed candidate content: unsupported attribution is rejected and prior applicability lapses visibly where appropriate. Use the affected adopted operation policy; carry undecided OI-001/OI-002 questions to their owners before fixing dependent criteria or implementation. Verifies AC-006."
+        }
+      ]
+    },
+    {
+      "id": "AC-007",
+      "output_refs": [
+        "OUT-002"
+      ],
+      "qualified_id": "DEL-08-02-AC-007",
+      "review_status": null,
+      "source_identity": {
+        "document": "ScopeOfWork.md",
+        "line": 73,
+        "section": "Completion and Reliance Basis — Epistemology",
+        "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      },
+      "text": "OUT-001 and OUT-002 preserve every excluded act's named owner/open decision in REQ-007, the four-role application expression, and the local App/shared receiving scope. Neither a new knowledge-browser UI nor a database/corpus/deployment/provider allocation nor external SWB construction is introduced. Verified by VER-002. [REQ-004, REQ-007; CLM-001, CLM-003…006; S1–S7]",
+      "verification": [
+        {
+          "id": "VER-002",
+          "kind": "VER",
+          "qualified_id": "DEL-08-02-VER-002",
+          "source_line": 87,
+          "source_section": "Production and Verification Method — Praxeology",
+          "text": "Review the contribution account and host handoff against S1/S2/S3/S4/S6/S7. Check each contribution's owner or unresolved allocation and point of need, parallel/later placement, human-relay/received-evidence standing, local-data-boundary preservation, conditional shared implementation and four-role scope. Enumerate each REQ-007 excluded act and resolve its owner to the cited claim and source, retaining open owners exactly. Check that neither a new UI nor provider/host implementation or a technical choice is smuggled into the local contribution. Verifies AC-002, AC-003 and AC-007."
+        }
+      ]
+    }
+  ],
+  "schema": "chirality-review-checklist/v1",
+  "source": {
+    "deliverable_id": "DEL-08-02",
+    "document": "ScopeOfWork.md",
+    "format": "SOW_V1",
+    "migration_authority": null,
+    "package_id": "PKG-08",
+    "schema": "chirality-deliverable-sow/v1",
+    "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+  },
+  "tool_version": "1"
+}
