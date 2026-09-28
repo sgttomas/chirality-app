@@ -1,6 +1,8 @@
 # Owner decisions requested — APP-V4-FIRST-INCREMENT-20260928
 
-Prepared by HELP_HUMAN, 2026-09-28. **Pending: no owner answer recorded.**
+Prepared by HELP_HUMAN, 2026-09-28. **Answered:** the owner selected the
+recommended option for D1–D4; see [OWNER_DECISIONS.md](OWNER_DECISIONS.md).
+The text below is the package as presented.
 Wave 1 of the [work graph](../../WorkGraphs/APP-V4-FIRST-INCREMENT-20260928/WORK_GRAPH.md)
 proceeds without these answers; unruled values stay `UNRESOLVED` in the drafts.
 The answers change what is finalized in Wave 2 and whether the pin spike runs.

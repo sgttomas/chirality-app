@@ -184,3 +184,75 @@ owner decides; label it a proposal). No pin: 0.154.0 / 0.157.1 are dated
 evidence only; do not name a selected version. Also list precisely what a pin
 spike would need to observe (generation commands, fields, experimental
 supplement) so W11 can be briefed.
+
+## Owner rulings now in force
+
+[OWNER_DECISIONS.md](OWNER_DECISIONS.md) (`APP-V4-FIRST-INCREMENT-20260928-DECISION-1`):
+scope Option A; the OI-001 five reserved acts; the OI-002 App user setting with
+no classifier mode in hosts; the OI-012 pin `0.158.0` with spike W11. The v0.1
+drafts predate these rulings; V1 notes where they apply and R1 applies them.
+
+## V1 — receiver comparisons for the Wave-1 joins (independent reviewers)
+
+**Purpose.** Answer CASE-002 Open_Questions Q-03 for each join below: *which
+identified version does the named receiver have, what check did it perform,
+and what remains absent or disagrees?* The reviewers were not the authors.
+They read the v0.1 Design files and the ScopeOfWork/Dependencies of both sides.
+
+**Write scope.** Only `comparisons/V1-<letter>.md` in this run folder. Design
+files, SoWs, registers and every other file are read-only. No git or network
+operations.
+
+**Per join, record:** supplier contribution ID/version and receiver
+contribution ID/version as read; the receiver's OUT/REQ/VER that consumes it;
+the check performed (element-by-element meaning comparison); a table of
+**agreements**, **disagreements** (each with the exact quotes/sections from
+both files, severity BLOCKING/MAJOR/MINOR, and a proposed resolution naming
+which side should change) and **absent** inputs (with owner and point of
+need). Also record where the owner rulings D2/D3 change a v0.1 statement, and
+list register findings (missing or mirror dependency rows) with row IDs checked
+in `Dependencies.csv`. Do not rewrite the designs. End with a prioritized
+repair list for R1.
+
+- **V1-A (policy consumers):** DEL-04-01/ACT-POLICY-v0.1 → W2 (DEL-04-03,
+  DEL-04-02), W3 (DEL-03-01, DEL-03-02), W4 (DEL-02-01), W5 (DEL-05-01,
+  DEL-05-02), W6 (DEL-01-01 routine tool-permission answers vs D3). Focus:
+  act names/kinds (including reject, withdraw, grant change, registration),
+  class values, grant model, widening bounds, "checked" ambiguity, "approval"
+  overloading.
+- **V1-B (catalog, proposal, record, autonomy):** DEL-03-01/C ↔ DEL-03-02/P
+  (including the M3-CP return); P → DEL-04-03 (outcomes, receipt links,
+  origin); P → DEL-04-02 (direct branch, grant in force); DEL-04-03 ↔ DEL-04-02
+  (M3 settings-in/record-out); C → DEL-04-03 (content identity per
+  subject/scope for lapse); item-level acceptance and lapse granularity.
+- **V1-C (workflow, loop, panel, hosting):** DEL-02-01/WD ↔ DEL-05-01/LOOP and
+  DEL-05-02/PANEL (checkpoints, tool references, selection identity, seat/role);
+  DEL-05-01 ↔ DEL-05-02 reciprocal join (both drafted by one author, so needs
+  independent comparison); C → DEL-02-01 tool descriptors; C/P → DEL-05-01/02
+  proposal elements; DEL-01-01/HOSTING-BOUNDARY seams where they touch these
+  (additive guidance, answer origin).
+
+## W11 — Codex 0.158.0 pin spike (DEL-01-01)
+
+**Purpose.** Observe the pinned supplier's actual protocol facts that DEL-01-01
+§10 (P-01…P-15) lists, and generate the protocol types, so the boundary
+definition rests on observation rather than dated evidence.
+
+**Authority.** Owner decision D4. Permitted: `npm install @openai/codex@0.158.0`
+into a scratch prefix under the session scratchpad; running that binary's
+`--version`, `--help`, `app-server --help` and generator subcommands; starting
+`app-server` over stdio with `CODEX_HOME` pointed at an empty scratch directory
+to observe the `initialize` handshake and unknown-method behavior only. Not
+permitted: signing in, touching `~/.codex`, sending model turns, the global
+npm prefix, or git operations.
+
+**Write scope.** DEL-01-01 `Design/PIN_SPIKE_0.158.0.md` and
+`Design/generated/0.158.0/` (generated TS and/or JSON Schema, with a
+`MANIFEST.sha256`; if the total exceeds about 3 MB, commit JSON Schema plus a
+manifest of the TS output and state the omission).
+
+**Return.** Exact commands and their exit codes; observed version label and
+binary content hash; generator availability and flags; determinism (run
+twice and compare); method/request inventory counts; handshake observations;
+unknown-method response; per-P-item observed / not observed / contradicts
+HOSTING_BOUNDARY v0.1; findings that require a v0.2 change.

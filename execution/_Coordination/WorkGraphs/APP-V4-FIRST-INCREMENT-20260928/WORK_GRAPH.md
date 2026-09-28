@@ -56,10 +56,12 @@ a recorded WORKING_ITEMS consultation or by the human.
   DEL-09-06 and DEL-03-04 (integrating consumers). CASE-002 candidate arcs are
   non-gating; they organize co-development and receiver comparisons, not
   readiness verdicts.
-- **Open questions for the owner:** see DECISIONS_PENDING.md (scope option,
-  OI-001, OI-002, OI-012). Wave 1 does not depend on any of them.
+- **Owner decisions:** [OWNER_DECISIONS.md](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md)
+  — Option A; OI-001 five reserved acts; OI-002 App user setting / none in
+  hosts; OI-012 pin `0.158.0` with spike W11. Remaining open: OI-003, OI-008,
+  OI-009, OI-013, OI-014, OI-018, OI-021.
 
-## Deliverable scope (Option A — recommended; pending owner confirmation)
+## Deliverable scope (Option A — selected by owner decision D1)
 
 | Deliverable (SoW sha256 prefix) | What exists | What this undertaking produces | Nodes |
 |---|---|---|---|
@@ -83,22 +85,22 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 | ID / outcome | Deliverables and write scope | Needs / why | Completion check | State / result |
 |---|---|---|---|---|
-| W0 Graph, briefs, decision package | This folder; `AgentRuns/<RunID>/` | Steering; DAG-001 current (manifests pass at `6e18505e3`) | Graph committed in PR-1 | ACTIVE |
-| W1 Human-act and operation-policy distinction contract v0.1 | DEL-04-01 `Design/` only | Accepted basis only (PRD §4.5, HI §§4–7, d3) | Header complete; S1–S12 traced; `UNRESOLVED` shape; fixture catalogue | READY → dispatched |
-| W2 Record semantics and autonomy/standing exchange v0.1 | DEL-04-03, DEL-04-02 `Design/` only | Accepted basis; act kinds by accepted names (reconciled with W1 in V1) | Header complete; lapse rule; outcome `unknown`; M3 exchange examples | READY → dispatched |
-| W3 Catalog C and proposal P semantics v0.1 | DEL-03-01, DEL-03-02 `Design/` only | Accepted basis; coupled pair co-developed (CASE-004 lineage) | REQ-002 fields; four basis elements; HI-23 lifecycle; M3-CP comparison design | READY → dispatched |
-| W4 Portable workflow declaration v0.1 | DEL-02-01 `Design/` only | Accepted basis; Root workflow format as reuse source; C/act refs by name | Declared-part draft + examples; responsibility map rows | READY → dispatched |
-| W5 Loop and panel receiving needs v0.1 | DEL-05-01, DEL-05-02 `Design/` only | Accepted basis; C/P/record refs by name | Four-subject boundary; case matrices; interaction trace | READY → dispatched |
-| W6 Codex hosting boundary (version-independent) v0.1 | DEL-01-01 `Design/` only | Accepted basis; no pin | Boundary invariants; request register; OI-008 proposal; fixture/upgrade method | READY → dispatched |
-| V1 Receiver comparisons, M1 joins | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | PLANNED |
+| W0 Graph, briefs, decision package | This folder; `AgentRuns/<RunID>/` | Steering; DAG-001 current (manifests pass at `6e18505e3`) | Graph committed on branch | COMPLETE `8d3c66542` |
+| W1 Human-act and operation-policy distinction contract v0.1 | DEL-04-01 `Design/` only | Accepted basis only (PRD §4.5, HI §§4–7, d3) | Header complete; S1–S12 traced; `UNRESOLVED` shape; fixture catalogue | COMPLETE (v0.1) — `DEL-04-01/ACT-POLICY-v0.1` |
+| W2 Record semantics and autonomy/standing exchange v0.1 | DEL-04-03, DEL-04-02 `Design/` only | Accepted basis; act kinds by accepted names (reconciled with W1 in V1) | Header complete; lapse rule; outcome `unknown`; M3 exchange examples | COMPLETE (v0.1) — `DEL-04-03/RS-v0.1`, `DEL-04-02/AS-v0.1` |
+| W3 Catalog C and proposal P semantics v0.1 | DEL-03-01, DEL-03-02 `Design/` only | Accepted basis; coupled pair co-developed (CASE-004 lineage) | REQ-002 fields; four basis elements; HI-23 lifecycle; M3-CP comparison design | COMPLETE (v0.1) — `DEL-03-01/C-v0.1`, `DEL-03-02/P-v0.1` |
+| W4 Portable workflow declaration v0.1 | DEL-02-01 `Design/` only | Accepted basis; Root workflow format as reuse source; C/act refs by name | Declared-part draft + examples; responsibility map rows | COMPLETE (v0.1) — `DEL-02-01/WD-v0.1` + examples |
+| W5 Loop and panel receiving needs v0.1 | DEL-05-01, DEL-05-02 `Design/` only | Accepted basis; C/P/record refs by name | Four-subject boundary; case matrices; interaction trace | COMPLETE (v0.1) — `DEL-05-01/LOOP-v0.1`, `DEL-05-02/PANEL-v0.1` |
+| W6 Codex hosting boundary (version-independent) v0.1 | DEL-01-01 `Design/` only | Accepted basis; no pin | Boundary invariants; request register; OI-008 proposal; fixture/upgrade method | COMPLETE (v0.1) — `DEL-01-01/HOSTING-BOUNDARY-v0.1`; OI-008 proposal O-1 |
+| V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | ACTIVE |
 | R1 Repair to v0.2 against V1 findings | Same Design folders | V1 | Findings dispositioned; affected comparisons rechecked | PLANNED |
-| P1 PR-1: graph + decision package | Graph, run folder | W0 | PR merged | PLANNED |
+| P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
 | P2 PR-2: Wave-1 definitions v0.2 + comparisons | W1–W6, V1, R1 outputs | R1; independent review IR1 | PR merged under standing Git authority | PLANNED |
 | W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | W4, W1, W2, W3 v0.2 | Compatibility report, checkpoint hold, transfer trace | PLANNED |
 | W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | W3, W1 v0.2 | Enablement states; policy cases; transport-neutral fixtures | PLANNED |
 | W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | PLANNED |
 | W10 Host receiving matrix and checklist | DEL-03-04 `Design/` | W1–W9 | Every receiving-map row cites a contribution version or `UNRESOLVED` | PLANNED |
-| W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) | Types generated at pin; observed protocol facts vs published claims | BLOCKED on D4 |
+| W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | ACTIVE |
 | V2 Receiver comparisons, Wave 2 | Run folder | W7–W10 | As V1 | PLANNED |
 | IR1/IR2 Independent review | Read-only | P2 / P3 candidates | Findings resolved or dispositioned | PLANNED |
 | P3 PR-3: Wave-2 definitions | W7–W11, V2 | IR2 | PR merged | PLANNED |
@@ -123,8 +125,8 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: W1–W6 dispatched in parallel (disjoint write scopes); owner
-  decisions D1–D4 requested; then V1.
+- Next work: V1 (three reviewers) and W11 running; then R1 repair to v0.2
+  applying D2/D3 and V1 findings; then IR1 and PR-2.
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.
@@ -136,4 +138,5 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 
 | Completed work / node | What changed and was checked | Unresolved consequence |
 |---|---|---|
-| — | — | — |
+| W0 | Graph, briefs, decision package committed `8d3c66542` | PR not yet opened (graph travels with PR-2) |
+| W1–W6 | v0.1 Design files, fences verified | V1 comparisons; R1 applies D2/D3 |
