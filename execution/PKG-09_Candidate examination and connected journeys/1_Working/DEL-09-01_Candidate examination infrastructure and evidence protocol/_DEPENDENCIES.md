@@ -18,7 +18,7 @@
 ## Extracted Dependency Register
 - **Status:** EXTRACTED; local checks recorded in the run record.
 - **Register:** `Dependencies.csv`, schema v3.1, 29 columns.
-- **Rows:** 30 ACTIVE; 0 RETIRED; 12 ANCHOR (1 parent, 11 traces); 18 EXECUTION (8 upstream, 10 downstream); 1 EXTERNAL; 3 UNKNOWN; 0 DECLARED.
+- **Rows:** 30 ACTIVE; 0 RETIRED; 12 ANCHOR (1 parent, 11 traces); 18 EXECUTION (8 upstream, 10 downstream); 1 EXTERNAL; 2 UNKNOWN; 0 DECLARED.
 
 | Dependency | Class / direction | Target | Type |
 |---|---|---|---|
@@ -40,7 +40,7 @@
 | DEP-09-01-016 | EXECUTION / UPSTREAM | DEL-01-06 | PREREQUISITE |
 | DEP-09-01-017 | EXECUTION / UPSTREAM | Independently produced candidate review record | PREREQUISITE |
 | DEP-09-01-018 | EXECUTION / UPSTREAM | Evidence of an actually performed human act | PREREQUISITE |
-| DEP-09-01-019 | EXECUTION / UPSTREAM | App implementation owner-selected Codex version pin | CONSTRAINT |
+| DEP-09-01-019 | EXECUTION / UPSTREAM | DEL-01-01 | CONSTRAINT |
 | DEP-09-01-020 | EXECUTION / UPSTREAM | External Domains receiving owners — later research-fixture admission input | PREREQUISITE |
 | DEP-09-01-021 | EXECUTION / DOWNSTREAM | DEL-01-06 | HANDOVER |
 | DEP-09-01-022 | EXECUTION / DOWNSTREAM | DEL-09-02 | HANDOVER |
@@ -63,6 +63,8 @@
 ---
 
 ## Run Notes
+
+### Initial extraction — 2026-09-27 (historical)
 - Initialized under the approved coordination policy.
 - Run 2026-09-27: `chirality-root:bundled:workflow:dependency-extract`; `MODE=UPDATE`; `STRICTNESS=CONSERVATIVE`; `CONSUMER_CONTEXT=NONE`; `ARCHITECTURE_BASIS_POLICY=NONE`; `DOC_ROLE_MAP=DEFAULT`.
 - `SCOPE=DEL-09-01`; `SOURCE_DOCS=ScopeOfWork.md`; `ANCHOR_DOC=ScopeOfWork.md`; `EXECUTION_DOC_ORDER=[ScopeOfWork.md]`. Both passes used only this source; the 12-anchor pass completed before execution extraction.
@@ -77,6 +79,13 @@
 - Verification methods are future checks, not executed candidate results or supplied qualification. Historical candidate passes, replay/browser results, actual native/host witnesses and human acts retain their separate standing. No fixed run quota, validation period or numeric fitness criterion is invented.
 - Local check results and actual read-source hashes are recorded in `_run_records/dependency-extract-20260927.md`. No downstream closure or graph assembly is claimed.
 
+### Target resolution UPDATE — 2026-09-28 (UTC)
+- Bounded R2 repair under `chirality-root:bundled:workflow:dependency-extract`: only `DEP-09-01-019` target/provenance fields and its `LastSeen` changed. All other rows remain byte-identical. `MODE=UPDATE`; `STRICTNESS=CONSERVATIVE`; `CONSUMER_CONTEXT=NONE`; `ARCHITECTURE_BASIS_POLICY=NONE`; `DOC_ROLE_MAP=DEFAULT`; `SCOPE=DEL-09-01`; source/anchor/execution source remains `ScopeOfWork.md`, and run/decomposition paths remain those recorded above.
+- Pass 1 rechecked the 12 existing anchors (one parent and 11 traces) against the local source and accepted G3 records before Pass 2 resolved the pin-producing obligation. Accepted provenance: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv#SOW-135` and `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv#DEL-01-01`; the supplied `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/TARGET_RESOLUTION.md` R2 records prior independent producer `OUT-002/REQ-006` proof. No other deliverable source was read in this repair.
+- Current counts: 30 ACTIVE, 0 RETIRED; 12 ANCHOR; 18 EXECUTION (8 upstream, 10 downstream); 1 EXTERNAL; 2 UNKNOWN (actual candidate basis and candidate-specific independent reviewer). Four DOCUMENT artifact paths remain unresolved. The actual Codex version, decision artifact and qualification remain open under OI-012. `RequiredMaturity=TBD`, blank `ProposedMaturity`, `SatisfactionStatus=TBD`, statement and evidence are preserved; no historical version is selected and independent support definition continues.
+- Human-owned sections and prior history are preserved; declared mirrors added/refreshed/retired: 0/0/0; initial-setup placeholders skipped: 2. Source SHA256 remains `8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a`; prior run record, references and status are unchanged. Local schema/enums/IDs, quotes, anchors, duplicates and preservation checks are recorded in `_run_records/dependency-target-resolution-20260928.md`. No global checks, graph changes, delivery, satisfaction or lifecycle act are claimed.
+
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-27 — TASK dependency-extract; UPDATE/CONSERVATIVE; accepted Group3 decomposition available; 30 ACTIVE (12 ANCHOR, 18 EXECUTION), 0 RETIRED; no missing/ambiguous parent or decomposition warning; unresolved input/recipient identities and optional later admission remain explicit.
+- 2026-09-28T04:27:30.851032+00:00 — TASK bounded R2 target resolution; UPDATE/CONSERVATIVE; accepted Group3 basis available; DEP-09-01-019 producer resolved to DEL-01-01. 30 ACTIVE (12 ANCHOR, 18 EXECUTION), 0 RETIRED; 1 EXTERNAL, 2 UNKNOWN. One parent; no parent/decomposition warning. Actual pin/qualification and all fulfilment remain unresolved.

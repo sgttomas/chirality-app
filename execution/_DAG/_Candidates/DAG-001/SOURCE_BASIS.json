@@ -1,0 +1,68 @@
+{
+  "GraphID": "DAG-001",
+  "standing": "PROPOSED_BASIS_NOT_CONFIRMED; six target refinements locally checked; refreshed independent closure pending",
+  "source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
+  "working_state": "Base revision c1038ae5 plus complete six target refinements. Updated inputs and source manifest await source commit and independent refresh; no writer remains active. Prior observation remains source-pinned history.",
+  "manifest": "SOURCE_MANIFEST.sha256",
+  "manifest_sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4",
+  "inventory_source": "_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+  "node_count": 41,
+  "exempt_units": [],
+  "closure_snapshots": [
+    {
+      "path": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
+      "report_sha256": "e80931ad741c4530ef2e99e7f33b4278a7699d6071607b650479f0bee1a899b4",
+      "qa_sha256": "9a2eb72eaf5d2a69d7f6f1f1f5dbad0371f533ddc57717c6fee4a83c96c9a2d4",
+      "run_status": "WARNINGS",
+      "analyzer_process": "COMPLETE / exit 0",
+      "subject_status": "FAIL",
+      "closure": "BLOCKER relative to raw acyclic production-order objective",
+      "semantic_verdict": "No concrete source/register defect found in bounded examination; limitations retained."
+    }
+  ],
+  "cases": [],
+  "selected_method_files": [
+    {
+      "path": "workflows/audit-dep-closure/WORKFLOW.md",
+      "sha256": "b436fa343058795398633410bd9e0abd19a37dc5b2869c14617016df5e63fcb1"
+    },
+    {
+      "path": "workflows/audit-dep-closure/resources/contract.md",
+      "sha256": "75b4243428ad641fc5e17c9eaa92b0e3ff836403fa88f9a4150ec5069fee02a4"
+    },
+    {
+      "path": "workflows/audit-dep-closure/resources/method.md",
+      "sha256": "5b560c5b892f014b210098d1bdada862a58027580f2bbe3e8642e55097093c5d"
+    },
+    {
+      "path": "workflows/project-dag/WORKFLOW.md",
+      "sha256": "e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b"
+    },
+    {
+      "path": "workflows/project-dag/resources/contract.md",
+      "sha256": "a55edc3b89a2b641dda90457528fae626a5d2fae5850e96a77b2322fd55ed24d"
+    },
+    {
+      "path": "workflows/project-dag/resources/method.md",
+      "sha256": "4a5566bfbc9f3d6b12f8faa574c5187d22a27bb913b0ff1302e68c220d698d6b"
+    },
+    {
+      "path": "workflows/project-dag/resources/graph-version.md",
+      "sha256": "ff6b7ba5b455e5e26cfb08a00ab119dfa35b19a56610987a40b4142738a856bf"
+    }
+  ],
+  "tools": [
+    {
+      "path": "tools/coordination/analyze_dep_closure.py",
+      "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+    }
+  ],
+  "source_history": [
+    {
+      "source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
+      "manifest_sha256": "30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc",
+      "closure": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
+      "standing": "Completed pre-refinement observation; immutable."
+    }
+  ]
+}

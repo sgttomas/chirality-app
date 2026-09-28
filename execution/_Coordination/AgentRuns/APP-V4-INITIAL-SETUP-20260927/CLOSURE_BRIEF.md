@@ -1,6 +1,6 @@
 # App v4 initial dependency closure — prepared TASK brief
 
-**Prepared, not dispatched. Source revision/manifest will be fixed after all41 local writers return.** Parent WORKING_ITEMS `/root/renewal_research_strategy`, under HELP_HUMAN. A separate fresh-context terminal TASK will execute this bounded assignment; no producer will independently check its own extraction.
+**Dispatch-ready: all 41 writers have returned; source is committed and the manifest is frozen.** Parent WORKING_ITEMS `/root/renewal_research_strategy`, under HELP_HUMAN. A separate fresh-context terminal TASK will execute this bounded assignment; no producer will independently check its own extraction.
 
 Select `chirality-root:bundled:workflow:audit-dep-closure`; read Root AGENTS, TASK, actual entry, contract and method. This is independent closure/source-fidelity examination of the settled App-v4 dependency evidence, not a broad PRD/decomposition re-audit or architecture decision. No delegation, Git mutation, source repair, provider experiment or outside messaging.
 
@@ -12,8 +12,8 @@ Select `chirality-root:bundled:workflow:audit-dep-closure`; read Root AGENTS, TA
 - FILTER_ACTIVE_ONLY true; NORMALIZE_IDS true; INCLUDE_DECLARED true; EDGE_FILTER EXECUTION × DELIVERABLE; HUB_THRESHOLD20; MAX_CYCLES200; no prior summary.
 - The cycle sample is deliberately bounded to200 for proportional evidence. Full strongly connected component membership must still be reported; do not call a capped cycle sample exhaustive.
 - UPDATE_LATEST_POINTER true, for the closure observation pointer only. Never create or move `_DAG/_LATEST.md`.
-- SOURCE_REVISION: PENDING_SETTLED_COMMIT.
-- SOURCE_MANIFEST: `_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256` (not yet created at brief preparation).
+- SOURCE_REVISION: c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b.
+- SOURCE_MANIFEST: `_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256` (SHA256 `30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc`; 130 actual source entries).
 
 ## Read/write contract
 

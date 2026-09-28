@@ -1,0 +1,11 @@
+# SCC-CASE-002 contribution contract
+
+This working case prepares evidence and candidate treatments for WORKING_ITEMS `/root/renewal_research_strategy` and the human project-dag basis checkpoint. Selected method: `chirality-root:bundled:workflow:scc-resolution-case`; terminal TASK: `/root/renewal_research_strategy/scc_case_002`. The supplied observation is not fabricated human acceptance of a graph.
+
+Write authority is the nine prescribed files and this case's one TASK run record. No product contracts, dependency registers, decomposition, global graph, sibling cases or lifecycle records are in scope. The producer has not initiated scope-change, changed scope/allocation, performed a human act, or established an external commitment. Actual filesystem capability is wider than the instructed boundary; no technical isolation is claimed. No delegation or Git operation is permitted to this TASK.
+
+Each deposit must identify its source revision/hash, exact member set, source row and local contract clause, interpretation, missing contribution, owner and point of need. Source Direction remains intact. Canonical graph arrows mean **consumer -> supplier (depends on)**. Prose describing what a supplier sends to a consumer is information flow, the reverse direction. Mirror rows describing one arc are indexed together; distinct reverse contributions remain separate.
+
+Remedies remain candidates until a real ruling and relevant owner-workflow evidence exist. The ruling register is header-only because no ruling was supplied. The manager owns integration and downstream dispatch through the selected project-dag undertaking; local dependency changes, if later authorized, belong to `dependency-extract`; a subsequent `audit-dep-closure` supplies fresh closure evidence. Scope/decomposition change is reserved to its owner method if a concrete source conflict warrants it, not presumed from cyclicity.
+
+All 41 project deliverable IDs and their responsibilities remain intact. INITIALIZED means a checked contract only. Actual technical input, human act, supplier qualification, external host contribution, receiving adoption, and professional reliance keep their separate evidence and actors. Case checks establish packet consistency only; independent review and owner acceptance remain distinct.

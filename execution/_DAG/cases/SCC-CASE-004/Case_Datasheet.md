@@ -1,0 +1,52 @@
+# SCC-CASE-004 — Capability catalog and proposal-outcome contracts
+
+- CaseState: HUMAN_RULINGS_PENDING (completed bounded inquiry; owner graph treatment unruled).
+- CASE_ID: SCC-CASE-004; originating SCC_ID: SCC-004.
+- Originating/latest DepClosure observation: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`.
+- Member node set and AFFECTED_DELIVERABLES: `DEL-03-01;DEL-03-02`.
+- Frozen dependency source: `c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b` (supplied basis); manifest `projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256`, SHA256 `30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc`.
+- Analyzer COMPLETE, subject FAIL with seven SCCs, 41/41 units and zero schema/orphan/declared disagreements; this case is the two-member SCC-004 and CYCLE-00004 (E01). No accepted DAG is reported by the observation.
+- Source audit: final Dependency_Closure_Report.md, QA_Report.md and RUN_SUMMARY.md read before return (E10). Report SHA256 `e80931ad741c4530ef2e99e7f33b4278a7699d6071607b650479f0bee1a899b4` matches the manager-supplied identity. All 130 manifest entries match the settled revision according to that independent audit. Its bounded examination found no concrete source-fidelity defect, including all 48 intra-SCC rows; SCC-004 specifically confirms definition and verification behavior have different points of need. Run WARNINGS / raw acyclic production-order closure BLOCKER remain; this is not exhaustive certification, an input-satisfaction finding or graph acceptance.
+- Case home did not exist at initial inspection; no matching prior set, own case, legacy PKG-00 home, seed packet or ruling existed. Manager reserved this ID in SCC_WORK_ITEMS.csv. No later matched snapshot or membership change.
+
+## Required contributions and both internal arcs
+
+Three ACTIVE EXECUTION/DELIVERABLE rows yield two canonical DAG arcs. **Canonical graph convention is consumer → supplier (depends on). Arrows explicitly labeled as contributions instead mean supplier → consumer (supplies to); graph-cut descriptions name the canonical arc.** Source Direction is preserved exactly; DOWNSTREAM rows reverse their written endpoints for canonical graph construction.
+
+| Source row | Source Direction | Canonical DAG arc: consumer → supplier | Contribution view: supplier → consumer |
+|---|---|---|---|
+| DEP-03-01-023 | DOWNSTREAM | DEL-03-02 → DEL-03-01 | DEL-03-01 → DEL-03-02 |
+| DEP-03-02-016 | UPSTREAM | DEL-03-02 → DEL-03-01 | DEL-03-01 → DEL-03-02 |
+| DEP-03-01-026 | UPSTREAM | DEL-03-01 → DEL-03-02 | DEL-03-02 → DEL-03-01 |
+
+| Contribution: supplier → consumer | Local evidence | Actual contribution and point of need |
+|---|---|---|
+| DEL-03-01 → DEL-03-02 | DEP-03-01-023 DOWNSTREAM/HANDOVER (E02), grounded in 03-01 SoW required-input paragraph after OUT-003, line 52; DEP-03-02-016 UPSTREAM/PREREQUISITE (E03), grounded in 03-02 required interfaces, line 53, CLM-003 and OUT-001 | One transfer described by both parties: catalog operation identity/version, arguments/results/errors/availability and original relied-on basis. DEL-03-02 consumes these meanings in OUT-001/002, REQ-003, AC-004/VER-004 and stale-basis AC-007/VER-007. It needs an identified actual contract candidate when defining/conforming those fields, not completion of all DEL-03-01 work. |
+| DEL-03-02 → DEL-03-01 | DEP-03-01-026 UPSTREAM/INTERFACE (E02), grounded in 03-01 VER-004, line 81 (E04) | Distinct return: proposal refusal/application behavior supplied by the operation-contract owner to the catalog owner's later read-to-action basis comparison. 03-01 OUT-001/003, REQ-004 and AC-004 preserve all four basis elements through an intervening change. The proposal side supplies the interpretation/fixture behavior under 03-02 REQ-003/006, VER-004/007 and outcome/lifecycle clauses (E05); 03-01 does not implement it. It is needed to substantiate that comparison against the identified candidate. |
+
+DEP-03-01-023 and DEP-03-02-016 are corroborating descriptions of the same forward arc, not two conflicting directions. DEP-03-01-026 is not a redundant catalog handoff. It records a real return input. The catalog's broader REQ-001 also receives proposal/application meaning; calling the row verification-related does not remove that contract interface.
+
+The accepted rows give both units API_CONTRACT scope with CONFIG/DOC/TEST products and distinct App/shared capability and operation owners (E06). Their coupling is joint contract definition followed by a candidate-bound verification return; it does not by itself establish an architectural defect or whole-Deliverable finish-before-start cycle. Current sources define the required products; neither INITIALIZED nor their existence proves actual schemas, adopted agreements or behavior evidence are delivered (E04/E05). Both internal directions remain unsatisfied/unestablished in the registers (PENDING for E02, TBD for E03).
+
+## Proposed contribution milestones under existing responsibilities
+
+These are proposed work coordination points, not new lifecycle statuses or readiness gates:
+
+1. **Catalog candidate C:** DEL-03-01 owner supplies identified operation/basis semantics: operation identity/version distinct from workspace identity, generation, model revision and canonical content hash; unavailable/result/error standing; and explicit unresolved representation/policy entries. Receiver DEL-03-02 records the exact candidate consumed. Semantic field definition can proceed now; actual serialization, hashing representation and placement require the relevant owners' agreements before affected implementation/conformance.
+2. **Proposal candidate P against C:** DEL-03-02 owner defines the relied-on basis/target/origin and outcome associations, stale refusal and separately based re-draft, and the named shared host route. Proposal/direct-autonomy and queued/accepted/applied/unknown meanings stay distinct. Unknown policy assignments remain visible; no host implementation, receipt or human acceptance is fabricated.
+3. **Return comparison C ↔ P:** DEL-03-02 returns its identified refusal/application contract behavior and fixture observations to DEL-03-01 VER-004. The comparison traces a read through a later action after a basis change, showing original-basis preservation and, under P's contract, stale refusal/re-draft. Record exact C/P versions, exercised channels and illustrative/test-double versus host evidence. Revisit affected comparisons when either consumed candidate changes, consistent with 03-01's receiving map and 03-02's candidate-bound fixtures; this is not a claim that every version requires a perpetual whole-unit cycle.
+4. **Actual host/consumer reliance:** externally supplied operation definitions, implementation behavior, receipts and candidate environment are needed for the corresponding conformance/joined witness. DEL-03-01/02 local fixtures do not supply them; external host construction stays outside App scope.
+
+## Treatments for the project-DAG basis checkpoint
+
+| Candidate | Concrete treatment | Consequence and limit |
+|---|---|---|
+| R004-A — recommended | Coordinate C, P and their return comparison under both existing owners. Preserve both source arcs and label their contributions/points of need in the candidate account; carry the unresolved graph treatment to `project-dag` CP1. | Enables bounded definition and fixture work without circular whole-unit scheduling. The source SCC remains recorded; milestones alone neither remove an edge nor establish closure. No common service, new unit, merged owner or automatic-extension promise follows. |
+| R004-B — narrow alternative | Only if the human chooses an explicit graph objective of **initial forward contract-definition inputs**, propose excluding the canonical depends-on arc DEL-03-01 → DEL-03-02 (DEP-03-01-026; proposal-to-catalog contribution) from that view while retaining the return as a required later comparison and receiving interface. Keep canonical DEL-03-02 → DEL-03-01 (catalog-to-proposal contribution). | Locally yields one forward arc for that objective, but cannot support completion/conformance/verification of DEL-03-01 AC-004 without the return. Before any cut, the owning `project-dag` process must rule the exact objective, show initial catalog definition does not consume P, account for broader REQ-001, and identify where the return remains binding. A broader full-production graph does not currently warrant this exclusion. No cut is applied here and no claim about other SCCs follows. |
+| R004-C — explicit candidate hold | Keep the unresolved coupling in the candidate layer while catalog/proposal owners supply candidate identities and the required receiving/representation agreements; obtain the graph-objective ruling through `project-dag`. | DEL-03-02's concrete basis-bound schemas/comparisons lack an actual C input; DEL-03-01's VER-004 lacks an actual P return. Affected implementation/conformance also lacks agreed representation/policy or host evidence where required. General field/lifecycle meaning, ownership maps, fixture plans and explicit unresolved-choice documentation can continue. This is not a project-wide hold. |
+
+Recommend R004-A as the production coordination treatment, retaining R004-C's candidate standing until the real graph checkpoint resolves it. R004-B is an objective-dependent alternative, not an inferred correction of a bad row. No evidence requires changing the accepted 41-unit decomposition, assigning SWB work locally, or combining these two product responsibilities.
+
+## Inputs that this case cannot settle
+
+E07–E09 retain OI-001/OI-002 adopted permission/human-act classes before affected policy contracts/implementation; OI-014 and 03-01 TBD-003/03-02 TBD-002 retain placement, encoding, canonical basis representation, proposal identity and duplicate/outcome mechanics before affected implementation. OI-003 remains the owner's extension-claim decision; OI-021/DEP-001 concern later connected activity and actual host evidence. Their unresolved state does not hold independent contract definition, decide a shared service, or establish external delivery. The exact candidate agreements and graph objective remain TBD; actual human acts have separate subjects, evidence and actors.

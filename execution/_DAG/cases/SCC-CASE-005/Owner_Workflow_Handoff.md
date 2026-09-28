@@ -1,0 +1,3 @@
+HandoffID,OwnerWorkflow,TriggerCondition,PayloadPath,ExpectedOutput,Status
+H1,WORKING_ITEMS,Independent case check then actual human project-dag basis checkpoint,Case_Datasheet.md;Open_Questions.md;Candidate_Remedies.csv,Workflow project-dag: record actual selected objective/treatment with scope limits and retained obligations; no inferred owner act,PROPOSED_NOT_DISPATCHED
+H3,DEPCLOSURE,Only after any authorized owner evidence or graph treatment and independent examination,Evidence_Register.csv;Candidate_Remedies.csv,Workflow audit-dep-closure: observe actual resulting source/graph basis and match cases by member set; retain qualifying objective boundaries,PROPOSED_NOT_DISPATCHED

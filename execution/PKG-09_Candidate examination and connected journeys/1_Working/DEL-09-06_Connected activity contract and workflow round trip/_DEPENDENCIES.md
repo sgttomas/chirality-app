@@ -18,7 +18,7 @@
 ## Extracted Dependency Register
 - **Status:** EXTRACTED; 24 ACTIVE rows (11 ANCHOR; 13 EXECUTION); 0 RETIRED; 0 DECLARED.
 - **Canonical register:** `Dependencies.csv` (v3.1; 29 columns).
-- **Targets:** 3 local Deliverables, 3 Package inputs, 7 EXTERNAL execution rows; 0 UNKNOWN rows. Exactly 1 parent anchor and 10 scope/objective trace anchors.
+- **Targets:** 4 local Deliverables, 2 Package inputs, 7 EXTERNAL execution rows; 0 UNKNOWN rows. Exactly 1 parent anchor and 10 scope/objective trace anchors.
 
 | Dependency | Class / type | Direction | Target |
 |---|---|---|---|
@@ -36,7 +36,7 @@
 | DEP-09-06-012 | EXECUTION / INTERFACE | UPSTREAM | PKG-02 |
 | DEP-09-06-013 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-03 |
 | DEP-09-06-014 | EXECUTION / INTERFACE | UPSTREAM | PKG-03 |
-| DEP-09-06-015 | EXECUTION / INTERFACE | UPSTREAM | PKG-04 |
+| DEP-09-06-015 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-03 |
 | DEP-09-06-016 | EXECUTION / INTERFACE | UPSTREAM | DEL-05-01 |
 | DEP-09-06-017 | EXECUTION / INTERFACE | UPSTREAM | DEL-05-02 |
 | DEP-09-06-018 | EXECUTION / PREREQUISITE | UPSTREAM | DEP-001 |
@@ -51,7 +51,7 @@
 - ACTIVE: 24; RETIRED: 0.
 - SatisfactionStatus: NOT_APPLICABLE 11 (anchors); TBD 13 (execution). SATISFIED: 0.
 - INITIALIZED: source-grounded SOW_V1 exists and independent INIT verification passed; manager recorded the separate status act under the approved policy. No dependency availability or product-readiness verdict.
-- RequiredMaturity=INITIALIZED on 3 local Deliverable inputs means checked local contracts only. Required technical behavior, received external contributions, actual human acts and completed witness evidence remain separate unmet/unverified conditions; other targets use TBD.
+- RequiredMaturity=INITIALIZED on 3 local Deliverable inputs means checked local contracts only. Required technical behavior, received external contributions, actual human acts and completed witness evidence remain separate unmet/unverified conditions. The resolved DEL-04-03 input retains RequiredMaturity=TBD under the identity-only repair; remaining targets use TBD.
 
 ## Run Notes
 - Method: `chirality-root:bundled:workflow:dependency-extract`; SCOPE=DEL-09-06; MODE=UPDATE; STRICTNESS=CONSERVATIVE; CONSUMER_CONTEXT=NONE; ARCHITECTURE_BASIS_POLICY=NONE; DOC_ROLE_MAP=DEFAULT.
@@ -67,6 +67,11 @@
 - Mandatory schema, used-enum and supported-ID validators passed. Local checks passed for evidence substring/word limit, canonical fields, unique IDs, target placement, parent count, duplicate absence, counts and preserved bytes. Optional whole-root EVQ/DRB check omitted; no project-wide result claimed. External-reference namespaces DEP-001 and OI-001/002/021 are source references, outside the dependency-row ID validator grammar.
 - Warnings: none under the workflow's integrity-warning classes. Open source conditions above remain unresolved; local extraction does not establish dependency closure.
 
+- 2026-09-28 target-resolution UPDATE (R5 only): `DEP-09-06-015` resolves the App/shared record contribution from PKG-04 to DEL-04-03 on accepted `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv` DEL-04-03 and `ScopeLedger.csv` SOW-094/095/096/143/186. The independently produced `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/TARGET_RESOLUTION.md` (SHA256 `f85a371853ec5ef18d3a1b1ebdc016e37e1bbd321217f726c4350204a2cefaa1`) carries the prior producer OUT-001/002 and CLM-004/005 proof; no sibling SoW was read by this repair.
+- R5 preserves the row's ID, source statement/locator/quote, UPSTREAM/INTERFACE classification, ACTIVE status, RequiredMaturity=TBD, blank ProposedMaturity and SatisfactionStatus=TBD. Host-specific recording/receipts remain external SWBPIPE contributions; the person performs the human act, and actual record instances/act evidence remain required at handoff/witness. No new allocation, satisfied input or completed witness is claimed.
+- Repair read extent and checks are recorded in `_run_records/dependency-target-resolution-20260928.md`. All other register rows, declared sections, existing history, source/control files and the old run record remain unchanged. Mandatory local schema/enum/ID and preservation checks passed; no whole-root validation or graph refresh was run during peer writes.
+
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-28T03:35:55+00:00 — UPDATE / CONSERVATIVE; accepted snapshot `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md` available; warnings none; ACTIVE 24 (ANCHOR 11, EXECUTION 13), RETIRED 0; actual inputs unclaimed.
+- 2026-09-28T04:24:05+00:00 — UPDATE / CONSERVATIVE, R5 only; DEP-09-06-015 target PKG-04 → DEL-04-03, accepted G3 allocation and local CLM-003 verified; ACTIVE 24 (ANCHOR 11, EXECUTION 13), RETIRED 0, local Deliverable inputs 4, Package inputs 2, EXTERNAL 7, UNKNOWN 0; warnings none; maturity, satisfaction and actual-input conditions preserved. See `_run_records/dependency-target-resolution-20260928.md`.

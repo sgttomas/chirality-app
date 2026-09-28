@@ -360,5 +360,116 @@
     }
   },
   "preservation": "PASS: all41 source hashes, returned register hashes, declared prefixes and status bytes match; all one-parent/unique-ID checks pass.",
-  "working_state": "Complete extraction files were uncommitted at this manager preflight; exact per-file hashes above bind the checked bytes. This source_head is the base, not a claim that its Git tree already held these outputs."
+  "working_state": "Complete extraction files were uncommitted at this manager preflight; exact per-file hashes above bind the checked bytes. This source_head is the base, not a claim that its Git tree already held these outputs.",
+  "target_refinement_checks": {
+    "standing": "Manager affected preflight, not independent refreshed closure",
+    "prior_source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
+    "working_state": "All six refinements returned; complete updated source uncommitted at this preflight. Exact current register bindings in DEPENDENCY_WORK_ITEMS.csv.",
+    "preservation": "All41 SoW/status/reference bytes and human-owned declaration prefixes match prior source; original IDs preserved; only six named existing rows and new DEP-03-01-030 changed. Existing maturity/statement/evidence/satisfaction preserved except authorized R6 statement split.",
+    "deltas": [
+      {
+        "DependencyID": "DEP-03-01-027",
+        "changed_fields": [
+          "TargetType",
+          "TargetRefID",
+          "TargetName",
+          "TargetLocation",
+          "Statement",
+          "Notes"
+        ]
+      },
+      {
+        "DependencyID": "DEP-03-03-008",
+        "changed_fields": [
+          "TargetType",
+          "TargetDeliverableID",
+          "TargetRefID",
+          "TargetName",
+          "TargetLocation",
+          "LastSeen",
+          "Notes"
+        ]
+      },
+      {
+        "DependencyID": "DEP-06-01-013",
+        "changed_fields": [
+          "TargetType",
+          "TargetPackageID",
+          "TargetDeliverableID",
+          "TargetRefID",
+          "TargetName",
+          "TargetLocation",
+          "LastSeen",
+          "Notes"
+        ]
+      },
+      {
+        "DependencyID": "DEP-08-02-006",
+        "changed_fields": [
+          "TargetType",
+          "TargetDeliverableID",
+          "TargetRefID",
+          "TargetName",
+          "TargetLocation",
+          "LastSeen",
+          "Notes"
+        ]
+      },
+      {
+        "DependencyID": "DEP-09-01-019",
+        "changed_fields": [
+          "TargetType",
+          "TargetPackageID",
+          "TargetDeliverableID",
+          "TargetName",
+          "TargetLocation",
+          "LastSeen",
+          "Notes"
+        ]
+      },
+      {
+        "DependencyID": "DEP-09-06-015",
+        "changed_fields": [
+          "TargetType",
+          "TargetDeliverableID",
+          "TargetRefID",
+          "TargetName",
+          "TargetLocation",
+          "Notes"
+        ]
+      }
+    ],
+    "added": [
+      "DEP-03-01-030"
+    ],
+    "counts": {
+      "registers": 41,
+      "rows": 759,
+      "active_anchors": 355,
+      "active_execution": 403,
+      "retired": 1,
+      "active_execution_target_types": {
+        "EXTERNAL": 144,
+        "DELIVERABLE": 201,
+        "PACKAGE": 18,
+        "DOCUMENT": 26,
+        "UNKNOWN": 14
+      }
+    },
+    "check": {
+      "command": [
+        "python3",
+        "-B",
+        "tools/validation/validate_decomposition_registers.py",
+        "projects/chirality-app-v4/execution",
+        "--families",
+        "XRG,EVQ,DRB",
+        "--strict"
+      ],
+      "tool_sha256": "5442049efb41762d102448a8a64332950e4c08acfdf85d84722fef04223126f5",
+      "exit_code": 0,
+      "stdout": "Register validation \u2014 projects/chirality-app-v4/execution\n  Families: XRG, EVQ, DRB\n  Registers scanned: 41  Dependency rows: 759  Deliverables declared: 41\n\nEvidence-cell metrics by row class\n  class         rows  well-formed  locus=quote  quoted-locus  empty-quote  ph-locus  waived  file-pop  file-res\n  ANCHOR         355          355            0             0            0         0       0       355       355\n  EXECUTION      404          404            0             0            0         0       0       404       404\n  EvidenceFile resolved as: deliverable-relative 759, working-root-relative 0, instruction-root-relative 0; 0 resolve in more than one form\n\nSummary by check code\n  (none)\n\n  ERROR findings:   0\n  WARNING findings: 0\n",
+      "stderr": ""
+    }
+  }
 }
