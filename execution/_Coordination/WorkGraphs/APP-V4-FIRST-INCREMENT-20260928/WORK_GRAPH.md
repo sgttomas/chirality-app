@@ -118,7 +118,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | `closeout/C1-*.md` only. SoWs, registers and `_STATUS` are bound by the DAG-001 SOURCE_MANIFEST, so their changes are returned as **proposed** for a successor route | V3/R5 final set | Commitment↔result both directions per DEL; proposed SoW/register changes; lifecycle observation | COMPLETE — C1-A/B/C combined in [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/closeout/CLOSEOUT_ACCOUNT.md) (lands in F1) |
 | M1 MEMORY rows | Affected `MEMORY.md` | C1 | Terse rows → receipt | COMPLETE — 14 per-deliverable `MEMORY.md` files, one run row each |
 | RC Central receipt | `AgentRuns/<RunID>/RECEIPT.md` | C1 | Result/checks/limits | COMPLETE — [RECEIPT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/RECEIPT.md) |
-| F1 Final PR | All | C1, M1, RC, review | Final PR merged | ACTIVE — [#1045](https://github.com/sgttomas/chirality/pull/1045); review V7 (B-1 fixed, recheck) |
+| F1 Final PR | All | C1, M1, RC, review | Final PR merged | COMPLETE — [#1045](https://github.com/sgttomas/chirality/pull/1045) merged `65e2d6c2`; V7 (B-1 fixed) then V7b MERGE; CI 9 pass / 4 skipped |
+| RL Relay record | RELAY header and §4 ledger, GUIDE pin, handoff | Owner's statement: questions relayed 2026-09-28 | Delivery recorded from that statement; answers pending | ACTIVE — follow-up PR |
 
 **Conventions for all Design artifacts.** Each file opens with a contribution
 header: contribution ID and version (e.g. `DEL-03-01/C-v0.1`), status
@@ -135,9 +136,9 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: F1 final PR (closeout account, MEMORY rows, receipt, handoff
-  pointer); then owner questions (relay — the owner's condition is met once
-  V7, the F1 review, returns MERGE; D6 App-side follow-up U-E23; SP-6 cost U-E4;
+- Next work: the undertaking is closed (F1 merged `65e2d6c2`). The owner
+  relayed the SWBPIPE questions on 2026-09-28, and answers are pending. Then
+  owner questions (D6 App-side follow-up U-E23; SP-6 cost U-E4;
   successor register/SoW/DAG-002 route; lifecycle; FX-PIPE-01 custody;
   DEL-01-05 matters).
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
