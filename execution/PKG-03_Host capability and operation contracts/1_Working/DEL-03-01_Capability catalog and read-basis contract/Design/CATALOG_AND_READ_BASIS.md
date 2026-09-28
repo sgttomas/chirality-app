@@ -1,9 +1,9 @@
 # Capability catalog and read-basis contract
-- Contribution: DEL-03-01/C-v0.4
+- Contribution: DEL-03-01/C-v0.5
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (catalog and read-basis schema meaning), OUT-002 (three-surface responsibility map skeleton), OUT-003 (designed contract fixtures and the shared fixture catalogue); REQ-001–REQ-007; AC-001–AC-008; VER-001–VER-008
-- Basis: repo 6e18505e3; ScopeOfWork.md sha256 179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7d…60da) §§1–3, §5 V4-HI-30–33, §6 V4-HI-40–42, §7, §10 item 3, §11; `P/docs/PRD.md` V4-HOST-03, V4-EXT-01, V4-PAR-01–05, V4-AUT-03–05, V4-SHR-02, §9 OQ-02/OQ-10/OQ-11; `P/docs/ARCHITECTURE.md` V4-ARC-20–21; `P/docs/EXAMINATION.md` V4-EXM-20/21/24/25; DECISION_BRIEF #d2/#d3/#d4/#d5; SCC-CASE-002 Case_Datasheet rows M1-C, M3-CP, M4-X (sha256 6acdc6c4…a71a6); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f3…81f2e) D2/D3; R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; R3_RESOLUTIONS.md (sha256 202d52c7…afbf) R3-4; R4_RESOLUTIONS.md at `f05c7e4cd` (sha256 50a009b2…2a24) R4-1, R4-13, R4-16, R4-18–R4-20; OWNER_DECISIONS DECISION-2 D5 (via R4-1); review V2 (sha256 75ba1dff…e6ef) m-5, m-8, m-12; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
-- Consumed inputs: Wave-2 sibling texts read from commit `f05c7e4cd` — DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76e…18e8: F-15, CH-23, RT-6–RT-8), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409c…a074: F-1, F-2, F-4, F-7, F-8), DEL-09-09/XT-v0.1 `EXTERNAL_TRACE_CASES.md` (sha256 8f098c79…f1df: §4.1 L-XT-1, F-5), DEL-02-01/WD-EX-v0.3 `EXAMPLES.md` (sha256 0f1058d7…d018d: E1 checkpoint table); DEL-03-02/P-v0.4 (co-revised in this sweep); earlier: DEL-03-02/P-v0.3 (co-revised: change-item content identity, canonical outcome taxonomy, applied-outcome association with resulting objects, retry precedence, item-left events, M3-CP return); sibling v0.2 texts read from commit `28bd00499` where an R2 ruling touches a join — DEL-04-01/ACT-POLICY-v0.2 `ACT_AND_POLICY_CONTRACT.md` (sha256 e50f1fe2…93a9: §2.1 act names, §5.1–§5.3 class vocabulary and resolution order, §6 outcome map, §8.1 decision-standing values, §8.3 records), DEL-04-03/RS-v0.2 `RECORD_SEMANTICS.md` (sha256 56a3f839…1c69: §7 L-1–L-12 and lapse states), DEL-05-01/LOOP-v0.2 `LOOP_RECEIVING_CONTRACT.md` (sha256 1151d432…62c9: §6.2 dispatch record, §12 evidence labels), DEL-02-01/WD-v0.2 `WORKFLOW_DECLARATION.md` (sha256 c25bccc5…a55c: §4.3.7, §4.4 promised standing), DEL-05-02/PANEL-v0.2 (sha256 0a8a0dbe…a700; evidence-label lines only), DEL-04-02/AS-v0.2 (F9 row only, grep); SWBPIPE host catalog: not supplied (DEP-03-01-025)
+- Basis: repo 6e18505e3; ScopeOfWork.md sha256 179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7d…60da) §§1–3, §5 V4-HI-30–33, §6 V4-HI-40–42, §7, §10 item 3, §11; `P/docs/PRD.md` V4-HOST-03, V4-EXT-01, V4-PAR-01–05, V4-AUT-03–05, V4-SHR-02, §9 OQ-02/OQ-10/OQ-11; `P/docs/ARCHITECTURE.md` V4-ARC-20–21; `P/docs/EXAMINATION.md` V4-EXM-20/21/24/25; DECISION_BRIEF #d2/#d3/#d4/#d5; SCC-CASE-002 Case_Datasheet rows M1-C, M3-CP, M4-X (sha256 6acdc6c4…a71a6); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f3…81f2e) D2/D3; R1_RESOLUTIONS.md (sha256 2f9c7e72…7ec4) R-1–R-9; R2_RESOLUTIONS.md (sha256 77cfb845…d088) R2-1–R2-21; R3_RESOLUTIONS.md (sha256 202d52c7…afbf) R3-4; R4_RESOLUTIONS.md at `f05c7e4cd` (sha256 50a009b2…2a24) R4-1, R4-13, R4-16, R4-18–R4-20; R5_RESOLUTIONS.md at `8fb51f07f` (sha256 254d0b93…d6f1) R5-1, R5-2, R5-4, R5-7, R5-9; reviews V3-A (sha256 f25f5af1…1d87) and V3-B (sha256 5662fbd0…54a3) minors addressed to C; OWNER_DECISIONS DECISION-2 D5 (via R4-1); review V2 (sha256 75ba1dff…e6ef) m-5, m-8, m-12; comparisons V1-A (01811533…4c09), V1-B (09eebfe0…1cae), V1-C (8d46258a…94a6); reviews IR1-A (31b3c7f8…8284), IR1-B (70e4a4f6…2846), IR1-C (295e96b3…26b9)
+- Consumed inputs: at `8fb51f07f`, DEL-02-01/WD-EX `EXAMPLES.md` (sha256 60ce307a…28ca4: E1d `label-with-grant` and R-16) for V-GR1; the EXEC-v0.2, ADAPTER-v0.2 and XT-v0.2 texts were **not** read for this pass (their v0.1 texts, below, remain the recorded basis; V3-B Y-7 note); DEL-03-02/P-v0.5 (co-revised in this pass). Earlier: Wave-2 sibling texts read from commit `f05c7e4cd` — DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76e…18e8: F-15, CH-23, RT-6–RT-8), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409c…a074: F-1, F-2, F-4, F-7, F-8), DEL-09-09/XT-v0.1 `EXTERNAL_TRACE_CASES.md` (sha256 8f098c79…f1df: §4.1 L-XT-1, F-5), DEL-02-01/WD-EX-v0.3 `EXAMPLES.md` (sha256 0f1058d7…d018d: E1 checkpoint table); DEL-03-02/P-v0.4 (co-revised in the A1 sweep); earlier: DEL-03-02/P-v0.3 (co-revised: change-item content identity, canonical outcome taxonomy, applied-outcome association with resulting objects, retry precedence, item-left events, M3-CP return); sibling v0.2 texts read from commit `28bd00499` where an R2 ruling touches a join — DEL-04-01/ACT-POLICY-v0.2 `ACT_AND_POLICY_CONTRACT.md` (sha256 e50f1fe2…93a9: §2.1 act names, §5.1–§5.3 class vocabulary and resolution order, §6 outcome map, §8.1 decision-standing values, §8.3 records), DEL-04-03/RS-v0.2 `RECORD_SEMANTICS.md` (sha256 56a3f839…1c69: §7 L-1–L-12 and lapse states), DEL-05-01/LOOP-v0.2 `LOOP_RECEIVING_CONTRACT.md` (sha256 1151d432…62c9: §6.2 dispatch record, §12 evidence labels), DEL-02-01/WD-v0.2 `WORKFLOW_DECLARATION.md` (sha256 c25bccc5…a55c: §4.3.7, §4.4 promised standing), DEL-05-02/PANEL-v0.2 (sha256 0a8a0dbe…a700; evidence-label lines only), DEL-04-02/AS-v0.2 (F9 row only, grep); SWBPIPE host catalog: not supplied (DEP-03-01-025)
 - Receivers: DEL-02-01 (OUT-002; REQ-002; VER-002) and PKG-02 via DEP-03-01-022; DEL-02-03 (OUT-001; REQ-001; VER-001); DEL-03-02 (OUT-001, OUT-002; REQ-003; VER-004) via DEP-03-01-023; DEL-03-03 (OUT-001, OUT-003; REQ-001; VER-001); DEL-05-01 (OUT-001, OUT-002; REQ-003; VER-004); DEL-05-02 (OUT-001, OUT-003; REQ-001; VER-001); DEL-09-09 (OUT-001, OUT-002; REQ-001, REQ-005; VER-001, VER-005); DEL-04-03 (content identities, method designation, read basis — unregistered join, V1-B RF-04); DEL-04-02 (standing facets — unregistered join, V1-B RF-05); DEL-04-01 (fixture re-pointing); DEL-03-04 (integrated guide, reads the map); every file citing the §10 shared fixture catalogue (R-9; R2-21)
 
 ## 0. How to read this definition
@@ -184,8 +184,8 @@ A request can end, before or instead of execution, in one of the following.
 They must never be encoded as one another, and none may be encoded as a
 successful empty result. Every one carries the **evaluated basis** where the
 host evaluated one (V1-B D-21). DEL-03-02 P §9 carries the proposal/outcome
-extensions; DEL-04-03, DEL-05-01 and DEL-05-02 adopt both **as of C-v0.3 /
-P-v0.3** unchanged (R-7).
+extensions; DEL-04-03, DEL-05-01 and DEL-05-02 adopt both **as of C-v0.5 /
+P-v0.5** unchanged (R-7).
 
 | Result | Reporter | Meaning | Carries |
 |---|---|---|---|
@@ -209,12 +209,15 @@ application (R-3 point 1). A loop or adapter relays the actor's intent and
 any governing checkpoint constraint, with that constraint's carriage
 assurance (P §3.3; R4-14), and does not decide treatment.
 
-**Model destination (R4-1, SETTLED by DECISION-2 D5).** Host content read by
-the App's Codex through the external channel may flow to the App
-conversation's selected model, cloud included. The App does not gate
-enablement on the destination; it records each run's model destination
-(DEL-04-03) and shows it in the channel status (DEL-03-03) as information
-only. The destination changes no §4.1 result and no §6 standing. A host may
+**Model destination (R4-1; R5-4).** **SETTLED by DECISION-2 (D5):** host
+content read by the App's Codex through the external channel may flow to the
+App conversation's selected model, cloud included, and the App does not gate
+enablement on the destination. **INTEGRATION (DECISION-2 reading):** the App
+records the destination **per turn** where the supplier reports it, including
+reroutes, keeping requested and effective destinations separate (unobserved
+turns: *unknown*); the run-level value is the set observed, and a switch
+starts no new run (DEL-04-03); DEL-03-03 shows it in the channel status as
+information only. The destination changes no §4.1 result and no §6 standing. A host may
 restrict its own channel (DEP-001); V4-HOST-02 still governs the host's
 embedded agent.
 
@@ -453,7 +456,7 @@ maintenance saving is advertised and no narrower criterion is selected.
 
 ## 9. Proposal input this catalog needs, and the M3-CP return
 
-Co-developed with DEL-03-02/P-v0.3 (original SCC-CASE-004 pair, carried in
+Co-developed with DEL-03-02/P-v0.5 (original SCC-CASE-004 pair, carried in
 CASE-002). Both files had one author through R1 and R2; C↔P agreement is not
 independent evidence (IR1-B note).
 
@@ -465,7 +468,7 @@ relied-on basis reference meaning (§5.4).
 
 **Proposal input C needs from P** (compared at V1; repaired at R1 and R2):
 
-| Needed from DEL-03-02 | P-v0.3 locus |
+| Needed from DEL-03-02 | P-v0.5 locus |
 |---|---|
 | Relied-on basis reference carried unchanged from drafting through outcome, with relied-on target identities | P §3.2 |
 | Stale refusal reporting the relied-on and current bases, with reason and evaluated basis; per-item check on target identities | P §5, §9 |
@@ -477,7 +480,7 @@ relied-on basis reference meaning (§5.4).
 
 **Return (P → C, M3-CP, DEP-03-01-026).** Distinct from the forward handoff:
 DEL-03-02 supplies designed refusal/application behavior and the C/P
-read-then-action comparison with an intervening edit (P-v0.3 §11). DEL-03-01
+read-then-action comparison with an intervening edit (P-v0.5 §11). DEL-03-01
 uses it only to compare the basis elements across read, proposal, refusal,
 re-draft and applied outcome (VC-C-04). AC-004/VER-004 cannot be claimed
 complete until an actual, candidate-bound return exists (V1-B X-08). The
@@ -524,8 +527,9 @@ Workflow revision labels ⟨rev-A2⟩/⟨rev-A3⟩ remain DEL-02-03's (they are
 workflow identities, not fixture subjects).
 
 Fixture assumptions (labeled; host inputs in reality). **FXA-n** was **FA-n**
-in C-v0.3; renamed to remove the collision with DEL-04-03's FA-1…FA-9 (V2
-m-5; R4-19). Citations of C-v0.3 FA-n resolve to FXA-n:
+in C-v0.3 (renamed per V2 m-5; R4-19). DEL-04-03 has since renamed its own
+rules to OF-1…OF-9, so no collision remains either way (V3-B m-6). Cite
+**FXA-n** (R5-9); a C-v0.3 citation of FA-n resolves to FXA-n:
 
 - **FXA-1 Exposure.** Every entry is **exposed on H, E and X** (fixture
   assumption, R2-21). Non-exposure is demonstrated only by named variant V-X1.
@@ -541,12 +545,18 @@ m-5; R4-19). Citations of C-v0.3 FA-n resolve to FXA-n:
   is DEL-02-01 WD-EX E1: `CP-accept` (A5; reached-when kind (c) *queued* for
   the proposal the run submits with OP-C4/OP-C5 items; subject: its change
   items) and `CP-check` (A4; subject: objects changed by `CP-accept` items'
-  applied outcomes). Hence run 12 carries the governing checkpoint
-  constraint on OP-C4/OP-C5 requests (P §3.3). On the main timeline,
+  applied outcomes). Run 12 runs on the embedded surface E: the host loop's
+  own evaluation of this declaration makes the governing checkpoint
+  constraint on OP-C4/OP-C5 requests **host-held** (P §3.3; R5-2), and each
+  checkpoint's hold support is **enforced by the host loop** (R5-1; subject to
+  host evidence, DEP-001). The same workflow run from the App through X would
+  have `CP-accept` **not established** (awaiting SQ-02). On the main timeline,
   `CP-accept` arrives at T10 (PR-1 was never queued) and, after T11, is
   *resolved negatively* with a partial annotation (item 1 A5, item 2 A10;
   R2-18, WD §4.3.7). `CP-check`'s arrival and act are not scheduled on C's
-  timeline. V-CP1 isolates the direct-grant conflict.
+  timeline. ⟨rev-3⟩ declares **no** `CP-grant`, so no grant-setting checkpoint
+  occurs on the main timeline; V-GR1 carries that case. V-CP1 isolates the
+  direct-grant conflict.
 
 ### 10.2 Entries
 
@@ -607,7 +617,8 @@ Content identities are opaque: ⟨v12⟩ is a read-level identity at r12,
 | **V-R1** Reserved entry call | T3 | Agent calls OP-C6 on S-1 | **not permitted** (reserved to the person, P-02) with an A8 request *offered*; no A8 recorded unless issued; never *not exposed* or *unavailable* |
 | **V-X1** Not exposed | T16 | External agent (X) calls OP-C9 where element 9 = not exposed on X | Host returns **not exposed on this surface**; the adapter relays it (reporter: host). If X's channel is off instead: **channel not enabled** |
 | **V-OU1** Lost outcome | T12 | Neither T12 nor T13 report observed | **outcome unknown**, observer loop, last observed *accepted*; no inferred effect |
-| **V-ED1** Catalog-edition addition (R4-20; DEL-09-09 L-XT-1) | Before T16, on edition **e1** (no OP-C9) | (1) Each surface looks for OP-C9 on e1. (2) The host publishes **e2**, adding OP-C9 v1 as §10.2 describes it — the **edition addition event**, identified by {edition e1 → e2, added entry OP-C9 v1, time}. (3) Each surface rediscovers. (4) T16 proceeds on e2 | (1) OP-C9 **missing** on every surface (discovery finding) — never *not exposed* or *unavailable*. (2) One event, host-reported; no model revision change (the catalog is not model content). (3) Full entry per §3 on each surface, exposure per FXA-1. Whether any surface needed separate work is DEL-09-09's account (OI-003); nothing here claims automatic availability |
+| **V-GR1** Grant checkpoint arrives before T15 (R5-7) | T14 (r15), replacing T15–T16 in a separate **run 13** of WD-EX **E1d** — workflow {workflow, project, ⟨fx-proj⟩ (LIB-A1), `label-with-grant`, ⟨rev-D1⟩}, carried unadapted, declaring `CP-grant` (A12; reached-when kind (a) *before dispatch of OP-C9*; subject: the declared setting content {class P-03; grant value *direct*; scope {model/workspace FX-W1; object set {S-4}}} = the content of ⟨set-2⟩) — on surface **E**, hold support **enforced by the host loop** | **GR-1** (r15, settings ⟨set-1⟩): the agent's OP-C9 call (S-4 label "G-4") is held before dispatch → `CP-grant` **arrives**. **GR-2**: Engineer A performs T15's A12 with exactly the declared content, captured **after** the arrival; the control establishes ⟨set-2⟩. **GR-3**: the held call is dispatched unchanged = **T16** (r16, RC-2, direct under ⟨set-2⟩, origin mark, undo route, no acceptance). Sub-variants: **GR-P** pending, then the confirmation observation is lost; **GR-R** refused by the control; **GR-S** a later established A12 narrowing the scope | GR-1: `CP-grant` *waiting*. GR-2: `CP-grant` **performed** (SP-6: captured at/after arrival, R4-5). GR-3: T16 as on the main timeline. GR-P: *waiting* "awaiting control confirmation", then **unknown**; the call stays held. GR-R: *waiting* "A12 refused by control: ‹reason›"; ⟨set-1⟩ stays in force, not superseded (R4-6). GR-S: stays *performed*, "superseded by ‹act›" (R2-7). **Main-order negative:** had `CP-grant` arrived only at T16 after T15's A12, that A12 is a **prior act, not counted** (WD-EX R-16 (i)); run 12 is unaffected because ⟨rev-3⟩ declares no `CP-grant`. **Owner-visible cost (U-E4/U-31):** SP-6 can make the person repeat a grant change whose content is already in force. From the App via X, `CP-grant` hold support is **not enforceable** (R5-1; D6) |
+| **V-ED1** Catalog-edition addition (R4-20; DEL-09-09 L-XT-1) | Replays T1–T15 on edition **e1** (no OP-C9) and publishes e2 before T16 (V3-B m-11) | (1) Each surface looks for OP-C9 on e1. (2) The host publishes **e2**, adding OP-C9 v1 as §10.2 describes it — the **edition addition event**, identified by {edition e1 → e2, added entry OP-C9 v1, time}. (3) Each surface rediscovers. (4) T16 proceeds on e2 | (1) OP-C9 **missing** on every surface (discovery finding) — never *not exposed* or *unavailable*. (2) One event, host-reported; no model revision change (the catalog is not model content). (3) Full entry per §3 on each surface, exposure per FXA-1. Whether any surface needed separate work is DEL-09-09's account (OI-003); nothing here claims automatic availability |
 
 ### 10.5 Read basis vs operation identity
 
@@ -635,6 +646,20 @@ shown historical (r12). Row S-2 at r14 carries T2's A4 (actor Engineer A,
 recorded by host, direct capture, bound ⟨S-2@r12⟩): **not lapsed** (T6 edited
 S-3 only). At r15 (T14) it is shown **lapsed**. T4's findings are shown as
 agent findings (A3), never as checked or as a host check.
+
+## Changes from v0.4
+
+v0.4 = C-v0.4 (committed; unchanged at `8fb51f07f`).
+
+| R5 / V3 item | Change |
+|---|---|
+| **R5-7** (V3-A MAJOR-3, MAJOR-5) | §10.4 new named variant **V-GR1** (run 13 of WD-EX E1d on E; GR-1…GR-3; sub-variants GR-P, GR-R, GR-S; main-order negative; SP-6 cost). Main timeline unchanged; FXA-5 states ⟨rev-3⟩ declares no `CP-grant` |
+| **R5-1** | FXA-5 and V-GR1 use the four hold-support values: run 12 and V-GR1 on E **enforced by the host loop**; `CP-accept` via X **not established** (SQ-02); `CP-grant` via X **not enforceable** (D6) |
+| **R5-2** | FXA-5: the host loop's own evaluation makes run 12's constraint **host-held** |
+| **R5-4** (V3-B m-1) | §4.1 model-destination note split: "may flow; no gating" SETTLED by DECISION-2 (D5); record/show per turn (requested vs effective; unknown turns; run-level set; no new run on switch) labeled **INTEGRATION (DECISION-2 reading)** |
+| **R5-9** (V3-B Y-7, m-6, m-11; V3-A m-3) | §4.1 "as of C-v0.5 / P-v0.5"; §9 and VC-C-04 cite P-v0.5; FXA note updated (DEL-04-03 now OF-n; cite FXA-n); V-ED1 stated to replay T1–T15 on e1 and publish e2 before T16; header states EXEC/ADAPTER/XT v0.2 texts were not read this pass |
+
+New fixture identifiers: **V-GR1**, GR-1, GR-2, GR-3, GR-P, GR-R, GR-S, run 13. Every other ID unchanged; removed: none.
 
 ## Changes from v0.3
 
@@ -714,6 +739,7 @@ entries' exposure (exposed ×3 by FXA-1). Removed: none.
 | U-C10 Host confirmation of non-mutating basis handling (§5.4) | Host owner | Before V4-EXM-21 binding | PROPOSED rule only |
 | U-C11 Whether any host offers a faithful-record operation meeting R2-2's conditions (relay) | Host owner (DEP-001) | Before host act-recording integration | None assumed in fixtures |
 | Governing-checkpoint-constraint receipt on the host route (relay, R2-12) | Host owner with DEL-03-02 | Before V-CP1 / LOOP FX-C9 / PANEL PC-24 / WD VC-11 execution | V-CP1 AWAITING INPUT |
+| SP-6 cost at grant checkpoints: the person may repeat a grant change whose content is already in force (V-GR1 main-order negative) | Owner (U-E4 / U-31) | Before the capture-after-arrival rule (R4-5) is fixed | Recorded only; V-GR1 follows R4-5 as PROPOSED |
 | Host restriction of its own external channel by model destination (R4-1) | Host owner (DEP-001) | Before connected external examination | None on meaning; App records/shows destination only |
 | Host confirmation that a catalog-edition addition is reported as an identified event (V-ED1) | Host owner / SWBPIPE (IN-11, SQ-26) | Before DEL-09-09 TS-1 | V-ED1 is a fixture; host event form unknown |
 | Register: missing DEL-03-02 mirror of DEP-03-01-026; unregistered C → DEL-04-02/04-03 joins; C → DEL-05-01/05-02 mirrors (V1-B RF-04/05/08; V1-C RF-1) | Register owner at closeout C1 | C1 | None on content |
@@ -739,8 +765,8 @@ Fixture steps and variants refer to §10.3–§10.4.
 | VC-C-01 Entry field coverage | For OP-C1…C12 and a real host entry when supplied, check the nine §3 elements, §3.1 sub-elements and §3.3 extras against V4-HI-02, SOW-157–164, R-2, R2-1, R2-2 | Every element present; class shows adopted/DERIVED/INTEGRATION value with policy record reference, or *no policy basis* with reason; OP-C6/C7/C8 reserved; OP-C11 no policy basis (pending OI-021); no OI-002 value; value standing from the §8.1 list; exposure values present | VER-001 |
 | VC-C-02 Cross-channel read parity | OP-C1 at T3 via H, E, X; compare content, subject identities, diagnostics, standing | Identical meaning and standing; mismatches listed; evidence labeled per the mapping; type match alone does not close a consumer claim | VER-002 |
 | VC-C-03 Non-success parity and separation | T8 on H, E, X; V-R1; V-X1; V-NP1 direct; a loop call to an operation absent from the offered edition | T8: same *unavailable*, reason, evaluated basis B2 on all three; V-R1 → *not permitted* + A8 offered (not recorded); V-X1 → host-reported *not exposed*, relayed; channel off → *channel not enabled* with its reporter (App from own configuration, no host request; or host); V-NP1 → *not permitted*; absent operation → loop-side *not offered*, never dispatched, never labeled *not exposed*; none is an empty success | VER-003 |
-| VC-C-04 Read-to-action basis trace (M3-CP receiver) | T3 → T5 → T6 → T7 → T9 → T10 → T11 → T12 → T13 using P-v0.3 §11 | All elements incl. method designation at every read; PR-1 reference = B1 throughout; T7 refuses both items per-item with B1 and B2; PR-2 new identity citing B2; T12 association PR-2/item 1/B2/RC-1/r14 with resulting objects S-5, R-100; T13 answered from recorded state (no stale refusal from its own effect); whether RC-1 itself carries B2 recorded as a host observation; no step rewrites a reference | VER-004 |
-| VC-C-05 Standing, attribution and lapse | T2, T4, T4a, T6, T12, T14, T16a, T17 | T2 A4 carried with full act fields; not lapsed after T6; lapsed after T14; A5 on item 1 not lapsed by T12; T16a A4 lapsed by the T17 undo; T4 findings never shown as checked or host check; T4a "host check failed: support spacing" with its basis, historical after r12; no act inferred from success | VER-005 |
+| VC-C-04 Read-to-action basis trace (M3-CP receiver) | T3 → T5 → T6 → T7 → T9 → T10 → T11 → T12 → T13 using P-v0.5 §11 | All elements incl. method designation at every read; PR-1 reference = B1 throughout; T7 refuses both items per-item with B1 and B2; PR-2 new identity citing B2; T12 association PR-2/item 1/B2/RC-1/r14 with resulting objects S-5, R-100; T13 answered from recorded state (no stale refusal from its own effect); whether RC-1 itself carries B2 recorded as a host observation; no step rewrites a reference | VER-004 |
+| VC-C-05 Standing, attribution and lapse | T2, T4, T4a, T6, T12, T14, T16a, T17; V-GR1 GR-1…GR-3, GR-P, GR-R, GR-S | T2 A4 carried with full act fields; not lapsed after T6; lapsed after T14; A5 on item 1 not lapsed by T12; T16a A4 lapsed by the T17 undo; T4 findings never shown as checked or host check; T4a "host check failed: support spacing" with its basis, historical after r12; no act inferred from success; V-GR1: A12 counted only when captured after arrival and established; refused/pending A12 supersedes nothing | VER-005 |
 | VC-C-06 Responsibility map review | Walk §8 against H/E/X, CLM-001–003 and receiving rows (PKG-02, DEL-03-02, DEL-04-01, DEL-04-02, DEL-04-03) | Each cell valued; no *generated/checked* without a conformance route; fixture exposure (FXA-1) not used as map evidence; host implementation external | VER-006 |
 | VC-C-07 Extension treatment | Compare §8 extension text and element 9 with V4-PAR-05, V4-HI-03, #d4, OI-003, V4-EXM-24; walk V-ED1 | Promise stated; `UNRESOLVED{OI-003}` with owner; trace route via DEL-09-09; no automatic availability/savings; real exposure values *unagreed*; V-ED1 yields *missing* on e1 and full discovery on e2, with no availability claim | VER-007 |
 | VC-C-08 Boundary and open-input audit | Check each REQ-007 exclusion and each UNRESOLVED row; check DERIVED/INTEGRATION/PROPOSED markings against R1/R2; check D2/D3 attribution (R2-11) | Every excluded act maps to its owner; each open input has owner, point of need, effect; no host delivery, SWBPIPE adoption or joined qualification claimed; no rule credited to D2/D3 beyond their text | VER-008 |

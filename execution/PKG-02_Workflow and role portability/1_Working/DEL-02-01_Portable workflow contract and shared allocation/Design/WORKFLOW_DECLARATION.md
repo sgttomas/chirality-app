@@ -1,10 +1,12 @@
 # Portable workflow declaration, roles, source identity and shared allocation
-- Contribution: DEL-02-01/WD-v0.4 (supersedes DEL-02-01/WD-v0.3 incl. R3 in-place edits, committed at `f05c7e4cd`, file sha256 `84841d9f539767b9ff7ae225fec27f0dc4ebbd2c161c41aff179bbae97f345eb`; WD-v0.2 sha256 `c25bccc5f3ac02c84522148eeaa8a6ef0f5eb4a380686773cff45f57a448a55c`; WD-v0.1 sha256 `bacfcb71ca9585b950444c0218fdd5283f5b2f5d0c8f981411395278b286fc5e`)
+- Contribution: DEL-02-01/WD-v0.5 (supersedes DEL-02-01/WD-v0.4, committed at `8fb51f07f`, file sha256 `e492ff635de972466c8a932355beeae848e1f3d3f60de7304e88963352d8e88e`; WD-v0.3 sha256 `84841d9f539767b9ff7ae225fec27f0dc4ebbd2c161c41aff179bbae97f345eb`; WD-v0.2 sha256 `c25bccc5f3ac02c84522148eeaa8a6ef0f5eb4a380686773cff45f57a448a55c`; WD-v0.1 sha256 `bacfcb71ca9585b950444c0218fdd5283f5b2f5d0c8f981411395278b286fc5e`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001, OUT-002, OUT-003 (map version), OUT-004 (fixture design only); REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006; AC-001…AC-007 by designed verification; VER-001…VER-007 (cases designed, none run)
 - Basis: repo 6e18505e3; ScopeOfWork.md sha256 080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294; P/docs/PRD.md §2.2 (V4-HOST-05/06), §2.4 (V4-SHR-01…03), §4.1 (V4-WF-01…06), §4.2 (V4-ROLE-01…03), §4.3 (V4-EXE-01/03), §4.5 (V4-AUT-01…05), §4.7 (V4-REC-01…05); P/docs/ARCHITECTURE.md §1 (M-1, M-3, M-5), §4, §5 (V4-ARC-20/21); P/docs/HOST_INTEGRATION.md §1, §2 (V4-HI-02…04), §3 (V4-HI-11/12), §4 (V4-HI-20…25), §5 (V4-HI-30…33), §6 (V4-HI-40…42), §9 (V4-HI-70/71); P/docs/EXAMINATION.md V4-EXM-10, -14, -21, -22; DECISION_BRIEF.html #d2, #d3, #d5; SCC-CASE-002 Case_Datasheet M1 rows; Open_Issues.csv OI-003, OI-013, OI-014, OI-018, OI-021; owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 `f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e`), rulings D1 (scope), D2 (OI-001), D3 (OI-002); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (OWNER_DECISIONS.md at `f05c7e4cd`, sha256 `a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c`), D5 (external-channel model destination: user flexibility) and D6 (App-side run holds deferred to SWBPIPE SQ-02). Root reuse sources read (not adopted): `workflows/WORKFLOW_TEMPLATE.md`, `workflows/*/execution.json` (66 companions surveyed), `workflows/catalog.yaml`, `workflows/catalog.schema.json`, `workflows/index.json`, `workflows/create-workflow/WORKFLOW.md`, `docs/SPEC.md` §9.1–9.8, `docs/AGENT_WORKFLOW_RUNTIME.md`.
 - Consumed inputs:
-  - **Sweep A1 rulings (binding).** R4_RESOLUTIONS.md at `f05c7e4cd`, sha256 `50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24`: R4-2, R4-3, R4-4, R4-5, R4-6, R4-7, R4-8, R4-9, R4-12, R4-14, R4-16, R4-18, R4-19, R4-20, R4-21 (others read for context). V2 review `reviews/V2.md` sha256 `75ba1dff8a0c4fa2eb294471127147cbd19a0925daf9169b32ddc88727dde6ef` (MAJOR-1; m-3, m-8, m-9, m-12, m-13 addressed to WD/WD-EX).
+  - **Final alignment rulings (binding).** R5_RESOLUTIONS.md at `8fb51f07f`, sha256 `254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1`: R5-1, R5-2, R5-3, R5-7, R5-9 (others read for context). Reviews V3-A sha256 `f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87` (MAJOR-1, m-2, m-3, m-6, m-10, m-12 as they concern WD/WD-EX) and V3-B sha256 `5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3` (WD-EX framing note).
+  - **Current sibling texts read at `8fb51f07f`** (via `git show`): DEL-02-03 EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` sha256 `7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0`; DEL-03-01 C-v0.4 `CATALOG_AND_READ_BASIS.md` sha256 `e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c` (§10.1 FXA-1…FXA-5, LIB-A1, LIB-A2, AF-1; §10.4); DEL-04-01 ACT-POLICY-v0.4 sha256 `d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b`; DEL-05-01 LOOP-v0.4 sha256 `ffc3048333f3370ba09a9ce124159b94f2c80ce69b5f593bfb82cc552f95934e`; DEL-03-02 P-v0.4 sha256 `0d3960a2e6bd3520368006cdd2b1b67a1fe4eb06e23184aded9d5b98d6c5e361`; DEL-09-06 CA-v0.2 sha256 `31ea3bff05865f425127009f90c070f26b97972e203b5a235791d00332d8dee1`. Elements R5 assigns to siblings' v0.5/v0.3 (e.g., C V-GR1) are cited "per R5-n; sibling to confirm".
+  - **Sweep A1 rulings.** R4_RESOLUTIONS.md at `f05c7e4cd`, sha256 `50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24`: R4-2, R4-3, R4-4, R4-5, R4-6, R4-7, R4-8, R4-9, R4-12, R4-14, R4-16, R4-18, R4-19, R4-20, R4-21 (others read for context). V2 review `reviews/V2.md` sha256 `75ba1dff8a0c4fa2eb294471127147cbd19a0925daf9169b32ddc88727dde6ef` (MAJOR-1; m-3, m-8, m-9, m-12, m-13 addressed to WD/WD-EX).
   - **Sibling texts read at commit `f05c7e4cd`** (via `git show`, not the working tree): DEL-02-03 `EXECUTION_COMPATIBILITY.md` EXEC-v0.1 sha256 `e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8` (§2 hold points, §3.5–§3.6, §4, §5, §6, §11 F-1…F-16); DEL-09-06 `CONNECTED_ACTIVITY_CONTRACT.md` CA-v0.1 sha256 `685349b25981ca8333929207890514120d63753cdedd67ae0bad986fc5d45e62` (§3.2 L-CA-1; F-5, F-7); DEL-03-01 `CATALOG_AND_READ_BASIS.md` C-v0.3 sha256 `ba45e7393ee0b16780f36605ddeecb95ba1f181488e36a46b4b495b69fd67c26` (§3, §4.1, §10); DEL-04-01 `ACT_AND_POLICY_CONTRACT.md` v0.3 sha256 `b3748c02006f939d8cc78c6e0b0c847598a8b32d55515ae8658ad80597c98128` (§2.1, §4.2). Elements R4 assigns to siblings' next versions are cited "per R4-n; sibling v0.4/v0.2 to confirm".
   - **Earlier integration rulings.** R2_RESOLUTIONS.md sha256 `77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088` (R2-1, R2-2, R2-3, R2-4, R2-5, R2-7, R2-8, R2-9, R2-10, R2-11, R2-12, R2-13, R2-14, R2-15, R2-16, R2-17, R2-18, R2-19, R2-20, R2-21). R1_RESOLUTIONS.md sha256 `2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4` (R-1…R-9, in force unless amended by R2). R3_RESOLUTIONS.md sha256 `202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf` (R3-1, R3-2, R3-3; in-place micro-edits, no version bump).
   - **Reviews.** IR1-C.md sha256 `295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9` (all items addressed to DEL-02-01); IR1-A.md sha256 `31b3c7f8493f05ee5fed6a11208f6811d2449d8a4fe72aae6300c2850b648284` and IR1-B.md sha256 `70e4a4f6d88f475687a9fde56a566a6913081dd3dd560402c1db8996dffd2846` (items addressed to DEL-02-01). Earlier: V1-A `01811533…c04c09`, V1-C `8d46258a…94a6`.
@@ -12,9 +14,20 @@
   - DEL-05-02 PANEL-v0.2 needs known through IR1-C J2/J3 (file not read). DEL-02-02, DEL-02-03, DEL-02-04: accepted SoWs only. SWBPIPE consumer needs: none received.
 - Receivers: CASE-002 M1 "Workflow-contract owner" row: DEL-02-03 (OUT-001, OUT-002; REQ-001, REQ-002, REQ-004; VER-001, VER-002, VER-004; W7 in this undertaking); DEL-05-01 (OUT-001, OUT-004; REQ-005, REQ-007; VER-008); DEL-05-02 (OUT-001; REQ-001; VER-001); DEL-02-01 self-check (OUT-004; REQ-004, REQ-005; VER-004, VER-005). DEL-02-02 (OUT-001, OUT-004; REQ-005; VER-004) and DEL-02-04 (OUT-001, OUT-002; REQ-001, REQ-002, REQ-004; VER-001, VER-005) remain named receivers but are outside this undertaking per owner ruling D1. Later: DEL-03-04 (W10), DEL-09-06 (W9).
 
-Companion: [EXAMPLES.md](EXAMPLES.md) (DEL-02-01/WD-EX-v0.4).
+Companion: [EXAMPLES.md](EXAMPLES.md) (DEL-02-01/WD-EX-v0.5).
 
 ---
+
+## Changes from v0.4
+
+| R5 ID (source) | Change in v0.5 | Where |
+|---|---|---|
+| R5-1 (V3-A MAJOR-1; V3-B MAJOR-5) | §4.3.8 now uses the **four ruled hold-support values** owned by EXEC §3.6: *enforced by the host loop*, *enforced on the host route*, *not established*, *not enforceable*, with their check effects (pass · pass · *not established* · *unsupported*). "Enforced before dispatch" and "held after observation" retired; the v0.4 "A5 on the host route passes with AWAITING INPUT" exemption withdrawn: pending SQ-02 is *not established*. Pass rule extended. U-30 restated (App-only checkpoints *not enforceable* whatever SWBPIPE answers; SQ-02 decides host-operation checkpoints only, per R5-10). | §4.2.4, §4.3.8, I-9, U-19, U-30, VC-37 |
+| R5-2 (V3-A m-6; V3-B MAJOR-1) | Carriage assurance final: **host-held** (host derived it from, or verified it against, its own resolved copy; includes the host loop's own evaluation); a constraint the host merely received keeps its source's assurance; **App-assured is not available in this increment**; only host-held satisfies R2-12. | §4.2.2, I-7, EXAMPLES R-5b |
+| R5-3 (V3-A m-5; Y-2) | The **declared** setting content always binds an A12 checkpoint and must always be named; invalidity is unconditional; an A8 may present that content but never changes the subject; an A12 on different content satisfies nothing; a run-dependent scope is declared as a **binding rule resolved at arrival** (e.g., "targets of the held call"), never chosen by an A8. | §4.3.1, §4.3.6, FB-17 |
+| R5-7 (V3-A MAJOR-3/5) | EXAMPLES R-16 (ii)–(v) re-pointed to C **V-GR1** (per R5-7; C-v0.5 to add); **L-WDEX-11 retired, not reused**. R-16 (i) stays the main-order negative. U-31 records the owner-visible cost. | EXAMPLES, U-31, VC-32 |
+| R5-9 (V3-A m-1, m-2, m-3, m-12; V3-B) | Citations re-pointed to current sibling versions (EXEC-v0.2, C-v0.4, ACT-v0.4, LOOP-v0.4, P-v0.4, CA-v0.2); FA-n → **FXA-n**; ⟨fx-proj⟩ → **LIB-A1**, plus LIB-A2 and AF-1; FXA-5 stated correctly (⟨rev-3⟩ declares `CP-accept` **and** `CP-check`); "pending its v0.4" markers closed. L-WDEX numbering kept stable (EXEC cites it). | Header, §8, U-23, EXAMPLES |
+| V3-A m-10 | MX-8 row rejoined to its table; FB rows ordered 16, 17, 18. | §4.3.7, §11 |
 
 ## Changes from v0.3
 
@@ -212,7 +225,7 @@ identity, never an adapter-specific tool name.
 | **purpose of use** | Readable: what the method uses the operation for. It does **not** restate the operation's class or treatment. Those come from the catalog entry's class element (five values incl. *no policy basis* with its reason, per R2-1), adopted policy (DEL-04-01) and the person's grant (V4-HI-40). |
 | **necessity** | Required, or optional with a stated fallback or limitation. |
 | **stage** | Where in the method the tool is used. |
-| **governing checkpoint constraint** (derived, not authored) | If a checkpoint in the workflow requires A5 on this operation's result, every change request for this operation in the run is accompanied by the constraint {workflow run, checkpoint name, required act A5, operation} (R2-12; P §3.3), recorded with its **carriage assurance** (R4-14): *App-assured* (App code attaches it), *host-held* (the host evaluates its own copy of the declaration), *model-supplied* (present only because the model put it in the call) or *absent*. Model-supplied carriage alone does not satisfy R2-12. The host route resolves treatment *propose*. The declaration does not state a treatment; the constraint is derived from its checkpoint so any carrier can compute it. Which assurance a host can give is relay question SQ-02 (U-19). |
+| **governing checkpoint constraint** (derived, not authored) | If a checkpoint in the workflow requires A5 on this operation's result, every change request for this operation in the run is accompanied by the constraint {workflow run, checkpoint name, required act A5, operation} (R2-12; P §3.3), recorded with its **carriage assurance** (R4-14, final per R5-2): *host-held* (the host holds the constraint on its side, having derived it from, or verified it against, its own resolved copy of the declaration; the host loop's own evaluation is host-held), *App-assured* (App code attaches it — **not available in this increment**, since interposed App code is not adopted, R4-2), *model-supplied* (present only because the model put it in the call) or *absent*. A constraint the host merely received from an outside caller keeps its source's assurance. **Only host-held carriage satisfies R2-12.** The host route resolves treatment *propose*. The declaration does not state a treatment; the constraint is derived from its checkpoint so any carrier can compute it. Which assurance a host can give is relay question SQ-02 (U-19). |
 
 #### 4.2.3 Requirement is not restriction
 
@@ -243,7 +256,9 @@ vocabulary and the pass rule. Runtime non-success results *unavailable*,
 
 **Pass rule (IR1C-13).** The requirement check **passes** when every
 reference whose necessity is *required* is **present** or **present,
-currently unavailable**, and the workflow is not **unsupported**. A *present,
+currently unavailable**, the workflow is not **unsupported**, and no
+checkpoint's hold support on the acting surface is *not established* (which
+makes the check *not established*, never a pass; §4.3.8, R5-1). A *present,
 currently unavailable* requirement is shown as a run-time hold with its
 reason. Optional references never block a pass; their outcomes are shown. Any
 required reference *missing*, *not exposed on this surface*, *version
@@ -288,8 +303,8 @@ it (U-16).
 | objects changed by a named outcome | The named outcome must be an operation the workflow declares; bound when the applied outcome is observed (R2-14). |
 | named output | The output must be declared in §4.4. |
 | objects a named output concerns | The output must be declared in §4.4 and be a read or examination output that identifies objects (e.g., an OP-C3 findings output naming rows). Typically paired with reached-when kind (b) on that output (INTEGRATION, R3-1). |
-| grant setting | For A12. The declaration **must** name the setting content (classes, grant values, scope). Where an A8 at arrival names a setting, DEL-04-01 §4.2 binds it; otherwise the declared content is the subject. An A12 checkpoint that names no setting content is **invalid** (FB-17; INTEGRATION, R4-9). |
-| kind (a) on a harness capability | Declarable, but **not holdable in App runs** pending D6: hold support is *not enforceable* and the workflow is *unsupported* on that surface (FB-18; R4-21). |
+| grant setting | For A12. The declaration **must always** name the setting content (classes, grant values, scope), and the **declared** content always binds. An A8 may present that content to the person but never changes the subject; an A12 made on different content satisfies nothing at this checkpoint. A run-dependent scope is declared as a **binding rule resolved at arrival** (e.g., scope = "targets of the held call"), never chosen by an A8. An A12 checkpoint that names no setting content is **invalid**, unconditionally (FB-17; INTEGRATION, R4-9 as amended by R5-3). |
+| kind (a) on a harness capability | Declarable, but **not holdable in App runs** in this increment: hold support is *not enforceable* and the workflow is *unsupported* on that surface (FB-18; R4-21; R5-1). |
 
 A review-only workflow can now require A4 on the rows it examined through
 **objects a named output concerns** (R3-1; U-28 closed).
@@ -375,7 +390,7 @@ A review-only workflow can now require A4 on the rows it examined through
   A5 on an operation's result, that operation's treatment in the run is
   *propose* regardless of the grant (DERIVED, R-5). The **governing checkpoint
   constraint** (§4.2.2) accompanies each change request for it, with its
-  carriage assurance. A request
+  carriage assurance; only *host-held* carriage satisfies R2-12 (R5-2). A request
   to apply it directly is **not permitted**, naming the constraint as the
   governing treatment; it is never converted into a proposal (R-3.3; R2-12).
   A workflow that wants direct application under a grant followed by a human
@@ -391,12 +406,13 @@ A review-only workflow can now require A4 on the rows it examined through
   own arrival and adds no ordering between act kinds (I-3 stands). For A5 at
   kind (c) *queued* it always holds. Counting a prior act bound to current
   content is the owner alternative (U-31).
-- **I-9 No unenforceable hold is claimed (R4-2; D6).** A checkpoint is held
-  only where its hold support on the acting surface says so (§4.3.8). Where
-  support is *not enforceable* the workflow is *unsupported* on that surface
-  and, if the person runs it anyway, every arrival records "hold not
-  enforceable"; any run action taken while an arrival waits is recorded as
-  **action during hold**, never hidden.
+- **I-9 No unenforceable hold is claimed (R4-2; D6; R5-1).** A checkpoint is
+  held only where its hold support on the acting surface is *enforced by the
+  host loop* or *enforced on the host route* (§4.3.8). Where it is *not
+  enforceable* the workflow is *unsupported*; where it is *not established*
+  the check is *not established*. If the person runs the workflow anyway,
+  every arrival records its hold-support value, and any run action taken
+  while an arrival waits is recorded as **action during hold**, never hidden.
 
 #### 4.3.4 Disposition vocabulary (shared; R-5 as amended by R2-5, R2-19)
 
@@ -444,7 +460,7 @@ The hold state machine and replay are DEL-02-03's (EXEC §4).
 | objects a named output concerns | The objects the produced read/examination output identifies (e.g., rows an OP-C3 finding names) | **Subject content identity** of each object **as read** by the read the output relies on (C §5.3/§5.4), with method designation; never the output's own content identity and never text in the output (INTEGRATION, R3-1) |
 | objects changed by a named outcome | The created and changed object identities the **applied outcome** identifies (R2-14; P §9, C §3.3/§10 T12: e.g., S-5 created) | **Subject content identity** of each object **after application** (C §5.3), with method designation |
 | targets of the held call | The targets the held kind (a) call names | Subject content identities of those targets **from the relied-on read the held call cites** (C §5.3/§5.4); never argument text |
-| grant setting | The setting named by an A8 at arrival (DEL-04-01 §4.2), otherwise the setting content the checkpoint's own declaration names (R4-9) | The **setting content**: classes, grant values, scope (R2-7) |
+| grant setting | The setting content the checkpoint's **declaration** names, with any run-dependent part resolved at arrival by its declared binding rule (R5-3); never an A8's choice | The **setting content**: classes, grant values, scope (R2-7) |
 
 - **SB-1** Every content identity carries its identity method designation;
   identities with different designations are *unknown (incomparable)*, never
@@ -487,7 +503,6 @@ observation lost).
 | Every remaining bound item has A5 or A10, and at least one has A10 | **resolved negatively**; **on mixed decision** governs if declared | "partial": which items A5, which A10. Accepted items keep their A5 and proceed through the host lifecycle unaffected |
 | An item leaves without a decision (stale refusal, A11 withdrawal, host refusal) | Item leaves the bound subject; disposition is evaluated over the remaining items. **MX-6:** if none remain, the arrival is **waiting** "no items remain"; when a new arrival of the same checkpoint occurs (e.g., a re-draft queued), this arrival is closed "replaced by arrival n+1" with final *waiting*; otherwise it waits until run end | Each leaving item shown with its item-left event. A *performed* over a reduced subject is never shown as "all items accepted" |
 | An item already decided (A5) is later refused at application (e.g., stale, R2-16) — adopted per R3-3; confirmed (MX-7) | Unchanged (the decision stands) | "accepted by ‹person› — not applied: refused — stale (relied ‹B›, current ‹B′›)"; A5 not lapsed; the declared output is not produced for that item (§4.6); a re-draft carries no acceptance |
-
 | **MX-8** An item with A5 later meets **application error** (effect none / partial / unknown) or **outcome unknown** at application | Unchanged | "accepted — not applied: application error (effect …)" or "accepted — application outcome unknown (observer …)" |
 
 MX-7/MX-8 never re-hold the A5 arrival and never trigger its negative or mixed
@@ -500,25 +515,32 @@ proposal returns its recorded state and is never refused stale by its own
 effects. Applying sibling items does not stale remaining items unless they
 share targets (R2-13).
 
-#### 4.3.8 Hold support per checkpoint and surface (R4-2, R4-8, R4-21; EXEC §3.6)
+#### 4.3.8 Hold support per checkpoint and surface (R5-1; R4-2, R4-8, R4-21; EXEC §3.6)
 
 The declaration names checkpoints; whether a checkpoint can actually be
 **held** depends on the surface running the workflow. The compatibility report
-(DEL-02-03) states one hold-support value per checkpoint and acting surface,
-and the run record carries it:
+(DEL-02-03, owner of the values, EXEC §3.6) states exactly one hold-support
+value per checkpoint and acting surface, and the run record carries it:
 
-| Hold support | Where it arises | Effect |
+| Hold support | Meaning | Workflow requirement check |
 |---|---|---|
-| **enforced before dispatch** | Kind (a) where the host loop holds the call (host runs, DEL-05-01) | None |
-| **held after observation** | Kinds (b)/(c) where the executor stops acting on observation (host loop) | None; residual "action during hold" limit shown |
-| **enforced on the host route** | A5 checkpoint whose governing checkpoint constraint the host route evaluates (R2-12); host evidence pending (U-19) | None; AWAITING INPUT shown |
-| **not enforceable** | No hold point can act on this surface: in **App runs**, every checkpoint not enforced on the host route while App-side holds remain `UNRESOLVED{D6}` (neither HP-1 interposed App code nor HP-2 `turn/interrupt` is relied on); kind (a) on a **harness capability** in App runs (R4-21) | Workflow **unsupported** — "checkpoint hold not enforceable on this surface: ‹name›"; the check does not pass (§4.2.4) |
-| **not established** | Declaration invalid (FB-03, FB-13, FB-16, FB-17) or not established (FB-04) | Check does not pass; never evaluated |
+| **enforced by the host loop** | Embedded route: the host loop holds the run (LOOP §2.4.4) | passes (holds subject to host evidence, DEP-001) |
+| **enforced on the host route** | The host holds or refuses the operation through a *host-held* constraint (§4.2.2), evidenced by the host's answer to SQ-02 and a candidate | passes |
+| **not established** | Depends on a host answer not yet given (SQ-02) or on unagreed exposure — e.g., in an App run through the external channel X, an A5 checkpoint whose constraint the host would have to hold, or a kind (a) checkpoint on a host operation the host would have to hold | *not established* — never a pass, never *unsupported* |
+| **not enforceable** | No mechanism exists on this surface in this increment: an **App-only** checkpoint (arrival and hold involve no host operation; App-side holds `UNRESOLVED{D6}`, neither interposed App code HP-1 nor `turn/interrupt` HP-2 adopted); a constraint carried only as *model-supplied*; kind (a) on a **harness capability** in an App run (R4-21) | *unsupported* — "checkpoint hold not enforceable on this surface: ‹name›" (R4-8) |
+
+An invalid (FB-03, FB-13, FB-16, FB-17) or not-established (FB-04) checkpoint
+is reported before the run and never evaluated (EXEC §4.14); it is not a
+hold-support value. Where several checkpoints differ, any *not enforceable*
+makes the workflow *unsupported*; otherwise any *not established* makes the
+check *not established*.
 
 HP-3 (an App named-rule *decline* of a tool-permission request, never an
 affirmative answer) remains a permitted best effort under D3; it does not make
-a hold *enforced*. When SQ-02 is answered and D6 is decided, the App rows are
-re-evaluated (U-30).
+a hold *enforced*. SQ-02's answer can move *not established* rows to
+*enforced on the host route* for checkpoints on **host operations** only;
+App-only checkpoints stay *not enforceable* whatever SWBPIPE answers, pending
+the owner's D6 follow-up (R5-10; U-30).
 
 ### 4.4 Returned outputs (SOW-045)
 
@@ -708,7 +730,7 @@ Root material is a reuse source, not v4 authority (PRD V4-CST-04; ARCH §5).
 
 | Receiver | Receives from WD-v0.4 | Expected check at next comparison |
 |---|---|---|
-| DEL-02-03 execution (EXEC-v0.1 at `f05c7e4cd`; v0.2 in this sweep) | §4.2 references, constraint and pass rule; §4.3 incl. subject class, validity rules, I-1…I-9, dispositions, §4.3.7, §4.3.8; §6.4 | Consumes WD-v0.4's adoption of EXEC §3.6, §4.7, §4.9, §4.10, §4.11, SP-6 unchanged |
+| DEL-02-03 execution (EXEC-v0.2 at `8fb51f07f`; v0.3 in this pass) | §4.2 references, constraint and pass rule; §4.3 incl. subject class, validity rules, I-1…I-9, dispositions, §4.3.7, §4.3.8; §6.4 | Consumes WD-v0.5's adoption of EXEC §3.6, §4.7, §4.9, §4.10, §4.11, SP-6 unchanged |
 | DEL-05-01 loop | §4.3.1 reached-when and **declared** subject class; §4.3.5; §4.3.6 binding table; §4.3.4 dispositions incl. lapse sequence and run-ended; I-5; I-7 constraint carriage; SEAT-1; §6.1–6.2 incl. holding library and supplied link | Binds declared class, not kind (IR1C-01); adds A12 to act-declined; adopts R2-19 lapse sequence; carries purpose and scope in "act requested" |
 | DEL-05-02 panel | §4.2.4 outcomes and pass rule; §4.3.4 dispositions; §4.3.7 annotations and item-left display; §4.4 labels; §6.1–6.4 incl. holding library | Selection shows holding library; W-5f cites §4.3.7; purpose and scope shown |
 | DEL-03-02 proposal | §4.2.2 governing checkpoint constraint; §4.3.6 use of applied-outcome object identities; §4.3.7 needs (item-left events, all-decided) | Constraint element in P §3.3; item-left events |
@@ -720,12 +742,12 @@ Expected **from** suppliers:
 
 | Supplier | Element | State at v0.4 | Used in |
 |---|---|---|---|
-| DEL-04-01 | Canonical names; closed list; decision pairs; act-declined event; A12 binding, supersession and grant-setting referent; reserved-operation rule | v0.3 read at `f05c7e4cd`; R4-6/R4-9 amendments pending its v0.4 | §4.3 |
-| DEL-02-03 | Report and hold support (§3.6); hold machine (§4): resume point, re-hold, run end, A12 control relation, MX rules, SP-6, recovery; App capture (§5); transfer (§6) | EXEC-v0.1 read at `f05c7e4cd` | §4.2.4, §4.3, §6.4 |
-| DEL-03-01 | Identity/version (equality); element 9 exposure; C §4.1 results; read basis (5 elements); subject content identity; FX-PIPE-01 incl. OP-C10…OP-C12, FA-1…FA-5, named variants | C-v0.3 read at `f05c7e4cd`; R4-20 additions (App-file subject, App library, edition-addition event) pending its v0.4 | §4.1, §4.2, §4.3.6, EXAMPLES |
-| DEL-03-02 | P §9; change-item content identity; item dispositions, all-decided, item-left events; governing checkpoint constraint; applied-outcome object identities | v0.3 committed (not re-read in this sweep; elements as confirmed by V2 and EXEC); R4-14 carriage assurance pending its v0.4 | §4.2.2, §4.3.6, §4.3.7, §4.6 |
+| DEL-04-01 | Canonical names; closed list; decision pairs; act-declined event; A12 binding, supersession and grant-setting referent; reserved-operation rule | ACT-POLICY-v0.4 read at `8fb51f07f`; R5-3 (unconditional invalidity) pending its v0.5 | §4.3 |
+| DEL-02-03 | Report and hold support (§3.6); hold machine (§4): resume point, re-hold, run end, A12 control relation, MX rules, SP-6, recovery; App capture (§5); transfer (§6) | EXEC-v0.2 read at `8fb51f07f`; R5-1 value set pending its v0.3 | §4.2.4, §4.3, §6.4 |
+| DEL-03-01 | Identity/version (equality); element 9 exposure; C §4.1 results; read basis (5 elements); subject content identity; FX-PIPE-01 incl. OP-C10…OP-C12, FXA-1…FXA-5, LIB-A1, LIB-A2, AF-1, editions e1/e2, named variants | C-v0.4 read at `8fb51f07f`; V-GR1 (R5-7) pending its v0.5 | §4.1, §4.2, §4.3.6, EXAMPLES |
+| DEL-03-02 | P §9; change-item content identity; item dispositions, all-decided, item-left events; governing checkpoint constraint; applied-outcome object identities | P-v0.4 at `8fb51f07f` (hash recorded; R5-2 host-loop assurance pending its v0.5) | §4.2.2, §4.3.6, §4.3.7, §4.6 |
 | DEL-04-03 | Human-act record with capturing surface, recording mode, capture-evidence reference; events (act-lapsed, act-declined, run-ended) | Not read; via IR1-A and R2 | §4.3, §4.6 |
-| DEL-05-01 | Evaluation and binding; dispatch record with constraint, seat role; run association incl. holding library and supplied guidance | v0.3 committed (not re-read in this sweep; per V2 and EXEC); R4-3/R4-4/R4-6 amendments pending its v0.4 | §4.3.5, §6.2 |
+| DEL-05-01 | Evaluation and binding; dispatch record with constraint, seat role; run association incl. holding library and supplied guidance | LOOP-v0.4 at `8fb51f07f` (hash recorded; R5-1/R5-3 pending its v0.5) | §4.3.5, §6.2 |
 | DEL-05-02 | Panel needs | Via IR1-C | §9 |
 | DEL-01-01 | Supplied-guidance identity evidence (HOSTING §8.2); harness capability inventory at 0.158.0 | Via IR1-C J6 | §6.2, U-08 |
 | SWBPIPE owner (external) | Host library; seat conduct; act facility and capture-evidence reference; constraint receipt or own declaration copy; per-turn guidance recording | None received; relay questions (W9) | §5, §6, I-5, I-7, U-05b, U-19, U-29 |
@@ -801,9 +823,9 @@ represented as agreed (AC-005).
 | FB-13 | Reached-when names an undeclared tool or output, or is absent | Invalid checkpoint; the consumer cannot hold on it truthfully and reports it; the run does not proceed past the prose position as if the checkpoint were satisfied. |
 | FB-14 | Direct application requested for an operation under a governing checkpoint constraint | **not permitted**, naming the constraint (I-7); no silent conversion to a proposal. |
 | FB-15 | Only an agent-authored record, a conversation statement, or a record without a capture-evidence reference exists | Checkpoint stays **waiting** (I-5). |
-| FB-17 | A12 checkpoint whose declaration names no setting content | Invalid checkpoint (R4-9). |
-| FB-18 | Kind (a) on a harness capability in an App run (pending D6), or any checkpoint whose hold support on the acting surface is *not enforceable* | Workflow **unsupported** on that surface: "checkpoint hold not enforceable on this surface" (R4-8, R4-21). |
 | FB-16 | A5 checkpoint whose reached-when is not kind (c) *queued*, or whose subject class is not "change items of the named proposal"; or "targets of the held call" with a kind other than (a) | Invalid checkpoint (R2-17; IR1-C X-10); report. |
+| FB-17 | A12 checkpoint whose declaration names no setting content | Invalid checkpoint, unconditionally, whatever an A8 at arrival presents (R4-9; R5-3). |
+| FB-18 | Kind (a) on a harness capability in an App run (pending D6), or any checkpoint whose hold support on the acting surface is *not enforceable* | Workflow **unsupported** on that surface: "checkpoint hold not enforceable on this surface" (R4-8, R4-21). |
 
 ---
 
@@ -828,11 +850,11 @@ represented as agreed (AC-005).
 | U-15 | First connected operation, autonomy and environment: `UNRESOLVED{OI-021}` | Owner via outside SWB session and App/shared owner | Before connected-activity SoW | Fixture operations are FX-PIPE-01 entries, not the selected operation. |
 | U-16 | Automatic catalog extension: `UNRESOLVED{OI-003}` | Owner with host contract owner | Before claiming extension capability | Never assumed. |
 | U-17 | Owner confirmations for §9 rows; SWBPIPE consumer needs | DEL-02-03, DEL-05-01, DEL-05-02, DEL-03-02 (this undertaking); DEL-02-02, DEL-02-04 (later); SWBPIPE owner via relay | Next comparison (internal); relay (external) | Every row "None". |
-| U-19 | Relay question SQ-02 (R2-12, R4-14): which carriage assurance can the host give — does its route receive the constraint per request, or evaluate its own copy of the declaration (*host-held*)? Which evidence shows which? | Host owner (DEP-001) via W9; DEL-03-02 defines the element | Before W7 host-side fixtures and LOOP FX-C9 / PANEL PC-24 / VC-11 | I-7 holds as meaning; VC-11 **AWAITING INPUT**. For App-carried runs an omitted constraint is an App-side defect recorded as an evidence limit. |
-| U-23 | Real per-surface exposure agreement (the fixture uses C FA-1, "exposed ×3", with variant V-X1) | DEL-03-01 (C §8 map) with host owner; `UNRESOLVED{OI-003}` | Before exposure claims | Fixture values supplied by C-v0.3; real exposure open. |
+| U-19 | Relay question SQ-02 (R2-12, R4-14, R5-2): can the host hold the constraint (*host-held*: derived from, or verified against, its own resolved copy of the declaration), and hold host-operation checkpoints for App runs? Which evidence shows which? | Host owner (DEP-001) via W9; DEL-03-02 defines the element | Before W7 host-side fixtures and LOOP FX-C9 / PANEL PC-24 / VC-11 | I-7 holds as meaning; VC-11 **AWAITING INPUT**; host-operation checkpoints in App runs are *not established* until answered (§4.3.8). |
+| U-23 | Real per-surface exposure agreement (the fixture uses C FXA-1, "exposed ×3", with variant V-X1) | DEL-03-01 (C §8 map) with host owner; `UNRESOLVED{OI-003}` | Before exposure claims | Fixture values supplied by C; real exposure open; unagreed exposure makes hold support *not established* (R5-1). |
 | U-25 | Construction of the App act control and App person identity (requirements in EXEC §5 CAP-1…CAP-9) | DEL-01-04 (later undertaking, D1) with DEL-04-03 | Before App capture fixtures | Requirements supplied; App-side positive capture cases AWAITING INPUT. |
-| U-30 | App-side run holds `UNRESOLVED{D6}` (owner decision deferred to SWBPIPE SQ-02) | Owner, after the SWBPIPE answer; DEL-02-03 with DEL-03-03 for any App hold point | Before any App-run checkpoint case is claimed held | App-run hold support is *not enforceable* except A5 on the host route; action during hold recorded (§4.3.8, I-9). |
-| U-31 | Capture-after-arrival (I-8) versus counting a prior act bound to current content (EXEC U-E4) | Owner, with DEL-02-01 and DEL-04-01 | Before hold-machine fixtures run | I-8 applied as PROPOSED (R4-5). |
+| U-30 | App-side run holds `UNRESOLVED{D6}`. SQ-02 decides only checkpoints on **host operations**; **App-only** checkpoints stay *not enforceable* whatever SWBPIPE answers — a separate D6 follow-up for the owner (R5-10) | Owner; DEL-02-03 with DEL-03-03 for any App hold point | Before any App-run checkpoint case is claimed held | App runs: host-operation checkpoints *not established*, App-only checkpoints *not enforceable*; action during hold recorded (§4.3.8, I-9). |
+| U-31 | Capture-after-arrival (I-8) versus counting a prior act bound to current content (EXEC U-E4) | Owner, with DEL-02-01 and DEL-04-01 | Before hold-machine fixtures run | I-8 applied as PROPOSED (R4-5). Owner-visible cost (R5-7): SP-6 can make the person repeat a grant change whose content is already in force (EXAMPLES R-16 (i)). |
 | U-32 | Whether a declaration carries an "on subject absent" path (EXEC U-E7) | DEL-02-01 | Before a subject-absent fixture runs | Default: *waiting* "subject absent"; an act-declined event resolves it or the run ends. |
 | U-29 | Per-turn supplied-guidance source and content identity in host loops (relay question, R2-20) | Host owner (DEP-001) via W9; DEL-05-01 element | Before host supplied-link evidence | Where absent, *supplied* is **unknown**, never inferred from configuration. |
 
@@ -869,7 +891,7 @@ before the case can be run.
 | VC-16 Reserved operations | VER-003, VER-004 | E2 R-10 | Agent call to OP-C6 → **not permitted** (reserved, DERIVED R2-2); an A8 request is *offered*, not recorded automatically (R2-4); `CP-check` stays **waiting**. |
 | VC-17 Map rows name consumers | VER-005 (AC-005) | §9 | Every row has consumers, responsibility, rationale, confirmation "None" and placement; no row marked agreed. |
 | VC-18 Excluded acts mapped | VER-006 (AC-006) | §10 vs SoW REQ-006 | Every excluded act with owner and interface; host-vs-person distinction present. |
-| VC-19 Fixture inventory bound to candidate | VER-007 (AC-007) | WD-v0.4, WD-EX-v0.4 | Inventory VC-01…VC-42 with candidate identity; all DESIGNED or AWAITING INPUT; missing inputs listed; no joined host witness claimed. |
+| VC-19 Fixture inventory bound to candidate | VER-007 (AC-007) | WD-v0.5, WD-EX-v0.5 | Inventory VC-01…VC-42 with candidate identity (WD-v0.5, WD-EX-v0.5); all DESIGNED or AWAITING INPUT; missing inputs listed; no joined host witness claimed. |
 | VC-20 Reached-when not observed | VER-003 | E2 R-7′ | `CP-accept` **not reached**; never performed. |
 | VC-21 Subject binding | VER-003 | E2 R-8 | A5 on another proposal's item → `CP-accept` stays **waiting** (SB-2). |
 | VC-22 Capturing surface | VER-003 | E2 R-9 (i)–(iii) | (i) agent-authored record → **waiting**. (ii) faithful App record citing the host capture-evidence reference → **performed**; recorder ≠ decision actor. (iii) host exposes no capture-evidence reference → **waiting** (I-5; U-05b). |
@@ -882,17 +904,17 @@ before the case can be run.
 | VC-29 Invalid A5 combinations | VER-003 | Variants of E1 `CP-accept`: kind (a); kind (b); subject class "objects changed by a named outcome"; held-call targets with kind (c) | Each **invalid** (FB-16). |
 | VC-30 Declared class, not kind | VER-003 | E1 `CP-check` (kind (b), class "objects changed by a named outcome") | Binding uses the applied objects' post-application subject content identities, not the examination output's content (IR1C-01). |
 | VC-31 Run end and continuation | VER-003 | E2 R-12b | Run-ended event; `CP-check` final **waiting**; a later A4 is shown "after run end" and changes nothing; a continuation run (*continues ⟨run⟩*) inherits nothing and shows that A4 as "prior act, not counted" at its own arrival (R4-4, I-8). |
-| VC-32 A12 rules | VER-003 | E2 R-16 (i)–(v) (E1d) | T15's A12 precedes arrival → "prior act, not counted", **waiting**; A12 after arrival established → **performed**; later established A12 supersedes (stays performed, shown); refused A12 → **waiting**, does not supersede; pending → **waiting**; lost confirmation → **unknown** (R4-5, R4-6). |
-| VC-33 Pass rule | VER-002 | E7 variants | Pass only when every required reference is present or present-currently-unavailable and not unsupported; undeclared stays selectable, never "runnable". |
+| VC-32 A12 rules | VER-003 | E2 R-16 (i) main order; (ii)–(v) C V-GR1 (E1d) | T15's A12 precedes arrival → "prior act, not counted", **waiting**; A12 after arrival established → **performed**; later established A12 supersedes (stays performed, shown); refused A12 → **waiting**, does not supersede; pending → **waiting**; lost confirmation → **unknown** (R4-5, R4-6). |
+| VC-33 Pass rule | VER-002 | E7 variants; E8 | Pass only when every required reference is present or present-currently-unavailable, the workflow is not unsupported and no hold support is *not established*; undeclared stays selectable, never "runnable". |
 | VC-34 Retry de-duplication | VER-004 | E2 R-13 (T13) | Resubmission of PR-2 returns its recorded state (RC-1) and is never refused stale by its own effect; if unobservable, **outcome unknown** by the observer. |
 | VC-36 Objects a named output concerns | VER-003 | E1b; E2 R-E1b′ | `CP-review` binds S-2 and S-3 (the rows the OP-C3 findings name) through their subject content identities as read at B1; an A4 on the findings output itself, or on S-1, does not satisfy it; T6's S-3 edit lapses only S-3 (R3-1). |
-| VC-37 Hold support and App runs | VER-001, VER-003 | EXAMPLES E8 | Host run: `CP-accept` enforced on the host route (AWAITING INPUT), `CP-check` held after observation by the host loop. App run via X: `CP-check` **not enforceable** → workflow **unsupported** "checkpoint hold not enforceable on this surface: CP-check"; if run anyway, arrivals record "hold not enforceable" and any action while waiting is "action during hold"; no App hold claimed (R4-2, R4-8). |
+| VC-37 Hold support per surface | VER-001, VER-003 | EXAMPLES E8 | Embedded host run: `CP-accept` and `CP-check` **enforced by the host loop** → passes (subject to host evidence). App run via X: `CP-accept` **not established** (SQ-02) and `CP-check` (App-only) **not enforceable** → workflow **unsupported** "checkpoint hold not enforceable on this surface: CP-check"; E1d `CP-grant` via X **not established**. If run anyway, arrivals record their hold-support value and any action while waiting is "action during hold"; no App hold claimed (R5-1, R4-2, R4-8). |
 | VC-38 Harness-capability kind (a) | VER-003 | E8 variant | Kind (a) on a harness capability in an App run → *not enforceable*, **unsupported** (FB-18; R4-21). |
 | VC-39 Capture after arrival | VER-003 | E2 R-9b | A5/A4 captured before its arrival → "prior act on this subject, not counted"; order not establishable → "act order unknown"; neither counts (I-8). |
 | VC-40 Mixed-item additions | VER-003 | E2 R-6b, R-7b, R-13b | MX-3 lost decision → **unknown**; MX-6 all items left (A11 withdrawal) → arrival closed "replaced by arrival n+1" at the next *queued*; MX-8 application outcome unknown after A5 (V-OU1) → disposition unchanged, annotated (R4-7). |
 | VC-41 A12 without setting content | VER-003 | E1d variant | A12 checkpoint naming no setting content → **invalid** (FB-17; R4-9). |
 | VC-42 Elicitation is not act evidence | VER-003 | E2 R-9 (iv) | An answer to a Codex user-input/MCP elicitation request ("yes, accept") → `CP-accept` stays **waiting** (R4-12). |
-| VC-35 Undo lapses normally | VER-003 | E2 R-17 (T16a, T17) | RC-3 *reverses RC-2*; T16a's A4 bound to ⟨S-4@r16⟩ lapses (FA-2 covers the label) per I-4. |
+| VC-35 Undo lapses normally | VER-003 | E2 R-17 (T16a, T17) | RC-3 *reverses RC-2*; T16a's A4 bound to ⟨S-4@r16⟩ lapses (FXA-2 covers the label) per I-4. |
 
 Limit: passing these later would show local contract/fixture conformance
 only. It would not establish host implementation, round-trip execution,

@@ -1,9 +1,10 @@
 # Relay questions for the SWBPIPE owner — first connected activity
-- Contribution: DEL-09-06/RELAY-v0.2. It supersedes RELAY-v0.1 (sha256 3e34575def8d1fef63b5f5e64f0f90a0984d03b8b42f61fe899dd2eab023b2d1, committed at `b4030fe4b`). Sweep A1 under R4 and DECISION-2.
+- Contribution: DEL-09-06/RELAY-v0.3. It supersedes RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a162372541f65, committed at `9fc77baa3`), which superseded RELAY-v0.1 (sha256 3e34575def8d1fef63b5f5e64f0f90a0984d03b8b42f61fe899dd2eab023b2d1, `b4030fe4b`). R5 pass under R5_RESOLUTIONS.md (R5-4, R5-9, R5-10; R5-1/R5-2 as they bear on SQ-02).
 - Status: **PREPARED FOR HUMAN RELAY — not delivered.** DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Delivery, acknowledgment, answer, commitment and adoption: **not observed**. The owner relays this file after the undertaking's final review.
 - Serves: OUT-004 (human-relayed external questions and proposed interfaces; the contribution/evidence account is in `CONNECTED_ACTIVITY_CONTRACT.md` §9); REQ-005; AC-005 through designed VER-005. Also OUT-001's "decision/input account needed to finalize the exact operation-specific definition" (REQ-001, TBD-001).
 - Basis: repo 6e18505e3 (accepted basis); DEL-09-06 ScopeOfWork.md sha256 511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §1, V4-HI-03, V4-HI-11, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-50…52, §11; `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) §1, V4-EXM-14, §4; `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-EXT-01, OQ-10, OQ-11; `P/execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (sha256 6e7a2f0427acdc0553bd5ea9cceaeceeff5bd82bf1165ed5930c389532e15ef4, working tree; not edited); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D2, D3; R1_RESOLUTIONS.md sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R2_RESOLUTIONS.md sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088 (R2-2, R2-12, R2-13, R2-14, R2-20); R3_RESOLUTIONS.md sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R4_RESOLUTIONS.md at `f05c7e4cd` sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24 (R4-1, R4-2, R4-8, R4-13, R4-14, R4-20); OWNER_DECISIONS.md at `f05c7e4cd` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c (`APP-V4-FIRST-INCREMENT-20260928-DECISION-2`: D5 settled — the model destination is recorded and shown, not gated; D6 deferred to this file's SQ-02); BRIEFS.md working copy sha256 77a42f8a8c8260285b4142d3a6392a07daead16010b209139efc0d3efc60a21f ("Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W9")
 - Consumed inputs:
+  - **v0.3 inputs (R5 pass; binding rulings R5_RESOLUTIONS.md at `8fb51f07f`, sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1; V3-A and V3-B reviews in the same commit).** Every sibling Design file is read at commit `8fb51f07f` (the committed texts; the working-tree revisions their owners are making in parallel under R5 were not read), and body citations use these versions: DEL-03-01/C-v0.4 sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c; DEL-03-02/P-v0.4 sha256 0d3960a2e6bd3520368006cdd2b1b67a1fe4eb06e23184aded9d5b98d6c5e361; DEL-04-01/ACT-POLICY-v0.4 sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b; DEL-04-02/AS-v0.4 sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab; DEL-04-03/RS-v0.4 sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199; DEL-02-01/WD-v0.4 sha256 e492ff635de972466c8a932355beeae848e1f3d3f60de7304e88963352d8e88e and WD-EX-v0.4 sha256 60ce307a25fe1f9aaad0826985e02aaa6ebd68d86a6d972b1d5a1e39b3128ca4; DEL-05-01/LOOP-v0.4 sha256 ffc3048333f3370ba09a9ce124159b94f2c80ce69b5f593bfb82cc552f95934e; DEL-05-02/PANEL-v0.4 sha256 cb71bc4bd3d8a2034cd236437670d5cd6dad10f8dfcc0d6c75b277573ce84419; DEL-01-01/HOSTING-BOUNDARY-v0.4 sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58; DEL-02-03/EXEC-v0.2 sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0; DEL-03-03/ADAPTER-v0.2 sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc; DEL-03-04/GUIDE-v0.1 sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8. R5 bumps those files (Wave-1 to v0.5, EXEC/ADAPTER to v0.3, GUIDE to v0.2) in parallel with this pass; where R5 fixes a meaning they will carry (the four hold-support values R5-1, host-held carriage R5-2, destination per turn R5-4, V-GR1 R5-7), this file states the R5 ruling directly and cites R5. The entries below are the history of earlier bases.
   - **v0.2 sweep inputs (working tree after `f05c7e4cd`; the coordinator reports these four as finished):** DEL-03-01/C-v0.4 `CATALOG_AND_READ_BASIS.md` sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c (FXA-1…FXA-5, editions e1/e2, V-ED1, LIB-A1, LIB-A2, AF-1, U-C list); DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc (§3.4, §5.3, §5.6 PI-1…PI-6, §12 XQ → SQ map, F-15, F-17, XF-40…XF-42); DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0 (§2 HP-1…HP-4, HP-H; §3.6 hold support; F-17…F-21); DEL-04-01/ACT-POLICY-v0.4 `ACT_AND_POLICY_CONTRACT.md` sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b (§2.6 A13 capture, §4.6 hold support, §12 item 4 (a)–(f), F-15). Where this file cites EXEC, ADAPTER, ACT or C by version, it cites these.
   - **Wave-1 v0.3 at commit `ba0b37123`** (for the Wave-1 files other than C and ACT, whose v0.4 texts were not declared final at this sweep). The brief names `main` merge `98b1723b`; that object is not present in this clone. DISPATCH.md records it as the merge of head `1c36b6d97`. Every Wave-1 Design blob is identical at `ba0b37123`, `1c36b6d97` and `e20a3ae8d` (verified by blob id), so these bytes are the merged v0.3 bytes for these paths:
     - DEL-05-01/LOOP-v0.3 `LOOP_RECEIVING_CONTRACT.md` sha256 6b771c8027787193d536fa3507214a8cc579d6ec2f476ee880609c920b6f25c7 (§13 Q-1…Q-7);
@@ -93,9 +94,9 @@ the answer form requested.
   interface)? Does it stay resolvable after a restart? Will you ever capture
   a person's act through an MCP elicitation, a CLI prompt or another
   agent-mediated question? (The App contracts ask that you do not.)
-- **Depends.** WD-v0.3 I-5, §4.3.4 *performed*; EXEC-v0.2 §4.5 SP-3, CH-3,
-  CH-7, CH-28, U-E12; LOOP-v0.3 §13 Q-2, FX-C1, FX-C5, FX-C8; PANEL-v0.3 §8
-  Q-2, PC-07, PC-18, PC-19, PC-21; ACT-v0.4 U-04(a), FX-29; RS-v0.3 HA-7, §6.1
+- **Depends.** WD-v0.4 I-5, §4.3.4 *performed*; EXEC-v0.2 §4.5 SP-3, CH-3,
+  CH-7, CH-28, U-E12; LOOP-v0.4 §13 Q-2, FX-C1, FX-C5, FX-C8; PANEL-v0.4 §8
+  Q-2, PC-07, PC-18, PC-19, PC-21; ACT-v0.4 U-04(a), FX-29; RS-v0.4 HA-7, §6.1
   "capture evidence references"; ADAPTER-v0.2 §7.6, XF-18, XF-33;
   `CONNECTED_ACTIVITY_CONTRACT.md` W14-04, W14-05; DEL-09-09
   `EXTERNAL_TRACE_CASES.md` XC-02, XC-09.
@@ -123,7 +124,10 @@ the answer form requested.
   resolved as *propose* in that run, even under a direct grant (V4-HI-42; D2).
   (a) Can your validation/application route receive a per-request
   **governing checkpoint constraint** {workflow run, checkpoint name,
-  required act A5, operation} and resolve *propose* from it? (b) Or will the
+  required act A5, operation}, **verify it against your own copy of the
+  declaration**, and resolve *propose* from it? (A constraint merely received
+  from an outside caller keeps its source's assurance, e.g. model-supplied,
+  and does not satisfy R2-12; R5-2.) (b) Or will the
   host hold its own copy of the selected workflow's declaration, or a run
   association the App registers at run start, and evaluate it itself? (c) For
   a direct request under the constraint, will the route return *not
@@ -131,9 +135,9 @@ the answer form requested.
   proposal? (d) For checkpoints of the kind "before dispatch of a named
   operation", will the host hold such a call itself, on the embedded and on
   the external surface? (e) What evidence would show which of these applies?
-- **Depends.** R2-12; P-v0.3 §3.3, U-P10; WD-v0.3 I-7, U-19, VC-11; C-v0.4
-  V-CP1; LOOP-v0.3 §13 Q-1, FX-C9; PANEL-v0.3 §8 Q-1, PC-24; ACT-v0.4 §4.4,
-  U-04(c), U-04(f), §4.6; EXEC-v0.2 §2 HP-H, §3.6 hold support, MT-2, CH-27,
+- **Depends.** R2-12; P-v0.4 §3.3, U-P10; WD-v0.4 I-7, U-19, VC-11; C-v0.4
+  V-CP1; LOOP-v0.4 §13 Q-1, FX-C9; PANEL-v0.4 §8 Q-1, PC-24; ACT-v0.4 §4.4,
+  U-04(c), U-04(f), §4.6; R5-1, R5-2, R5-10; EXEC-v0.2 §2 HP-H, §3.6 hold support, MT-2, CH-27,
   U-E1, U-E13, F-17, F-18; ADAPTER-v0.2 §5.3 GC-1…GC-5, OC-7, OC-11, XF-25,
   XF-26, XF-42; R4-2, R4-8, R4-14; DECISION-2 D6;
   `CONNECTED_ACTIVITY_CONTRACT.md` W14-04; DEL-09-09
@@ -143,10 +147,14 @@ the answer form requested.
   omission would let a direct grant bypass a declared acceptance checkpoint
   (ADAPTER GC-2). The App cannot hold a model-issued external call before
   dispatch in native realization (ADAPTER GC-5; EXEC F-10). A host-held
-  evaluation would close both gaps. **The owner has deferred how the App
-  holds its own runs to this answer** (DECISION-2 D6): the answer decides
-  whether any checkpointed workflow can run supported on the App/external
-  surface in the first increment.
+  evaluation would close both gaps. **The owner has deferred D6 to this
+  answer** (DECISION-2). The answer decides holds **only for checkpoints on
+  host operations** (EXEC HP-H: host operations only). Checkpoints on
+  App-only steps — App content such as an A4 on an App file, or a run halt
+  after an App-side output — stay **not enforceable**, and their workflows
+  *unsupported* on the App surface, **whatever SWBPIPE answers**; that is a
+  separate D6 follow-up for the owner, not something this question can
+  settle (R5-10; EXEC §3.6, F-17).
 - **Point of need.** Before V-CP1, LOOP FX-C9, PANEL PC-24, WD VC-11, EXEC
   CH-27 and ADAPTER XF-25 are executed; before the App fixes its realization
   family (TBD-007).
@@ -154,23 +162,30 @@ the answer form requested.
   by the owner to this answer (DECISION-2). In this increment **only host-held
   carriage satisfies R2-12** (R4-14): App-assured carriage needs interposed App
   code, which is not adopted (R4-2; EXEC F-18), and model-supplied carriage
-  alone never counts. So, **without a host-held constraint or host hold, a
-  checkpointed workflow is *unsupported* on the App/external surface** — hold
-  support "not enforceable" or "not established", reason "checkpoint hold not
-  enforceable on this surface" (R4-8; EXEC §3.6, MT-2, F-17). The App claims no
+  alone never counts (R5-2). A host loop's own evaluation of the declaration
+  is host-held (R5-2). Hold support takes one of four values (R5-1): *enforced
+  by the host loop* (embedded route); *enforced on the host route* (host-held
+  constraint, once your answer and a candidate evidence it); *not
+  established* (awaiting this answer); *not enforceable* (no mechanism: App-only
+  steps, or a constraint carried only as model-supplied → workflow
+  *unsupported*, R4-8). So, until you answer, E1 run from the App through the
+  external channel has `CP-accept` **not established** (its check does not
+  pass), and any App-only checkpoint is **not enforceable**. The App claims no
   hold it cannot enforce, relies neither on interposed code (HP-1) nor on turn
   interruption (HP-2), and records every run action observed while a
   checkpoint waits as **action during hold** (ADAPTER XF-42). V-CP1, FX-C9,
-  PC-24, VC-11, CH-27 and XF-25 stay AWAITING INPUT; XF-26 stays HELD on
-  `UNRESOLVED{D6}`. Host-loop runs on the embedded surface are unaffected in
+  PC-24, VC-11, CH-27 and XF-25 stay AWAITING INPUT; XF-26 (model-supplied
+  only) is *not enforceable*; XF-42 records action during hold. Host-loop runs on the embedded surface are unaffected in
   meaning (the host loop holds); their evidence is DEP-001.
 - **Answer form.** Choose one or more of (a) per-request receipt, (b)
   host-held declaration, (c) host-held run association, (d) none planned; a
   yes/no for (c) *not permitted* naming the constraint; a yes/no for host
-  holds before dispatch per surface; and the evidence you would supply. If
+  holds before dispatch per surface; for (a), whether you verify a received
+  constraint against your own declaration copy; and the evidence you would
+  supply. If
   none of (a)–(c) is planned for the first increment, please say so plainly:
-  the App will then report checkpointed workflows as unsupported on its
-  surface rather than claim a hold.
+  the App will then report checkpoints on host operations as not
+  enforceable on its surface rather than claim a hold.
 
 #### SQ-03 Content identities used to bind acts
 
@@ -182,10 +197,13 @@ the answer form requested.
   change item it accepts (operation identity and version, bound targets,
   old/new values, relied-on basis)? (d) Does an applied outcome identify the
   created and changed objects, with their subject content identities after
-  application (R2-14)?
-- **Depends.** C-v0.4 §5.3, U-C3, FXA-2; P-v0.3 §3.1, §9 "applied (receipt)",
-  U-P2; WD-v0.3 §4.3.6 SB-1…SB-3; RS-v0.3 L-1/L-2; EXEC-v0.2 SP-4, CH-1, CH-7,
-  MC-2; LOOP-v0.3 §13 Q-3, FX-C1; WD-EX E1 `CP-check`; ADAPTER-v0.2 RD-2;
+  application (R2-14)? (e) If an object's content returns to the exact content
+  an act was bound to (for example after an undo of a later edit), what does
+  its subject content identity show — the earlier identity again, or a new
+  one (RS U-12)?
+- **Depends.** C-v0.4 §5.3, U-C3, FXA-2; P-v0.4 §3.1, §9 "applied (receipt)",
+  U-P2; WD-v0.4 §4.3.6 SB-1…SB-3; RS-v0.4 L-1/L-2, L-11, U-12; EXEC-v0.2 SP-4, CH-1, CH-7,
+  MC-2; LOOP-v0.4 §13 Q-3, FX-C1; WD-EX E1 `CP-check`; ADAPTER-v0.2 RD-2;
   HANDOFF "Domain identity and basis"; `CONNECTED_ACTIVITY_CONTRACT.md` W14-04,
   W14-06.
 - **Why it matters.** An act binds to content and lapses visibly when that
@@ -199,7 +217,8 @@ the answer form requested.
   evidence limit. Identities with different method designations are
   *unknown (incomparable)*.
 - **Answer form.** Yes/no/planned for (a), (c), (d); a short scope statement
-  per object kind for (b); a sample read and receipt using invented material.
+  per object kind for (b); for (e), "same identity" / "new identity" / "not
+  yet decided" (the App keeps an observed lapse visible either way, RS L-11); a sample read and receipt using invented material.
 
 ### P2 — the first connected activity (OI-021)
 
@@ -218,7 +237,7 @@ the answer form requested.
   its prerequisites and current readiness, without dates you cannot support.
 - **Depends.** OI-021 / PRD OQ-11 everywhere, in particular:
   `CONNECTED_ACTIVITY_CONTRACT.md` §2, §3, TBD-001; ACT-v0.4 U-01; EXEC-v0.2
-  U-E17; LOOP-v0.3 and PANEL-v0.3 OI-021 rows; C-v0.4 OP-C11; DEL-09-09
+  U-E17; LOOP-v0.4 and PANEL-v0.4 OI-021 rows; C-v0.4 OP-C11; DEL-09-09
   `EXTERNAL_TRACE_CASES.md` IN-10; HANDOFF "First activity", "Capability
   semantics".
 - **Why it matters.** Every App fixture uses invented FX-PIPE-01 material.
@@ -249,9 +268,16 @@ the answer form requested.
   (d) Will the route report the settings reference in force at application?
   (e) How do you show the grant states, including a policy default (propose)
   and a refused setting? (f) Would you take part in defining a consequence
-  vocabulary for grant scope?
-- **Depends.** ACT-v0.4 §7, §8.3 P-01…P-06, U-01, U-02, U-04(d); PANEL-v0.3
-  §8 Q-8; AS-v0.3 §3; ADAPTER-v0.2 UNRESOLVED "host adoption"; C-v0.4 T15
+  vocabulary for grant scope? (g) Beyond the canonical rules (the proposer
+  alone withdraws; rejection is the person's wherever acceptance is), do you
+  have operation-specific withdraw or reject rules (P U-P6)? (h) When the
+  grant state the App last saw is *unconfirmed*, does your route still
+  resolve treatment from the grant actually in force, and re-resolve it at
+  application (AS U-04)? (i) What defaults apply to consequential classes
+  other than the SWB model-change class (ACT U-06)?
+- **Depends.** ACT-v0.4 §7, §8.3 P-01…P-06, U-01, U-02, U-04(d), U-06;
+  P-v0.4 U-P6; AS-v0.4 §3, U-04; PANEL-v0.4
+  §8 Q-8; AS-v0.4 §3; ADAPTER-v0.2 UNRESOLVED "host adoption"; C-v0.4 T15
   (class P-03, U-02); HANDOFF "Autonomy and human acts";
   `CONNECTED_ACTIVITY_CONTRACT.md` §2 row CA-2, W14-04.
 - **Why it matters.** D2 does not show that SWBPIPE has adopted or enforces
@@ -266,7 +292,8 @@ the answer form requested.
   classed. All treatment behavior is receiving meaning, not host evidence.
 - **Answer form.** Per operation: class; added reserved acts; the host's
   reserved list; yes/no on (d); a description or screenshot reference for (e);
-  yes/no/later on (f).
+  yes/no/later on (f); a list or "none" for (g); yes/no for (h); a list or
+  "not yet decided" for (i).
 
 #### SQ-06 Direct application on the external channel
 
@@ -301,8 +328,13 @@ the answer form requested.
   against the relied-on targets' subject content identities, so that applying
   one item does not stale siblings with other targets (R2-13)? (e) Does
   application re-check the relied-on targets after acceptance? (f) Which
-  selection or model changes invalidate a proposal?
-- **Depends.** C-v0.4 §5, U-C2, U-C3, Tg; P-v0.3 §5, §12, U-P3; LOOP-v0.3 §13
+  selection or model changes invalidate a proposal? (g) When a change relies
+  on several reads, which of the cited bases must still hold at validation
+  and at application (C U-C4)? (h) Do non-mutating operations that cite a
+  basis (examinations, host checks) run against the current basis and state
+  both the cited and the evaluated basis, rather than being refused as stale
+  (C U-C10)?
+- **Depends.** C-v0.4 §5, §5.4, U-C2, U-C3, U-C4, U-C10, Tg; P-v0.4 §5, §12, U-P3; LOOP-v0.4 §13
   Q-6 (per-item part), FX-D2, FX-D3; ADAPTER-v0.2 RD-2, RD-5, XF-14,
   XF-39; EXEC-v0.2 MX-7; HANDOFF "Domain identity and basis"; DEL-09-09
   `EXTERNAL_TRACE_CASES.md` XC-03, XC-08.
@@ -314,8 +346,8 @@ the answer form requested.
 - **App assumes meanwhile.** The R2-13 per-item rule and the "no longer holds"
   rule are INTEGRATION rulings, labeled. Cross-generation bases are
   *unknown (incomparable)*.
-- **Answer form.** Yes/no/planned per item, with a short explanation for (b)
-  and (f).
+- **Answer form.** Yes/no/planned per item, with a short explanation for (b),
+  (f) and (g).
 
 #### SQ-08 Proposal identity and repeated submission
 
@@ -327,7 +359,7 @@ the answer form requested.
   description says recovery is within one controller session.) (d) Can a
   caller read a proposal's recorded state by identity? (e) What evidence will
   show one domain effect per item when the same proposal is submitted twice?
-- **Depends.** R2-13; P-v0.3 §5, §7, U-P1; LOOP-v0.3 §13 Q-6, FX-O1;
+- **Depends.** R2-13; P-v0.4 §5, §7, U-P1; LOOP-v0.4 §13 Q-6, FX-O1;
   ADAPTER-v0.2 §5.6 PI-1…PI-6, OC-10, XF-19, XF-21, XF-40, XF-41; C-v0.4 T13;
   HANDOFF "Application, cancellation and recovery"; DEL-09-09
   `EXTERNAL_TRACE_CASES.md` XC-05, XC-06.
@@ -359,7 +391,7 @@ the answer form requested.
   validation failure before queueing recorded as a refusal? (e) Is a refusal
   at application distinguished from a validation refusal in your records?
   (f) Are items of one proposal applied individually or in groups?
-- **Depends.** P-v0.3 §9, U-P4, U-P5, U-P7; C-v0.4 §4.1; ADAPTER-v0.2 M-1…M-5,
+- **Depends.** P-v0.4 §9, U-P4, U-P5, U-P7; C-v0.4 §4.1; ADAPTER-v0.2 M-1…M-5,
   OC-9; EXEC-v0.2 MX-8; HANDOFF "Application, cancellation and
   recovery"; DEL-09-09 `EXTERNAL_TRACE_CASES.md` XC-06, XC-07.
 - **Why it matters.** Success means only that an operation ran. The App must
@@ -367,8 +399,11 @@ the answer form requested.
   silence.
 - **Point of need.** Before outcome recording against a host; before
   interruption cases.
-- **App assumes meanwhile.** A result without a stated outcome is *outcome
-  unknown* (observer App or loop), never *queued* or *applied*.
+- **App assumes meanwhile.** A **submission** whose result states no outcome
+  is *outcome unknown* (observer App or loop), never *queued* or *applied*.
+  "Outcome unknown" does not apply to reads: a read with no stated result is
+  an *error* as observed, and a lost read is simply re-read on a new basis
+  (ADAPTER M-3, RD-4; R5-10).
 - **Answer form.** A mapping from your result forms to the terms in (a); short
   answers to (b)–(f).
 
@@ -379,7 +414,7 @@ the answer form requested.
   policy of the operation it reverses (R3-4)? Does its receipt record that it
   reverses the earlier receipt? What does "publication" mean in SWBPIPE, and
   does it affect the standing of an applied change?
-- **Depends.** R2-15; R3-4; P-v0.3 §4.5, U-P8; C-v0.4 OP-C10, T17; PANEL-v0.3
+- **Depends.** R2-15; R3-4; P-v0.4 §4.5, U-P8; C-v0.4 OP-C10, T17; PANEL-v0.4
   §8 Q-4 (reversed display); ADAPTER-v0.2 RP-6, XF-38; HANDOFF "publication/
   undo".
 - **Why it matters.** Acts bound to content an undo changes lapse normally.
@@ -395,9 +430,9 @@ the answer form requested.
   offered on the embedded and external surfaces for the first activity? Does
   the host report *not exposed on this surface* from that element, rather than
   as a missing operation or an error?
-- **Depends.** R2-4; C-v0.4 §3 element 9, §8, U-C7, FXA-1, V-X1; LOOP-v0.3
+- **Depends.** R2-4; C-v0.4 §3 element 9, §8, U-C7, FXA-1, V-X1; LOOP-v0.4
   §13 Q-7, FX-U3; ADAPTER-v0.2 XF-09; EXEC-v0.2 EV-7/EV-8, MT-5;
-  WD-v0.3 §4.2.4.
+  WD-v0.4 §4.2.4.
 - **Why it matters.** "Not exposed" must stay distinct from "missing" and from
   "channel not enabled". A narrowed extension promise would be expressed
   through this element (OI-003).
@@ -456,8 +491,8 @@ the answer form requested.
   submission (author type, identity, channel, conversation, workflow run), and
   do you verify any of them? Can the App read your origin mark to link it? How
   are callers authenticated, and can more than one local caller attach?
-- **Depends.** P-v0.3 §3.3 (author identity may be *unverified*, R4-15);
-  ADAPTER-v0.2 §5.4, OC-6, XF-37; RS-v0.3 R11.
+- **Depends.** P-v0.4 §3.3 (author identity may be *unverified*, R4-15);
+  ADAPTER-v0.2 §5.4, OC-6, XF-37; RS-v0.4 R11.
 - **Why it matters.** Origin marks are linked, not copied (V4-HI-71). Author
   identity over the external channel is *unverified* until a mechanism exists.
 - **Point of need.** Before origin conformance is claimed.
@@ -483,13 +518,15 @@ the answer form requested.
 
 - **Question.** The App's side is decided: content the App's Codex reads over
   your external interface may go to the model the person selected for that
-  App conversation, cloud included; the App records and shows that
-  destination and does not gate on it (DECISION-2 D5). Does SWBPIPE restrict
+  App conversation, cloud included, with no App gate (DECISION-2 D5,
+  SETTLED). The App also records and shows that destination, per turn where
+  the supplier reports it (INTEGRATION — the recorder's reading of
+  DECISION-2; R4-1, R5-4). Does SWBPIPE restrict
   **its own** external channel by the caller's model destination — for
   example, refusing callers whose conversation uses a cloud model? If so, how
   is a refusal reported, and what, if anything, must the App state to your
   endpoint about the destination?
-- **Depends.** DECISION-2 D5; R4-1; ADAPTER-v0.2 S-X11, §3.4, XF-05, XF-36;
+- **Depends.** DECISION-2 D5; R4-1; R5-4; HOSTING-v0.4 §8.3; ADAPTER-v0.2 S-X11, §3.4, XF-05, XF-36;
   EXEC-v0.2 CR-14; DEL-09-09 `EXTERNAL_TRACE_CASES.md` IN-14, XC-01.
 - **Why it matters.** A host may restrict its own channel; that is host
   policy (DEP-001). The App must relay such a refusal truthfully and never
@@ -497,8 +534,10 @@ the answer form requested.
   agent.
 - **Point of need.** Before a live candidate is enabled.
 - **App assumes meanwhile.** No host restriction is presumed. The App adds no
-  destination and no gate; it records each run's model destination and shows
-  it in the channel status as information (R4-1). A host refusal, if any, is
+  destination and no gate (D5). As information only, it records the model
+  destination per turn where reported, keeping requested and effective
+  destinations apart, and shows it in the channel status (INTEGRATION,
+  DECISION-2 reading; R4-1, R5-4). A host refusal, if any, is
   relayed with the host as reporter.
 - **Answer form.** No restriction / a stated restriction (with how a refusal
   is reported) / a planned restriction; and what the App must state, if
@@ -521,8 +560,9 @@ the answer form requested.
   **host's** enablement facility; an App-side access configuration is never
   A13 evidence because an agent could write it (R4-13; ACT §2.6). **Without
   such a facility and reference, A13 cannot be evidenced, and under the App
-  contracts the external channel stays *not enabled*** — which would block
-  every live V4-EXM-25 case (ACT F-15).
+  contracts the external channel stays *not enabled***. SQ-28 therefore gates
+  **the whole external channel**: every live CA/X case and every live
+  DEL-09-09 XC case, including V4-EXM-25 (ACT F-15; R5-10).
 - **Point of need.** Before enablement implementation; before any live
   external-channel case (DEL-09-09 XC-01…XC-12; DEL-03-03 VER-002).
 - **App assumes meanwhile.** No enablement is evidenced; for App-originated
@@ -547,7 +587,7 @@ the answer form requested.
   you need the App to relay (package plus a carriage manifest; no transport is
   assumed)?
 - **Depends.** EXEC-v0.2 §6.3 TR-5, TR-6, §6.7 TF-2…TF-4, TF-7, RT-1, RT-4,
-  U-E14; WD-v0.3 §3.4, §6.4; PANEL-v0.3 UNRESOLVED "which party evaluates
+  U-E14; WD-v0.4 §3.4, §6.4; PANEL-v0.4 UNRESOLVED "which party evaluates
   required-tool outcomes in the host"; HANDOFF "Workflow exchange";
   `CONNECTED_ACTIVITY_CONTRACT.md` W14-01, W14-03.
 - **Why it matters.** V4-EXM-14 carries a reviewed workflow from App to host.
@@ -569,17 +609,19 @@ the answer form requested.
   link to the original? (c) Can you relay a comparison showing which
   checkpoints were preserved, changed, removed or added? (d) Will you publish
   compatibility statements between catalog entry versions, or is version
-  equality the rule?
+  equality the rule? (e) When a request names an entry version that differs
+  from the one your catalog now holds, what does the route return (C U-C6)?
 - **Depends.** R-9; R2-20; EXEC-v0.2 §6.2 HL-1…HL-3, §6.4 AD-1…AD-6, RT-2,
-  RT-3, RT-7, U-E11, U-E14; WD-v0.3 §6.4; WD-EX E3, E4; PANEL-v0.3 §8 Q-6;
-  C-v0.4 U-C9, LIB-A1, LIB-A2 (App-side libraries for the return path); `CONNECTED_ACTIVITY_CONTRACT.md` W14-02, W14-10.
+  RT-3, RT-7, U-E11, U-E14; WD-v0.4 §6.4; WD-EX E3, E4; PANEL-v0.4 §8 Q-6;
+  C-v0.4 U-C6, U-C9, LIB-A1, LIB-A2 (App-side libraries for the return path); `CONNECTED_ACTIVITY_CONTRACT.md` W14-02, W14-10.
 - **Why it matters.** "Checkpoint identity" across adaptation is part of
   V4-EXM-14. Adapted content must never inherit the original's identity or
   acts.
 - **Point of need.** Before RT host-side cases.
 - **App assumes meanwhile.** Adaptation evidence is *not observed*; version
   compatibility is equality only.
-- **Answer form.** A list or sample for (a); yes/no/planned for (b)–(d).
+- **Answer form.** A list or sample for (a); yes/no/planned for (b)–(d); the
+  outcome returned for (e).
 
 #### SQ-19 Host run records and supplied guidance
 
@@ -588,9 +630,11 @@ the answer form requested.
   supplies to the model — role, workflow, project guidance? (b) Do host run
   records name the full workflow identity that ran? (c) Can those records,
   including interruption and revision history, be relayed to the App by
-  reference?
-- **Depends.** R2-20; LOOP-v0.3 §13 Q-4; RS-v0.3 R2, R3; EXEC-v0.2 §6.1
-  *supplied*, HR-6, RT-5, RT-8, U-E14, U-E15; HOSTING-v0.3 §8.2;
+  reference? (d) SWBPIPE has a single agent seat. Which of the four role
+  meanings does it carry for a given run, and how is that recorded (WD U-09,
+  SEAT-1…SEAT-3)?
+- **Depends.** R2-20; LOOP-v0.4 §13 Q-4; WD-v0.4 §5.3 SEAT-1…SEAT-3, U-09; RS-v0.4 R2, R3, R5a; EXEC-v0.2 §6.1
+  *supplied*, HR-6, RT-5, RT-8, U-E14, U-E15; HOSTING-v0.4 §8.2;
   `CONNECTED_ACTIVITY_CONTRACT.md` W14-07, W14-08.
 - **Why it matters.** V4-EXM-14 keeps selected/resolved bytes, what was
   supplied, provider adoption and observed behavior separate. "Supplied ≠
@@ -598,14 +642,15 @@ the answer form requested.
 - **Point of need.** Before host supplied-link evidence is claimed.
 - **App assumes meanwhile.** Host *supplied* is **unknown**; adoption is
   unknown; history is referenced, not copied (V4-HI-71).
-- **Answer form.** Yes/no/planned for each; an example record if one exists.
+- **Answer form.** Yes/no/planned for (a)–(c); an example record if one
+  exists; for (d), the mapping or "not yet decided".
 
 #### SQ-20 Host-side placement (informational)
 
 - **Question.** For information only: where do you intend the loop, panel
   assembly, conversation persistence, the checkpoint hold machine and the
   required-tool check to live in SWBPIPE?
-- **Depends.** OI-013; OI-014; LOOP-v0.3 §10.1; PANEL-v0.3 §8 Q-9; EXEC-v0.2
+- **Depends.** OI-013; OI-014; LOOP-v0.4 §10.1; PANEL-v0.4 §8 Q-9; EXEC-v0.2
   U-E2.
 - **Why it matters.** Placement is the SWBPIPE owner's under OI-013. The App
   supplies semantics only, and no common implementation is allocated.
@@ -621,8 +666,8 @@ the answer form requested.
   faithful record of a person's act? If so, does it meet all four conditions:
   it does not change act state; it cites capture evidence; it never satisfies
   a checkpoint; it takes ordinary policy (R2-2)?
-- **Depends.** R2-2; ACT-v0.4 U-04(b), P-02; RS-v0.3 HA-9; LOOP-v0.3 §13 Q-5;
-  PANEL-v0.3 §8 Q-5.
+- **Depends.** R2-2; ACT-v0.4 U-04(b), P-02; RS-v0.4 HA-9; LOOP-v0.4 §13 Q-5;
+  PANEL-v0.4 §8 Q-5.
 - **Why it matters.** An operation that performs a reserved act is reserved to
   the person; no faithful record is made through one.
 - **Point of need.** Before host act-recording integration.
@@ -635,7 +680,7 @@ the answer form requested.
 - **Question.** Which host views show proposed change items with old and new
   values, affected objects and reason? How can the panel reference a position
   in them?
-- **Depends.** V4-HI-24; PANEL-v0.3 §8 Q-3, §4; P-v0.3 §8; C-v0.4 §8
+- **Depends.** V4-HI-24; PANEL-v0.4 §8 Q-3, §4; P-v0.4 §8; C-v0.4 §8
   "proposal views".
 - **Why it matters.** There is no agent-private surface; proposals appear in
   the host's own views (V4-HOST-04).
@@ -648,7 +693,7 @@ the answer form requested.
 - **Question.** How does the host show: an act lapsed by a content change; a
   grant setting superseded by a later one; "accepted by ‹person› — not
   applied: refused — stale"; and "applied, then reversed"?
-- **Depends.** PANEL-v0.3 §8 Q-4, §5; AS-v0.3 §3, §8; R2-7; R2-15; R2-16.
+- **Depends.** PANEL-v0.4 §8 Q-4, §5; AS-v0.4 §3, §8; R2-7; R2-15; R2-16.
 - **Why it matters.** These standings must stay visible and distinct.
 - **Point of need.** Before panel receiving implementation.
 - **App assumes meanwhile.** Display rules per PANEL §5 and AS §8.
@@ -659,7 +704,7 @@ the answer form requested.
 - **Question.** Does the host hold agent examination findings attached to rows
   or results by reference? If it stores them, is storing them a change through
   the one route?
-- **Depends.** V4-EXM-21; C-v0.4 U-C5; RS-v0.3 R10; PANEL-v0.3 §8 Q-7.
+- **Depends.** V4-EXM-21; C-v0.4 U-C5; RS-v0.4 R10; PANEL-v0.4 §8 Q-7.
 - **Why it matters.** Findings are never "checked" (A4) and never a host check.
 - **Point of need.** Before findings cases run against a host.
 - **App assumes meanwhile.** Findings are referenced; not a change unless the
@@ -756,7 +801,7 @@ the App asks for the facts it must receive, not for a design.
   fixture basis?
 - **Depends.** DEP-05-01-024 (supplier UNKNOWN); LOOP-v0.4 §1, §4, §7 MC-6,
   MC-8, §11 fixture basis, UNRESOLVED row DEP-05-01-024; GUIDE-v0.1 M7.2,
-  HC-7.2, G-3; HOSTING-v0.3 §9 (recorded-exchange method, App side).
+  HC-7.2, G-3; HOSTING-v0.4 §9 (recorded-exchange method, App side).
 - **Why it matters.** Every LOOP fixture names a model-interface basis, which
   is UNKNOWN. Until it is supplied or agreed, the malformed-call cases MC-6 and
   MC-8 stay held and no loop fixture is executable (LOOP §11).
@@ -812,7 +857,7 @@ the App asks for the facts it must receive, not for a design.
   still undispatched, are those siblings **held, not run**, with a "held at
   checkpoint" result to the model (LOOP HS-0)?
 - **Depends.** V4-ARC-13; LOOP-v0.4 §6 V-1…V-5, O-1, §7 MC-1…MC-9,
-  `UNRESOLVED{T-OPEN-1}`, §2.4.4 HS-0, FX-M1…M9; P-v0.3 §3.1 rule 5, U-P9;
+  `UNRESOLVED{T-OPEN-1}`, §2.4.4 HS-0, FX-M1…M9; P-v0.4 §3.1 rule 5, U-P9;
   GUIDE-v0.1 M2.4, HC-2.4, G-3.
 - **Why it matters.** A malformed call executed with empty arguments, or a
   sibling run past a checkpoint, would be an action the run never validly
@@ -854,14 +899,14 @@ inside the named question.
 
 | Source | Item | Question here |
 |---|---|---|
-| LOOP-v0.3 §13 | Q-1 constraint | SQ-02 |
+| LOOP-v0.4 §13 | Q-1 constraint | SQ-02 |
 | | Q-2 capture-evidence reference | SQ-01 |
 | | Q-3 resulting objects | SQ-03 (d) |
 | | Q-4 per-turn guidance | SQ-19 (a) |
 | | Q-5 faithful-record operation | SQ-21 |
 | | Q-6 de-duplication; per-item staleness | SQ-08 (b); SQ-07 (d) |
 | | Q-7 exposure; entries on the embedded surface | SQ-11 |
-| PANEL-v0.3 §8 | Q-1 constraint | SQ-02 |
+| PANEL-v0.4 §8 | Q-1 constraint | SQ-02 |
 | | Q-2 capture-evidence reference (incl. act-declined) | SQ-01 |
 | | Q-3 proposal views | SQ-22 |
 | | Q-4 lapse, supersession, stale after acceptance, reversal | SQ-23; SQ-10 (reversal mechanism) |
@@ -912,7 +957,16 @@ inside the named question.
 | | §6 validation order; §7 MC-1…MC-9; T-OPEN-1; HS-0 held-not-run | SQ-31 |
 | | §8 responsiveness; R-OPEN-1 | SQ-32 |
 | GUIDE-v0.1 | G-3 / CC-5 (row 7 host evidence without an SQ) | SQ-29…SQ-32 |
-| | G-4 (CA/RELAY/XT describe D5/D6 as pending) | SQ-02, SQ-16 rewritten (and CA-v0.2, XT-v0.2) |
+| | G-4 (CA/RELAY/XT describe D5/D6 as pending) | SQ-02, SQ-16 rewritten (and CA-v0.3, XT-v0.3) |
+| V3-B coverage table (R5-10) | C U-C4 multi-read reliance | SQ-07 (g) |
+| | C U-C6 entry-version mismatch | SQ-18 (e) |
+| | C U-C10 non-mutating operations and cited bases | SQ-07 (h) |
+| | P U-P6 operation-specific withdraw/reject rules | SQ-05 (g) |
+| | AS U-04 *unconfirmed* and re-resolution at application | SQ-05 (h) |
+| | RS U-12 content returning to c₀ after a lapse | SQ-03 (e) |
+| | WD U-09 single seat → role meaning | SQ-19 (d) |
+| | ACT U-06 defaults for other consequential classes | SQ-05 (i) |
+| | WD U-10 host origin in precedence | Not included (below) |
 | HANDOFF (OI-021 activity definition) | First activity | SQ-04 |
 | | Domain identity and basis | SQ-07; SQ-03 |
 | | Capability semantics (canonical read/action/check operations; route) | SQ-04 (a); SQ-12 |
@@ -929,13 +983,20 @@ inside the named question.
   provider/method/receiving contributions (SoW CLM-006; PRD §8). It remains in
   HANDOFF and is not part of this first-activity relay.
 - PEC: an independent optional capability, not a prerequisite (SoW REQ-006).
+- WD U-10 (host origin in unqualified precedence; whether a selection follows
+  new revisions): owned by DEL-02-02 with DEL-02-01 and the host owner.
+  DEL-02-02 is a later undertaking (D1), and correctness already rests on
+  source-qualified selection (WD §6.3). It is asked when DEL-02-02 is defined,
+  before host-origin discovery in the App.
 - App-owner questions routed inside the App project, not to SWBPIPE: ADAPTER
   U-X1 (A13 App-side locus; ruled for this increment by ACT-v0.4 §2.6), EXEC
   U-E3 and U-E4 (owner questions), U-E7, U-E8, F-21 (model destination per
-  turn, DEL-04-03 with DEL-01-01); ACT U-03; LOOP-v0.4 G-1 (which carriage
-  value a host loop's own evaluation takes — DEL-03-02). D5 is decided
-  (DECISION-2); SQ-16 asks only whether the host restricts its own channel.
-  D6 is deferred to SQ-02; SQ-02 asks only the host's side.
+  turn — now ruled by R5-4); ACT U-03; LOOP-v0.4 G-1 (the carriage value of a
+  host loop's own evaluation — now ruled host-held by R5-2). D5 is decided
+  for the App side (DECISION-2); SQ-16 asks only whether the host restricts
+  its own channel. D6 is deferred to SQ-02, which can settle it only for
+  checkpoints on host operations; App-only checkpoints are a separate D6
+  follow-up for the owner (R5-10).
 
 ---
 
@@ -946,7 +1007,7 @@ occurred.
 
 | Field | Current value |
 |---|---|
-| Prepared | 2026-09-28, DEL-09-06/RELAY-v0.1, by W9 (Type 2 TASK); revised to RELAY-v0.2 in sweep A1 (R4; DECISION-2). The owner relays it after the undertaking's final review |
+| Prepared | 2026-09-28, DEL-09-06/RELAY-v0.1, by W9 (Type 2 TASK); revised to RELAY-v0.3 in sweep A1 (R4; DECISION-2). The owner relays it after the undertaking's final review |
 | Relayed to the SWBPIPE session (by whom, when, what bytes) | **not observed** |
 | Acknowledged | **not observed** |
 | Answers received (per SQ; source, revision, date, custody) | **none** |
@@ -964,6 +1025,25 @@ files as though it were an App decision.
 
 ---
 
+## Changes from v0.2
+
+v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a162372541f65, committed at `9fc77baa3`). R5 pass under R5_RESOLUTIONS.md (commit `8fb51f07f`). Status unchanged: **PREPARED FOR HUMAN RELAY — not delivered**.
+
+| R5 ID / source | Change |
+|---|---|
+| **R5-10** (V3-B MAJOR-4) | SQ-02 "Why it matters": the answer decides holds only for checkpoints on host operations; App-only checkpointed workflows stay *not enforceable* whatever SWBPIPE answers — a separate D6 follow-up for the owner. UNRESOLVED D6 row and §3 "Not included" note say the same |
+| **R5-10** (V3-B Y-9) | SQ-28 "Why it matters": gates the whole external channel, every live CA/X and XC case, including V4-EXM-25 |
+| **R5-10 / R5-4** (V3-B m-1) | SQ-16 no longer over-credits D5: "may flow to the selected model, no gate" is SETTLED (D5); "record and show", now per turn with requested and effective kept apart, is INTEGRATION (DECISION-2 reading) |
+| **R5-10** (V3-B m-8) | SQ-09 assumption: "outcome unknown" applies to submissions only; a read with no stated result is an error as observed |
+| **R5-10** (V3-B MAJOR-3, coverage) | New sub-questions: SQ-03 (e) RS U-12; SQ-05 (g) P U-P6, (h) AS U-04, (i) ACT U-06; SQ-07 (g) C U-C4, (h) C U-C10; SQ-18 (e) C U-C6; SQ-19 (d) WD U-09. WD U-10 added to "Not included" with its D1 reason. §3 map and new VC-R-08 record the nine items |
+| **R5-1, R5-2** | SQ-02 assumption uses the four ruled hold-support values; `CP-accept` on X is *not established* until answered; model-supplied-only is *not enforceable*; a host loop's own evaluation is host-held; question (a) asks whether a received constraint is verified against the host's own declaration copy (a merely received constraint keeps its source's assurance) |
+| **R5-9** | Body citations re-pointed to the current sibling versions (P, WD, RS, AS, LOOP, PANEL, HOSTING at v0.4; CA/XT at v0.3); header lists every sibling at `8fb51f07f` with sha256 |
+| V3-B m-7 | v0.1→v0.2 change table: the "SQ count 28" row now says 28 before the G-3 addendum and 32 after |
+
+Question count: **32** (SQ-01…SQ-32), unchanged; nine sub-questions added. No SQ id renumbered or retired.
+
+---
+
 ## Changes from v0.1
 
 v0.1 = RELAY-v0.1 (sha256 3e34575def8d1fef63b5f5e64f0f90a0984d03b8b42f61fe899dd2eab023b2d1, committed at `b4030fe4b`). Sweep A1 under R4 (commit `f05c7e4cd`) and DECISION-2. Status unchanged: **PREPARED FOR HUMAN RELAY — not delivered**; the owner relays after the undertaking's final review.
@@ -978,7 +1058,7 @@ v0.1 = RELAY-v0.1 (sha256 3e34575def8d1fef63b5f5e64f0f90a0984d03b8b42f61fe899dd2
 | ADAPTER-v0.2 retires XQ question text | XQ ids removed from "Depends"; kept only as v0.1 source ids in §3. Version labels in the body updated to C-v0.4, ACT-v0.4, EXEC-v0.2, ADAPTER-v0.2; other Wave-1 files stay cited at v0.3 (`ba0b37123`) |
 | R4-15 | SQ-14 cites the *unverified* author-identity value |
 | §3 map | Adds ACT U-04 (e), (f); EXEC HP-H; C-v0.4 V-ED1 host item; ADAPTER-v0.2 F-15 items; DECISION-2 D5/D6. "Not included" updated (U-X2 closed, U-X3 now `UNRESOLVED{D6}`, EXEC F-21, LOOP-v0.4 G-1 routed inside the App) |
-| UNRESOLVED; Verification cases | D5 row replaced by the host-restriction row; D6 row states the deferral; SQ count 28; VC-R-01 widened; new VC-R-07 (decision currency) |
+| UNRESOLVED; Verification cases | D5 row replaced by the host-restriction row; D6 row states the deferral; SQ count 28 before the G-3 addendum below (32 after it); VC-R-01 widened; new VC-R-07 (decision currency) |
 
 | DEL-03-04 GUIDE-v0.1 G-3, CC-5 (coordinator addendum) | **New P8 group, SQ-29…SQ-32**: host-loop model interface and fixture basis (DEP-05-01-024); native endpoint and key boundary (N-OPEN-1…3, local default, no cloud fallback); malformed/truncated calls and validation order (T-OPEN-1, HS-0); responsiveness (R-OPEN-1). §3 map and VC-R-01 extended |
 | DEL-03-04 GUIDE-v0.1 G-4 | D5/D6 no longer described as pending (SQ-02, SQ-16) |
@@ -995,7 +1075,7 @@ Question count: **32** (SQ-01…SQ-32). No SQ id was renumbered or retired.
 | Every SQ-01…SQ-32 answer | SWBPIPE outside implementation owner (DEP-001) | As stated per question | Dependent App cases stay AWAITING INPUT or HELD |
 | `UNRESOLVED{OI-021}` selection itself | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and execution | SQ-04/SQ-05 inform it; they do not make it |
 | `UNRESOLVED{OI-003}` extension disposition | Owner with host contract owner | Before extension claim or criterion | SQ-26 gathers evidence only |
-| `UNRESOLVED{D6}` App-side run holds (DECISION-2: deferred to the SWBPIPE answer) | Owner, on the SQ-02 answer | Before App-side checkpoint enforcement is claimed or hold fixtures run | SQ-02's assumption: without host-held carriage or a host hold, checkpointed workflows are unsupported on the App/external surface |
+| `UNRESOLVED{D6}` App-side run holds (DECISION-2: deferred to the SWBPIPE answer) | Owner, on the SQ-02 answer for checkpoints on host operations; a separate owner follow-up for App-only checkpoints (R5-10) | Before App-side checkpoint enforcement is claimed or hold fixtures run | Hold support per R5-1: `CP-accept` on X *not established* until answered; App-only checkpoints *not enforceable* whatever SWBPIPE answers |
 | Host restriction of its own channel by model destination (D5 settles the App side) | SWBPIPE owner (SQ-16) | Before a live candidate is enabled | None on App gating; a host refusal is relayed |
 | Closeout pointer from HANDOFF_SWBPIPE_DOMAINS.md to this file | Closeout C1 | C1 | HANDOFF not edited here |
 
@@ -1008,7 +1088,8 @@ Designed, not run.
 | VC-R-01 Coverage | Walk every source item in LOOP §13, PANEL §8, ADAPTER-v0.1 §12 (and the ADAPTER-v0.2 map), ACT-v0.4 U-04 (a)–(f), EXEC §9.1 host row and U-E list, R2-20, C-v0.4 host items, DECISION-2, LOOP-v0.4 §4–§8 open items, GUIDE-v0.1 G-3/CC-5 and the HANDOFF responsibilities table against §3 | Every item maps to at least one SQ; exclusions stated with reason | VER-005 (AC-005) |
 | VC-R-02 Field completeness | Inspect each SQ | Question, dependents, why, point of need, App assumption and answer form all present | VER-005 |
 | VC-R-03 Priority | Check P1 order | SQ-01 and SQ-02 first; every positive checkpoint case in EXEC, LOOP, PANEL, ADAPTER and DEL-09-06/09-09 traces to a P1 question; SQ-28 leads P4 | VER-005 |
-| VC-R-07 Decision currency | Check SQ-02, SQ-16 and SQ-28 against DECISION-2, R4-1, R4-2, R4-8, R4-13, R4-14 | D5 never shown as pending; D6 shown as deferred to SQ-02; only host-held carriage counts; A13 only by the host facility | VER-005 |
+| VC-R-07 Decision currency | Check SQ-02, SQ-09, SQ-16 and SQ-28 against DECISION-2, R4-1, R4-2, R4-8, R4-13, R4-14, R5-1, R5-2, R5-4, R5-10 | D5 never shown as pending, and record-and-show labelled INTEGRATION (DECISION-2 reading); SQ-02 decides only host-operation checkpoints; four hold-support values; only host-held carriage counts; SQ-28 gates the whole channel; no "outcome unknown" for reads | VER-005 |
+| VC-R-08 Coverage of V3-B's nine items | Check C U-C4, U-C6, U-C10; P U-P6; AS U-04; RS U-12; WD U-09, U-10; ACT U-06 against §2 and §3 | Each maps to an SQ sub-question or to "Not included" with a reason | VER-005 |
 | VC-R-04 Standing | Inspect header, §0 and §4 | "PREPARED FOR HUMAN RELAY — not delivered"; no answer, commitment, delivery or adoption claimed; PR #885 evidence-only | VER-005; VER-008 of DEL-09-06 |
 | VC-R-05 No assignment | Read every question and assumption | No SWBPIPE construction assigned; no App assumption presented as a host commitment; owner decisions credited only with what they say (R2-11) | VER-008 (AC-008) |
 | VC-R-06 Return handling (when answers arrive) | Record a returned answer in §4 and trace it to dependent files | Source, revision, date, custody and standing recorded; dependent cases change state only when the named input is supplied | VER-005 |
