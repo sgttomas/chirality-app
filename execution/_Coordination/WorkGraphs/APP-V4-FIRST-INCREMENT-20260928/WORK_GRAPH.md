@@ -99,7 +99,7 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | COMPLETE — [V1-A](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-A.md), [V1-B](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-B.md), [V1-C](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-C.md): 4 BLOCKING, 37 MAJOR, 35 MINOR; 24 register findings → C1/D0 |
 | R1 Repair to v0.2 against V1 findings | Same Design folders | V1; [R1_RESOLUTIONS](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md) | Findings dispositioned; affected comparisons rechecked at IR1 | COMPLETE (v0.2 × 9 files); cross-file items → [R2_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R2_CANDIDATES.md) |
 | P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
-| P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2, R3, V2 outputs | V2 verdict MERGE (0 BLOCKING); CI green | PR merged under standing Git authority | COMPLETE — [#1039](https://github.com/sgttomas/chirality/pull/1039) merged; CI 9/9 passing; review V2 at `ba0b37123` (later commits were records only) |
+| P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2, R3, V2 outputs | V2 verdict MERGE (0 BLOCKING); CI green | PR merged under standing Git authority | COMPLETE — [#1039](https://github.com/sgttomas/chirality/pull/1039) merged; CI 9 pass / 4 skipped; review V2 at `ba0b37123` (later commits were records only) |
 | W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Compatibility report, checkpoint hold, transfer trace; resolves the W7-held items | COMPLETE (v0.1) — `DEL-02-03/EXEC-v0.1`; findings F-1…F-16 → A1/C1 |
 | W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Enablement states; policy cases; transport-neutral fixtures; MCP/CLI open-choice register | COMPLETE (v0.1) — `DEL-03-03/ADAPTER-v0.1`; 12 relay questions (XQ); findings F-1…F-12 → A1 / C1; U-X2 data boundary → owner |
 | W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | COMPLETE (v0.1) — `DEL-09-06/CA-v0.1`, `DEL-09-06/RELAY-v0.1` (27 questions; PREPARED, not delivered — owner defers relay until final review), `DEL-09-09/XT-v0.1` |
@@ -118,7 +118,7 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | `closeout/C1-*.md` only. SoWs, registers and `_STATUS` are bound by the DAG-001 SOURCE_MANIFEST, so their changes are returned as **proposed** for a successor route | V3/R5 final set | Commitment↔result both directions per DEL; proposed SoW/register changes; lifecycle observation | COMPLETE — C1-A/B/C combined in [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/closeout/CLOSEOUT_ACCOUNT.md) (lands in F1) |
 | M1 MEMORY rows | Affected `MEMORY.md` | C1 | Terse rows → receipt | COMPLETE — 14 per-deliverable `MEMORY.md` files, one run row each |
 | RC Central receipt | `AgentRuns/<RunID>/RECEIPT.md` | C1 | Result/checks/limits | COMPLETE — [RECEIPT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/RECEIPT.md) |
-| F1 Final PR | All | C1, M1, RC, review | Final PR merged | ACTIVE |
+| F1 Final PR | All | C1, M1, RC, review | Final PR merged | ACTIVE — [#1045](https://github.com/sgttomas/chirality/pull/1045); review V7 (B-1 fixed, recheck) |
 
 **Conventions for all Design artifacts.** Each file opens with a contribution
 header: contribution ID and version (e.g. `DEL-03-01/C-v0.1`), status
@@ -136,8 +136,8 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
 - Next work: F1 final PR (closeout account, MEMORY rows, receipt, handoff
-  pointer); then owner questions (relay — final review is complete, so the
-  owner's relay condition is met; D6 App-side follow-up U-E23; SP-6 cost U-E4;
+  pointer); then owner questions (relay — the owner's condition is met once
+  V7, the F1 review, returns MERGE; D6 App-side follow-up U-E23; SP-6 cost U-E4;
   successor register/SoW/DAG-002 route; lifecycle; FX-PIPE-01 custody;
   DEL-01-05 matters).
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`

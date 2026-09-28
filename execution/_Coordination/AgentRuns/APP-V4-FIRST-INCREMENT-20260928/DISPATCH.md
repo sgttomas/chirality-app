@@ -138,7 +138,7 @@ authors were resumed; siblings read at `f05c7e4cd`.
 | A1-W7 | DEL-02-03 → v0.2 | RETURNED; fence verified |
 | A1-W8 | DEL-03-03 → v0.2 | RETURNED; fence verified |
 | W10 | DEL-03-04 GUIDE-v0.1 (new general-purpose TASK; inputs at `f05c7e4cd` + R4) | RETURNED (575 lines); CC-5 gap G-3 relayed to W9 author |
-| A1-W9 | DEL-09-06/09-09 W9 files → v0.2 (DECISION-2, R4, G-3 addendum) | ACTIVE |
+| A1-W9 | DEL-09-06/09-09 W9 files → v0.2 (DECISION-2, R4, G-3 addendum) | RETURNED; fence verified (`9fc77baa3`) |
 
 Scratchpad note: W10 found a shared scratchpad folder overwritten by a concurrent agent. It re-extracted its pinned inputs and verified their hashes. Later briefs use per-agent scratch folders.
 
@@ -167,4 +167,4 @@ Agents after W10 used private scratch folders.
 | V6 | Bounded check of R7 at `c6f81a4f2`: MERGE AS DRAFTS, 0 BLOCKING, 0 MAJOR, 7 MINOR ([V6](reviews/V6.md)); fence verified |
 | PR-3 | [#1043](https://github.com/sgttomas/chirality/pull/1043) at `c6f81a4f2`. The first CI run failed on "Update the PR base" (the coverage planner requires `main` to be integrated), so `origin/main` was merged into the branch. `main` changed no App v4 file |
 | PR-3 merge | [#1043](https://github.com/sgttomas/chirality/pull/1043) merged `df6d59e3` (CI 9 pass, 4 skipped). The first merge attempt was refused by the session's permission classifier. The owner then restated standing permission to merge once CI is green, and the merge proceeded |
-| F1 | Final PR: closeout account, receipt, 14 MEMORY rows, handoff pointer, graph: ACTIVE |
+| F1 | Final PR [#1045](https://github.com/sgttomas/chirality/pull/1045): closeout account, receipt, 14 MEMORY rows, handoff pointer, graph. V7 at `fc35e2811`: DO NOT MERGE (B-1: wrong list of arcs not proposed for SCC reasons). B-1, M-1 and m-1…m-4 fixed; bounded recheck V7b |

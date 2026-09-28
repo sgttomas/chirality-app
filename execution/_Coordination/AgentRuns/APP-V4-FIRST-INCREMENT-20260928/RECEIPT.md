@@ -41,7 +41,8 @@ Integration rulings R1–R7 settle the cross-file meanings. Among them:
 - carriage assurance;
 - the shared fixture FX-PIPE-01.
 
-Each ruling is labelled SETTLED, DERIVED, INTEGRATION or PROPOSED.
+Where a ruling's standing needed saying, it is labelled SETTLED, DERIVED,
+INTEGRATION or PROPOSED.
 
 ## Decisions
 
@@ -89,7 +90,8 @@ In [OWNER_DECISIONS.md](OWNER_DECISIONS.md):
 - No product code, qualification, host delivery or adoption, human act, or
   live witness.
 - The SWBPIPE relay has not been delivered. V6 confirmed RELAY-v0.3 is ready,
-  so the owner's condition (after final review) is met.
+  The owner's condition (relay after final review) is met once the final
+  PR's review (V7) returns MERGE.
 - Every checkpointed workflow run from the App through the external channel is
   *unsupported* until the D6 follow-up.
 - Proposed ScopeOfWork corrections (about 74), register mirror rows (about 76)
