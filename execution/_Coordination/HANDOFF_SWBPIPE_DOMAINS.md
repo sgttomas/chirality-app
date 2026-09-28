@@ -13,7 +13,7 @@ The owner reports SWBPIPE is still building and has not reached agent-action int
 | First activity | Define App workflow authoring/exchange and receiving interface obligations; preserve standalone core-loop work | Identify a useful supported model operation and non-mutating checking activity, with prerequisites and readiness | Before the connected increment's detailed contract and examination are fixed |
 | Domain identity and basis | Carry the host's original basis and truthful standing through the agent/tool route | State workspace/model identity, generation/revision/hash semantics and selection changes that invalidate a proposal | Before integrating an actionable host operation |
 | Capability semantics | Define shared inputs, preconditions, availability, effects, results, errors and human-act distinctions | Name canonical read/action/check operations and their existing validation/application route | Before interface conformance is claimed |
-| Autonomy and human acts | Preserve granted direct-apply versus proposal modes and attributable human acts; retain pending reserved-act/classifier matters | State what the selected SWB operation permits, how human approval/Checked/reliance differ, and how the mode is shown | Before that operation can be executed under the intended autonomy |
+| Autonomy and human acts | Preserve granted direct-apply versus proposal modes and attributable human acts; retain pending reserved-act/classifier matters | State what the selected SWB operation permits, how the person's acts differ: accepting a proposal (A5), marking checked (A4), engineering approval (A6) and professional reliance (A7), using the canonical names in DEL-04-01 ACT-POLICY, and how the mode is shown | Before that operation can be executed under the intended autonomy |
 | Application, cancellation and recovery | Preserve call identity, observed outcome and linked host receipts; do not equate transport success with acceptance | Explain stale refusal, domain deduplication, publication/undo, interrupted/unknown outcome and durable receipt behavior | Before connected recovery evidence or replacement reliance |
 | Workflow exchange | Provide reviewed source-qualified workflow identity, declared needs/checkpoints and retained revision/history | State host import/use/refinement behavior and how unavailable capabilities/checkpoints are reported | Before App↔host round-trip conformance |
 | Catalog extension | Identify what shared contracts or generation provide and what adapters still implement | Identify human-view and host-adapter work for one added operation | Before claiming all-actor availability without separate work or maintenance savings |
@@ -37,6 +37,24 @@ Please return through the human: the selected activity or alternatives, relevant
 - Prepared: 2026-09-26 under App v4 project definition.
 - Delivered: **not observed**.
 - Acknowledged/adopted: **not observed**.
-- Current App v4 standing: [final Group3 decomposition accepted](../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md), with 11 Packages and 41 Deliverables. All 41 local ScopeOfWork contracts are independently checked and INITIALIZED. The [initial graph basis is confirmed](../_DAG/_Candidates/DAG-001/BASIS_DECISION.md); qualified graph-version and final 30% package review remain pending. This current-standing update changes none of the delivery/adoption facts above.
+- Current App v4 standing: [final Group3 decomposition accepted](../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md), with 11 Packages and 41 Deliverables. All 41 local ScopeOfWork contracts are independently checked and INITIALIZED. DAG-001 is accepted and the 30% gate is complete ([acceptance record](../_DAG/DAG-001/ACCEPTANCE_RECORD.md)). This current-standing update changes none of the delivery/adoption facts above.
 
 Basis: [accepted composite](Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), exact [HTML source](Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html) HTML-D04–HTML-D06, and owner messages J–M/O. The human may relay this file now; receipt or adoption will be recorded only when an actual return is provided.
+
+## Current detailed question set (60% undertaking APP-V4-FIRST-INCREMENT-20260928)
+
+The interface questions above are superseded in detail by a consolidated,
+deduplicated set of 32 questions developed against the App/shared definitions:
+[`RELAY_QUESTIONS_SWBPIPE.md`](../PKG-09_Candidate%20examination%20and%20connected%20journeys/1_Working/DEL-09-06_Connected%20activity%20contract%20and%20workflow%20round%20trip/Design/RELAY_QUESTIONS_SWBPIPE.md)
+(DEL-09-06/RELAY-v0.3). It is marked **PREPARED FOR HUMAN RELAY — not
+delivered**. By the owner's direction, it is relayed after the undertaking's
+final review. Its top questions are:
+
+- SQ-01: the capture-evidence reference for the person's acts;
+- SQ-02: receipt of the governing checkpoint constraint, and host-side holds;
+- SQ-03: content identities;
+- SQ-04: the first operation (OI-021);
+- SQ-28: the enablement facility for external-agent access.
+
+Delivery, answers and adoption are recorded in that file's ledger only when
+they are actually observed. This pointer changes none of the facts above.

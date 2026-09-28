@@ -113,12 +113,12 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | R7 In-place repair of V5 residuals | 16 Design files (not PIN_SPIKE) | V5 | Every R7 item applied; GUIDE re-pinned last | COMPLETE — 12 files by the repairer, plus the integrator's closing fixes (PANEL §3.2, ACT FX-39, RELAY placeholders, GUIDE re-pin); pins verified; D0 manifests pass. Commit `c6f81a4f2` |
 | V6 Bounded check of R7 | `reviews/V6.md` | `c6f81a4f2` | Verdict covering the actual candidate | COMPLETE — MERGE AS DRAFTS (0 BLOCKING, 0 MAJOR, 7 MINOR). m-2 fixed here (R7 commit recorded); m-1, m-3…m-7 carried as residuals to the successor route (no value or relay effect) |
 | IR1/IR2 Independent review | Read-only; `reviews/IR1-*.md` | P2 / P3 candidates | Findings resolved or dispositioned; R2 alignment pass | COMPLETE — IR1-A/B/C resolved by R2; P3 review is V4 → V5 → V6 |
-| P3 PR-3: Wave-2 definitions + R4–R7 alignment | W7–W10, A1, R5–R7, V3–V6 | V6 verdict; CI | PR merged | ACTIVE — [#1043](https://github.com/sgttomas/chirality/pull/1043) opened at `c6f81a4f2` |
+| P3 PR-3: Wave-2 definitions + R4–R7 alignment | W7–W10, A1, R5–R7, V3–V6 | V6 verdict; CI | PR merged | COMPLETE — [#1043](https://github.com/sgttomas/chirality/pull/1043) merged `df6d59e3`; CI 9 pass / 4 skipped; reviews V4 → V5 → V6 cover the candidate (after V6, only records and a `main` sync changed) |
 | D0 DAG currency recheck | Read-only | P3 | Manifests; any relationship change routed to project-dag | COMPLETE at `9fc77baa3` — both DAG-001 manifests pass; no register/SoW/decomposition/DAG byte changed. Register findings (missing mirror rows and candidate new arcs) are NOT applied → C1 proposed changes → successor route |
-| C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | `closeout/C1-*.md` only. SoWs, registers and `_STATUS` are bound by the DAG-001 SOURCE_MANIFEST, so their changes are returned as **proposed** for a successor route | V3/R5 final set | Commitment↔result both directions per DEL; proposed SoW/register changes; lifecycle observation | RETURNED — C1-A/B/C combined in [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/closeout/CLOSEOUT_ACCOUNT.md) (uncommitted; lands in F1) |
-| M1 MEMORY rows | Affected `MEMORY.md` | C1 | Terse rows → receipt | PLANNED |
-| RC Central receipt | `AgentRuns/<RunID>/RECEIPT.md` | C1 | Result/checks/limits | PLANNED |
-| F1 Final PR | All | C1, M1, RC, review | Final PR merged | PLANNED |
+| C1 Bounded closeout (`chirality-root:bundled:workflow:bounded-reconciliation`) | `closeout/C1-*.md` only. SoWs, registers and `_STATUS` are bound by the DAG-001 SOURCE_MANIFEST, so their changes are returned as **proposed** for a successor route | V3/R5 final set | Commitment↔result both directions per DEL; proposed SoW/register changes; lifecycle observation | COMPLETE — C1-A/B/C combined in [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/closeout/CLOSEOUT_ACCOUNT.md) (lands in F1) |
+| M1 MEMORY rows | Affected `MEMORY.md` | C1 | Terse rows → receipt | COMPLETE — 14 per-deliverable `MEMORY.md` files, one run row each |
+| RC Central receipt | `AgentRuns/<RunID>/RECEIPT.md` | C1 | Result/checks/limits | COMPLETE — [RECEIPT](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/RECEIPT.md) |
+| F1 Final PR | All | C1, M1, RC, review | Final PR merged | ACTIVE |
 
 **Conventions for all Design artifacts.** Each file opens with a contribution
 header: contribution ID and version (e.g. `DEL-03-01/C-v0.1`), status
@@ -135,10 +135,11 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: PR-3 (Wave 2) merge after CI (branch synced with `main`; no App v4 file changed by `main`). Then F1 final PR with
-  the closeout account, M1 MEMORY rows (drafted) and RC receipt (drafted);
-  then owner questions (relay, D6 App-only follow-up U-E23, SP-6 cost U-E4, successor
-  register/SoW/DAG route).
+- Next work: F1 final PR (closeout account, MEMORY rows, receipt, handoff
+  pointer); then owner questions (relay — final review is complete, so the
+  owner's relay condition is met; D6 App-side follow-up U-E23; SP-6 cost U-E4;
+  successor register/SoW/DAG-002 route; lifecycle; FX-PIPE-01 custody;
+  DEL-01-05 matters).
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.
