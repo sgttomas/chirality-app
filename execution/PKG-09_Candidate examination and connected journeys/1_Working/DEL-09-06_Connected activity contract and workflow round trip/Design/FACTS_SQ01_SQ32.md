@@ -363,7 +363,7 @@ Prepared 2026-09-28 by a Type 2 TASK (read-only researcher) for ROOT, the SWBPIP
 
 ### SQ-15 Locality and sandbox reach (P4)
 
-**Designed / in progress.** [PR885-OPEN] Strictly local: a macOS Unix domain socket and descriptor in a randomly named private directory under the macOS system temporary directory (`private/tmp`) (directory 0700, entries 0600); no network listener; native event permission limited to listen/unlisten on the main webview (`LIVE_CONTROL_DEVELOPMENT.md:13-15`; `DESK/src-tauri/capabilities/live-control.json`).
+**Designed / in progress.** [PR885-OPEN] Strictly local: a macOS Unix domain socket and descriptor in a randomly named private directory under the system-wide tmp directory (under macOS's `private` root), not the per-user TMPDIR (directory 0700, entries 0600); no network listener; native event permission limited to listen/unlisten on the main webview (`LIVE_CONTROL_DEVELOPMENT.md:13-15`; `DESK/src-tauri/capabilities/live-control.json`).
 
 **Not found.** Whether a Codex sandbox needs, or is granted, access to the socket or descriptor path: no record addresses it. Searched: PR #885 docs and source; `AR/` records for "sandbox" together with socket, CLI or Codex (hits concern agent write scopes, not socket reach).
 
