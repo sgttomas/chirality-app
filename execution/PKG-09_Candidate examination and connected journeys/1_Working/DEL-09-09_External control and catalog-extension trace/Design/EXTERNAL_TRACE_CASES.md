@@ -1,13 +1,14 @@
 # External control and catalog-extension trace cases
-- Contribution: DEL-09-09/XT-v0.1
+- Contribution: DEL-09-09/XT-v0.2. It supersedes XT-v0.1 (sha256 8f098c79f1da28af1b461210c36cca1124a25e226e802f2203b46ce7052df8cd, committed at `b4030fe4b`). Sweep A1 under R4 and DECISION-2.
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (V4-EXM-25 external control suite — case definitions and input/limitation account; **not run**), OUT-002 (V4-EXM-24 one-new-operation three-surface trace plan and comparison categories; **not run**), OUT-003 (generated-versus-adapted work account structure and the OI-003 disposition record — recorded, never performed); REQ-001…REQ-009 (definition parts); AC-001…AC-009 through designed VER-001…VER-009
-- Basis: repo 6e18505e3 (accepted basis); ScopeOfWork.md sha256 082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d; Dependencies.csv sha256 02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2 (ACTIVE EXECUTION rows DEP-09-09-007…020); `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) §1–2, V4-EXM-24, V4-EXM-25; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §§1–7, §9, §11 (V4-HI-01…04, 10…12, 20…25, 30…33, 40…42, 50…52, 70/71); `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-PAR-05, §4.4–4.5, §4.7, OQ-02, OQ-10, OQ-11; SCC-CASE-002 `Case_Datasheet.md` (sha256 6acdc6c4e484ab7b46ba7d45a347961bc69b3e624bd29ef58a613ec6c66a71a6) rows M2-A, M4-J, M4-X; owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D1–D3; R1 (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4), R2 (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088), R3 (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf); `reviews/V2.md` MAJOR-1; BRIEFS.md working copy sha256 77a42f8a8c8260285b4142d3a6392a07daead16010b209139efc0d3efc60a21f ("Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W9")
-- Consumed inputs (read with `git show`; not the working tree):
-  - **Wave-1 v0.3 at `ba0b37123`** (blob-identical to the PR #1039 head `1c36b6d97`; the brief's merge `98b1723b` is absent from this clone): **C** DEL-03-01/C-v0.3 `CATALOG_AND_READ_BASIS.md` sha256 ba45e7393ee0b16780f36605ddeecb95ba1f181488e36a46b4b495b69fd67c26 (§3, §4.1, §5, §6, §8, §10 FX-PIPE-01, evidence-label mapping); **P** DEL-03-02/P-v0.3 sha256 ec0db87f239bc42e2e3e953d660ce3c4ceddf605d7b98cf1393f97a099b699cf (§2, §5–§11, §12); **ACT** DEL-04-01/ACT-POLICY-v0.3 sha256 b3748c02006f939d8cc78c6e0b0c847598a8b32d55515ae8658ad80597c98128 (§2, §5.3, §6, §9); **RS** DEL-04-03/RS-v0.3 sha256 925f35ca27bd7d1e71a375883ada9903267408af57312eed1ae02b47776a3528 (R7, R9, R11, §6); **AS** DEL-04-02/AS-v0.3 sha256 7b634137bb8402f3eaedc943dab0c5f1114b9d4433d2b94e13540ac0bf8e0514 (§3); **LOOP** DEL-05-01/LOOP-v0.3 sha256 6b771c8027787193d536fa3507214a8cc579d6ec2f476ee880609c920b6f25c7 (§2.2, §6, §11, §12); **PANEL** DEL-05-02/PANEL-v0.3 sha256 4c47764d3af434c23e63dcc2c10d28f18a4a94546d63d452855c471cfe47bee9 (§3.3, §4, §5); **WD** DEL-02-01/WD-v0.3 sha256 84841d9f539767b9ff7ae225fec27f0dc4ebbd2c161c41aff179bbae97f345eb (§4.2.4); **HOSTING** DEL-01-01/HOSTING-BOUNDARY-v0.3 sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e (§3, §6).
-  - **Wave-2 at `e20a3ae8d`:** **ADAPTER** DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074 (§3–§10, fixture inventory XF-01…XF-39, L-ADAPTER-1…10; PR #885 cited there as evidence only); **EXEC** DEL-02-03/EXEC-v0.1 sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8 (§3 EV-1…EV-11, §7.1).
-  - Same run (W9): DEL-09-06/CA-v0.1 `CONNECTED_ACTIVITY_CONTRACT.md` and DEL-09-06/RELAY-v0.1 `RELAY_QUESTIONS_SWBPIPE.md` (SQ-nn identifiers).
-  - Pending owner question `DECISIONS_PENDING_2.md` D5, D6 (working tree): **pending**, not ruled.
+- Basis: repo 6e18505e3 (accepted basis); ScopeOfWork.md sha256 082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d; Dependencies.csv sha256 02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2 (ACTIVE EXECUTION rows DEP-09-09-007…020); `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) §1–2, V4-EXM-24, V4-EXM-25; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §§1–7, §9, §11 (V4-HI-01…04, 10…12, 20…25, 30…33, 40…42, 50…52, 70/71); `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-PAR-05, §4.4–4.5, §4.7, OQ-02, OQ-10, OQ-11; SCC-CASE-002 `Case_Datasheet.md` (sha256 6acdc6c4e484ab7b46ba7d45a347961bc69b3e624bd29ef58a613ec6c66a71a6) rows M2-A, M4-J, M4-X; owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (OWNER_DECISIONS.md sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D1–D3; R1 (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4), R2 (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088), R3 (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf), R4 at `f05c7e4cd` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24: R4-1, R4-2, R4-6, R4-8, R4-12…R4-14, R4-16, R4-18, R4-20); owner decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (OWNER_DECISIONS.md at `f05c7e4cd`, sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c: D5 settled, D6 deferred to SQ-02); `reviews/V2.md` MAJOR-1; BRIEFS.md working copy sha256 77a42f8a8c8260285b4142d3a6392a07daead16010b209139efc0d3efc60a21f ("Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W9")
+- Consumed inputs:
+  - **v0.2 sweep inputs (working tree after `f05c7e4cd`; reported finished by the coordinator).** From v0.2 the short names **C**, **ACT**, **EXEC** and **ADAPTER** denote: DEL-03-01/C-v0.4 `CATALOG_AND_READ_BASIS.md` sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c (FXA-1…FXA-5, editions e1/e2, **V-ED1**, §4.1 reporters, UNRESOLVED edition-addition event); DEL-04-01/ACT-POLICY-v0.4 `ACT_AND_POLICY_CONTRACT.md` sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b (§2.6 A13 capture, §4.6, FX-47, F-15); DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0 (§2 HP-H, §3.6, MT-2, F-17, F-21); DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc (S-X11…S-X13, §3.4, PI-2, PI-5, PI-6, L-ADAPTER-11…13, XF-40…XF-42, XT rehearsal map, F-15, F-17). Same sweep: DEL-09-06/CA-v0.2 and RELAY-v0.2 (SQ-01…SQ-32).
+  - **v0.1 basis (read with `git show`):**
+  - **Wave-1 v0.3 at `ba0b37123`** (still the cited basis for P, RS, AS, LOOP, PANEL, WD and HOSTING; the C and ACT entries are superseded by the v0.4 texts above; blob-identical to the PR #1039 head `1c36b6d97`; the brief's merge `98b1723b` is absent from this clone): **C** DEL-03-01/C-v0.3 `CATALOG_AND_READ_BASIS.md` sha256 ba45e7393ee0b16780f36605ddeecb95ba1f181488e36a46b4b495b69fd67c26 (§3, §4.1, §5, §6, §8, §10 FX-PIPE-01, evidence-label mapping); **P** DEL-03-02/P-v0.3 sha256 ec0db87f239bc42e2e3e953d660ce3c4ceddf605d7b98cf1393f97a099b699cf (§2, §5–§11, §12); **ACT** DEL-04-01/ACT-POLICY-v0.3 sha256 b3748c02006f939d8cc78c6e0b0c847598a8b32d55515ae8658ad80597c98128 (§2, §5.3, §6, §9); **RS** DEL-04-03/RS-v0.3 sha256 925f35ca27bd7d1e71a375883ada9903267408af57312eed1ae02b47776a3528 (R7, R9, R11, §6); **AS** DEL-04-02/AS-v0.3 sha256 7b634137bb8402f3eaedc943dab0c5f1114b9d4433d2b94e13540ac0bf8e0514 (§3); **LOOP** DEL-05-01/LOOP-v0.3 sha256 6b771c8027787193d536fa3507214a8cc579d6ec2f476ee880609c920b6f25c7 (§2.2, §6, §11, §12); **PANEL** DEL-05-02/PANEL-v0.3 sha256 4c47764d3af434c23e63dcc2c10d28f18a4a94546d63d452855c471cfe47bee9 (§3.3, §4, §5); **WD** DEL-02-01/WD-v0.3 sha256 84841d9f539767b9ff7ae225fec27f0dc4ebbd2c161c41aff179bbae97f345eb (§4.2.4); **HOSTING** DEL-01-01/HOSTING-BOUNDARY-v0.3 sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e (§3, §6).
+  - **Wave-2 at `e20a3ae8d` (superseded by ADAPTER-v0.2 and EXEC-v0.2 above):** DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074 (§3–§10, fixture inventory XF-01…XF-39, L-ADAPTER-1…10; PR #885 cited there as evidence only); **EXEC** DEL-02-03/EXEC-v0.1 sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8 (§3 EV-1…EV-11, §7.1).
+  - v0.1 also read DEL-09-06/CA-v0.1 and RELAY-v0.1 (same run); v0.1's citation of `DECISIONS_PENDING_2.md` D5/D6 as pending is replaced by DECISION-2.
   - SWBPIPE catalog, endpoint, candidate, receipts or acts: **none received** (DEP-001; DEP-09-09-014). DEL-09-01 (examination infrastructure): accepted SoW meaning only, outside this undertaking (D1).
 - Receivers: DEL-03-01 (trace and work evidence via DEP-03-01-030 before any extension claim; CASE-002 M4-X); the owner with the host contract owner (evidence for the OI-003 ruling, DEP-09-09-020); DEL-09-06 (joined activity; shared act cases); DEL-03-03 (which ADAPTER cases the joined suite reuses); DEL-09-01 (protocol needs, when defined); the external SWBPIPE owner through the relay file.
 
@@ -58,6 +59,10 @@ rehearsal never completes the XC case.
 | S-6 | Execution, queued proposal, edit acceptance, checking, approval and reliance are distinct; proposal UI says *accept*; acts lapse visibly when bound content changes | V4-HI-25, 30…33; #d3; R-4 |
 | S-7 | Reserved to the person (App/shared contracts): A4; A5 where autonomy requires a proposal; A6; A7; A12; A13 (enable; disable INTEGRATION). A10 wherever A5 is (DERIVED) | D2; R-1; R2-3 |
 | S-8 | Every result names candidate, configuration and date; outcomes are passed / failed / blocked / not run / inconclusive; changed candidates reopen affected cases; criteria are protected | V4-EXM-01…05; EXAMINATION §1 |
+| S-9 | Content the App's Codex reads over the channel may go to the model the person selected for the conversation, cloud included; the App records the run's model destination and shows it in the channel status as information, never as a gate; a host may restrict its own channel | DECISION-2 D5 (SETTLED); R4-1 |
+| S-10 | App-side run holds are `UNRESOLVED{D6}`, deferred to SWBPIPE SQ-02. Only host-held carriage satisfies R2-12 in this increment; without a host-side hold a checkpointed workflow is *unsupported* on the external surface; no App hold is claimed; run actions while a checkpoint waits are recorded as *action during hold* | DECISION-2 D6; R4-2, R4-8, R4-14; EXEC §3.6 |
+| S-11 | A13 is captured only by the host's enablement facility, with a capture-evidence reference; App-side configuration (which an agent could write) is never A13 evidence; the host's refusal is the authoritative "off"; the App reports *channel not enabled* when its own configuration is off, the host when its channel is off | R4-13, R4-16; ACT §2.6 |
+| S-12 | An A12 counts, and supersedes an earlier setting, only when the control **established** it; a refused A12 changes nothing | R4-6; EXEC §4.10 |
 
 ---
 
@@ -72,18 +77,18 @@ available input for live examination.
 | IN-01 | App candidate identity: build, stock Codex version actually used, model and server | App construction (later undertaking) | All XC/TR | Not available. Pin 0.158.0 is a definition pin, not qualification (D4) |
 | IN-02 | SWBPIPE candidate identity and configuration | SWBPIPE owner (SQ-27) | All XC/TR | Not received |
 | IN-03 | Shared candidate/date/configuration protocol; WebKit/Chromium and packaged-smoke evidence protocol | DEL-09-01 (outside D1) | §6 | Not defined in this undertaking |
-| IN-04 | Catalog and read-basis contract | DEL-03-01 C-v0.3 | §3, §4 | Defined (*illustrative*) |
+| IN-04 | Catalog and read-basis contract | DEL-03-01 C-v0.4 | §3, §4 | Defined (*illustrative*) |
 | IN-05 | Proposal, validation and outcome contract | DEL-03-02 P-v0.3 | §3, §4 | Defined |
-| IN-06 | External receiving contribution and focused fixtures | DEL-03-03 ADAPTER-v0.1 | §3 | Defined; realization family unselected (TBD-007) |
+| IN-06 | External receiving contribution and focused fixtures | DEL-03-03 ADAPTER-v0.2 | §3 | Defined; native family only, no interposition adopted (S-X12); family choice TBD-007 |
 | IN-07 | Adopted operation policy and act distinctions | DEL-04-01 ACT-v0.3 (D2/D3) | XC-09, XC-10; CMP-07 | Defined; host adoption not evidenced (SQ-05) |
 | IN-08 | Record semantics | DEL-04-03 RS-v0.3 | XC-09; §6 | Defined |
 | IN-09 | Host external seam, native surface derivation and mapping to catalog identity | SWBPIPE owner (SQ-12) | XC-01…XC-12; TR on X | Not received; PR #885 is evidence only |
 | IN-10 | Selected first operation, autonomy and environment | Owner via outside SWB session with App/shared owner (OI-021; SQ-04) | Live XC | `UNRESOLVED{OI-021}` |
-| IN-11 | The one newly added catalog operation, and who adds it | SWBPIPE owner (SQ-26) | §4 | Not received; fixture L-XT-1 |
+| IN-11 | The one newly added catalog operation, who adds it, and how the edition addition is reported | SWBPIPE owner (SQ-26) | §4 | Not received; fixture C-v0.4 V-ED1 (e1 → e2) |
 | IN-12 | OI-003 disposition | Owner with host contract owner | §5.2 | `UNRESOLVED{OI-003}` |
 | IN-13 | Additional essential hosts | Owner (OI-005) | Freezing wider scope | Open; SWBPIPE only |
-| IN-14 | Data boundary for content read over X | Owner (pending D5); host rule SQ-16 | XC-01 live enablement | Pending; not ruled |
-| IN-15 | Host enablement facility; the person's A13 | SWBPIPE owner (SQ-13); the person (DEP-09-09-015) | XC-01, XC-12 | Not received / not performed |
+| IN-14 | Host restriction of its own channel by model destination, if any (the App side is settled: destination recorded and shown, not gated) | SWBPIPE owner (SQ-16) | XC-01 live enablement | Not received; no restriction presumed; a refusal is relayed |
+| IN-15 | Host A13 enablement facility with a capture-evidence reference; enablement behavior; the person's A13 | SWBPIPE owner (SQ-28, SQ-13); the person (DEP-09-09-015) | XC-01, XC-12 and every live XC case | Not received / not performed; without it the channel stays *not enabled* (S-11) |
 | IN-16 | Capture-evidence reference for host-captured acts | SWBPIPE owner (SQ-01) | XC-02, XC-09 | Not received |
 | IN-17 | Constraint receipt or host-held declaration | SWBPIPE owner (SQ-02) | XC-10 | Not received |
 | IN-18 | Proposal identity, de-duplication order and durability; read by identity | SWBPIPE owner (SQ-08) | XC-05, XC-06 | Not received |
@@ -92,8 +97,8 @@ available input for live examination.
 | IN-21 | The engineer's actual acceptance in SWBPIPE (actor ≠ recorder) | The person (DEP-09-09-016) | XC-02 | Not performed |
 | IN-22 | Embedded surface for the three-surface trace: host loop and embedded tools; App-side loop receiving | SWBPIPE owner; DEL-05-01 LOOP-v0.3 (receiving) | §4 on E | LOOP defined; host loop not received. **Not registered** in DEL-09-09 Dependencies.csv (F-2) |
 | IN-23 | Host human interface and proposal views | SWBPIPE owner (SQ-22) | §4 on H; XC-02 old/new values | Not received |
-| IN-24 | Exposure per surface (element 9) | SWBPIPE owner (SQ-11) | §4 CMP-04; XC-11 | Not received; FA-1 fixture assumption |
-| IN-25 | Required-tool and hold treatment on X (GC-3, GC-5) | DEL-02-03 with host (ADAPTER U-X3); pending D6 | XC-10 | Proposed, not ruled |
+| IN-24 | Exposure per surface (element 9) | SWBPIPE owner (SQ-11) | §4 CMP-04; XC-11 | Not received; FXA-1 fixture assumption |
+| IN-25 | Hold support for checkpoints on X (constraint assurance GC-3; before-dispatch GC-5) | `UNRESOLVED{D6}`, deferred to SWBPIPE SQ-02; DEL-02-03 computes hold support (EXEC §3.6) | XC-10 | Adopted rule: only host-held carriage or a host hold counts; otherwise *not established* / *unsupported* |
 | IN-26 | Undo route | SWBPIPE owner (SQ-10) | CMP-14 | Not received |
 | IN-27 | Origin marks and caller identity | SWBPIPE owner (SQ-14) | XC-02; CMP-12 | Not received |
 | IN-28 | Locality and sandbox reach | SWBPIPE owner (SQ-15) | XC-01 | Not received |
@@ -129,16 +134,16 @@ test double. "State" is DESIGNED · AWAITING INPUT (inputs named) · HELD
 | Case | Fixture steps | Joined observation required | Expected | Rehearsal | State | Serves |
 |---|---|---|---|---|---|---|
 | **XC-00 Identification** | — | IN-01, IN-02, configuration, date, invented material identity recorded before any result | Every later result cites it; a candidate change reopens affected XC cases | — | AWAITING INPUT (IN-01, IN-02, IN-03) | AC-001, AC-008 / VER-001, VER-008 |
-| **XC-01 Access disabled, unavailable, enabled** | L-ADAPTER-1; T1 | (a) never enabled → App makes no host request; (b) App configured, host off → host-reported *channel not enabled*; (c) endpoint stopped / needs authentication → *endpoint-unavailable* with reason; (d) the person performs A13 → *enabled*; grant display unchanged; destination shown | Channel states as ADAPTER §3.2; enablement grants no autonomy (E-5) and no destination (E-6); agent-written configuration never enables | XF-01…XF-07 | AWAITING INPUT (IN-09, IN-15, IN-28); live enablement also IN-14 (D5 pending) | AC-002 / VER-002 |
-| **XC-02 Inspect → submit → accept → receipt** | T9 read (B2); T10 PR-2 submitted over X → *queued*; T11 Engineer A accepts item 1 (A5) and rejects item 2 (A10) in SWBPIPE; T12 applied → RC-1 (S-5 created, R-100 changed) | J-1…J-8 all observed; App reports *queued*, never accepted, until J-5 is read; "accepted by Engineer A" only with host-captured A5; "applied" only with RC-1; host views show old/new values; origin mark linked | Chain unbroken from B2 to RC-1; A5 not lapsed by application; A10 distinct; no act from success | XF-11, XF-16, XF-18 | AWAITING INPUT (IN-16, IN-21, IN-23, IN-27; IN-10 for the real operation) | AC-003, AC-007 / VER-003, VER-007 |
+| **XC-01 Access disabled, unavailable, enabled** | L-ADAPTER-1; T1 | (a) never enabled → App makes no host request, reports *channel not enabled* itself (R4-16); (b) App configured, host off → host-reported *channel not enabled*; (c) endpoint stopped / needs authentication → *endpoint-unavailable* with reason; (d) the person performs A13 in the host's enablement facility → *enabled*, with the host's capture-evidence reference; grant display unchanged; the conversation's model destination shown and recorded, never gating (S-9) | Channel states as ADAPTER §3.2; enablement grants no autonomy (E-5); App-side or agent-written configuration never A13 evidence and never enables (S-11); without a host capture-evidence reference the channel stays *not enabled* | XF-01…XF-07 | AWAITING INPUT (IN-09, IN-15 incl. SQ-28, IN-28); host restriction by destination, if any, relayed (IN-14, SQ-16) | AC-002 / VER-002 |
+| **XC-02 Inspect → submit → accept → receipt** | T9 read (B2); T10 PR-2 submitted over X → *queued*; T11 Engineer A accepts item 1 (A5) and rejects item 2 (A10) in SWBPIPE; T12 applied → RC-1 (S-5 created, R-100 changed) | J-1…J-8 all observed; App reports *queued*, never accepted, until J-5 is read; "accepted by Engineer A" only with host-captured A5; "applied" only with RC-1; host views show old/new values; origin mark linked; the run's model destination recorded (S-9) | Chain unbroken from B2 to RC-1; A5 not lapsed by application; A10 distinct; no act from success | XF-11, XF-16, XF-18 | AWAITING INPUT (IN-16, IN-21, IN-23, IN-27; IN-10 for the real operation) | AC-003, AC-007 / VER-003, VER-007 |
 | **XC-03 Intervening edit → stale** | T3 read (B1); T5 PR-1; T6 Engineer A edits S-3 (r13); T7 submit over X | Per-item *refused — stale*: failing target S-3; relied B1; current B2; reason; item-left events; the refusal compares against the **original** inspected basis, not a queue-time basis | Stale with both bases; no silent refresh; re-draft is a new proposal (T9) | XF-14, XF-15 | AWAITING INPUT (IN-19) | AC-004 / VER-004 |
 | **XC-04 Later selection cannot retarget** | During T10, Engineer A selects S-4 in the host UI | PR-2's bound targets remain R-100, S-2, S-3 in the host's proposal view and at application | No retargeting | XF-17 | AWAITING INPUT (IN-23) | AC-004 / VER-004 |
-| **XC-05 Duplicate submission** | T13: PR-2 resubmitted with the same identity; variant L-XT-2: two submissions in quick succession before any acknowledgment. **Reason:** C's T13 covers only a retry after application | Each submission recorded separately; host answers the repeat from recorded state; **one domain effect** shown from domain evidence (model history, receipts), not from transport or session de-duplication | One effect evidenced, or "one effect unevidenced" recorded; never a duplicate-safety pass from transport | XF-19 | AWAITING INPUT (IN-18) | AC-004 / VER-004 |
-| **XC-06 Lost acknowledgment and interruption** | T13 ack lost → seek observation by identity → if never received, retry same identity; L-ADAPTER-5 endpoint restart between T12 and T13; App restart variant L-XT-3 (**reason:** ADAPTER covers endpoint restart only) | Actual application or refusal traced to the receipt after interruption **when observable**; retry never refused stale by its own effect; after a non-durable restart the retry is *outcome unknown* and one-effect unevidenced | Original basis → outcome → receipt joined, or explicit unknown; reconnect and queue-time basis never taken as proof | XF-19, XF-21 | AWAITING INPUT (IN-18, IN-20) | AC-004 / VER-004 |
+| **XC-05 Duplicate submission** | T13: PR-2 resubmitted with the same identity; variant L-XT-2 (= ADAPTER L-ADAPTER-11): two submissions before any acknowledgment, including a variant where the second send carries a new identity. **Reason:** C's T13 covers only a retry after application | Each submission recorded separately; neither reported *queued* before a host acknowledgment; host answers the repeat from recorded state; **one domain effect** shown from domain evidence (model history, receipts), not from transport or session de-duplication; a new identity on the second send is two proposals, each reported as observed | One effect evidenced, or "one effect unevidenced" recorded; never a duplicate-safety pass from transport | XF-19, XF-40 | AWAITING INPUT (IN-18) | AC-004 / VER-004 |
+| **XC-06 Lost acknowledgment and interruption** | T13 ack lost → seek observation by identity → if never received, retry same identity; L-ADAPTER-5 endpoint restart between T12 and T13; App restart variant L-XT-3 (= ADAPTER L-ADAPTER-12) | Actual application or refusal traced to the receipt after interruption **when observable**; retry never refused stale by its own effect; after a non-durable restart the retry is *outcome unknown* and one-effect unevidenced; after an App restart the in-flight submission is *outcome unknown* (observer App, last observed *submitted*) and the channel state is re-established without silent re-enable. **Seek-before-resubmit is guidance only on X** (ADAPTER PI-2): if the agent resubmits without first observing, the case still proceeds and the violation is **recorded as an evidence limit**, not prevented and not hidden | Original basis → outcome → receipt joined, or explicit unknown; reconnect and queue-time basis never taken as proof; any seek-before-resubmit violation recorded | XF-19, XF-21, XF-41 | AWAITING INPUT (IN-18, IN-20); App-restart custody DEL-01-02 (later, D1) | AC-004 / VER-004 |
 | **XC-07 Unknown outcome** | V-OU1 over X: neither T12 nor T13 observed | *outcome unknown*, observer App, last observed *accepted*; a later observation is reported as its own event and does not back-fill | Unknown preserved; never applied/failed by inference | XF-20 | AWAITING INPUT (IN-20) | AC-004 / VER-004 |
 | **XC-08 Accepted, then stale at application** | V-S1: Engineer A edits S-2 after T11 and before T12 (r14′) | "accepted by Engineer A — not applied: refused — stale (relied B2, current ⟨B-r14′⟩)"; A5 not lapsed | As R2-16 | XF-30 | AWAITING INPUT (IN-19, IN-16) | AC-004, AC-007 / VER-004, VER-007 |
-| **XC-09 Acts: positive faithful record and false-attribution negatives** | (+) T11 A5 read over X and faithfully recorded (actor Engineer A; recorder App; capture-evidence reference; bound change-item identity; scope; purpose). (−) T10 *queued*; T12 receipt; an A14 answer; model text "the engineer accepted"; an elicitation answer (L-ADAPTER-4); T4 findings. (±) T2 A4 on S-2 carried with no acceptance predecessor; lapsed after T14. Label: the host proposal UI says *accept*, not *approve* | Positive record conforms; every negative establishes no act; independent A4 needs no A5; lapse visible | As ACT §2, RS §6, R-4 | XF-18, XF-31, XF-32, XF-33 | Positive: AWAITING INPUT (IN-16, IN-21); negatives: DESIGNED | AC-007 / VER-007 |
-| **XC-10 Same route and policy as embedded/human** | XF-22 (direct without grant at r13 under ⟨set-1⟩); XF-23 (T15 → T16: ⟨set-2⟩ class P-03 scope {FX-W1; {S-4}} per C T15 / V2 MAJOR-1; OP-C9 applied directly); XF-25 (V-CP1 constraint); XF-27 (reserved OP-C6); XF-28 (OP-C11 no policy basis); XF-24 (host channel rule variant) | Each outcome over X equals the embedded/human route's outcome for equivalent input, except authority differences reported as *not permitted* naming the treatment (ADAPTER RP-2) | As ADAPTER RP-3; no conversion into a proposal; reserved entries offered, never withheld | XF-22…XF-29 | AWAITING INPUT (IN-07 host adoption, IN-17, IN-29); XF-28 part HELD (R2-9; OI-021); XF-26 HELD (U-X3; D6 pending) | AC-002, AC-003 / VER-002, VER-003 |
+| **XC-09 Acts: positive faithful record and false-attribution negatives** | (+) T11 A5 read over X and faithfully recorded (actor Engineer A; recorder App; capture-evidence reference; bound change-item identity; scope; purpose). (−) T10 *queued*; T12 receipt; an A14 answer; model text "the engineer accepted"; a user-input or elicitation answer (L-ADAPTER-4; not act evidence, R4-12); T4 findings. (±) T2 A4 on S-2 carried with no acceptance predecessor; lapsed after T14. Label: the host proposal UI says *accept*, not *approve* | Positive record conforms; every negative establishes no act; independent A4 needs no A5; lapse visible | As ACT §2, RS §6, R-4 | XF-18, XF-31, XF-32, XF-33 | Positive: AWAITING INPUT (IN-16, IN-21); negatives: DESIGNED | AC-007 / VER-007 |
+| **XC-10 Same route and policy as embedded/human** | XF-22 (direct without grant at r13 under ⟨set-1⟩); XF-23 (T15 → T16: ⟨set-2⟩ class P-03 scope {FX-W1; {S-4}} per C T15; the A12 counts because the control established it, S-12; OP-C9 applied directly); XF-25 (V-CP1 constraint, host-held carriage); XF-26 (constraint only model-supplied); XF-42 (action during hold on X); XF-27 (reserved OP-C6); XF-28 (OP-C11 no policy basis); XF-24 (host channel rule variant) | Each outcome over X equals the embedded/human route's outcome for equivalent input, except authority differences reported as *not permitted* naming the treatment (ADAPTER RP-2). For checkpoints: hold support is reported per EXEC §3.6; with only model-supplied carriage the A5 case is *not established* and the workflow *unsupported* on X (R4-8, R4-14); a run action while a checkpoint waits is recorded as *action during hold*; no App hold is claimed | As ADAPTER RP-3; no conversion into a proposal; reserved entries offered, never withheld | XF-22…XF-29, XF-42 | AWAITING INPUT (IN-07 host adoption, IN-17, IN-29); XF-28 part HELD (R2-9; OI-021); XF-25 AWAITING INPUT (SQ-02); XF-26 and XF-42 HELD on `UNRESOLVED{D6}` | AC-002, AC-003 / VER-002, VER-003 |
 | **XC-11 Reads, checks and unavailability compared** | T3 read over X vs E vs H (XF-11); T4 OP-C3 findings and T4a OP-C12 host check (XF-12); T8 OP-C2 unavailable (XF-08); V-X1 not exposed (XF-09) | Same meaningful content, standing, subject identities, reason and evaluated basis across routes; host-reported *not exposed* relayed | Parity of meaning (S-3); findings never "checked" | XF-08, XF-09, XF-11, XF-12 | AWAITING INPUT (IN-22, IN-23, IN-24) | AC-003 / VER-003 |
 | **XC-12 Disable while queued** | L-ADAPTER-6: the person disables access after T10, before T11 | New requests *channel not enabled*; PR-2 stays queued in the host; the engineer can still decide it; App shows last observed *queued*, "channel since disabled" | Nothing withdrawn by disabling | XF-35 | AWAITING INPUT (IN-15) | AC-002 / VER-002 |
 
@@ -172,21 +177,26 @@ The source requires exactly **one newly added** catalog operation, traced on
 an identified candidate. Which operation is the SWBPIPE owner's and the
 owner's to supply (IN-11, SQ-26). Until then the plan uses:
 
-- **L-XT-1 (fixture addition).** Catalog edition **e1** is FX-PIPE-01's
-  edition without OP-C9 *Set support label*; edition **e2** adds OP-C9 v1 as
-  C §10.2 describes it. **Reason:** C §10 has a single edition and no
-  addition event. OP-C9 is chosen because it is a change operation with a
-  precondition ("support exists"), a validation error (E-label-too-long), the
-  SWB model-change class (P-03), an undo path (OP-C10), a subject-identity
-  dependency (FA-2: a label change lapses an A4 on the row), and a named
-  non-exposure variant (V-X1).
+- **C-v0.4 V-ED1 (fixture edition addition; formerly the local L-XT-1).**
+  Edition **e1** is FX-PIPE-01's edition without OP-C9 *Set support label*;
+  the host publishes edition **e2**, adding OP-C9 v1 as C §10.2 describes it.
+  The **edition addition event** is identified by {edition e1 → e2, added
+  entry OP-C9 v1, time}; it is host-reported and changes no model revision
+  (C §10.4). The main timeline T1–T17 runs on e2; V-ED1 branches before T16.
+  L-XT-1 is retired and resolves to V-ED1 (R4-20). OP-C9 suits the trace: a
+  change operation with a precondition ("support exists"), a validation error
+  (E-label-too-long), the SWB model-change class (P-03), an undo path
+  (OP-C10), a subject-identity dependency (FXA-2: a label change lapses an A4
+  on the row), and a named non-exposure variant (V-X1). Whether the host
+  reports an addition as such an event is a host input (C-v0.4 UNRESOLVED;
+  SQ-26).
 
 ### 4.2 Trace stages
 
 | Stage | Content | Owner of the work observed | Evidence |
 |---|---|---|---|
-| TS-0 Baseline | On e1, each surface reports OP-C9 **missing** (a discovery finding), never *not exposed* or *unavailable* | Host; App (EXEC EV-5) | Compatibility reports per surface (EXEC CR-7) |
-| TS-1 Addition | The host adds the entry to the catalog (e2). Every change made anywhere to support it is recorded in the §5 account | SWBPIPE owner | Host source revision(s) or change records (IN-11) |
+| TS-0 Baseline | On e1 (V-ED1 step 1), each surface reports OP-C9 **missing** (a discovery finding), never *not exposed* or *unavailable* | Host; App (EXEC EV-5) | Compatibility reports per surface (EXEC CR-7) |
+| TS-1 Addition | The host adds the entry and publishes e2 (V-ED1 step 2: one host-reported edition addition event). Every change made anywhere to support it is recorded in the §5 account | SWBPIPE owner | Host source revision(s) or change records (IN-11) |
 | TS-2 Discovery | Each surface discovers OP-C9 with identity/version, purpose, schema, availability, effects, result, errors, class, exposure | Host (H, E, X); App (X mapping) | Per-surface discovery records |
 | TS-3 Exercise | The same scenario on each surface against the same model revision (§4.4) | Host; App (X); the person (H acts) | Case results |
 | TS-4 Compare | Category-by-category comparison (§4.3) | DEL-09-09 | Comparison table |
@@ -217,13 +227,13 @@ comparable** (reason, e.g. different basis or version) · **not observed**.
 | CMP-12 | Application and receipt | Receipt, resulting revision, resulting objects, origin mark per channel; direct application records no acceptance | P §9; V4-HI-23 |
 | CMP-13 | Recovery | Lost acknowledgment → read by identity → same-identity retry; unknown preserved | P §5, §7; R2-13 |
 | CMP-14 | Undo | OP-C10 reverses the new operation's receipt, governed by its policy record (R3-4); "applied, then reversed" | R2-15; R3-4 |
-| CMP-15 | Human-act separation | Success of the new operation yields no act; an A4 on S-4 bound before the label change lapses (FA-2); reserved entries are unaffected | V4-HI-25, 32; S-6 |
+| CMP-15 | Human-act separation | Success of the new operation yields no act; an A4 on S-4 bound before the label change lapses (FXA-2); reserved entries are unaffected | V4-HI-25, 32; S-6 |
 
 ### 4.4 Case matrix (fixture scenario per category; all DESIGNED unless noted)
 
 | Case | Scenario on each of H, E, X (same revision) | Categories | State |
 |---|---|---|---|
-| TR-01 | TS-0 then TS-2 discovery on e1 and e2 | CMP-01, 02, 04 | AWAITING INPUT (IN-11, IN-22, IN-24) |
+| TR-01 | V-ED1: TS-0 on e1, the edition addition event, then TS-2 discovery on e2 | CMP-01, 02, 04 | AWAITING INPUT (IN-11, IN-22, IN-24) |
 | TR-02 | OP-C9 on a support that does not exist | CMP-05 | AWAITING INPUT (IN-22, IN-23) |
 | TR-03 | OP-C9 with a label that is too long; with a schema-invalid argument | CMP-03, 08 | AWAITING INPUT (IN-22, IN-23) |
 | TR-04 | Propose OP-C9 on S-4 under ⟨set-1⟩; engineer accepts in the host view; application | CMP-06, 07, 11, 12 | AWAITING INPUT (IN-16, IN-21, IN-23) |
@@ -325,9 +335,10 @@ external-control operation; and DEL-03-01's receiving row (DEP-03-01-030).
 
 ## 8. Inputs still missing (consolidated)
 
-For the V4-EXM-25 suite: IN-01, IN-02, IN-03, IN-09, IN-10, IN-14 (pending
-D5), IN-15, IN-16, IN-17, IN-18, IN-19, IN-20, IN-21, IN-23, IN-25 (pending
-D6), IN-27, IN-28, and host adoption under IN-07.
+For the V4-EXM-25 suite: IN-01, IN-02, IN-03, IN-09, IN-10, IN-14 (host
+restriction by destination, if any; SQ-16), IN-15 (A13 facility and reference,
+SQ-28), IN-16, IN-17, IN-18, IN-19, IN-20, IN-21, IN-23, IN-25
+(`UNRESOLVED{D6}`, on SQ-02), IN-27, IN-28, and host adoption under IN-07.
 
 For the V4-EXM-24 trace: IN-01, IN-02, IN-03, IN-11, IN-22, IN-23, IN-24,
 IN-26, plus IN-16/IN-21 for the acceptance step (TR-04) and IN-18/IN-19/IN-20
@@ -343,18 +354,50 @@ undertaking.
 
 ---
 
-## 9. Findings (reported; scope and Wave-1/W7/W8 text unchanged)
+## 9. Findings (reported; scope and other files unchanged)
+
+### 9.1 v0.1 findings and their disposition
+
+| # | v0.1 finding (short) | Disposition at v0.2 |
+|---|---|---|
+| F-1 | SoW still calls OI-001/OI-002 open | Carried to C1 |
+| F-2 | Dependencies.csv lacks embedded-surface and other rows | Carried to C1 (R4 register findings: W9 XT F-2) |
+| F-3 | DEL-09-01 outside D1 | Carried to C1 (out-of-scope receivers) |
+| F-4 | No ADAPTER rehearsal for two sends before acknowledgment or an App restart | **Ruled by R4-20**: ADAPTER-v0.2 adds L-ADAPTER-11/12 and XF-40/XF-41; XC-05 and XC-06 cite them |
+| F-5 | No catalog-edition addition event in C | **Ruled by R4-20**: C-v0.4 adds e1/e2 and V-ED1; §4.1 re-pointed; L-XT-1 retired |
+| F-6 | "One domain effect" reading | Unchanged (reading stated) |
+| F-7 | T15 divergence (V2 MAJOR-1) | **Ruled by R4-18**; C-v0.4 confirms T15 |
+| F-8 | V4-EXM-25 and V4-EXM-24 comparison overlap | Unchanged; noted for DEL-09-07 |
+
+### 9.2 New findings at v0.2
 
 | # | Where | Finding | Proposed disposition |
 |---|---|---|---|
-| F-1 | SoW TBD-002; DEP-09-09-010 | Still call OI-001/OI-002 open; DECISION-1 D2/D3 now rule them for App/shared contracts | C1 pointer |
-| F-2 | Dependencies.csv | The three-surface trace (REQ-005) needs the **embedded** surface: DEL-05-01 loop receiving (and DEL-05-02 for host views) — no rows exist. Also missing: DEL-04-02 (grant states, IN-29), DEL-02-03 (required-tool outcome and holds on X, IN-25), DEL-09-06 (shared activity and relay file) | Register repair at C1; new relationships via `project-dag` departure |
-| F-3 | D1 scope; REQ-008; DEP-09-09-012 | DEL-09-01 (examination infrastructure and protocol) is outside this undertaking; REQ-008's protocol has no supplier yet | Record at C1; §6 carries the limit |
-| F-4 | ADAPTER-v0.1 §11 "Provide to DEL-09-09" | ADAPTER lists no rehearsal for XC-05's two-submissions-before-acknowledgment variant or an App restart (XC-06 L-XT-3) | DEL-03-03 may add XF cases; otherwise the local labels stand |
-| F-5 | C-v0.3 §10 | No catalog-edition addition event exists, so the extension trace needs L-XT-1 | DEL-03-01 may add an edition-addition variant to FX-PIPE-01 |
-| F-6 | SoW REQ-004 ("submitting the same proposal twice has one domain effect") | Consistent with R-7 only if read as a host obligation to be evidenced; XC-05 records "one effect unevidenced" when not observed | No change; reading stated here |
-| F-7 | ACT FX-20, AS F2, RS E7, PANEL PC-22, WD-EX R-5a (V2 MAJOR-1) | T15 scope diverges from C; this file uses C T15 (P-03; {FX-W1; {S-4}}) | Consumers re-point in Wave 2 |
-| F-8 | EXAMINATION V4-EXM-25 wording "Compare meaningful reads, non-mutating checks, validation and outcomes with the embedded/human routes" | This comparison overlaps V4-EXM-24's categories; XC-10/XC-11 reuse CMP categories to avoid two vocabularies | None; noted for DEL-09-07 alignment |
+| F-9 | ACT-v0.4 F-15; RELAY SQ-28 | Every live XC case needs the host's A13 enablement facility with a capture-evidence reference. If SWBPIPE has none, the external channel stays *not enabled* under the App contracts and V4-EXM-25 cannot run at all | Relayed as SQ-28 (new); IN-15 updated |
+| F-10 | EXEC-v0.2 F-17; R4-8 with D6 | Until SQ-02 evidences a host-side hold, a workflow with checkpoints cannot pass its check on X, so XC-10's checkpoint parts can show only "unsupported; action during hold recorded". V4-EXM-25 itself declares no checkpoint, so XC-01…XC-09 are unaffected | None beyond SQ-02; visible to the owner with D6 |
+| F-11 | ADAPTER-v0.2 PI-2 (F-17) | Seek-before-resubmit cannot be enforced on X; XC-06 now admits a recorded violation. REQ-004's recovery evidence is therefore partly the agent's behavior, not the App's; the joined witness must show which | Recorded in XC-06; no scope change |
+| F-12 | EXEC-v0.2 F-21 | The model destination is recorded per run; a model switch between turns in an XC run would need a per-turn record or a new run | DEL-04-03 with DEL-01-01 |
+| F-13 | ADAPTER-v0.2 Verification cases | Still say "Evidence labels per the C-v0.3 mapping" and cite C-v0.3/P-v0.3/ACT-v0.3 as contract versions | Minor; re-point at the next ADAPTER revision |
+| F-14 | Sweep timing | P, RS, AS, LOOP, PANEL, WD and HOSTING v0.4 texts were not declared final at this sweep; this file cites them at v0.3 | Re-point at the next pass |
+
+## Changes from v0.1
+
+v0.1 = XT-v0.1 (sha256 8f098c79f1da28af1b461210c36cca1124a25e226e802f2203b46ce7052df8cd, committed at `b4030fe4b`). Sweep A1 under R4 (commit `f05c7e4cd`) and DECISION-2.
+
+| R4 / source | Change |
+|---|---|
+| DECISION-2 D5; R4-1 (ADAPTER-v0.2 F-15; GUIDE G-4) | New S-9. IN-14 no longer "D5 pending": it asks only whether the host restricts its own channel (SQ-16). XC-01 drops the D5/U-X2 dependency and shows and records the model destination; XC-02 records it |
+| DECISION-2 D6; R4-2, R4-8, R4-14 (ADAPTER-v0.2 F-15) | New S-10. IN-25 and XC-10 cite `UNRESOLVED{D6}` (not U-X3/"D6 pending"); only host-held carriage counts; XF-26 and new XF-42 HELD on D6; XF-25 AWAITING INPUT on SQ-02 |
+| ACT-v0.4 §2.6, F-15; R4-13, R4-16 | New S-11. IN-15 cites SQ-28; XC-01 (d) requires the host facility's capture-evidence reference; App reporter of *channel not enabled*; F-9 |
+| ADAPTER-v0.2 PI-2 (F-17) | XC-06 expected result admits a recorded seek-before-resubmit violation; F-11 |
+| R4-20; ADAPTER-v0.2 L-ADAPTER-11/12, XF-40/41 | XC-05 and XC-06 cite the new rehearsals; L-XT-2 = L-ADAPTER-11, L-XT-3 = L-ADAPTER-12 |
+| R4-20; C-v0.4 | §4.1 re-pointed to editions e1/e2 and **V-ED1**; L-XT-1 retired; TS-0, TS-1, TR-01 cite V-ED1; FA-n → FXA-n |
+| R4-6 | New S-12; XC-10 notes the T15 A12 counts because it was established |
+| R4-12 | XC-09 negatives name user-input and elicitation answers as not act evidence |
+| Inputs | Header cites C-v0.4, ACT-v0.4, EXEC-v0.2, ADAPTER-v0.2 (working tree, with sha256), R4, DECISION-2, CA-v0.2 and RELAY-v0.2 |
+| Findings | §9 split: v0.1 dispositions (9.1) and new F-9…F-14 (9.2) |
+
+Identifiers kept: IN-01…IN-29, J-1…J-8, XC-00…XC-12, TS-0…TS-5, CMP-01…CMP-15, TR-01…TR-10, L-XT-2, L-XT-3, F-1…F-8, VC-T-01…09. Added: S-9…S-12, F-9…F-14. Retired: L-XT-1 (resolves to C-v0.4 V-ED1).
 
 ---
 
@@ -366,10 +409,11 @@ undertaking.
 | `UNRESOLVED{OI-021}` operation, autonomy, environment | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and live examination | All cases on FX-PIPE-01; OP-C11 cases HELD |
 | OI-005 additional essential hosts | Owner | Before freezing wider examination scope | SWBPIPE only |
 | TBD-007 MCP versus CLI and realization family | App external-host integration owner with external host owner | Before App receiving implementation and qualification | XC cases run per family actually selected |
-| DEP-001 host contributions IN-02, IN-09, IN-11, IN-15…IN-20, IN-23, IN-24, IN-26…IN-28 | SWBPIPE owner via the human (SQ-nn) | Before corresponding examination | AWAITING INPUT |
+| DEP-001 host contributions IN-02, IN-09, IN-11, IN-14, IN-15…IN-20, IN-23, IN-24, IN-26…IN-28 | SWBPIPE owner via the human (SQ-nn) | Before corresponding examination | AWAITING INPUT |
 | Actual acts: A13 enablement; the engineer's A5 (DEP-09-09-015/016) | The person | At live execution | XC-01 (d), XC-02 positive parts not observable |
-| D5 data boundary (pending) | Owner | Before enabling a live candidate | XC-01 live enablement blocked |
-| D6 / ADAPTER U-X3 holds on X (pending) | Owner; DEL-02-03 with host owner | Before XC-10 constraint parts | XF-26 part HELD |
+| Host restriction of its own channel by model destination (D5 settles the App side) | SWBPIPE owner (SQ-16) | Before a live candidate is enabled | None on App gating; a refusal is relayed |
+| `UNRESOLVED{D6}` App-side run holds on X (deferred by the owner to SQ-02) | Owner, on the SWBPIPE SQ-02 answer; DEL-02-03 computes hold support | Before XC-10 checkpoint parts | XF-26, XF-42 HELD; XF-25 AWAITING INPUT |
+| Host A13 enablement facility with capture-evidence reference | SWBPIPE owner (SQ-28) | Before any live XC case | Channel stays *not enabled* (F-9) |
 | DEL-09-01 protocol (outside D1) | DEL-09-01 owner | Before candidate-bound interface evidence | §6 limit |
 | Host adoption of D2/D3 and treatments | SWBPIPE owner | Before any enforcement claim (XC-10) | Receiving meaning only |
 
@@ -381,9 +425,9 @@ witness and trace themselves are §3 and §4.
 | Case | Design | Expected result | Serves |
 |---|---|---|---|
 | VC-T-01 Input account | Check §2 and §8 against the SoW, DEP-09-09-007…020, OI-001/002 (as ruled), OI-003/005/021 and DEP-001 | Every input has supplier, need and standing; defined contracts not treated as available inputs; owners and points of need kept | VER-001 (AC-001) |
-| VC-T-02 Access cases | Check XC-01 and XC-12 against V4-HI-50…52 and ADAPTER §3 | Disabled/unavailable explicit; enablement by the person; same route and policy after enablement; host seam not chosen here | VER-002 (AC-002) |
+| VC-T-02 Access cases | Check XC-01 and XC-12 against V4-HI-50…52 and ADAPTER §3 | Disabled/unavailable explicit; enablement by the person through the host facility only; App-side configuration never A13; model destination recorded and shown, never gating; same route and policy after enablement; host seam not chosen here | VER-002 (AC-002) |
 | VC-T-03 Joined chain | Check §3.1, XC-02 and §3.3 against V4-EXM-25 and V4-HI-11, 20…25 | J-1…J-8 all required; engineer's actual act and receipt required; tool success never substitutes | VER-003 (AC-003) |
-| VC-T-04 Adverse cases | Check XC-03…XC-08 against REQ-004 | Stale with reason and both bases; no retarget; one effect only from domain evidence; unknown preserved; transport never proof | VER-004 (AC-004) |
+| VC-T-04 Adverse cases | Check XC-03…XC-08 against REQ-004 | Stale with reason and both bases; no retarget; one effect only from domain evidence; unknown preserved; transport never proof; seek-before-resubmit violations recorded, not hidden | VER-004 (AC-004) |
 | VC-T-05 Trace plan | Check §4 against REQ-005 and V4-EXM-24 | Exactly one new operation; all REQ-005 categories present (CMP-01…15); same revision and operation; gaps and non-comparables kept | VER-005 (AC-005) |
 | VC-T-06 Disposition | Check §5.2 against OI-003, V4-PAR-05 and REQ-006 | Original promise preserved; ruling recorded not performed; criterion per option; no pass or savings while unruled | VER-006 (AC-006) |
 | VC-T-07 Acts | Check XC-09 against #d3, V4-HI-25/30…33, ACT and RS | Positive faithful record with actor ≠ recorder; negatives; accept label; lapse; no acceptance-before-checking dependency; no new reserved list | VER-007 (AC-007) |
