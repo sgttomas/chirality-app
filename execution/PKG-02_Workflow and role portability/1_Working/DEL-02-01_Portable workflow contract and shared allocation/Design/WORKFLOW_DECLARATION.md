@@ -31,6 +31,7 @@ Companion: [EXAMPLES.md](EXAMPLES.md) (DEL-02-01/WD-EX-v0.5).
 | V3-A m-10 | MX-8 row rejoined to its table; FB rows ordered 16, 17, 18. | §4.3.7, §11 |
 | R6-1 (V4-A MAJOR-1/2; EXEC F-28) — in place | Hold support is decided by **held actions**, not by arrival: §4.3.8 adds the assignment rule (EXEC HS-1, HS-2, HS-5, HS-4, HS-3 in that order; HS-3 by SQ-02 status). New §4.3.1 element **held actions** (INTEGRATION), declared as "host operations only" or as listed App-side steps, with the conservative default. E1d via X includes E1c's `CP-check` → **unsupported**; E1c via X → **unsupported**. WR-11 advice stated. VC-37 updated; new VC-43. | §4.3.1, §4.3.8, VC-37, VC-43, EXAMPLES E1/E1c/E1d/E8 |
 | R6-2 (V4-A m-3) — in place | EXAMPLES R-16 (iv): in V-GR1 (GR-R) the refused A12 is T15's own, so **⟨set-1⟩** stays in force. | EXAMPLES R-16 |
+| R6-3 (GUIDE-v0.2 G-11) — in place, parent | I-4 re-hold sentence qualified per hold-support value (the run stops only under *enforced by the host loop*). Applied by HELP_HUMAN. |
 | R6-3 (V4-A m-4) — in place | I-9 and §4.3.8 state what "held" means per value: host loop → the run stops at its next action; host route → the host refuses the held host operations, other actions are *action during hold*; not established / not enforceable → nothing is stopped, actions are *action during hold*. | I-9, §4.3.8 |
 | R6-4 (V4-A m-1, m-9) — in place | Stale "pending"/"C-v0.5 to add" markers removed (V-GR1 exists in C-v0.5); §8/§9 version labels corrected to v0.5; supplier states re-pointed; VC-41 cites R4-9 and R5-3, "even with an A8 presenting a setting". | Header, §8, §9, VC-41 |
 
@@ -354,8 +355,10 @@ A review-only workflow can now require A4 on the rows it examined through
   - *before resume*: the arrival returns to **waiting** ("waiting — lapsed at
     ‹t›"); a new act on current content is needed;
   - *after resume, run live*: the **same arrival** re-holds: **waiting —
-    re-held, lapsed at ‹t› after resume**. The run stops at its next action
-    boundary; dispatches in flight complete and are observed; nothing done is
+    re-held, lapsed at ‹t› after resume**. What "held" does follows the
+    hold-support value (§4.3.8, R6-3): under *enforced by the host loop* the
+    run stops at its next action boundary; otherwise the actions are recorded
+    as *action during hold*; dispatches in flight complete and are observed; nothing done is
     undone. Outputs whose **gating checkpoint** is this one show their
     standing *lapsed* for the affected referents. The act is requested again
     for the **whole** bound scope, with the lapsed referents marked. A

@@ -17,7 +17,7 @@
     - DEL-04-03/RS-v0.3 `RECORD_SEMANTICS.md` sha256 925f35ca27bd7d1e71a375883ada9903267408af57312eed1ae02b47776a3528 (R3, HA-7, HA-9).
   - **v0.1 basis, Wave-2 at commit `e20a3ae8d` (superseded by EXEC-v0.2 and ADAPTER-v0.2 above):** DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8 (§6.3 TR-6…TR-8, §6.7, §9.1 host row, U-E1, U-E2, U-E9, U-E11…U-E15); DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074 (§9 OC-1…OC-12, §12 XQ-1…XQ-12, U-X2, U-X3). ADAPTER cites draft PR #885 as evidence only; this file repeats that standing and makes no network read.
   - The v0.1 sources in §3 are kept as source identifiers: ADAPTER-v0.1 XQ-1…XQ-12 (retired as question text in ADAPTER-v0.2, which maps them to SQ ids) and EXEC-v0.1 host items (identifiers kept in EXEC-v0.2).
-  - **Addendum inputs (working tree):** DEL-05-01/LOOP-v0.4 `LOOP_RECEIVING_CONTRACT.md` sha256 ffc3048333f3370ba09a9ce124159b94f2c80ce69b5f593bfb82cc552f95934e (reported finished: §1, §2.4.4 HS-0, §4, §5, §6, §7, §8, §11, UNRESOLVED DEP-05-01-024, N-OPEN-1…3, T-OPEN-1, R-OPEN-1); DEL-03-04/GUIDE-v0.1 `HOST_INTEGRATION_GUIDE.md` sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8 (G-3, G-4, CC-5; M2.4, M7.2, M7.3, M7.5; HC-2.4, HC-7.2…HC-7.4).
+  - **Addendum inputs (working tree):** DEL-05-01/LOOP-v0.4 `LOOP_RECEIVING_CONTRACT.md` sha256 ffc3048333f3370ba09a9ce124159b94f2c80ce69b5f593bfb82cc552f95934e (reported finished: §1, §2.4.4 HS-0 (renamed LH-0 at LOOP-v0.5, R6-4), §4, §5, §6, §7, §8, §11, UNRESOLVED DEP-05-01-024, N-OPEN-1…3, T-OPEN-1, R-OPEN-1); DEL-03-04/GUIDE-v0.1 `HOST_INTEGRATION_GUIDE.md` sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8 (G-3, G-4, CC-5; M2.4, M7.2, M7.3, M7.5; HC-2.4, HC-7.2…HC-7.4).
   - SWBPIPE answers, commitments or contributions: **none received** (DEP-001).
 - Receivers: the external SWBPIPE implementation owner, through the human (DEP-09-06-018/-019/-020, DEP-001); the App manager, who prepares the relay and records returns (CLM-004 of DEL-09-09; SoW REQ-005); every App file listed under "Depends" below, which records the answer when it returns; closeout C1, which points `HANDOFF_SWBPIPE_DOMAINS.md` to this file.
 
@@ -868,9 +868,9 @@ the App asks for the facts it must receive, not for a design.
   do the valid siblings run, each on its own validation (T-OPEN-1)? (d) When a
   workflow checkpoint arrives while sibling calls of the same response are
   still undispatched, are those siblings **held, not run**, with a "held at
-  checkpoint" result to the model (LOOP HS-0)?
+  checkpoint" result to the model (LOOP LH-0)?
 - **Depends.** V4-ARC-13; LOOP-v0.4 §6 V-1…V-5, O-1, §7 MC-1…MC-9,
-  `UNRESOLVED{T-OPEN-1}`, §2.4.4 HS-0, FX-M1…M9; P-v0.4 §3.1 rule 5, U-P9;
+  `UNRESOLVED{T-OPEN-1}`, §2.4.4 HS-0 (renamed LH-0 at LOOP-v0.5, R6-4), FX-M1…M9; P-v0.4 §3.1 rule 5, U-P9;
   GUIDE-v0.1 M2.4, HC-2.4, G-3.
 - **Why it matters.** A malformed call executed with empty arguments, or a
   sibling run past a checkpoint, would be an action the run never validly
@@ -1044,6 +1044,7 @@ v0.2 = RELAY-v0.2 (sha256 48dc5a1f0a875089875b3866fd7bd7e21456520529e075de2a4a16
 
 | R5 ID / source | Change |
 |---|---|
+| R6-4 (GUIDE-v0.2 G-10) — in place, parent | SQ-31 LOOP label "HS-0" → "LH-0" (LOOP-v0.5 rename). Applied by HELP_HUMAN. |
 | **R5-10** (V3-B MAJOR-4) | SQ-02 "Why it matters": the answer decides holds only for checkpoints on host operations; App-only checkpointed workflows stay *not enforceable* whatever SWBPIPE answers — a separate D6 follow-up for the owner. UNRESOLVED D6 row and §3 "Not included" note say the same |
 | **R5-10** (V3-B Y-9) | SQ-28 "Why it matters": gates the whole external channel, every live CA/X and XC case, including V4-EXM-25 |
 | **R5-10 / R5-4** (V3-B m-1) | SQ-16 no longer over-credits D5: "may flow to the selected model, no gate" is SETTLED (D5); "record and show", now per turn with requested and effective kept apart, is INTEGRATION (DECISION-2 reading) |

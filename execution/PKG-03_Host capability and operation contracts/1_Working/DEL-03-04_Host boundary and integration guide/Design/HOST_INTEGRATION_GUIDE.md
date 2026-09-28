@@ -1,35 +1,35 @@
 # Host boundary and integration guide
-- Contribution: DEL-03-04/GUIDE-v0.2. It supersedes GUIDE-v0.1 (sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8, pinned to inputs at `f05c7e4cd`).
+- Contribution: DEL-03-04/GUIDE-v0.2. It supersedes GUIDE-v0.1 (sha256 fc96d285a3512065ede29394fe4ef4c5eafc6ccbd08213396826a0bab517afb8, pinned to inputs at `f05c7e4cd`). Refreshed **in place** under R6 (no version bump); R6 changes are recorded under R6 IDs in "Changes from v0.1".
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (new-host integration checklist, §3), OUT-002 (App/shared versus host responsibility/interface matrix, §2), OUT-003 (guide completeness checks and recorded comparison, §4); REQ-001…REQ-008; AC-001…AC-008 through designed VER-001…VER-008
 - Basis:
-  - Branch base 6e18505e3 (accepted basis); **inputs pinned at commit `d3cebd1cc`** ("R5 final alignment across the definition set"; coordinator instruction for GUIDE-v0.2).
+  - Branch base 6e18505e3 (accepted basis); **inputs pinned at commit `375c3970c`** ("V4 reviews, R6 micro-rulings applied, C1-A/C1-C closeout records"; coordinator instruction for the R6 refresh). The first v0.2 text was pinned at `d3cebd1cc`.
   - ScopeOfWork.md sha256 203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436 (10-row minimum receiving map, CLM-001…CLM-006, REQ-001…REQ-008, AC-001…AC-008, VER-001…VER-008, TBD-001…TBD-009); Dependencies.csv sha256 b41eacd01cdef10e455017cda7afdfae85b2a2a2e989fad481d697f4e862ac17 (DEP-03-04-001…020); `_REFERENCES.md`. All three unchanged since v0.1.
   - `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §1–§9, **§10 (checklist), §11 (SWBPIPE receiving limits)**.
-  - Run `APP-V4-FIRST-INCREMENT-20260928` at `d3cebd1cc`: `OWNER_DECISIONS.md` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c) DECISION-1 (D1–D4), DECISION-2 (D5, D6); `R1_RESOLUTIONS.md` (2f9c7e72…7ec4), `R2_RESOLUTIONS.md` (77cfb845…d088), `R3_RESOLUTIONS.md` (202d52c7…afbf), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24), **`R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1)**; `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3; MAJOR-2 and m-6, m-12, m-13 address this file).
-- Consumed inputs (all read with `git show d3cebd1cc:<path>` into a private scratch folder; none from the working tree). Short names are used throughout:
+  - Run `APP-V4-FIRST-INCREMENT-20260928` at `375c3970c`: `OWNER_DECISIONS.md` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c) DECISION-1 (D1–D4), DECISION-2 (D5, D6); `R1_RESOLUTIONS.md` (2f9c7e72…7ec4), `R2_RESOLUTIONS.md` (77cfb845…d088), `R3_RESOLUTIONS.md` (202d52c7…afbf), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24), **`R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1)**; `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3; MAJOR-2 and m-6, m-12, m-13 address this file); **`R6_RESOLUTIONS.md` (sha256 8703e85aa7324e233fab285321e277d720923d3e36e342c865917b55083cb841; R6-1, R6-3, R6-5)**; `reviews/V4-A.md` (sha256 121deafc40c4baf0dec71f96eb449083b0d93456c2bd448f89a279951ca2eab1; m-14); `reviews/V4-B.md` (sha256 1569cd15b490a07c1fda44114fd6d017f794c16dfe533c65a27d04aad02c2cfc; first independent review of GUIDE-v0.2: m-7, m-9).
+- Consumed inputs (all read with `git show 375c3970c:<path>` into a private scratch folder; none from the working tree). Short names are used throughout:
 
-  | Short | Contribution / version | File | sha256 at `d3cebd1cc` |
+  | Short | Contribution / version | File | sha256 at `375c3970c` |
   |---|---|---|---|
-  | **C** | DEL-03-01/C-v0.5 | `CATALOG_AND_READ_BASIS.md` | a6306bd477decad22d4405fb86ca6212fb189e4865c68dbbcba90e1335be7a29 |
-  | **P** | DEL-03-02/P-v0.5 | `PROPOSAL_LIFECYCLE_AND_OUTCOMES.md` | a5ee4946046cf3fb2356872f5972892272e0dfb533c0317bcb5801773edcd1b7 |
-  | **ADAPTER** | DEL-03-03/ADAPTER-v0.3 | `ADAPTER_ENABLEMENT_AND_RECEIVING.md` | c919585144cf5d27b75d33fdedd158e519eb0f2c437222f94b672b5ac225cff4 |
-  | **ACT** | DEL-04-01/ACT-POLICY-v0.5 | `ACT_AND_POLICY_CONTRACT.md` | 86975a90567b35916464946a736687268bd532a4a1fdb02fe1a3ee07f35380e7 |
-  | **AS** | DEL-04-02/AS-v0.5 | `AUTONOMY_AND_STANDING_EXCHANGE.md` | c49be8bb4d8e4b38c9a5f9692c40e0da61636eb688ed41dec5b64eb8666729e1 |
-  | **RS** | DEL-04-03/RS-v0.5 | `RECORD_SEMANTICS.md` | 37bc586e247181fcf850fa2aadfd1a06cd787988e8e27f7711d093d0369c27ea |
-  | **WD** | DEL-02-01/WD-v0.5 | `WORKFLOW_DECLARATION.md` | 32acdd27b9d19f1e224a0dd914ef4c986f32b708e204a648745b50725145e7c9 |
-  | **WD-EX** | DEL-02-01/WD-EX-v0.5 | `EXAMPLES.md` | 296875c9aba92be6a3ef86c3ce9d658a9b6ba1d102db71a12f5f0c5c44a4702f |
-  | **EXEC** | DEL-02-03/EXEC-v0.3 | `EXECUTION_COMPATIBILITY.md` | 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e |
-  | **LOOP** | DEL-05-01/LOOP-v0.5 | `LOOP_RECEIVING_CONTRACT.md` | 43e039aaae9c0c45d3775b606adbae59930caba7c9d8e9be9c03d39321701ca4 |
-  | **PANEL** | DEL-05-02/PANEL-v0.5 | `PANEL_RECEIVING_CONTRACT.md` | e7d62beea0d8e9d4609c23af0d5fcff52b5af26b2f99d8260e7717633fbbed88 |
-  | **HOSTING** | DEL-01-01/HOSTING-BOUNDARY-v0.5 | `HOSTING_BOUNDARY.md` | 873e76f693975242893f74d4243b01a48cab54a91f434fb01e37ec70fb5b0eaa |
+  | **C** | DEL-03-01/C-v0.5 | `CATALOG_AND_READ_BASIS.md` | 298e425804a04675346d9c3e445a0aab19bc462a75ba8d4f6f55005fca8d2364 |
+  | **P** | DEL-03-02/P-v0.5 | `PROPOSAL_LIFECYCLE_AND_OUTCOMES.md` | 6ab94fd10166cf78cda014a2f28ebf4726ce9f82a1c2f180044093b4bbb137e0 |
+  | **ADAPTER** | DEL-03-03/ADAPTER-v0.3 | `ADAPTER_ENABLEMENT_AND_RECEIVING.md` | 977d6a262b402f9122ddb9e4dd3b3cabc07bb5fbf263b5f7227a571be1846f44 |
+  | **ACT** | DEL-04-01/ACT-POLICY-v0.5 | `ACT_AND_POLICY_CONTRACT.md` | d539b3849aa0206d1dffe7a8831e60c8fdfc4419999d618f1a54b9f908dc9293 |
+  | **AS** | DEL-04-02/AS-v0.5 | `AUTONOMY_AND_STANDING_EXCHANGE.md` | 57b3c90bd5a8b7de4caad0b89c7559cd82602e756b46dea6e48f819217ac09e2 |
+  | **RS** | DEL-04-03/RS-v0.5 | `RECORD_SEMANTICS.md` | 23efddd51d3af89b410b6af64bec295e6ab483557863475cc0d4dbb3404182e9 |
+  | **WD** | DEL-02-01/WD-v0.5 | `WORKFLOW_DECLARATION.md` | 27890addf408fe9fa624fc79e5a7741bd8300bda30612f45c1d573bf19035434 |
+  | **WD-EX** | DEL-02-01/WD-EX-v0.5 | `EXAMPLES.md` | b1b7f10e57853380769ced876a4af15c8717ec3776251bce72651c6a2c2b3362 |
+  | **EXEC** | DEL-02-03/EXEC-v0.3 | `EXECUTION_COMPATIBILITY.md` | b147d9862fe9e0228139c72ba13c50392dcf66930109c4357587bf97bbdebf42 |
+  | **LOOP** | DEL-05-01/LOOP-v0.5 | `LOOP_RECEIVING_CONTRACT.md` | 0ec980b53c4dd473b365f7e8407593a218023ad2277da7680694c852808bd737 |
+  | **PANEL** | DEL-05-02/PANEL-v0.5 | `PANEL_RECEIVING_CONTRACT.md` | 1e322a78a23a82d4226befbbd83ad94a3b36026d379ac87f215c92ebc0768970 |
+  | **HOSTING** | DEL-01-01/HOSTING-BOUNDARY-v0.5 | `HOSTING_BOUNDARY.md` | f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b |
   | **SPIKE** | DEL-01-01/PIN-SPIKE-v0.1 | `PIN_SPIKE_0.158.0.md` | 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115 |
-  | **CA** | DEL-09-06/CA-v0.3 | `CONNECTED_ACTIVITY_CONTRACT.md` | 3bf6653c9d23e01673f75b4f217e77cbe7df380645d5a65e9c1dc9674d37d1a4 |
-  | **RELAY** | DEL-09-06/RELAY-v0.3 (32 SQs, with sub-questions) | `RELAY_QUESTIONS_SWBPIPE.md` | 82dcaca5eed8b92240f4005479453155020b0e0720ed1f95dce3a0e9eaca3db4 |
-  | **XT** | DEL-09-09/XT-v0.3 | `EXTERNAL_TRACE_CASES.md` | 2b2be1e1793249faf077a6df3893c7b7944f185ff6b47f40dab1183c96208332 |
+  | **CA** | DEL-09-06/CA-v0.3 | `CONNECTED_ACTIVITY_CONTRACT.md` | 1db06a29c71b86c0f1bff12da15cbe8dc93de1434a27ecd08639c892b3d586a7 (third byte state of CA-v0.3; earlier: `3bf6653c…` at `d3cebd1cc`, `28a5cb80…` at `816c917f0`/`c7f5513db`, as recorded in CA's R6 change row) |
+  | **RELAY** | DEL-09-06/RELAY-v0.3 (32 SQs, with sub-questions) | `RELAY_QUESTIONS_SWBPIPE.md` | f815adbff0e694a4541432d297598968371544735a7be3756da857d7bdbc69e2 (third byte state of RELAY-v0.3; earlier: `82dcaca5…` at `d3cebd1cc`, `89b6b9c9…` at `816c917f0`/`c7f5513db`, as recorded in RELAY's R6 change row) |
+  | **XT** | DEL-09-09/XT-v0.3 | `EXTERNAL_TRACE_CASES.md` | 2b38a4c0cd16dcd65dfd23fad4e092e1aa2ef8dbb83c6d932866bc4b29b59c19 |
 
-  **Hold support** is taken from EXEC-v0.3 §3.5–§3.6 (the value-set owner, R5-1), which governs where another file differs. CA-v0.3 may receive a small in-place correction on the classification of E1 run via X; this guide follows EXEC §3.6 HS-3/HS-5 and WD-EX-v0.5 E8 for that case. DEL-02-02, DEL-02-04, DEL-01-04, DEL-07-01, DEL-07-02, DEL-08-01 and DEL-08-02 are referenced by accepted SoW meaning only; they are outside this undertaking (D1) and have no Design file. SWBPIPE answers, commitments or contributions: **none received** (DEP-001).
-- Receivers: the application builder of any new host (SoW Purpose; HI §10), for SWBPIPE only through the human relay; the App/shared host-contract integration owner (CLM-001); each supplying deliverable above, to confirm its matrix row at the next comparison (DEP-03-04-005…019); DEL-09-06 (RELAY ledger; joined-witness step map); DEL-09-09 (external-access and extension rows); closeout C1 (register and SoW-text findings, §6). SCC-CASE-002 names no M-row for DEL-03-04; V3-B (reviewing GUIDE-v0.1) was this guide's first independent read.
+  **Hold support** is taken from EXEC-v0.3 §3.5–§3.6 (the value-set owner, R5-1), which governs where another file differs; at `375c3970c` EXEC §3.6 classifies **by held actions** (R6-1), and WD §4.3.1 declares the **held actions** element that feeds it. sha256 comparison: SPIKE unchanged; the other 15 inputs changed bytes since `d3cebd1cc` (R6 in-place pass; CA and RELAY also by `816c917f0`). DEL-02-02, DEL-02-04, DEL-01-04, DEL-07-01, DEL-07-02, DEL-08-01 and DEL-08-02 are referenced by accepted SoW meaning only; they are outside this undertaking (D1) and have no Design file. SWBPIPE answers, commitments or contributions: **none received** (DEP-001).
+- Receivers: the application builder of any new host (SoW Purpose; HI §10), for SWBPIPE only through the human relay; the App/shared host-contract integration owner (CLM-001); each supplying deliverable above, to confirm its matrix row at the next comparison (DEP-03-04-005…019); DEL-09-06 (RELAY ledger; joined-witness step map); DEL-09-09 (external-access and extension rows); closeout C1 (register and SoW-text findings, §6). SCC-CASE-002 names no M-row for DEL-03-04; V3-B reviewed GUIDE-v0.1 and V4-B reviewed GUIDE-v0.2 (first v0.2 independent read: fit as the integrated index, defects m-7 and m-9 only).
 
 ---
 
@@ -50,6 +50,10 @@
 | R5-3, R5-5, R5-6, R5-7 | Grant-setting subject always declared (M8.4); undo re-holds whatever it lapses, never an A5 arrival (M4.4); person's own A1/A2 are R7 operations (M5.1); V-GR1 variant (C §10.4) cited for grant-after-arrival (M8.4) |
 | V3-B MAJOR-2 (stale CC results) | §4 rerun: CC-4 32/32 SQs; CC-5 pass; CC-8 16 inputs (17-file set with this guide, V3-B m-12); CC-10 records V3-B as the first independent check (m-13) |
 | Gaps | G-3, G-4 closed; G-8 (App-only checkpoints, owner follow-up) and G-9 (ADAPTER §12 mapping header labelled RELAY-v0.2) added; F-2, F-3 closed |
+| **R6-1** (V4-A MAJOR-1/2, m-14) — in place | §0, §2.14, B-7, M8.1, M8.4, §2.13, HC-6.3, HC-8.1, G-8, F-10 classify hold support **by held actions** (EXEC-v0.3 §3.6 order HS-1, HS-2, HS-5, HS-4, HS-3; WD-v0.5 §4.3.1 *held actions* element, §4.3.8). §2.14 adds the fixture classification: E1, E1c and E1d via X **unsupported**; E1d `CP-grant` via X **not established** (HS-3; C V-GR1 per R6-2); SQ-02 can move only checkpoints whose every held action is a host operation |
+| **R6-3** (V4-A m-4) — in place | §0 and §2.14 state what "held" means per value: host loop → the run stops at its next action; host route → the host refuses the held host operations, other actions are *action during hold*; not established / not enforceable → nothing is stopped, actions are *action during hold* |
+| **R6-4** — in place | LOOP-local labels HS-0…HS-4 cited as **LH-0…LH-4** (M2.4, M7.6, HC-2.4) |
+| **R6-5** (V4-B m-7, m-9) — in place | Every pinned input hash updated to the bytes at `375c3970c`; CA and RELAY rows record their three in-place byte states under v0.3. CC-1…CC-11 rerun; CC-11 conflict list refreshed (V4-B MAJOR-1 V-GR1 conflict resolved by R6-2; G-9 closed — ADAPTER §12 now RELAY-v0.3; residual RELAY "LOOP HS-0" labels and WD I-4 wording recorded). F-11 closed: CA-H now reads "on E; in App runs only as hold support allows". F-9, CC-10 and UNRESOLVED record V4-B as v0.2's first independent review |
 
 ---
 
@@ -77,7 +81,7 @@ conditional). It performs, records or implies no human act. It runs nothing.
 
 | Standing | Meaning | Can support |
 |---|---|---|
-| **defined draft** | An App/shared definition exists at `d3cebd1cc` (evidence label *illustrative*, C §10 mapping) | Completeness of the definition only |
+| **defined draft** | An App/shared definition exists at `375c3970c` (evidence label *illustrative*, C §10 mapping) | Completeness of the definition only |
 | **relay pending** | A host contribution is needed; the question exists in RELAY-v0.3 (ladder standing *prepared*, CA §7.2); relay, answer, commitment, delivery, adoption and examination are **not observed** | Nothing about the host |
 | **owner-open** | An open choice with a named owner and point of need (OI-nnn, TBD-nnn, U-nn, D6) | Nothing; recorded, never made here |
 | **host-owned** | Construction, facility or evidence that belongs to the host owner (CLM-001; HI §1) | Nothing until an identified host candidate supplies it |
@@ -91,6 +95,13 @@ passes; host-held constraint evidenced by the SQ-02 answer and a candidate) ·
 "unsupported") · **not enforceable** (workflow *unsupported*, "checkpoint hold
 not enforceable on this surface", R4-8). An invalid or not-established
 declaration takes no value (EXEC HS-1). No other value is used.
+The value is decided by the checkpoint's **held actions** — what the run must
+not do until the act (WD §4.3.1) — not by how it arrives (R6-1). What "held"
+means per value (R6-3): *enforced by the host loop* — the run stops at its
+next action; *enforced on the host route* — the host refuses the held host
+operations, and any other action is recorded as *action during hold*; *not
+established* / *not enforceable* — nothing is stopped, and actions are
+recorded as *action during hold*.
 
 **Identifier notes.** Acts A1–A14 (R-1); class values C §3.1's five; outcomes
 P §9 and C §4.1; dispositions WD §4.3.4's six. Two different "TBD-007" exist:
@@ -110,7 +121,7 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 | B-4 | DECISION-1 D2: five acts reserved to the person for App/shared contracts in the first increment; the host names and enforces its own list (V4-HI-30); operation-specific additions await OI-021; host adoption not shown (DEP-001) | D2; ACT §3, §8.3 P-01 |
 | B-5 | DECISION-1 D3: App routine tool permission (A14) is the user's own Codex setting; hosts have no classifier mode | D3; ACT §8.3 P-04 |
 | B-6 | **SETTLED by DECISION-2 (D5):** host content read through the external channel may flow to the App conversation's selected model, cloud included; no App gate. **INTEGRATION (DECISION-2 reading; R4-1, R5-4):** the App records the destination per turn where the supplier reports it (requested and effective kept apart; unobserved turns *unknown*; the run-level value is the observed set) and shows it in the channel status, as information only. A host may restrict its own channel (SQ-16); V4-HOST-02 still governs the host's embedded agent (SQ-30) | D5; R4-1; R5-4; HOSTING §8.3; RS R5 |
-| B-7 | **DECISION-2 (D6), deferred:** App-side run holds are `UNRESOLVED{D6}`. HP-1 (interposed App code) and HP-2 (reliance on `turn/interrupt`) are not adopted (R4-2); HP-3 is best effort; HP-4 (the App initiates nothing for a holding run) applies; every run action while a checkpoint waits is recorded as *action during hold*. **Scope (R5-10):** the SQ-02 answer can settle only checkpoints on **host operations**; App-only checkpoints stay *not enforceable* whatever SWBPIPE answers — a separate owner follow-up (EXEC U-E23) | D6; R4-2; R5-10; EXEC §2, §3.6, U-E1, U-E23; ACT §4.6 |
+| B-7 | **DECISION-2 (D6), deferred:** App-side run holds are `UNRESOLVED{D6}`. HP-1 (interposed App code) and HP-2 (reliance on `turn/interrupt`) are not adopted (R4-2); HP-3 is best effort; HP-4 (the App initiates nothing for a holding run) applies; every run action while a checkpoint waits is recorded as *action during hold*. **Scope (R5-10, R6-1):** the SQ-02 answer can settle only checkpoints whose **every held action is a host operation**; a checkpoint with any App-side held action stays *not enforceable* whatever SWBPIPE answers — a separate owner follow-up (EXEC U-E23) | D6; R4-2; R5-10; R6-1; EXEC §2, §3.6, U-E1, U-E23; ACT §4.6 |
 | B-8 | Codex `0.158.0` is a definition/generation pin only; no qualification | D4; HOSTING §7, §10; SPIKE |
 | B-9 | **Carriage assurance (R5-2):** only *host-held* carriage satisfies R2-12. A host loop's own evaluation of the declaration is host-held. A constraint the host merely received keeps its source's assurance (model-supplied or App-assured). App-assured is not available in this increment (R4-2) | R5-2; P §3.3; ACT §4.4; ADAPTER §5.2–§5.3 |
 
@@ -127,7 +138,7 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 | 3 | Basis | C §5; P §3.2, §5, §6, §11, §12 | SQ-03 (a)(b), SQ-07 (a)–(h), SQ-08 (b) | Generation meaning (C U-C2); subject-identity scope (C U-C3) | defined draft (rule INTEGRATION); relay pending |
 | 4 | Origin, undo and proposal presentation | P §3, §4, §7, §8, §9; AS §7; ADAPTER §5 | SQ-03 (c)(d), SQ-05 (g), SQ-08, SQ-09 (c)(f), SQ-10, SQ-14, SQ-22 | 03-02/TBD-002 mechanisms; undo mechanism (P U-P8) | defined draft; host-owned; relay pending |
 | 5 | Human acts and compact records | ACT §2–§4, §8–§9; RS §2–§10; EXEC §5 | SQ-01, SQ-03 (e), SQ-05 (b)(c), SQ-19 (b)(c), SQ-21, SQ-23, SQ-25 | OI-021 additions; ACT U-03; OI-013/OI-014 record placement | defined draft; relay pending (SQ-01 blocks every positive host-content case) |
-| 6 | Autonomy | ACT §4.4, §4.6, §5–§8; AS §2–§7; P §3.3, §4.4 | SQ-02, SQ-05 (a)(c)–(f)(h)(i) | D6 (host-operation part deferred to SQ-02; App-only part U-E23); ACT U-02; ACT U-06 | defined draft; relay pending; owner-open |
+| 6 | Autonomy | ACT §4.4, §4.6, §5–§8; AS §2–§7; P §3.3, §4.4 | SQ-02, SQ-05 (a)(c)–(f)(h)(i) | D6 (host-operation held actions deferred to SQ-02; App-side held actions U-E23); ACT U-02; ACT U-06 | defined draft; relay pending; owner-open |
 | 7 | Loop and panel | LOOP §1–§10; PANEL §1–§6 | SQ-02 (d), SQ-05 (e), SQ-20 (informational), SQ-22, SQ-23, **SQ-29…SQ-32** | OI-013; OI-014; DEP-05-01-024; N-OPEN-1…3; T-OPEN-1; R-OPEN-1 | defined draft; host-owned; relay pending; owner-open |
 | 8 | Host methods and roles | WD §3–§6, §9; WD-EX; EXEC §3, §4, §6; HOSTING §8 S-6, §8.2 | SQ-01, SQ-02, SQ-11, SQ-17, SQ-18, SQ-19 (a)(d) | D6/U-E23; WD U-09; DEL-02-02 / DEL-02-04 (D1) | defined draft; relay pending; partly outside undertaking (D1) |
 | 9 | Optional external catalog access (conditional) | ADAPTER §1–§10; ACT §2.6, V-10; HOSTING §6.7–§6.8, §8.3; XT §3 | **SQ-28**, SQ-02, SQ-06, SQ-08, SQ-12…SQ-16 | 03-03/TBD-007 (OC-1…OC-12); D6 | defined draft; relay pending; owner-open |
@@ -153,7 +164,7 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 | M2.1 | One route for person, embedded agent and external agent; channel is attribution only; equivalence rule; the only permitted difference is authority, reported as *not permitted* naming the governing treatment | P-v0.5 §1, §2; ADAPTER-v0.3 §6 (RP-1, RP-2); LOOP-v0.5 §6 (V-4, V-5) | The route itself (host-owned); outcome statements distinct from transport status (SQ-09 (a)); validation versus application refusals (SQ-09 (d)(e)) | — | defined draft; host-owned; relay pending |
 | M2.2 | Treatment resolved on the host route at validation and again at application; loop and adapter relay intent and any constraint, never decide; direct without an effective direct treatment → *not permitted*, never converted | ACT-v0.5 §5.3, §5.5, §6; P-v0.5 §2; C-v0.5 §4.1; R-3 | Settings reference in force at application (SQ-05 (d)); treatment from the grant actually in force when the App saw *unconfirmed*, re-resolved at application (SQ-05 (h), AS U-04); adoption of P-01…P-06 (SQ-05 (c)) | Host adoption and enforcement (DEP-001) — host owner | defined draft; relay pending |
 | M2.3 | Canonical outcome taxonomy per item (refused — invalid/stale, queued, accepted, rejected, withdrawn, applied (receipt) with applied-outcome association, application error with effect statement, outcome unknown for submissions only, observer-attributed); success ≠ acceptance; queued ≠ applied | P-v0.5 §9, §10; C-v0.5 §4.1; RS-v0.5 §5; ADAPTER-v0.3 §4.5 (M-1…M-5; a read with no stated result is an *error* as observed, M-3); AS-v0.5 §8 | Result forms mapped to these terms; item application grouping (SQ-09 (a)(b)(f)) | P U-P4, U-P5, U-P7 — host owner | defined draft; relay pending |
-| M2.4 | Loop-side pre-route failures: catalog-schema checking before host domain validation; malformed or truncated calls never executed with empty arguments; *not offered* never dispatched; undispatched siblings held at a checkpoint (HS-0) | LOOP-v0.5 §6 (V-1…V-3), §7 (MC-1…MC-9), §2.4.4 HS-0 | Host-loop realization (host-owned): validation order, malformed/truncated handling, sibling behavior (**SQ-31** (a)–(d)); model-interface expression of "no arguments" and truncation (**SQ-29** (c)) | Loop placement and parsing `UNRESOLVED{OI-013}`; any shared checker `UNRESOLVED{OI-014}`; LOOP T-OPEN-1 (DEL-05-01 with DEL-03-02 and host owner); DEP-05-01-024 (supplier UNKNOWN) | defined draft; host-owned; relay pending; owner-open |
+| M2.4 | Loop-side pre-route failures: catalog-schema checking before host domain validation; malformed or truncated calls never executed with empty arguments; *not offered* never dispatched; undispatched siblings held at a checkpoint (LH-0) | LOOP-v0.5 §6 (V-1…V-3), §7 (MC-1…MC-9), §2.4.4 LH-0 | Host-loop realization (host-owned): validation order, malformed/truncated handling, sibling behavior (**SQ-31** (a)–(d)); model-interface expression of "no arguments" and truncation (**SQ-29** (c)) | Loop placement and parsing `UNRESOLVED{OI-013}`; any shared checker `UNRESOLVED{OI-014}`; LOOP T-OPEN-1 (DEL-05-01 with DEL-03-02 and host owner); DEP-05-01-024 (supplier UNKNOWN) | defined draft; host-owned; relay pending; owner-open |
 | M2.5 | No second agent route | P-v0.5 §2; ADAPTER-v0.3 RP-1; PANEL-v0.5 §4 H-4 | Confirmation that the external seam uses the one route (SQ-12) | — | defined draft; relay pending |
 
 ### 2.3 Row 3 — Basis (HI §3 V4-HI-11; §4 V4-HI-23; HI §10 item 3)
@@ -199,7 +210,7 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 | M6.1 | Per class, a grant value (direct / propose) within a representation-neutral scope, set by the person through A12; governs host operations only; visible, changeable, recorded per run | ACT-v0.5 §5.1, §5.2, §5.4; AS-v0.5 §2; RS-v0.5 R6 | Host controls (host-owned); grant presentation (SQ-05 (e)) | Consequence dimension ACT U-02 — DEL-04-01 with host policy owner (SQ-05 (f)) | defined draft; host-owned; relay pending; owner-open |
 | M6.2 | Seven grant display states; two settings references (route decision; in force at application, host-reported or *unconfirmed*) | AS-v0.5 §3; ACT-v0.5 §5.4; P-v0.5 §3.3 | Settings reference at application (SQ-05 (d)); enforcement of *unconfirmed* and re-resolution at application (SQ-05 (h), AS U-04) | — | defined draft; relay pending |
 | M6.3 | Conservative defaults; SWB model changes (P-03) default *propose* with row / multi-row / batch acceptance, widenable by the person within W-a…W-j; queued proposals never converted | ACT-v0.5 §5.5, §5.6, §7, §8.3 P-03; AS-v0.5 §2 | Class and default per operation (SQ-05 (a)(c)); defaults for other consequential classes (SQ-05 (i), ACT U-06) | — | defined draft (class DERIVED, default accepted); relay pending |
-| M6.4 | Declared checkpoints override autonomy; an A5 checkpoint forces *propose* (P-05); a direct request under the constraint is *not permitted* naming it; only **host-held** carriage satisfies R2-12 (R5-2) | ACT-v0.5 §4.4, §8.3 P-05; P-v0.5 §3.3, §4.4; WD-v0.5 §4.2.2, I-7; ADAPTER-v0.3 §5.3 (GC-1…GC-5) | Per-request receipt verified against the host's own declaration copy, a host-held declaration, or a host-held run association; *not permitted* naming it; host holds before dispatch per surface (**SQ-02** (a)–(e), P1) | Host-operation checkpoints in App runs: `UNRESOLVED{D6}` — owner, deferred to SQ-02 (EXEC U-E1); App-only checkpoints: owner follow-up **EXEC U-E23** | relay pending (V-CP1, LOOP FX-C9, PANEL PC-24, WD VC-11, EXEC CH-27, ADAPTER XF-25 AWAITING INPUT); owner-open |
+| M6.4 | Declared checkpoints override autonomy; an A5 checkpoint forces *propose* (P-05); a direct request under the constraint is *not permitted* naming it; only **host-held** carriage satisfies R2-12 (R5-2) | ACT-v0.5 §4.4, §8.3 P-05; P-v0.5 §3.3, §4.4; WD-v0.5 §4.2.2, I-7; ADAPTER-v0.3 §5.3 (GC-1…GC-5) | Per-request receipt verified against the host's own declaration copy, a host-held declaration, or a host-held run association; *not permitted* naming it; host holds before dispatch per surface (**SQ-02** (a)–(e), P1) | Host-operation checkpoints in App runs: `UNRESOLVED{D6}` — owner, deferred to SQ-02 (EXEC U-E1); checkpoints with any App-side held action: owner follow-up **EXEC U-E23** (R6-1) | relay pending (V-CP1, LOOP FX-C9, PANEL PC-24, WD VC-11, EXEC CH-27, ADAPTER XF-25 AWAITING INPUT); owner-open |
 | M6.5 | No policy basis (P-06): direct not permitted; proposing confers no permission; A12 widening refused; dependent production held | ACT-v0.5 §8.3 P-06; C-v0.5 §3.1 rule 4; AS-v0.5 §2 | Classing the first operation (SQ-05 (a)) | `UNRESOLVED{OI-021}` (C OP-C11) | defined draft (INTEGRATION); owner-open |
 | M6.6 | Routine tool permission (A14) is not autonomy: App side the user's Codex setting (D3), recorded only in RS R13; hosts have no classifier mode | ACT-v0.5 §8.3 P-04; RS-v0.5 R13; HOSTING-v0.5 §6.6, §11; LOOP-v0.5 §1; PANEL-v0.5 §1 | None | — | defined draft (adopted decision D3) |
 
@@ -212,7 +223,7 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 | M7.3 | Native endpoint and key boundary: local default, cloud only by choice plus key, no cloud fallback, key never visible to the script, native layer enforces; local operation's only destination is the configured server (V4-HOST-02) | LOOP-v0.5 §5.1 (NW-1…NW-7), §5.2 (MS-01…MS-11) | Native layer and endpoint enforcement; definitions for N-OPEN-1…3; endpoint-redirect refusal (**SQ-30** (a)–(e)) | LOOP N-OPEN-1…3 — App/shared embedded-integration owner with SWBPIPE owner; the owner if V4-HOST-02 is affected | defined draft; host-owned; relay pending; owner-open |
 | M7.4 | Validation order; malformed and truncated calls reported, never executed | LOOP-v0.5 §6, §7 (as M2.4) | SQ-31 | As M2.4 | defined draft; host-owned; relay pending |
 | M7.5 | Responsiveness: the loop does not block the host interface; qualitative observation protocol | LOOP-v0.5 §8 (RS-1…RS-4) | Placement, cancel behavior, relayed observations, threshold wish (**SQ-32**) | LOOP R-OPEN-1 — the owner, if wanted | defined draft; host-owned; relay pending |
-| M7.6 | Checkpoint evaluation in host loops: reached-when observation, declared subject class binding, dispositions; hold support **enforced by the host loop** with residual limits recorded as evidence limits (action during hold), not as separate values | LOOP-v0.5 §2.4 (§2.4.1–§2.4.4, HS-0…HS-4); EXEC-v0.3 §3.6 (HS-2), §4; WD-v0.5 §4.3 | Host holds before dispatch on the embedded surface (SQ-02 (d)); sibling holding (SQ-31 (d)); placement (SQ-20) | EXEC U-E2 `UNRESOLVED{OI-013}` / `{OI-014}` | defined draft; relay pending (host evidence DEP-001); owner-open |
+| M7.6 | Checkpoint evaluation in host loops: reached-when observation, declared subject class binding, dispositions; hold support **enforced by the host loop** with residual limits recorded as evidence limits (action during hold), not as separate values | LOOP-v0.5 §2.4 (§2.4.1–§2.4.4, LH-0…LH-4); EXEC-v0.3 §3.6 (HS-2), §4; WD-v0.5 §4.3 | Host holds before dispatch on the embedded surface (SQ-02 (d)); sibling holding (SQ-31 (d)); placement (SQ-20) | EXEC U-E2 `UNRESOLVED{OI-013}` / `{OI-014}` | defined draft; relay pending (host evidence DEP-001); owner-open |
 | M7.7 | Panel: conversation, workflow selection (with hold support per checkpoint), proposal queue and checks, declared checkpoints and the active grant; results in host tables and views; no agent-private surface; "accept" wording; lapse and supersession visible | PANEL-v0.5 §3.1–§3.6, §4 (H-1…H-6), §5 | Panel assembly, tables and views (host-owned); SQ-22; SQ-23; grant presentation (SQ-05 (e)); who evaluates required-tool outcomes in the host (SQ-17 (c)) | DEL-02-03 checker only under OI-014 | defined draft; host-owned; relay pending |
 | M7.8 | Reusable components only where a repeated responsibility is agreed; no common loop or service presumed | PANEL-v0.5 §6; LOOP-v0.5 §10.1–§10.2; WD-v0.5 §9 (A-1…A-12) | — | `UNRESOLVED{OI-014}` (03-04/TBD-005); host side `UNRESOLVED{OI-013}` | owner-open (every confirmation "None") |
 
@@ -220,10 +231,10 @@ MCP-versus-CLI, ADAPTER §9). Matrix lines are `M<row>.<n>`; checks
 
 | # | Obligation | App/shared definition | Host contribution required | Open choices — who decides | Standing |
 |---|---|---|---|---|---|
-| M8.1 | Portable declared part: inputs, required tools by catalog identity, checkpoints naming a closed-list act (A4, A5, A6, A7, A12), outputs with promised standing, evidence by reference; requirement ≠ restriction | WD-v0.5 §3, §4.1–§4.7; WD-EX-v0.5 E1–E8 | Host workflows authored by the host/method owner (SQ-18 (a)); reading the declared part at the App's declaration contract version (SQ-17 (b)) | Physical carriage WD U-01 — DEL-02-01 with consumers | defined draft; host-owned; relay pending |
+| M8.1 | Portable declared part: inputs, required tools by catalog identity, checkpoints naming a closed-list act (A4, A5, A6, A7, A12) and their **held actions** (host operations only, or listed steps with App-side steps marked; conservative default HS-5; R6-1), outputs with promised standing, evidence by reference; requirement ≠ restriction | WD-v0.5 §3, §4.1–§4.7 (§4.3.1 *held actions*); WD-EX-v0.5 E1–E8 | Host workflows authored by the host/method owner (SQ-18 (a)); reading the declared part at the App's declaration contract version (SQ-17 (b)) | Physical carriage WD U-01 — DEL-02-01 with consumers | defined draft; host-owned; relay pending |
 | M8.2 | Source-qualified identity + derived-from; holding library as a non-identity fact; promised versus observed chain | WD-v0.5 §6.1–§6.4; EXEC-v0.3 §6.1, §6.2; RS-v0.5 R2; C-v0.5 §10.1 (LIB-A1, LIB-A2) | Listing carried workflows unadapted, original origin, host holding library (SQ-17 (a)); host identity display (SQ-18 (a)) | Revision algorithm WD U-03; host precedence WD U-10 (DEL-02-02, D1; RELAY "Not included") | defined draft; relay pending |
 | M8.3 | Required-tool compatibility report with the three-value check result (does not pass incl. *unsupported* / not established / passes) and multi-checkpoint precedence; *unsupported* for "checkpoint hold not enforceable on this surface" (R4-8); harness-capability kind (a) not holdable in App runs (R4-21) | WD-v0.5 §4.2.4, §4.3.8; EXEC-v0.3 §3 (§3.5 pass rule, §3.6 hold support); WD-EX-v0.5 E7, E8 | Exposure per surface (SQ-11); who evaluates compatibility and holds for host runs and how unsupported outcomes are shown (SQ-17 (c)) | Harness capability naming WD U-08 / EXEC U-E10 | defined draft; relay pending |
-| M8.4 | Checkpoint semantics and hold machine: arrival, SP (capture after arrival, R4-5), dispositions, re-hold after resume (R4-3; generalized R5-5), no resumption of ended runs (R4-4), mixed items MX-3/MX-6/MX-8 (R4-7); grant-setting subject always declared and never chosen by an A8 (R5-3); grant change after arrival shown by C V-GR1 (R5-7) | WD-v0.5 §4.3 (§4.3.1–§4.3.8); EXEC-v0.3 §4 (§4.1–§4.14); ACT-v0.5 §4, §4.6; C-v0.5 §10.4 V-GR1 | Host capture evidence (SQ-01); host-held evaluation or constraint receipt; host holds before dispatch (SQ-02) | `UNRESOLVED{D6}`: host-operation part to SQ-02 (EXEC U-E1); App-only part **EXEC U-E23** (owner); EXEC U-E4 (SP-6 versus counting prior acts; cost recorded under R5-7); ACT U-03 | defined draft; relay pending; owner-open |
+| M8.4 | Checkpoint semantics and hold machine: arrival, SP (capture after arrival, R4-5), dispositions, re-hold after resume (R4-3; generalized R5-5), no resumption of ended runs (R4-4), mixed items MX-3/MX-6/MX-8 (R4-7); grant-setting subject always declared and never chosen by an A8 (R5-3); grant change after arrival shown by C V-GR1 (R5-7); hold support by held actions (R6-1) with per-value meaning of "held" (R6-3) | WD-v0.5 §4.3 (§4.3.1 incl. *held actions*, §4.3.8; I-9); EXEC-v0.3 §4 (§4.1–§4.14); ACT-v0.5 §4, §4.6; C-v0.5 §10.4 V-GR1 | Host capture evidence (SQ-01); host-held evaluation or constraint receipt; host holds before dispatch (SQ-02) | `UNRESOLVED{D6}`: checkpoints whose every held action is a host operation to SQ-02 (EXEC U-E1); any App-side held action **EXEC U-E23** (owner); EXEC U-E4 (SP-6 versus counting prior acts; cost recorded under R5-7); ACT U-03 | defined draft; relay pending; owner-open |
 | M8.5 | Transfer App → host (package plus carriage manifest) and host → App refinement; adaptation is a new identity with host origin and derived-from; no identity or act inheritance | EXEC-v0.3 §6.3–§6.7; WD-v0.5 §6.4; CA-v0.3 §4 | Relay form (SQ-17 (d)); adaptation as new revision; checkpoint comparison (SQ-18 (b)(c)) | Registration, drafts and selection policy DEL-02-02 *(outside undertaking, D1)* | defined draft; relay pending; partly outside undertaking (D1) |
 | M8.6 | Four roles behind a single host seat; seat role meaning on every dispatch; additive role guidance with per-thread/turn supplied-guidance evidence ("supplied ≠ adopted") | WD-v0.5 §5 (§5.1–§5.3); HOSTING-v0.5 §8 S-6, §8.2; RS-v0.5 R3, R5a | Per-turn guidance source and content identity in host loops (SQ-19 (a)); seat → role mapping (SQ-19 (d), WD U-09) | Role supply DEL-02-04 *(outside undertaking, D1)*; guidance distribution `UNRESOLVED{OI-018}` (WD U-14) | defined draft (WD, HOSTING); relay pending; role supply outside undertaking (D1) |
 | M8.7 | Host methods tested and refined in the App: App runs go through stock Codex; host revision opened read-only and refined | HOSTING-v0.5 §1; EXEC-v0.3 §6.5; CA-v0.3 §8 W14-09 | Host revision relayed with identity (SQ-18 (a); SQ-27 (a)) | DEL-02-02 *(outside undertaking, D1)*: V4-EXM-14 cannot complete in this undertaking | defined draft; outside undertaking (D1) |
@@ -302,27 +313,42 @@ evidenced A13, the channel stays *not enabled* for every live CA/X and XC case
 | TBD-007 | OI-022 PEC first receiving envelope | App consumer owner and PEC owner | Before operational consumer reliance | owner-open; outside undertaking (M10.1) |
 | TBD-008 | OI-023 Domains receiving contract and timing | Owner with Domains/SWB/App receiving owners | Before later Domains-enabled design increment | owner-open; outside undertaking (M10.2) |
 | TBD-009 | OI-026 Domains provider ownership | Owner with App/Domains/SWB definition owners | Before allocating Domains provider production and committing its integration | owner-open; outside undertaking (M10.2) |
-| — (added) | D6 App-side holds, **host-operation** checkpoints (EXEC U-E1) | Owner (DECISION-2), on the SQ-02 answer | Before any App-side positive hold case; before the App fixes its realization family | `UNRESOLVED{D6}` (M6.4, M8.4, M9.5) |
-| — (added) | D6 follow-up, **App-only** checkpoints in App runs (EXEC U-E23) | The owner (separate D6 follow-up; no SWBPIPE answer can settle it, R5-10) | Before any App-side workflow with a kind (b)/(c) run halt or an App-content checkpoint is offered as supported | *not enforceable* → *unsupported* (M8.4; G-8) |
+| — (added) | D6 App-side holds, checkpoints whose **every held action is a host operation** (EXEC U-E1; HS-3) | Owner (DECISION-2), on the SQ-02 answer | Before any App-side positive hold case; before the App fixes its realization family | `UNRESOLVED{D6}` (M6.4, M8.4, M9.5) |
+| — (added) | D6 follow-up, checkpoints with **any App-side held action** in App runs (EXEC U-E23; HS-5) | The owner (separate D6 follow-up; no SWBPIPE answer can settle it, R5-10, R6-1) | Before any App-side workflow with a kind (b)/(c) run halt or an App-content checkpoint is offered as supported | *not enforceable* → *unsupported* (M8.4; G-8) |
 
-### 2.14 Hold-support map (R5-1; EXEC-v0.3 §3.6 HS-1…HS-5, authoritative)
+### 2.14 Hold-support map (R5-1, R6-1, R6-3; EXEC-v0.3 §3.6, authoritative)
 
-| Surface and checkpoint | Hold support | Workflow check effect | Changes when |
+The value is decided by the checkpoint's **held actions** (WD-v0.5 §4.3.1),
+not by how it arrives. Rows are evaluated in the order **HS-1, HS-2, HS-5,
+HS-4, HS-3**; the first match decides. For App runs, HS-3/HS-4 and HS-5 form
+an exhaustive partition: either every held action is a host operation, or at
+least one is App-side.
+
+| Order | Surface and checkpoint | Hold support | What "held" means (R6-3) | Workflow check effect | Changes when |
+|---|---|---|---|---|---|
+| HS-1 | Any surface; invalid or not-established declaration (FB-03, FB-04, FB-13, FB-16; A12 declaration naming no setting content) | **No value**; reported invalid / not established | — | *not established* via the declaration | Declaration fixed |
+| HS-2 | Host run on E, any valid checkpoint | **enforced by the host loop** (LOOP §2.4.4; the loop's own evaluation is host-held, R5-2) | The run stops at its next action; residual in-flight actions are *action during hold* (evidence limits, not a separate value) | passes (holds subject to host evidence, DEP-001) | Host evidence observed on a candidate |
+| HS-5 | App run; **at least one held action is App-side** (an App agent turn such as Return or a summary, an App tool or harness action incl. kind (a) on a harness capability, an App file write, any action on App content such as A4 on AF-1), or the declaration does not show that every held action is a host operation (conservative default) | **not enforceable** whatever SQ-02 returns (D6; R5-10) | Nothing is stopped; actions are *action during hold* | *unsupported* ("checkpoint hold not enforceable on this surface") | Only the owner's D6 follow-up (EXEC U-E23) |
+| HS-4 | App run on X; every held action is a host operation, one with unagreed exposure | **not established** | Nothing is stopped; actions are *action during hold* | *not established* | Exposure agreed (SQ-11) |
+| HS-3 | App run on X; **every held action is a host operation** on the external channel (the governed operation of an A5 constraint; the call a kind (a) checkpoint holds; host operations after arrival until the act) | **not established** today (SQ-02 unanswered); → **enforced on the host route** once host-held carriage or a host hold is evidenced on a candidate; → **not enforceable** if SQ-02 is answered with no host-held route. Never assumed | Today nothing is stopped; once enforced on the host route, the host refuses the held host operations and other actions are *action during hold* | *not established* today; passes, or *unsupported* | SQ-02 answer and candidate evidence |
+
+**Fixture classification (EXEC-v0.3 §3.6 table; WD-EX-v0.5 E8; C-v0.5 V-GR1).**
+
+| Workflow via X (App run) | Checkpoint (declared held actions) | Value | Workflow result (EXEC §3.5 precedence) |
 |---|---|---|---|
-| Any surface; invalid or not-established declaration (HS-1) | No value; reported invalid / not established | *not established* via the declaration | Declaration fixed |
-| Host run on E (HS-2), any valid checkpoint | **enforced by the host loop** (LOOP §2.4.4; the loop's own evaluation is host-held, R5-2); residual limits recorded as *action during hold* | passes (holds subject to host evidence, DEP-001) | Host evidence observed on a candidate |
-| App run on X; host-operation checkpoint (A5 constraint, or kind (a) before a host operation), exposure agreed (HS-3) | **not established** today (SQ-02 unanswered); → **enforced on the host route** once host-held carriage or a host hold is evidenced; → **not enforceable** if SQ-02 is answered with no host-held route | *not established* today; passes, or *unsupported* | SQ-02 answer and candidate evidence |
-| App run on X; host operation with unagreed exposure (HS-4) | **not established** | *not established* | Exposure agreed (SQ-11) |
-| App run; App-only checkpoint (arrival and held actions involve no host operation; App content such as A4 on AF-1; kind (b)/(c) run halts other than an A5 constraint; kind (a) on a harness capability) (HS-5) | **not enforceable** whatever SQ-02 returns (R5-10) | *unsupported* ("checkpoint hold not enforceable on this surface") | Only the owner's D6 follow-up (EXEC U-E23) |
+| E1 ⟨rev-A2⟩ | `CP-accept` (governed OP-C4/OP-C5) | HS-3 → **not established** | **unsupported** (any *not enforceable* decides), whatever SQ-02 returns (MT-2) |
+| | `CP-check` (Return, App-side) | HS-5 → **not enforceable** | |
+| E1c | `CP-check` (returning the result, App-side; no host operation declared) | HS-5 → **not enforceable** | **unsupported** |
+| E1d | `CP-grant` (the held OP-C9 call) | HS-3 → **not established** (C V-GR1 corrected by R6-2) | **unsupported**, whatever SQ-02 returns; SQ-02 can move only `CP-grant` (MT-16) |
+| | `CP-check` (from E1c; Return, App-side) | HS-5 → **not enforceable** | |
+| L-WDEX-17 (E1d variant with `CP-grant` only) | `CP-grant` (OP-C9) | HS-3 → **not established** today | *not established* today; passes once SQ-02 is evidenced with a host-held route |
 
-Worked case (WD-EX-v0.5 E8; EXEC §3.6 consequences): E1 ⟨rev-3⟩ in the host
-on E — `CP-accept` and `CP-check` **enforced by the host loop**, check passes.
-E1 ⟨rev-A2⟩ run from the App via X — `CP-accept` **not established** (HS-3),
-`CP-check` **not enforceable** (HS-5, App-only) → the workflow is
-*unsupported* on X, and stays so whatever SQ-02 returns while `CP-check` is
-App-only. The person may still start such a run; HP-3 and HP-4 apply as best
+The same workflows in the host on E: every checkpoint **enforced by the host
+loop**, check passes (MT-1). An author who needs a checkpoint enforceable from
+the App keeps **all its held actions on host operations** (R6-1; CA WR-11).
+The person may still start an unsupported run; HP-3 and HP-4 apply as best
 effort and never change a value; every governed action while a checkpoint
-waits is recorded as *action during hold* (RS R11).
+waits is recorded as *action during hold* (RS R11, with turn initiator, R6-5).
 
 ---
 
@@ -364,7 +390,7 @@ they are the same checks.
 | HC-2.1 | Do all actors submit to the same route, channel recorded as attribution only? | P §2; ADAPTER RP-1 | Equivalent-request comparison across channels |
 | HC-2.2 | Is treatment resolved at validation and again at application, from the grant actually in force; is a direct request without an effective direct treatment *not permitted*, never converted? | ACT §5.3, §6; P §2 | SQ-05 (d)(h) |
 | HC-2.3 | Do results map to P §9 and C §4.1, distinct from transport status (outcome unknown for submissions only)? | P §9; ADAPTER §4.5 | SQ-09 |
-| HC-2.4 | Does the embedded loop check catalog schema before host validation, never execute malformed or truncated calls, and hold undispatched siblings at a checkpoint? | LOOP §6, §7, §2.4.4 HS-0 | **SQ-31**; SQ-29 (c) |
+| HC-2.4 | Does the embedded loop check catalog schema before host validation, never execute malformed or truncated calls, and hold undispatched siblings at a checkpoint? | LOOP §6, §7, §2.4.4 LH-0 | **SQ-31**; SQ-29 (c) |
 
 ### HC-3 Return a basis with every read; check it on every change (HI §3–§4; row 3)
 
@@ -403,7 +429,7 @@ they are the same checks.
 |---|---|---|---|
 | HC-6.1 | For each consequential class, what default, visible and changeable by the person, recorded per run? | ACT §5, §7; AS §3; RS R6 | SQ-05 (d)(e)(i) |
 | HC-6.2 | For model changes, is the default *propose* with row / multi-row / batch acceptance, widenable only by the person within ACT §5.6? | ACT §7, §5.6 | SQ-05 (a)(c) |
-| HC-6.3 | For an A5 checkpoint, does the host hold the constraint (verified against its own declaration copy, or from a host-held declaration or run association), answer a direct request *not permitted* naming it, and hold "before dispatch" checkpoints itself per surface? | ACT §4.4, §4.6; P §3.3, §4.4; EXEC §3.6 | **SQ-02**. Until answered, host-operation checkpoints on X are *not established*; App-only checkpoints are *not enforceable* whatever the answer (§2.14) |
+| HC-6.3 | For an A5 checkpoint, does the host hold the constraint (verified against its own declaration copy, or from a host-held declaration or run association), answer a direct request *not permitted* naming it, and hold "before dispatch" checkpoints itself per surface? | ACT §4.4, §4.6; P §3.3, §4.4; EXEC §3.6 | **SQ-02**. Until answered, checkpoints on X whose every held action is a host operation are *not established*; any App-side held action → *not enforceable* whatever the answer (§2.14) |
 | HC-6.4 | Does the host present grant states including a policy default and a refused setting; will it join a consequence vocabulary? | AS §3; ACT U-02 | SQ-05 (e)(f) |
 
 ### HC-7 Select reusable panel/components where they fit; implement the loop/catalog/model connection under the host's ownership and data boundary (row 7)
@@ -421,7 +447,7 @@ they are the same checks.
 
 | Check | The host supplies / answers | Receiving definition | Evidence before a claim |
 |---|---|---|---|
-| HC-8.1 | Does each host workflow declare inputs, required tools by catalog identity, closed-list checkpoints (a grant checkpoint always naming its setting content, R5-3), outputs and evidence? | WD §3, §4 | SQ-18 (a) |
+| HC-8.1 | Does each host workflow declare inputs, required tools by catalog identity, closed-list checkpoints with their held actions (a grant checkpoint always naming its setting content, R5-3; R6-1), outputs and evidence? | WD §3, §4 | SQ-18 (a) |
 | HC-8.2 | Does the host carry full identity with derived-from and holding library, and list an App-carried workflow unadapted? | WD §6; EXEC §6.2 | SQ-17 (a); SQ-18 (a) |
 | HC-8.3 | Can the host read the App's declared part, evaluate required tools and hold support for host runs, and report *unsupported* explicitly? | WD §4.2.4, §4.3.8; EXEC §3 | SQ-17 (b)(c) |
 | HC-8.4 | Is an adaptation a new revision with host origin, derived-from and a checkpoint comparison, inheriting no identity or act? | EXEC §6.4, §6.6; WD §6.4 | SQ-18 (b)(c) |
@@ -451,12 +477,12 @@ they are the same checks.
 
 ## 4. OUT-003 — Completeness checks and recorded comparison
 
-**Candidate examined:** DEL-03-04/GUIDE-v0.2 against the inputs at
-`d3cebd1cc` listed in the header. **Evidence standing:** *illustrative*
+**Candidate examined:** DEL-03-04/GUIDE-v0.2 (R6 in-place state) against the inputs at
+`375c3970c` listed in the header. **Evidence standing:** *illustrative*
 (definition completeness only). No result below is product, host, delivery,
 adoption or joined-witness evidence.
 
-### 4.1 Check results (rerun at v0.2)
+### 4.1 Check results (rerun at the R6 in-place state)
 
 | Check | What is compared | Result | Notes |
 |---|---|---|---|
@@ -464,13 +490,13 @@ adoption or joined-witness evidence.
 | CC-2 | Every obligation in each row's "required evidence" column has a matrix line | **pass with limits** — table 4.2 | Row 8 role supply and row 10 rely on SoW meaning only (G-1, G-2) |
 | CC-3 | Every HI §10 item has a checklist entry | **pass** — 10/10 (HC-1…HC-10) plus HC-0 | HC-9, HC-10 conditional |
 | CC-4 | Every relay question SQ-01…SQ-32 (with its sub-questions) has at least one matrix home | **pass** — 32/32 (table 4.3); the nine R5-10 sub-questions (SQ-03 (e), SQ-05 (g)(h)(i), SQ-07 (g)(h), SQ-18 (e), SQ-19 (d)) each have a home | SQ-04, SQ-27 cross-cutting (G-5) |
-| CC-5 | Every receiving-map obligation that needs host evidence has an SQ, or a stated reason why none is asked | **pass** — row 7 host evidence now asked in SQ-29…SQ-32; WD U-10 is in RELAY "Not included" with its D1 reason; App-only checkpoint enforcement is not a host question (owner follow-up U-E23, G-8) | G-3 closed |
+| CC-5 | Every receiving-map obligation that needs host evidence has an SQ, or a stated reason why none is asked | **pass** — row 7 host evidence now asked in SQ-29…SQ-32; WD U-10 is in RELAY "Not included" with its D1 reason; enforcement of checkpoints with App-side held actions is not a host question (owner follow-up U-E23, G-8; R6-1) | G-3 closed |
 | CC-6 | Every TBD-001…TBD-009 carried with literal owner and point of need | **pass** — §2.13 (plus the two D6 rows) | TBD-001/002 SoW text still reads open (F-5) |
 | CC-7 | Every REQ-008 excluded act maps one-for-one to its owner | **pass** — X-01…X-19 (§2.12) | The registered boundary-owner checker (VER-007) **not run** |
-| CC-8 | Every consumed Design file is cited in the matrix | **pass** — 16/16 inputs (the `d3cebd1cc` set has 17 non-generated Design files including this guide, V3-B m-12) | SPIKE cited through M9.3 and §2.11 |
-| CC-9 | R4 and R5 rulings that change a relied-on statement are applied | **pass** — §5 | — |
-| CC-10 | No line claims relay, answer, commitment, delivery, adoption, host behavior, a human act, an App hold it cannot enforce, a selected transport or placement | **pass** (self-review of v0.2). **V3-B** (independent, on GUIDE-v0.1) found no over-claim and 1 MAJOR (MAJOR-2, staleness) plus m-6, m-12, m-13, all addressed here | v0.2 itself not yet independently reviewed (F-9) |
-| CC-11 | Conflicts between inputs that affect a guide statement | **3 remain** — G-6, G-7 (SoW wording), G-9 (ADAPTER §12 header label); CA-v0.3 §2.3 CA-H "run holds at CP-accept and CP-check" is unqualified by surface — this guide follows EXEC §3.6 (CP-check App-only via X → *not enforceable*) | Coordinator notes a CA correction may follow |
+| CC-8 | Every consumed Design file is cited in the matrix | **pass** — 16/16 inputs (the `375c3970c` set has 17 non-generated Design files including this guide, V3-B m-12) | SPIKE cited through M9.3 and §2.11 |
+| CC-9 | R4, R5 and R6 rulings that change a relied-on statement are applied | **pass** — §5 | R6-2, R6-4 and R6-5 items owned by other files verified at the candidate (C V-GR1, LOOP LH-n, CA/RELAY/XT D5 wording) |
+| CC-10 | No line claims relay, answer, commitment, delivery, adoption, host behavior, a human act, an App hold it cannot enforce, a selected transport or placement | **pass** — confirmed independently by **V4-B** (first independent review of GUIDE-v0.2: no over-claim; fit as the integrated index; defects m-7, m-9 only, both addressed here). V3-B reviewed v0.1 | The R6 in-place state is self-reviewed (F-9) |
+| CC-11 | Conflicts between inputs that affect a guide statement | **4 remain, none changing a guide statement** — G-6, G-7 (SoW wording); G-10 RELAY SQ-31 (d), its Depends/Assumes lines and §3 map still cite "LOOP HS-0", renamed **LH-0** by R6-4; G-11 WD-v0.5 I-4 says "the run stops at its next action boundary" on re-hold without the R6-3 per-value qualification that I-9 and §4.3.8 carry. **Resolved at the candidate:** V4-B MAJOR-1 (C V-GR1 `CP-grant` via X) by R6-2; G-9 (ADAPTER §12 now RELAY-v0.3); CA-H surface qualifier (F-11) | G-10 should be fixed before the owner relays RELAY |
 
 ### 4.2 Receiving-map evidence obligations → matrix lines
 
@@ -533,10 +559,11 @@ adoption or joined-witness evidence.
 | G-5 | Map shape | SQ-04 and SQ-27 belong to no single row | HC-0; M1.8 | Cross-cutting preconditions; no SoW change |
 | G-6 | SoW wording | Row 7 "local-server default and local-data constraint" does not separate the host loop (V4-HOST-02, SQ-30) from App conversations (D5, SQ-16) | M7.3, M9.7 | Guide applies each to its path; C1 wording note |
 | G-7 | SoW wording | "Canonical content hash" and "duplicate-one-effect" predate R-6/R-7 | M3.1, M3.2, M4.5 | Guide carries refined meanings; C1 wording note |
-| G-8 | Owner-open, no host route | App-only checkpoints in App runs are *not enforceable* whatever SWBPIPE answers; E1 via X is therefore *unsupported*. Only the owner's D6 follow-up can change this | M8.4; §2.14 | Owner (EXEC U-E23), before any App-side workflow with an App-only checkpoint is offered as supported |
-| G-9 | Label currency | ADAPTER-v0.3 §12 is headed "mapped to DEL-09-06 RELAY-v0.2" while RELAY is v0.3; SQ ids are unchanged, so no meaning is affected | M9.3 | ADAPTER label at its next revision (DEL-03-03) |
+| G-8 | Owner-open, no host route | Checkpoints with any App-side held action are *not enforceable* in App runs whatever SWBPIPE answers; E1, E1c and E1d via X are therefore *unsupported* (R6-1). Only the owner's D6 follow-up can change this | M8.4; §2.14 | Owner (EXEC U-E23), before any App-side workflow with an App-side held action is offered as supported |
+| G-10 | Label currency (RELAY) | RELAY-v0.3 SQ-31 (d) and §3 still say "LOOP HS-0"; LOOP renamed it **LH-0** (R6-4). EXEC's HS-n means something else | M2.4; HC-2.4 | DEL-09-06, before relay |
+| G-11 | Wording (WD) | WD-v0.5 I-4 re-hold text "the run stops at its next action boundary" is unqualified; R6-3 applies it only under *enforced by the host loop* (I-9 and §4.3.8 state this) | M8.4 | DEL-02-01 at its next revision |
 
-Closed since v0.1: **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5: RELAY SQ-02, SQ-16; CA §2.2; XT IN-14, IN-25).
+Closed since v0.1: **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5: RELAY SQ-02, SQ-16; CA §2.2; XT IN-14, IN-25), **G-9** (ADAPTER §12 re-headed RELAY-v0.3 under R6).
 
 ---
 
@@ -545,7 +572,7 @@ Closed since v0.1: **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5:
 | Ruling | Effect in this guide | Applied at |
 |---|---|---|
 | R4-1 / R5-4 | D5 attribution split; destination per turn, requested/effective apart, run-level set | B-6; M5.6; M9.7; HC-9.5 |
-| R4-2 / R5-10 | D6 deferral; host-operation versus App-only checkpoints; HP-4 | B-7; M6.4; M8.4; M9.5; §2.13; §2.14; G-8 |
+| R4-2 / R5-10 | D6 deferral; host-operation versus App-side held actions (R6-1); HP-4 | B-7; M6.4; M8.4; M9.5; §2.13; §2.14; G-8 |
 | R4-3, R4-4, R4-5, R4-6, R4-7 | Re-hold, no resumption, capture after arrival, A12 supersession when established, mixed items | M5.3, M5.5, M5.8, M8.4 |
 | R4-8, R4-21 | *Unsupported* reason; harness kind (a) not holdable | M8.3; §2.14 |
 | R4-11 | RS additions (R14, §4.1) | M5.6 |
@@ -559,6 +586,11 @@ Closed since v0.1: **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5:
 | R5-7 | V-GR1 variant; owner-visible cost under U-E4 | M8.4 |
 | R5-8 | No App-run "held after observation" or "run stops" | §2.14 |
 | R5-9 | Citation and staleness pass (this revision) | Whole file |
+| R6-1 | Hold support by held actions; order HS-1, HS-2, HS-5, HS-4, HS-3; E1/E1c/E1d via X unsupported; E1d `CP-grant` not established | §0; B-7; §2.13; §2.14; M8.1; M8.4; HC-6.3; HC-8.1; G-8; F-10 |
+| R6-2 | C V-GR1 `CP-grant` via X *not established* (owned by C) | §2.14 fixture table; CC-11 |
+| R6-3 | What "held" means per value | §0; §2.14; M8.4 |
+| R6-4 | LOOP LH-0…LH-4 | M2.4; M7.6; HC-2.4; G-10 |
+| R6-5 | Pinned hashes to `375c3970c`; CC-11 and F-11 refreshed; CA/RELAY byte states; RS R11 turn initiator | Header; §2.14; §4.1; §6 |
 
 ---
 
@@ -566,17 +598,19 @@ Closed since v0.1: **G-3** (SQ-29…SQ-32), **G-4** (W9 files swept under R4/R5:
 
 | # | Where | Finding | Proposed disposition |
 |---|---|---|---|
-| F-1 | Input count | 16 inputs consumed; the `d3cebd1cc` set has 17 Design files including this guide | Recorded (V3-B m-12) |
+| F-1 | Input count | 16 inputs consumed; the `375c3970c` set has 17 Design files including this guide | Recorded (V3-B m-12) |
 | F-4 | Dependencies.csv (DEP-03-04-005…020) | No rows to DEL-01-01, DEL-09-06 (RELAY SQ ids cited throughout) or DEL-09-09; only DEL-03-02 carries a mirror (DEP-03-02-021) | Register repair at closeout C1 |
 | F-5 | SoW TBD-001, TBD-002; REQ-004 | Still read OI-001/OI-002 as open despite DECISION-1 D2/D3 | C1 pointer |
 | F-6 | G-6, G-7 | SoW map wording predates R-6/R-7 and D5 | C1 wording note |
 | F-7 | D1 | Rows 8 and 10, App act capture and V4-EXM-14 completion depend on deliverables outside this undertaking | Completeness limits (G-1, G-2; CA F-1) |
 | F-8 | C §8 | Every three-surface cell *unagreed*; no host can yet claim HC-1.7 | Consistent with OI-003 |
-| F-9 | Review | V3-B reviewed v0.1 independently; v0.2 has only self-review, and the VER-007 checker has not been run | Independent read of v0.2 at closeout; run the checker in C1 |
-| F-10 | EXEC §3.6; WD-EX E8 | The first activity's reusable workflow E1, run from the App via X, is *unsupported* on hold support whatever SQ-02 returns (App-only `CP-check`). The embedded route (CA/E) is the only route on which E1's checkpoints can pass hold support in this increment | Carry to the owner with U-E23; relevant to the OI-021 choice of acting surface (CA §2.2) |
-| F-11 | CA-v0.3 §2.3 CA-H | States "the run holds at CP-accept and CP-check" without the surface qualification EXEC §3.6 gives (holds on E; on X not established / not enforceable) | CA in-place correction (coordinator notes one may follow); this guide follows EXEC |
+| F-9 | Review | V3-B reviewed v0.1 and V4-B reviewed v0.2 independently (MERGE AS DRAFTS; m-7, m-9 applied here). The R6 in-place refresh is self-reviewed, and the VER-007 checker has not been run | Run the checker in C1; a light re-read of the R6 changes if the coordinator wants one |
+| F-10 | EXEC §3.6; WD-EX E8 | The first activity's fixture workflows E1, E1c and E1d, run from the App via X, are *unsupported* on hold support whatever SQ-02 returns (their `CP-check` holds an App-side Return step, R6-1). The embedded route (CA/E) is the only route on which they pass hold support in this increment | Carry to the owner with U-E23; relevant to the OI-021 choice of acting surface (CA §2.2) |
+| F-11 | CA-v0.3 §2.3 CA-H | **Closed (R6-5; V4-B m-9 (a)).** CA-H now reads "The run holds (on E; in App runs only as hold support allows, S-13)" and records *action during hold* otherwise | None |
 | F-12 | Identifier collision | "TBD-007" differs between this SoW (OI-022) and DEL-03-03's (MCP/CLI) | Prefixing rule (§0) |
-| F-13 | G-9 | ADAPTER §12 header label lags RELAY's version | DEL-03-03 label fix |
+| F-13 | G-9 | **Closed:** ADAPTER §12 now reads RELAY-v0.3 | None |
+| F-14 | G-10, G-11 | Residual label (RELAY "LOOP HS-0") and wording (WD I-4) lags after R6; no guide statement depends on them | DEL-09-06 before relay; DEL-02-01 next revision |
+| F-15 | Version identity | CA-v0.3 and RELAY-v0.3 each name three byte states (V4-B m-7); the guide pins the third (`375c3970c`). A file about to be relayed is identified here by sha256, not by version label alone | Coordinator: consider v0.3.1 or recording the final hash at relay |
 
 Closed since v0.1: F-2 (RELAY P8 added), F-3 (W9 files swept), F-11 of v0.1 (re-pointed to the final set).
 
@@ -593,14 +627,14 @@ Closed since v0.1: F-2 (RELAY P8 added), F-3 (W9 files swept), F-11 of v0.1 (re-
 | 03-04/TBD-007 (OI-022) PEC | App consumer owner and PEC owner | Before operational consumer reliance | M10.1 conditional; not designed |
 | 03-04/TBD-008 (OI-023) Domains receiving | Owner with Domains/SWB/App receiving owners | Before later Domains-enabled design increment | M10.2 conditional |
 | 03-04/TBD-009 (OI-026) Domains provider | Owner with App/Domains/SWB definition owners | Before allocating provider production and committing integration | M10.2 conditional |
-| `UNRESOLVED{D6}` host-operation checkpoints in App runs (EXEC U-E1) | Owner (DECISION-2), on the SQ-02 answer | Before any App-side positive hold case; before the App fixes its realization family | HS-3 *not established* |
-| D6 follow-up: App-only checkpoints in App runs (EXEC U-E23) | The owner | Before any such workflow is offered as supported | HS-5 *not enforceable* → *unsupported* (G-8, F-10) |
+| `UNRESOLVED{D6}` checkpoints in App runs whose every held action is a host operation (EXEC U-E1; HS-3) | Owner (DECISION-2), on the SQ-02 answer | Before any App-side positive hold case; before the App fixes its realization family | HS-3 *not established* |
+| D6 follow-up: checkpoints with any App-side held action in App runs (EXEC U-E23; HS-5) | The owner | Before any such workflow is offered as supported | HS-5 *not enforceable* → *unsupported* (G-8, F-10) |
 | Every SQ-01…SQ-32 answer (DEP-001) | SWBPIPE outside implementation owner, through the human relay | As stated per question in RELAY | Every "relay pending" line stays *prepared* |
 | 03-03/TBD-007 MCP-versus-CLI and related choices (OC-1…OC-12) | App external-host integration owner with external host owner | Before the App receiving implementation depends on the interface; before DEL-09-09 qualification | Row 9 selects nothing |
 | ACT U-02 consequence vocabulary; ACT U-03 multi-row A4 purpose; EXEC U-E4 SP-6 versus counting prior acts | DEL-04-01 with host policy owner; DEL-04-01 with the owner; the owner with DEL-02-01/DEL-04-01 | Before class assignment; before lapse/re-hold fixtures run | M1.4, M5.5, M6.1, M8.4 owner-open |
 | DEP-05-01-024; LOOP N-OPEN-1…3, T-OPEN-1, R-OPEN-1 | Supplier UNKNOWN / App/shared embedded-integration owner with SWBPIPE owner; the owner for R-OPEN-1 | At loop fixture and conformance use; before endpoint cases; before responsiveness claims | M2.4, M7.2–M7.5 await SQ-29…SQ-32 |
 | Register and SoW-text findings F-4, F-5, F-6, F-12 | Register owner / closeout C1 | C1 | None on content |
-| Independent review of v0.2; VER-007 checker run (F-9) | App manager | Before closeout acceptance of the guide | CC-10 self-review only for v0.2 |
+| VER-007 checker run; optional re-read of the R6 in-place changes (F-9) | App manager | Before closeout acceptance of the guide | v0.2 reviewed independently by V4-B; R6 changes self-reviewed |
 
 ---
 

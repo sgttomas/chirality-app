@@ -518,3 +518,23 @@ Read-only git; no network.
 - **V4-A:** DEL-04-01, 04-02, 04-03, 02-01 (plus EXAMPLES), 02-03, 05-01,
   05-02.
 - **V4-B:** DEL-03-01, 03-02, 03-03, 03-04, 01-01, 09-06 (CA, RELAY), 09-09.
+
+## V5 — bounded independent check of the R6 application
+
+**Candidate:** the commit named in the dispatch message. **Scope:**
+
+- Every R6 ruling (R6-1 through R6-5) checked against each file it names, and
+  against any other file that states hold support, held actions, D5
+  attribution or V-GR1 values: holds / fails, with file and section evidence.
+- Check that the new WD §4.3.1 *held actions* element and EXEC §3.6 HS-1…HS-5
+  agree.
+- Recompute E1, E1c and E1d on E and on X, and V-GR1 on E and on X, from the
+  declarations. Confirm that every file states the same values and workflow
+  results.
+- Re-run a no-over-claim grep sweep across all 17 Design files.
+- Confirm RELAY-v0.3 is internally consistent and ready for the owner to relay.
+
+**Write scope:** `reviews/V5.md` only. Use a private scratch folder. Read-only
+git; no network.
+
+**Verdict:** MERGE AS DRAFTS, or DO NOT MERGE with a list of BLOCKING items.

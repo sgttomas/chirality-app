@@ -617,9 +617,10 @@ registers, not here):
 - DEL-02-03 → DEL-01-01 (C1-A N-23);
 - DEL-09-06 → DEL-01-01 (C1-C #11).
 
-All are concurred from the supplier text: HOSTING's Receivers line names
-DEL-02-01/05-01/05-02 (J9), DEL-02-03, DEL-03-03 and DEL-04-03 (S-7), and §8
-gives the 0.158.0 inventory to DEL-02-01's naming. None changes SCC-001
+All are concurred from the supplier text. HOSTING's Receivers line names
+DEL-02-01/05-01/05-02 (J9), DEL-02-03 and DEL-03-03. The §8 seam table names
+DEL-04-03 (S-7, "through DEL-01-02") and gives the 0.158.0 inventory to
+DEL-02-01's naming. None changes SCC-001
 ({DEL-01-01, DEL-01-05}). DEL-05-01 → DEL-01-01 and DEL-09-09 → DEL-01-01
 remain unproposed, as in C1-C.
 
