@@ -37,6 +37,6 @@ Please return through the human: the selected activity or alternatives, relevant
 - Prepared: 2026-09-26 under App v4 project definition.
 - Delivered: **not observed**.
 - Acknowledged/adopted: **not observed**.
-- App v4 Group1 status: normalization draft under preparation; no Package/Deliverable allocation accepted yet.
+- Current App v4 standing: [final Group3 decomposition accepted](../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md), with 11 Packages and 41 Deliverables. All 41 local ScopeOfWork contracts are independently checked and INITIALIZED. The [initial graph basis is confirmed](../_DAG/_Candidates/DAG-001/BASIS_DECISION.md); qualified graph-version and final 30% package review remain pending. This current-standing update changes none of the delivery/adoption facts above.
 
 Basis: [accepted composite](Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), exact [HTML source](Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html) HTML-D04–HTML-D06, and owner messages J–M/O. The human may relay this file now; receipt or adoption will be recorded only when an actual return is provided.

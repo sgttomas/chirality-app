@@ -24,3 +24,12 @@ HELP_HUMAN relayed this owner question during current preparation (transcribed c
 The quotation retains the wording supplied by the parent, including bracketed `[we]` and spacing. HELP_HUMAN confirmed the intended treatment: a fully resolved DAG/all interfaces complete is not a30% prerequisite. An examined, accepted initial graph may retain characterized unresolved SCCs, with affected work, owners and next steps; resolution can occur after30%. This is clarification of the intended milestone, not an actual graph-basis/version or30% acceptance act.
 
 WORKING_ITEMS applies that direction now. Finish the current affected evidence, case characterization and decision reader; commission no interface-production or extra inquiry as a pre30 hurdle. The case contribution plans describe later/post30 work at actual points of need. An input-specific hold does not hold a whole Deliverable/project. Raw analyzer cyclicity is an observation, not a project or30% gate-failure verdict. Actual graph-basis confirmation, initial-version acceptance, input fulfilment, lifecycle, later SCC resolution and30% advancement retain their separate actors/evidence. Historical observations remain unchanged.
+
+
+## Owner final-review direction — one package approval
+
+HELP_HUMAN subsequently relayed the owner's exact direction (same parent-transcribed custody, not a platform export; no owner message timestamp supplied):
+
+> After the completion of your work you just described I will review and when I approve that is the 30% gate being passed.
+
+The completed review subject will therefore combine the qualified initial DAG, independent examination, definition/readiness evidence, limitations and proposed continuation/handoff. The owner's future approval of that completed package will accept the graph and pass30% with its stated qualifications. This is not current version acceptance or a current gate pass. Their meanings/evidence remain distinct, but no separate subsequent30% approval prompt is required. Actual CP1 confirmation already occurred and remains basis/case-tracking only. No product/provider implementation automatically starts now; the proposed post30 undertaking is prepared for the owner's direction.

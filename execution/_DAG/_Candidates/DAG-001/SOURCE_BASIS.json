@@ -1,65 +1,101 @@
 {
   "GraphID": "DAG-001",
-  "standing": "BASIS_CONFIRMED; QUALIFIED_INITIAL_VERSION_ASSEMBLY_PENDING; VERSION_AND_30_NOT_ACCEPTED",
+  "trigger": "INITIAL",
+  "predecessor": null,
+  "standing": "BASIS_CONFIRMED; VERSION_ASSEMBLED_CHECKED; INDEPENDENT_VERSION_REVIEW_PENDING; VERSION_AND_30_NOT_ACCEPTED",
   "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
-  "working_state": "All130 source members remain committed at85dcc17c; current case/reader/owner-framing records are subsequent manager integration, not source-row changes.",
-  "manifest": "SOURCE_MANIFEST.sha256",
-  "manifest_sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4",
-  "inventory_source": "_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+  "decision_applied_revision": "0139b067dcc49cb0c90b7a250e4dd09b19250585",
+  "working_state": "Assembly derivatives in the current working tree; all 130 source inputs match their frozen commit; all 268 protected inputs unchanged. No Git mutation by assembler.",
+  "manifest": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256",
+    "sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4"
+  },
+  "source_members": 130,
+  "inventory_source": {
+    "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+  },
   "node_count": 41,
+  "package_count": 11,
   "exempt_units": [],
+  "tracking_mode": "FULL_GRAPH",
+  "completeness": "FULL with characterized unresolved candidate/input qualifications",
+  "basis_decision": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/BASIS_DECISION.md",
+    "sha256": "5a269b838d8e923cd4b9c4911b1128244d4854e33c0f4f1c7ab061d18b2acb60"
+  },
+  "presentation": {
+    "revision": "2a461a47adee03bb868e433a73048265cc0be808",
+    "member_count": 79,
+    "manifest": {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/BASIS_MANIFEST.json",
+      "sha256": "9e766ba7abdec40e31ec457c734be998cc4602fc292a0615ac928df1e2fa6815"
+    },
+    "reader": {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/READER.md",
+      "sha256": "7989b504fd7a8acf489b2817c28b35aee5e50e2032e101114703c360106617bf"
+    },
+    "all_members_verified_at_presented_revision": true,
+    "scope": "Original CP1 presentation only; current graph/case derivatives are not retrospectively attributed to it."
+  },
+  "future_decision": {
+    "owner_direction": "After the completion of your work you just described I will review and when I approve that is the 30% gate being passed.",
+    "custody": "WORKING_ITEMS message to this TASK, relaying HELP_HUMAN and actual owner direction; not a raw platform export",
+    "effect": "Future combined final-package approval will explicitly carry graph acceptance and 30% effects; neither has occurred; no second later 30% approval turn prescribed."
+  },
   "closure_snapshots": [
     {
-      "path": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
-      "report_sha256": "e80931ad741c4530ef2e99e7f33b4278a7699d6071607b650479f0bee1a899b4",
-      "qa_sha256": "9a2eb72eaf5d2a69d7f6f1f1f5dbad0371f533ddc57717c6fee4a83c96c9a2d4",
-      "run_status": "WARNINGS",
-      "analyzer_process": "COMPLETE / exit 0",
-      "subject_status": "FAIL",
-      "closure": "BLOCKER relative to raw acyclic production-order objective",
-      "semantic_verdict": "No concrete source/register defect found in bounded examination; limitations retained."
-    },
-    {
       "path": "_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237",
-      "report_sha256": "6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11",
-      "qa_sha256": "36dc07c2870d2e233a8f8589f39efa1b1b9fca1631164bd8cead84b9ca7dd172",
-      "run_status": "WARNINGS",
-      "analyzer_process": "COMPLETE / exit0",
-      "subject_status": "FAIL",
-      "closure": "BLOCKER only for raw acyclic objective; not a30% gate verdict",
-      "affected_fidelity": "PASS; no concrete source defect in bounded backcheck"
+      "report": {
+        "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Dependency_Closure_Report.md",
+        "sha256": "6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11"
+      },
+      "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
+      "manifest_sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4",
+      "admissible_scc_member_sets_match": true,
+      "process": "COMPLETE / exit 0",
+      "subject": "FAIL raw acyclic objective; characterized unresolved work, no gate verdict"
+    }
+  ],
+  "source_history": [
+    {
+      "source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
+      "closure": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
+      "standing": "Historical first observation; unaffected semantic audit reused by refreshed independent auditor, not silently rebound."
     }
   ],
   "cases": [
     {
-      "CaseID": "SCC-CASE-001",
-      "origin_members": [
+      "SCCRef": "SCC-001",
+      "CaseRef": "_DAG/cases/SCC-CASE-001",
+      "Members": [
         "DEL-01-01",
         "DEL-01-05"
       ],
-      "refreshed_scc": "SCC-001",
-      "proposed_members": [
-        "DEL-01-01",
-        "DEL-01-05"
-      ],
-      "match_standing": "UNCHANGED_MEMBER_SET",
-      "path": "_DAG/cases/SCC-CASE-001"
+      "MemberCount": 2,
+      "SourceRows": 4,
+      "HeldArcs": 2,
+      "ExcludedIntraSCCRows": 2,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": null,
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
+        "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
+        "sha256": "301067dacf2e2d83edd1dca86638a271ee0b773b110cfa3420d58e963eb371c4"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
+        "sha256": "5000507b727179fb81e51b2fc0ffe91c442a3a8251416e4047131ce318163f93"
+      }
     },
     {
-      "CaseID": "SCC-CASE-002",
-      "origin_members": [
-        "DEL-01-04",
-        "DEL-02-01",
-        "DEL-02-02",
-        "DEL-02-03",
-        "DEL-02-04",
-        "DEL-04-02",
-        "DEL-04-03",
-        "DEL-05-01",
-        "DEL-05-02"
-      ],
-      "refreshed_scc": "SCC-002",
-      "proposed_members": [
+      "SCCRef": "SCC-002",
+      "CaseRef": "_DAG/cases/SCC-CASE-002",
+      "Members": [
         "DEL-01-04",
         "DEL-02-01",
         "DEL-02-02",
@@ -74,105 +110,232 @@
         "DEL-05-02",
         "DEL-09-09"
       ],
-      "match_standing": "PROPOSED_CONTINUING_002_WITH_004_LINEAGE_NOT_RULED",
-      "path": "_DAG/cases/SCC-CASE-002"
+      "MemberCount": 13,
+      "SourceRows": 46,
+      "HeldArcs": 40,
+      "ExcludedIntraSCCRows": 6,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": "_DAG/cases/SCC-CASE-004",
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
+        "sha256": "3e7482c25f0703b952dda7e1795fcc43db017e31b352f32e7a7938ff952e70f0"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
+        "sha256": "6acdc6c4e484ab7b46ba7d45a347961bc69b3e624bd29ef58a613ec6c66a71a6"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
+        "sha256": "4edc05e59dacab05bc9da2d82b148f9814ef44c1356c47e0143a8fec95327735"
+      }
     },
     {
-      "CaseID": "SCC-CASE-003",
-      "origin_members": [
+      "SCCRef": "SCC-003",
+      "CaseRef": "_DAG/cases/SCC-CASE-003",
+      "Members": [
         "DEL-01-06",
         "DEL-09-01"
       ],
-      "refreshed_scc": "SCC-003",
-      "proposed_members": [
-        "DEL-01-06",
-        "DEL-09-01"
-      ],
-      "match_standing": "UNCHANGED_MEMBER_SET",
-      "path": "_DAG/cases/SCC-CASE-003"
+      "MemberCount": 2,
+      "SourceRows": 2,
+      "HeldArcs": 2,
+      "ExcludedIntraSCCRows": 0,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": null,
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
+        "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
+        "sha256": "3e5277f6535597eb39e0a750dcb16d11712b738065ece2275b9b33b599a364e2"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
+        "sha256": "45eaba906fbd90197894ccb714135aa281653b5d4bec9eae3a1d0d7d0f78a715"
+      }
     },
     {
-      "CaseID": "SCC-CASE-004",
-      "origin_members": [
-        "DEL-03-01",
-        "DEL-03-02"
-      ],
-      "refreshed_scc": "SCC-002",
-      "proposed_members": [
-        "DEL-01-04",
-        "DEL-02-01",
-        "DEL-02-02",
-        "DEL-02-03",
-        "DEL-02-04",
-        "DEL-03-01",
-        "DEL-03-02",
-        "DEL-03-03",
-        "DEL-04-02",
-        "DEL-04-03",
-        "DEL-05-01",
-        "DEL-05-02",
-        "DEL-09-09"
-      ],
-      "match_standing": "PROPOSED_CONTINUING_002_WITH_004_LINEAGE_NOT_RULED",
-      "path": "_DAG/cases/SCC-CASE-004"
-    },
-    {
-      "CaseID": "SCC-CASE-005",
-      "origin_members": [
+      "SCCRef": "SCC-004",
+      "CaseRef": "_DAG/cases/SCC-CASE-005",
+      "Members": [
         "DEL-07-01",
         "DEL-07-02",
         "DEL-08-01"
       ],
-      "refreshed_scc": "SCC-004",
-      "proposed_members": [
-        "DEL-07-01",
-        "DEL-07-02",
-        "DEL-08-01"
-      ],
-      "match_standing": "UNCHANGED_MEMBER_SET",
-      "path": "_DAG/cases/SCC-CASE-005"
+      "MemberCount": 3,
+      "SourceRows": 8,
+      "HeldArcs": 4,
+      "ExcludedIntraSCCRows": 4,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": null,
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
+        "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
+        "sha256": "53fe8ecadb6975d6bdaf61763a7c14a0fd770644a76d256b87cecfc9842b76c0"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
+        "sha256": "9e706de2d3e00fb87bf11b9e79680794d972dca14b288980e46216e9221849e7"
+      }
     },
     {
-      "CaseID": "SCC-CASE-006",
-      "origin_members": [
+      "SCCRef": "SCC-005",
+      "CaseRef": "_DAG/cases/SCC-CASE-006",
+      "Members": [
         "DEL-10-02",
         "DEL-10-04"
       ],
-      "refreshed_scc": "SCC-005",
-      "proposed_members": [
-        "DEL-10-02",
-        "DEL-10-04"
-      ],
-      "match_standing": "UNCHANGED_MEMBER_SET",
-      "path": "_DAG/cases/SCC-CASE-006"
+      "MemberCount": 2,
+      "SourceRows": 3,
+      "HeldArcs": 2,
+      "ExcludedIntraSCCRows": 1,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": null,
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
+        "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
+        "sha256": "e39ecee4709afc4e330c39a3082dc3ce0655b944ffe5b4074a48d960dc66ffb0"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
+        "sha256": "9b0687212a9af2150c8bb16c93ea71aa7a8f34a5f1c8df6ccf97c735996dc7f6"
+      }
     },
     {
-      "CaseID": "SCC-CASE-007",
-      "origin_members": [
+      "SCCRef": "SCC-006",
+      "CaseRef": "_DAG/cases/SCC-CASE-007",
+      "Members": [
         "DEL-11-01",
         "DEL-11-03"
       ],
-      "refreshed_scc": "SCC-006",
-      "proposed_members": [
-        "DEL-11-01",
-        "DEL-11-03"
-      ],
-      "match_standing": "UNCHANGED_MEMBER_SET",
-      "path": "_DAG/cases/SCC-CASE-007"
+      "MemberCount": 2,
+      "SourceRows": 3,
+      "HeldArcs": 2,
+      "ExcludedIntraSCCRows": 1,
+      "CaseState": "EVIDENCE_ACCUMULATING; BASIS_CONFIRMED; UNRESOLVED",
+      "RetainedHistory": null,
+      "basis_ruling_id": "CP1-20260928",
+      "ruling": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
+        "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+      },
+      "current_tracking": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
+        "sha256": "f56cb3933a0b492ecf4b883e311237e8cdec09839780e92658cb68a23619d00f"
+      },
+      "evidence_register": {
+        "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
+        "sha256": "ce82f6a99060bd4a4f5d4ea92d1a550131c3f0757eb6d6d1aa9daeaa1eb8577f"
+      }
     }
   ],
-  "selected_method_files": [
+  "case_history": {
+    "CaseID": "SCC-CASE-004",
+    "path": "_DAG/cases/SCC-CASE-004",
+    "current_tracking": {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_Datasheet.md",
+      "sha256": "cd150b29c4f351a6ce016b21f216a97368ad01d86a9cbc381ecf713d367b2b4c"
+    },
+    "ruling": {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Ruling_Register.csv",
+      "sha256": "85e20b3c855ac524d736a3380101cadcce40ba58c61e7240693c9f57236e5b5e"
+    },
+    "standing": "Retained original two-member inquiry/constituent history linked to actual continuing CASE-002; no separate current SCC or closure claim"
+  },
+  "selection": {
+    "rules": "SR-1 through SR-7 defaults",
+    "canonical_arc": "consumer to supplier; DOWNSTREAM reverses written endpoints",
+    "types": "all canonical",
+    "extra_confirmation_hold": false,
+    "cut_rulings": [],
+    "graph_merge_groups": [],
+    "identity_normalization": false
+  },
+  "counts": {
+    "result": "PASS",
+    "manifest_entries": 130,
+    "manifest_matches_source_commit": true,
+    "historical_presentation_members_verified_at_own_revision": 79,
+    "protected_input_count": 268,
+    "protected_inputs_unchanged": true,
+    "node_count": 41,
+    "node_bytes_unchanged": true,
+    "packages": 11,
+    "total_source_rows": 759,
+    "active_anchors": 355,
+    "retired_rows": 1,
+    "active_execution": 403,
+    "admissible_arcs": 161,
+    "admitted_rows": 109,
+    "candidate_rows": 52,
+    "excluded_rows": 242,
+    "dispositions": {
+      "NOT_TOPOLOGICAL": 202,
+      "MIRROR": 38,
+      "SAME_ARC": 2
+    },
+    "candidate_reasons": {
+      "SCC_UNRESOLVED": 52
+    },
+    "target_types": {
+      "EXTERNAL": 144,
+      "DELIVERABLE": 201,
+      "PACKAGE": 18,
+      "DOCUMENT": 26,
+      "UNKNOWN": 14
+    },
+    "maturity": {
+      "TBD": 208,
+      "INITIALIZED": 195
+    },
+    "satisfaction": {
+      "TBD": 278,
+      "PENDING": 125
+    },
+    "edge_core_fidelity_rows": 161,
+    "supplemental_core_fidelity_rows": 403,
+    "core_fields_per_row": 29,
+    "missing_rows": 0,
+    "overlapping_rows": 0,
+    "source_duplicate_ids": 0,
+    "closure_scc_membership_exact": true,
+    "case_mapping": {
+      "SCC-001": "SCC-CASE-001",
+      "SCC-002": "SCC-CASE-002",
+      "SCC-003": "SCC-CASE-003",
+      "SCC-004": "SCC-CASE-005",
+      "SCC-005": "SCC-CASE-006",
+      "SCC-006": "SCC-CASE-007"
+    },
+    "self_loops": 0,
+    "no_accepted_pointer": true,
+    "strict_admitted_exit_code": 0,
+    "strict_subject_status": "PASS_ADMITTED_LAYER_ONLY",
+    "authority": "UNACCEPTED_VERSION; no lifecycle, satisfaction, readiness, 30% or product activation inferred"
+  },
+  "selected_context": [
     {
-      "path": "workflows/audit-dep-closure/WORKFLOW.md",
-      "sha256": "b436fa343058795398633410bd9e0abd19a37dc5b2869c14617016df5e63fcb1"
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
     },
     {
-      "path": "workflows/audit-dep-closure/resources/contract.md",
-      "sha256": "75b4243428ad641fc5e17c9eaa92b0e3ff836403fa88f9a4150ec5069fee02a4"
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
     },
     {
-      "path": "workflows/audit-dep-closure/resources/method.md",
-      "sha256": "5b560c5b892f014b210098d1bdada862a58027580f2bbe3e8642e55097093c5d"
+      "path": "workflows/index.json",
+      "sha256": "2bfa2c5faae1081c55ce95fd3d81c00b1d87ba1f51d0bc13e03c8fcb6ccdafb3"
     },
     {
       "path": "workflows/project-dag/WORKFLOW.md",
@@ -189,50 +352,56 @@
     {
       "path": "workflows/project-dag/resources/graph-version.md",
       "sha256": "ff6b7ba5b455e5e26cfb08a00ab119dfa35b19a56610987a40b4142738a856bf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/ASSEMBLY_BRIEF.md",
+      "sha256": "0421ce4fa5fbcc83454348d601407a9fa5ce45070751dc322412a4702f79a975"
+    }
+  ],
+  "additional_consultation": [
+    {
+      "path": "docs/SPEC.md",
+      "sha256": "feb5e79c0b60b5156ea9ad2b00e32e338ab42c4351da0b0cbca6f30df5f3109e"
     }
   ],
   "tools": [
     {
-      "path": "tools/coordination/analyze_dep_closure.py",
-      "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
-    }
-  ],
-  "source_history": [
+      "path": "tools/coordination/audit_dag.py",
+      "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+    },
     {
-      "source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
-      "manifest_sha256": "30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc",
-      "closure": "_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149",
-      "standing": "Completed pre-refinement observation; immutable."
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/assemble_graph.py",
+      "sha256": "b90e129412ab55962e1dc4804cd7ea6a2c5a2705216bbef421b480defc6fdf7c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/describe_graph.py",
+      "sha256": "be254080489cddc86f86a6b48aab2a9fdc53d5485f3f6036008129217ab57635"
     }
   ],
-  "basis_decision": {
-    "path": "BASIS_DECISION.md",
-    "sha256": "5a269b838d8e923cd4b9c4911b1128244d4854e33c0f4f1c7ab061d18b2acb60",
-    "presented_revision": "2a461a47adee03bb868e433a73048265cc0be808",
-    "question_item_id": [
-      "request_user_input_async",
-      "call_W9gLbagdmDVMsYQF93kMzulA",
-      0
-    ]
-  },
-  "case_match": {
-    "SCC-002": "SCC-CASE-002",
-    "members": [
-      "DEL-01-04",
-      "DEL-02-01",
-      "DEL-02-02",
-      "DEL-02-03",
-      "DEL-02-04",
-      "DEL-03-01",
-      "DEL-03-02",
-      "DEL-03-03",
-      "DEL-04-02",
-      "DEL-04-03",
-      "DEL-05-01",
-      "DEL-05-02",
-      "DEL-09-09"
-    ],
-    "retained_history": "SCC-CASE-004",
-    "standing": "Actual basis/case-tracking confirmation; no Deliverable or graph merge-group ruling."
-  }
+  "tool_runs": "Evidence/Tool_Run.json",
+  "manifest_check_run": "Evidence/ManifestCheck_Run.json",
+  "protected_input_fingerprints": "Evidence/input_baseline.json",
+  "graph_files": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/GRAPH_BASIS.md",
+      "sha256": "d09b49cfa4c82c7c7caf8e45d82e4ed4ec904b345e7c9b68ab3c2b3e660cb3f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/DeliverableNodes.csv",
+      "sha256": "102eee1a6a409ae4babefa674546c5111848e90ba5fb7447dc5cc240a31b93e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/DependencyEdges.csv",
+      "sha256": "5693c36fb573078eb00d959a926c461fde275f5b4a54535da32096fcaf2d1905"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/CandidateEdges.csv",
+      "sha256": "1c3edb4f7079b8046e7161df45b1ffaf674621cf35186ec20787be0f82b9b0e9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/ExcludedRows.csv",
+      "sha256": "0e45795240f1f611561c33b87c993d26901a3a64e642ecff30304eef5abb5995"
+    }
+  ],
+  "authority_limits": "No accepted pointer/snapshot, graph-version acceptance, 30% act, readiness, source satisfaction, lifecycle, SCC closure, scope/Deliverable merge, product/provider activation, release/adoption or professional act."
 }

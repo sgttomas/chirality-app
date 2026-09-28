@@ -1,0 +1,173 @@
+{
+  "recorded_at": "2026-09-28T05:25:17.197650+00:00",
+  "arguments": [
+    "python3",
+    "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/refresh_narrative.py"
+  ],
+  "cwd": "/Users/ryan/.codex/worktrees/077c/chirality",
+  "script": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/refresh_narrative.py",
+    "sha256": "ee35e050c50f54a861c44a86a0bc85e653a81d91340aac0f7435731978a89a1f"
+  },
+  "generator": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/describe_graph.py",
+    "sha256": "be254080489cddc86f86a6b48aab2a9fdc53d5485f3f6036008129217ab57635"
+  },
+  "prior_generator_preserved": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/describe_graph_before_header_refresh.py",
+    "sha256": "ed94595424f89c36288c84311d6969601f17f5cf410d5dbd48dd13eeab7b58b0"
+  },
+  "prior_output_manifest_sha256": "332d6fde7ee4d7e219278211267c93e6c6bf0a97eac3959ca4580b5d83832d73",
+  "before_narrative": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/GRAPH_BASIS.md",
+      "sha256": "aa5ed43d6b616ae99d552186d6ceea29edc1464cfb1bfa21deff2dde188c3a55"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_BASIS.json",
+      "sha256": "ec63e2a6c7c71e4e4badd5909a34b10e31af7308a11119d0105b39e26108402f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/ASSEMBLY_RUN.md",
+      "sha256": "3ff4f94b0fe0ca46396582a2c738b1cbe7f09f7a3a22a7b5c941b35b1ab363a3"
+    }
+  ],
+  "after_narrative": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/GRAPH_BASIS.md",
+      "sha256": "d09b49cfa4c82c7c7caf8e45d82e4ed4ec904b345e7c9b68ab3c2b3e660cb3f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_BASIS.json",
+      "sha256": "0d53ae5c8b67f093c698d75840168751721b39f7544015db279d2f687884100c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/ASSEMBLY_RUN.md",
+      "sha256": "f89a4f174ec7c3ea5a4d2833a06b2c7213b48c4bcea7cb144705860fedee093f"
+    }
+  ],
+  "unchanged_prior_outputs": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/DeliverableNodes.csv",
+      "sha256": "102eee1a6a409ae4babefa674546c5111848e90ba5fb7447dc5cc240a31b93e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/DependencyEdges.csv",
+      "sha256": "5693c36fb573078eb00d959a926c461fde275f5b4a54535da32096fcaf2d1905"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/CandidateEdges.csv",
+      "sha256": "1c3edb4f7079b8046e7161df45b1ffaf674621cf35186ec20787be0f82b9b0e9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/ExcludedRows.csv",
+      "sha256": "0e45795240f1f611561c33b87c993d26901a3a64e642ecff30304eef5abb5995"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/Accounting.md",
+      "sha256": "9438d3eaff9dc4651a4f53010a3ad1f665602411f6420bd613b8773d89afd525"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/AssemblyChecks.json",
+      "sha256": "04699f1f75967aa2756a6758eacb53f4584d5f2ffdc0a05a83bfe0bce4ce6fb2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/ManifestCheck_Run.json",
+      "sha256": "b82a9ba05d3adf3462f5954acc67f4f798288b73a3818d48a81e5c90520458c4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/MirrorAssessment.csv",
+      "sha256": "777fb26e5e3eb7ca0e366789923aeec95909151d58f949c290017a02d50398af"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/MirrorAssessment.md",
+      "sha256": "570a315bc5c5f71e2455a67e5559c5c4fc76c9477419988ac7ec00cf68e75b0d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/MirrorComparisons.csv",
+      "sha256": "50d5499f8b3f99d7ae7fb8624bf976b526bcf427ecddbbfae22e86352753db05"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/NonTopologicalInputs.csv",
+      "sha256": "ed1a2616ce639839534ae8f5811f6f6b4323b80b3d4374cbe3d028efd5f95615"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/RegisterAccounting.csv",
+      "sha256": "39d0dff8162492af686c6d1d18a10e686ee89daa6c4d11f156ff9cc451f1b1cd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/SCC_Accounting.json",
+      "sha256": "e642ef54ae542219c13562e4ce67ac1c5aec784429c9b0ab2dc0eeda7dbc675b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/Tool_Run.json",
+      "sha256": "3306be5c4ab71123ab138e904b2ab9846c43a767c8dd60616a674cec9e79d9c5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/admissible_audit.json",
+      "sha256": "2cc8e3d091e5d09bbd404904121c8b17e19ad410e22b21572360f52e9d36543b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/admissible_audit.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/admissible_audit.stdout.txt",
+      "sha256": "22111def3d7865431f51f3364c3dfe4d0d403cfbef2aecaa4e38e9cb2214cf75"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/admissible_edges.csv",
+      "sha256": "0ffc66b46782b5e39f9eb0f1c6f2769dd28cc5978ab62a1910030364fe0ccd9e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/all_execution_rows.csv",
+      "sha256": "00bdfdf165e1178db4214486443f353e4ef2578436c2edeeea14fff2fbe4f9eb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/assemble_graph.py",
+      "sha256": "b90e129412ab55962e1dc4804cd7ea6a2c5a2705216bbef421b480defc6fdf7c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/candidate_audit.json",
+      "sha256": "e6809c6efee51c5dc789c77bf5411ce6349754a9e5cefc000e6a7af236f1c99a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/candidate_audit.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/candidate_audit.stdout.txt",
+      "sha256": "a9ce2d21a3f4e1de182db49c634eb8f4bd343b910f5fac77349cbc527ebf2c11"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/dag_audit.json",
+      "sha256": "825de0ebbfff0b7a3534ad45cbf16a3b02d7c37deeffa28c8dfb4c1183bb3a96"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/dag_audit.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/dag_audit.stdout.txt",
+      "sha256": "263a302ba41b8c4cb4ff7d6d80057d8912c7c1f0811f014493c44d29a2d76227"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/input_baseline.json",
+      "sha256": "8de177d34805a5685d2c1e94cc71b9215dbc0d8303f000d841c2b487e9f228d2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/manifest_check.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/Evidence/manifest_check.stdout.txt",
+      "sha256": "8c93ecdd10b1b403e3e0b9ec84c9c9b37649aae9c40dc5b6123a6b8615518a0c"
+    }
+  ],
+  "protected_inputs_unchanged": 268,
+  "graph_auditor_invocations": 0,
+  "manifest_check_invocations": 0,
+  "run_status": "COMPLETE",
+  "subject_status": "PASS_ADMINISTRATIVE_WORDING_ONLY",
+  "reason": "Manager-directed timeless header before independent review; no new source or gate decision."
+}
