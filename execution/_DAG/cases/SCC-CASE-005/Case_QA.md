@@ -11,3 +11,15 @@ CaseState: HUMAN_RULINGS_PENDING.
 - Validator: PASS, exit 0 — `python3 tools/validation/validate_scc_resolution_case.py projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005` (2026-09-28 UTC). Final structural check confirms exactly nine case files plus one run record, header-only rulings, all eight internal rows present, and all nine selected source files still matching the sealed manifest.
 
 Remaining work belongs to the manager's independent check/project-dag checkpoint and the identified receiving/decision owners. Every remedy remains candidate-level. A later applicable DepClosure examination must establish any resulting graph conclusion; this case does not establish closure, input satisfaction, finished-product correctness or operational reliance.
+
+
+## Manager affected applicability backcheck
+
+WORKING_ITEMS verified exact member-set identity in the refreshed observation and all 8 internal rows against c1038ae5; current member source/index/register hashes match the130-entry85dcc17c manifest. Original producer findings and output hashes remain evidence of that earlier inquiry; this is a later working-record update. No source, scope, responsibility, remedy or human ruling changed.
+
+Actual command `python3 -B tools/validation/validate_scc_resolution_case.py projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005` returned exit0/PASS.
+
+
+Manager current-framing integration: added the actual owner clarification that characterized unresolved SCCs are expected later/post30 work, with no full-resolution/interface-completion pre30 requirement. Existing source conditions, contributions, case lineage, remedies and absence of rulings remain unchanged. This is current proposal framing, not a rewritten historical observation.
+
+Affected case validator executed after the framing insertion: PASS, exit0.

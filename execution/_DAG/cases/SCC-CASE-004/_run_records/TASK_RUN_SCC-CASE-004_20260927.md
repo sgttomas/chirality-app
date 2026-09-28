@@ -54,3 +54,28 @@
 | `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Dependency_Closure_Report.md` | `e80931ad741c4530ef2e99e7f33b4278a7699d6071607b650479f0bee1a899b4` |
 | `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/QA_Report.md` | `9a2eb72eaf5d2a69d7f6f1f1f5dbad0371f533ddc57717c6fee4a83c96c9a2d4` |
 | `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/RUN_SUMMARY.md` | `33bd1478666e9cab249c89e2fd580d5ea118acd0bcaa397d06e8d1cd3f9f7282` |
+
+## Bounded lineage refresh — 2026-09-28T04:43:55.394328+00:00
+
+- Parent follow-up authorizes only affected CASE-004 lineage/relevance update in existing files and this same run record. No new packet, broader case analysis, remedy, source/global edit, Git action or delegation.
+- Supplied refreshed source 85dcc17c3fda4bce82332a40f27aa9b4e849653e; manifest 0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4; final source report pending at dispatch. Original run hashes above are historical and are not overwritten.
+- Direct read: new SCC summary/closure summary; affected catalog rows 023/026/027/030, unchanged AC-007/VER-007/TBD-002, updated local index; CASE-002 datasheet relevant current loci for overlap context. CASE-002 expansion was not yet written when inspected; its producer owns that analysis.
+- Proposed overlap match: expanded 13-member SCC-002 continues in CASE-002 only if human rules it at CP1; retain CASE-004 original two-member identity/history and HUMAN_RULINGS_PENDING. No applied merge/closure or renumbering.
+- Final affected audit consumed Dependency_Closure_Report.md, QA_Report.md and RUN_SUMMARY.md. Retained-context non-producer backcheck reports affected fidelity PASS, no concrete defect, unchanged SoWs and separate trace/actor obligations; expanded overlap supplies no case assignment. Raw acyclic production-order closure remains BLOCKER. Original unaffected evidence is reused, not re-certified here.
+- Affected validator: lineage draft PASS / exit 0. Final audit-consumed rerun of `python3 tools/validation/validate_scc_resolution_case.py projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004` returned exit 0 / `PASS: SCC resolution case validation`. Report and QA hashes also match the manager’s final notification. Scoped refreshed-manifest comparison: all six original-member SoW/register/index files match. Nine standard files, same single run record and header-only rulings verified. No source edits or new remedies.
+
+| Refreshed input origin | SHA256 |
+|---|---|
+| `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/scc_summary.csv` | `d97c6415c304c7555806e2f3f5f8465bfecbcabdfbb539f74768a8999c36258d` |
+| `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/closure_summary.json` | `55b3a1ccd7553c5636a53a2cf36a7aa77c5c208f20db809f3c72ebae29c39ed0` |
+| `projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256` | `0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4` |
+| `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv` | `36f9efd7cfeb78aa3c70a8ded53dc1c6959dbddb2e070c6966674fcb86ef2ad8` |
+| `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md` | `b564d35aa593e1c0ddfa327f9b0f8c789655926aa76b10c491150f5f6a48eae2` |
+| `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md` | `179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84` |
+| `projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md` | `236687e27da733fac1a9e8282ca2a96970413712fa244792697d98c2c237f40c` |
+
+| Refreshed final report origin | SHA256 |
+|---|---|
+| `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Dependency_Closure_Report.md` | `6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11` |
+| `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/QA_Report.md` | `36dc07c2870d2e233a8f8589f39efa1b1b9fca1631164bd8cead84b9ca7dd172` |
+| `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/RUN_SUMMARY.md` | `39c8a79e549490ead54d453300fdb8dccc7ca7c4e6debfb86307b14d3a7ead71` |

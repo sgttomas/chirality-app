@@ -13,3 +13,15 @@ CaseState: HUMAN_RULINGS_PENDING. Actual final source audit consumed (E15–E17)
 This producer check is not independent closure checking. The analyzer's existing SCC observation persists as the only cited graph result. Actual owner decisions and later authorized work retain their own evidence; a follow-up DepClosure observation is required for any future case closure claim.
 
 Final packet validator: PASS, exit 0, after final-audit incorporation. Additional final checks: exactly ten authorized files; header-only rulings; evidence source paths exist; two canonical internal arcs reconstructed from source Direction; all six frozen member source hashes and sealed manifest unchanged.
+
+
+## Manager affected applicability backcheck
+
+WORKING_ITEMS verified exact member-set identity in the refreshed observation and all 2 internal rows against c1038ae5; current member source/index/register hashes match the130-entry85dcc17c manifest. Original producer findings and output hashes remain evidence of that earlier inquiry; this is a later working-record update. No source, scope, responsibility, remedy or human ruling changed. CASE-003’s DEL-09-01 selected-pin target is now resolved to DEL-01-01; its actual value/qualification remain pending. That boundary refinement changes no internal pair row.
+
+Actual command `python3 -B tools/validation/validate_scc_resolution_case.py projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003` returned exit0/PASS.
+
+
+Manager current-framing integration: added the actual owner clarification that characterized unresolved SCCs are expected later/post30 work, with no full-resolution/interface-completion pre30 requirement. Existing source conditions, contributions, case lineage, remedies and absence of rulings remain unchanged. This is current proposal framing, not a rewritten historical observation.
+
+Affected case validator executed after the framing insertion: PASS, exit0.

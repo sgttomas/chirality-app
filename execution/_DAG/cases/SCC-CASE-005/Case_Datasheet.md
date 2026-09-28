@@ -1,8 +1,18 @@
 # SCC-CASE-005 — Connector receiving and recovery cases
 
+> **30% framing (current owner clarification):** this case characterizes unresolved work and its later/post30 route. A fully resolved DAG, completed interfaces or supplied future witness inputs are not prerequisites to the30% gate. Input-specific limitations apply only when the corresponding work needs them; no whole-Deliverable/project hold follows. Qualified initial graph-basis/version decisions and the actual30% decision remain separate. See the [recorded clarification](../../../_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md#owner-clarification--30-and-unresolved-sccs).
+
+## Current observation applicability
+
+WORKING_ITEMS matched this stable case by member set to **SCC-004** in `_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237` (source `85dcc17c3fda4bce82332a40f27aa9b4e849653e`, manifest `0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4`). The set is unchanged. All 8 internal source rows are identical to the original inquiry; current member CSV/index/SoW hashes match the refreshed manifest.
+
+The refreshed independent report `6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11` passes affected repair fidelity and retains raw acyclic closure BLOCKER, six SCCs, with no concrete source defect established. This is observation applicability, not a ruling, completed remedy or fulfilled input. The original inquiry and positional SCC labels below remain explicitly historical at their stated first source; the current positional match is the one above. Existing alternatives, responsibilities, missing-input limits and HUMAN_RULINGS_PENDING standing remain unchanged.
+
+## Original inquiry and retained evidence
+
 - CaseState: HUMAN_RULINGS_PENDING (decision-ready inquiry; no ruling supplied).
 - CASE_ID: SCC-CASE-005; origin SCC_ID: SCC-005.
-- Originating and latest observed DepClosure snapshot: `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`.
+- Originating observed DepClosure snapshot: `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`.
 - Member node set / affected Deliverables: `DEL-07-01;DEL-07-02;DEL-08-01`.
 - Later matched snapshots / membership changes: none. Seed artifacts / human rulings: none.
 - Frozen source revision: `c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b`; source manifest SHA256 `30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc`.

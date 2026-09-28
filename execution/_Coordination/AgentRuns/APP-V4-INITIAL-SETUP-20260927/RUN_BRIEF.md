@@ -13,3 +13,14 @@ The accepted authoring route creates local contracts, not products. Preserve ope
 After checked SoWs, run one dependency-extract assignment per Deliverable and separate closure examination over the accepted inventory. Resolve real schema/source defects; keep uncertain edges and coupled work honestly held for project-dag basis decisions. No inferred external readiness or acceptance. Human project-dag basis/version decisions remain ahead, with exact evidence and independent examination prepared before presentation.
 
 Work items and counts: WORK_ITEMS.csv; preparation inventory/commands/return provide the structural record. Individual task briefs and returns record actual supplied sources/hashes, native parentage and bounded outcomes. The project work graph records current aggregate state. Independent reviews are source/candidate bound; author validations alone do not advance INITIALIZED.
+
+
+## Owner clarification — 30% and unresolved SCCs
+
+HELP_HUMAN relayed this owner question during current preparation (transcribed conversation evidence, not a raw platform export; no message ID or timestamp supplied):
+
+> Is it your understanding that [we] do not need to have a fully resolved DAG to reach your goals and meet your obligations for the30%gate? and that identifying theSCCs and characterizing them for future work post30%gate is expected?
+
+The quotation retains the wording supplied by the parent, including bracketed `[we]` and spacing. HELP_HUMAN confirmed the intended treatment: a fully resolved DAG/all interfaces complete is not a30% prerequisite. An examined, accepted initial graph may retain characterized unresolved SCCs, with affected work, owners and next steps; resolution can occur after30%. This is clarification of the intended milestone, not an actual graph-basis/version or30% acceptance act.
+
+WORKING_ITEMS applies that direction now. Finish the current affected evidence, case characterization and decision reader; commission no interface-production or extra inquiry as a pre30 hurdle. The case contribution plans describe later/post30 work at actual points of need. An input-specific hold does not hold a whole Deliverable/project. Raw analyzer cyclicity is an observation, not a project or30% gate-failure verdict. Actual graph-basis confirmation, initial-version acceptance, input fulfilment, lifecycle, later SCC resolution and30% advancement retain their separate actors/evidence. Historical observations remain unchanged.

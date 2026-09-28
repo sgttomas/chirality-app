@@ -94,3 +94,85 @@ Verification after refinement: one affected backcheck PASS for 12 contribution r
 
 - `Case_Datasheet.md` SHA256 `236687e27da733fac1a9e8282ca2a96970413712fa244792697d98c2c237f40c`
 - `Case_QA.md` SHA256 `fdad5a039f22305f832238b14c70d333e144569a3ea1ca1ca77b2ea7d0af912d`
+
+## Affected source refresh — proposed overlap continuation
+
+Parent authorized this existing-case refresh on actual target-resolution source 85dcc17c3fda4bce82332a40f27aa9b4e849653e; manifest 0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4. The new analyzer set adds DEL-03-01/02/03 and DEL-09-09. CASE-004's two-member origin is deliberately consulted for lineage; its files are read-only. Original CASE-002 identity and findings remain historical, with a PROPOSED thirteen-member continuation and overlap match for the same CP1 actual human ruling. Parent support is not human acceptance.
+
+Historical R-02 before this refresh proposed a nine-member joint-interface-design coordination group with all internal obligations visible, and did not recommend it. The current R-02 supersedes that candidate with a precisely limited initial-interface-definition view only, retaining every required contribution and later trace/owner act; no thirteen-unit group is proposed. No former proposal is represented as an actual ruling.
+
+Current producer trace: 46 internal rows / 40 canonical consumer-to-supplier arcs / eight reciprocal pairs. Original 25 rows/23 arcs are unchanged within the set. Newly internal 21 rows/17 arcs include CASE-004's three rows/two arcs and the new distinct trace dependency. Only DEP-03-01-030 supplies the trace; DEP-03-01-027 retains actual owner-with-host-contract-owner OI-003 disposition. Neither a completed witness nor that ruling becomes a blanket first-definition prerequisite. Final affected auditor packet pending at this authoring point; must be consumed before return. One final affected backcheck/validator follows integration.
+
+### Additional consulted origins (current refresh)
+
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/scc_summary.csv` SHA256 `d97c6415c304c7555806e2f3f5f8465bfecbcabdfbb539f74768a8999c36258d`
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/closure_summary.json` SHA256 `55b3a1ccd7553c5636a53a2cf36a7aa77c5c208f20db809f3c72ebae29c39ed0`
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/bidirectional_pairs.csv` SHA256 `0c14ef4afbc7d5c5ec5584cbfc259e34b3ff006747921aa941d21be0b84b31aa`
+- `projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256` SHA256 `0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4`
+- `projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_Datasheet.md` SHA256 `66c4342fb08a68c6b9b90de14fbb50d14d43d4653bd2dc146e69c51806326364`
+- `projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_QA.md` SHA256 `98cdd7b4fc03ebd40658637cf3afb8853bca6faef66bcfe7ea070789b18160f4`
+- `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv` SHA256 `bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb`
+- `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv` SHA256 `b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821`
+- `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/ScopeOfWork.md` SHA256 `7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a`
+- `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv` SHA256 `45546cfeeac2509b975d42dccb132fee6f1baf62600d1c9b8559c7ac665f61e3`
+- `projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_DEPENDENCIES.md` SHA256 `3caaec7fb441ac3fa4110738e806f08f05beb096d1c0954ddc86b3088228f74f`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md` SHA256 `080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv` SHA256 `539520b43bdc74f91024aac112b86823add8db40d8971efa10342f7c99395e96`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_DEPENDENCIES.md` SHA256 `c27258ad74d955df8fa578cce70f8be025ea3e90020ae16fb3c06959cf29a5c8`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/ScopeOfWork.md` SHA256 `b0a1a8a4aa6f53057c8db4bb33c65c5e697f45ae509088a570a70ff8cee295ec`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv` SHA256 `01cc89fa7e4fbbc16d8ab51d19df122efe98547657c1610049fe5859616386d0`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_DEPENDENCIES.md` SHA256 `28ff604013909784c91f82591444b5e468e4971042b78415daae82959a2f43bd`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/ScopeOfWork.md` SHA256 `9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv` SHA256 `be8c2c02491ed181f9c9c66a1da89b2c2ef9347bae61bd2535d74bad0f664f75`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_DEPENDENCIES.md` SHA256 `c461be9b42de5d2e309d27abe50958ce9054bb3e89f7ca3a32efa3e208ce886b`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md` SHA256 `3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv` SHA256 `0cb255b3270dfe616f434e8974795eb6b9a9e37aceb5da9972823d5a3cf0a267`
+- `projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_DEPENDENCIES.md` SHA256 `0b91e27612ca67ee379505d0c72c02227b53c2b8b146d02b5bcf1b2c89835c5c`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md` SHA256 `179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv` SHA256 `36f9efd7cfeb78aa3c70a8ded53dc1c6959dbddb2e070c6966674fcb86ef2ad8`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md` SHA256 `b564d35aa593e1c0ddfa327f9b0f8c789655926aa76b10c491150f5f6a48eae2`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md` SHA256 `42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv` SHA256 `adabeccc3726b249830f584bc8618342358779a0116335e0c58a73895c0c5e2d`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md` SHA256 `ad94c12dc5937bab8269e04d3090b2e8f2a52175ee42068364ca4a3d1ddfe43e`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/ScopeOfWork.md` SHA256 `5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv` SHA256 `a962d4d5007fd037b07a8e65bce42957d995a8e34bc3f17581d0eda3748067cf`
+- `projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_DEPENDENCIES.md` SHA256 `95efc22df551f741c558167811842c03437990c6f214b5561eadce61a425e2f0`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/ScopeOfWork.md` SHA256 `23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv` SHA256 `eb5303694f0d19816e1fbbe7ab1f0937365dceefb68071224b4972e0875db739`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_DEPENDENCIES.md` SHA256 `edd367078d5561f82ddb25706bab6c53b92f31680240420a6e0ebc31b1d82285`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/ScopeOfWork.md` SHA256 `74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv` SHA256 `a44e67f4bfd69be6dd2565db42564a4970129151ba4bf0b9532b33ca471634e9`
+- `projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_DEPENDENCIES.md` SHA256 `a64cf419f391bac9dabc1bc412b9e66dbc8b2d6c6ac47e8d30117efc566c295d`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/ScopeOfWork.md` SHA256 `6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv` SHA256 `fd44d166f9396d0e9a9ed7a516d1dc6054d5d8337817a9d007ddfd8cd1daf5dd`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_DEPENDENCIES.md` SHA256 `46bbb080e248cb2dcf0d46b2221b95caa4f489265426d5c570325e59d43a9d63`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/ScopeOfWork.md` SHA256 `5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv` SHA256 `92067b628007cee18b20e2f2a4282549e7e1e21354bbbae1394f38df117618fc`
+- `projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_DEPENDENCIES.md` SHA256 `abf784e0c13cedffca64324866c0656087a4f8a9ea6104d10fc24f411485c975`
+- `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md` SHA256 `082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d`
+- `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv` SHA256 `02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2`
+- `projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_DEPENDENCIES.md` SHA256 `bd82758a315e989473ea213c946d353542dfa43e836befa4640ee8db277c57a3`
+
+### Final affected audit consumed and account extended
+
+Actual final Dependency_Closure_Report.md, QA_Report.md and RUN_SUMMARY.md were read before final return. Repair fidelity PASS/no concrete defect; raw acyclic-order closure BLOCKER; analyzer COMPLETE/exit 0/subject FAIL. Audit reused retained prior context and unaffected evidence and checked exact changes plus eighteen newly internal rows; no fresh/exhaustive certification is inferred. Counts reconcile: 46 rows = origin CASE-002 25 + CASE-004 3 + newly internal 18; 40 arcs = 23 + 2 + 15. The same case's own growth is 21 rows/17 arcs, not a conflicting claim about eighteen newly intra-SCC rows across the prior graph.
+
+Extended the unchanged original twelve contribution rows with six source-bound existing-owner contributions, retaining precise next definition content and held evidence. Current R-01 retains full default selection; narrow R-02 is only the explicit first-definition view alternative and does not establish acyclicity. Ruling register stays empty; match/continuation remains proposed for the same CP1. All new writes remain this case's existing files and this run record.
+
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Dependency_Closure_Report.md` SHA256 `6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11`
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/QA_Report.md` SHA256 `36dc07c2870d2e233a8f8589f39efa1b1b9fca1631164bd8cead84b9ca7dd172`
+- `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/RUN_SUMMARY.md` SHA256 `39c8a79e549490ead54d453300fdb8dccc7ca7c4e6debfb86307b14d3a7ead71`
+
+### Current affected final checks and output hashes
+
+One affected backcheck: PASS: 39 current source hashes; 27 original-nine hashes unchanged; 46 source rows/40 arcs/8 reciprocal pairs; origin 25 + lineage 3 + exact audit 18 rows; 18 contribution rows with 176 distinct clause locators; trace/ruling split; header-only ruling register; ten-file boundary. One case-validator execution after refresh: `PASS: SCC resolution case validation`, exit 0. Original-nine sources match their previously recorded hashes and current thirteen-member files match the 85dcc17c manifest. Trace versus actual OI-003 actor checked directly. No broader audit rerun, Git operation, delegation or source mutation. All prior output hashes above remain historical to their recorded turn.
+
+- `Candidate_Remedies.csv` SHA256 `633aadd1c2189b8e618fc321e0af8ad102468a1be974355718eb2a173651ab68`
+- `Case_Contract.md` SHA256 `3ee3255d3ddd74a60f9589e99cc63ccfc74ad8141146c7ee8a88238d50a2faa1`
+- `Case_Datasheet.md` SHA256 `3523ff99ed6bb0c13596e20a0760f7a5ab74c14ae44a5060214d559ca0e96f39`
+- `Case_QA.md` SHA256 `8c494514bc85596b5dee8cce4caef954d70a41de15225ad3270ed1b3d91582c3`
+- `Evidence_Register.csv` SHA256 `fbda1224b66a22ecc1c3a04eae5a7c86b4e6d8194c849c24432be363acc9143f`
+- `Open_Questions.md` SHA256 `8760886482d6006dcf6a392c7856e0123f40ced483a88eb9d0093e3df00bb3b6`
+- `Owner_Workflow_Handoff.md` SHA256 `f6316a319defb21eef8292986a97bc2d64fd34c234056293f6e9327aa5008a3e`
+- `Ruling_Register.csv` SHA256 `3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80`
+- `Task_Findings.csv` SHA256 `673c626af79b158a29bca609146efb5fb6cf055baa24131ee6dd645af6efa4ef`

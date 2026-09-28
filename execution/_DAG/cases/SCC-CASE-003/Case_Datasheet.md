@@ -1,9 +1,19 @@
 # SCC-CASE-003 — Packaging and examination infrastructure
 
+> **30% framing (current owner clarification):** this case characterizes unresolved work and its later/post30 route. A fully resolved DAG, completed interfaces or supplied future witness inputs are not prerequisites to the30% gate. Input-specific limitations apply only when the corresponding work needs them; no whole-Deliverable/project hold follows. Qualified initial graph-basis/version decisions and the actual30% decision remain separate. See the [recorded clarification](../../../_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md#owner-clarification--30-and-unresolved-sccs).
+
+## Current observation applicability
+
+WORKING_ITEMS matched this stable case by member set to **SCC-003** in `_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237` (source `85dcc17c3fda4bce82332a40f27aa9b4e849653e`, manifest `0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4`). The set is unchanged. All 2 internal source rows are identical to the original inquiry; current member CSV/index/SoW hashes match the refreshed manifest. CASE-003’s DEL-09-01 selected-pin target is now resolved to DEL-01-01; its actual value/qualification remain pending. That boundary refinement changes no internal pair row.
+
+The refreshed independent report `6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11` passes affected repair fidelity and retains raw acyclic closure BLOCKER, six SCCs, with no concrete source defect established. This is observation applicability, not a ruling, completed remedy or fulfilled input. The original inquiry and positional SCC labels below remain explicitly historical at their stated first source; the current positional match is the one above. Existing alternatives, responsibilities, missing-input limits and HUMAN_RULINGS_PENDING standing remain unchanged.
+
+## Original inquiry and retained evidence
+
 - CaseID: `SCC-CASE-003`
 - CaseState: `HUMAN_RULINGS_PENDING` (bounded inquiry complete; no owner ruling supplied)
 - Case home: `projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003`; the project uses `_DAG/cases/` and no legacy case home was found.
-- Originating and latest DepClosure observation: `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`
+- Originating DepClosure observation: `projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`
 - Originating SCC_ID: `SCC-003`; member node set and affected Deliverables: `DEL-01-06;DEL-09-01`.
 - Frozen dependency source supplied by manager: `c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b`.
 - SOURCE_MANIFEST.sha256: `30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc`; both members' SoWs, dependency registers and indexes match their manifest entries.

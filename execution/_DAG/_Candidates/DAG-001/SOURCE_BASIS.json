@@ -1,8 +1,8 @@
 {
   "GraphID": "DAG-001",
-  "standing": "PROPOSED_BASIS_NOT_CONFIRMED; six target refinements locally checked; refreshed independent closure pending",
-  "source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
-  "working_state": "Base revision c1038ae5 plus complete six target refinements. Updated inputs and source manifest await source commit and independent refresh; no writer remains active. Prior observation remains source-pinned history.",
+  "standing": "CP1_PROPOSAL_NOT_CONFIRMED; refreshed source audit and bounded case characterization complete",
+  "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
+  "working_state": "All130 source members remain committed at85dcc17c; current case/reader/owner-framing records are subsequent manager integration, not source-row changes.",
   "manifest": "SOURCE_MANIFEST.sha256",
   "manifest_sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4",
   "inventory_source": "_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
@@ -18,9 +18,149 @@
       "subject_status": "FAIL",
       "closure": "BLOCKER relative to raw acyclic production-order objective",
       "semantic_verdict": "No concrete source/register defect found in bounded examination; limitations retained."
+    },
+    {
+      "path": "_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237",
+      "report_sha256": "6b0b0268e79315eddb4e2595dffd30e12b5f483bd6c74e2341be03b67d2a1a11",
+      "qa_sha256": "36dc07c2870d2e233a8f8589f39efa1b1b9fca1631164bd8cead84b9ca7dd172",
+      "run_status": "WARNINGS",
+      "analyzer_process": "COMPLETE / exit0",
+      "subject_status": "FAIL",
+      "closure": "BLOCKER only for raw acyclic objective; not a30% gate verdict",
+      "affected_fidelity": "PASS; no concrete source defect in bounded backcheck"
     }
   ],
-  "cases": [],
+  "cases": [
+    {
+      "CaseID": "SCC-CASE-001",
+      "origin_members": [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      "refreshed_scc": "SCC-001",
+      "proposed_members": [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      "match_standing": "UNCHANGED_MEMBER_SET",
+      "path": "_DAG/cases/SCC-CASE-001"
+    },
+    {
+      "CaseID": "SCC-CASE-002",
+      "origin_members": [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02"
+      ],
+      "refreshed_scc": "SCC-002",
+      "proposed_members": [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ],
+      "match_standing": "PROPOSED_CONTINUING_002_WITH_004_LINEAGE_NOT_RULED",
+      "path": "_DAG/cases/SCC-CASE-002"
+    },
+    {
+      "CaseID": "SCC-CASE-003",
+      "origin_members": [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      "refreshed_scc": "SCC-003",
+      "proposed_members": [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      "match_standing": "UNCHANGED_MEMBER_SET",
+      "path": "_DAG/cases/SCC-CASE-003"
+    },
+    {
+      "CaseID": "SCC-CASE-004",
+      "origin_members": [
+        "DEL-03-01",
+        "DEL-03-02"
+      ],
+      "refreshed_scc": "SCC-002",
+      "proposed_members": [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ],
+      "match_standing": "PROPOSED_CONTINUING_002_WITH_004_LINEAGE_NOT_RULED",
+      "path": "_DAG/cases/SCC-CASE-004"
+    },
+    {
+      "CaseID": "SCC-CASE-005",
+      "origin_members": [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      "refreshed_scc": "SCC-004",
+      "proposed_members": [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      "match_standing": "UNCHANGED_MEMBER_SET",
+      "path": "_DAG/cases/SCC-CASE-005"
+    },
+    {
+      "CaseID": "SCC-CASE-006",
+      "origin_members": [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      "refreshed_scc": "SCC-005",
+      "proposed_members": [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      "match_standing": "UNCHANGED_MEMBER_SET",
+      "path": "_DAG/cases/SCC-CASE-006"
+    },
+    {
+      "CaseID": "SCC-CASE-007",
+      "origin_members": [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      "refreshed_scc": "SCC-006",
+      "proposed_members": [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      "match_standing": "UNCHANGED_MEMBER_SET",
+      "path": "_DAG/cases/SCC-CASE-007"
+    }
+  ],
   "selected_method_files": [
     {
       "path": "workflows/audit-dep-closure/WORKFLOW.md",

@@ -9,3 +9,15 @@ Manual checks performed: exact originating SCC/member set matches; all three int
 Open matters: Q1 graph basis treatment; Q2 actual scoped continuity receipt; Q3 baseline/candidate dossiers; Q4 actual owner response; Q5 consumer transition and obligation dispositions. These are specific input/decision limitations, not a project-wide status declaration. The packet can carry absent/negative/deferred evidence; only actual acts may be recorded as performed.
 
 The originating DepClosure observation is COMPLETE / FAIL with SCC-007 present. No follow-up absence evidence exists. Candidate contribution milestones or graph grouping do not establish production receipt, graph acceptance, replacement, adoption, retirement, release or professional reliance. Product sources and local dependency registers were read only; no global graph or lifecycle edits are authorized by this case.
+
+
+## Manager affected applicability backcheck
+
+WORKING_ITEMS verified exact member-set identity in the refreshed observation and all 3 internal rows against c1038ae5; current member source/index/register hashes match the130-entry85dcc17c manifest. Original producer findings and output hashes remain evidence of that earlier inquiry; this is a later working-record update. No source, scope, responsibility, remedy or human ruling changed.
+
+Actual command `python3 -B tools/validation/validate_scc_resolution_case.py projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007` returned exit0/PASS.
+
+
+Manager current-framing integration: added the actual owner clarification that characterized unresolved SCCs are expected later/post30 work, with no full-resolution/interface-completion pre30 requirement. Existing source conditions, contributions, case lineage, remedies and absence of rulings remain unchanged. This is current proposal framing, not a rewritten historical observation.
+
+Affected case validator executed after the framing insertion: PASS, exit0.

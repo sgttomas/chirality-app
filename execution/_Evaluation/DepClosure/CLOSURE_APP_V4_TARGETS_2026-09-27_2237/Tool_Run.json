@@ -1,0 +1,2012 @@
+{
+  "schema_version": 1,
+  "workflow": "chirality-root:bundled:workflow:audit-dep-closure",
+  "actor": "/root/renewal_research_strategy/dependency_closure_audit",
+  "parent": "/root/renewal_research_strategy",
+  "role": "TASK",
+  "mechanism": "followup_task on existing delegated-harness-native non-producer descendant",
+  "context_continuity": "Retained prior audit context; not a fresh-context or different-model review. Root/TASK/selected workflow bodies reused after byte-hash equality verification. No descendants.",
+  "authority_boundary": "New closure snapshot and prescribed observation pointer only; sources/cases/graphs/Git read-only. Host capabilities broader than brief.",
+  "source_revision": "85dcc17c3fda4bce82332a40f27aa9b4e849653e",
+  "prior_source_revision": "c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b",
+  "completed_at": "2026-09-27T22:45:04.103982-06:00",
+  "brief": {
+    "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/CLOSURE_BRIEF.md",
+    "sha256": "55f9a33c9a88d72f5d041b73b59be0d7a842119a3d44caea2989fdcb5b2a1ab3"
+  },
+  "source_manifest": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256",
+    "sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4"
+  },
+  "source_manifest_members": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Dependencies.csv",
+      "sha256": "008863b143a87d1c1880e54c173c88631a58e4792ed9d6d966780c1765a5b783"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/ScopeOfWork.md",
+      "sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_DEPENDENCIES.md",
+      "sha256": "b3f8bdbda038b26ef5283e3c9ee90e068a371bbe3144af8660fe1a23a26590db"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Dependencies.csv",
+      "sha256": "84451e124cf2718581a4e86c97e62d4598838ac202ec371ddc12f2e4ebc55948"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/ScopeOfWork.md",
+      "sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_DEPENDENCIES.md",
+      "sha256": "2f40aa30435a6654cab7b6b91843257cfff19ff40ca49ba16c64dd23d8b9898e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv",
+      "sha256": "9ac820166dd07dde8bbad59ba1c2b0818ab7f4ff4b435c6991cc2d887ddeedf4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/ScopeOfWork.md",
+      "sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_DEPENDENCIES.md",
+      "sha256": "fe49681791ad749e98353a9cc02bac5503bcfe5c37606927988e1bddc95ddb0e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv",
+      "sha256": "45546cfeeac2509b975d42dccb132fee6f1baf62600d1c9b8559c7ac665f61e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/ScopeOfWork.md",
+      "sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_DEPENDENCIES.md",
+      "sha256": "3caaec7fb441ac3fa4110738e806f08f05beb096d1c0954ddc86b3088228f74f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv",
+      "sha256": "3b038c98f97cd6855b42b10e1602a24c34152f3defa582c037d6ee642f4796a6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/ScopeOfWork.md",
+      "sha256": "baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_DEPENDENCIES.md",
+      "sha256": "7f9f3f8101ccbdcd0dca2bb6f6a4d75217c35802a4940542f83e82530a9030b0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Dependencies.csv",
+      "sha256": "19c3eb3574e9bdf263cac37a4f7bb2ff0328fc239180c3f72c2e32c6d0037f86"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/ScopeOfWork.md",
+      "sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_DEPENDENCIES.md",
+      "sha256": "3610b878100892b397271979bb344420ffd323b4cbef8561674aafaf7ba7b3a0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv",
+      "sha256": "539520b43bdc74f91024aac112b86823add8db40d8971efa10342f7c99395e96"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/ScopeOfWork.md",
+      "sha256": "080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_DEPENDENCIES.md",
+      "sha256": "c27258ad74d955df8fa578cce70f8be025ea3e90020ae16fb3c06959cf29a5c8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv",
+      "sha256": "01cc89fa7e4fbbc16d8ab51d19df122efe98547657c1610049fe5859616386d0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/ScopeOfWork.md",
+      "sha256": "b0a1a8a4aa6f53057c8db4bb33c65c5e697f45ae509088a570a70ff8cee295ec"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_DEPENDENCIES.md",
+      "sha256": "28ff604013909784c91f82591444b5e468e4971042b78415daae82959a2f43bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv",
+      "sha256": "be8c2c02491ed181f9c9c66a1da89b2c2ef9347bae61bd2535d74bad0f664f75"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/ScopeOfWork.md",
+      "sha256": "9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_DEPENDENCIES.md",
+      "sha256": "c461be9b42de5d2e309d27abe50958ce9054bb3e89f7ca3a32efa3e208ce886b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv",
+      "sha256": "0cb255b3270dfe616f434e8974795eb6b9a9e37aceb5da9972823d5a3cf0a267"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/ScopeOfWork.md",
+      "sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_DEPENDENCIES.md",
+      "sha256": "0b91e27612ca67ee379505d0c72c02227b53c2b8b146d02b5bcf1b2c89835c5c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv",
+      "sha256": "36f9efd7cfeb78aa3c70a8ded53dc1c6959dbddb2e070c6966674fcb86ef2ad8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/ScopeOfWork.md",
+      "sha256": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md",
+      "sha256": "b564d35aa593e1c0ddfa327f9b0f8c789655926aa76b10c491150f5f6a48eae2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv",
+      "sha256": "adabeccc3726b249830f584bc8618342358779a0116335e0c58a73895c0c5e2d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/ScopeOfWork.md",
+      "sha256": "42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md",
+      "sha256": "ad94c12dc5937bab8269e04d3090b2e8f2a52175ee42068364ca4a3d1ddfe43e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv",
+      "sha256": "a962d4d5007fd037b07a8e65bce42957d995a8e34bc3f17581d0eda3748067cf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/ScopeOfWork.md",
+      "sha256": "5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_DEPENDENCIES.md",
+      "sha256": "95efc22df551f741c558167811842c03437990c6f214b5561eadce61a425e2f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Dependencies.csv",
+      "sha256": "b41eacd01cdef10e455017cda7afdfae85b2a2a2e989fad481d697f4e862ac17"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/ScopeOfWork.md",
+      "sha256": "203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_DEPENDENCIES.md",
+      "sha256": "87c9fdf1227ae59dcf709755b1be6a6d003c8f5961abd09899f9ed41632407d5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Dependencies.csv",
+      "sha256": "1cae4948f4e9d5297d8e8d3ec31bd06ed3faf0bf4af77dfbec937d3141d2a133"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/ScopeOfWork.md",
+      "sha256": "fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_DEPENDENCIES.md",
+      "sha256": "1d12620c4115a8066755c95747d3def945649766e7b030abcdcc1670e9fbb3e4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv",
+      "sha256": "eb5303694f0d19816e1fbbe7ab1f0937365dceefb68071224b4972e0875db739"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/ScopeOfWork.md",
+      "sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_DEPENDENCIES.md",
+      "sha256": "edd367078d5561f82ddb25706bab6c53b92f31680240420a6e0ebc31b1d82285"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv",
+      "sha256": "a44e67f4bfd69be6dd2565db42564a4970129151ba4bf0b9532b33ca471634e9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/ScopeOfWork.md",
+      "sha256": "74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_DEPENDENCIES.md",
+      "sha256": "a64cf419f391bac9dabc1bc412b9e66dbc8b2d6c6ac47e8d30117efc566c295d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv",
+      "sha256": "fd44d166f9396d0e9a9ed7a516d1dc6054d5d8337817a9d007ddfd8cd1daf5dd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/ScopeOfWork.md",
+      "sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_DEPENDENCIES.md",
+      "sha256": "46bbb080e248cb2dcf0d46b2221b95caa4f489265426d5c570325e59d43a9d63"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv",
+      "sha256": "92067b628007cee18b20e2f2a4282549e7e1e21354bbbae1394f38df117618fc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/ScopeOfWork.md",
+      "sha256": "5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_DEPENDENCIES.md",
+      "sha256": "abf784e0c13cedffca64324866c0656087a4f8a9ea6104d10fc24f411485c975"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv",
+      "sha256": "ddcf0d0efd17b1076fbe7a28fa397cad867d685afc67836b1d636de067530a3c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/ScopeOfWork.md",
+      "sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_DEPENDENCIES.md",
+      "sha256": "e1da95edef6c76c4f57c3752d924932f18492d6fc83ff8ffc151198b3b2314cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/Dependencies.csv",
+      "sha256": "732a2809db079b8fa46f6468d5aae5dc6cc72720cc687dfd1817b8f2cdb5466e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/ScopeOfWork.md",
+      "sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_DEPENDENCIES.md",
+      "sha256": "baecd737c3873555ab5a76ffbdd3ea7dd5b9333fca22908cf75b01b9d9b2fe53"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv",
+      "sha256": "62fc67a92d230f27bb5b3b62d4a65772245dc1810ef0b74f05df749c94308fa3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/ScopeOfWork.md",
+      "sha256": "5e2fba1d2191d97832a3f09feeb91f4f4231775a6a99b2b6c769a54c43edc5e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_DEPENDENCIES.md",
+      "sha256": "12bb5cd64ebcce13f62357ef5871c4f86f8d88d5c0f95a130e95c4e7dd07e202"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv",
+      "sha256": "42b737be974b711a72570e910b716a834782ffaba5e693dd23988163170f9122"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/ScopeOfWork.md",
+      "sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_DEPENDENCIES.md",
+      "sha256": "3b1d0e1f0f578707a6a3aad94e754ed41612d3efcc1d00f65bebe53bc8dc8d19"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv",
+      "sha256": "99605b53b22a4c0a127316660bad70f32f6dc03ea560db4e3e2e1b81fdd94c1b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/ScopeOfWork.md",
+      "sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_DEPENDENCIES.md",
+      "sha256": "9351dc2673dafa05e5feed3b34c875276a524133d1b992cebebad3215a134696"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv",
+      "sha256": "18b0ab8b79e9faac97161c92f0441197f9f609342c5beb5aa0e241b1158b88de"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/ScopeOfWork.md",
+      "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_DEPENDENCIES.md",
+      "sha256": "c25bbca746d422d43c0f269c688b0b0f39f6006db861f4dfd49ac01f42a54d12"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv",
+      "sha256": "96ea447bba37f1225d305569226e822123ab52d9aa2e2e5c8f48e5200e5352f9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/ScopeOfWork.md",
+      "sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_DEPENDENCIES.md",
+      "sha256": "68a9010c3e1c6c008b047cc9b7c6061b0cb34de0bf3fd514d9f085c8bfaffebf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Dependencies.csv",
+      "sha256": "8da5bece8198cc1fd74394d7764b3c0f4ac019e8e359ba5e1de6a07ffbfff15a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/ScopeOfWork.md",
+      "sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_DEPENDENCIES.md",
+      "sha256": "62386305c3ff65e4604561b08c3f1e9de8ba911c2904350c049800d23b7611c5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/Dependencies.csv",
+      "sha256": "eeb2059436caa01f6f7ddde6dcce105348f2da70d5c6598604fe5159c60c26af"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/ScopeOfWork.md",
+      "sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_DEPENDENCIES.md",
+      "sha256": "3943a27b61854a121e9af5f4340a26997e78294ed2c2a8aa149ef829fa7f1f33"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv",
+      "sha256": "ce3218a22a8629a731a05f5d24093e9aee6660b011a63414b1589c828e4297ed"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/ScopeOfWork.md",
+      "sha256": "511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_DEPENDENCIES.md",
+      "sha256": "0943c9beccc31781aa20ecfd49945664001ab398c83ea6fd4d1057f482711f08"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Dependencies.csv",
+      "sha256": "a18008ceb3e1b1e7632775255cba1cd4e6842b35cd66e47bf1681167ae90bf75"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/ScopeOfWork.md",
+      "sha256": "36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_DEPENDENCIES.md",
+      "sha256": "6705cd6f038e6effb566800d8b49bc4af7a8be9f24c1e7114774ca564aeb5776"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv",
+      "sha256": "02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/ScopeOfWork.md",
+      "sha256": "082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_DEPENDENCIES.md",
+      "sha256": "bd82758a315e989473ea213c946d353542dfa43e836befa4640ee8db277c57a3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/Dependencies.csv",
+      "sha256": "98b586fb2c9432ac2d2383db800676315f15a424f3590d6f4f408a5dc406c146"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/ScopeOfWork.md",
+      "sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_DEPENDENCIES.md",
+      "sha256": "1d36ee704b0edb8bd5c09cc606184218b06c8df29d9f3500642a9b960d8b9b68"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/Dependencies.csv",
+      "sha256": "ccc0817502711be66f49b345fda0e600aa8087ce7f6016561fe58c262bd307b5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/ScopeOfWork.md",
+      "sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_DEPENDENCIES.md",
+      "sha256": "32f5860572dc640c04743548f08599306713ddaddbdfe30236570a1516079aa9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/Dependencies.csv",
+      "sha256": "8af979f146694fd743bb734a45416a02255d312c3a68e99eabe348258823780c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/ScopeOfWork.md",
+      "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_DEPENDENCIES.md",
+      "sha256": "7ee7713ed5657755500df2e05ddc41a9877c56ba097bfecf0a04a5edfd2b1924"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Dependencies.csv",
+      "sha256": "ec95f7c0246bc83b6a53c2a1a5d7d9c59a21550375cfdb255a814f7a339ec7c9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/ScopeOfWork.md",
+      "sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_DEPENDENCIES.md",
+      "sha256": "09cfadc160c43e31d51054f41cdb702282be257f3c4e5d30015494a63df23028"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/Dependencies.csv",
+      "sha256": "42a7edd14cb1d48c628c1f961d59a951dfd7d62c827a7459b0c318d5d4187cdd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/ScopeOfWork.md",
+      "sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_DEPENDENCIES.md",
+      "sha256": "407470ba03edb25aba451568d854768130a41749ad7b8ebd8af53c1fd2b6df3b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Dependencies.csv",
+      "sha256": "589e50c3c9ff138f9bb89ebb762bfc0f3720de91e5aaf7d0909ea744cf529ddd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/ScopeOfWork.md",
+      "sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_DEPENDENCIES.md",
+      "sha256": "ddd0bf51db31f7c95b7602536af17d00862b116293410f41f5ab2f5a44920ccb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/Dependencies.csv",
+      "sha256": "2469ec61bdf3017d18abda563d872b9fae89c76d693e371acf0ff0095ca66011"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/ScopeOfWork.md",
+      "sha256": "fb62502a0f59b226607ed6a04cbbd9ffbafab35edcfe45a1a7307cfcc80d2177"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_DEPENDENCIES.md",
+      "sha256": "84047d3585009eb3226d628553e76e42b673c08499a33eb6247db2735baa245c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/Dependencies.csv",
+      "sha256": "523c702c824c0fd4271ca7fdd898ac1be304640070093ffea9c108e0198259a8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/ScopeOfWork.md",
+      "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_DEPENDENCIES.md",
+      "sha256": "8da9cbc6bc3d2c89a1dbdbfe2a0d2aa18da22b5caf9c09d0d3114369067406a2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/Dependencies.csv",
+      "sha256": "788eea0c3db616c06e618c5039c00c2887a3b41c71d0c956562fdb9d5ef7797d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/ScopeOfWork.md",
+      "sha256": "2d962646f8b24a1b76fcd30307859f7c7632c25e78864c28b5fd04fb687a057c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_DEPENDENCIES.md",
+      "sha256": "dd3ad632f54056be25be0d8764df764934cb8e1ecfc635204c35194abba018f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/Dependencies.csv",
+      "sha256": "96d3e9326705fc5d82a914a244a7651f1d07549152f31d0b8c50d8dc45d9b2e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/ScopeOfWork.md",
+      "sha256": "0177354357b07ea177491cffc2b1c75ffac578e179ba96e63e91d6ba34dcf5b6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_DEPENDENCIES.md",
+      "sha256": "8452503d8ef5d1def447c266c7da71efa9779dbe8d3b75e1648d1b77b03e632f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md",
+      "sha256": "8fadef166d35f40cef179111d5ddd16a632be0703cd49fccd412c1bd23ef17e9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md",
+      "sha256": "14a64fe7ef67ff59568f8b0aa8d292c9ff4d66b34aa3fc1d3ea7fc21aeb23982"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv",
+      "sha256": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv",
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "d5d873b3b918fd508685871abf177e90104b98524c5cea52944dfa2f5a695ead"
+    }
+  ],
+  "source_manifest_verified_against_commit_and_working_bytes": true,
+  "selected_context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "workflows/audit-dep-closure/execution.json",
+      "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+    },
+    {
+      "path": "workflows/audit-dep-closure/WORKFLOW.md",
+      "sha256": "b436fa343058795398633410bd9e0abd19a37dc5b2869c14617016df5e63fcb1"
+    },
+    {
+      "path": "workflows/audit-dep-closure/resources/contract.md",
+      "sha256": "75b4243428ad641fc5e17c9eaa92b0e3ff836403fa88f9a4150ec5069fee02a4"
+    },
+    {
+      "path": "workflows/audit-dep-closure/resources/method.md",
+      "sha256": "5b560c5b892f014b210098d1bdada862a58027580f2bbe3e8642e55097093c5d"
+    }
+  ],
+  "source_basis_metadata": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_BASIS.json",
+    "sha256": "18be5814fc4d8b761059590770f906c33511d417fdc6908bbf7547be9bbb9e87"
+  },
+  "prior_audit_reused": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Dependency_Closure_Report.md",
+      "sha256": "e80931ad741c4530ef2e99e7f33b4278a7699d6071607b650479f0bee1a899b4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/QA_Report.md",
+      "sha256": "9a2eb72eaf5d2a69d7f6f1f1f5dbad0371f533ddc57717c6fee4a83c96c9a2d4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Decision_Log.md",
+      "sha256": "25bc7ba07f6af4d4b37cecc2fe391d505f9d5d991f3b92d6c95f9b7216e1a061"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Tool_Run.json",
+      "sha256": "8f718553cf61854760045d0189c67483b442308376dfe610b58abcc593b865c0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Evidence/closure_summary.json",
+      "sha256": "91261192a4ec286df89ae2541a3e10b9c8a83796e9b43f0ce4fb4689307e4933"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Evidence/scc_summary.csv",
+      "sha256": "5844c75593f26a85500e95e0e166ef807d6df8f8b019164085d0bc7909be777b"
+    }
+  ],
+  "additional_context": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/TARGET_RESOLUTION.md",
+      "sha256": "f85a371853ec5ef18d3a1b1ebdc016e37e1bbd321217f726c4350204a2cefaa1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/SCC_WORK_ITEMS.csv",
+      "sha256": "d99f65e4ded0b9642f6e5d607d7db1da978704bac2d61d16938760409289b92b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv",
+      "sha256": "b65578a0ff34a45d705aac3d8b714e0a0632bec73fd73c5cc0ac8a19c85dc821"
+    }
+  ],
+  "case_context_read_for_lineage_only": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
+      "sha256": "e5ec0135410104e3cde2cb5f1ac0771f65151353434552a4bcc1f204adb18eb3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
+      "sha256": "236687e27da733fac1a9e8282ca2a96970413712fa244792697d98c2c237f40c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
+      "sha256": "2f8cd6530bda9df3d5b717df629bbbaf4c5c3c9ed947b364adaa900ec7add54e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_Datasheet.md",
+      "sha256": "9d72d4cfae926abc3c89b83727603d4053a287be3e136c786986e2a4cd58593a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
+      "sha256": "f934b935547f66b0b6dd8ea6082dabcf373f67e10df998dd3f24bf43a8f32657"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
+      "sha256": "a1f59377d6164dfab4c6d57e82fb03ee371d78615896ad04b87017972e8923ec"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
+      "sha256": "1d9ab1602e1661f35483591c96196237db4e04b9c00c1f4bbcfbdca3dbbd0ecc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
+      "sha256": "3a9f13f498ce3ad7692328b5a34cc141b51aec17f85817b858f68c5e0768ff80"
+    }
+  ],
+  "tool": {
+    "path": "tools/coordination/analyze_dep_closure.py",
+    "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+  },
+  "tool_dependencies_and_supporting_tools": [
+    {
+      "path": "tools/evaluation/audit_common.py",
+      "sha256": "c610cb5b427610a9be94d59fb8ad8c050c4955c91e69525e277957351464e8c2"
+    },
+    {
+      "path": "tools/validation/validate_dependencies_schema.py",
+      "sha256": "75cd74768cc8edf91c6f40b582f0fb570d2427894e6c2236ea2fe7d384291f5f"
+    },
+    {
+      "path": "tools/scope_of_work/common.py",
+      "sha256": "61a3472216fc1c6e42730e99952670e2a02a806810cbbc67a382f4a3eb220389"
+    },
+    {
+      "path": "tools/coordination/dependency_evidence.py",
+      "sha256": "125939c02482b8d90db97c96c378b249c55abee7647db5cc6d85f35a53a4dc0d"
+    },
+    {
+      "path": "tools/coordination/materialize_local_dependencies.py",
+      "sha256": "f0ecd8be9aa87c4a801d4f8d9ac10070f00fad4e02623f74f27fb59c14c2b1da"
+    },
+    {
+      "path": "tools/validation/validate_decomposition_registers.py",
+      "sha256": "5442049efb41762d102448a8a64332950e4c08acfdf85d84722fef04223126f5"
+    },
+    {
+      "path": "tools/scaffolding/scaffold_tool_root.sh",
+      "sha256": "700e96fd1ff1d5be0915aebc08eed83e7412bd95c195afaaf9b26eeb84960ba6"
+    },
+    {
+      "path": "tools/scaffolding/create_snapshot_folder.sh",
+      "sha256": "7db42ee6963dbe8306047dc5afbeb911be7fecdd92b05a239987be05c8d95640"
+    },
+    {
+      "path": "tools/scaffolding/update_latest_pointer.sh",
+      "sha256": "21899520ab84e0d88056b19a4318810cc3a730bc4b6d22e7ec66291549f015bc"
+    }
+  ],
+  "arguments": [
+    "python3",
+    "tools/coordination/analyze_dep_closure.py",
+    "projects/chirality-app-v4/execution",
+    "--output-dir",
+    "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence",
+    "--scope",
+    "ALL",
+    "--filter-active-only",
+    "true",
+    "--normalize-ids",
+    "true",
+    "--dependency-class",
+    "EXECUTION",
+    "--target-type",
+    "DELIVERABLE",
+    "--hub-threshold",
+    "20",
+    "--max-cycles",
+    "200",
+    "--include-declared",
+    "true",
+    "--prior-summary",
+    "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Evidence/closure_summary.json"
+  ],
+  "cwd": "/Users/ryan/.codex/worktrees/077c/chirality",
+  "python": "3.13.7 (v3.13.7:bcee1c32211, Aug 14 2025, 19:10:51) [Clang 16.0.0 (clang-1600.0.26.6)]",
+  "analyzer_invocation_count_this_refresh": 1,
+  "exit_code": 0,
+  "run_status": "COMPLETE",
+  "subject_status": "FAIL",
+  "interpreted_closure_status": "BLOCKER relative to raw acyclic production-order objective",
+  "run_summary_status": "WARNINGS",
+  "accepted_input_basis": [
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Dependencies.csv",
+      "sha256": "008863b143a87d1c1880e54c173c88631a58e4792ed9d6d966780c1765a5b783"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/_DEPENDENCIES.md",
+      "sha256": "b3f8bdbda038b26ef5283e3c9ee90e068a371bbe3144af8660fe1a23a26590db"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/Dependencies.csv",
+      "sha256": "84451e124cf2718581a4e86c97e62d4598838ac202ec371ddc12f2e4ebc55948"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-02_Durable execution and request recovery/_DEPENDENCIES.md",
+      "sha256": "2f40aa30435a6654cab7b6b91843257cfff19ff40ca49ba16c64dd23d8b9898e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/Dependencies.csv",
+      "sha256": "9ac820166dd07dde8bbad59ba1c2b0818ab7f4ff4b435c6991cc2d887ddeedf4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-03_Native plans, tools and delegation views/_DEPENDENCIES.md",
+      "sha256": "fe49681791ad749e98353a9cc02bac5503bcfe5c37606927988e1bddc95ddb0e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Dependencies.csv",
+      "sha256": "45546cfeeac2509b975d42dccb132fee6f1baf62600d1c9b8559c7ac665f61e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/_DEPENDENCIES.md",
+      "sha256": "3caaec7fb441ac3fa4110738e806f08f05beb096d1c0954ddc86b3088228f74f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/Dependencies.csv",
+      "sha256": "3b038c98f97cd6855b42b10e1602a24c34152f3defa582c037d6ee642f4796a6"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-05_Native OAuth-sign-in, API-key and local-provider access/_DEPENDENCIES.md",
+      "sha256": "7f9f3f8101ccbdcd0dca2bb6f6a4d75217c35802a4940542f83e82530a9030b0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/Dependencies.csv",
+      "sha256": "19c3eb3574e9bdf263cac37a4f7bb2ff0328fc239180c3f72c2e32c6d0037f86"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-06_macOS packaging and distribution evidence/_DEPENDENCIES.md",
+      "sha256": "3610b878100892b397271979bb344420ffd323b4cbef8561674aafaf7ba7b3a0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/Dependencies.csv",
+      "sha256": "539520b43bdc74f91024aac112b86823add8db40d8971efa10342f7c99395e96"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation/_DEPENDENCIES.md",
+      "sha256": "c27258ad74d955df8fa578cce70f8be025ea3e90020ae16fb3c06959cf29a5c8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/Dependencies.csv",
+      "sha256": "01cc89fa7e4fbbc16d8ab51d19df122efe98547657c1610049fe5859616386d0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-02_Workflow-making workspace and registration/_DEPENDENCIES.md",
+      "sha256": "28ff604013909784c91f82591444b5e468e4971042b78415daae82959a2f43bd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/Dependencies.csv",
+      "sha256": "be8c2c02491ed181f9c9c66a1da89b2c2ef9347bae61bd2535d74bad0f664f75"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-03_Workflow execution compatibility and round-trip support/_DEPENDENCIES.md",
+      "sha256": "c461be9b42de5d2e309d27abe50958ce9054bb3e89f7ca3a32efa3e208ce886b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/Dependencies.csv",
+      "sha256": "0cb255b3270dfe616f434e8974795eb6b9a9e37aceb5da9972823d5a3cf0a267"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-04_Additive role selection and supply/_DEPENDENCIES.md",
+      "sha256": "0b91e27612ca67ee379505d0c72c02227b53c2b8b146d02b5bcf1b2c89835c5c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv",
+      "sha256": "36f9efd7cfeb78aa3c70a8ded53dc1c6959dbddb2e070c6966674fcb86ef2ad8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/_DEPENDENCIES.md",
+      "sha256": "b564d35aa593e1c0ddfa327f9b0f8c789655926aa76b10c491150f5f6a48eae2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/Dependencies.csv",
+      "sha256": "adabeccc3726b249830f584bc8618342358779a0116335e0c58a73895c0c5e2d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-02_Proposal, validation and outcome contract/_DEPENDENCIES.md",
+      "sha256": "ad94c12dc5937bab8269e04d3090b2e8f2a52175ee42068364ca4a3d1ddfe43e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv",
+      "sha256": "a962d4d5007fd037b07a8e65bce42957d995a8e34bc3f17581d0eda3748067cf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/_DEPENDENCIES.md",
+      "sha256": "95efc22df551f741c558167811842c03437990c6f214b5561eadce61a425e2f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/Dependencies.csv",
+      "sha256": "b41eacd01cdef10e455017cda7afdfae85b2a2a2e989fad481d697f4e862ac17"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-04_Host boundary and integration guide/_DEPENDENCIES.md",
+      "sha256": "87c9fdf1227ae59dcf709755b1be6a6d003c8f5961abd09899f9ed41632407d5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/Dependencies.csv",
+      "sha256": "1cae4948f4e9d5297d8e8d3ec31bd06ed3faf0bf4af77dfbec937d3141d2a133"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions/_DEPENDENCIES.md",
+      "sha256": "1d12620c4115a8066755c95747d3def945649766e7b030abcdcc1670e9fbb3e4"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/Dependencies.csv",
+      "sha256": "eb5303694f0d19816e1fbbe7ab1f0937365dceefb68071224b4972e0875db739"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-02_Visible autonomy and result standing/_DEPENDENCIES.md",
+      "sha256": "edd367078d5561f82ddb25706bab6c53b92f31680240420a6e0ebc31b1d82285"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/Dependencies.csv",
+      "sha256": "a44e67f4bfd69be6dd2565db42564a4970129151ba4bf0b9532b33ca471634e9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records/_DEPENDENCIES.md",
+      "sha256": "a64cf419f391bac9dabc1bc412b9e66dbc8b2d6c6ac47e8d30117efc566c295d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/Dependencies.csv",
+      "sha256": "fd44d166f9396d0e9a9ed7a516d1dc6054d5d8337817a9d007ddfd8cd1daf5dd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-01_Minimal-loop and model receiving contract/_DEPENDENCIES.md",
+      "sha256": "46bbb080e248cb2dcf0d46b2221b95caa4f489265426d5c570325e59d43a9d63"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/Dependencies.csv",
+      "sha256": "92067b628007cee18b20e2f2a4282549e7e1e21354bbbae1394f38df117618fc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-05_Embedded-host receiving integration/1_Working/DEL-05-02_Host panel and shared interaction receiving/_DEPENDENCIES.md",
+      "sha256": "abf784e0c13cedffca64324866c0656087a4f8a9ea6104d10fc24f411485c975"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv",
+      "sha256": "ddcf0d0efd17b1076fbe7a28fa397cad867d685afc67836b1d636de067530a3c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/_DEPENDENCIES.md",
+      "sha256": "e1da95edef6c76c4f57c3752d924932f18492d6fc83ff8ffc151198b3b2314cc"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/Dependencies.csv",
+      "sha256": "732a2809db079b8fa46f6468d5aae5dc6cc72720cc687dfd1817b8f2cdb5466e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-02_Return, waiting and human-decision workspace/_DEPENDENCIES.md",
+      "sha256": "baecd737c3873555ab5a76ffbdd3ea7dd5b9333fca22908cf75b01b9d9b2fe53"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/Dependencies.csv",
+      "sha256": "62fc67a92d230f27bb5b3b62d4a65772245dc1810ef0b74f05df749c94308fa3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-01_PEC first-consumer contract and adoption evidence/_DEPENDENCIES.md",
+      "sha256": "12bb5cd64ebcce13f62357ef5871c4f86f8d88d5c0f95a130e95c4e7dd07e202"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Dependencies.csv",
+      "sha256": "42b737be974b711a72570e910b716a834782ffaba5e693dd23988163170f9122"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/_DEPENDENCIES.md",
+      "sha256": "3b1d0e1f0f578707a6a3aad94e754ed41612d3efcc1d00f65bebe53bc8dc8d19"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/Dependencies.csv",
+      "sha256": "99605b53b22a4c0a127316660bad70f32f6dc03ea560db4e3e2e1b81fdd94c1b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-01_Domains query, admission and freshness contract/_DEPENDENCIES.md",
+      "sha256": "9351dc2673dafa05e5feed3b34c875276a524133d1b992cebebad3215a134696"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv",
+      "sha256": "18b0ab8b79e9faac97161c92f0441197f9f609342c5beb5aa0e241b1158b88de"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/_DEPENDENCIES.md",
+      "sha256": "c25bbca746d422d43c0f269c688b0b0f39f6006db861f4dfd49ac01f42a54d12"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv",
+      "sha256": "96ea447bba37f1225d305569226e822123ab52d9aa2e2e5c8f48e5200e5352f9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/_DEPENDENCIES.md",
+      "sha256": "68a9010c3e1c6c008b047cc9b7c6061b0cb34de0bf3fd514d9f085c8bfaffebf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/Dependencies.csv",
+      "sha256": "8da5bece8198cc1fd74394d7764b3c0f4ac019e8e359ba5e1de6a07ffbfff15a"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-02_Standalone App candidate qualification/_DEPENDENCIES.md",
+      "sha256": "62386305c3ff65e4604561b08c3f1e9de8ba911c2904350c049800d23b7611c5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/Dependencies.csv",
+      "sha256": "eeb2059436caa01f6f7ddde6dcce105348f2da70d5c6598604fe5159c60c26af"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-05_Fleet coordination and longer-work recovery witness/_DEPENDENCIES.md",
+      "sha256": "3943a27b61854a121e9af5f4340a26997e78294ed2c2a8aa149ef829fa7f1f33"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv",
+      "sha256": "ce3218a22a8629a731a05f5d24093e9aee6660b011a63414b1589c828e4297ed"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/_DEPENDENCIES.md",
+      "sha256": "0943c9beccc31781aa20ecfd49945664001ab398c83ea6fd4d1057f482711f08"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Dependencies.csv",
+      "sha256": "a18008ceb3e1b1e7632775255cba1cd4e6842b35cd66e47bf1681167ae90bf75"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/_DEPENDENCIES.md",
+      "sha256": "6705cd6f038e6effb566800d8b49bc4af7a8be9f24c1e7114774ca564aeb5776"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/Dependencies.csv",
+      "sha256": "02d738c7ae0cecd809bac16f8e94d67354ac95a874bd3090ef62ed6a790ffbe2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace/_DEPENDENCIES.md",
+      "sha256": "bd82758a315e989473ea213c946d353542dfa43e836befa4640ee8db277c57a3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/Dependencies.csv",
+      "sha256": "98b586fb2c9432ac2d2383db800676315f15a424f3590d6f4f408a5dc406c146"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-10_Optional connector consumption witness/_DEPENDENCIES.md",
+      "sha256": "1d36ee704b0edb8bd5c09cc606184218b06c8df29d9f3500642a9b960d8b9b68"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/Dependencies.csv",
+      "sha256": "ccc0817502711be66f49b345fda0e600aa8087ce7f6016561fe58c262bd307b5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-11_Later run reconstruction witness/_DEPENDENCIES.md",
+      "sha256": "32f5860572dc640c04743548f08599306713ddaddbdfe30236570a1516079aa9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/Dependencies.csv",
+      "sha256": "8af979f146694fd743bb734a45416a02255d312c3a68e99eabe348258823780c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-12_Practitioner validation and feedback disposition/_DEPENDENCIES.md",
+      "sha256": "7ee7713ed5657755500df2e05ddc41a9877c56ba097bfecf0a04a5edfd2b1924"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/Dependencies.csv",
+      "sha256": "ec95f7c0246bc83b6a53c2a1a5d7d9c59a21550375cfdb255a814f7a339ec7c9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-01_Project execution basis and manual application/_DEPENDENCIES.md",
+      "sha256": "09cfadc160c43e31d51054f41cdb702282be257f3c4e5d30015494a63df23028"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/Dependencies.csv",
+      "sha256": "42a7edd14cb1d48c628c1f961d59a951dfd7d62c827a7459b0c318d5d4187cdd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-02_Proportionate undertaking controls and practice feedback/_DEPENDENCIES.md",
+      "sha256": "407470ba03edb25aba451568d854768130a41749ad7b8ebd8af53c1fd2b6df3b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/Dependencies.csv",
+      "sha256": "589e50c3c9ff138f9bb89ebb762bfc0f3720de91e5aaf7d0909ea744cf529ddd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-03_Shared commitments and consumer responsibility account/_DEPENDENCIES.md",
+      "sha256": "ddd0bf51db31f7c95b7602536af17d00862b116293410f41f5ab2f5a44920ccb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/Dependencies.csv",
+      "sha256": "2469ec61bdf3017d18abda563d872b9fae89c76d693e371acf0ff0095ca66011"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-10_Project definition and manual-led practice/1_Working/DEL-10-04_Project production dependency DAG/_DEPENDENCIES.md",
+      "sha256": "84047d3585009eb3226d628553e76e42b673c08499a33eb6247db2735baa245c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/Dependencies.csv",
+      "sha256": "523c702c824c0fd4271ca7fdd898ac1be304640070093ffea9c108e0198259a8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-01_Preserved history and coexistence account/_DEPENDENCIES.md",
+      "sha256": "8da9cbc6bc3d2c89a1dbdbfe2a0d2aa18da22b5caf9c09d0d3114369067406a2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/Dependencies.csv",
+      "sha256": "788eea0c3db616c06e618c5039c00c2887a3b41c71d0c956562fdb9d5ef7797d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-02_Consumer-specific renewed-basis adoption/_DEPENDENCIES.md",
+      "sha256": "dd3ad632f54056be25be0d8764df764934cb8e1ecfc635204c35194abba018f0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/Dependencies.csv",
+      "sha256": "96d3e9326705fc5d82a914a244a7651f1d07549152f31d0b8c50d8dc45d9b2e3"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-11_Adoption and replacement continuity/1_Working/DEL-11-03_Owner replacement evidence packet/_DEPENDENCIES.md",
+      "sha256": "8452503d8ef5d1def447c266c7da71efa9779dbe8d3b75e1648d1b77b03e632f"
+    }
+  ],
+  "comparison_input": {
+    "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149/Evidence/closure_summary.json",
+    "sha256": "91261192a4ec286df89ae2541a3e10b9c8a83796e9b43f0ce4fb4689307e4933"
+  },
+  "inventory": {
+    "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+    "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+  },
+  "inventory_count": 41,
+  "exempt_units": [],
+  "accepted_dag_pointer": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+    "exists": false,
+    "currency_status": "NOT_APPLICABLE"
+  },
+  "row_deltas": [
+    {
+      "DependencyID": "DEP-03-01-027",
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "UNKNOWN",
+          "after": "EXTERNAL"
+        },
+        "TargetRefID": {
+          "before": "",
+          "after": "OI-003"
+        },
+        "TargetName": {
+          "before": "Extension trace and owner/host-contract-owner retain/narrow/defer disposition",
+          "after": "Owner with host contract owner \u2014 automatic catalog-extension disposition"
+        },
+        "TargetLocation": {
+          "before": "TBD",
+          "after": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-003"
+        },
+        "Statement": {
+          "before": "Receive the extension trace and explicit owner-with-host-contract-owner disposition before claiming the all-actor/no-separate-work extension promise or fixing its dependent acceptance criterion.",
+          "after": "Receive the actual owner-with-host-contract-owner retain/narrow/defer disposition before claiming the all-actor/no-separate-work extension promise or fixing its dependent acceptance criterion."
+        },
+        "Notes": {
+          "before": "FACT: OI-003/TBD-002 identifies the unresolved matter and decision actors; producing target identity is not resolved to any App deliverable. Trace evidence and actual decision remain separate facts. No automatic-extension claim or narrower criterion selected; contract definition may record the open position.",
+          "after": "FACT: Split from the formerly combined trace-and-ruling row. The actual OI-003 disposition belongs to Owner with host contract owner, not DEL-09-09. DEP-03-01-030 separately records the trace input. Preserve the original promise pending the actual ruling; an examination report or open-position account does not supply that act. Independent contract definition and bounded trace preparation continue."
+        }
+      }
+    },
+    {
+      "DependencyID": "DEP-03-01-030",
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-01_Capability catalog and read-basis contract/Dependencies.csv",
+      "type": "ADDED",
+      "row": {
+        "RegisterSchemaVersion": "v3.1",
+        "DependencyID": "DEP-03-01-030",
+        "FromPackageID": "PKG-03",
+        "FromDeliverableID": "DEL-03-01",
+        "FromDeliverableName": "Capability catalog and read-basis contract",
+        "DependencyClass": "EXECUTION",
+        "AnchorType": "NOT_APPLICABLE",
+        "Direction": "UPSTREAM",
+        "DependencyType": "INTERFACE",
+        "TargetType": "DELIVERABLE",
+        "TargetPackageID": "PKG-09",
+        "TargetDeliverableID": "DEL-09-09",
+        "TargetRefID": "",
+        "TargetName": "External control and catalog-extension trace",
+        "TargetLocation": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-09_External control and catalog-extension trace",
+        "Statement": "Receive the candidate-bound extension trace and generated/adapted-work account from DEL-09-09 before fixing or claiming the dependent extension capability; the owner's retain/narrow/defer ruling is separately required under DEP-03-01-027.",
+        "EvidenceFile": "ScopeOfWork.md",
+        "SourceRef": "ScopeOfWork.md#Completion and Reliance Basis \u2014 Epistemology/AC-007",
+        "EvidenceQuote": "an extension trace and the owner's retain/narrow/defer ruling are needed before that dependent claim is fixed.",
+        "Explicitness": "EXPLICIT",
+        "RequiredMaturity": "TBD",
+        "ProposedMaturity": "",
+        "SatisfactionStatus": "PENDING",
+        "Confidence": "HIGH",
+        "Origin": "EXTRACTED",
+        "FirstSeen": "2026-09-28",
+        "LastSeen": "2026-09-28",
+        "Status": "ACTIVE",
+        "Notes": "FACT: Positive producer resolution from accepted G3 ScopeLedger SOW-073/SOW-203, Deliverables.csv DEL-09-09 and its OUT-002/OUT-003. This records the trace contribution separated from DEP-03-01-027; DEL-09-09 does not perform or choose the owner's disposition. Candidate-bound trace evidence remains unsupplied and the retained absolute promise is not weakened."
+      }
+    },
+    {
+      "DependencyID": "DEP-03-03-008",
+      "path": "projects/chirality-app-v4/execution/PKG-03_Host capability and operation contracts/1_Working/DEL-03-03_Local external-agent receiving adapter/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "PACKAGE",
+          "after": "DELIVERABLE"
+        },
+        "TargetDeliverableID": {
+          "before": "",
+          "after": "DEL-04-01"
+        },
+        "TargetRefID": {
+          "before": "PKG-04",
+          "after": ""
+        },
+        "TargetName": {
+          "before": "Human acts, autonomy and run evidence",
+          "after": "Operation-policy and human-act distinctions"
+        },
+        "TargetLocation": {
+          "before": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-04",
+          "after": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-01_Operation-policy and human-act distinctions"
+        },
+        "LastSeen": {
+          "before": "2026-09-27",
+          "after": "2026-09-28"
+        },
+        "Notes": {
+          "before": "FACT: Supplied adopted policy is the actual input, not a package lifecycle inference. OI-001 remains with Owner/App/SWB contract owners before operation-policy production contracts; OI-002 remains with the same owners before permission-policy implementation. No guessed DEL-04-* mapping or blanket definition hold.",
+          "after": "FACT: Adopted operation-policy meaning and representation are produced by App DEL-04-01 under accepted G3 SOW-074/179/180/181/182/235 and its OUT-001/002. The owner with App/SWB contract owners retains OI-001/OI-002 rulings before affected policy/permission implementation. Actual adopted policy must be received for policy-dependent production/fixtures; no policy value, host enforcement or satisfaction is inferred."
+        }
+      }
+    },
+    {
+      "DependencyID": "DEP-06-01-013",
+      "path": "projects/chirality-app-v4/execution/PKG-06_File-based fleet coordination/1_Working/DEL-06-01_Bounded delegation and current work-graph records/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "UNKNOWN",
+          "after": "DELIVERABLE"
+        },
+        "TargetPackageID": {
+          "before": "",
+          "after": "PKG-01"
+        },
+        "TargetDeliverableID": {
+          "before": "",
+          "after": "DEL-01-01"
+        },
+        "TargetRefID": {
+          "before": "OI-012",
+          "after": ""
+        },
+        "TargetName": {
+          "before": "Actual selected Codex supplier pin / input (OI-012)",
+          "after": "Stock Codex hosting and supplier contract"
+        },
+        "TargetLocation": {
+          "before": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv#OI-012",
+          "after": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract"
+        },
+        "LastSeen": {
+          "before": "2026-09-27",
+          "after": "2026-09-28"
+        },
+        "Notes": {
+          "before": "FACT: the required selection and its point of need are explicit. UNKNOWN denotes the unresolved supplier-pin value/input, not an invented deliverable. OI-012 remains open; no version, API field or deadline is selected. This is not a blanket gate on definition or file-route work.",
+          "after": "FACT: The selected supplier-pin producing obligation is allocated to App DEL-01-01 by accepted G3 ScopeLedger SOW-135 and Deliverables.csv, and identified by that local ScopeOfWork OUT-002/REQ-006. OI-012 remains open: the actual pin and qualification are not supplied. Required point of need is protocol generation and native-association qualification; independent definition and file-route work continue."
+        }
+      }
+    },
+    {
+      "DependencyID": "DEP-08-02-006",
+      "path": "projects/chirality-app-v4/execution/PKG-08_Domains research receiving/1_Working/DEL-08-02_Later research-to-design receiving activity/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "PACKAGE",
+          "after": "DELIVERABLE"
+        },
+        "TargetDeliverableID": {
+          "before": "",
+          "after": "DEL-02-01"
+        },
+        "TargetRefID": {
+          "before": "PKG-02",
+          "after": ""
+        },
+        "TargetName": {
+          "before": "Workflow and role portability",
+          "after": "Portable workflow contract and shared allocation"
+        },
+        "TargetLocation": {
+          "before": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-02",
+          "after": "projects/chirality-app-v4/execution/PKG-02_Workflow and role portability/1_Working/DEL-02-01_Portable workflow contract and shared allocation"
+        },
+        "LastSeen": {
+          "before": "2026-09-27",
+          "after": "2026-09-28"
+        },
+        "Notes": {
+          "before": "FACT: source-stated relationship; Source resolves only the Package interface; no constituent Deliverable is inferred. Actual received meanings/evidence remain unverified. OUT-001 produces this local research workflow; its actual availability before the later increment is retained without a self-dependency row.",
+          "after": "FACT: The portable-method meanings and contract evidence are produced by App DEL-02-01 under accepted G3 SOW-021/022/037/038/039/042/043/044/045 and its OUT-001/002/004. Actual received artifacts remain unverified. DEL-08-02 OUT-001 owns the concrete research workflow; this input does not transfer that authorship, establish compatible live execution or create a self-dependency."
+        }
+      }
+    },
+    {
+      "DependencyID": "DEP-09-01-019",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-01_Candidate examination infrastructure and evidence protocol/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "UNKNOWN",
+          "after": "DELIVERABLE"
+        },
+        "TargetPackageID": {
+          "before": "",
+          "after": "PKG-01"
+        },
+        "TargetDeliverableID": {
+          "before": "",
+          "after": "DEL-01-01"
+        },
+        "TargetName": {
+          "before": "App implementation owner-selected Codex version pin",
+          "after": "Stock Codex hosting and supplier contract"
+        },
+        "TargetLocation": {
+          "before": "TBD",
+          "after": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract"
+        },
+        "LastSeen": {
+          "before": "2026-09-27",
+          "after": "2026-09-28"
+        },
+        "Notes": {
+          "before": "FACT: Point of need is protocol generation and qualification. The actual version and decision artifact are unresolved; OI-012 is a source issue identity, not an invented supplied pin. No blanket hold on support definition.",
+          "after": "FACT: App DEL-01-01 is the selected-pin producer under accepted G3 SOW-135 and its OUT-002/REQ-006. The actual version, decision artifact and qualification remain unresolved under OI-012 before protocol generation and qualification. Target identity does not select a historical version or hold independent examination-support definition."
+        }
+      }
+    },
+    {
+      "DependencyID": "DEP-09-06-015",
+      "path": "projects/chirality-app-v4/execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-06_Connected activity contract and workflow round trip/Dependencies.csv",
+      "type": "MODIFIED",
+      "fields": {
+        "TargetType": {
+          "before": "PACKAGE",
+          "after": "DELIVERABLE"
+        },
+        "TargetDeliverableID": {
+          "before": "",
+          "after": "DEL-04-03"
+        },
+        "TargetRefID": {
+          "before": "PKG-04",
+          "after": ""
+        },
+        "TargetName": {
+          "before": "Human acts, autonomy and run evidence",
+          "after": "Content-bound decisions and compact run records"
+        },
+        "TargetLocation": {
+          "before": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv#PKG-04",
+          "after": "projects/chirality-app-v4/execution/PKG-04_Human acts, autonomy and run evidence/1_Working/DEL-04-03_Content-bound decisions and compact run records"
+        },
+        "Notes": {
+          "before": "FACT: Source identifies a package contribution; no individual deliverable or package-completion sequence is guessed. Actual tool/record availability and real acts are not established by local definition.",
+          "after": "FACT: App DEL-04-03 produces the shared content-bound act/run-record format and App recording contribution under accepted G3 SOW-094/095/096/143/186 and its OUT-001/002. Host-specific recording and receipts remain with the external SWBPIPE host, and the person performs the actual human act. Identified record instances and their actual act evidence are still required at handoff/witness; no actor, delivery or completed witness is inferred."
+        }
+      }
+    }
+  ],
+  "preservation": [
+    {
+      "DeliverableID": "DEL-01-01",
+      "source_sha256": "eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773",
+      "status_sha256": "c9eefe2eda0469d70d1d7d2c8448e507047777a05036070eb19b27ed6db2a483",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-01-02",
+      "source_sha256": "057ae2fdf4c3e98c961214739d2170a7c8ab29a530208f0c476af15125d6c6b4",
+      "status_sha256": "76353a510b0de5d55fb052d14e1eb6e4c153af6a2a012940b2e3f1955cef1d2a",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-01-03",
+      "source_sha256": "b5d533cb3dbea97b37950792ad2c68f42bf6023effa4ac894209a1ef3fc605f2",
+      "status_sha256": "52ea2e2fa6506ad365a7c38ba3ebce2dda4931225bd93fc2f74e9508cef2fb3c",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-01-04",
+      "source_sha256": "7261a58f93d4531ca080c16d7fe088818871c3444085bade2eb2350ace94e60a",
+      "status_sha256": "12de2a18b401688c4309e1dde485f6deea721696f0098d232535100c09f06c60",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-01-05",
+      "source_sha256": "baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6",
+      "status_sha256": "fdd04e5ef2ed0353c178464c51d0c06810e97a80f8e5e9b44ddea97d7de97d9c",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-01-06",
+      "source_sha256": "08e30b97baeb06ae57b6166d6358f5c68ad1d934102df7ea094ce6cc57abd795",
+      "status_sha256": "0136a6c9a800b3110824f58107a00e05fd83c01c2a7e101b33cb3b0602f6de3e",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-02-01",
+      "source_sha256": "080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294",
+      "status_sha256": "88cc3ed2caa631f5e5d719c15d6927769bf1def80b8fb4ffb5a6b20060c13176",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-02-02",
+      "source_sha256": "b0a1a8a4aa6f53057c8db4bb33c65c5e697f45ae509088a570a70ff8cee295ec",
+      "status_sha256": "a4efafd9d06802f6b1d9ac62401c7592443af35580c9795f42f6cd9f7f34ccd1",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-02-03",
+      "source_sha256": "9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb",
+      "status_sha256": "7956a588fd26dfeb059b2bc143438ddefd38fae52b8a905328207447248efdfb",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-02-04",
+      "source_sha256": "3acfaa62a3bbf0038d4f3c94416925bf5ff940bb8771b5454ff1ea80e6e16601",
+      "status_sha256": "c38a7fdb81047d9c2ea5d06f26a8d617f1beb828fdff7cb4e48ae1d54b8c9da8",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-03-01",
+      "source_sha256": "179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84",
+      "status_sha256": "708ad000df1d05b5e2f24c7b1ea0275430e7eed2d579399b58d9a4ee0dd18d96",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-03-02",
+      "source_sha256": "42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a",
+      "status_sha256": "42a063894ac362cfde7ecf25cda09207b597cf5f22f417de0da5ca88b922f7fb",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-03-03",
+      "source_sha256": "5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6",
+      "status_sha256": "e095e9303a85222160eed0f22cc671923a48b45c86a081a7ddbd7a03c4cd9c72",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-03-04",
+      "source_sha256": "203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436",
+      "status_sha256": "1de7546e923c548d679d455fcee9e20c9ad40e9eb00ebfd64eb51f729205e976",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-04-01",
+      "source_sha256": "fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6",
+      "status_sha256": "bee31e548dbec0dd6dd1d0f1b83356b01cd03935247e5592388139295a57c0f1",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-04-02",
+      "source_sha256": "23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21",
+      "status_sha256": "32d0620f84715891f97971df4b533388e6b7100e2258535804db5302fd65e391",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-04-03",
+      "source_sha256": "74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1",
+      "status_sha256": "da6ffba6d565e78261be0df21f8085e32b3af5d2c092c974dc9f4f83e3fb750b",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-05-01",
+      "source_sha256": "6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568",
+      "status_sha256": "7070599f83779ceeb2ab322d24705a6b3c2599a8bc2a347613037ab7f8b0ccd0",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-05-02",
+      "source_sha256": "5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb",
+      "status_sha256": "3a878534f3f636754594b86f7ecc6d5421286e98f6a144b8fd8d345ced48da9b",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-06-01",
+      "source_sha256": "50c88c9f5c753300e8f5dce403d4003cf119e28c4ee47e752b87bcf18ea38df9",
+      "status_sha256": "e1cfbc6aad2c9159e83df22d891197915453447ccfa094929a55afad5d6baf86",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-06-02",
+      "source_sha256": "3f6bb7b8344a83158530758dea6c7f69e797c30147458a8ae506359589c8ded7",
+      "status_sha256": "b47497eb800c67e502b28ab93f955554a53d90b33920107a8015e7552586b221",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-07-01",
+      "source_sha256": "5e2fba1d2191d97832a3f09feeb91f4f4231775a6a99b2b6c769a54c43edc5e3",
+      "status_sha256": "b6be127550d6a053433edc2285b2ea2d081777ae3d7ca14ea4177f52c2d3ad8a",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-07-02",
+      "source_sha256": "6b618f9a0300794b8edd4c6f2fb3e50a9d51f3647c446abc668755a25cd12151",
+      "status_sha256": "5f6d9631a727f5ebfed342b6781daa0bc7e353f63a3fb99eb42ab0c1158ef7a4",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-08-01",
+      "source_sha256": "581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1",
+      "status_sha256": "ef3a7fea9c4df4635682cdd7e0f98aeb2560b3a0f6f9d339b818d90d341fc847",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-08-02",
+      "source_sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006",
+      "status_sha256": "cf6bab2a9060fe32c744f37a84ea4065b0ea533303c9f10ffb1a8f8a850d583c",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-01",
+      "source_sha256": "8e53669468bd5885739ceaeb633dc5a3b134a04f1bf862235d8d2272dd5f658a",
+      "status_sha256": "a7f84cbcb02e6ade314bf5e6445c26e84a64514822f4c107abefa282aca74e9e",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-02",
+      "source_sha256": "327616c5f3d816339fa48505e5c67bbd938a338e7543120d16f4ba94ac55ed8d",
+      "status_sha256": "17dd9a7b6386313b8fc37e70a4765c42aec5d1ffd28d0dd011252aa0f19d3b34",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-05",
+      "source_sha256": "35c8ea5ae68d65680f5305e7c7465dea50bc9eb966003a2ca027354ce2552063",
+      "status_sha256": "aa8751890d4069b720fbbf8900025b5a52fb14b3f82afe5f02f823efc5f9ff17",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-06",
+      "source_sha256": "511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37",
+      "status_sha256": "b3b29c31a0fad6c06a996f9a1c9bfd9ddffec0716066c06177bd659f42186740",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-07",
+      "source_sha256": "36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0",
+      "status_sha256": "ea0503bb7119d51c858f7b168e7100bb6882d5ef9a9a9879ea75cc36d413786e",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-09",
+      "source_sha256": "082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d",
+      "status_sha256": "d4d8f31833331cd63bc5933bbd6a3ec52864b4fed39cfc14868d3c3a431720e4",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-10",
+      "source_sha256": "a976bf18fba98d137086628102b9995d0b0018346019b8b64a89eb52a4c166aa",
+      "status_sha256": "07113ef2d2127d8822615035c67e3823b60da46a0f1faa745b562b6464486ee3",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-11",
+      "source_sha256": "e4ee1a5779af66fe085fefd12cf3b91dad2c8fdedcad6211ea613f2d188f09ae",
+      "status_sha256": "48570d4d7c3e359f979e025104effefd0a1ea6991f6b2d282095f7826b6e7b13",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-09-12",
+      "source_sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1",
+      "status_sha256": "dbd8a9ff243fd63df4117fa0aaf5a20d28b15d5e854e69ccc07a6f8d947fe9b0",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-10-01",
+      "source_sha256": "7a89fc3874386d42aacd2ddbc2b10b96fca2dac126ff9a8c4c717a89d22b9b47",
+      "status_sha256": "8c6c167eda5d407a17f793ffd2fa2329dfde0c7a96639e65f6b0cfeb7ebb3724",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-10-02",
+      "source_sha256": "d93ec4c043b783c01675e7fe27023969ae68a6cd7907ceb76f91b426ccc20fad",
+      "status_sha256": "d01d7306bfbeeb3a5865d352a85b484307fb27921ca4e8940706f8b23ddb80c7",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-10-03",
+      "source_sha256": "4e16817e71f1df39afd3e3dd8175a04e9d4cc2384bf42065e91e16a5452b5f92",
+      "status_sha256": "d7e7b4408d8c3a0056615453132356a6ddf5ebdd232d60e5eb6cd3b17fb91a83",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-10-04",
+      "source_sha256": "fb62502a0f59b226607ed6a04cbbd9ffbafab35edcfe45a1a7307cfcc80d2177",
+      "status_sha256": "d0c3d5de55d6cf09e631eea41a68030297e42d47b82ea16576d18362635596a3",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-11-01",
+      "source_sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309",
+      "status_sha256": "97f5ff0c91077fd9191e44d5900c0128c95cca98c7b8881bc1078a348e08b44c",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-11-02",
+      "source_sha256": "2d962646f8b24a1b76fcd30307859f7c7632c25e78864c28b5fd04fb687a057c",
+      "status_sha256": "dd2940ef11868fe459232136a2b2a5a08468647fa01cc19aa9da93dc0cdecef7",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    },
+    {
+      "DeliverableID": "DEL-11-03",
+      "source_sha256": "0177354357b07ea177491cffc2b1c75ffac578e179ba96e63e91d6ba34dcf5b6",
+      "status_sha256": "0d7168909d4de153d32db61e6f9499de3bc5cb45404c900bbf7a64eb576f2d49",
+      "source_unchanged_from_prior": true,
+      "status_unchanged_from_prior": true,
+      "declared_prefix_unchanged_from_prior": true,
+      "mode": "FULL_GRAPH",
+      "correct_parent_count": 1
+    }
+  ],
+  "counts": {
+    "rows": 759,
+    "anchors": 355,
+    "active_execution": 403,
+    "retired_execution": 1,
+    "execution_by_target": {
+      "EXTERNAL": 144,
+      "DELIVERABLE": 201,
+      "PACKAGE": 18,
+      "DOCUMENT": 26,
+      "UNKNOWN": 14
+    },
+    "active_maturity": {
+      "TBD": 208,
+      "INITIALIZED": 195
+    },
+    "active_satisfaction": {
+      "TBD": 278,
+      "PENDING": 125
+    },
+    "intra_scc_rows": 66,
+    "intra_scc_arcs": 52,
+    "newly_intra_scc_rows": 18
+  },
+  "semantic_backcheck": {
+    "verdict": "PASS for authorized target-resolution and actor/trace split fidelity; no concrete source/register defect established",
+    "scope": "Six repairs, producer/consumer clauses and accepted allocation rows; 18 newly intra-SCC rows with actual source support. Prior 48 intra-SCC semantic checks and unchanged non-topological checks reused. No full 403-row/262-scope/PRD/provider audit.",
+    "limits": "Target allocation is not supplied artifact, actual version, adopted policy, human act or witness completion. Remaining 32 PACKAGE/UNKNOWN entries preserve A/B/C distinctions and point-of-need limits."
+  },
+  "case_lineage": [
+    {
+      "SCC_ID": "SCC-001",
+      "members": [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-001",
+          "overlap": [
+            "DEL-01-01",
+            "DEL-01-05"
+          ],
+          "exact_match": true
+        }
+      ],
+      "members_not_in_prior_cases": [],
+      "treatment": "EXACT_MEMBER_MATCH_ONLY"
+    },
+    {
+      "SCC_ID": "SCC-002",
+      "members": [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-002",
+          "overlap": [
+            "DEL-01-04",
+            "DEL-02-01",
+            "DEL-02-02",
+            "DEL-02-03",
+            "DEL-02-04",
+            "DEL-04-02",
+            "DEL-04-03",
+            "DEL-05-01",
+            "DEL-05-02"
+          ],
+          "exact_match": false
+        },
+        {
+          "CaseID": "SCC-CASE-004",
+          "overlap": [
+            "DEL-03-01",
+            "DEL-03-02"
+          ],
+          "exact_match": false
+        }
+      ],
+      "members_not_in_prior_cases": [
+        "DEL-03-03",
+        "DEL-09-09"
+      ],
+      "treatment": "CHANGED_CASE_MATCH_REQUIRES_MANAGER_DISPOSITION_NO_AUTOMATIC_MERGE"
+    },
+    {
+      "SCC_ID": "SCC-003",
+      "members": [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-003",
+          "overlap": [
+            "DEL-01-06",
+            "DEL-09-01"
+          ],
+          "exact_match": true
+        }
+      ],
+      "members_not_in_prior_cases": [],
+      "treatment": "EXACT_MEMBER_MATCH_ONLY"
+    },
+    {
+      "SCC_ID": "SCC-004",
+      "members": [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-005",
+          "overlap": [
+            "DEL-07-01",
+            "DEL-07-02",
+            "DEL-08-01"
+          ],
+          "exact_match": true
+        }
+      ],
+      "members_not_in_prior_cases": [],
+      "treatment": "EXACT_MEMBER_MATCH_ONLY"
+    },
+    {
+      "SCC_ID": "SCC-005",
+      "members": [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-006",
+          "overlap": [
+            "DEL-10-02",
+            "DEL-10-04"
+          ],
+          "exact_match": true
+        }
+      ],
+      "members_not_in_prior_cases": [],
+      "treatment": "EXACT_MEMBER_MATCH_ONLY"
+    },
+    {
+      "SCC_ID": "SCC-006",
+      "members": [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      "overlaps": [
+        {
+          "CaseID": "SCC-CASE-007",
+          "overlap": [
+            "DEL-11-01",
+            "DEL-11-03"
+          ],
+          "exact_match": true
+        }
+      ],
+      "members_not_in_prior_cases": [],
+      "treatment": "EXACT_MEMBER_MATCH_ONLY"
+    }
+  ],
+  "supplemental_validation": {
+    "command": [
+      "python3",
+      "-B",
+      "tools/validation/validate_decomposition_registers.py",
+      "projects/chirality-app-v4/execution",
+      "--registers-dir",
+      "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical",
+      "--families",
+      "SCH,EVQ,DRB",
+      "--strict",
+      "--json",
+      "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/register_validation.json"
+    ],
+    "exit_code": 0,
+    "subject_status": "PASS",
+    "errors": 0,
+    "warnings": 0,
+    "report": {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/register_validation.json",
+      "sha256": "4fc1dbaee77379cca85fa123630aa064494d3bf62f5115e70d9bfcf1305fd920"
+    },
+    "limit": "SCH/EVQ/DRB against frozen canonical Deliverables; no broad XRG/ContextBudgetQA re-audit. Prior unaffected anchor/scope checks reused after unchanged source/anchor verification."
+  },
+  "custom_check_method": {
+    "diff": "Parse all 41 prior/current CSVs keyed by DependencyID; capture every changed field and added row; assert no deletion and no changed fields beyond authorized target/Notes/LastSeen plus R6 Statement.",
+    "preservation": "Compare all 41 current SoW/status bytes and declaration prefixes with git show c1038ae5:path; exact quote substring checks for all 759 rows.",
+    "manifest": "SHA256 every working member and git show 85dcc17c:path bytes against supplied 130-entry manifest.",
+    "lineage": "Use registered analyzer SCC membership only; compare exact/intersecting sets to read-only case records, do not reimplement SCC algorithm."
+  },
+  "output_evidence": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/bidirectional_pairs.csv",
+      "sha256": "0c14ef4afbc7d5c5ec5584cbfc259e34b3ff006747921aa941d21be0b84b31aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/closure_summary.json",
+      "sha256": "55b3a1ccd7553c5636a53a2cf36a7aa77c5c208f20db809f3c72ebae29c39ed0"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/coverage.csv",
+      "sha256": "d1fbd7168e91f03bbd4a2b86e8bbaf10e84e0d675b1f55d26fa4627203260689"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/cycles_sample.csv",
+      "sha256": "baaf2e767196aa1fe71682967c9f517fd1a939e58c5cc74de9c509d805245f0b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/declared_disagreements.csv",
+      "sha256": "25f24f398fafb2796522f1c2e57ab4967d6bd0d2a74c7db097033a99a154db1e"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/declared_only.csv",
+      "sha256": "eda0dfdb6c8d836b12a62d0970fa69e5c55b4651f39f07ab849f707d2d1478d8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/declared_unread.csv",
+      "sha256": "5a27b1a738093a62a08a6bd46feafba2cb88607673725e1dcb0d8fde47ddefb1"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/hubs.csv",
+      "sha256": "a5b83ca60233fa9b8af152794854c9f99ecd6deca8d5a034c2376411be2aced9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/id_normalization.csv",
+      "sha256": "adfc7cb090f6d0e18c2474fe703c9081d5176ce88a5ac2ea7933c0439300841c"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/isolated.csv",
+      "sha256": "2f5dc27ce8e121fe54a0fbab33c2de421476e1adc67f8da7a11104e82b3410fa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/orphans.csv",
+      "sha256": "c7249203528bf437056a6a103839fd2987671722a46f017f227ca1c12970b360"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/outside_scope.csv",
+      "sha256": "c7249203528bf437056a6a103839fd2987671722a46f017f227ca1c12970b360"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/register_validation.json",
+      "sha256": "4fc1dbaee77379cca85fa123630aa064494d3bf62f5115e70d9bfcf1305fd920"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_TARGETS_2026-09-27_2237/Evidence/scc_summary.csv",
+      "sha256": "d97c6415c304c7555806e2f3f5f8465bfecbcabdfbb539f74768a8999c36258d"
+    }
+  ]
+}
