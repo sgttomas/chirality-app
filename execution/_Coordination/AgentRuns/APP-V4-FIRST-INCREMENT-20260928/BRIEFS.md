@@ -349,3 +349,60 @@ File: `Design/ADAPTER_ENABLEMENT_AND_RECEIVING.md`. Contents:
   live-control JSON CLI), cited as evidence only and not as a commitment.
 
 Receivers: DEL-09-09, DEL-03-04.
+
+## W9 — DEL-09-06 connected activity + DEL-09-09 external trace cases + consolidated relay
+
+Inputs: the Wave-1 v0.3 files at `main` (merge `98b1723b`), plus W7 and W8 at
+branch commit `HEAD` (DEL-02-03 EXECUTION_COMPATIBILITY.md, DEL-03-03
+ADAPTER_ENABLEMENT_AND_RECEIVING.md). Read them with `git show <commit>:<path>`
+and cite each commit and sha256.
+
+**Write scope:**
+- DEL-09-06 `Design/CONNECTED_ACTIVITY_CONTRACT.md`
+- DEL-09-06 `Design/RELAY_QUESTIONS_SWBPIPE.md`
+- DEL-09-09 `Design/EXTERNAL_TRACE_CASES.md`
+
+Do **not** edit `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md`; closeout points it
+to the relay file.
+
+**DEL-09-06 contract (OUT-001/OUT-002/OUT-004).** A draft increment contract for
+the first connected activity:
+- inspect a model;
+- propose an adjustment;
+- request a non-mutating check;
+- meet an intervening edit;
+- recover the actual outcome and receipt.
+
+Map each step to the App/shared contributions (C, P, ACT, RS, AS, LOOP, PANEL,
+WD, EXEC, ADAPTER, HOSTING) and to the host contribution it needs. Keep the
+concrete operation, autonomy and environment `UNRESOLVED{OI-021}`; the
+supports/run adjustment on FX-PIPE-01 is a proposed fixture only. State the
+owner/check allocation, the staging without PEC or Domains, the evidence
+standing, and what the V4-EXM-14 round-trip witness will need (designed, not
+run).
+
+**Relay file.** A single, deduplicated question set for the SWBPIPE owner, for
+human relay. Consolidate:
+- LOOP §13 Q-1…Q-7;
+- PANEL §8 Q-1…Q-9;
+- ADAPTER §12 XQ-1…XQ-12;
+- ACT U-04;
+- EXEC's host items;
+- R2-20;
+- the OI-021 activity-definition questions from HANDOFF_SWBPIPE_DOMAINS.md.
+
+For each question give: ID, question, the App files and IDs that depend on it,
+why it matters, its point of need, what the App assumes meanwhile, and the
+answer form requested. Put first the questions that block positive checkpoint
+cases, namely capture-evidence reference and constraint receipt. Mark the file
+PREPARED FOR HUMAN RELAY — not delivered.
+
+**DEL-09-09 cases (OUT-001/002/003).** Designed, not-run definitions for:
+- the V4-EXM-25 external control suite (inspect → submit → engineer accepts →
+  receipt, with stale / duplicate / interruption / unknown cases);
+- the V4-EXM-24 one-new-operation three-surface trace plan and comparison
+  categories;
+- the generated-versus-adapted work account structure.
+
+Keep the OI-003 extension ruling separate: record it, never perform it. Use
+FX-PIPE-01 and the ADAPTER fixture inventory. Show every input still missing.

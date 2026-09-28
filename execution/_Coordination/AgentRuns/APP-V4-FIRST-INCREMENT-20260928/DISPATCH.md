@@ -111,9 +111,13 @@ edits without a version bump and reported no new findings.
 | Node | Type | Scope | State |
 |---|---|---|---|
 | V2 | general-purpose independent reviewer | Bounded consistency check of v0.3 at `ba0b37123` → `reviews/V2.md` | RETURNED: MERGE AS v0.3 DRAFTS; 0 BLOCKING / 1 MAJOR / 13 MINOR |
-| W7 | general-purpose TASK | DEL-02-03 `Design/` (inputs pinned at `ba0b37123`) | ACTIVE |
+| W7 | general-purpose TASK | DEL-02-03 `Design/` (inputs pinned at `ba0b37123`) | RETURNED v0.1 (934 lines); fence verified |
 | W8 | general-purpose TASK (read-only `gh pr view 885` permitted) | DEL-03-03 `Design/` | RETURNED v0.1 (944 lines); fence verified |
 
 Wave-2 files are kept out of PR #1039, which carries Wave 1 only.
 
 PR #1039 merged 2026-09-28 as merge commit `98b1723b1b263cf3672db5fbb83b9e670773edc2` (head `1c36b6d97`).
+
+| W9 | general-purpose TASK | DEL-09-06, DEL-09-09 `Design/` (3 files) | RETURNED (461/796/391 lines); fence verified |
+
+Owner decision 2 was recorded after an interrupted session turn (auto-mode classifier outages). The owner then directed "continue, defer SWBPIPE until final review".

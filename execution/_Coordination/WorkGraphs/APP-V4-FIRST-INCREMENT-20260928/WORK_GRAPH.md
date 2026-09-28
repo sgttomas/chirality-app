@@ -57,7 +57,11 @@ a recorded WORKING_ITEMS consultation or by the human.
   non-gating; they organize co-development and receiver comparisons, not
   readiness verdicts.
 - **Owner decisions:** [OWNER_DECISIONS.md](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md)
-  — Option A; OI-001 five reserved acts; OI-002 App user setting / none in
+  — DECISION-2: D5 user flexibility (App conversation may send host content to
+  its selected model; destination recorded, not gated); D6 App-side holds
+  deferred to SWBPIPE SQ-02. Owner direction (chat, 2026-09-28): "continue,
+  defer SWBPIPE until final review" — relay after F1 review. DECISION-1:
+  Option A; OI-001 five reserved acts; OI-002 App user setting / none in
   hosts; OI-012 pin `0.158.0` with spike W11. Remaining open: OI-003, OI-008,
   OI-009, OI-013, OI-014, OI-018, OI-021.
 
@@ -96,9 +100,9 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | R1 Repair to v0.2 against V1 findings | Same Design folders | V1; [R1_RESOLUTIONS](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md) | Findings dispositioned; affected comparisons rechecked at IR1 | COMPLETE (v0.2 × 9 files); cross-file items → [R2_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R2_CANDIDATES.md) |
 | P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
 | P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2, R3, V2 outputs | V2 verdict MERGE (0 BLOCKING); CI green | PR merged under standing Git authority | COMPLETE — [#1039](https://github.com/sgttomas/chirality/pull/1039) merged; CI 9/9 passing; review V2 at `ba0b37123` (later commits were records only) |
-| W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Compatibility report, checkpoint hold, transfer trace; resolves the W7-held items | ACTIVE |
+| W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Compatibility report, checkpoint hold, transfer trace; resolves the W7-held items | COMPLETE (v0.1) — `DEL-02-03/EXEC-v0.1`; findings F-1…F-16 → A1/C1 |
 | W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | Wave-1 v0.3 at `ba0b37123` | Enablement states; policy cases; transport-neutral fixtures; MCP/CLI open-choice register | COMPLETE (v0.1) — `DEL-03-03/ADAPTER-v0.1`; 12 relay questions (XQ); findings F-1…F-12 → A1 / C1; U-X2 data boundary → owner |
-| W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | PLANNED |
+| W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | COMPLETE (v0.1) — `DEL-09-06/CA-v0.1`, `DEL-09-06/RELAY-v0.1` (27 questions; PREPARED, not delivered — owner defers relay until final review), `DEL-09-09/XT-v0.1` |
 | W10 Host receiving matrix and checklist | DEL-03-04 `Design/` | W1–W9 | Every receiving-map row cites a contribution version or `UNRESOLVED` | PLANNED |
 | W11 Codex pin spike | DEL-01-01 `Design/` + generated types location | Owner decision D4 (OI-012) — given | Types generated at pin; observed protocol facts vs published claims | COMPLETE — `DEL-01-01/PIN-SPIKE-v0.1`; 18 findings into DEL-01-01 v0.2 |
 | A1 Wave-1 residual sweep (V2 MAJOR-1, m-1…m-13) | Wave-1 `Design/` files | V2 | Residuals fixed or carried with reason | PLANNED |
@@ -127,10 +131,9 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: W7 running. When it returns: W9 (connected activity + relay
-  consolidation) ∥ A1 (Wave-1 residual sweep incl. W7/W8 findings); then W10
-  (guide); V3; PR-3; then owner question on the App-conversation data boundary
-  (U-X2 / DEL-03-03 F-12); D0; C1; M1; RC; F1.
+- Next work: R4 rulings → A1 sweep (Wave-1 + W7/W8/W9 residuals, D5/D6
+  application) ∥ W10 (guide); V3; PR-3; D0; C1; M1; RC; F1; then the owner
+  relays the SWBPIPE question file.
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.

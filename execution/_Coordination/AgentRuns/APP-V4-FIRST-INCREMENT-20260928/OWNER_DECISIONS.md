@@ -48,3 +48,35 @@ rows and the frozen decomposition snapshot are not rewritten by this record;
 the bounded closeout (C1) reconciles the pointers. Remaining open matters are
 unchanged: OI-003, OI-008 (App implementation owner; proposal from W6), OI-009,
 OI-013, OI-014, OI-018 and OI-021.
+
+---
+
+# Owner decisions (2) — `APP-V4-FIRST-INCREMENT-20260928-DECISION-2`
+
+Owner: Ryan. Recorder: HELP_HUMAN. Custody: the owner's answers to a structured
+question in the active Claude Code chat, transcribed on 2026-09-28. The
+package presented was [DECISIONS_PENDING_2.md](DECISIONS_PENDING_2.md).
+
+| Question presented | Owner's answer (exact text) |
+|---|---|
+| D5: When the App's Codex reads host model content through the external-agent channel, that content reaches the App conversation's model, which may be a cloud model. What boundary should apply? | "These are all open source projects and no worries about the code leaking.  I want to emphasize user flexibility here." |
+| D6: Stock Codex dispatches tool calls itself, so the App has no guaranteed point to hold a run before a tool call at a workflow checkpoint. How should checkpoints be enforced in the first increment? | "Defer to SWBPIPE answer" |
+
+## Effects (recorder's reading; the D5 answer was free text)
+
+- **D5 — user flexibility.** Host content read through the external channel may
+  flow to whatever model the person has selected for the App conversation,
+  including a cloud model. The App imposes no local-only restriction and does
+  not gate enablement on the model destination. For truthfulness, not as a
+  gate, the App records each run's model destination and shows it in the
+  channel status (DEL-03-03, DEL-04-03). A host may still restrict its own
+  channel; that is host policy (DEP-001). V4-HOST-02 continues to govern the
+  host's embedded agent. This reading follows option A without its "disclosed
+  at enablement" gating element, because the owner emphasized flexibility.
+- **D6 — deferred.** How the App holds its own runs at checkpoints stays
+  `UNRESOLVED{D6}` until the SWBPIPE owner answers relay question SQ-02, which
+  asks about constraint receipt and host-side holds. Meanwhile the drafts:
+  - carry per-checkpoint *hold support*;
+  - never claim an App hold they cannot enforce;
+  - record "action during hold";
+  - adopt neither interposed App code nor reliance on `turn/interrupt`.
