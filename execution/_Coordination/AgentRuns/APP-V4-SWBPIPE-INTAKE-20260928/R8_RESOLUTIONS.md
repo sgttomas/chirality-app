@@ -191,3 +191,32 @@ R2-13 is amended:
 - **Owner files:** EXEC first (the phasing and hold values); WD next (the
   guidance semantics and the `governed` flag); then all other files. GUIDE is
   re-pinned last.
+
+## R8-11 A1 residuals (integrator, after EXEC-v0.4 / WD-v0.6)
+
+1. **PH-6 and PH-8 are confirmed (INTEGRATION).**
+   - Recording that an act's standing *lapsed* when its subject changed is
+     record truthfulness (V4-REC-05), not enforcement, so it continues in
+     Phase 1.
+   - Disposition words may label records.
+   - Re-hold, which stops a run again after a lapse, is governance-phase only.
+2. **Binding in Phase 1 (INTEGRATION).**
+   - D2's "no autonomy grant widens past a reserved act" binds, and the host
+     enforces it through its operations.
+   - Its "or a declared checkpoint" half, WD I-7 and V4-HI-42, are **guidance
+     in Phase 1**. The host's own treatment decides. They bind only for
+     governed checkpoints in the governance phase.
+3. **Phase-1 consequences confirmed.**
+   - An invalid checkpoint declaration is reported as a **declaration finding**
+     (invalid, with its FB code). It gives no hold-support value and does not
+     make the workflow *not established* in Phase 1.
+   - MT-15 and L-WDEX-15 stay *not established* in Phase 1. The reason is the
+     unresolved harness-capability reference (U-08), a required-tool matter,
+     not a hold.
+4. **SoW wording.** The EXEC REQ-002, REQ-003 and AC-002 wording that assumes
+   the run waits (EXEC F-29) is carried to the successor SoW route as a
+   proposal. No SoW is edited.
+5. **Fixture values read as if governed.** The governance-phase values on X
+   read the fixture's checkpoints as if they were governed. Say so where the
+   values are stated.
+6. **Accepted:** the R8-2 override of I2 P2.16's wording.
