@@ -1,9 +1,9 @@
 # Stock Codex hosting boundary
-- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.2
+- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.3
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, OI-008 *proposal*, local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
 - Basis: branch base 6e18505e3; ScopeOfWork.md sha256 eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
-- Consumed inputs: DEL-01-01/HOSTING-BOUNDARY-v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` (sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf) with `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
+- Consumed inputs: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
 - Receivers: DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022 and DEP-01-01-024; DEL-01-06 (distribution identity for packaging) via DEP-01-01-023; DEL-02-04 (additive guidance, seam S-6; register row missing, V1-C RF-6, routed to C1); DEL-02-01 / DEL-05-01 / DEL-05-02 (J9: guidance carriage, answer origin); App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then.
 
 **Reading note.** Element names defined by this file (for example *request
@@ -28,6 +28,20 @@ that contain "approval" (for example `item/commandExecution/requestApproval`)
 are quoted as supplier names and denote A14 subjects.
 
 ---
+
+## Changes from v0.2
+
+| Source item | Change in v0.3 |
+|---|---|
+| R2-22 / IR1C-18 | §6.1 table, new rule **R9** (answer origin by kind: A14 → R7; person-input kinds answered with content only by the person, App rules may only decline/error; named service kinds such as `currentTime/read` answerable by a named App rule), §6.4 answer row, VC-14 and new VC-22 made consistent; "standing as act evidence" for user-input/elicitation stays open (WD U-25, W7); U-20 extended |
+| R2-22 / IR1C-19 | Header cites the current committed PIN_SPIKE revision (0e090a4c…b115) and records that v0.2 consumed the pre-correction revision (3d66ad28…f3cf) and IR1-C reviewed 26ea0c2f…0334 |
+| R2-22 / IR1C-19 | F-17 retired (the spike's stale row was corrected by the parent) |
+| R2-22 / IR1C-20 | §10 rebuilt on the spike's two vocabularies (standing; verdict consistent / refines / contradicts); P-01 is **refines**, as the spike says; no verdict reclassified |
+| R2-22 / IR1C-04 | VC-07 and §7.3 cite `generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d2…2608): committed tree 2 OK / 2,357 not committed / 0 mismatched; 1,605 TS files OK from the scratch copy; the W11 SV-02 figure is labeled as describing the never-committed proposed form; manifest `# COMMITTED` comment noted as superseded |
+| R2-11 | D3 attribution narrowed: §2 row, H9, R7 and §11 separate what D3 says (modes are the user's own Codex setting; tool execution only; never stand in for a reserved or professional act) from the R-2 restrictions (grant governs host operations only; no App-rule affirmative A14), marked DERIVED/INTEGRATION |
+| R2-8 | R8, S-7 and §11: A14 settlements reach evidence only as run-record tool-permission entries (DEL-04-03 R13), never a human-act record or a grant; App runs only |
+| IR1C-21 | Addressed to PIN_SPIKE, not this file; the parent's git-operations correction is reflected only through the cited revision |
+| Other | "R1–R8" references updated to R1–R9 (§6.5, §12) |
 
 ## Changes from v0.1
 
@@ -122,7 +136,7 @@ approval". Checked against the v4 basis and the owner's rulings:
 | Every server request answered; unknown → explicit error | ARC §3 properties, V4-EXE-02, SOW-123 (DEL-01-02) | Settled; register rules R1–R3 |
 | Native items, no translated vocabulary | V4-ARC-05, V4-APP-04, PRD §6, ARC §7 | Settled; H6 |
 | No notification filtering; unfamiliar notifications inspectable | Consistent with M-2; not stated as a v4 prohibition | **Definition choice** (H7); the supplier facility exists at 0.158.0 and is not used; open to the App implementation owner (U-07) |
-| Approval/sandbox policy is the user's choice per project/turn | **Owner decision D3** (OI-002), first increment | **Settled by ruling.** In the App, routine tool-permission and sandbox modes, including any classifier-based mode, are the user's own Codex setting per project/turn, carried unchanged. They govern tool execution only and never stand in for a reserved or professional act. The DEL-04-01/04-02 autonomy grant governs host operations only (R-2) |
+| Approval/sandbox policy is the user's choice per project/turn | **Owner decision D3** (OI-002), first increment | **Settled by ruling.** In the App, routine tool-permission and sandbox modes, including any classifier-based mode, are the user's own Codex setting per project/turn, carried unchanged. They govern tool execution only and never stand in for a reserved or professional act. DERIVED/INTEGRATION, not D3 text (R2-11): the DEL-04-01/04-02 autonomy grant governs host operations only, and no App rule answers A14 affirmatively (R-2 D3 bullet) |
 | Additive instruction inputs preserving Codex base instructions | Deliverable interface "PKG-02 supplies guidance/workflow inputs"; production is DEL-02-04 | Carried unchanged through supported inputs, with per-thread/turn content identity evidence (§8.2) |
 
 ## 3. Invariants (hold in every state and every candidate)
@@ -173,7 +187,8 @@ approval". Checked against the v4 basis and the owner's rulings:
   Codex setting per project/turn (owner decision D3). The boundary carries
   exactly what the person set through the owning interface (DEL-01-05 for
   settings; DEL-01-04 for answers) and defines none of it. The DEL-04-01/04-02
-  autonomy grant governs host operations only and is not consulted for A14.
+  autonomy grant governs host operations only and is not consulted for A14
+  (R-2; DERIVED from D3, attribution per R2-11).
   The account-home element remains `UNRESOLVED{OI-009}`.
 - **H10 Unknown stays unknown.** When a request to the supplier was written
   but its response was never observed (exit, wait limit, write failure), its
@@ -352,12 +367,12 @@ outputs agree on these kinds — 10 stable, 11 experimental; SPIKE §4):
 | `item/fileChange/requestApproval` | A14 | known-answerable |
 | `item/permissions/requestApproval` | A14 | known-answerable |
 | `execCommandApproval`, `applyPatchApproval` (legacy v1) | A14 | known-answerable if raised (whether they are raised on the v2 surface is not-observed) |
-| `item/tool/requestUserInput` | input to the agent; standing as act evidence undefined (V1-C AB-11, DEL-02-03 at W7) | known-answerable |
-| `mcpServer/elicitation/request` | as above | known-answerable |
+| `item/tool/requestUserInput` | input to the agent (not A14); standing as act evidence undefined (V1-C AB-11; WD U-25; DEL-02-03 at W7) | known-answerable; answered only by the person (R9) |
+| `mcpServer/elicitation/request` | as above | known-answerable; answered only by the person (R9) |
 | `item/tool/call` (dynamic tools; `dynamicTools` is experimental-only on thread start) | App-offered tool | known-app-unsupported unless the App registers dynamic tools (none defined in this increment) |
 | `account/chatgptAuthTokens/refresh` | account | known-app-unsupported unless DEL-01-05 adopts external-token login |
 | `attestation/generate` | account/attestation | unfamiliar while `requestAttestation` is declared false |
-| `currentTime/read` (experimental) | clock | unfamiliar unless the experimental opt-in is declared; then a named App rule may answer it (not an A14 subject) |
+| `currentTime/read` (experimental) | clock service (not A14, not a person's input) | unfamiliar unless the experimental opt-in is declared; then known-answerable by a named App rule (R9 service kind) |
 
 ### 6.2 States
 
@@ -401,20 +416,42 @@ reports one, is recorded as observed; it is never inferred.
   execpolicy/network-policy amendments, `decline`, `cancel`).
 - **R6** A known request with no current observer stays `outstanding`; it is
   not refused for lack of a window (F-02).
-- **R7 Truthful origin (D2, D3).** Affirmative A14 answers come only from
-  the person through DEL-01-04 (origin `person-via-interaction`, actor as
-  supplied) or from the user's own Codex mode inside the supplier (origin
-  `supplier-internal`, §6.6). **No App rule answers an A14 request
-  affirmatively.** An App decline or error is permitted only under a named
-  rule recorded as `app-rule:<name>` (R-2 D3 bullet). No automatic answer
-  stands for a reserved act (D2: A4, A5, A6, A7, A12, A13), and A14 answers
-  are not reserved acts. The register never records an App rule's answer as
-  the person's act and never infers an actor.
+- **R7 Truthful origin for A14.** SETTLED by D3: tool-permission and
+  sandbox modes are the user's own Codex setting and govern tool execution
+  only. DERIVED/INTEGRATION (R-2 D3 bullet, R-10; attribution per R2-11):
+  affirmative A14 answers come only from the person through DEL-01-04
+  (origin `person-via-interaction`, actor as supplied) or from the user's own
+  Codex mode inside the supplier (origin `supplier-internal`, §6.6); **no App
+  rule answers an A14 request affirmatively**; an App decline or error is
+  permitted only under a named rule recorded as `app-rule:<name>`. SETTLED by
+  D2 with D3: no automatic answer stands for a reserved act (A4, A5, A6, A7,
+  A12, A13), and A14 answers are not reserved acts. The register never
+  records an App rule's answer as the person's act and never infers an
+  actor.
 - **R8 A14 is tool-execution permission only.** The supplier's decision
   forms are native answer content, not collapsed. An A14 answer of any kind
-  governs tool execution within the supplier; it is never A5 *accept*, A4
-  *mark checked*, A6 *approve*, A7 *rely* or a checkpoint act (D3; V4-AUT-03,
-  V4-AUT-04; AG-13).
+  governs tool execution within the supplier; it never stands in for A5
+  *accept*, A4 *mark checked*, A6 *approve*, A7 *rely* or a checkpoint act
+  (D3 "never stand in for a reserved or professional act"; V4-AUT-03,
+  V4-AUT-04; AG-13). A14 settlements reach the evidence path as run-record
+  tool-permission entries only — never a human-act record, never a grant
+  (R2-8; DEL-04-03 R13; App runs only).
+- **R9 Answer origin by kind (IR1C-18; INTEGRATION).** Every
+  `known-answerable` kind belongs to exactly one origin class:
+  - **A14 kinds** (tool-permission requests): R7.
+  - **Person-input kinds** (`item/tool/requestUserInput`,
+    `mcpServer/elicitation/request` at 0.158.0): answered with content only
+    by the person via DEL-01-04 (`person-via-interaction`); a named App rule
+    may only decline or error. Their standing as act evidence stays open
+    (WD U-25; DEL-02-03 at W7); an answer is never presented as a
+    checkpoint act.
+  - **Named service kinds** (at 0.158.0 only `currentTime/read`, when the
+    experimental opt-in is declared): may be answered with content by a
+    named App rule (`app-rule:<name>`); they carry no person's decision.
+
+  An affirmative or content answer from an App rule to an A14 or
+  person-input kind is refused `origin-not-permitted`. Adding a kind to the
+  service class is a recorded App implementation choice (U-20).
 
 ### 6.4 Register operations offered to receivers (semantic)
 
@@ -422,13 +459,13 @@ reports one, is recorded as observed; it is never inferred.
 |---|---|---|
 | observe entries (current + changes, from a position) | DEL-01-02, DEL-01-04 | Entries and state changes in order |
 | list outstanding (by generation / thread) | DEL-01-02, DEL-01-04 | Current outstanding entries |
-| answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules (decline/error forms only) | `accepted-for-write` → `answered`/`declined`/`settle-write-failed`; or refusal with reason (R4/R5); an affirmative form from an App rule is refused `origin-not-permitted` |
+| answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules per R9 (decline/error only for A14 and person-input kinds; content answers only for named service kinds such as `currentTime/read`) | `accepted-for-write` → `answered`/`declined`/`settle-write-failed`; or refusal with reason (R4/R5); an App-rule affirmative or content answer to an A14 or person-input kind is refused `origin-not-permitted` (R9) |
 | explicit error (request identity, reason) | boundary (R2), named App rules | `errored` |
 | read settlement and acknowledgment observation | DEL-01-02; DEL-04-03 via DEL-01-02 | Settlement, write result, acknowledgment observation |
 
 ### 6.5 Split with DEL-01-02 (to reconcile when DEL-01-02 is defined)
 
-DEL-01-01 defines entry meaning, classification, R1–R8, the answer write path
+DEL-01-01 defines entry meaning, classification, R1–R9, the answer write path
 and generation tagging, and witnesses the unknown-request path at the
 protocol seam (VER-001). DEL-01-02 owns custody across observation loss,
 reconnect and relaunch, recovery of outstanding requests from supplier state,
@@ -498,11 +535,15 @@ content-identity check does not execute the binary and has no such effect.
   `--experimental` variant; both labeled `[experimental]` by the supplier —
   F-12) and is never edited by hand. Generation was byte-deterministic at
   0.158.0 (SPIKE §4, SV-01).
-- **Committed form (parent re-selection, SPIKE §4).** The two JSON Schema
-  experimental bundles, `MANIFEST.sha256` and `_spike/` are committed under
-  `Design/generated/0.158.0/`. Generated TS is **not** committed; it is
-  regenerated with `_spike/generate.sh` at the pin and verified against the
-  manifest. Where committed TS types live is decided with the App
+- **Committed form (parent re-selection, SPIKE §4;
+  `generated/0.158.0/COMMITTED_STATE.md`).** The two JSON Schema
+  experimental bundles, `MANIFEST.sha256`, `_spike/` and `COMMITTED_STATE.md`
+  are committed under `Design/generated/0.158.0/` (about 1.9 MB). Not
+  committed: both TS trees (1,605 files) and the other 752 JSON Schema files;
+  all are regenerated with `_spike/generate.sh` at the pin and verified
+  against the manifest. The manifest is byte-unchanged; its `# COMMITTED`
+  comment describes the spike's *proposed* form and is superseded by
+  `COMMITTED_STATE.md`. Where committed TS types live is decided with the App
   implementation when it starts.
 - **Reference output — options for the App implementation owner (U-15;
   S-F-03).** At 0.158.0 the two generators disagree: the TS output has three
@@ -549,7 +590,7 @@ content-identity check does not execute the binary and has no such effect.
 | S-4 embedding and provider | DEL-01-05 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); §8.1 account; recorded-exchange evidence per §9; the fresh-home network observation (L-4) | Sign-in/API-key flows, account home (OI-009), provider configuration, server-substitution checks |
 | S-5 distribution identity | DEL-01-06 | Distribution content identity over the vendor tree, version label, launcher record; spike-observed signing facts (Developer ID, hardened runtime) as observations only | Packaging, signing, notarisation, relocation of the vendor tree (not-observed), distribution |
 | S-6 additive guidance | DEL-02-04 (inputs from DEL-02-01/02-02) | Carriage unchanged through the supplier's supported inputs (at 0.158.0 `baseInstructions` and `developerInstructions` on thread start and resume); per-thread/turn content-identity evidence (§8.2) | Guidance composition, role files, workflow semantics, idle-boundary change policy |
-| S-7 evidence | DEL-04-03 (through DEL-01-02) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities | Record format, writer/reader, any human act |
+| S-7 evidence | DEL-04-03 (through DEL-01-02) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities. A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act |
 
 The 0.158.0 inventory in SPIKE §4 (170 client methods, 11 server-request
 kinds, 85 notifications in the TS experimental output) is the input to
@@ -680,28 +721,31 @@ fixtures (no App candidate, no §7.2 step) but may seed a supplier double.
 
 ## 10. Pin spike observations at 0.158.0 (W11) and what remains
 
-Verdicts: **observed** (behavior seen live), **observed-in-generated-types**,
-**published-only**, **not observed**, **contradicted** (a v0.1 statement did
-not match the pin and is repaired here).
+Two vocabularies, both taken from the spike record (SPIKE §6; IR1C-20).
+**Standing** at 0.158.0: `observed` (seen live), `observed-in-generated-types`,
+`published-only`, `not-observed`. **Verdict vs v0.1**: **consistent**,
+**refines** (v0.1 holds but needs a named element), **contradicts** (a v0.1
+statement did not match the pin). Verdicts are the spike's own; none is
+reclassified here.
 
-| Item | Result at 0.158.0 | v0.1 statement | v0.2 treatment |
+| Item | Standing at 0.158.0 | Spike verdict vs v0.1 | Treatment in this file |
 |---|---|---|---|
-| P-01 Distribution identity | observed | "binary content identity" | **contradicted** in scope: identity must cover the executed vendor tree (S-F-02) → §7.1 |
-| P-02 Standalone run | observed (partial); relocation not observed | launcher not recorded | Launcher record added (H1, §7.1); relocation → DEL-01-06 |
-| P-03 Generation | observed (deterministic) | single generated identity | Generator kind + variant in identity (§7.1) |
-| P-04 Inventory | observed / observed-in-generated-types | one "generated set" | **contradicted**: two outputs differ; reference options §7.3 (U-15) |
-| P-05 Handshake | observed | "handshake-reported identity" as a version identity | **contradicted**: no version element; consistency check only (§7.2); pre-`initialized` frames rule (H4) |
-| P-06 Experimental opt-in | observed-in-generated-types; runtime gating not observed | supplement holds experimental fields | Supplement narrowed; status by variant diff; classification by declared capabilities (§6.1, §7.3) |
-| P-07 Framing, stderr, input close, signals, opt-out facility | observed | exit facts implicitly classify ends; "terminate the child" sufficient | **contradicted** twice: exit status does not distinguish ends (S-F-07); descendants survive (S-F-06) → §4.3–§4.5, H11; framing facts → §5, H6 |
-| P-08 Answer forms | observed-in-generated-types; error reply to a known kind and never-answered behavior not observed | — | R5 cites forms; `timed_out` noted under U-11; live behavior U-19 |
-| P-09 Supplier-reported resolution | observed-in-generated-types (`serverRequest/resolved`); semantics not observed | acknowledgment "pin-dependent" | Named candidate source (§6.2); U-09 narrows |
-| P-10 Plan items and revision | observed-in-generated-types; live not observed | — | S-2: whole plan per update, no revision identity |
-| P-11 Provider selection | observed-in-generated-types / published-only; L-2 not observed | F-08 wire name to confirm | F-08 confirmed at pin; L-2 stays unobserved |
-| P-12 Account methods | observed-in-generated-types; storage not observed | — | S-4; feeds OI-009/OI-010 at DEL-01-05 |
-| P-13 Thread resume/read/list; subagent items | observed-in-generated-types; post-restart not observed | — | §4.3 step 4; DEL-01-02/01-03 inputs |
-| P-14 Home reads/writes | observed | — | §7.2 probe side effect (S-F-17); U-03 |
-| P-15 Additive instruction inputs | observed-in-generated-types; resume-override effect not observed | — | §8.2 named limitation |
-| L-4 | observed | "not observed" | Now observed (S-F-10) |
+| P-01 Distribution identity | observed | **refines** §7.1 | Identity covers the executed vendor tree (S-F-02) → §7.1 |
+| P-02 Standalone run | observed (partial); relocation not-observed | **refines** H1 | Launcher record (H1, §7.1); relocation → DEL-01-06 |
+| P-03 Generation | observed (deterministic) | **refines** §7.1 | Generator kind + variant in identity (§7.1) |
+| P-04 Inventory | observed / observed-in-generated-types | **contradicts** (single generated set) | Reference options §7.3 (U-15) |
+| P-05 Handshake | observed | **contradicts** (handshake version identity); **refines** §4.1/§4.2 | No version element; consistency check only (§7.2); pre-`initialized` frames rule (H4) |
+| P-06 Experimental opt-in | observed-in-generated-types; runtime gating not-observed | **consistent**; **refines** §7.3 | Supplement narrowed; status by variant diff; classification by declared capabilities (§6.1, §7.3) |
+| P-07 Framing, stderr, input close, signals, opt-out facility | observed | **refines** §5; **contradicts** §4.3 (exit facts) and §4.5 ("terminate the child"); **consistent** H7/U-07 | §4.3–§4.5, H11 (S-F-06, S-F-07); §5, H6 (S-F-08) |
+| P-08 Answer forms | observed-in-generated-types; error reply to a known kind and never-answered not-observed | **consistent** R8; **refines** R3/U-11 and origin set | R5 cites forms; `timed_out` under U-11; §6.6; live behavior U-19 |
+| P-09 Supplier-reported resolution | observed-in-generated-types (`serverRequest/resolved`); semantics not-observed | **refines** §6.2, F-10, U-09 | Named candidate source (§6.2) |
+| P-10 Plan items and revision | observed-in-generated-types; live not-observed | **refines** S-2 | Whole plan per update, no revision identity |
+| P-11 Provider selection | observed-in-generated-types / published-only; L-2 not-observed | **consistent** (L-1; F-08 confirmed) | L-2 stays unobserved |
+| P-12 Account methods | observed-in-generated-types; storage not-observed | **consistent** | S-4; feeds OI-009/OI-010 at DEL-01-05 |
+| P-13 Thread resume/read/list; subagent items | observed-in-generated-types; post-restart not-observed | **consistent** | §4.3 step 4; DEL-01-02/01-03 inputs |
+| P-14 Home reads/writes | observed | **refines** §7.2, U-03 | Probe side effect (S-F-17) |
+| P-15 Additive instruction inputs | observed-in-generated-types; resume-override effect not-observed | **consistent** | §8.2 named limitation |
+| L-4 | observed | **changes** the row from not-observed to observed (spike's wording) | §8.1; F-14; U-18 |
 
 **Still to observe (next spike, App implementation owner; U-19):** whether
 `initialized` is required and how a known method before initialize is
@@ -729,9 +773,9 @@ identified local provider.
 | Packaging, signing, notarisation, distribution | DEL-01-06 (terms obtained by owner, OQ-08) | S-5 | Packaging production |
 | Workflow semantics / making / registration | DEL-02-01 / DEL-02-02 | S-6 carriage | Semantics, registration, capability naming |
 | Additive guidance production | DEL-02-04 | S-6 carriage, §8.2 evidence | Composition |
-| Operation-policy / human-act definition | DEL-04-01 (D2, D3 adopted; OI-021 additions pending) | R7/R8 origin truthfulness | Policy |
+| Operation-policy / human-act definition | DEL-04-01 (D2, D3 adopted; OI-021 additions pending) | R7–R9 origin truthfulness | Policy |
 | Run/act records | DEL-04-03 | S-7 observed facts | Records |
-| A14 answer tool permission | The person (via DEL-01-04), or the user's own Codex mode inside the supplier (D3) | Register accepts and records it with supplied actor/origin | Performing, inferring or answering it affirmatively by App rule |
+| A14 answer tool permission | The person (via DEL-01-04), or the user's own Codex mode inside the supplier (D3 setting; origin rule R7, DERIVED per R-2/R2-11) | Register accepts and records it with supplied actor/origin; evidence to the run record's tool-permission entries only (R2-8) | Performing, inferring or answering it affirmatively by App rule |
 | A4 mark checked, A5 accept, A6 approve, A7 rely, A12 set grant, A13 enable external access | The person (reserved, D2) | None; no A14 answer or App rule stands for any of them (R7, R8) | All |
 | Supplier engine, credentials, published protocol | OpenAI Codex (DEP-005) | Consumes as published | Any modification |
 
@@ -749,7 +793,7 @@ release-candidate frameworks (M-6, SOW-101).
 
 | Option | Main process (Rust) | Interface (TypeScript) | Assessment |
 |---|---|---|---|
-| **O-1 Rust envelope core** | Verification, spawn, process-tree lifecycle (H11), framing, correlation, generation tagging, register (§6) with R1–R8, unfamiliar-request errors, recording tap, guidance-identity evidence. Payloads opaque except envelope elements and the familiar server-request set with answer-validity rules | Composes typed requests with generated TS types + supplement through one generic request path; presents native items; submits A14 answers via register operations | One payload type set in the language that consumes payloads; Rust small and payload-agnostic, so schema drift lands mostly in TS; invariants held in Rust. At 0.158.0 the committed JSON Schema bundles suit a build-time familiar-set list for Rust; the process-tree handling found by the spike fits a Rust owner. **Recommended** |
+| **O-1 Rust envelope core** | Verification, spawn, process-tree lifecycle (H11), framing, correlation, generation tagging, register (§6) with R1–R9, unfamiliar-request errors, recording tap, guidance-identity evidence. Payloads opaque except envelope elements and the familiar server-request set with answer-validity rules | Composes typed requests with generated TS types + supplement through one generic request path; presents native items; submits A14 answers via register operations | One payload type set in the language that consumes payloads; Rust small and payload-agnostic, so schema drift lands mostly in TS; invariants held in Rust. At 0.158.0 the committed JSON Schema bundles suit a build-time familiar-set list for Rust; the process-tree handling found by the spike fits a Rust owner. **Recommended** |
 | O-2 Rust fully typed | As O-1 plus typed payloads, orchestration and composition in Rust | Presentation only | Two generated type sets or derived TS; more Rust touched on every schema change (170 client methods at 0.158.0) |
 | O-3 Rust pipe relay, TS protocol client | Spawn and byte relay only | JSON-RPC client, correlation, register in the webview | **Violates** ARC §3 (register lost on reload, V4-EXE-01). Set aside |
 | O-4 Node helper in main process | Rust spawns Node running ported v3 client code | Presentation | Adds a runtime and process, resembles the excluded v3 service (V4-ARC-03, M-6). Set aside |
@@ -820,11 +864,9 @@ v3 code is evidence of behavior, not qualified v4 material.
 - **F-16 Register rows.** No DEL-01-01 → DEL-02-04 DOWNSTREAM row (V1-C
   RF-6); with R7 repaired per V1-A D-13 the existing rows suffice for D3
   (RF-03). Both go to closeout C1; not edited here.
-- **F-17 Spike record internal inconsistency (minor).** PIN_SPIKE §4 and its
-  Files section state the parent's re-selection (TS not committed); its
-  UNRESOLVED row "Commit form … TS full + JSON Schema experimental bundles"
-  predates it. This file follows the re-selection. The spike record is not
-  edited by this task.
+- **F-17 Retired in v0.3.** The stale spike UNRESOLVED row it reported was
+  corrected by the parent (spike revision 26ea0c2f…0334 and later; current
+  0e090a4c…b115 marks it RESOLVED by the re-selection) (IR1C-19).
 - **F-18 `~/.codex` changed during the spike window** (SPIKE §1), with
   attribution to the spike not established and a separate person-owned Codex
   process present. Relevant to OI-009 (shared vs separate home); no
@@ -853,7 +895,7 @@ v3 code is evidence of behavior, not qualified v4 material.
 | U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | Both recorded; composition open |
 | U-18 Supplier network fetch at start: acceptability under priority 3; configurability | Owner with DEL-01-05 | Before any local-operation claim | Observed; no claim of local-only operation |
 | U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed |
-| U-20 Partition of the 0.158.0 server-request kinds (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal only |
+| U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal only; R9 classes fixed as INTEGRATION, membership open |
 | U-21 Supplier's `[experimental]` label on app-server/generators; dependence on experimental API (F-12, F-13) | Owner visibility; App implementation owner at pin re-examination | Before implementation | Recorded; supplier direction not reopened |
 | U-22 L-2 provider wire interface (Responses) and L-3 | DEL-01-05 | Before provider qualification | Not observed |
 
@@ -872,14 +914,14 @@ yet, and spike runs (SV-nn) are evidence, not passes.
 | VC-04 Malformed frames | X-08 | Malformed, oversize, version-member-less frames | Malformed surfaced; version-member-less valid frames accepted (S-F-08) | Yes (double) | VER-001 |
 | VC-05 Exit with outstanding work | X-09 | Kill child mid-turn | `ended-unanswered(process-exit)`; `unknown-no-response`; no grant; old answers refused `generation-closed` | No (live turn) | VER-001, VER-006 |
 | VC-06 Restart bound | Constructed failures | Force failures past bound | `halted-after-repeated-failure`; explicit restart needed | Yes (double) | VER-001 |
-| VC-07 Generated provenance | 0.158.0 | Regenerate both kinds/variants; check manifest; inspect supplement | Identical identities; supplement per chosen reference only | Yes: SV-01/SV-02 ran in the spike (deterministic; 1,607 OK, 752 omitted by design); reference not chosen (U-15) | VER-002 |
+| VC-07 Generated provenance | 0.158.0 | Regenerate both kinds/variants; check manifest; inspect supplement | Identical identities; supplement per chosen reference only | Yes. Evidence so far (`generated/0.158.0/COMMITTED_STATE.md`, IR1C-04): committed tree against the manifest **2 OK / 2,357 not committed / 0 mismatched**; the 1,605 TS files verified **OK** against the manifest from the parent's temporary scratch copy (after its deletion TS verification needs regeneration); SV-01 determinism as returned by W11. The W11 SV-02 line "1,607 OK, 752 missing" described the spike's proposed, never-committed form. Reference not chosen (U-15); no pass claimed | VER-002 |
 | VC-08 Native pass-through | X-01/X-02 | Compare delivered frames to recorded | Method, ids, payload and top-level supplier elements (`emittedAtMs`) unchanged; metadata beside | Partly: X-01 side from spike transcripts | VER-002 |
 | VC-09 Version identity to plan receiver | X-01/X-03 | Trace `ready(g)` record and plan updates to S-2 | Record complete; plan updates native, whole-plan, with generation/position; revision identity left to DEL-01-03 | No (plan needs live turn) | VER-003 |
 | VC-10 Label-only mismatch | X-11 | Same label, different content identity | `refused` with `mismatch(distribution content identity)` | Yes | VER-003, VER-006 |
 | VC-11 OI-008 review | §12 and the owner's decision | Review against ARC §3, priorities, M-6 | Decision source recorded; while OI-008 open the allocation criterion is **not met** | Review only | VER-004 |
 | VC-12 Local-provider account | §8.1 | Compare claims to candidate observations | Rows labeled; L-4 observed; L-2/L-3 not observed; no substitution claimed | Partly (L-4 observed) | VER-005 |
 | VC-13 Upgrade comparison | Two pins | Run §9.5 | Diffs incl. generator divergence and experimental status; no adoption | Yes, once a second pin is named | VER-006 |
-| VC-14 Settlement truthfulness | X-04/X-05/X-12 | Person answers; App rule declines; App rule attempts affirmative; second answer | Origins truthful; affirmative App-rule answer refused `origin-not-permitted`; `already-settled`; write failure → `settle-write-failed` | Partly (X-12 with double) | VER-001, VER-007 |
+| VC-14 Settlement truthfulness | X-04/X-05/X-12 | Person answers; App rule declines; App rule attempts affirmative; second answer | Origins truthful; affirmative App-rule answer to an A14 or person-input kind refused `origin-not-permitted` (R9); App-rule content answer to `currentTime/read` accepted when the opt-in is declared; `already-settled`; write failure → `settle-write-failed` | Partly (X-12 with double) | VER-001, VER-007 |
 | VC-15 Act boundary review | §11, candidate statements | One-for-one review against CLM-004…006 and R-1 | Each act resolves to its owner; A14 never presented as A4–A7 or a checkpoint act; no invented sequence | Review only | VER-007 |
 | VC-16 Frames during handshaking | X-01 (spike transcripts show `remoteControl/status/changed` before `initialized`) | Replay handshake | Early notification held in order under *g* and delivered at `ready`; not dropped (H4) | Yes (double) | VER-001 |
 | VC-17 Deliberate stop with descendants | X-13, fresh home | Start, then deliberate stop while the plugin fetch runs | App stop record marks the end deliberate (exit code 0 not used); surviving descendants detected and recorded; handling per U-16 | Yes, with owner visibility of the network fetch | VER-001 |
@@ -887,3 +929,4 @@ yet, and spike runs (SV-nn) are evidence, not passes.
 | VC-19 Supplied-guidance evidence | Thread start and resume carrying developer instructions | Inspect records per thread/turn | Content identity of each carried input recorded with request identity and generation; adoption not claimed (P-15 limitation) | No (candidate; resume needs a thread) | VER-003, VER-007 |
 | VC-20 Classification by declared capabilities | Double; experimental opt-in false | Double raises `currentTime/read` and `attestation/generate` | Both `unfamiliar` → explicit error; with opt-in declared, `currentTime/read` becomes familiar | Yes (double) | VER-001, VER-002 |
 | VC-21 Supplier refusal of an App request | Spike transcript (unknown client method → -32600) | Replay | Outcome `response-observed(error)`, not unknown; connection continues | Yes (transcript) | VER-001 |
+| VC-22 Answer origin by kind (R9) | Double; opt-in declared | App rule attempts a content answer to `item/tool/requestUserInput`, an affirmative answer to `item/fileChange/requestApproval`, a decline of an elicitation, and a content answer to `currentTime/read` | First two refused `origin-not-permitted`; decline recorded `app-rule:<name>`; `currentTime/read` answered `app-rule:<name>`; no answer presented as a checkpoint act | Yes (double) | VER-001, VER-007 |

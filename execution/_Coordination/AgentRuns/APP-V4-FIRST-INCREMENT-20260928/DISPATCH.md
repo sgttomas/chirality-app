@@ -73,3 +73,35 @@ text. Their cross-file findings are collected in [R2_CANDIDATES.md](R2_CANDIDATE
 The DEL-04-02/03 repairer's line-count wildcard included DEL-04-01's file
 (lines counted, contents not read). The parent corrected one stale row in
 PIN_SPIKE_0.158.0.md (DEL-01-01 F-17).
+
+## IR1 (dispatched 2026-09-28; fresh general-purpose reviewers)
+
+| Node | Output | Result |
+|---|---|---|
+| IR1-A | [reviews/IR1-A.md](reviews/IR1-A.md) | 0 BLOCKING / 8 MAJOR / 13 MINOR; fit to merge as v0.2 drafts; ran read-only git (outside brief, no effect) |
+| IR1-B | [reviews/IR1-B.md](reviews/IR1-B.md) | 0 / 10 / 13; fit to merge as drafts; ran read-only git (outside brief, no effect) |
+| IR1-C | [reviews/IR1-C.md](reviews/IR1-C.md) | 0 / 5 / 17; fit to merge as drafts; ran read-only git (outside brief, no effect) |
+
+The parent fixed IR1C-04 in the spike evidence ([COMMITTED_STATE.md](../../../PKG-01_Native%20App%20and%20third-party%20harness%20integration/1_Working/DEL-01-01_Stock%20Codex%20hosting%20and%20supplier%20contract/Design/generated/0.158.0/COMMITTED_STATE.md)).
+Rulings: [R2_RESOLUTIONS.md](R2_RESOLUTIONS.md). From R2 onward, briefs permit
+read-only git, because the absolute ban was repeatedly and harmlessly breached.
+
+## R2 alignment (dispatched 2026-09-28; original authors resumed)
+
+| Node | Files | State |
+|---|---|---|
+| R2-W1 | DEL-04-01 v0.3 | RETURNED v0.3 |
+| R2-W2 | DEL-04-03, DEL-04-02 v0.3 | RETURNED v0.3; fence verified |
+| R2-W3 | DEL-03-01, DEL-03-02 v0.3 | RETURNED v0.3; fence verified |
+| R2-W4 | DEL-02-01 v0.3 | RETURNED v0.3; fence verified |
+| R2-W5 | DEL-05-01, DEL-05-02 v0.3 | RETURNED v0.3; fence verified |
+| R2-W6 | DEL-01-01 v0.3 | RETURNED v0.3; fence verified |
+
+R2 returns: all rulings applied. The aligners read sibling v0.2 text from
+`28bd00499` via `git show`, as directed. The parent's grep sweep for superseded
+terms found only change-log or negation mentions.
+
+## R3 micro-edits ([R3_RESOLUTIONS.md](R3_RESOLUTIONS.md)), dispatched and returned 2026-09-28
+
+The authors of DEL-02-01, DEL-04-01, DEL-05-01/02 and DEL-03-01 made in-place
+edits without a version bump and reported no new findings.

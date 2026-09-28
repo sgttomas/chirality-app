@@ -95,7 +95,7 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | V1 Receiver comparisons, M1 joins (V1-A policy, V1-B C/P/record, V1-C workflow/loop/panel) | Run folder `comparisons/`; read-only on Design | W1–W6 returned | Each join: version received, check performed, disagreements, absent | COMPLETE — [V1-A](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-A.md), [V1-B](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-B.md), [V1-C](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/comparisons/V1-C.md): 4 BLOCKING, 37 MAJOR, 35 MINOR; 24 register findings → C1/D0 |
 | R1 Repair to v0.2 against V1 findings | Same Design folders | V1; [R1_RESOLUTIONS](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md) | Findings dispositioned; affected comparisons rechecked at IR1 | COMPLETE (v0.2 × 9 files); cross-file items → [R2_CANDIDATES](../../AgentRuns/APP-V4-FIRST-INCREMENT-20260928/R2_CANDIDATES.md) |
 | P1 PR-1: graph + decision package | Graph, run folder | W0 | Folded into PR-2 (graph pushed on branch early) | COMPLETE (folded) |
-| P2 PR-2: Wave-1 definitions v0.2 + comparisons | W1–W6, V1, R1 outputs | R1; independent review IR1 | PR merged under standing Git authority | PLANNED |
+| P2 PR-2: Wave-1 definitions + comparisons + reviews | W1–W6, V1, R1, IR1, R2 outputs | R2 v0.3 returned; affected checks; CI | PR merged under standing Git authority | ACTIVE — draft [#1039](https://github.com/sgttomas/chirality/pull/1039) |
 | W7 Workflow execution compatibility v0.1 | DEL-02-03 `Design/` | W4, W1, W2, W3 v0.2 | Compatibility report, checkpoint hold, transfer trace | PLANNED |
 | W8 External-agent adapter enablement account v0.1 | DEL-03-03 `Design/` | W3, W1 v0.2 | Enablement states; policy cases; transport-neutral fixtures | PLANNED |
 | W9 Connected activity draft contract + relay questions; EXM-24/25 inventories | DEL-09-06, DEL-09-09 `Design/`; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` (question section only) | W3, W4, W5, W7, W8 | Operation placeholder per OI-021; relay file ready for human | PLANNED |
@@ -125,8 +125,9 @@ policy values appear as `UNRESOLVED{OI-nnn}`, never as a permission.
 - Checked basis: `main` at `6e18505e3`; DAG-001 `MANIFEST.sha256` and
   `SOURCE_MANIFEST.sha256` both pass; no `PKG-*` change since acceptance merge
   `7535bd7e`.
-- Next work: IR1 (fresh reviewers, v0.2↔v0.2 plus the R2 candidates);
-  then R2 rulings, alignment repair, PR-2; then Wave 2 (W7–W10).
+- Next work: R2 alignment (v0.3) running; then a bounded consistency
+  check of R2 rulings in the v0.3 texts, PR-2 ready and merge; then Wave 2
+  (W7–W10).
 - Local/unmerged work: branch `claude/chirality-app-v4-60-percent-a41fd5`
   (worktree `.claude/worktrees/test-ci-optimization-f6cacd`).
 - Active operations: see run folder `DISPATCH.md`.
