@@ -31,6 +31,7 @@ WD-v0.6 were revised first; this file follows them.
 | **R8-11** (A1 residuals) | Item 1: lapse recording in Phase 1 and dispositions as record labels (R8, L-12). Item 2: D14's reserved-act half binds in Phase 1; its checkpoint half is guidance. Item 3: an invalid declaration is recorded as a declaration finding in Phase 1 (R8). Item 5: governance-phase values read the fixture's checkpoints as if governed (E10) | §1 D14, §4 R8, §7 L-12, §12 E10 |
 | (R8-9, noted) | D16: V4-HOST-02's retention is pending owner clarification (R8-9). No rule of this file changes | §1 D16 |
 | **R8-12** (items 1, 5, 7; closing pass, node A6, in place) | Item 1: L-12's Phase-1 lapse after resume is labelled **"act lapsed at ‹t›"** (nothing says *waiting*; a new act is recorded when performed); E10 (iv) and VC-17 follow. Item 5 confirmed: R11 already carries both evidence-limit labels ("host reachable without evidenced A13"; "constraint not carriable on this host") — no edit. Item 7: consumed inputs list the post-R8 sibling versions; §0 and §12 fixture sources note that C-v0.6 carries the C-v0.4/C-v0.5 fixture | Header, §0, §7 L-12, §12 E10, VC-17 |
+| V9 N-5 — in place | E7 Phase-1 result says "passes on required tools and channel state", matching the siblings |
 
 ## Changes from v0.4
 
@@ -532,7 +533,7 @@ GR-P *pending* → waiting "A12 awaiting control confirmation", then *unknown* w
 *performed* with the supersession shown. **Phase 1:** these are record
 labels; no call is held by the loop or the App, the OP-C9 dispatch is
 recorded as observed, and no hold-support value is recorded; the
-requirement check via X passes on required tools (EXEC MT-16, CH-12).
+requirement check via X passes on required tools and channel state (EXEC MT-16, CH-12).
 **Governance phase:** the call stays held under GR-P and GR-R; from the App
 via X, `CP-grant` hold support is **not enforceable** (HS-3 (c) on OP-C9;
 SQ-02 answered 2026-09-28; was *not established* at v0.5); E1d's `CP-check`

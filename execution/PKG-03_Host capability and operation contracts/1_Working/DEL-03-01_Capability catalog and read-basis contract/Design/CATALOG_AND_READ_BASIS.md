@@ -283,7 +283,7 @@ starts no new run (DEL-04-03); DEL-03-03 shows it in the channel status as
 information only. The destination changes no §4.1 result and no §6 standing. A host may
 restrict its own channel (DEP-001); SWBPIPE answered that it does not, so
 the App need state nothing (SQ-16). V4-HOST-02 still governs the host's
-embedded agent.
+embedded agent (whether it is retained is pending owner clarification, R8-9).
 
 ### 4.2 Unavailable reason
 
@@ -824,6 +824,7 @@ ID. Sources are I2 rows of INTAKE_MAP.md (`nn.k`, `P2.n`, Part 2.2 and Part
 | R8-11 (items 1, 2, 5) | S-C10: the reserved-act half of D2 binds in Phase 1 (host-enforced); its declared-checkpoint half, WD I-7 and V4-HI-42 are guidance in Phase 1. Lapse recording continues in Phase 1; re-hold is governance phase. Governance-phase fixture values are stated to read the checkpoints as if declared governed | S-C10, §0, §3.1 rule 3, §6.2, §10.1, §10.4 |
 | R8-7 (answered standings; 03.1, 04.4, 07.3–07.5, 11.1, 18.2, 21.1, 24.1, 26.1; Part 4.11) | SWBPIPE answers added to UNRESOLVED effects (U-C2, U-C4, U-C5, U-C6, U-C7, U-C9, U-C10, U-C11; host adoption; OI-021; V-ED1), FXA-1, §3.1 host adoption and the §10.4 counterparts paragraph, each as an answer about SWBPIPE's current state (DECISION-3) | §3.1, §10.1, §10.4, UNRESOLVED |
 | **R8-12** (items 3, 7; closing pass, node A6, in place) | Item 3 confirmed: the §8 map cells stay *unagreed* (SWBPIPE described its state and agreed to nothing) and the note beneath the map is kept — no edit. Item 7: consumed inputs list the post-R8 sibling versions | Header |
+| V9 N-2 — in place | §4.1 V4-HOST-02 sentence carries the "pending owner clarification (R8-9)" marker. Wording otherwise unchanged |
 
 No fixture identifier is added, removed or re-meant; the fixture's own values (FX-PIPE-01) are unchanged. New UNRESOLVED identifiers: **U-C12**, **U-C13**. Closed: the model-destination host-restriction row.
 

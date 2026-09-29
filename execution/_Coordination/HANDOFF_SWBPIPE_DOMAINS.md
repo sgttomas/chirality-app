@@ -61,8 +61,9 @@ The owner deferred the host joins (DECISION-3, run APP-V4-SWBPIPE-INTAKE-2026092
   resumes. That update is SWBPIPE's to make.
 - Under DECISION-4, workflow checkpoints are plan guidance in the current
   phase: a host loop does not enforce holds, and reserved human acts stay with
-  the person through the host's operations. Its top
-questions are:
+  the person through the host's operations.
+
+The relayed question set's top questions are:
 
 - SQ-01: the capture-evidence reference for the person's acts;
 - SQ-02: receipt of the governing checkpoint constraint, and host-side holds;

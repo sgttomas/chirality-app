@@ -296,7 +296,7 @@ facility", not *unconfirmed*.
   SQ-16: no restriction and no destination field, so the App states
   nothing.
 - **V4-HOST-02** continues to govern the **host's embedded agent** in local
-  operation. It is neither extended to App conversations nor waived.
+  operation (whether it is retained is pending owner clarification, R8-9). It is neither extended to App conversations nor waived.
 - U-X2 stays **closed** (D5).
 
 ### 3.5 Supplier facts at 0.158.0 that bear on channel state
@@ -1288,6 +1288,7 @@ pass (node A3). Keyed by R8 ID. Sources are I2 rows of INTAKE_MAP.md (`nn.k`,
 | **R8-10** (12.1; Part 4.7; Part 5 R8-Q12) | NM-2: SWBPIPE supplies no mapping and no per-operation identity or version, so every requirement on X is *not established* against it. Strict preflight: the agent never adds fields the host schema lacks (§2, §5.1, §5.3); GC-4's Phase-1 evidence limit "constraint not carriable on this host" carried as PROPOSED (new F-23) | §2, §4.1, §5.1, §5.3, §13.4 |
 | R8-11 (items 1, 2, 4, 5) | S-X10: D2's reserved-act half binds in Phase 1 (host-enforced); its declared-checkpoint half, WD I-7 and V4-HI-42 are Phase-1 guidance. §7.7: a lapse is recorded in Phase 1 and nothing re-holds. F-13: VER-003's checkpoint-wait wording is carried to the successor SoW route as a proposal. Governance-phase values read the fixture's checkpoints as if declared governed | S-X10, §5.3, §7.7, §10, §13.2 |
 | **R8-12** (items 4, 5, 6, 7; closing pass, node A6, in place) | Item 4: F-22 ruled — channel state *disabled* and request outcome *endpoint unavailable* are different facts, shown together; no new channel state (§3.2 already so). Item 5: F-23 ruled — both evidence-limit labels adopted in RS R11; GC-4 and §11 drop "PROPOSED" for "constraint not carriable on this host". Item 6: F-24 ruled — a whole-model identity satisfies RD-2 for a host that supplies only that, so a SWBPIPE read can be cited; RD-2 says so. Item 7: consumed inputs list the post-R8 sibling versions; body citations of ACT §2.6 and HOSTING §8.3 and the §11 ACT/AS/HOSTING rows name the current versions (closure history of U-X1 kept) | Header, §3.1, §3.3, §3.4, §4.3 RD-2, §5.3 GC-4, §9, §11, §13 |
+| V9 N-2 — in place | §3.4 V4-HOST-02 bullet carries the "pending owner clarification (R8-9)" marker the other files carry. Wording otherwise unchanged |
 
 Identifiers: all v0.3 identifiers kept. Added: **M-7**, F-22…F-24 (§13.4). Closed: the SQ-16 host-restriction UNRESOLVED row. Body citations of C and P re-pointed to C-v0.6 and P-v0.6 (identifiers unchanged).
 

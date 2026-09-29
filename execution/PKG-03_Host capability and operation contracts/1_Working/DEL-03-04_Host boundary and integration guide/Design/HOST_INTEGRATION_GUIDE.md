@@ -14,21 +14,21 @@
 
   | Short | Contribution / version | File | sha256 at the post-R8 state (after the R8-12 closing pass) |
   |---|---|---|---|
-  | **C** | DEL-03-01/C-v0.6 | `CATALOG_AND_READ_BASIS.md` | 5e696db9e0d118a49d2731435737c197f0eb1755d5fa7fcf8ad43324e954ed42 |
+  | **C** | DEL-03-01/C-v0.6 | `CATALOG_AND_READ_BASIS.md` | d60d303aea03876055ffd6da9dc9efea8ca1310b58fd2f736b0f9fb8b01e10dd |
   | **P** | DEL-03-02/P-v0.6 | `PROPOSAL_LIFECYCLE_AND_OUTCOMES.md` | 410fb289e16177e11190db45be37e02b5d82ebf7a9fcff8676e938bb23a51af9 |
-  | **ADAPTER** | DEL-03-03/ADAPTER-v0.4 | `ADAPTER_ENABLEMENT_AND_RECEIVING.md` | f3c89b0e1f979a23609dd18d4a9bde562bd7ecb9114e3d68a16b4a8165b86bf5 |
+  | **ADAPTER** | DEL-03-03/ADAPTER-v0.4 | `ADAPTER_ENABLEMENT_AND_RECEIVING.md` | fb7f9f4c40943b61d8d5fd486e85d158e55cea1f87a9529ce45ca06d08e2e1f8 |
   | **ACT** | DEL-04-01/ACT-POLICY-v0.6 | `ACT_AND_POLICY_CONTRACT.md` | 8df9f68ad42c5452194a9629b9fdbf5bf147a724c4abaf13db838cef46ee30e2 |
   | **AS** | DEL-04-02/AS-v0.6 | `AUTONOMY_AND_STANDING_EXCHANGE.md` | cd5dda69f21bc97ea1428822ff2775b2b86f271ce9226ef0106c23d11bb3d5e0 |
-  | **RS** | DEL-04-03/RS-v0.6 | `RECORD_SEMANTICS.md` | 534381b141a3df5235c9721ffcf22268700415162d36d4f7e1054961bf5e9a8f |
+  | **RS** | DEL-04-03/RS-v0.6 | `RECORD_SEMANTICS.md` | e2c053558708da23e807f6cfba4cb576e393e94d27873eaba9579807aaf359cf |
   | **WD** | DEL-02-01/WD-v0.6 | `WORKFLOW_DECLARATION.md` | 43a9962f025de384e1cdaedea9a648da74e20216476a04f2394cfa3851f47eb9 |
   | **WD-EX** | DEL-02-01/WD-EX-v0.6 | `EXAMPLES.md` | 8d60ed7850e6935b8410217c8867c59554c7de9aec28c60514e88ff5f0cff36e |
   | **EXEC** | DEL-02-03/EXEC-v0.4 | `EXECUTION_COMPATIBILITY.md` | 092f248682447df74e93915527930f4b90367fac46b867dad18daef3c5c608ff |
-  | **LOOP** | DEL-05-01/LOOP-v0.6 | `LOOP_RECEIVING_CONTRACT.md` | 0adf61468f32943d1779ffe8135502ef586de9f83de81f44dee2e952f7dc07ef |
+  | **LOOP** | DEL-05-01/LOOP-v0.6 | `LOOP_RECEIVING_CONTRACT.md` | 0bf6703f97edc974b550ba02f70b7067cd393dab748d67bba5272b290d993013 |
   | **PANEL** | DEL-05-02/PANEL-v0.6 | `PANEL_RECEIVING_CONTRACT.md` | 2fd590b67da80e7357dd1f5d422f803aeed80bf357a4293afee44d7f12575706 |
   | **HOSTING** | DEL-01-01/HOSTING-BOUNDARY-v0.6 | `HOSTING_BOUNDARY.md` | d248908b19a21ba7fe02cb0d570e3d60df7b5f9ca293a7b47f0a3a9d2ebb5dcb |
   | **SPIKE** | DEL-01-01/PIN-SPIKE-v0.1 | `PIN_SPIKE_0.158.0.md` | 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115 |
   | **CA** | DEL-09-06/CA-v0.4 | `CONNECTED_ACTIVITY_CONTRACT.md` | 1a7e2ac993e327bfd56c571c1016122baa846efa6ad378630bd3523ecbc4d421 |
-  | **RELAY** | DEL-09-06/RELAY-v0.3 (32 SQs, with sub-questions; answered 2026-09-28) | `RELAY_QUESTIONS_SWBPIPE.md` | a532d1feeec19ef88be4be6399e72e27bf258e170e1849e5cf8a0cd9b1c55063 |
+  | **RELAY** | DEL-09-06/RELAY-v0.3 (32 SQs, with sub-questions; answered 2026-09-28) | `RELAY_QUESTIONS_SWBPIPE.md` | c93f8cc52da81b5f16040dbaade7acd38fa676c2a81c86a32a7e12862c31056f |
   | **XT** | DEL-09-09/XT-v0.4 | `EXTERNAL_TRACE_CASES.md` | fde79bb3170c450830cf0ca53bba8493328f2f89d47f14fed563f97dad3b2d92 |
   | **ANS** | SWBPIPE answers to RELAY-v0.3 (SWBPIPE ROOT session; delivered in #1047; data, never edited here) | `RELAY_ANSWERS_SWBPIPE.md` | afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 |
   | **FACTS** | SWBPIPE fact sheet for SQ-01…SQ-32 (delivered in #1047; data, never edited here) | `FACTS_SQ01_SQ32.md` | 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e |
@@ -59,7 +59,7 @@ v0.3 per R8 "Application"; re-pinned last (R8-12 item 7).
 | **R8-10** (12.5, 17.5, 18.6; Part 4.1, 4.7) | §2.15 SW-5: no capability catalog on SWBPIPE; no host workflow library; strict preflight; grant display for a host without grants (PROPOSED). OI-021 stays open, candidates in CA DI-1 (§2.13 TBD-006) | §2.0, §2.13, §2.15 |
 | **R8-11** (items 1, 2, 3, 5) | Item 1: lapse recording and record labels continue in Phase 1; re-hold governance only (M8.4). Item 2: D2's checkpoint half, I-7 and V4-HI-42 are guidance in Phase 1 (B-4, M6.4, HC-6.3). Item 3: invalid declarations a finding only (M8.3, §2.14 HS-1). Item 5: governance-phase values read as if governed (§2.14) | §0, B-4, M6.4, M8.3, M8.4, §2.14 |
 | **R8-12** (items 1, 4–7) | Item 1: Phase-1 lapse label "act lapsed at ‹t›" after the resume point (§0, M5.5, M8.4). Items 4–6: ADAPTER F-22…F-24 rulings echoed (M9.2; §2.15 SW-2, SW-4). Item 7: **GUIDE → v0.3, re-pinned last**: the input table is re-pinned to the post-edit bytes of the 16 other Design files, and SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are added as pinned inputs; pins verified by script (§4.5). CC-1…CC-11 rerun (§4.1: CC-10 is a self-check; CC-11 three remain: G-6, G-7, G-12). §5 gains R8 rows; F-1, F-9, F-10, F-15 updated; F-16 added | Header, §4, §5, §6 |
-| SWBPIPE answers revised — in place | ANS re-pinned to SWBPIPE's in-place revision (`afb6e063…`, merged with #1049: main's evaluated basis, `not_assessed`, T9 source), and RELAY re-pinned to its ledger row for it. No GUIDE value changes |
+| SWBPIPE answers revised — in place | ANS re-pinned to SWBPIPE's in-place revision (`afb6e063…`, merged to main in #1048 `56dd72334`: main's evaluated basis, `not_assessed`, T9 source), and RELAY re-pinned to its ledger row for it. No GUIDE value changes |
 
 ## Changes from v0.1
 

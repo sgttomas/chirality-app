@@ -135,6 +135,7 @@ means by DECISION-3 or DECISION-4.
 | **R8-10** (31.1; 04.4) | Strict preflight: the agent never adds fields the host schema lacks (C-6 Phase 1; §6.4 RN-4). OI-021 stays open, with candidates recorded. T-OPEN-1 notes SQ-31 | §2.4.3 C-6, §6.4, UNRESOLVED |
 | **R8-11** (items 1–3, 5) | Item 1: lapse recorded in Phase 1, re-hold governance phase (LP-7; C-4). Item 2: D2's reserved-act half binds; its "or a declared checkpoint" half, WD I-7 and V4-HI-42 are guidance in Phase 1 (LP-6; C-1; C-6). Item 3: invalid declarations are a finding only in Phase 1 (LP-9; FX-C13). Item 5: governance-phase values read as if governed (§0, §2.4.4, §11). Item 4 (EXEC SoW) is not this file's; LOOP's own SoW wording is G-6 | §2.4.0, §2.4.3, §2.4.4, §11, Findings |
 | **R8-12** (items 1, 7; closing pass, node A6, in place) | Item 1 (G-7 ruled): in Phase 1 a lapse after the resume point is recorded as **"act lapsed at ‹t›"**; nothing says *waiting* and nothing is re-held; a new act is recorded when performed. Before resume the label stays "waiting — lapsed at ‹t›" (both phases); the governance-phase re-hold keeps "waiting — re-held, lapsed at ‹t› after resume". Changed in C-4's phase note, §2.4.0 and FX-C3 (ii); G-7 closed. Item 7: consumed inputs list the post-R8 sibling versions; §10.1 and §10.3 standings refreshed from the v0.5 / `c7f5513db` citations to the post-R8 versions; §0 and §11 fixture sources and §13's RELAY citation name the current carriers | Header, §0, §2.4.0, §2.4.3 C-4, §10.1, §10.3, §11, §13, FX-C3, Findings |
+| V9 N-1 — in place | §2.4 "on negative decision" row: the "Absent" consequence is labelled by phase (Phase 1 per LP-8; governance phase for governed checkpoints). No rule changes |
 
 ## Changes from v0.4
 
@@ -471,7 +472,7 @@ element set (IR1C-14a).
 | scope | Extent of the subject covered (items, rows). Carried on the act request |
 | purpose | Carried on the act request, and bound with the act (V4-REC-05) |
 | actor requirement | "The person"; for A7, "the accountable professional". A class, not an identity |
-| on negative decision | Path after A10 or an act-declined event. Absent: the run stops at the checkpoint |
+| on negative decision | Path after A10 or an act-declined event. Absent: in Phase 1 the agent follows the plan it worked out with the person (LP-8); in the governance phase (governed checkpoints) the run stops at the checkpoint |
 | on mixed decision (A5, optional) | Per WD §4.3.7 |
 | expected act evidence | The act record and its capturing surface |
 | held actions | Phase 1: guidance on what the agent's plan should not do before the act. Governance phase: what the loop holds (§2.4.4) |
