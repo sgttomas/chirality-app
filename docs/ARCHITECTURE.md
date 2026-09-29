@@ -6,7 +6,9 @@ owner accepted the composite **APP-V4-BASIS-20260926**, including open matters
 and external dependencies, before these consolidated bytes were authored.
 See [PRD §0](PRD.md#0-basis-chronology-and-reading-this-set) for source keys,
 chronology and the acceptance record; no prior human hash-review of this
-post-act text is claimed. Identifiers `V4-ARC-<nn>` are retained.
+post-act text is claimed. Identifiers `V4-ARC-<nn>` are retained. Amended by
+scope-change amendment SCA-V4-001, accepted 2026-09-29, for owner
+decisions DEC-4 and DEC-5 (PRD §0).
 
 This basis carries the scoped D-19/D-20 choices and accepted HTML decisions
 01–07. The original analysis explains their history; technical realization,

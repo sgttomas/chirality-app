@@ -6,7 +6,8 @@ prepared after acceptance of composite **APP-V4-BASIS-20260926**, including
 open matters and external dependencies. [PRD §0](PRD.md#0-basis-chronology-and-reading-this-set)
 identifies the actual accepted sources; no earlier human hash-review of
 these consolidated bytes is claimed. Existing `V4-EXM-<nn>` identities are
-retained.
+retained. Amended by scope-change amendment SCA-V4-001, accepted
+2026-09-29, for owner decisions DEC-4 and DEC-5 (PRD §0).
 
 This is planned examination, not a report of executed v4 tests. No scenario
 was run by this consolidation. Added coverage below derives from accepted

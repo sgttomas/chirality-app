@@ -73,6 +73,12 @@ The structured scope of work is ScopeLedger.csv; Deliverables.csv carries the an
 - Final assembly: no scope, structure, mapping, artifact, interface or context-envelope change. Objective standing and OI-025 now reflect completed mapping; DEP-002 no longer says the workflow comparison is pending. OI-022/DEP-002 retain the later PEC RV1 OPEN MAJOR and actual owner disposition as receiving inputs, without a new scope or blanket gate. Current navigation links historical discussion-stage text to the actual act.
 - The separate final audit passed; the actual Group3 act is recorded in the accepted snapshot. A later material change reopens only its affected warrant rather than silently changing accepted scope.
 
+## Decision Log
+
+The scope-change Change Register for this decomposition. Decisions and changes before the first amendment are recorded in "Artifact coverage and decision/change log" above and in the checkpoint snapshots.
+
+- SCA-V4-001 (2026-09-29), requested by the owner (run APP-V4-BASIS-ALIGN-20260928, applying APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4 and DECISION-5, and APP-V4-FIRST-INCREMENT-20260928-DECISION-1): MODIFY only. ScopeLedger SOW-015, SOW-016, SOW-017, SOW-052, SOW-137, SOW-138, SOW-201 and SOW-202; Vocabulary_Map "Declared checkpoint"; Deliverables DEL-02-03, DEL-05-01 and DEL-09-07; and, where accepted, PKG-05 and OI-001/OI-002. No ID was added, retired, renumbered or moved; 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/SCA-V4-001_2026-09-28_2155`.
+
 ## Checkpoint and next stage
 
 The [final accepted snapshot](checkpoint_snapshots/_LATEST_ACCEPTED.md) preserves the exact Group3 reader, manifest and separate independent final audit PASS. The current working surface carries only the later standing and receiving-currency updates; prior Group2 broad/clarification checks remain evidence for their own subjects.

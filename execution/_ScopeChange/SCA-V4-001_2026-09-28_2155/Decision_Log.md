@@ -1,8 +1,13 @@
 # SCA-V4-001 — Decision log
 
-**Standing: CANDIDATE folder; group 3 not yet presented.** Human decisions are
-quoted exactly; execution-stage readings by node AK1 are labeled as such and
-are not owner decisions.
+**Standing: ACCEPTED amendment snapshot (checkpoint group 3 accepted
+2026-09-29, DECISION-8); `_ScopeChange/_LATEST.md` names this folder.** Human
+decisions are quoted exactly; execution-stage readings by nodes AK1 and AK2
+are labeled as such and are not owner decisions. The candidate version of
+this file (sha256 `3d320f55c4b4c4b2aed90921c1e79829afeb4575c6318c41a69ef605d519428e`)
+is bound in the group-3 `ACCEPTED_MANIFEST.csv`; after the act only this
+standing paragraph and the group-3 row were replaced and the post-acceptance
+section was appended.
 
 ## Human decisions
 
@@ -11,7 +16,7 @@ are not owner decisions.
 | DIR-1 | 2026-09-28 | Direction to start | "go ahead with the next undertaking as recommended." | `AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md` |
 | DECISION-6 | 2026-09-28 | K1 partial answers | Wording package: "I want to review the packet first". Lifecycle: "Yes, record IN_PROGRESS (Recommended)". Arcs: "Accept the 41; keep X-1 (Recommended)". Four closeout corrections: "what do you recommend and why" | Same file. Accepted neither scope-change group; the lifecycle act is recorded at commit `67a2fac4b` |
 | DECISION-7 | 2026-09-28 | K1: scope-change groups 1 and 2 | "accept the remaining items as recommended" | Same file (sha256 `cdc48680…6d34`), added by commit `f4ba34c2c`. Recorded in `checkpoint_snapshots/SCA-V4-001_GROUP-1_2026-09-28/` and `SCA-V4-001_GROUP-2_2026-09-28/` |
-| — | pending | Group 3: audited poststate | — | Not yet presented |
+| DECISION-8 | 2026-09-29 | Checkpoint B: scope-change group 3 (audited poststate) | "Accept (Recommended)"; Coverage_Telemetry.json: "Record as stale, fix later (Recommended)"; "local-first" outside this amendment: "Small follow-on amendment (Recommended)" | Same file (sha256 `752876c1…ddea10`), added by commit `3d006a909`. Recorded in `checkpoint_snapshots/SCA-V4-001_GROUP-3_2026-09-29/` |
 
 ## Execution-stage records (node AK1, after DECISION-7)
 
@@ -77,3 +82,36 @@ are not owner decisions.
 - **E-10 · Helper.** `tools/query/scan_next_amendment_id.sh` is a zsh script;
   run under zsh with prefix `V4` it returned `SCA-V4-001`. Under bash its
   quoted regex rejects every prefix (tooling observation only).
+
+## Post-acceptance records (node AK2, after DECISION-8)
+
+- **P-1 · Group-3 decision snapshot.** `checkpoint_snapshots/SCA-V4-001_GROUP-3_2026-09-29/`
+  (`DECISION.md`, `ACCEPTED_MANIFEST.csv` with 36 rows bound at `3d006a909`,
+  `Handoff_State.md`), written before any acceptance-conditional edit.
+- **P-2 · H-1…H-3 applied.** A07 (3 pairs), A17a, A17b, A17c and D-15 from
+  BASIS_AMENDMENT (sha256 `04bdc916…24cf`) with `{AMENDMENT_ID}` =
+  `SCA-V4-001`, `{ACCEPT_DATE}` = `2026-09-29`, `{AMENDMENT_SNAPSHOT}` =
+  `SCA-V4-001_2026-09-28_2155`. Every target first checked equal to its blob
+  at `3d006a909`; each filled "old" block matched exactly once and each filled
+  "new" block occurred zero times before and once after. No wording was
+  changed; D-15 keeps "where accepted" (V11 F7).
+- **P-3 · H-4.** Second B8 recompute of `Consolidated_Coverage.csv` by the
+  first-pass rule (E-4): 126 rows take new SHA256, ReadSnapshot and SourceLine;
+  the 18 OPERATING_METHOD rows are untouched; `Standing` is not appended again
+  (the nine amended IDs already end "amended by SCA-V4-001"). That B8 applies
+  again after A07/A17 is the recorder's reading (V11 F1).
+- **P-4 · Finalization.** This folder is the accepted snapshot. Its
+  group-1/group-2 bound files (`Brief.md`, `Intake_Actions.csv`,
+  `Impact_Assessment.md`, `Pre_Change_Coverage.json`, `Amendment_Actions.csv`,
+  `Amendment_Preview.md`, `Propagation_Plan.md`, `Supersession_Delta.csv`) are
+  not rewritten, so `Brief.md` keeps its candidate standing line.
+  `Handoff_State.md`, `RUN_SUMMARY.md` and this file carry the accepted
+  standing. `_ScopeChange/_LATEST.md` created.
+- **P-5 · H-5.** `_PostAcceptanceValidation/SCA-V4-001_20260929T132946Z/`
+  verifies the applied bytes and the now-active snapshot; the audit-decomp
+  rerun is in `AgentRuns/APP-V4-BASIS-ALIGN-20260928/POSTACCEPT/`.
+- **P-6 · Not touched.** No `ScopeOfWork.md`, `Dependencies.csv`,
+  `_DEPENDENCIES.md`, `_DAG`, `_STATUS.md` or `Coverage_Telemetry.json` byte.
+  No deliverable is `ISSUED`, so the reopening rule does not apply and
+  `check_amendment_reopen.py` was not run (the contract uses it only for
+  reopening an `ISSUED` deliverable).

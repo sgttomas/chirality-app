@@ -7,7 +7,10 @@ composite identified in the [acceptance record][B-ACCEPT], not a claim that
 the human previously examined these newly consolidated bytes. Acceptance
 includes stated open matters and external dependencies; it authorizes
 proceeding with decomposition and project definition, not product implementation,
-release, or automatic resolution of unruled details.
+release, or automatic resolution of unruled details. Amended by scope-change
+amendment SCA-V4-001, accepted 2026-09-29: V4-WF-05 (phased
+checkpoints), V4-HOST-01 and V4-HOST-02 and the text that states the same
+meanings, applying owner decisions DEC-4 and DEC-5 (§0).
 
 Companion documents: [architecture](ARCHITECTURE.md),
 [host integration](HOST_INTEGRATION.md), [examination](EXAMINATION.md),
@@ -34,6 +37,7 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | A–I | Earlier renewal directions, retained through B-HTML's quoted basis: human governance, Root's conceptual role, manuals, SoWs, thesis, PEC and research. |
 | OD-nn / D-nn | Original scoped directions/choices in `../conceptual/DECISIONS.md`, including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |
+| DEC-4 / DEC-5 | [Owner decisions][B-DEC45] `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
 The original handoff's pending-answer list and `SEED_SET_PLAN.md` §3 remain
 historical. An **open detail** below is carried to its point of need; it is
@@ -513,3 +517,4 @@ acceptance position is superseded by B-ACCEPT, not erased from history.
 [B-ACCEPT]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
 [B-HTML]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
 [B-OWNER]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
+[B-DEC45]: ../execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md

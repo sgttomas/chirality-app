@@ -1,0 +1,181 @@
+{
+ "basis_commit": "3d006a909d722606b2f69f8c71a7020e5c86a619",
+ "fill": {
+  "{AMENDMENT_ID}": "SCA-V4-001",
+  "{ACCEPT_DATE}": "2026-09-29",
+  "{AMENDMENT_SNAPSHOT}": "SCA-V4-001_2026-09-28_2155"
+ },
+ "packet_sha256": "04bdc91622223510870ac8fe3994d708641c5e07a7853c5abc75ac59c0ed24cf",
+ "edits": [
+  {
+   "item": "H-1",
+   "edit": "A07",
+   "pair": 1,
+   "target": "projects/chirality-app-v4/docs/PRD.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "c9df65fd7a486ce7d3728e7598bec78e7a1b2c9b02d5a398cefb389bb65e96af",
+   "new_filled_sha256": "bf9727bcc6292ffc604d637498382635ef298622337d348db3e1910a728ed2a4",
+   "new_filled": "proceeding with decomposition and project definition, not product implementation,\nrelease, or automatic resolution of unruled details. Amended by scope-change\namendment SCA-V4-001, accepted 2026-09-29: V4-WF-05 (phased\ncheckpoints), V4-HOST-01 and V4-HOST-02 and the text that states the same\nmeanings, applying owner decisions DEC-4 and DEC-5 (§0)."
+  },
+  {
+   "item": "H-1",
+   "edit": "A07",
+   "pair": 2,
+   "target": "projects/chirality-app-v4/docs/PRD.md",
+   "tokens": [
+    "{AMENDMENT_ID}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "2c4546e1506ace10c9f23e79c4566feeebd0921455c29a665c780c5d4f71835b",
+   "new_filled_sha256": "4d89097b8afee5809b957a6833ff5953b70aaa4932bb24cdc639d68a48f1ca91",
+   "new_filled": "| X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |\n| DEC-4 / DEC-5 | [Owner decisions][B-DEC45] `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |"
+  },
+  {
+   "item": "H-1",
+   "edit": "A07",
+   "pair": 3,
+   "target": "projects/chirality-app-v4/docs/PRD.md",
+   "tokens": [],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "5df5a2309e58445711725a305ecd202d527b9f46b918071fb7596eb70e25bd8d",
+   "new_filled_sha256": "bb419151972d6d37b5773d19085f01fdf2458cf7858e9190caff7c250e285ba7",
+   "new_filled": "[B-OWNER]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md\n[B-DEC45]: ../execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md"
+  },
+  {
+   "item": "H-2",
+   "edit": "A17a",
+   "pair": 1,
+   "target": "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "34c298b40529a1706d02a32ea4e09abf3e7f4385858a5e361a027275d97f7656",
+   "new_filled_sha256": "7767342324c0c9ac4ec2f5ce6827560419d577d4b2324adae8e6c6fe8b7fcc86",
+   "new_filled": "post-act text is claimed. Identifiers `V4-ARC-<nn>` are retained. Amended by\nscope-change amendment SCA-V4-001, accepted 2026-09-29, for owner\ndecisions DEC-4 and DEC-5 (PRD §0)."
+  },
+  {
+   "item": "H-2",
+   "edit": "A17b",
+   "pair": 1,
+   "target": "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "19087e1375f36a371df3c4d830b1d16eac54071adefd73b0001d5e4266d0be79",
+   "new_filled_sha256": "9f39288ecaf43ea2511d4e99e5e0d60d5823d3239035dc235e932094603e0247",
+   "new_filled": "hash-review these newly consolidated bytes. Existing `V4-HI-<nn>` identities\nare retained. Amended by scope-change amendment SCA-V4-001, accepted\n2026-09-29, for owner decisions DEC-4 and DEC-5 (PRD §0)."
+  },
+  {
+   "item": "H-2",
+   "edit": "A17c",
+   "pair": 1,
+   "target": "projects/chirality-app-v4/docs/EXAMINATION.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "d83d5057e4c757863c4054a9dac89134a07e675c331167244a87605bd34113ff",
+   "new_filled_sha256": "17307d9e86543391f3f894e2466571b5cb4f8c65dec071c0ea88cbdb0cca7981",
+   "new_filled": "these consolidated bytes is claimed. Existing `V4-EXM-<nn>` identities are\nretained. Amended by scope-change amendment SCA-V4-001, accepted\n2026-09-29, for owner decisions DEC-4 and DEC-5 (PRD §0)."
+  },
+  {
+   "item": "H-3",
+   "edit": "D-15",
+   "pair": 1,
+   "target": "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}",
+    "{AMENDMENT_SNAPSHOT}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "9f3c9b4796ac67746ad95162a5b6e08d7f1ef6201eda400a9b0ddca8fe0eea93",
+   "new_filled_sha256": "016a2aab7bb652827b966406b99c91b901b2feb2586932a457b517b652addf55",
+   "new_filled": "## Decision Log\n\nThe scope-change Change Register for this decomposition. Decisions and changes before the first amendment are recorded in \"Artifact coverage and decision/change log\" above and in the checkpoint snapshots.\n\n- SCA-V4-001 (2026-09-29), requested by the owner (run APP-V4-BASIS-ALIGN-20260928, applying APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4 and DECISION-5, and APP-V4-FIRST-INCREMENT-20260928-DECISION-1): MODIFY only. ScopeLedger SOW-015, SOW-016, SOW-017, SOW-052, SOW-137, SOW-138, SOW-201 and SOW-202; Vocabulary_Map \"Declared checkpoint\"; Deliverables DEL-02-03, DEL-05-01 and DEL-09-07; and, where accepted, PKG-05 and OI-001/OI-002. No ID was added, retired, renumbered or moved; 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/SCA-V4-001_2026-09-28_2155`.\n\n## Checkpoint and next stage"
+  }
+ ],
+ "consolidated": {
+  "rows_recomputed": 126,
+  "rows_changed": 126,
+  "rows_untouched_other_documents": 18,
+  "changed_columns": {
+   "SHA256": 126,
+   "ReadSnapshot": 126,
+   "SourceLine": 126
+  },
+  "per_doc": {
+   "projects/chirality-app-v4/docs/PRD.md": 60,
+   "projects/chirality-app-v4/docs/ARCHITECTURE.md": 13,
+   "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": 31,
+   "projects/chirality-app-v4/docs/EXAMINATION.md": 22
+  },
+  "standing_rows_with_suffix": 9,
+  "doc_sha256": {
+   "projects/chirality-app-v4/docs/PRD.md": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd",
+   "projects/chirality-app-v4/docs/ARCHITECTURE.md": "317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c",
+   "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": "6c6854f941c714d8287bf799e1427bd4d99450847341bdf885ce4158d77eb122",
+   "projects/chirality-app-v4/docs/EXAMINATION.md": "471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0"
+  },
+  "doc_blob": {
+   "projects/chirality-app-v4/docs/PRD.md": "git-blob:4aed78a74ba82d32775c90f4d4e04158b7070047",
+   "projects/chirality-app-v4/docs/ARCHITECTURE.md": "git-blob:04b93eff7542ecc9a6bc51242733627c489ad92b",
+   "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": "git-blob:8edbfa40f4a40828e188c31729d9a771763155f6",
+   "projects/chirality-app-v4/docs/EXAMINATION.md": "git-blob:e55622f437a900fc539586990b4137eb484b49c8"
+  }
+ },
+ "files": {
+  "projects/chirality-app-v4/docs/PRD.md": {
+   "pre": "a3692f54a2634e5590cc690204a45a2f5b32c0e00ad38c18f648a942e011a3a2",
+   "post": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd",
+   "written": true
+  },
+  "projects/chirality-app-v4/docs/ARCHITECTURE.md": {
+   "pre": "14620d63ab4819a53062ab2016b569a1be27c8bd20ba4b189aecf580b6f68db2",
+   "post": "317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c",
+   "written": true
+  },
+  "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": {
+   "pre": "38ae0011653b14cfd10ab5bf3978d87e58be466f75a32d26f4e1b0bcfe1fb059",
+   "post": "6c6854f941c714d8287bf799e1427bd4d99450847341bdf885ce4158d77eb122",
+   "written": true
+  },
+  "projects/chirality-app-v4/docs/EXAMINATION.md": {
+   "pre": "d8874e2c876471ac7bd5c93e83573d08912c3c0b4fa58608b5c487e0d284f5d5",
+   "post": "471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0",
+   "written": true
+  },
+  "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md": {
+   "pre": "98e8bc4b17707a3eb395bf63ff73e89f6c802566d6e11c9f0278d26bf26d1940",
+   "post": "7434058164f9e53f146793b85c38845a562fbc9ffd46f2b97de18e8d597e5747",
+   "written": true
+  },
+  "projects/chirality-app-v4/execution/_Decomposition/Consolidated_Coverage.csv": {
+   "pre": "a988f5a603429e785a19e1f8f5d98418d3a715acc3b4bbd13d6d8746b72d174f",
+   "post": "4eee4bcb1cb296a9e96f9c44f934f19913dd827b43666475505e684a646a8db1",
+   "written": true
+  }
+ }
+}
