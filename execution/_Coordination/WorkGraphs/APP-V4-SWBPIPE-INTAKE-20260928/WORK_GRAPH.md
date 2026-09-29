@@ -49,7 +49,7 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | I3 R8 intake rulings | Run folder `R8_RESOLUTIONS.md` | I2 | Each ruling-needed item decided or routed to the owner | COMPLETE — [R8](../../AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md) under DECISION-4 (phased checkpoints); V4-HOST-02 keep/drop pending owner |
 | I4 Apply | Affected Design files (parallel by file cluster) | I3 | Every R8 item applied; change rows; GUIDE re-pinned last | COMPLETE — A1–A6: EXEC v0.4; WD, WD-EX, ACT, AS, RS, C, P, LOOP, PANEL, HOSTING v0.6; ADAPTER, CA, XT v0.4; GUIDE v0.3; RELAY status. Pins 18/18 |
 | V9 Independent review | `reviews/V9.md` | I4 | Verdict covering the actual candidate | ACTIVE |
-| F Receipt, MEMORY, PR | Run folder; affected `MEMORY.md` | V9 | PR merged | PLANNED |
+| F Receipt, MEMORY, PR | Run folder; affected `MEMORY.md` | V9 | PR merged | ACTIVE — [#1050](https://github.com/sgttomas/chirality/pull/1050) opened at `f5ceef164`; CI monitor on; auto-merge after V9 finds nothing blocking |
 
 ## Current state and recovery
 
