@@ -191,3 +191,15 @@ The owner then interrupted the turn and, in a new message, said
     tail; the A17b line join.
 
   A later currency audit picks up the resulting rows as a small departure.
+
+## Recorder's note on DECISION-10 (V13 N1)
+
+CHECKPOINT_C §9 listed four questions. The owner was asked two (DAG-002
+acceptance, and the four arcs). The other two were:
+
+- DEL-01-01 as a new supplier (C2-3);
+- DEL-09-06 as a new consumer, with the guard kept as a standing note (C2-4).
+
+Both were applied as recommended in the package without a separate owner
+answer, and are recorded as such in DAG-002/HANDOFF_STATE.md. The owner may
+revisit either.

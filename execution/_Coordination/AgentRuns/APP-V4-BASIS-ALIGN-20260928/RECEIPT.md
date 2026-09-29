@@ -49,7 +49,7 @@ All are in [OWNER_DECISIONS.md](OWNER_DECISIONS.md) with exact text:
 - **Independent reviews:**
   - V11, before group 3: READY;
   - V12, of the SoW revisions, registers and DAG-002: READY;
-  - V13, of publication and records: see `reviews/`.
+  - V13, of publication and records: MERGE (0 BLOCKING, 4 MINOR, 6 NOTE).
 - **Strict audit:** `audit_dag.py --canonical --strict` exits 0.
 - **Manifests:** DAG-001 61/61; DAG-002 37/37 and its source manifest 130/130.
 
@@ -62,8 +62,11 @@ All are in [OWNER_DECISIONS.md](OWNER_DECISIONS.md) with exact text:
   - Open_Issues OI-001/002 status;
   - the DEL-03-03 CLM-002 tail;
   - the A17b line join.
-- **Coverage_Telemetry.json** needs a rebuild. SCA-V4-001's closure verdict is
-  OPEN_PENDING_DERIVATIVE_CLOSURE for that derivative only.
+- **SCA-V4-001's closure verdict is OPEN_PENDING_DERIVATIVE_CLOSURE.** Still
+  open (V13 F4):
+  - the Coverage_Telemetry.json rebuild;
+  - `audit-scope-closure`;
+  - the Design files re-pinning to the amended basis texts.
 - **`audit-scope-closure`** is proposed against SCA-V4-001.
 - **V12 F1:** 34 dependency quotes lost their backticks; fix at the next
   extraction.
