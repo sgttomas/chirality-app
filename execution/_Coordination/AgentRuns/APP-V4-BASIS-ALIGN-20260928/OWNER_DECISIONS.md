@@ -57,3 +57,50 @@ accepts the packet at the checkpoint that governs it.
   - N-12 and N-B8 are not proposed.
 
   DAG-002 itself still needs the owner's acceptance at checkpoint C.
+
+## Checkpoint A: acceptance (owner, exact, 2026-09-28), DECISION-7
+
+**Context.** The owner reviewed the packet (revision 2; OWNER_ITEMS.md
+sha256 `2b90eb4a…`, BASIS_AMENDMENT.md `04bdc916…`, SOW_REVISIONS.md
+`9b4d700d…`, IMPACT_ASSESSMENT.md `7fd523c2…`) on the review page
+https://claude.ai/artifact/3ek3uuPUR1v9jgpTjoF6ec. The page states: "To
+accept everything still open, reply in chat: accept the remaining items as
+recommended".
+
+> "accept the remaining items as recommended"
+
+## Effects
+
+**Scope-change checkpoint groups 1 and 2 for `SCA-V4-001` are accepted**, as
+recommended in OWNER_ITEMS.md revision 2. That covers O-1 through O-15, O-17
+through O-19 and O-21 through O-26:
+
+- the scope of the change;
+- the write boundary and the application route;
+- the V4-WF-05, V4-HOST-01/ARC-11 and V4-HOST-02/ARC-12 texts, and the
+  consequential edits;
+- the four scope additions (S-01-4, S-01-5, S-02-3, S-03-2);
+- the model-destination reading;
+- direct consumption (O-11, O-12, O-13);
+- the DECISION-5 SoW allocation (O-14, O-15);
+- "local-first" amended (O-8);
+- the OI-001/OI-002 pointers;
+- DEL-08-01 and DEL-09-07 included;
+- the supersession typing, the `ScopeChanging` values and two decision
+  snapshots;
+- SoW frontmatter unchanged;
+- the R8-11 reading;
+- the OQ-02 markers left for later.
+
+O-16, O-20 and O-27 through O-30 were already decided or done (DECISION-6).
+
+**Next, per the accepted route (O-3):**
+
+1. Write the group-1 and group-2 decision snapshots.
+2. Apply the basis documents, the decomposition edits and the `_CONTEXT.md`
+   mirrors as the candidate.
+3. Run the post-change audit with the baseline's seven-package scope, then an
+   independent review.
+4. Present group 3 (the audited poststate) at checkpoint B.
+5. Only after group-3 acceptance: `scope-of-work` REVISE for the 16 SoWs,
+   the register rows, the currency audit, and DAG-002 (checkpoint C).
