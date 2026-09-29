@@ -35,3 +35,25 @@ accepts the packet at the checkpoint that governs it.
   row requires). A currency audit then records the DEPARTURE, and
   `project-dag` TRIGGER=SUCCESSOR prepares DAG-002 for the owner's acceptance
   at checkpoint 2.
+
+## Checkpoint A: owner answers (exact, 2026-09-28), DECISION-6 (partial)
+
+| Question presented | Owner's answer (exact) |
+|---|---|
+| Accept the wording package (SCA-V4-001) as prepared? | "I want to review the packet first" |
+| Four closeout corrections that widen or sharpen scope: adopt which? | "what do you recommend and why" |
+| Record the 14 first-increment deliverables as IN_PROGRESS now? | "Yes, record IN_PROGRESS (Recommended)" |
+| Dependency arcs for DAG-002: 41 arcs, keep X-1, disputed arc out? | "Accept the 41; keep X-1 (Recommended)" |
+
+## Effects
+
+- **Scope-change groups 1–2** are not yet accepted. The owner is reviewing the
+  packet. No doc, decomposition or SoW edit is applied.
+- **Lifecycle:** the owner directs recording INITIALIZED → IN_PROGRESS for
+  DEL-04-01, 04-02, 04-03, 03-01, 03-02, 03-03, 03-04, 02-01, 02-03, 05-01,
+  05-02, 01-01, 09-06 and 09-09 (SPEC: by the Human or WORKING_ITEMS).
+- **Arc set** (for DAG-002 preparation):
+  - the refreshed 41 are accepted, with X-1 kept;
+  - N-12 and N-B8 are not proposed.
+
+  DAG-002 itself still needs the owner's acceptance at checkpoint C.
