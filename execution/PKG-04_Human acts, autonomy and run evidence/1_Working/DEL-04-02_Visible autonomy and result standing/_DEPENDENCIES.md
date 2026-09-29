@@ -16,45 +16,62 @@
 ---
 
 ## Extracted Dependency Register
-- **Register:** `Dependencies.csv` — v3.1, 29 canonical columns.
-- **Counts:** 14 ACTIVE extracted rows: 6 ANCHOR (1 parent, 5 scope/objective traces) and 8 EXECUTION; 0 RETIRED; 0 DECLARED.
-- **Execution targets:** 3 local Deliverable rows (2 upstream inputs, 1 downstream settings exchange); 5 EXTERNAL rows (host contribution and 4 owner choices); 0 UNKNOWN.
 
-| DependencyID | Class | Direction | Target | Type |
+- **Status:** EXTRACTED; canonical Dependencies.csv v3.1.
+- **ACTIVE:** 25 total — 6 ANCHOR, 19 EXECUTION. EXECUTION: 6 upstream deliverable inputs (DEL-04-01, DEL-04-03, DEL-03-02, DEL-03-01, DEL-02-03, DEL-05-01), 6 downstream deliverable outputs (DEL-04-03 settings; visible autonomy state to 5 receivers), 7 external inputs/constraints (DEP-001, OI-001, OI-002, OI-013, OI-014, OI-021, DECISION-4 governance layer).
+- **RETIRED:** 0. **EXTERNAL (ACTIVE):** 7. **UNKNOWN (ACTIVE):** 0. **DECLARED:** 0.
+
+| Dependency | Class / type | Direction | Target | Status |
 |---|---|---|---|---|
-| DEP-04-02-001 | ANCHOR | UPSTREAM | PKG-04 | OTHER |
-| DEP-04-02-002 | ANCHOR | UPSTREAM | SOW-075 | OTHER |
-| DEP-04-02-003 | ANCHOR | UPSTREAM | SOW-076 | OTHER |
-| DEP-04-02-004 | ANCHOR | UPSTREAM | SOW-077 | OTHER |
-| DEP-04-02-005 | ANCHOR | UPSTREAM | SOW-078 | OTHER |
-| DEP-04-02-006 | ANCHOR | UPSTREAM | OBJ-005 | OTHER |
-| DEP-04-02-007 | EXECUTION | UPSTREAM | DEL-04-01 | PREREQUISITE |
-| DEP-04-02-008 | EXECUTION | UPSTREAM | DEL-04-03 | INTERFACE |
-| DEP-04-02-009 | EXECUTION | DOWNSTREAM | DEL-04-03 | INTERFACE |
-| DEP-04-02-010 | EXECUTION | UPSTREAM | App-v4:DEP-001:SWBPIPE | INTERFACE |
-| DEP-04-02-011 | EXECUTION | UPSTREAM | App-v4:OI-001 | CONSTRAINT |
-| DEP-04-02-012 | EXECUTION | UPSTREAM | App-v4:OI-002 | CONSTRAINT |
-| DEP-04-02-013 | EXECUTION | UPSTREAM | App-v4:OI-013 | CONSTRAINT |
-| DEP-04-02-014 | EXECUTION | UPSTREAM | App-v4:OI-014 | CONSTRAINT |
+| DEP-04-02-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM | PKG-04 | ACTIVE |
+| DEP-04-02-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-075 | ACTIVE |
+| DEP-04-02-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-076 | ACTIVE |
+| DEP-04-02-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-077 | ACTIVE |
+| DEP-04-02-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-078 | ACTIVE |
+| DEP-04-02-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-005 | ACTIVE |
+| DEP-04-02-007 | EXECUTION / PREREQUISITE | UPSTREAM | DEL-04-01 | ACTIVE |
+| DEP-04-02-008 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-03 | ACTIVE |
+| DEP-04-02-009 | EXECUTION / INTERFACE | DOWNSTREAM | DEL-04-03 | ACTIVE |
+| DEP-04-02-010 | EXECUTION / INTERFACE | UPSTREAM | App-v4:DEP-001:SWBPIPE | ACTIVE |
+| DEP-04-02-011 | EXECUTION / CONSTRAINT | UPSTREAM | App-v4:OI-001 | ACTIVE |
+| DEP-04-02-012 | EXECUTION / CONSTRAINT | UPSTREAM | App-v4:OI-002 | ACTIVE |
+| DEP-04-02-013 | EXECUTION / CONSTRAINT | UPSTREAM | App-v4:OI-013 | ACTIVE |
+| DEP-04-02-014 | EXECUTION / CONSTRAINT | UPSTREAM | App-v4:OI-014 | ACTIVE |
+| DEP-04-02-015 | EXECUTION / INTERFACE | UPSTREAM | DEL-03-02 | ACTIVE |
+| DEP-04-02-016 | EXECUTION / INTERFACE | UPSTREAM | DEL-03-01 | ACTIVE |
+| DEP-04-02-017 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-03 | ACTIVE |
+| DEP-04-02-018 | EXECUTION / INTERFACE | UPSTREAM | DEL-05-01 | ACTIVE |
+| DEP-04-02-019 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-05-01 | ACTIVE |
+| DEP-04-02-020 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-05-02 | ACTIVE |
+| DEP-04-02-021 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-03-02 | ACTIVE |
+| DEP-04-02-022 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-03-03 | ACTIVE |
+| DEP-04-02-023 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-02-03 | ACTIVE |
+| DEP-04-02-024 | EXECUTION / CONSTRAINT | UPSTREAM | App-v4:OI-021 | ACTIVE |
+| DEP-04-02-025 | EXECUTION / CONSTRAINT | UPSTREAM | APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4 | ACTIVE |
 
 ## Lifecycle Summary
-- INITIALIZED: source-grounded SOW_V1 exists and independent INIT verification passed; manager recorded the separate status act under the approved policy. No dependency availability or product-readiness verdict.
-- ACTIVE: 14; RETIRED: 0. SatisfactionStatus: NOT_APPLICABLE 6 (anchors), PENDING 8 (execution), SATISFIED 0.
-- Local target RequiredMaturity=INITIALIZED denotes checked contract maturity only. Actual adopted policy, record exchanges, host evidence and owner decisions remain separate unfulfilled/unverified input conditions; non-Deliverable maturity is TBD.
+
+- Register lifecycle: ACTIVE 25; RETIRED 0.
+- Closure states (ACTIVE rows): NOT_APPLICABLE 6, PENDING 19. No execution dependency is marked SATISFIED by this extraction.
 
 ## Run Notes
-- SCOPE=DEL-04-02; RUN_ROOT=`/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution`.
-- Selected method: `chirality-root:bundled:workflow:dependency-extract`; method source basis `ffb2b6289dde79a35f22f5d87256df0aa4d3289a`; setup candidate `ddd721a90ade401d452d102e6e40d1ffdae654eb`, identical-tree integration `82efe62783bbe8ac7d21476a6662195c0b0a7587` as supplied in the brief.
-- DECOMPOSITION_PATH=`/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md`. Accepted companion identities resolve labels; frozen historical candidate/pending text is not a reversal of the accepted basis supplied by the brief.
-- SOURCE_DOCS=ScopeOfWork.md; ANCHOR_DOC=ScopeOfWork.md; EXECUTION_DOC_ORDER=[ScopeOfWork.md]; DOC_ROLE_MAP=DEFAULT; MODE=UPDATE; STRICTNESS=CONSERVATIVE; CONSUMER_CONTEXT=NONE; ARCHITECTURE_BASIS_POLICY=NONE.
-- Pass 1 completed with one explicit parent plus SOW-075–078 and OBJ-005 traces before Pass 2. References were read only for resolution. Sibling source contracts were not read.
-- No prior CSV existed. Human-owned mode and declared sections are byte-preserved. Declared mirrors added/refreshed/retired=0/0/0; 2 initial-setup placeholders skipped. Existing Run History retained.
-- The record interface has distinct received-evidence and outgoing-setting flows; this is not an inferred scheduling cycle. The host row preserves the SWBPIPE external identity and its actual corresponding integration/examination point of need. Local fixtures do not establish delivered/adopted host capability.
-- OI-001, OI-002, OI-013 and OI-014 remain separate owner choices at the source-stated points of need. No global policy, classifier default, service topology or shared construction is chosen.
-- Runtime display/permission rules, ownership exclusions and source citations alone did not create edges. No extra live-human witness or universal acceptance/checking/approval sequence was inferred: positive faithful-act evidence is received through the record contribution; a person's actual act remains distinct from its recording or display.
-- Validation: schema, every used canonical enum value, stable ID formats, one-parent/unique-row/evidence/completeness/count checks, declared-section preservation and unchanged source SHA passed. Optional whole-execution EVQ/DRB scan omitted; local quote/locus/prefix checks passed. Full commands/results and hashes: `_run_records/dependency-extract-20260927.md`.
-- Limitations: actual input delivery/fulfilment, open owner choices, external host adoption and global closure remain unclaimed. Extraction adds no lifecycle advancement, implementation authority or project graph decision.
+
+- Run APP-V4-BASIS-ALIGN-20260928, node DX-1 (Claude Code Agent subagent, Type 2 TASK; no delegation). Basis commit 557716cf7. Parameters: SCOPE DEL-04-02; MODE UPDATE; STRICTNESS CONSERVATIVE; CONSUMER_CONTEXT NONE; DOC_ROLE_MAP DEFAULT; ARCHITECTURE_BASIS_POLICY NONE.
+- SOURCE_DOCS explicit: ScopeOfWork.md only (run BRIEFS.md DX shared override). ANCHOR_DOC ScopeOfWork.md; EXECUTION_DOC_ORDER ScopeOfWork.md. Design/ DRAFT files are not extraction sources. ANCHOR pass completed before the EXECUTION pass.
+- RUN_ROOT: projects/chirality-app-v4/execution. DECOMPOSITION_PATH: projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md (available; brief override). Companion Deliverables.csv, ScopeLedger.csv and Objectives.csv in that folder were used for ID and label resolution; the scope, objective, package and deliverable-name rows used here are identical to the GROUP3-20260928T001055Z snapshot, so anchor TargetLocation values keep the snapshot paths that the SoW cites as basis B. Open_Issues.csv was read only to resolve cited OI identities.
+- Source ScopeOfWork.md SHA256 before and after: e077f20a95efc193e4de5489824e84278449b64dda615fb913c9dbd6070122f9 (unchanged: True). No source, _REFERENCES.md, _STATUS.md, Design, decomposition or _DAG file was modified.
+- Guard (BRIEFS.md DX): pointers in DEL-05-01 TBD-003, DEL-05-02 TBD-003 and DEL-09-09 CLM-004 to the DEL-09-06 relay file are coordination routes, not inputs; not applicable to this register, which has no DEL-09-06 row.
+- Run record: _run_records/dependency-extract-20260929.md (read identities and read order, validator output, output hashes). Return: run folder DX/DX-1_DEL-04-02.md (comparison with the DAG_PREP expectations).
+- Declared mirroring: added 0; refreshed 0; retired 0; skipped 2 placeholder entries ("None declared at initial setup."). Human-owned sections byte-identical.
+- UPDATE result: 11 rows added (DEP-04-02-015..025), 2 refreshed in place (011, 012), 0 retired, 12 unchanged apart from LastSeen.
+- Added from CLM-002 (revised under SCA-V4-001): UPSTREAM INTERFACE from DEL-03-02 (proposal/outcome and direct-application origin semantics), DEL-03-01 (read-basis and standing facets), DEL-02-03 (checkpoint recording annotations; hold-support values retained for the governance phase) and DEL-05-01 (network-destination allow list, in-work grants and contacted-destination record; DECISION-5); DOWNSTREAM HANDOVER of visible autonomy state to DEL-05-01, DEL-05-02, DEL-03-02, DEL-03-03 and DEL-02-03. DEL-05-01, DEL-03-02 and DEL-02-03 each appear in both directions for different content; these are separate stated interfaces, not duplicates or a scheduling cycle.
+- Added: UPSTREAM CONSTRAINT on OI-021 (TBD-001) and on the enforced-checkpoint governance layer (TBD-006; APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4 D4-1; point of need: before hold-display fixtures run).
+- Refreshed: 011 (OI-001) and 012 (OI-002) keep their targets; statements, evidence and TargetLocation now cite APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2/D3. SatisfactionStatus unchanged (PENDING). Current Open_Issues.csv still lists OI-001/OI-002 as OPEN.
+- Not extracted: REQ-007 ownership exclusions (DEL-02-03 hold machine, DEL-05-01 host-loop receiving, DEL-03-03 channel status), source key U sibling-contract citations and AX-004 revision provenance; ownership, citation and provenance text alone creates no edge, consistent with the prior run.
+- Checks: validate_dependencies_schema.py VALID (29 columns, 25 rows); validate_enum.py 22/22 used values VALID; validate_id_format.sh 43/43 IDs VALID. Local checks as for the prior run: unique IDs/semantic keys, prefix, one parent, target placement, verbatim quotes of at most 30 words (markdown emphasis/code marks ignored), no placeholder SourceRef. Optional validate_decomposition_registers.py not run.
+- Structural warnings: none (one IMPLEMENTS_NODE parent).
 
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-28T03:25:20+00:00 — TASK `/root/renewal_research_strategy/dep_del_04_02`; UPDATE / CONSERVATIVE; accepted decomposition available at `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md`; 14 ACTIVE (6 ANCHOR, 8 EXECUTION), 0 RETIRED; local checks passed; unresolved input/owner/host conditions retained without floating or ambiguous anchors.
+- 2026-09-29T14:34:59Z — TASK dependency-extract (APP-V4-BASIS-ALIGN-20260928 DX-1); UPDATE / CONSERVATIVE; SOURCE_DOCS ScopeOfWork.md only (revised under SCA-V4-001); decomposition projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md available; +11 / refreshed 2 / retired 0; ACTIVE 25 (ANCHOR 6 / EXECUTION 19), RETIRED 0; warnings none.

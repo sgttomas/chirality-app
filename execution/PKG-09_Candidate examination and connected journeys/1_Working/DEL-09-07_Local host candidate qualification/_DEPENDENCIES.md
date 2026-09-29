@@ -16,45 +16,41 @@
 ---
 
 ## Extracted Dependency Register
-- **Status:** EXTRACTED
-- **Register:** `Dependencies.csv` (v3.1; 29 columns)
-- **ACTIVE:** 25 — ANCHOR 10 (parent 1; scope 5; objective 4), EXECUTION 15 (UPSTREAM 14; DOWNSTREAM 1). EXTERNAL 9; UNKNOWN 0. DECLARED 0; RETIRED 0.
+- **Status:** EXTRACTED_AND_LOCALLY_VALIDATED
+- **Register:** `Dependencies.csv` (v3.1; 29 columns).
+- **Counts:** 25 ACTIVE rows: 10 ANCHOR (1 parent, 9 scope/objective traces), 15 EXECUTION (14 UPSTREAM, 1 DOWNSTREAM); 0 RETIRED; 0 DECLARED; EXECUTION target types: DELIVERABLE 2, EXTERNAL 9, PACKAGE 4.
 
-| DependencyID | Class | Direction | Type | Target |
-|---|---|---|---|---|
-| DEP-09-07-001 | ANCHOR | UPSTREAM | OTHER | PKG-09 |
-| DEP-09-07-002 | ANCHOR | UPSTREAM | OTHER | SOW-199 |
-| DEP-09-07-003 | ANCHOR | UPSTREAM | OTHER | SOW-200 |
-| DEP-09-07-004 | ANCHOR | UPSTREAM | OTHER | SOW-201 |
-| DEP-09-07-005 | ANCHOR | UPSTREAM | OTHER | SOW-202 |
-| DEP-09-07-006 | ANCHOR | UPSTREAM | OTHER | SOW-239 |
-| DEP-09-07-007 | ANCHOR | UPSTREAM | OTHER | OBJ-004 |
-| DEP-09-07-008 | ANCHOR | UPSTREAM | OTHER | OBJ-005 |
-| DEP-09-07-009 | ANCHOR | UPSTREAM | OTHER | OBJ-008 |
-| DEP-09-07-010 | ANCHOR | UPSTREAM | OTHER | OBJ-009 |
-| DEP-09-07-011 | EXECUTION | UPSTREAM | PREREQUISITE | DEL-09-06 |
-| DEP-09-07-012 | EXECUTION | UPSTREAM | INTERFACE | PKG-02 |
-| DEP-09-07-013 | EXECUTION | UPSTREAM | INTERFACE | PKG-03 |
-| DEP-09-07-014 | EXECUTION | UPSTREAM | INTERFACE | PKG-04 |
-| DEP-09-07-015 | EXECUTION | UPSTREAM | INTERFACE | PKG-05 |
-| DEP-09-07-016 | EXECUTION | UPSTREAM | PREREQUISITE | DEP-001 |
-| DEP-09-07-017 | EXECUTION | UPSTREAM | PREREQUISITE | Actual App/SWBPIPE candidate and local-model runtime configuration |
-| DEP-09-07-018 | EXECUTION | UPSTREAM | PREREQUISITE | Person/engineer — scoped V4-EXM-20 row decisions |
-| DEP-09-07-019 | EXECUTION | UPSTREAM | PREREQUISITE | Engineer-edited model and agent checking request for V4-EXM-21 |
-| DEP-09-07-020 | EXECUTION | UPSTREAM | PREREQUISITE | Person-adopted per-operation autonomy policy and actual run setting |
-| DEP-09-07-021 | EXECUTION | UPSTREAM | PREREQUISITE | Person's actual declared workflow-checkpoint act for V4-EXM-22 |
-| DEP-09-07-022 | EXECUTION | UPSTREAM | CONSTRAINT | OI-001 |
-| DEP-09-07-023 | EXECUTION | UPSTREAM | CONSTRAINT | OI-002 |
-| DEP-09-07-024 | EXECUTION | UPSTREAM | INTERFACE | Independent examiner — joined local qualification dossier examination |
-| DEP-09-07-025 | EXECUTION | DOWNSTREAM | HANDOVER | DEL-11-03 |
-
----
+| DependencyID | Class / anchor | Direction / type | Target | Satisfaction | Status |
+|---|---|---|---|---|---|
+| DEP-09-07-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM / OTHER | PKG-09 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-199 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-200 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-201 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-202 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-239 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-007 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-004 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-008 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-005 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-009 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-008 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-010 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-009 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-011 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | DEL-09-06 | TBD | ACTIVE |
+| DEP-09-07-012 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-02 | TBD | ACTIVE |
+| DEP-09-07-013 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-03 | TBD | ACTIVE |
+| DEP-09-07-014 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-04 | TBD | ACTIVE |
+| DEP-09-07-015 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-05 | TBD | ACTIVE |
+| DEP-09-07-016 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | DEP-001 | TBD | ACTIVE |
+| DEP-09-07-017 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Actual App/SWBPIPE candidate and local-model runtime configuration | TBD | ACTIVE |
+| DEP-09-07-018 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person/engineer — scoped V4-EXM-20 row decisions | TBD | ACTIVE |
+| DEP-09-07-019 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Engineer-edited model and agent checking request for V4-EXM-21 | TBD | ACTIVE |
+| DEP-09-07-020 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person-adopted per-operation autonomy policy and actual run setting | TBD | ACTIVE |
+| DEP-09-07-021 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person's actual declared workflow-checkpoint act for V4-EXM-22 | TBD | ACTIVE |
+| DEP-09-07-022 | EXECUTION / NOT_APPLICABLE | UPSTREAM / CONSTRAINT | OI-001 | TBD | ACTIVE |
+| DEP-09-07-023 | EXECUTION / NOT_APPLICABLE | UPSTREAM / CONSTRAINT | OI-002 | TBD | ACTIVE |
+| DEP-09-07-024 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | Independent examiner — joined local qualification dossier examination | TBD | ACTIVE |
+| DEP-09-07-025 | EXECUTION / NOT_APPLICABLE | DOWNSTREAM / HANDOVER | DEL-11-03 | TBD | ACTIVE |
 
 ## Lifecycle Summary
-- INITIALIZED: source-grounded SOW_V1 exists and independent INIT verification passed; manager recorded the separate status act under the approved policy. No dependency availability or product-readiness verdict.
-- Register lifecycle: ACTIVE 25; RETIRED 0. Closure: NOT_APPLICABLE 10 (anchors); TBD 15 (execution); PENDING 0; IN_PROGRESS 0; SATISFIED 0; WAIVED 0.
-
----
+- ACTIVE: 25; RETIRED: 0. Satisfaction (ACTIVE): NOT_APPLICABLE 10; TBD 15.
+- INITIALIZED: source-grounded contract exists; the SCA-V4-001 REVISE left DEL-09-07 INITIALIZED. No dependency availability or product-readiness verdict. Execution SatisfactionStatus=TBD is the register convention.
 
 ## Run Notes
 - Workflow: `chirality-root:bundled:workflow:dependency-extract`; SCOPE `DEL-09-07`; MODE `UPDATE`; STRICTNESS `CONSERVATIVE`; CONSUMER_CONTEXT `NONE`; ARCHITECTURE_BASIS_POLICY `NONE`.
@@ -68,6 +64,14 @@
 - Limits: exact runtime/endpoint/model/provider configuration, actual received external contributions, contract subsets, adopted policy dispositions and human/examiner acts are not established by extraction. `TargetLocation=TBD` names missing execution locations without inventing identifiers. No unresolved source conflict identified. No FLOATING_NODE or AMBIGUOUS_ANCHOR warning.
 - Local schema, all used core enums, supported ID formats, one-parent/duplicate/evidence/quote/summary/source/declared-preservation checks: PASS. Optional whole-execution EVQ/DRB scan omitted; local equivalents found no blank quotes, placeholder SourceRef or mismatched dependency prefix. See `_run_records/dependency-extract-20260927.md` for exact verification results and hashes.
 
+- **Run 2026-09-29 (DX-3, APP-V4-BASIS-ALIGN-20260928; dependency-extract UPDATE after SCA-V4-001 SoW revision).** Method `chirality-root:bundled:workflow:dependency-extract` (WORKFLOW.md SHA256 `e5523ebabccf44337ec531280d4d91be2ce7ff1477bd39568a18bb0c4c9f18c3`). Brief: run folder `BRIEFS.md` § DX (group DX-3). Defaults and chosen paths: SCOPE=DEL-09-07; MODE=UPDATE; STRICTNESS=CONSERVATIVE; CONSUMER_CONTEXT=NONE; ARCHITECTURE_BASIS_POLICY=NONE; DOC_ROLE_MAP=DEFAULT; SOURCE_DOCS=ANCHOR_DOC=EXECUTION_DOC_ORDER=`ScopeOfWork.md` only (explicit); RUN_ROOT=`projects/chirality-app-v4/execution`; DECOMPOSITION_PATH=`projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` (current, post-SCA-V4-001; its ScopeLedger companion resolves the amended SOW-201/SOW-202 labels).
+- Source `ScopeOfWork.md` SHA256 `53b51d309d060089a6a88dae565867a92348789ee01430927e7464c7c2d3cba0` (commit `340ecf341`), unchanged during the run. The SoW has no `Design/` folder.
+- Pass 1: parent PKG-09 and traces SOW-199/200/201/202/239 and OBJ-004/005/008/009 re-confirmed. `DEP-09-07-004` (SOW-201) and `DEP-09-07-005` (SOW-202) TargetName/TargetLocation re-resolved to the current ScopeLedger labels amended by SCA-V4-001 (GROUP3 labels preserved in Notes as `legacy_TargetName`).
+- Pass 2: 0 rows added; 2 rows refreshed in place: `DEP-09-07-016` (DEP-001 contribution: native destination-enforcement wording for revised REQ-006/AC-006/VER-006) and `DEP-09-07-021` (checkpoint act: re-quoted from revised VER-005; recorded only when performed, hold/release only in the governance phase, DECISION-4 D4-1). 21 rows re-observed unchanged (LastSeen only). 0 retired. TBD-002/TBD-003 (OI-001/OI-002) are unchanged in this SoW, so `DEP-09-07-022`/`-023` are unchanged. No new deliverable target is named; the destination allow list and in-work grants (VER-006) are part of the runtime configuration already carried by `DEP-09-07-017`.
+- Declaration mirrors added/refreshed/retired: 0/0/0; 2 placeholders skipped. Human-owned sections byte-identical.
+- Function 5 checks: `validate_dependencies_schema.py` VALID (29 columns, 25 rows); `validate_enum.py` 23 invocations, 0 failures; `validate_id_format.sh` 43 invocations, 0 failures; unique IDs; prefix matches; exactly 1 ACTIVE parent anchor; no blank quote or placeholder locus; no Status=CANDIDATE. Run record: `_run_records/dependency-extract-20260929.md`.
+
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-28T03:38:14+00:00 — TASK `/root/renewal_research_strategy/dep_del_09_07`; UPDATE / CONSERVATIVE; decomposition `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md` present, canonical labels resolved; warnings 0; ACTIVE 25 (ANCHOR 10, EXECUTION 15), RETIRED 0; source unchanged and local checks PASS. No closure or lifecycle advancement.
+- 2026-09-29T14:38:50+00:00 — TASK DX-3 (APP-V4-BASIS-ALIGN-20260928); UPDATE / CONSERVATIVE; SOURCE_DOCS=ScopeOfWork.md; decomposition `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` available. Added 0, refreshed 4 (anchors DEP-09-07-004/-005 labels; DEP-09-07-016, -021), retired 0. ACTIVE=25 (ANCHOR=10; EXECUTION=15), RETIRED=0. Mandatory local checks passed; no integrity warnings.
