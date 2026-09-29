@@ -156,3 +156,38 @@ The plan is confirmed, and writing may begin:
 - the SETUP_LOG line.
 
 Lifecycle is preserved (STATUS_POLICY PRESERVE_CURRENT).
+
+## Checkpoint C: DAG-002 (owner, exact, 2026-09-29), DECISION-10
+
+**Custody.** The owner's answers to a structured question in the active chat,
+transcribed by the recorder. The package presented was `DAG_PREP/CHECKPOINT_C.md`
+and `DAG_PREP/REVIEW_PACKET.md`, at commit `5f03b7796`. Review V12 returned
+READY FOR CHECKPOINT C.
+
+| Question presented | Owner's answer (exact label) |
+|---|---|
+| Checkpoint C: accept DAG-002 (37 added arcs: 15 admitted, 22 held; six cycles unchanged; strict audit passes; review nothing blocking; releases 15 DAG-pending deliverables). Decides both project-dag checkpoints together. | "Accept DAG-002 (Recommended)" |
+| Four accepted arcs not produced (N-18, N-21, N-24, X-1): how to handle? | "A: add wording in SCA-V4-002 (Recommended)" |
+
+The owner then interrupted the turn and, in a new message, said
+"continue". Nothing had been written in between.
+
+## Effects
+
+- **DAG-002 is ACCEPTED on 2026-09-29, covering project-dag checkpoints 1
+  and 2.**
+  - Publish `_DAG/DAG-002/` byte for byte against REVIEW_PACKET.md, with
+    ACCEPTANCE_RECORD.md, HANDOFF_STATE.md and MANIFEST.sha256.
+  - Write `_DAG/_LATEST.md` in the prepared §11.2 form.
+  - DAG-001 is superseded and kept unchanged as history.
+  - A follow-up currency audit clears the 15 DAG-pending flags.
+- **SCA-V4-002 scope is widened.** It now includes:
+  - the DEL-10-03 "local-first" item;
+  - "consumes" sentences, where the dependency is real, for N-18
+    (DEL-02-01 → DEL-03-02), N-21 (DEL-02-03 → DEL-03-02), N-24
+    (DEL-02-03 → DEL-03-03) and X-1 (DEL-02-03 → DEL-01-04);
+  - the carried text items: the DEL-09-07, DEL-01-04 and DEL-02-02 SoW text
+    on OI-001/002/012; Open_Issues OI-001/002 status; the DEL-03-03 CLM-002
+    tail; the A17b line join.
+
+  A later currency audit picks up the resulting rows as a small departure.
