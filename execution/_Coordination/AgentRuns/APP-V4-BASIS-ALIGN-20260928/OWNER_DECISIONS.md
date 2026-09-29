@@ -104,3 +104,35 @@ O-16, O-20 and O-27 through O-30 were already decided or done (DECISION-6).
 4. Present group 3 (the audited poststate) at checkpoint B.
 5. Only after group-3 acceptance: `scope-of-work` REVISE for the 16 SoWs,
    the register rows, the currency audit, and DAG-002 (checkpoint C).
+
+## Checkpoint B: scope-change group 3 (owner, exact, 2026-09-29), DECISION-8
+
+**Custody.** The owner's answers to a structured question in the active chat,
+transcribed by the recorder. The package presented was the candidate at
+`230bf1e64` with Handoff_State and RUN_SUMMARY at `9ae24fc0f`, and review
+V11: READY FOR GROUP 3.
+
+| Question presented | Owner's answer (exact label) |
+|---|---|
+| Checkpoint B (scope-change group 3 for SCA-V4-001): accept the applied, audited result? | "Accept (Recommended)" |
+| Coverage_Telemetry.json goes stale; no writer: how to handle? | "Record as stale, fix later (Recommended)" |
+| "local-first" outside this amendment (DEL-10-03 REQ-005; the SWBPIPE handoff note)? | "Small follow-on amendment (Recommended)" |
+
+## Effects
+
+- **SCA-V4-001 group 3 is ACCEPTED on 2026-09-29.** Write the group-3 decision
+  snapshot, the immutable `SCA-*` accepted snapshot and
+  `_ScopeChange/_LATEST.md`.
+- **Apply H-1…H-3** with `{ACCEPT_DATE}` = 2026-09-29, then H-4 (the second
+  coverage recompute) and H-5 (post-acceptance validation and audit).
+- **Coverage_Telemetry.json:** STALE_REBUILD_REQUIRED, owned by the
+  decomposition owner. It is fixed later by a bounded brief. The closure
+  verdict stays OPEN_PENDING_DERIVATIVE_CLOSURE for this derivative only.
+- **Follow-on amendment SCA-V4-002**, after SCA-V4-001 closes: DEL-10-03
+  REQ-005 "local-first". The SWBPIPE handoff note carries forward with the
+  next relay to SWBPIPE.
+- **Propagation now authorized:**
+  - `scope-of-work` REVISE for the 16 SoWs, one deliverable per brief;
+  - then the register rows;
+  - then the DAG-001 currency audit and the DAG-002 candidate, for owner
+    checkpoint C.
