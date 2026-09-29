@@ -14,7 +14,7 @@ Each edit traces to an owner decision. The atomic actions (A01…A47) are in
 [IMPACT_ASSESSMENT.md](IMPACT_ASSESSMENT.md). The ScopeOfWork text is in
 [SOW_REVISIONS.md](SOW_REVISIONS.md).
 
-- **Basis:** commit `874508f16`. Input sha256: PRD.md `657593ce…4538573`,
+- **Basis:** commit `874508f16`, re-checked at `67a2fac4b` (the baseline and IN_PROGRESS commits changed no doc, decomposition or ScopeOfWork byte). Input sha256: PRD.md `657593ce…4538573`,
   ARCHITECTURE.md `c3ae766e…42687e533`, HOST_INTEGRATION.md `08c8fc7d…d0960da`,
   EXAMINATION.md `1b156553…ef54ee19`, ScopeLedger.csv `36364330…5fd73`,
   Deliverables.csv `bcdf6f2f…915eb`, Packages.csv `b8a9b949…1fbd`,
@@ -76,6 +76,8 @@ update". R8-1, R8-9 and R8-13 give the integrator's framing.
 | A15 | EXAMINATION · V4-EXM-22 (V4-WF-05 verification wording) | Requested | DECISION-4 D4-1 |
 | A16 | EXAMINATION · V4-EXM-23 | Requested | DECISION-5 |
 | A17 | ARCHITECTURE, HOST_INTEGRATION, EXAMINATION · status paragraphs | Acceptance-conditional note | — |
+
+Part B adds two edits to `SOFTWARE_DECOMP.md` under action A30: D-15 (a new `## Decision Log` section, which resolves the Change Register binding, COV-127) and D-16 (the stale no-production sentence, COV-121).
 
 "Requested" means named in the undertaking's owner direction or its brief.
 "Consequential" means the same meaning stated elsewhere in the set, which
@@ -487,21 +489,63 @@ remain.
 | D-14a | OI-001 · Consequence | Global list not fixed; false attribution is already prohibited. | Ruled for the first increment's App/shared contracts by APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2 (five reserved acts; carried by DEL-04-01); operation-specific additions remain under OI-021 and host adoption under DEP-001. False attribution is already prohibited. | DECISION-1 D2 |
 | D-14b | OI-002 · Consequence | No classifier behavior selected by normalization. | Ruled by APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D3: in the App, routine tool-permission and sandbox modes are the user's own Codex setting; hosts have no classifier mode in the first increment; host adoption remains under DEP-001. | DECISION-1 D3 |
 
-### B6 · SOFTWARE_DECOMP.md — Change Register — acceptance-conditional
+### B6 · SOFTWARE_DECOMP.md — Change Register binding and entry; COV-121 correction
 
-The semantic section "Change Register" binds to the heading
-`## Artifact coverage and decision/change log` (the only decision/change-log
-heading in the document). The entry is appended after the section's last
-bullet.
+**The binding problem (baseline finding COV-127, WARNING).** The scope-change
+contract binds the SOFTWARE "Change Register" by heading text to `Decision
+Log` and/or `Revision History`. It uses the audit-decomp rule: normalize each
+`##` heading, then match exact, prefix, then substring, and stop unresolved
+only when no rank hits. No current `##` heading hits:
+- the nearest is `## Artifact coverage and decision/change log`;
+- its normalized text contains "decision/change log", not "decision log".
 
-#### D-15 · Change Register entry
+The earlier `#change-log` anchor was also not the real slug of any heading.
+
+**The fix chosen: add the heading the rule expects.** A30 inserts a new
+`## Decision Log` section immediately before `## Checkpoint and next stage`
+and puts the amendment entry there. Under the rule, `Decision Log` then binds
+at rank 1 (exact), with no ambiguity. No owner ruling is needed.
+- The existing "Artifact coverage and decision/change log" section and its
+  bullets are untouched, so its bytes and any links to it are unchanged.
+- This brings the document into line with the software-decomp binding table;
+  it does not change the section contract. It is therefore not a
+  contract-level change in the sense of the scope-change contract.
+- The anchor is `SOFTWARE_DECOMP.md#decision-log` (GitHub slug of
+  `## Decision Log`).
+- **Alternative (not recommended):** record an explicit binding of the Change
+  Register to the existing heading. That needs an owner ruling and leaves
+  COV-127 open for every later amendment.
+
+The other headings COV-127 lists as unbound (Ledger, Objectives,
+Partitions, Production Units) are pre-existing. They bind through
+`Companion_Inventory.csv` file names, as the baseline records. They are not
+amendment effects and are not changed here (IMPACT_ASSESSMENT §9, pre-existing
+findings).
+
+#### D-15 · New `## Decision Log` section with the amendment entry — acceptance-conditional
 Target: _Decomposition/SOFTWARE_DECOMP.md
+Trace: scope-change contract, validity item "The decomposition document's Change Register contains the amendment entry"; audit-decomp Variant Section Binding; baseline COV-127. `{AMENDMENT_ID}`, `{ACCEPT_DATE}` and `{AMENDMENT_SNAPSHOT}` are filled from the accepted group-3 record.
 ```old
-- The separate final audit passed; the actual Group3 act is recorded in the accepted snapshot. A later material change reopens only its affected warrant rather than silently changing accepted scope.
+## Checkpoint and next stage
 ```
 ```new
-- The separate final audit passed; the actual Group3 act is recorded in the accepted snapshot. A later material change reopens only its affected warrant rather than silently changing accepted scope.
+## Decision Log
+
+The scope-change Change Register for this decomposition. Decisions and changes before the first amendment are recorded in "Artifact coverage and decision/change log" above and in the checkpoint snapshots.
+
 - {AMENDMENT_ID} ({ACCEPT_DATE}), requested by the owner (run APP-V4-BASIS-ALIGN-20260928, applying APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4 and DECISION-5, and APP-V4-FIRST-INCREMENT-20260928-DECISION-1): MODIFY only. ScopeLedger SOW-015, SOW-016, SOW-017, SOW-052, SOW-137, SOW-138, SOW-201 and SOW-202; Vocabulary_Map "Declared checkpoint"; Deliverables DEL-02-03, DEL-05-01 and DEL-09-07; and, where accepted, PKG-05 and OI-001/OI-002. No ID was added, retired, renumbered or moved; 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/{AMENDMENT_SNAPSHOT}`.
+
+## Checkpoint and next stage
+```
+
+#### D-16 · "Checkpoint and next stage": correct the stale no-production sentence (baseline COV-121)
+Target: _Decomposition/SOFTWARE_DECOMP.md
+Trace: baseline finding COV-121 (WARNING). The sentence was true at Group3 acceptance and is now contradicted by the document's own status line and by the 41 deliverable folders that INITIAL setup created (`_Coordination/_COORDINATION.md`). This is a factual correction with no owner decision behind it. It does not depend on the acceptance act, and it names no lifecycle state, so later transitions do not stale it.
+```old
+No production Package/Deliverable folders or local ScopeOfWork contracts have been created.
+```
+```new
+At Group3 acceptance no production Package/Deliverable folders or local ScopeOfWork contracts existed. The approved INITIAL setup has since created the 41 deliverable folders, each with a local `ScopeOfWork.md` contract; each deliverable's `_STATUS.md` records its lifecycle state.
 ```
 
 ### B7 · Mirrored `_CONTEXT.md` lines (PROJECT/SOFTWARE default propagation writes)

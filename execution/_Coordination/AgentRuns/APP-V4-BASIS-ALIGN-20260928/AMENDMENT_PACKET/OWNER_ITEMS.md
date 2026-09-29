@@ -1,10 +1,82 @@
 # Owner items — APP-V4-BASIS-ALIGN-20260928, checkpoint K1 (scope-change groups 1 and 2)
 
-**Status: PROPOSED.** These are the decisions the owner is asked to make at
-the grouped checkpoint K1. Each has a concrete recommendation. Items marked
+## Summary for the owner's review (one page)
+
+**What this packet does.** It brings the accepted App v4 basis in line with
+three decisions you have already made. Nothing is applied until you accept
+it.
+- **Checkpoints are phased** (DECISION-4). Today a workflow's checkpoints are
+  plan guidance: the act is still requested, and it is recorded as done only
+  when you perform it, but nothing stops or blocks a run. Enforced holds are
+  kept as a later layer for the workflows that need them. They are not
+  deleted.
+- **Model access** (DECISION-4). A host's agent runs on a local or a cloud
+  model, whichever you choose. There is no default. A cloud model is reached
+  by OAuth sign-in or an API key.
+- **Network destinations** (DECISION-5). V4-HOST-02 takes your approved
+  wording, word for word: the agent contacts only the model service you chose
+  and destinations you allow, in advance or when it asks. Only you grant.
+  Only stateless MCP is allowed. Nothing is contacted silently, and every
+  destination is recorded and shown.
+
+**Where it changes text.**
+- The PRD, ARCHITECTURE, HOST_INTEGRATION and EXAMINATION requirements that
+  state these three points.
+- Eight scope rows, one vocabulary term and three deliverable descriptions in
+  the decomposition that say the same things.
+- 16 deliverable Scopes of Work. These also take the first closeout's
+  corrections (74 proposals: 45 as written and 29 updated for these
+  decisions), mostly pointing old "open" policy questions at your DECISION-1
+  rulings.
+- Two housekeeping fixes that the pre-change audit found in
+  `SOFTWARE_DECOMP.md`:
+  - it gains a `Decision Log` heading, so each amendment has a place the
+    method can find;
+  - a stale sentence that says no deliverable folders exist is corrected.
+
+**Why now.** Design work since the first increment already follows these
+decisions, but the accepted texts still say "the run waits", "local by
+default" and "configured model server only". Later work would otherwise build
+on words you have overruled.
+
+**What you asked about: the four corrections that widen or sharpen scope
+(O-9).** I recommend adopting all four:
+- **S-01-4:** reads carry an identity for each object, or SWBPIPE's single
+  model identity for all of them. Two other contracts already rely on this
+  to detect stale proposals and lapsed acts.
+- **S-01-5:** each operation says on which surface it is exposed. SWBPIPE's
+  answers already use this idea.
+- **S-02-3:** "a repeated submission has one effect" becomes "at most one
+  effect per item — a host promise we test and record". The App cannot
+  itself guarantee a fact about the host.
+- **S-03-2:** the external channel states your D5 flexibility (content may
+  reach the model you picked, with no gate) and the revised V4-HOST-02.
+
+**Already decided (DECISION-6):**
+- the 14 deliverables are IN_PROGRESS;
+- the 41-arc set is accepted, with X-1 kept and the disputed arc left out
+  (O-16, O-27 to O-30);
+- the pre-change audit is done (O-20).
+
+**What stays open after this.**
+- Taking up the governance layer for enforced checkpoints: when, and for
+  which workflows.
+- Operation-specific reserved acts (OI-021).
+- SWBPIPE host joins, deferred until you resume UI-SUCCESSOR.
+- The DAG-002 acceptance at checkpoint B.
+- The Design files' re-pinning to the amended texts.
+
+**What you need to answer now.** Use the quick sheet below. "Accept the
+remaining items as recommended" covers everything still open.
+
+---
+
+**Status: PROPOSED, revision 2** (after the pre-change baseline and owner
+DECISION-6). These are the decisions the owner is asked to make at the
+grouped checkpoint K1. Each has a concrete recommendation. Items marked
 **required** are ones the scope-change contract reserves to the owner. The
-others resolve conditional edits or confirm a reading. Nothing is decided
-here.
+others resolve conditional edits or confirm a reading. Items marked
+**DECIDED** or **DONE** record what has already happened.
 
 Evidence: [IMPACT_ASSESSMENT.md](IMPACT_ASSESSMENT.md),
 [BASIS_AMENDMENT.md](BASIS_AMENDMENT.md),
@@ -13,9 +85,10 @@ DAG-002 items (including the disputed arc) separately.
 
 ## Quick answer sheet
 
-If the owner accepts every recommendation, the reply can be: "accept O-1 to
-O-30 as recommended". Declining an item drops only the edits named against
-it.
+If the owner accepts every recommendation still open, the reply can be:
+"accept the remaining items as recommended". Declining an item drops only
+the edits named against it. O-16, O-20 and O-27 to O-30 are already
+decided or done.
 
 | # | Decision | Recommendation | Required by |
 |---|---|---|---|
@@ -34,21 +107,21 @@ it.
 | O-13 | GUIDE consumes HOSTING, RELAY and XT | Adopt S-04-6 | C1 (S-04-6 / N-B9…N-B11) |
 | O-14 | Host-agent destinations in the run record SoW | Adopt | DECISION-5 allocation |
 | O-15 | DECISION-5 display in DEL-04-02 (arc R8-A) and other SoWs | Adopt the one DEL-04-02 sentence; no other change | P2 route (a) |
-| O-16 | Lifecycle IN_PROGRESS for the 14 | Record now | owner direction (to confirm) |
+| O-16 | Lifecycle IN_PROGRESS for the 14 | **DECIDED** (DECISION-6): recorded, commit `67a2fac4b` | owner |
 | O-17 | Open_Issues OI-001/OI-002 pointers | Include; status stays OPEN | C1 F-8 |
 | O-18 | DEL-08-01 CLM-003 (Domains) | Include | consistency |
 | O-19 | DEL-09-07 (V4-EXM-22/23 owner) | Include | consistency |
-| O-20 | Pre-change baseline | Dispatch audit-decomp before K1 | contract (method step 5) |
+| O-20 | Pre-change baseline | **DONE**: `BASELINE/coverage_summary.json` sha256 `d8ac5c4d…`; 7 packages | contract (method step 5) |
 | O-21 | Supersession bindings | Accept as SUPERSESSION | contract |
 | O-22 | SoW frontmatter unchanged | Accept | REVISE step 3 |
 | O-23 | `ScopeChanging` values | Accept as proposed | contract (group 2) |
 | O-24 | Recording K1 as two decision snapshots | Accept | contract |
 | O-25 | DECISION-1 D2 "or a declared checkpoint" in the current phase | Confirm the R8-11 reading | integration reading |
 | O-26 | PRD V4-AUT-03/04 and OQ-02 "open detail" | Leave for a later update | — |
-| O-27 | Disputed arc DEL-03-02 → DEL-04-03 | Not proposed (node P2) | owner direction |
-| O-28 | Arc X-1 from DEL-02-03 naming DEL-01-04 | Keep the clause in CLM-002 | P2 caution |
-| O-29 | Arc N-15 (RS consumes DEL-01-01 facts directly) | Keep | C1 conditional |
-| O-30 | Grounding route for P2's nine arcs | Route (a): the SoW sentences drafted here | P2 O-2 |
+| O-27 | Disputed arc DEL-03-02 → DEL-04-03 | **DECIDED** (DECISION-6): not proposed | owner |
+| O-28 | Arc X-1 from DEL-02-03 naming DEL-01-04 | **DECIDED** (DECISION-6): keep X-1 | owner |
+| O-29 | Arc N-15 (RS consumes DEL-01-01 facts directly) | **DECIDED** (DECISION-6, 41-arc set): keep | owner |
+| O-30 | Grounding route for P2's nine arcs | **DECIDED** (DECISION-6, 41-arc set): route (a), the SoW sentences drafted here | owner |
 
 ---
 
@@ -73,7 +146,11 @@ it.
   - the basis wording (A01–A17);
   - the matching decomposition rows (A18–A31): ScopeLedger SOW-015, -016,
     -017, -052, -137, -138, -201, -202; "Declared checkpoint";
-    DEL-02-03/05-01/09-07 descriptions; the change log; coverage recompute;
+    DEL-02-03/05-01/09-07 descriptions; a new `## Decision Log` section with
+    the amendment entry (A30/D-15), which resolves the Change Register
+    binding the baseline could not find (COV-127) without an owner ruling;
+    the corrected no-production sentence (D-16, COV-121); the coverage
+    recompute;
   - 16 SoW revisions (A32–A47).
 - **Why the decomposition rows.** DECISION-4 notes that "a full scope change
   may not be needed". Without these rows, however, the Scope Ledger would
@@ -164,16 +241,22 @@ it.
 - **Recommendation.** **Accept all.** A14 is the only edit that adds content,
   and it only names where DECISION-5's "recorded" lands.
 
-### O-20 · Pre-change baseline (method step 5) — required before group 1 is presented
+### O-20 · Pre-change baseline (method step 5) — **DONE**
 
-- **Question.** How should the pre-change baseline be established?
-- **Facts.** For SOFTWARE the baseline is an `audit-decomp` TASK. P1 cannot
-  delegate. The GROUP3 final audit cannot be reused: `Open_Issues.csv`,
-  `External_Dependencies.csv` and `SOFTWARE_DECOMP.md` differ from its inputs
-  (later standing updates).
-- **Recommendation.** **Dispatch a scoped `audit-decomp` TASK** before K1
-  (PKG-02, 03, 04, 05, 08, 09). It should also confirm the Change Register
-  heading binding (IMPACT_ASSESSMENT U-3).
+- **Done by node P3.** It ran `audit-decomp` over **PKG-01, 02, 03, 04, 05, 08
+  and 09** (30 deliverables). PKG-01 is included because A41 modifies
+  DEL-01-01. The GROUP3 audit was not reused because three inputs differ.
+- **Output.** `BASELINE/coverage_summary.json`, sha256
+  `d8ac5c4d35012d6a6fb6a3ef2c509caba08a616c8e14a5601bff2a83ee9620f9`.
+  `overall_status` WARNINGS: 0 BLOCKER, 2 WARNING, 126 INFO.
+- **The two warnings are addressed in this packet:**
+  - COV-127 (Change Register binding): the new `## Decision Log` heading,
+    D-15;
+  - COV-121 (stale sentence): D-16.
+- **Pre-existing findings.** COV-119/120 (stale telemetry) predate the
+  amendment and close on the planned recompute (IMPACT_ASSESSMENT §9).
+- **Post-change audit.** It uses the same seven-package scope, for a
+  like-for-like comparison.
 
 ### O-21 · Supersession bindings — required
 
@@ -204,6 +287,10 @@ it.
   snapshot binds `Amendment_Actions.csv` by hash.
 - **Recommendation.** **Accept.** One owner reply that addresses both
   subjects can be recorded in both snapshots.
+- **Note.** DECISION-6 ("Checkpoint A", partial) answered only the lifecycle
+  and the arc set. The owner's reply on the wording package was "I want to
+  review the packet first". Groups 1 and 2 are therefore not yet accepted,
+  and no group snapshot may be written from DECISION-6.
 
 ---
 
@@ -313,9 +400,15 @@ AX line. The rest are unaffected.
 
 ## D. Confirmations the owner direction carried "to be confirmed"
 
-### O-16 · Lifecycle: record IN_PROGRESS for the 14 first-increment deliverables
+### O-16 · Lifecycle: record IN_PROGRESS for the 14 first-increment deliverables — **DECIDED**
 
-- **Facts.**
+- **Decision.** Owner, exact: "Yes, record IN_PROGRESS (Recommended)"
+  (DECISION-6, run OWNER_DECISIONS "Checkpoint A"). The 14 are recorded
+  IN_PROGRESS at commit `67a2fac4b`.
+- **Effect on this packet.** REVISE accepts IN_PROGRESS, so its
+  preconditions still hold (IMPACT_ASSESSMENT §11). DEL-09-07 and DEL-08-01
+  stay INITIALIZED, which REVISE also accepts.
+- **Facts at the time of the recommendation.**
   - All 14 are INITIALIZED (`_STATUS.md`, 2026-09-27).
   - Authorized production has run in each Design folder, and C1 found
     IN_PROGRESS truthful for every one ("active human + agent work
@@ -331,14 +424,14 @@ AX line. The rest are unaffected.
 - **Alternative.** Leave it for later, as the graph's completion condition 4
   permits.
 
-### O-27 · Disputed arc DEL-03-02 → DEL-04-03 (C1-A N-12)
+### O-27 · Disputed arc DEL-03-02 → DEL-04-03 (C1-A N-12) — **DECIDED: not proposed** (DECISION-6)
 
 - **Facts.** No SoW edit in this packet bears on it.
 - **Recommendation.** Take node P2's analysis. The owner's recorded lean is
   "not proposed", which C1-B's reading supports: P receives acts from host
   capture, not from DEL-04-03.
 
-### O-28 · Arc X-1: DEL-02-03 CLM-002 names DEL-01-04 (C1 SC-02-03-4)
+### O-28 · Arc X-1: DEL-02-03 CLM-002 names DEL-01-04 (C1 SC-02-03-4) — **DECIDED: keep X-1** (DECISION-6)
 
 - **Question.** Keep the clause "`DEL-01-04` (later undertaking) constructs the
   App act control" in DEL-02-03 CLM-002?
@@ -353,7 +446,7 @@ AX line. The rest are unaffected.
 - **Alternative.** Move the clause to REQ-006 (exclusions), which
   extraction does not read as inputs. X-1 then drops.
 
-### O-29 · Arc N-15: DEL-04-03 consumes DEL-01-01 supplier facts directly (C1 conditional)
+### O-29 · Arc N-15: DEL-04-03 consumes DEL-01-01 supplier facts directly (C1 conditional) — **DECIDED: keep** (DECISION-6, the 41-arc set)
 
 - **Question.** Does RS receive DEL-01-01's observed supplier facts
   directly?
@@ -364,7 +457,7 @@ AX line. The rest are unaffected.
 - **Recommendation.** **Keep.** RS R3, R5 and R13 are fed only by DEL-01-01
   in this increment (IR1A-19). Revisit when DEL-01-02 is defined.
 
-### O-30 · Grounding route for node P2's nine arcs (P2 item O-2)
+### O-30 · Grounding route for node P2's nine arcs (P2 item O-2) — **DECIDED: route (a)** (DECISION-6, the 41-arc set)
 
 - **Question.** How are the nine arcs grounded that the Design supports but
   no C1 correction states?
@@ -463,16 +556,17 @@ AX line. The rest are unaffected.
 
 ## What the workflow requires that P1 could not prepare
 
-1. **Pre-change baseline** (audit-decomp `coverage_summary.json`). This needs
-   a TASK dispatch (O-20).
+1. **Pre-change baseline:** DONE by node P3 (O-20). The post-change audit
+   remains, over the same seven packages.
 2. **Snapshot artifacts under `execution/_ScopeChange/`**: `Brief.md`,
    `Intake_Actions.csv`, `Impact_Assessment.md`, `Amendment_Preview.md`,
    `Propagation_Plan.md`, `Amendment_Actions.csv`, `Supersession_Delta.csv`,
    `Supersession_Map.csv`, `Decision_Log.md` and the group decision snapshots.
    They are outside P1's write scope. Their content is in this packet, for
    the integrator to transcribe after the owner acts.
-3. **Change-register heading binding.** It was made by judgment; the
-   audit-decomp normalization was not run (IMPACT_ASSESSMENT U-3).
+3. **Change-register heading binding:** RESOLVED by A30/D-15. The new
+   `## Decision Log` binds exactly under the audit-decomp rule (checked on
+   the dry-run output).
 4. **Register and arc consequences.** These are node P2's. IMPACT_ASSESSMENT
    §10 lists which SoW edits ground which proposed arcs, and which
    hold-related arcs should be re-read against the phased text.

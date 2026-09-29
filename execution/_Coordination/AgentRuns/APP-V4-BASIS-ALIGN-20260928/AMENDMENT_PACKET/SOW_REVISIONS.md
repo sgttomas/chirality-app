@@ -9,6 +9,12 @@ is applied.** Every edit below is an exact old → new replacement for one
 - **Basis:** commit `874508f16`. Every "old" block was checked against the
   current SoW bytes: each occurs exactly once, and the edits apply in the
   listed order with no overlap (see "Mechanical checks" at the end).
+- **Re-check (revision 2):** the dry run and validation were re-run at
+  `67a2fac4b`. That commit and the baseline commit changed no ScopeOfWork
+  byte, so every prior-contract hash below still holds.
+- **Lifecycle:** the 14 first-increment deliverables are now IN_PROGRESS
+  (owner DECISION-6). REVISE admits IN_PROGRESS, and its preconditions still
+  hold (IMPACT_ASSESSMENT §11). DEL-09-07 and DEL-08-01 stay INITIALIZED.
 - **Companion files:** [IMPACT_ASSESSMENT.md](IMPACT_ASSESSMENT.md) (atomic
   actions, DAG impact), [BASIS_AMENDMENT.md](BASIS_AMENDMENT.md) (PRD,
   ARCHITECTURE, HOST_INTEGRATION, EXAMINATION and decomposition rows),
@@ -58,22 +64,22 @@ The SoW text always uses the full identity.
 
 ## Summary
 
-| Deliverable | Prior SoW sha256 | Lifecycle | Edits | From C1 (K / A) | New | Conditional |
+| Deliverable | Prior SoW sha256 | Lifecycle (at `67a2fac4b`) | Edits | From C1 (K / A) | New | Conditional |
 |---|---|---|---|---|---|---|
-| DEL-04-01 | `fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6` | INITIALIZED | 11 | 9 / 1 | 1 (AX) | — |
-| DEL-04-02 | `23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21` | INITIALIZED | 8 | 3 / 3 | 2 | E-0402-02, -03 (O-11); E-0402-08 (O-15) |
-| DEL-04-03 | `74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1` | INITIALIZED | 5 | 2 / 2 | 1 (AX) | E-0403-03 (O-10, O-14) |
-| DEL-02-01 | `080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294` | INITIALIZED | 9 | 4 / 2 | 3 | — |
-| DEL-02-03 | `9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb` | INITIALIZED | 13 | 1 / 4 | 7 | — |
-| DEL-03-01 | `179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84` | INITIALIZED | 7 | 4 / 1 | 2 | E-0301-04, -05 (O-9) |
-| DEL-03-02 | `42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a` | INITIALIZED | 7 | 2 / 3 | 2 | E-0302-03 (O-9) |
-| DEL-03-03 | `5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6` | INITIALIZED | 7 | 3 / 2 | 2 | E-0303-02 (O-9, O-10) |
-| DEL-03-04 | `203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436` | INITIALIZED | 7 | 2 / 4 | 1 (AX) | E-0304-06 (O-13) |
-| DEL-01-01 | `eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773` | INITIALIZED | 4 | 3 / 0 | 1 (AX) | — |
-| DEL-05-01 | `6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568` | INITIALIZED | 15 | 2 / 2 | 11 | — |
-| DEL-05-02 | `5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb` | INITIALIZED | 7 | 4 / 2 | 1 (AX) | E-0502-03 (O-12) |
-| DEL-09-06 | `511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37` | INITIALIZED | 6 | 2 / 2 | 2 | E-0906-02 part (a) (O-10) |
-| DEL-09-09 | `082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d` | INITIALIZED | 6 | 4 / 1 | 1 (AX) | — |
+| DEL-04-01 | `fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6` | IN_PROGRESS | 11 | 9 / 1 | 1 (AX) | — |
+| DEL-04-02 | `23a28caabd61da20dc2efed722f7e487856ef4488ab4f3454be4ed3249725e21` | IN_PROGRESS | 8 | 3 / 3 | 2 | E-0402-02, -03 (O-11); E-0402-08 (O-15) |
+| DEL-04-03 | `74d42c38eaf2a6638b75bc5184f1741bc7d4f17171662a05a233d40f245340c1` | IN_PROGRESS | 5 | 2 / 2 | 1 (AX) | E-0403-03 (O-10, O-14) |
+| DEL-02-01 | `080d7f5a8e55d93c06f51e5332b53954deb03e0877b1ee49be3011e3de14a294` | IN_PROGRESS | 9 | 4 / 2 | 3 | — |
+| DEL-02-03 | `9a921ba500271c441e64db2e1f34acf41c95fa7821d6dff3d8659352bb4db7fb` | IN_PROGRESS | 13 | 1 / 4 | 7 | — |
+| DEL-03-01 | `179a6d355d84dba915daddd746d9d62eb7c8ef483e68122a096dfbde6f6b3b84` | IN_PROGRESS | 7 | 4 / 1 | 2 | E-0301-04, -05 (O-9) |
+| DEL-03-02 | `42328987c71dd243323805faf2634067cca0113b81ca93d4d129193b2a71128a` | IN_PROGRESS | 7 | 2 / 3 | 2 | E-0302-03 (O-9) |
+| DEL-03-03 | `5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6` | IN_PROGRESS | 7 | 3 / 2 | 2 | E-0303-02 (O-9, O-10) |
+| DEL-03-04 | `203c09288850d33ec3490d00da48bd6bbbc91ae395141c1374c4c6b04ad9a436` | IN_PROGRESS | 7 | 2 / 4 | 1 (AX) | E-0304-06 (O-13) |
+| DEL-01-01 | `eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773` | IN_PROGRESS | 4 | 3 / 0 | 1 (AX) | — |
+| DEL-05-01 | `6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568` | IN_PROGRESS | 15 | 2 / 2 | 11 | — |
+| DEL-05-02 | `5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb` | IN_PROGRESS | 7 | 4 / 2 | 1 (AX) | E-0502-03 (O-12) |
+| DEL-09-06 | `511f2c0016920cbf67476f1b8d911ed85d6cfa419e7a6b15f3c7e20457779b37` | IN_PROGRESS | 6 | 2 / 2 | 2 | E-0906-02 part (a) (O-10) |
+| DEL-09-09 | `082db8fa70bf0ceb8c8bf3c3a7fc4a222994858c66fdc7d9e5f16909f3ed862d` | IN_PROGRESS | 6 | 4 / 1 | 1 (AX) | — |
 | DEL-09-07 | `36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0` | INITIALIZED | 10 | — | 10 | whole deliverable (O-19) |
 | DEL-08-01 | `581b399ff56c5c9ee153916727b6245cda9aa116487087759f2b2bd7c765ddf1` | INITIALIZED | 2 | — | 2 | whole deliverable (O-18) |
 | **Total** | | | **124** | **45 / 29** | **49** | |

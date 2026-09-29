@@ -15,7 +15,16 @@ written.
   SoW edits fit MODE=REVISE), and `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md`
   §§3–5, 8.
 - **Basis commit:** `874508f16`. The working tree was clean at the start. All
-  hashes below were computed at that commit.
+  hashes below were computed at that commit. **Re-checked at `67a2fac4b`**
+  (after the baseline commit and the IN_PROGRESS commit): no doc,
+  decomposition or ScopeOfWork byte changed; only 14 `_STATUS.md` files did.
+- **Revision 2 (this file, after the pre-change baseline, node P3):**
+  - the Change Register binding is resolved by a new `## Decision Log`
+    heading (COV-127);
+  - the stale no-production sentence is corrected (COV-121);
+  - the audit scope is set to seven packages;
+  - COV-119/120 are recorded as pre-existing;
+  - the lifecycle is updated for owner DECISION-6.
 - **Companion files:** [BASIS_AMENDMENT.md](BASIS_AMENDMENT.md) (exact basis
   and decomposition text), [SOW_REVISIONS.md](SOW_REVISIONS.md) (exact
   ScopeOfWork text; the C1 refresh), [OWNER_ITEMS.md](OWNER_ITEMS.md)
@@ -39,13 +48,13 @@ written.
 
 | Semantic section | Bound to | Note |
 |---|---|---|
-| Change Register | `SOFTWARE_DECOMP.md` § "Artifact coverage and decision/change log" | The software-decomp binding names "Decision Log" and/or "Revision History". This heading is the document's only decision/change log. **Binding to confirm:** the audit-decomp rank-order normalization was not run here (§12) |
+| Change Register | `SOFTWARE_DECOMP.md` § `## Decision Log`, **added by A30 (D-15)** | The software-decomp binding names "Decision Log" and/or "Revision History". The baseline (COV-127) found that no current `##` heading binds under the exact / prefix / substring rule: the nearest, "Artifact coverage and decision/change log", normalizes to "…decision/change log". A30 adds `## Decision Log`, which binds at rank 1 (exact), checked by simulating the rule on the dry-run output. No owner ruling is needed. The anchor is `SOFTWARE_DECOMP.md#decision-log` |
 | Unit Ledger | `ScopeLedger.csv` (authoritative companion register) | — |
 | Objectives | `Objectives.csv` | Unchanged |
 | Primary Partitions | `Packages.csv` | PKG-05 description only, conditional (O-8) |
 | Secondary Entities | `Deliverables.csv` | Descriptions and artifacts of DEL-02-03, DEL-05-01 and DEL-09-07 |
 | Vocabulary Map | `Vocabulary_Map.csv` | "Declared checkpoint" |
-| Coverage Basis | audit-decomp output | **Not prepared** (§12) |
+| Coverage Basis | audit-decomp output | **Done:** pre-change baseline `BASELINE/coverage_summary.json` (sha256 `d8ac5c4d35012d6a6fb6a3ef2c509caba08a616c8e14a5601bff2a83ee9620f9`). Scope: PKG-01, 02, 03, 04, 05, 08, 09 (30 deliverables); 0 BLOCKER, 2 WARNING (COV-121, COV-127), 126 INFO |
 
 ## 2. Change intake (method step 2)
 
@@ -112,7 +121,7 @@ basis documents, ledger rows and registers, which the enum does not name.
 | A27 | MODIFY | PACKAGE | `PKG-05` | Description drops "local-first" (D-13). **Conditional (O-8)** | Primary Partitions; `_CONTEXT.md` of DEL-05-01, DEL-05-02 |
 | A28 | MODIFY | OTHER | `OI-001` | Consequence points to DECISION-1 D2; stays OPEN (D-14a). **Conditional (O-17)** | Open_Issues.csv |
 | A29 | MODIFY | OTHER | `OI-002` | Consequence points to DECISION-1 D3; stays OPEN (D-14b). **Conditional (O-17)** | Open_Issues.csv |
-| A30 | MODIFY | OTHER | `SOFTWARE_DECOMP.md#change-log` | Amendment entry (D-15; acceptance-conditional) | Change Register |
+| A30 | MODIFY | OTHER | `SOFTWARE_DECOMP.md#decision-log` | New `## Decision Log` section holding the amendment entry (D-15; acceptance-conditional; resolves COV-127); correct the stale no-production sentence in "Checkpoint and next stage" (D-16; COV-121) | Change Register; "Checkpoint and next stage" |
 | A31 | MODIFY | OTHER | `Consolidated_Coverage.csv` | RECOMPUTE hashes, lines and standing after A01–A17 (B8) | Companion register |
 | A32 | MODIFY | DELIVERABLE | `DEL-04-01` | SoW E-0401-01…11 | ScopeOfWork.md |
 | A33 | MODIFY | DELIVERABLE | `DEL-04-02` | SoW E-0402-01…08 | ScopeOfWork.md |
@@ -168,7 +177,7 @@ AmendmentID,ActionSeq,ActionType,EntityType,EntityID,Description,AffectedFiles,D
 {AMENDMENT_ID},27,MODIFY,PACKAGE,PKG-05,Description D-13 (conditional O-8),projects/chirality-app-v4/execution/_Decomposition/Packages.csv,,NO,NO
 {AMENDMENT_ID},28,MODIFY,OTHER,OI-001,Consequence pointer D-14a (conditional O-17),projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv,,NO,NO
 {AMENDMENT_ID},29,MODIFY,OTHER,OI-002,Consequence pointer D-14b (conditional O-17),projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv,,NO,NO
-{AMENDMENT_ID},30,MODIFY,OTHER,SOFTWARE_DECOMP.md#change-log,Change Register entry,projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md,,NO,NO
+{AMENDMENT_ID},30,MODIFY,OTHER,SOFTWARE_DECOMP.md#decision-log,New Decision Log section with the amendment entry; COV-121 sentence corrected,projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md,,NO,NO
 {AMENDMENT_ID},31,MODIFY,OTHER,Consolidated_Coverage.csv,RECOMPUTE after doc edits,projects/chirality-app-v4/execution/_Decomposition/Consolidated_Coverage.csv,audit-decomp,NO,NO
 {AMENDMENT_ID},32,MODIFY,DELIVERABLE,DEL-04-01,SoW revision,ScopeOfWork.md,project-setup(INCREMENTAL);scope-of-work(REVISE),NO,NO
 {AMENDMENT_ID},33,MODIFY,DELIVERABLE,DEL-04-02,SoW revision,ScopeOfWork.md,project-setup(INCREMENTAL);scope-of-work(REVISE),NO,NO
@@ -208,7 +217,10 @@ schema).
 | Contract-level change | **None.** No ontology, vocabulary set or section contract changes. "Declared checkpoint" keeps its term and gains the phased reading |
 | Supersession | **Required.** Rows are drafted in §7 |
 
-**Errors:** none. **Warnings:** W-1 below. **Unknowns:** U-1 to U-3 in §12.
+| Pre-change baseline | **Done** (node P3). `BASELINE/coverage_summary.json` sha256 `d8ac5c4d…20f9`, `overall_status` WARNINGS: 0 BLOCKER; WARNINGs COV-121 and COV-127, both addressed by A30 |
+| Change Register binding | **PASS after A30.** Before: no heading hits "decision log" or "revision history" at any rank. After the dry run: "decision log" hits exactly one heading at rank 1 (exact) |
+
+**Errors:** none. **Warnings:** W-1 below. **Unknowns:** U-2 in §12 (U-1 and U-3 are resolved).
 
 - **W-1.** `V4-HI-42`'s heading-level claim "declared checkpoints override
   autonomy" becomes "autonomy does not override declared checkpoints … act
@@ -234,7 +246,7 @@ schema).
 | Surface | Package role | Classification | Authority basis |
 |---|---|---|---|
 | `docs/PRD.md`, `ARCHITECTURE.md`, `HOST_INTEGRATION.md`, `EXAMINATION.md` | Accepted-basis carrier outside the decomposition package; treated as a **working surface** named in the group-2 boundary | DIRECT_EDIT | DECISION-4, DECISION-5; APP-V4-BASIS-20260926 |
-| `_Decomposition/SOFTWARE_DECOMP.md` | working surface | DIRECT_EDIT (change log only) | this amendment |
+| `_Decomposition/SOFTWARE_DECOMP.md` | working surface | DIRECT_EDIT: a new `## Decision Log` section (D-15) and one corrected sentence (D-16) | this amendment; baseline COV-121, COV-127 |
 | `ScopeLedger.csv`, `Vocabulary_Map.csv`, `Deliverables.csv`, `Packages.csv` (cond.), `Open_Issues.csv` (cond.) | authoritative companion register | DIRECT_EDIT (field level) | DECISION-4, DECISION-5, DECISION-1 |
 | `Consolidated_Coverage.csv` | authoritative companion register (hash-bound aliases) | RECOMPUTE | the doc edits |
 | `Coverage_Telemetry.json` | derived check artifact | RECOMPUTE (by the post-change baseline) | audit-decomp |
@@ -281,7 +293,7 @@ cumulative and starts with these rows, since this is the first amendment.
 |---|---|---|---|
 | Design definitions of the 14 deliverables (plus DEL-09-07 and DEL-08-01, which have none) | Each deliverable's Design owner (the graph maintainer dispatches) | STALE_REBUILD_REQUIRED | Next in-place pass: re-pin the SoW and doc hashes; close EXEC F-29, CA F-22, GUIDE G-12/G-6/F-16, LOOP G-6, WD U-33, ACT F-20, PANEL F-9 and the "flagged for the next accepted-basis update" notes. GUIDE is re-pinned last |
 | Consolidated_Coverage.csv | Decomposition owner (in this amendment) | RECOMPUTE in the candidate | Script recompute (B8) |
-| Coverage_Telemetry.json and the post-change baseline | audit-decomp (TASK) | STALE_REBUILD_REQUIRED | Post-change baseline |
+| Coverage_Telemetry.json and the post-change baseline | audit-decomp (TASK) | STALE_REBUILD_REQUIRED (already stale before the amendment: COV-119, COV-120) | Post-change baseline, same seven-package scope as the pre-change baseline |
 | DAG-001 (accepted graph) | project-dag (node P2 → D1) | Currency DEPARTURE on application | Currency audit, then the DAG-002 candidate |
 | Registers (`Dependencies.csv`) | dependency-extract, per deliverable | Not changed by this amendment | Node P2 route. Several new-arc rows depend on SoW edits here (§10) |
 | RELAY/SWBPIPE handoff | App manager / human | CURRENT as relayed; next relay pending | Carry DECISION-5 obligations (M7.9, HC-7.7…HC-7.9) when UI-SUCCESSOR resumes (DECISION-3) |
@@ -317,10 +329,34 @@ carrier writes (item O-3). The graph's K2 then also takes scope-change group
 dependency-extract, project-dag); lifecycle transitions (the human or
 WORKING_ITEMS, O-16); Design re-pinning (downstream); the relay.
 
-**Closure validation before group 3:** audit-decomp post-change baseline;
-`validate_scope_of_work.py` and `check_boundary_owner_resolution.py` on each
-revised SoW; a diff that confines each SoW change to its REVISION_SCOPE;
-recompute Consolidated_Coverage; independent review of the candidate.
+**Pre-existing findings, not amendment effects.** The pre-change baseline
+records these conditions before any edit. The post-change comparison must
+not attribute them to this amendment:
+- **COV-119 (INFO).** `Coverage_Telemetry.json` counts 24 active open issues
+  and resolved OI-015/OI-025. The working Open_Issues.csv has 23 OPEN, with
+  OI-015, OI-017 and OI-025 non-OPEN. This is a later standing update against
+  the frozen Group3 telemetry.
+- **COV-120 (INFO).** The same telemetry still carries the candidate-era
+  standing and the check `no_production_folders_or_SoWs_created=true`, while
+  the 41 deliverable folders now exist.
+
+Both are closed by the RECOMPUTE of `Coverage_Telemetry.json` (§8).
+COV-122 to COV-126 (INFO) and the non-Change-Register part of COV-127 are
+also pre-existing. The first concern pointers and later standing files; the
+second, companion-register bindings through `Companion_Inventory.csv`. They
+are routed to the decomposition owner as they stand.
+
+**Closure validation before group 3:** an audit-decomp post-change baseline
+over **the same seven-package scope as the pre-change baseline (PKG-01, 02,
+03, 04, 05, 08, 09; 30 deliverables)**, compared with
+`BASELINE/coverage_summary.json`. PKG-01 is included because A41 modifies
+DEL-01-01. Expected changes: COV-121 and the Change Register part of COV-127
+close, and COV-119/120 close on the telemetry recompute. After that:
+- `validate_scope_of_work.py` and `check_boundary_owner_resolution.py` on
+  each revised SoW;
+- a diff that confines each SoW change to its REVISION_SCOPE;
+- the Consolidated_Coverage recompute;
+- an independent review of the candidate.
 
 **Checkpoint grouping.** The graph presents scope-change groups 1 and 2
 together at K1. The contract still requires two immutable decision snapshots,
@@ -391,27 +427,26 @@ Two SoW-level effects matter for node P2:
 
 | Deliverables | `_STATUS.md` | Consequence |
 |---|---|---|
-| All 16 | **INITIALIZED** | REVISE admits INITIALIZED and IN_PROGRESS. No deliverable is ISSUED or CHECKING, so no reopening is authorized or needed, and no `write_status.sh --amendment` path applies |
+| DEL-01-01, 02-01, 02-03, 03-01, 03-02, 03-03, 03-04, 04-01, 04-02, 04-03, 05-01, 05-02, 09-06, 09-09 | **IN_PROGRESS**, recorded under owner DECISION-6 (`APP-V4-BASIS-ALIGN-20260928` OWNER_DECISIONS, "Checkpoint A"; commit `67a2fac4b`) | REVISE admits IN_PROGRESS (`SOURCE_STATE`) |
+| DEL-09-07, DEL-08-01 | **INITIALIZED** | REVISE admits INITIALIZED |
 
-C1 found that IN_PROGRESS would be truthful for the 14 first-increment
-deliverables. That transition is a separate act by the human or
-WORKING_ITEMS (O-16). REVISE does not depend on it. DEL-09-07 and DEL-08-01
-have no production work and stay INITIALIZED.
+**REVISE preconditions still hold** for all 16:
+- no deliverable is CHECKING or ISSUED, so there is no `UNSUPPORTED_STATE`,
+  no reopening, and no `write_status.sh --amendment` path;
+- each prior contract still validates and is byte-identical to the
+  `PRIOR_CONTRACT_SHA256` in SOW_REVISIONS (re-checked at `67a2fac4b`);
+- the briefs set `SOURCE_STATE` to IN_PROGRESS for the 14 and INITIALIZED
+  for DEL-09-07 and DEL-08-01, with `STATUS_POLICY=NO_STATUS_TOUCH`.
 
 ## 12. Items the workflow requires that P1 could not prepare, and unknowns
 
-- **U-1. Pre-change baseline (method step 5).** For SOFTWARE this is a TASK
-  run of `audit-decomp` producing `coverage_summary.json`. P1 cannot delegate.
-  Reuse is admitted only when the recorded audit inputs are byte-identical.
-  The GROUP3 final audit (`presentation/REVIEW.md`) and
-  `Coverage_Telemetry.json` match the working ScopeLedger, Deliverables,
-  Packages, Objectives, Vocabulary_Map and ten other files. They do not match
-  **Open_Issues.csv** (`77ecfea2…` vs `b65578a0…`),
-  **External_Dependencies.csv** (`055703d9…` vs `fa2922f7…`) or
-  **SOFTWARE_DECOMP.md** (`5b66fefd…` vs `9d44c2ad…`); these carry later
-  standing updates. Reuse is therefore not admissible as-is. **Recommendation:**
-  the integrator dispatches a scoped `audit-decomp` TASK (PKG-02, 03, 04, 05,
-  08, 09) before K1 (O-20).
+- **U-1. Pre-change baseline (method step 5): RESOLVED.** Node P3 ran
+  `audit-decomp` over PKG-01, 02, 03, 04, 05, 08 and 09 (30 deliverables) at
+  basis `306291bdd`. Output: `BASELINE/coverage_summary.json` (sha256
+  `d8ac5c4d35012d6a6fb6a3ef2c509caba08a616c8e14a5601bff2a83ee9620f9`),
+  `overall_status` WARNINGS, 0 BLOCKER. The GROUP3 audit was not reused
+  because three inputs differ. The post-change audit uses the same scope
+  (§9).
 - **U-2. Snapshot artifacts in `_ScopeChange/`.** `Brief.md`,
   `Intake_Actions.csv`, `Impact_Assessment.md`, `Amendment_Preview.md`,
   `Propagation_Plan.md`, `Amendment_Actions.csv`, `Supersession_Delta.csv`,
@@ -420,10 +455,9 @@ have no production work and stay INITIALIZED.
   and in BASIS_AMENDMENT and SOW_REVISIONS. The integrator transcribes them
   into `execution/_ScopeChange/{AMENDMENT_ID}_…/` and
   `checkpoint_snapshots/` after the owner acts.
-- **U-3. Change-register binding.** The Change Register maps to "Artifact
-  coverage and decision/change log" by heading judgment. The audit-decomp
-  rank-order normalization was not run. The audit-decomp TASK (U-1) should
-  confirm it.
+- **U-3. Change-register binding: RESOLVED by A30.** The baseline confirmed
+  that the judgment binding failed under the exact rule (COV-127). A30 (D-15)
+  adds `## Decision Log`, which binds exactly (§1).
 - **Estimate and schedule staleness:** none. No estimate or schedule artifacts
   exist for App v4.
 - **Orphan risk:** none. There is no REMOVE and no structural action.
