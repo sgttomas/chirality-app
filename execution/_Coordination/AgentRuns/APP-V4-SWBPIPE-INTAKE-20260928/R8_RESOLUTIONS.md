@@ -253,3 +253,37 @@ R2-13 is amended:
    - Sibling version citations across CA, XT, LOOP, PANEL and the others are
      refreshed to the post-R8 versions.
    - GUIDE → v0.3, re-pinned last.
+
+## R8-13 Host-agent network destinations (DECISION-5) — SETTLED; the act mapping is INTEGRATION
+
+- **LOOP §5.1 (network rules NW-*).** Implement DECISION-5:
+  - two-level allow list;
+  - model service always allowed;
+  - MCP only if stateless 2026-07-28;
+  - in-work request with scopes once / run / always;
+  - decline outcome "destination not allowed by the person";
+  - the always-off list;
+  - every destination recorded and shown;
+  - the limit on outside processes;
+  - Phase-1 and governance-phase split.
+
+  Retire the V4-HOST-02 "pending" markers and replace them with the revised
+  text, flagged for the accepted-basis update.
+- **ACT.** Granting a network destination (allow-list edit or in-work grant)
+  is a person-only act. It is mapped as an **A12 grant change**, with subclass
+  "network-destination grant": D2 (e) already reserves changing the autonomy
+  grant. It is never performed by an agent.
+- **AS.** The grant display shows the allow list (categories and named
+  entries) and the in-work grants with their scopes.
+- **RS.**
+  - New record elements: destination contacted (per request: destination,
+    category, allowing grant or list entry); destination grant (scope, time,
+    source: list or in-work); destination declined.
+  - An outside process is recorded with its declared destinations and an
+    evidence limit, "process network not observed", when it is not sandboxed.
+- **PANEL.** The settings surface for the allow list, the in-work request
+  prompt with scopes, and the destinations-contacted display.
+- **HOSTING.** Adds a note that DECISION-5 governs host agents only; the App's
+  Codex keeps the person's own configuration.
+- **GUIDE.** Receives these in the host checklist; re-pinned last.
+- **Removed:** the V4-HOST-02 "pending" markers in C §4.1 and ADAPTER §3.4.
