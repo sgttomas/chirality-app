@@ -136,3 +136,23 @@ V11: READY FOR GROUP 3.
   - then the register rows;
   - then the DAG-001 currency audit and the DAG-002 candidate, for owner
     checkpoint C.
+
+## project-setup INCREMENTAL, Phase 5.1 plan (owner, exact, 2026-09-29), DECISION-9
+
+| Gate question presented | Owner's answer (exact label) |
+|---|---|
+| Setup of SCA-V4-001 (register `069645d9…`): 0 scaffold, 0 retired, 16 modified (0 held), routed to scope-of-work REVISE then VERIFY; dependency refresh under FULL_GRAPH for the 16 plus 2 neighbours (DEL-01-04, DEL-02-02); closure audit; DAG currency audit → DAG-002 at checkpoint C. Confirm this incremental plan? | "Confirm (Recommended)" |
+
+## Effects
+
+The plan is confirmed, and writing may begin:
+
+- REVISE in four parallel groups, one deliverable per brief, each followed by
+  VERIFY;
+- `dependency-extract` for the 18 deliverables;
+- `audit-dep-closure`;
+- a `project-dag` currency audit and the TRIGGER=SUCCESSOR candidate;
+- owner checkpoint C;
+- the SETUP_LOG line.
+
+Lifecycle is preserved (STATUS_POLICY PRESERVE_CURRENT).
