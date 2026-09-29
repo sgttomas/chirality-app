@@ -146,16 +146,24 @@ OQ-02 disposition rather than treating the old draft default as ruled.
 **V4-EXM-22 Graduated autonomy.** The engineer allows direct application for
 one class of low-consequence operation and keeps proposals for model
 geometry. The agent applies the first kind with origin marks and undo, and
-proposes the second. A workflow checkpoint stops the run for a human act.
+proposes the second. A workflow checkpoint requests a human act, and the act
+is recorded only when the person performs it, whatever the autonomy;
+stopping the run at the checkpoint is examined only for a workflow that takes
+up the governance phase (V4-WF-05).
 *Verifies* V4-AUT-01, V4-HI-40…42, V4-WF-05 under an explicitly identified
 operation policy. Preserve direct application, proposal acceptance, human
 checking and professional reliance as different acts. The pending classifier
 and always-reserved details are decided before their dependent criteria;
 this scenario is not itself that decision.
 
-**V4-EXM-23 Privacy in local operation.** During V4-EXM-20, all network
-traffic from the host is observed. *Verifies* V4-HOST-02: no request goes
-anywhere but the configured model server.
+**V4-EXM-23 Host-agent network destinations.** During V4-EXM-20, all network
+traffic from the host is observed. *Verifies* V4-HOST-02: requests go only to
+the selected model service and to destinations the person allowed, in
+advance or when the agent asked during its work; a declined request reaches
+no destination and is reported to the agent as "destination not allowed by
+the person"; nothing else is contacted unless the person turned it on; and
+every destination contacted is recorded and shown. An outside process that
+is not sandboxed is examined within that stated limit.
 
 **V4-EXM-24 Catalog-extension trace and qualified criterion.** Trace one new
 catalog operation through the human interface, embedded tools and external

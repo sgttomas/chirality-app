@@ -79,4 +79,4 @@ The [final accepted snapshot](checkpoint_snapshots/_LATEST_ACCEPTED.md) preserve
 
 All three accepted snapshots/pointers now exist. The owner accepted the audited final decomposition for downstream use; its immutable snapshot and _LATEST_ACCEPTED.md handoff precede INITIAL setup. The [setup proposal](../_Coordination/INITIAL_SETUP_PROPOSAL_2026-09-27.md) and [_COORDINATION.md](../_Coordination/_COORDINATION.md) carry the actual approved coordination choice and definition route. Routine Git integration does not replace a future graph or lifecycle decision.
 
-[Companion_Inventory.csv](Companion_Inventory.csv) identifies each working/register/check surface and its reader. No production Package/Deliverable folders or local ScopeOfWork contracts have been created.
+[Companion_Inventory.csv](Companion_Inventory.csv) identifies each working/register/check surface and its reader. At Group3 acceptance no production Package/Deliverable folders or local ScopeOfWork contracts existed. The approved INITIAL setup has since created the 41 deliverable folders, each with a local `ScopeOfWork.md` contract; each deliverable's `_STATUS.md` records its lifecycle state.

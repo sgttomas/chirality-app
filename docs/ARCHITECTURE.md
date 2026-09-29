@@ -24,11 +24,14 @@ B-HTML 02), are:
    suppliers, hosts and understanding change.
 2. **Functionality** — the best harnesses' native capabilities are kept, not
    traded for portability.
-3. **Local models and data privacy** — the host model defaults to the local
-   server; model traffic stays within the selected local-operation boundary.
-   A cloud model is used only by the user's choice. The later Domains
-   connector must preserve the applicable data boundary; its deployment is
-   unresolved, not an implicit exception (PRD OQ-03).
+3. **Local models and data privacy** — a host's agent runs on a local model
+   server the user controls or on a cloud model the person chooses (OAuth
+   sign-in or API key), with no default between them. It sends data only to
+   the selected model service and to destinations the person has allowed, and
+   every destination contacted is recorded and shown (V4-HOST-01/02; DEC-4,
+   DEC-5). The later Domains connector must preserve the applicable data
+   boundary; its deployment is unresolved, not an implicit exception (PRD
+   OQ-03).
 
 These priorities do not impose a universal ranking on all program choices.
 The retained design principles (original analysis §3, with M-2 restated in
@@ -83,7 +86,10 @@ implementation and explicit receiving agreement.
                                                     │ through the host's
                                                     ▼ own network layer
                                         Local model server (oMLX, LM Studio,
-                                        Ollama) — or a cloud API if chosen
+                                        Ollama) or a cloud model (OAuth
+                                        sign-in or API key), as the person
+                                        chooses; other destinations only if
+                                        the person allows them
 ```
 
 Shared by both tiers: the workflow format with declared checkpoints, skills,
@@ -154,15 +160,36 @@ supplier direction as though it were unanswered.
 | ID | Decision | Reason |
 |---|---|---|
 | V4-ARC-10 | **Agent: a minimal Chirality agent loop** in the host, over the **OpenAI-compatible Chat Completions** interface with tool calls | Recorded D-20 choice. Compatibility and maintenance effort must be established for the selected server and implementation; the original size/stability expectations are not qualification |
-| V4-ARC-11 | **Model: the local model server by default**; a cloud model only if the user chooses one and supplies an API key | D-18 |
-| V4-ARC-12 | **Network through the host.** The loop's requests pass through the host's own native layer, which enforces the configured endpoint and holds any key outside the interface's script | D-18; T10 risk 3 |
+| V4-ARC-11 | **Model: local or cloud, as the person chooses, with no default** — a local model server the user controls, or a cloud model reached by OAuth sign-in or an API key | D-18; DEC-4 |
+| V4-ARC-12 | **Network through the host.** The loop's requests pass through the host's own native layer, which allows only the selected model service and the destinations the person has allowed, records every destination contacted, and holds any key or sign-in credential outside the interface's script | D-18; DEC-4; DEC-5; T10 risk 3 |
 | V4-ARC-13 | **Tools from the host's capability catalog**, with arguments validated against the catalog's schemas before the host's own validation runs | V4-PAR-01…05; [host integration](HOST_INTEGRATION.md) |
 | V4-ARC-14 | **A Chirality-defined boundary around the loop** — messages, tools, events, checkpoints — so the loop can be replaced by Pi's libraries or another library if hosts outgrow it | D-20; M-5 |
 
 **Properties the host agent must hold:**
 
-- In local operation it makes no network request other than to the
-  configured model server (V4-HOST-02).
+- It sends data only to the model service the person selected and to
+  destinations the person has allowed (V4-HOST-02; DEC-5):
+  - the allow list works at two levels, a category switch (web access, MCP
+    servers, other APIs, …) and named destinations within each category;
+    the selected model service, and its sign-in service for a chosen cloud
+    model, are always allowed by the person's model choice;
+  - an MCP server is allowed only if it follows the stateless MCP revision
+    2026-07-28; a server that does not is not offered and cannot be allowed;
+  - the agent may ask for a destination during its work, and only the person
+    grants it — once, for this run or always, for the destination or its
+    category; only the requesting call waits, and a decline is reported to
+    the agent as "destination not allowed by the person";
+  - analytics or usage reporting, a silent switch to another model or
+    provider, and background downloads or updates stay off unless the
+    person turns them on;
+  - every destination contacted is recorded and shown, in any model mode.
+
+  An MCP server or other outside process can make its own network calls;
+  unless it is sandboxed, the host can only decide whether to start it and
+  record what it declares. Allow lists locked by an organization and
+  enforced sandboxing of outside processes belong to a later governance
+  phase. This property governs a host's embedded agent; the App's own Codex
+  keeps the person's Codex configuration, approval and sandbox choices.
 - It does not block the host's interface: long parsing and model streaming
   run off the interface's main thread where the host needs it (T10 risk 4).
 - It treats truncated or malformed tool calls as failures to report, never

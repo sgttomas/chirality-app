@@ -7,7 +7,7 @@ Role,HELP_HUMAN;HELPS_HUMANS;WORKING_ITEMS;TASK,Contribution relationship; exact
 SWB Piping Designer,Piping Designer agent,Application-specific agent capability using Domains/research for design candidates; not a fifth role.
 Workflow,method guidance;WORKFLOW.md,Reusable prose with declared inputs/tools/checkpoints/outputs/evidence; selection retains origin.
 Skill,SKILL.md,Reusable bounded guidance distinct from workflow and role.
-Declared checkpoint,human checkpoint,Run waits for an identified human act even when direct operation autonomy exists.
+Declared checkpoint,human checkpoint,"Requires an identified human act, recorded only when the person performs it, even when direct operation autonomy exists; holding the run there is phased to the governance layer (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4)."
 Capability catalog,catalog,"Single host operation contract for human, embedded and external channels."
 Semantic parity,parity,"Equivalent operation meaning across reads, validation, outcomes and recovery; not identical gestures."
 Automatic catalog extension,all-actor extension;V4-PAR-05,Separately qualified pending promise; existing parity does not establish it.

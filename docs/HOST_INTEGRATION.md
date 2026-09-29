@@ -134,8 +134,12 @@ of need before relying on it.
   operations. For SWBPIPE's model changes the default is proposal with
   row-by-row, multi-row or whole-batch acceptance, following the owner's
   direction of 2026-09-17; the person may widen it.
-- **V4-HI-42** A workflow's declared checkpoints override autonomy: at a
-  checkpoint the run waits for the person's act (V4-WF-05).
+- **V4-HI-42** Autonomy does not override a workflow's declared checkpoints:
+  whatever the autonomy setting, a checkpoint's required act is requested and
+  recorded as done only when the person performs it. Holding the run at the
+  checkpoint until then is phased to the governance layer (V4-WF-05): in the
+  current phase a checkpoint is plan guidance that the person and the agents
+  manage, and the reserved acts (V4-HI-30) still bind.
 
 ## 7. External agents
 
@@ -196,7 +200,8 @@ of need before relying on it.
 | App/shared contribution | Method/consumer and shared-contract responsibilities; any Domains provider allocation remains to be decided | Define the receiving contribution and unresolved provider allocation in project definition; SWBPIPE construction stays externally owned |
 
 The provider's deployment and data boundary are open. The Domains direction
-does not relax V4-HOST-02 or authorize an unselected network destination.
+does not relax V4-HOST-02: a Domains query service is contacted only as a
+destination the person has allowed.
 Resolve a compatible query/tool arrangement before relying on it, or obtain
 an explicit decision on an affected constraint. No database platform,
 corpus, remote service or delivery date is inferred.
@@ -212,7 +217,8 @@ research capability is not falsely reported as available.
 - **V4-HI-70** Each workflow run leaves a compact record with the host project:
   the workflow and version, the conversation, the autonomy settings, the
   operations requested and their outcomes, the host receipts by reference, the
-  human acts performed, and the model used (D-07).
+  human acts performed, the model used and, for a host's agent, each network
+  destination contacted (D-07; V4-HOST-02).
 - **V4-HI-71** The host's receipts, hashes and origin marks are the evidence of
   what changed; the run record links them and does not copy them.
 

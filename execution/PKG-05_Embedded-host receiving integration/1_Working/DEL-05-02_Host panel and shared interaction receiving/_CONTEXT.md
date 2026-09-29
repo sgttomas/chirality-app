@@ -22,6 +22,6 @@ Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_s
 
 ## Package boundary
 
-- **ScopeDescription:** App/shared receiving and conformance responsibilities for the minimal local-first host loop and panel.
+- **ScopeDescription:** App/shared receiving and conformance responsibilities for the minimal host loop, on a local or cloud model the person chooses, and panel.
 - **InclusionCriteria:** Network/model/tool/loop boundary requirements; panel interaction interfaces and owner-coordinated common-component decisions.
 - **Exclusions:** No SWB loop or panel construction; no selected common loop implementation or service; no Pi dependency or host team coordination.
