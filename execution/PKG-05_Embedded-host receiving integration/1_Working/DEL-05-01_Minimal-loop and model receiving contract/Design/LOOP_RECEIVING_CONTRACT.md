@@ -2,10 +2,12 @@
 - Contribution: DEL-05-01/LOOP-v0.6 (supersedes DEL-05-01/LOOP-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 0ec980b53c4dd473b365f7e8407593a218023ad2277da7680694c852808bd737; LOOP-v0.4 sha256 ffc30483…95934e at `8fb51f07f`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R8-1; DECISION-4 D4-1 and clarification): in Phase 1 (this increment) declared checkpoints are **plan guidance**, and the host's own embedded loop **enforces no hold** (§2.4.0). The host-loop hold (§2.4.4, LH-0…LH-4) and the hold content of §2.4.1–§2.4.3 are kept as the **governance-phase definition (retained)**, not deleted. V4-WF-05's first half is **phased to the governance layer, not withdrawn**, and is flagged for the next accepted-basis update.
-- Model access (R8-9; DECISION-4 D4-3): a cloud model is reached by **OAuth sign-in or an API key**, and there is **no default** between local and cloud, only options the person chooses among (§5.1). V4-HOST-01's "by default … API key" wording is flagged for the next accepted-basis update. V4-HOST-02 keeps its current wording here, **owner clarification pending (R8-9)**.
+- Model access (R8-9; DECISION-4 D4-3): a cloud model is reached by **OAuth sign-in or an API key**, and there is **no default** between local and cloud, only options the person chooses among (§5.1). V4-HOST-01's "by default … API key" wording is flagged for the next accepted-basis update. V4-HOST-02 is read as **revised by DECISION-5 (R8-13)**, flagged for the next accepted-basis update (§5.1 NW-2).
+- Network destinations (R8-13; DECISION-5): the host's embedded agent sends data only to the selected model service and to destinations the person allows, by a two-level allow list or by an in-work grant scoped once, this run or always. MCP servers are allowed only if they follow the stateless MCP revision 2026-07-28. An always-off list applies, and every destination contacted is recorded and shown in any model mode (§5.1.1 NW-8…NW-16; MS-14…MS-22). Phase 1 and the governance phase are split per DECISION-4's principle.
 - Serves: OUT-001, OUT-002, OUT-003, OUT-004; REQ-001–REQ-007; AC-001–AC-009; VER-001–VER-009 (all of DEL-05-01)
 - Basis: repo 6e18505e3 (accepted basis); ScopeOfWork.md sha256 6fbbb580bdacb7f34b4df98a826519a28c087aff6e589ad27330ee556a83b568; P/docs/PRD.md §2.2 V4-HOST-01/02/03/04, §4.1 V4-WF-03/05, §4.5 V4-AUT-01/03/04/05, §4.7 V4-REC-03/04/05, §6, §9 OQ-02/OQ-11; P/docs/ARCHITECTURE.md §3 (V4-ARC-01/04), §4 (V4-ARC-10–14, host-agent properties), §5 V4-ARC-20, §6; P/docs/HOST_INTEGRATION.md §1, V4-HI-02/04, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, §8.1 closing paragraph, V4-HI-70/71; P/docs/EXAMINATION.md V4-EXM-01–03, V4-EXM-20–23; DECISION_BRIEF.html (sha256 02d38cb1…4c420e8) d2, d3, d5; APP-V4-CLARIFICATION-20260927/DIRECTION.md; SCC-CASE-002 Case_Datasheet M1/M4 rows; Open_Issues OI-003/013/014/021; External_Dependencies DEP-001; run folder OWNER_DECISIONS.md (sha256 f3f8e5f3…cf81f2e; decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, D2 and D3), R1_RESOLUTIONS.md (sha256 2f9c7e72…e177ec4), R2_RESOLUTIONS.md (sha256 77cfb845…cdebd088), comparisons/V1-A.md (01811533…e04c09), comparisons/V1-C.md (8d46258a…4a94a6), reviews/IR1-A.md (31b3c7f8…0b648284), reviews/IR1-B.md (70e4a4f6…2846), reviews/IR1-C.md (295e96b3…a426b9); run folder at commit `f05c7e4cd`: OWNER_DECISIONS.md (sha256 a9869129…68ad2c; adds `APP-V4-FIRST-INCREMENT-20260928-DECISION-2`, D5 and D6), R3_RESOLUTIONS.md (202d52c7…afbf), R4_RESOLUTIONS.md (50a009b2…032a24), reviews/V2.md (75ba1dff…6ef); run folder at commit `8fb51f07f`: R5_RESOLUTIONS.md (254d0b93…dd6f1), reviews/V3-A.md (f25f5af1…21d87), reviews/V3-B.md (5662fbd0…954a3); run `APP-V4-SWBPIPE-INTAKE-20260928` at commit `94aa9181b`: OWNER_DECISIONS.md (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; D4-2 loop and panel keep V4-ARC-10; D4-3 model access)); P/docs/ARCHITECTURE.md V4-ARC-10/11/12 and `conceptual/DECISIONS.md` D-20 as cited there
 - Consumed inputs:
+  - **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table.
   - **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12, items 1 and 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-02/PANEL-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3).
   - **v0.6 inputs (R8 pass, node A4, at `94aa9181b`; read with `git show`).**
     - R8_RESOLUTIONS.md sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02 (R8-1…R8-11; binding). R8-11 confirms EXEC PH-6/PH-8 and rules the Phase-1 standing of D2's checkpoint clause, WD I-7 and V4-HI-42.
@@ -43,7 +45,7 @@
 - **Standing labels.**
   - **SETTLED:** accepted basis or owner decision
     `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` / `-DECISION-2`, or
-    `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` / `-DECISION-4`, credited
+    `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` / `-DECISION-4` / `-DECISION-5`, credited
     only with what it says (R2-11).
   - **DERIVED:** follows from cited rules.
   - **INTEGRATION:** an integrator ruling (R-n / R2-n … R8-n).
@@ -95,7 +97,8 @@
   - named variant **V-GR1** (R5-7): the grant-change-after-arrival run.
   - named variants V-S1, V-CP1, V-NP1, V-R1, V-X1 and V-OU1.
 
-  This file's model/endpoint rules are labeled **NW-1…NW-7**, not N-n,
+  This file's model/endpoint rules are labeled **NW-1…NW-16** (NW-8…NW-16
+  added in place by R8-13), not N-n,
   because N-1/N-2 are C's nozzles (V2 m-5).
 
   The v0.2 labels that collided with C (R-101, R-102, N-10…N-40, S-7…) are
@@ -136,6 +139,8 @@ means by DECISION-3 or DECISION-4.
 | **R8-11** (items 1–3, 5) | Item 1: lapse recorded in Phase 1, re-hold governance phase (LP-7; C-4). Item 2: D2's reserved-act half binds; its "or a declared checkpoint" half, WD I-7 and V4-HI-42 are guidance in Phase 1 (LP-6; C-1; C-6). Item 3: invalid declarations are a finding only in Phase 1 (LP-9; FX-C13). Item 5: governance-phase values read as if governed (§0, §2.4.4, §11). Item 4 (EXEC SoW) is not this file's; LOOP's own SoW wording is G-6 | §2.4.0, §2.4.3, §2.4.4, §11, Findings |
 | **R8-12** (items 1, 7; closing pass, node A6, in place) | Item 1 (G-7 ruled): in Phase 1 a lapse after the resume point is recorded as **"act lapsed at ‹t›"**; nothing says *waiting* and nothing is re-held; a new act is recorded when performed. Before resume the label stays "waiting — lapsed at ‹t›" (both phases); the governance-phase re-hold keeps "waiting — re-held, lapsed at ‹t› after resume". Changed in C-4's phase note, §2.4.0 and FX-C3 (ii); G-7 closed. Item 7: consumed inputs list the post-R8 sibling versions; §10.1 and §10.3 standings refreshed from the v0.5 / `c7f5513db` citations to the post-R8 versions; §0 and §11 fixture sources and §13's RELAY citation name the current carriers | Header, §0, §2.4.0, §2.4.3 C-4, §10.1, §10.3, §11, §13, FX-C3, Findings |
 | V9 N-1 — in place | §2.4 "on negative decision" row: the "Absent" consequence is labelled by phase (Phase 1 per LP-8; governance phase for governed checkpoints). No rule changes |
+| **R8-13** (DECISION-5; SETTLED; the act mapping INTEGRATION; in place, no version bump) | V4-HOST-02 is read as **revised by DECISION-5**. The owner's revised text is quoted at NW-2 and flagged for the next accepted-basis update. Every "owner clarification pending (R8-9)" marker is retired: header, §1 consequence 5, NW-2, the §5.1 SWBPIPE note, MS-01, MS-06, the N-OPEN row, the V4-HOST-02 UNRESOLVED row and VC-01. New **§5.1.1** (NW-8…NW-16) covers: the two-level allow list; the model service always allowed; MCP only if it follows the stateless MCP revision 2026-07-28; in-work requests scoped once / this run / always, with only the requesting call waiting; the decline outcome "destination not allowed by the person"; the always-off list; every destination recorded and shown in any model mode; the outside-process limit ("process network not observed"); and the Phase-1 / governance-phase split. Also new: §2.3 destination events and an E-4 item; the §9 A12 row and A-5 (the destination request is not a tool-permission prompt); the §10.1 networking row; **MS-14…MS-22** (allow-list hits by category and by named entry, an in-work grant for each scope, a decline, a non-stateless MCP server refused, an outside process with its network not observed, and an agent self-grant refused). MS-01 and MS-06 are re-based on the revised text. N-OPEN-2 and N-OPEN-3 are annotated, and N-OPEN-4 and N-OPEN-5 added. New G-8 and UNRESOLVED rows | Header, §0, §1, §2.3, §5.1, §5.1.1, §5.2, §9, §10.1, Findings, UNRESOLVED, VC-01 |
+| R8-13 close — in place | The owner confirmed DECISION-5 (the reading of "MCP V2"; the person-only grant stands), so the "open to the owner's correction" markers are closed. The consumed-input line is corrected: OWNER_DECISIONS.md is cited in its state that adds that confirmation, not at `1528a5033` |
 
 ## Changes from v0.4
 
@@ -239,8 +244,10 @@ Consequences:
      reading)** (R5-4).
    - §5 continues to govern this loop. Its model-access options follow
      DECISION-4 D4-3 (OAuth sign-in or API key; no default; R8-9).
-     V4-HOST-02 keeps its current wording here, **owner clarification
-     pending (R8-9)**.
+     V4-HOST-02 is read as **revised by DECISION-5** (R8-13; §5.1 NW-2,
+     §5.1.1), flagged for the next accepted-basis update. It governs this
+     loop's agent only. The App's own Codex keeps the person's Codex
+     configuration, approval and sandbox choices (HOSTING §2).
 6. **The v4 direction is kept (R8-8; DECISION-4 D4-2; SETTLED).** This
    contract and PANEL remain the App's receiving contracts for a host loop
    under V4-ARC-10, the minimal Chirality loop recorded as D-20.
@@ -390,6 +397,12 @@ itself a human act.
 | Turn started / completed / cancelled / failed | Conversation turn | Person or agent / loop | Message references |
 | Model stream progress | Agent message | Model / loop | Partial content ("streaming" only) |
 | Model request refused at boundary | Model request | Host native layer | Refused destination, or "no credential" (no key and no sign-in); never credential content |
+| **Destination contacted** (R8-13) | Network request of the host's agent, or of an outside process the host observes | Host native layer | Destination; category; the grant or list entry that allowed it ("model choice" for the model service); time. Never content, never credential content (NW-15) |
+| **Destination request issued** (R8-13) | Destination or category | Agent (requester) / loop | A8: destination or category; purpose; scope sought; the requesting call's correlation identity. Only that call waits (NW-12) |
+| **Destination grant observed** (R8-13) | Allow-list entry or in-work grant | Person (A12, subclass network-destination grant); the host's control records | Scope (once · this run · always); destination or category; time; source (allow list · in-work); capture evidence (ACT §2.7) |
+| **Destination declined** (R8-13) | Requested destination | Person; the host's control records | "destination not allowed by the person", as reported to the agent; time; the requesting call. An act-declined event of kind A12 (ACT §2.3, §2.7) |
+| **Destination refused at boundary** (R8-13) | Network request | Host native layer | Destination; reason (not allowed · always-off item · not stateless MCP (2026-07-28)); nothing sent |
+| **Outside process started** (R8-13) | MCP server or other outside process | Host | Process identity; declared destinations; sandboxed or not; the evidence limit "process network not observed" when not sandboxed (NW-16) |
 | Model interface failure | Model request | Model server or transport / loop | Termination reason |
 | Tool call received | Tool call | Model / loop | Correlation identity; operation reference; parse state |
 | Tool call rejected: unparseable or truncated | Tool call | Loop | Parse state and reason; "not dispatched" |
@@ -442,6 +455,8 @@ Loop obligations:
   - "prior act not counted";
   - in Phase 1, the optional "continued past ‹checkpoint› before ‹act›"
     annotation; in the governance phase, action during hold;
+  - destinations contacted, destination grants and declines, and outside
+    processes with their declared destinations (R8-13; RS R15);
   - continues ⟨run⟩.
 
   The field mapping is DEL-04-03's.
@@ -902,11 +917,19 @@ assumptions.
     ("by default", "supplied API key", "local-first selection") is carried
     to the same update as a proposal (G-6). No accepted text and no SoW is
     edited here.
-  - NW-2: in local operation, the only destination is the configured server
-    (V4-HOST-02). **Owner clarification pending (R8-9):** the owner has not
-    yet said whether to keep V4-HOST-02 ("sends no data to any destination
-    other than the configured model server"). Its wording is left unchanged
-    here, and NW-2 is not relaxed meanwhile.
+  - NW-2 (revised in place by DECISION-5; R8-13): the host's agent sends
+    data only to the selected model service and to destinations the person
+    has allowed (§5.1.1). The revised V4-HOST-02, in the owner's wording
+    (DECISION-5), reads:
+
+    > A host's agent sends data only to the model service the person selected and to destinations the person has allowed — in advance in an allow list (by category, such as web access, MCP servers or other APIs, or by named destination) or when the agent asks during its work. Nothing else is contacted: no analytics, silent provider switch or background download unless the person turns it on. Every destination contacted is recorded and shown.
+
+    *Accepted-basis note:* the accepted V4-HOST-02 still reads "In local
+    operation, a host's agent sends no data to any destination other than
+    the configured model server". The revised text is **flagged for the
+    next accepted-basis update** (DECISION-5). No accepted text is edited
+    here. The "in local operation" qualifier is dropped: NW-2 and NW-15
+    hold in any model mode.
   - NW-3: requests go through the native layer, which enforces the endpoint
     and holds the credential outside the script (V4-ARC-12 names the key;
     applying the same custody to an OAuth sign-in credential is DERIVED
@@ -925,18 +948,120 @@ assumptions.
 - **Open.**
   - `UNRESOLVED{N-OPEN-1}`: what counts as "user-controlled local" endpoints.
   - `UNRESOLVED{N-OPEN-2}`: cloud-chosen destinations, including the sign-in
-    endpoints an OAuth flow contacts.
+    endpoints an OAuth flow contacts. From R8-13 the sign-in service is
+    allowed by the person's model choice (NW-9); which endpoints it
+    comprises stays open.
   - `UNRESOLVED{N-OPEN-3}`: tool-caused traffic (e.g. a later Domains query).
-    Not a permission.
+    From R8-13 it is governed by the allow list and in-work grants
+    (NW-8…NW-13); which traffic of a host operation counts as the agent's
+    stays open. Not a permission.
+  - `UNRESOLVED{N-OPEN-4}` (R8-13): how a category switch and the named
+    entries within it combine (NW-8).
+  - `UNRESOLVED{N-OPEN-5}` (R8-13): the evidence that an MCP server follows
+    the stateless MCP revision 2026-07-28 (NW-10).
 
 **SWBPIPE (SQ-29, SQ-30; R8-9).** SWBPIPE has no model interface, endpoint
 configuration or key custody (`api_key` appears only as a redaction key
 name). Its successor embedded mechanism is a SWBPIPE owner decision under
 D-58. SWBPIPE DEC-051 (open residency: an owner-configured provider, cloud
 included, with no app-side guard "for now") is **compatible with D4-3 on
-choice**. It is recorded here as a note, not a conflict (R8-9). How DEC-051's
-lack of a guard relates to V4-HOST-02 waits for the owner's V4-HOST-02
-clarification.
+choice**. It is recorded here as a note, not a conflict (R8-9). Under the
+revised V4-HOST-02 (DECISION-5; R8-13), DEC-051's provider choice
+corresponds to the person's model choice (NW-9). DEC-051 says nothing of
+other destinations, and SWBPIPE has no embedded agent today (SQ-20,
+SQ-29), so there is nothing to compare. §5.1.1 is for SWBPIPE to take up
+when the owner resumes UI-SUCCESSOR; no SWBPIPE behaviour is claimed
+(DECISION-3).
+
+#### 5.1.1 Network destinations of the host's agent (DECISION-5; R8-13)
+
+**Standing.** The rules below are **SETTLED by DECISION-5** unless labelled
+otherwise. Two points are confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the
+person-only grant (NW-11), and the recorder's reading of the owner's "MCP
+V2" as the **stateless MCP revision 2026-07-28** (NW-10). The mapping of a
+grant to an act (A12, subclass *network-destination grant*) is
+**INTEGRATION** (R8-13; ACT §2.7). DECISION-5 governs a host's embedded
+agent only. The App's own Codex keeps the person's Codex configuration,
+approval and sandbox choices (HOSTING §2; D-GOV-43).
+
+| Element (semantic) | Meaning |
+|---|---|
+| Category switch | One per category. DECISION-5's examples are web access, MCP servers and other APIs; the category list is open. On or off, set only by the person |
+| Named destination | A destination the person allowed by name within a category |
+| Model service | The model service the person selected and, for a chosen cloud model, its sign-in service. Allowed by the person's model choice (§5.1 states), not by a list entry |
+| In-work grant | A destination, or its category, that the person granted when the agent asked during its work, with its scope: **once**, **this run** or **always** |
+| Always-off item | Analytics or usage reporting; a silent switch to another model or provider; background downloads or updates. Off unless the person turns it on |
+| Outside process | An MCP server or other process the host starts for the agent, with the destinations it declares |
+
+- **SETTLED (DECISION-5).**
+  - NW-8 **Allow list, two levels.** The person allows destinations in
+    advance by category switch, and by named destination within each
+    category. Every edit is the person's act (ACT §2.7). A destination is
+    allowed when its category is switched on, when it is a named entry,
+    when an in-work grant in force covers it, or when it is the model
+    service (NW-9). Reading the two levels as alternatives follows the
+    owner's "by category … or by named destination". Whether switching a
+    category off also suspends its named entries is
+    `UNRESOLVED{N-OPEN-4}`.
+  - NW-9 **Model service always allowed.** The selected model service, and
+    its sign-in service for a chosen cloud model, are allowed by the
+    person's model choice. Changing that choice is the NW-4 setting
+    change, not a list edit.
+  - NW-10 **MCP only if stateless.** An MCP server is allowed only if it
+    follows the stateless MCP revision 2026-07-28. A server that does not
+    is not offered and cannot be allowed, by list or by in-work grant.
+    (PROPOSED: a server whose conformance is not evidenced is treated as
+    not following it; the evidence is `UNRESOLVED{N-OPEN-5}`.)
+  - NW-11 **In-work request; only the person grants.** When the agent
+    needs a destination that is not allowed, it asks: an A8 request naming
+    the destination or category, its purpose and the scope sought. Only
+    the person grants, as an A12 network-destination grant (ACT §2.7). The
+    agent never grants itself a destination and never edits the list. A
+    grant is scoped, for the destination or its category:
+    - **once**: the one requesting call;
+    - **this run**: until the run ends (a run that continues it inherits
+      nothing, R4-4);
+    - **always**: it becomes an allow-list entry.
+  - NW-12 **Only the requesting call waits.** The requesting call is not
+    sent until the person answers. The agent continues its other work,
+    and no other call waits. This wait is not a checkpoint hold: it is the
+    same in Phase 1 and the governance phase, and §2.4 is unaffected.
+  - NW-13 **Decline.** A decline is reported to the agent as
+    **"destination not allowed by the person"**. The call is not sent,
+    and the decline is recorded. An unanswered request stays pending and
+    is never treated as a grant (DERIVED from V4-EXE-02; AS S12).
+  - NW-14 **Always off unless the person turns it on:**
+    - analytics or usage reporting;
+    - a silent switch to another model or provider (compare NW-5);
+    - background downloads or updates.
+
+    Turning one on is an allow-list edit (NW-8).
+  - NW-15 **Record and show.** Every destination contacted is recorded and
+    shown, **in any model mode**: per request, the destination, its
+    category and the grant or list entry that allowed it (RS R15; PANEL
+    §3.8). Grants, declines and refusals are recorded too. The "in local
+    operation" qualifier of the accepted V4-HOST-02 is dropped.
+  - NW-16 **Outside processes: the limit, stated plainly.** An MCP server
+    or other outside process can make its own network calls. Unless it is
+    sandboxed, the host can only decide whether to start it and record
+    what it declares. The host records each such process with its
+    declared destinations and, when it is not sandboxed, the evidence
+    limit **"process network not observed"** (RS R11, R15). Nothing
+    claims that the process contacted only what it declared.
+- **PROPOSED.**
+  - The native layer is the enforcement point for NW-8…NW-15 (NW-7). It
+    refuses a request to a destination that is neither allowed nor under
+    an in-work request, and records the refusal.
+  - Starting an outside process is decided by the allow list: the process
+    itself must be allowed (for MCP, a stateless server per NW-10).
+- **Phasing (DECISION-4's principle, as DECISION-5 applies it).**
+  - **Phase 1 (this increment):** the allow list (categories and named
+    entries), in-work requests with scopes, nothing hidden, record and
+    show (NW-8…NW-16).
+  - **Governance phase (later; named here, not defined):** allow lists
+    locked by an organization, and enforced sandboxing of MCP servers and
+    other outside processes. Until then NW-16's evidence limit applies to
+    every unsandboxed outside process.
 
 ### 5.2 Case matrix
 
@@ -945,12 +1070,12 @@ FX-PIPE-01 has no network subjects.
 
 | Case | Setting / stimulus | Expected | Evidence for a host claim |
 |---|---|---|---|
-| MS-01 | Local chosen; the person asks for an OP-C1 read of R-100 | Only the configured local server is contacted (NW-2; V4-HOST-02, owner clarification pending, R8-9) | Observed destinations with configuration (V4-EXM-01/23) |
+| MS-01 | Local chosen; nothing else allowed; the person asks for an OP-C1 read of R-100 | Only the configured local server is contacted, and the contact is recorded and shown with "model choice" as its allowing entry (NW-2, NW-9, NW-15; revised V4-HOST-02, DECISION-5) | Observed destinations with configuration (V4-EXM-01/23) |
 | MS-02 | Unconfigured (no choice made) | No request; a notice asks the person to choose; no default is applied; no fallback | Observed absence |
 | MS-03 | Cloud chosen, key supplied | Chosen endpoint via the native layer; key not visible to script | Native trace; script inspection |
 | MS-04 | Cloud chosen, no credential (no key and no sign-in) | No request; failure reported | Observed absence |
 | MS-05 | Model output asks for another endpoint | Refused; setting unchanged; event | Setting before/after |
-| MS-06 | Local operation; a test-double library attempts a telemetry request (`L-LOOP-MS-06`) | Refused by the native layer; nothing sent (NW-2; V4-HOST-02, owner clarification pending, R8-9) | Native refusal plus capture |
+| MS-06 | Local or cloud chosen (any model mode); analytics not turned on; a test-double library attempts a telemetry request (`L-LOOP-MS-06`) | Refused by the native layer; nothing sent; the refusal recorded (NW-2, NW-14; revised V4-HOST-02, DECISION-5) | Native refusal plus capture |
 | MS-07 | Script attempts to read the key or the sign-in credential | Not available | Script inspection |
 | MS-08 | Cloud authentication error: key rejected, or sign-in expired or revoked | Reported without credential content; no switch to local; only the person signs in again or supplies a key | Error, event, record |
 | MS-09 | Local server unreachable | Failure; no cloud switch | Destinations; event |
@@ -958,6 +1083,15 @@ FX-PIPE-01 has no network subjects.
 | MS-11 | "Local" endpoint on another machine | Held on `UNRESOLVED{N-OPEN-1}` | — |
 | MS-12 | Cloud chosen, signed in (OAuth) (R8-9) | Chosen endpoint via the native layer; the sign-in credential is not visible to script; the sign-in itself was the person's act | Native trace; script inspection; setting record |
 | MS-13 | The agent asks to switch to cloud, or to sign in (R8-9; NW-4) | Shown as the agent's request only; no sign-in started; setting unchanged | Setting before/after; event |
+| MS-14 | Allow-list hit by category (R8-13): web access switched on; the agent's tool fetches web destination W-1; local or cloud chosen | Contacted through the native layer. Recorded and shown with destination W-1, category web access and allowing entry "category: web access" (NW-8, NW-15) | Native trace; destination record; panel display |
+| MS-15 | Allow-list hit by named entry (R8-13): MCP servers switched off; named entry M-1, a server that follows the stateless MCP revision 2026-07-28 | M-1 started and contacted; recorded with the named entry as its allowing entry (NW-8, NW-10, NW-15) | Native trace; destination record |
+| MS-16 | In-work grant, **once** (R8-13): API destination A-1 is not allowed; the agent asks (A8, scope sought: once) while two other calls are in progress; the person grants once | Only the requesting call waited; the other calls ran meanwhile. The one request to A-1 is sent; a later request to A-1 asks again. Recorded: the A8, the grant (scope once, time, source in-work) and the contact (NW-11, NW-12, NW-15) | Event order; destination record; human-act record |
+| MS-17 | In-work grant, **this run** (R8-13): as MS-16, granted for this run | A-1 allowed until the run ends. After run end, and in a run that continues it, A-1 is not allowed (NW-11) | Event order; destination record |
+| MS-18 | In-work grant, **always** (R8-13): as MS-16, granted always, for the category "other APIs" | The category "other APIs" is switched on in the allow list, with source "in-work" and its time; later requests in that category need no request (NW-8, NW-11) | Allow list before/after; human-act record |
+| MS-19 | Decline (R8-13): as MS-16, the person declines | Nothing sent to A-1; the agent receives "destination not allowed by the person"; its other work continued; the decline recorded (NW-12, NW-13) | Agent-visible result; destination record |
+| MS-20 | Non-stateless MCP server refused (R8-13): configured server M-2 does not follow the stateless MCP revision 2026-07-28; the agent asks for it | M-2 not offered on the allow list and not grantable in work; not started; nothing sent; refusal recorded "not stateless MCP (2026-07-28)" (NW-10) | Allow-list surface; native refusal; record |
+| MS-21 | Outside process, network not observed (R8-13): allowed stateless MCP server M-1, not sandboxed, declares destination D-1 | M-1 started; declared destination D-1 recorded; evidence limit "process network not observed"; no claim that M-1 contacted only D-1 (NW-16) | Process record; declared destinations |
+| MS-22 | Agent self-grant (R8-13): the agent writes an allow-list entry, or its model text states a grant | Refused; list unchanged; at most shown as the agent's request (A8); never a grant (NW-11) | List before/after; event |
 
 ## 6. Validation order, treatment and dispatch
 
@@ -1160,7 +1294,7 @@ Verdict form: "continued usability observed for X on candidate Y".
 | A9 record | Identified recorder, actor ≠ recorder | Recording mode on relayed acts | Checkpoint satisfaction alone |
 | A10 reject | Person wherever A5 is reserved | Relayed with actor (T11 item 2) | "Rejected" for a host refusal |
 | A11 withdraw | Proposer | Relayed with actor | — |
-| A12 set grant | Person (D2e, SETTLED) | "Grant change observed" (T15); supersession (R2-7) | A grant change from an A8 |
+| A12 set grant | Person (D2e, SETTLED). Includes the **network-destination grant** subclass (INTEGRATION, R8-13; ACT §2.7) | "Grant change observed" (T15); supersession (R2-7); "destination grant observed" and "destination declined" (§2.3) | A grant change or a destination grant from an A8 |
 | A13 enable/disable external access | Person. Enabling: D2e, SETTLED. Disabling as A13: INTEGRATION (R2-3) | Not a loop event (external channel). An agent may request it (A8) | — |
 | A14 tool permission | App only | Not applicable in host-loop runs. R13 is not applicable (R2-8) | — |
 
@@ -1180,6 +1314,9 @@ Verdict form: "continued usability observed for X on candidate Y".
     on the host route*: **DERIVED** from D3 with V4-HI-40/41.
   - The loop presents no tool-permission prompts. Nothing in the loop stands
     in for a reserved or professional act.
+  - The in-work destination request (§5.1.1 NW-11) is not a
+    tool-permission prompt. It is the agent's A8, answered by the person's
+    A12 network-destination grant (R8-13; ACT §2.7).
 - A-6. **Phase 1 changes no act rule (R8-1).** The acts above, their actors
   and the reserved list are the same in both phases (LP-5, LP-6). SWBPIPE
   terms map per §6.4 RN-3. A13 stays a reserved act; SWBPIPE has no
@@ -1194,7 +1331,7 @@ Verdict form: "continued usability observed for X on candidate Y".
 | Loop receiving requirements, fixtures, cases | Owns | — | Receives through relay | — | v0.6 draft |
 | Loop construction, placement, parsing, persistence | Excluded; requires outcomes only | — | Owns and selects | OI-013 | Owner-reported building (DEP-001); SWBPIPE answers (2026-09-28): no live agent in the product (A-1); agent-facing work (UI-SUCCESSOR) deferred by the owner; draft PR #885 unmerged and deferred (A-2). No embedded loop exists or is selected (SQ-20, SQ-29) |
 | Panel assembly | Excluded | DEL-05-02 (receiving) | Owns | OI-013 | Open |
-| Native networking, endpoint, credential (key or OAuth sign-in) | Excluded; defines §5 cases | — | Owns | N-OPEN-1/2 | Answered 2026-09-28: none exists (SQ-29, SQ-30 (a)); not host evidence |
+| Native networking, endpoint, credential (key or OAuth sign-in); allow list, in-work destination prompt and destination record (R8-13) | Excluded; defines §5 cases (§5.1.1) | ACT §2.7 (act); AS §3 (display); RS R15 (record); PANEL §3.8 | Owns | N-OPEN-1…5 | Answered 2026-09-28: none exists (SQ-29, SQ-30 (a)); not host evidence. The DECISION-5 rules are not relayed (host joins deferred, DECISION-3) |
 | Treatment resolution, exposure evaluation, de-duplication | Excluded; relays | ACT (policy), C/P | Host route | DEP-001; §13 | Not received |
 | Catalog, read basis, exposure, fixture | Consumes | DEL-03-01 | Implements | TBD-003 | C-v0.6 (V-GR1 present; R8-12 item 7) |
 | Proposal and outcomes | Consumes | DEL-03-02 | Route, receipts | TBD-002 | P-v0.6 (carriage assurance per R5-2, governance phase per R8-1; R8-12 item 7) |
@@ -1388,6 +1525,14 @@ joins are deferred. The questions below are kept as prepared. Gists:
   **"act lapsed at ‹t›"**: nothing says *waiting* and nothing is re-held;
   a new act is recorded when performed. C-4's phase note, §2.4.0 and FX-C3
   (ii) now use it, as do EXEC PH-8/CH-7, RS L-12, AS OV-5 and PANEL W-5e.
+- **G-8 (new; R8-13).** Two Phase-1 statements need care beside §5.1.1.
+  - "The loop presents no tool-permission prompts" (A-5) still holds. The
+    in-work destination request is an A8 answered by an A12
+    network-destination grant, not a tool permission (A14 does not arise
+    in host loops).
+  - "Nothing holds" in Phase 1 (§2.4.0) concerns checkpoints. NW-12's
+    wait is the one requesting call awaiting the person's grant; it holds
+    no run and no other call.
 
 ## UNRESOLVED
 
@@ -1404,8 +1549,10 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | C U-C3 / R2-13 staleness rule host confirmation | Host owner with DEL-03-01/03-02 | Before FX-D2/FX-O1 execution | §6.3 R-c meaning only. R2-13 amended by R8-3: host scope where no subject identities; SWBPIPE: whole model (SQ-07 (d)) |
 | C U-C6 entry-version mismatch | Host input | Before FX-D-series execution | O-3 |
 | U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 / FX-M8 | Meaning only |
-| N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic | App/shared embedded-integration owner with SWBPIPE owner; the owner for V4-HOST-02 (clarification pending, R8-9). SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint cases are finalized | MS-11 held |
-| **V4-HOST-02 retention — owner clarification pending (R8-9)** | Owner | Before endpoint cases are finalized and before any local-operation claim | V4-HOST-02's wording is unchanged here. NW-2, MS-01 and MS-06 keep it, marked pending |
+| N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine; N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner; the owner for N-OPEN-4. SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 held. Meanwhile NW-8 reads the two levels as alternatives, and NW-10 treats unevidenced conformance as not following (PROPOSED) |
+| Revised V4-HOST-02 (DECISION-5; R8-13) at the next accepted-basis update | Owner | Next accepted-basis update | NW-2 and §5.1.1 read as revised; the accepted text is not edited here |
+| CLOSED — DECISION-5 points confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
+| Network-destination governance phase: allow lists locked by an organization; enforced sandboxing of MCP servers and other outside processes (DECISION-5) | Owner, when taken up | When a host needs it | Not defined here. In Phase 1, NW-16's evidence limit applies |
 | V4-HOST-01 / V4-ARC-11 wording ("by default … API key") revised by DECISION-4 D4-3 (R8-9) | Owner, at the next accepted-basis update | Next accepted-basis update | NW-1 is read as revised (no default; OAuth sign-in or API key). SoW REQ-001/AC-001 are carried as a proposal (G-6) |
 | V4-WF-05 first half ("holds … the run waits") phased to the governance layer (R8-1; DECISION-4 D4-1) | Owner, at the next accepted-basis update | Next accepted-basis update | Phase 1 per §2.4.0; the host-loop hold is governance phase (§2.4.4) |
 | Governance phase taken up (R8-1) | Owner, per workflow that needs it (DECISION-4 D4-1) | When a workflow needs enforced checkpoints | §2.4.4 and the governance-phase columns apply to governed checkpoints only then |
@@ -1426,7 +1573,7 @@ These are designed, not run.
 
 | Case | Procedure | Expected result | Serves |
 |---|---|---|---|
-| VC-01 | Trace §5.1 and MS-01…MS-13 to DECISION-4 D4-3, V4-HOST-01 (flagged), V4-HOST-02 (owner clarification pending, R8-9) and V4-ARC-11/12 | Every rule traced; no default between local and cloud; OAuth sign-in and API key both covered; MS-11 held; host observations NOT-OBSERVED | VER-001 |
+| VC-01 | Trace §5.1 (including §5.1.1) and MS-01…MS-22 to DECISION-4 D4-3, DECISION-5, V4-HOST-01 (flagged), V4-HOST-02 (revised by DECISION-5; flagged) and V4-ARC-11/12 | Every rule traced; no default between local and cloud; OAuth sign-in and API key both covered; two-level allow list with the model service always allowed; MCP only if stateless (2026-07-28); in-work scopes once / this run / always, only the requesting call waiting; decline "destination not allowed by the person"; always-off list; every destination recorded and shown in any model mode; outside processes carry "process network not observed"; MS-11 held; host observations NOT-OBSERVED | VER-001 |
 | VC-02 | Inspect NW-3/NW-6/NW-7 and MS-03/06/07/08/12 against V4-ARC-12 | Native layer is the enforcement point; neither key nor sign-in credential reaches the script; labels applied | VER-002 |
 | VC-03 | Review §1, §2 and §4 | Four subjects; the App path is distinct (Responses API unobserved); DEP-05-01-024 open; Pi excluded; D3 attribution per R2-11 | VER-003 |
 | VC-04 | Review §6 and the FX-V/S/D/U/NP fixtures against C §4.1 and P §9 (v0.3 when supplied) | V-2 split holds; "not exposed" only host-reported; five class values; O-1…O-6 hold; FX-D1/D1b distinguish invalid from unavailable; FX-D2 is a revision within g1 | VER-004 |

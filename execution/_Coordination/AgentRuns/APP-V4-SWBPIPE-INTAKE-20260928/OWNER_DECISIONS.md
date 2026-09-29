@@ -211,3 +211,12 @@ condition, with exact-client evidence in PR #827.
 - **Open to the owner's correction:**
   - point 3's person-only grant;
   - the recorder's reading of "MCP V2" above.
+
+## DECISION-5 confirmation (owner, exact, 2026-09-28)
+
+> "yes, that's the right reading of MCP V2 and my decision stands, so good that you're carrying on."
+
+**Effect:** the recorder's reading of "MCP V2" (the stateless MCP revision
+2026-07-28) is confirmed, and DECISION-5 stands as recorded. The item "Open to
+the owner's correction" is closed. The person-only grant is not objected to
+and stands.

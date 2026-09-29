@@ -2,6 +2,7 @@
 - Contribution: DEL-04-01/ACT-POLICY-v0.6. It supersedes ACT-POLICY-v0.5 (last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 0057593adfde52044b70ccee1a85892754c2c9a62cf452214e94d810c6c43bd9). Earlier versions: v0.4 (d6da05ab…b03b at `8fb51f07f`), v0.3 (b3748c02…8128), v0.2 (e50f1fe2…9a9), v0.1 (e6457535…3763).
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R8-1): in Phase 1 (this increment) declared checkpoints are **plan guidance** (§4.0). Acts are recorded only when the person performs them, and the reserved acts stand. Hold support, re-hold, the carriage assurance of the checkpoint constraint and App-side holds are kept as the **governance-phase definition (retained)**, relabelled and not deleted (§4.3, §4.4, §4.6). V4-WF-05's first half is **phased to the governance layer, not withdrawn**, and is flagged for the next accepted-basis update.
+- Network-destination grant (R8-13; DECISION-5): granting a host's agent a network destination, by an allow-list edit or an in-work grant, is a **person-only act**. It is mapped as an **A12 grant change**, subclass **network-destination grant**, under D2 (e) (§2.7). An agent never performs it.
 - Serves: OUT-001, OUT-002, OUT-003; REQ-001…REQ-007; VER-001…VER-009 (AC-001…AC-009)
 - Basis:
   - Repo 6e18505e3; ScopeOfWork.md sha256 fc1a0503abad4196e869402b664bd76280773d197b5c77994c34e858a406f5e6.
@@ -12,6 +13,7 @@
   - `P/conceptual/DECISIONS.md` OD-05, D-04; `P/conceptual/EXEMPLARS_AND_LESSONS.md` X-09, X-19, X-20.
   - `P/execution/_Decomposition/Open_Issues.csv` OI-001, OI-002, OI-013, OI-014, OI-021; `External_Dependencies.csv` DEP-001.
   - Owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; reserved acts stand; the principle applies to a host's embedded loop): `OWNER_DECISIONS.md` at `94aa9181b` (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776).
+- Consumed inputs for the R8-13 pass: **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table.
 - Consumed inputs for the R8-12 closing pass: **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12, items 1 and 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3).
 - Consumed inputs for v0.6 (R8 pass, node A2), read with `git show` from commit `94aa9181b` (scratch copies in a private folder). Paths are under `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` unless stated:
   - `R8_RESOLUTIONS.md` (sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02): R8-1…R8-7, R8-10 and R8-11 (binding). R8-11 confirms PH-6 and PH-8 and settles the Phase-1 standing of D2's checkpoint half.
@@ -106,6 +108,8 @@ WD-v0.6 were revised first; this file follows them.
 | R8-10 (I2 R8-Q12) | §4.4: the agent never adds a field the host's schema lacks; an expected constraint not carriable is recorded as "constraint not carriable on this host" (governance phase) | §4.4 |
 | **R8-11** (A1 residuals) | Item 1: lapse recording in Phase 1 and disposition words as record labels are **confirmed** (AP-5, AP-7; §4.3). Item 2: D2's "no grant widens past a reserved act" binds in Phase 1 and the host enforces it; its "or a declared checkpoint" half, WD I-7 and V4-HI-42 are guidance in Phase 1 (§3 D2 note, AP-8, §5.3 rule 2, P-01, P-05). Item 3: an invalid declaration is a declaration finding in Phase 1 (AP-9); a harness-capability reference stays *not established* for a required-tool reason (§4.6; FX-48 (a)). Item 5: governance-phase values read the fixture's checkpoints as if governed (§4.0, §4.6, §13 rules) | §3, §4.0, §4.3, §4.6, §5.3, §8.3, §13 |
 | **R8-12** (items 1, 7; closing pass, node A6, in place) | §4.3: the Phase-1 lapse after resume is labelled **"act lapsed at ‹t›"** (nothing says *waiting*; nothing re-held). Consumed inputs list the post-R8 sibling versions; §7 and §13 fixture sources note that C-v0.6 carries the C-v0.4/C-v0.5 fixture. No rule or value changes | Header, §4.3, §7, §13 |
+| **R8-13** (DECISION-5; the person-only grant SETTLED; the act mapping INTEGRATION; in place, no version bump) | New **§2.7 Network-destination grant**. Granting a host's agent a network destination, by an allow-list edit (a category switch, a named destination, or turning on an always-off item) or by an in-work grant scoped once / this run / always, is a person-only act. It is mapped as an **A12 grant change**, subclass **network-destination grant**, under D2 (e), which already reserves changing the autonomy grant. An agent never performs it: its request is an A8, and a decline is an act-declined event of kind A12, reported to the agent as "destination not allowed by the person". A non-stateless MCP server cannot be the subject of a grant. The §2.1 A12 row, the §2.6 A12 row and the §3 D2 note are annotated. New local label L-ACT-8, **FX-55**, F-22, U-17 and **VC-011** | Header, §2.1, §2.6, §2.7, §3, §13, §14, UNRESOLVED, Verification cases |
+| R8-13 close — in place | The owner confirmed DECISION-5 (the reading of "MCP V2"; the person-only grant stands), so the "open to the owner's correction" markers are closed. The consumed-input line is corrected: OWNER_DECISIONS.md is cited in its state that adds that confirmation, not at `1528a5033` |
 
 ## Changes from v0.4
 
@@ -245,7 +249,7 @@ canonical name.
 | A9 | **record** | faithful recording; direct capture | *Recorder*: the capturing surface (direct capture), or another identified party such as the host facility, the App or an agent (faithful recording). A person recording their own act is direct capture by the capturing surface. | An actually performed act of kind A4–A7, A10–A13, or an act-declined event | Reference to the act's evidence, recorder identity, and *recording mode* ∈ {direct capture, faithful recording} | The act itself. **A9 is a recording act, not a decision act**, and it never satisfies a checkpoint on its own. | Faithful recording by any identified recorder distinct from the decision actor is a conformant shape (SETTLED S3). Capture requirement: DEP-001. | SoW REQ-002; d3; V4-HI-31; R-1; R-5 |
 | A10 | **reject** | reject a proposal or item; a person removing another party's proposal | The person | One or more identified change items | Host lifecycle record `rejected`, with actor | Anything beyond non-acceptance of those items | **Reserved** wherever A5 is — DERIVED (decision pair of A5; R-1) | V4-HI-23; V4-EXM-20 |
 | A11 | **withdraw** | withdraw one's own proposal | The proposer only | Its own proposal | Host lifecycle record `withdrawn` | A decision on the proposal's merit | Proposer's act. It is a human-act record only when the person is the proposer. | V4-HI-23; R-1 |
-| A12 | **set grant** | set or change the autonomy grant | The person | **Setting content**: operation classes, grant values and scope (§2.5, §5.4) | Capture evidence from the control surface. The version the control establishes, or the control's refusal, is a relation on the act. | That an agent's A8 established anything | **Reserved** — ADOPTED D2e | V4-AUT-01; V4-HI-40, -41 |
+| A12 | **set grant** | set or change the autonomy grant; allow a network destination, or grant one during work (subclass **network-destination grant**, R8-13) | The person | **Setting content**: operation classes, grant values and scope (§2.5, §5.4). For the network-destination subclass: the allow-list content, or an in-work grant with its scope (§2.7) | Capture evidence from the control surface. The version the control establishes, or the control's refusal, is a relation on the act. | That an agent's A8 established anything | **Reserved** — ADOPTED D2e | V4-AUT-01; V4-HI-40, -41 |
 | A13 | **enable external access** (includes disabling) | enable or disable external-agent access | The person | The host's external interface on this machine (enablement setting) | The host enablement record captured by the host's enablement facility, with a capture-evidence reference (§2.6). App-side access configuration is never A13 evidence (R4-13). | Any grant for an operation class | Enabling: **reserved**, ADOPTED D2e. Disabling: **reserved**, INTEGRATION (R2-3). An agent may request either (A8). Off by default and local: SETTLED. | V4-HI-52 |
 | A14 | **answer tool permission** | harness "approval" of tool use; routine tool permission | The person, or the user's own Codex permission mode inside the supplier | One tool-execution request | Request settlement: answered, or explicitly declined, or errored; never by silence or timeout. Recorded only in run record R13 (R2-8). | Any of A4–A7, A10, A12, A13, or a host-operation grant | ADOPTED D3: App modes are the user's Codex setting; hosts have no classifier mode. INTEGRATION (R-2): the App never answers affirmatively by rule; a decline or error is allowed only under a named rule with truthful origin. | V4-AUT-04; V4-EXE-02; D3 |
 
@@ -421,7 +425,7 @@ Notes:
 |---|---|---|
 | A4, A5, A6, A7, A10 on host content | The host's act facility (V4-HI-31). The capture-evidence reference is a relay question (U-04). | An agent-authored record without that reference |
 | A4, A6, A7 on App content | The App interface's act control (EXEC CAP-1…CAP-3). The control is built by DEL-01-04 in a later undertaking. | See rows below |
-| A12 | The control that establishes the setting: the host's control for host operation classes; an App control only for a setting the App itself establishes (EXEC CAP-1) | An agent's A8, or any setting an agent wrote |
+| A12 | The control that establishes the setting: the host's control for host operation classes; an App control only for a setting the App itself establishes (EXEC CAP-1). For a network-destination grant: the host's allow-list control or its in-work prompt (§2.7) | An agent's A8, or any setting an agent wrote, including an agent-written allow-list entry |
 | **A13** (external access on the host's interface) | **The host's enablement facility.** It records the host enablement with a capture-evidence reference. The host's refusal (*channel not enabled*) is the authoritative "off" (ADAPTER E-2, F-2). | **App-side access configuration.** Examples: the user's Codex configuration file, a per-thread configuration, or a plugin setting. An agent could write any of them, so none is ever A13 or A13 evidence. The App changes that configuration only at the person's direction (ADAPTER E-4). That change is an ordinary configuration change, recorded as such. It is not a second A13, and it enables nothing without the host enablement record (ADAPTER E-3). |
 | Any act | — | Answers to Codex user-input or MCP elicitation requests (EXEC CAP-6; HOSTING R9); A14 settlements from any origin (CAP-5); conversation statements (CAP-7) |
 
@@ -455,6 +459,47 @@ Notes:
   - A13 for an App-owned external interface, which does not exist in this
     increment. If one is introduced, its App control would be the capturing
     surface under EXEC CAP-2/CAP-3.
+
+### 2.7 Network-destination grant — A12 subclass (R8-13; DECISION-5)
+
+**Standing.**
+- **SETTLED by DECISION-5:** the agent asks, only the person grants, and
+  the agent never grants itself a destination. This point is
+  confirmed by the owner (DECISION-5 confirmation, 2026-09-28).
+- **INTEGRATION (R8-13):** the mapping to A12 with the subclass
+  *network-destination grant*. D2 (e) already reserves changing the
+  autonomy grant.
+
+The network rules themselves are LOOP-v0.6 §5.1.1 (NW-8…NW-16).
+
+| Element | Meaning |
+|---|---|
+| Act | **A12 set grant**, subclass **network-destination grant** |
+| Decision actor | The person only. Never an agent |
+| Forms | (a) **Allow-list edit**: switching a category (web access, MCP servers, other APIs, …) on or off; adding or removing a named destination; turning on an always-off item (analytics or usage reporting, a switch to another model or provider, background downloads or updates). (b) **In-work grant** answering an agent's A8 destination request, scoped **once**, **this run** or **always**, for the destination or its category |
+| Subject (setting content) | The category or named destination and the scope. For an in-work grant, also the requesting call and its run |
+| Evidence | Capture evidence from the host's allow-list control or in-work prompt, with its time and its source (allow list or in-work); recorded per RS R15 |
+| Decline | An **act-declined event** of kind A12 (§2.3), reported to the agent as **"destination not allowed by the person"**. Not a grant |
+| Never evidence | The agent's A8 request; silence or timeout; model text; a tool success; an agent-written list entry or configuration |
+| Outside this act | The selected model service and its sign-in service, allowed by the person's model choice (LOOP NW-9), which is the person's own setting change (LOOP NW-4), not a list edit. The App's own Codex configuration, approval and sandbox choices (A14; D3; HOSTING §2) |
+| Non-stateless MCP | A server that does not follow the stateless MCP revision 2026-07-28 cannot be the subject of a grant (DECISION-5). An A12 naming one is refused, reason "not stateless MCP (2026-07-28)" |
+
+- ND-A1. A network-destination grant widens no operation class and no
+  reserved act. An operation-class A12 grants no destination (A-1: the
+  evidence of one act never establishes another).
+- ND-A2. Scope:
+  - *once* is consumed by the one requesting call;
+  - *this run* ends with the run, and a continuing run inherits nothing
+    (R4-4);
+  - *always* adds an allow-list entry, which a later established list
+    edit supersedes (§2.5).
+- ND-A3. Only the requesting call waits for the person (LOOP NW-12). This
+  wait is not a checkpoint hold, and §4.0 is unaffected.
+- ND-A4. Phase 1 covers the person's allow list and in-work grants. Allow
+  lists locked by an organization are governance phase. They would be a
+  policy, not the person's act, and are not defined here.
+- ND-A5. No host offers this control today. SWBPIPE has no embedded agent
+  (SQ-20, SQ-29), and nothing here is claimed of it (DECISION-3).
 
 ---
 
@@ -490,6 +535,11 @@ Each was checked against the cited bytes at repo 6e18505e3.
   No grant widens past a reserved act or a declared checkpoint. The host names
   and enforces its own list (V4-HI-30). Operation-specific additions come with
   OI-021. Host adoption is not shown (DEP-001).
+
+  **Network-destination grant (R8-13; INTEGRATION).** Granting a host's
+  agent a network destination, by an allow-list edit or an in-work grant
+  (DECISION-5), is a change of the autonomy grant under (e). It is
+  recorded as A12, subclass network-destination grant (§2.7).
 
   **Phase-1 reading (R8-11 item 2; INTEGRATION).** The first half, "no grant
   widens past a reserved act", **binds** in Phase 1, and the host enforces it
@@ -1459,6 +1509,7 @@ This contract's existence claims none of the following:
 | **L-ACT-5** checkpoint `CP-L5` | Requires A4. Reached-when kind (b): on production of the T3 OP-C1 output. Subject class *objects a named output concerns*, which binds S-1…S-4 as read at r12 (R3-1). | For the capture-after-arrival case (R4-5). C schedules no checkpoint at T3. |
 | **L-ACT-6** FX-Professional-P | An invented accountable professional | C names only Engineer A. A7 needs a professional. |
 | **L-ACT-7** | A variant of `CP-grant` (V-GR1) whose reached-when kind (a) names a **harness capability** instead of OP-C9, in an App run | For hold support "not enforceable" (R4-21). C has no harness-capability entry. |
+| **L-ACT-8** destinations A-1 and M-2 (R8-13) | A-1: an API destination in the category "other APIs". M-2: a configured MCP server that does not follow the stateless MCP revision 2026-07-28 | C's fixture has no network subjects (LOOP §5.2 uses local labels too) |
 
 Rules for reading the table:
 
@@ -1532,6 +1583,7 @@ Rules for reading the table:
 | FX-52 | A8 cannot change the subject (R5-3) | V-GR1, but the agent's A8 at arrival presents a narrower setting {P-03, *direct*, {FX-W1; {S-3}}} than the declared {FX-W1; {S-4}}. Engineer A performs an A12 on the A8's content, and the control establishes it. | The A12 is recorded and establishes its setting. It **satisfies nothing** at `CP-grant`, which stays *waiting* for an A12 on the declared content. | VER-001 |
 | FX-53 | Operation records (R5-6) | (a) T2: Engineer A operates OP-C6 on S-2. (b) T6: Engineer A edits S-3 in the host UI (the person's own A2). | (a) One human-act record (A4, direct capture), and an R7 operation entry referencing it. (b) An R7 operation entry with the person as actor, and no human-act record. | VER-002 |
 | FX-54 | Phase-1 guidance (R8-1; §4.0) | An App run over X, `CP-L4` declared (not `governed`). `CP-L4` arrives at T16. Before T16a: (a) the agent issues a further host operation; (b) the agent writes an A4 record naming Engineer A, with no capture evidence; (c) the agent invokes OP-C6 on S-4. Then (d) T16a's A4 is captured by the host facility. Variant (e): the same checkpoint declared `governed`. | (a) Recorded normally; it may carry "continued past CP-L4 before A4"; not a defect, refusal or finding, and not *action during hold*. (b) Non-conformant; no A4 is recorded as performed (AP-3). (c) *not permitted*, with an A8 offered (P-02; AP-4): reserved acts stand. (d) The A4 is recorded as performed; the arrival's record label becomes *performed*. No hold-support value and no *unsupported* for a hold reason appear at any point. (e) Same in Phase 1: the flag is shown and honoured only as guidance (AP-10). | VER-001, -002, -004 |
+| FX-55 | Network-destination grant (R8-13; §2.7; L-ACT-8) | A host-loop run. (a) Engineer A switches web access on in the allow list. (b) The agent asks for A-1; Engineer A grants it once, then for this run, then always for "other APIs" (three variants). (c) Engineer A declines the request. (d) The agent writes an allow-list entry for A-1 itself. (e) Engineer A tries to allow M-2. | (a) An A12 network-destination grant (allow-list edit) with capture evidence. (b) An A8, then an A12 network-destination grant per variant, each with its scope, time and source "in-work"; *once* is consumed by the one call, *this run* ends with the run, *always* becomes a list entry. (c) An act-declined event of kind A12; the agent receives "destination not allowed by the person". (d) Not an act; the list is unchanged; at most an A8. (e) Refused, reason "not stateless MCP (2026-07-28)". No operation-class grant changes in any variant (ND-A1). | VER-002, -004 |
 
 ---
 
@@ -1558,6 +1610,7 @@ Rules for reading the table:
 - **F-17 (new) Capture-after-arrival costs a repeat (R5-7).** Under SP-6, a grant change captured before its checkpoint's arrival does not count, even when its content is already in force (FX-51). The person must repeat it. This owner-visible cost is recorded under U-14 (EXEC U-E4; WD U-31).
 - **F-18 (new) R5-3 reverses R4-9's A8 precedence.** The declared setting content now always binds. Consumers that implemented "A8 names the setting" (v0.4 §4.2) must change: WD, LOOP, PANEL and EXEC are listed by R5-3.
 - **F-19 (new) Human-act records and R7.** The record kinds now split cleanly (R5-6): a reserved-act operation yields a human-act record referenced from R7, and the person's own A1/A2 yields an R7 entry only. DEL-04-03 should check that its R7 element carries the reference (RS R7).
+- **F-22 (new; R8-13) Destination grants under D2 (e).** D2 (e) names "changing the autonomy grant". DECISION-5 makes a network-destination grant person-only, and R8-13 maps it to A12 under (e) by INTEGRATION. The owner may wish to confirm the mapping when confirming DECISION-5 point 3 (U-17).
 
 ---
 
@@ -1577,6 +1630,7 @@ Rules for reading the table:
 | U-14 Counting a prior act captured before arrival, as an alternative to §4.5 capture-after-arrival | Owner (EXEC U-E4; WD U-31; carried by R4-5, R5-7) | Before hold-machine fixtures run | Capture-after-arrival applied as PROPOSED. Owner-visible cost: a grant change already in force must be repeated (FX-51). |
 | U-15 Per-subject content identity (V4-HI-32) not met by SWBPIPE, which supplies only a whole-model identity (SQ-03; R8-4; EXEC U-E25) | SWBPIPE (PB-TBD-002 / DEL-16-03); owner notice | Before host act-binding integration | §2.5: the whole-model identity is received as every covered subject's identity; over-lapse, never under-lapse; never App-computed |
 | U-16 Whether a launch environment variable the person sets counts as A13 evidence (R8-6; I2 R8-Q4b) | The owner (deferred) | When UI-SUCCESSOR resumes | Not A13 evidence meanwhile; SWBPIPE's channel stays *not enabled* (§2.6) |
+| U-17 CLOSED — DECISION-5 points confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the person-only grant (point 3), and the reading of "MCP V2" as the stateless MCP revision 2026-07-28 (R8-13) | The owner | Before §2.7 is relied on for implementation | §2.7 applied as recorded; the A12 mapping is INTEGRATION (F-22) |
 
 Closed:
 
@@ -1611,6 +1665,7 @@ These are designed, not run. Each is bound to this file's revision when executed
 | VC-008 | VER-008 / AC-008 | Compare §11 with SoW CLM-002…005 and REQ-007. Run FX-28. Read F-10. | Every excluded act is assigned to its owner. No host, adoption or act claim. |
 | VC-009 | VER-009 / AC-009 | Reconcile FX-01…54 with REQ-002…006 and the matrix. When a candidate exists, run the fixtures and retain their IDs, the candidate identity, the results and the limits. | Complete coverage. Held, AWAITING INPUT, governance-phase-only, INTEGRATION-rule results and missing host evidence are reported separately from passes. Phase-1 results and governance-phase values are reported separately. No results at v0.6. |
 | VC-010 | VER-001, -002, -004 / AC-001, -002, -004 | Run FX-54 and the Phase-1 parts of FX-21, -29, -36, -39, -48 and -50 against §4.0 AP-1…AP-11 and EXEC PH-1…PH-10. | No hold, block, re-hold or hold-support value; no *unsupported* for a hold reason; acts recorded only when the person performs them, never by an agent on the person's behalf; reserved acts refused to the agent and offered as A8; arrivals and acts appear as observation; "continued past ‹checkpoint› before ‹act›" is optional and never a defect; lapse still recorded; a `governed` flag changes nothing in Phase 1. |
+| VC-011 | VER-002, -004 / AC-002, -004 | Run FX-55 against §2.7 and LOOP §5.1.1 NW-8…NW-13. | Every destination grant is the person's A12 (network-destination grant) with capture evidence, scope, time and source. No agent grants itself a destination, and an agent-written entry is not an act. A decline is an act-declined event reported as "destination not allowed by the person". A non-stateless MCP server cannot be granted. No operation-class grant changes. |
 
 ---
 
