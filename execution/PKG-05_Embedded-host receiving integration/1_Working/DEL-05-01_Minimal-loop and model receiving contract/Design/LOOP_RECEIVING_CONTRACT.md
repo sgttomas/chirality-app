@@ -141,6 +141,7 @@ means by DECISION-3 or DECISION-4.
 | V9 N-1 — in place | §2.4 "on negative decision" row: the "Absent" consequence is labelled by phase (Phase 1 per LP-8; governance phase for governed checkpoints). No rule changes |
 | **R8-13** (DECISION-5; SETTLED; the act mapping INTEGRATION; in place, no version bump) | V4-HOST-02 is read as **revised by DECISION-5**. The owner's revised text is quoted at NW-2 and flagged for the next accepted-basis update. Every "owner clarification pending (R8-9)" marker is retired: header, §1 consequence 5, NW-2, the §5.1 SWBPIPE note, MS-01, MS-06, the N-OPEN row, the V4-HOST-02 UNRESOLVED row and VC-01. New **§5.1.1** (NW-8…NW-16) covers: the two-level allow list; the model service always allowed; MCP only if it follows the stateless MCP revision 2026-07-28; in-work requests scoped once / this run / always, with only the requesting call waiting; the decline outcome "destination not allowed by the person"; the always-off list; every destination recorded and shown in any model mode; the outside-process limit ("process network not observed"); and the Phase-1 / governance-phase split. Also new: §2.3 destination events and an E-4 item; the §9 A12 row and A-5 (the destination request is not a tool-permission prompt); the §10.1 networking row; **MS-14…MS-22** (allow-list hits by category and by named entry, an in-work grant for each scope, a decline, a non-stateless MCP server refused, an outside process with its network not observed, and an agent self-grant refused). MS-01 and MS-06 are re-based on the revised text. N-OPEN-2 and N-OPEN-3 are annotated, and N-OPEN-4 and N-OPEN-5 added. New G-8 and UNRESOLVED rows | Header, §0, §1, §2.3, §5.1, §5.1.1, §5.2, §9, §10.1, Findings, UNRESOLVED, VC-01 |
 | R8-13 close — in place | The owner confirmed DECISION-5 (the reading of "MCP V2"; the person-only grant stands), so the "open to the owner's correction" markers are closed. The consumed-input line is corrected: OWNER_DECISIONS.md is cited in its state that adds that confirmation, not at `1528a5033` |
+| V10 S-1…S-4 — in place | The wording of the DECISION-5 confirmation is made precise (the "MCP V2" reading was confirmed; the person-only grant was not objected to and stands). The revised V4-HOST-02 is "the recorder's wording confirmed by the owner". The always-off item reads "a silent switch". ACT F-22 is updated. No rule changes |
 
 ## Changes from v0.4
 
@@ -919,7 +920,7 @@ assumptions.
     edited here.
   - NW-2 (revised in place by DECISION-5; R8-13): the host's agent sends
     data only to the selected model service and to destinations the person
-    has allowed (§5.1.1). The revised V4-HOST-02, in the owner's wording
+    has allowed (§5.1.1). The revised V4-HOST-02, in the recorder's wording confirmed by the owner
     (DECISION-5), reads:
 
     > A host's agent sends data only to the model service the person selected and to destinations the person has allowed — in advance in an allow list (by category, such as web access, MCP servers or other APIs, or by named destination) or when the agent asks during its work. Nothing else is contacted: no analytics, silent provider switch or background download unless the person turns it on. Every destination contacted is recorded and shown.
@@ -976,7 +977,7 @@ when the owner resumes UI-SUCCESSOR; no SWBPIPE behaviour is claimed
 #### 5.1.1 Network destinations of the host's agent (DECISION-5; R8-13)
 
 **Standing.** The rules below are **SETTLED by DECISION-5** unless labelled
-otherwise. Two points are confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the
+otherwise. Two points are settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the
 person-only grant (NW-11), and the recorder's reading of the owner's "MCP
 V2" as the **stateless MCP revision 2026-07-28** (NW-10). The mapping of a
 grant to an act (A12, subclass *network-destination grant*) is
@@ -1551,7 +1552,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 / FX-M8 | Meaning only |
 | N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine; N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner; the owner for N-OPEN-4. SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 held. Meanwhile NW-8 reads the two levels as alternatives, and NW-10 treats unevidenced conformance as not following (PROPOSED) |
 | Revised V4-HOST-02 (DECISION-5; R8-13) at the next accepted-basis update | Owner | Next accepted-basis update | NW-2 and §5.1.1 read as revised; the accepted text is not edited here |
-| CLOSED — DECISION-5 points confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
+| CLOSED — DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
 | Network-destination governance phase: allow lists locked by an organization; enforced sandboxing of MCP servers and other outside processes (DECISION-5) | Owner, when taken up | When a host needs it | Not defined here. In Phase 1, NW-16's evidence limit applies |
 | V4-HOST-01 / V4-ARC-11 wording ("by default … API key") revised by DECISION-4 D4-3 (R8-9) | Owner, at the next accepted-basis update | Next accepted-basis update | NW-1 is read as revised (no default; OAuth sign-in or API key). SoW REQ-001/AC-001 are carried as a proposal (G-6) |
 | V4-WF-05 first half ("holds … the run waits") phased to the governance layer (R8-1; DECISION-4 D4-1) | Owner, at the next accepted-basis update | Next accepted-basis update | Phase 1 per §2.4.0; the host-loop hold is governance phase (§2.4.4) |

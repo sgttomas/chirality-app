@@ -110,6 +110,7 @@ WD-v0.6 were revised first; this file follows them.
 | **R8-12** (items 1, 7; closing pass, node A6, in place) | §4.3: the Phase-1 lapse after resume is labelled **"act lapsed at ‹t›"** (nothing says *waiting*; nothing re-held). Consumed inputs list the post-R8 sibling versions; §7 and §13 fixture sources note that C-v0.6 carries the C-v0.4/C-v0.5 fixture. No rule or value changes | Header, §4.3, §7, §13 |
 | **R8-13** (DECISION-5; the person-only grant SETTLED; the act mapping INTEGRATION; in place, no version bump) | New **§2.7 Network-destination grant**. Granting a host's agent a network destination, by an allow-list edit (a category switch, a named destination, or turning on an always-off item) or by an in-work grant scoped once / this run / always, is a person-only act. It is mapped as an **A12 grant change**, subclass **network-destination grant**, under D2 (e), which already reserves changing the autonomy grant. An agent never performs it: its request is an A8, and a decline is an act-declined event of kind A12, reported to the agent as "destination not allowed by the person". A non-stateless MCP server cannot be the subject of a grant. The §2.1 A12 row, the §2.6 A12 row and the §3 D2 note are annotated. New local label L-ACT-8, **FX-55**, F-22, U-17 and **VC-011** | Header, §2.1, §2.6, §2.7, §3, §13, §14, UNRESOLVED, Verification cases |
 | R8-13 close — in place | The owner confirmed DECISION-5 (the reading of "MCP V2"; the person-only grant stands), so the "open to the owner's correction" markers are closed. The consumed-input line is corrected: OWNER_DECISIONS.md is cited in its state that adds that confirmation, not at `1528a5033` |
+| V10 S-1…S-4 — in place | The wording of the DECISION-5 confirmation is made precise (the "MCP V2" reading was confirmed; the person-only grant was not objected to and stands). The revised V4-HOST-02 is "the recorder's wording confirmed by the owner". The always-off item reads "a silent switch". ACT F-22 is updated. No rule changes |
 
 ## Changes from v0.4
 
@@ -465,7 +466,7 @@ Notes:
 **Standing.**
 - **SETTLED by DECISION-5:** the agent asks, only the person grants, and
   the agent never grants itself a destination. This point is
-  confirmed by the owner (DECISION-5 confirmation, 2026-09-28).
+  settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands).
 - **INTEGRATION (R8-13):** the mapping to A12 with the subclass
   *network-destination grant*. D2 (e) already reserves changing the
   autonomy grant.
@@ -476,7 +477,7 @@ The network rules themselves are LOOP-v0.6 §5.1.1 (NW-8…NW-16).
 |---|---|
 | Act | **A12 set grant**, subclass **network-destination grant** |
 | Decision actor | The person only. Never an agent |
-| Forms | (a) **Allow-list edit**: switching a category (web access, MCP servers, other APIs, …) on or off; adding or removing a named destination; turning on an always-off item (analytics or usage reporting, a switch to another model or provider, background downloads or updates). (b) **In-work grant** answering an agent's A8 destination request, scoped **once**, **this run** or **always**, for the destination or its category |
+| Forms | (a) **Allow-list edit**: switching a category (web access, MCP servers, other APIs, …) on or off; adding or removing a named destination; turning on an always-off item (analytics or usage reporting, a silent switch to another model or provider, background downloads or updates). (b) **In-work grant** answering an agent's A8 destination request, scoped **once**, **this run** or **always**, for the destination or its category |
 | Subject (setting content) | The category or named destination and the scope. For an in-work grant, also the requesting call and its run |
 | Evidence | Capture evidence from the host's allow-list control or in-work prompt, with its time and its source (allow list or in-work); recorded per RS R15 |
 | Decline | An **act-declined event** of kind A12 (§2.3), reported to the agent as **"destination not allowed by the person"**. Not a grant |
@@ -1610,7 +1611,7 @@ Rules for reading the table:
 - **F-17 (new) Capture-after-arrival costs a repeat (R5-7).** Under SP-6, a grant change captured before its checkpoint's arrival does not count, even when its content is already in force (FX-51). The person must repeat it. This owner-visible cost is recorded under U-14 (EXEC U-E4; WD U-31).
 - **F-18 (new) R5-3 reverses R4-9's A8 precedence.** The declared setting content now always binds. Consumers that implemented "A8 names the setting" (v0.4 §4.2) must change: WD, LOOP, PANEL and EXEC are listed by R5-3.
 - **F-19 (new) Human-act records and R7.** The record kinds now split cleanly (R5-6): a reserved-act operation yields a human-act record referenced from R7, and the person's own A1/A2 yields an R7 entry only. DEL-04-03 should check that its R7 element carries the reference (RS R7).
-- **F-22 (new; R8-13) Destination grants under D2 (e).** D2 (e) names "changing the autonomy grant". DECISION-5 makes a network-destination grant person-only, and R8-13 maps it to A12 under (e) by INTEGRATION. The owner may wish to confirm the mapping when confirming DECISION-5 point 3 (U-17).
+- **F-22 (new; R8-13) Destination grants under D2 (e).** D2 (e) names "changing the autonomy grant". DECISION-5 makes a network-destination grant person-only, and R8-13 maps it to A12 under (e) by INTEGRATION. DECISION-5 point 3 (the person-only grant) stands, and U-17 is closed. The A12 mapping stays INTEGRATION; the owner may revisit it at any time.
 
 ---
 
@@ -1630,7 +1631,7 @@ Rules for reading the table:
 | U-14 Counting a prior act captured before arrival, as an alternative to §4.5 capture-after-arrival | Owner (EXEC U-E4; WD U-31; carried by R4-5, R5-7) | Before hold-machine fixtures run | Capture-after-arrival applied as PROPOSED. Owner-visible cost: a grant change already in force must be repeated (FX-51). |
 | U-15 Per-subject content identity (V4-HI-32) not met by SWBPIPE, which supplies only a whole-model identity (SQ-03; R8-4; EXEC U-E25) | SWBPIPE (PB-TBD-002 / DEL-16-03); owner notice | Before host act-binding integration | §2.5: the whole-model identity is received as every covered subject's identity; over-lapse, never under-lapse; never App-computed |
 | U-16 Whether a launch environment variable the person sets counts as A13 evidence (R8-6; I2 R8-Q4b) | The owner (deferred) | When UI-SUCCESSOR resumes | Not A13 evidence meanwhile; SWBPIPE's channel stays *not enabled* (§2.6) |
-| U-17 CLOSED — DECISION-5 points confirmed by the owner (DECISION-5 confirmation, 2026-09-28): the person-only grant (point 3), and the reading of "MCP V2" as the stateless MCP revision 2026-07-28 (R8-13) | The owner | Before §2.7 is relied on for implementation | §2.7 applied as recorded; the A12 mapping is INTEGRATION (F-22) |
+| U-17 CLOSED — DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the person-only grant (point 3), and the reading of "MCP V2" as the stateless MCP revision 2026-07-28 (R8-13) | The owner | Before §2.7 is relied on for implementation | §2.7 applied as recorded; the A12 mapping is INTEGRATION (F-22) |
 
 Closed:
 

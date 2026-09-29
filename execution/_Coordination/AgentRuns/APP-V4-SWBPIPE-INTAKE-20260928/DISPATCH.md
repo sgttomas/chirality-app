@@ -25,4 +25,4 @@ Parent: HELP_HUMAN.
 | #1050 | Merged `bc0337b3` by auto-merge after CI green |
 | DECISION-5 | Recorded (exact), then confirmed by the owner (exact). R8-13 written |
 | B1 | R8-13 applied in place to LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE: RETURNED; fence verified. B1 declined to close markers from file text alone (correct); the integrator closed them on the owner's chat confirmation and corrected the OWNER_DECISIONS citation. Pins 18/18 |
-| V10 | Independent review of the DECISION-5 candidate: ACTIVE |
+| V10 | At `3733b1421`: DO NOT MERGE (B-1: stale receipt), plus 4 SHOULD-FIX and 8 NOTE. The integrator fixed B-1, S-1…S-4, the graph (N), the B1 brief record (N) and the MEMORY rows naming DECISION-5 (N). GUIDE re-pinned 18/18. V10b recheck next |

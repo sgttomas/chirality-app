@@ -35,6 +35,7 @@ WD-v0.6 were revised first; this file follows them.
 | **R8-12** (items 1, 7; closing pass, node A6, in place) | Item 1: OV-5 and the §4 lapse bullet add the Phase-1 label **"act lapsed at ‹t›"** for a lapse after the resume point (nothing says *waiting*; nothing re-held). Item 7: consumed inputs list the post-R8 sibling versions; §0 and §11 fixture sources note that C-v0.6 carries the C-v0.4/C-v0.5 fixture | Header, §0, §4 OV-5, §4 lapse bullet, §11 |
 | **R8-13** (DECISION-5; SETTLED; the act mapping INTEGRATION; in place, no version bump) | §3 gains **network-destination grants**. The grant display shows the host agent's allow list (category switches and the named entries within each; the model service "allowed by your model choice"; the always-off items) and the in-work grants with their scopes (once, this run, always). An agent's request is shown only as a request, and a decline is never a grant. These are never merged with operation-class grants or the checkpoint indicator. §2 notes the subclass (ACT §2.7). **S15**: the V4-HOST-02 "pending owner clarification (R8-9)" marker is replaced by the revised V4-HOST-02 (DECISION-5; flagged for the next accepted-basis update). New F21, U-21 and VC-18; VC-15 coverage extended | Header, §1 S15, §2, §3, §11, UNRESOLVED, Verification cases |
 | R8-13 close — in place | The owner confirmed DECISION-5 (the reading of "MCP V2"; the person-only grant stands), so the "open to the owner's correction" markers are closed. The consumed-input line is corrected: OWNER_DECISIONS.md is cited in its state that adds that confirmation, not at `1528a5033` |
+| V10 S-1…S-4 — in place | The wording of the DECISION-5 confirmation is made precise (the "MCP V2" reading was confirmed; the person-only grant was not objected to and stands). The revised V4-HOST-02 is "the recorder's wording confirmed by the owner". The always-off item reads "a silent switch". ACT F-22 is updated. No rule changes |
 
 ## Changes from v0.4
 
@@ -217,7 +218,7 @@ the grant display also shows the following, from the host's control
 | Allow list: category switches | Each category (web access, MCP servers, other APIs, …) on or off, "set by you", with its A12 reference |
 | Allow list: named entries | Each named destination within its category, with its source: "allow list", or "in-work, always, ‹time›" |
 | Model service | "Allowed by your model choice" (the selected model service and, for a chosen cloud model, its sign-in service). Not a list entry |
-| Always-off items | Analytics or usage reporting; a switch to another model or provider; background downloads or updates. Shown off unless the person turned one on |
+| Always-off items | Analytics or usage reporting; a silent switch to another model or provider; background downloads or updates. Shown off unless the person turned one on |
 | In-work grants | Each grant with its scope: **once** (against its one request, until used), **this run** (with the run, until it ends) or **always** (also listed as an entry). For the destination or its category, with time and A12 reference |
 | Agent requests | "Agent requests ‹destination or category, scope›" (A8), beside the governing list. Never a grant |
 | Declines | Not shown as a grant state. The requesting call's outcome is "destination not allowed by the person" (PANEL ND-3) |
@@ -584,7 +585,7 @@ flag (EXEC GV-5; R8-11 item 5).
 | U-18 Caller identity verification over the external channel (ADAPTER OC-6) | App owner with host owner | Before origin conformance | Author identity shown *unverified* |
 | U-19 Multi-row A4 purpose after partial lapse | DEL-04-01 with Owner | At its point of need (carried to C1) | Re-issued request covers the whole scope |
 | U-20 Grant display for a host without a grant model (R8-10; I2 R8-Q16) | DEL-04-02 with the integrator; PROPOSED, deferrable with the host joins | When the host joins resume (DECISION-3) | §3 "host fixed treatment" display applied as PROPOSED |
-| U-21 DECISION-5 points confirmed by the owner (DECISION-5 confirmation, 2026-09-28) (closed for those points) (person-only grant; the reading of "MCP V2") and LOOP N-OPEN-4 (how a category switch and its named entries combine) (R8-13) | The owner; App/shared embedded-integration owner for N-OPEN-4 | Before the §3 network-destination display is implemented | Switches and named entries are shown separately; grants shown as the person's A12 |
+| U-21 DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands) (closed for those points) (person-only grant; the reading of "MCP V2") and LOOP N-OPEN-4 (how a category switch and its named entries combine) (R8-13) | The owner; App/shared embedded-integration owner for N-OPEN-4 | Before the §3 network-destination display is implemented | Switches and named entries are shown separately; grants shown as the person's A12 |
 
 Closed in v0.6: none (U-16 closed for Phase 1 only). Closed in v0.5: none. Closed in v0.4: U-09 (EXEC §4.11), U-11 (R4-4), U-13 (R4-3), U-14 (R4-6).
 Earlier: U-03.

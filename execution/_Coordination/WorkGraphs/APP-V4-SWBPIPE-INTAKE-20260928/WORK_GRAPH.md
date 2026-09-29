@@ -46,10 +46,13 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | I0 Graph, decision, briefs | This folder; run folder | DECISION-3 | Committed | COMPLETE |
 | I1 Receipt record | RELAY §4 ledger; GUIDE RELAY pin; answers copy | I0 | Ledger names source, revision, date, custody and hashes; no value change; GUIDE pins match | COMPLETE — RELAY `dfb62587…` re-pinned; handoff status updated |
 | I2 Intake map | Run folder `INTAKE_MAP.md` only (read-only on Design) | I1 | Every SQ answer → dependent file/section → effect class (value change / assumption contradicted / confirms / no effect); the 12 §3 items each mapped; proposed edits per file; rulings needed | COMPLETE (against `64ea4e59…`; delta check pending): 221 rows (V 86, A 71, C 27, N 37) |
-| I3 R8 intake rulings | Run folder `R8_RESOLUTIONS.md` | I2 | Each ruling-needed item decided or routed to the owner | COMPLETE — [R8](../../AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md) under DECISION-4 (phased checkpoints); V4-HOST-02 keep/drop pending owner |
+| I3 R8 intake rulings | Run folder `R8_RESOLUTIONS.md` | I2 | Each ruling-needed item decided or routed to the owner | COMPLETE — [R8](../../AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md) under DECISION-4 (phased checkpoints); V4-HOST-02 decided by DECISION-5 (R8-13) |
 | I4 Apply | Affected Design files (parallel by file cluster) | I3 | Every R8 item applied; change rows; GUIDE re-pinned last | COMPLETE — A1–A6: EXEC v0.4; WD, WD-EX, ACT, AS, RS, C, P, LOOP, PANEL, HOSTING v0.6; ADAPTER, CA, XT v0.4; GUIDE v0.3; RELAY status. Pins 18/18 |
-| V9 Independent review | `reviews/V9.md` | I4 | Verdict covering the actual candidate | ACTIVE |
-| F Receipt, MEMORY, PR | Run folder; affected `MEMORY.md` | V9 | PR merged | ACTIVE — [#1050](https://github.com/sgttomas/chirality/pull/1050) opened at `f5ceef164`; CI monitor on; auto-merge after V9 finds nothing blocking |
+| V9 Independent review | `reviews/V9.md` | I4 | Verdict covering the actual candidate | COMPLETE — MERGE AS DRAFTS; V9b MERGE |
+| D5 DECISION-5 (V4-HOST-02) | OWNER_DECISIONS; R8-13 | Owner | Recorded and confirmed | COMPLETE |
+| B1 Apply R8-13 | LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER, GUIDE (in place) | D5 | Applied; pins 18/18 | COMPLETE |
+| V10 Independent review | `reviews/V10.md` | B1 | Verdict covering the actual candidate | V10: 1 BLOCKING (receipt), fixed; V10b recheck ACTIVE |
+| F Receipt, MEMORY, PR | Run folder; affected `MEMORY.md` | V9 | PR merged | COMPLETE — [#1050](https://github.com/sgttomas/chirality/pull/1050) merged `bc0337b3`; closeout (receipt, MEMORY) in [#1051](https://github.com/sgttomas/chirality/pull/1051) |
 
 ## Current state and recovery
 

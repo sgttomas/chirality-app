@@ -101,3 +101,11 @@ scratch folder. Read-only git; no commits; no network.
 
 **Return:** the files changed, the R8 rows, the post-edit sha256 of each file,
 and anything R8 did not settle.
+
+## B1 — applying R8-13 (DECISION-5)
+
+The launch brief is recorded in DISPATCH ("B1"). Basis: `1528a5033`. The task
+was to apply R8-13 in place, with no version bumps, to LOOP, PANEL, ACT, AS,
+RS, HOSTING, C and ADAPTER, then GUIDE last with a re-pin. The owner's revised
+V4-HOST-02 text was to be used exactly. Write scope: those Design files. Git
+was read-only.
