@@ -89,12 +89,12 @@ Already decided by you at checkpoint A (DECISION-6), and reflected in the eviden
 
 | Option | What happens | Cost |
 |---|---|---|
-| **A. Accept DAG-002 as produced; send the wording to SCA-V4-002** (integrator's lean; **recommended**) | DAG-002 has 37 new arcs. SCA-V4-002 adds "consumes" sentences to the DEL-02-01 and DEL-02-03 SoWs where the consumption is real. The next extraction writes the rows, and the next currency audit reports them as a small departure for a later successor | A second, small graph decision later. Nothing is held in the meantime |
-| B. Declare the four arcs yourself now, in `_DEPENDENCIES.md` | Extraction mirrors them as DECLARED rows. The freeze, closure and assembly are redone, and DAG-002 grows to 41 arcs. DEL-01-04 becomes DAG pending too | Register writes and a rebuild before you can decide. The 15 pending deliverables wait longer |
+| **A. Accept DAG-002 as produced; send the wording to SCA-V4-002** (integrator's lean; **recommended**) | DAG-002 has 37 new arcs. SCA-V4-002 adds "consumes" sentences to the DEL-02-01 and DEL-02-03 SoWs where the consumption is real. The next extraction writes the rows, and the next currency audit reports them as a small departure for a later successor | A second, small graph decision later. Nothing is held in the meantime. **It also widens SCA-V4-002's scope** beyond the DEL-10-03 "local-first" item accepted in DECISION-8, to add these four consumption sentences and the carried SoW items listed in C2-5 (V12 F3) |
+| B. Declare the four arcs yourself now, in `_DEPENDENCIES.md` | Extraction mirrors them as DECLARED rows. The freeze, closure and assembly are redone, and DAG-002 has 41 added arcs. DEL-01-04 becomes DAG pending too | Register writes and a rebuild before you can decide. The 15 pending deliverables wait longer |
 | C. Hold checkpoint C until SCA-V4-002 lands | Everything goes in one graph | The 15 deliverables stay DAG pending for the whole follow-on amendment |
 | D. Drop some or all four for good | Record that they are not wanted | Only if you now judge the consumption is not real |
 
-**Recommendation: A.** It follows your accepted rule that relationships come from the SoWs. It leaves the 15 deliverables pending for the shortest time. And the four arcs could not gate anything even if present.
+**Recommendation: A.** (V12 F6: N-07 is in the graph and N-21/N-24 are not, although all three rest on DEL-02-03 ownership text. N-07 is carried by DEL-04-02's explicit "received by" sentence.) It follows your accepted rule that relationships come from the SoWs. It leaves the 15 deliverables pending for the shortest time. And the four arcs could not gate anything even if present.
 
 ## 5. X-1's consequence
 
@@ -117,7 +117,7 @@ X-1 is not in any register, so **DEL-01-04 (native requests, outcomes and attach
 
 **If you accept:**
 
-1. The integrator writes `REVIEW_PACKET.md` with the presented hashes.
+1. `REVIEW_PACKET.md` is already written, before this checkpoint as the method requires (V12 F2): `DAG_PREP/REVIEW_PACKET.md`. The acceptance record states that it covers checkpoints 1 and 2.
 2. The integrator copies the candidate byte for byte to `_DAG/DAG-002/`, and adds:
    - `ACCEPTANCE_RECORD.md` (your words as given);
    - `HANDOFF_STATE.md`: how to read blockers, the 15 released deliverables, the DEL-09-06 guard, the advice list, the open matters and the currency command;

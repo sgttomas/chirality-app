@@ -66,3 +66,13 @@ Groups:
 | DX-1 | DEL-04-01, DEL-04-02, DEL-04-03, DEL-01-01, DEL-01-04, DEL-02-02 |
 | DX-2 | DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02, DEL-03-01, DEL-03-02 |
 | DX-3 | DEL-03-03, DEL-03-04, DEL-09-06, DEL-09-07, DEL-09-09, DEL-08-01 |
+
+### DX guard wording, as first dispatched to DX-3, and the ruling (V12 F7)
+
+**Dispatched:** "DEL-09-06 must not gain rows that consume any SCC-002
+member (DEL-09-06 stays outside SCC-002)."
+
+**Integrator ruling (on DX-3's stop):** the intended guard is that no row
+makes an SCC-002 member depend on DEL-09-06, and that DEL-09-06 has no
+DOWNSTREAM row to an SCC-002 member. DEL-09-06 consuming SCC-002 members is
+allowed: those are arcs N-19, N-C1…N-C4 and N-08, in the accepted set.
