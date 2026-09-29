@@ -11,4 +11,5 @@ Parent: HELP_HUMAN, integrating under a recorded WORKING_ITEMS consultation.
 | K1 | Owner checkpoint A: presented |
 | K1 | Accepted by the owner (DECISION-7): scope-change groups 1–2 |
 | AK1 | Applied the accepted basis and decomposition edits (15 Markdown replacements, 29 CSV field edits, 11 `_CONTEXT.md` edits); group-1/2 decision snapshots and `_ScopeChange` candidate artifacts; post-change audit (7 packages) vs baseline; DAG-001 currency 130/130. Held until group-3 acceptance: A07, A17a–c and D-15 (need ACCEPT_DATE/snapshot); the Coverage_Telemetry recompute (writer and values to be named at group 3). Fence verified |
-| V11 | Independent review of the group-3 candidate: ACTIVE |
+| V11 | READY FOR GROUP 3: 0 BLOCKING, 3 minor, 5 notes. F1/F2 closed by the integrator in the candidate Handoff_State.md and RUN_SUMMARY.md (bound files untouched; manifests re-verified); F3 disclosed |
+| K2 | Owner checkpoint B (group 3): presented |
