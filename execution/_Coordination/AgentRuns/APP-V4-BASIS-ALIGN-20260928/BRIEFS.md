@@ -16,6 +16,9 @@ Shared fields for every brief:
 - **PRIOR_CONTRACT_SHA256:** computed at dispatch, and it must equal the hash
   that SOW_REVISIONS records.
 - **STATUS_POLICY:** PRESERVE_CURRENT. Frontmatter is unchanged (O-22).
+  **Correction (integrator, after return):** the workflow's brief schema
+  admits only `NO_STATUS_TOUCH` for REVISE. All four groups treated it that
+  way: no `_STATUS.md` was written.
 - **Write target:** that deliverable's `ScopeOfWork.md` only.
 - **Git:** read-only. No network.
 
