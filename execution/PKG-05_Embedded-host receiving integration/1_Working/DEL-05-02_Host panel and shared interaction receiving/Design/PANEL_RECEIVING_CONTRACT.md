@@ -6,6 +6,7 @@
 - Serves: OUT-001, OUT-002, OUT-003, OUT-004 (conditional state only); REQ-001–REQ-006; AC-001–AC-007; VER-001–VER-007 (all of DEL-05-02)
 - Basis: repo 6e18505e3 (accepted basis); ScopeOfWork.md sha256 5c554956e91b2d8d5056176f85717cbd0e17a2d2d2991a52ea4ff185ebfd40cb; P/docs/PRD.md §2.2 V4-HOST-01/04/05/06, §3.1 V4-EXT-01, §4.1 V4-WF-03–06, §4.5 V4-AUT-01–05, §4.7 V4-REC-01/03/05, §5 V4-CST-05, §9 OQ-02/OQ-11; P/docs/ARCHITECTURE.md §3 (V4-ARC-05, reuse candidates), §4, §5 V4-ARC-20; P/docs/HOST_INTEGRATION.md §1, V4-HI-02/04, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, V4-HI-70/71, §10 item 7; P/docs/EXAMINATION.md V4-EXM-01–03, V4-EXM-20–22; DECISION_BRIEF.html (sha256 02d38cb1…4c420e8) d2, d3, d5; APP-V4-CLARIFICATION-20260927/DIRECTION.md; SCC-CASE-002 Case_Datasheet M1/M4 rows; Open_Issues OI-013/014/021; External_Dependencies DEP-001; run folder OWNER_DECISIONS.md (sha256 f3f8e5f3…cf81f2e; decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, D2 and D3), R1_RESOLUTIONS.md (2f9c7e72…e177ec4), R2_RESOLUTIONS.md (77cfb845…cdebd088), comparisons/V1-A.md (01811533…e04c09), comparisons/V1-C.md (8d46258a…4a94a6), reviews/IR1-A.md (31b3c7f8…0b648284), reviews/IR1-B.md (70e4a4f6…2846), reviews/IR1-C.md (295e96b3…a426b9); run folder at commit `f05c7e4cd`: OWNER_DECISIONS.md (a9869129…68ad2c; adds `APP-V4-FIRST-INCREMENT-20260928-DECISION-2`, D5 and D6), R3_RESOLUTIONS.md (202d52c7…afbf), R4_RESOLUTIONS.md (50a009b2…032a24), reviews/V2.md (75ba1dff…6ef); run folder at commit `8fb51f07f`: R5_RESOLUTIONS.md (254d0b93…dd6f1), reviews/V3-A.md (f25f5af1…21d87), reviews/V3-B.md (5662fbd0…954a3); run `APP-V4-SWBPIPE-INTAKE-20260928` at commit `94aa9181b`: OWNER_DECISIONS.md (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; D4-2 loop and panel keep V4-ARC-10; D4-3 model access)); P/docs/ARCHITECTURE.md V4-ARC-10 and `conceptual/DECISIONS.md` D-20 as cited there
 - Consumed inputs:
+  - **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12, items 1 and 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3).
   - **v0.6 inputs (R8 pass, node A4, at `94aa9181b`; read with `git show`).**
     - R8_RESOLUTIONS.md sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02 (R8-1…R8-11; binding).
     - INTAKE_MAP.md (I2) sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33: rows 01.4, 02.12, 04.4, 05.5, 10.4, 17.3, 18.4, 20.2, 21.1, 22.1, 23.1, 24.2, X.4, X.5; Part 2 §2.1 closing paragraph and §2.2 PANEL rows; Part 3 items 1, 2, 7, 9, 10; Part 4.9, 4.10, 4.11. R8 overrides I2 where they differ.
@@ -14,13 +15,13 @@
     - Owner files revised first in this pass: DEL-02-03/EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4 (§2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §3.3 CR-8/CR-9, §4 phase notes, §7.2) — *read*; DEL-02-01/WD-v0.6 `WORKFLOW_DECLARATION.md` sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28 (§4.3.0, §4.3.1 `governed`, §5.3 SEAT-1…SEAT-3) — *read*.
     - DEL-05-01/LOOP-v0.6 is revised in the same pass by this executor (§2.4.0, §2.4.4, §5.1, §6.4).
   - **Prior version (v0.5 pass).** DEL-05-02/PANEL-v0.4, sha256 cb71bc4b…e84419, at commit `8fb51f07f`.
-  - **Current sibling versions at commit `8fb51f07f`** (`git show`; R5-9):
+  - **Sibling versions current at commit `8fb51f07f`** (superseded for currency by the R8-12 line above) (`git show`; R5-9):
     - DEL-02-03/EXEC-v0.2 (7f7848c0…42317af0): §3.5–§3.6, §4, §6.2 — *read* (hold-support values superseded by R5-1);
     - DEL-03-01/C-v0.4 (e929d39d…659a08c): §10.1 (FXA-1…FXA-5, LIB-A1/A2, AF-1), §10.3, §10.4 — *read*;
     - DEL-02-01/WD-v0.4 (e492ff63…d8e88e): §4.2.4 (R4-8 string), §4.3 — *read*; WD-EX-v0.4 (60ce307a…128ca4) E1d — *read*;
     - DEL-03-02/P-v0.4 (0d3960a2…c5e361); DEL-04-01/ACT-POLICY-v0.4 (d6da05ab…b03b); DEL-04-02/AS-v0.4 (774728d0…f4dab); DEL-04-03/RS-v0.4 (56806b64…40199) — cited for currency;
     - DEL-09-06/RELAY-v0.2 (48dc5a1f…41f65) §3 coverage map — *read*: Q-1 → SQ-02; Q-2 → SQ-01; Q-3 → SQ-22; Q-4 → SQ-23, SQ-10; Q-5 → SQ-21; Q-6 → SQ-18 (a); Q-7 → SQ-24; Q-8 → SQ-05 (c), (e); Q-9 → SQ-20.
-  - **Current sibling versions at `c7f5513db` (R6-4; in place):** EXEC-v0.3 889e4881…ee548e; C-v0.5 a6306bd4…be7a29 (V-GR1 present); P-v0.5 a5ee4946…cd1b7 (§3.3 per R5-2 present); WD-v0.5 32acdd27…45e7c9; WD-EX-v0.5 296875c9…4702f; ACT-POLICY-v0.5 86975a90…5380e7; AS-v0.5 c49be8bb…729e1; RS-v0.5 37bc586e…c27ea; ADAPTER-v0.3 c9195851…225cff4; HOSTING-v0.5 873e76f6…b0eaa; RELAY-v0.3 89b6b9c9…68bdd7. EXEC-v0.3 §3.6 (HS-1…HS-5; R6-1) is *read*; the rest are cited for currency. R6_RESOLUTIONS.md 8703e85a…cb841 and reviews/V4-A.md 121deafc…eab1 are *read*.
+  - **Sibling versions current at `c7f5513db` (R6-4; in place; superseded for currency by the R8-12 line above):** EXEC-v0.3 889e4881…ee548e; C-v0.5 a6306bd4…be7a29 (V-GR1 present); P-v0.5 a5ee4946…cd1b7 (§3.3 per R5-2 present); WD-v0.5 32acdd27…45e7c9; WD-EX-v0.5 296875c9…4702f; ACT-POLICY-v0.5 86975a90…5380e7; AS-v0.5 c49be8bb…729e1; RS-v0.5 37bc586e…c27ea; ADAPTER-v0.3 c9195851…225cff4; HOSTING-v0.5 873e76f6…b0eaa; RELAY-v0.3 89b6b9c9…68bdd7. EXEC-v0.3 §3.6 (HS-1…HS-5; R6-1) is *read*; the rest are cited for currency. R6_RESOLUTIONS.md 8703e85a…cb841 and reviews/V4-A.md 121deafc…eab1 are *read*.
   - **DEL-05-01/LOOP-v0.5.** Co-drafted by this executor (v0.5 pass).
   - **DEP-001.** SWBPIPE answers received 2026-09-28 (RELAY_ANSWERS_SWBPIPE.md; I2 read `64ea4e59…0689`, delivered bytes `6f01add3…61c7`, which add clarifications only, R8 delta check); no host panel/view evidence, commitment or contribution received (DEP-001). D6 (App-side holds) is closed for Phase 1 by DECISION-4 and re-opens with the governance phase (R8-2).
 - Receivers: DEL-02-01 (OUT-003; REQ-005; VER-005) and DEL-05-01 (OUT-004; REQ-005; VER-007) per CASE-002 M1; W9 relay file (§8 questions); external SWBPIPE owner via App-manager preparation and human file relay (DEP-05-02-018); DEL-05-02 itself for OUT-003 (VER-002, VER-003, VER-005) and OUT-002/OUT-004 (VER-004, VER-006)
@@ -57,7 +58,7 @@
   "checked" means only A4. "Approval" means only A6. Agent work is
   "examination findings". Host results read "host checks passed: ‹named
   checks›" (R-4).
-- **Fixture.** Cases cite **FX-PIPE-01** (C-v0.4 §10) identifiers:
+- **Fixture.** Cases cite **FX-PIPE-01** (C-v0.4 §10, carried in C-v0.6 §10) identifiers:
   - workspace FX-W1, generation g1, run R-100, nozzles N-1/N-2, supports
     S-1…S-4, load case LC-1, Engineer A;
   - workflow `supports-adjust` (origin host, ⟨fx-root⟩, ⟨rev-3⟩);
@@ -102,6 +103,7 @@ by DECISION-3 or DECISION-4.
 | **R8-10** (Part 4.10; 17.3) | Grant display for a host without grants: "Host fixed treatment: every change waits for Apply" (PROPOSED; may be deferred). Required-tool evaluation in the host: SWBPIPE not decided | §3.2, §3.6, §3.7 PN-5, UNRESOLVED |
 | **R8-11** (items 1–3, 5) | Item 1: lapse shown in Phase 1, re-hold governance phase (W-5e; PC-20). Item 2: no constraint enforced in Phase 1 (§3.3; PC-24). Item 3: invalid declarations shown as a finding only in Phase 1 (§3.2). Item 5: governance-phase values read as if governed (§0, §3.2, §7) | §3.2, §3.3, §3.5, §7 |
 | I2 22.1, 23.1 (SQ-22, SQ-23; A rows) | §4 note: SWBPIPE views show old/new values but no stable external reference; references *not supplied*. §5 W-7: SWBPIPE's stale batch message; lapse wording DESIGN; no supersession, accepted-then-stale or reversal marker | §4, §5 |
+| **R8-12** (items 1, 7; closing pass, node A6, in place) | Item 1 (F-10 ruled): in Phase 1 a lapse after the resume point reads **"act lapsed at ‹t›"**; nothing says *waiting* and nothing is re-held; a new act is shown when performed. Before resume, "waiting — lapsed at ‹t›" (both phases); governance-phase re-hold keeps "waiting — re-held, lapsed at ‹t› after resume". Changed in W-5e and PC-20. Item 7: consumed inputs list the post-R8 sibling versions (the older sibling blocks are marked as superseded for currency); §0 fixture source, §8 RELAY citation and VC-01's consumed versions refreshed | Header, §0, §3.5 W-5e, §7 PC-20, §8, Findings, Verification cases |
 
 ## Changes from v0.4
 
@@ -386,8 +388,9 @@ retained for governed checkpoints once the governance phase is taken up.
   §4.7; R4-3, PROPOSED (W7); R8-1; R8-11 item 1).
   - An **act-lapsed event** is always shown.
   - The resume point is shown as a **run-resumed** event (EXEC HD-5).
-  - **Phase 1:** after a lapse the arrival reads **"waiting — lapsed at
-    ‹t›"** (a new act on current content is not yet recorded). Outputs gated
+  - **Phase 1:** after a lapse past the resume point the arrival reads
+    **"act lapsed at ‹t›"**: nothing says *waiting*, and a new act is shown
+    when performed (R8-12 item 1). Outputs gated
     by this checkpoint show standing *lapsed* for the affected referents.
     **Nothing is re-held and nothing stops**; the agent re-requests the act
     as its plan requires (LOOP LP-7).
@@ -667,7 +670,7 @@ record labels in Phase 1.
 | PC-18b | Acts (negative) | An agent-authored record of that A4 with no capture evidence | "Record without capture evidence"; no standing; clears nothing | DEL-04-03 | VER-003 |
 | PC-19 | Acts (positive) | Checkpoint A4 arriving at T16 on OP-C9's applied outcome (subject S-4); T16a: Engineer A marks S-4 checked, after the arrival, with no A5 anywhere | **Both phases:** *performed* by A4; no acceptance prerequisite; SP-6 holds | DEL-04-03, actual act | VER-003 |
 | PC-19b | Acts (prior) | A checkpoint arriving at T4 on "objects a named output concerns" (OP-C3 findings on S-2); T2's A4 on S-2 predates it | **Both phases:** T2 shown "prior act on this subject, not counted" (SP-6). **Phase 1:** the arrival reads *waiting* ("act not yet recorded"); nothing is stopped. **Governance phase:** arrival waiting, run held | EXEC, DEL-04-03 | VER-003 |
-| PC-20 | Lapse | T2/T6/T14 on S-2; and the FX-PIPE-01 T16a/T17 sequence (undo lapses the A4 on S-4) | **Both phases:** T2's A4 is unchanged after T6 and **lapsed** after T14. T16a's A4 is lapsed at T17. At a checkpoint, after run end: *lapsed*. **Phase 1:** at a live checkpoint, "waiting — lapsed at ‹t›", gated outputs lapsed; **not re-held**. **Governance phase:** before resume, "waiting — lapsed at ‹t›"; after resume, "waiting — re-held, lapsed at ‹t› after resume", with the request re-issued for the whole scope | DEL-04-03, host, EXEC | VER-003 |
+| PC-20 | Lapse | T2/T6/T14 on S-2; and the FX-PIPE-01 T16a/T17 sequence (undo lapses the A4 on S-4) | **Both phases:** T2's A4 is unchanged after T6 and **lapsed** after T14. T16a's A4 is lapsed at T17. At a checkpoint, after run end: *lapsed*. **Phase 1:** at a live checkpoint, before resume "waiting — lapsed at ‹t›", after resume **"act lapsed at ‹t›"** (R8-12 item 1); gated outputs lapsed; **not re-held**. **Governance phase:** before resume, "waiting — lapsed at ‹t›"; after resume, "waiting — re-held, lapsed at ‹t› after resume", with the request re-issued for the whole scope | DEL-04-03, host, EXEC | VER-003 |
 | PC-21 | Checkpoint | Declared A4 checkpoint, reached-when *applied* for PR-2, subject class "objects changed by a named outcome" | **Both phases:** reached at T12; subject = the new support from RC-1; purpose and scope shown; shown *performed* only on host-captured A4 on that content. **Phase 1:** shown as guidance; *waiting* reads "act not yet recorded"; the run is not shown stopped. **Governance phase:** the run holds until then | WD, DEL-02-03, LOOP | VER-003 |
 | PC-21b | Checkpoint | The same run stopped before T12 | **Both phases:** *not reached* at run end | LOOP | VER-003 |
 | PC-21c | Checkpoint | A6 checkpoint; Engineer A declines | **Both phases:** act-declined event; *resolved negatively*. **Phase 1:** declared path shown as guidance. **Governance phase:** declared path taken | WD, ACT | VER-003 |
@@ -698,7 +701,7 @@ confirmed by R8-11 item 1).
 These are prepared for App-manager preparation and human relay (SoW CLM-005;
 DEP-05-02-018). Writing them is not delivery, agreement or adoption. W9 owns
 the relay file. They are shared with LOOP-v0.6 §13 where marked. RELAY-v0.2
-§3 relays them as SQ-02, SQ-01, SQ-22, SQ-23/SQ-10, SQ-21, SQ-18 (a),
+§3 (kept as relayed in RELAY-v0.3 §3; answered, RELAY §4) relays them as SQ-02, SQ-01, SQ-22, SQ-23/SQ-10, SQ-21, SQ-18 (a),
 SQ-24, SQ-05 (c)/(e) and SQ-20 (Q-1…Q-9 in order).
 
 **Standing: answered (R8-7).** The questions were relayed and answered on
@@ -776,11 +779,13 @@ joins are deferred. The questions below are kept as prepared. Gists:
   API key" wording DECISION-4 D4-3 revises. The model setting indicator
   (§3.1) follows D4-3 now; the V4-HOST-01 wording is flagged for the next
   accepted-basis update. No SoW or accepted text is edited here.
-- F-10 (new, v0.6; reading flagged). The Phase-1 display words ("act not
-  yet recorded", "continued past ‹checkpoint› before ‹act›", "waiting —
-  lapsed at ‹t›" at a live checkpoint) are this file's application of EXEC
-  PH-6…PH-8. No UI wording or layout is chosen (§0). For the integrator to
-  confirm at the next review.
+- F-10 (new, v0.6; lapse label ruled by R8-12 item 1). The Phase-1 display
+  words ("act not yet recorded", "continued past ‹checkpoint› before ‹act›")
+  are this file's application of EXEC PH-6…PH-8. The lapse label at a live
+  checkpoint after the resume point was "waiting — lapsed at ‹t›" at A4; the
+  integrator ruled it **"act lapsed at ‹t›"** (nothing says *waiting*;
+  nothing re-held), now used in W-5e and PC-20. Before resume the label
+  stays "waiting — lapsed at ‹t›". No UI wording or layout is chosen (§0).
 
 ## UNRESOLVED
 
@@ -814,7 +819,7 @@ These are designed, not run.
 
 | Case | Procedure | Expected | Serves |
 |---|---|---|---|
-| VC-01 | Trace §3.1–§3.6 to V4-HOST-04/SOW-019 and to the consumed definitions (C, P, WD, ACT and AS at `28bd00499`, plus R2-n) | All four interactions, plus checkpoints and grant. Consumed definitions named with versions; missing inputs visible | VER-001 |
+| VC-01 | Trace §3.1–§3.6 to V4-HOST-04/SOW-019 and to the consumed definitions (at their post-R8 versions C-v0.6, P-v0.6, WD-v0.6, ACT-POLICY-v0.6 and AS-v0.6, with EXEC-v0.4 and LOOP-v0.6; plus R2-n) | All four interactions, plus checkpoints and grant. Consumed definitions named with versions; missing inputs visible | VER-001 |
 | VC-02 | Review §2, §4 and PC-06/09/09b/10/10b/12–15/26/29 against V4-HI-10–25 and V4-EXM-20/21. On a candidate, observe them | H-1…H-6 each have a positive or rejection case. Stale-after-accept, resubmission and undo displays hold | VER-002 |
 | VC-03 | Review §3.2 (checkpoints as guidance; hold support), §3.3–§3.7, §5 and PC-03c/07/07b/08/11/12b/16–25/27/28 against HI, AUT, D2/D3, ACT/AS, EXEC-v0.4 §2.1/§2.2/§3.6/§4 with R5-1/R6-1/R8-1/R8-2, and LOOP-v0.6 §2.4.0 | **Phase 1:** checkpoints shown as guidance; no hold-support value, held call or stopped run shown; no *unsupported* for a hold reason; "continued past" only as an optional annotation; acts shown only when performed; reserved acts stand; invalid declarations a finding only. **Both phases:** "Accept" wording; actor, recorder and capture evidence; act-declined vs run-ended; SP-6 "prior act not counted"; "after run end" and continuation; MX rules; A12 supersedes only when established; declared A12 setting binds; no-policy-basis HELD. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; values read as if governed | VER-003 |
 | VC-04 | Compare §6 with the anticipated artifacts, the Clarification, V4-ARC-20 and OI-013/014 | Candidates name consumers or "not established"; none agreed; host construction external | VER-004 |

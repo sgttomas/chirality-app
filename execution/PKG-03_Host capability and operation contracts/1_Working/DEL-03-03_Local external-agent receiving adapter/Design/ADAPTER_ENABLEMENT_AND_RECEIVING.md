@@ -5,6 +5,7 @@
 - Serves: OUT-001 (meaning of the App-side native MCP/CLI configuration and of the receiving adapter "as needed" — definition only, no code), OUT-002 (machine-local enablement and operation-policy interface account; owner/act map; open-choice register), OUT-003 (designed, transport-neutral external consumer fixture inventory, labeled simulated); REQ-001…REQ-006; AC-001…AC-007; VER-001…VER-007
 - Basis: branch base 6e18505e3; Wave-1 inputs at commit `ba0b37123`; ScopeOfWork.md sha256 5ac5db97eba3851eb5324054e5a2b38429a53e8e9c85428903432cd8d9efb1b6; `P/docs/HOST_INTEGRATION.md` (sha256 08c8fc7db2d74619ed47d184f44938bb06f1e2abda0a304a9e11b9230d0960da) §1, §2 (V4-HI-01…04), §3 (V4-HI-10…12), §4 (V4-HI-20…25), §5 (V4-HI-30…33), §6 (V4-HI-40…42), §7 (V4-HI-50…52), §11; `P/docs/PRD.md` (sha256 657593ce12a9a6da9f8b6c66579945499d909a8b6272d919d2d14a3db4538573) V4-HOST-02/03, V4-PAR-01…05, V4-AUT-03…05; `P/docs/ARCHITECTURE.md` (sha256 c3ae766ee2d660fb391b7db0aa99526f84d21421cf3a6b692ddd17e42687e533) V4-ARC-20/21; `P/docs/EXAMINATION.md` (sha256 1b156553dec7eb103dbb1166f5c0dbe9c719d26630d2fcace26c28b3ef54ee19) V4-EXM-23/24/25; SCC-CASE-002 `Case_Datasheet.md` (sha256 6acdc6c4e484ab7b46ba7d45a347961bc69b3e624bd29ef58a613ec6c66a71a6) rows M1-C, M1-P, M2-A; run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e) D1–D4, `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088), `R3_RESOLUTIONS.md` (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf), `BRIEFS.md` (sha256 58de4a2c48f651391383aecf85fa5e9073d2cc34240c37cdab216a16481c698f) "Common brief", "Owner rulings now in force", "Wave 2 — common additions", "W8"; **v0.2 additions** (read with `git show f05c7e4cd:<path>`): `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24) R4-1, R4-2, R4-12…R4-17, R4-20 (binding; sweep A1) and `OWNER_DECISIONS.md` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c) with Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` D5 (user flexibility) and D6 (deferred to the SWBPIPE answer); **v0.3 additions** (read with `git show 8fb51f07f:<path>`): `R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1) R5-1, R5-2, R5-4, R5-5, R5-9, R5-10 (binding; final alignment pass), `reviews/V3-A.md` (sha256 f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87) m-11 and `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3) MAJOR-5, m-1, m-4, m-5, m-9 and Y-7
 - Consumed inputs:
+  - **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12: items 4–7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3).
   - **v0.4 inputs (R8 pass, node A3, at `94aa9181b`).** R8_RESOLUTIONS.md sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02 (R8-1…R8-11; binding); INTAKE_MAP.md (I2) sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33: rows 01.9, 01.10, 01.14, 02.13, 03.9, 05.6, 06.1, 06.2, 07.8, 07.13, 08.2–08.4, 09.1, 10.3, 11.2, 12.1, 13.1, 13.2, 14.3, 15.1, 16.1, 25.2, 26.2, 28.2, X.6; Part 2 P2.10, P2.11, P2.15, P2.17, P2.18 and its §2.2 ADAPTER rows; Part 3 items 1, 2, 4, 6, 10–12; Part 4.4, 4.11; Part 5 R8-Q12 (R8 overrides I2 where they differ); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"); owner decisions DECISION-3 and DECISION-4 with its clarification (OWNER_DECISIONS.md sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776); SWBPIPE's delivered answers `RELAY_ANSWERS_SWBPIPE.md` (DEL-09-06 `Design/`, #1047) sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7: SQ-01…SQ-16, SQ-26, SQ-28, SQ-31, ANS §0, §2–§4 — data about SWBPIPE's current state, not commitments (DECISION-3). **Owner files read first (at `94aa9181b`):** DEL-02-03 EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4 (§2.1 PH-1…PH-10; §2.2 GV-1…GV-5; §2.3 HP-H; §3.5; §3.6 with R8-2; §3.7 CC-2; MT-14; CH-27; U-E1, U-E13, U-E23); DEL-02-01 WD-v0.6 `WORKFLOW_DECLARATION.md` sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28 (§4.3.0 CG-1…CG-7; §4.3.1 `governed`, PROPOSED); WD-EX-v0.6 `EXAMPLES.md` sha256 950b70b2e3f7fdda9a98b13a63746b76936be490dd96cb6e47bbe6dc9c3eba3d (E8; R-5a/R-5b). DEL-03-01/C-v0.6 and DEL-03-02/P-v0.6 are revised in the same pass (node A3); body citations of C and P now point to them (identifiers unchanged). Other siblings keep the versions cited below.
   - Earlier inputs (Wave-1 texts read with `git show ba0b37123:<path>`; they remain at v0.3 bytes here. Where R4 rules a change to them, this file follows the R4 text, not v0.4 bytes, which were not available when this revision was made):
   - DEL-03-01/C-v0.3 `CATALOG_AND_READ_BASIS.md` (sha256 ba45e7393ee0b16780f36605ddeecb95ba1f181488e36a46b4b495b69fd67c26): §2–§8, §10 FX-PIPE-01;
@@ -155,11 +156,11 @@ covers the gap. The realization choice stays with TBD-007's owners.
 
 | Element | Meaning | Supplier / evidence |
 |---|---|---|
-| Host enablement record | The person's A13 (enable or disable) on the host's external interface on this machine, as captured by the host's facility, with a capture-evidence reference | The host's **enablement facility** (ACT-v0.4 §2.6, PROPOSED under R4-13; relay **SQ-28**, which gates the whole external channel, R5-10). **SWBPIPE: none** (SQ-28, answered 2026-09-28: no facility and no plan found; no reference; state not readable; disable not captured; a SWBPIPE owner decision). Enablement *behavior* (default off, *channel not enabled*, state read, disable with queued proposals) is SQ-13 |
-| App-side access configuration | Whether the App's Codex is configured to reach this host's endpoint (N-MCP server entry, N-CLI availability, or I-DT/I-PX registration), with its locus (§9 OC-3) and who directed it | App, at the person's direction (PROPOSED §3.3 E-4). An **ordinary configuration change**, recorded as such; never A13 and never A13 evidence (R4-13; ACT-v0.4 §2.6) |
+| Host enablement record | The person's A13 (enable or disable) on the host's external interface on this machine, as captured by the host's facility, with a capture-evidence reference | The host's **enablement facility** (ACT-POLICY-v0.6 §2.6, PROPOSED under R4-13; relay **SQ-28**, which gates the whole external channel, R5-10). **SWBPIPE: none** (SQ-28, answered 2026-09-28: no facility and no plan found; no reference; state not readable; disable not captured; a SWBPIPE owner decision). Enablement *behavior* (default off, *channel not enabled*, state read, disable with queued proposals) is SQ-13 |
+| App-side access configuration | Whether the App's Codex is configured to reach this host's endpoint (N-MCP server entry, N-CLI availability, or I-DT/I-PX registration), with its locus (§9 OC-3) and who directed it | App, at the person's direction (PROPOSED §3.3 E-4). An **ordinary configuration change**, recorded as such; never A13 and never A13 evidence (R4-13; ACT-POLICY-v0.6 §2.6) |
 | Endpoint observation | Whether the endpoint is reachable and what it reports about itself, with the observer and time | Supplier facts (§3.5) and host responses |
 | Operation-level outcome | Per entry: the C §4.1 / WD §4.2.4 outcome on the external surface X | Host (catalog, exposure element 9, availability) |
-| Model destination | Per turn, where the supplier reports it: the destination **requested** (provider and model the person chose) and the destination the supplier reports as **effective**, kept separate, including any re-route; an unobserved turn is *unknown*. Run-level value: the **set** of destinations observed; a destination switch starts no new run. Plus the statement that the channel adds no other destination. **Information, not a gate** | Supplier facts per HOSTING-v0.4 §8.3; App records them (RS R5 model destination) and shows them in the channel status. No-gate: SETTLED (D5). Record-and-show: INTEGRATION (DECISION-2 reading; R4-1, R5-4) |
+| Model destination | Per turn, where the supplier reports it: the destination **requested** (provider and model the person chose) and the destination the supplier reports as **effective**, kept separate, including any re-route; an unobserved turn is *unknown*. Run-level value: the **set** of destinations observed; a destination switch starts no new run. Plus the statement that the channel adds no other destination. **Information, not a gate** | Supplier facts per HOSTING-BOUNDARY-v0.6 §8.3; App records them (RS R5 model destination) and shows them in the channel status. No-gate: SETTLED (D5). Record-and-show: INTEGRATION (DECISION-2 reading; R4-1, R5-4) |
 | Locality statement | The endpoint is on this machine (local process, local socket or loopback origin) | Host endpoint contract; App observation (§3.5) |
 
 ### 3.2 Channel states
@@ -206,7 +207,7 @@ facility", not *unconfirmed*.
 
 - **E-1 A13 is the person's act (SETTLED D2e; disable INTEGRATION R2-3).**
   Enabling and disabling are performed only by the person, through the
-  host's enablement facility (ACT-v0.4 §2.6; SQ-28). An agent may **request** either (A8); a request changes
+  host's enablement facility (ACT-POLICY-v0.6 §2.6; SQ-28). An agent may **request** either (A8); a request changes
   nothing (ACT FX-42). An agent attempt to perform A13 is *not permitted*.
   SWBPIPE has no such facility (SQ-28), so A13 cannot be performed there
   and its channel stays *disabled* (R8-6).
@@ -274,7 +275,7 @@ facility", not *unconfirmed*.
   restriction.
 - **Recorded and shown, as information — INTEGRATION (DECISION-2 reading;
   R4-1, R5-4), not SETTLED.**
-  - Recorded **per turn** where the supplier reports it (HOSTING-v0.4 §8.3):
+  - Recorded **per turn** where the supplier reports it (HOSTING-BOUNDARY-v0.6 §8.3):
     the requested and the effective destination are kept separate; a
     supplier re-route is recorded; a turn whose destination is not observed
     is *unknown*.
@@ -384,7 +385,8 @@ entry on its own reading of its class (C §2 inv. 5; R2-4).
   reads carry no subject identities (SQ-03 (a)). A host read with only a
   whole-model identity is received with that identity standing for every
   covered subject (R8-4; C §5.3), and per-subject identities are recorded
-  *not supplied* (an evidence limit). The App never computes them. On main
+  *not supplied* (an evidence limit). Such a read satisfies RD-2 and can be
+  cited (R8-12 item 6; F-24). The App never computes them. On main
   SWBPIPE has no workspace identity or generation; DRAFT #885's `inspect`
   returns a basis identity (SQ-07 (a)).
 - **RD-3** The App delivers the native result unchanged (HOSTING H6). The App
@@ -577,7 +579,7 @@ constraint in both.
   constraint" (RS R11; P §3.3). *Phase 1:* the expected constraint is
   recorded only; where the host schema defines no element for it, the
   record carries the evidence limit "constraint not carriable on this host"
-  (PROPOSED, I2 R8-Q12; R8-10).
+  (adopted in RS R11, R8-12 item 5; R8-10).
 - **GC-5 No App hold is claimed on X (R4-2; R5-1; `UNRESOLVED{D6}`) — governance phase (retained); in Phase 1 nothing is held on X (R8-1).**
   Holding a call *before dispatch* (reached-when kind (a)) would need App
   code on the dispatch path (HP-1) or a host that holds the call (HP-H). HP-1
@@ -927,7 +929,7 @@ records (SQ-09).
 | OC-1 | Transport family the host offers | (a) MCP server; (b) CLI over the live controller; (c) both | MCP: stable client methods and `mcpToolCall` items (`observed-in-generated-types`). CLI: Codex command execution with A14 approval kinds (`observed-in-generated-types`). PR #885: a CLI instance (evidence only). SQ-12 (answered): SWBPIPE offers the CLI (DRAFT #885), not MCP; an MCP adapter only under the owner's modern-client condition, a SWBPIPE owner decision | §3.5 observation; §4.5 mapping; §5.2 carriage; VER-001/002 | Host owner selects with App owner agreement | SQ-12 (answered) |
 | OC-2 | App realization family | N-MCP; N-CLI; I-DT; I-PX | **Interposed families not adopted in this increment (R4-2, D6)**; they stay registered options (SQ-02 answered: route (iv); D6 closed for Phase 1, R8-2). I-DT needs the experimental opt-in (`dynamicTools` experimental-only; S-F-05). I-PX is an App-side server — tension with SoW OUT-001 "without prescribing … a new server" (F-6) | Carriage assurance (§5.2), GC-3/GC-5 holds, PI-4 | App owner, after XQ-3/XQ-5 answers | SQ-02; SQ-08 |
 | OC-3 | App-side configuration locus | (a) user's Codex configuration file (via `config/value/write` / `config/batchWrite`, or by the person by hand); (b) per-thread `config` on `thread/start`; (c) a Codex plugin; (d) none (N-CLI with the CLI on the person's path) | Typed `Config` has no MCP element; per-thread acceptance `not-observed`; plugin association appears in server status (`pluginId`). Writing the shared file changes the person's own Codex configuration (S-X8) | E-3, E-4, U-X1; reversibility; what "disable" removes | App owner with DEL-01-01 (and DEL-01-05 in the later undertaking) | — |
-| OC-4 | Enablement loci | (a) host-side only; (b) App-side only; (c) both, host authoritative (INTEGRATION R4-13: App-side configuration never A13 evidence; host refusal is the authoritative off) | App cannot guarantee "off" App-side (S-X8). SQ-13 (answered): a launch environment variable plus a build feature, not a captured act; no *channel not enabled* code; state not readable. SQ-28: no facility | §3.2 states; AC-002 reading (R4-13); A13 capture by the host enablement facility (ACT-v0.4 §2.6) | DEL-04-01 with owner and host owner | SQ-28 (facility and capture reference; gates the whole channel); SQ-13 (behavior) |
+| OC-4 | Enablement loci | (a) host-side only; (b) App-side only; (c) both, host authoritative (INTEGRATION R4-13: App-side configuration never A13 evidence; host refusal is the authoritative off) | App cannot guarantee "off" App-side (S-X8). SQ-13 (answered): a launch environment variable plus a build feature, not a captured act; no *channel not enabled* code; state not readable. SQ-28: no facility | §3.2 states; AC-002 reading (R4-13); A13 capture by the host enablement facility (ACT-POLICY-v0.6 §2.6) | DEL-04-01 with owner and host owner | SQ-28 (facility and capture reference; gates the whole channel); SQ-13 (behavior) |
 | OC-5 | Local transport and endpoint locality | stdio subprocess launched by Codex; loopback HTTP (`httpOrigin`); local socket (PR #885) | `httpOrigin` null for non-HTTP (`observed-in-generated-types`); sandbox effect on a local-socket CLI `not-observed`. SQ-15 (answered): a Unix domain socket and descriptor in a private directory under the system tmp directory (0700/0600); no network listener; sandbox effect not addressed | E-7 locality evidence; VER-002 | Host owner with App owner | SQ-15 |
 | OC-6 | Caller authentication and identity | none (PR #885: identity not verified); local-socket permissions; a token issued at enablement; supplier OAuth (`mcpServer/oauth/login` exists; its fit for a local endpoint `not-observed`) | See left. SQ-14 (answered): a random local capability in a 0600 descriptor; up to 16 concurrent callers; identity not verified | §5.4 author identity; multiple local callers; A13 scope | Host owner with App owner | SQ-14 |
 | OC-7 | Carriage mechanism for origin, constraint, grant and proposal identity | tool arguments (model-supplied); request metadata added by App code; host-held run association registered at run start; host-issued draft identity (preview step) | Whether the App can add metadata to a model-issued MCP call `not-observed`. PR #885 has a preview step and submit keys (evidence only). SQ-08: identity = caller `idempotency_key`; host `preview_ref` precedes submit. SQ-14: caller-supplied origin fields rejected. SQ-02: a constraint field would be refused as unknown | §5.1–§5.6; GC-3; PI-4 | Host owner with App owner and DEL-03-02 | SQ-02; SQ-08; SQ-14 |
@@ -1040,15 +1042,15 @@ AC-006 and AC-007 are served by review of §§1, 9, 12 and this inventory
 |---|---|---|
 | Expect from | DEL-03-01/C-v0.6 | Nine entry elements incl. element 9; five class values; C §4.1 results with reporters and the SWBPIPE outcome mapping; read basis, subject content identities and method designation; whole-model identity receiving (R8-4); "no longer holds" rule (per item, or the host's stated scope, R8-3); §8 X column; FX-PIPE-01 |
 | Expect from | DEL-03-02/P-v0.6 | Change-request elements incl. governing checkpoint constraint (governance phase) and relied-on targets; P §9 taxonomy and the §9.1 received SWBPIPE vocabulary; retry precedence; item-left events (incl. "cleared by the person, no decision record"); one route |
-| Expect from | DEL-04-01/ACT-POLICY-v0.4 | A1–A14; P-01…P-06; §5.3 resolution order; §6 outcome map; V-10 external access; A13 subject |
-| Expect from | DEL-04-02/AS-v0.4 | Grant display states incl. *effective (policy default)*; settings references |
-| Expect from | DEL-01-01/HOSTING-v0.4 and the pin record | Supplier surfaces at 0.158.0 (§3.5); A14 origins (R7–R9); native delivery (H6) |
+| Expect from | DEL-04-01/ACT-POLICY-v0.6 | A1–A14; P-01…P-06; §5.3 resolution order; §6 outcome map; V-10 external access; A13 subject |
+| Expect from | DEL-04-02/AS-v0.6 | Grant display states incl. *effective (policy default)*; settings references |
+| Expect from | DEL-01-01/HOSTING-BOUNDARY-v0.6 and the pin record (PIN-SPIKE-v0.1) | Supplier surfaces at 0.158.0 (§3.5); A14 origins (R7–R9); native delivery (H6) |
 | Expect from | DEL-02-01 / DEL-02-03 | Checkpoint declarations (WD §4.3, with the `governed` flag, PROPOSED) and derived constraints (WD §4.2.2); Phase 1 guidance and recording (EXEC §2.1, WD §4.3.0); governance phase: hold machine and per-checkpoint hold support (EXEC §2.2, §3.6) computed from §5.3/§7.7 inputs; App holds `UNRESOLVED{D6}`, closed for Phase 1 (R8-2) |
 | Expect from | DEL-09-06/RELAY-v0.3 | SQ-01…SQ-32 (this file uses SQ-01…SQ-03, SQ-06…SQ-09, SQ-11…SQ-16, SQ-28) as the single relay channel for this file's host questions (§12) |
 | Expect from | External host owner (SWBPIPE) | Endpoint contract; enablement facility and its read; catalog-derived native surface and mapping; exposure on X; outcome statements; capture-evidence references; constraint receipt; identity issuance and durable de-duplication; locality; caller authentication (§12) |
 | Provide to | DEL-09-09 | This account; the §10 inventory and, when executed, its candidate-bound test-double results labeled by family; the §9 register; the external requirements still missing (§12); rehearsals for XT XC-05 and XC-06 (XF-40, XF-41); never a joined-witness claim |
 | Provide to | DEL-03-04 | §§1–9 for the guide's "Optional external catalog access" row |
-| Provide to | DEL-04-03 | External dispatch entries (§5.1) for R7; faithfully recorded acts for R9; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; resubmission without prior observation; App-restart interruption; action during hold (governance phase) or the optional "continued past" annotation (Phase 1), with its turn initiator — person-directed / agent / App rule (R6-5); host reachable without evidenced A13 (R8-6); constraint not carriable on this host (PROPOSED, I2 R8-Q12)); model destination per turn, run-level set observed (R5-4); A14 observations for R13 |
+| Provide to | DEL-04-03 | External dispatch entries (§5.1) for R7; faithfully recorded acts for R9; evidence limits for R11 (cited basis not observed; omitted constraint; origin mismatch; agent-written configuration; unverified identity; native hint mismatch; resubmission without prior observation; App-restart interruption; action during hold (governance phase) or the optional "continued past" annotation (Phase 1), with its turn initiator — person-directed / agent / App rule (R6-5); host reachable without evidenced A13 (R8-6); constraint not carriable on this host (adopted in RS R11, R8-12 item 5)); model destination per turn, run-level set observed (R5-4); A14 observations for R13 |
 | Provide to | DEL-02-03 | External-channel observations (§7.7); governance phase: hold-support inputs and action during hold; required-tool outcomes on X (channel not enabled; not established; in the governance phase only, unsupported — checkpoint hold not enforceable on this surface) |
 | Provide to | DEL-04-01 | Nothing open: U-X1 is closed by ACT-v0.4 §2.6; E-3/E-4 align with it |
 | Provide to | DEL-01-01 | Observed MCP/dynamic-tool facts (§3.5) for the classification R4-12 assigns to HOSTING |
@@ -1179,10 +1181,10 @@ DEL-02-03 (U-X3) is now `UNRESOLVED{D6}`; the v0.1 question to DEL-01-01
 - **F-20 SQ-28 gates every live external case.** Without a host enablement
   facility with a capture-evidence reference, the channel cannot be evidenced
   as enabled, so every live XF host variant and every DEL-09-09 XC case stays
-  AWAITING INPUT (R5-10). No App-side substitute exists (ACT-v0.4 §2.6).
+  AWAITING INPUT (R5-10). No App-side substitute exists (ACT-POLICY-v0.6 §2.6).
   *Confirmed by SQ-28 (R8-6):* SWBPIPE has no facility and none is planned.
 - **F-21 Per-turn destination recording depends on supplier facts not yet
-  observed live** (HOSTING-v0.4 §8.3: requested and effective destination
+  observed live** (HOSTING-BOUNDARY-v0.6 §8.3: requested and effective destination
   and `model/rerouted` are generated-type facts only; U-19 there). Until
   observed, per-turn destination entries may be *unknown*; the run-level
   set is then partial and says so.
@@ -1194,17 +1196,22 @@ DEL-02-03 (U-X3) is now `UNRESOLVED{D6}`; the v0.1 question to DEL-01-01
   (reported *endpoint unavailable*) while the channel state stays
   *disabled*. §3.2's *endpoint-unavailable* row presumes an enabled channel.
   This file records the combination (§3.2 SWBPIPE paragraph) without adding
-  a channel state. The integrator may wish to confirm the display rule.
+  a channel state. **Ruled by R8-12 item 4:** the channel state (*disabled*)
+  and the request outcome (*endpoint unavailable*) are different facts and
+  are shown together; no new channel state is added.
 - **F-23 Proposed evidence-limit labels.** "Host reachable without
   evidenced A13" (R8-6) and "constraint not carriable on this host" (I2
   R8-Q12, which R8-10 adopts only as "the agent never adds fields the host
-  schema lacks") are passed to DEL-04-03 (RS R11) as labels to adopt; the
-  second stays PROPOSED here.
+  schema lacks") were passed to DEL-04-03 (RS R11) as labels to adopt.
+  **Ruled by R8-12 item 5:** both are adopted in RS R11; the second is backed
+  by R8-10's principle.
 - **F-24 Whole-model identity and RD-2.** RD-2 calls a read lacking subject
   identities *basis incomplete*. Under R8-4 a whole-model identity stands
   for every covered subject, so a SWBPIPE read is citable with that identity
   and per-subject identities recorded *not supplied*. This reading follows
-  R8-4; C §5.2 rule 1 is not amended here.
+  R8-4; C §5.2 rule 1 is not amended here. **Ruled by R8-12 item 6:** under
+  R8-4 a whole-model identity satisfies RD-2 for a host that supplies only
+  that, so a SWBPIPE read can be cited (RD-2).
 
 ---
 
@@ -1280,6 +1287,7 @@ pass (node A3). Keyed by R8 ID. Sources are I2 rows of INTAKE_MAP.md (`nn.k`,
 | R8-7 (01.9, 01.10, 08.2–08.4, 12.1, 14.3, 15.1, 16.1, X.6; Part 3 items 11, 12; Part 4.11) | Standings move to **answered**: §12 map gains an answer-gist column; OC-1, OC-5…OC-10 evidence cells record the answers; PI-2 and PI-4 cite SQ-08; §5.4 cites SQ-14; §9 records PR #885 as deferred with the owner's activation in force. XF-18, XF-21 and XF-40 keep AWAITING INPUT with the STD-2 annotation. The SQ-16 row is closed (no restriction). Capture-evidence and proposal-identity rows re-owned to SWBPIPE owner decisions. "App v4 OI-003" qualified | §0, §1, §3.4, §4.1, §5.4, §5.6, §9, §10.2, §12, UNRESOLVED |
 | **R8-10** (12.1; Part 4.7; Part 5 R8-Q12) | NM-2: SWBPIPE supplies no mapping and no per-operation identity or version, so every requirement on X is *not established* against it. Strict preflight: the agent never adds fields the host schema lacks (§2, §5.1, §5.3); GC-4's Phase-1 evidence limit "constraint not carriable on this host" carried as PROPOSED (new F-23) | §2, §4.1, §5.1, §5.3, §13.4 |
 | R8-11 (items 1, 2, 4, 5) | S-X10: D2's reserved-act half binds in Phase 1 (host-enforced); its declared-checkpoint half, WD I-7 and V4-HI-42 are Phase-1 guidance. §7.7: a lapse is recorded in Phase 1 and nothing re-holds. F-13: VER-003's checkpoint-wait wording is carried to the successor SoW route as a proposal. Governance-phase values read the fixture's checkpoints as if declared governed | S-X10, §5.3, §7.7, §10, §13.2 |
+| **R8-12** (items 4, 5, 6, 7; closing pass, node A6, in place) | Item 4: F-22 ruled — channel state *disabled* and request outcome *endpoint unavailable* are different facts, shown together; no new channel state (§3.2 already so). Item 5: F-23 ruled — both evidence-limit labels adopted in RS R11; GC-4 and §11 drop "PROPOSED" for "constraint not carriable on this host". Item 6: F-24 ruled — a whole-model identity satisfies RD-2 for a host that supplies only that, so a SWBPIPE read can be cited; RD-2 says so. Item 7: consumed inputs list the post-R8 sibling versions; body citations of ACT §2.6 and HOSTING §8.3 and the §11 ACT/AS/HOSTING rows name the current versions (closure history of U-X1 kept) | Header, §3.1, §3.3, §3.4, §4.3 RD-2, §5.3 GC-4, §9, §11, §13 |
 
 Identifiers: all v0.3 identifiers kept. Added: **M-7**, F-22…F-24 (§13.4). Closed: the SQ-16 host-restriction UNRESOLVED row. Body citations of C and P re-pointed to C-v0.6 and P-v0.6 (identifiers unchanged).
 

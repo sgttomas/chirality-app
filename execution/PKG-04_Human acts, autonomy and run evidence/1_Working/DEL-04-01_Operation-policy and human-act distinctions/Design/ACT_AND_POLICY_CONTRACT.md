@@ -12,6 +12,7 @@
   - `P/conceptual/DECISIONS.md` OD-05, D-04; `P/conceptual/EXEMPLARS_AND_LESSONS.md` X-09, X-19, X-20.
   - `P/execution/_Decomposition/Open_Issues.csv` OI-001, OI-002, OI-013, OI-014, OI-021; `External_Dependencies.csv` DEP-001.
   - Owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; reserved acts stand; the principle applies to a host's embedded loop): `OWNER_DECISIONS.md` at `94aa9181b` (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776).
+- Consumed inputs for the R8-12 closing pass: **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12, items 1 and 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-01-01/HOSTING-BOUNDARY-v0.6; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3).
 - Consumed inputs for v0.6 (R8 pass, node A2), read with `git show` from commit `94aa9181b` (scratch copies in a private folder). Paths are under `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` unless stated:
   - `R8_RESOLUTIONS.md` (sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02): R8-1…R8-7, R8-10 and R8-11 (binding). R8-11 confirms PH-6 and PH-8 and settles the Phase-1 standing of D2's checkpoint half.
   - `INTAKE_MAP.md` (I2; sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33): rows 01.5, 01.6, 02.8, 03.12, 04.4, 05.1, 05.2, 06.3, 13.6, 21.1, 28.1 and X.5; Part 2 P2.1, P2.7, P2.13, P2.14, P2.16, P2.17 and P2.18, and its §2.2 ACT rows; Part 3 items 1, 3, 4 and 10; Part 4.9 and 4.11. R8 overrides I2 where they differ.
@@ -104,6 +105,7 @@ WD-v0.6 were revised first; this file follows them.
 | R8-7 (X.5; 01.5, 05.1, 05.2, 02.8; Part 4.11) | Standings move to **answered**: header, §1, §2.6 (SQ-01), §3 D2 note (SQ-05), §4.4 and §4.5 relay bullets (SQ-02, SQ-01), §7 quote block and §8.1 *host adoption* (SQ-05), §12 item 4 (all six answered). U-01, U-04, U-06 and §8.4 owners and effects updated (SWBPIPE owner decisions PB-TBD-002 / DEL-16-03, OI-016, host-held route, A13 facility; point of need "when the owner resumes UI-SUCCESSOR"). No text of this file cites OI-003, so no qualification was needed | Header, §1, §2.6, §3, §4.4, §4.5, §7, §8.1, §8.4, §12, UNRESOLVED |
 | R8-10 (I2 R8-Q12) | §4.4: the agent never adds a field the host's schema lacks; an expected constraint not carriable is recorded as "constraint not carriable on this host" (governance phase) | §4.4 |
 | **R8-11** (A1 residuals) | Item 1: lapse recording in Phase 1 and disposition words as record labels are **confirmed** (AP-5, AP-7; §4.3). Item 2: D2's "no grant widens past a reserved act" binds in Phase 1 and the host enforces it; its "or a declared checkpoint" half, WD I-7 and V4-HI-42 are guidance in Phase 1 (§3 D2 note, AP-8, §5.3 rule 2, P-01, P-05). Item 3: an invalid declaration is a declaration finding in Phase 1 (AP-9); a harness-capability reference stays *not established* for a required-tool reason (§4.6; FX-48 (a)). Item 5: governance-phase values read the fixture's checkpoints as if governed (§4.0, §4.6, §13 rules) | §3, §4.0, §4.3, §4.6, §5.3, §8.3, §13 |
+| **R8-12** (items 1, 7; closing pass, node A6, in place) | §4.3: the Phase-1 lapse after resume is labelled **"act lapsed at ‹t›"** (nothing says *waiting*; nothing re-held). Consumed inputs list the post-R8 sibling versions; §7 and §13 fixture sources note that C-v0.6 carries the C-v0.4/C-v0.5 fixture. No rule or value changes | Header, §4.3, §7, §13 |
 
 ## Changes from v0.4
 
@@ -649,7 +651,8 @@ bullet below are **governance phase (retained)**.
     recorded in both phases.
   - **After resume, run live — Phase 1 (AP-7; EXEC PH-8; R8-11 item 1):**
     the act-lapsed event is recorded and presented against the affected
-    referents, and outputs gated by the act show their standing **lapsed**.
+    referents, labelled **"act lapsed at ‹t›"** (nothing says *waiting*;
+    R8-12 item 1), and outputs gated by the act show their standing **lapsed**.
     The run is **not** re-held. The agent re-requests the act as its plan
     requires, and a new act over the current scope is recorded when the
     person performs it. The person's own undo or edit is recorded as the
@@ -1120,7 +1123,7 @@ A host refusal on validation is *refused* (an A2 outcome). It is never A10.
 > owner decision OI-016.
 
 The policy-class record is P-03 (§8.3). In the fixture, OP-C4, OP-C5 and
-OP-C9 carry it (C-v0.4 §10.2).
+OP-C9 carry it (C-v0.4 §10.2; carried in C-v0.6).
 
 - Acceptance granularity:
   - Row-by-row acceptance is one A5 per change item.
@@ -1134,7 +1137,7 @@ OP-C9 carry it (C-v0.4 §10.2).
 - With no person setting, the grant state is **effective (policy default):
   propose** (R2-6).
 
-**Fixture walk-through (C-v0.4 §10.3, invented material).**
+**Fixture walk-through (C-v0.4 §10.3, carried in C-v0.6; invented material).**
 
 | Step | Rev | What happens | Treatment, act or outcome |
 |---|---|---|---|
@@ -1435,7 +1438,7 @@ This contract's existence claims none of the following:
 
 ## 13. Fixture catalogue (OUT-003) — designed, not run
 
-**Sources.** Subjects come from **C-v0.4 §10** (R2-21; R4-18; R5-9):
+**Sources.** Subjects come from **C-v0.4 §10**, carried in C-v0.6 §10 (R2-21; R4-18; R5-9; R8-12 item 7):
 
 - **Model:** FX-PIPE-01, run 12, R-100, supports S-1…S-4 and S-5 (created at T12), Engineer A.
 - **Fixture assumptions:** FXA-1…FXA-5, renamed from FA-n; the alias is kept by C (R5-9; V3-A m-3). FXA-1 exposes every entry on all three surfaces. FXA-5 states that ⟨rev-3⟩ (WD-EX E1) declares `CP-accept` (A5) and `CP-check` (A4 on objects changed by `CP-accept` items' applied outcomes).
@@ -1443,7 +1446,7 @@ This contract's existence claims none of the following:
 - **Entries:** OP-C1…C12.
 - **Timeline:** T1–T17, including T4a and T16a.
 - **Proposals, receipts and settings:** PR-1/PR-2, RC-1…RC-3, ⟨set-1⟩/⟨set-2⟩.
-- **Variants:** V-S1, V-CP1, V-NP1, V-R1, V-X1, V-OU1 and V-ED1, plus **V-GR1** (R5-7; present in C-v0.5 §10.4 with GR-P/GR-R/GR-S). V-GR1 is a run of WD-EX E1d in which `CP-grant` arrives at r15, T15's A12 is captured *after* the arrival, and the held OP-C9 call is then dispatched unchanged as T16.
+- **Variants:** V-S1, V-CP1, V-NP1, V-R1, V-X1, V-OU1 and V-ED1, plus **V-GR1** (R5-7; present in C-v0.5 §10.4 with GR-P/GR-R/GR-S, and carried in C-v0.6). V-GR1 is a run of WD-EX E1d in which `CP-grant` arrives at r15, T15's A12 is captured *after* the arrival, and the held OP-C9 call is then dispatched unchanged as T16.
 
 **Local additions, named per R2-21 (V3-A m-13).** Retired labels are not reused (V3-A MAJOR-4):
 - L-ACT-1 and L-ACT-3 were retired in v0.4;
