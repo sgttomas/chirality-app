@@ -30,3 +30,39 @@ Groups:
 | RV-2 | DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02 |
 | RV-3 | DEL-03-01, DEL-03-02, DEL-03-03, DEL-03-04 |
 | RV-4 | DEL-09-06, DEL-09-07, DEL-09-09, DEL-08-01 |
+
+## DX — dependency-extract UPDATE for 18 deliverables (three groups; one deliverable per brief)
+
+Shared runtime overrides:
+
+- `SCOPE`: one deliverable ID per brief.
+- `MODE`: UPDATE.
+- `STRICTNESS`: CONSERVATIVE.
+- **`SOURCE_DOCS`: `ScopeOfWork.md` only (explicit).** The `Design/` DRAFT
+  files are **not** extraction sources. This follows `_COORDINATION.md`:
+  "Agent-proposed candidates derive from local SoWs and accepted interfaces".
+  Node P2 also found that extracting from Design would pull DEL-04-01 or
+  DEL-09-06 into SCC-002.
+- `ANCHOR_DOC`: ScopeOfWork.md.
+- `DECOMPOSITION_PATH`: `execution/_Decomposition/SOFTWARE_DECOMP.md`.
+
+**Guard.** The pointers in DEL-05-01 TBD-003, DEL-05-02 TBD-003 and DEL-09-09
+CLM-004 to DEL-09-06's relay file are stated as "a coordination route, not an
+input this deliverable consumes". Do not extract them as an input or
+prerequisite on DEL-09-06.
+
+**Write scope:** that deliverable's `Dependencies.csv`, `_DEPENDENCIES.md` and
+`_run_records/`.
+
+**After extraction** (a coordinator check, not an extraction input): compare
+the resulting ACTIVE rows with `DAG_PREP/proposed_rows/<DEL>.csv` and
+REGISTER_CHANGES.md. Report every row that was expected and not produced, and
+every row that was produced and not expected.
+
+Groups:
+
+| Group | Deliverables |
+|---|---|
+| DX-1 | DEL-04-01, DEL-04-02, DEL-04-03, DEL-01-01, DEL-01-04, DEL-02-02 |
+| DX-2 | DEL-02-01, DEL-02-03, DEL-05-01, DEL-05-02, DEL-03-01, DEL-03-02 |
+| DX-3 | DEL-03-03, DEL-03-04, DEL-09-06, DEL-09-07, DEL-09-09, DEL-08-01 |
