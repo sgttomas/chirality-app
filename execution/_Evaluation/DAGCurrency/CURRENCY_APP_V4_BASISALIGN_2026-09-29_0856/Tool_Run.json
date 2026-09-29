@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "workflow": "chirality-root:bundled:workflow:project-dag (resources/currency.md)",
+  "run": "APP-V4-BASIS-ALIGN-20260928",
+  "node": "D1",
+  "actor": "Type 2 TASK executor, Claude Code Agent subagent (node D1); no delegation",
+  "recorded_at": "2026-09-29",
+  "source_revision": "b585e5ebead38f8ece442c80cd3bec5be8363cf3",
+  "working_tree": "clean",
+  "accepted_version": {
+    "resolved_from": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+    "pointer_sha256": "fe6a81e0d7b9d9f1b4dd13fb4590c04efa3ffacc6bf6adc65b30eabac07d31e2",
+    "pointer_form": "prose; no SPEC §11.2 Latest: line",
+    "version": "DAG-001",
+    "acceptance_record": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/ACCEPTANCE_RECORD.md",
+      "sha256": "9a5e197f69e2e74a317a63f7d5b6c69ebd6f35985d1e3bc56bf911e2fc34e1ab"
+    },
+    "source_manifest": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/SOURCE_MANIFEST.sha256",
+      "sha256": "0b60d9a2a9342acf40ac7074876115954d897a7e595ec319b223e7460e0e80a4"
+    }
+  },
+  "runs": [
+    {
+      "name": "snapshot_manifest",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "MANIFEST.sha256"
+      ],
+      "cwd": "projects/chirality-app-v4/execution/_DAG/DAG-001",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "PASS",
+      "ok": 61,
+      "failed": 0,
+      "stdout": "Evidence/snapshot_manifest.stdout.txt",
+      "stderr": "Evidence/snapshot_manifest.stderr.txt"
+    },
+    {
+      "name": "source_manifest",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "_DAG/DAG-001/SOURCE_MANIFEST.sha256"
+      ],
+      "cwd": "projects/chirality-app-v4/execution",
+      "exit_code": 1,
+      "run_status": "COMPLETE",
+      "subject_status": "CHANGED",
+      "ok": 78,
+      "failed": 52,
+      "stdout": "Evidence/source_manifest.stdout.txt",
+      "stderr": "Evidence/source_manifest.stderr.txt"
+    },
+    {
+      "name": "scratch_reapplication",
+      "argv": [
+        "python3",
+        "-B",
+        "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/reapply_selection.py"
+      ],
+      "cwd": "<repository root>",
+      "script_sha256": "dcb6cf7f8942f0df1bb18bf7321cd670e04dd87fa013dcd8e07d5c65ea6caed5",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "DEPARTURE",
+      "output": "Evidence/reapplication_result.json"
+    },
+    {
+      "name": "scratch_admissible_audit",
+      "tool": {
+        "path": "tools/coordination/audit_dag.py",
+        "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+      },
+      "argv": [
+        "python3",
+        "tools/coordination/audit_dag.py",
+        "--edges",
+        "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_edges.csv",
+        "--nodes",
+        "projects/chirality-app-v4/execution/_DAG/DAG-001/DeliverableNodes.csv",
+        "--canonical",
+        "--json-out",
+        "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_audit.json"
+      ],
+      "cwd": "<repository root>",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "FAIL_RAW_ACYCLIC_OBJECTIVE (6 characterized SCCs, unchanged)",
+      "stdout": "Evidence/scratch_admissible_audit.stdout.txt"
+    }
+  ],
+  "inventory": {
+    "pointer": {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "d5d873b3b918fd508685871abf177e90104b98524c5cea52944dfa2f5a695ead"
+    },
+    "register": {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    "unchanged_from_dag001": true
+  },
+  "rejection_records_found": [],
+  "result": "DEPARTURE",
+  "arcs": {
+    "dag001_admitted": 109,
+    "dag001_candidate": 52,
+    "dag001_total": 161,
+    "current_admitted": 124,
+    "current_candidate": 74,
+    "current_total": 198,
+    "added": 37,
+    "removed": 0,
+    "added_admitted": 15,
+    "added_candidate": 22,
+    "existing_arcs_changing_layer": []
+  },
+  "sccs_unchanged": true,
+  "dag_pending": [
+    "DEL-01-01",
+    "DEL-02-01",
+    "DEL-02-02",
+    "DEL-02-03",
+    "DEL-03-01",
+    "DEL-03-02",
+    "DEL-03-03",
+    "DEL-03-04",
+    "DEL-04-01",
+    "DEL-04-02",
+    "DEL-04-03",
+    "DEL-05-01",
+    "DEL-05-02",
+    "DEL-09-06",
+    "DEL-09-09"
+  ],
+  "accepted_arcs_not_produced": [
+    "N-18 DEL-02-01 -> DEL-03-02",
+    "N-21 DEL-02-03 -> DEL-03-02",
+    "N-24 DEL-02-03 -> DEL-03-03",
+    "X-1 DEL-02-03 -> DEL-01-04"
+  ],
+  "withheld_absent": {
+    "N-12": true,
+    "N-B8": true
+  },
+  "guard_arcs_present": [],
+  "selected_context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "workflows/project-dag/WORKFLOW.md",
+      "sha256": "e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b"
+    },
+    {
+      "path": "workflows/project-dag/resources/currency.md",
+      "sha256": "d2927ed4ac96ebc750c1917726bc0b598832d414d0cd2f31343ddc994deac466"
+    },
+    {
+      "path": "workflows/project-dag/resources/graph-version.md",
+      "sha256": "ff6b7ba5b455e5e26cfb08a00ab119dfa35b19a56610987a40b4142738a856bf"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/added_arcs.csv",
+      "sha256": "da25716cc8387d7ea4eb5df94864979b5e256f47b659b7f67404e6ec14412bcf"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/reapplication_result.json",
+      "sha256": "bba4c2ac1d503087cfb9c506ffffb7909eb1511dd55d6bb510b936a36362e39d"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/reapply_selection.py",
+      "sha256": "dcb6cf7f8942f0df1bb18bf7321cd670e04dd87fa013dcd8e07d5c65ea6caed5"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_audit.json",
+      "sha256": "ea4f018f7d02f1866113d5b2cd56c714a1277a9d3e54dd203cb9d78012a6ccd9"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_audit.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_audit.stdout.txt",
+      "sha256": "6b3e1313b7f2f874ddbbe0bd95bfeed50cc3396bf74a1d51bf16eb7bdfe10c55"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/scratch_admissible_edges.csv",
+      "sha256": "91efa175551911a5881da4e6b49614c5e641ded6506dc61efc03470a1c273064"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/snapshot_manifest.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/snapshot_manifest.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/snapshot_manifest.stdout.txt",
+      "sha256": "1423d7f10876fd9306747b724bcb9e58dd025c7ca2b3d4d167e65f9b1933d08f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/source_manifest.exit",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/source_manifest.stderr.txt",
+      "sha256": "ae2bbdf1fd49454bd542c554d7f3f48f464e4b4a02548685d2807ca8e3064881"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/Evidence/source_manifest.stdout.txt",
+      "sha256": "c47e29c18829f6a464780fd7fc2850c5c8b5ad801c20f4665fed9f56fb0c7792"
+    }
+  ],
+  "boundary": "Writes only this snapshot and _Evaluation/DAGCurrency/_LATEST.md. Never modifies DAG-001, _DAG/_LATEST.md or a local file."
+}

@@ -1,0 +1,663 @@
+{
+  "GraphID": "DAG-002",
+  "trigger": "SUCCESSOR",
+  "predecessor": {
+    "id": "DAG-001",
+    "path": "projects/chirality-app-v4/execution/_DAG/DAG-001",
+    "manifest": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/MANIFEST.sha256",
+      "sha256": "0297b09f46a110930f28361013d05fac78aa569909c3ebffba76321f6651623d"
+    },
+    "acceptance_record": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/ACCEPTANCE_RECORD.md",
+      "sha256": "9a5e197f69e2e74a317a63f7d5b6c69ebd6f35985d1e3bc56bf911e2fc34e1ab"
+    },
+    "graph_basis": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/GRAPH_BASIS.md",
+      "sha256": "d09b49cfa4c82c7c7caf8e45d82e4ed4ec904b345e7c9b68ab3c2b3e660cb3f0"
+    }
+  },
+  "standing": "UNACCEPTED CANDIDATE prepared for owner checkpoint C. Not presented yet; no independent review yet. No accepted pointer written.",
+  "currency_report": {
+    "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856/CURRENCY_REPORT.md",
+    "sha256": "32a5146100163a02fa4dd181456e466583429122937e16a3137e74218d9f5a1f"
+  },
+  "currency_result": "DEPARTURE",
+  "source_revision": "b585e5ebead38f8ece442c80cd3bec5be8363cf3",
+  "working_state": "Clean tree at the source revision when frozen and assembled; all 130 manifest members equal their committed bytes (checked by assemble_graph.py).",
+  "manifest": {
+    "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/SOURCE_MANIFEST.sha256",
+    "sha256": "6d1021f1c78fea023c2089aa29a2bc60f5ae498f56068eeddbfa376467793250",
+    "entries": 130,
+    "file_classes": "Same 130 paths as DAG-001: 41 x (Dependencies.csv, _DEPENDENCIES.md, ScopeOfWork.md) + _COORDINATION.md + GROUP3 DECISION.md, Deliverables.csv, Objectives.csv, Packages.csv, ScopeLedger.csv + _LATEST_ACCEPTED.md",
+    "members_changed_since_dag001": 52
+  },
+  "inventory_source": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+  "node_count": 41,
+  "package_count": 11,
+  "exempt_units": [],
+  "nodes_byte_equal_to_dag001": true,
+  "tracking_mode": "FULL_GRAPH",
+  "completeness": "FULL for the selected semantics, with the explicit unresolved-input and candidate qualifications (carried from DAG-001)",
+  "basis_decisions": {
+    "carried": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/BASIS_DECISION.md",
+      "sha256": "5a269b838d8e923cd4b9c4911b1128244d4854e33c0f4f1c7ab061d18b2acb60"
+    },
+    "owner_decisions": {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md",
+      "sha256": "f9664a70fd180dc8d8e3d7a3a29d911c95b5c5a7ef982d18c66f8cff029475e0"
+    },
+    "arc_set": "DECISION-6 (checkpoint A): refreshed 41 arcs accepted, X-1 kept, N-12/N-B8 not proposed",
+    "route": "DECISION-8 and DECISION-9"
+  },
+  "closure_snapshot": {
+    "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_BASISALIGN_2026-09-29_0855",
+    "report": {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_BASISALIGN_2026-09-29_0855/Dependency_Closure_Report.md",
+      "sha256": "447ecc564067f65bc130c54d86379c25884f03b7bd6ccba6d46e6db26f486483"
+    },
+    "tool_run": {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_BASISALIGN_2026-09-29_0855/Tool_Run.json",
+      "sha256": "a440d6f566e2c98e127b1cd833387f3a3eed35912f73b8f3971ab84467d92504"
+    },
+    "scc_summary": {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_BASISALIGN_2026-09-29_0855/Evidence/scc_summary.csv",
+      "sha256": "d97c6415c304c7555806e2f3f5f8465bfecbcabdfbb539f74768a8999c36258d"
+    },
+    "input_basis_equals_manifest": true
+  },
+  "cases": [
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-001",
+      "SCCRef": "SCC-001",
+      "members": [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Candidate_Remedies.csv",
+          "sha256": "8d3bd50648695bfe629a88b3bbd7de536b90ca32b500de259c7b7d5125f4286b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Case_Contract.md",
+          "sha256": "b671b22e67642d4465ef7b6d63d39226a7216f4f45105a7ca0db85127292f89c"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
+          "sha256": "301067dacf2e2d83edd1dca86638a271ee0b773b110cfa3420d58e963eb371c4"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Case_QA.md",
+          "sha256": "1201ebe57a2fbbef56f21941c0025736c0fea0e33ee0d26c7baee5d18e3ce7b8"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
+          "sha256": "5000507b727179fb81e51b2fc0ffe91c442a3a8251416e4047131ce318163f93"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Open_Questions.md",
+          "sha256": "d362d85008c5b4d2f233613b5a9dba55ce0d2d03a3ccc7d2d024398aa3a76a20"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Owner_Workflow_Handoff.md",
+          "sha256": "5bcc9f636fef64d65759cee1622dad19d2816fa2e0c69190f8a425a9099c0cb4"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
+          "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/Task_Findings.csv",
+          "sha256": "a7ee0bc6f521321da114d927e12d103a3098c98f0eefffc4add34fef65e34b8d"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-001/_run_records/TASK_RUN_20260927_SCC_CASE_001.md",
+          "sha256": "93fd9608ed847b1885da9a58cde10e01d606b6ae6c58f1237db602df528d1883"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-002",
+      "SCCRef": "SCC-002",
+      "members": [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": true,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Candidate_Remedies.csv",
+          "sha256": "633aadd1c2189b8e618fc321e0af8ad102468a1be974355718eb2a173651ab68"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_Contract.md",
+          "sha256": "3ee3255d3ddd74a60f9589e99cc63ccfc74ad8141146c7ee8a88238d50a2faa1"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
+          "sha256": "cadf9f73f85e17201fb879bd2760938eccc745f550dcb5cb6479ac4e47846171"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Case_QA.md",
+          "sha256": "7f19fe7e4dac6a24805d6668a5c95e9516802257457cea0ce5f8fa2662a545b7"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
+          "sha256": "7b8de7da4f03e9f229b5eabd4b01fc6c700db81504afe04c128786a257135a97"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Open_Questions.md",
+          "sha256": "41dc4c53bef8de7985a02e2f79b8b5e0d277587133e1d71a38e9faa2db380d98"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Owner_Workflow_Handoff.md",
+          "sha256": "f6316a319defb21eef8292986a97bc2d64fd34c234056293f6e9327aa5008a3e"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
+          "sha256": "3e7482c25f0703b952dda7e1795fcc43db017e31b352f32e7a7938ff952e70f0"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/Task_Findings.csv",
+          "sha256": "61ff8bee2a8495f41089b569b840d3d0beaebb61d723b9e4e9d63de72991d551"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/_run_records/TASK_RUN_SCC_CASE_002_20260927.md",
+          "sha256": "fe5b25b8ff2a1f1dcb1d3b63b262f7ce4ad0a46bc38e6271187ec8a47d527c72"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-002/_run_records/TASK_RUN_SCC_CASE_002_20260929_D1.md",
+          "sha256": "1196d207f1046bbe26bf86ca7b103e482ddb38d3a9da3427f6c95266dcace1fa"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-003",
+      "SCCRef": "SCC-003",
+      "members": [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Candidate_Remedies.csv",
+          "sha256": "c6713bd8e55558719ab23de5dd17d89f233603bdad2af495d3d2e2274a17f5ad"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Case_Contract.md",
+          "sha256": "c663b1cadfa2b9ebeaf479eb063f4a030069c70fca8ec2de2a36fcb10444b527"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
+          "sha256": "3e5277f6535597eb39e0a750dcb16d11712b738065ece2275b9b33b599a364e2"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Case_QA.md",
+          "sha256": "4e21ae210a1be7662661fb07220decf2f09eaf29d8d34b1d8287f64c9c961bf5"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
+          "sha256": "45eaba906fbd90197894ccb714135aa281653b5d4bec9eae3a1d0d7d0f78a715"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Open_Questions.md",
+          "sha256": "0e845271fa7a740d25d1c051b1b5a6cd789a7f88ca5fffc435513ad71ca1bb12"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Owner_Workflow_Handoff.md",
+          "sha256": "bd1b62cd1d442777c2242b66ceb9a3bc99ef104d638ae6c1a73cae34097f8b60"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
+          "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/Task_Findings.csv",
+          "sha256": "5185c85b728754174979fa546476699c27496847281f51199e15a144c17ebd6c"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-003/_run_records/TASK_RUN_SCC-CASE-003_20260927.md",
+          "sha256": "5ddd6380c9d0c55069ff0e179b2dfaa0ba577966226506e13e90662dfc98d37e"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-005",
+      "SCCRef": "SCC-004",
+      "members": [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Candidate_Remedies.csv",
+          "sha256": "01ab79da0a99e69378caa5612b0096635a636e4471febfb2cc8cd5e22fc80b31"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Case_Contract.md",
+          "sha256": "f898498f8d4227a6076bf9a7cd9804e9bfb0f8e54d979dca1389b9ba6d1247ce"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
+          "sha256": "53fe8ecadb6975d6bdaf61763a7c14a0fd770644a76d256b87cecfc9842b76c0"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Case_QA.md",
+          "sha256": "3230c7b2d50abea5745eb91cf1a754249f9ec7755ba693ab65ca0be5d4f6f91a"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
+          "sha256": "9e706de2d3e00fb87bf11b9e79680794d972dca14b288980e46216e9221849e7"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Open_Questions.md",
+          "sha256": "8cdf25545060886f6c00684a29d1076cf50bf3a5ee896d68f23d05b36c1e725d"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Owner_Workflow_Handoff.md",
+          "sha256": "f7eeebdcb1f04f5b663fe033696d9b44c2d3a7ad217fab69a5242220edb770ea"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
+          "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/Task_Findings.csv",
+          "sha256": "7328bf44010ad9fd8a4cb579e3276de888dca16ae02e259da39b725a7ab3181c"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-005/_run_records/TASK_RUN_SCC-CASE-005_20260928.md",
+          "sha256": "1d3f4bca12a51854795c93dd324d71e55c170f2daec502fae8d843a22812ade5"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-006",
+      "SCCRef": "SCC-005",
+      "members": [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Candidate_Remedies.csv",
+          "sha256": "5c5da15445b81cefaec13d359ad180ee73f403bfbf3fe48e8b33498c5c7bc342"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Case_Contract.md",
+          "sha256": "6f0f4649fe8c6c24513ccc31fd2a6552f6ba1df13aa38a6f7565e2adb4036d35"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
+          "sha256": "e39ecee4709afc4e330c39a3082dc3ce0655b944ffe5b4074a48d960dc66ffb0"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Case_QA.md",
+          "sha256": "824e6a76444f9e209479ae2f4969612571af327ce5cf88f7d64a4b5a5bbeced3"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
+          "sha256": "9b0687212a9af2150c8bb16c93ea71aa7a8f34a5f1c8df6ccf97c735996dc7f6"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Open_Questions.md",
+          "sha256": "e1806e2c67fc55933e272a2f583afd775a6a146b2984cd636bdfa36019929c17"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Owner_Workflow_Handoff.md",
+          "sha256": "59290e8d760460361834aca272b295e41b15a48f722cad43894cb60c7cb93b0a"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
+          "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/Task_Findings.csv",
+          "sha256": "e72492cbec9cf39a33628b040a2c329a1923a05da4f5851e68bd727696bd8463"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006/_run_records/TASK_RUN_20260927_SCC_CASE_006.md",
+          "sha256": "3c6f9b1eb1cfe73e2566c20eba6e18a92f5b409c5a9beb4af57493556d74c390"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-007",
+      "SCCRef": "SCC-006",
+      "members": [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      "state": "EVIDENCE_ACCUMULATING",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv",
+          "sha256": "e399443bf9455926c99dffc2929476a3436b46e9764172d2bc787fcdc608b7d7"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_Contract.md",
+          "sha256": "aadc681d537e3d234aa08932f5b147d7cb0da0479a3cd293ad69118095996f60"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
+          "sha256": "f56cb3933a0b492ecf4b883e311237e8cdec09839780e92658cb68a23619d00f"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_QA.md",
+          "sha256": "53dc0df49eaf856fb72f3b695c4e7082875032d2eb11d578cc1322faa9bc463a"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
+          "sha256": "ce82f6a99060bd4a4f5d4ea92d1a550131c3f0757eb6d6d1aa9daeaa1eb8577f"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Open_Questions.md",
+          "sha256": "c55f52f2a758e3a773ec79afdebdb6d1a9b7b92f70a74221e45d956e8e61b141"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Owner_Workflow_Handoff.md",
+          "sha256": "25e48ce8075868bf26020d8f0eafcf403e5f09884e92889bfe482dfb3e1eca5b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
+          "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Task_Findings.csv",
+          "sha256": "22264e4fd7d3e103a9094482b7904f84771fa9632ce4dbf446f9964d7d0fa9b7"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/_run_records/TASK_RUN_SCC-CASE-007_20260928.md",
+          "sha256": "8211e51b1e23fc4234314fcaef0b050737126541eaa8bce14428970911fc8799"
+        }
+      ]
+    },
+    {
+      "CaseRef": "_DAG/cases/SCC-CASE-004",
+      "SCCRef": null,
+      "members": [
+        "DEL-03-01",
+        "DEL-03-02"
+      ],
+      "state": "retained constituent history of CASE-002",
+      "written_by_this_run": false,
+      "files": [
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Candidate_Remedies.csv",
+          "sha256": "05025ddca6e18f4aa19134167806aca4655676dac5be7a1fa393f322ad51ae0e"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_Contract.md",
+          "sha256": "4e8ef3a2c63c3fffee65fb590b329d64a0b97e70f5fb8cedaaf2e388dbf4e749"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_Datasheet.md",
+          "sha256": "cd150b29c4f351a6ce016b21f216a97368ad01d86a9cbc381ecf713d367b2b4c"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Case_QA.md",
+          "sha256": "02a7f4c94425aee66de90c3ffc93a8e14a3b45d28459dbea71af1c69eb4e47e7"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Evidence_Register.csv",
+          "sha256": "430a066210d3ef552524687d4f8e9b30be68e985cc199bbcd4d21acf198d5359"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Open_Questions.md",
+          "sha256": "a4dbeb52ed1edced9f33f0f65b90b1180bb61353385145a841fc64024a369676"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Owner_Workflow_Handoff.md",
+          "sha256": "68dbd302cfae09ff0bc030f19c7f785056e45c6d29fadd3dd27d1662ebc7c063"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Ruling_Register.csv",
+          "sha256": "85e20b3c855ac524d736a3380101cadcce40ba58c61e7240693c9f57236e5b5e"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/Task_Findings.csv",
+          "sha256": "286ab2ec82dae0cd6776fb972d608d4de80108e911a9009235a45c3e2d8bc001"
+        },
+        {
+          "path": "projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004/_run_records/TASK_RUN_SCC-CASE-004_20260927.md",
+          "sha256": "004baa012ae85a807a6f0bd0ed0e856a48e25b9c7c679b1dd8c69a11b2a46273"
+        }
+      ]
+    }
+  ],
+  "selection": "SR-1..SR-7 exactly as confirmed for DAG-001; no cut, merge, confirmation hold or type exclusion",
+  "counts": {
+    "total_source_rows": 822,
+    "active_anchors": 355,
+    "retired_rows": 5,
+    "active_execution": 462,
+    "deliverable_target_rows": 254,
+    "admissible_arcs": 198,
+    "admitted_rows": 124,
+    "candidate_rows": 74,
+    "excluded_rows": 264,
+    "dispositions": {
+      "NOT_TOPOLOGICAL": 208,
+      "MIRROR": 54,
+      "SAME_ARC": 2
+    }
+  },
+  "departure": {
+    "added": 37,
+    "removed": 0,
+    "added_admitted": 15,
+    "added_candidate": 22,
+    "accepted_arcs_not_produced": [
+      "N-18 DEL-02-01 -> DEL-03-02",
+      "X-1 DEL-02-03 -> DEL-01-04",
+      "N-21 DEL-02-03 -> DEL-03-02",
+      "N-24 DEL-02-03 -> DEL-03-03"
+    ],
+    "withheld_absent": {
+      "N-12": true,
+      "N-B8": true
+    },
+    "dag_pending_resolved_by_this_candidate": [
+      "DEL-01-01",
+      "DEL-02-01",
+      "DEL-02-02",
+      "DEL-02-03",
+      "DEL-03-01",
+      "DEL-03-02",
+      "DEL-03-03",
+      "DEL-03-04",
+      "DEL-04-01",
+      "DEL-04-02",
+      "DEL-04-03",
+      "DEL-05-01",
+      "DEL-05-02",
+      "DEL-09-06",
+      "DEL-09-09"
+    ]
+  },
+  "tools": [
+    {
+      "path": "tools/coordination/audit_dag.py",
+      "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a"
+    },
+    {
+      "path": "tools/coordination/analyze_dep_closure.py",
+      "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+    },
+    {
+      "path": "tools/scaffolding/create_snapshot_folder.sh",
+      "sha256": "7db42ee6963dbe8306047dc5afbeb911be7fecdd92b05a239987be05c8d95640"
+    },
+    {
+      "path": "tools/scaffolding/update_latest_pointer.sh",
+      "sha256": "21899520ab84e0d88056b19a4318810cc3a730bc4b6d22e7ec66291549f015bc"
+    },
+    {
+      "path": "tools/validation/validate_scc_resolution_case.py",
+      "sha256": "b26f0babcf88600d1a0573f5bb6507b742a17b011b207cb9c078e0c8679ce6db"
+    },
+    {
+      "path": "tools/validation/validate_decomposition_registers.py",
+      "sha256": "5442049efb41762d102448a8a64332950e4c08acfdf85d84722fef04223126f5"
+    }
+  ],
+  "assembly": {
+    "script": {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/Evidence/assemble_graph.py",
+      "sha256": "6a3a6add7635484a03c361290dcaf7a45b994ef82349e43bc008c8bf800d8250"
+    },
+    "adapted_from": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-001/Evidence/assemble_graph.py",
+      "sha256": "b90e129412ab55962e1dc4804cd7ea6a2c5a2705216bbef421b480defc6fdf7c"
+    },
+    "tool_run": {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/Evidence/Tool_Run.json",
+      "sha256": "72c96d96af9ff177f296fe44394fd0aa7ec90b9987734bb408e83947ed13a6b6"
+    },
+    "checks": {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/Evidence/AssemblyChecks.json",
+      "sha256": "ad8dd173fff9083735f68af6f0bb6760322564eaff53525abbaf621f728ee72a"
+    }
+  },
+  "parent_run": {
+    "run": "APP-V4-BASIS-ALIGN-20260928",
+    "node": "D1",
+    "dispatch": {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DISPATCH.md",
+      "sha256": "90bcd4d8d913ccb6e28a2ba05dc8ffe50def607d3a295c8eabb8572e681c20e1"
+    },
+    "successor_plan": {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DAG_PREP/SUCCESSOR_PLAN.md",
+      "sha256": "763aa94bc596f64af35a32967e8a5926de8ed2243f97aa61ae15ffa7924d204a"
+    },
+    "arc_analysis": {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DAG_PREP/ARC_ANALYSIS.md",
+      "sha256": "7daf474ba17c799740edbd42c1ba811b3cf431641277707c81834bef358478f2"
+    },
+    "register_changes": {
+      "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DAG_PREP/REGISTER_CHANGES.md",
+      "sha256": "89be49e53a9dcc4231fb17012d8496c5bebb2136dd5745982cf753e51cb05696"
+    },
+    "dx_returns": [
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-01-01.md",
+        "sha256": "e145d2e67311b91a55d733c9c21b5200fe4f62555b4e08ce36439c5cfe840de0"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-01-04.md",
+        "sha256": "2eabf2634c4e79fffe14b8590b1d63dbfab960807e2c4d7d860d3ad7e08026c6"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-02-02.md",
+        "sha256": "11a3b328a29e02188af3b3e7b1287382def8cd5370f436699b9a182f4d8bf3bd"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-04-01.md",
+        "sha256": "935a9b257b0eb46c869d702e0af5341dfd525d71bb9bfd07f7664ef70865bbcf"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-04-02.md",
+        "sha256": "b2649874d37c8f17982703c620c3e96d19ada222624fccdc898642d96b62bac2"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-1_DEL-04-03.md",
+        "sha256": "fdc77f505c57d537f5da1bfac57873bd096332809d9607e64430947d177024ee"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-02-01.md",
+        "sha256": "191f326287206f4eff810732ee9d6e3cd3420110a94ba7b8904ea4c41a70750d"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-02-03.md",
+        "sha256": "f5d1a74ca482e7f59ee92a4ef4c6a20d6a504cb4430330734ebcc9cfb0a4df6a"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-03-01.md",
+        "sha256": "ad561316b20526c7c6bdaf56bfa22bb1cd12b3f80d04ce3f57b6616be322eead"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-03-02.md",
+        "sha256": "ebba83b8b09397a45e2dd0d97d0c09036462c6b889d5abda52566167440fdbdd"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-05-01.md",
+        "sha256": "ba5d94a52448c05ddc65e80bf9f1c11d619f78273703dd77d955c2390c9b75b5"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-2_DEL-05-02.md",
+        "sha256": "6bd4f3060147379a6bbc24479094fede272c4f59f725baf11b7ff131509a0858"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-03-03.md",
+        "sha256": "94cf6aba02bd466d77c0ca61dc2d3b780d0416cf09d73faa93f406be0a093248"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-03-04.md",
+        "sha256": "3f69e1a508b0a43835666e2c7cbcec572555fa62e800c6041f4b54ff867285d2"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-08-01.md",
+        "sha256": "3d08c3fd9bbd4b637070ac34eac7aa9dd68c66b568292a2f93c7274c75a30e5d"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-09-06.md",
+        "sha256": "30ede7cbeae01c35c293c2b1912614ba131732ffeb807ecec5f95112aeed0dff"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-09-07.md",
+        "sha256": "c2753bab5a2be54730878e9d8f610a12db97169df005fb8cc20489b8973535b3"
+      },
+      {
+        "path": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/DX/DX-3_DEL-09-09.md",
+        "sha256": "ce0797c80574d5852cd3a72d7bd83cfe948a7d75e4c9cd7c513de07732cfa491"
+      }
+    ]
+  },
+  "graph_files": [
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/DeliverableNodes.csv",
+      "sha256": "102eee1a6a409ae4babefa674546c5111848e90ba5fb7447dc5cc240a31b93e8"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/DependencyEdges.csv",
+      "sha256": "5f96240cd75787d556f74fce851db70b2286ed196a8ae7545a795aedb6499f06"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/CandidateEdges.csv",
+      "sha256": "299cb1a90860cb39879af8ba742af8646f8ce2aca7478ffe7f2e6224f79dd034"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/ExcludedRows.csv",
+      "sha256": "8ac3ed597e456b5b0f29c969519d584e4335a7bada692348f337c50f7ca2c3e2"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-002/SOURCE_MANIFEST.sha256",
+      "sha256": "6d1021f1c78fea023c2089aa29a2bc60f5ae498f56068eeddbfa376467793250"
+    }
+  ],
+  "authority_limits": "Candidate only. Acceptance at checkpoint C would satisfy no dependency, advance no lifecycle, lift no hold, pass no gate and schedule nothing."
+}
