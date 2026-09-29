@@ -51,8 +51,8 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | B0 Graph, decisions, briefs | Run folder, graph | Owner direction | Committed | COMPLETE |
 | P1 Amendment packet (scope-change groups 1–2 preparation) | Run folder `AMENDMENT_PACKET/` only | C1-A/B/C, CLOSEOUT_ACCOUNT, DECISION-3/4/5, intake findings | Atomic actions validated; exact wording for the basis docs and each SoW; the C1 proposals refreshed against the current Design; impact on the DAG listed | COMPLETE |
 | P2 DAG successor preparation | Run folder `DAG_PREP/` only | C1 register/arc proposals, DAG-001 | Mirror rows per deliverable; the 40 arcs re-checked against current evidence; the disputed arc analysed; SCC recomputation; a successor plan | COMPLETE |
-| K1 Owner checkpoint A (scope-change groups 1+2) | — | P1, P2 | The owner accepts or adjusts the amendment, the lifecycle and the disputed arc | ACTIVE — presented |
-| A* Apply | Basis docs; ScopeOfWork (REVISE); registers | K1 | Per-deliverable briefs; validation | PLANNED |
-| D1 Currency audit → DAG-002 candidate, audit, review | `_Evaluation/DAGCurrency/`, `_DAG/_Candidates/DAG-002/` | A* | audit_dag strict passes; independent review | PLANNED |
-| K2 Owner checkpoint B (DAG-002 acceptance; scope-change group 3) | — | D1, review | Accept / reject / repair | PLANNED |
-| F Publish, receipt, PRs | `_DAG/DAG-002`, `_LATEST`, receipt, MEMORY | K2 | Merged | PLANNED |
+| K1 Owner checkpoint A (scope-change groups 1+2) | — | P1, P2 | The owner accepts or adjusts the amendment, the lifecycle and the disputed arc | COMPLETE — DECISION-6/7 |
+| A* Apply | Basis docs; ScopeOfWork (REVISE); registers | K1 | Per-deliverable briefs; validation | COMPLETE — SCA-V4-001 accepted (DECISION-8); 16 SoWs revised; 18 registers refreshed |
+| D1 Currency audit → DAG-002 candidate, audit, review | `_Evaluation/DAGCurrency/`, `_DAG/_Candidates/DAG-002/` | A* | audit_dag strict passes; independent review | COMPLETE — V11, V12 |
+| K2 Owner checkpoint B (DAG-002 acceptance; scope-change group 3) | — | D1, review | Accept / reject / repair | COMPLETE — DECISION-8 (B), DECISION-10 (C) |
+| F Publish, receipt, PRs | `_DAG/DAG-002`, `_LATEST`, receipt, MEMORY | K2 | Merged | ACTIVE — DAG-002 published; receipt; PR |

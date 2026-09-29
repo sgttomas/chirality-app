@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "workflow": "chirality-root:bundled:workflow:project-dag (resources/currency.md; method Stage 5 step 5)",
+  "run": "APP-V4-BASIS-ALIGN-20260928",
+  "node": "D2",
+  "actor": "Type 2 TASK executor, Claude Code Agent subagent (node D2); no delegation",
+  "recorded_at": "2026-09-29",
+  "trigger": "Follow-up audit after the owner accepted DAG-002 (OWNER_DECISIONS.md DECISION-10), to record that the 15 DAG-pending flags have cleared",
+  "head_revision": "87813431d364aad8800ad44aea58d50ac0d8a2e0",
+  "working_tree": "HEAD plus this node's uncommitted publication writes (_DAG/DAG-002/, _DAG/_LATEST.md, this snapshot); no source file in SOURCE_MANIFEST.sha256 differs",
+  "accepted_version": {
+    "resolved_from": "projects/chirality-app-v4/execution/_DAG/_LATEST.md",
+    "pointer_sha256": "4d78374030317aabed5b0b7ac2ad203759947363a5483b978be364dce2e1e529",
+    "pointer_form": "SPEC §11.2: 'Latest: DAG-002', 'Updated: 2026-09-29', plus Acceptance, Completeness, Basis revision and Supersedes lines",
+    "version": "DAG-002",
+    "acceptance_record": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-002/ACCEPTANCE_RECORD.md",
+      "sha256": "0f8f8f0e5fa17ca4308f28ba0562388e1b17c847f84cb7e8e42c5c5f9bd4e0d3"
+    },
+    "manifest": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-002/MANIFEST.sha256",
+      "sha256": "e6f8944034d44f899eccf9fd3a9c0512ab4c30408f68f7dad216d01dcf2aa402"
+    },
+    "source_manifest": {
+      "path": "projects/chirality-app-v4/execution/_DAG/DAG-002/SOURCE_MANIFEST.sha256",
+      "sha256": "6d1021f1c78fea023c2089aa29a2bc60f5ae498f56068eeddbfa376467793250"
+    },
+    "basis_revision": "b585e5ebead38f8ece442c80cd3bec5be8363cf3"
+  },
+  "runs": [
+    {
+      "name": "snapshot_manifest",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "MANIFEST.sha256"
+      ],
+      "cwd": "projects/chirality-app-v4/execution/_DAG/DAG-002",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "PASS",
+      "ok": 37,
+      "failed": 0,
+      "stdout": "Evidence/snapshot_manifest.stdout.txt",
+      "stderr": "Evidence/snapshot_manifest.stderr.txt"
+    },
+    {
+      "name": "source_manifest",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "_DAG/DAG-002/SOURCE_MANIFEST.sha256"
+      ],
+      "cwd": "projects/chirality-app-v4/execution",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "UNCHANGED",
+      "ok": 130,
+      "failed": 0,
+      "stdout": "Evidence/source_manifest.stdout.txt",
+      "stderr": "Evidence/source_manifest.stderr.txt"
+    },
+    {
+      "name": "superseded_dag001_manifest",
+      "purpose": "Confirm the superseded version is intact as history",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "MANIFEST.sha256"
+      ],
+      "cwd": "projects/chirality-app-v4/execution/_DAG/DAG-001",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "PASS",
+      "ok": 61,
+      "failed": 0,
+      "stdout": "Evidence/dag001_manifest.stdout.txt",
+      "stderr": "Evidence/dag001_manifest.stderr.txt"
+    },
+    {
+      "name": "pointer_parse",
+      "argv": [
+        "python3",
+        "-B",
+        "-",
+        "(inline: dependency_evidence.pointer_target and resolve_accepted_dag on _DAG/_LATEST.md)"
+      ],
+      "cwd": "<repository root>",
+      "tool": {
+        "path": "tools/coordination/dependency_evidence.py",
+        "sha256": "125939c02482b8d90db97c96c378b249c55abee7647db5cc6d85f35a53a4dc0d"
+      },
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "PARSES: Latest DAG-002",
+      "output": "Evidence/pointer_check.json"
+    },
+    {
+      "name": "analyzer_accepted_dag_crosscheck",
+      "tool": {
+        "path": "tools/coordination/analyze_dep_closure.py",
+        "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+      },
+      "argv": [
+        "python3",
+        "tools/coordination/analyze_dep_closure.py",
+        "projects/chirality-app-v4/execution",
+        "--scope",
+        "ALL",
+        "--filter-active-only",
+        "true",
+        "--normalize-ids",
+        "true",
+        "--dependency-class",
+        "EXECUTION",
+        "--target-type",
+        "DELIVERABLE",
+        "--hub-threshold",
+        "20",
+        "--max-cycles",
+        "200",
+        "--include-declared",
+        "true"
+      ],
+      "cwd": "<repository root>",
+      "note": "No --output-dir: the analyzer wrote nothing; stdout captured. Not a closure snapshot; _Evaluation/DepClosure/_LATEST.md not moved.",
+      "exit_code": 0,
+      "run_status": "COMPLETE",
+      "subject_status": "FAIL",
+      "accepted_dag_result": "NO_DEPARTURE_FOUND",
+      "accepted_dag_version": "DAG-002",
+      "dag_pending_count": 0,
+      "graph_nodes": 41,
+      "graph_edges": 198,
+      "scc_count": 6,
+      "stdout": "Evidence/analyzer.stdout.json",
+      "stderr": "Evidence/analyzer.stderr.txt",
+      "prior_result": "INCOMPLETE under DAG-001's prose pointer (_Evaluation/DepClosure/CLOSURE_APP_V4_BASISALIGN_2026-09-29_0855)"
+    }
+  ],
+  "inventory": {
+    "pointer": {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md",
+      "sha256": "d5d873b3b918fd508685871abf177e90104b98524c5cea52944dfa2f5a695ead",
+      "names": "GROUP3-20260928T001055Z"
+    },
+    "register": {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    "matches_graph_basis": true
+  },
+  "rejection_records_found": [],
+  "scratch_reassembly": "Not run: no source bytes changed (currency.md step 3)",
+  "result": "CURRENT",
+  "dag_pending": [],
+  "flags_cleared": [
+    "DEL-01-01",
+    "DEL-02-01",
+    "DEL-02-02",
+    "DEL-02-03",
+    "DEL-03-01",
+    "DEL-03-02",
+    "DEL-03-03",
+    "DEL-03-04",
+    "DEL-04-01",
+    "DEL-04-02",
+    "DEL-04-03",
+    "DEL-05-01",
+    "DEL-05-02",
+    "DEL-09-06",
+    "DEL-09-09"
+  ],
+  "flags_cleared_by": "Owner acceptance of DAG-002, OWNER_DECISIONS.md DECISION-10, 2026-09-29",
+  "selected_context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "c8ce87ef342902cb081bc659b26fc9a4edda1b6dba513814e5cb1e14e0b1dffd"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7"
+    },
+    {
+      "path": "workflows/project-dag/WORKFLOW.md",
+      "sha256": "e5db36606e71e5057f35d848c3a52f0e4aaca1198d3fe9e758f47cc1501a5a0b"
+    },
+    {
+      "path": "workflows/project-dag/resources/contract.md",
+      "sha256": "a55edc3b89a2b641dda90457528fae626a5d2fae5850e96a77b2322fd55ed24d"
+    },
+    {
+      "path": "workflows/project-dag/resources/method.md",
+      "sha256": "4a5566bfbc9f3d6b12f8faa574c5187d22a27bb913b0ff1302e68c220d698d6b"
+    },
+    {
+      "path": "workflows/project-dag/resources/currency.md",
+      "sha256": "d2927ed4ac96ebc750c1917726bc0b598832d414d0cd2f31343ddc994deac466"
+    },
+    {
+      "path": "tools/scaffolding/create_snapshot_folder.sh",
+      "sha256": "7db42ee6963dbe8306047dc5afbeb911be7fecdd92b05a239987be05c8d95640"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/analyzer.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/analyzer.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/analyzer.stdout.json",
+      "sha256": "d56753aa8172eb4ded11f0533e9a723d1d684f90833a3e8b88c7be72b3c6e63b"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/dag001_manifest.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/dag001_manifest.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/dag001_manifest.stdout.txt",
+      "sha256": "1423d7f10876fd9306747b724bcb9e58dd025c7ca2b3d4d167e65f9b1933d08f"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/pointer_check.json",
+      "sha256": "847cdcc088720a354777d1330e0a5b9c1fd2fd10a174df8812b64be2ead39b90"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/snapshot_manifest.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/snapshot_manifest.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/snapshot_manifest.stdout.txt",
+      "sha256": "eb9f0f07e6721a79355d08d06d2b17a41f2f5292a52f93febb9632266936c615"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/source_manifest.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/source_manifest.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_DAG002_ACCEPTED_2026-09-29_1050/Evidence/source_manifest.stdout.txt",
+      "sha256": "8c93ecdd10b1b403e3e0b9ec84c9c9b37649aae9c40dc5b6123a6b8615518a0c"
+    }
+  ],
+  "boundary": "Writes only this snapshot and _Evaluation/DAGCurrency/_LATEST.md. Never modifies DAG-001, DAG-002, _DAG/_LATEST.md or a local file."
+}

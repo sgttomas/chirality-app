@@ -1,0 +1,38 @@
+{
+  "purpose": "Scratch check (outside the repository) that a SPEC \u00a711.2 pointer is readable by the registered closure analyzer, and what its accepted-DAG comparison reports against DAG-001 and against this candidate installed as DAG-002. Scratch only; no governed file was written.",
+  "method": "rsync of projects/chirality-app-v4/execution at b585e5ebe (excluding _Evaluation and _Coordination) into a scratch folder; DAG-002 candidate DependencyEdges.csv, CandidateEdges.csv, ExcludedRows.csv and DeliverableNodes.csv copied to scratch _DAG/DAG-002/; scratch _DAG/_LATEST.md written as \"Latest: <V>\\nUpdated: 2026-09-29\"; analyzer run with DAG-001 closure arguments.",
+  "tool": {
+    "path": "tools/coordination/analyze_dep_closure.py",
+    "sha256": "2b8de3cbd2439ba1234aadf10e07348c4e2d30dd73da66cd0d88774e417a9adc"
+  },
+  "results": {
+    "DAG-001": {
+      "exit_code": 0,
+      "accepted_dag_result": "DEPARTURE",
+      "dag_pending_count": 15,
+      "dag_pending": [
+        "DEL-01-01",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-03-04",
+        "DEL-04-01",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-06",
+        "DEL-09-09"
+      ]
+    },
+    "DAG-002": {
+      "exit_code": 0,
+      "accepted_dag_result": "NO_DEPARTURE_FOUND",
+      "dag_pending_count": 0,
+      "dag_pending": []
+    }
+  }
+}

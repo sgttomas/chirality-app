@@ -1,0 +1,76 @@
+{
+  "result": "PASS",
+  "source_revision": "b585e5ebead38f8ece442c80cd3bec5be8363cf3",
+  "manifest_sha256": "6d1021f1c78fea023c2089aa29a2bc60f5ae498f56068eeddbfa376467793250",
+  "manifest_entries": 130,
+  "manifest_matches_source_commit": true,
+  "manifest_members_changed_since_dag001": 52,
+  "node_count": 41,
+  "nodes_byte_equal_to_dag001": true,
+  "packages": 11,
+  "total_source_rows": 822,
+  "active_anchors": 355,
+  "retired_rows": 5,
+  "active_execution": 462,
+  "deliverable_target_rows": 254,
+  "admissible_arcs": 198,
+  "admitted_rows": 124,
+  "candidate_rows": 74,
+  "excluded_rows": 264,
+  "dispositions": {
+    "NOT_TOPOLOGICAL": 208,
+    "MIRROR": 54,
+    "SAME_ARC": 2
+  },
+  "candidate_reasons": {
+    "SCC_UNRESOLVED": 74
+  },
+  "target_types": {
+    "EXTERNAL": 150,
+    "DELIVERABLE": 254,
+    "PACKAGE": 18,
+    "DOCUMENT": 26,
+    "UNKNOWN": 14
+  },
+  "maturity": {
+    "TBD": 215,
+    "INITIALIZED": 247
+  },
+  "satisfaction": {
+    "TBD": 302,
+    "PENDING": 160
+  },
+  "edge_core_fidelity_rows": 198,
+  "core_fields_per_row": 29,
+  "missing_rows": 0,
+  "overlapping_rows": 0,
+  "self_loops": 0,
+  "closure_scc_membership_exact": true,
+  "scc_membership_equal_to_dag001": true,
+  "case_mapping": {
+    "SCC-001": "_DAG/cases/SCC-CASE-001",
+    "SCC-002": "_DAG/cases/SCC-CASE-002",
+    "SCC-003": "_DAG/cases/SCC-CASE-003",
+    "SCC-004": "_DAG/cases/SCC-CASE-005",
+    "SCC-005": "_DAG/cases/SCC-CASE-006",
+    "SCC-006": "_DAG/cases/SCC-CASE-007"
+  },
+  "non_topological_account": {
+    "carried_unchanged_except_LastSeen": 172,
+    "carried_row_edited": 26,
+    "new": 10
+  },
+  "mirror_comparisons": 56,
+  "mirror_comparisons_new_since_dag001": 16,
+  "departure": {
+    "added": 37,
+    "removed": 0,
+    "added_admitted": 15,
+    "added_candidate": 22
+  },
+  "strict_admitted_exit_code": 0,
+  "protected_inputs_unchanged": true,
+  "protected_input_count": 308,
+  "no_accepted_pointer_written": true,
+  "authority": "UNACCEPTED CANDIDATE; no lifecycle, satisfaction, readiness or gate effect inferred"
+}
