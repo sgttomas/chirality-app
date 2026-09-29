@@ -103,7 +103,7 @@
   - **Reads:** the model read, and in DRAFT #885, `inspect`.
   - **Non-mutating checks:**
     - validate-only preview;
-    - the mechanics solve, whose published result carries **host-named integrity standing**: `checks_passed`, `sensitive`, `unresolved` or `failed`, with named `NUMERICAL_INTEGRITY_*` diagnostics (T3's work; `P/schemas/results.schema.yaml:3601-3608`; `P/core/product_physics/src/lib.rs:1068-1092`, `:1265-1284`);
+    - the mechanics solve, whose published result carries **host-named integrity standing**: `not_assessed`, `checks_passed`, `sensitive`, `unresolved` or `failed`, with named `NUMERICAL_INTEGRITY_*` diagnostics (T3's work; `P/schemas/results.schema.yaml:3601-3608`; `P/core/product_physics/src/lib.rs:1068-1092`, `:1265-1284`);
     - user rule checks (`USER_RULE_CHECKED` / `USER_RULE_FAILED`).
     - PR #885 exposes only the validate-only preview as a check.
 - **(b)** Host-named checks exist: rule checks and solve integrity standing. PR #885's first journey uses validation only.
@@ -185,7 +185,7 @@
 | outcome unknown | #885 `outcome_unknown` |
 | unavailable / not permitted / error | #885 `busy`, `capacity`, `not_ready`, `unauthorized`, `wrong_app`, `wrong_workspace`, `internal_error`, and others; each carries `retryable` and `next_action` |
 
-- **Evaluated basis:** DRAFT #885's committed receipt carries the before and after model revision and hash (SQ-08 (e)), and `stale_basis` names a basis refusal. The fact sheet records no evaluated-basis field on the other outcomes.
+- **Evaluated basis:** main's outcomes state the evaluated whole-model basis. The single-operation outcome carries `model_basis` (claimed and backend model hash, binding status; `P/core/model_operations/operation_applier/src/lib.rs:103-109`, `:145`), and the batch outcome carries `initial_model_hash` and `input_backend_hash` (`P/core/model_operations/operation_applier/src/atomic_batch.rs:186-191`). DRAFT #885's `preview` returns that outcome with its basis (`P/apps/desktop/src/features/workspace/liveControlController.ts:338-344` at `12907f393`), its committed receipt carries the before and after model revision and hash (SQ-08 (e)), and `stale_basis` names a basis refusal.
 
 - **Transport status is separate from these outcomes.**
 - **(b)** Batches are atomic: all or nothing. There is no partial application.
@@ -304,7 +304,7 @@
   - **(a)** SWBPIPE identifies a contribution by commit SHA and PR merge commit, and records with it:
     - hosted CI run ids, with the full-SHA E2E dispatch;
     - the DEC-025 local sweep;
-    - T3's **T9** check: the committed outputs are regenerated and must show zero byte difference, run Mac-only on the owner's Mac (`T3/DESIGN_NUMERICS/S11G_GUARD.md:549`). This is T3's check, not the work graph's T9 tranche (coverage and validation assessment);
+    - T3's **T9** check: the committed outputs are regenerated and must show zero byte difference (`T3/DESIGN_NUMERICS/S11G_GUARD.md:549`). T3 runs it Mac-only on the owner's Mac, because the Mac's libm differs from the Linux records on 12 of 112 outputs (`T3/IMPLEMENTATION/K1/RETURN.md:35`). This is T3's check, not the work graph's T9 tranche (coverage and validation assessment);
     - native witness records and executable hashes;
     - all of it in AgentRuns `_run_records` with SHA256SUMS.
   - **(b) Checks for the first-activity kind of work:** the operation contract corpus (81 invented cases) and PR #885's focused live-control tests.
