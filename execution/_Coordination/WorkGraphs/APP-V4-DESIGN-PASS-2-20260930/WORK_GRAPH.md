@@ -65,8 +65,10 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A3 | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | COMPLETE `871232216` — GUIDE v0.4; 18/18; CC-1…CC-11 rerun; no new R10 candidates. DAG-003 manifests 37/37 and 130/130; no file outside the Design files, this run and HANDOFF changed since `74b3c73134` |
 | A2 Apply R10; sibling-citation pass over the 15 files; HANDOFF truth fixes | 15 Design files; `WAVE_A/A2.md`; `HANDOFF_SWBPIPE_DOMAINS.md` (integrator) | A1 | R10 applied; every cross-file citation checked; RELAY span unchanged | COMPLETE `42456ca08` — 12 files; 3 citation fixes; 1 dangling citation passed to A3; HANDOFF `dda9380d1` |
 | A3 Apply DECISION-K1 in the files | 15 Design files; `WAVE_A/A3.md` | A2; K1 | Every carrier updated; expected case results recomputed | COMPLETE `ce4088219` — 13 files; 39 case results recomputed (first recorded as 37; V17-B m-1); new rules SP-6 (current phase) with SP-6F kept for the governance phase, JA-1 joint answer; N-OPEN-4 closed. Carried to Wave B: a declaration element for taking up SP-6F (B1) |
-| V17 Independent review of Wave A (V17-A, V17-B) | `reviews/V17-*.md` | A1-G | Verdict covering the candidate | ACTIVE |
-| P1 PR-1: Wave A | — | V17, CI | Merged under the standing direction | PLANNED |
+| V17 Independent review of Wave A (V17-A, V17-B) | `reviews/V17-*.md` | A1-G | Verdict covering the candidate | COMPLETE — both HOLD at `764e599ee` (2 BLOCKING, 4 MAJOR); every finding dispositioned in [R11](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R11_RESOLUTIONS.md) |
+| A4 Repairs from V17 (R11-1…R11-9) | 16 Design files; `WAVE_A/A4.md` | V17 | Every finding closed or carried; pins current | COMPLETE `c896a99d9` — 66 header pins current; GUIDE 18/18; R11-9 carried to B7 |
+| V17b Recheck of the repairs | `reviews/V17b.md` | A4 | Verdict | COMPLETE — **MERGE AS DRAFTS** at `c896a99d9` (0 BLOCKING, 0 MAJOR, 2 MINOR, 6 NOTE). Carried: m-1 (LOOP MS-06, MS-20, MS-23 and §2.3 credit the recorded refusal to accepted texts) → B5 with RS R15 and PANEL §3.8; m-2 (LOOP LP-5 labels the A8 mapping SETTLED; ACT says DERIVED) → B2; notes → B5, B7, B8 |
+| P1 PR-1: Wave A | — | V17b, CI | Merged under the standing direction | ACTIVE |
 | **Owner package** | | | | |
 | K0 Decision package draft | `DECISIONS_DRAFT.md` | S1 | Every owner-class choice from the surveys stated with options and consequences | COMPLETE `be55f3250` — 27 choices in three groups |
 | K1 Owner checkpoint: the choices that shape the design now, with recommendations | `DECISIONS_PENDING.md`; `OWNER_DECISIONS.md` | K0 | Decided, or left open at a stated point of need | COMPLETE — [DECISION-K1](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md): all six accepted as recommended |
@@ -99,4 +101,4 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When V17 returns: repair any blocking finding and recheck it, then open PR-1 with the CI monitor on, and enable auto-merge once nothing blocking remains.
+PR-1 is open with the CI monitor and auto-merge on. Next: brief Wave B (B1…B7) on the merged Wave A text. Before any chat-model download for the live turn, name model, source and size to the owner (K1-6).
