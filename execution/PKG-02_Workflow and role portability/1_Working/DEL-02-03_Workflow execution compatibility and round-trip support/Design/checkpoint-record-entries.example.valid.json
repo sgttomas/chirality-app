@@ -1,0 +1,240 @@
+{
+  "format": "exec-checkpoint-record-entries/proposed-0.6",
+  "phase": "current",
+  "run": {
+    "run_id": "run-12a",
+    "workflow": {
+      "kind": "workflow",
+      "origin": "project",
+      "source_root": "fx-proj",
+      "name": "supports-adjust",
+      "revision": "rev-A2"
+    },
+    "surface": "app_codex_via_X"
+  },
+  "entries": [
+    {
+      "entry_id": "e1",
+      "order": 1,
+      "kind": "checkpoint_listed",
+      "observed_at": "T0",
+      "checkpoint": "CP-check",
+      "required_act": "A4",
+      "reached_when_kind": "b",
+      "subject_class": "objects changed by a named outcome",
+      "governed": false,
+      "purpose": "engineer records their own checking of the changed supports",
+      "scope": "those objects",
+      "evaluability": {
+        "status": "evaluable_with_limit",
+        "reason": "message-output designation per WD (B1, R10-8); OBS-1 pending"
+      }
+    },
+    {
+      "entry_id": "e2",
+      "order": 2,
+      "kind": "arrival",
+      "observed_at": "T14b",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "event": {
+        "source": "native_item",
+        "ref": "item:agentMessage/examination-report",
+        "evidenced_time": {
+          "value": "T14b",
+          "source": "supplier_item_time"
+        }
+      },
+      "bound_subject": [
+        {
+          "referent_id": "S-5",
+          "content_identity": {
+            "value": "S-5@r14",
+            "method": "m-fx"
+          }
+        },
+        {
+          "referent_id": "R-100",
+          "content_identity": {
+            "value": "R-100@r14",
+            "method": "m-fx"
+          }
+        },
+        {
+          "referent_id": "S-3",
+          "content_identity": {
+            "value": "S-3@r14",
+            "method": "m-fx"
+          }
+        }
+      ],
+      "purpose": "engineer records their own checking",
+      "scope": "S-5, R-100, S-3",
+      "limits": []
+    },
+    {
+      "entry_id": "e3",
+      "order": 3,
+      "kind": "disposition",
+      "observed_at": "T14b",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "disposition": "waiting",
+      "performance_ordinal": 0,
+      "annotations": []
+    },
+    {
+      "entry_id": "e4",
+      "order": 4,
+      "kind": "request_observed",
+      "observed_at": "T14c",
+      "form": "person_input_request",
+      "ref": "req:ask-checked-mark",
+      "association": "associated",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      }
+    },
+    {
+      "entry_id": "e5",
+      "order": 5,
+      "kind": "act_counted",
+      "observed_at": "T14d",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "act": {
+        "record_id": "A4-a1",
+        "act_kind": "A4",
+        "captured_at": "T14d",
+        "capturing_surface": "host_act_facility"
+      },
+      "relation": "after_arrival",
+      "referents": [
+        "S-5",
+        "R-100",
+        "S-3"
+      ]
+    },
+    {
+      "entry_id": "e6",
+      "order": 6,
+      "kind": "disposition",
+      "observed_at": "T14d",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "disposition": "performed",
+      "performance_ordinal": 1,
+      "annotations": []
+    },
+    {
+      "entry_id": "e7",
+      "order": 7,
+      "kind": "run_resumed",
+      "observed_at": "T14e",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "first_action_ref": "item:agentMessage/summary-start"
+    },
+    {
+      "entry_id": "e8",
+      "order": 8,
+      "kind": "act_lapsed",
+      "observed_at": "T14f",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "act": {
+        "record_id": "A4-a1",
+        "act_kind": "A4",
+        "captured_at": "T14d",
+        "capturing_surface": "host_act_facility"
+      },
+      "referents": [
+        "S-3"
+      ],
+      "c0": {
+        "value": "S-3@r14",
+        "method": "m-fx"
+      },
+      "c1": {
+        "value": "S-3@r15",
+        "method": "m-fx"
+      },
+      "when": "after_resume"
+    },
+    {
+      "entry_id": "e9",
+      "order": 9,
+      "kind": "disposition",
+      "observed_at": "T14f",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "disposition": "performed",
+      "performance_ordinal": 1,
+      "annotations": [
+        "act lapsed at T14f (S-3)"
+      ]
+    },
+    {
+      "entry_id": "e10",
+      "order": 10,
+      "kind": "continued_past",
+      "observed_at": "T14g",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "action_ref": "item:fileChange/summary.md",
+      "act_kind": "A4"
+    },
+    {
+      "entry_id": "e11",
+      "order": 11,
+      "kind": "act_counted",
+      "observed_at": "T14h",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "act": {
+        "record_id": "A4-a2",
+        "act_kind": "A4",
+        "captured_at": "T14h",
+        "capturing_surface": "host_act_facility"
+      },
+      "relation": "after_arrival",
+      "referents": [
+        "S-3"
+      ]
+    },
+    {
+      "entry_id": "e12",
+      "order": 12,
+      "kind": "disposition",
+      "observed_at": "T14h",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "ordinal": 1
+      },
+      "disposition": "performed",
+      "performance_ordinal": 2,
+      "annotations": [
+        "answered by 2 acts: A4-a1 (R-100, S-5); A4-a2 (S-3)"
+      ]
+    }
+  ]
+}

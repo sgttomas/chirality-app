@@ -1,0 +1,13 @@
+{
+  "description": "Invalid: the child ended with no stop record, but the record has no exit facts and no closed-generation counts (required for child-ended-without-stop-record), and claims toState 'stopped'.",
+  "instance": {
+    "recordKind": "lifecycle-event",
+    "sequence": 9,
+    "transitionId": "LT-12",
+    "generation": 1,
+    "fromState": "ready",
+    "event": "child-ended-without-stop-record",
+    "toState": "stopped",
+    "at": "2026-09-30T12:00:05.000+00:00"
+  }
+}

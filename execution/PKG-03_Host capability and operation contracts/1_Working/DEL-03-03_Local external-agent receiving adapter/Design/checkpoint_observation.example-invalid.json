@@ -1,0 +1,12 @@
+{
+  "observation_kind": "proposal_queued",
+  "exec_event": "act_lapsed_input",
+  "source_record": "item-main-11",
+  "proposal_identity": "PR-2",
+  "items": [
+    "1",
+    "2"
+  ],
+  "evidence_time": "t0004",
+  "observed_at": "T10"
+}

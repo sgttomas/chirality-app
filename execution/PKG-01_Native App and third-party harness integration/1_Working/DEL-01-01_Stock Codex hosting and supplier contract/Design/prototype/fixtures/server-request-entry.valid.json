@@ -1,0 +1,38 @@
+{
+  "description": "Valid: a command-execution tool-permission request (A14) answered 'accept' by the person through DEL-01-04 (invented example).",
+  "instance": {
+    "recordKind": "server-request-entry",
+    "requestIdentity": "srv-ex-1",
+    "generation": 1,
+    "method": "item/commandExecution/requestApproval",
+    "classification": "known-answerable",
+    "originClass": "a14",
+    "subjectReferences": {
+      "thread": "thr-ex-1",
+      "turn": "turn-ex-1",
+      "item": "item-ex-1"
+    },
+    "nativeParameters": {
+      "threadId": "thr-ex-1",
+      "turnId": "turn-ex-1",
+      "itemId": "item-ex-1",
+      "startedAtMs": 1790000000000
+    },
+    "receiptPosition": 7,
+    "state": "answered",
+    "settlement": {
+      "kind": "answer",
+      "nativeContent": {
+        "decision": "accept"
+      },
+      "origin": {
+        "class": "person-via-interaction",
+        "actorRef": "person:ex-1 (identity not verified)"
+      }
+    },
+    "replyWriteResult": "written",
+    "acknowledgmentObservation": {
+      "status": "not-observed"
+    }
+  }
+}

@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:del-02-03/exec-checkpoint-record-entries/proposed-0.6",
+  "title": "Current-phase checkpoint record entries (EXEC-v0.6 §2.4; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2) for the entries the App's checkpoint recorder (EXEC §2.4) writes into a run record. Each entry kind is one CE-n event of EXEC §2.4.2. The record meaning is DEL-04-03's: the entries are the per-checkpoint and per-arrival content of RS R8 and the references of RS R9, and a human act is cited by the identity of its RS §6 human-act record, never copied or created here (RS HA-1, HA-2). Current phase only: no hold, hold-support value, re-hold or 'action during hold' entry can be expressed (PH-2, PH-3, PH-8); the governance-phase overlay (EXEC §4) would add its own entry kinds and is not defined by this schema. Names are Chirality's own; no wire field, transport, hash, canonicalization or persistence is selected (OI-013, OI-014, TBD-003, TBD-004).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "phase", "run", "entries"],
+  "properties": {
+    "format": {"const": "exec-checkpoint-record-entries/proposed-0.6"},
+    "phase": {"const": "current"},
+    "run": {"$ref": "#/$defs/run"},
+    "entries": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/entry"}}
+  },
+  "$defs": {
+    "nonempty": {"type": "string", "minLength": 1},
+    "run": {
+      "description": "RS R1 run identity and the workflow identity as resolved for the run (EXEC §4.1). Checkpoint identity is {run.workflow, checkpoint}.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "workflow", "surface"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/nonempty"},
+        "continues": {"$ref": "#/$defs/nonempty"},
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "origin", "source_root", "name", "revision"],
+          "properties": {
+            "kind": {"const": "workflow"},
+            "origin": {"enum": ["project", "user", "bundled", "host"]},
+            "source_root": {"$ref": "#/$defs/nonempty"},
+            "name": {"$ref": "#/$defs/nonempty"},
+            "revision": {"$ref": "#/$defs/nonempty"}
+          }
+        },
+        "surface": {"enum": ["app_codex", "app_codex_via_X", "app_content"]}
+      }
+    },
+    "content_identity": {
+      "description": "Opaque value with its method designation (WD SB-1; RS L-2). A grant setting's content is carried as value with method 'setting content'.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "method"],
+      "properties": {"value": {"$ref": "#/$defs/nonempty"}, "method": {"$ref": "#/$defs/nonempty"}}
+    },
+    "referent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["referent_id", "content_identity"],
+      "properties": {"referent_id": {"$ref": "#/$defs/nonempty"}, "content_identity": {"$ref": "#/$defs/content_identity"}}
+    },
+    "arrival_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpoint", "ordinal"],
+      "properties": {"checkpoint": {"$ref": "#/$defs/nonempty"}, "ordinal": {"type": "integer", "minimum": 1}}
+    },
+    "act_ref": {
+      "description": "Citation of an RS §6 human-act record: its identity, kind, evidenced capture time and capturing surface. The record itself (decision actor, recorder, capture-evidence references, 'identity not verified' limit) stays in RS §6.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "act_kind", "captured_at", "capturing_surface"],
+      "properties": {
+        "record_id": {"$ref": "#/$defs/nonempty"},
+        "act_kind": {"enum": ["A4", "A5", "A6", "A7", "A10", "A11", "A12", "A13"]},
+        "captured_at": {"$ref": "#/$defs/nonempty"},
+        "capturing_surface": {"enum": ["host_act_facility", "app_interface", "control_surface"]}
+      }
+    },
+    "evidenced_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": {"$ref": "#/$defs/nonempty"},
+        "source": {"enum": ["supplier_item_time", "host_outcome_time", "host_act_time", "app_observation_time"]}
+      }
+    },
+    "entry": {
+      "description": "Every entry carries the RS §3 common elements as entry_id, order (written-at order) and observed_at.",
+      "oneOf": [
+        {"$ref": "#/$defs/checkpoint_listed"},
+        {"$ref": "#/$defs/declaration_finding"},
+        {"$ref": "#/$defs/arrival"},
+        {"$ref": "#/$defs/request_observed"},
+        {"$ref": "#/$defs/act_counted"},
+        {"$ref": "#/$defs/act_not_counted"},
+        {"$ref": "#/$defs/item_decision"},
+        {"$ref": "#/$defs/act_declined"},
+        {"$ref": "#/$defs/control_relation"},
+        {"$ref": "#/$defs/act_lapsed"},
+        {"$ref": "#/$defs/run_resumed"},
+        {"$ref": "#/$defs/continued_past"},
+        {"$ref": "#/$defs/observation_lost"},
+        {"$ref": "#/$defs/observation_recovered"},
+        {"$ref": "#/$defs/arrival_replaced"},
+        {"$ref": "#/$defs/act_after_run_end"},
+        {"$ref": "#/$defs/run_ended"},
+        {"$ref": "#/$defs/disposition"},
+        {"$ref": "#/$defs/recording_gap"}
+      ]
+    },
+    "checkpoint_listed": {
+      "description": "CE-1: a declared checkpoint listed as plan guidance at run start, with whether the recorder can evaluate its reached-when on this surface (§2.5).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "checkpoint", "required_act", "reached_when_kind", "subject_class", "governed", "purpose", "scope", "evaluability"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "checkpoint_listed"},
+        "checkpoint": {"$ref": "#/$defs/nonempty"},
+        "required_act": {"enum": ["A4", "A5", "A6", "A7", "A12"]},
+        "reached_when_kind": {"enum": ["a", "b", "c"]},
+        "subject_class": {"enum": ["change items of a named proposal", "named output", "objects a named output concerns", "objects changed by a named outcome", "targets of the held call", "grant setting"]},
+        "governed": {"type": "boolean"},
+        "purpose": {"$ref": "#/$defs/nonempty"},
+        "scope": {"$ref": "#/$defs/nonempty"},
+        "evaluability": {
+          "type": "object", "additionalProperties": false, "required": ["status", "reason"],
+          "properties": {"status": {"enum": ["evaluable", "evaluable_with_limit", "not_evaluable"]}, "reason": {"type": "string"}}
+        }
+      }
+    },
+    "declaration_finding": {
+      "description": "CE-2: invalid or not established declaration (§4.14); no arrival is ever created for it.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "checkpoint", "finding", "code"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "declaration_finding"},
+        "checkpoint": {"$ref": "#/$defs/nonempty"},
+        "finding": {"enum": ["invalid", "not_established"]},
+        "code": {"type": "string", "pattern": "^FB-[0-9]+$"}
+      }
+    },
+    "arrival": {
+      "description": "CE-3: reached-when observed (§2.5), with the observation that met it, bound subject, purpose and scope.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "event", "bound_subject", "purpose", "scope", "limits"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "arrival"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "event": {
+          "type": "object", "additionalProperties": false, "required": ["source", "ref", "evidenced_time"],
+          "properties": {
+            "source": {"enum": ["native_item", "host_outcome_via_tool_result", "host_read", "app_file_observation"]},
+            "ref": {"$ref": "#/$defs/nonempty"},
+            "evidenced_time": {"$ref": "#/$defs/evidenced_time"}
+          }
+        },
+        "bound_subject": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/referent"}},
+        "purpose": {"$ref": "#/$defs/nonempty"},
+        "scope": {"$ref": "#/$defs/nonempty"},
+        "limits": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}}
+      }
+    },
+    "request_observed": {
+      "description": "CE-4: the agent's request for the act, recorded only where it is a structured observation (RC-5); never classified from model text.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "form", "ref", "association"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "request_observed"},
+        "form": {"enum": ["person_input_request", "mcp_elicitation", "host_recorded_request"]},
+        "ref": {"$ref": "#/$defs/nonempty"},
+        "association": {"enum": ["associated", "not_established"]},
+        "arrival": {"$ref": "#/$defs/arrival_ref"}
+      }
+    },
+    "act_counted": {
+      "description": "CE-5: an act that answers the arrival for the referents it covers (SP-1…SP-8); relation earlier_act cites an act captured before the arrival (SP-6; K1-2). Several such entries for one arrival are a joint answer (JA-1; K1-3).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "act", "relation", "referents"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "act_counted"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "act": {"$ref": "#/$defs/act_ref"},
+        "relation": {"enum": ["after_arrival", "earlier_act"]},
+        "referents": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/nonempty"}}
+      }
+    },
+    "act_not_counted": {
+      "description": "CE-6: an act on the arrival's subject that does not answer it. In the current phase the reasons are content no longer current or another kind (shown 'prior act not counted' when captured before the arrival), and other content (shown 'act on other content', SB-2). 'Act order unknown' belongs to SP-6F only and cannot be expressed here.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "act", "reason", "captured_before_arrival"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "act_not_counted"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "act": {"$ref": "#/$defs/act_ref"},
+        "reason": {"enum": ["content_no_longer_current", "other_kind", "other_content"]},
+        "captured_before_arrival": {"type": "boolean"}
+      }
+    },
+    "item_decision": {
+      "description": "CE-7: A5 per-item state (MX-1).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "item_id", "decision"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "item_decision"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "item_id": {"$ref": "#/$defs/nonempty"},
+        "decision": {"enum": ["A5", "A10", "left", "unknown"]},
+        "act": {"$ref": "#/$defs/act_ref"},
+        "note": {"type": "string"}
+      }
+    },
+    "act_declined": {
+      "description": "CE-8: act-declined event (R2-5), for A4, A6, A7 or A12.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "declined_event_ref"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "act_declined"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "declined_event_ref": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "control_relation": {
+      "description": "CE-9: the control's relation on an A12 (§4.10; R4-6).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "act", "relation", "detail"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "control_relation"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "act": {"$ref": "#/$defs/act_ref"},
+        "relation": {"enum": ["established", "pending", "refused", "unconfirmed"]},
+        "detail": {"type": "string"}
+      }
+    },
+    "act_lapsed": {
+      "description": "CE-10: act-lapsed event per referent (R2-19; RS L-6), with when it was observed relative to the resume point and run end.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "act", "referents", "c0", "c1", "when"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "act_lapsed"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "act": {"$ref": "#/$defs/act_ref"},
+        "referents": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/nonempty"}},
+        "c0": {"$ref": "#/$defs/content_identity"},
+        "c1": {"oneOf": [{"$ref": "#/$defs/content_identity"}, {"const": "subject_absent"}]},
+        "when": {"enum": ["before_resume", "after_resume", "after_run_end"]}
+      }
+    },
+    "run_resumed": {
+      "description": "CE-11: resume point (HD-5), recorded in both phases.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "first_action_ref"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "run_resumed"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "first_action_ref": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "continued_past": {
+      "description": "CE-12: optional annotation 'continued past ‹checkpoint› before ‹act›' on an agent run action (PH-7); information, never a defect. Never on the person's own operation.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "action_ref", "act_kind"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "continued_past"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "action_ref": {"$ref": "#/$defs/nonempty"},
+        "act_kind": {"enum": ["A4", "A5", "A6", "A7", "A12"]}
+      }
+    },
+    "observation_lost": {
+      "description": "CE-13.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "scope", "cause"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "observation_lost"},
+        "scope": {"$ref": "#/$defs/nonempty"},
+        "cause": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "observation_recovered": {
+      "description": "CE-14: recovered observations are recorded with their own evidenced time; nothing is back-filled (RP-1).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "scope"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "observation_recovered"},
+        "scope": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "arrival_replaced": {
+      "description": "CE-15: MX-6.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "by_ordinal"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "arrival_replaced"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "by_ordinal": {"type": "integer", "minimum": 2}
+      }
+    },
+    "act_after_run_end": {
+      "description": "CE-16: RE-2 post-end act, shown against the ended arrival's subject; changes no disposition.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "act"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "act_after_run_end"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "act": {"$ref": "#/$defs/act_ref"}
+      }
+    },
+    "run_ended": {
+      "description": "CE-17: run-ended event (R2-5; RE-4).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "by", "cause", "waiting_arrivals"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "run_ended"},
+        "by": {"enum": ["person", "run_owner", "observer"]},
+        "cause": {"$ref": "#/$defs/nonempty"},
+        "waiting_arrivals": {"type": "array", "items": {"$ref": "#/$defs/arrival_ref"}}
+      }
+    },
+    "disposition": {
+      "description": "CE-18: the arrival's record label after a change (derived from the other entries and rebuildable from them, §4.12). In the current phase 'waiting' means 'reached; act not yet recorded', never 'the run is held' (PH-6).",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "arrival", "disposition", "performance_ordinal", "annotations"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "disposition"},
+        "arrival": {"$ref": "#/$defs/arrival_ref"},
+        "disposition": {"enum": ["not_reached", "waiting", "performed", "resolved_negatively", "lapsed", "unknown"]},
+        "performance_ordinal": {"type": "integer", "minimum": 0},
+        "annotations": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}}
+      }
+    },
+    "recording_gap": {
+      "description": "CE-19: the recorder could not write entries for an interval (§2.6 failure behaviour); written when writing is possible again. Nothing in the gap is reconstructed as observed.",
+      "type": "object", "additionalProperties": false,
+      "required": ["entry_id", "order", "kind", "observed_at", "from", "to", "cause"],
+      "properties": {
+        "entry_id": {"$ref": "#/$defs/nonempty"}, "order": {"type": "integer", "minimum": 1}, "observed_at": {"$ref": "#/$defs/nonempty"},
+        "kind": {"const": "recording_gap"},
+        "from": {"$ref": "#/$defs/nonempty"},
+        "to": {"$ref": "#/$defs/nonempty"},
+        "cause": {"$ref": "#/$defs/nonempty"}
+      }
+    }
+  }
+}

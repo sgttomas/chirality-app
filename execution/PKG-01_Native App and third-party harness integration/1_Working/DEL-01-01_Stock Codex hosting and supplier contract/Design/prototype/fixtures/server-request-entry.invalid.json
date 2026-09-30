@@ -1,0 +1,27 @@
+{
+  "description": "Invalid (R7, R9): an App rule's affirmative answer to an A14 kind recorded as answered.",
+  "instance": {
+    "recordKind": "server-request-entry",
+    "requestIdentity": "srv-ex-2",
+    "generation": 1,
+    "method": "item/fileChange/requestApproval",
+    "classification": "known-answerable",
+    "originClass": "a14",
+    "receiptPosition": 8,
+    "state": "answered",
+    "settlement": {
+      "kind": "answer",
+      "nativeContent": {
+        "decision": "accept"
+      },
+      "origin": {
+        "class": "app-rule",
+        "ruleName": "auto-accept"
+      }
+    },
+    "replyWriteResult": "written",
+    "acknowledgmentObservation": {
+      "status": "not-observed"
+    }
+  }
+}

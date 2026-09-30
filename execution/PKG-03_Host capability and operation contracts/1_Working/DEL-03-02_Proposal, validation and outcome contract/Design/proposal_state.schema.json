@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:proposal-state",
+  "title": "Recorded proposal state, as returned to a submission or to an observation by identity (DEL-03-02 P-v0.8 §3.5, §4.6, §9; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2). What the host reports about one proposal identity: its recorded per-item states (kind 'recorded_state'), that it holds no record of it ('not_known_to_host'), or that a submission reused the identity with different content ('identity_conflict'). Property names are Chirality's semantic labels, not a host wire field.",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "#/$defs/recorded_state"},
+    {"$ref": "#/$defs/not_known_to_host"},
+    {"$ref": "#/$defs/identity_conflict"}
+  ],
+  "$defs": {
+    "identity": {"type": "string", "minLength": 1},
+    "dedup_scope": {
+      "description": "P §3.5 PM-4: the scope within which the host evidences de-duplication by proposal identity, as the host states it.",
+      "enum": ["durable", "host_session", "time_window", "not_stated"]
+    },
+    "host_handle": {
+      "type": "object",
+      "required": ["handle_kind", "value", "scope"],
+      "additionalProperties": false,
+      "properties": {
+        "handle_kind": {"enum": ["preview_reference", "ticket", "receipt", "other"]},
+        "value": {"$ref": "#/$defs/identity"},
+        "scope": {"$ref": "#/$defs/dedup_scope"}
+      }
+    },
+    "item_state": {
+      "description": "P §4.6: per-item states and dispositions.",
+      "enum": ["drafted", "validated", "queued", "accepted", "applied", "applied_then_reversed", "rejected", "withdrawn", "left_queue", "refused_stale", "refused_invalid", "refused_not_permitted", "application_error", "outcome_unknown"]
+    },
+    "act_ref": {
+      "type": "object",
+      "required": ["act_kind", "actor", "act_reference"],
+      "additionalProperties": false,
+      "properties": {
+        "act_kind": {"enum": ["A5", "A10", "A11"]},
+        "actor": {"$ref": "#/$defs/identity"},
+        "act_reference": {"$ref": "#/$defs/identity"},
+        "capture_evidence_reference": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "refusal": {
+      "type": "object",
+      "required": ["reason", "evaluated_basis"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": {"type": "string", "minLength": 1},
+        "failing_targets": {"type": "array", "items": {"$ref": "#/$defs/identity"}},
+        "failing_targets_not_supplied": {"type": "boolean"},
+        "staleness_scope": {"enum": ["per_item_relied_on_targets", "whole_model", "host_stated_other"]},
+        "relied_on_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"},
+        "evaluated_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"},
+        "error_identity": {"$ref": "#/$defs/identity"},
+        "governing_treatment": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/governing_treatment"}
+      }
+    },
+    "resulting_object": {
+      "type": "object",
+      "required": ["object_identity", "relation"],
+      "additionalProperties": false,
+      "properties": {
+        "object_identity": {"$ref": "#/$defs/identity"},
+        "relation": {"enum": ["created", "changed"]},
+        "subject_content_identity": {"$ref": "#/$defs/identity"},
+        "identity_method": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "applied_association": {
+      "type": "object",
+      "required": ["branch", "receipt_reference", "relied_on_basis", "resulting_revision", "resulting_objects"],
+      "additionalProperties": false,
+      "properties": {
+        "branch": {"enum": ["after_acceptance", "direct_under_grant"]},
+        "receipt_reference": {"$ref": "#/$defs/identity"},
+        "relied_on_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"},
+        "resulting_revision": {"$ref": "#/$defs/identity"},
+        "resulting_objects": {
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/resulting_object"}},
+            {"const": "not_supplied"}
+          ]
+        },
+        "reverses_receipt": {"$ref": "#/$defs/identity"},
+        "reversed_by_receipt": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["item_identity", "state", "change_item_content_identity"],
+      "additionalProperties": false,
+      "properties": {
+        "item_identity": {"$ref": "#/$defs/identity"},
+        "state": {"$ref": "#/$defs/item_state"},
+        "change_item_content_identity": {"$ref": "#/$defs/identity"},
+        "identity_method": {"$ref": "#/$defs/identity"},
+        "decision": {"$ref": "#/$defs/act_ref"},
+        "refusal": {"$ref": "#/$defs/refusal"},
+        "left_cause": {"enum": ["cleared_by_person_no_decision_record"]},
+        "applied": {"$ref": "#/$defs/applied_association"},
+        "error": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/declared_error"},
+        "observer": {"enum": ["loop", "app", "host"]},
+        "last_observed_state": {"$ref": "#/$defs/item_state"}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"enum": ["refused_stale", "refused_invalid", "refused_not_permitted"]}}}, "then": {"required": ["refusal"]}},
+        {"if": {"properties": {"state": {"enum": ["applied", "applied_then_reversed"]}}}, "then": {"required": ["applied"]}},
+        {"if": {"properties": {"state": {"enum": ["accepted", "rejected", "withdrawn"]}}}, "then": {"required": ["decision"]}},
+        {"if": {"properties": {"state": {"const": "left_queue"}}}, "then": {"required": ["left_cause"]}},
+        {"if": {"properties": {"state": {"const": "application_error"}}}, "then": {"required": ["error"]}},
+        {"if": {"properties": {"state": {"const": "outcome_unknown"}}}, "then": {"required": ["observer", "last_observed_state"]}}
+      ]
+    },
+    "derived_state": {
+      "description": "P §4.6 DS-1..DS-4: derived from the items and never stronger than any of them.",
+      "type": "object",
+      "required": ["summary", "counts", "open", "all_items_decided"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": {"type": "string", "minLength": 1},
+        "counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+        "open": {"type": "boolean"},
+        "all_items_decided": {"type": "boolean"}
+      }
+    },
+    "recorded_state": {
+      "type": "object",
+      "required": ["kind", "proposal_identity", "dedup_scope", "submissions_recorded", "items", "derived_state", "observed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "recorded_state"},
+        "proposal_identity": {"$ref": "#/$defs/identity"},
+        "lineage_replaces": {"$ref": "#/$defs/identity"},
+        "host_handles": {"type": "array", "items": {"$ref": "#/$defs/host_handle"}},
+        "dedup_scope": {"$ref": "#/$defs/dedup_scope"},
+        "submissions_recorded": {"type": "integer", "minimum": 1},
+        "answered_from_recorded_state": {"type": "boolean"},
+        "items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/item"}},
+        "derived_state": {"$ref": "#/$defs/derived_state"},
+        "observed_at": {"$ref": "#/$defs/identity"},
+        "current_basis": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"}
+      }
+    },
+    "not_known_to_host": {
+      "type": "object",
+      "required": ["kind", "proposal_identity", "dedup_scope", "observed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "not_known_to_host"},
+        "proposal_identity": {"$ref": "#/$defs/identity"},
+        "dedup_scope": {"$ref": "#/$defs/dedup_scope"},
+        "scope_covers_since": {"$ref": "#/$defs/identity"},
+        "observed_at": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "identity_conflict": {
+      "type": "object",
+      "required": ["kind", "proposal_identity", "recorded_content_identity", "submitted_content_identity", "effect", "observed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "identity_conflict"},
+        "proposal_identity": {"$ref": "#/$defs/identity"},
+        "recorded_content_identity": {"$ref": "#/$defs/identity"},
+        "submitted_content_identity": {"$ref": "#/$defs/identity"},
+        "effect": {"const": "none"},
+        "observed_at": {"$ref": "#/$defs/identity"}
+      }
+    }
+  }
+}

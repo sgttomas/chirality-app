@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:proposal",
+  "title": "Change request as submitted (DEL-03-02 P-v0.8 §3.1-§3.5; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2). One submission of a proposal (requested mode 'propose') or of a direct request ('apply_directly'). Property names are Chirality's semantic labels, not a host or supplier wire field. The change-item content identity is assigned by the host at first receipt (P §3.5 PM-6) and so is not part of the request. No identity representation, encoding or de-duplication mechanism is selected (TBD-002).",
+  "type": "object",
+  "required": ["proposal_identity", "requested_mode", "origin", "relied_on_basis", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "proposal_identity": {"$ref": "#/$defs/proposal_identity"},
+    "lineage": {
+      "type": "object",
+      "required": ["replaces", "why"],
+      "additionalProperties": false,
+      "properties": {
+        "replaces": {"type": "string", "minLength": 1},
+        "why": {"enum": ["refused_stale", "refused_invalid", "proposer_revision"]}
+      }
+    },
+    "requested_mode": {"enum": ["propose", "apply_directly"]},
+    "origin": {"$ref": "#/$defs/origin"},
+    "relied_on_basis": {
+      "description": "P §3.2: the basis descriptor(s) of the read(s) actually relied on, carried unchanged.",
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "urn:chirality:app-v4:proposed:read-result#/$defs/basis_descriptor"}
+    },
+    "items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/item"}},
+    "governing_checkpoint_constraint": {
+      "description": "Governance phase only (R8-1). In the current phase the App carries none and the agent adds no field the host schema lacks (R8-10).",
+      "type": "object",
+      "required": ["workflow_run", "checkpoint_name", "required_act", "operation_identity", "carriage_assurance"],
+      "additionalProperties": false,
+      "properties": {
+        "workflow_run": {"type": "string", "minLength": 1},
+        "checkpoint_name": {"type": "string", "minLength": 1},
+        "required_act": {"const": "A5"},
+        "operation_identity": {"type": "string", "minLength": 1},
+        "carriage_assurance": {"enum": ["host_held", "model_supplied", "absent"]}
+      }
+    }
+  },
+  "$defs": {
+    "proposal_identity": {
+      "type": "object",
+      "required": ["value", "minted_by"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {"type": "string", "minLength": 1},
+        "minted_by": {"enum": ["proposer", "host"]}
+      }
+    },
+    "workflow_identity": {
+      "type": "object",
+      "required": ["kind", "origin", "source_root", "name", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "origin": {"type": "string", "minLength": 1},
+        "source_root": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "derived_from": {"type": "string", "minLength": 1}
+      }
+    },
+    "origin": {
+      "description": "P §3.3.",
+      "type": "object",
+      "required": ["author_type", "author_identity", "seat_role_meaning", "channel", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "author_type": {"enum": ["person", "agent"]},
+        "author_identity": {"type": "string", "minLength": 1, "description": "The literal 'unverified' where the host cannot verify the caller (R4-15)."},
+        "seat_role_meaning": {"type": "string", "minLength": 1},
+        "channel": {"enum": ["host_interface", "embedded_agent", "external_agent"]},
+        "conversation": {"type": "string", "minLength": 1},
+        "workflow_identity": {"$ref": "#/$defs/workflow_identity"},
+        "workflow_run": {"type": "string", "minLength": 1},
+        "standing_at_drafting": {
+          "type": "object",
+          "required": ["display_state"],
+          "additionalProperties": false,
+          "properties": {
+            "display_state": {"enum": ["effective_person_set", "effective_policy_default", "requested_by_agent", "set_by_person_not_yet_confirmed", "unconfirmed", "not_set", "refused"]},
+            "grant_value": {"enum": ["direct", "propose"]},
+            "scope": {"type": "string", "minLength": 1},
+            "settings_reference": {"type": "string", "minLength": 1}
+          }
+        },
+        "reason": {"type": "string", "minLength": 1}
+      },
+      "if": {"properties": {"author_type": {"const": "agent"}}},
+      "then": {"required": ["conversation"]}
+    },
+    "relied_on_target": {
+      "type": "object",
+      "required": ["subject_identity", "subject_content_identity", "identity_method"],
+      "additionalProperties": false,
+      "properties": {
+        "subject_identity": {"type": "string", "minLength": 1},
+        "subject_content_identity": {"type": "string", "minLength": 1},
+        "identity_method": {"type": "string", "minLength": 1}
+      }
+    },
+    "item": {
+      "description": "P §3.4.",
+      "type": "object",
+      "required": ["item_identity", "operation_identity", "operation_version", "affected_object", "relied_on_targets", "attribute", "new_value"],
+      "additionalProperties": false,
+      "properties": {
+        "item_identity": {"type": "string", "minLength": 1},
+        "operation_identity": {"type": "string", "minLength": 1},
+        "operation_version": {"type": "string", "minLength": 1},
+        "affected_object": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "object_identity": {"type": "string", "minLength": 1},
+            "created_description": {"type": "string", "minLength": 1}
+          },
+          "oneOf": [
+            {"required": ["object_identity"], "not": {"required": ["created_description"]}},
+            {"required": ["created_description"], "not": {"required": ["object_identity"]}}
+          ]
+        },
+        "relied_on_targets": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/relied_on_target"}},
+        "attribute": {"type": "string", "minLength": 1},
+        "old_value": {"type": ["string", "number", "boolean", "null"]},
+        "new_value": {"type": ["string", "number", "boolean", "null"]},
+        "item_reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

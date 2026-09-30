@@ -1,0 +1,84 @@
+{
+  "kind": "recorded_state",
+  "proposal_identity": "PR-2",
+  "lineage_replaces": "PR-1",
+  "host_handles": [
+    {
+      "handle_kind": "ticket",
+      "value": "TK-2",
+      "scope": "durable"
+    }
+  ],
+  "dedup_scope": "durable",
+  "submissions_recorded": 1,
+  "answered_from_recorded_state": false,
+  "items": [
+    {
+      "applied": {
+        "branch": "after_acceptance",
+        "receipt_reference": "RC-1",
+        "relied_on_basis": {
+          "canonical_content_identity": "sh1:d9d2153f3f7e92d0",
+          "generation": "g1",
+          "identity_method": "m-sh1",
+          "model_revision": "r13",
+          "workspace_identity": "FX-W1"
+        },
+        "resulting_objects": [
+          {
+            "identity_method": "m-sh1",
+            "object_identity": "S-5",
+            "relation": "created",
+            "subject_content_identity": "sh1:65056f416ccc9df3"
+          },
+          {
+            "identity_method": "m-sh1",
+            "object_identity": "R-100",
+            "relation": "changed",
+            "subject_content_identity": "sh1:76b40b77648b3d5b"
+          }
+        ],
+        "resulting_revision": "r14"
+      },
+      "change_item_content_identity": "sh1:e67adbf4d0b16611",
+      "decision": {
+        "act_kind": "A5",
+        "act_reference": "ACT-2",
+        "actor": "Engineer A",
+        "capture_evidence_reference": "SH1-CAP-2"
+      },
+      "identity_method": "m-sh1",
+      "item_identity": "1",
+      "state": "applied"
+    },
+    {
+      "change_item_content_identity": "sh1:b118b14d880f03c4",
+      "decision": {
+        "act_kind": "A10",
+        "act_reference": "ACT-3",
+        "actor": "Engineer A",
+        "capture_evidence_reference": "SH1-CAP-3"
+      },
+      "identity_method": "m-sh1",
+      "item_identity": "2",
+      "state": "rejected"
+    }
+  ],
+  "derived_state": {
+    "summary": "mixed",
+    "counts": {
+      "applied": 1,
+      "rejected": 1
+    },
+    "open": false,
+    "all_items_decided": true
+  },
+  "observed_at": "t0009",
+  "current_basis": {
+    "workspace_identity": "FX-W1",
+    "generation": "g1",
+    "model_revision": "r14",
+    "canonical_content_identity": "sh1:5d00f128ccef6d9d",
+    "identity_method": "m-sh1"
+  }
+}

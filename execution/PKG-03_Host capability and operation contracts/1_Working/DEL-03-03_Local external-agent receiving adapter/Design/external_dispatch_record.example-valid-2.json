@@ -1,0 +1,41 @@
+{
+  "record_kind": "external_dispatch",
+  "path": "N-MCP",
+  "correlation": {
+    "thread": "th-main",
+    "turn": "turn-T13",
+    "native_item": "item-main-14"
+  },
+  "native_reference": {
+    "server": "sh1",
+    "tool": "submit-proposal"
+  },
+  "request_kind": "submission",
+  "operation": {
+    "not_established": "not_a_catalog_operation"
+  },
+  "native_status": "failed",
+  "transport": {
+    "duration_ms": 1,
+    "supplier_error": "connection closed before the result was read"
+  },
+  "observed_at": "T13",
+  "proposal_identity": "PR-2",
+  "requested_mode": "propose",
+  "origin_observed": {
+    "author_identity": "unverified",
+    "channel": "external_agent"
+  },
+  "relied_on_basis_check": "observed_in_prior_read",
+  "outcome": {
+    "value": "outcome_unknown",
+    "reporter": "app",
+    "observer": "app",
+    "last_observed_state": "mixed",
+    "reason": "connection closed before the result was read"
+  },
+  "evidence_limits": [
+    "lost_acknowledgement",
+    "unverified_caller_identity"
+  ]
+}

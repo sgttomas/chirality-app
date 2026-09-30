@@ -1,0 +1,17 @@
+{
+  "description": "Valid: an App-initiated MCP tool call by the DEL-03-03 receiver, answered with a result (invented example).",
+  "instance": {
+    "recordKind": "client-request",
+    "generation": 1,
+    "requestIdentity": 102,
+    "method": "mcpServer/tool/call",
+    "initiator": {
+      "kind": "receiver",
+      "name": "DEL-03-03"
+    },
+    "sendPosition": 2,
+    "writeResult": "written",
+    "outcome": "response-observed-result",
+    "responseReceiptPosition": 5
+  }
+}

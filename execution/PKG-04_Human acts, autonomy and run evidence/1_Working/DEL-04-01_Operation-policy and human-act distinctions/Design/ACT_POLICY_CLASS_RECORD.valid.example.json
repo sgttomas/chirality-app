@@ -1,0 +1,157 @@
+{
+  "format": "chirality.act.policy",
+  "formatVersion": "0.1",
+  "policyRevision": {
+    "label": "DEL-04-01/ACT-POLICY-v0.8",
+    "contentIdentity": {"method": "unselected (ACT §8.1; DEL-03-01 TBD-003)", "value": "<content identity of ACT-POLICY-v0.8 records>"}
+  },
+  "records": [
+    {
+      "recordId": "P-01",
+      "title": "Reserved acts (D2)",
+      "recordRole": "catalog class",
+      "classIdentity": {"kind": "act-defined class", "name": "reserved acts"},
+      "coveredActs": ["A4", "A5", "A6", "A7", "A12", "A13"],
+      "coverageRule": "A5 wherever the active autonomy requires a proposal; A13 enabling (disabling: INTEGRATION, R2-3)",
+      "humanActClass": "reserved to the person",
+      "widenable": "no",
+      "actorsCovered": ["person", "embedded agent", "external agent"],
+      "consequence": {"assigned": false, "notApplicable": "an act class, not an operation class"},
+      "decisionBasis": [
+        {"identity": "APP-V4-FIRST-INCREMENT-20260928-DECISION-1", "part": "D2 (a)-(e)", "standing": "adopted decision", "decisionActor": "the owner", "recorder": "HELP_HUMAN", "date": "2026-09-28", "custody": "OWNER_DECISIONS.md, transcribed chat answers"},
+        {"identity": "R2-3", "part": "A13 disabling", "standing": "INTEGRATION"}
+      ],
+      "decisionStanding": ["adopted decision", "INTEGRATION"],
+      "openItems": ["UNRESOLVED{OI-021}"],
+      "hostAdoption": {"state": "unevidenced", "note": "The host names and enforces its own list (V4-HI-30). SWBPIPE SQ-05: no named reserved list (an answer, not adoption)"},
+      "phase": {"currentPhase": "The reserved-act clause binds; for a declared checkpoint the request and record clauses of V4-HI-42 are in force", "governancePhase": "Holding the run binds for governed checkpoints"}
+    },
+    {
+      "recordId": "P-01a",
+      "title": "A10 reject",
+      "recordRole": "catalog class",
+      "classIdentity": {"kind": "act-defined class", "name": "reject"},
+      "coveredActs": ["A10"],
+      "coverageRule": "wherever A5 is reserved",
+      "humanActClass": "reserved to the person",
+      "widenable": "no",
+      "actorsCovered": ["person", "embedded agent", "external agent"],
+      "consequence": {"assigned": false, "notApplicable": "an act class, not an operation class"},
+      "decisionBasis": [{"identity": "R-1 (decision pair of A5)", "standing": "DERIVED"}],
+      "decisionStanding": ["DERIVED"],
+      "hostAdoption": {"state": "unevidenced"}
+    },
+    {
+      "recordId": "P-02",
+      "title": "Operations that perform reserved acts",
+      "recordRole": "catalog class",
+      "classIdentity": {"kind": "act-defined class", "name": "act-performing operations"},
+      "coveredOperations": [
+        {"operationId": "OP-C6", "fixtureOnly": true},
+        {"operationId": "OP-C7", "fixtureOnly": true},
+        {"operationId": "OP-C8", "fixtureOnly": true}
+      ],
+      "coverageRule": "any catalog operation whose effect is to perform A4, A5, A6, A7, A10, A12 or A13 through the capturing surface, including changing the host's own act state",
+      "humanActClass": "reserved to the person",
+      "widenable": "no",
+      "actorsCovered": ["person", "embedded agent", "external agent"],
+      "consequence": {"assigned": false, "notApplicable": "reserved regardless of consequence"},
+      "decisionBasis": [{"identity": "S3 + D2 (R2-2)", "standing": "DERIVED"}],
+      "decisionStanding": ["DERIVED"],
+      "hostAdoption": {"state": "unevidenced", "note": "SQ-21: SWBPIPE offers no faithful-record operation"},
+      "conditions": [
+        "no faithful record is made through such an operation",
+        "a host-offered faithful-record operation must not change act state, must cite capture evidence, carries mode faithful recording, never satisfies a checkpoint and takes ordinary policy"
+      ]
+    },
+    {
+      "recordId": "P-03",
+      "title": "SWB model changes",
+      "recordRole": "catalog class",
+      "classIdentity": {"kind": "host-named operation class", "name": "SWB model change"},
+      "coveredOperations": [
+        {"operationId": "OP-C4", "fixtureOnly": true},
+        {"operationId": "OP-C5", "fixtureOnly": true},
+        {"operationId": "OP-C9", "fixtureOnly": true}
+      ],
+      "humanActClass": "may apply within granted autonomy",
+      "defaultGrantValue": "propose",
+      "widenable": "yes, bounded by ACT §5.6",
+      "acceptanceGranularity": ["row", "multi-row", "whole batch"],
+      "actorsCovered": ["person", "embedded agent", "external agent"],
+      "consequence": {"assigned": false, "openItem": "UNRESOLVED{U-02}", "note": "vocabulary PROPOSED in ACT §8.5, not adopted"},
+      "decisionBasis": [
+        {"identity": "V4-HI-41", "part": "class (the person may widen it)", "standing": "DERIVED"},
+        {"identity": "V4-HI-41 via B-ACCEPT", "part": "default propose", "standing": "accepted default (host adoption unevidenced)"},
+        {"openItem": "UNRESOLVED{OI-021}", "owner": "Owner via the outside SWB session and App/shared owner", "pointOfNeed": "Before the connected-activity SoW"}
+      ],
+      "decisionStanding": ["DERIVED", "accepted default (host adoption unevidenced)"],
+      "openItems": ["UNRESOLVED{OI-021}", "UNRESOLVED{U-02}"],
+      "hostAdoption": {"state": "unevidenced", "note": "SWBPIPE SQ-05: no class system, no grants; every change requires the person's Apply; its autonomy is SWBPIPE owner decision OI-016"},
+      "undoRule": "An undo of a receipt produced under P-03 is governed by P-03 and the grant state in force for the reversed operation's class (R3-4)"
+    },
+    {
+      "recordId": "P-04",
+      "title": "Routine tool permission (A14)",
+      "recordRole": "tool-permission setting",
+      "settingOwner": "App: the user's own Codex tool-permission and sandbox modes per project and turn; hosts: no classifier permission mode",
+      "coveredActs": ["A14"],
+      "widenable": "not applicable",
+      "actorsCovered": ["person"],
+      "consequence": {"assigned": false, "notApplicable": "never a class value; not governed by the autonomy grant"},
+      "decisionBasis": [
+        {"identity": "APP-V4-FIRST-INCREMENT-20260928-DECISION-1", "part": "D3", "standing": "adopted decision"},
+        {"identity": "R-2", "part": "no affirmative App rule", "standing": "INTEGRATION"},
+        {"identity": "R2-8", "part": "recorded only in run record R13", "standing": "INTEGRATION"}
+      ],
+      "decisionStanding": ["adopted decision", "INTEGRATION"],
+      "hostAdoption": {"state": "unevidenced"}
+    },
+    {
+      "recordId": "P-05",
+      "title": "Acceptance-checkpoint constraint",
+      "recordRole": "treatment rule",
+      "coverageRule": "an operation whose result a declared checkpoint requires A5 on; the class is unchanged, the treatment is per run",
+      "treatment": "propose",
+      "widenable": "no",
+      "actorsCovered": ["embedded agent", "external agent"],
+      "decisionBasis": [{"identity": "V4-HI-42 + D2b (R-5); constraint element per R2-12", "standing": "DERIVED"}],
+      "decisionStanding": ["DERIVED"],
+      "hostAdoption": {"state": "unevidenced", "note": "SQ-02: route (iv), none planned"},
+      "phase": {
+        "currentPhase": "Plan guidance; the host's own treatment decides. Under a direct grant no proposal is queued, so an A5 checkpoint (kind (c)) is not reached and no A5 is forced (R10-1)",
+        "governancePhase": "Binds for governed checkpoints with R2-12 carriage assurance (ACT §4.4)"
+      }
+    },
+    {
+      "recordId": "P-06",
+      "title": "No-policy-basis treatment",
+      "recordRole": "catalog class",
+      "classIdentity": {"kind": "act-defined class", "name": "no policy basis"},
+      "coverageRule": "classes whose reason is omitted, unassigned or pending OI-021",
+      "coveredOperations": [{"operationId": "OP-C11", "fixtureOnly": true}],
+      "humanActClass": "no policy basis",
+      "noPolicyBasisReason": "pending OI-021",
+      "widenable": "no",
+      "actorsCovered": ["person", "embedded agent", "external agent"],
+      "consequence": {"assigned": false, "openItem": "UNRESOLVED{U-02}"},
+      "decisionBasis": [{"identity": "R-3.5; R2-1, R2-9", "standing": "INTEGRATION"}],
+      "decisionStanding": ["INTEGRATION"],
+      "openItems": ["UNRESOLVED{OI-021}"],
+      "hostAdoption": {"state": "unevidenced"},
+      "conditions": ["propose is available and confers no permission", "direct is not permitted", "an A12 widening the class is refused (reason: no policy basis)", "fixtures report such cases as held"]
+    }
+  ],
+  "decisionRecords": [
+    {
+      "identity": "APP-V4-FIRST-INCREMENT-20260928-DECISION-1",
+      "decisionActor": "The owner (Ryan)",
+      "recorder": "HELP_HUMAN (Claude Code session); faithful recording, actor differs from recorder",
+      "date": "2026-09-28",
+      "custody": "The owner's answers to a structured chat question, transcribed; not a platform export",
+      "source": "OWNER_DECISIONS.md (sha256 f3f8e5f3…81f2e)",
+      "scope": "First increment, App/shared contracts",
+      "notEstablished": "SWBPIPE adoption or enforcement (DEP-001)"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:checkpoint-observation",
+  "title": "External-channel observation passed to DEL-02-03 (DEL-03-03 ADAPTER-v0.6 §7.7 CO-1..CO-9; PROPOSED)",
+  "description": "PROPOSED schema (R12-1). One observation the adapter makes on X and passes to DEL-02-03 (arc N-24; DEP-02-03-026). The adapter observes and reports; it evaluates no reached-when, disposition or hold. 'exec_event' names the EXEC §4.4 event row the observation feeds. Property names are Chirality's semantic labels, not a host wire field.",
+  "type": "object",
+  "required": ["observation_kind", "exec_event", "source_record", "observed_at"],
+  "additionalProperties": false,
+  "properties": {
+    "observation_kind": {"enum": [
+      "proposal_queued", "applied_outcome", "act_observed", "act_declined_observed", "item_left",
+      "all_items_decided", "subject_identity_changed", "observation_lost", "observation_recovered"
+    ]},
+    "exec_event": {"enum": [
+      "arrival_input", "human_act_observed", "a10_item_left_all_items_decided", "act_declined_event",
+      "act_lapsed_input", "applied_outcome_with_resulting_objects", "observation_lost_recovered"
+    ]},
+    "source_record": {"type": "string", "minLength": 1, "description": "The native item (external dispatch record) this observation was read from."},
+    "run": {"type": "string", "minLength": 1},
+    "proposal_identity": {"type": "string", "minLength": 1},
+    "item_identity": {"type": "string", "minLength": 1},
+    "items": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "act": {
+      "type": "object",
+      "required": ["act_kind", "decision_actor", "recorder", "recording_mode", "bound_content_identity", "capture_evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "act_kind": {"enum": ["A4", "A5", "A6", "A7", "A10", "A12"]},
+        "decision_actor": {"type": "string", "minLength": 1},
+        "recorder": {"const": "app"},
+        "recording_mode": {"const": "faithful_recording"},
+        "bound_content_identity": {"type": "string", "minLength": 1},
+        "identity_method": {"type": "string", "minLength": 1},
+        "capture_evidence": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"const": "not_supplied"}
+          ]
+        },
+        "capture_time": {"type": "string", "minLength": 1}
+      }
+    },
+    "left_cause": {"enum": ["refused_stale", "refused_invalid", "refused_not_permitted", "withdrawn", "cleared_by_person_no_decision_record"]},
+    "applied": {
+      "type": "object",
+      "required": ["receipt_reference", "resulting_revision", "resulting_objects"],
+      "additionalProperties": false,
+      "properties": {
+        "receipt_reference": {"type": "string", "minLength": 1},
+        "resulting_revision": {"type": "string", "minLength": 1},
+        "resulting_objects": {"oneOf": [{"type": "array", "items": {"type": "string", "minLength": 1}}, {"const": "not_supplied"}]}
+      }
+    },
+    "identity_change": {
+      "type": "object",
+      "required": ["subject_identity", "earlier", "later", "comparable"],
+      "additionalProperties": false,
+      "properties": {
+        "subject_identity": {"type": "string", "minLength": 1},
+        "earlier": {"type": "string", "minLength": 1},
+        "later": {"type": "string", "minLength": 1},
+        "comparable": {"type": "boolean"}
+      }
+    },
+    "lost_what": {"type": "string", "minLength": 1},
+    "last_observed_state": {"type": "string", "minLength": 1},
+    "evidence_time": {"type": "string", "minLength": 1},
+    "observed_at": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"observation_kind": {"const": "proposal_queued"}}}, "then": {"required": ["proposal_identity", "items", "evidence_time"], "properties": {"exec_event": {"const": "arrival_input"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "applied_outcome"}}}, "then": {"required": ["proposal_identity", "item_identity", "applied"], "properties": {"exec_event": {"const": "applied_outcome_with_resulting_objects"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "act_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"enum": ["human_act_observed", "a10_item_left_all_items_decided"]}}}},
+    {"if": {"properties": {"observation_kind": {"const": "act_declined_observed"}}}, "then": {"required": ["act"], "properties": {"exec_event": {"const": "act_declined_event"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "item_left"}}}, "then": {"required": ["proposal_identity", "item_identity", "left_cause"], "properties": {"exec_event": {"const": "a10_item_left_all_items_decided"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "all_items_decided"}}}, "then": {"required": ["proposal_identity"], "properties": {"exec_event": {"const": "a10_item_left_all_items_decided"}}}},
+    {"if": {"properties": {"observation_kind": {"const": "subject_identity_changed"}}}, "then": {"required": ["identity_change"], "properties": {"exec_event": {"const": "act_lapsed_input"}}}},
+    {"if": {"properties": {"observation_kind": {"enum": ["observation_lost", "observation_recovered"]}}}, "then": {"required": ["lost_what", "last_observed_state"], "properties": {"exec_event": {"const": "observation_lost_recovered"}}}}
+  ]
+}

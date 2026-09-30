@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.8:server-request-entry",
+  "title": "Outstanding server-request register entry (PROPOSED)",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §6.1-§6.3 and the §6.2.1 transition table (R12-1, R12-2). One entry per server-initiated request (R1). The supplier's identity, method, subject references and parameters are carried unchanged as data. The conditional rules below restate R2, R7, R9 and the state/settlement pairing so that a conformance fixture can fail on them. An entry is never a human-act record: A14 settlements reach evidence only as run-record tool-permission entries (R8; DEL-04-03 R13), and person-input answers are never act evidence (R9; R4-12). Placement is not chosen (R12-2); persistence is DEL-01-02's.",
+  "type": "object",
+  "required": ["recordKind", "requestIdentity", "generation", "method", "classification", "originClass", "receiptPosition", "state", "replyWriteResult", "acknowledgmentObservation"],
+  "additionalProperties": false,
+  "properties": {
+    "recordKind": {"const": "server-request-entry"},
+    "requestIdentity": {"type": ["string", "integer"], "description": "Supplier-assigned identity as received (opaque)."},
+    "generation": {"type": "integer", "minimum": 1},
+    "method": {"type": "string", "minLength": 1},
+    "classification": {"enum": ["known-answerable", "known-app-unsupported", "unfamiliar"]},
+    "originClass": {"enum": ["a14", "person-input", "named-service", "none"], "description": "R9 class of the kind; 'none' for unfamiliar and known-app-unsupported kinds."},
+    "subjectReferences": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"thread": {"type": "string"}, "turn": {"type": ["string", "null"]}, "item": {"type": "string"}, "call": {"type": "string"}}
+    },
+    "nativeParameters": {"description": "The request parameters, unchanged."},
+    "receiptPosition": {"type": "integer", "minimum": 1},
+    "state": {"enum": ["received", "outstanding", "settling", "answered", "declined", "errored", "settle-write-failed", "resolved-by-supplier", "ended-unanswered"]},
+    "endCause": {"const": "process-exit"},
+    "settlement": {
+      "type": "object", "required": ["kind", "origin"], "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["answer", "decline", "error"]},
+        "nativeContent": {"description": "The answer or error content as written, unchanged."},
+        "origin": {
+          "type": "object", "required": ["class"], "additionalProperties": false,
+          "properties": {
+            "class": {"enum": ["person-via-interaction", "app-rule", "app-explicit-error"]},
+            "ruleName": {"type": "string", "minLength": 1},
+            "actorRef": {"type": "string", "minLength": 1, "description": "As supplied by DEL-01-04; never inferred."}
+          },
+          "allOf": [
+            {"if": {"properties": {"class": {"const": "app-rule"}}}, "then": {"required": ["ruleName"]}},
+            {"if": {"properties": {"class": {"const": "person-via-interaction"}}}, "then": {"required": ["actorRef"]}}
+          ]
+        }
+      }
+    },
+    "supplierResolution": {
+      "type": "object", "required": ["source"], "additionalProperties": false,
+      "properties": {"source": {"type": "string", "minLength": 1}, "cause": {"type": ["string", "null"], "description": "As the supplier reports it; never inferred."}}
+    },
+    "replyWriteResult": {"enum": ["written", "write-failed", "not-attempted"]},
+    "acknowledgmentObservation": {
+      "type": "object", "required": ["status"], "additionalProperties": false,
+      "properties": {"status": {"enum": ["observed", "not-observed", "not-observable-at-pin"]}, "what": {"type": "string"}},
+      "allOf": [{"if": {"properties": {"status": {"const": "observed"}}}, "then": {"required": ["what"]}}]
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"classification": {"const": "unfamiliar"}}},
+     "then": {"properties": {"state": {"enum": ["received", "errored", "ended-unanswered"]}, "originClass": {"const": "none"}}}},
+    {"if": {"properties": {"classification": {"const": "known-app-unsupported"}}},
+     "then": {"properties": {"state": {"enum": ["received", "errored", "declined", "ended-unanswered"]}, "originClass": {"const": "none"}}}},
+    {"if": {"properties": {"state": {"enum": ["answered", "declined", "errored", "settle-write-failed"]}}},
+     "then": {"required": ["settlement"]}},
+    {"if": {"properties": {"state": {"const": "answered"}}},
+     "then": {"properties": {"settlement": {"properties": {"kind": {"const": "answer"}}}, "replyWriteResult": {"const": "written"}}}},
+    {"if": {"properties": {"state": {"const": "declined"}}},
+     "then": {"properties": {"settlement": {"properties": {"kind": {"const": "decline"}}}, "replyWriteResult": {"const": "written"}}}},
+    {"if": {"properties": {"state": {"const": "errored"}}},
+     "then": {"properties": {"settlement": {"properties": {"kind": {"const": "error"}}}, "replyWriteResult": {"enum": ["written", "write-failed"]}}}},
+    {"if": {"properties": {"state": {"const": "settle-write-failed"}}},
+     "then": {"properties": {"replyWriteResult": {"const": "write-failed"}}}},
+    {"if": {"properties": {"state": {"const": "ended-unanswered"}}},
+     "then": {"required": ["endCause"]}},
+    {"if": {"properties": {"state": {"const": "resolved-by-supplier"}}},
+     "then": {"required": ["supplierResolution"]}},
+    {"if": {"required": ["settlement"], "properties": {"originClass": {"enum": ["a14", "person-input"]}, "settlement": {"properties": {"origin": {"properties": {"class": {"const": "app-rule"}}}}}}},
+     "then": {"properties": {"settlement": {"properties": {"kind": {"enum": ["decline", "error"]}}}}}},
+    {"if": {"required": ["settlement"], "properties": {"originClass": {"const": "person-input"}, "settlement": {"properties": {"kind": {"const": "answer"}}}}},
+     "then": {"properties": {"settlement": {"properties": {"origin": {"properties": {"class": {"const": "person-via-interaction"}}}}}}}}
+  ]
+}

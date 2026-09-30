@@ -1,0 +1,1453 @@
+{
+ "fixture_basis": "FB-CC-1 (fixture basis, not a product selection): OpenAI OpenAPI specification, github.com/openai/openai-openapi, branch main, openapi.yaml sha256 976053bfe228984127c1c4def7cb9fe0810252adbd8c41651812f68beb6426ad, retrieved 2026-09-30",
+ "note": "Chunks carry only the members the assembly reads (object, choices[].index, delta.tool_calls, finish_reason); other members the reference defines for a chunk are omitted. Content is invented example material.",
+ "offered_edition": [
+  "OP-C1",
+  "OP-C2",
+  "OP-C3",
+  "OP-C4",
+  "OP-C5",
+  "OP-C9",
+  "OP-C12"
+ ],
+ "cases": [
+  {
+   "id": "FX-V1s",
+   "maps_to": "FX-V1 (stream)",
+   "note": "One OP-C1 read of R-100 in four fragments; id and name only on the first",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-v1s-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"ru"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "n\": \"R-"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "FX-V1i",
+   "maps_to": "FX-V1 (two)",
+   "note": "Two calls whose fragments interleave by position",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-v1i-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         },
+         {
+          "index": 1,
+          "id": "call-v1i-1",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "function": {
+           "arguments": "{\"run\": "
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "function": {
+           "arguments": "\"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    },
+    {
+     "position": 1,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "FX-M1",
+   "maps_to": "MC-1",
+   "note": "Length truncation while argument text is incomplete",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m1-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C4",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\", \"loca"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "length"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "truncated",
+     "case": "MC-1"
+    }
+   ]
+  },
+  {
+   "id": "FX-M1b",
+   "maps_to": "MC-1",
+   "note": "Length termination: the whole response is cut off, so a call whose text happens to parse is also truncated",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m1b-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "id": "call-m1b-1",
+          "type": "function",
+          "function": {
+           "name": "OP-C4",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "function": {
+           "arguments": "{\"run\""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "length"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "truncated",
+     "case": "MC-1"
+    },
+    {
+     "position": 1,
+     "parse_state": "truncated",
+     "case": "MC-1"
+    }
+   ]
+  },
+  {
+   "id": "FX-M2",
+   "maps_to": "MC-2",
+   "note": "Stream ends with no termination reason during argument text",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m2-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C4",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-1"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "interrupted",
+     "case": "MC-2"
+    }
+   ]
+  },
+  {
+   "id": "FX-M3",
+   "maps_to": "MC-3",
+   "note": "Complete response; argument text is not JSON (never repaired, MC-9)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m3-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C5",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"support\": \"S-3\", \"stiffness\": 12 kN/mm}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-3"
+    }
+   ]
+  },
+  {
+   "id": "FX-M4",
+   "maps_to": "MC-4",
+   "note": "Argument JSON is an array, not an object",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m4-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "[\"R-100\"]"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-4"
+    }
+   ]
+  },
+  {
+   "id": "FX-M4b",
+   "maps_to": "MC-4",
+   "note": "A tool call of another type (custom), outside the fixture basis",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m4b-0",
+          "type": "custom",
+          "function": {
+           "name": "OP-C1",
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-4"
+    }
+   ]
+  },
+  {
+   "id": "FX-M4c",
+   "maps_to": "MC-4",
+   "note": "No correlation identity on any fragment",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-4"
+    }
+   ]
+  },
+  {
+   "id": "FX-M5",
+   "maps_to": "MC-5",
+   "note": "Operation reference not in the offered edition (V-2 not offered)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m5-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C99",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": "MC-5"
+    }
+   ]
+  },
+  {
+   "id": "FX-M6a",
+   "maps_to": "MC-6",
+   "note": "Argument text empty",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m6a-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C12",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-6"
+    }
+   ]
+  },
+  {
+   "id": "FX-M6b",
+   "maps_to": "MC-6",
+   "note": "No arguments expressed as an empty JSON object: parses; goes on to V-3 against the entry's input schema",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m6b-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C12",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "FX-M6c",
+   "maps_to": "MC-6",
+   "note": "Argument member never sent",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m6c-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C12"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-6"
+    }
+   ]
+  },
+  {
+   "id": "FX-M7",
+   "maps_to": "MC-7",
+   "note": "Two positions share one correlation identity",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m7",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         },
+         {
+          "index": 1,
+          "id": "call-m7",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         },
+         {
+          "index": 1,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-7"
+    },
+    {
+     "position": 1,
+     "parse_state": "malformed",
+     "case": "MC-7"
+    }
+   ]
+  },
+  {
+   "id": "FX-M8",
+   "maps_to": "MC-8 (R12-7)",
+   "note": "Three calls, the middle one malformed: the others are handled on their own",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m8-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         },
+         {
+          "index": 1,
+          "id": "call-m8-1",
+          "type": "function",
+          "function": {
+           "name": "OP-C5",
+           "arguments": ""
+          }
+         },
+         {
+          "index": 2,
+          "id": "call-m8-2",
+          "type": "function",
+          "function": {
+           "name": "OP-C4",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         },
+         {
+          "index": 1,
+          "function": {
+           "arguments": "{\"support\": \"S-3\", "
+          }
+         },
+         {
+          "index": 2,
+          "function": {
+           "arguments": "{\"run\": \"R-100\", \"location\": 4.5}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "complete",
+     "case": null
+    },
+    {
+     "position": 1,
+     "parse_state": "malformed",
+     "case": "MC-3"
+    },
+    {
+     "position": 2,
+     "parse_state": "complete",
+     "case": null
+    }
+   ]
+  },
+  {
+   "id": "FX-M10",
+   "maps_to": "MC-10",
+   "note": "A later fragment of the same position carries a different correlation identity",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m10-a",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m10-b",
+          "type": "function",
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-10"
+    }
+   ]
+  },
+  {
+   "id": "FX-M11",
+   "maps_to": "MC-11",
+   "note": "Content filter termination with a call in progress",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m11-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "content_filter"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "filtered",
+     "case": "MC-11"
+    }
+   ]
+  },
+  {
+   "id": "FX-M12",
+   "maps_to": "MC-12",
+   "note": "A chunk for a second choice (n > 1 is outside the fixture basis)",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m12-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 1,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-12"
+    }
+   ]
+  },
+  {
+   "id": "FX-M13",
+   "maps_to": "MC-13",
+   "note": "A fragment with no position cannot be attributed; every call of the response is rejected",
+   "chunks": [
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "id": "call-m13-0",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         },
+         {
+          "index": 1,
+          "id": "call-m13-1",
+          "type": "function",
+          "function": {
+           "name": "OP-C1",
+           "arguments": ""
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 0,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         },
+         {
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": [
+         {
+          "index": 1,
+          "function": {
+           "arguments": "{\"run\": \"R-100\"}"
+          }
+         }
+        ]
+       },
+       "finish_reason": null
+      }
+     ]
+    },
+    {
+     "object": "chat.completion.chunk",
+     "choices": [
+      {
+       "index": 0,
+       "delta": {
+        "tool_calls": []
+       },
+       "finish_reason": "tool_calls"
+      }
+     ]
+    }
+   ],
+   "expected": [
+    {
+     "position": 0,
+     "parse_state": "malformed",
+     "case": "MC-13"
+    },
+    {
+     "position": 1,
+     "parse_state": "malformed",
+     "case": "MC-13"
+    }
+   ]
+  }
+ ]
+}

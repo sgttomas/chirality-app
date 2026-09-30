@@ -1,12 +1,14 @@
 # Minimal-loop and model receiving contract
-- Contribution: DEL-05-01/LOOP-v0.7 (supersedes DEL-05-01/LOOP-v0.6, last changed at `caa4334ca` and unchanged at `3dd7c22c73`, file sha256 246f4636166c67250f73862de586afef3cad91ba538272880a80c2fd657a5767; earlier: LOOP-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 0ec980b53c4dd473b365f7e8407593a218023ad2277da7680694c852808bd737; LOOP-v0.4 sha256 ffc30483…95934e at `8fb51f07f`)
+- Contribution: DEL-05-01/LOOP-v0.8 (supersedes DEL-05-01/LOOP-v0.7, last changed at `c896a99d90`, file sha256 6f1778e6b39f3bff76a6e577ad34da5332c83cc05b5507ead810a08a6039ff24; earlier: LOOP-v0.6, last changed at `caa4334ca` and unchanged at `3dd7c22c73`, file sha256 246f4636166c67250f73862de586afef3cad91ba538272880a80c2fd657a5767; earlier: LOOP-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 0ec980b53c4dd473b365f7e8407593a218023ad2277da7680694c852808bd737; LOOP-v0.4 sha256 ffc30483…95934e at `8fb51f07f`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (V4-WF-05 and V4-HI-42 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1 and clarification): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is **plan guidance** that the person and the agents manage, and neither the App nor a host's embedded loop **enforces a hold**, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind (§2.4.0). In the current phase the agent carrying out the workflow asks for the act (R9-1; SETTLED by DECISION-K1 K1-1; §2.4.0 LP-5). The host-loop hold (§2.4.4, LH-0…LH-4) and the hold content of §2.4.1–§2.4.3 are kept as the **governance-phase definition (retained)**, not deleted.
 - Model access (V4-HOST-01 and V4-ARC-11 as amended by SCA-V4-001; R8-9; DECISION-4 D4-3): a cloud model is reached by **OAuth sign-in or an API key**, and there is **no default** between local and cloud, only options the person chooses among (§5.1). V4-HOST-02 is cited **as amended by SCA-V4-001** (DECISION-5; R8-13; §5.1 NW-2).
 - Network destinations (V4-HOST-02, V4-ARC-12 and the ARCH §4 host-agent property as amended by SCA-V4-001; R8-13; DECISION-5): the host's embedded agent sends data only to the selected model service and to destinations the person allows, by a two-level allow list or by an in-work grant scoped once, this run or always. MCP servers are allowed only if they follow the stateless MCP revision 2026-07-28. An always-off list applies, and every destination contacted is recorded and shown in any model mode (§5.1.1 NW-8…NW-16; MS-14…MS-23). Phase 1 and the governance phase are split per DECISION-4's principle.
+- Model interface for fixtures (R12-8; v0.8): the fixtures and the malformed-call rules are written against **FB-CC-1, a published Chat Completions reference, labelled "fixture basis, not a product selection"** (§4.1). DEL-05-01 REQ-002 forbids selecting a product protocol version before its basis exists, so DEP-05-01-024 stays open for the product; FB-CC-1 selects no provider, server, model or version for any host.
 - Serves: OUT-001, OUT-002, OUT-003, OUT-004; REQ-001–REQ-007; AC-001–AC-009; VER-001–VER-009 (all of DEL-05-01)
 - Basis: the accepted basis as amended by scope-change amendments SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`, accepted 2026-09-29) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), pinned by current bytes: P/docs/PRD.md sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, P/docs/ARCHITECTURE.md sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, P/docs/HOST_INTEGRATION.md sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f and P/docs/EXAMINATION.md sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (v0.6 pinned repo `6e18505e3`, before both amendments); ScopeOfWork.md sha256 9b2379a14e2c9da4310f62e72d83a6e7506ef37f70c4a38b41d76908bca985ed (revised under SCA-V4-001, its AX-004, at `340ecf341`; v0.6 pinned the INIT contract 6fbbb580…b568); the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29), cited for the admitted or held layer of register rows; P/docs/PRD.md §2.2 V4-HOST-01/02/03/04, §4.1 V4-WF-03/05, §4.5 V4-AUT-01/03/04/05, §4.7 V4-REC-03/04/05, §6, §9 OQ-02/OQ-11; P/docs/ARCHITECTURE.md §3 (V4-ARC-01/04), §4 (V4-ARC-10–14, host-agent properties), §5 V4-ARC-20, §6; P/docs/HOST_INTEGRATION.md §1, V4-HI-02/04, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, §8.1 closing paragraph, V4-HI-70/71; P/docs/EXAMINATION.md V4-EXM-01–03, V4-EXM-20–23; DECISION_BRIEF.html (sha256 02d38cb1…c4420e8; v0.6 mistyped the suffix as 4c420e8) d2, d3, d5; APP-V4-CLARIFICATION-20260927/DIRECTION.md; SCC-CASE-002 Case_Datasheet M1/M4 rows; Open_Issues OI-003/013/014/021; External_Dependencies DEP-001; run folder OWNER_DECISIONS.md (sha256 f3f8e5f3…cf81f2e; decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, D2 and D3), R1_RESOLUTIONS.md (sha256 2f9c7e72…e177ec4), R2_RESOLUTIONS.md (sha256 77cfb845…cdebd088), comparisons/V1-A.md (01811533…e04c09), comparisons/V1-C.md (8d46258a…4a94a6), reviews/IR1-A.md (31b3c7f8…0b648284), reviews/IR1-B.md (70e4a4f6…2846), reviews/IR1-C.md (295e96b3…a426b9); run folder at commit `f05c7e4cd`: OWNER_DECISIONS.md (sha256 a9869129…68ad2c; adds `APP-V4-FIRST-INCREMENT-20260928-DECISION-2`, D5 and D6), R3_RESOLUTIONS.md (202d52c7…afbf), R4_RESOLUTIONS.md (50a009b2…032a24), reviews/V2.md (75ba1dff…6ef); run folder at commit `8fb51f07f`: R5_RESOLUTIONS.md (254d0b93…dd6f1), reviews/V3-A.md (f25f5af1…21d87), reviews/V3-B.md (5662fbd0…954a3); run `APP-V4-SWBPIPE-INTAKE-20260928` at commit `94aa9181b`: OWNER_DECISIONS.md (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; D4-2 loop and panel keep V4-ARC-10; D4-3 model access)); P/docs/ARCHITECTURE.md V4-ARC-10/11/12 and `conceptual/DECISIONS.md` D-20 as cited there
 - Consumed inputs:
+  - **v0.8 inputs (Wave B, node B9 of run `APP-V4-DESIGN-PASS-2-20260930`; design development).** Paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`, sha256 recomputed with `shasum -a 256` at this pass: `R12_RESOLUTIONS.md` 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-3, R12-7, R12-8; binding); `BRIEFS.md` ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B — design development", round-1 row B9); `OWNER_DECISIONS.md` 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1, K1-6 for the specification fetch); `SURVEY/S1-D.md` a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (LOOP §5 and §8 items 7 and 8; advice, checked against the current text). Starting text: LOOP-v0.7 as merged by PR-1 (above). The fixture basis FB-CC-1 is the published OpenAI OpenAPI specification, `openapi.yaml` of https://github.com/openai/openai-openapi (branch `main`), sha256 976053bfe228984127c1c4def7cb9fe0810252adbd8c41651812f68beb6426ad, retrieved read-only on 2026-09-30 (§4.1; K1-6). Sibling Design files are cited at their Wave A labels, because the other Wave B nodes edit them in parallel: P-v0.7 §3.1 rule 5; ACT-POLICY-v0.7 §2.7; RS-v0.7 R15; HOSTING-BOUNDARY-v0.7 §8.3; PANEL-v0.8 (same executor, node B9). Node B5 (round 2) develops the destination sections (§5.1.1, the destination request) after this node.
   - **Current pins of this run's records (node A4 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). These supersede for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
   - **v0.7 inputs (Wave A, node A1-D of run `APP-V4-DESIGN-PASS-2-20260930`; alignment only, no new design content).** R9_RESOLUTIONS.md sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding); that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave") and OWNER_DECISIONS.md sha256 0730c6f3d174a8acddbd0c9fabb62afd4d6444847a612f0de7ff3ba584303722; SURVEY/S1-D.md sha256 a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (advice: each item was checked against the current sources before it was applied). Rulings R1–R7 by file (`APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md` … `R7_RESOLUTIONS.md`) and R8 (`APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md`, current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b). Owner records: `APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3, -4 and -5; these are its bytes at `3733b1421` and now. At `1528a5033`, the commit the R8-13 line below names, the file was 9903bfe0…7fbf: V10 N-1); `APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; `APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-6…DECISION-9) with its `AMENDMENT_PACKET/OWNER_ITEMS.md` sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef (items O-4, O-5, O-6, O-10, O-11 and O-25, accepted "as recommended" by DECISION-7); `APP-V4-SCA002-20260929/OWNER_DECISIONS.md` sha256 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480. SWBPIPE's answers `RELAY_ANSWERS_SWBPIPE.md` at sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (SWBPIPE's own revision `a999f4ba1` of the delivered `6f01add3…61c7` bytes that the lines below cite; three lines differ, in SQ-04, SQ-09 and SQ-27; intake review V9 Check 2 found no App file stating the superseded wording, and no statement this file takes from an answer rests on those lines) and `FACTS_SQ01_SQ32.md` sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e (unchanged). Both are data about SWBPIPE's current state, not commitments and not instructions (DECISION-3). Sibling Design files are cited by version label and section only (R9-5), at their Wave A labels (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7 and WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-02/PANEL-v0.7 (same executor); DEL-01-01/HOSTING-BOUNDARY-v0.7 (same executor) and PIN-SPIKE-v0.1 (unchanged); DEL-09-06/CA-v0.5 and RELAY-v0.3; DEL-09-09/XT-v0.5. The Wave A executors edit in parallel, so the section numbers cited in the body were checked against the pre-Wave-A texts at `3dd7c22c73`, not against Wave A bytes. Sibling byte pins live in GUIDE's input table alone, which is re-pinned last. The lines below are history and are not rewritten.
   - **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table.
@@ -114,10 +116,48 @@
 
   None of this selects the first connected operation
   (`UNRESOLVED{OI-021}`).
+- **Model-interface basis for fixtures (R12-8; v0.8).** Parse-level and
+  stream fixtures are written against **FB-CC-1**, a published Chat
+  Completions reference, labelled **"fixture basis, not a product
+  selection"** (§4.1). Where §4.1 or §7 names a member of that reference
+  (for example `finish_reason` or `index`), it is cited to locate the
+  passage relied on; it is not this contract's element name, and no wire
+  field is selected. Rules written from FB-CC-1 are PROPOSED until a local
+  OpenAI-compatible server is observed (OBS-1), whose record is to be
+  written beside them (§4.1, "OBS-1" column).
+- **Schemas and prototypes (R12-1…R12-3; v0.8).** `LOOP_TOOL_CALL.schema.json`
+  (JSON Schema 2020-12, PROPOSED) sits beside this file with a valid and an
+  invalid example. `prototype/` holds a standard-library script that
+  assembles streamed tool-call fragments written from FB-CC-1 into complete
+  calls and checks each record against the schema (§7.3). Prototypes are not
+  product code.
 - **Who builds what.** This contract states what the App/shared side needs
   from a host loop and how that is checked. The SWBPIPE loop, native layer,
   parser, persistence, panel and treatment enforcement belong to the external
   host owner (SoW CLM-001; HI §1; ARCH §4).
+
+## Changes from v0.7
+
+Wave B of run `APP-V4-DESIGN-PASS-2-20260930` (node B9): design
+development under R12. Rows are keyed by R12 item and by the survey item
+(S1-D, LOOP §8) each change answers. Every new structure is PROPOSED unless
+its row names the ruling that decides it. The network-destination items
+(S1-D LOOP item 5; the refusal-recording labels and LP-5's label of R12-10)
+are node B5's, round 2, and were not started here.
+
+| Item | Change in v0.8 | Where |
+|---|---|---|
+| R12-1 | Version v0.7 → v0.8. Status stays DRAFT: unsupplied, unimplemented and not accepted. Header pins the Wave B inputs | Header |
+| R12-8 | **Fixture basis FB-CC-1**, labelled "fixture basis, not a product selection": the published OpenAI OpenAPI specification, with URL, retrieval date (2026-09-30), sha256 of the bytes relied on and the passages quoted by line. The four representation points (fragmented calls, termination reasons, several calls per response, "no arguments") written from it, each with the inference marked where the reference is silent and an OBS-1 column left pending. The three open representation rows of §4 are closed **as PROPOSED**; a fourth row ("no arguments") is added. DEP-05-01-024 stays open for a product | Header, §0, §1 consequence 2, §2.2, §4, §4.1, §4.2, §10.1, §10.3, UNRESOLVED |
+| R12-8 (malformed-call rules) | §7 rewritten in FB-CC-1's representation: MC-1 (length: every call of the response truncated), MC-2 (no termination reason), MC-4 widened (custom item, deprecated form, no identity), MC-6 closed as PROPOSED (`{}` is "no arguments"; absent or empty text is malformed), new MC-10…MC-13. New §7.1 assembly rules R-F1…R-F5 | §7, §7.1 |
+| R12-7 (T-OPEN-1 / MC-8; INTEGRATION) | MC-8: the valid calls are handled on their own and the malformed call gets its own refusal, per P-v0.7 §3.1 rule 5; PROPOSED until the fixture basis is observed. `T-OPEN-1` closed; G-3 answered on the App side; U-P9's malformed-sibling part noted as ruled | §7 MC-8, Findings G-3, UNRESOLVED |
+| R12-7 (N-OPEN-1; DERIVED) | `N-OPEN-1` closed: "user-controlled local" is a class label (local or cloud) in the destination record, not a gate. **MS-11 released** with an expected result | §5.1, §5.2 MS-11, UNRESOLVED, VC-01 |
+| S1-D LOOP item 8 (failure rows) | New §3.1: failure behaviour at each step of the turn sequence (F-1…F-13): undelivered input, model setting, boundary refusal, destination record not writable, model interface failure, stream end, length and filter, V-1…V-3, host route unreachable, run-record write failure, turn cancel with calls dispatched, no panel or a delivery gap, lost outcome. New event "tool call not dispatched: turn cancelled"; model interface failure evidence under FB-CC-1; E-6 event ordinal and E-7 delivery-is-not-recording | §2.3, §3, §3.1 |
+| S1-D LOOP item 8 (state summary) | New §3.2: transition tables for workflow run, turn and tool call; for the destination request, the **states only** (pending, granted by scope, declined, not grantable, unanswered at end), with transitions left to node B5 | §3.2 |
+| R12-1, R12-2 (data) | New schema `LOOP_TOOL_CALL.schema.json` (JSON Schema 2020-12; PROPOSED) with a valid and an invalid example; described in §7.2 | §2.2, §7.2; `LOOP_TOOL_CALL.*.json` |
+| R12-3 (prototype) | `prototype/`: a standard-library assembler of streamed tool-call fragments written from FB-CC-1, 19 stream fixtures, and a schema-subset validator. Result recorded (19/19 as expected; examples valid / invalid as intended) | §7.3, §11, VC-05; `prototype/` |
+| R12-1 (verification) | §11 names FB-CC-1 as the fixtures' model-interface basis and lists the stream fixtures with the prototype's result; VC-03 and VC-05 updated | §11, Verification cases |
+| Findings | G-11 (what FB-CC-1 does and does not state; the two choices this file makes) and G-12 (failure rules returned for joining) added | Findings |
 
 ## Changes from v0.6
 
@@ -267,7 +307,9 @@ Consequences:
 
 1. A local server that serves both interfaces does not join them.
 2. The App's Codex protocol types are not the host loop's types. The loop's
-   detailed representation waits for DEP-05-01-024.
+   detailed representation for a product waits for DEP-05-01-024. Its
+   fixtures are written against FB-CC-1, a fixture basis and not a product
+   selection (§4.1; R12-8).
 3. PRD §6 excludes a Chirality-owned loop for the App. The minimal loop has
    **host consumers only**. SWBPIPE is the only identified one; OI-005 is
    open (§10).
@@ -341,7 +383,7 @@ Loop obligations:
 |---|---|---|
 | Catalog edition | Identity of the adopted catalog state from which offerings were made | C §2; one name on both sides |
 | Tool offering | One catalog entry with all C elements 1–9:<ol><li>identity and entry version</li><li>purpose</li><li>input schema</li><li>availability and unavailable reason, as evaluated at offering (historical; re-evaluated at request)</li><li>effects</li><li>result schema with standing</li><li>errors with effect statements</li><li>class element (§3.1 sub-elements)</li><li>per-surface exposure</li></ol> | C §3, §3.1 |
-| Tool call | Call correlation identity; operation reference; argument text; parse state (§7) | This contract. Representation per DEP-05-01-024 |
+| Tool call | Call correlation identity; position in the model response; operation reference; argument text; parse state (§7). The received record after V-1 and V-2 is `LOOP_TOOL_CALL.schema.json` (PROPOSED; §7.2) | This contract. Representation: for fixtures, FB-CC-1 (§4.1, fixture basis, not a product selection); for a product, DEP-05-01-024 |
 | Schema-conformant call | Parsed completely and conforming to the input schema of the named entry version in the offered edition. **Not** P's lifecycle state *validated* | This contract |
 | Tool result | One of four classes (TL-2) | P §9 and C §4.1, unchanged (R-7) |
 
@@ -445,7 +487,8 @@ itself a human act.
 | **Destination declined** (R8-13) | Requested destination | Person; the host's control records | "destination not allowed by the person", as reported to the agent; time; the requesting call. An act-declined event of kind A12 (ACT §2.3, §2.7) |
 | **Destination refused at boundary** (R8-13) | Network request | Host native layer | Destination; reason (not allowed · always-off item · not stateless MCP (2026-07-28)); nothing sent |
 | **Outside process started** (R8-13) | MCP server or other outside process | Host | Process identity; declared destinations; sandboxed or not; the evidence limit "process network not observed" when not sandboxed (NW-16) |
-| Model interface failure | Model request | Model server or transport / loop | Termination reason |
+| Model interface failure | Model request | Model server or transport / loop | Termination reason. Under FB-CC-1 an error has no termination-reason value: it is a transport or service error, or a stream that ends with no termination reason (§4.1 point 2; v0.8) |
+| **Tool call not dispatched: turn cancelled** (v0.8; PROPOSED) | Tool call not yet dispatched when the person cancelled the turn | Loop | Correlation identity where received; "not dispatched: turn cancelled". Calls already dispatched are not recalled (§3.1 step F-11) |
 | Tool call received | Tool call | Model / loop | Correlation identity; operation reference; parse state |
 | Tool call rejected: unparseable or truncated | Tool call | Loop | Parse state and reason; "not dispatched" |
 | Tool call rejected: not offered | Tool call | Loop | Operation reference; catalog edition; "not dispatched" |
@@ -509,6 +552,18 @@ Loop obligations:
 
   An examination (A3, e.g. OP-C3 at T4) never changes domain tables. Its
   result is never labeled "checked" (R-4).
+- E-6. **Event ordinal** (v0.8; PROPOSED; S1-D LOOP item 8). Each event
+  carries an ordinal, contiguous within the conversation and never reused,
+  so that a receiver can see a gap and ask for the events from a given
+  ordinal (PANEL-v0.8 FD-3). The ordinal orders delivery; it is not an
+  evidenced time, and it does not replace the arrival and performance
+  ordinals of §2.4.
+- E-7. **Delivery is not recording** (v0.8; PROPOSED). An event that cannot
+  be delivered to the panel is still written to the run record, and the
+  failure changes nothing in the run. With no panel attached the loop
+  continues; nothing is recorded as shown to the person, and nothing the
+  person must answer through the host's control is taken as answered
+  (§3.1 steps F-9, F-10).
 
 ### 2.4 Checkpoints
 
@@ -949,19 +1004,156 @@ run end ─► run-ended event with every checkpoint disposition
 
 In Phase 1 every checkpoint step records and never holds (§2.4.0).
 
+The person's message, turn cancel, run stop and workflow selection reach
+the loop as the panel's return inputs (PANEL-v0.8 §3.9). Decisions the
+person makes through the host's control (A4, A5, A10, A12, including
+network-destination grants, and A13) do not come from the panel as inputs;
+the loop receives the host's capture record (E-2).
+
+### 3.1 Failure behaviour at each step (v0.8; S1-D LOOP item 8; R12-1)
+
+PROPOSED unless a cited rule decides it. "Record" is the run record
+(DEL-04-03's format); every event also carries its E-6 ordinal. None of
+these rules is a checkpoint hold: in Phase 1 nothing holds for a checkpoint
+(§2.4.0), and F-10's pause concerns a record that cannot be written.
+
+| # | Step | What fails | Who reports | Record left | What happens next |
+|---|---|---|---|---|---|
+| F-1 | Person input reaches the loop | The return input is not delivered | Panel (PANEL-v0.8 §3.9, outcome *not delivered*) | None: no turn started | The person resubmits. The panel never shows an undelivered message as sent |
+| F-2 | Model setting check | Unconfigured, or cloud chosen with no credential | Native layer | "Model request refused at boundary" (no credential content); turn failed | No request is made and nothing falls back (NW-5; MS-02, MS-04). Only the person chooses or signs in (NW-4) |
+| F-3 | Native-layer destination check on the model request | The request names a destination other than the selected model service (MS-05) | Native layer | Refusal event; turn failed | Setting unchanged; no fallback (NW-5) |
+| F-4 | Native layer records the contact | The destination record cannot be written | Native layer | The refusal, when it can be written | The request is **not sent** (fail closed), because every destination contacted is recorded (V4-ARC-12 as amended). Turn failed. Node B5 joins this row to §5.1.1 |
+| F-5 | Model server and transport | Unreachable server, rejected or expired credential, service error before any stream | Model server or transport / loop | Model interface failure (termination reason "error"; §4.1 point 2); turn failed | No switch between local and cloud (MS-08, MS-09) |
+| F-6 | Stream | Ends with no termination reason, or the transport fails mid-stream | Loop | Model interface failure; the agent message *interrupted*; every call of that response *interrupted* (MC-2) | Turn failed. Nothing is dispatched from the response |
+| F-7 | Stream | Termination "length" or "content filter" | Loop | Agent message *truncated* (length) or *failed* (content filter); every call of the response rejected (MC-1, MC-11) | Class 1 results go to the model; the turn continues with the next model request, or completes if the response had no calls |
+| F-8 | V-1…V-3 per call | Parse, offering or schema failure | Loop | Per §7: three reports (model, events, record) | Each call is judged on its own; the other calls of the response go on (MC-8; R12-7) |
+| F-9 | Dispatch to the host route | The route is unreachable, or delivery is not confirmed | Loop (observer) | Class 4 *outcome unknown*, last observed state "dispatch attempted; host route unreachable" | The loop seeks observation before any resubmission (§6.3 R-d); a resubmission keeps the proposal identity (R-a) |
+| F-10 | Run record write | The record does not accept a write | Loop | Events already emitted; the failure itself is written once the record accepts writes | The loop makes **no further dispatch** until a dispatch can be recorded: a call that cannot be recorded is not made (V4-HI-70 inventory; E-4). If the record cannot be restored, the run ends with cause *failure* and the run-ended event is written when the record returns. This pause is a failure rule, not a checkpoint hold |
+| F-11 | Turn cancel (RS-3) | — (the person cancels) | Person (panel return input) / loop | Turn cancelled; undispatched calls "not dispatched: turn cancelled" (§2.3); dispatched calls keep their outcomes | Nothing dispatched is recalled or undone. Outcomes are observed and recorded, or become class 4. A destination request still pending ends unanswered (state list in §3.2; node B5) |
+| F-12 | Event delivery to the panel | No panel attached, or a delivery gap | Loop / panel | Every event stays in the record (E-7) | The panel detects the gap by ordinal and asks from the last ordinal it holds (PANEL-v0.8 FD-3). The run is unaffected |
+| F-13 | Host outcome observation | Lost after dispatch | Loop (observer) | Class 4 with the last observed state | As F-9. A kind (c) arrival deciding on that outcome is *unknown* (§2.4.1) |
+
+### 3.2 State summary (v0.8; S1-D LOOP item 8; R12-1)
+
+One table per stateful thing this contract owns. States marked *governance
+phase* never arise in Phase 1. PROPOSED unless a cited rule decides it.
+
+**Workflow run.**
+
+| From | Event | To | Record |
+|---|---|---|---|
+| — | Workflow selected for a run and started (PANEL-v0.8 §3.9) | live | Run identity; workflow identity tuple; holding library; continues ⟨run⟩ if any (R4-4) |
+| live | Observation lost | interrupted | Run interrupted (EXEC RE-4) |
+| interrupted | Observation recovered | live | Observation recovered; re-observed events, nothing back-filled (EXEC RP-1…RP-5) |
+| interrupted | Recovery impossible | ended | Run ended, cause "interruption not recovered" |
+| live | Model ended; person stopped (PANEL return input); declared negative path (governance phase); failure (F-10) | ended | Run ended with cause and every checkpoint disposition (§2.3) |
+| live | Arrival at a governed checkpoint (*governance phase*) | held | Checkpoint reached; the loop stops acting on the run (C-1, §2.4.4) |
+| held | Act performed, or negative decision with a path (*governance phase*) | live | Run resumed (EXEC HD-5) |
+| ended | Anything | ended (final) | Later acts recorded "after run end" (R4-4) |
+
+**Turn** (one person message and the model requests it leads to).
+
+| From | Event | To | Record |
+|---|---|---|---|
+| — | Person message received, model setting usable | awaiting model | Turn started; model setting in force (§2.1) |
+| — | Person message received, setting unconfigured or no credential | failed | F-2 |
+| awaiting model | Refusal at boundary or model interface failure | failed | F-3…F-5 |
+| awaiting model | First streamed increment | streaming | Model stream progress |
+| streaming | Termination *stop* or *length* with no tool calls | completed | Agent message *complete* or *truncated* |
+| streaming | Termination *content filter* with no tool calls | failed | Agent message *failed* (F-7) |
+| streaming | Termination *tool calls*, or *length* / *content filter* with calls | running tool calls | Tool calls received (§7) |
+| streaming | Stream ends with no termination reason | failed | F-6 |
+| running tool calls | Every call of the response has a result of class 1–4 | awaiting model | Results returned by correlation identity |
+| any but completed, cancelled, failed | Person cancels | cancelled | F-11 |
+
+**Tool call.**
+
+| From | Event | To | Record |
+|---|---|---|---|
+| — | First fragment at a position | receiving | — |
+| receiving | Response terminates (§4.1 point 2) | received, or rejected (V-1) | Tool call received; MC-1, MC-2, MC-10…MC-13 as they apply |
+| received | V-1 parse, V-2 offering, V-3 schema | schema-conformant, or rejected | §6, §7; class 1 on rejection |
+| schema-conformant | Kind (a) arrival (*governance phase*, governed checkpoint) | held at checkpoint | Call held (§2.4.1) |
+| schema-conformant | Destination not allowed; the agent asked | waiting for destination answer | NW-12: only this call waits. Where this sits among V-1…V-5 is node B5's |
+| schema-conformant, held, or waiting | Dispatch | dispatched | Dispatch record (§6.2) |
+| dispatched | Host outcome observed | outcome observed | Class 2 or 3 |
+| dispatched | Observation lost, or route unreachable | outcome unknown | Class 4 (F-9, F-13); a later observation is recorded as a new event (R-d) |
+| receiving, received, schema-conformant, held or waiting | Person cancels the turn | not dispatched: turn cancelled | §2.3 (F-11) |
+
+**Destination request** (states only; transitions, events and their place
+in the validation order are node B5's, round 2): *pending* (the agent asked;
+only the requesting call waits, NW-12); *granted* with scope *once*, *this
+run* or *always* (NW-11); *declined* (NW-13); *not grantable* (a
+non-stateless MCP server, NW-10); *unanswered at end* (the run ended or the
+requesting call was cancelled while pending: no grant, and the requesting
+call is not sent; PROPOSED, never a grant by silence, NW-13).
+
+Checkpoint dispositions (§2.4) and grant states (O-6) are defined where
+they are and are not repeated here.
+
 ## 4. Minimal Chat Completions capability
 
 | Capability | Why | Settled or open |
 |---|---|---|
 | Submit an ordered conversation and tool offerings | Messages, tools | Settled need (V4-ARC-10) |
 | Receive assistant content incrementally | §8; panel | Settled need |
-| Receive tool calls (correlation identity, name, argument text, possibly fragmented) | Tools; §7 | Need settled; fragment representation open (DEP-05-01-024) |
-| Termination reason that distinguishes complete, length-truncated and error | §7 | Need settled; representation open |
+| Receive tool calls (correlation identity, name, argument text, possibly fragmented) | Tools; §7 | Need settled. Fragment representation: written from FB-CC-1 (§4.1 point 1), PROPOSED; product representation DEP-05-01-024 |
+| Termination reason that distinguishes complete, length-truncated and error | §7 | Need settled. Representation: written from FB-CC-1 (§4.1 point 2), PROPOSED; product DEP-05-01-024 |
 | Return a tool result for a correlation identity, including "held at checkpoint" (governance phase) | Tools; §2.4.1 (a) | Settled need |
-| Several tool calls per response | §7 MC-8 | `UNRESOLVED{DEP-05-01-024}` |
+| Several tool calls per response | §7 MC-8 | Written from FB-CC-1 (§4.1 point 3), PROPOSED; handling ruled by R12-7 (INTEGRATION). Product DEP-05-01-024 |
+| "No arguments" (a call to an entry with an empty input schema) | §7 MC-6 | Written from FB-CC-1 (§4.1 point 4), PROPOSED; product DEP-05-01-024 |
 
 No provider, server, model or version is selected. ARCH §6 names are dated
-assumptions.
+assumptions. The three representation rows that v0.7 left open are closed
+**as PROPOSED** from FB-CC-1 below (R12-8); they stay PROPOSED until OBS-1.
+
+### 4.1 Fixture basis FB-CC-1 — fixture basis, not a product selection (R12-8; v0.8)
+
+**What FB-CC-1 is.** A published Chat Completions reference that this
+contract's fixtures and malformed-call rules are written against. It is
+labelled **"fixture basis, not a product selection"**: DEL-05-01 REQ-002
+forbids selecting a product protocol version before its basis exists, and
+DEP-05-01-024 (the product's model-interface basis) stays UNKNOWN (§10.3).
+FB-CC-1 selects no provider, server, model or version for any host, and no
+host is claimed to follow it.
+
+**Source and retrieval (read-only; DECISION-K1 K1-6; brief B9).**
+
+| Item | Value |
+|---|---|
+| Text relied on | The published OpenAI OpenAPI specification, `openapi.yaml`, repository https://github.com/openai/openai-openapi (default branch `main`, as the GitHub repository record reported at retrieval) |
+| URL fetched | https://raw.githubusercontent.com/openai/openai-openapi/main/openapi.yaml |
+| Retrieved | 2026-09-30, 17:53 UTC (`curl`, HTTP 200, 3,895,612 bytes) |
+| sha256 of the bytes relied on | 976053bfe228984127c1c4def7cb9fe0810252adbd8c41651812f68beb6426ad (`openapi: 3.1.0`; `info.version: 2.3.0`). The `master` branch returned byte-identical content at the same time |
+| Branch head at retrieval | 36a1ed5e96952caf44480de72da1a3cb74e69966, committed 2026-09-30T17:47:20Z (GitHub API). The branch moves; the sha256 above identifies the text |
+| Not relied on | The HTML reference https://platform.openai.com/docs/api-reference/chat returned HTTP 403 to a read-only fetch on 2026-09-30, so the specification behind it is the text relied on. The `manual_spec` branch (`openapi: 3.0.0`, same `info.version`) carries the same passages quoted below; it is not the basis |
+
+Member names such as `finish_reason` or `index` below are the reference's
+own, quoted to locate the passage (§0). Line numbers are those of the bytes
+pinned above.
+
+**The four representation points.**
+
+| # | Point | What the reference says (short quotes; schema; line) | What FB-CC-1 establishes, and what it does not | Receiving rule (PROPOSED) | OBS-1 (local OpenAI-compatible server) |
+|---|---|---|---|---|---|
+| 1 | Fragmented (streamed) tool calls | `ChatCompletionStreamResponseDelta` is "A chat completion delta generated by streamed model responses." (L41805); its `tool_calls` items are `ChatCompletionMessageToolCallChunk`, whose only required member is `index` (`required: - index`, L41043–41044); `id`, `type`, `function.name` and `function.arguments` are optional in a chunk | A streamed call arrives as fragments correlated by their position in the response; any fragment may lack the identity, the name or an argument piece. The reference does not say in words that argument pieces are concatenated: that is an **inference** from `arguments` being a string in each chunk with only `index` required | R-F1…R-F4 (§7.1): join fragments by position; append argument text in arrival order, never repaired (MC-9); identity and name from the fragment that carries them; a conflicting later fragment is MC-10; a fragment with no position rejects the response's calls (MC-13) | Pending (not observed) |
+| 2 | Termination (finish) reasons | `finish_reason` enum `stop`, `length`, `tool_calls`, `content_filter`, `function_call` (L43466–43471 complete response; L43653–43659 streamed, where it may also be `null`). "`length` if the maximum number of tokens specified in the request was reached"; "`tool_calls` if the model called a tool" (L43451–43462). `function_call` is marked deprecated | *Complete* = `stop` or `tool_calls`; *length-truncated* = `length`; content omitted by a filter = `content_filter`. **No value names an error**: an error is a transport or service failure, or a stream that ends with no reason (every chunk `null`). The deprecated `function_call` form is outside the fixture basis | §7 MC-1 (length: every call of the response truncated), MC-2 (no reason: interrupted), MC-11 (content filter), MC-4 (deprecated form); §3.1 F-5…F-7 | Pending |
+| 3 | Several tool calls in one response | The message's tool calls are "The tool calls generated by the model, such as function calls." (an array, L41045–41047); the request member `parallel_tool_calls` is "Whether to enable [parallel function calling] … during tool use.", `default: true` (L55894–55899). Choices "Can be more than one if `n` is greater than 1." (L43438) | A response may carry several calls, in order, and by default the service may produce them. Several *choices* arise only with `n` above 1 | Each call is judged on its own (MC-8; R12-7). Fixtures request one choice; a chunk for a second choice is outside the basis (MC-12). Position order is kept (M-1) | Pending |
+| 4 | How "no arguments" is expressed | A complete call's `function.arguments` is a required string, "as generated by the model in JSON format" (`ChatCompletionMessageToolCall`, L40980–41011); "Note that the model does not always generate valid JSON" (L41005). For a tool: "Omitting `parameters` defines a function with an empty parameter list." (L50720) | An entry may have an empty parameter list, and argument text is always JSON text. The reference does **not** state the text the model sends for an empty list. **Inference:** "no arguments" is argument text that parses to a JSON object with no members (`{}`) | MC-6: `{}` parses and goes on to V-3 against the entry's input schema; absent or empty text is malformed and is **never** coerced to no arguments (ARCH §4; SOW-142) | Pending |
+
+When OBS-1 runs (after round 2, on the owner's approval of the model; K1-6),
+its dated record at one server version is written in the OBS-1 column
+beside these rules. A difference between the observation and FB-CC-1 is
+recorded as observed; it does not silently change a rule.
+
+### 4.2 Where FB-CC-1 stops
+
+- It covers the loop's receiving of one model response. The request side
+  (how offerings and tool results are sent) is used only as §4's needs.
+- It says nothing about hosts, native layers or destinations (§5).
+- A custom tool call (another item kind in the same array) and the
+  deprecated `function_call` form are outside the fixture basis and are
+  rejected as MC-4.
 
 ## 5. Model selection, destination and key boundary
 
@@ -1024,8 +1216,19 @@ assumptions.
     selected model service and the destinations the person has allowed,
     records every destination contacted"; SoW AC-002): the native layer is
     the enforcement point.
+- **Ruled (v0.8).**
+  - `N-OPEN-1`, what counts as a "user-controlled local" endpoint: **closed
+    by R12-7 (DERIVED from V4-HOST-01 and V4-HOST-02 as amended).** The
+    model service the person selected is allowed whether it is local or
+    cloud (NW-1, NW-9), so "user-controlled local" is a **class label** in
+    the destination record, not a gate: the record of a model-service
+    contact carries the class **local** or **cloud** as the person's model
+    choice states it (§5.1 states), in the same way HOSTING-BOUNDARY-v0.7
+    §8.3 derives the App's destination class from the provider
+    configuration the person chose. The loop and the native layer never
+    infer the class from the address, and never refuse a selected service
+    because of where it runs. MS-11 is released.
 - **Open.**
-  - `UNRESOLVED{N-OPEN-1}`: what counts as "user-controlled local" endpoints.
   - `UNRESOLVED{N-OPEN-2}`: cloud-chosen destinations, including the sign-in
     endpoints an OAuth flow contacts. From R8-13 the sign-in service is
     allowed by the person's model choice (NW-9); which endpoints it
@@ -1180,7 +1383,7 @@ and an unsandboxed outside process examined within its stated limit.
 | MS-08 | Cloud authentication error: key rejected, or sign-in expired or revoked | Reported without credential content; no switch to local; only the person signs in again or supplies a key | Error, event, record |
 | MS-09 | Local server unreachable | Failure; no cloud switch | Destinations; event |
 | MS-10 | Person switches cloud → local | Only local afterwards; change attributed to the person | Destinations; setting record |
-| MS-11 | "Local" endpoint on another machine | Held on `UNRESOLVED{N-OPEN-1}` | — |
+| MS-11 | "Local" endpoint on another machine: the person chose "local" and configured a model server they control on another machine of their network (released at v0.8 by R12-7) | Contacted as the selected model service through the native layer; recorded and shown with allowing entry "model choice" and class **local**, as the person's choice states it. No gate on where the server runs; no class inferred from its address; no fallback if it is unreachable (MS-09) (NW-1, NW-9, NW-15; R12-7) | Native trace; destination record with class; setting record |
 | MS-12 | Cloud chosen, signed in (OAuth) (R8-9) | Chosen endpoint via the native layer; the sign-in credential is not visible to script; the sign-in itself was the person's act | Native trace; script inspection; setting record |
 | MS-13 | The agent asks to switch to cloud, or to sign in (R8-9; NW-4) | Shown as the agent's request only; no sign-in started; setting unchanged | Setting before/after; event |
 | MS-14 | Allow-list hit by category (R8-13): web access switched on; the agent's tool fetches web destination W-1; local or cloud chosen | Contacted through the native layer. Recorded and shown with destination W-1, category web access and allowing entry "category: web access" (NW-8, NW-15) | Native trace; destination record; panel display |
@@ -1327,29 +1530,92 @@ deferred (DECISION-3). SWBPIPE has no loop today (SQ-20).
 
 SETTLED: truncated or malformed calls are reported failures, never executed as
 empty arguments (ARCH §4; SOW-142). These are parse-level local cases,
-`L-LOOP-MC-n`, because FX-PIPE-01 has no model-output subjects.
+`L-LOOP-MC-n`, because FX-PIPE-01 has no model-output subjects. From v0.8
+each condition is stated in the representation of FB-CC-1 (§4.1; fixture
+basis, not a product selection). Every rule below is PROPOSED unless marked
+otherwise, and stays PROPOSED until OBS-1 (R12-7, R12-8).
 
-| ID | Condition | Expected handling |
-|---|---|---|
-| MC-1 | Length truncation while argument text is incomplete | Failure "truncated"; not dispatched; three reports |
-| MC-2 | Stream interrupted during argument text | Failure "interrupted"; not dispatched |
-| MC-3 | Complete but not parseable | Failure "malformed" |
-| MC-4 | Parses, but not the required structured form | Failure "malformed" |
-| MC-5 | Operation reference missing, empty, or not in the offered edition | V-2 **not offered**; not dispatched |
-| MC-6 | Argument text absent or empty | Never coerced to empty arguments. Treated as malformed until DEP-05-01-024 says how "no arguments" is expressed |
-| MC-7 | Two calls share a correlation identity | Failure for both (PROPOSED) |
-| MC-8 | Several calls in one response, one of them malformed | The malformed call is not dispatched. Proposed: valid siblings run, each on its own validation (`UNRESOLVED{T-OPEN-1}`). **Grouping follows P §3.1 rule 5**: sibling calls form separate proposals, unless a call explicitly names an existing proposal it extends. That is the drafter's choice, not a loop merge. Grouping mechanics: U-P9 |
-| MC-9 | The loop "repairs" incomplete text | Prohibited. A re-issued call is a new call |
+| ID | Condition (FB-CC-1 representation) | Expected handling | Fixture (§11) |
+|---|---|---|---|
+| MC-1 | The response ends with termination reason `length` (§4.1 point 2) while any call is in it | Every call of that response fails "truncated", including a call whose text happens to parse, because the response was cut off; not dispatched; three reports. (A per-call reading, dispatching calls whose text parses, was considered and not taken: the model's response is incomplete) | FX-M1, FX-M1b |
+| MC-2 | The stream ends with no termination reason, or the transport fails mid-stream | Every call of that response fails "interrupted"; not dispatched; model interface failure (§3.1 F-6) | FX-M2 |
+| MC-3 | Complete response; the assembled argument text is not JSON | Failure "malformed" for that call only | FX-M3 |
+| MC-4 | Parses, but not the required structured form: the argument JSON is not an object; the item is not a function tool call (e.g. a custom tool call); the deprecated `function_call` form or termination; or no correlation identity was received | Failure "malformed". Where no correlation identity exists, the model result cannot be addressed to the call: only the event stream and the run record receive the report | FX-M4, FX-M4b, FX-M4c |
+| MC-5 | Operation reference missing, empty, or not in the offered edition | V-2 **not offered**; not dispatched | FX-M5 |
+| MC-6 | "No arguments" (§4.1 point 4). **Closed at v0.8 as PROPOSED:** argument text that parses to an object with no members (`{}`) is a complete call and goes on to V-3 against the entry's input schema. Argument text absent or empty is malformed | Never coerced to empty arguments (SETTLED, ARCH §4) | FX-M6a, FX-M6b, FX-M6c |
+| MC-7 | Two calls at different positions share a correlation identity | Failure for both (PROPOSED; uniqueness is within one response) | FX-M7 |
+| MC-8 | Several calls in one response, one of them malformed | **R12-7 (INTEGRATION; `T-OPEN-1` closed):** the valid calls are handled on their own, each through V-2, V-3 and dispatch on its own validation; the malformed call gets its own refusal result (class 1) for its correlation identity. This is P-v0.7 §3.1 rule 5 applied to a malformed sibling: each call of a response is its own unit, and **grouping follows rule 5**: sibling calls form separate proposals, unless a call explicitly names an existing proposal it extends; that is the drafter's choice, not a loop merge. The rule stays PROPOSED until the fixture basis is observed (OBS-1). In the governance phase LH-0 is unchanged: siblings not yet dispatched when an arrival is observed are held (§2.4.4) | FX-M8 |
+| MC-9 | The loop "repairs" incomplete text | Prohibited. A re-issued call is a new call | FX-M3 (no repair) |
+| MC-10 | A later fragment at the same position carries a different correlation identity, name or tool type (new at v0.8) | Failure "malformed" for that call | FX-M10 |
+| MC-11 | Termination reason `content_filter` (new at v0.8) | Every call of that response fails "filtered"; not dispatched; the agent message *failed* (§3.1 F-7) | FX-M11 |
+| MC-12 | A chunk for a second choice (new at v0.8). Fixtures request one choice (§4.1 point 3) | Outside the fixture basis: every call of the response fails "malformed"; nothing is taken from either choice | FX-M12 |
+| MC-13 | A fragment with no position (new at v0.8) | It cannot be attributed to a call: every call of the response fails "malformed" | FX-M13 |
 
 Reports go to three recipients:
 
-1. the model (class 1 result);
+1. the model (class 1 result, by correlation identity where one exists);
 2. the event stream / panel ("tool call rejected", "not dispatched");
 3. the run record (requested; "not executed: rejected before host
    validation").
 
 Dispatch observation: zero host-route calls for a rejected correlation
 identity. FX-V1 is the valid comparison.
+
+### 7.1 Assembly rules under FB-CC-1 (v0.8; PROPOSED)
+
+- R-F1. Fragments of one call are joined by their **position in the
+  response** (FB-CC-1 `index`, the only member a streamed tool-call chunk
+  requires; §4.1 point 1).
+- R-F2. Argument pieces are appended in arrival order. The assembled text is
+  kept exactly as received and is never repaired (MC-9).
+- R-F3. The correlation identity, the operation reference and the tool type
+  are taken from the fragment that carries them. A later fragment at the
+  same position that carries a different value is MC-10.
+- R-F4. The termination reason decides the response before any call is
+  judged: `stop` or `tool_calls` → each call is judged on its own (MC-3…MC-8,
+  MC-10); `length` → MC-1; `content_filter` → MC-11; `function_call`
+  (deprecated) → MC-4; none → MC-2. A fragment with no position (MC-13) or a
+  second choice (MC-12) rejects every call of the response.
+- R-F5. The loop never dispatches a call before its response has
+  terminated: a call is judged only once the termination reason is known
+  (tool-call state *receiving*, §3.2).
+
+### 7.2 The received tool call record (schema; v0.8; PROPOSED)
+
+`LOOP_TOOL_CALL.schema.json` (JSON Schema 2020-12, beside this file) gives
+one record per call after V-1 and V-2: model-interface basis label;
+position in the response; call correlation identity; operation reference;
+argument text as received; parsed argument object (only when the text
+parsed to an object); parse state (*complete*, *truncated*, *interrupted*,
+*malformed*, *filtered*); the response's termination (*tool-calls*, *stop*,
+*length-truncated*, *content-filtered*, *deprecated-function-call*,
+*ended-without-reason*); and a rejection {step V-1 or V-2, case MC-n,
+reason, dispatched = false}, or none. A record with no rejection must have
+parse state *complete*, an argument object, a correlation identity and an
+operation reference; it then goes on to V-3 on its own (R12-7). The names
+are Chirality's own; no wire field is selected. Examples:
+`LOOP_TOOL_CALL.example.valid.json` (FX-V1's call) and
+`LOOP_TOOL_CALL.example.invalid.json` (a truncated call with no rejection,
+which the schema refuses).
+
+### 7.3 Prototype (R12-3; v0.8)
+
+`prototype/assemble_tool_calls.py` (Python 3 standard library; not product
+code; README in `prototype/`) reads the stream fixtures in
+`prototype/fixtures/stream_fixtures.json`, written in FB-CC-1's chunk shape
+with invented content on FX-PIPE-01 identifiers, applies R-F1…R-F5 and
+MC-1…MC-13, and checks every output record against
+`LOOP_TOOL_CALL.schema.json` with `prototype/schema_subset.py` (a validator
+for the schema subset used; its keyword list is in its header).
+
+Run on 2026-09-30, command `python3 assemble_tool_calls.py` in `prototype/`
+(Python 3.13.7): **19/19 fixtures gave the expected result**, and every
+record validated against the schema. The same validator gives
+`LOOP_TOOL_CALL.example.valid.json` VALID and
+`LOOP_TOOL_CALL.example.invalid.json` INVALID (oneOf matched no branch).
+This shows the rules are consistent and executable on FB-CC-1-shaped
+input. It does not show that any model server emits those shapes (OBS-1),
+and no loop is built; the §12 standing of the MC cases is unchanged.
 
 ## 8. Responsiveness: observation protocol (no numeric thresholds)
 
@@ -1429,10 +1695,10 @@ Verdict form: "continued usability observed for X on candidate Y".
 
 | Responsibility | This DEL-05-01 | Other App-v4 owner | External host (SWBPIPE) | Open issue / point of need | Standing |
 |---|---|---|---|---|---|
-| Loop receiving requirements, fixtures, cases | Owns | — | Receives through relay | — | v0.7 draft |
+| Loop receiving requirements, fixtures, cases | Owns | — | Receives through relay | — | v0.8 draft |
 | Loop construction, placement, parsing, persistence | Excluded; requires outcomes only | — | Owns and selects | OI-013 | Owner-reported building (DEP-001); SWBPIPE answers (2026-09-28): no live agent in the product (A-1); agent-facing work (UI-SUCCESSOR) deferred by the owner; draft PR #885 unmerged and deferred (A-2). No embedded loop exists or is selected (SQ-20, SQ-29) |
 | Panel assembly | Excluded | DEL-05-02 (receiving) | Owns | OI-013 | Open |
-| Native networking, endpoint, credential (key or OAuth sign-in); allow list, in-work destination prompt and destination record (R8-13) | Excluded; defines §5 cases (§5.1.1) | ACT §2.7 (act); AS §3 (display); RS R15 (record); PANEL §3.8 | Owns | N-OPEN-1…5 | Answered 2026-09-28: none exists (SQ-29, SQ-30 (a)); not host evidence. The DECISION-5 rules are not relayed (host joins deferred, DECISION-3) |
+| Native networking, endpoint, credential (key or OAuth sign-in); allow list, in-work destination prompt and destination record (R8-13) | Excluded; defines §5 cases (§5.1.1) | ACT §2.7 (act); AS §3 (display); RS R15 (record); PANEL §3.8 | Owns | N-OPEN-2…3, N-OPEN-5 (N-OPEN-1 closed by R12-7; N-OPEN-4 by DECISION-K1 K1-5) | Answered 2026-09-28: none exists (SQ-29, SQ-30 (a)); not host evidence. The DECISION-5 rules are not relayed (host joins deferred, DECISION-3) |
 | Treatment resolution, exposure evaluation, de-duplication | Excluded; relays | ACT (policy), C/P | Host route | DEP-001; §13 | Not received |
 | Catalog, read basis, exposure, fixture | Consumes | DEL-03-01 | Implements | TBD-003 | C-v0.7 (V-GR1 present; R8-12 item 7) |
 | Proposal and outcomes | Consumes | DEL-03-02 | Route, receipts | TBD-002 | P-v0.7 (carriage assurance per R5-2, governance phase per R8-1; R8-12 item 7) |
@@ -1441,7 +1707,7 @@ Verdict form: "continued usability observed for X on candidate Y".
 | Act policy | Consumes | DEL-04-01 | Enforces own list; offers and captures acts | OI-021; consequence vocabulary | ACT-POLICY-v0.7 (R8-12 item 7) |
 | Grant display states | Carries | DEL-04-02 | Controls | None: the register row is DEP-05-01-025 (2026-09-29 extraction; SoW CLM-002) | AS-v0.7 (R8-12 item 7) |
 | Record format | Consumes | DEL-04-03 | Receipts, acts | — | RS-v0.7 (R8-12 item 7) |
-| Model-interface basis | Receives or agrees | — | Unknown | DEP-05-01-024 (UNKNOWN) | Not supplied. SWBPIPE: none exists or is selected; the successor under D-58 is a SWBPIPE owner decision (SQ-29) |
+| Model-interface basis | Receives or agrees. For its own fixtures it names FB-CC-1, a fixture basis and not a product selection (§4.1; R12-8) | — | Unknown | DEP-05-01-024 (UNKNOWN) | Product basis not supplied. SWBPIPE: none exists or is selected; the successor under D-58 is a SWBPIPE owner decision (SQ-29) |
 | Host evidence | Receives, audits | Joined witness DEL-09-06 (deferred, DECISION-3) | Supplies | DEP-001 | Not received. SWBPIPE answers received 2026-09-28 are answers about its current state, not evidence |
 | Common loop implementation | Not allocated | OI-014 owners | — | OI-014/013 | No agreed repeated responsibility |
 | Human acts | None | — | Offers, captures, presents | — | Person only |
@@ -1472,7 +1738,7 @@ The supplier column names this register's ACTIVE row and its DAG-003 layer
 | Record inventory | DEL-04-03 (DEP-05-01-019; held) | RS-v0.7 |
 | Panel needs | DEL-05-02 (DEP-05-01-020; held) | PANEL-v0.7, same executor. Named by DEP-05-01-020; PANEL does not yet define the needs as a list (PANEL header, Receivers) |
 | Local-server capability requirements and qualification limits | DEL-01-05, outside the first increment (DEP-01-05-014, a DOWNSTREAM row of the supplier's register; admitted; this register has no mirror row) | Not supplied, and not consumed by this file. DEL-01-05 is a later undertaking (D1) |
-| Model interface | UNKNOWN (DEP-05-01-024) | Not supplied |
+| Model interface | UNKNOWN (DEP-05-01-024) | Not supplied for a product. Fixtures use FB-CC-1, fixture basis, not a product selection (§4.1; R12-8) |
 | Host candidate and evidence | SWBPIPE (DEP-001; DEP-05-01-021) | Answered 2026-09-28 (RELAY §4); no candidate, evidence, commitment or contribution received; host joins deferred (DECISION-3) |
 
 The supplier-side rows DEP-04-01-025, DEP-04-02-019 and DEP-04-03-029 name
@@ -1502,9 +1768,13 @@ holds what the row names.
 
 Every fixture names its catalog basis and its model-interface basis. The
 catalog basis is C-v0.4 FX-PIPE-01 (`8fb51f07f`), plus V-GR1 per R5-7, both
-carried in C-v0.7 §10. The
-model-interface basis is DEP-05-01-024, currently UNKNOWN. Until both are
-supplied, the fixtures are case designs. Fixture exposure is "exposed on all
+carried in C-v0.7 §10. The model-interface basis of the fixtures is
+**FB-CC-1, fixture basis, not a product selection** (§4.1; R12-8); the
+product basis DEP-05-01-024 stays UNKNOWN. The parse-level fixtures FX-M
+and the stream variants of FX-V1 are written as FB-CC-1 streams in
+`prototype/fixtures/stream_fixtures.json` and ran on the §7.3 prototype
+(parse step only; 19/19 as expected, 2026-09-30). The other fixtures remain
+case designs. Fixture exposure is "exposed on all
 three surfaces" (a fixture assumption, R2-21) unless a variant is named.
 
 **Checkpoint fixtures (FX-C) are two-part (R8-1, R8-2; EXEC GV-5).** Each
@@ -1534,7 +1804,8 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-NP1 | OP-C11 (no policy basis, pending OI-021) requested direct; then proposed | Class no policy basis | Direct *not permitted*; proposal queues with no effect until A5 and application. **Case state HELD** (R2-9) | VER-004 |
 | FX-O1 | T13: acknowledgment of T12 lost; resubmit PR-2 with the same identity | Retry | De-duplication returns the recorded outcome (RC-1). Never stale for its own effects. If unobservable: class 4, reporter loop | VER-005/009 |
 | FX-UNDO | T17: OP-C10 undo RC-2 (governed by P-03, the policy record of the reversed operation, R3-4) | Undo | Applied RC-3 **reverses RC-2**. T16a's A4 on S-4 lapses (⟨S-4⟩ changed, FXA-2) | VER-008 |
-| FX-M1…M9 | MC-1…MC-9 (`L-LOOP-MC-n`) | Malformed | As §7 | VER-005 |
+| FX-V1s, FX-V1i | FX-V1's read as an FB-CC-1 stream: one call in four fragments; two calls whose fragments interleave | Streamed call | Each assembled *complete* and passed on to V-3 (§7.1). Prototype: as expected | VER-005 |
+| FX-M1, M1b, M2, M3, M4, M4b, M4c, M5, M6a, M6b, M6c, M7, M8, M10, M11, M12, M13 | MC-1…MC-13 (`L-LOOP-MC-n`) as FB-CC-1 streams (§7 table, fixture column; MC-9 is shown by FX-M3). FX-M8 is R12-7's case: three calls, the middle one malformed | Malformed | As §7. Prototype: each as expected (§7.3) | VER-005 |
 | FX-N1…N23 | MS-01…MS-23 (`L-LOOP-MS-n`) | Settings (N1…N13); destinations allowed, requested and disallowed (N14…N23; SoW OUT-002) | As §5.2 | VER-001/002 |
 | FX-C1 | Checkpoint A4; reached-when (c) *applied* for PR-2; subject class "objects changed by a named outcome" | Kind (c) | **Phase 1:** arrival recorded; subject = objects created or changed by RC-1 (new support), by post-application subject content identities (R2-14); label *waiting* ("act not yet recorded"); nothing stopped; recorded *performed* only on host-captured A4 on those. **Governance phase:** waiting, and the run holds; performed only on host-captured A4 on those | VER-008 |
 | FX-C2 | The same checkpoint; model text claims it was checked | Assertion | **Both phases:** no act recorded; still *waiting* (LP-5). Governance phase: the run stays held | VER-008 |
@@ -1632,8 +1903,11 @@ joins are deferred. The questions below are kept as prepared. Gists:
   *host-held*. C-6 is aligned.
 - **G-2 (closed by R5-7).** A12-at-checkpoint fixtures use C named variant
   V-GR1. `L-LOOP-C11` is dropped.
-- **G-3 (retained; relayed as SQ-31).** Undispatched sibling calls are held,
-  not run, during a hold (LH-0). T-OPEN-1 should confirm this.
+- **G-3 (answered on the App side at v0.8; relayed as SQ-31).** Undispatched sibling calls are held,
+  not run, during a hold (LH-0; governance phase). T-OPEN-1 is closed by
+  R12-7: each call of a response is handled on its own, and a malformed
+  sibling gets its own refusal (MC-8, PROPOSED until OBS-1). LH-0 is
+  unchanged. SWBPIPE has not decided (SQ-31).
 - **G-4 (retained).** One executor drafted LOOP and PANEL, and the same
   executor revised both at v0.6, so the v0.6 pair needs an independent
   check. The v0.7 alignment edits to the pair were again made by one
@@ -1686,13 +1960,29 @@ joins are deferred. The questions below are kept as prepared. Gists:
   - This register has no DOWNSTREAM relay row and no mirror of
     DEP-01-05-014 (closeout R5-1-3 and R5-1-2; register matters).
 
+- **G-11 (new, v0.8; R12-8).** FB-CC-1 closes §4's representation rows
+  only as PROPOSED. Three of its readings are inferences, not statements of
+  the reference, and are marked so in §4.1: that argument pieces are
+  concatenated in order; that "no arguments" is `{}`; and that an error has
+  no termination-reason value. Two choices are this file's, not the
+  reference's: MC-1 rejects every call of a length-truncated response
+  (§7), and MC-12 rejects a response with a second choice. OBS-1 is to
+  record what a local server does on each point.
+- **G-12 (new, v0.8; S1-D LOOP item 8).** Two failure rules of §3.1 touch
+  other owners and are returned for joining: F-4 (the request is not sent
+  when the destination record cannot be written) belongs with §5.1.1 and
+  RS R15 (node B5); F-10 (no further dispatch while the run record cannot
+  be written) needs DEL-04-03's statement of when a record write is
+  complete. E-6's event ordinal is new and is consumed by PANEL-v0.8 FD-3.
+
 ## UNRESOLVED
 
 | Item | Owner | Point of need | Effect |
 |---|---|---|---|
+| OBS-1: an observation of a local OpenAI-compatible server on the four FB-CC-1 points (§4.1; R12-8) | The OBS-1 node after round 2 (K1-6; its brief is node B6's `WAVE_B/OBS-1_BRIEF.md`). OBS-1 is briefed as one live Codex turn; these points are observed only if its brief includes a Chat Completions stream from the same local server | Before §4's representation rows and MC-1…MC-13 leave PROPOSED | §4.1 OBS-1 column pending |
 | OI-013 loop placement, parsing, persistence, panel assembly | Shared contract owner with SWB implementation owner | Before shared/host implementation boundary contracts | Outcomes only |
 | OI-014 shared placement | App/shared contract owners | Before structural/production allocation | No common loop |
-| DEP-05-01-024 model interface and representation | UNKNOWN supplier; App/shared embedded-integration owner receives or agrees | At fixture/conformance use | §4 semantic; MC-6, MC-8 held; no fixture executable. SWBPIPE: no model interface exists or is selected; the successor under SWBPIPE D-58 is an owner decision (SQ-20, SQ-29) |
+| DEP-05-01-024 model interface and representation (for a product) | UNKNOWN supplier; App/shared embedded-integration owner receives or agrees | At conformance use | Fixtures use FB-CC-1, fixture basis, not a product selection (§4.1; R12-8); §4's representation rows, MC-6 and MC-8 are PROPOSED from it until OBS-1. No product basis is selected. SWBPIPE: no model interface exists or is selected; the successor under SWBPIPE D-58 is an owner decision (SQ-20, SQ-29) |
 | DEP-001 host evidence, including Q-1…Q-7 | SWBPIPE outside implementation session. Q-1…Q-7 answered 2026-09-28 (§13); SWBPIPE owner decisions listed in ANS §2 remain open | Before corresponding integration/examination and fallback-replacement decision; when the owner resumes UI-SUCCESSOR (DECISION-3) | All host conformance NOT-OBSERVED. FX-C9's governance-phase value AWAITING INPUT (STD-2 annotation); its Phase-1 result DESIGNED |
 | OI-021 first connected operation; operation-specific reserved additions; OP-C11 class | Owner via outside SWB session and App/shared owner | Before connected SoW and execution | FX-NP1 HELD; fixtures invented. OI-021 stays open; SWBPIPE's candidates are recorded (SQ-04; R8-10) |
 | Consequence vocabulary | DEL-04-01 with host policy owner | Before class assignment | Classes as supplied |
@@ -1700,8 +1990,8 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | C U-C5 findings location | DEL-03-01 with host owner | Before E-5 route (b) is used | E-5 conditional |
 | C U-C3 / R2-13 staleness rule host confirmation | Host owner with DEL-03-01/03-02 | Before FX-D2/FX-O1 execution | §6.3 R-c meaning only. R2-13 amended by R8-3: host scope where no subject identities; SWBPIPE: whole model (SQ-07 (d)) |
 | C U-C6 entry-version mismatch | Host input | Before FX-D-series execution | O-3 |
-| U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 / FX-M8 | Meaning only |
-| N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine (**closed by DECISION-K1 K1-5**, 2026-09-30: a named entry is allowed on its own; a switch allows the whole category; NW-8); N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner (N-OPEN-4 decided by the owner). SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 held. NW-8 states the settled rule for N-OPEN-4 (MS-15, MS-18 follow it), and NW-10 treats unevidenced conformance as not following (PROPOSED) |
+| U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 | Meaning only. The malformed-sibling part of U-P9 (= T-OPEN-1) is ruled by R12-7 (MC-8); the grouping mechanics stay with DEL-03-02 |
+| N-OPEN-1 (**closed at v0.8 by R12-7**: a class label local or cloud in the destination record, not a gate; MS-11 released); N-OPEN-2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine (**closed by DECISION-K1 K1-5**, 2026-09-30: a named entry is allowed on its own; a switch allows the whole category; NW-8); N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner (N-OPEN-4 decided by the owner). SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 released (R12-7). NW-8 states the settled rule for N-OPEN-4 (MS-15, MS-18 follow it), and NW-10 treats unevidenced conformance as not following (PROPOSED) |
 | CLOSED at v0.7 (SCA-V4-001, accepted 2026-09-29; R9-8) — the revised V4-HOST-02 (DECISION-5; R8-13) is the accepted text | Owner | — | NW-2 quotes the accepted text (P/docs/PRD.md `bb6e786f…49bd`); §5.1.1 cites it with V4-ARC-12 and ARCH §4 |
 | CLOSED — DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
 | Network-destination governance phase: allow lists locked by an organization; enforced sandboxing of MCP servers and other outside processes (DECISION-5) | Owner, when taken up | When a host needs it | Not defined here. In Phase 1, NW-16's evidence limit applies |
@@ -1711,7 +2001,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | CLOSED (R10-1) — FX-C9 disposition wording, *act not performed* against *not reached* (G-9) | Integrator | — | FX-C9 and PANEL PC-24 say *not reached* |
 | Governance phase taken up (R8-1) | Owner, per workflow that needs it (DECISION-4 D4-1) | When a workflow needs enforced checkpoints | §2.4.4 and the governance-phase columns apply to governed checkpoints only then |
 | SWBPIPE embedded direction ("embedded Runtime", RUNTIME-ADOPT; D-58) predates D-20 (R8-8; DECISION-4 D4-2) | SWBPIPE (its to act on) | When the owner resumes UI-SUCCESSOR | None on this contract; note in §1 |
-| T-OPEN-1 valid siblings beside a malformed call | This owner with DEL-03-02 and host owner | Before FX-M8 | Proposed. SWBPIPE: not decided (no loop; SQ-31) |
+| *Closed at v0.8 (R12-7, INTEGRATION).* T-OPEN-1 valid siblings beside a malformed call | Integrator (ruled) | — | MC-8: the valid calls are handled on their own; the malformed call gets its own refusal (P-v0.7 §3.1 rule 5). PROPOSED until OBS-1. SWBPIPE: not decided (no loop; SQ-31) |
 | R-OPEN-1 quantitative responsiveness | Owner, if wanted | Before any numeric criterion | None set (SQ-32: SWBPIPE's solve is a background job with poll and cancel) |
 | Seat role mapping (U-09) | DEL-02-01 with SWB owner and DEL-02-04 | Before record fixtures | *unknown* allowed. SEAT-1…SEAT-3 kept (R8-8). SWBPIPE: no seat concept; its one agent panel is the likely counterpart (SQ-19 (d)); not decided |
 | Holding library (U-24) | Confirmed by EXEC §6.2 (HL-1…HL-3) | — | Carried (§2.1) |
@@ -1727,11 +2017,11 @@ These are designed, not run.
 
 | Case | Procedure | Expected result | Serves |
 |---|---|---|---|
-| VC-01 | Trace §5.1 (including §5.1.1) and MS-01…MS-23 to PRD V4-HOST-01/02 and ARCH V4-ARC-11/12 as amended by SCA-V4-001 (DECISION-4 D4-3; DECISION-5) | Every rule traced; no default between local and cloud; OAuth sign-in and API key both covered; two-level allow list with the model service always allowed; MCP only if stateless (2026-07-28); in-work scopes once / this run / always, only the requesting call waiting; decline "destination not allowed by the person"; a disallowed destination refused (MS-23); always-off list; every destination recorded and shown in any model mode; outside processes carry "process network not observed"; MS-11 held; host observations NOT-OBSERVED, and any later host observation identifies the configuration, the grants in force and the observed destinations (SoW VER-001) | VER-001 |
+| VC-01 | Trace §5.1 (including §5.1.1) and MS-01…MS-23 to PRD V4-HOST-01/02 and ARCH V4-ARC-11/12 as amended by SCA-V4-001 (DECISION-4 D4-3; DECISION-5) | Every rule traced; no default between local and cloud; OAuth sign-in and API key both covered; two-level allow list with the model service always allowed; MCP only if stateless (2026-07-28); in-work scopes once / this run / always, only the requesting call waiting; decline "destination not allowed by the person"; a disallowed destination refused (MS-23); always-off list; every destination recorded and shown in any model mode; outside processes carry "process network not observed"; MS-11 released: the model service's class local or cloud is a label, not a gate (R12-7); host observations NOT-OBSERVED, and any later host observation identifies the configuration, the grants in force and the observed destinations (SoW VER-001) | VER-001 |
 | VC-02 | Inspect NW-3/NW-6/NW-7 and MS-03/06/07/08/12 against V4-ARC-12 | Native layer is the enforcement point; neither key nor sign-in credential reaches the script; labels applied | VER-002 |
-| VC-03 | Review §1, §2 and §4 | Four subjects; the App path is distinct (Responses API unobserved); DEP-05-01-024 open; Pi excluded; D3 attribution per R2-11 | VER-003 |
+| VC-03 | Review §1, §2 and §4 (with §4.1) | Four subjects; the App path is distinct (Responses API unobserved); FB-CC-1 labelled "fixture basis, not a product selection" with URL, retrieval date, sha256 and the passages relied on; its four points PROPOSED with the inferences marked; DEP-05-01-024 open for a product; Pi excluded; D3 attribution per R2-11 | VER-003 |
 | VC-04 | Review §6 and the FX-V/S/D/U/NP fixtures against C-v0.7 §4.1 and P-v0.7 §9 | V-2 split holds; "not exposed" only host-reported; five class values; O-1…O-6 hold; FX-D1/D1b distinguish invalid from unavailable; FX-D2 is a revision within g1 | VER-004 |
-| VC-05 | Exercise FX-M, FX-V1, FX-U1 and FX-O1 against a test double once DEP-05-01-024 and C are supplied | Zero dispatch for rejected calls; de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
+| VC-05 | Run the §7.3 prototype on the FX-M and FX-V1 streams (parse step, FB-CC-1); exercise FX-M, FX-V1, FX-U1 and FX-O1 against a loop test double once a loop and C's simulated host exist | Prototype: every fixture as expected and every record valid against `LOOP_TOOL_CALL.schema.json` (2026-09-30: 19/19). Loop double: zero dispatch for rejected calls; each valid sibling of a malformed call handled on its own (R12-7); de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
 | VC-06 | Review §8. On host observations, check candidate, configuration and placement | No threshold; results limited to observed scenarios | VER-006 |
 | VC-07 | Compare §10 with SoW CLM-001/002/003, REQ-006, OI-013/014, DEP-001 and the Clarification | Every excluded act has its owner; no common construction allocated | VER-007 |
 | VC-08 | Review §2.3, §2.4 (incl. §2.4.0), §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.5 §2.1, §2.2 and §4, WD-v0.7 §4.3, ACT, P and AS | **Phase 1:** no hold, stop or re-hold anywhere; no hold-support value; no *unsupported* for a hold reason; the required act requested by the agent, never by the loop (LP-5); arrivals and acts recorded as observation; "continued past" only as an optional annotation; acts only when performed; reserved acts stand; lapses recorded; invalid declarations a finding only. **Both phases:** declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 earlier acts counted on current content with their time (DECISION-K1 K1-2; SP-6F ordering only under the governance-phase option); joint answer after a partial lapse (K1-3); no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; constraint host-held; values read as if governed | VER-008 |

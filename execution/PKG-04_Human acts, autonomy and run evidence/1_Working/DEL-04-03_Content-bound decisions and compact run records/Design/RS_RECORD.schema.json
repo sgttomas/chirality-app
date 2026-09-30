@@ -1,0 +1,1956 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-04-03:rs-record:0.1",
+  "title": "Run and act record entry (DEL-04-03 OUT-001) — PROPOSED",
+  "description": "PROPOSED record format of RS-v0.8 §13 (R12-1, R12-2; U-04). A record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Entries of kind destination_declined and boundary_refusal are PROPOSED recording (R12-10): the accepted texts record destinations contacted (V4-HI-70, V4-ARC-12) and report a decline to the agent (V4-EXM-23); none says a decline or refusal is recorded. The two ADAPTER evidence limits of R10-6 are not in the evidence-limit list; they wait for the R13 ruling (R12-9).",
+  "$ref": "#/$defs/entry",
+  "$defs": {
+    "recordId": {
+      "type": "string",
+      "pattern": "^rec:[A-Za-z0-9._:-]+$"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^run:[A-Za-z0-9._:/-]+$"
+    },
+    "actKindPerson": {
+      "enum": [
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A15"
+      ]
+    },
+    "contentIdentity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "method",
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "notObtainable",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "notObtainable": {
+              "const": true
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "evidenceRef": {
+      "description": "RS §9: a reference, never a copy. Resolution at read is the reader's and is not stored.",
+      "type": "object",
+      "required": [
+        "kind",
+        "ref",
+        "resolutionAtWrite"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "receipt",
+            "content identity",
+            "origin mark",
+            "capture evidence",
+            "commit",
+            "supplier settlement",
+            "compatibility report",
+            "carriage manifest",
+            "conversation item"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claimedIdentity": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "resolutionAtWrite": {
+          "enum": [
+            "resolved",
+            "unresolvable",
+            "not supplied"
+          ]
+        }
+      }
+    },
+    "arrivalRef": {
+      "type": "object",
+      "required": [
+        "checkpoint",
+        "arrivalOrdinal"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arrivalOrdinal": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "person": {
+      "description": "RS §6.1 decision actor. For App-captured acts: the name set in the App, the operating-system account and the Codex account when Codex reports one, marked identity not verified (DECISION-K1 K1-4).",
+      "type": "object",
+      "required": [
+        "identityVerified"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "osAccount": {
+          "type": "string"
+        },
+        "codexAccount": {
+          "type": "string"
+        },
+        "hostActor": {
+          "type": "string"
+        },
+        "identityVerified": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "displayName"
+          ]
+        },
+        {
+          "required": [
+            "osAccount"
+          ]
+        },
+        {
+          "required": [
+            "codexAccount"
+          ]
+        },
+        {
+          "required": [
+            "hostActor"
+          ]
+        }
+      ]
+    },
+    "destinationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "destination"
+          ]
+        },
+        {
+          "required": [
+            "category"
+          ]
+        }
+      ]
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "format",
+        "formatVersion",
+        "recordId",
+        "kind",
+        "recorder",
+        "context",
+        "seq",
+        "writtenAt",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "chirality.rs.record"
+        },
+        "formatVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "recordId": {
+          "$ref": "#/$defs/recordId"
+        },
+        "kind": {
+          "enum": [
+            "run_opened",
+            "settings_version",
+            "model_turn",
+            "operation_entry",
+            "checkpoint_arrival",
+            "disposition_change",
+            "act_request",
+            "human_act",
+            "act_declined",
+            "act_lapsed",
+            "run_resumed",
+            "run_ended",
+            "evidence_limit",
+            "destination_requested",
+            "destination_grant",
+            "destination_contacted",
+            "destination_declined",
+            "boundary_refusal",
+            "outside_process",
+            "supplied_guidance",
+            "examination_findings",
+            "tool_permission_settlement",
+            "compatibility_report_ref"
+          ]
+        },
+        "recorder": {
+          "type": "object",
+          "required": [
+            "role",
+            "identity"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "role": {
+              "enum": [
+                "App writer",
+                "App interface (capturing surface)",
+                "host facility",
+                "host control",
+                "host loop",
+                "host native layer",
+                "agent"
+              ]
+            },
+            "identity": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "context": {
+          "type": "object",
+          "required": [
+            "surface"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "surface": {
+              "enum": [
+                "App",
+                "host"
+              ]
+            },
+            "hostIdentity": {
+              "type": "string"
+            }
+          }
+        },
+        "runId": {
+          "$ref": "#/$defs/runId"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "writtenAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "corrects": {
+          "$ref": "#/$defs/recordId"
+        },
+        "correctionReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "object"
+        }
+      },
+      "anyOf": [
+        {
+          "not": {
+            "required": [
+              "corrects"
+            ]
+          }
+        },
+        {
+          "required": [
+            "corrects",
+            "correctionReason"
+          ]
+        }
+      ],
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "run_opened"
+            },
+            "body": {
+              "$ref": "#/$defs/runOpened"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "settings_version"
+            },
+            "body": {
+              "$ref": "urn:chirality:app-v4:del-04-02:settings-in:0.1#/$defs/settingsVersion"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "model_turn"
+            },
+            "body": {
+              "$ref": "#/$defs/modelTurn"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "operation_entry"
+            },
+            "body": {
+              "$ref": "#/$defs/operationEntry"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "checkpoint_arrival"
+            },
+            "body": {
+              "$ref": "#/$defs/checkpointArrival"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "disposition_change"
+            },
+            "body": {
+              "$ref": "#/$defs/dispositionChange"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_request"
+            },
+            "body": {
+              "$ref": "#/$defs/actRequest"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "human_act"
+            },
+            "body": {
+              "$ref": "#/$defs/humanAct"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_declined"
+            },
+            "body": {
+              "$ref": "#/$defs/actDeclined"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "act_lapsed"
+            },
+            "body": {
+              "$ref": "#/$defs/actLapsed"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "run_resumed"
+            },
+            "body": {
+              "$ref": "#/$defs/runResumed"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "run_ended"
+            },
+            "body": {
+              "$ref": "#/$defs/runEnded"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "evidence_limit"
+            },
+            "body": {
+              "$ref": "#/$defs/evidenceLimit"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "destination_requested"
+            },
+            "body": {
+              "$ref": "#/$defs/destinationRequested"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "destination_grant"
+            },
+            "body": {
+              "$ref": "#/$defs/destinationGrant"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "destination_contacted"
+            },
+            "body": {
+              "$ref": "#/$defs/destinationContacted"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "destination_declined"
+            },
+            "body": {
+              "$ref": "#/$defs/destinationDeclined"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "boundary_refusal"
+            },
+            "body": {
+              "$ref": "#/$defs/boundaryRefusal"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "outside_process"
+            },
+            "body": {
+              "$ref": "#/$defs/outsideProcess"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "supplied_guidance"
+            },
+            "body": {
+              "$ref": "#/$defs/suppliedGuidance"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "examination_findings"
+            },
+            "body": {
+              "$ref": "#/$defs/examinationFindings"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "tool_permission_settlement"
+            },
+            "body": {
+              "$ref": "#/$defs/toolPermissionSettlement"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "compatibility_report_ref"
+            },
+            "body": {
+              "$ref": "#/$defs/compatibilityReportRef"
+            }
+          }
+        }
+      ]
+    },
+    "runOpened": {
+      "description": "R1, R2, R4, R5a and the declared checkpoints listed as guidance (Phase 1).",
+      "type": "object",
+      "required": [
+        "runId",
+        "startedBy",
+        "surface",
+        "workflow",
+        "conversationRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runId": {
+          "$ref": "#/$defs/runId"
+        },
+        "startedBy": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "person",
+                "agent",
+                "App rule"
+              ]
+            },
+            "identity": {
+              "type": "string"
+            }
+          }
+        },
+        "surface": {
+          "enum": [
+            "App run",
+            "host-loop run"
+          ]
+        },
+        "continues": {
+          "$ref": "#/$defs/runId"
+        },
+        "workflow": {
+          "type": "object",
+          "required": [
+            "kind",
+            "origin",
+            "name",
+            "revision",
+            "revisionVerification"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "origin": {
+              "enum": [
+                "project",
+                "user",
+                "bundled",
+                "host-supplied"
+              ]
+            },
+            "sourceRoot": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "string"
+            },
+            "derivedFrom": {
+              "type": "string"
+            },
+            "revisionVerification": {
+              "enum": [
+                "verified",
+                "revision not verified"
+              ]
+            }
+          }
+        },
+        "conversationRef": {
+          "type": "string"
+        },
+        "seatRole": {
+          "type": "string"
+        },
+        "declaredCheckpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "requiredAct",
+              "subjectClass"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "requiredAct": {
+                "enum": [
+                  "A4",
+                  "A5",
+                  "A6",
+                  "A7",
+                  "A12"
+                ]
+              },
+              "subjectClass": {
+                "$ref": "#/$defs/subjectClass"
+              },
+              "governed": {
+                "type": "boolean"
+              },
+              "declarationFinding": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "subjectClass": {
+      "enum": [
+        "change items of a named proposal",
+        "named output",
+        "objects a named output concerns",
+        "objects changed by a named outcome",
+        "targets of the held call",
+        "grant setting"
+      ]
+    },
+    "modelTurn": {
+      "description": "R5 per turn: requested and effective kept separate; an unobserved turn is unknown.",
+      "type": "object",
+      "required": [
+        "turn",
+        "requested",
+        "effective"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested": {
+          "type": "string"
+        },
+        "effective": {
+          "type": "string"
+        },
+        "reroute": {
+          "type": "boolean"
+        },
+        "destinationClass": {
+          "enum": [
+            "local model server",
+            "user-chosen cloud",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "operationEntry": {
+      "description": "R7 (RS §5), core elements only in format 0.1; the full element list of RS §5 maps onto these and onto evidence references.",
+      "type": "object",
+      "required": [
+        "operation",
+        "authorType",
+        "authorIdentity",
+        "route",
+        "outcome"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "authorType": {
+          "enum": [
+            "person",
+            "agent"
+          ]
+        },
+        "authorIdentity": {
+          "type": "object",
+          "required": [
+            "value",
+            "verified"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "verified": {
+              "type": "boolean"
+            }
+          }
+        },
+        "channel": {
+          "enum": [
+            "host UI",
+            "embedded agent",
+            "external channel"
+          ]
+        },
+        "route": {
+          "enum": [
+            "direct",
+            "proposal",
+            "read",
+            "examination",
+            "loop-side refusal"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "not offered",
+            "unavailable",
+            "not exposed on this surface",
+            "channel not enabled",
+            "endpoint unavailable",
+            "not permitted",
+            "error",
+            "drafted",
+            "validated",
+            "refused — invalid",
+            "refused — stale",
+            "queued",
+            "accepted",
+            "rejected",
+            "withdrawn",
+            "applied (receipt)",
+            "application error",
+            "outcome unknown",
+            "success"
+          ]
+        },
+        "settingsAtRoute": {
+          "type": "string"
+        },
+        "settingsAtApplication": {
+          "type": "string"
+        },
+        "proposalId": {
+          "type": "string"
+        },
+        "relatedEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "humanActRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "reverses": {
+          "type": "string"
+        },
+        "observer": {
+          "type": "string"
+        },
+        "lastObservedState": {
+          "type": "string"
+        },
+        "continuedPast": {
+          "type": "object",
+          "required": [
+            "checkpoint",
+            "act",
+            "turnInitiator"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "checkpoint": {
+              "type": "string"
+            },
+            "act": {
+              "type": "string"
+            },
+            "turnInitiator": {
+              "enum": [
+                "person-directed",
+                "agent",
+                "App rule"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "checkpointArrival": {
+      "type": "object",
+      "required": [
+        "checkpoint",
+        "requiredAct",
+        "subjectClass",
+        "arrivalOrdinal",
+        "event",
+        "referents",
+        "purpose",
+        "requestObservation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "checkpoint": {
+          "type": "string"
+        },
+        "requiredAct": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A12"
+          ]
+        },
+        "subjectClass": {
+          "$ref": "#/$defs/subjectClass"
+        },
+        "governed": {
+          "type": "boolean"
+        },
+        "arrivalOrdinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event": {
+          "type": "object",
+          "required": [
+            "ref",
+            "time"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "ref": {
+              "type": "string"
+            },
+            "time": {
+              "type": "string"
+            }
+          }
+        },
+        "referents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "subject",
+              "content"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "subject": {
+                "type": "string"
+              },
+              "content": {
+                "$ref": "#/$defs/contentIdentity"
+              }
+            }
+          }
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "requestObservation": {
+          "description": "R16 (PROPOSED): 'request recorded' names the act_request entry; 'request not identified' is an explicit absence, never a defect of the run.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "state",
+                "requestRef"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "const": "request recorded"
+                },
+                "requestRef": {
+                  "$ref": "#/$defs/recordId"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "state"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "request not identified",
+                    "not yet observed"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "annotation": {
+      "oneOf": [
+        {
+          "description": "The one wording (R12-10): 'prior act not counted', with its reason.",
+          "type": "object",
+          "required": [
+            "label",
+            "actRef",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "const": "prior act not counted"
+            },
+            "actRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "reason": {
+              "enum": [
+                "content no longer current",
+                "another act kind",
+                "captured before arrival (governance-phase option)"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "label",
+            "actRef",
+            "time"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "const": "by earlier act"
+            },
+            "actRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "time": {
+              "type": "string"
+            },
+            "referents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "label"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "enum": [
+                "answered by acts",
+                "act lapsed at",
+                "waiting — lapsed at",
+                "replaced by next arrival",
+                "A12 awaiting control confirmation",
+                "A12 refused by control",
+                "act order unknown",
+                "act on other content",
+                "subject absent",
+                "partial",
+                "after run end",
+                "continued past",
+                "waiting — re-held, lapsed after resume",
+                "hold not enforceable"
+              ]
+            },
+            "actRefs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/recordId"
+              }
+            },
+            "time": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "referents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "dispositionChange": {
+      "type": "object",
+      "required": [
+        "arrival",
+        "disposition"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "disposition": {
+          "enum": [
+            "waiting",
+            "performed",
+            "resolved negatively",
+            "lapsed",
+            "not reached",
+            "unknown"
+          ]
+        },
+        "performanceOrdinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "answeredBy": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/recordId"
+          }
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/annotation"
+          }
+        }
+      }
+    },
+    "actRequest": {
+      "description": "R16 act request (PROPOSED element; RS §4). The agent's A8 for a person's act, recorded where it can be identified (ACT AP-5, AP-12; EXEC PH-6). A request is never the act and satisfies nothing (HA-1).",
+      "type": "object",
+      "required": [
+        "requester",
+        "actKind",
+        "subject",
+        "purpose",
+        "identifiedBy",
+        "evidence",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requester": {
+          "type": "object",
+          "required": [
+            "kind",
+            "identity"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "agent"
+            },
+            "identity": {
+              "type": "string"
+            }
+          }
+        },
+        "actKind": {
+          "enum": [
+            "A4",
+            "A5",
+            "A6",
+            "A7",
+            "A10",
+            "A12",
+            "A13",
+            "A15"
+          ]
+        },
+        "subject": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string"
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "identifiedBy": {
+          "enum": [
+            "agent message naming kind, subject and purpose",
+            "supplier input request naming kind, subject and purpose",
+            "host-loop A8 event",
+            "A8 issued after a not-permitted outcome"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "time": {
+          "type": "string"
+        }
+      }
+    },
+    "humanAct": {
+      "description": "RS §6.1. Written only from capture evidence (HA-1). A15 is the registration of a workflow revision (R12-5).",
+      "type": "object",
+      "required": [
+        "actKind",
+        "decisionActor",
+        "recordingMode",
+        "boundSubject",
+        "boundContent",
+        "scope",
+        "purpose",
+        "captureEvidence",
+        "captureTime",
+        "evidenceLimits"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actKind": {
+          "$ref": "#/$defs/actKindPerson"
+        },
+        "a12Subclass": {
+          "enum": [
+            "operation-class grant",
+            "network-destination grant"
+          ]
+        },
+        "actClass": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "enum": [
+                "reserved to the person",
+                "none",
+                "may apply within granted autonomy",
+                "proposal only",
+                "no policy basis",
+                "person's act (V4-WF-02)"
+              ]
+            },
+            "noPolicyBasisReason": {
+              "enum": [
+                "omitted",
+                "unassigned",
+                "pending OI-021"
+              ]
+            }
+          }
+        },
+        "governingPolicy": {
+          "type": "object",
+          "required": [
+            "policyRevision",
+            "recordId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "policyRevision": {
+              "type": "string",
+              "pattern": "^DEL-04-01/ACT-POLICY-v[0-9]+\\.[0-9]+$"
+            },
+            "recordId": {
+              "type": "string",
+              "pattern": "^P-[0-9]{2}[a-z]?$"
+            }
+          }
+        },
+        "decisionActor": {
+          "$ref": "#/$defs/person"
+        },
+        "recordingMode": {
+          "enum": [
+            "direct capture",
+            "faithful recording"
+          ]
+        },
+        "boundSubject": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "boundContent": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/contentIdentity"
+          }
+        },
+        "scope": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captureEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "captureTime": {
+          "type": "string"
+        },
+        "evidenceLimits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relations": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "operationEntry": {
+              "$ref": "#/$defs/recordId"
+            },
+            "arrivalAnswered": {
+              "$ref": "#/$defs/arrivalRef"
+            },
+            "requestRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "controlEffect": {
+              "type": "object",
+              "required": [
+                "state"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "established",
+                    "pending",
+                    "refused",
+                    "unconfirmed"
+                  ]
+                },
+                "settingsVersion": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            },
+            "supersededBy": {
+              "$ref": "#/$defs/recordId"
+            },
+            "afterRunEnd": {
+              "type": "boolean"
+            },
+            "derivedFrom": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "A15: the bound content is the revision identity and the relations name the draft it derives from (R12-5).",
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "not": {
+                    "const": "A15"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "relations"
+              ],
+              "properties": {
+                "relations": {
+                  "required": [
+                    "derivedFrom"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "description": "An A12 names its subclass (ACT §2.7).",
+          "anyOf": [
+            {
+              "properties": {
+                "actKind": {
+                  "not": {
+                    "const": "A12"
+                  }
+                }
+              }
+            },
+            {
+              "required": [
+                "a12Subclass"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "actDeclined": {
+      "type": "object",
+      "required": [
+        "actor",
+        "declinedKind",
+        "subject",
+        "time",
+        "captureEvidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/person"
+        },
+        "declinedKind": {
+          "enum": [
+            "A4",
+            "A6",
+            "A7",
+            "A12"
+          ]
+        },
+        "a12Subclass": {
+          "enum": [
+            "operation-class grant",
+            "network-destination grant"
+          ]
+        },
+        "subject": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "time": {
+          "type": "string"
+        },
+        "captureEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "requestRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        }
+      }
+    },
+    "actLapsed": {
+      "type": "object",
+      "required": [
+        "actRef",
+        "state",
+        "referents",
+        "c0",
+        "c1",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "actRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "state": {
+          "enum": [
+            "lapsed",
+            "lapsed (subject absent)",
+            "partially lapsed",
+            "unknown (incomparable)",
+            "unknown (unavailable)",
+            "matches c0 again after observed lapse"
+          ]
+        },
+        "referents": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "c0": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "c1": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "time": {
+          "type": "string"
+        }
+      }
+    },
+    "runResumed": {
+      "type": "object",
+      "required": [
+        "arrival",
+        "time",
+        "firstActionRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "arrival": {
+          "$ref": "#/$defs/arrivalRef"
+        },
+        "time": {
+          "type": "string"
+        },
+        "firstActionRef": {
+          "$ref": "#/$defs/recordId"
+        }
+      }
+    },
+    "runEnded": {
+      "type": "object",
+      "required": [
+        "stoppedBy",
+        "cause",
+        "waitingArrivals"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stoppedBy": {
+          "enum": [
+            "the person",
+            "observed end"
+          ]
+        },
+        "cause": {
+          "type": "string"
+        },
+        "waitingArrivals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/arrivalRef"
+          }
+        }
+      }
+    },
+    "evidenceLimit": {
+      "type": "object",
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "enum": [
+            "lost acknowledgement",
+            "missing receipt",
+            "unresolvable reference",
+            "origin mismatch",
+            "omitted governing checkpoint constraint",
+            "constraint carried only model-supplied",
+            "unverified caller identity",
+            "cited basis not observed",
+            "agent-written configuration",
+            "native hint mismatch",
+            "host reachable without evidenced A13",
+            "constraint not carriable on this host",
+            "subject identities not supplied",
+            "failing targets not supplied",
+            "action during hold",
+            "process network not observed",
+            "destinations not observed",
+            "unobserved adoption",
+            "record write failed",
+            "partial entry not recovered",
+            "recorders disagree"
+          ]
+        },
+        "subjectRef": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "turnInitiator": {
+          "enum": [
+            "person-directed",
+            "agent",
+            "App rule"
+          ]
+        }
+      }
+    },
+    "destinationRequested": {
+      "type": "object",
+      "required": [
+        "requester",
+        "target",
+        "purpose",
+        "scopeSought",
+        "requestingCall",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requester": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/destinationTarget"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "scopeSought": {
+          "enum": [
+            "once",
+            "this run",
+            "always"
+          ]
+        },
+        "requestingCall": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        }
+      }
+    },
+    "destinationGrant": {
+      "type": "object",
+      "required": [
+        "form",
+        "target",
+        "time",
+        "source",
+        "a12ActRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "form": {
+          "enum": [
+            "category switch",
+            "named entry",
+            "always-off item turned on",
+            "in-work grant"
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/destinationTarget"
+        },
+        "scope": {
+          "enum": [
+            "once",
+            "this run",
+            "always"
+          ]
+        },
+        "on": {
+          "type": "boolean"
+        },
+        "time": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "allow list",
+            "in-work"
+          ]
+        },
+        "a12ActRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/recordId"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "form": {
+              "not": {
+                "const": "in-work grant"
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "scope",
+            "requestRef"
+          ],
+          "properties": {
+            "source": {
+              "const": "in-work"
+            }
+          }
+        }
+      ]
+    },
+    "destinationContacted": {
+      "type": "object",
+      "required": [
+        "destination",
+        "category",
+        "allowedBy",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "allowedBy": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "model choice",
+                "category",
+                "named entry",
+                "in-work grant"
+              ]
+            },
+            "grantRef": {
+              "$ref": "#/$defs/recordId"
+            },
+            "scope": {
+              "enum": [
+                "once",
+                "this run",
+                "always"
+              ]
+            }
+          }
+        },
+        "byProcess": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        }
+      }
+    },
+    "destinationDeclined": {
+      "description": "PROPOSED recording (R12-10): V4-EXM-23 says a decline is reported to the agent; no accepted text says it is recorded.",
+      "type": "object",
+      "required": [
+        "target",
+        "time",
+        "requestingCall",
+        "actDeclinedRef",
+        "reportedToAgent"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/destinationTarget"
+        },
+        "time": {
+          "type": "string"
+        },
+        "requestingCall": {
+          "type": "string"
+        },
+        "requestRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "actDeclinedRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "reportedToAgent": {
+          "const": "destination not allowed by the person"
+        }
+      }
+    },
+    "boundaryRefusal": {
+      "description": "PROPOSED recording (R11-5; R12-10).",
+      "type": "object",
+      "required": [
+        "destination",
+        "reason",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "not allowed",
+            "always-off item",
+            "not stateless MCP (2026-07-28)"
+          ]
+        },
+        "time": {
+          "type": "string"
+        }
+      }
+    },
+    "outsideProcess": {
+      "type": "object",
+      "required": [
+        "processId",
+        "declaredDestinations",
+        "sandboxed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "processId": {
+          "type": "string"
+        },
+        "declaredDestinations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sandboxed": {
+          "type": "boolean"
+        },
+        "limitRef": {
+          "$ref": "#/$defs/recordId"
+        }
+      }
+    },
+    "suppliedGuidance": {
+      "description": "R3: per thread and turn, the source identity and content identity of each guidance input supplied; supplied is not adopted.",
+      "type": "object",
+      "required": [
+        "sourceIdentity",
+        "content"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "thread": {
+          "type": "string"
+        },
+        "turn": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceIdentity": {
+          "type": "string"
+        },
+        "content": {
+          "$ref": "#/$defs/contentIdentity"
+        }
+      }
+    },
+    "examinationFindings": {
+      "description": "R10: A3 findings by reference; never 'host checks passed', never A4.",
+      "type": "object",
+      "required": [
+        "findings",
+        "examinedBasis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "operationEntry": {
+          "$ref": "#/$defs/recordId"
+        },
+        "examinedBasis": {
+          "type": "string"
+        }
+      }
+    },
+    "toolPermissionSettlement": {
+      "description": "R13 (A14; App runs only): the settlement and its origin. Never a human-act record, never a grant.",
+      "type": "object",
+      "required": [
+        "request",
+        "settledBy",
+        "settlement"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "type": "string"
+        },
+        "settledBy": {
+          "enum": [
+            "the person via interaction",
+            "the user's Codex mode",
+            "App named-rule decline",
+            "explicit error"
+          ]
+        },
+        "settlement": {
+          "enum": [
+            "answered",
+            "declined",
+            "errored"
+          ]
+        },
+        "ruleName": {
+          "type": "string"
+        }
+      }
+    },
+    "compatibilityReportRef": {
+      "description": "R14: reference to a required-tool compatibility report evaluated for the run.",
+      "type": "object",
+      "required": [
+        "report",
+        "occasion",
+        "passResult"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "report": {
+          "$ref": "#/$defs/evidenceRef"
+        },
+        "occasion": {
+          "type": "string"
+        },
+        "passResult": {
+          "enum": [
+            "pass",
+            "not established",
+            "unsupported",
+            "no report evaluated"
+          ]
+        }
+      }
+    }
+  }
+}

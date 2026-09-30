@@ -1,0 +1,38 @@
+[
+  {
+    "case": "INV-ACT-1",
+    "why": "A catalog class record without a decision basis: ACT §8.1 'no value is carried without a decision basis'",
+    "instance": {
+      "format": "chirality.act.policy",
+      "formatVersion": "0.1",
+      "policyRevision": {"label": "DEL-04-01/ACT-POLICY-v0.8", "contentIdentity": {"method": "unselected", "value": "x"}},
+      "records": [
+        {"recordId": "P-03", "title": "SWB model changes", "recordRole": "catalog class", "classIdentity": {"kind": "host-named operation class", "name": "SWB model change"}, "humanActClass": "may apply within granted autonomy", "widenable": "yes, bounded by ACT §5.6", "decisionStanding": ["DERIVED"], "hostAdoption": {"state": "unevidenced"}}
+      ]
+    }
+  },
+  {
+    "case": "INV-ACT-2",
+    "why": "The tool-permission setting given a class value: P-04 is never a class value (D3; R-2)",
+    "instance": {
+      "format": "chirality.act.policy",
+      "formatVersion": "0.1",
+      "policyRevision": {"label": "DEL-04-01/ACT-POLICY-v0.8", "contentIdentity": {"method": "unselected", "value": "x"}},
+      "records": [
+        {"recordId": "P-04", "title": "Routine tool permission", "recordRole": "tool-permission setting", "settingOwner": "the user's Codex mode", "humanActClass": "none", "decisionBasis": [{"identity": "DECISION-1 D3", "standing": "adopted decision"}], "decisionStanding": ["adopted decision"], "hostAdoption": {"state": "unevidenced"}}
+      ]
+    }
+  },
+  {
+    "case": "INV-ACT-3",
+    "why": "A consequence value assigned from a value outside the PROPOSED vocabulary",
+    "instance": {
+      "format": "chirality.act.policy",
+      "formatVersion": "0.1",
+      "policyRevision": {"label": "DEL-04-01/ACT-POLICY-v0.8", "contentIdentity": {"method": "unselected", "value": "x"}},
+      "records": [
+        {"recordId": "P-03", "title": "SWB model changes", "recordRole": "catalog class", "classIdentity": {"kind": "host-named operation class", "name": "SWB model change"}, "humanActClass": "may apply within granted autonomy", "widenable": "yes, bounded by ACT §5.6", "consequence": {"assigned": true, "effect": "harmless", "reversibility": "CR-1 host undo with receipt", "examination": "CX-1 host checks available on the result", "delegation": "CD-2 the person decides the batch"}, "decisionBasis": [{"identity": "V4-HI-41", "standing": "DERIVED"}], "decisionStanding": ["DERIVED"], "hostAdoption": {"state": "unevidenced"}}
+      ]
+    }
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "description": "Invalid: a request refused before sending (run-holding) cannot carry a request identity or a 'written' write result; and a receiver initiator must be named.",
+  "instance": {
+    "recordKind": "client-request",
+    "generation": 1,
+    "requestIdentity": 103,
+    "method": "turn/start",
+    "initiator": {
+      "kind": "receiver"
+    },
+    "sendPosition": 3,
+    "writeResult": "written",
+    "outcome": "refused-not-sent",
+    "refusalReason": "run-holding"
+  }
+}

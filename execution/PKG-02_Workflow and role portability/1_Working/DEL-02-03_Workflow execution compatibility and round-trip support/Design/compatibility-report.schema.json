@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:del-02-03/exec-compatibility-report/proposed-0.6",
+  "title": "Required-tool compatibility report (EXEC-v0.6 §3.3, §3.5; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2) for the report whose elements EXEC §3.3 defines as CR-1…CR-14. Names are Chirality's own; no wire field of a host or supplier is selected, and no placement (OI-013, OI-014), transport, hash or persistence is chosen. The top-level oneOf makes the current phase structurally unable to carry a hold-support value or a hold reason (PH-3); the governance-phase variant carries them only for checkpoints read as governed (GV-2, GV-5).",
+  "oneOf": [
+    {"$ref": "#/$defs/current_phase_report"},
+    {"$ref": "#/$defs/governance_phase_report"}
+  ],
+  "$defs": {
+    "current_phase_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "phase", "report_id", "workflow", "declared_part_status", "host", "surface", "occasion", "requirements", "workflow_unsupported", "checkpoints", "check_result", "runtime_holds", "limitations", "evidence_standing", "model_destination"],
+      "properties": {
+        "format": {"const": "exec-compatibility-report/proposed-0.6"},
+        "phase": {"const": "current"},
+        "report_id": {"$ref": "#/$defs/nonempty"},
+        "workflow": {"$ref": "#/$defs/workflow"},
+        "declared_part_status": {"$ref": "#/$defs/declared_part_status"},
+        "host": {"$ref": "#/$defs/host"},
+        "surface": {"$ref": "#/$defs/surface"},
+        "occasion": {"$ref": "#/$defs/occasion"},
+        "requirements": {"type": "array", "items": {"$ref": "#/$defs/requirement"}},
+        "workflow_unsupported": {"type": "array", "items": {"$ref": "#/$defs/unsupported_current"}},
+        "checkpoints": {"type": "array", "items": {"$ref": "#/$defs/checkpoint_guidance"}},
+        "check_result": {"$ref": "#/$defs/check_result"},
+        "runtime_holds": {"type": "array", "items": {"$ref": "#/$defs/runtime_hold"}},
+        "limitations": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}},
+        "evidence_standing": {"$ref": "#/$defs/evidence_standing"},
+        "model_destination": {"$ref": "#/$defs/model_destination"}
+      }
+    },
+    "governance_phase_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "phase", "report_id", "workflow", "declared_part_status", "host", "surface", "occasion", "requirements", "workflow_unsupported", "checkpoints", "check_result", "runtime_holds", "limitations", "evidence_standing", "model_destination"],
+      "properties": {
+        "format": {"const": "exec-compatibility-report/proposed-0.6"},
+        "phase": {"const": "governance"},
+        "report_id": {"$ref": "#/$defs/nonempty"},
+        "workflow": {"$ref": "#/$defs/workflow"},
+        "declared_part_status": {"$ref": "#/$defs/declared_part_status"},
+        "host": {"$ref": "#/$defs/host"},
+        "surface": {"$ref": "#/$defs/surface"},
+        "occasion": {"$ref": "#/$defs/occasion"},
+        "requirements": {"type": "array", "items": {"$ref": "#/$defs/requirement"}},
+        "workflow_unsupported": {"type": "array", "items": {"$ref": "#/$defs/unsupported_governance"}},
+        "checkpoints": {"type": "array", "items": {"oneOf": [{"$ref": "#/$defs/checkpoint_guidance"}, {"$ref": "#/$defs/checkpoint_governance_value"}]}},
+        "check_result": {"$ref": "#/$defs/check_result"},
+        "runtime_holds": {"type": "array", "items": {"$ref": "#/$defs/runtime_hold"}},
+        "limitations": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}},
+        "evidence_standing": {"$ref": "#/$defs/evidence_standing"},
+        "model_destination": {"$ref": "#/$defs/model_destination"}
+      }
+    },
+    "nonempty": {"type": "string", "minLength": 1},
+    "identity": {
+      "description": "CR-2: the full identity tuple (WD §6.1; R-9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "origin", "source_root", "name", "revision"],
+      "properties": {
+        "kind": {"const": "workflow"},
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"$ref": "#/$defs/nonempty"},
+        "name": {"$ref": "#/$defs/nonempty"},
+        "revision": {"$ref": "#/$defs/nonempty"},
+        "derived_from": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "holding_library"],
+      "properties": {
+        "identity": {"$ref": "#/$defs/identity"},
+        "holding_library": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "declared_part_status": {"description": "CR-3 (WD §3.4).", "enum": ["declared", "declared_empty", "undeclared", "not_established"]},
+    "host": {
+      "description": "CR-4.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host_id", "catalog_edition", "catalog_readable"],
+      "properties": {
+        "host_id": {"$ref": "#/$defs/nonempty"},
+        "catalog_edition": {"$ref": "#/$defs/nonempty"},
+        "catalog_readable": {"type": "boolean"}
+      }
+    },
+    "surface": {
+      "description": "CR-5: one report per acting surface (CF-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "channel_state"],
+      "properties": {
+        "surface": {"enum": ["H", "E", "X"]},
+        "channel_state": {"enum": ["enabled", "not_enabled"]}
+      }
+    },
+    "occasion": {
+      "description": "CR-6 (§3.1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["occasion", "evaluated_at"],
+      "properties": {
+        "occasion": {"enum": ["CK-1", "CK-2", "CK-3", "CK-4"]},
+        "evaluated_at": {"$ref": "#/$defs/nonempty"},
+        "not_current": {"type": "boolean"}
+      }
+    },
+    "requirement": {
+      "description": "CR-7 per-requirement row; outcome vocabulary WD §4.2.4.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "class", "necessity", "purpose", "declared_versions", "entry", "exposure", "availability", "outcome", "reason"],
+      "properties": {
+        "reference": {"$ref": "#/$defs/nonempty"},
+        "class": {"enum": ["host_operation", "harness_capability"]},
+        "necessity": {"enum": ["required", "optional"]},
+        "purpose": {"type": "string"},
+        "declared_versions": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}},
+        "entry": {"oneOf": [
+          {"type": "null"},
+          {"type": "object", "additionalProperties": false, "required": ["operation_id", "version"],
+           "properties": {"operation_id": {"$ref": "#/$defs/nonempty"}, "version": {"$ref": "#/$defs/nonempty"}}}
+        ]},
+        "exposure": {"enum": ["exposed", "not_exposed", "unagreed", "not_read"]},
+        "availability": {"oneOf": [
+          {"type": "null"},
+          {"type": "object", "additionalProperties": false, "required": ["result", "reason", "evaluated_basis"],
+           "properties": {"result": {"enum": ["available", "unavailable"]}, "reason": {"type": "string"}, "evaluated_basis": {"$ref": "#/$defs/nonempty"}}}
+        ]},
+        "outcome": {"enum": ["present", "missing", "not_exposed_on_this_surface", "channel_not_enabled", "version_mismatch", "present_currently_unavailable", "not_established"]},
+        "reason": {"type": "string"}
+      }
+    },
+    "unsupported_current": {
+      "description": "CR-8 in the current phase: role or delegation only; never a hold reason (PH-3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason_kind", "checkpoints"],
+      "properties": {
+        "reason_kind": {"enum": ["role", "delegation"]},
+        "checkpoints": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}}
+      }
+    },
+    "unsupported_governance": {
+      "description": "CR-8 in the governance phase: adds 'checkpoint hold not enforceable on this surface' naming the checkpoints (R4-8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason_kind", "checkpoints"],
+      "properties": {
+        "reason_kind": {"enum": ["role", "delegation", "hold_not_enforceable"]},
+        "checkpoints": {"type": "array", "items": {"$ref": "#/$defs/nonempty"}}
+      }
+    },
+    "checkpoint_guidance": {
+      "description": "CR-9 current phase: listed as plan guidance, with no hold-support value.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "required_act", "reached_when_kind", "subject_class", "held_actions", "governed", "declaration_status", "phase_reading"],
+      "properties": {
+        "name": {"$ref": "#/$defs/nonempty"},
+        "required_act": {"$ref": "#/$defs/required_act"},
+        "reached_when_kind": {"enum": ["a", "b", "c"]},
+        "subject_class": {"$ref": "#/$defs/subject_class"},
+        "held_actions": {"$ref": "#/$defs/held_actions"},
+        "governed": {"type": "boolean"},
+        "declaration_status": {"enum": ["valid", "invalid", "not_established"]},
+        "phase_reading": {"const": "guidance"}
+      }
+    },
+    "checkpoint_governance_value": {
+      "description": "CR-9 governance phase: one R5-1 value and the HS row that assigned it; HS-1 gives no value.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "required_act", "reached_when_kind", "subject_class", "held_actions", "governed", "declaration_status", "phase_reading", "hold_support"],
+      "properties": {
+        "name": {"$ref": "#/$defs/nonempty"},
+        "required_act": {"$ref": "#/$defs/required_act"},
+        "reached_when_kind": {"enum": ["a", "b", "c"]},
+        "subject_class": {"$ref": "#/$defs/subject_class"},
+        "held_actions": {"$ref": "#/$defs/held_actions"},
+        "governed": {"type": "boolean"},
+        "declaration_status": {"enum": ["valid", "invalid", "not_established"]},
+        "phase_reading": {"const": "governance_value"},
+        "hold_support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "hs_row"],
+          "properties": {
+            "value": {"enum": ["enforced_by_the_host_loop", "enforced_on_the_host_route", "not_established", "not_enforceable", null]},
+            "hs_row": {"enum": ["HS-1", "HS-2", "HS-3", "HS-4", "HS-5"]}
+          }
+        }
+      }
+    },
+    "required_act": {"enum": ["A4", "A5", "A6", "A7", "A12"]},
+    "subject_class": {"enum": ["change items of a named proposal", "named output", "objects a named output concerns", "objects changed by a named outcome", "targets of the held call", "grant setting"]},
+    "held_actions": {"enum": ["host_operations_only", "listed_steps", "absent_derived", "absent_default"]},
+    "check_result": {"description": "CR-10 with §3.5's three values.", "enum": ["passes", "does_not_pass", "not_established"]},
+    "runtime_hold": {
+      "description": "CR-11.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "reason", "evaluated_basis"],
+      "properties": {
+        "reference": {"$ref": "#/$defs/nonempty"},
+        "reason": {"$ref": "#/$defs/nonempty"},
+        "evaluated_basis": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "evidence_standing": {"description": "CR-13 (C's evidence-label mapping).", "enum": ["illustrative", "test_double", "actual_host"]},
+    "model_destination": {
+      "description": "CR-14: App runs on X only; information only, never an outcome, gate or pass condition (D5; O-10).",
+      "oneOf": [
+        {"type": "null"},
+        {"type": "object", "additionalProperties": false, "required": ["selected", "class", "information_only"],
+         "properties": {"selected": {"$ref": "#/$defs/nonempty"}, "class": {"enum": ["local", "cloud", "unknown"]}, "information_only": {"const": true}}}
+      ]
+    }
+  }
+}

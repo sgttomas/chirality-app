@@ -1,5 +1,5 @@
 # Host panel and shared interaction receiving contract
-- Contribution: DEL-05-02/PANEL-v0.7 (supersedes DEL-05-02/PANEL-v0.6, last changed at `caa4334ca` and unchanged at `3dd7c22c73`, file sha256 dd71e11dbe0d9872727524aef69ef80ba118980533148c2aa7453d1176165658; earlier: PANEL-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, file sha256 ac47abf0974d5d68386ca713f09fc1478b205545754e8c93c74993977173ebb4; PANEL-v0.4 sha256 cb71bc4b…e84419 at `8fb51f07f`)
+- Contribution: DEL-05-02/PANEL-v0.8 (supersedes DEL-05-02/PANEL-v0.7, last changed at `c896a99d90`, file sha256 97c1a566cdd1b1936df8e7ad6ef49d3a81869df50802ec72e1a4f788abab285a; earlier: PANEL-v0.6, last changed at `caa4334ca` and unchanged at `3dd7c22c73`, file sha256 dd71e11dbe0d9872727524aef69ef80ba118980533148c2aa7453d1176165658; earlier: PANEL-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, file sha256 ac47abf0974d5d68386ca713f09fc1478b205545754e8c93c74993977173ebb4; PANEL-v0.4 sha256 cb71bc4b…e84419 at `8fb51f07f`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (V4-WF-05 and V4-HI-42 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1 and clarification): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is plan guidance that the person and the agents manage, and neither the App nor a host's embedded loop enforces a hold, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind. So in the current phase the panel shows declared checkpoints as **plan guidance**, shows the agent's request for the act when it is issued (R9-1; §3.5 W-5a), and records each arrival and the act that answers it as **observation** (§3.5). It shows no hold-support value and claims no hold. The hold-support display (§3.2) and the hold parts of §3.5 are kept as the **governance-phase definition (retained)**, not deleted.
 - Model access (R8-9; DECISION-4 D4-3): the model setting indicator offers local and cloud as options with **no default**, and a cloud model is reached by **OAuth sign-in or an API key** (§3.1; LOOP-v0.7 §5.1; V4-HOST-01 as amended by SCA-V4-001).
@@ -7,6 +7,7 @@
 - Serves: OUT-001, OUT-002, OUT-003, OUT-004 (conditional state only); REQ-001–REQ-006; AC-001–AC-007; VER-001–VER-007 (all of DEL-05-02)
 - Basis: the accepted basis as amended by scope-change amendments SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`, accepted 2026-09-29) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), pinned by current bytes: P/docs/PRD.md sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, P/docs/ARCHITECTURE.md sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, P/docs/HOST_INTEGRATION.md sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f and P/docs/EXAMINATION.md sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (v0.6 pinned repo `6e18505e3`, before both amendments); ScopeOfWork.md sha256 beb9c66c38161cbb00d1040e294aa9dfd04af953f9bf539121fcda44356dc82c (revised under SCA-V4-001, its AX-004, at `340ecf341`; v0.6 pinned the INIT contract 5c554956…40cb); the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29), cited for the admitted or held layer of register rows; P/docs/PRD.md §2.2 V4-HOST-01/02/04/05/06 (V4-HOST-02 added at v0.7: §3.8 rests on it), §3.1 V4-EXT-01, §4.1 V4-WF-03–06, §4.5 V4-AUT-01–05, §4.7 V4-REC-01/03/05, §5 V4-CST-05, §9 OQ-02/OQ-11; P/docs/ARCHITECTURE.md §3 (V4-ARC-05, reuse candidates), §4, §5 V4-ARC-20; P/docs/HOST_INTEGRATION.md §1, V4-HI-02/04, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, V4-HI-70/71, §10 item 7; P/docs/EXAMINATION.md V4-EXM-01–03, V4-EXM-20–23 (V4-EXM-23 added at v0.7: it examines §3.8's content); DECISION_BRIEF.html (sha256 02d38cb1…c4420e8; v0.6 mistyped the suffix as 4c420e8) d2, d3, d5; APP-V4-CLARIFICATION-20260927/DIRECTION.md; SCC-CASE-002 Case_Datasheet M1/M4 rows; Open_Issues OI-013/014/021; External_Dependencies DEP-001; run folder OWNER_DECISIONS.md (sha256 f3f8e5f3…cf81f2e; decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, D2 and D3), R1_RESOLUTIONS.md (2f9c7e72…e177ec4), R2_RESOLUTIONS.md (77cfb845…cdebd088), comparisons/V1-A.md (01811533…e04c09), comparisons/V1-C.md (8d46258a…4a94a6), reviews/IR1-A.md (31b3c7f8…0b648284), reviews/IR1-B.md (70e4a4f6…2846), reviews/IR1-C.md (295e96b3…a426b9); run folder at commit `f05c7e4cd`: OWNER_DECISIONS.md (a9869129…68ad2c; adds `APP-V4-FIRST-INCREMENT-20260928-DECISION-2`, D5 and D6), R3_RESOLUTIONS.md (202d52c7…afbf), R4_RESOLUTIONS.md (50a009b2…032a24), reviews/V2.md (75ba1dff…6ef); run folder at commit `8fb51f07f`: R5_RESOLUTIONS.md (254d0b93…dd6f1), reviews/V3-A.md (f25f5af1…21d87), reviews/V3-B.md (5662fbd0…954a3); run `APP-V4-SWBPIPE-INTAKE-20260928` at commit `94aa9181b`: OWNER_DECISIONS.md (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` (host joins deferred) and `-DECISION-4` with its clarification (D4-1 phased checkpoints; D4-2 loop and panel keep V4-ARC-10; D4-3 model access)); P/docs/ARCHITECTURE.md V4-ARC-10 and `conceptual/DECISIONS.md` D-20 as cited there
 - Consumed inputs:
+  - **v0.8 inputs (Wave B, node B9 of run `APP-V4-DESIGN-PASS-2-20260930`; design development).** Paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`, sha256 recomputed with `shasum -a 256` at this pass: `R12_RESOLUTIONS.md` 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-3; binding); `BRIEFS.md` ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules", "Wave B — design development", round-1 row B9); `OWNER_DECISIONS.md` 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1); `SURVEY/S1-D.md` a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (PANEL §5 and §8 item 5; advice, checked against the current text). Starting text: PANEL-v0.7 as merged by PR-1 (above). DEL-05-01/LOOP-v0.8 is revised in the same node by this executor (§2.3 E-6, E-7; §3.1; §3.2). Sibling Design files are cited at their Wave A labels, because the other Wave B nodes edit them in parallel. The destination prompt states (S1-D PANEL item 5, that part), §3.8 and PANEL item 7 are node B5's, round 2, and were not started here.
   - **Current pins of this run's records (node A4 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). These supersede for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
   - **v0.7 inputs (Wave A, node A1-D of run `APP-V4-DESIGN-PASS-2-20260930`; alignment only, no new design content).** R9_RESOLUTIONS.md sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding); that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave") and OWNER_DECISIONS.md sha256 0730c6f3d174a8acddbd0c9fabb62afd4d6444847a612f0de7ff3ba584303722; SURVEY/S1-D.md sha256 a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (advice: each item was checked against the current sources before it was applied). Rulings R1–R7 by file (`APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md` … `R7_RESOLUTIONS.md`) and R8 (`APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md`, current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b). Owner records: `APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3, -4 and -5; these are its bytes at `3733b1421` and now. At `1528a5033`, the commit the R8-13 line below names, the file was 9903bfe0…7fbf: V10 N-1); `APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; `APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-6…DECISION-9) with its `AMENDMENT_PACKET/OWNER_ITEMS.md` sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef (items O-4, O-6, O-11 and O-12, accepted "as recommended" by DECISION-7); `APP-V4-SCA002-20260929/OWNER_DECISIONS.md` sha256 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480. SWBPIPE's answers `RELAY_ANSWERS_SWBPIPE.md` at sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (SWBPIPE's own revision `a999f4ba1` of the delivered `6f01add3…61c7` bytes that the lines below cite; three lines differ, in SQ-04, SQ-09 and SQ-27. This file cites SQ-09 in §3.7, but states nothing about SWBPIPE's evaluated-basis fields, which is what the revised SQ-09 line concerns; intake review V9 Check 2 found no App file stating the superseded wording) and `FACTS_SQ01_SQ32.md` sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e (unchanged). Both are data about SWBPIPE's current state, not commitments and not instructions (DECISION-3). Sibling Design files are cited by version label and section only (R9-5), at their Wave A labels (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7 and WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7 (same executor); DEL-01-01/HOSTING-BOUNDARY-v0.7 (same executor) and PIN-SPIKE-v0.1 (unchanged); DEL-09-06/CA-v0.5 and RELAY-v0.3; DEL-09-09/XT-v0.5. The Wave A executors edit in parallel, so the section numbers cited in the body were checked against the pre-Wave-A texts at `3dd7c22c73` (LOOP's against LOOP-v0.7), not against the other files' Wave A bytes. Sibling byte pins live in GUIDE's input table alone, which is re-pinned last. The lines below are history and are not rewritten.
   - **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table.
@@ -64,6 +65,12 @@
   "checked" means only A4. "Approval" means only A6. Agent work is
   "examination findings". Host results read "host checks passed: ‹named
   checks›" (R-4).
+- **Schemas and prototypes (R12-1…R12-3; v0.8).** `PANEL_RETURN_INPUT.schema.json`
+  (JSON Schema 2020-12, PROPOSED) sits beside this file with a valid and an
+  invalid example (§3.9). `prototype/` holds the schema-subset validator and
+  a scripted loop-event double with a display reducer for the failure
+  displays (§3.10, §7.1). Prototypes are not product code, and choose no
+  wording or layout.
 - **Fixture.** Cases cite **FX-PIPE-01** (C-v0.4 §10, carried in C-v0.7 §10) identifiers:
   - workspace FX-W1, generation g1, run R-100, nozzles N-1/N-2, supports
     S-1…S-4, load case LC-1, Engineer A;
@@ -85,6 +92,25 @@
   removed. Where a case needs a second workflow, it is a local label
   `L-PANEL-n`, and the case says why. Nothing selects the first connected
   operation (`UNRESOLVED{OI-021}`).
+
+## Changes from v0.7
+
+Wave B of run `APP-V4-DESIGN-PASS-2-20260930` (node B9): design
+development under R12. Rows are keyed by R12 item and by the survey item
+(S1-D, PANEL §8) each change answers. Every new structure is PROPOSED. The
+destination prompt states (the rest of PANEL item 5), §3.8 and PANEL item 7
+are node B5's, round 2, and were not started; §3.8 is unchanged.
+
+| Item | Change in v0.8 | Where |
+|---|---|---|
+| R12-1 | Version v0.7 → v0.8. Status stays DRAFT: unsupplied, unimplemented and not accepted. Header pins the Wave B inputs | Header |
+| S1-D PANEL item 5 (return inputs) | New §3.9: the four return inputs (message submitted, turn cancel requested, run stop requested, workflow selected for a run), what the loop does with each and what the panel shows, and the return sequence RT-a…RT-e with the failure behaviour at each step. Decisions, destination answers and model setting changes are stated to be host-captured, not panel inputs (F-14) | §3.1, §3.9, Findings |
+| R12-1, R12-2 (data) | New schema `PANEL_RETURN_INPUT.schema.json` (JSON Schema 2020-12) with a valid and an invalid example | §0, §3.9; `PANEL_RETURN_INPUT.*.json` |
+| S1-D PANEL item 5 (failure displays) | New §3.10: FD-1 model interface failure and turn failure; FD-2 a reference that no longer resolves; FD-3 missed events (on LOOP-v0.8 E-6); FD-4 a destination request still pending at run end (state from LOOP-v0.8 §3.2; prompt states node B5's) | §3.1, §3.10 |
+| S1-D PANEL item 5 (test double) | New §7.1: the panel test double described (scripted loop double, host-view double, capture stand-in), with what it can and cannot support | §7.1 |
+| R12-3 (prototype) | `prototype/`: the scripted loop double's replay and fault injection with a display reducer for FD-1…FD-4, and the schema-subset validator. Result recorded (4/4; examples valid / invalid as intended) | §7, §7.1; `prototype/` |
+| R12-1 (verification) | New cases PC-38…PC-43; the present-state note, VC-01 and VC-05 follow | §7, Verification cases |
+| F-13, F-14 | F-13 notes what v0.8 adds and what stays open; F-14 added | Findings |
 
 ## Changes from v0.6
 
@@ -268,8 +294,8 @@ Panel content rules (PROPOSED):
 
 | Aspect | Receiving requirement |
 |---|---|
-| Person does | Writes; reads; follows references; cancels a turn |
-| Panel presents | <ul><li>**Message stream** with speaker (LOOP §2.1). Completion standing: streaming, complete, truncated, interrupted, cancelled or failed.</li><li>**Tool activity** (LOOP §2.3):<ul><li>requested;</li><li>**rejected before host validation**, with the kind: unparseable/truncated, **not offered**, schema, or offer out of date;</li><li>**held at checkpoint (not dispatched)**, naming the checkpoint (IR1C-12) — **governance phase only**; in Phase 1 no call is held (LOOP §2.4.0);</li><li>**Phase 1 (R8-1):** the optional plain annotation **"continued past ‹checkpoint› before ‹act›"** on a run action observed after an arrival and before the act that answers it, with its reference. Information only, never a defect or violation (LOOP LP-4; EXEC PH-7);</li><li>**action during hold** (**governance phase**, retained): a dispatch or output that the loop observed after an arrival event of a governed checkpoint (e.g. a call already in flight), with its reference, never hidden (LOOP §2.4.4; R4-2);</li><li>dispatched;</li><li>host outcome in P §9 terms, including a **host-reported *not exposed on this surface*** (SWBPIPE term mapping: §3.7);</li><li>*outcome unknown*, with reporter and last observed state.</li></ul></li><li>**A8 requests**, shown only when issued, with requester, purpose and scope. At a declared checkpoint the agent's A8 is the request for the required act (V4-WF-05 as amended; R9-1; §3.5 W-5a).</li><li>**Model setting indicator** (LOOP-v0.7 §5.1; R8-9; V4-HOST-01 as amended): local chosen; cloud chosen, signed in (OAuth); cloud chosen, key supplied; cloud chosen, no credential; unconfigured (no choice made). There is **no default** between local and cloud, only options the person chooses among. No credential content (key or sign-in) is shown. Destinations follow LOOP NW-2 and §5.1.1 under **V4-HOST-02 as amended by SCA-V4-001** (DECISION-5; R8-13).</li><li>**"Model request refused at boundary"**.</li><li>**Network destinations (R8-13):** the in-work destination request prompt, declines and the destinations contacted, as §3.8 defines them.</li></ul> |
+| Person does | Writes; reads; follows references; cancels a turn; stops a run. What the panel passes back to the loop is §3.9 |
+| Panel presents | <ul><li>**Message stream** with speaker (LOOP §2.1). Completion standing: streaming, complete, truncated, interrupted, cancelled or failed.</li><li>**Tool activity** (LOOP §2.3):<ul><li>requested;</li><li>**rejected before host validation**, with the kind: unparseable/truncated, **not offered**, schema, or offer out of date;</li><li>**held at checkpoint (not dispatched)**, naming the checkpoint (IR1C-12) — **governance phase only**; in Phase 1 no call is held (LOOP §2.4.0);</li><li>**Phase 1 (R8-1):** the optional plain annotation **"continued past ‹checkpoint› before ‹act›"** on a run action observed after an arrival and before the act that answers it, with its reference. Information only, never a defect or violation (LOOP LP-4; EXEC PH-7);</li><li>**action during hold** (**governance phase**, retained): a dispatch or output that the loop observed after an arrival event of a governed checkpoint (e.g. a call already in flight), with its reference, never hidden (LOOP §2.4.4; R4-2);</li><li>dispatched;</li><li>host outcome in P §9 terms, including a **host-reported *not exposed on this surface*** (SWBPIPE term mapping: §3.7);</li><li>*outcome unknown*, with reporter and last observed state.</li></ul></li><li>**A8 requests**, shown only when issued, with requester, purpose and scope. At a declared checkpoint the agent's A8 is the request for the required act (V4-WF-05 as amended; R9-1; §3.5 W-5a).</li><li>**Model setting indicator** (LOOP-v0.7 §5.1; R8-9; V4-HOST-01 as amended): local chosen; cloud chosen, signed in (OAuth); cloud chosen, key supplied; cloud chosen, no credential; unconfigured (no choice made). There is **no default** between local and cloud, only options the person chooses among. No credential content (key or sign-in) is shown. Destinations follow LOOP NW-2 and §5.1.1 under **V4-HOST-02 as amended by SCA-V4-001** (DECISION-5; R8-13).</li><li>**"Model request refused at boundary"**.</li><li>**Network destinations (R8-13):** the in-work destination request prompt, declines and the destinations contacted, as §3.8 defines them.</li><li>**Failure displays (v0.8):** model interface failure and turn failure (FD-1), a reference that no longer resolves (FD-2), missed events (FD-3), as §3.10 defines them.</li></ul> |
 | Host objects/results | References only. Basis and standing as given (V4-HI-11/12), e.g. B1 at T3 |
 | Consumed definitions | LOOP messages, events and settings; C basis and standing; P §9; DEL-04-03 conversation reference |
 | Responsible | App/shared: this requirement. Host owner: assembly and persistence (`UNRESOLVED{OI-013}`) |
@@ -630,6 +656,65 @@ ScopeOfWork is changed here, and no §3.8 rule is changed.
 organization and enforced sandboxing of outside processes are governance
 phase (later), not defined here (LOOP §5.1.1).
 
+### 3.9 Return inputs: what the panel passes back to the loop (v0.8; S1-D PANEL item 5; R12-1)
+
+PROPOSED unless a cited rule decides it. The panel passes back only what
+the person does in the conversation and in workflow selection. Everything
+the person **decides** goes through the host's own control and reaches the
+loop as the host's capture record, never as a panel input (P-3; LOOP-v0.8
+§2.3 E-2):
+
+- proposal decisions (A5, A10), checks (A4), approvals and reliance (A6,
+  A7), grant changes (A12), external access (A13);
+- answers to an in-work destination prompt, which are A12
+  network-destination grants or their declines (ND-2; node B5 details the
+  prompt states);
+- model setting changes, which are the person's setting acts (LOOP NW-4).
+
+Following a reference is navigation inside the host views; nothing is
+passed to the loop.
+
+**The four return inputs.** Data: `PANEL_RETURN_INPUT.schema.json` (JSON
+Schema 2020-12, beside this file): input identity; input kind; the host's
+reference to the person; the evidenced time of the gesture; conversation;
+run (or none); content by kind; and, once known, the loop's outcome
+{received, refusal reason}. Names are Chirality's own. Examples:
+`PANEL_RETURN_INPUT.example.valid.json` (a workflow selection for FX-PIPE-01
+`supports-adjust`) and `PANEL_RETURN_INPUT.example.invalid.json` (a turn
+cancel carrying message content, which the schema refuses).
+
+| Input | Content | What the loop does (LOOP-v0.8 §3.2) | What the panel shows, and only when |
+|---|---|---|---|
+| RI-1 Message submitted | Text; references the person attached (references, not copies) | Turn started, or refused *no model chosen* / *no credential* (LOOP F-2) | The message as the person's, once the loop reports the turn started. On refusal: "model request refused at boundary" (§3.1) and the message kept unsent |
+| RI-2 Turn cancel requested | The turn | Turn cancelled (LOOP F-11); refused *turn not active* if the turn already ended | "Cancelled" only on the loop's turn-cancelled event. Calls already dispatched keep their outcomes, shown as they arrive or as *outcome unknown*; undispatched calls read "not dispatched: turn cancelled" |
+| RI-3 Run stop requested | The run | Run ended, cause "person stopped"; refused *run already ended* | "Run ended (person stopped)" only on the run-ended event. Stopping is never an act-declined event (R2-5; W-5d) |
+| RI-4 Workflow selected for a run | Workflow identity tuple; holding library; continues ⟨run⟩ or none | Run started (live) under that tuple; refused *selection not established* if the tuple cannot be resolved when the run starts | The run bound to the chosen tuple (§3.2): never silently rebound; "continues ⟨run⟩" shown, inheriting nothing (W-5b) |
+
+**Sequence, with the failure behaviour at each step.**
+
+| Step | What happens | What fails | Who reports | Record left | What next |
+|---|---|---|---|---|---|
+| RT-a | The person gestures in the panel | — | — | — | — |
+| RT-b | The host takes the gesture: its reference to the person and the time | The host cannot take it | Host | None | Nothing is passed; the panel shows the gesture as not taken |
+| RT-c | The panel passes the return input to the loop | Not delivered | Panel (outcome received = false, refusal *not delivered*) | None in the run record (LOOP F-1) | The panel keeps the input for the person to resubmit and never shows it as sent |
+| RT-d | The loop receives it and acts (LOOP §3.2) | Refused (*no model chosen*, *no credential*, *turn not active*, *run already ended*, *selection not established*) | Loop | The refusal, where the loop records one (LOOP F-2) | The panel shows the refusal with its reason |
+| RT-e | The loop's events report the result | An event is missing | Panel, from the ordinal gap | Unchanged: the record keeps the events (LOOP E-7) | FD-3 |
+
+The panel shows the result of a return input only from the loop's events,
+never from having sent it.
+
+### 3.10 Failure displays (v0.8; S1-D PANEL item 5; R12-1)
+
+PROPOSED unless a cited rule decides it. No wording or layout is chosen
+(§0); the strings name display meanings.
+
+| # | Failure | Source | Panel shows | Must not |
+|---|---|---|---|---|
+| FD-1 | **Model interface failure and turn failure** | LOOP-v0.8 §2.3 "model interface failure" (termination reason; reporter) and "turn failed"; §3.1 F-2…F-7 | The failure with its termination reason and reporter. The partial agent message with its completion standing (*interrupted*, *truncated* or *failed*), never *complete*. The calls of that response as "rejected before host validation" with their kind (*truncated*, *interrupted*, *filtered*). The model setting in force, unchanged: no other model or provider is shown as used | Show a partial message as complete. Show a switch the person did not make (LOOP NW-5). Show credential content |
+| FD-2 | **A reference that no longer resolves** | The host view, when the panel follows a reference (an object removed, a receipt that did not survive restart, a proposal gone) | The last known label, marked "no longer resolves", with the time it was found so. A reference the host never supplied (for example a view position on SWBPIPE, §4 note) reads *not supplied*, which is different | Substitute a copy, a nearest object or a current value for the unresolved reference (V4-HI-71). Change any record |
+| FD-3 | **Missed events** | A gap in the event ordinal (LOOP-v0.8 E-6), or a panel reloaded or reattached while a turn runs | "Events ‹n›–‹m› not received" at that place, with nothing inferred for them (LOOP E-1). The panel asks the loop for the events from ordinal ‹n› and shows them in ordinal order when they arrive. While a turn is live it shows the time of the last event received, because a gap at the end can be seen only when a later event arrives. On reattach it starts from the last ordinal it holds | Infer an outcome, act or disposition for a missing event. Show a replayed act twice |
+| FD-4 | **A destination request still pending when the run ends** | LOOP-v0.8 §3.2 destination request state *unanswered at end* (the prompt states themselves are node B5's) | "Not answered — run ended"; no grant shown; the requesting call shown not sent; the prompt no longer offers choices | Show a grant made by silence or by the run ending (LOOP NW-13) |
+
 ## 4. Host tables and views: no agent-private surface
 
 | Rule | Source | Rejection case |
@@ -813,6 +898,12 @@ record labels in Phase 1.
 | PC-35 | Network destinations | As PC-32, the person declines (LOOP MS-19) | Call outcome "destination not allowed by the person"; nothing added; the decline shown apart from contacts | LOOP, RS R15 | VER-001/003 |
 | PC-36 | Network destinations | Configured MCP server M-2 does not follow the stateless revision 2026-07-28; the agent asks for it (LOOP MS-20) | M-2 not offered on the list; the prompt offers no grant and shows "cannot be allowed: not stateless MCP (2026-07-28)" | LOOP NW-10 | VER-001 |
 | PC-37 | Network destinations | Cloud chosen, signed in. A turn contacts the model service, web destination W-1 (category on) and A-1 (in-work, always); unsandboxed M-1 declares D-1 (LOOP MS-12, MS-14, MS-18, MS-21) | ND-4 lists each with its category and allowing entry ("model choice", "category: web access", "in-work grant: always, ‹t›"); M-1 with declared D-1 and "process network not observed" | LOOP, RS R15, R11 | VER-001/002 |
+| PC-38 | Failure display (v0.8) | During a turn the stream ends with no termination reason (LOOP F-6) | FD-1: model interface failure with its reason and reporter; the partial agent message *interrupted*, never complete; the turn failed; no other model shown as used | LOOP §2.3, §3.1; panel double (§7.1) | VER-001 |
+| PC-39 | Failure display (v0.8) | A reference to PR-1 no longer resolves in the host view; a reference to S-2 at r12 still does | FD-2: PR-1 shown by its last known label, marked "no longer resolves"; S-2 shown as usual; no copy substituted | Host view; panel double (§7.1) | VER-002 |
+| PC-40 | Failure display (v0.8) | Events with ordinals 3 and 4 (a dispatch and its host outcome) are not delivered | FD-3: "events 3–4 not received" at that place; nothing inferred for them; the panel asks from ordinal 3 | LOOP E-6, E-7; panel double (§7.1) | VER-001 |
+| PC-41 | Failure display (v0.8; states per LOOP §3.2; prompt states node B5) | An in-work request for A-1 is pending when the person stops the run | FD-4: "not answered — run ended"; no grant; the requesting call shown not sent | LOOP §3.2; panel double (§7.1) | VER-001/003 |
+| PC-42 | Return input (v0.8) | RI-1 at T3 is not delivered to the loop; separately, RI-1 with the model setting unconfigured (LOOP MS-02) | First: the message kept unsent, shown "not delivered", never as sent. Second: "model request refused at boundary"; no default applied; the message kept unsent | LOOP F-1, F-2; panel double (§7.1) | VER-001 |
+| PC-43 | Return input (v0.8) | RI-2 while an OP-C1 read of R-100 is dispatched and an OP-C4 call of the same response is not yet dispatched | "Cancelled" only on the loop's event; the read's outcome shown when it arrives, or *outcome unknown*; the OP-C4 call "not dispatched: turn cancelled"; nothing shown as recalled | LOOP F-11, §3.2; panel double (§7.1) | VER-001 |
 
 Present state: every case is DEFINED or AWAITING INPUT, except PC-23 and PC-28
 (HELD). PC-24's Phase-1 result is DEFINED; its governance-phase value is
@@ -828,7 +919,39 @@ the person", every destination contacted recorded and shown, and an
 unsandboxed outside process within its stated limit. LOOP-v0.7 adds the
 disallowed-destination case MS-23; its panel display is ND-4's "boundary
 refusals, shown apart from contacts", and no PC case is added for it in
-Wave A.
+Wave A. PC-38…PC-43 (v0.8) are DEFINED. The display rules of PC-38…PC-41
+ran on the §7.1 prototype (the display reducer only; 4/4 as expected,
+2026-09-30). That is a prototype run, not a panel: the cases stay DEFINED.
+
+### 7.1 Panel test double (described; v0.8; S1-D PANEL item 5; R12-1)
+
+The accounting state *EXECUTED (test double)* needs a described double. The
+panel double has three parts. None is a host panel, and none chooses
+wording or layout.
+
+| Part | What it does | What it can support |
+|---|---|---|
+| Scripted loop double | Replays a script of LOOP-v0.8 §2.3 events with their E-6 ordinals, written on FX-PIPE-01's timeline. Faults can be injected: dropped ordinals, a model interface failure, a failed or cancelled turn, the run ended with a destination request pending. It receives every return input (§3.9), checks it against `PANEL_RETURN_INPUT.schema.json`, and answers with a scripted outcome (received, or a refusal reason) | The display rules that depend only on loop events and return inputs: §3.1 tool activity and completion standing, §3.5 disposition labels, §3.9, §3.10 FD-1, FD-3, FD-4; PC-03…PC-03e, PC-16, PC-21…PC-21i as display, PC-38, PC-40…PC-43 |
+| Host-view double | Resolves references from a table and marks chosen references as no longer resolving or not supplied | FD-2; the reference half of P-1 and H-3 (PC-39) |
+| Capture stand-in | Emits the host's capture records as scripted events. It performs no act and is never evidence of one | Display of recorded acts (W-2, W-5c). The cases that need an **actual** human act (PC-07, PC-18, PC-19, PC-21; DEP-05-02-017) stay unexecuted |
+
+What the double cannot support: anything the host's tables, views, route
+or control must show (H-1…H-6 rejection cases on a candidate, V4-HI-24's
+authoritative values), and any claim about SWBPIPE (DEP-001; DECISION-3).
+A case run on the double is *EXECUTED (test double)* for the display rule
+only (§7 states; C *test-double*).
+
+**Prototype (R12-3).** `prototype/panel_double.py` (Python 3 standard
+library; not product code; README in `prototype/`) implements the scripted
+loop double's replay and fault injection with a reducer for FD-1…FD-4, on
+`prototype/fixtures/event_script.json`. Run on 2026-09-30, command `python3
+panel_double.py` in `prototype/` (Python 3.13.7): **4/4 scripts as
+expected** (PC-38…PC-41). `python3 schema_subset.py
+../PANEL_RETURN_INPUT.schema.json ../PANEL_RETURN_INPUT.example.valid.json
+../PANEL_RETURN_INPUT.example.invalid.json` gives VALID and INVALID as
+intended. The host-view double is emulated in the script by a list of
+unresolved references; the return-input receiver and the capture stand-in
+are described, not built.
 
 ## 8. Concrete questions prepared for the external host owner
 
@@ -946,7 +1069,17 @@ joins are deferred. The questions below are kept as prepared. Gists:
   obligation with the ScopeOfWork unchanged. Nothing is changed here.
 - F-13 (new, v0.7; R9-6). DEP-05-01-020 asks this deliverable for the
   panel receiving needs at the loop boundary. This file does not yet state
-  them as a list (header, Receivers). Returned as a Wave B item.
+  them as a list (header, Receivers). Returned as a Wave B item. At v0.8
+  §3.9 adds the reverse direction (what the panel passes back to the
+  loop), and §3.10 and LOOP E-6 add what the failure displays need; the
+  list of what the panel needs the loop to emit is still not written as
+  one list (not among node B9's items).
+- F-14 (new, v0.8; S1-D PANEL item 5). §3.9 draws a line the file only
+  implied before: decisions, destination answers and model setting changes
+  are host-captured and reach the loop as capture records, never as panel
+  inputs. FD-3 rests on LOOP-v0.8's new event ordinal (E-6, PROPOSED), and
+  FD-4 names a destination request state (*unanswered at end*, LOOP-v0.8
+  §3.2) whose transitions and prompt states are node B5's.
 
 ## UNRESOLVED
 
@@ -985,10 +1118,10 @@ These are designed, not run.
 
 | Case | Procedure | Expected | Serves |
 |---|---|---|---|
-| VC-01 | Trace §3.1–§3.6 and §3.8 (R8-13; to LOOP §5.1.1, V4-HOST-02 as amended and DECISION-5; its standing against the ScopeOfWork is F-12) to V4-HOST-04/SOW-019 and to the consumed definitions (at their Wave A labels C-v0.7, P-v0.7, WD-v0.7, ACT-POLICY-v0.7 and AS-v0.7, with EXEC-v0.5 and LOOP-v0.7; plus R2-n) | All four interactions, plus checkpoints and grant. Consumed definitions named with versions; missing inputs visible | VER-001 |
+| VC-01 | Trace §3.1–§3.6, §3.9, §3.10 (to LOOP-v0.8 §2.3, §3.1, §3.2 and `PANEL_RETURN_INPUT.schema.json`) and §3.8 (R8-13; to LOOP §5.1.1, V4-HOST-02 as amended and DECISION-5; its standing against the ScopeOfWork is F-12) to V4-HOST-04/SOW-019 and to the consumed definitions (at their Wave A labels C-v0.7, P-v0.7, WD-v0.7, ACT-POLICY-v0.7 and AS-v0.7, with EXEC-v0.5 and LOOP-v0.7; plus R2-n) | All four interactions, plus checkpoints and grant. Consumed definitions named with versions; missing inputs visible | VER-001 |
 | VC-02 | Review §2, §4 and PC-06/09/09b/10/10b/12–15/26/29 against V4-HI-10–25 and V4-EXM-20/21. On a candidate, observe them | H-1…H-6 each have a positive or rejection case. Stale-after-accept, resubmission and undo displays hold | VER-002 |
 | VC-03 | Review §3.2 (checkpoints as guidance; hold support), §3.3–§3.7, §5 and PC-03c/07/07b/08/11/12b/16–25/27/28 against HI, AUT, D2/D3, ACT/AS, EXEC-v0.5 §2.1/§2.2/§3.6/§4 with R5-1/R6-1/R8-1/R8-2/R9-1/R9-2, and LOOP-v0.7 §2.4.0 | **Phase 1:** checkpoints shown as guidance; the agent's request for the required act shown when issued, and none shown that was not issued (W-5a); no hold-support value, held call or stopped run shown; no *unsupported* for a hold reason; "continued past" only as an optional annotation; acts shown only when performed; reserved acts stand; invalid declarations a finding only. **Both phases:** "Accept" wording; actor, recorder and capture evidence; act-declined vs run-ended; SP-6 earlier acts counted on current content with their time, "prior act not counted" only for content no longer current, another kind or the governance-phase option (DECISION-K1 K1-2); joint answer (K1-3); "after run end" and continuation; MX rules; A12 supersedes only when established; declared A12 setting binds; no-policy-basis HELD. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; values read as if governed | VER-003 |
 | VC-04 | Compare §6 with the anticipated artifacts, the Clarification, V4-ARC-20 and OI-013/014 | Candidates name consumers or "not established"; none agreed; host construction external | VER-004 |
-| VC-05 | Account for PC-01…PC-37 (including sub-cases) in the §7 states | One state each; no missing input counted as a pass | VER-005 |
+| VC-05 | Account for PC-01…PC-43 (including sub-cases) in the §7 states; check that §7.1 describes the double each *EXECUTED (test double)* claim would rest on | One state each; no missing input counted as a pass; no prototype run counted as execution on a panel | VER-005 |
 | VC-06 | Inspect OUT-004 | Conditional; no component | VER-006 |
 | VC-07 | Review SoW REQ-006 exclusions against §3 "Responsible", §6 and §8 | Each act kept with its owner; nothing performed or claimed here | VER-007 |

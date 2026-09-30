@@ -1,10 +1,12 @@
 # Autonomy and Standing Exchange
-- Contribution: DEL-04-02/AS-v0.7 (supersedes AS-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, sha256 52d1341bb475f0a7de4b986b905e2986aa0e0a4e04e8b1783a6a83174eb6a33d; AS-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 df0e31ea7d33a3224df0b5d292d35675a55e8e325898cb28b64a1f709f7d72f0; AS-v0.4 sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab at `cc58211c5`)
+- Contribution: DEL-04-02/AS-v0.8 (supersedes AS-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, sha256 7f44fbb3c2ee384795418679b8cee72f6154e042dbf48f848836e3680bdb989c; AS-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, sha256 52d1341bb475f0a7de4b986b905e2986aa0e0a4e04e8b1783a6a83174eb6a33d; AS-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 df0e31ea7d33a3224df0b5d292d35675a55e8e325898cb28b64a1f709f7d72f0; AS-v0.4 sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab at `cc58211c5`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R8-1; R9-1): in the current phase (Phase 1) declared checkpoints are **plan guidance**: the checkpoint overlay shows arrivals and acts as observation, and no hold, hold-support value or *unsupported* for a hold reason is shown (§4; ScopeOfWork TBD-006). **In force in every phase:** the act is requested; it is recorded as done only when the person performs it; the reserved acts bind. **Phased to the governance layer:** holding the run until the act (PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001; S3). Hold support, re-hold and *action during hold* are kept as the **governance-phase definition (retained)**.
 - Network-destination grants (R8-13; DECISION-5): the grant display also shows a host agent's allow list (category switches and named entries) and its in-work grants with their scopes (once, this run, always) (§3). They are the person's A12 grants, subclass network-destination grant (ACT §2.7). V4-HOST-02 is cited from the PRD as amended by SCA-V4-001, which applies DECISION-5 (S15).
-- Serves: OUT-002 (receiving-interface contract content); OUT-001 and OUT-003 (component behaviour and fixture design only — no component or fixture exists); REQ-001…REQ-007; AC-001…AC-007 via designed VER-001…VER-007
+- Wave B (R12-1…R12-3): the settings-in element has a **PROPOSED** representation, `AS_SETTINGS_IN.schema.json` beside this file, with valid and invalid examples validated by a local prototype (`prototype/`); in-work destination-grant transitions (§3.1); the §6 exchange (identical to RS §8) carries a host agent's destination settings and contacts; what each receiver is provided and what it does on *unconfirmed* or *missing* (§12.1); the OUT-001 component structure as PROPOSED options under OI-014, none chosen (§13; R12-2).
+- Serves: OUT-002 (receiving-interface contract content); OUT-001 and OUT-003 (component behaviour and fixture design only — no component or fixture exists; the prototype is not product code); REQ-001…REQ-007; AC-001…AC-007 via designed VER-001…VER-007
 - Basis (re-pinned at v0.7; R9-5): the accepted basis as amended by SCA-V4-001 (`P/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155/`) and SCA-V4-002 (`P/execution/_ScopeChange/SCA-V4-002_2026-09-29_1901/`), by current sha256: `P/docs/PRD.md` bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, `P/docs/ARCHITECTURE.md` 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, `P/docs/HOST_INTEGRATION.md` d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f, `P/docs/EXAMINATION.md` 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (of the requirement texts this file cites, V4-WF-05, V4-HI-42, V4-HI-70, V4-HOST-02, V4-EXM-22 and the ARCHITECTURE §4 host-agent properties were amended; the others are unchanged since repo `6e18505e3`, the v0.6 basis; checked with `git diff 6e18505e3 HEAD -- docs/`); ScopeOfWork.md sha256 f16ffa8a33cbfb2e78a8e916e90aff9fb44ad20adf94fe61a559a213f5564460, as revised by SCA-V4-001 (AX-004; TBD-006 added) and SCA-V4-002 (AX-005; CLM-004); owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (D4-1 phased checkpoints) and `-DECISION-5` (host-agent network destinations), `OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2; owner confirmations at the SCA-V4-001 checkpoint, run `APP-V4-BASIS-ALIGN-20260928`, `OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-7 accepts `AMENDMENT_PACKET/OWNER_ITEMS.md`, sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef, "as recommended": O-10, O-11, O-15, O-25); accepted graph `P/execution/_DAG/_LATEST.md` (sha256 4d381ba4e87b41a83b9d0d2dc591c4bf04eacb84df0b5c27314091cd2a992f56) → DAG-003; `P/docs/PRD.md` §2.2 V4-HOST-02, §4.1 V4-WF-05, §4.3 V4-EXE-01…03, §4.5 V4-AUT-01…05, §4.6 V4-PM-06, §4.7 V4-REC-01…05; `P/docs/HOST_INTEGRATION.md` §1, V4-HI-04, V4-HI-11/12, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-50…52, V4-HI-70/71, §11; `P/docs/ARCHITECTURE.md` §4, V4-ARC-20; `P/docs/EXAMINATION.md` V4-EXM-21/22; `P/docs/OPERATING_METHOD.md` V4-OPS-30…32; `DECISION_BRIEF.html` d2, d3; `OWNER_DIRECTIONS.md` J, O; `SCC-CASE-002/Case_Datasheet.md` M1, M3; `_Decomposition/Open_Issues.csv` OI-001/002/013/014/021; `External_Dependencies.csv` DEP-001. Run folder `APP-V4-FIRST-INCREMENT-20260928` at commit **8fb51f07f**: `OWNER_DECISIONS.md` (DECISION-1 and DECISION-2; sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c); `R1_RESOLUTIONS.md` (2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4); `R2_RESOLUTIONS.md` (77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088); `R3_RESOLUTIONS.md` (202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf); `R4_RESOLUTIONS.md` (50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24); `R5_RESOLUTIONS.md` (254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1); `reviews/V2.md` (75ba1dff8a0c4fa2eb294471127147cbd19a0925daf9169b32ddc88727dde6ef); `reviews/V3-A.md` (f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87); `reviews/V3-B.md` (5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3); IR1-A/B/C and V1-A/B/C as cited in AS-v0.3
+- **Consumed inputs for v0.8 (Wave B of run `APP-V4-DESIGN-PASS-2-20260930`, node B4; read from the working tree on commit `86cafc0e1c`; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`).** `BRIEFS.md` sha256 ccb4d9f036fb7ff531fffa0d309533b15cf1ebb39b0320651ed4bd5d88efc550 ("Common rules"; "Wave B — design development", row B4); `R12_RESOLUTIONS.md` sha256 95f3011b436b6faa3de098059e77eac836c165e0bb98a5ed94e28918a3a749a1 (R12-1…R12-10; binding); `OWNER_DECISIONS.md` sha256 1dfd5bf4619b329719136b1646030e3f871fd7ffc52dbfd12265414e515aaf15 (DECISION-K1, with the later model-download record; supersedes for currency the pin in the node A4 line below); `SURVEY/S1-A.md` sha256 87baa03d7cbc9b0a6b8e8543d8cd80a7d71c754da80fbfdc053c8e6ef21045f6 (§2.5, §2.8 items 4, 5, 7, 8; advice, checked against the current text); `_Decomposition/Open_Issues.csv` OI-014 ("Place shared contracts/components against actual consumer responsibilities; agree ownership before any common implementation, without presuming a common service"). Siblings by label and section (R9-5): DEL-05-01/LOOP-v0.7 §2.3, §5.1.1 NW-8…NW-16, §6.2; DEL-05-02/PANEL-v0.7 §3.6, §3.8 ND-1…ND-5; DEL-03-02/P-v0.7 §3.3; DEL-03-03/ADAPTER-v0.5 §5.5; DEL-02-03/EXEC-v0.5 §4.10. ACT-POLICY-v0.8 and RS-v0.8 were revised by this executor in the same node; §6 here and RS-v0.8 §8 are byte-identical from "**Settings-in" to the end of the section.
 - **Current pins of this run's records (node A4 of run `APP-V4-DESIGN-PASS-2-20260930`; in place, no version bump; R11-3).** Each sha256 recomputed with `shasum -a 256` in the working tree at this pass; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`: `R9_RESOLUTIONS.md` sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 (R9-1…R9-11; R9-2's second bullet as corrected by R10-1); `R10_RESOLUTIONS.md` sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 (R10-1…R10-11); `R11_RESOLUTIONS.md` sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-1…R11-9, the repairs from review V17); `OWNER_DECISIONS.md` sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (DECISION-K1). These supersede for currency the earlier pins of the same records in this header and in the change-table rows, which record the bytes read at node A1 or A3.
 - Consumed inputs for v0.7 (Wave A of run `APP-V4-DESIGN-PASS-2-20260930`, node A1-A; read from the working tree on commit `3dd7c22c73`; paths under `AgentRuns/APP-V4-DESIGN-PASS-2-20260930/` unless stated): `R9_RESOLUTIONS.md` sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding); `BRIEFS.md` sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave", row A1-A); `SURVEY/S1-A.md` sha256 87baa03d7cbc9b0a6b8e8543d8cd80a7d71c754da80fbfdc053c8e6ef21045f6 (advice; each item applied was checked against the current source). Rulings R1–R8, by file: `R1_RESOLUTIONS.md`…`R7_RESOLUTIONS.md` in `AgentRuns/APP-V4-FIRST-INCREMENT-20260928/`, and `R8_RESOLUTIONS.md` in `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` at its current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b; they stand except where R9 amends them (R9-2 restates R8-11 item 2 and R8-12 item 2). SWBPIPE's answers, DEL-09-06 `Design/RELAY_ANSWERS_SWBPIPE.md`, at its current sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74: the v0.6 pass read the state 6f01add3…61c7; three answer lines differ between the two states (in SQ-04, SQ-09 and P7; `git diff 94aa9181b HEAD`), and none is a statement this file cites; data about SWBPIPE's current state, not commitments (DECISION-3). Sibling Design files are cited by version label and section only (R9-5), and their bytes are pinned in GUIDE's input table alone; Wave A labels (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7; DEL-02-01/WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7; DEL-05-02/PANEL-v0.7; DEL-01-01/HOSTING-BOUNDARY-v0.7; DEL-01-01/PIN-SPIKE-v0.1; DEL-09-06/CA-v0.5; DEL-09-09/XT-v0.5; DEL-09-06/RELAY-v0.3. The Wave A executors edit in parallel, so the label is cited and nothing here relies on another executor's Wave A text. ACT-POLICY-v0.7 and RS-v0.7 were revised by this executor; §6 here and RS-v0.7 §8 are byte-identical from "**Settings-in" to the end of the section. The byte pins in the consumed-input lines below are true records of what each earlier pass read; they are history, not current pins.
 - Consumed inputs for the R8-13 pass: **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table.
@@ -12,6 +14,25 @@
 - Consumed inputs for v0.6 (R8 pass, node A2), read with `git show` from commit `94aa9181b` (paths under `AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/` unless stated): `R8_RESOLUTIONS.md` sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02 (R8-1…R8-7, R8-10, R8-11; binding); `INTAKE_MAP.md` (I2) sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33 (rows 01.8, 02.9, 05.3, 10.5, 23.2, X.5; Part 2 P2.1, P2.4, P2.8, P2.16, P2.17 and its §2.2 AS rows; Part 3 items 2, 3, 10; Part 4.9–4.11; R8 overrides I2 where they differ); `BRIEFS.md` sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"); `OWNER_DECISIONS.md` sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3`, host joins deferred; `-DECISION-4` with its clarification, D4-1 phased checkpoints). Owner files revised first in the same pass: DEL-02-03/EXEC-v0.4 sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4 (§2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §3.5, §3.6, §4.7, §4.11 receiving notes, §7.2); DEL-02-01/WD-v0.6 sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28 (§4.3.0 CG-1…CG-7; §4.3.1 `governed`); WD-EX-v0.6 sha256 950b70b2e3f7fdda9a98b13a63746b76936be490dd96cb6e47bbe6dc9c3eba3d. SWBPIPE's delivered answers DEL-09-06 `Design/RELAY_ANSWERS_SWBPIPE.md` (#1047) sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7 (SQ-01, SQ-02, SQ-03, SQ-05, SQ-06, SQ-07, SQ-09, SQ-10, SQ-11, SQ-13, SQ-20, SQ-23, SQ-28; ANS §2): relayed and answered 2026-09-28; data about SWBPIPE's current state, not commitments; no host evidence, commitment or contribution received (DEP-001; DECISION-3). DEL-04-01/ACT-POLICY-v0.6 and DEL-04-03/RS-v0.6 were revised concurrently by the same executor; §6 here and RS §8 are byte-identical.
 - Consumed inputs (v0.5): DEL-04-02/AS-v0.4 (sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab, commit cc58211c5); DEL-04-03/RS-v0.5 (revised concurrently by the same executor; its §8 is byte-identical to §6 here). Current sibling versions read from commit **8fb51f07f** with `git show` (not the working tree): DEL-02-03/EXEC-v0.2 sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0 (§2 HP-4/HP-H, §3.6, §4.5, §4.7, §4.10); DEL-03-01/C-v0.4 sha256 e929d39d3ff9515702f9bfe51dfada537e1cbd165146ec0de4ccf629c659a08c (§10.1 FXA-1…FXA-5; §10.3; §10.4); DEL-04-01/ACT-POLICY-v0.4 sha256 d6da05abe790a4374df7faf225439a01dc1be734491b499d90cf00533369b03b; DEL-01-01/HOSTING-BOUNDARY-v0.4 sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58 (§8.3); DEL-03-03/ADAPTER-v0.2 sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc. R6 in-place pass (no version bump): C-v0.5 `CATALOG_AND_READ_BASIS.md` sha256 a6306bd477decad22d4405fb86ca6212fb189e4865c68dbbcba90e1335be7a29 (§10.4 V-GR1, GR-1…GR-3, GR-P/GR-R/GR-S) and DEL-02-03/EXEC-v0.3 `EXECUTION_COMPATIBILITY.md` sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e (§3.6 HS-1…HS-5, F-24), read at commit d3cebd1cc for the R6 in-place pass; R6_RESOLUTIONS.md and reviews/V4-A.md at commit c7f5513db. The R5 elements earlier marked "per R5-n" are now present in those sibling texts.
 - Receivers (rebuilt from the ACTIVE register rows at v0.7; R9-6; the table is §12): CASE-002 M3 — DEL-04-03 (OUT-001/002; REQ-002; VER-001) receives settings-in (DEP-04-02-009; its own row DEP-04-03-022); DEL-04-02 compares under OUT-003; REQ-002; VER-002. The visible autonomy state (ScopeOfWork CLM-002) goes to DEL-05-01 (DEP-04-02-019; its own row DEP-05-01-025), DEL-05-02 (DEP-04-02-020; its own row DEP-05-02-019), DEL-03-02 (DEP-04-02-021), DEL-03-03 (DEP-04-02-022) and DEL-02-03 (DEP-04-02-023). Declared upstream in the consumer's own register only: DEL-03-04 (DEP-03-04-012), DEL-09-06 (DEP-09-06-031) and DEL-09-09 (DEP-09-09-022). DAG-003 admits the arcs to DEL-03-04 and DEL-09-06 and holds the others as non-gating candidates in SCC-002. No row records satisfaction. Host builder via DEL-03-04 and the external SWBPIPE owner through human relay (DEP-04-02-010) — as questions, not assignments.
+
+## Changes from v0.7
+
+Wave B of run `APP-V4-DESIGN-PASS-2-20260930` (node B4): design development
+under R12-1…R12-3. Item IDs are the survey items of `SURVEY/S1-A.md` §2.8
+("AS n") and §3.8 ("RS n"), and the R12 rulings. Every new structure is
+PROPOSED unless a cited text decides it.
+
+| Item | Change in v0.8 | Where |
+|---|---|---|
+| **AS 4**, **RS 6** | Decided: network-destination grants and contacts ride the §6 exchange. Settings-in carries a host agent's destination settings (model service, category switches, named entries, always-off items, in-work grants with scope and state, agent requests with their state), apart from the operation-class grants; record-out carries the R15 entries and the entry read states; the comparison covers destination settings; contacts are read by reference, not compared; declines and refusals are recorded as PROPOSED (R12-10). §6 and RS §8 stay byte-identical | §6 |
+| **AS 7** | Transitions for in-work destination grants (DG-1…DG-13: requested → pending → in force → consumed / ended with run / listed → superseded; refused; unconfirmed; declined; unanswered) and failure rows for "destinations not observed", an unreadable record version and a destination report the display cannot match | new §3.1; §5 |
+| **AS 5** | "Provided to receivers": for DEL-04-03, DEL-05-01, DEL-05-02, DEL-03-02, DEL-03-03 and DEL-02-03, the elements, the condition of use, and the behaviour on *unconfirmed* and on *missing*. DEP-05-01-025's "grant in force carried on each loop dispatch" is defined | new §12.1; §12 |
+| **AS 8** (U-08; OI-014) | The OUT-001 component structure (K-1…K-7) with four PROPOSED options for OI-014 and what each option changes; none is chosen (R12-2) | new §13; UNRESOLVED U-08 |
+| R12-1, R12-2 | Settings-in has a PROPOSED representation: JSON Schema 2020-12 `AS_SETTINGS_IN.schema.json`, two valid and three invalid examples; the RS record carries it as a `settings_version` entry | Header; §6; new files |
+| R12-3 | `prototype/validate_settings_in.py` validates the examples and walks the §3.1 transitions (eight sequences, six forbidden transitions); run 2026-09-30, all held | `prototype/`; §3.1 |
+| R12-5 | A15 named in §0 (not shown by the grant display) | §0 |
+| R12-10 | The not-counted marking already reads "prior act not counted" (§4, §8); it gains its reason, as RS-v0.8 L-13 fixes | §4; §8 |
+| Verification | New F22 and VC-19…VC-22; VC-15 coverage extended | §11; Verification cases |
 
 ## Changes from v0.6
 
@@ -90,7 +111,8 @@ The v0.3 → v0.4 change table is preserved in AS-v0.4 at commit `cc58211c5`.
 - **Act names (DEL-04-01 §2.1):** A1 propose · A2 apply · A3 examine · A4 mark
   checked · A5 accept · A6 approve · A7 rely · A8 request · A9 record · A10
   reject · A11 withdraw · A12 set grant · A13 enable external access · A14
-  answer tool permission.
+  answer tool permission · A15 register workflow revision (R12-5; not shown
+  by the grant display).
 - **Labels (R-4):** unqualified "checked" means only A4; host results say
   "host checks passed: ‹named checks›"; agent work is "examination" /
   "findings"; "approval" means only A6; "tool permission" is A14; "accept" is
@@ -256,13 +278,45 @@ the grant display also shows the following, from the host's control
 | Declines | Not shown as a grant state. The requesting call's outcome is "destination not allowed by the person" (PANEL ND-3) |
 
 - The seven states above (*set by person, not yet confirmed by control*,
-  *unconfirmed*, *refused (reason)*, and so on) apply to these grants too.
+  *unconfirmed*, *refused (reason)*, and so on) apply to these grants too;
+  the in-work transitions are §3.1.
   A refusal may carry the reason "not stateless MCP (2026-07-28)".
 - The destination grants and the operation-class grants are shown apart.
   They never merge, with each other or with the checkpoint indicator,
   into a single "allowed" signal.
 - Allow lists locked by an organization are governance phase and are not
   shown in Phase 1.
+
+### 3.1 In-work destination grants: transitions (AS 7; PROPOSED display over SETTLED rules)
+
+The rules are LOOP §5.1.1 (NW-11…NW-13) and ACT §2.7 (ND-A2), SETTLED by
+DECISION-5 except the A12 mapping (INTEGRATION, ACT F-22). The table says
+what the display shows and what settings-in carries at each step (§6). A
+network-destination grant is never shown merged with an operation-class
+grant or the checkpoint indicator.
+
+| # | From | Event (evidence) | To | Shown as | Settings-in / record |
+|---|---|---|---|---|---|
+| DG-1 | — | The agent asks for a destination or category, with the scope it seeks (A8; LOOP "Destination request issued") | **requested** | "Agent requests ‹target, scope›" beside the governing list; only the requesting call is shown waiting (NW-12) | Agent request, state *pending*; R15 *destination requested* |
+| DG-2 | requested | The person grants, once, for this run or always (A12, network-destination grant, captured by the host's control) | **pending control confirmation** | "Set by you — not yet in force" | In-work grant, state *pending control confirmation*, A12 reference; the A12 record |
+| DG-3 | pending; unconfirmed | The control establishes it | **in force** | The grant with its scope, time and A12 reference, "set by you" | State *in force*; R15 *destination grant* |
+| DG-4 | pending | The control refuses (e.g. "not stateless MCP (2026-07-28)") | **refused (reason)** | The reason beside the governing list; nothing is allowed | State *refused*, with the reason; a boundary refusal, if the host records one, is PROPOSED recording (R12-10) |
+| DG-5 | pending; in force | Confirmation is lost | **unconfirmed** | Last-known value, "unconfirmed"; never shown in force | State *unconfirmed* |
+| DG-6 | in force (*once*) | The one requesting call contacts the destination | **consumed** | Gone from the in-work grants; the contact is shown where contacts are shown (PANEL ND-4), "in-work grant: once" | State *consumed*, with the contact; R15 *destination contacted* |
+| DG-7 | in force (*once*) | The requesting call is withdrawn before it is sent | **consumed** (unused) | Gone; never reusable by another call (ND-A2) | State *consumed* |
+| DG-8 | in force (*once* or *this run*) | The run ends | **ended with run** | Gone; a run that continues this one inherits nothing (R4-4) | State *ended with run* |
+| DG-9 | in force (*always*) | It becomes an allow-list entry | **listed** | A named entry "in-work, always, ‹time›" in the allow list | Named entry with source *in-work, always* |
+| DG-10 | listed | A later **established** list edit removes or narrows it | **superseded** | "superseded by ‹act›"; a refused edit supersedes nothing | Named entry changed; state *superseded* |
+| DG-11 | requested | The person declines | no grant | Not shown as a grant; the call's outcome "destination not allowed by the person" (PANEL ND-3) | Agent request, state *declined*; the act-declined event (INTEGRATION, R2-5, R8-13); its R15 record PROPOSED (R12-10) |
+| DG-12 | requested | Nobody answers | requested (unchanged) | Still pending; never granted by silence or timeout (S12) | State *pending* |
+| DG-13 | requested | The run ends unanswered | no grant | Gone | State *ended unanswered with the run* |
+
+Not transitions: an agent-written list entry is never a grant (at most an
+A8, DG-1); an operation-class A12 changes no destination state (ACT ND-A1).
+The walk of these transitions is checked by
+`prototype/validate_settings_in.py` (eight event sequences, six forbidden
+transitions; run 2026-09-30, all held).
+
 
 ## 4. Checkpoint overlay
 
@@ -335,7 +389,8 @@ later layer and is not shown in Phase 1.
   surface. An act captured before the arrival counts when the content it was
   made on is still current, and is shown with its time (SETTLED by
   DECISION-K1 K1-2; EXEC SP-6). An earlier act on content no longer current,
-  or of another kind, is shown **"prior act not counted"**. Under the
+  or of another kind, is shown **"prior act not counted"**, with its reason
+  (the one wording, RS-v0.8 L-13; R12-10). Under the
   governance-phase option (EXEC SP-6F) only an act **captured at or after the
   arrival** counts (R4-5), any earlier act is "prior act not counted", and
   where order cannot be established, "act order unknown". A grant, success,
@@ -417,9 +472,18 @@ Failure behaviour: control unreachable → *unconfirmed*; conflicting App and
 host reports → both shown, *unconfirmed*, defect observation returned; record
 write fails → comparison *missing in record* (§6).
 
+Further failure behaviour (v0.8; PROPOSED):
+
+| Failure | Who reports it | Shown as | Next |
+|---|---|---|---|
+| The host's native layer reports no destinations for a host-loop run | The host (through DEL-05-01); RS R11 "destinations not observed" | "destinations not observed", never "no destinations contacted" and never "none allowed" | The allow list and in-work grants are still shown from the control |
+| The record-out's format version is refused, or read limited (RS §13.4) | The record reader | Comparison *missing in record (unreadable version ‹v›)*; or compared on known elements only, marked "read limited" | The display keeps showing the control's current grant; nothing is inferred from the unread record |
+| A destination grant in force on the display has no A12 reference, or a contact names a grant the record lacks | The comparison (§6); the record reader (RS §14.2 R-7) | A defect observation; the grant is shown *unconfirmed* | Returned as a defect; never shown as allowed on the display's word |
+| The destination settings and the operation-class grants arrive in one report that merges them | The comparison | Both shown apart; defect observation | Never one "allowed" signal |
+
 ## 6. Settings-in / record-out exchange with DEL-04-03 (CASE-002 M3)
 
-Identical to DEL-04-03/RS-v0.7 §8. A data exchange, not an ordering between
+Identical to DEL-04-03/RS-v0.8 §8. A data exchange, not an ordering between
 human acts and not a second authority.
 
 **Settings-in (DEL-04-02 → DEL-04-03 writer), per run and per change:** run
@@ -437,8 +501,28 @@ and its default value** in its place; **establishment evidence** (control
 confirmation) or refusal reason; order relative to operation entries; source
 of control (App or host).
 
+**Destination settings of a host's agent (DECISION-5; ACT §2.7; carried
+with the settings version, apart from the operation-class grants and never
+merged with them):** the model service and, for a chosen cloud model, its
+sign-in service, marked "allowed by your model choice"; each **category
+switch** (on or off) with its display state and A12 reference; each **named
+entry** with its category, its source (allow list · in-work, always), its
+A12 reference and display state; the **always-off items**, each off unless
+an A12 turned it on; each **in-work grant** with its destination or
+category, scope (once · this run · always), state (pending control
+confirmation · in force · consumed · ended with run · listed · superseded ·
+refused (reason) · unconfirmed; AS §3.1), A12 reference and the request it
+answers; and each **agent request** still open or resolved in the run, with
+the scope sought and its state (pending · granted · declined · ended
+unanswered with the run). *Not applicable* for the App's own Codex, whose
+model destination is R5. PROPOSED representation: DEL-04-02's
+`AS_SETTINGS_IN.schema.json`, carried in the record as the body of a
+`settings_version` entry (RS §13).
+
 **Record-out (DEL-04-03 reader → DEL-04-02), per run:** record identity and
-format version; continues ⟨run⟩ where present; recorded settings versions
+format version, and the read state of every entry that is not *written*
+(read limited · refused · partial · nonconformant; RS §3 record states);
+continues ⟨run⟩ where present; recorded settings versions
 with the fields above; per operation entry the two settings references,
 route, treatment at resolution, governing checkpoint constraint with carriage
 assurance, outcome, item dispositions with actors, receipt/origin references,
@@ -449,11 +533,18 @@ writes no undo receipt), evaluated/relied/current bases, the optional
 events with actor, recorder, recording mode, kind, act class, bound subject,
 scope, purpose, c₀/c₁ with method designations, lapse or supersession state,
 A12 control effect, *after run end* marking and capture evidence references
-with resolution status; checkpoint arrivals with subject class, the
+with resolution status; act requests (R16) and each arrival's request
+observation; checkpoint arrivals with subject class, the
 `governed` flag where declared, hold support (governance phase, governed
 checkpoints only; none in Phase 1), arrival and performance ordinals,
 disposition as a record label, annotations, run-resumed and run-ended events;
-evidence limits.
+evidence limits. For a host's agent, the **R15 entries**: destinations
+contacted, each with its category and the grant or entry that allowed it;
+destination grants with scope, time, source and A12 reference; destination
+requests; declines and boundary refusals (their recording PROPOSED: V4-EXM-23
+reports a decline to the agent, and no accepted text says it is recorded;
+R12-10); outside processes with their declared destinations; and the limits
+"process network not observed" and "destinations not observed".
 
 **Comparison (DEL-04-02)** per settings version: displayed vs recorded →
 *match* · *mismatch* · *missing in record* · *missing in display*. Mismatch is
@@ -462,6 +553,15 @@ authoritative for what was recorded; the control for the current grant; the
 display is derived. Neither side auto-corrects the other. A person-set state
 without an A12 reference, or an *effective (policy default)* state without a
 policy-class record reference, is a defect, not an established setting.
+Destination settings are compared the same way, entry by entry (switches,
+named entries, always-off items, in-work grants with their states); a named
+entry or an in-work grant shown in force without an A12 reference is a
+defect, not a grant. Destinations contacted are not compared: they are read
+from the record and shown by reference where they are displayed (PANEL
+ND-4). A record-out whose version is refused gives *missing in record
+(unreadable version ‹v›)* for every settings version; one read limited is
+compared on its known elements only and says "read limited". "Destinations
+not observed" is shown as that limit, never as "no destinations contacted".
 
 ## 7. Abstract host contribution for direct application
 
@@ -606,19 +706,20 @@ flag (EXEC GV-5; R8-11 item 5).
 | F20 | L-AS-11 (Phase-1 guidance has no C step): an App run on X with the F6d checkpoint, not `governed`. After the arrival: (a) the agent issues a further host operation; (b) the agent's record claims Engineer A's A4 without capture evidence; (c) Engineer A's A4 is captured. Variant (d): the checkpoint declared `governed` | (a) Shown as observed, optionally "continued past the checkpoint before A4" (turn initiator *agent*); never a warning, stop or *unsupported*. (b) No act shown (DS-3); the record is non-conformant. (c) **performed** shown as a record label. No hold-support value at any point. (d) Same in Phase 1, with the `governed` flag shown (OV-7) |
 | F19 | DEL-03-03 L-ADAPTER-8: App conversation uses a user-chosen cloud model; external access enabled; a supplier re-route mid-run | Grant display unchanged; no gate or warning state here; per-turn requested/effective destinations and the re-route are shown in DEL-03-03's channel status and recorded in RS R5 (SETTLED: the reading confirmed by the owner, OWNER_ITEMS O-10) |
 | F21 | L-AS-12 (R8-13; C has no network subjects): host-loop run; web access switched on; named MCP entry M-1; the agent asks for A-1 and Engineer A grants it for this run; a later request for A-2 is declined; the agent writes an entry for A-3 | Allow list shows web access on, M-1 as a named entry and the model service "allowed by your model choice". A-1 shown as an in-work grant, scope this run, with time and A12 reference; gone after run end. A-2 not shown as a grant (the outcome is "destination not allowed by the person"). A-3 shown at most as "Agent requests …", never a grant. Operation-class grants unchanged and shown apart |
+| F22 | L-AS-13 (R8-13; C has no network subjects): host-loop run. (a) The agent asks for A-1 once; Engineer A grants; the control establishes; the call contacts A-1. (b) A grant for this run; the run ends. (c) A grant always; later Engineer A removes the entry (established). (d) A grant for M-2; the control refuses, "not stateless MCP (2026-07-28)". (e) The confirmation of a grant is lost. (f) A request nobody answers. (g) The native layer reports no destinations | (a) DG-1 → DG-2 → DG-3 → DG-6: *consumed*, the contact "in-work grant: once". (b) DG-8: *ended with run*; a continuing run inherits nothing. (c) DG-9 → DG-10: *listed*, then *superseded by ‹act›*. (d) DG-4: *refused (reason)*, nothing allowed. (e) DG-5: *unconfirmed*, never shown in force. (f) DG-12: still *requested*, never granted. (g) "destinations not observed", never "none contacted" (§5). Operation-class grants unchanged and shown apart throughout |
 
 ## 12. Receivers (from the registers; R9-6)
 
 A table of named receivers only. It is rebuilt from the ACTIVE rows of this
 deliverable's `Dependencies.csv` and of each consumer's own register. It
 defines no contribution. What each receiver takes element by element, the
-condition of use, and the behaviour on *unconfirmed* or *missing* are not
-stated here (Wave B).
+condition of use, and the behaviour on *unconfirmed* or *missing* are
+stated in §12.1 (v0.8).
 
 | Receiver | Local row | Receiver's own row | DAG-003 | Contribution the register names | Where this file defines it |
 |---|---|---|---|---|---|
 | DEL-04-03 | DEP-04-02-009 | DEP-04-03-022 | held (SCC-002) | Settings-in: the visible autonomy settings and during-work changes, passed through the record interface | §6 |
-| DEL-05-01 | DEP-04-02-019 | DEP-05-01-025 | held (SCC-002) | Visible autonomy state. DEP-05-01-025: "the autonomy-grant display states and standing exchange", consumed "as the grant in force carried on each loop dispatch" | Grant display states: §3. Standing: §8. The grant in force carried on each loop dispatch: named by DEP-05-01-025; not yet defined here |
+| DEL-05-01 | DEP-04-02-019 | DEP-05-01-025 | held (SCC-002) | Visible autonomy state. DEP-05-01-025: "the autonomy-grant display states and standing exchange", consumed "as the grant in force carried on each loop dispatch" | Grant display states: §3. Standing: §8. The grant in force carried on each loop dispatch: §12.1 (v0.8) |
 | DEL-05-02 | DEP-04-02-020 | DEP-05-02-019 | held (SCC-002) | Visible autonomy state. DEP-05-02-019: "autonomy-grant display states and active scope definition" | §3 (states and scope); §4 (checkpoint overlay) |
 | DEL-03-02 | DEP-04-02-021 | none | held (SCC-002) | Visible autonomy state | §3 (states, including *effective (policy default)*); §6 (settings versions) |
 | DEL-03-03 | DEP-04-02-022 | none | held (SCC-002) | Visible autonomy state | §3 (the grant display; the channel status beside it is DEL-03-03's) |
@@ -632,9 +733,65 @@ stated here (Wave B).
 - The arcs N-18, N-21, N-24 and X-1 have no end at DEL-04-02.
 - Inputs are not tabled here. One is noted because a register names it:
   DEP-04-02-018 has this file consume, from DEL-05-01, the allow list, the
-  in-work destination grants and the contacted-destination record. §3 shows
-  the first two. No display of the contacted-destination record is defined
-  in this file (PANEL ND-4 shows one). This is returned as a Wave B item.
+  in-work destination grants and the contacted-destination record. §3 and
+  §3.1 show the first two. From v0.8 the §6 exchange carries the contacts;
+  no display of them is defined in this file (PANEL ND-4 shows one), and
+  which file owns that display is node B5's (S1-A AS 3).
+
+### 12.1 Provided to receivers (AS 5; PROPOSED)
+
+What each receiver named in §12 is given, when it may use it, and what it
+does when the grant is *unconfirmed* or the input is *missing*. Treatment is
+always resolved on the host route (ACT §5.3); nothing here lets a receiver
+decide treatment or widen a grant. *Missing* means no report was received;
+it is never read as *not set*, which means "no person setting and no policy
+default" (§3).
+
+| Receiver (row) | Elements provided | Condition of use | On *unconfirmed* | On *missing* |
+|---|---|---|---|---|
+| DEL-04-03 (DEP-04-02-009) | Settings-in, per run and per change (§6), including a host agent's destination settings; PROPOSED representation `AS_SETTINGS_IN.schema.json` | Written as a `settings_version` entry in order with the operation entries (RS §13, §14.1) | Recorded with display state *unconfirmed*; never as *effective* | No entry; the comparison shows *missing in record* or *missing in display* (§6) |
+| DEL-05-01 (DEP-04-02-019; DEP-05-01-025: "the grant in force carried on each loop dispatch") | **Grant in force per dispatch** (defined here): the settings version identity in force at route decision; for the operation's class its grant value, display state, scope and policy-class record reference {policy revision, record}; for a host agent's network use, the destination settings version in force (allow list and in-work grants with states) | The loop carries it on the dispatch record (LOOP §6.2) and relays intent; the host route resolves treatment. It never converts a direct request into a proposal or the reverse | The dispatch records "grant in force: unconfirmed"; no direct branch is claimed; the host's refusal, if any, is recorded as observed | The dispatch records "grant in force: not received"; no default is assumed; for destinations the native layer allows only what the host's control holds |
+| DEL-05-02 (DEP-04-02-020; DEP-05-02-019: "autonomy-grant display states and active scope definition") | The seven display states with value and scope per class (§3); the destination settings and the §3.1 states; the checkpoint overlay meanings (§4); the standing facets (§8) | The panel renders the same meanings (PANEL §3.6, §3.8 ND-5); grants and the checkpoint indicator never merge | Last-known value, "unconfirmed"; no direct branch shown | "grant state not available" (PROPOSED wording); never *not set* and never a guess |
+| DEL-03-02 (DEP-04-02-021) | The settings version identity and display state at route decision (P's standing at drafting), with the policy-class record reference and default for *effective (policy default)*; the settings reference at application when the host reports it | P records both references (P §3.3; RS §5); the host route decides treatment | Standing at drafting recorded *unconfirmed*; the proposal path is unaffected | "settings reference: not supplied" on the entry; never inferred |
+| DEL-03-03 (DEP-04-02-022) | The grant in force for the external channel's dispatches (as for DEL-05-01, ADAPTER §5.5), shown beside, never merged with, the channel status the adapter owns | The adapter relays only (ADAPTER RD rules); the model destination never gates (§2) | Dispatch carriage "grant in force: unconfirmed" | "grant in force: not received"; the channel status is unaffected |
+| DEL-02-03 (DEP-04-02-023) | The display meanings of EXEC's annotations (§4); for an A12 checkpoint, whether the setting an earlier A12 established is still in force (DECISION-K1 K1-2) | EXEC takes dispositions from the record (RS R8); the display is derived | The earlier A12 is not counted as still in force: the arrival is *unknown*, as for a lost confirmation (L-0; EXEC §4.10) — PROPOSED | As *unconfirmed* |
+
+Declared upstream in the consumer's own register only (DEL-03-04, DEL-09-06,
+DEL-09-09): the guide, CA and XT read §3, §3.1, §4, §6 and §8 as cited in
+§12, with the same *unconfirmed* and *missing* behaviour as DEL-05-02.
+
+## 13. Component structure — PROPOSED options under OI-014 (AS 8; U-08)
+
+**Standing.** Options, not a choice. OI-014 is open: "Place shared
+contracts/components against actual consumer responsibilities; agree
+ownership before any common implementation, without presuming a common
+service." R12-2 keeps placement open for the phase review. The components
+below are functions of OUT-001, whatever their placement.
+
+| Component | Function | Inputs → outputs |
+|---|---|---|
+| K-1 Grant state deriver | Derives the seven display states per class and scope, and the destination states of §3.1 | Control reports, A12 records, policy-class records → display states |
+| K-2 Settings-in emitter | Hands each settings version to the record writer | K-1's states → `settings_version` entries (§6) |
+| K-3 Record-out comparator | Compares displayed with recorded | Record-out, K-1's states → match · mismatch · missing in record · missing in display (§6) |
+| K-4 Grant display | Shows §2–§3 and §3.1 | K-1's states |
+| K-5 Checkpoint overlay | Shows §4 | Record-out (RS R8) |
+| K-6 Standing facets | Shows §7–§8 | Record-out; host standing |
+| K-7 Receiver feed | Supplies §12.1 to the loop, the panel, P, the adapter and EXEC | K-1's states |
+
+| Option | What is shared | What each surface builds | For | Against |
+|---|---|---|---|---|
+| **CS-1 Contract only** | This definition, the two schemas (`AS_SETTINGS_IN.schema.json`; RS `RS_RECORD.schema.json`) and their conformance fixtures | The App and each host panel build K-1…K-7 themselves | No shared code; no common service presumed; the host keeps its ownership (DEP-001) | Two or more implementations kept aligned only by fixtures |
+| **CS-2 Shared library for the non-visual parts** | K-1, K-2, K-3 and K-7 as one library, plus the schemas and fixtures | Each surface builds K-4…K-6; a host panel may adopt the library or implement the contract | One derivation and one comparison | Runtime coupling with host code; a host may decline it (DEP-001), leaving CS-1 for that host |
+| **CS-3 App-built, host by contract** | Schemas and fixtures | The App builds K-1…K-7 for App surfaces; each host panel builds its own against the contract (PANEL is a receiving contract) | Matches the current ownership split (DEL-05-02 receiving; host builds) | As CS-1 for hosts |
+| **CS-4 App-side service** | K-1, K-3, K-7 as a service in the App process that host panels query | Renderers only | One live state | Presumes a common service, which OI-014 says not to presume; couples host panels to the App's process; listed for completeness |
+
+What every option needs, and this version supplies as PROPOSED: the
+settings-in schema with valid and invalid examples, the record schema it is
+carried in, the §3.1 transitions with their walk, and the F scenarios of
+§11. What the choice changes: who builds K-1…K-7, where conformance evidence
+comes from (a library's tests or each surface's fixture results), and which
+register rows carry the components. **No option is chosen here** (R12-2).
+
 
 ## UNRESOLVED
 
@@ -646,8 +803,8 @@ stated here (Wave B).
 | U-05 Host origin, undo, later-check route, receipt, resulting objects, host-check basis `DEP-001` | SWBPIPE outside implementation session | Before corresponding connected-journey integration/examination and fallback-replacement decision | All host elements are fixture |
 | U-06 Settings version in force at application | Responsible host owner (DEP-001) | Before connected integration | *unconfirmed* unless reported. SWBPIPE reports no settings reference (SQ-05 (d)) |
 | U-07 Host capture requirement and capture-evidence reference. SQ-01 answered 2026-09-28: SWBPIPE exposes none | SWBPIPE owner decision (PB-TBD-002 acceptance-record storage; DEL-16-03 actor identity; ANS §2) | Before host act-recording integration | No host-content arrival reaches *performed* without it |
-| U-08 Component placement / host panel assembly `OI-014`, `OI-013` | App/shared contract owners; shared contract owner with SWB implementation owner | Before structural/production contract allocation (OI-014); before shared/host implementation boundary contracts (OI-013) | OUT-001 components only "where justified" |
-| U-10 Record representation for the exchange | DEL-04-03 (RS U-04) | Before writer implementation | Semantic only |
+| U-08 Component placement / host panel assembly `OI-014`, `OI-013` | App/shared contract owners; shared contract owner with SWB implementation owner | Before structural/production contract allocation (OI-014); before shared/host implementation boundary contracts (OI-013) | OUT-001 components only "where justified". **v0.8:** the components K-1…K-7 and four PROPOSED options CS-1…CS-4 are stated in §13 for the phase review; none is chosen (R12-2) |
+| U-10 Record representation for the exchange | DEL-04-03 (RS U-04) | Before writer implementation | **v0.8:** PROPOSED representations exist — settings-in `AS_SETTINGS_IN.schema.json` (here) carried in RS's `RS_RECORD.schema.json` (RS §13); not accepted |
 | U-12 Host receipt or own evaluation of the governing checkpoint constraint (governance phase) | Host owner (relay SQ-02). SQ-02 answered 2026-09-28: route (iv), none planned; planning one is a SWBPIPE owner decision (ANS §2) | Before connected integration; when the owner resumes UI-SUCCESSOR (DECISION-3) | Phase 1: no constraint carried or shown (§2). Governance phase: F6b **AWAITING INPUT** — SQ-02 answered: no receipt, no host copy (not offered); host joins deferred (DECISION-3); only host-held satisfies R2-12; App-assured unavailable (R5-2) |
 | U-15 CLOSED (v0.7) — register edges to DEL-03-02, DEL-05-01, DEL-05-02, DEL-03-03 and DEL-02-03 exist: DEP-04-02-019…023, ACTIVE, first seen 2026-09-29 | Register owner | — | Receivers are listed from the registers (header; §12) |
 | U-16 App-side run holds `UNRESOLVED{D6}`. **Closed for Phase 1** by DECISION-4 D4-1 (R8-2); **re-opens only when the governance phase is taken up**. SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned | The owner (DECISION-4; D6 re-opens with the governance phase) | When the governance phase is taken up for a workflow that needs it; before hold-display fixtures run (ScopeOfWork TBD-006) | Phase 1: no hold or hold-support value shown (OV-3). Governance phase: hold support (R5-1 values) and action during hold shown; HS-3 checkpoints *not enforceable* against SWBPIPE, HS-5 *not enforceable*; no unenforced hold shown as held |
@@ -657,10 +814,10 @@ stated here (Wave B).
 | U-20 Grant display for a host without a grant model (R8-10; I2 R8-Q16) | DEL-04-02 with the integrator; PROPOSED, deferrable with the host joins | When the host joins resume (DECISION-3) | §3 "host fixed treatment" display applied as PROPOSED |
 | U-21 DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands) (closed for those points) (person-only grant; the reading of "MCP V2") and LOOP N-OPEN-4 (how a category switch and its named entries combine) (R8-13). **N-OPEN-4 closed by DECISION-K1 K1-5 (2026-09-30):** a named entry is allowed on its own; a switch allows the whole category | The owner (decided) | — | Switches and named entries are shown separately, each with its meaning (§3); grants shown as the person's A12 |
 
-Closed in v0.7, node A3 (DECISION-K1): U-17 (K1-2), U-19 (K1-3), and U-21's remaining N-OPEN-4 part (K1-5). Closed in v0.7: U-15 (the register edges exist: DEP-04-02-019…023). Closed in v0.6: none (U-16 closed for Phase 1 only). Closed in v0.5: none. Closed in v0.4: U-09 (EXEC §4.11), U-11 (R4-4), U-13 (R4-3), U-14 (R4-6).
+Closed in v0.8: none (U-08 and U-10 advanced, not closed). Closed in v0.7, node A3 (DECISION-K1): U-17 (K1-2), U-19 (K1-3), and U-21's remaining N-OPEN-4 part (K1-5). Closed in v0.7: U-15 (the register edges exist: DEP-04-02-019…023). Closed in v0.6: none (U-16 closed for Phase 1 only). Closed in v0.5: none. Closed in v0.4: U-09 (EXEC §4.11), U-11 (R4-4), U-13 (R4-3), U-14 (R4-6).
 Earlier: U-03.
 
-## Verification cases (designed, not run)
+## Verification cases (designed; VC-19's state walk and VC-22 ran on the local prototype only, not on a candidate)
 
 | Case | Input | Expected result | Serves |
 |---|---|---|---|
@@ -680,5 +837,9 @@ Earlier: U-03.
 | VC-16 Hold-support values (governance phase) | F6, F6c, F6d, F14, F18 and its variant (governance-phase columns, read as governed) | Only the four R5-1 values, classified by held actions (R6-1); *not established* never pass or *unsupported*; *not enforceable* → *unsupported* with the R4-8 string; stop shown only under *enforced by the host loop* (R6-3); no retired value; SWBPIPE's SQ-02 answer gives HS-3 (c) (R8-2) | VER-001 (AC-001) |
 | VC-17 Phase-1 overlay (R8-1) | F6, F6b, F6c, F6d, F14, F18, F20 (Phase-1 columns) against §4 OV-1…OV-7 and EXEC PH-1…PH-10 | No hold, stop, re-hold or hold-support value shown, and no *unsupported* for a hold reason; acts shown only from records of the person performing them; reserved acts remain the person's, with host refusals shown as observed; arrivals and acts shown as observation; "continued past ‹checkpoint› before ‹act›" optional and never a warning or defect; lapse still shown; `governed` flag shown and changes nothing | VER-001 (AC-001) |
 | VC-14 Owner and open-choice trace | §10, UNRESOLVED | Each REQ-007 act traced; D2/D3/D5/D6 cited only for what they say; OI owners and points of need match register; no host delivery claimed | VER-006 (AC-006) |
-| VC-15 Suite coverage | VC-01…VC-13 and VC-16…VC-18 | Each AC-001…AC-005 covered; results bound to an identified candidate; held and AWAITING INPUT never counted as passes | VER-007 (AC-007) |
+| VC-15 Suite coverage | VC-01…VC-13 and VC-16…VC-22 | Each AC-001…AC-005 covered; results bound to an identified candidate; held and AWAITING INPUT never counted as passes | VER-007 (AC-007) |
 | VC-18 Network-destination grant display (R8-13) | F21 against §3 and ACT §2.7 | Allow list and in-work grants shown with their scopes and A12 references; model service shown as allowed by the model choice; agent requests and declines never shown as grants; destination and operation-class grants shown apart | VER-001 (AC-001) |
+| VC-19 In-work destination-grant transitions (AS 7) | F22 against §3.1 DG-1…DG-13; `prototype/validate_settings_in.py` | Each sequence ends in the state §3.1 gives; forbidden transitions (a grant by timeout or by an agent-written entry; reuse of a consumed or ended grant; a refused grant becoming in force; a declined request becoming a grant) do not exist. **The state walk ran 2026-09-30 on the prototype: held** | VER-001 (AC-001) |
+| VC-20 Receiver conditions (AS 5) | §12.1 against each receiver's own text (LOOP §6.2, PANEL §3.6, P §3.3, ADAPTER §5.5, EXEC §4.10) | Each receiver has elements, a condition of use and behaviour on *unconfirmed* and *missing*; *missing* is never shown as *not set*; no receiver decides treatment | VER-002 (AC-002) |
+| VC-21 Destination exchange (AS 4; RS 6) | F21, F22; RS VC-38 | Settings-in carries the destination settings apart from the operation-class grants; record-out carries R15; comparison covers settings, not contacts; §6 and RS §8 identical | VER-002 (AC-002) |
+| VC-22 Settings-in representation (R12-1) | `AS_SETTINGS_IN.schema.json` with its examples | Valid examples validate; INV-AS-1 (person-set without A12), INV-AS-2 (agent request with an A12 reference) and INV-AS-3 (scope "forever") fail. **Ran 2026-09-30 on the prototype: held** | VER-002 (AC-002) |

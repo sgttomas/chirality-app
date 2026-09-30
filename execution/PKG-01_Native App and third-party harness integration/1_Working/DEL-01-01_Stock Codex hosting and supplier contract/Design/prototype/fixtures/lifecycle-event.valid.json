@@ -1,0 +1,32 @@
+{
+  "description": "Valid: handshake completed; ready(g1) with the version identity record (invented example values).",
+  "instance": {
+    "recordKind": "lifecycle-event",
+    "sequence": 4,
+    "transitionId": "LT-09",
+    "generation": 1,
+    "fromState": "handshaking",
+    "event": "handshake-completed",
+    "toState": "ready",
+    "at": "2026-09-30T12:00:00.000+00:00",
+    "versionIdentity": {
+      "declaredPin": "0.158.0",
+      "observedVersionLabel": "codex-cli 0.158.0",
+      "handshakeReportedIdentity": {
+        "userAgent": "chirality-example/0.158.0 (Example OS; arm64) unknown (chirality-example; 0.0.0)",
+        "codexHome": "<EXAMPLE-HOME>",
+        "platformFamily": "unix",
+        "platformOs": "macos"
+      },
+      "handshakeConsistency": "consistent",
+      "launcherRecord": {
+        "launcher": "vendor-binary",
+        "addedEnvironment": []
+      }
+    },
+    "declaredCapabilities": {
+      "experimentalApi": false,
+      "requestAttestation": false
+    }
+  }
+}

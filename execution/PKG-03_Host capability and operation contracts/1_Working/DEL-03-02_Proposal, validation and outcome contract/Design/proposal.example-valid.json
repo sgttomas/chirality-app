@@ -1,0 +1,84 @@
+{
+  "proposal_identity": {
+    "value": "PR-2",
+    "minted_by": "proposer"
+  },
+  "requested_mode": "propose",
+  "origin": {
+    "author_type": "agent",
+    "author_identity": "unverified",
+    "seat_role_meaning": "external agent (App Codex)",
+    "channel": "external_agent",
+    "conversation": "K-7",
+    "workflow_identity": {
+      "kind": "workflow",
+      "origin": "host",
+      "source_root": "fx-root",
+      "name": "supports-adjust",
+      "revision": "rev-3"
+    },
+    "workflow_run": "12",
+    "reason": "Reduce thermal restraint"
+  },
+  "relied_on_basis": [
+    {
+      "canonical_content_identity": "sh1:d9d2153f3f7e92d0",
+      "generation": "g1",
+      "identity_method": "m-sh1",
+      "model_revision": "r13",
+      "workspace_identity": "FX-W1"
+    }
+  ],
+  "items": [
+    {
+      "item_identity": "1",
+      "operation_identity": "OP-C4",
+      "operation_version": "v1",
+      "affected_object": {
+        "created_description": "guide support on R-100 at 4.2 m"
+      },
+      "relied_on_targets": [
+        {
+          "subject_identity": "R-100",
+          "subject_content_identity": "sh1:84c62199c52bc97d",
+          "identity_method": "m-sh1"
+        },
+        {
+          "subject_identity": "S-2",
+          "subject_content_identity": "sh1:5cec31832b66ad53",
+          "identity_method": "m-sh1"
+        },
+        {
+          "subject_identity": "S-3",
+          "subject_content_identity": "sh1:13790572ce9d6d95",
+          "identity_method": "m-sh1"
+        }
+      ],
+      "attribute": "created",
+      "old_value": null,
+      "new_value": 4.2
+    },
+    {
+      "item_identity": "2",
+      "operation_identity": "OP-C5",
+      "operation_version": "v1",
+      "affected_object": {
+        "object_identity": "S-3"
+      },
+      "relied_on_targets": [
+        {
+          "subject_identity": "S-3",
+          "subject_content_identity": "sh1:13790572ce9d6d95",
+          "identity_method": "m-sh1"
+        }
+      ],
+      "attribute": "stiffness",
+      "old_value": "1.5e6",
+      "new_value": "2.0e6"
+    }
+  ],
+  "lineage": {
+    "replaces": "PR-1",
+    "why": "refused_stale"
+  }
+}

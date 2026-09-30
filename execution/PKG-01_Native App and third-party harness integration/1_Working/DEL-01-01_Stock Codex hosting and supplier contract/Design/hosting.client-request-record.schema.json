@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:del-01-01:hosting-boundary:v0.8:client-request-record",
+  "title": "Client request record (PROPOSED)",
+  "description": "PROPOSED by DEL-01-01/HOSTING-BOUNDARY-v0.8 §5, §5.1-§5.2 (R12-1, R12-2). One record per request the App sends, or refuses to send, to the supplier through the generic request path. Element names are Chirality's own; the supplier's method, identities, parameters and error content are carried as data. Placement is not chosen (R12-2); persistence is DEL-01-02's.",
+  "type": "object",
+  "required": ["recordKind", "generation", "requestIdentity", "method", "initiator", "writeResult", "outcome"],
+  "additionalProperties": false,
+  "properties": {
+    "recordKind": {"const": "client-request"},
+    "generation": {"type": ["integer", "null"], "minimum": 1, "description": "Null only when refused before any generation was ready."},
+    "requestIdentity": {"type": ["string", "integer", "null"], "description": "As sent; null when not sent."},
+    "method": {"type": "string", "minLength": 1, "description": "Supplier method, as data."},
+    "initiator": {
+      "type": "object", "required": ["kind"], "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["person-directed", "app-rule", "receiver"]},
+        "name": {"type": "string", "minLength": 1, "description": "The named App rule, or the receiving deliverable (e.g. DEL-03-03)."},
+        "actorRef": {"type": "string", "description": "For person-directed: the actor reference supplied by the owning interface."}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"enum": ["app-rule", "receiver"]}}}, "then": {"required": ["name"]}}
+      ]
+    },
+    "sendPosition": {"type": ["integer", "null"], "minimum": 1},
+    "writeResult": {"enum": ["written", "write-failed", "not-attempted"]},
+    "outcome": {"enum": ["pending", "response-observed-result", "response-observed-error", "unknown-no-response", "refused-not-sent"]},
+    "refusalReason": {"enum": ["not-ready", "run-holding"], "description": "Why the boundary did not send it; run-holding is governance phase only (HP-4)."},
+    "error": {
+      "type": "object", "required": ["code", "message"], "additionalProperties": false,
+      "properties": {"code": {"type": "integer"}, "message": {"type": "string"}, "data": true}
+    },
+    "responseReceiptPosition": {"type": "integer", "minimum": 1},
+    "waitingEnded": {"type": "boolean", "description": "True when the caller's wait limit ended its waiting; the outcome is unaffected (H10)."},
+    "carriedGuidance": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["element", "contentIdentity"], "additionalProperties": false,
+        "properties": {
+          "element": {"type": "string", "minLength": 1, "description": "Which supplier guidance element was carried (supplier name, as data)."},
+          "contentIdentity": {"type": "object", "required": ["algorithm", "value"], "additionalProperties": false, "properties": {"algorithm": {"type": "string"}, "value": {"type": "string"}}},
+          "sourceIdentity": {"type": ["string", "null"], "description": "Supplied by the composing owner (DEL-02-04)."}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"outcome": {"const": "refused-not-sent"}}},
+     "then": {"required": ["refusalReason"], "properties": {"writeResult": {"const": "not-attempted"}, "requestIdentity": {"const": null}}}},
+    {"if": {"properties": {"outcome": {"enum": ["pending", "response-observed-result", "response-observed-error", "unknown-no-response"]}}},
+     "then": {"properties": {"writeResult": {"enum": ["written", "write-failed"]}}}},
+    {"if": {"properties": {"outcome": {"const": "response-observed-error"}}},
+     "then": {"required": ["error", "responseReceiptPosition"]}},
+    {"if": {"properties": {"outcome": {"const": "response-observed-result"}}},
+     "then": {"required": ["responseReceiptPosition"]}},
+    {"if": {"properties": {"writeResult": {"const": "write-failed"}}},
+     "then": {"properties": {"outcome": {"const": "unknown-no-response"}}}}
+  ]
+}

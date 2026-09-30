@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-04-02:settings-in:0.1",
+  "title": "Settings-in (DEL-04-02 -> DEL-04-03 writer) — PROPOSED",
+  "description": "PROPOSED representation of the AS-v0.8 §6 / RS-v0.8 §8 settings-in element (R12-1, R12-2). One settings version per run and per change. Operation-class grants and, for a host's agent, network-destination settings are carried apart and never merged. Names are Chirality's own; no host or supplier field is selected; placement is not chosen (OI-014). The run record carries a settings version as the body of an RS entry of kind settings_version.",
+  "$ref": "#/$defs/settingsVersion",
+  "$defs": {
+    "settingsVersion": {
+      "type": "object",
+      "required": ["settingsVersionId", "sourceOfControl", "changeKind", "operationClassGrants"],
+      "additionalProperties": false,
+      "properties": {
+        "settingsVersionId": {"type": "string", "pattern": "^set:[A-Za-z0-9._:-]+$"},
+        "runId": {"type": "string"},
+        "sourceOfControl": {"enum": ["App", "host"]},
+        "changeKind": {"enum": ["run start", "during-work change", "agent request", "control report"]},
+        "afterOperationEntry": {"type": "string", "description": "Order relative to operation entries: the record identity of the last operation entry before this version, where there is one."},
+        "operationClassGrants": {"type": "array", "items": {"$ref": "#/$defs/classGrant"}},
+        "destinationSettings": {"$ref": "#/$defs/destinationSettings"}
+      }
+    },
+    "policyRecordRef": {
+      "type": "object",
+      "required": ["policyRevision", "recordId"],
+      "additionalProperties": false,
+      "properties": {
+        "policyRevision": {"type": "string", "pattern": "^DEL-04-01/ACT-POLICY-v[0-9]+\\.[0-9]+$"},
+        "recordId": {"type": "string", "pattern": "^P-[0-9]{2}[a-z]?$"}
+      }
+    },
+    "actRef": {"type": "string", "pattern": "^rec:[A-Za-z0-9._:-]+$"},
+    "scope": {
+      "description": "Representation-neutral dimensions (R-8). The consequence dimension stays a slot while U-02 is open.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "modelOrWorkspace": {"type": "string"},
+        "objectSet": {"type": "array", "items": {"type": "string"}},
+        "run": {"type": "string"},
+        "period": {"type": "string"},
+        "consequence": {"const": "UNRESOLVED{U-02}"}
+      }
+    },
+    "establishment": {
+      "type": "object",
+      "required": ["controlEffect"],
+      "additionalProperties": false,
+      "properties": {
+        "controlEffect": {"enum": ["established", "pending", "refused", "unconfirmed", "not applicable"]},
+        "evidenceRef": {"type": "string"},
+        "refusalReason": {"type": "string"}
+      }
+    },
+    "classGrantBase": {
+      "type": "object",
+      "required": ["policyRecord", "classValue", "scope", "displayState", "requester", "settingActor", "establishment"],
+      "additionalProperties": false,
+      "properties": {
+        "policyRecord": {"$ref": "#/$defs/policyRecordRef"},
+        "classValue": {"enum": ["none", "may apply within granted autonomy", "proposal only", "reserved to the person", "no policy basis"]},
+        "noPolicyBasisReason": {"enum": ["omitted", "unassigned", "pending OI-021"]},
+        "grantValue": {"enum": ["direct", "propose"]},
+        "scope": {"$ref": "#/$defs/scope"},
+        "displayState": {"enum": ["effective (person-set)", "effective (policy default)", "requested by agent", "set by person, not yet confirmed by control", "unconfirmed", "not set", "refused (reason)"]},
+        "requester": {"enum": ["person", "agent (A8)", "none — policy default"]},
+        "requestRef": {"$ref": "#/$defs/actRef"},
+        "settingActor": {"enum": ["person", "none — policy default", "none"]},
+        "settingActRef": {"$ref": "#/$defs/actRef"},
+        "policyDefault": {
+          "type": "object",
+          "required": ["policyRecord", "defaultValue"],
+          "additionalProperties": false,
+          "properties": {
+            "policyRecord": {"$ref": "#/$defs/policyRecordRef"},
+            "defaultValue": {"enum": ["direct", "propose"]}
+          }
+        },
+        "establishment": {"$ref": "#/$defs/establishment"}
+      }
+    },
+    "classGrant": {
+      "allOf": [{"$ref": "#/$defs/classGrantBase"}],
+      "oneOf": [
+        {
+          "description": "effective (person-set): A12 reference and control confirmation required (S1; R2-6)",
+          "type": "object",
+          "required": ["settingActRef", "grantValue"],
+          "properties": {
+            "displayState": {"const": "effective (person-set)"},
+            "settingActor": {"const": "person"},
+            "establishment": {"type": "object", "properties": {"controlEffect": {"const": "established"}}, "required": ["evidenceRef"]}
+          }
+        },
+        {
+          "description": "effective (policy default): policy-class record and its default, no A12, no setting actor, no requester",
+          "type": "object",
+          "required": ["policyDefault"],
+          "properties": {
+            "displayState": {"const": "effective (policy default)"},
+            "requester": {"const": "none — policy default"},
+            "settingActor": {"const": "none — policy default"}
+          },
+          "not": {"required": ["settingActRef"]}
+        },
+        {
+          "description": "requested by agent: an A8, no person act",
+          "type": "object",
+          "properties": {
+            "displayState": {"const": "requested by agent"},
+            "requester": {"const": "agent (A8)"},
+            "settingActor": {"const": "none"}
+          },
+          "not": {"required": ["settingActRef"]}
+        },
+        {
+          "description": "set by person, not yet confirmed by control",
+          "type": "object",
+          "required": ["settingActRef"],
+          "properties": {
+            "displayState": {"const": "set by person, not yet confirmed by control"},
+            "settingActor": {"const": "person"},
+            "establishment": {"type": "object", "properties": {"controlEffect": {"const": "pending"}}}
+          }
+        },
+        {
+          "description": "refused (reason): the A12 is recorded, establishes nothing, supersedes nothing",
+          "type": "object",
+          "required": ["settingActRef"],
+          "properties": {
+            "displayState": {"const": "refused (reason)"},
+            "settingActor": {"const": "person"},
+            "establishment": {"type": "object", "properties": {"controlEffect": {"const": "refused"}}, "required": ["refusalReason"]}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "displayState": {"const": "unconfirmed"},
+            "establishment": {"type": "object", "properties": {"controlEffect": {"const": "unconfirmed"}}}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "displayState": {"const": "not set"},
+            "settingActor": {"const": "none"}
+          },
+          "not": {"required": ["settingActRef"]}
+        }
+      ]
+    },
+    "destinationTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "destination": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1}
+      },
+      "anyOf": [{"required": ["destination"]}, {"required": ["category"]}]
+    },
+    "destinationSettings": {
+      "description": "A host's agent only (DECISION-5; ACT §2.7; LOOP §5.1.1). Not applicable to the App's own Codex (HOSTING §2).",
+      "type": "object",
+      "required": ["hostAgent", "modelService", "categorySwitches", "namedEntries", "alwaysOffItems", "inWorkGrants"],
+      "additionalProperties": false,
+      "properties": {
+        "hostAgent": {"type": "string"},
+        "modelService": {
+          "type": "object",
+          "required": ["service", "allowedBy"],
+          "additionalProperties": false,
+          "properties": {
+            "service": {"type": "string"},
+            "signInService": {"type": "string"},
+            "allowedBy": {"const": "model choice"}
+          }
+        },
+        "categorySwitches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category", "on", "displayState"],
+            "additionalProperties": false,
+            "properties": {
+              "category": {"type": "string"},
+              "on": {"type": "boolean"},
+              "settingActRef": {"$ref": "#/$defs/actRef"},
+              "displayState": {"$ref": "#/$defs/destinationDisplayState"}
+            }
+          }
+        },
+        "namedEntries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["destination", "category", "source", "settingActRef", "displayState"],
+            "additionalProperties": false,
+            "properties": {
+              "destination": {"type": "string"},
+              "category": {"type": "string"},
+              "source": {"enum": ["allow list", "in-work, always"]},
+              "settingActRef": {"$ref": "#/$defs/actRef"},
+              "time": {"type": "string"},
+              "displayState": {"$ref": "#/$defs/destinationDisplayState"}
+            }
+          }
+        },
+        "alwaysOffItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item", "on"],
+            "additionalProperties": false,
+            "properties": {
+              "item": {"enum": ["analytics or usage reporting", "a silent switch to another model or provider", "background downloads or updates"]},
+              "on": {"type": "boolean"},
+              "settingActRef": {"$ref": "#/$defs/actRef"}
+            }
+          }
+        },
+        "inWorkGrants": {"type": "array", "items": {"$ref": "#/$defs/inWorkGrant"}},
+        "agentRequests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["requestRef", "target", "scopeSought", "state"],
+            "additionalProperties": false,
+            "properties": {
+              "requestRef": {"$ref": "#/$defs/actRef"},
+              "target": {"$ref": "#/$defs/destinationTarget"},
+              "scopeSought": {"enum": ["once", "this run", "always"]},
+              "state": {"enum": ["pending", "granted", "declined", "ended unanswered with the run"]}
+            }
+          }
+        }
+      }
+    },
+    "destinationDisplayState": {
+      "enum": ["effective (person-set)", "set by person, not yet confirmed by control", "unconfirmed", "refused (reason)", "not set"]
+    },
+    "inWorkGrant": {
+      "description": "AS-v0.8 §3.1 transitions: pending control confirmation -> in force -> consumed (once) | ended with run (this run) | listed (always); refused; unconfirmed; superseded (a later established list edit).",
+      "type": "object",
+      "required": ["settingActRef", "target", "scope", "state", "requestRef"],
+      "additionalProperties": false,
+      "properties": {
+        "settingActRef": {"$ref": "#/$defs/actRef"},
+        "requestRef": {"$ref": "#/$defs/actRef"},
+        "target": {"$ref": "#/$defs/destinationTarget"},
+        "scope": {"enum": ["once", "this run", "always"]},
+        "state": {"enum": ["pending control confirmation", "in force", "consumed", "ended with run", "listed", "superseded", "refused", "unconfirmed"]},
+        "refusalReason": {"type": "string"},
+        "consumedBy": {"$ref": "#/$defs/actRef"},
+        "runId": {"type": "string"},
+        "time": {"type": "string"}
+      }
+    }
+  }
+}
