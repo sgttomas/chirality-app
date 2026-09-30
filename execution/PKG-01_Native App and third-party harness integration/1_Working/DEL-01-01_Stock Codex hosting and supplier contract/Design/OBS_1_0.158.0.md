@@ -215,3 +215,148 @@ Three streamed requests to `POST http://127.0.0.1:1234/v1/chat/completions` with
 - Whether Codex 0.158.0 can be made to offer MCP tools as flat function tools to a Responses provider (a provider capability or configuration setting), and whether a different local server accepts `namespace` tools. Either needs another turn and an owner or HELP_HUMAN decision.
 - O-1…O-4, O-7, A-2…A-4, A-7 and U-09 remain unobserved.
 - Whether the start-up request to chatgpt.com carried the installation id or host name (Codex's local log records them beside the URL).
+
+## OBS-1b (command-line turn)
+
+- **Date:** 2026-09-30 (turn 19:15:14–19:16:07 UTC). **Node:** OBS-1b (Type 2 TASK) of run `APP-V4-DESIGN-PASS-2-20260930`, launched by HELP_HUMAN. Appended to this record; the sections above are unchanged.
+- **Standing:** as above: a dated observation at one version (Codex 0.158.0, LM Studio 0.4.16+2, `qwen/qwen3.5-9b`), **not qualification**, no App candidate. The one approval answer in this turn came from the harness with origin `observation-harness`. It is not a person's act and is never A14 evidence.
+- **Authority:** the owner's answer "Run the command-line turn locally (Recommended)" (`OWNER_DECISIONS.md` "OBS-1 follow-up after no tool call", read at sha256 b2fa81871cbf…); `BRIEFS.md` "OBS-1b — the command-line turn" (19e38ed8e0e3…); `WAVE_B/OBS-1_BRIEF.md` §11 Part B (b3e7a4b6d98f…). Limits applied: one fresh `app-server` process and thread, one turn, approval policy `untrusted`, sandbox `read-only`, no MCP server, route R-1 only, no Part C or D, no download, no sign-in, invented material only.
+- **Result in one line:** **the command ran through Codex.** The model called the flat function tool `exec_command`. Codex raised one `item/commandExecution/requestApproval`, which the harness accepted. The command ran inside the read-only sandbox and exited 0 with the tool's JSON line. The sandbox **denied the local Unix-socket probe**: the kernel logged `deny(1) network-outbound <OBS-B>/probe.sock`. The turn completed with a one-sentence answer that reported both facts.
+
+**Redaction:** as at the top of this record. Also `<OBS-B>` = `<OBS>/obs1b`. The host's time zone, which Codex again put in the model's context, is left out.
+
+### B.1 Set-up and what differed from the first run
+
+| Item | Value |
+|---|---|
+| Codex binary | the same vendor binary, sha256 `788a818f…35c8` (P-1 pass again at 19:12 UTC) |
+| Scratch | `<OBS-B>/codex-home` = a `cp -Rp` copy of the first run's scratch home (`.tmp/plugins/` present, `plugins.sha` 5fd93af4cd0c…; no memories rows); `<OBS-B>/cwd` (empty, not a git repository); `<OBS-B>/logs`; `<OBS-B>/tool` |
+| Test tool | `<OBS-B>/tool/obs1_cli_tool.py`, a copy of `prototype/obs1_cli_tool.py` (sha256 c27dc227c2f3… for both). **Adaptation:** the brief's `python3 <path>/obs1_cli_tool.py` would put the repository path in the model's context, and that path contains the user name. The copy under `$TMPDIR` keeps the material neutral. `python3 run_cases.py` → `OBS1-test-doubles pass (model)`, TOTAL 35, FAIL 0, before the run |
+| Harness | `prototype/obs1/obs1b_harness.py`, which extends `obs1_harness.py` (unchanged). It listens on `<OBS-B>/probe.sock` (88 bytes, under the 104-byte limit). It records each connection with the peer's process id. It answers approvals by one rule, and classifies S-5 sockets from the owning process's command line (repairs D-3 above) |
+| Approval rule (fixed before the run) | accept, with the per-request `accept` and never a session or amendment form, only when the request's command equals the named command token for token, after one `<shell> -c`/`-lc` wrapper is removed. Any other request gets the decline form. Named command: `python3 <OBS-B>/tool/obs1_cli_tool.py --key EX-1 --probe-socket <OBS-B>/probe.sock` |
+| LM Studio | server started by this node at 19:12:48; model `qwen/qwen3.5-9b` loaded at context **24576**, the same as the first run (8.1 s load, 5.57 GiB, parallel 4). The memory-pressure level was **2 (warn)** after the load, the same deviation as D-1 above. The run went ahead under S-9 ("critical"). Sampled every 250 ms: 1–2, never 4 |
+| Pre-flight | P-1, P-2, P-4, P-6, P-7 as above, all pass. **P-5 was not repeated**, to keep the model calls to the turn's own |
+| Download watch | `download_watch.sh` from 19:12:40 to 19:16:22 (202 checks, **0 S-2 lines**) |
+
+`<OBS-B>/codex-home/config.toml` as run (attempt 2):
+
+```toml
+model = "qwen/qwen3.5-9b"
+model_provider = "obs1_lmstudio"
+sandbox_mode = "read-only"
+web_search = "disabled"
+model_context_window = 24576
+
+[analytics]
+enabled = false
+
+[model_providers.obs1_lmstudio]
+name = "LM Studio (OBS-1)"
+base_url = "http://127.0.0.1:1234/v1"
+wire_api = "responses"
+```
+
+No `[mcp_servers]` entry. `mcpServerStatus/list {}` returned `{"data": [], "nextCursor": null}`.
+
+### B.2 Attempt 1: the supplier refuses `approval_policy = "untrusted"` in config.toml (no thread, no turn)
+
+At 19:13:13 the first `app-server` process was started with `approval_policy = "untrusted"` in config.toml. It exited within 385 ms, before answering `initialize`. It wrote **81 bytes to stderr**: `Error: approval_policy = "untrusted" is no longer supported; remove this setting`. No thread or turn existed and no model request was made (LM Studio received none). The process group opened no IP socket, so it made no network contact. The harness waited 60 s for the `initialize` response and then recorded S-11 (`<OBS-B>/logs/attempt1/`). **Finding:** at 0.158.0 the *configuration file* no longer takes `untrusted`, but the generated protocol type `AskForApproval` still lists `"untrusted"`, and `thread/start` accepted it (B.3).
+
+**Deviation D-B1:** the key was removed, as the message says, and `untrusted` was requested on `thread/start` only. The harness would have started no turn unless the thread reported `approvalPolicy: "untrusted"`, and the thread did report it. A second fresh process ran the one turn. The limit of one turn on a fresh process and thread held, because the first process had no thread, no turn and no network activity.
+
+### B.3 The exchange (attempt 2; `<OBS-B>/logs/frames.jsonl`: 6 sent, 109 received)
+
+Times are wall-clock offsets from `turn/start` (19:15:14.041 UTC), taken from the supplier's `emittedAtMs`/`startedAtMs`/`completedAtMs`, or from the harness where marked.
+
+| # | Frame | Notes |
+|---|---|---|
+| s1/r1 | `initialize` → {userAgent `chirality-obs1/0.158.0 (Mac OS 26.6.2; arm64) …`, codexHome `/private` + `<OBS-B>/codex-home` (**S-1 not hit**)} | |
+| s2, r2 | `initialized`; `remoteControl/status/changed` {status `disabled`, serverName `<host>`, installationId `<installation-id>`} emitted 1 ms before `initialized` was written | as in the first run (H4) |
+| s3/r3 | `mcpServerStatus/list {}` → `data []` | no MCP server |
+| s4/r4, r5 | `thread/start` {approvalPolicy `untrusted`, sandbox `read-only`, invented developer instructions: "You are running an observation test with invented data. When asked, run the command you are given. Keep replies to one sentence."} → model `qwen/qwen3.5-9b`, modelProvider `obs1_lmstudio` (**S-3 not hit**), **approvalPolicy `untrusted`**, approvalsReviewer `user`, sandbox {type readOnly, networkAccess false}, activePermissionProfile null, **instructionSources [] (S-4 not hit)**; `thread/started` | the rollout's turn context records `permission_profile` {managed, file_system restricted: root read, network restricted} |
+| s5 | `turn/start` with the prompt "This is a test with invented data. Run \`python3 <OBS-B>/tool/obs1_cli_tool.py --key EX-1 --probe-socket <OBS-B>/probe.sock\` and report the outcome in one sentence." | |
+| r6, r7 | `warning` (model metadata not found; fallback), then the turn/start response {status inProgress} | as in the first run |
+| r8…r11 | `thread/status/changed` active; `turn/started`; `userMessage` started and completed | |
+| +38.7 s | `reasoning` item (22 deltas) and an `agentMessage` with text "\n\n", completed at +39.9 s | 38 s of prompt processing (6,684 tokens) |
+| +48.656 s | `thread/status/changed` {activeFlags **[`waitingOnApproval`]**} | emitted before the item/started frame |
+| +48.664 s | **`item/started` `commandExecution`** id `call_3063367296310002`, **status `inProgress`, source `agent`**, processId null, aggregatedOutput null, exitCode null | `startedAtMs` +48.664 s |
+| +48.655 s (startedAtMs) | **`item/commandExecution/requestApproval`** (server request id **0**), received **after** `item/started` | details below |
+| harness +48.667 s | answer `{"decision": "accept"}` (rule matched; origin `observation-harness`) | 1 ms after receipt |
+| +48.675 s | **`serverRequest/resolved`** {threadId, requestId 0} | 8 ms after the answer (U-09) |
+| +48.678 s | `thread/status/changed` {activeFlags []} | |
+| +48.726 s | the tool's own `toolStartedAtMs` (in its output) | 59 ms after the answer |
+| +48.733 s | kernel: `Sandbox: Python(<pid>) deny(1) network-outbound <OBS-B>/probe.sock` | unified log (`sandbox_kernel_log.txt`) |
+| +48.756 s | **`item/completed` `commandExecution`**, same id: **status `completed`, source `unifiedExecStartup`**, **exitCode 0**, **durationMs 0**, processId `"14601"`, aggregatedOutput below | no `item/commandExecution/outputDelta` frames at all |
+| +48.763 s | `thread/tokenUsage/updated` (6,707 total); `account/rateLimits/updated` {limitId `codex`, rest null} | |
+| +50.0…+53.2 s | the second model request (below); `reasoning` item (28 deltas), then the `agentMessage` "\n\nThe command ran successfully and queued proposal \`P-EX-1\` but the local socket connection failed with a \`PermissionError\`." | |
+| +53.235 s | `thread/tokenUsage/updated` total 13,740 (input 13,662, cached 6,860, output 78, reasoning 50), modelContextWindow 23,347; `account/rateLimits/updated`; `thread/status/changed` idle; **`turn/completed`** {status `completed`, error null, durationMs 53,226, items [the last agentMessage], itemsView `summary`} | |
+
+**The approval request, whole (paths redacted):** `{"kind": "command", "threadId", "turnId", "itemId": "call_3063367296310002", "startedAtMs", "environmentId": "local", "command": "/bin/zsh -lc 'python3 <OBS-B>/tool/obs1_cli_tool.py --key EX-1 --probe-socket <OBS-B>/probe.sock'", "cwd": "<OBS-B>/cwd", "commandActions": [{"type": "unknown", "command": "python3 … --probe-socket <OBS-B>/probe.sock"}], "proposedExecpolicyAmendment": ["python3", "<OBS-B>/tool/obs1_cli_tool.py", "--key", "EX-1", "--probe-socket", "<OBS-B>/probe.sock"], "availableDecisions": ["accept", {"acceptWithExecpolicyAmendment": {"execpolicy_amendment": [the same argv]}}, "cancel"]}`. There was no `reason`, `additionalPermissions`, `networkApprovalContext`, `approvalId` or top-level `emittedAtMs` (it is the only received frame without `emittedAtMs`). **`decline` and `acceptForSession` were not among `availableDecisions`**. The harness's decline form for a non-matching request would therefore have been a decision the supplier did not offer. That case did not arise, and its effect is not observed.
+
+**aggregatedOutput (verbatim):** `{"outcome": "queued", "proposal": "P-EX-1", "key": "EX-1", "note": "invented example material", "toolStartedAtMs": 1790795762767, "localSocket": "refused: PermissionError"}` followed by `\n`.
+
+**What the model called, and what it received back (rollout; LM Studio logs).** LM Studio received **two** `POST /v1/responses` in the turn. The first came at +0.056 s. The second came at +48.795 s, after the command output, with 6,860 tokens restored from its prompt cache and 118 new. Both were logged with "Ignoring unsupported tool type(s): namespace." and the same three field warnings as the first run. The tool list LM Studio put in the model's prompt was `exec_command`, `write_stdin`, `request_user_input`, `view_image`, `get_goal`, `create_goal`, `update_goal`. The MCP resource tools of the first run were absent, as no MCP server was configured. Some tool of type `namespace` was still dropped, but its content is not in the truncated log. The model emitted `<tool_call><function=exec_command><parameter=cmd>python3 … --probe-socket <OBS-B>/probe.sock</parameter></function></tool_call>`. LM Studio returned it as a Responses `function_call` {name `exec_command`, arguments `{"cmd": "python3 …"}`, call_id `call_3063367296310002`}. **L-3 is positive for a flat function tool at this pair.** The function output returned to the model was text: `Chunk ID: …\nWall time: 0.0002 seconds\nProcess exited with code 0\nOriginal token count: 44\nOutput:\n<the JSON line>`. No LM Studio "invalid tool name" line appeared.
+
+**Timing reading (inference):** Codex logged the `function_call` output item at 19:15:54. The command item started at 19:16:02.705, 4 ms after LM Studio's last log line for the first prediction (a prompt-cache write). This is consistent with Codex starting the command only once the response stream completed. The stream's end event is not in any log kept.
+
+**Content sent to the model (brief §7, adapted):** Codex's base instructions, the bundled skill descriptions under `<OBS-B>/codex-home/skills/.system`, the invented developer text and prompt, and the environment context: cwd `<OBS-B>/cwd`, shell zsh, date, **time zone**, and a read-only permission profile with root read. Then the tool's invented output. The model log has no `/Users/` path, user name, host name, installation id or scratchpad path. The time-zone finding of the first run recurs.
+
+### B.4 Stops and deviations
+
+| Item | Record |
+|---|---|
+| S-1…S-11 | **none hit** in attempt 2. S-8 (part B: no `commandExecution` item) not hit. S-2: no `lms get`, models folder and `lms ls` unchanged before, after the turn and at the end. S-5: during the turn the Codex process group's only IP sockets were loopback to 127.0.0.1:1234 (two connections, one per model request). S-6: no path under `~/.codex` in 177 snapshots. S-10: one turn. Its two model requests were Codex's own continuation after the tool output, and no other request went to the model. S-3: no `account/*` request and no auth error. `account/rateLimits/updated` came twice, as a notification |
+| D-B1 | attempt 1 refused by the supplier over `approval_policy = "untrusted"` in config.toml (B.2); `untrusted` requested on `thread/start` instead, and confirmed in the thread's response before the turn |
+| D-B2 | the test tool was run from a scratch copy, identical in hash, not from the repository path (B.1) |
+| D-B3 | memory-pressure level 2 (warn) with the model loaded, as D-1 above |
+| D-B4 | P-5 not repeated (B.1) |
+| Harness note | the base harness writes a `capture-metadata` event naming `on-request`. It is fixed text of `obs1_harness.py`, and the `capture-metadata-b` event that follows it gives the values actually used |
+
+### B.5 Network and process observations (attempt 2)
+
+| Source | Observed |
+|---|---|
+| Codex → chatgpt.com (start-up) | as in the first run. Codex's log shows the remote-control loop for `https://chatgpt.com/backend-api/` (the log line includes `<installation-id>` and `<host>`), "remote control requires ChatGPT authentication", then a retry about once a second for the rest of the run, and the featured-plugins request **401 Unauthorized**. One TLS socket from `codex` to 2606:4700:4408::…:443 was seen at +0.3 s after spawn, before any thread, and not again. No sign-in request reached the client |
+| Plugin sync (U-18) | `git ls-remote https://github.com/openai/plugins.git HEAD` only: one TLS socket from `git-remote-https` to 2604:5580:21::…:443, from spawn +0.3 s to +1.3 s (exited). **No fetch**: `.tmp/plugins/` unchanged, `plugins.sha` unchanged |
+| Codex → LM Studio | loopback only, `/v1/responses`, streamed, twice |
+| The command | ran as `/bin/zsh -lc 'python3 …'` under the macOS sandbox. Kernel sandbox lines for the zsh/Python process show harmless denials (`/dev/tty` and `/dev/dtracehelper` writes, a few mach-lookups and sysctl reads) and the **network-outbound denial on the probe socket**. The harness's listener recorded **0 connections**. The process was too short-lived (~30 ms) for the 250 ms snapshots to see. Its OS process id differs from the item's `processId` "14601", which is the supplier's own identifier |
+| LM Studio itself | the same background pattern as before this node (the `lmlink-connector` process's three persistent TLS connections; the app's short Cloudflare connections, one of them at 19:15:09–13, before the turn). Addresses were not resolved, so a connection to huggingface.co cannot be excluded by host name. The models-folder listing and the absence of any `lms get` process show that no download happened |
+| Exit (H11) | stdin closed after `turn/completed` + 2 s; exit code 0 within 41 ms; **no survivors** 500 ms later |
+| Written into the scratch home | new rollout `sessions/2026/09/30/rollout-…01a0f3be….jsonl` (43,743 B); `state_5.sqlite` 4 KB → 112 KB; the WAL files of `thread_history_1`, `state_5` and `logs_2` grew; `goals_1` -shm/-wal created; `config.toml` edited by this node (D-B1); `shell_snapshots/` stayed empty |
+
+### B.6 Item rows (OBS-1b)
+
+| ID | Observed value |
+|---|---|
+| **O-7** | **Command form:** the model sent `exec_command` {cmd: the bare command}. The item's `command` is the shell-wrapped string `/bin/zsh -lc '<cmd>'`, `commandActions` is [{type `unknown`, command: the bare command}], and `cwd` is the thread cwd. **source:** `agent` at `item/started`, **`unifiedExecStartup` at `item/completed`** (the value changes within one item). **Status:** `inProgress` → `completed`, with no intermediate item notification. **Exit code 0**; `durationMs` 0; `processId` null → "14601". **aggregatedOutput:** the JSON line plus `\n`. There were no output deltas. **Approval:** one `item/commandExecution/requestApproval` (kind `command`). Sequence: `thread/status/changed` [waitingOnApproval] → `item/started` (inProgress) → the request (its `startedAtMs` is 9 ms *earlier* than the item's) → answer → `serverRequest/resolved` → `thread/status/changed` [] → the tool runs → `item/completed`. The item is therefore announced as in progress while approval is pending |
+| **A-7** | **JSON CLI content:** Codex carries the CLI's stdout as text. To the client it is `aggregatedOutput`, a string. To the model it is the JSON line inside `exec_command`'s text envelope (chunk id, wall time, exit code, token count). No structured content is derived. The model read the JSON correctly. **Local-socket probe under the read-only sandbox (OC-5):** **denied.** The connect to a Unix socket under `$TMPDIR` failed with `PermissionError` (EPERM). The kernel logged `deny(1) network-outbound` for that path, and the listener saw no connection. The **approved** command still ran inside the sandbox: under `untrusted`, approval did not lift the sandbox. Python itself ran, and read its script, under the read-only profile |
+| O-4 / A-2 (command path) | an approval under `untrusted` offers `accept`, `acceptWithExecpolicyAmendment` and `cancel` only |
+| O-5 | 2 `agentMessage` items ("\n\n", then the answer); `phase` present and null; the last completed before `turn/completed` |
+| O-6 | same identities in started and completed for all items; turn `completed`, 53,226 ms; no model element on the turn (F-23) |
+| O-9 | not used (`request_user_input` offered, not called) |
+| O-1…O-3, A-1, A-3…A-6 | not in this part (no MCP server) |
+| H1 | the unmodified vendor binary; `V app-server`; one added environment key `CODEX_HOME`; own process group |
+| H4 | `remoteControl/status/changed` before `initialized`; `warning` before the turn/start response; `thread/status/changed` [waitingOnApproval] before both `item/started` and the approval request |
+| H6 | every notification carried `emittedAtMs`; the server request did not (it carries its own `startedAtMs`) |
+| H8, H10 | one server request, answered in 1 ms and resolved; every client request answered |
+| H11 | 0 survivors at exit |
+| U-09 | **observed:** `serverRequest/resolved` {threadId, requestId} arrives 8 ms after the client's answer, before the item continues |
+| §8.3 / U-19 | requested = reported model and provider; no `model/rerouted` |
+| L-2 / L-3 | Responses to LM Studio 0.4.16 again. **Function-tool calling works** through this pair (exec_command). MCP tools remain undelivered (`namespace` dropped) |
+| L-4 / U-18 | start-up traffic to chatgpt.com and github.com (ls-remote only), none during the turn |
+| stderr | 0 bytes (attempt 2); 81 bytes (attempt 1, B.2) |
+
+### B.7 Files (OBS-1b)
+
+| File | sha256 |
+|---|---|
+| `Design/prototype/obs1/obs1b_harness.py` | see the return file `WAVE_B/OBS-1b.md` |
+| `Design/prototype/obs1/obs1_harness.py`, `download_watch.sh` | unchanged (0b1325547b78…, 79436fce9ffb…) |
+| raw, not committed: `<OBS-B>/logs/frames.jsonl` | a50eb050dad61e6c… |
+| raw: `harness_events.jsonl`, `snapshots.jsonl` | 8877806796425253…, fffeaaabee1487a7… |
+| raw: `lmstudio.server.log`, `lmstudio.model.log` | 66da10670133babf…, 3dd3165fb4032784… |
+| raw: `sandbox_kernel_log.txt` (17 kernel lines for the command's process) | 53ef246e9928fa5a… |
+| raw: the rollout `rollout-2026-09-30T13-15-13-01a0f3be….jsonl` | 2293687ca945b3c7… |
+| raw: `attempt1/` (frames 7c77a3dac75d50e0…, stderr 381d7e2499c6b4c0…, the config as first written) | in `<OBS-B>/logs` |
+
+**UNRESOLVED (OBS-1b):** what the supplier does with a `decline` answer that `availableDecisions` did not offer under `untrusted` (not exercised); whether any setting lets a sandboxed command reach a local socket (OC-5 remains a design question for the App); what the `namespace` tool dropped in both runs contains (the LM Studio log truncates the request body).
