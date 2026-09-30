@@ -31,3 +31,4 @@ not on the executor's report. A user-level agent definition
 | A2 return | Opus 5.5: R10 applied in 12 files; 3 citation fixes; 3 content mismatches (one dangling ID, passed to A3; two W7 history citations left as history). Fence and RELAY span verified; committed `42456ca08` |
 | A3 | Opus 5.5: DECISION-K1 written into 13 files; 37 designed-case results recomputed; ADAPTER and RELAY had no live carrier. Fence and RELAY span verified; committed `ce4088219`. Observations: EXEC CH-20 and WD-EX L-WDEX-7 bind different supports by their own statements (no conflict; no ruling); SP-6F has no declaration element to take it up (Wave B, B1) |
 | A1-G | Opus 5.5: GUIDE v0.3 → v0.4, re-pinned last |
+| V17 | Two Opus 5.5 reviewers (V17-A, V17-B), fresh contexts, read-only, on the candidate named at launch |

@@ -326,3 +326,52 @@ lists as "not in this pass".
 **Return file `WAVE_A/A1-G.md`:** the changes (item → location); the pin
 script and its full output (18/18 or the failures); CC-1…CC-11 results, old →
 new; anything not applied; GUIDE's new sha256.
+
+## V17 — independent review of the Wave A candidate (two Type 2 reviewers)
+
+**Candidate:** the branch at the commit named in your launch message. Base
+for the diff: `74b3c73134` (main when the run started). Read-only on project
+state; each reviewer writes one file, `reviews/V17-A.md` or `reviews/V17-B.md`.
+You did not write any of this; review it as a stranger to it.
+
+| Reviewer | Design files |
+|---|---|
+| V17-A | ACT, AS, RS (PKG-04); C, P, ADAPTER (PKG-03); GUIDE (DEL-03-04) |
+| V17-B | WD, WD-EX, EXEC (PKG-02); LOOP, PANEL (PKG-05); HOSTING (DEL-01-01); CA, RELAY, XT (PKG-09); `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md`; and the run records (graph, OWNER_DECISIONS, DISPATCH, R9, R10) |
+
+**What the candidate claims** (check each; do not take it on trust):
+
+1. Every edit is alignment only: re-pins; the amended basis wording; the
+   revised ScopeOfWork; closing items a record already closed; receivers;
+   R9, R10 and DECISION-K1. No new design content beyond what those require.
+2. Pins in each header are current (recompute sha256 of each pinned input).
+   GUIDE's 18-row table matches 18/18.
+3. Quoted requirement texts match their sources exactly.
+4. R9 as corrected by R10-1, R10-1…R10-11, and DECISION-K1 items K1-1…K1-5
+   are applied faithfully and consistently across files: the same rule says
+   the same thing everywhere it appears. Look hardest at: who requests the
+   act (K1-1); the earlier-act rule SP-6 and SP-6F (K1-2); the joint answer
+   JA-1 (K1-3); identity "not verified" (K1-4); the allow-list rule (K1-5);
+   the direct-application case (R10-1).
+5. The 37 recomputed case results (listed in `WAVE_A/A3.md` §2) follow from
+   the new rules. Check at least 12, chosen across files, and every case in
+   your files whose result changed.
+6. Nothing claims more than the owner decided: check each file's statements
+   of DECISION-K1 against OWNER_DECISIONS.md, and that nothing reads a
+   recommendation or an integrator ruling as an owner decision.
+7. The governance-phase definitions are retained, relabelled only.
+8. RELAY §0–§3 is byte-identical to `74b3c73134`; PIN_SPIKE, SWBPIPE's two
+   files, every ScopeOfWork, register, status file, basis doc, decomposition,
+   scope-change and DAG file are byte-identical to `74b3c73134`; DAG-003's
+   two manifests pass.
+9. Cross-file citations resolve (section or ID exists and says what the
+   citing sentence claims), in your files.
+10. (V17-B) The run records are true: every state the graph and DISPATCH
+    record matches git; OWNER_DECISIONS quotes the owner exactly as the
+    records elsewhere show; the HANDOFF edits are true and relay nothing.
+
+**Return file:** a verdict, **MERGE AS DRAFTS** or **HOLD**, then findings,
+each classed **BLOCKING** (the candidate says something false, contradicts
+itself across files, or claims more than was decided), **MAJOR**, **MINOR**
+or **NOTE**, with file, location, the passages quoted and a proposed fix. Say
+what you checked and how, and what you did not check.
