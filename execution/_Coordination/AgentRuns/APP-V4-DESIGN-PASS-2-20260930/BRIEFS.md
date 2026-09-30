@@ -134,3 +134,92 @@ SoWs were revised by SCA-V4-001 or SCA-V4-002. Close with your recommendation
 on whether any outside deliverable needs design work inside this pass, and
 which, with reasons for and against. This is advice for an owner question; do
 not treat it as settled.
+
+## A1 — alignment wave (five Type 2 executors in parallel, then GUIDE)
+
+**Purpose.** Bring each Design file onto the amended basis and its revised
+ScopeOfWork, under [R9_RESOLUTIONS.md](R9_RESOLUTIONS.md). No new design
+content: that is Wave B.
+
+**Inputs for each executor:** R9_RESOLUTIONS.md (binding); its own survey
+report in `SURVEY/` (sections 1, 2, 3, 6 and 7 per file, the section 4 items
+classed NOW, and the section 8 items listed below); the current sources the
+report cites. The survey is advice: check each item against the current
+source before editing, and say so where you disagree with it.
+
+| ID | Files (write fence: these files only, plus the return file) | Survey | Section 8 items to apply |
+|---|---|---|---|
+| A1-A | ACT, AS, RS | S1-A | ACT 1–6; AS 1, 2, 6 and the Receivers part of 5 as a table of named receivers only; RS 1–4 |
+| A1-B | C, P, ADAPTER | S1-B | C 1–3, 7; P 1–3, 6; ADAPTER 1, 2, 9 |
+| A1-C | WD, WD-EX (`EXAMPLES.md`), EXEC | S1-C | WD 1–4 and the parts of 8 that R9 or a ScopeOfWork decides; WD-EX 1, 5; EXEC 1–4, 10 |
+| A1-D | LOOP, PANEL, HOSTING (not PIN_SPIKE) | S1-D | LOOP 1–4 and the N-OPEN-4 note of 6; PANEL 1–4, 6; HOSTING 1–3 |
+| A1-E | CA, RELAY (metadata only), XT | S1-E | CA 1–4, 7, 8; RELAY 1–3; XT 1–4, 6 and the Receivers part of 7 |
+| A1-G | GUIDE, after A1-A…A1-E are integrated | S1-E part D | GUIDE 1–4 |
+
+**Rules for the edit.**
+
+- Apply R9-1…R9-11. Use the R9-1 summary sentence, or quote the amended
+  texts; do not write a new paraphrase.
+- Bump the version per R9-11 and add a "Changes from ‹previous›" table whose
+  rows carry R9 item IDs or the survey item they answer.
+- Anything in section 8 that is not listed for your row is Wave B. Do not
+  start it. Where an edit you make touches a Wave B passage, change only the
+  wording R9 requires.
+- Sibling files are cited by version label and section (R9-5). Cite siblings
+  at their Wave A versions (R9-11 table); all five executors edit in
+  parallel, so cite the label, not bytes.
+- A need for a ScopeOfWork, register or basis change is returned, never
+  made.
+
+**Return file:** `WAVE_A/<ID>.md`, with:
+
+1. per file: each change made (item → section or line), and the file's new
+   sha256;
+2. survey items you did not apply, with the reason;
+3. R10 candidates (R9-9): the two passages and the options;
+4. proposed ScopeOfWork, register or basis items for a later amendment;
+5. Wave B items you found beyond the survey's;
+6. the pin table of each header as it now stands, with how each was checked.
+
+## K0 — owner decision package, draft (one Type 2, read-only on project state)
+
+**Purpose.** Prepare, for the integrator, a plain-language draft of the
+choices the six surveys class as the owner's. The integrator will check it,
+add recommendations and put it to the owner. You decide nothing.
+
+**Write one file:** `DECISIONS_DRAFT.md` in this run folder.
+
+**Inputs:** the six survey reports (their OWNER-class items, their "owner-level
+choices" lists and S1-F §2.3 and §5); the Design passages and records they
+cite; the four OWNER_DECISIONS files of the predecessor runs (so that nothing
+already decided is asked again).
+
+**For each distinct choice** (merge the same choice seen from several files):
+
+- a short plain name, and the IDs it carries in the files;
+- what the choice is, in words a reader who has not opened the Design files
+  can follow, with a concrete example of how the product behaves under each
+  option;
+- the options as the files state them, and any option the files omit;
+- what each option costs and what it changes in the first-increment design
+  (which files, how large);
+- whether the first-increment design can reach the 60% level without the
+  decision, and if so what stays open;
+- whether it was already decided or deferred by the owner, with the record;
+- who else it depends on (SWBPIPE, a later deliverable).
+
+Sort into three groups: (1) shapes the design now; (2) can wait for the phase
+review; (3) already deferred with the host joins or the governance phase.
+Include, at least: the reading of "the act is requested" (R9-1); the App act
+control and DEL-01-04's contract; the person identity scheme; counting a
+prior act versus capture at or after arrival (SP-6); partial lapse of a
+multi-row grant; placement of shared parts (OI-013, OI-014, OI-008, U-15);
+the catalog-extension promise (OI-003); the consequence vocabulary; the A12
+mapping of a network-destination grant; category switch versus named entries
+(N-OPEN-4); who names the host model-interface basis; the panel's
+network-destination surfaces against DEL-05-02's contract; registration as a
+recorded act; the account home (OI-009); custody of the shared fixture
+FX-PIPE-01; the first connected operation (OI-021) and whether to prepare an
+option sheet against SWBPIPE's actual journey; the supplier's start-up fetch
+and its experimental surface; and whether a spike may use a credential, a
+local model server or the network.
