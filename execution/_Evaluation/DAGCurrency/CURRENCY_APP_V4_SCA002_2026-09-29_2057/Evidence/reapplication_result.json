@@ -1,0 +1,577 @@
+{
+  "classification": "DEPARTURE",
+  "inventory_unchanged": true,
+  "inventory_detail": {
+    "register_unchanged": true,
+    "pointer_bytes_changed": true,
+    "pointer_names_same_snapshot": true
+  },
+  "active_execution_rows": 465,
+  "retired_execution_rows": 6,
+  "non_topological_rows": 207,
+  "deliverable_target_rows": 258,
+  "arcs": {
+    "dag002_admitted": 124,
+    "dag002_candidate": 74,
+    "dag002_total": 198,
+    "current_admitted": 124,
+    "current_candidate": 78,
+    "current_total": 202,
+    "added": 4,
+    "removed": 0,
+    "added_admitted": 0,
+    "added_candidate": 4,
+    "existing_arcs_changing_layer": []
+  },
+  "sccs_current": [
+    [
+      "DEL-01-04",
+      "DEL-02-01",
+      "DEL-02-02",
+      "DEL-02-03",
+      "DEL-02-04",
+      "DEL-03-01",
+      "DEL-03-02",
+      "DEL-03-03",
+      "DEL-04-02",
+      "DEL-04-03",
+      "DEL-05-01",
+      "DEL-05-02",
+      "DEL-09-09"
+    ],
+    [
+      "DEL-07-01",
+      "DEL-07-02",
+      "DEL-08-01"
+    ],
+    [
+      "DEL-01-01",
+      "DEL-01-05"
+    ],
+    [
+      "DEL-01-06",
+      "DEL-09-01"
+    ],
+    [
+      "DEL-10-02",
+      "DEL-10-04"
+    ],
+    [
+      "DEL-11-01",
+      "DEL-11-03"
+    ]
+  ],
+  "sccs_unchanged": true,
+  "representative_changes": [],
+  "core_field_drift_on_existing_representatives": [
+    {
+      "arc": "DEL-01-01 -> DEL-01-05",
+      "row": "DEL-01-01#DEP-01-01-024",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-01-01",
+      "row": "DEL-01-04#DEP-01-04-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-01-02",
+      "row": "DEL-01-04#DEP-01-04-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-02-02",
+      "row": "DEL-01-04#DEP-01-04-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-04-01",
+      "row": "DEL-01-04#DEP-01-04-011",
+      "fields": [
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-01-04 -> DEL-04-03",
+      "row": "DEL-01-04#DEP-01-04-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-01-01",
+      "row": "DEL-02-01#DEP-02-01-025",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-02-03",
+      "row": "DEL-02-01#DEP-02-01-026",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-03-01",
+      "row": "DEL-02-01#DEP-02-01-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-04-01",
+      "row": "DEL-02-01#DEP-02-01-018",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-04-03",
+      "row": "DEL-02-01#DEP-02-01-019",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-05-01",
+      "row": "DEL-02-01#DEP-02-01-020",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-01 -> DEL-05-02",
+      "row": "DEL-02-01#DEP-02-01-021",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-01-03",
+      "row": "DEL-02-02#DEP-02-02-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-01-04",
+      "row": "DEL-02-02#DEP-02-02-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-02-01",
+      "row": "DEL-02-02#DEP-02-02-014",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-02-03",
+      "row": "DEL-02-02#DEP-02-02-015",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-04-01",
+      "row": "DEL-02-02#DEP-02-02-016",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-02 -> DEL-04-03",
+      "row": "DEL-02-02#DEP-02-02-017",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-01-01",
+      "row": "DEL-02-03#DEP-02-03-023",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-02-01",
+      "row": "DEL-02-03#DEP-02-03-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-02-02",
+      "row": "DEL-02-03#DEP-02-03-010",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-03-01",
+      "row": "DEL-02-03#DEP-02-03-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-04-01",
+      "row": "DEL-02-03#DEP-02-03-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-04-02",
+      "row": "DEL-04-02#DEP-04-02-023",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-04-03",
+      "row": "DEL-02-03#DEP-02-03-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-02-03 -> DEL-05-01",
+      "row": "DEL-02-03#DEP-02-03-022",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-02 -> DEL-04-02",
+      "row": "DEL-04-02#DEP-04-02-021",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-01-01",
+      "row": "DEL-03-03#DEP-03-03-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-02-01",
+      "row": "DEL-02-01#DEP-02-01-027",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-02-03",
+      "row": "DEL-03-03#DEP-03-03-014",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-03-01",
+      "row": "DEL-03-03#DEP-03-03-006",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-03-02",
+      "row": "DEL-03-03#DEP-03-03-007",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-04-01",
+      "row": "DEL-03-03#DEP-03-03-008",
+      "fields": [
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-03-03 -> DEL-04-02",
+      "row": "DEL-04-02#DEP-04-02-022",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-02-03",
+      "row": "DEL-04-02#DEP-04-02-017",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-03-01",
+      "row": "DEL-04-02#DEP-04-02-016",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-03-02",
+      "row": "DEL-04-02#DEP-04-02-015",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-04-01",
+      "row": "DEL-04-02#DEP-04-02-007",
+      "fields": [
+        "SourceRef",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-04-03",
+      "row": "DEL-04-02#DEP-04-02-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-04-02 -> DEL-05-01",
+      "row": "DEL-04-02#DEP-04-02-018",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-01-01",
+      "row": "DEL-04-03#DEP-04-03-027",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-02-03",
+      "row": "DEL-04-03#DEP-04-03-025",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-01",
+      "row": "DEL-04-03#DEP-04-03-023",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-02",
+      "row": "DEL-04-03#DEP-04-03-024",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-03-03",
+      "row": "DEL-04-03#DEP-04-03-026",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-04-01",
+      "row": "DEL-04-03#DEP-04-03-021",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-04-02",
+      "row": "DEL-04-03#DEP-04-03-022",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-04-03 -> DEL-05-01",
+      "row": "DEL-04-03#DEP-04-03-028",
+      "fields": [
+        "EvidenceQuote",
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-09-07 -> DEL-09-06",
+      "row": "DEL-09-07#DEP-09-07-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-02-01",
+      "row": "DEL-10-03#DEP-10-03-008",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-02-03",
+      "row": "DEL-10-03#DEP-10-03-009",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-02-04",
+      "row": "DEL-10-03#DEP-10-03-010",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-03-01",
+      "row": "DEL-10-03#DEP-10-03-011",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-03-02",
+      "row": "DEL-10-03#DEP-10-03-012",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-04-01",
+      "row": "DEL-10-03#DEP-10-03-013",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-04-03",
+      "row": "DEL-10-03#DEP-10-03-014",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-05-01",
+      "row": "DEL-10-03#DEP-10-03-015",
+      "fields": [
+        "LastSeen",
+        "Notes"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-05-02",
+      "row": "DEL-10-03#DEP-10-03-016",
+      "fields": [
+        "LastSeen"
+      ]
+    },
+    {
+      "arc": "DEL-10-03 -> DEL-10-01",
+      "row": "DEL-10-03#DEP-10-03-017",
+      "fields": [
+        "LastSeen"
+      ]
+    }
+  ],
+  "expected_arcs": {
+    "DEL-02-01 -> DEL-03-02": "N-18",
+    "DEL-02-03 -> DEL-03-02": "N-21",
+    "DEL-02-03 -> DEL-03-03": "N-24",
+    "DEL-02-03 -> DEL-01-04": "X-1"
+  },
+  "expected_arcs_present": [
+    "N-18 DEL-02-01 -> DEL-03-02",
+    "N-21 DEL-02-03 -> DEL-03-02",
+    "N-24 DEL-02-03 -> DEL-03-03",
+    "X-1 DEL-02-03 -> DEL-01-04"
+  ],
+  "expected_arcs_missing": [],
+  "arcs_added_outside_expected": [],
+  "withheld_arcs_absent": {
+    "N-12": true,
+    "N-B8": true
+  },
+  "kept_out_guard_arcs_present": [],
+  "del_04_01_suppliers": [],
+  "scc002_members_consuming_del_09_06": [],
+  "dag_pending": [
+    "DEL-01-04",
+    "DEL-02-01",
+    "DEL-02-03",
+    "DEL-03-02",
+    "DEL-03-03"
+  ],
+  "scratch_audit": {
+    "tool": "tools/coordination/audit_dag.py",
+    "sha256": "830d0d5390094c12922ab5330e8f512de671a1422f377f32bd4ae7797723449a",
+    "argv": [
+      "python3",
+      "tools/coordination/audit_dag.py",
+      "--edges",
+      "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_SCA002_2026-09-29_2057/Evidence/scratch_admissible_edges.csv",
+      "--nodes",
+      "projects/chirality-app-v4/execution/_DAG/DAG-002/DeliverableNodes.csv",
+      "--canonical",
+      "--json-out",
+      "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_SCA002_2026-09-29_2057/Evidence/scratch_admissible_audit.json"
+    ],
+    "exit_code": 0,
+    "edge_count": 202,
+    "scc_count": 6,
+    "canonical_finding_count": 0
+  },
+  "script": {
+    "path": "projects/chirality-app-v4/execution/_Evaluation/DAGCurrency/CURRENCY_APP_V4_SCA002_2026-09-29_2057/Evidence/reapply_selection.py",
+    "sha256": "ac5039c651c3ca40048e5a3d479f67e532c406442ae8441e5e0e9da693db1901"
+  }
+}

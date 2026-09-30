@@ -1,0 +1,43 @@
+{
+  "predecessor": "DAG-002",
+  "added": 4,
+  "removed": 0,
+  "removed_arcs": [],
+  "added_admitted": 0,
+  "added_candidate": 4,
+  "added_arcs": [
+    "N-18 DEL-02-01 -> DEL-03-02 (candidate, SCC-002)",
+    "X-1 DEL-02-03 -> DEL-01-04 (candidate, SCC-002)",
+    "N-21 DEL-02-03 -> DEL-03-02 (candidate, SCC-002)",
+    "N-24 DEL-02-03 -> DEL-03-03 (candidate, SCC-002)"
+  ],
+  "existing_arcs_changing_layer": [],
+  "representative_changes": [],
+  "existing_representatives_with_changed_core_fields": {
+    "LastSeen": 40,
+    "SourceRef;LastSeen;Notes": 3,
+    "LastSeen;Notes": 2,
+    "EvidenceQuote;LastSeen;Notes": 15
+  },
+  "expected_arc_set": {
+    "DEL-02-01 -> DEL-03-02": "N-18",
+    "DEL-02-03 -> DEL-03-02": "N-21",
+    "DEL-02-03 -> DEL-03-03": "N-24",
+    "DEL-02-03 -> DEL-01-04": "X-1"
+  },
+  "accepted_arcs_not_produced": [],
+  "added_outside_accepted_set": [],
+  "withheld_absent": {
+    "N-12": true,
+    "N-B8": true
+  },
+  "del_04_01_suppliers": [],
+  "scc002_members_consuming_del_09_06": [],
+  "dag_pending_resolved_by_this_candidate": [
+    "DEL-01-04",
+    "DEL-02-01",
+    "DEL-02-03",
+    "DEL-03-02",
+    "DEL-03-03"
+  ]
+}

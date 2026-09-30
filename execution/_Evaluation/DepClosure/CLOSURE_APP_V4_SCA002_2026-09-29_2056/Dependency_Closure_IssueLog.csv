@@ -1,0 +1,13 @@
+ID,Severity,Check,FromDeliverableID,TargetDeliverableID,DependencyID,Evidence,FixSuggestion
+DC-001,BLOCKER,circular_dependencies,DEL-01-01;DEL-01-05,,,Evidence/scc_summary.csv SCC-001; Evidence/cycles_sample.csv CYCLE-00001,Unchanged characterized SCC; continue SCC-CASE-001 (no new evidence); hold intra-SCC arcs as non-gating candidates
+DC-002,BLOCKER,circular_dependencies,DEL-01-04;DEL-02-01;DEL-02-02;DEL-02-03;DEL-02-04;DEL-03-01;DEL-03-02;DEL-03-03;DEL-04-02;DEL-04-03;DEL-05-01;DEL-05-02;DEL-09-09,,,Evidence/scc_summary.csv SCC-002; Evidence/cycles_sample.csv CYCLE-00002; 80 internal rows / 66 arcs (was 76 / 62),Same 13-member set; update SCC-CASE-002 with the 4 new held arcs (N-18 N-21 N-24 X-1) as evidence (scc-resolution-case); no ruling or remedy prescribed
+DC-003,BLOCKER,circular_dependencies,DEL-01-06;DEL-09-01,,,Evidence/scc_summary.csv SCC-003; CYCLE-00003,Unchanged; continue SCC-CASE-003
+DC-004,BLOCKER,circular_dependencies,DEL-07-01;DEL-07-02;DEL-08-01,,,Evidence/scc_summary.csv SCC-004; CYCLE-00004,Unchanged; continue SCC-CASE-005
+DC-005,BLOCKER,circular_dependencies,DEL-10-02;DEL-10-04,,,Evidence/scc_summary.csv SCC-005; CYCLE-00005,Unchanged; continue SCC-CASE-006
+DC-006,BLOCKER,circular_dependencies,DEL-11-01;DEL-11-03,,,Evidence/scc_summary.csv SCC-006; CYCLE-00006,Unchanged; continue SCC-CASE-007
+DC-007,WARNING,hubs,DEL-04-03,,,Evidence/hubs.csv (17 dependents / 10 suppliers / 27; unchanged),Coordination concentration; carried in the DAG-003 handoff; no remedy prescribed
+DC-008,WARNING,hubs,DEL-02-03,,,Evidence/hubs.csv (12 / 11 / 23; prior 20; three new suppliers N-21 N-24 X-1),Coordination concentration; note in the DAG-003 handoff
+DC-009,WARNING,hubs,DEL-02-01,,,Evidence/hubs.csv (12 / 8 / 20; newly at threshold; new supplier N-18),Coordination concentration; note in the DAG-003 handoff
+DC-010,WARNING,hubs,DEL-04-01,,,Evidence/hubs.csv (20 dependents / 0 suppliers; unchanged),Pure supplier outside every SCC; note in the DAG-003 handoff
+DC-011,WARNING,dag_currency,DEL-01-04;DEL-02-01;DEL-02-03;DEL-03-02;DEL-03-03,,DEP-02-01-029;DEP-02-03-025;DEP-02-03-026;DEP-02-03-027,Evidence/closure_summary.json accepted_dag.result DEPARTURE against DAG-002 (4 added 0 removed); Evidence/dag_pending.csv,Decided by the owner at checkpoint C on the DAG-003 candidate; currency governed by CURRENCY_APP_V4_SCA002_2026-09-29_2057
+DC-012,INFO,bidirectional_pairs,DEL-02-01;DEL-03-02;DEL-02-03;DEL-03-03,,DEP-02-01-029;DEP-03-02-027;DEP-02-03-026;DEP-03-03-014,Evidence/bidirectional_pairs.csv (2 new pairs inside SCC-002),Distinct interfaces in each direction; recorded as CASE-002 evidence
