@@ -398,3 +398,17 @@ including GUIDE's 18-row table.
 **Return file `WAVE_A/A4.md`:** per R11 item, what changed where; new sha256
 per file; the pin script and its output; anything not applied, with the
 reason.
+
+## V17b — recheck of the V17 repairs (one Type 2 reviewer)
+
+**Candidate:** the commit named in your launch message; the repairs are the
+diff from `24789a3c3b` to it. Read-only; write only `reviews/V17b.md`.
+
+Check that every V17-A and V17-B finding is closed as
+[R11_RESOLUTIONS.md](R11_RESOLUTIONS.md) disposes of it, or carried where
+R11 says; that the A4 diff introduced nothing false, inconsistent across
+files, or beyond R11; that every header pin that claims current bytes
+matches (recompute), GUIDE's table 18/18, RELAY §0–§3 byte-identical to
+`74b3c73134`; and that nothing outside the 16 Design files and the run folder
+changed in the repair. Verdict **MERGE AS DRAFTS** or **HOLD**; findings
+classed as in V17.
