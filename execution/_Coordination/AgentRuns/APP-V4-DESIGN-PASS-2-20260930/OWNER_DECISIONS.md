@@ -100,3 +100,24 @@ stand as presented.
 **Effect:** every executor launched after this direction runs on Claude Opus
 5.5 (`claude-opus-5-5`) at high effort. How it is applied, and which earlier
 executors ran on Claude Fable 5.1, is recorded in [DISPATCH.md](DISPATCH.md).
+
+## Model download for OBS-1 (owner, 2026-09-30)
+
+**Custody:** the owner's answer to a structured question from HELP_HUMAN.
+
+Question (exact): "For the one live Codex turn you approved (K1-6), may I download a chat model into LM Studio? This Mac has 16 GB of memory and 103 GB free disk. Codex 0.158.0 from the earlier spike is still in the session scratch folder, so nothing else needs installing."
+
+Answer (exact option chosen): "Qwen3 4B, 2.28 GB (Recommended)" — option text: "lmstudio-community/Qwen3-4B-MLX-4bit from Hugging Face via LM Studio, Apache-2.0, trained for tool use. Fits comfortably in 16 GB. If Codex can't get a tool call out of it, I come back to you."
+
+Effect: HELP_HUMAN downloads that one model into LM Studio for OBS-1. Any other model, or the Codex sign-in, needs a new owner answer.
+
+**Recorder's correction (HELP_HUMAN, 2026-09-30).** The question said LM
+Studio held only an embedding model. That was wrong: the first `lms ls` ran
+while the LM Studio service was still starting and listed one model. A second
+listing, after the download command had failed without downloading anything
+(the shell had no `timeout` command), shows chat models already installed
+since June 2026, among them `lmstudio-community/Qwen3.5-9B-MLX-4bit` (5.98 GB).
+Nothing has been downloaded. HELP_HUMAN proposes to use that installed model
+for OBS-1, which needs no download and stays within K1-6 ("a local model in
+LM Studio first"), and to download Qwen3 4B only if the installed model cannot
+produce a tool call.

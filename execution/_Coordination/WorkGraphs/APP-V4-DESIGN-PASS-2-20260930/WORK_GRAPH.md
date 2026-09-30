@@ -68,17 +68,19 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | V17 Independent review of Wave A (V17-A, V17-B) | `reviews/V17-*.md` | A1-G | Verdict covering the candidate | COMPLETE — both HOLD at `764e599ee` (2 BLOCKING, 4 MAJOR); every finding dispositioned in [R11](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R11_RESOLUTIONS.md) |
 | A4 Repairs from V17 (R11-1…R11-9) | 16 Design files; `WAVE_A/A4.md` | V17 | Every finding closed or carried; pins current | COMPLETE `c896a99d9` — 66 header pins current; GUIDE 18/18; R11-9 carried to B7 |
 | V17b Recheck of the repairs | `reviews/V17b.md` | A4 | Verdict | COMPLETE — **MERGE AS DRAFTS** at `c896a99d9` (0 BLOCKING, 0 MAJOR, 2 MINOR, 6 NOTE). Carried: m-1 (LOOP MS-06, MS-20, MS-23 and §2.3 credit the recorded refusal to accepted texts) → B5 with RS R15 and PANEL §3.8; m-2 (LOOP LP-5 labels the A8 mapping SETTLED; ACT says DERIVED) → B2; notes → B5, B7, B8 |
-| P1 PR-1: Wave A | — | V17b, CI | Merged under the standing direction | ACTIVE |
+| P1 PR-1: Wave A | — | V17b, CI | Merged under the standing direction | COMPLETE — [#1065](https://github.com/sgttomas/chirality/pull/1065) merged `292e123d` (CI green; auto-merge after V17b) |
 | **Owner package** | | | | |
 | K0 Decision package draft | `DECISIONS_DRAFT.md` | S1 | Every owner-class choice from the surveys stated with options and consequences | COMPLETE `be55f3250` — 27 choices in three groups |
 | K1 Owner checkpoint: the choices that shape the design now, with recommendations | `DECISIONS_PENDING.md`; `OWNER_DECISIONS.md` | K0 | Decided, or left open at a stated point of need | COMPLETE — [DECISION-K1](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md): all six accepted as recommended |
-| **Wave B — design development** (briefed after Wave A; content from the surveys' section 8 and K1) | | | | |
-| B1 Declared-part carriage and schema, with a local parse/render prototype; harness-capability names | WD, WD-EX; HOSTING (capability account) | P1; K1 where it bears | Schema PROPOSED; E1, E1d, E5, E6 render and parse | PLANNED |
-| B2 Current-phase recorder, App-run reached-when table, end-to-end sequences | EXEC (with LOOP §2.4.1 and ADAPTER §7.7) | P1; R9-1 confirmed or changed at K1 | One transition table and event list for the current phase; sequences for an App run and an App → host transfer | PLANNED |
-| B3 Catalog interface and read-result model; proposal identity, observation and per-item transitions; one shared test double | C, P, ADAPTER, XT | P1 | Interface meanings stated; the double specified once and cited by the four files | PLANNED |
-| B4 Record format and writer/reader sequences; policy-class record and act lifecycle; standing components and receiver conditions; consequence vocabulary draft | RS, ACT, AS | P1; K1 where it bears | PROPOSED structures; failure behaviour per sequence | PLANNED |
+| **Wave B — design development** (briefs: `BRIEFS.md` "Wave B"; rulings [R12](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R12_RESOLUTIONS.md)) | | | | |
+| B1 Declared-part carriage and schema, with a local parse/render prototype; harness-capability names | WD, WD-EX; HOSTING (capability account) | P1; K1 where it bears | Schema PROPOSED; E1, E1d, E5, E6 render and parse | ACTIVE (round 1) |
+| B2 Current-phase recorder, App-run reached-when table, end-to-end sequences | EXEC (with LOOP §2.4.1 and ADAPTER §7.7) | P1; R9-1 confirmed or changed at K1 | One transition table and event list for the current phase; sequences for an App run and an App → host transfer | ACTIVE (round 1) |
+| B3 Catalog interface and read-result model; proposal identity, observation and per-item transitions; one shared test double | C, P, ADAPTER, XT | P1 | Interface meanings stated; the double specified once and cited by the four files | ACTIVE (round 1) |
+| B4 Record format and writer/reader sequences; policy-class record and act lifecycle; standing components and receiver conditions; consequence vocabulary draft | RS, ACT, AS | P1; K1 where it bears | PROPOSED structures; failure behaviour per sequence | ACTIVE (round 1) |
 | B5 Network destinations end to end: tool subject, check position, request states, records and displays | LOOP, PANEL, AS, RS, ACT, C, P, ADAPTER | B3, B4 drafts | One account each file cites; no element named on one side only | PLANNED |
-| B6 Hosting operations and lifecycle tables; supplier double from the recorded spike transcripts; next-spike brief | HOSTING; a spike record | P1 | Runnable-with-a-double cases exercised locally, or the reason they were not | PLANNED |
+| B6 Hosting operations and lifecycle tables; supplier double from the recorded spike transcripts; next-spike brief | HOSTING; a spike record | P1 | Runnable-with-a-double cases exercised locally, or the reason they were not | ACTIVE (round 1) |
+| B9 LOOP fixture basis (published reference, R12-8), rulings R12-7, failure rows and state summary; PANEL return inputs, failure displays, test double | LOOP, PANEL | P1 | Per S1-D LOOP 7, 8; PANEL 5 | ACTIVE (round 1) |
+| OBS-1 One live Codex turn at pin 0.158.0 against a local LM Studio model (K1-6) | a dated observation record; fills "OBS-1 pending" cells | B6 brief; owner download answer | Item sequence around one tool call recorded | PLANNED |
 | B7 Connected activity: per-step failure behaviour, result record, current-phase sequence; trace suite order and reset; optional OI-021 option sheet | CA, XT | B2, B3 | Per CA/XT survey items | PLANNED |
 | V18 Receiver comparisons for the joins Wave B changes (incl. N-18, N-21, N-24, X-1) | `comparisons/` | B1…B7 | Per join: version received, check, disagreements, absent | PLANNED |
 | R… Repair rounds and rulings | Design files | V18 | Findings dispositioned | PLANNED |
@@ -92,13 +94,15 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Holds and owner-held choices
 
-- No hold on Wave A or Wave B from owner choices: DECISION-K1 decided all six.
-- **Download gate (K1-6):** before any chat model is downloaded into LM
-  Studio, HELP_HUMAN names the model, its source and its size to the owner
-  and waits for a yes. The Codex sign-in is asked for only if the local route
-  cannot produce a tool call.
-- The read-only fetch of the two published specifications is allowed (K1-6).
+- No owner hold on Wave B.
+- OBS-1 uses the chat model already installed in LM Studio
+  (`Qwen3.5-9B-MLX-4bit`); no download. The approved Qwen3 4B download is used
+  only if that model cannot produce a tool call; any other model or the Codex
+  sign-in needs a new owner answer (OWNER_DECISIONS).
+- Network: only B9 (the published Chat Completions reference) and B5 (the
+  stateless MCP specification, revision 2026-07-28), read-only (K1-6).
 
 ## Next safe action
 
-PR-1 is open with the CI monitor and auto-merge on. Next: brief Wave B (B1…B7) on the merged Wave A text. Before any chat-model download for the live turn, name model, source and size to the owner (K1-6).
+Integrate round 1 (B1, B2, B3, B4, B6, B9): verify fences, run the schema and
+prototype checks, commit; then round 2 (B5, B7), then OBS-1.

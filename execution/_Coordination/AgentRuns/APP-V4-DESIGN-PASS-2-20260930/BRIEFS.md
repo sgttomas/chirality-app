@@ -412,3 +412,61 @@ matches (recompute), GUIDE's table 18/18, RELAY §0–§3 byte-identical to
 `74b3c73134`; and that nothing outside the 16 Design files and the run folder
 changed in the repair. Verdict **MERGE AS DRAFTS** or **HOLD**; findings
 classed as in V17.
+
+# Wave B — design development
+
+## Common rules for Wave B (in addition to the common rules above)
+
+- **Binding:** R1–R11, [R12_RESOLUTIONS.md](R12_RESOLUTIONS.md), DECISION-K1
+  and the executor-model direction in OWNER_DECISIONS.md.
+- **Starting text:** the Design files as merged by PR-1 (Wave A). Read each
+  file you edit whole before editing it.
+- **What to produce:** R12-1 (data, states, sequences with failure behaviour,
+  verification) for the items your node lists. Items are the survey section 8
+  numbers; the survey gives the reasoning and locations. Check each against
+  the current text first: Wave A may already have done part of it.
+- **Prototypes (R12-3):** Python 3 standard library or `node` only; no
+  package install; no network unless your brief grants it; files under the
+  owning deliverable's `Design/prototype/`. Record the command, date and
+  output in the return file.
+- **Schemas (R12-1, R12-2):** JSON Schema 2020-12, beside the Design file,
+  with a valid and an invalid example instance. Validate them with your
+  prototype (a small standard-library validator for the subset you use is
+  enough; say which subset).
+- **Versions:** one step per file for Wave B (R12-1), with a "Changes from
+  ‹Wave A version›" table carrying the item IDs.
+- **Joins:** where your change alters what another file receives or
+  supplies, say so in the return file (file, section, what the other side
+  now needs). Do not edit files outside your fence; node V18 compares the
+  joins.
+- **Return file:** `WAVE_B/<ID>.md`: per item, what was produced and where;
+  schemas and prototypes with their validation output; join changes;
+  anything not done and why; proposed ScopeOfWork or register items; new
+  sha256 per file.
+
+## Round 1 (parallel; disjoint write fences)
+
+| ID | Write fence (Design files, plus their `Design/` schema and prototype files) | Items |
+|---|---|---|
+| B1 | DEL-02-01: WD, WD-EX (`EXAMPLES.md`) | S1-C WD 5, 6, 7, 9, 10; WD-EX 2, 3, 4; R12-10 (SP-6F uptake element; message-output element). WD 6 (harness-capability names) uses HOSTING §8's inventory as it stands and the generated schema at `…/scratchpad/codex-0.158.0/gen` if present (read-only); names are PROPOSED and scoped to pin 0.158.0. Prototype: render and parse E1, E1d, E5, E6 in the chosen carriage |
+| B2 | DEL-02-03: EXEC | S1-C EXEC 5, 6 (the reached-when table written against the native item kinds in HOSTING §8 and PIN-SPIKE; each cell that needs a live observation is marked "OBS-1 pending"), 7, 8, 9; R12-10 (recording is not a reaction; the current-phase case where an earlier act does not count) |
+| B3 | DEL-03-01 C; DEL-03-02 P; DEL-03-03 ADAPTER | S1-B C 4, 5, 6, 8; P 4, 5, 7; ADAPTER 3 (per R12-4: both paths), 4, 5, 6, 8; R12-4's simulated host specified once in C (both paths), cited by P and ADAPTER; R12-9's read-without-workspace-identity proposal. ADAPTER 7 (live spike) is not in this node |
+| B4 | DEL-04-01 ACT; DEL-04-02 AS; DEL-04-03 RS | S1-A ACT 7, 8; AS 4 (with RS), 5, 7, 8; RS 5, 6, 7, 8; R12-5 (A15 and its record kind); R12-9's two-evidence-limits proposal; R12-10 wording of "prior act not counted". The destination-grant exchange of AS 4 / RS 6 is designed here; B5 joins it to LOOP and PANEL |
+| B6 | DEL-01-01 HOSTING (not PIN_SPIKE) | S1-D HOSTING 4 (harness-capability account by capability, with standing labels), 5, 6 (a supplier double seeded from the recorded spike transcripts under `…/scratchpad/codex-0.158.0/handshake` and the file's §10, run locally for the cases it marks runnable with a double), 7 (brief for the next observation, OBS-1, written to `WAVE_B/OBS-1_BRIEF.md`) |
+| B9 | DEL-05-01 LOOP; DEL-05-02 PANEL (non-destination items) | S1-D LOOP 7, 8; R12-7; R12-8 (**network granted for this node only:** read the published Chat Completions reference and record URL, retrieval date and the four points); PANEL 5 except the destination prompt states (B5) |
+
+## Round 2 (after round 1 is integrated)
+
+| ID | Write fence | Items |
+|---|---|---|
+| B5 | LOOP, PANEL, AS, RS, ACT, C, P, ADAPTER — destination sections only | S1-D LOOP 5, PANEL 5 (destination prompt states), 7; S1-A AS 3, 7 as they touch destinations; R12-10 (refusal-recording labels; LP-5 label). **Network granted for this node only:** read the stateless MCP specification revision 2026-07-28 to state what evidences a stateless server (LOOP N-OPEN-5). One account of the destination flow that every file cites, with no element named on one side only |
+| B7 | DEL-09-06 CA; DEL-09-09 XT | S1-E CA 5, 6, 9 (the option sheet, R12-6); XT 5, 7; R11-9 (cite B2's case in W14-05); CA and XT cite the simulated host of B3 |
+
+## After round 2
+
+- **OBS-1** (one live Codex turn at pin 0.158.0 against a local model, per
+  K1-6): only after the owner approves the model download. Its record fills
+  the "OBS-1 pending" cells (B2, ADAPTER 7).
+- **V18** receiver comparisons, **R13** rulings, repairs, **B8** GUIDE
+  (S1-E D.8 items 5–6 and the matrix for Wave B; re-pin last), **V19**
+  review, **PR-2**.
