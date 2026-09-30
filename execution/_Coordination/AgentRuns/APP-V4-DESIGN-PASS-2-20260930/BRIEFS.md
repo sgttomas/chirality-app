@@ -459,7 +459,7 @@ classed as in V17.
 
 | ID | Write fence | Items |
 |---|---|---|
-| B5 | LOOP, PANEL, AS, RS, ACT, C, P, ADAPTER — destination sections only | S1-D LOOP 5, PANEL 5 (destination prompt states), 7; S1-A AS 3, 7 as they touch destinations; R12-10 (refusal-recording labels; LP-5 label). **Network granted for this node only:** read the stateless MCP specification revision 2026-07-28 to state what evidences a stateless server (LOOP N-OPEN-5). One account of the destination flow that every file cites, with no element named on one side only |
+| B5 | LOOP, PANEL, AS, RS, ACT, C, P, ADAPTER — destination sections only, plus LOOP §4 for R12-11 | S1-D LOOP 5, PANEL 5 (destination prompt states), 7; S1-A AS 3, 7 as they touch destinations; R12-10 (refusal-recording labels; LP-5 label); R12-11 (model-interface boundary). **Network granted for this node only:** read the stateless MCP specification revision 2026-07-28 to state what evidences a stateless server (LOOP N-OPEN-5). One account of the destination flow that every file cites, with no element named on one side only |
 | B7 | DEL-09-06 CA; DEL-09-09 XT | S1-E CA 5, 6, 9 (the option sheet, R12-6); XT 5, 7; R11-9 (cite B2's case in W14-05); CA and XT cite the simulated host of B3 |
 
 ## After round 2

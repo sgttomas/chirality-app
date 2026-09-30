@@ -111,3 +111,11 @@ review.
 - V17-A N-4: one wording of "prior act not counted" across the files. Node B4
   fixes it in RS and records it; B8 follows in GUIDE; other files follow in
   their Wave B nodes.
+
+## R12-11 The host loop's model interface is replaceable — INTEGRATION (owner direction of 2026-09-30)
+
+V4-ARC-10 stands (Chat Completions with tool calls; OWNER_DECISIONS,
+"Host-loop model interface"). LOOP adds one statement, in node B5: the loop
+reaches its model through one model-interface boundary, so that a second
+interface (the Responses API is the likely one) can be added later without
+restructuring the loop. Nothing is selected by that statement.

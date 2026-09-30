@@ -121,3 +121,19 @@ Nothing has been downloaded. HELP_HUMAN proposes to use that installed model
 for OBS-1, which needs no download and stays within K1-6 ("a local model in
 LM Studio first"), and to download Qwen3 4B only if the installed model cannot
 produce a tool call.
+
+## Host-loop model interface (owner, exact, 2026-09-30)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after asking whether
+OpenAI's newer Responses API was relevant and receiving HELP_HUMAN's answer
+and recommendation (keep Chat Completions for the host loop; note that the
+model interface is replaceable, with Responses as the likely second option).
+
+> keep Chat Completions for the host loop as recommended.
+
+**Effect:** ARCHITECTURE V4-ARC-10 stands unchanged: a host's minimal agent
+loop uses the OpenAI-compatible Chat Completions interface with tool calls.
+No amendment. LOOP states that its model interface sits behind one boundary
+so a second interface (Responses being the likely one) can be added later
+without restructuring; this is design, not a selection. The App side is
+unaffected: stock Codex uses the Responses API to reach its model.
