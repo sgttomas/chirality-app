@@ -82,3 +82,28 @@ items as recommended', or name the items you want changed."
   interrupted by a connection error and resumed. The group-1 snapshot is
   written only after the baseline completes. If the baseline finds anything
   that changes the packet, the owner is told before application.
+
+## Checkpoint B: SCA-V4-002 group 3 (owner, exact, 2026-09-29), DECISION-3
+
+**Custody.** The owner's answer to a structured question in the active chat,
+transcribed by the recorder. The package presented was the candidate
+`_ScopeChange/SCA-V4-002_2026-09-29_1901/` with its Handoff_State and
+RUN_SUMMARY at `ffdb56e1a`, and review V14: READY FOR GROUP 3. The question
+disclosed the six-versus-seven-package audit scope (V14 R-3).
+
+| Question presented | Owner's answer (exact label) |
+|---|---|
+| Checkpoint B (scope-change group 3 for SCA-V4-002): accept the applied, audited result? | "Accept (Recommended)" |
+
+## Effects
+
+- **SCA-V4-002 group 3 is ACCEPTED on 2026-09-29.** Write the group-3
+  decision snapshot, finalize the accepted snapshot, and move
+  `_ScopeChange/_LATEST.md` to it in SPEC §11.2 form (C-01).
+- **Apply H-1…H-4** (B-04 with the act date, C-01, the coverage recompute,
+  post-acceptance validation and the audit rerun).
+- **ASC-ISS-001 closes** on this acceptance, to be confirmed by a superseding
+  `audit-scope-closure` snapshot for SCA-V4-001.
+- **Propagation authorized:** the 9 SoW REVISEs (NO_STATUS_TOUCH), B-06a with
+  them, the register refresh, the currency audit, and the DAG-003 candidate
+  for checkpoint C.
