@@ -112,6 +112,8 @@ design content. Survey items are those of `SURVEY/S1-A.md` §1.
 | R9-6 (ACT 5) | New value row **V-28** for §2.7, with its consumers; VC-007 traces it | §10.1, VC-007 |
 | R9-5 (ACT 6; ScopeOfWork TBD-004) | VC-006 is in two parts (the current phase limited to recording; the governance phase). VC-001 and VC-010 cite TBD-004. VC-009 reconciles FX-01…55 and reports no results at v0.7. VC-011 traces to V4-EXM-23 | Verification cases |
 | R9-11 | The policy revision identity reads ACT-POLICY-v0.7 | §8.1 |
+| **R10-1** (node A2, in place; R9-2's second bullet corrected) | A direct application under the grant queues no proposal, so an A5 checkpoint (kind (c) *proposal queued*) is **not reached**: nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded; the record shows the direct application under the person's grant. A checkpoint the run does reach while a grant permits direct application has its act requested and is *waiting* until the person performs it. "Its act is still requested" is withdrawn for the direct-application case | §4.4, §5.6 W-b, §8.3 P-05 |
+| R10-9 (node A2, in place) | Beside ND-A1: a checkpoint's *grant setting* subject is an operation-class A12 only; a checkpoint on a network-destination grant is a possible later extension, PROPOSED, not defined | §2.7 ND-A1 |
 
 ## Changes from v0.5
 
@@ -517,7 +519,11 @@ The network rules themselves are LOOP-v0.7 §5.1.1 (NW-8…NW-16).
 
 - ND-A1. A network-destination grant widens no operation class and no
   reserved act. An operation-class A12 grants no destination (A-1: the
-  evidence of one act never establishes another).
+  evidence of one act never establishes another). Conversely, a declared
+  checkpoint's *grant setting* subject is an operation-class A12 only (WD
+  §4.3.1, §4.3.6; EXEC §4.10): a checkpoint cannot require a
+  network-destination grant in this increment. Such a checkpoint is a
+  possible later extension, PROPOSED, with no definition (R10-9).
 - ND-A2. Scope:
   - *once* is consumed by the one requesting call;
   - *this run* ends with the run, and a continuing run inherits nothing
@@ -819,10 +825,15 @@ operation's treatment in that run is **propose**, whatever the grant.
 This rule is **plan guidance**: the
 agent submits the operation as a proposal, as the declaration asks, and the
 host's own treatment decides. Where the active grant lets the host apply
-directly, no proposal arises and the host may apply; if the workflow declares
-a checkpoint there, its act is still requested and no act is recorded by
-reason of the direct application: no A5 is forced, and none is recorded
-(R9-2). The App carries and enforces no constraint,
+directly, no proposal arises and the host may apply. An A5 checkpoint, whose
+reached-when is kind (c) *proposal queued* (§4.2), is then **not reached**:
+nothing is requested by reason of an arrival that did not occur, no A5 is
+forced, and none is recorded. The record shows the direct application under
+the person's grant (R9-2 as corrected by R10-1). V4-HI-42's request clause
+applies to a checkpoint the run reaches: where a checkpoint of any kind is
+reached while a grant permits direct application, its act is requested and
+its disposition is *waiting* ("reached; act not yet recorded") until the
+person performs it. The App carries and enforces no constraint,
 and reports nothing as *not permitted* on the constraint's account. The agent
 never adds a field that the host's schema lacks (R8-10): SWBPIPE's strict
 preflight refuses unknown fields (SQ-02 (a), SQ-31). On SWBPIPE every change
@@ -1181,7 +1192,7 @@ The person widens the grant by performing A12. A widened grant cannot:
 | # | Cannot | Basis |
 |---|---|---|
 | W-a | make an agent the decision actor of A4–A7, A10, A12 or A13, or fabricate a human act | S3, S4; D2; R-1 |
-| W-b | bypass a declared checkpoint or the §4.4 constraint | S9; D2. In every phase a widened grant never records or substitutes the checkpoint's act, which is still requested (V4-HI-42; ScopeOfWork TBD-004). The hold and the §4.4 constraint bind for governed checkpoints in the governance phase (R9-2) |
+| W-b | bypass a declared checkpoint or the §4.4 constraint | S9; D2. In every phase a widened grant never records or substitutes the checkpoint's act, which is requested when the run reaches the checkpoint (V4-HI-42; ScopeOfWork TBD-004; R10-1). The hold and the §4.4 constraint bind for governed checkpoints in the governance phase (R9-2) |
 | W-c | authorize a reserved act or operation for any agent | D2; S10; REQ-006 |
 | W-d | convert a **proposal only** class | V4-HI-02 |
 | W-e | apply to a **no policy basis** class. That A12 is refused. | REQ-004; R2-9 |
@@ -1397,8 +1408,13 @@ Rules:
   R2-12.
 - Phase: plan guidance in Phase 1, where the host's own treatment of its
   operations decides what the host does. Where the active grant lets the
-  host apply directly, no A5 is forced and none is recorded, and the
-  checkpoint's act is still requested (AP-8; R9-2). It binds for governed
+  host apply directly, no proposal is queued, so the A5 checkpoint (kind (c)
+  *proposal queued*) is **not reached**: nothing is requested by reason of
+  an arrival that did not occur, no A5 is forced, and none is recorded; the
+  record shows the direct application under the person's grant (AP-8; R9-2
+  as corrected by R10-1). A checkpoint the run does reach under such a grant
+  has its act requested and stays *waiting* until the person performs it
+  (§4.4). It binds for governed
   checkpoints in the governance phase, with R2-12 carriage assurance (§4.4).
 
 **P-06 — no-policy-basis treatment.**

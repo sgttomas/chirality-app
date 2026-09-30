@@ -203,10 +203,15 @@ Class rules:
    the host schema lacks (R8-10). A direct request, if made, meets the
    host's own treatment, and nothing is reported *not permitted* on the
    constraint's account. When the active grant lets the host apply
-   directly, no proposal arises and the host may apply; the checkpoint's
-   act is still requested, no A5 is forced and none is recorded by reason
-   of the direct application, and the checkpoint's disposition stays *act
-   not performed* unless the person performs it (R9-2; V4-HI-42). SWBPIPE
+   directly, no proposal arises and the host may apply. An A5 checkpoint
+   whose reached-when is *proposal queued* is then **not reached**:
+   nothing is requested by reason of an arrival that did not occur, no A5
+   is forced, and none is recorded; the record shows the direct
+   application under the person's grant (R9-2 as corrected by R10-1).
+   V4-HI-42's request clause applies to a checkpoint the run reaches: where
+   a checkpoint of any kind is reached while a grant permits direct
+   application, its act is requested and its disposition is *waiting*
+   ("reached; act not yet recorded") until the person performs it. SWBPIPE
    resolves every change
    reached externally as a proposal awaiting the person's Apply (SQ-02
    related fact; SQ-05); that is a property of its route, not host-held
@@ -372,7 +377,13 @@ method designation of its content identity. Semantic labels only.
 
 1. **All elements, every read.** A read lacking any element is *basis
    incomplete* and cannot be cited as a relied-on basis. Historical reads
-   carry the historical revision's basis.
+   carry the historical revision's basis. *Note (R10-5):* ADAPTER-v0.5 §4.3
+   RD-2 holds that a host read with only a whole-model identity can be
+   cited, and records that SWBPIPE main has no workspace identity or
+   generation. R8-12 item 6 decides only the subject-identity part; whether
+   a read lacking workspace identity or generation is *basis incomplete* is
+   carried to Wave B (node B3, with the catalog interface). Both texts stand
+   until then.
 2. **Basis ≠ operation identity** (§2 invariant 3).
 3. **Basis is observed, not chosen.** A consumer never fills in, updates or
    copies a later basis over it.
@@ -504,7 +515,7 @@ operations such as OP-C3. "Approval" means only A6.
 | Currency | **current** (describes the workspace's present revision) or **historical** (an earlier revision or superseded result) | Presenting a historical result as current; dropping currency |
 | Host checks passed | Each named host check the result passed, **with the basis it was evaluated on**. A check evaluated on an earlier basis is shown as historical | Collapsing to "checked"; implying checks not run; showing an old-basis check as current; presenting A3 findings as a host check |
 | Known limitations | Host-stated limitations (e.g. solver assumptions, incomplete inputs) | Omitting or softening limitations in an agent summary |
-| Human-act evidence (faithfully carried) | References to actual human acts the host has recorded on this content, carried with the DEL-04-03 act field set, which this contract consumes and does not define (SoW CLM-002; DEP-03-01-031; RS-v0.7 §6.1) — at least: act kind (RS "Act kind": the R-1 act name), decision actor (the person), recorder, recording mode (direct capture / faithful recording, A9), bound subject, scope, purpose, bound content identity (c₀ with method designation), lapse state, evidence references and evidence limits (V1-B D-16). RS §6.1 also defines act identity, act class, governing policy reference, relations and order; whether a read result must carry those is not stated here (returned as a Wave B item) | Inventing an act; showing a lapsed act as current; attributing an agent finding to the person; showing a row-scoped act as covering a whole table |
+| Human-act evidence (faithfully carried) | References to actual human acts the host has recorded on this content, carried with the whole DEL-04-03 act field set of RS-v0.7 §6.1, which this contract consumes and does not define or subset (SoW CLM-002; DEP-03-01-031; R10-3). Examples of those fields: act kind (RS "Act kind": the R-1 act name), decision actor (the person), recorder, recording mode (direct capture / faithful recording, A9), bound subject, scope, purpose, bound content identity (c₀ with method designation), lapse state, evidence references and evidence limits (V1-B D-16) | Inventing an act; showing a lapsed act as current; attributing an agent finding to the person; showing a row-scoped act as covering a whole table |
 | Lapse state | DEL-04-03 §7 vocabulary, consumed and not defined here (SoW CLM-002; DEP-03-01-031; RS-v0.7 §7): not lapsed · lapsed · lapsed (subject absent) · partially lapsed · matches c₀ again after observed lapse · unknown (incomparable) · unknown (unavailable) · not yet evaluated; and for A12/A13, which are not lapse-evaluated, **current · superseded** (RS §7 L-0 and its lapse-state line; supersession is R2-7, PROPOSED; C-v0.6 listed only *superseded*). *Not yet evaluated* never renders as *not lapsed* (V1-B D-14; IR1A-13; IR1-B B-m1) | — |
 | Act-declined and run-ended events | An **act-declined event** (A4, A6, A7 or A12, with capture evidence) is carried as an event, never as an act; a **run-ended event** is separate (R2-5) | Rendering a decline as the act, or as a rejection (A10 is A5's pair) |
 | Agent findings (A3) | Findings authored by an agent, attached by reference (V4-EXM-21), with the agent as author. Where they are held (host-stored, which may be a change, or message content) is U-C5 | Rendering a finding as checked, approved or "host checks passed" |
@@ -785,7 +796,7 @@ Content identities are opaque: ⟨v12⟩ is a read-level identity at r12,
 | Variant | Branches from | Event | Expected |
 |---|---|---|---|
 | **V-S1** Stale after acceptance | T11 | Engineer A edits S-2 before T12 (branch revision r14′) | Item 1 (relies on S-2) **refused — stale** at application; A5 not lapsed; display "accepted by Engineer A — not applied: refused — stale (relied B2, current ⟨B-r14′⟩)" (R2-16). No SWBPIPE counterpart: its A5 is Apply, which applies at once, and a stale Apply is refused with no acceptance recorded (SQ-01, SQ-23; R8-5) |
-| **V-CP1** Acceptance checkpoint vs direct grant | A variant of T15 granting *direct* for P-03 with scope {model/workspace: FX-W1; object set: R-100 and its supports}, plus FXA-5 | Agent requests OP-C4 directly in run 12 | **Phase 1 (R8-11 item 2 and R8-12 item 2, as restated by R9-2; EXEC CH-27):** the App carries and enforces no constraint. The agent, following the declaration as plan guidance, proposes OP-C4 and never adds a field the host schema lacks (R8-10). A direct request, if made, meets the host's own treatment and is recorded as observed; nothing is reported *not permitted* on the constraint's account. If the host applies it directly (the variant grant allows that), no proposal arises; `CP-accept`'s A5 is still requested, no A5 is forced and none is recorded by reason of the direct application, and `CP-accept`'s disposition stays *act not performed* unless Engineer A performs it (R9-2). **Governance phase (retained; `CP-accept` read as if declared governed):** **not permitted**, naming the governing checkpoint constraint {run 12, CP-accept, A5, OP-C4}; the agent may then submit a proposal separately, whose items become CP-accept's subject (R2-12). Status: Phase 1 DESIGNED. Governance phase **AWAITING INPUT** (host receipt of the constraint, relay) — SQ-02 answered 2026-09-28: route (iv), no receipt and no host copy, and a constraint field would be refused as unknown (SQ-02 (a)); SQ-20: no host loop (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) |
+| **V-CP1** Acceptance checkpoint vs direct grant | A variant of T15 granting *direct* for P-03 with scope {model/workspace: FX-W1; object set: R-100 and its supports}, plus FXA-5 | Agent requests OP-C4 directly in run 12 | **Phase 1 (R8-11 item 2 and R8-12 item 2, as restated by R9-2; EXEC CH-27):** the App carries and enforces no constraint. The agent, following the declaration as plan guidance, proposes OP-C4 and never adds a field the host schema lacks (R8-10). A direct request, if made, meets the host's own treatment and is recorded as observed; nothing is reported *not permitted* on the constraint's account. If the host applies it directly (the variant grant allows that), no proposal arises, so `CP-accept` (reached-when kind (c) *proposal queued*, FXA-5) is **not reached**: nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded; the record shows the direct application under the variant grant (R9-2 as corrected by R10-1). **Governance phase (retained; `CP-accept` read as if declared governed):** **not permitted**, naming the governing checkpoint constraint {run 12, CP-accept, A5, OP-C4}; the agent may then submit a proposal separately, whose items become CP-accept's subject (R2-12). Status: Phase 1 DESIGNED. Governance phase **AWAITING INPUT** (host receipt of the constraint, relay) — SQ-02 answered 2026-09-28: route (iv), no receipt and no host copy, and a constraint field would be refused as unknown (SQ-02 (a)); SQ-20: no host loop (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) |
 | **V-NP1** No policy basis | T9 | Agent requests OP-C11 directly; then proposes it; Engineer A attempts A12 granting direct for OP-C11's class | Direct → **not permitted** (no policy basis, pending OI-021); proposal → queued, confers no permission; A12 → **refused (reason: no policy basis)**; dependent production reported **held** (R2-9) |
 | **V-R1** Reserved entry call | T3 | Agent calls OP-C6 on S-1 | **not permitted** (reserved to the person, P-02) with an A8 request *offered*; no A8 recorded unless issued; never *not exposed* or *unavailable* |
 | **V-X1** Not exposed | T16 | External agent (X) calls OP-C9 where element 9 = not exposed on X | Host returns **not exposed on this surface**; the adapter relays it (reporter: host). If X's channel is off instead: **channel not enabled**. (SWBPIPE form: `unsupported_change`, relayed as host-reported *not exposed on this surface*, R8-5) |
@@ -864,6 +875,9 @@ and by the S1-B survey item (file 1).
 | S1-B 1.1 pin 22; 1.2 item 6 | "as of C-v0.5 / P-v0.5" now adds "carried in C-v0.7 / P-v0.7"; U-C8 names the current ACT version | §4.1; UNRESOLVED |
 | R9-8 (S1-B 1.4 C23, C24; 1.8 item 7) | UNRESOLVED: the register row is restated against the current registers; the SoW-text row is closed (SCA-V4-001) | UNRESOLVED |
 | R9-5, R9-11 | Body citations of siblings name the Wave A labels (P-v0.7, WD-v0.7, LOOP-v0.7, EXEC-v0.5, ACT-POLICY-v0.7, RS-v0.7) | Header, §0, §3.1, §4.1, §6.2, §9, VC-C-04 |
+| **R10-1** (node A2, in place; R9-2's second bullet corrected) | Class rule 3 and V-CP1, Phase 1: a direct application queues no proposal, so `CP-accept` (kind (c) *proposal queued*) is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded; the record shows the direct application under the grant. A checkpoint reached under such a grant has its act requested and is *waiting*. "Act not performed" as a disposition and "its act is still requested" are withdrawn | §3.1 rule 3; §10.4 V-CP1 |
+| **R10-3** (node A2, in place) | §6.2 "Human-act evidence" carries the whole RS-v0.7 §6.1 act field set, consumed and not subset; the listed fields are examples. The "at least" list and the Wave B note on the remaining RS fields are removed | §6.2 |
+| R10-5 (node A2, in place) | §5.2 rule 1 gains a note pointing at ADAPTER-v0.5 §4.3 RD-2 and at R10-5: a read lacking workspace identity or generation is decided in Wave B (node B3). Both texts stand | §5.2 rule 1 |
 
 No fixture identifier is added, removed or re-meant, and no fixture value changes. No UNRESOLVED identifier is added. Closed: the SoW-text row. PROPOSED items stay PROPOSED (R9-4): the catalog edition (§2), *superseded* for A12/A13 (R2-7) and SP-6 (R4-5) are unchanged in standing.
 

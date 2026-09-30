@@ -139,6 +139,9 @@ ID and by the survey item (S1-D, LOOP §8) each change answers.
 | S1-D LOOP item 6 (the N-OPEN-4 note only); V10 N-4 | N-OPEN-4 is stated as an open owner question, with its interim reading and the two options. MS-15 is marked as resting on the interim reading. N-OPEN-1 and N-OPEN-4 are **not** ruled, and MS-11 stays held | §5.1, §5.1.1 NW-8, §5.2 MS-15, UNRESOLVED |
 | R9-5 | Body citations of sibling files carry the Wave A labels (EXEC-v0.5, WD-v0.7, C-v0.7, P-v0.7, ACT-POLICY-v0.7, AS-v0.7, RS-v0.7, PANEL-v0.7). Commit qualifiers on sibling standings are dropped | §0, §2.4, §2.4.0, §2.4.4, §10.1, §10.3, §11, UNRESOLVED, Verification cases |
 | Not applied | S1-D LOOP items 5, 7, 8 and 9, and the rulings of N-OPEN-1 and N-OPEN-4 in item 6, are Wave B or the integrator's and were not started | — |
+| **R10-1** (node A2, in place; R9-2's second bullet corrected) | C-6 and FX-C9: under a direct application the A5 checkpoint is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded. FX-C9 carries one wording; G-9 and its open-item row are closed | §2.4.3 C-6; §11 FX-C9; Findings G-9; open items |
+| R10-8 (node A2, in place) | §2.4.1 kind (b): the sentence stands, with a note that WD does not yet define the element designating a message as a declared output (Wave B, nodes B1 and B2) | §2.4.1 |
+| R10-11 sibling citation pass (node A2, in place) | §2.4.2: "even if the kind matches (WD SB-3)" → "WD SB-2" (SB-2 is the other-content rule; SB-3 is exact binding) | §2.4.2 |
 
 ## Changes from v0.5
 
@@ -600,7 +603,7 @@ the model's claims.
 | Kind | Evaluated when | Phase 1 (R8-1): on match | Governance phase (retained): on match |
 |---|---|---|---|
 | (a) before dispatch of a named required-tool reference | After a call to that operation passes V-1 to V-3, and before dispatch | Record the arrival, then dispatch the call as usual. Nothing is held. If the act is not yet recorded, the dispatch may carry "continued past ‹checkpoint› before ‹act›" (LP-4). "The held call" names the call whose dispatch met reached-when (subject class *targets of the held call*) | Hold the schema-conformant call undispatched. Emit "call held at checkpoint". Return to the model a tool result saying the run is held (a loop state, not a failure). After *performed*, dispatch the **same** held call unchanged. A different call is a new call, and the act does not carry to it |
-| (b) observed production of a named declared output | An observed event establishes the output: a host outcome producing it, or a completed agent message the declaration designates as that output. A model statement that it exists does not count | Record the arrival. Nothing is stopped | Stop acting on the run |
+| (b) observed production of a named declared output | An observed event establishes the output: a host outcome producing it, or a completed agent message the declaration designates as that output. A model statement that it exists does not count. *Note (R10-8):* WD-v0.7 does not yet define the element that designates a message as a declared output; WD adds it in Wave B (node B1), and EXEC's App-side table uses it (node B2) | Record the arrival. Nothing is stopped | Stop acting on the run |
 | (c) observed host outcome of a named operation, e.g. *proposal queued* | The host outcome for that operation matches the named outcome | Record the arrival. Nothing is stopped | Stop acting on the run |
 
 On a match the loop emits "checkpoint reached" with purpose, scope and the
@@ -659,7 +662,7 @@ and the referents the class names.
   subject is that proposal's change items. Any other A5 combination is
   invalid in the declaration (DEL-02-01), and the loop reports it.
 - An act on other content, another proposal or another row set does not
-  satisfy the checkpoint, even if the kind matches (WD SB-3).
+  satisfy the checkpoint, even if the kind matches (WD SB-2).
 
 #### 2.4.3 Loop obligations
 
@@ -774,8 +777,12 @@ Each obligation is marked by phase where the phases differ (§2.4.0).
     checkpoint as plan guidance (WD I-7), proposes rather than requests
     direct application. It never adds a field the host's schema lacks
     (R8-10; strict preflight). If the host applies directly under the
-    grant, no A5 is forced and none is recorded by reason of the direct
-    application, and the checkpoint's act is still requested (R9-2; LP-5).
+    grant, no proposal is queued, so the A5 checkpoint (kind (c) *queued*)
+    is **not reached**: nothing is requested by reason of an arrival that
+    did not occur, no A5 is forced, and none is recorded; the record shows
+    the direct application under the person's grant. A checkpoint the run
+    does reach under such a grant has its act requested (LP-5) and is
+    *waiting* until the person performs it (R9-2 as corrected by R10-1).
     The bullets below apply to governed
     checkpoints in the governance phase.
   - Where a declared checkpoint requires A5 on an operation's result, every
@@ -1515,7 +1522,7 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-C7 | Checkpoint reached-when (c) *queued*; run stopped before any proposal | Never met | **Both phases:** *not reached* at run end | VER-008 |
 | FX-C7b | Checkpoint reached and waiting; run ended; the person performs the act afterwards | Post-run act | **Both phases:** run-ended event with *waiting*. The later act is shown "after run end" against the subject; the ended run's disposition is unchanged, and it is never resumed (R4-4) | VER-008 |
 | FX-C8 | Checkpoint A4, reached-when (a) before dispatch of OP-C5; subject class "targets of the held call" | Kind (a) | **Phase 1:** arrival recorded when the OP-C5 call passes V-3; subject = S-3 by its subject content identity in the relied-on read B2; the call is **dispatched, not held**, and may carry "continued past ‹checkpoint› before A4" (LP-4). A host-captured A4 on that content, when performed, is recorded and answers the arrival. **Governance phase:** call held. Subject as above. After host-captured A4 on that content, the same held call is dispatched | VER-008 |
-| FX-C9 | A5 checkpoint on OP-C4's result (C V-CP1 shape; `CP-accept` per FXA-5); grant effective direct; direct requested | Constraint | **Phase 1** (R8-11 item 2 as restated by R9-2; C-6): no constraint is carried as enforcement. The host's own treatment decides the direct request under the effective direct grant, and the loop relays the outcome as observed. If the host applies directly, no proposal is queued, so the A5 checkpoint (kind (c) *queued*) is not reached, and the record shows the direct application under the person's grant. The checkpoint's act is still requested (LP-5). No A5 is forced, and none is recorded by reason of the direct application; the checkpoint's disposition stays *act not performed* unless the person performs it (R9-2). In this file's six dispositions that arrival is *not reached*, since no *queued* outcome was observed: the two wordings are returned as an R10 candidate (G-9). Following the checkpoint as guidance, the agent's plan proposes instead. DESIGNED. **Governance phase:** dispatch carries the governing checkpoint constraint; *not permitted* naming it. **AWAITING INPUT** (R2-12; §13 Q-1) — SQ-02 answered 2026-09-28: no host loop and no host-held evaluation; route (iv) (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) | VER-008 |
+| FX-C9 | A5 checkpoint on OP-C4's result (C V-CP1 shape; `CP-accept` per FXA-5); grant effective direct; direct requested | Constraint | **Phase 1** (R8-11 item 2 as restated by R9-2; C-6): no constraint is carried as enforcement. The host's own treatment decides the direct request under the effective direct grant, and the loop relays the outcome as observed. If the host applies directly, no proposal is queued, so the A5 checkpoint (kind (c) *queued*) is not reached, and the record shows the direct application under the person's grant. Nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded (R9-2 as corrected by R10-1; G-9 closed). Following the checkpoint as guidance, the agent's plan proposes instead. DESIGNED. **Governance phase:** dispatch carries the governing checkpoint constraint; *not permitted* naming it. **AWAITING INPUT** (R2-12; §13 Q-1) — SQ-02 answered 2026-09-28: no host loop and no host-held evaluation; route (iv) (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) | VER-008 |
 | FX-C10 | Agent-authored A9 of an A4, with no capture evidence | Record only | **Both phases:** no act recorded; checkpoint stays *waiting* | VER-008 |
 | FX-C11 | C named variant **V-GR1** (R5-7): a run of WD-EX E1d (`label-with-grant`; `CP-grant` requires A12; reached-when kind (a) before dispatch of OP-C9; declared content {P-03, *direct*, {FX-W1; {S-4}}}), branching from T14 (r15). The agent's OP-C9 call on S-4 meets reached-when, so `CP-grant` arrives at r15; T15's A12 is captured **after** the arrival; the control establishes it | A12 at the arriving call | **Phase 1:** the arrival is recorded and the OP-C9 call is **dispatched, not held**. Requested direct under ⟨set-1⟩, the host's treatment answers *not permitted* (FX-V3 shape). The dispatch may carry "continued past CP-grant before A12". T15's A12 (captured after the arrival, established) is recorded as answering `CP-grant` (*performed*). A re-issued OP-C9 call is a new call (T16 shape under ⟨set-2⟩). Sub-variants label the record as below, with no call held. **Governance phase:** *performed* (SP-6 holds; established). The held call is dispatched unchanged as T16 (RC-2). Sub-variants: **pending** → *waiting*; **refused** → *waiting* "A12 refused by control: ‹reason›", call stays held, earlier setting not superseded; confirmation lost → *unknown*; a later **established** A12 on an overlapping scope → "superseded by ‹act›", checkpoint stays *performed* | VER-008 |
 | FX-C11b | Main timeline order: T15's A12 captured **before** a `CP-grant` arrival (any run declaring CP-grant that arrives after T15) | Prior act | **Both phases:** T15 is "prior act on this subject, not counted", even though ⟨set-2⟩ is in force (SP-6). Phase 1: the arrival shows unanswered in the record, and nothing is held. Governance phase: the person must perform A12 again before the run proceeds (owner-visible cost, U-E4; R5-7) | VER-008 |
@@ -1632,7 +1639,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
   - "Nothing holds" in Phase 1 (§2.4.0) concerns checkpoints. NW-12's
     wait is the one requesting call awaiting the person's grant; it holds
     no run and no other call.
-- **G-9 (new, v0.7; R9-2; returned as an R10 candidate).** R9-2 says that
+- **G-9 (new, v0.7; R9-2; closed by R10-1).** R9-2 said that
   in the FX-C9 case "the checkpoint's disposition stays *act not performed*
   unless the person performs it". §2.4 has six shared dispositions and none
   is called *act not performed*. Under §2.4.1 an A5 checkpoint with
@@ -1641,7 +1648,10 @@ joins are deferred. The questions below are kept as prepared. Gists:
   text decides whether "act not performed" is a plain description of *not
   reached*, or whether the direct application should count as an arrival
   (then *waiting*), which would change a reached-when rule owned by
-  DEL-02-01 and DEL-02-03.
+  DEL-02-01 and DEL-02-03. **Closed by R10-1:** the checkpoint is *not
+  reached*; nothing is requested by reason of an arrival that did not
+  occur, no A5 is forced, and none is recorded. FX-C9 now carries that one
+  wording.
 - **G-10 (new, v0.7; R9-6).** The rebuilt §10.3 and §10.4 follow the live
   registers. Three things are returned, not decided here:
   - DEP-05-01-020 names DEL-05-02's panel needs; PANEL does not yet define
@@ -1673,7 +1683,7 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | CLOSED at v0.7 (SCA-V4-001; R9-8) — V4-HOST-01 and V4-ARC-11 now state no default and OAuth sign-in or an API key (DECISION-4 D4-3; R8-9) | Owner | — | NW-1 quotes the amended V4-HOST-01. SoW REQ-001 and AC-001 were revised with it (G-6, closed) |
 | CLOSED at v0.7 (SCA-V4-001; R9-8) — V4-WF-05 and V4-HI-42 now state the phasing themselves: the hold is phased to the governance layer; the request and the record clauses are in force (R8-1; R9-1; DECISION-4 D4-1) | Owner | — | §2.4 lead and §2.4.0 cite the amended texts; the host-loop hold is governance phase (§2.4.4) |
 | Who requests the act at a checkpoint in the current phase (R9-1, INTEGRATION) | Owner, for confirmation in the decision package of run `APP-V4-DESIGN-PASS-2-20260930` | Before the first-increment design is relied on | LP-5 states the integrator's reading: the agent carrying out the workflow asks. How an App run observes an arrival and a request is DEL-02-03's (EXEC, Wave B) |
-| FX-C9 disposition wording, *act not performed* against *not reached* (G-9) | Integrator (R10 candidate) | Before FX-C9 and PANEL PC-24 are final | FX-C9 carries both wordings |
+| CLOSED (R10-1) — FX-C9 disposition wording, *act not performed* against *not reached* (G-9) | Integrator | — | FX-C9 and PANEL PC-24 say *not reached* |
 | Governance phase taken up (R8-1) | Owner, per workflow that needs it (DECISION-4 D4-1) | When a workflow needs enforced checkpoints | §2.4.4 and the governance-phase columns apply to governed checkpoints only then |
 | SWBPIPE embedded direction ("embedded Runtime", RUNTIME-ADOPT; D-58) predates D-20 (R8-8; DECISION-4 D4-2) | SWBPIPE (its to act on) | When the owner resumes UI-SUCCESSOR | None on this contract; note in §1 |
 | T-OPEN-1 valid siblings beside a malformed call | This owner with DEL-03-02 and host owner | Before FX-M8 | Proposed. SWBPIPE: not decided (no loop; SQ-31) |

@@ -27,6 +27,7 @@ design content. Survey items are those of `SURVEY/S1-A.md` §2.
 | **R9-3** | "the current phase (Phase 1)" on first use | Header |
 | **R9-4** (AS 2; S-P5; survey §2.4 items classed NOW) | S15 cites V4-HOST-02 from the PRD as amended by SCA-V4-001, and its marker that awaited a basis update is removed. The model-destination reading is SETTLED (owner-confirmed: OWNER_ITEMS O-10, DECISION-7 of `APP-V4-BASIS-ALIGN-20260928`). S13's reading of D2 is owner-confirmed (O-25) | Header, §1 S13, S15, §11 F19 |
 | **R9-8** (AS 6; survey §2.2 item 1) | §10: the statement that the ScopeOfWork's TBD-001/002 still read OI-001/002 as open is removed; SCA-V4-001 revised them. ScopeOfWork TBD-006 is cited for the phased hold display, and U-16's point of need follows it | Header, §1, §10, UNRESOLVED U-16 |
+| **R10-1** (node A2, in place; R9-2's second bullet corrected) | §2 constraint bullet, Phase 1: under a direct application no proposal is queued, so the A5 checkpoint (reached-when *proposal queued*) is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded. A checkpoint the run does reach under such a grant has its act requested and is *waiting* until the person performs it. "The checkpoint's act is still requested" is withdrawn for the direct-application case | §2 |
 
 ## Changes from v0.5
 
@@ -178,8 +179,13 @@ Received from DEL-04-01 §5 and §8; this deliverable renders and exchanges it.
   guidance; the agent proposes, the
   host's own treatment decides, no constraint is carried or enforced by the
   App, and the agent never adds a field the host schema lacks. Where the
-  active grant lets the host apply directly, no A5 is forced and none is
-  recorded; the checkpoint's act is still requested. The display
+  active grant lets the host apply directly, no proposal is queued, so the
+  A5 checkpoint (reached-when *proposal queued*) is **not reached**: nothing
+  is requested by reason of an arrival that did not occur, no A5 is forced,
+  and none is recorded; the record shows the direct application under the
+  person's grant. A checkpoint the run does reach under such a grant has its
+  act requested and is *waiting* until the person performs it (R9-2 as
+  corrected by R10-1). The display
   shows no constraint and no *not permitted* on its account. **Governance
   phase (retained), governed checkpoints:** if a declared
   checkpoint requires A5 on an operation's result, the dispatch carries

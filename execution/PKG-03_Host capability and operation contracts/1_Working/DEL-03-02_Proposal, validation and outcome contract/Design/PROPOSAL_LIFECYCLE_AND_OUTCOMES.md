@@ -414,10 +414,14 @@ overlay: unobservable ─► outcome unknown (observer-attributed)
   as the plan expects; a direct request, if made, meets the host's own
   treatment, and nothing is reported *not permitted* on the checkpoint's
   account. When the active grant lets the host apply directly, no proposal
-  arises and the host may apply; the checkpoint's act is still requested,
-  no A5 is forced and none is recorded by reason of the direct
-  application, and the checkpoint's disposition stays *act not performed*
-  unless the person performs it (R9-2). *Governance phase:* when a governed checkpoint's
+  arises and the host may apply. An A5 checkpoint whose reached-when is
+  *proposal queued* is then **not reached**: nothing is requested by reason
+  of an arrival that did not occur, no A5 is forced, and none is recorded;
+  the record shows the direct application under the person's grant (R9-2
+  as corrected by R10-1). V4-HI-42's request clause applies to a checkpoint
+  the run reaches: where a checkpoint of any kind is reached while a grant
+  permits direct application, its act is requested and its disposition is
+  *waiting* ("reached; act not yet recorded") until the person performs it. *Governance phase:* when a governed checkpoint's
   constraint applies with **host-held**
   carriage (R5-2; model-supplied or absent carriage is not relied on) — the
   host route resolves *propose* for that operation in that run. A request to
@@ -774,7 +778,7 @@ commitments.
 | T16 direct application of OP-C9 under ⟨set-2⟩ | "Applied under your grant (settings ⟨set-2⟩); origin-marked; undo available" | "Accepted" |
 | T13 not observable | "Outcome unknown (observed by loop); last observed: accepted" | "Applied" or "failed" |
 | OP-C4 requested directly at r13 under ⟨set-1⟩ | "Not permitted: add support requires a proposal under your current settings (policy default: propose)" | Silent conversion to a proposal; "unavailable" |
-| V-CP1, Phase 1 (R8-1; R8-11 item 2 and R8-12 item 2, as restated by R9-2): the agent follows CP-accept as plan guidance | "Add support proposed (queued, 1 item); checkpoint CP-accept in run 12 expects your acceptance". A direct request, if made anyway, is reported as the host's own outcome; if the host applies it under the grant, the report says so and still shows CP-accept's acceptance as requested and not performed, because no A5 is forced and none is recorded by reason of the direct application (R9-2) | "Not permitted: checkpoint CP-accept…" (no constraint is carried or enforced in Phase 1); "Accepted" |
+| V-CP1, Phase 1 (R8-1; R8-11 item 2 and R8-12 item 2, as restated by R9-2): the agent follows CP-accept as plan guidance | "Add support proposed (queued, 1 item); checkpoint CP-accept in run 12 expects your acceptance". A direct request, if made anyway, is reported as the host's own outcome; if the host applies it under the grant, the report says so and shows CP-accept as not reached, because no proposal was queued: nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded (R9-2 as corrected by R10-1) | "Not permitted: checkpoint CP-accept…" (no constraint is carried or enforced in Phase 1); "Accepted" |
 | V-CP1, governance phase (CP-accept governed; host-held constraint): OP-C4 requested directly under a direct grant while CP-accept (run 12, A5) applies | "Not permitted: checkpoint CP-accept in run 12 requires your acceptance of this change; it must be proposed" — the agent may then submit a proposal, which queues and becomes CP-accept's subject | "Drafted as a proposal"; "Applied; checkpoint waiting" |
 | V-S1 | "Item 1 accepted by Engineer A — not applied: refused — stale (relied B2, current ⟨B-r14′⟩)" | "Item 1 accepted" alone; "item 1 applied"; "acceptance lapsed" |
 | V-NP1 proposal of OP-C11 | "Renumber nodes proposed (queued). This operation has no policy basis yet (pending OI-021); proposing grants nothing" | "Renumber nodes permitted" |
@@ -805,6 +809,7 @@ and by the S1-B survey item (file 2).
 | S1-B 2.6 (DEP-03-02-018); 2.8 item 6 | §3.3 names the first grant display state "effective (person-set)", as AS §3 and §4.4 do | §3.3 |
 | R9-8 (S1-B 2.4 P16, P17, P26; 2.8 item 6) | UNRESOLVED: the register row is restated against the current registers; the SoW-text row is closed (SCA-V4-001). VC-P-14 names the boundary-owner checker, which exists, follows VER-014's wording and records one tool observation | UNRESOLVED; VC-P-14 |
 | R9-5, R9-11 | Body citations of siblings name the Wave A labels (C-v0.7, WD-v0.7, EXEC-v0.5) | Header, §0, §2, §3, §4.5, §9, §11, §13, §14, VC |
+| **R10-1** (node A2, in place; R9-2's second bullet corrected) | §4.4 acceptance-checkpoint bullet and E-2's V-CP1 Phase-1 row: a direct application queues no proposal, so the A5 checkpoint (*proposal queued*) is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded. A checkpoint reached under such a grant has its act requested and is *waiting*. The report shows CP-accept as not reached, not as "requested and not performed" | §4.4; §14 E-2 |
 
 No identifier is added or removed; §9's taxonomy is unchanged. Closed: the SoW-text row. PROPOSED items stay PROPOSED (R9-4): U-P4 (validation failure before queueing), withdrawal before queueing, the sibling-draft rule (§3.1 rule 5; U-P9), A12 supersession (R2-7), capture at or after arrival (R4-5) and no resumption of an ended run (R4-4) are unchanged in standing.
 
