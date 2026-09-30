@@ -1,15 +1,15 @@
-Latest: DAG-002
+Latest: DAG-003
 Updated: 2026-09-29
-Acceptance: DAG-002/ACCEPTANCE_RECORD.md
+Acceptance: DAG-003/ACCEPTANCE_RECORD.md
 Completeness: FULL
-Basis revision: b585e5ebead38f8ece442c80cd3bec5be8363cf3
-Supersedes: DAG-001
+Basis revision: 8cd783d8d7493fbfe663fb108449e4ceda04a00b
+Supersedes: DAG-002
 
 # Accepted project graph
 
-**DAG-002 — accepted 2026-09-29.** Successor of DAG-001 (trigger SUCCESSOR; currency audit `_Evaluation/DAGCurrency/CURRENCY_APP_V4_BASISALIGN_2026-09-29_0856`). DAG-001 remains unchanged as history.
+**DAG-003 — accepted 2026-09-29.** Successor of DAG-002 (trigger SUCCESSOR; currency audit `_Evaluation/DAGCurrency/CURRENCY_APP_V4_SCA002_2026-09-29_2057`). DAG-002 remains unchanged as history, as does DAG-001.
 
-- [Acceptance and the owner's decision](DAG-002/ACCEPTANCE_RECORD.md)
-- [Consumer handoff](DAG-002/HANDOFF_STATE.md)
-- [Immutable manifest](DAG-002/MANIFEST.sha256)
+- [Acceptance and the owner's decision](DAG-003/ACCEPTANCE_RECORD.md)
+- [Consumer handoff](DAG-003/HANDOFF_STATE.md)
+- [Immutable manifest](DAG-003/MANIFEST.sha256)
 - [Current currency observation](../_Evaluation/DAGCurrency/_LATEST.md)

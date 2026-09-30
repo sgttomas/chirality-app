@@ -1,0 +1,78 @@
+{
+  "result": "PASS",
+  "source_revision": "8cd783d8d7493fbfe663fb108449e4ceda04a00b",
+  "manifest_sha256": "d0fc611d95ee80ba64b86ea5b0eaa1a1ba90e85e461fb18459dd8162df6a40c5",
+  "manifest_entries": 130,
+  "manifest_matches_source_commit": true,
+  "manifest_members_changed_since_dag002": 32,
+  "node_count": 41,
+  "nodes_byte_equal_to_dag002": true,
+  "packages": 11,
+  "total_source_rows": 826,
+  "active_anchors": 355,
+  "retired_rows": 6,
+  "active_execution": 465,
+  "deliverable_target_rows": 258,
+  "admissible_arcs": 202,
+  "admitted_rows": 124,
+  "candidate_rows": 78,
+  "excluded_rows": 263,
+  "dispositions": {
+    "NOT_TOPOLOGICAL": 207,
+    "MIRROR": 54,
+    "SAME_ARC": 2
+  },
+  "candidate_reasons": {
+    "SCC_UNRESOLVED": 78
+  },
+  "target_types": {
+    "EXTERNAL": 149,
+    "DELIVERABLE": 258,
+    "PACKAGE": 18,
+    "DOCUMENT": 26,
+    "UNKNOWN": 14
+  },
+  "maturity": {
+    "TBD": 214,
+    "INITIALIZED": 251
+  },
+  "satisfaction": {
+    "TBD": 304,
+    "PENDING": 161
+  },
+  "edge_core_fidelity_rows": 202,
+  "core_fields_per_row": 29,
+  "missing_rows": 0,
+  "overlapping_rows": 0,
+  "self_loops": 0,
+  "closure_scc_membership_exact": true,
+  "scc_membership_equal_to_dag002": true,
+  "admitted_arc_set_equal_to_dag002": true,
+  "case_mapping": {
+    "SCC-001": "_DAG/cases/SCC-CASE-001",
+    "SCC-002": "_DAG/cases/SCC-CASE-002",
+    "SCC-003": "_DAG/cases/SCC-CASE-003",
+    "SCC-004": "_DAG/cases/SCC-CASE-005",
+    "SCC-005": "_DAG/cases/SCC-CASE-006",
+    "SCC-006": "_DAG/cases/SCC-CASE-007"
+  },
+  "non_topological_account": {
+    "carried_unchanged_except_LastSeen": 191,
+    "carried_row_edited": 16,
+    "retired_since_dag002": 1
+  },
+  "mirror_comparisons": 56,
+  "mirror_comparisons_new_since_dag002": 0,
+  "mirror_comparisons_with_changed_fields_since_dag002": 17,
+  "departure": {
+    "added": 4,
+    "removed": 0,
+    "added_admitted": 0,
+    "added_candidate": 4
+  },
+  "strict_admitted_exit_code": 0,
+  "protected_inputs_unchanged": true,
+  "protected_input_count": 399,
+  "no_accepted_pointer_written": true,
+  "authority": "UNACCEPTED CANDIDATE; no lifecycle, satisfaction, readiness or gate effect inferred"
+}

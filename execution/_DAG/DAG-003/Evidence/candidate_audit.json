@@ -1,0 +1,647 @@
+{
+  "edges_path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-003/CandidateEdges.csv",
+  "nodes_path": "projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-003/DeliverableNodes.csv",
+  "canonical_mode": true,
+  "edge_schema": {
+    "valid": true,
+    "required_column_count": 29,
+    "column_count": 37,
+    "missing_columns": [],
+    "extension_columns": [
+      "SourceRegister",
+      "SourceRegisterSHA256",
+      "SourceRecord",
+      "SelectionRule",
+      "CandidateReason",
+      "SCCRef",
+      "CaseRef",
+      "OpenQuestion"
+    ]
+  },
+  "canonical_finding_count": 0,
+  "canonical_findings": [],
+  "node_header_column_count": 8,
+  "edge_row_count": 78,
+  "node_row_count": 41,
+  "package_count": 11,
+  "status_counts": {
+    "ACTIVE": 78
+  },
+  "active_edge_count": 78,
+  "candidate_edge_count": 0,
+  "active_dependency_type_counts": {
+    "CONSTRAINT": 1,
+    "HANDOVER": 6,
+    "INTERFACE": 50,
+    "PREREQUISITE": 21
+  },
+  "candidate_dependency_type_counts": {},
+  "endpoint_issue_count": 0,
+  "endpoint_issues": [],
+  "edge_row_width_issue_count": 0,
+  "edge_row_width_issues": [],
+  "node_row_width_issue_count": 0,
+  "node_row_width_issues": [],
+  "active_graph": {
+    "node_count": 24,
+    "edge_count": 78,
+    "scc_count": 6,
+    "sccs": [
+      [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ]
+    ],
+    "duplicate_edge_count": 0,
+    "duplicate_edges": {},
+    "bidirectional_pair_count": 24,
+    "bidirectional_pairs": [
+      [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      [
+        "DEL-01-04",
+        "DEL-02-02"
+      ],
+      [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-02-03"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-03-02"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-05-02"
+      ],
+      [
+        "DEL-02-02",
+        "DEL-02-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-03-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-04-02"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-03-02"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-09-09"
+      ],
+      [
+        "DEL-03-02",
+        "DEL-04-02"
+      ],
+      [
+        "DEL-04-02",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-04-02",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-04-03",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-05-01",
+        "DEL-05-02"
+      ],
+      [
+        "DEL-07-01",
+        "DEL-07-02"
+      ],
+      [
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      [
+        "DEL-11-01",
+        "DEL-11-03"
+      ]
+    ],
+    "hub_threshold": 20,
+    "hub_count": 0,
+    "hubs": []
+  },
+  "active_plus_candidate_graph": {
+    "node_count": 24,
+    "edge_count": 78,
+    "scc_count": 6,
+    "sccs": [
+      [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      [
+        "DEL-11-01",
+        "DEL-11-03"
+      ],
+      [
+        "DEL-07-01",
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      [
+        "DEL-01-04",
+        "DEL-02-01",
+        "DEL-02-02",
+        "DEL-02-03",
+        "DEL-02-04",
+        "DEL-03-01",
+        "DEL-03-02",
+        "DEL-03-03",
+        "DEL-04-02",
+        "DEL-04-03",
+        "DEL-05-01",
+        "DEL-05-02",
+        "DEL-09-09"
+      ]
+    ],
+    "duplicate_edge_count": 0,
+    "duplicate_edges": {},
+    "bidirectional_pair_count": 24,
+    "bidirectional_pairs": [
+      [
+        "DEL-01-01",
+        "DEL-01-05"
+      ],
+      [
+        "DEL-01-04",
+        "DEL-02-02"
+      ],
+      [
+        "DEL-01-06",
+        "DEL-09-01"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-02-03"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-03-02"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-02-01",
+        "DEL-05-02"
+      ],
+      [
+        "DEL-02-02",
+        "DEL-02-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-03-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-04-02"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-02-03",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-03-02"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-03-01",
+        "DEL-09-09"
+      ],
+      [
+        "DEL-03-02",
+        "DEL-04-02"
+      ],
+      [
+        "DEL-04-02",
+        "DEL-04-03"
+      ],
+      [
+        "DEL-04-02",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-04-03",
+        "DEL-05-01"
+      ],
+      [
+        "DEL-05-01",
+        "DEL-05-02"
+      ],
+      [
+        "DEL-07-01",
+        "DEL-07-02"
+      ],
+      [
+        "DEL-07-02",
+        "DEL-08-01"
+      ],
+      [
+        "DEL-10-02",
+        "DEL-10-04"
+      ],
+      [
+        "DEL-11-01",
+        "DEL-11-03"
+      ]
+    ],
+    "hub_threshold": 20,
+    "hub_count": 0,
+    "hubs": []
+  },
+  "dev001_projection": {
+    "definition": "Excludes PKG-00 endpoints and ARCHITECTURE_BASIS rows; candidate rows remain non-gating.",
+    "node_count": 41,
+    "edge_row_count": 78,
+    "active_edge_count": 78,
+    "candidate_edge_count": 0,
+    "active_dependency_type_counts": {
+      "CONSTRAINT": 1,
+      "HANDOVER": 6,
+      "INTERFACE": 50,
+      "PREREQUISITE": 21
+    },
+    "candidate_dependency_type_counts": {},
+    "active_graph": {
+      "node_count": 24,
+      "edge_count": 78,
+      "scc_count": 6,
+      "sccs": [
+        [
+          "DEL-01-01",
+          "DEL-01-05"
+        ],
+        [
+          "DEL-01-06",
+          "DEL-09-01"
+        ],
+        [
+          "DEL-10-02",
+          "DEL-10-04"
+        ],
+        [
+          "DEL-11-01",
+          "DEL-11-03"
+        ],
+        [
+          "DEL-07-01",
+          "DEL-07-02",
+          "DEL-08-01"
+        ],
+        [
+          "DEL-01-04",
+          "DEL-02-01",
+          "DEL-02-02",
+          "DEL-02-03",
+          "DEL-02-04",
+          "DEL-03-01",
+          "DEL-03-02",
+          "DEL-03-03",
+          "DEL-04-02",
+          "DEL-04-03",
+          "DEL-05-01",
+          "DEL-05-02",
+          "DEL-09-09"
+        ]
+      ],
+      "duplicate_edge_count": 0,
+      "duplicate_edges": {},
+      "bidirectional_pair_count": 24,
+      "bidirectional_pairs": [
+        [
+          "DEL-01-01",
+          "DEL-01-05"
+        ],
+        [
+          "DEL-01-04",
+          "DEL-02-02"
+        ],
+        [
+          "DEL-01-06",
+          "DEL-09-01"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-02-03"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-03-02"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-05-02"
+        ],
+        [
+          "DEL-02-02",
+          "DEL-02-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-03-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-04-02"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-03-02"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-09-09"
+        ],
+        [
+          "DEL-03-02",
+          "DEL-04-02"
+        ],
+        [
+          "DEL-04-02",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-04-02",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-04-03",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-05-01",
+          "DEL-05-02"
+        ],
+        [
+          "DEL-07-01",
+          "DEL-07-02"
+        ],
+        [
+          "DEL-07-02",
+          "DEL-08-01"
+        ],
+        [
+          "DEL-10-02",
+          "DEL-10-04"
+        ],
+        [
+          "DEL-11-01",
+          "DEL-11-03"
+        ]
+      ],
+      "hub_threshold": 20,
+      "hub_count": 0,
+      "hubs": []
+    },
+    "active_plus_candidate_graph": {
+      "node_count": 24,
+      "edge_count": 78,
+      "scc_count": 6,
+      "sccs": [
+        [
+          "DEL-01-01",
+          "DEL-01-05"
+        ],
+        [
+          "DEL-01-06",
+          "DEL-09-01"
+        ],
+        [
+          "DEL-10-02",
+          "DEL-10-04"
+        ],
+        [
+          "DEL-11-01",
+          "DEL-11-03"
+        ],
+        [
+          "DEL-07-01",
+          "DEL-07-02",
+          "DEL-08-01"
+        ],
+        [
+          "DEL-01-04",
+          "DEL-02-01",
+          "DEL-02-02",
+          "DEL-02-03",
+          "DEL-02-04",
+          "DEL-03-01",
+          "DEL-03-02",
+          "DEL-03-03",
+          "DEL-04-02",
+          "DEL-04-03",
+          "DEL-05-01",
+          "DEL-05-02",
+          "DEL-09-09"
+        ]
+      ],
+      "duplicate_edge_count": 0,
+      "duplicate_edges": {},
+      "bidirectional_pair_count": 24,
+      "bidirectional_pairs": [
+        [
+          "DEL-01-01",
+          "DEL-01-05"
+        ],
+        [
+          "DEL-01-04",
+          "DEL-02-02"
+        ],
+        [
+          "DEL-01-06",
+          "DEL-09-01"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-02-03"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-03-02"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-02-01",
+          "DEL-05-02"
+        ],
+        [
+          "DEL-02-02",
+          "DEL-02-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-03-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-04-02"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-02-03",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-03-02"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-03-01",
+          "DEL-09-09"
+        ],
+        [
+          "DEL-03-02",
+          "DEL-04-02"
+        ],
+        [
+          "DEL-04-02",
+          "DEL-04-03"
+        ],
+        [
+          "DEL-04-02",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-04-03",
+          "DEL-05-01"
+        ],
+        [
+          "DEL-05-01",
+          "DEL-05-02"
+        ],
+        [
+          "DEL-07-01",
+          "DEL-07-02"
+        ],
+        [
+          "DEL-07-02",
+          "DEL-08-01"
+        ],
+        [
+          "DEL-10-02",
+          "DEL-10-04"
+        ],
+        [
+          "DEL-11-01",
+          "DEL-11-03"
+        ]
+      ],
+      "hub_threshold": 20,
+      "hub_count": 0,
+      "hubs": []
+    }
+  }
+}
