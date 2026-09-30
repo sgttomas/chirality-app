@@ -504,3 +504,34 @@ and the local probe socket); no MCP server configured; no Part C or D. Write
 fence: the same scratch folder (a new `obs1b/` subfolder), an addendum
 section appended to `DEL-01-01/Design/OBS_1_0.158.0.md`, harness changes
 under `DEL-01-01/Design/prototype/obs1/`, and `WAVE_B/OBS-1b.md`.
+
+## V18 — receiver comparisons for the joins Wave B changed (four Type 2, read-only)
+
+**Purpose.** For each join in your cluster, compare what the supplier's
+Design file now offers with what the consumer's Design file now uses, at
+their Wave B text. Each executor writes one file, `comparisons/V18-<n>.md`.
+Read-only on every project file. The join notes in `WAVE_B/B1.md`…`B9.md`
+(section "join changes" of each) are the starting list; check each against
+the files rather than trusting it, and look for joins they missed.
+
+For each join record: supplier file, section and version; consumer file,
+section and version; the register row (`Dependencies.csv`, ACTIVE) and
+whether DAG-003 admits or holds the arc; what the consumer uses; the check
+you performed (element by element; schema against schema where both have
+one; run a prototype where it proves the point); **disagreements** (quote
+both sides; say which side is wrong if a ruling, ScopeOfWork text or
+accepted text decides it, else give options); **absent** (named on one side
+only). Class each finding BLOCKING (the two files say incompatible things
+about the same exchange), MAJOR (a consumer relies on something the supplier
+does not offer), MINOR, NOTE.
+
+| ID | Cluster |
+|---|---|
+| V18-1 | The record: RS ↔ EXEC (both checkpoint-entry schemas), RS ↔ ADAPTER (limits, observations), RS ↔ LOOP, PANEL, AS (destination elements; the AS §6 / RS §8 exchange), RS ↔ ACT (A15, policy reference), RS ↔ C, P (outcomes, evidence labels) |
+| V18-2 | The workflow: WD ↔ EXEC, WD ↔ LOOP (message-output element), WD ↔ HOSTING (capability names against capability groups), WD ↔ C, P, ACT (identity strings, outcome tokens, A15), WD-EX ↔ everyone who cites an example |
+| V18-3 | Host operations: C ↔ P ↔ ADAPTER ↔ EXEC (observations, CH cases, SH-1), ADAPTER ↔ HOSTING (native items, channel states), P ↔ LOOP, PANEL (derived proposal state, T-OPEN-1), C ↔ LOOP (catalog edition, external-contact entries) |
+| V18-4 | The integrating files: CA, XT ↔ EXEC, C (SH-1 profiles), RS, P; and the four DAG-003 arcs added by SCA-V4-002 — N-18 (DEL-02-01 → DEL-03-02), N-21 (DEL-02-03 → DEL-03-02), N-24 (DEL-02-03 → DEL-03-03), X-1 (DEL-02-03 → DEL-01-04, narrow) — each with its register row |
+
+Also apply, as a check: R13 (just written) says how two open disagreements
+are ruled; report where the files do not yet say it, as a finding for the
+repair.
