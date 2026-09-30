@@ -1,6 +1,6 @@
 # Context: DEL-04-01 Operation-policy and human-act distinctions
 
-Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; see `ACCEPTED_MANIFEST.csv` and `DECISION.md`. No production completion or external contribution is inferred.
+Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; see `ACCEPTED_MANIFEST.csv` and `DECISION.md`. Read it as amended by the active scope-change snapshot named in `projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md`. No production completion or external contribution is inferred.
 
 ## Identity and accepted fields
 
@@ -10,7 +10,7 @@ Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_s
 - **DeliverableID:** DEL-04-01
 - **PackageID:** PKG-04
 - **Name:** Operation-policy and human-act distinctions
-- **Description:** Define and carry the adopted policy for direct application, proposals and reserved acts, preserving checking, edit acceptance, approval and professional reliance as different subjects. Interfaces: PKG-03 catalogs refer to adopted classes; PKG-02 checkpoints override autonomy; PKG-05/SWB receive conservative proposal defaults and host-owned enforcement responsibilities. Verification: No agent impersonates a human act or claims professional certification; proposal decisions say accept; a concrete unruled operation waits for OI-001/OI-002 before dependent implementation.
+- **Description:** Define and carry the adopted policy for direct application, proposals and reserved acts, preserving checking, edit acceptance, approval and professional reliance as different subjects. Interfaces: PKG-03 catalogs refer to adopted classes; PKG-02 checkpoint acts are never substituted by autonomy (holds only in the governance phase); PKG-05/SWB receive conservative proposal defaults and host-owned enforcement responsibilities. Verification: No agent impersonates a human act or claims professional certification; proposal decisions say accept; a concrete unruled operation waits for OI-001/OI-002 before dependent implementation.
 - **Type:** API_CONTRACT
 - **ResponsibleParty:** App/shared human-act contract owner; owner and host policy owner decide unresolved classes
 - **AnticipatedArtifacts:** DOC: operation/autonomy and human-act contract;CONFIG: adopted policy-class representation;TEST: reserved-act and semantic-label fixtures

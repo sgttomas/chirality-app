@@ -1,6 +1,6 @@
 # Context: DEL-09-07 Local host candidate qualification
 
-Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; see `ACCEPTED_MANIFEST.csv` and `DECISION.md`. No production completion or external contribution is inferred.
+Accepted basis: `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; see `ACCEPTED_MANIFEST.csv` and `DECISION.md`. Read it as amended by the active scope-change snapshot named in `projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md`. No production completion or external contribution is inferred.
 
 ## Identity and accepted fields
 

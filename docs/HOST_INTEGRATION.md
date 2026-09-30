@@ -8,7 +8,8 @@ external dependencies. [PRD §0](PRD.md#0-basis-chronology-and-reading-this-set)
 identifies the actual accepted sources; the human did not previously
 hash-review these newly consolidated bytes. Existing `V4-HI-<nn>` identities
 are retained. Amended by scope-change amendment SCA-V4-001, accepted
-2026-09-29, for owner decisions DEC-4 and DEC-5 (PRD §0). **Open detail** marks an unruled policy or interface point,
+2026-09-29, for owner decisions DEC-4 and DEC-5 (PRD §0).
+**Open detail** marks an unruled policy or interface point,
 not a cancellation of accepted semantic parity or permission to invent it.
 
 The contract is expressed in terms of behaviour and data, not a particular
