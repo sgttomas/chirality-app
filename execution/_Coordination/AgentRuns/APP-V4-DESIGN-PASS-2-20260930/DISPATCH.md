@@ -40,3 +40,6 @@ not on the executor's report. A user-level agent definition
 | P1 | PR [#1065](https://github.com/sgttomas/chirality/pull/1065) opened after V17b; CI monitor and auto-merge on; merged `292e123d` with CI green. Branch fast-forwarded to it |
 | Download | Owner chose Qwen3 4B (2.28 GB). The integrator's download command failed before running (no `timeout` in the shell); nothing was downloaded. A second listing showed chat models already installed since June 2026; the integrator's earlier statement that only an embedding model was present was wrong, and is corrected in OWNER_DECISIONS. OBS-1 will use the installed `Qwen3.5-9B-MLX-4bit` |
 | Wave B round 1 | R12 written. Six Opus 5.5 executors launched in parallel (B1, B2, B3, B4, B6, B9), disjoint fences; network only for B9 (the published Chat Completions reference) |
+| Round 1 return | B1, B2, B3, B4, B6, B9 returned; fences verified; the integrator reran every prototype (HOSTING 35/35, WD 54/54, EXEC all hold, C 21/21 and schemas, P, ADAPTER mapper on the SH-1 run, ACT, AS, RS, LOOP 19/19, PANEL 4/4): all pass. Committed `5970e0a5b`. Join changes collected for V18 from the six return files |
+| Round 2 | B5 and B7 launched (Opus 5.5) |
+| OBS-1 | Launched (Opus 5.5) under the B6 brief with the integrator's decisions in BRIEFS (P-5, parts C and D allowed; part B not run; no download; R-1 only) |

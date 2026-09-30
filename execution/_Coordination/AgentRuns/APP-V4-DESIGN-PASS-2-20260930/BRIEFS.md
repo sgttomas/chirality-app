@@ -470,3 +470,26 @@ classed as in V17.
 - **V18** receiver comparisons, **R13** rulings, repairs, **B8** GUIDE
   (S1-E D.8 items 5–6 and the matrix for Wave B; re-pin last), **V19**
   review, **PR-2**.
+
+## OBS-1 — the live Codex turn (one Type 2)
+
+**Brief:** [WAVE_B/OBS-1_BRIEF.md](WAVE_B/OBS-1_BRIEF.md) (written by node
+B6), with these integrator decisions under K1-6:
+
+- Pre-flight P-5 (one direct request to the local server) is allowed: it is
+  local and uses invented text.
+- **Part C** (direct Chat Completions requests to the same local server, for
+  LOOP's fixture basis) is allowed: local, invented content, no Codex turn.
+- **Part D** (per-thread MCP configuration, no model call) is allowed.
+- **Part B** (a second Codex turn on the command-line path) is **not** run:
+  K1-6 names one turn. It is put to the owner with OBS-1's result.
+- **S-8 (no tool call):** stop and return. The executor does not download
+  anything; HELP_HUMAN decides the next step under the owner's answer.
+- Route R-1 only. If R-1 fails for a provider-form reason, stop and return
+  before trying R-2 (R-2 can trigger a model download).
+
+**Write fence:** the scratch folder `$TMPDIR/chirality-obs1-0.158.0`; one new
+record `DEL-01-01/Design/OBS_1_0.158.0.md` (redacted as the brief's §12
+says); the harness script under `DEL-01-01/Design/prototype/obs1/`; the
+return file `WAVE_B/OBS-1.md`. The spike's scratch folder is read only. No
+other repository file.
