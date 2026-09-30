@@ -19,7 +19,7 @@ The owner reports SWBPIPE is still building and has not reached agent-action int
 | Catalog extension | Identify what shared contracts or generation provide and what adapters still implement | Identify human-view and host-adapter work for one added operation | Before claiming all-actor availability without separate work or maintenance savings |
 | Examination | Coordinate identified candidate/configuration and evidence for App-owned and shared boundaries | Supply host-owned checks/witnesses with actual versions, limits and unresolved findings | Before claiming the connected activity or replacing the fallback |
 
-The existing v3 Runtime is evidence, not a mandatory v4 embedding dependency. The recorded v4 direction remains stock Codex for App, Tauri and a minimal host loop with local-first host operation. This file does not instruct the other session to rework its implementation around an unaccepted detail.
+The existing v3 Runtime is evidence, not a mandatory v4 embedding dependency. The recorded v4 direction remains stock Codex for App, Tauri and a minimal host loop, on a model the person chooses, local or cloud, with no default (PRD V4-HOST-01 as amended by SCA-V4-001; the earlier "local-first" wording of this sentence is superseded and has not been relayed). This file does not instruct the other session to rework its implementation around an unaccepted detail.
 
 ## Domains: parallel development, later design increment
 
@@ -36,8 +36,8 @@ Please return through the human: the selected activity or alternatives, relevant
 - Recipient: outside-harness SWB implementation session, mediated by the human.
 - Prepared: 2026-09-26 under App v4 project definition.
 - Delivered: 2026-09-28, by the owner, to the SWBPIPE session, per the owner's statement; the current question set is RELAY-v0.3 (below).
-- Acknowledged: the owner reports that the SWBPIPE agent is working on answers. Adopted: **not observed**.
-- Current App v4 standing: [final Group3 decomposition accepted](../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md), with 11 Packages and 41 Deliverables. All 41 local ScopeOfWork contracts are independently checked and INITIALIZED. DAG-001 is accepted and the 30% gate is complete ([acceptance record](../_DAG/DAG-001/ACCEPTANCE_RECORD.md)). This current-standing update changes none of the delivery/adoption facts above.
+- Acknowledged: answers received 2026-09-28 (RELAY §4 ledger). Adopted: **not observed**.
+- Current App v4 standing (updated 2026-09-30): [final Group3 decomposition accepted](../_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md), with 11 Packages and 41 Deliverables, as amended by SCA-V4-001 and SCA-V4-002 ([latest amendment](../_ScopeChange/_LATEST.md)). 14 first-increment Deliverables are IN_PROGRESS and 27 are INITIALIZED. The accepted graph is DAG-003 ([pointer](../_DAG/_LATEST.md)); the 30% gate was completed on DAG-001 ([acceptance record](../_DAG/DAG-001/ACCEPTANCE_RECORD.md)). This current-standing update changes none of the delivery/adoption facts above.
 
 Basis: [accepted composite](Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md), exact [HTML source](Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html) HTML-D04–HTML-D06, and owner messages J–M/O. Receipt, answers or adoption will be recorded only when an actual return is provided.
 
@@ -73,3 +73,28 @@ The relayed question set's top questions are:
 
 Answers, commitments and adoption are recorded in that file's ledger when
 they are received. The delivery is recorded from the owner's statement.
+
+## Changed on the App v4 side since the relay — not yet relayed
+
+Recorded 2026-09-30 (run APP-V4-DESIGN-PASS-2-20260930). Nothing in this
+section has been sent to SWBPIPE; the owner has not selected a relay. It
+lists what the next relay should carry when the owner resumes UI-SUCCESSOR.
+
+- **Model access (DECISION-4 D4-3; PRD V4-HOST-01, ARCHITECTURE V4-ARC-11 as
+  amended).** A host's agent runs on a model the person chooses, local or
+  cloud, reached by OAuth sign-in or an API key, with no default. "Local-first"
+  is no longer the recorded direction.
+- **Host-agent network destinations (DECISION-5; PRD V4-HOST-02 as amended;
+  HOST_INTEGRATION V4-HI-70).** A host's agent sends data only to the selected
+  model service and to destinations the person allowed, in an allow list or
+  when the agent asks during its work; stateless MCP (revision 2026-07-28)
+  only; every destination contacted is recorded and shown. The host
+  obligations are in DEL-03-04 GUIDE (M7.9, HC-7.7…HC-7.9). RELAY SQ-16 and
+  SQ-30 were asked on the earlier wording.
+- **Checkpoint wording (PRD V4-WF-05, HOST_INTEGRATION V4-HI-42 as amended).**
+  A checkpoint's act is requested and is recorded as done only when the
+  person performs it; holding the run is phased to the governance layer. The
+  premise of SQ-02 is superseded for the current phase.
+- **Open on the App side and relevant to SWBPIPE:** the caller naming and the
+  per-batch Apply against the App's per-item completion rule (DEL-09-09 XT
+  F-18). The full list is the "next relay" row in RELAY's UNRESOLVED table.
