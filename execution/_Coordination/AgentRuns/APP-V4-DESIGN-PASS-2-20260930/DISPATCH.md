@@ -48,3 +48,4 @@ not on the executor's report. A user-level agent definition
 | OBS-1 decision | Owner chose the local command-line turn (OBS-1b); no cloud turn, no sign-in |
 | B5 return | Destination flow written once (LOOP §5.3), cited by seven files; 0 one-sided elements by script; MCP 2026-07-28 statelessness evidence rule; prototypes pass. Fence verified (B7 and OBS-1 files excluded from this commit) |
 | OBS-1b | Launched (Opus 5.5) |
+| B7 return | CA v0.6, XT v0.6: failure rows, current-phase sequence, option sheet (0/10 steps examinable against SWBPIPE now; 9/10 on SH-1), result records, suite order and reopen table. Integrator reran both rehearsals: pass. Fence verified |

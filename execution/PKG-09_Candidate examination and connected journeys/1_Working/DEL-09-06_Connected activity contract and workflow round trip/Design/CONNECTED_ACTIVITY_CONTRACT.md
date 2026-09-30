@@ -1,8 +1,9 @@
 # Connected activity contract — first App/host increment
-- Contribution: DEL-09-06/CA-v0.5. It supersedes CA-v0.4 (sha256 1a7e2ac993e327bfd56c571c1016122baa846efa6ad378630bd3523ecbc4d421, last changed at `f5ceef164`), which superseded CA-v0.3 (sha256 67dde29553325271cc3e3a08591177e6628a659966b13b4bbd93920cdf7d0aa5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`), which superseded CA-v0.2 (sha256 31ea3bff05865f425127009f90c070f26b97972e203b5a235791d00332d8dee1, committed at `9fc77baa3`), which superseded CA-v0.1 (sha256 685349b25981ca8333929207890514120d63753cdedd67ae0bad986fc5d45e62, `b4030fe4b`). Alignment pass (Wave A, node A1-E of run APP-V4-DESIGN-PASS-2-20260930) under R9_RESOLUTIONS.md (R9-1…R9-6, R9-8, R9-9, R9-11): no new design content. Earlier R8 pass (A-wave, node A5) under R8_RESOLUTIONS.md (R8-1…R8-7, R8-10, R8-11); earlier R5 pass under R5_RESOLUTIONS.md (R5-1, R5-2, R5-4, R5-5, R5-7, R5-9, R5-10).
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
-- Phase (R9-1; PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001, applying DECISION-4 D4-1; SoW REQ-003, AC-004, TBD-003): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is plan guidance that the person and the agents manage, and neither the App nor a host's embedded loop enforces a hold, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind. In the current phase the agent carrying out the workflow asks the person for the act (R9-1; SETTLED by DECISION-K1 K1-1); how an App run observes an arrival and a request is defined in EXEC in Wave B (R9-1), not here. The current-phase rules are EXEC-v0.5 §2.1 (PH-1…PH-10) and WD-v0.7 §4.3.0. The hold machine and hold support are kept as the **governance-phase definition (retained)** (EXEC-v0.5 §2.2 GV-1…GV-5), for checkpoints declared **`governed`** (WD-v0.7 §4.3.1, PROPOSED). Host joins are deferred (DECISION-3; DEP-09-06-034): nothing here claims a SWBPIPE join, witness or adoption.
+- Contribution: DEL-09-06/CA-v0.6. It supersedes CA-v0.5 (sha256 0c3ac6557a04e92dbdfd110254da872f7438a1c5e10e269c56d3c5af166714db, last changed at `c896a99d90`), which superseded CA-v0.4 (sha256 1a7e2ac993e327bfd56c571c1016122baa846efa6ad378630bd3523ecbc4d421, last changed at `f5ceef164`), which superseded CA-v0.3 (sha256 67dde29553325271cc3e3a08591177e6628a659966b13b4bbd93920cdf7d0aa5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`), which superseded CA-v0.2 (sha256 31ea3bff05865f425127009f90c070f26b97972e203b5a235791d00332d8dee1, committed at `9fc77baa3`), which superseded CA-v0.1 (sha256 685349b25981ca8333929207890514120d63753cdedd67ae0bad986fc5d45e62, `b4030fe4b`). Design development (Wave B round 2, node B7 of run APP-V4-DESIGN-PASS-2-20260930) under R12_RESOLUTIONS.md (R12-1…R12-4, R12-6, R12-10) and R11-9: per-step failure behaviour (§2.3.1), §2.4 as a current-phase sequence, the option sheet for OI-021 (§2.6), the W14 result record (§8.4) and the W14 rehearsals on the simulated host (§8.5); every new structure is PROPOSED (R12-1). Earlier alignment pass (Wave A, node A1-E of the same run) under R9_RESOLUTIONS.md (R9-1…R9-6, R9-8, R9-9, R9-11): no new design content. Earlier R8 pass (A-wave, node A5) under R8_RESOLUTIONS.md (R8-1…R8-7, R8-10, R8-11); earlier R5 pass under R5_RESOLUTIONS.md (R5-1, R5-2, R5-4, R5-5, R5-7, R5-9, R5-10).
+- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted. Beside it (v0.6): the PROPOSED schema `w14-result-record.schema.json` with a valid and an invalid example instance, and a design prototype in `prototype/` (not product code; R12-3)
+- Phase (R9-1; PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001, applying DECISION-4 D4-1; SoW REQ-003, AC-004, TBD-003): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is plan guidance that the person and the agents manage, and neither the App nor a host's embedded loop enforces a hold, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind. In the current phase the agent carrying out the workflow asks the person for the act (R9-1; SETTLED by DECISION-K1 K1-1); how an App run observes an arrival and a request is defined in EXEC-v0.6 §2.4 (the current-phase recorder, RC-1…RC-10, CE-1…CE-19) and §2.5 (reached-when per native path), not here. The current-phase rules are EXEC-v0.5 §2.1 (PH-1…PH-10; unchanged in EXEC-v0.6) and WD-v0.7 §4.3.0. The hold machine and hold support are kept as the **governance-phase definition (retained)** (EXEC-v0.5 §2.2 GV-1…GV-5), for checkpoints declared **`governed`** (WD-v0.7 §4.3.1, PROPOSED). Host joins are deferred (DECISION-3; DEP-09-06-034): nothing here claims a SWBPIPE join, witness or adoption.
 - Serves: OUT-001 (draft increment contract: four activities, named expressions, one complete first activity, owner/check allocation, staging, decision/input account — *not* the final operation-specific SoW, which awaits OI-021); OUT-002 (requirements on the reusable connected workflow and its source-qualified revision history — the workflow itself is not authored here); OUT-003 (design of what the V4-EXM-14 joined witness needs — designed, **not run**); OUT-004 (external contribution/evidence account, §9; the question set is `RELAY_QUESTIONS_SWBPIPE.md` and SWBPIPE's recorded answers are `RELAY_ANSWERS_SWBPIPE.md`, standing at *answered*); REQ-001…REQ-008; AC-001…AC-008 through designed VER-001…VER-008
+- Wave B inputs (v0.6; node B7; read in the working tree on `afe6b54f96`, 2026-09-30; each sha256 computed with `shasum -a 256` at this node; paths under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/`): BRIEFS.md sha256 b006996cd7946c082694069b1f872c8bb75ed875bbf9268b0f1c3d8e5a1da887 ("Common rules"; "Wave B", round 2 row B7); R12_RESOLUTIONS.md sha256 5cf5f574bd736b3c656dc4b739b0491366710d8bd9a4b2fa7f7a085129e097f2 (R12-1…R12-4, R12-6, R12-10; binding); R11_RESOLUTIONS.md sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 (R11-9); OWNER_DECISIONS.md sha256 f5a8ff89d5000a594085f3f18c64da9616b90331d8dcb55cb09e8e08191c1032 (DECISION-K1; K1-6 for prototypes); SURVEY/S1-E.md sha256 e0e9552242f567789e44a93cdf381a1a474a6acf1d8078cbad5e247ae049d6f9 (part A, items 5, 6 and 9 of A.8; advice, checked against the current text); the round-1 returns WAVE_B/B2.md sha256 429db7a846234e3d9a39c2748d6877b85665293d3374b013d10c7be6431a2044 (EXEC-v0.6: CH-31, the current-phase recorder §2.4, the App-run sequences §2.6), WAVE_B/B3.md sha256 39c9949a2223934787accf6f44ae5aeaaef6370bd07ae2a50f9ba83f3674cebc (SH-1, C-v0.8 §10.8, both native paths) and WAVE_B/B4.md sha256 1c6129fb72e1df748e06669cc0f3e09e3c256ec812f9cc58787f1e4ee4457162 (RS-v0.8 record format §13, sequences §14, "prior act not counted" with its reason, A15). SWBPIPE's two files are unchanged (`afb6e063…0e74`, `733fb88a…2ab7e`): data about SWBPIPE's current state, never commitments. Sibling Design files cited in text added or changed in this version are named at their Wave B round-1 labels: EXEC-v0.6, WD-v0.8, WD-EX-v0.8, C-v0.8, P-v0.8, ADAPTER-v0.6, ACT-POLICY-v0.8, AS-v0.8, RS-v0.8, LOOP-v0.8, PANEL-v0.8, HOSTING-BOUNDARY-v0.8; node B5 revises the destination sections of LOOP, PANEL, AS, RS, ACT, C, P and ADAPTER in parallel, and only §2.3.1's CAF-8 cites a destination element (RS R15; AS "destinations not observed"). Unchanged citations keep their Wave A labels. Every cited section and identifier was checked to resolve in the current sibling text (§12.10). **Simulated host:** SH-1, specified once in C-v0.8 §10.8 (R12-4); this file defines no double of its own, and every rehearsal it names carries the label *test-double*.
 - Basis (v0.5; R9-5; every sha256 below recomputed with `shasum -a 256` in the working tree on `3dd7c22c73` at this pass, except the pins of R9, R10, R11, this run's OWNER_DECISIONS.md and `HANDOFF_SWBPIPE_DOMAINS.md`, recomputed at their final bytes at node A4, R11-3): the accepted basis as amended by SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`) — `P/docs/PRD.md` (sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd) §2.3, §3–3.1, V4-WF-01…06 (V4-WF-05 as amended), V4-AUT-01…05, V4-EXT-01, V4-REP-01, V4-HOST-02 (as amended), OQ-02, OQ-11; `P/docs/HOST_INTEGRATION.md` (sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f) §1, V4-HI-25, V4-HI-30…33, V4-HI-40…42 (V4-HI-42 as amended), V4-HI-70/71 (V4-HI-70 as amended), §11; `P/docs/EXAMINATION.md` (sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0) §1–2, V4-EXM-14, V4-EXM-22 (as amended), §4; `P/docs/ARCHITECTURE.md` (sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c) V4-ARC-10. ScopeOfWork.md sha256 287d47a1260e7433c3f16578c67345d067472165421c65848bd15e44d92a7923 (revised under SCA-V4-001, AX-004: CLM-003, CLM-005, OUT-004, REQ-003, REQ-008, AC-004, VER-004, the REQ-003/AC-004 matrix evidence cell and TBD-002 revised; TBD-003 added); Dependencies.csv sha256 0f8ecad83cca72f7c65786ff0cd0252a2b7664c145a6e39193cff332a639f2f6 (ACTIVE EXECUTION rows DEP-09-06-012…034). Accepted graph: `_DAG/_LATEST.md` (sha256 4d381ba4e87b41a83b9d0d2dc591c4bf04eacb84df0b5c27314091cd2a992f56) → DAG-003, with its HANDOFF_STATE.md (DEL-09-06 reverse-arc guard). `HANDOFF_SWBPIPE_DOMAINS.md` (sha256 92f6e45ace9d224ee1c9e4a944acd531001750f46156a4d74ccbacb4e46afb36). Owner decisions: run APP-V4-FIRST-INCREMENT-20260928 OWNER_DECISIONS.md sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c (DECISION-1 D1–D4; DECISION-2 D5, D6); run APP-V4-SWBPIPE-INTAKE-20260928 OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3; DECISION-4 D4-1…D4-3; DECISION-5 with its confirmation); runs APP-V4-BASIS-ALIGN-20260928 and APP-V4-SCA002-20260929 OWNER_DECISIONS.md (sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b and 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480), the first with its DECISION-7, which accepted the SCA-V4-001 OWNER_ITEMS.md (sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef) as recommended, O-10 and O-25 among them; run APP-V4-DESIGN-PASS-2-20260930 OWNER_DECISIONS.md sha256 7458e9e81971676337a34280b4e8b29a7d04fce5fc202da5b9f5cf7ccd8f9ae5 (start direction; DECISION-K1). Rulings: R1 (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4), R2 (77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088), R3 (202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf), R4 (50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24), R5 (254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1), R6 (8703e85aa7324e233fab285321e277d720923d3e36e342c865917b55083cb841) and R7 (1f6ab3b2355e164f803657ceae08841af92d21a821feede3800a6df861b2a1ea) in `_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/`; R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-1…R8-13) in `APP-V4-SWBPIPE-INTAKE-20260928/`, with INTAKE_MAP.md sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33; R9_RESOLUTIONS.md sha256 a64e241519b7d158165a7ede0ffdd22eec0af15b6812b5300755f5f38abd59b8 in `APP-V4-DESIGN-PASS-2-20260930/` (binding for this pass), R10_RESOLUTIONS.md sha256 ad3b6caa4a12660db77abc51b5c02ba70519ee46d55b40d21ee76eb3ca561796 and R11_RESOLUTIONS.md sha256 e7343b6663b6aeeb2dc506d3391f5b310088e7688d1b21e65d2ba1d8616b3615 in the same folder (binding for the in-place passes A2 and A4), with that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules"; "A1 — alignment wave", row A1-E) and SURVEY/S1-E.md sha256 e0e9552242f567789e44a93cdf381a1a474a6acf1d8078cbad5e247ae049d6f9 (advice; each item applied was first checked against the current source). SWBPIPE's answers `RELAY_ANSWERS_SWBPIPE.md` sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (delivered as `6f01add3…61c7` in #1047; revised in place by SWBPIPE, #1048; RELAY §4) and `FACTS_SQ01_SQ32.md` sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e: data about SWBPIPE's current state, not commitments (DECISION-3). Sibling Design files are cited by version label and section only (R9-5), at the Wave A labels of R9-11: DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7 and WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7; DEL-05-02/PANEL-v0.7; DEL-01-01/HOSTING-BOUNDARY-v0.7 and PIN-SPIKE-v0.1 (unchanged); DEL-09-09/XT-v0.5; DEL-09-06/RELAY-v0.3 (metadata revised at this pass). The siblings are revised in parallel with this file, so their bytes are pinned only in GUIDE's input table, which is re-pinned last.
 - Consumed inputs:
   - **v0.5 inputs (Wave A alignment, node A1-E).** The Basis line above is the current basis. Sibling files were read in the working tree on `3dd7c22c73` while their owners revise them in parallel to the R9-11 labels; section numbers are not renumbered in this wave, and every sibling section and identifier cited in §0–§11, UNRESOLVED and the verification cases was checked against that text by script (§12.8, F-17). The entries below are the history of earlier bases, each true of the commit it names.
@@ -44,12 +45,16 @@ contribution account (OUT-004).
 each stays `UNRESOLVED{OI-021}`. The supports/run adjustment on FX-PIPE-01 is
 a **proposed fixture only**. It authors no workflow (authoring follows the
 `create-workflow` method and DEL-02-02 review/registration, later
-undertaking). It runs nothing. It assigns no SWBPIPE construction. It selects
+undertaking). It runs nothing against a candidate: the only runs it records
+are rehearsals on test doubles (SH-1, C-v0.8 §10.8; EXEC-v0.6's recorder
+and catalog doubles), labelled *test-double*, which complete no W14 case
+(§8.3, §8.5). It assigns no SWBPIPE construction. It selects
 no wire field, type, transport, hash or canonicalization algorithm,
 persistence, process placement or shared-component placement (OI-013, OI-014).
 
 **Naming.** Bold element names are semantic labels, not wire names. Acts are
-A1–A14 (R-1); class values are C §3.1's five; outcomes are P §9 and C §4.1;
+A1–A15 (R-1; A15 *register workflow revision*, ACT-POLICY-v0.8 §2.1, R12-5,
+which no checkpoint may require in this increment); class values are C §3.1's five; outcomes are P §9 and C §4.1;
 dispositions are WD §4.3.4's six; checkpoint vocabulary is WD-v0.4's (carried in
 WD-v0.7), with WD-v0.7 §4.3.0 (Phase 1: plan guidance) and its optional `governed` element
 (R8-1). In Phase 1 the dispositions label the record only: *waiting* means
@@ -57,6 +62,10 @@ WD-v0.7), with WD-v0.7 §4.3.0 (Phase 1: plan guidance) and its optional `govern
 PROPOSED (A1); confirmed by R8-11 item 1). Fixture
 identifiers are C §10's (FX-PIPE-01). Local labels are `L-CA-n`, each with its
 reason. External questions are `SQ-nn` from `RELAY_QUESTIONS_SWBPIPE.md`.
+Step failures are `CAF-n` (§2.3.1). The record label for an earlier act that
+does not answer an arrival is exactly **"prior act not counted"**, with one
+reason: *content no longer current*, *another act kind*, or *captured before
+arrival (governance-phase option)* (RS-v0.8 L-13, §13.3; R12-10).
 
 **Labels.** SETTLED (accepted basis or owner ruling, cited); DERIVED;
 INTEGRATION (R1/R2/R3, cited); **PROPOSED (W9)** for a choice made here, open
@@ -236,45 +245,166 @@ question that asks for them.
 | **CA-5 Recover the actual outcome and receipt** | T12 (RC-1, resulting objects S-5, R-100), T13 (lost ack; retry same identity), V-OU1, T16–T17 (direct under ⟨set-2⟩, undo) | Application yields a receipt; a lost acknowledgment leads to seeking observation, then a retry with the same identity (on X, seek-before-resubmit is guidance to the agent; a violation is recorded as an evidence limit, ADAPTER PI-2); two sends before acknowledgment are recorded separately (PI-5); de-duplication precedes the basis check; unknown stays unknown; undo reverses a receipt (where the host's undo writes none, as SWBPIPE's session undo does, "reverses ⟨receipt⟩" is *not supplied*, R8-5) | P §4.4, §4.5, §5, §7, §9; C T12–T13; LOOP §6.3 (FX-O1); ADAPTER §5.6 PI-1…PI-6, §7.3, §7.4, XF-19…XF-21, XF-40, XF-41; EXEC §4.12 RP-1…RP-8; RS R7, R11 | Durable receipts, read by identity, de-duplication order and durability (SQ-08); outcome statements and unknown (SQ-09); undo (SQ-10). SWBPIPE answered: DRAFT #885 de-duplication and `status` within one controller session only (SQ-08); receipts session-only, `outcome_unknown` resolvable only within that session (SQ-09 (c)); session undo, not through the route, no receipt (SQ-10) | Applied association with receipt link and resulting objects; *outcome unknown* with observer; evidence limits |
 | **CA-R Return** (frame) | After CA-5 | Summary of what changed (receipt references), findings, acts actually performed, and unknowns; standings never strengthened | WD §4.4–§4.6; AS §8, §9; RS §4 | Receipt and act references readable (SQ-01, SQ-09) (SWBPIPE: receipts session-only; no act references; SQ-01, SQ-09 (c)) | `summary` output (*agent-prepared*); promised-versus-observed account |
 
-### 2.4 Operating sequence on the proposed fixture (FX-PIPE-01; invented material)
+### 2.3.1 Failure behaviour per step (PROPOSED (B7); R12-1; survey A.8 item 5)
+
+Each row names what fails, who reports it, the record left and what the
+activity does next. The rows join the owners' own sequences and change none
+of them: EXEC-v0.6 §2.6 (SQ-A, A-1…A-12), C-v0.8 §2.3 (CF-1…CF-5) and §7.1
+(SQ-C1…SQ-C6), P-v0.8 §3.5 (PM-1…PM-7) and §4.7 (SQ-P1…SQ-P6), ADAPTER-v0.6
+§3.6 (CT-1…CT-12), §4.6 (OM-1…OM-10) and §8 (S-6…S-10), ACT-POLICY-v0.8 §4.7
+(its RC-1…RC-6) and RS-v0.8 §14 (W-0…W-3, FC-1…FC-9). "Record" names the
+RS-v0.8 §13.3 entry kind or the EXEC-v0.6 §2.4.2 entry the failure leaves;
+"Examined by" names the W14 case (§8.2) whose result record (§8.4) shows it,
+and the DEL-09-09 case that shares it (a cross-reference, not a consumed
+input). Current phase throughout: no failure below holds, pauses, blocks or
+refuses a run on a checkpoint's account (EXEC PH-2; RC-4); the governance
+reading is noted where it differs.
+
+| # | Step | What fails | Who reports | Record left | What happens next | Examined by |
+|---|---|---|---|---|---|---|
+| CAF-1 | CA-0 | The selected revision cannot be resolved, or the catalog cannot be read | EXEC's checker (C CF-1; EXEC A-1) | Compatibility report *not established* or "selected revision not resolvable"; `compatibility_report_ref` (RS R14) | The person may still start the run (EXEC CC-3) or choose again; nothing is inferred about the tools | W14-03 |
+| CAF-2 | CA-0 | A required tool is *missing*, *not exposed on this surface* or *not established* | EXEC's checker (§3.4) | Report *does not pass* naming each reference (CR-7) | Shown to the person; no tool execution is fabricated; the person decides whether to run | W14-03; XC-11 |
+| CAF-3 | CA-0 (CA/X) | The channel is not enabled: App-side configuration absent (the App reports) or host off (the host reports); against SWBPIPE no A13 facility exists, so `controller_unavailable` is reported *endpoint unavailable* and the channel shows *disabled* (SQ-13, SQ-28; R8-6) | The App or the host, as named (ADAPTER CT-1…CT-6) | Channel status with its sub-case; RS R11 "host reachable without evidenced A13" if the host answers anyway (CT-11) | CA-1…CA-5 cannot start on X; no host request is made while the App-side configuration is absent; only the person's A13 in the host's own facility changes this | W14-00 (environment); XC-01, XC-12 |
+| CAF-4 | CA-0 | The endpoint is unavailable (stopped, needs authentication, discovery failed) | The App via the supplier (CT-7) | Channel status *endpoint unavailable* with the reason; C SQ-C1 step 1 discovery failure | Nothing is offered; after the endpoint returns, enablement is re-observed (CT-8, CT-9), never assumed (ADAPTER S-8) | XC-01 |
+| CAF-5 | CA-0 | The grant display state is not available (settings version unreadable, or no grant states on the host) | DEL-04-02 (AS-v0.8 §12.1) | "grant state not available", never *not set*; each dispatch carries the grant in force as *unconfirmed* | The activity may continue; the host's own treatment decides what it applies (R9-2). SWBPIPE has no grant states (SQ-05): the PROPOSED display "host fixed treatment: every change waits for Apply" (DI-2) | W14-04 |
+| CAF-6 | CA-0…CA-R | A turn's model destination is not reported by the supplier | HOSTING (App side, per turn) | RS R5 destination *unknown* for that turn (`model_turn`) | Information only; nothing is gated (S-12) | W14-08 |
+| CAF-7 | CA-0 | Supplied guidance for the thread or turn is not observed | HOSTING (EXEC A-3) | RS R3 `supplied_guidance` *unknown* | Arrival recording is unaffected; *supplied* stays unknown (R2-20) | W14-08 |
+| CAF-8 | CA-0…CA-R (CA/E) | The host loop reports no destinations for a host-loop run | The host, through DEL-05-01 | RS R11 "destinations not observed" (AS-v0.8 §5), never "no destinations contacted"; R15 entries absent | Recorded; the joined witness shows the gap; nothing is inferred about contacts | W14-08 |
+| CAF-9 | CA-1 | A read returns a non-success (*unavailable*, *not exposed*, *not permitted*, *channel not enabled*) | The host (the App for its own *channel not enabled*) | `operation_entry` (RS R7) with the result and evaluated basis (C SQ-C3 step 1) | Relayed unchanged to the agent; its plan decides; no later step may cite a read that returned no basis | XC-11 |
+| CAF-10 | CA-1 | A read lacks a basis element | The consumer (C CF-5) | *basis incomplete*, or the reading R13 gives R12-9 (host-declared absence with the limit "basis lineage not supplied") | Not cited for a change; CA-2 must re-read | W14-03 (data); XC-03 |
+| CAF-11 | CA-1 | The read response is lost | The App (C SQ-C3 step 3) | "Read response lost" | Re-read for a new basis; nothing is invented | XC-11 |
+| CAF-12 | CA-1, CA-4, CA-H | Content identities cannot be compared (method designations differ, identity unavailable, or a new generation) | The recorder (RS L-2, L-3; C SQ-C6) | Lapse and stale state *unknown (incomparable / unavailable)* | No lapse, currency or staleness is claimed; a bound referent without identity cannot be answered until obtained (SP-4; EXEC A-5, A-10) | W14-06 |
+| CAF-13 | CA-2 | The host refuses an item as *invalid* (validation) or *not permitted* (treatment) | The host (P §9) | `operation_entry` with the error identity or the governing treatment | A re-draft is a new proposal; a *not permitted* direct request may become a proposal only by the agent's own next request (ADAPTER RP-3), never by App conversion | XC-10 |
+| CAF-14 | CA-2 | The agent would add an element the host schema lacks (a checkpoint constraint; SWBPIPE's strict preflight refuses unknown fields, SQ-02 (a), SQ-31) | — (the agent does not add it, R8-10); if added, the host | Nothing; if added, *refused — invalid* and RS R11 "constraint not carriable on this host" | The proposal is submitted without the element; the host's own treatment decides | W14-04 |
+| CAF-15 | CA-2, CA-5 | The submission's acknowledgement is lost | The App (ADAPTER OM-5…OM-8) | *outcome unknown*, observer App, last observed state; RS R11 "lost acknowledgement" | The agent seeks observation by identity first (P PM-4; SQ-P6; ADAPTER PI-2); a retry keeps the same identity only if the host never received it | W14-07; XC-06 |
+| CAF-16 | CA-2 | The same identity arrives with different content | The host (P PM-3) | *refused — identity conflict*; no effect | The agent mints a new identity for the new content | XC-05 |
+| CAF-17 | CA-2 | A cited basis was never received by the agent | The App (ADAPTER RD-5; C SQ-C5 step 1) | RS R11 "cited basis not observed" | Recorded; on X not prevented | XC-03 |
+| CAF-18 | CA-3 | The host check cannot run (a precondition fails, e.g. no current solve) | The host | *unavailable* with its reason and evaluated basis (C §10.6) | No host-check standing is claimed; the agent's A3 findings stand alone and are never "checked" | XC-11 |
+| CAF-19 | CA-3 | The host check fails | The host | "host checks failed: ‹named checks›" with the evaluated basis (`operation_entry`) | Information to the agent's plan; not an act, not a refusal | W14-05 (negatives) |
+| CAF-20 | CA-3 | The host stores no findings (SWBPIPE, SQ-24) | — | `examination_findings` (RS R10) referencing agent output only | The return cites the findings as *agent-prepared* | — |
+| CAF-21 | CA-4 | A submission relying on an earlier basis is *refused — stale* | The host (P §5) | `operation_entry` with the relied and current bases and the failing targets, or the host's stated scope with failing targets *not supplied* (R8-3) | A re-draft is a new proposal with lineage on a new read; nothing is retargeted; the App never narrows the host's scope | XC-03 |
+| CAF-22 | CA-4 | Items leave the queue without a decision (the person clears it; SWBPIPE `withdrawn`) | The host (R8-5) | Item left "cleared by the person, no decision record"; for `CP-accept`, *waiting* "no items remain" (MX-6) | Never A10 or A11; a later arrival of the same checkpoint replaces it (CE-15) | W14-05 |
+| CAF-23 | CA-H | No structured request is observed when the agent asks for the act | — (EXEC RC-5; A-6) | Nothing; the view says "no request observed" | Nothing follows from it; the recorder never reads message text as a request | W14-04, W14-05 |
+| CAF-24 | CA-H | The host offers no capture-evidence reference for the act (SWBPIPE, SQ-01) | The recorder (EXEC A-7) | No `human_act` entry (RS §6.1, HA-1); RS R11 limit | The arrival stays *waiting*; W14-05's positive part cannot be observed | W14-05; XC-09 |
+| CAF-25 | CA-H | An earlier act does not answer: content no longer current, or another kind | The recorder (EXEC RC-7, CE-6) | `act_not_counted` with its reason; label **"prior act not counted"** | The arrival waits for an act on current content; the agent asks again as its plan requires (EXEC CH-31) | W14-05 |
+| CAF-26 | CA-H | The person declines the act | The capturing surface (R2-5) | `act_declined`; *resolved negatively* (NG-1) | The agent follows the declared negative path as guidance | W14-04 |
+| CAF-27 | CA-H (A12) | The control leaves an A12 pending, refuses it, or its confirmation is lost | The control (EXEC §4.10) | `control_relation`: "A12 awaiting control confirmation", "A12 refused by control: ‹reason›", or *unknown* | The earlier setting stays in force and is not superseded (R4-6); only an established A12 counts | W14-04 |
+| CAF-28 | CA-H | Bound content changes after the act | The recorder (EXEC RC-8, CE-10) | `act_lapsed`: before the resume point *waiting* "lapsed at ‹t›"; after it "act lapsed at ‹t›"; after run end *lapsed* | Nothing re-holds; the agent asks again as its plan requires; an act on the changed referents answers with the earlier act (JA-1). Governance phase: re-hold of the same arrival (S-14) | W14-06 |
+| CAF-29 | CA-H (X) | The observation of the A5/A10 decisions is lost | ADAPTER (§7.7) | `observation_lost`; A5 items *unknown* (MX-3) | Recovery by a later read, recorded with its own time; nothing is back-filled (RP-1) | W14-07 |
+| CAF-30 | CA-H (App content) | The App act control does not exist yet (AF-1 variant) | — | Nothing to record | The label stays *waiting*; construction is DEL-01-04's (later; DECISION-K1 K1-4) | W14-05 |
+| CAF-31 | CA-5 | The retry is answered from recorded state after a lost acknowledgement | The host (P PM-5) | The recorded state as its own observation; the earlier *outcome unknown* entry stays | The applied association (receipt, resulting objects) is joined from the recorded state, never inferred | W14-07; XC-05, XC-06 |
+| CAF-32 | CA-5 | The agent resubmits without first observing by identity | The App (ADAPTER PI-2) | RS R11 "resubmission without prior observation" (label proposed for R11 by B4; R13 rules, R12-9) | Recorded, not prevented on X | XC-06 |
+| CAF-33 | CA-5 | The host's de-duplication or receipt does not survive a restart (SWBPIPE: one controller session, SQ-08, SQ-09 (c)) | The host (expired handle or `outcome_unknown`) | *outcome unknown*; "one effect unevidenced" where the effect is not observed | Nothing is claimed from transport or session de-duplication (§8.3) | W14-07; XC-05, XC-06 |
+| CAF-34 | CA-5 | The App restarts with a submission in flight | The App (ADAPTER PI-6) | *outcome unknown*, observer App, last observed *submitted*; RS R11 "App-restart interruption" (proposed; R13 rules) | The same run continues (interruption is not run end, EXEC RE-4); the channel is re-established without silent re-enable (CT-9) | W14-07; XC-06 |
+| CAF-35 | CA-5 | An accepted item is refused at application (stale after acceptance), or application fails with partial effect | The host (P SQ-P4; V-S1) | "accepted by ‹person› — not applied: refused — stale" (A5 not lapsed), or *application error*, final | A re-draft or an undo is a separate change | XC-08 |
+| CAF-36 | CA-5 | The undo writes no receipt (SWBPIPE's session undo, SQ-10) | — | "reverses ⟨receipt⟩" *not supplied* (R8-5) | Lapses are still recorded from the content change | W14-06 |
+| CAF-37 | CA-5, CA-R | A recorded reference later cannot be resolved (session-only receipts, SQ-09) | The reader (RS FC-8) | Resolution status "unresolvable"; what was recorded stays as recorded | No disposition is recomputed; the return shows the reference as unresolvable | W14-07 |
+| CAF-38 | any | The run record cannot be written | The recorder (EXEC A-12; RS FC-1) | `recording_gap` {from, to, cause}; "record write failed" | The person is told the record is not being written; nothing is paused, stopped or refused; nothing is back-filled | W14-07 |
+| CAF-39 | CA-R | The summary cannot be produced, or a reference it would cite is absent | The agent; the recorder | `run_ended` listing waiting arrivals, or an interruption; the promised output *not observed* | The return never strengthens a standing: absent references are shown *unknown* or *not supplied* (WD §4.4) | W14-05, W14-07 |
+
+What the table does **not** do: it assigns no enforcement to the App or the
+host loop, sets no retry count, time limit or back-off (those are the agent's
+and the host's), and it does not decide R13's two evidence-limit labels
+(CAF-32, CAF-34), which are cited as proposed.
+
+### 2.4 Operating sequence on the proposed fixture (FX-PIPE-01; invented material) — current phase
+
+Rewritten at v0.6 as the **current-phase** sequence (survey A.8 item 6;
+R12-1), with the governance reading as the annotation that follows it. The
+entry names in parentheses are EXEC-v0.6 §2.4.2's (CE-n) and RS-v0.8
+§13.3's; `[CAF-n]` points to the failure row of §2.3.1 that applies at that
+line. "Recorded" means written by the recorder where observed (EXEC RC-2);
+nothing in this sequence holds, pauses or blocks the run, and neither the
+App nor a host loop asks in the agent's place (RC-3, RC-4; DECISION-K1 K1-1).
 
 ```text
-CA-0  select E1 supports-adjust ⟨rev-3⟩ (host) or ⟨rev-A2⟩ (App-carried); CK-2 report
-      grant ⟨set-1⟩ effective (policy default): propose        [CA/X: A13 in host facility, SQ-28; destination shown]
-CA-1  T3 read OP-C1 → B1 = FX-W1/g1/r12/⟨v12⟩/⟨m-fx⟩, ⟨S-1…S-4@r12⟩
-CA-3  T4 OP-C3 (limit 6 m) → findings (A3); T4a OP-C12 → "host check failed: support spacing" @r12
+CA-0  select E1 supports-adjust ⟨rev-3⟩ (host) or ⟨rev-A2⟩ (App-carried); CK-2 report:
+      passes on the required tools and the channel state (MT-2, current phase);
+      CP-accept and CP-check listed as plan guidance (CE-1)                 [CAF-1, CAF-2]
+      grant ⟨set-1⟩ effective (policy default): propose                    [CAF-5]
+      CA/X: the person's A13 in the host facility → channel enabled (SQ-28);
+      the model destination recorded per turn and shown, never a gate       [CAF-3, CAF-4, CAF-6, CAF-7]
+CA-1  T3 read OP-C1 → B1 = FX-W1/g1/r12/⟨v12⟩/⟨m-fx⟩, ⟨S-1…S-4@r12⟩ (RS R7)   [CAF-9…CAF-12]
+CA-3  T4 OP-C3 (limit 6 m) → findings (A3; RS R10); T4a OP-C12 → "host check
+      failed: support spacing" @r12                                        [CAF-18…CAF-20]
 CA-2  T5 draft PR-1 (item 1 OP-C4 add support; item 2 OP-C5 S-3 stiffness), relying on B1
 CA-4  T6 Engineer A edits S-3 (r13) → T7 submit PR-1 → both items refused — stale (B1 vs B2)
-      T9 re-read (B2) → PR-2 (lineage PR-1) → T10 queued        [CP-accept arrives: waiting]
-CA-H  T11 Engineer A: A5 item 1, A10 item 2 (host facility, capture evidence SQ-01)
-      → CP-accept resolved negatively, "partial" (EXEC MX-5); on-mixed path: continue with item 1
-CA-5  T12 host applies item 1 → RC-1; resulting objects S-5 (created), R-100 (changed)
-      T13 ack lost → seek observation by identity → if never received, retry PR-2 same identity
-      → host answers recorded state (RC-1; item 2 rejected); else outcome unknown (observer)
-CA-3  re-examine: OP-C1 read at r14, OP-C3 → examination-report   [CP-check arrives: waiting on S-5, R-100]
-CA-H  Engineer A marks S-5 and R-100 checked (A4, SQ-01) → CP-check performed
-CA-R  summary: RC-1, findings, acts performed (A5 item 1, A10 item 2, A4 S-5/R-100), unknowns
+      T9 re-read (B2) → PR-2 (lineage PR-1) → T10 queued                   [CAF-13…CAF-17, CAF-21, CAF-22]
+CA-H  T10: CP-accept arrives (kind (c) queued) → arrival recorded; label waiting =
+      "reached; act not yet recorded" (CE-3); the run goes on as the agent's plan says   (G-1)
+      the agent asks Engineer A for the A5 on PR-2's items (K1-1); recorded only where it
+      is a structured request (CE-4, RS R16), otherwise "no request observed"   [CAF-23]
+      an agent run action before the act may carry "continued past CP-accept before A5"
+      (CE-12)
+      T11 Engineer A, in the host's own view: A5 item 1, A10 item 2 (capture evidence, SQ-01)
+      → item decisions observed (CE-7) → CP-accept resolved negatively, partial (MX-5);
+      the agent follows the declared on-mixed path as guidance: continue with item 1
+                                                                          [CAF-24, CAF-26, CAF-29]
+CA-5  T12 host applies item 1 → RC-1; resulting objects S-5 (created), R-100 (changed);
+      the A5 on item 1 is not lapsed by its application
+      T13 acknowledgement lost → outcome unknown (observer App) → observe PR-2 by identity
+      → recorded state (RC-1; item 2 rejected); a retry, if the host never received it,
+      keeps the same identity and is answered from recorded state          [CAF-15, CAF-31…CAF-35, CAF-37]
+CA-3  re-examine: OP-C1 read at r14, OP-C3 → examination-report
+CA-H  CP-check arrives (kind (b), objects changed by RC-1) → recorded waiting on
+      ⟨S-5@r14⟩, ⟨R-100@r14⟩ (CE-3)                                        (G-2)
+      the agent asks for the A4 (K1-1); Engineer A marks S-5 and R-100 checked in the
+      host facility → act counted (CE-5) → CP-check performed; the first later agent run
+      action is the resume point (CE-11)                                  [CAF-24, CAF-25]
+      (branch) S-5 edited after the resume point → "act lapsed at ‹t›" (CE-10); nothing
+      re-holds; the agent asks again; an A4 on S-5 alone answers with the earlier act
+      (JA-1)                                                              (G-3) [CAF-28]
+CA-R  summary: RC-1, findings, acts performed (A5 item 1, A10 item 2, A4 S-5/R-100),
+      unknowns; standings never strengthened; the person ends the run (CE-17)
+                                                                          [CAF-37, CAF-39]
 ```
 
-Graduated-autonomy branch (V4-EXM-22 overlap; used by W14-04): T15 A12 →
-⟨set-2⟩ (class **P-03**, grant *direct*, scope {FX-W1; {S-4}}, per C T15 and
-V2 MAJOR-1) → T16 OP-C9 applied directly (RC-2, origin mark, undo route, no
-acceptance) → E1c `CP-check` waits for A4 on S-4 → T17 undo RC-3 *reverses
-RC-2*.
+**Graduated-autonomy branch (current phase; V4-EXM-22 overlap; used by
+W14-04).** T15 A12 → ⟨set-2⟩ (class **P-03**, grant *direct*, scope
+{FX-W1; {S-4}}, per C T15 and V2 MAJOR-1; counts only when the control
+**established** it [CAF-27]) → T16 OP-C9 applied directly (RC-2, origin mark,
+undo route, no acceptance); no proposal is queued, so E1's `CP-accept` is
+**not reached** and no A5 is requested, forced or recorded (R10-1) → E1c
+`CP-check` arrives on ⟨S-4@r16⟩ and is recorded *waiting*; the agent asks for
+the A4 → T17 undo RC-3 *reverses RC-2* (where the host's undo writes no
+receipt, *not supplied* [CAF-36]); T16a's A4, if performed, is recorded
+lapsed by the undo's content change (G-4).
 
-**Reading the sequence (R8).** In Phase 1, "waiting" above is a record label
-("reached; act not yet recorded"), never "the run is held" (S-13; PH-6), and
-"waits for A4" means the agent's plan pauses for it. The sequence is a
-fixture. Against SWBPIPE's answers several steps have no counterpart, and the
-App keeps its meanings and records the missing counterparts (R8-5; I2
-Part 4.9): SWBPIPE's A5 is **Apply**, per batch and atomic, with acceptance
-and application in one step and no A10 record, so T11's per-item A5/A10 and
-the *partial* disposition have no SWBPIPE counterpart; its #885 `withdrawn`
-(the person cleared the queue) is an item leaving "cleared by the person, no
-decision record", and `validation_rejected` at Apply is *refused — invalid*
-at application — neither is ever A10 or A11; its undo is a session snapshot
-with no receipt, so T17's "reverses RC-2" is *not supplied*; it has no grant
-states, so ⟨set-2⟩ and T16's direct application have no counterpart (SQ-05).
+**Governance-phase annotation (retained; checkpoints declared `governed`,
+the fixture's read as if governed, R8-11 item 5; S-13, S-14).** Each mark
+above reads as follows in that phase and only there:
+
+- **(G-1)** At T10 the run on E **holds** at `CP-accept` until the A5
+  (hold support *enforced by the host loop*); in an App run on X
+  `CP-accept` is *not enforceable* (HS-3 (c): SQ-02 answered) and E1 is
+  *unsupported* (EXEC MT-2, governance phase); a run started anyway records
+  each run action while it waits as *action during hold* (ADAPTER XF-42).
+  T11's item decisions release the hold; the on-mixed path is then taken.
+- **(G-2)** `CP-check` holds the Return step on E until the A4; on X it is
+  App-only (HS-5) → *not enforceable*.
+- **(G-3)** A lapse after the resume point **re-holds the same arrival**
+  ("waiting — re-held, lapsed at ‹t› after resume"); the run stops at its
+  next action only where hold support is *enforced by the host loop* (R6-3);
+  the whole scope is asked again; an act on the lapsed referents alone answers
+  together with the earlier act (JA-1).
+- **(G-4)** The person's own undo re-holds the same way, is never recorded as
+  *action during hold*, and never re-holds an A5 arrival (R5-5).
+- Earlier acts count on current content in both phases (SP-6); only a
+  workflow that takes up the governance option requires capture at or after
+  the arrival (EXEC SP-6F).
+
+**Reading against SWBPIPE (R8-5; I2 Part 4.9; answers of 2026-09-28, data
+not commitments).** Several steps have no counterpart, and the App keeps its
+meanings and records the missing counterparts: SWBPIPE's A5 is **Apply**,
+per batch and atomic, with acceptance and application in one step and no A10
+record, so T11's per-item A5/A10 and the *partial* disposition have no
+SWBPIPE counterpart; its #885 `withdrawn` (the person cleared the queue) is
+an item leaving "cleared by the person, no decision record", and
+`validation_rejected` at Apply is *refused — invalid* at application —
+neither is ever A10 or A11; its undo is a session snapshot with no receipt,
+so T17's "reverses RC-2" is *not supplied*; it has no grant states, so
+⟨set-2⟩ and T16's direct application have no counterpart (SQ-05). §2.6 sets
+every step against these answers.
 
 ### 2.5 Decision and input account needed to finalize the increment SoW (OUT-001; TBD-001/002)
 
@@ -282,7 +412,7 @@ The final operation-specific increment SoW is **not** claimed. It needs:
 
 | # | Decision or input | Owner | Point of need | Current standing |
 |---|---|---|---|---|
-| DI-1 | The useful operation(s), including the non-mutating check | Owner via outside SWB session with App/shared owner (OI-021); informed by SQ-04 | Before connected-activity SoW and execution | `UNRESOLVED{OI-021}`; fixture only. **Stays open** (R8-10). SQ-04 answered 2026-09-28: no selection (an owner decision with the App/shared owner). Candidate operations recorded from SWBPIPE's answer: on main, 27 change kinds through one engine route (`operation_applier`); reads (model read; DRAFT #885 `inspect`); checks (validate-only preview; mechanics solve with host-named integrity standing; user rule checks); DRAFT #885 wires only Node `position.x` set_field on X (single and ordered atomic batch). SWBPIPE has no per-operation identity or version (SQ-12), so FX-PIPE-01's operations are not SWBPIPE catalog identities |
+| DI-1 | The useful operation(s), including the non-mutating check | Owner via outside SWB session with App/shared owner (OI-021); informed by SQ-04 | Before connected-activity SoW and execution | `UNRESOLVED{OI-021}`; fixture only. **Stays open** (R8-10). SQ-04 answered 2026-09-28: no selection (an owner decision with the App/shared owner). Candidate operations recorded from SWBPIPE's answer: on main, 27 change kinds through one engine route (`operation_applier`); reads (model read; DRAFT #885 `inspect`); checks (validate-only preview; mechanics solve with host-named integrity standing; user rule checks); DRAFT #885 wires only Node `position.x` set_field on X (single and ordered atomic batch). SWBPIPE has no per-operation identity or version (SQ-12), so FX-PIPE-01's operations are not SWBPIPE catalog identities. §2.6 sets every step against SWBPIPE's answers and against SH-1 (R12-6); it selects nothing |
 | DI-2 | Permitted autonomy for it; operation-specific reserved additions | Same owners (OI-021); host names its list (V4-HI-30); SQ-05, SQ-06 | Same | D2/D3 adopted for App/shared contracts. Host: no class system, no grants, no named reserved list; every change waits for the person's Apply (SQ-05); SWBPIPE's autonomy is its owner decision OI-016. A grant display for a host without grants, "host fixed treatment: every change waits for Apply", is PROPOSED and deferrable (R8-10) |
 | DI-3 | Exact candidate environment (host candidate, configuration, model server) and acting-surface variant (§2.2) | Same owners (OI-021); SQ-04 (c)(d), SQ-27 | Before execution | Answered (SQ-04 (c)(d), 2026-09-28): SWBPIPE's first expression is a development Codex controller over the CLI, then an embedded agent later; the App's Codex is not named (DECISION-3 defers naming it). Environment: macOS only; DRAFT PR #885 (head `12907f393`) unmerged and **deferred** to UI-SUCCESSOR, with the owner's live-controller activation still in force; `SWBPIPE_LIVE_CONTROL=1`, CLI feature `live-control-cli`; no date. No candidate is supplied |
 | DI-4 | Host act capture and constraint receipt | SWBPIPE owner (SQ-01, SQ-02) | Before any positive checkpoint case | Answered (SQ-01, SQ-02, 2026-09-28): no capture-evidence reference (the Apply receipt names no person or time and does not survive restart); no host-held route (route (iv); governance-phase input). Acceptance-record storage and actor identity are SWBPIPE owner decisions (PB-TBD-002; DEL-16-03; ANS §2) |
@@ -291,6 +421,73 @@ The final operation-specific increment SoW is **not** claimed. It needs:
 | DI-7 | Multi-row A4 purpose after partial lapse (ACT U-03; EXEC U-E3) | The owner (decided: DECISION-K1 K1-3, 2026-09-30) | — | **Closed.** An act on the changed rows alone answers the checkpoint together with the earlier act for the unchanged rows; each cites its items (EXEC §4.7 JA-1) |
 | DI-8 | Extension promise (not needed for the first activity; needed before any extension claim) | Owner with host contract owner (App v4 OI-003) | Before extension claim | Open; DEL-09-09. SQ-26 answered 2026-09-28: not chosen; SWBPIPE has no catalog editions and no edition-addition event. This is App v4 OI-003, distinct from SWBPIPE's own OI-003 (R8-7) |
 | DI-9 | Host A13 enablement facility with capture-evidence reference (CA/X only) | SWBPIPE owner decision (A13 enablement facility; ANS §2) | When the owner resumes UI-SUCCESSOR (DECISION-3); before any live CA/X case | Answered (SQ-28, 2026-09-28): no facility exists or is planned; the channel stays *not enabled*; `controller_unavailable` reported as *endpoint unavailable* (R8-6). Whether a person-set launch environment variable counts as A13 evidence: owner, deferred (R8-Q4b) |
+
+### 2.6 Option sheet for the first connected operation (R12-6; `UNRESOLVED{OI-021}` stays open)
+
+For each step of the designed activity (§2.3, with the graduated-autonomy
+branch of §2.4 and the round trip of §4), the sheet sets what SWBPIPE's
+answers of 2026-09-28 say exists today, whether the step could be examined
+against SWBPIPE now, and whether it can be examined on the simulated host
+SH-1 (C-v0.8 §10.8). The answers are **data about SWBPIPE's current state,
+not commitments** (DECISION-3); their standing labels are kept: FACT (main),
+DRAFT #885 (unmerged, deferred), DESIGN, OWNER DECISION, NOT FOUND. The sheet
+**selects nothing** — no operation, check, autonomy, environment or acting
+surface (DI-1…DI-3 stay open) — ranks nothing, and **claims no join,
+witness or adoption**. SH-1 results are *test-double* evidence and say
+nothing about SWBPIPE.
+
+**Common blockers against SWBPIPE now** (they apply to every row and are not
+repeated):
+
+- **B-1** No identified SWBPIPE candidate: SQ-27 (a) gives an identification
+  scheme, no candidate; PR #885 is open, unmerged and deferred to
+  UI-SUCCESSOR, with the owner's live-controller activation still in force
+  (A-2).
+- **B-2** The external channel stays *not enabled*: no A13 enablement facility
+  exists or is planned (SQ-28); the opt-in is a launch environment variable
+  plus a build feature (SQ-13). Every CA/X step needs it (§2.2; CAF-3).
+- **B-3** Host joins are deferred, and SWBPIPE's records name a development
+  Codex, not the App's Codex, as the first caller (DECISION-3; SQ-04 (c);
+  F-20).
+- **B-4** No App candidate exists (App construction, later undertaking).
+- **B-5** For CA/E: SWBPIPE has no embedded loop (SQ-20, SQ-29).
+
+| Step | SWBPIPE today (answers of 2026-09-28) | Examinable against SWBPIPE now | What would still be missing once B-1…B-5 are lifted | Examinable on SH-1 | SH-1 evidence (B3 run; §8.5; XT §3.6) |
+|---|---|---|---|---|---|
+| **CA-0 Prepare** | No capability catalog, per-operation identity or exposure element (FACT; SQ-11, SQ-12); DRAFT #885's CLI offers one entry, Node `position.x` set_field (SQ-11); no workflow library or declaration reader (SQ-17); no A13 facility (SQ-28); no class system or grant states, every change waits for the person's Apply (SQ-05); no restriction by model destination (SQ-16) | **No** — B-1…B-4 | Required-tool references cannot resolve (no catalog: EXEC EV-4 *not established*; WR-4); A13 cannot be evidenced (CAF-3); grant display only as the PROPOSED "host fixed treatment" (DI-2); workflow selection has no host library to select from | **Yes, in part** — channel off, endpoint stopped and the double's own A13 with a capture reference, discovery on both paths; the required-tool check runs on EXEC's catalog double, not on SH-1's catalog; workflow selection, grant display and the model destination are not simulated | XF-02, XF-06, CI-1; XC-01 rehearsal; W14-03 |
+| **CA-1 Inspect** | Main: model read and whole-model hash, separate; no workspace identity or generation (SQ-07 (a)). DRAFT #885 `inspect` returns a basis identity {app instance, controller session, workspace, project generation, project, model revision, model hash}. No per-row or per-object identity (SQ-03) | **No** — B-1…B-4 | Per-subject identities: the whole-model identity is received for every covered subject (R8-4; F-19); on main the read has no lineage elements (R12-9, ruled at R13) | **Yes** — full basis and per-row identities on both paths; the *no lineage* profile shows the R12-9 case. The whole-model form is not an SH-1 profile | T3, T9, R12-9 case; XC-11 rehearsal |
+| **CA-2 Propose** | Main: an offline JSON batch the person pastes or opens (A-1). DRAFT #885: preview → submit; caller `idempotency_key`, controller `preview_ref` and `ticket` (SQ-08 (a)); strict preflight refuses unknown fields (SQ-02 (a), SQ-31); any change other than `position.x` is `unsupported_change` | **No** — B-1…B-3 | A checkpoint-constraint element cannot be carried (WR-6; CAF-14); identities and tickets live within one controller session (SQ-08 (c)) | **Yes** — PR-1 and PR-2 relying on the read basis; PR-2 *queued* on both paths; identity conflict (PM-3) | T5, T10, PM-3; XC-02 rehearsal |
+| **CA-3 Non-mutating check** | Validate-only preview (the only check DRAFT #885 exposes); the solve with host-named integrity standing; user rule checks (FACT; SQ-04 (a), (b)); findings not stored on main (SQ-24) | **No** — B-1…B-3 | Which check the activity uses is OI-021's (SQ-04 (b): no selection); findings are held only as agent output (CAF-20) | **Yes** — A3 findings (OP-C3) and the named host check (OP-C12) with its evaluated basis; *unavailable* with reason (T8) | T4, T4a, T8; XC-11 rehearsal |
+| **CA-4 Intervening edit** | Staleness is whole-model: any model commit stales every queued proposal (FACT; SQ-07 (d), (f)); DRAFT #885 freezes the inspected basis (SQ-07 (c)); `stale_basis` / `expired` (SQ-09 (a)); display "The model changed. Prepare a new batch from the current model." (SQ-23) | **No** — B-1…B-3 | Failing targets *not supplied* (R8-3); the answers name no lineage element for a re-draft | **Yes, in part** — per-item staleness against the original basis (T6 → T7: failing S-3, relied B1, current r13); the whole-model scope is not an SH-1 profile (F-26) | T7; XC-03 rehearsal |
+| **CA-H Human acts** | The only captured act is **Apply** (A5): per batch, accepting and applying at once, no person named and no time field, session-only receipt; Clear discards with no record (no A10); the A4 "Checked" mark is DESIGN only (DEC-104); no grants (A12); no A13 facility (SQ-01, SQ-05, SQ-28); no checkpoint concept (SQ-02); acts through the host facility only, no App proxy (SQ-25) | **No** — B-1…B-3, and no capture-evidence reference, so no act record can be written (CAF-24) | Per-item A5/A10, A4 and A12 on the host; a capture-evidence reference; any checkpoint arrival is the App's own recording of its own run | **Yes, in part** — per-item A5 and A10 in the double's own facility, with a capture reference, read over X; arrivals, earlier-act counting and "prior act not counted" on EXEC's recorder double; SH-1 has no A4 control (F-26) | T11; CH-20, CH-31; W14-05, XC-09 rehearsals |
+| **CA-5 Recover outcome and receipt** | Main: `applied_to_session_model` session receipt. DRAFT #885: `committed` receipt readable by `status` within one controller session; de-duplication by key **before** the basis check (SQ-08 (b)); `outcome_unknown` (SQ-09 (a)); no durable receipt (SQ-09 (c)); batches atomic (SQ-09 (b)); undo a session snapshot, no receipt, not on the CLI (SQ-10) | **No** — B-1…B-3 | Durable receipts and de-duplication across restart (OWNER DECISION: a durable receipt carrier); "reverses ⟨receipt⟩" *not supplied* | **Yes, in part** — application with receipt and resulting objects; lost acknowledgement → observation by identity → retry from recorded state, also after an endpoint restart (the double is durable); not a non-durable restart, an App restart or undo (OP-C10 not implemented) | T12, T13; W14-07, XC-05, XC-06, XC-07 rehearsals |
+| **CA-R Return** | Receipts session-only; no act references (SQ-01, SQ-09 (c)) | **No** — B-1…B-4 | Act references and durable receipts for the summary to cite | **Yes, in part** — the receipt and decision references a summary would cite are readable; the summary is agent output and is not simulated (no Codex turn; OBS-1 pending) | T11o, T12o |
+| **Graduated autonomy (T15–T17)** | No grants, classes or direct application; a direct request over #885 is refused `unsupported_method` (SQ-05, SQ-06); undo session-only (SQ-10) | **No** — B-1…B-3; no grant states | The branch has no SWBPIPE counterpart at all | **Yes, in part** — ⟨set-2⟩ by the double's control; OP-C9 direct on S-4 applied with a receipt and no acceptance; outside the scope *not permitted*; T17 undo not implemented | XF-23; XC-10, W14-04 rehearsals |
+| **Round trip (§4; W14-01, -02, -09, -10)** | No workflow library, reader, adaptation or host runs; "workflow" in SWBPIPE product code means a user journey (SQ-17…SQ-19) | **No** — nothing to carry a workflow to | A SWBPIPE work item to receive App workflows (ANS §4) | **No** — SH-1 has no workflow library, and no transfer-tracer double exists (EXEC §7.4) | — |
+
+**In three lines.** Against SWBPIPE now: **0 of 10** rows are examinable
+(B-1…B-3 block every row; CA-H also lacks a capture reference). On SH-1:
+**9 of 10** are examinable, **3 fully** (CA-1, CA-2, CA-3) and **6 in part**;
+the round trip is not. No row is examinable against SWBPIPE on its answers
+alone, whatever operation the owner selects.
+
+**What the answers offer the owner's choice (input to OI-021, not a
+selection).** The only operation SWBPIPE wires externally is Node
+`position.x` set_field (single, or an ordered atomic batch) on DRAFT #885's
+CLI, in the journey inspect → preview → submit → the person's Apply in the
+app → status (SQ-04 (a)). Set against the step map it touches CA-1
+(`inspect`), CA-3 (the validate-only preview as the check), CA-2 (submit),
+CA-H (Apply as A5 per batch, no A10), CA-5 (`status` within the session) and
+CA-4 (whole-model staleness); it has no A4, no grant branch and no round
+trip. Choosing it, another of the 27 change kinds, or a solve or rule check
+as the non-mutating check is the owner's, with the App/shared owner (DI-1).
+
+**Revision triggers.** The sheet is re-read when SWBPIPE records any of the
+events of ANS §4 (UI-SUCCESSOR resumed and #885 merged; OI-016, the durable
+receipt carrier, PB-TBD-002, the Checked-mark tranche, an MCP adapter, the
+D-58 successor or DEC-051 decided; a work item to receive App workflows or to
+host a checkpoint route), when an A13 facility is added, or when SH-1 gains
+a profile it lacks (F-26).
 
 ---
 
@@ -372,7 +569,14 @@ recorded; it decides nothing.
 "Focused check" is the producing owner's own verification, in its file.
 "Joined check" is the candidate-bound examination that joins contributions.
 Sibling standings name the Wave A version labels (R9-11); the siblings are
-revised in parallel, and their bytes are pinned in GUIDE's input table.
+revised in parallel, and their bytes are pinned in GUIDE's input table. **At
+v0.6** the siblings stand at their Wave B round-1 versions — EXEC-v0.6,
+WD-v0.8 and WD-EX-v0.8, C-v0.8, P-v0.8, ADAPTER-v0.6, ACT-POLICY-v0.8,
+AS-v0.8, RS-v0.8, LOOP-v0.8, PANEL-v0.8, HOSTING-BOUNDARY-v0.8 — each adding
+PROPOSED schemas, sequences with failure behaviour and local prototypes
+(R12-1…R12-3); the Standing cells below keep their Wave A wording, and this
+file's own focused checks now include VC-CA-09…VC-CA-11 and the W14
+rehearsals of §8.5.
 
 | Contribution | Producing owner | Focused check (designed) | Joined check owner | Standing now |
 |---|---|---|---|---|
@@ -490,9 +694,9 @@ workflow in the governance phase (SoW TBD-003 (b)).
 | **W14-00 Identification** | App candidate (build, stock Codex version actually used, model/server), host candidate (source revision, build, configuration), date, invented material identity | V4-EXM-01 | SQ-27 (a) (answered: SWBPIPE identifies contributions by commit and merge SHA, hosted CI run ids, the DEC-025 local sweep, T9 byte identity and native witness records with SHA256SUMS); App candidate (later undertaking) | AWAITING INPUT — SQ-27 answered 2026-09-28: an identification scheme, but no candidate identified; LIVE-HUMAN witness blocked and deferred; host joins deferred (DECISION-3) |
 | **W14-01 Transfer App → host, unadapted** | exported → relayed → received links; origin *project* kept; holding library per link | EXEC RT-1, TR-1…TR-6 | SQ-17 (a), (d); DEL-02-02 registration (later) | AWAITING INPUT — SQ-17 answered 2026-09-28: no workflow library, reader or declaration parser (not offered); a work item to receive App workflows is a SWBPIPE owner decision (ANS §4); host joins deferred (DECISION-3) |
 | **W14-02 Adaptation** | New host identity with derived-from; checkpoint comparison preserved/changed/removed/added; no identity or act inheritance | EXEC RT-2, RT-3, AD-1…AD-6 | SQ-18 (b), (c) | AWAITING INPUT — SQ-18 answered 2026-09-28: no host workflows, no adaptation (not offered); a SWBPIPE owner decision (ANS §4); host joins deferred (DECISION-3) |
-| **W14-03 Required tools and unsupported capability** | Compatibility report on the host's actual edition (available tools **present**); one explicit unsupported/missing outcome observed and shown to the person, with no fabricated tool execution | EXEC-v0.5 MT-1, MT-2, MT-3, MT-10, MT-15, MT-16; TF-3/TF-4. The App-route values must match MT-2 and MT-16 in both parts. **Phase 1:** E1 and E1d via X pass on their required tools and the channel, with checkpoints listed as guidance; MT-15 stays *not established* for its unresolved harness-capability reference (U-08), a required-tool matter, not a hold (R8-11 item 3). **Governance phase:** E1 via X *unsupported* (`CP-accept` *not enforceable*, HS-3 (c); `CP-check`, HS-5) and E1d via X *unsupported* (`CP-grant` *not enforceable*, HS-3 (c); `CP-check`, HS-5) | SQ-11; SQ-17 (b), (c) | AWAITING INPUT — SQ-11 answered 2026-09-28: no exposure element, one entry on X (Node `position.x`), no E surface; SQ-17: no workflow library or declaration reader (not offered); SWBPIPE owner decisions (ANS §2, §4); host joins deferred (DECISION-3) |
-| **W14-04 Checkpoint under direct autonomy** (hold parts: governance phase, retained) | **Phase 1 (recording; R8-1; R9-1):** (i′) V-CP1 input: the agent, following I-7 as plan guidance, submits a separate proposal and, when it is queued, asks the person for the A5; if a direct request is made, the host's own treatment decides and the outcome is recorded as observed; if the host applies it directly, no proposal is queued, so `CP-accept` is **not reached** — nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded, and the record shows the direct application under the grant; nothing is reported *not permitted* on the constraint's account (EXEC-v0.5 CH-27 Phase 1; R8-11 item 2 as restated by R9-2 and corrected by R10-1). (ii′) E1c `CP-check` after direct application under ⟨set-2⟩: the arrival on S-4 is recorded; the A4 is requested by the agent carrying out the workflow (R9-1), and neither the App nor the host loop issues that request in the agent's place or holds the run; the A4 is recorded only when the person performs it (EXEC-v0.5 CH-1 Phase 1; V4-EXM-22 as amended). (iii′) E1 as an App run on X: the check is decided by the required tools and the channel (MT-2 Phase 1); nothing is *unsupported* for a hold reason; later run actions may carry "continued past ‹checkpoint› before ‹act›" (PH-7). **Governance phase (governed checkpoints; the fixture's read as if governed):** (i) A5 `CP-accept` with a direct grant for the operation's class (V-CP1): direct request *not permitted* naming the constraint; separate proposal queued; waits for A5. This depends wholly on the host route (SQ-02 (a)–(c)); SWBPIPE answered (a) No, (c) No, so (i) has no SWBPIPE host route on X, and there is no SWBPIPE host loop on E (SQ-20); it is **not** App-side hold evidence (EXEC F-19). (ii) E1c `CP-check` after direct application under ⟨set-2⟩ (T15: class P-03, scope {FX-W1; {S-4}}; counts only because the A12 was **established**, S-14): run waits for A4 on S-4; nothing releases it without A4. Run it first on the host loop (CA/E). (iii) E1 as an App run on X (EXEC-v0.5 MT-2): `CP-accept` → *not enforceable* (HS-3 (c): SQ-02 answered); `CP-check` App-only (HS-5) → *not enforceable* → the workflow is **unsupported**; any run action while waiting recorded as *action during hold* (ADAPTER XF-42) | EXEC-v0.5 §2.1, CH-1, CH-27, MT-2, §3.6; WD I-7, §4.3.0; C V-CP1, T15–T16; ADAPTER XF-42 | (i) SQ-02 (answered: none); (ii) SQ-01, SQ-03; SQ-05 (answered: no grant states, so ⟨set-2⟩ has no SWBPIPE counterpart); the person's A12 and A4; (iii) none (values determined); D6 re-opens with the governance phase (EXEC U-E1, U-E23) | AWAITING INPUT — SQ-01, SQ-02, SQ-03, SQ-05 and SQ-20 answered 2026-09-28: no capture-evidence reference, no host-held route, whole-model identity only, no grants, no host loop (not offered); SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3). (iii) shows the limit only |
-| **W14-05 Real act, faithfully recorded; fabrication negatives** | In force in Phase 1 (PH-4). Engineer's actual A5/A10 (T11; on SWBPIPE only A5 exists, as Apply per batch, with no A10 record, R8-5) or A4 captured by the host facility, after the arrival or before it on content still current, the earlier act cited with its time (S-14; EXEC SP-6; DECISION-K1 K1-2); App/loop record with actor ≠ recorder, bound content identity, capture-evidence reference. An A4 captured before the arrival on content no longer current, or of another kind, is shown "prior act not counted" (EXEC CH-20 now counts T2's A4 for S-2). App-side variant: A4 on App file AF-1 in the App act control (EXEC CH-23). Negatives: success, *queued*, receipt, A14, model text, user-input or elicitation answer (not act evidence, R4-12) → no act | EXEC CH-2, CH-20, CH-23, CH-28, CAP-6; WD-EX R-9; ADAPTER XF-31, XF-33; C AF-1. EXEC RT-11 now lists CH-20 here too (R10-11; F-23 closed) | SQ-01; an actual person performing the act on invented material (DEP-09-06-024); App act control (DEL-01-04, later) for the AF-1 variant | AWAITING INPUT — SQ-01 answered 2026-09-28: no capture-evidence reference; the Apply receipt names no person or time and does not survive restart, even in DRAFT #885 (not offered); PB-TBD-002 and DEL-16-03 are SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3) |
+| **W14-03 Required tools and unsupported capability** | Compatibility report on the host's actual edition (available tools **present**); one explicit unsupported/missing outcome observed and shown to the person, with no fabricated tool execution | EXEC-v0.5 MT-1, MT-2, MT-3, MT-10, MT-15, MT-16; TF-3/TF-4; EXEC-v0.6 MT-17 (E1 ⟨rev-A2g⟩ declaring `CP-accept` governed: passes in the current phase; governance phase *unsupported* on X, passes on E). The App-route values must match MT-2 and MT-16 in both parts. **Phase 1:** E1 and E1d via X pass on their required tools and the channel, with checkpoints listed as guidance; MT-15 stays *not established* for its unresolved harness-capability reference (U-08), a required-tool matter, not a hold (R8-11 item 3). **Governance phase:** E1 via X *unsupported* (`CP-accept` *not enforceable*, HS-3 (c); `CP-check`, HS-5) and E1d via X *unsupported* (`CP-grant` *not enforceable*, HS-3 (c); `CP-check`, HS-5) | SQ-11; SQ-17 (b), (c) | AWAITING INPUT — SQ-11 answered 2026-09-28: no exposure element, one entry on X (Node `position.x`), no E surface; SQ-17: no workflow library or declaration reader (not offered); SWBPIPE owner decisions (ANS §2, §4); host joins deferred (DECISION-3) |
+| **W14-04 Checkpoint under direct autonomy** (hold parts: governance phase, retained) | **Phase 1 (recording; R8-1; R9-1):** (i′) V-CP1 input: the agent, following I-7 as plan guidance, submits a separate proposal and, when it is queued, asks the person for the A5; if a direct request is made, the host's own treatment decides and the outcome is recorded as observed; if the host applies it directly, no proposal is queued, so `CP-accept` is **not reached** — nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded, and the record shows the direct application under the grant; nothing is reported *not permitted* on the constraint's account (EXEC-v0.5 CH-27 Phase 1; R8-11 item 2 as restated by R9-2 and corrected by R10-1). (ii′) E1c `CP-check` after direct application under ⟨set-2⟩: the arrival on S-4 is recorded; the A4 is requested by the agent carrying out the workflow (R9-1), and neither the App nor the host loop issues that request in the agent's place or holds the run; the A4 is recorded only when the person performs it (EXEC-v0.5 CH-1 Phase 1; V4-EXM-22 as amended). (iii′) E1 as an App run on X: the check is decided by the required tools and the channel (MT-2 Phase 1); nothing is *unsupported* for a hold reason; later run actions may carry "continued past ‹checkpoint› before ‹act›" (PH-7). **Governance phase (governed checkpoints; the fixture's read as if governed):** (i) A5 `CP-accept` with a direct grant for the operation's class (V-CP1): direct request *not permitted* naming the constraint; separate proposal queued; waits for A5. This depends wholly on the host route (SQ-02 (a)–(c)); SWBPIPE answered (a) No, (c) No, so (i) has no SWBPIPE host route on X, and there is no SWBPIPE host loop on E (SQ-20); it is **not** App-side hold evidence (EXEC F-19). (ii) E1c `CP-check` after direct application under ⟨set-2⟩ (T15: class P-03, scope {FX-W1; {S-4}}; counts only because the A12 was **established**, S-14): run waits for A4 on S-4; nothing releases it without A4. Run it first on the host loop (CA/E). (iii) E1 as an App run on X (EXEC-v0.5 MT-2): `CP-accept` → *not enforceable* (HS-3 (c): SQ-02 answered); `CP-check` App-only (HS-5) → *not enforceable* → the workflow is **unsupported**; any run action while waiting recorded as *action during hold* (ADAPTER XF-42) | EXEC-v0.5 §2.1, CH-1, CH-27, MT-2, §3.6; EXEC-v0.6 CH-33 (governance part: a governed `CP-accept` beside an ungoverned `CP-check`, host run on E); WD I-7, §4.3.0; C V-CP1, T15–T16; ADAPTER XF-42 | (i) SQ-02 (answered: none); (ii) SQ-01, SQ-03; SQ-05 (answered: no grant states, so ⟨set-2⟩ has no SWBPIPE counterpart); the person's A12 and A4; (iii) none (values determined); D6 re-opens with the governance phase (EXEC U-E1, U-E23) | AWAITING INPUT — SQ-01, SQ-02, SQ-03, SQ-05 and SQ-20 answered 2026-09-28: no capture-evidence reference, no host-held route, whole-model identity only, no grants, no host loop (not offered); SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3). (iii) shows the limit only |
+| **W14-05 Real act, faithfully recorded; fabrication negatives** | In force in Phase 1 (PH-4). Engineer's actual A5/A10 (T11; on SWBPIPE only A5 exists, as Apply per batch, with no A10 record, R8-5) or A4 captured by the host facility, after the arrival or before it on content still current, the earlier act cited with its time (S-14; EXEC SP-6; DECISION-K1 K1-2); App/loop record with actor ≠ recorder, bound content identity, capture-evidence reference. An earlier act on content no longer current, or of another kind, is recorded **"prior act not counted"** with its reason (RS-v0.8 L-13): EXEC-v0.6 **CH-31** (i) T2's A4 on ⟨S-2@r12⟩ at a run-14 arrival binding ⟨S-2@r15⟩ (content no longer current) and (ii) an earlier A6 at an A4 checkpoint (another act kind) (R11-9); EXEC CH-20 shows T2's A4 counting for S-2 on current content. App-side variant: A4 on App file AF-1 in the App act control (EXEC CH-23); A4, A6 and A7 on AF-1 kept apart, each answering only its own kind (EXEC-v0.6 CH-32). Negatives: success, *queued*, receipt, A14, model text, user-input or elicitation answer (not act evidence, R4-12) → no act | EXEC CH-2, CH-20, CH-23, CH-28, **CH-31** (R11-9), CH-32 (v0.6), CAP-6; WD-EX R-9; ADAPTER XF-31, XF-33; C AF-1. EXEC RT-11 lists CH-20 (R10-11) and, from EXEC-v0.6, CH-31 here | SQ-01; an actual person performing the act on invented material (DEP-09-06-024); App act control (DEL-01-04, later) for the AF-1 variant | AWAITING INPUT — SQ-01 answered 2026-09-28: no capture-evidence reference; the Apply receipt names no person or time and does not survive restart, even in DRAFT #885 (not offered); PB-TBD-002 and DEL-16-03 are SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3) |
 | **W14-06 Content change after an act** | **Phase 1 (R8-11 item 1; PH-8):** edit to bound content → act-lapsed event recorded against the affected referents; label "waiting — lapsed at ‹t›" before the resume point, and **"act lapsed at ‹t›"** after it (nothing says *waiting*; R8-12 item 1), while the arrival's act is not yet re-performed; gated outputs (e.g. `checked-rows`) show standing *lapsed*; nothing re-holds; the agent asks again as its plan requires; history preserved. **Governance phase (retained; re-hold clauses):** Edit to bound content → act-lapsed event. Before the resume point: "waiting — lapsed at ‹t›". After the resume point: the **same** arrival is re-held, "waiting — re-held, lapsed at ‹t› after resume"; the run stops at its next action where hold support is *enforced by the host loop* (the host-loop case) — otherwise the held host operations are refused (*enforced on the host route*) or the action is recorded as *action during hold* (R6-3); nothing done is undone; gated outputs (e.g. `checked-rows`) show standing *lapsed*; the person is asked again for the whole scope (S-14), and an act on the lapsed referents alone answers together with the earlier act (joint answer; EXEC §4.7 JA-1; DECISION-K1 K1-3). After run end: *lapsed* per referent. A5 and A12 never re-hold. A lapse caused by the person's own undo (T17 analogue) re-holds the same way; that undo is never recorded as *action during hold*, and it never re-holds an A5 arrival (R5-5). History preserved; no invented current act | EXEC-v0.5 CH-6, CH-7, CH-8, CH-10, CH-30, §4.7 RH-1…RH-9; T14, T16a–T17; R5-5. CH-8 and CH-30 are added from EXEC RT-11, which now writes the range CH-6…CH-8, CH-10 and places CH-9 under W14-07 (R10-11; F-23 closed) | SQ-03 (b) (answered: no per-object identity; the whole-model identity is received for every covered subject, so any model change lapses every bound act — over-lapse, never under, R8-4); host lapse display (SQ-23: answered, DESIGN only) | AWAITING INPUT — SQ-03 and SQ-23 answered 2026-09-28: no per-object identity, lapse wording DESIGN only (not offered); SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3) (EXEC CH-8 released by DECISION-K1 K1-3: DESIGNED, performed by two acts) |
 | **W14-07 Interruption and replay** | Observation lost while waiting; recovery rebuilds dispositions from the record; recovered events not back-filled; held call dispatched unchanged; inspection replay issues nothing. Interruption is not run end; an ended run is never resumed — carrying work on is a new run *continues ⟨run⟩* that inherits nothing (S-14) | EXEC CH-3, CH-4, CH-5, CH-9, CH-21, RP-1…RP-8, §4.9. EXEC RT-11 now places CH-9 here too (R10-11; F-23 closed) | SQ-09 (c); SQ-19 (c) | AWAITING INPUT — SQ-09 (c) answered 2026-09-28: no durable receipt, `outcome_unknown` resolvable only within the controller session; SQ-19 (c): no host loop or host runs (not offered); SWBPIPE owner decisions (ANS §2); host joins deferred (DECISION-3) |
 | **W14-08 Supplied / adopted / observed** | App side: supplied guidance per thread/turn (HOSTING §8.2) and the model destination per turn where reported, requested and effective kept apart, run-level set of destinations observed (HOSTING §8.3; information only, S-12; R5-4); host side: per-turn guidance if recordable, else *unknown*; adoption *unknown*; observed behavior from run records, which on CA/E include each network destination the host's agent contacted (RS R15; V4-HI-70 as amended) | EXEC RT-5, CR-14 | SQ-19 (a), (b) | AWAITING INPUT — SQ-19 answered 2026-09-28: no host loop, no host run records or supplied guidance (not offered); the D-58 successor is a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) |
@@ -508,6 +712,106 @@ workflow in the governance phase (SoW TBD-003 (b)).
 - Transport acknowledgment or session de-duplication for a one-effect claim.
 - A pass on an earlier candidate after the candidate changes (V4-EXM-03);
   affected cases reopen without weaker criteria (V4-EXM-05).
+
+### 8.4 W14 result record (PROPOSED (B7); R12-1, R12-2; survey A.8 item 5)
+
+Each executed or not-run W14 case (§8.2) leaves one **W14 result record** per
+phase reading, split into parts where the case has several. The PROPOSED
+schema is [`w14-result-record.schema.json`](w14-result-record.schema.json)
+beside this file (JSON Schema 2020-12), with a valid instance (the W14-05
+rehearsal record of §8.5) and an invalid one. Names are Chirality semantic
+labels; no host or supplier wire field is selected, and no placement is
+chosen (R12-2; OI-013, OI-014). The record carries the examination result
+elements of EXAMINATION §1 in the same meanings as DEL-09-09's result record
+(XT-v0.6 §3.4, a cross-reference); a shared form, if any, is DEL-09-01's
+protocol (outside this undertaking).
+
+| Element | Meaning |
+|---|---|
+| Case, variant | W14-00…W14-10; a variant label such as (i′) |
+| Phase reading | *current* or *governance* (§8.1) |
+| Run kind | *joined witness* (identified App and host candidates), *rehearsal* (a test double) or *definition check* |
+| Evidence label | The C-v0.8 mapping (§7.1): *illustrative*, *test-double*, *actual host*, *not observed*, *limited* |
+| Subject of run | For a joined witness: the App candidate, the host candidate and the W14-00 record it cites; for a rehearsal: the double's identity, where it is specified and the sha256 of its files; for a definition check: the definition's version label |
+| Case state at run | DESIGNED, AWAITING INPUT or HELD, as §8.2 states it |
+| Configuration | Acting-surface variant (CA/E, CA/X, App only); native path (N-MCP, N-CLI, both); host profile; the model destination per turn where reported, or "not observed" — information only (S-12) |
+| Date | As evidenced |
+| Outcome | *passed*, *failed*, *blocked*, *not run* or *inconclusive* (EXAMINATION §1), aggregated over the parts by W-R6 |
+| Parts | Per part: what is examined, the expectation, its outcome, the cases it is built on, its observations, and, when not run, why |
+| Observations | What was observed and a reference to it (host document, host receipt, dispatch record, EXEC entries, compatibility report, RS entry, act record, relay evidence) — linked, never copied (V4-HI-71) |
+| Acts cited | Per act: record identity (RS §6), kind A1…A15, actor, recorder, the capture-evidence reference or the reason it is absent, and how it was counted (*after arrival*, *earlier act*, **"prior act not counted"** with its reason, *act on other content*) |
+| Evidence limits | RS R11 labels |
+| Missing inputs | Per input: what, from whom, and the relay question where one asks for it |
+| Blocked by | The step or case that stopped this one (W-R5) |
+| Completion | Whether the record counts toward OUT-003, with the reason |
+
+Rules (PROPOSED (B7); the schema checks W-R1…W-R4, the prototype checks the
+rest):
+
+- **W-R1** Only a *joined witness* labelled *actual host*, with an outcome
+  other than *not run*, can count toward OUT-003 (§8.1). A rehearsal, a
+  definition check or a component pass never does (§8.3).
+- **W-R2** A joined witness names its candidates and cites the W14-00 record;
+  a rehearsal names its double and the sha256 of its files.
+- **W-R3** A result that is *not run* or *blocked* names what is missing (input,
+  supplier, relay question) or what blocked it; a part not run says why.
+- **W-R4** A current-phase record carries no hold-support value and no hold
+  claim (EXEC PH-2, PH-3).
+- **W-R5** **Blocked mid-case.** When a step cannot proceed (its input, the
+  channel or the candidate fails), the case is *blocked* at that step, and
+  the parts that need that step's end state are *not run*, "blocked by
+  ‹step›" — never *failed*. Parts that do not need it may still run and
+  record their own outcomes. A double's state is never substituted for a
+  missing host state. (XT-v0.6 §3.5 SR-4 states the same rule for the suite.)
+- **W-R6** **Aggregation.** *failed* if any part failed; otherwise *blocked* if
+  any part is blocked; otherwise *passed* if every part passed; otherwise
+  *not run* if no part ran; otherwise *inconclusive*. A case outcome never
+  hides a failed part. A failure leads to diagnosis and repair without
+  weakening the criterion (V4-EXM-05).
+- **W-R7** Every cited act names an actor other than its recorder; no act is
+  cited from success, *queued*, a receipt, A14, model text or a user-input or
+  elicitation answer (R4-12; CAP-6).
+
+### 8.5 What each W14 case needs to run, and the rehearsals run on SH-1 (R12-1 verification; R12-3)
+
+A rehearsal exercises a case's meaning on test doubles: **SH-1**, the one
+simulated host (C-v0.8 §10.8; R12-4), driven over both native paths, with
+ADAPTER-v0.6's mapper for the App-side dispatch records and EXEC-v0.6's
+current-phase recorder and catalog doubles. Rehearsals never complete a W14
+case (§8.3; W-R1), establish nothing about SWBPIPE or any host, and involve
+no person's act.
+
+| Case | Needs to run as designed (joined) | Rehearsal on the doubles | Ran 2026-09-30: outcome (parts passed / not run / failed) |
+|---|---|---|---|
+| W14-00 | App candidate (later undertaking); SWBPIPE candidate (SQ-27; host joins deferred) | The doubles' identities and file digests recorded first | *inconclusive* (1/2/0): identification recorded; both candidates not run |
+| W14-01 | Host workflow library and reader (SQ-17); DEL-02-02 registration; a transfer-tracer double (EXEC §7.4: RT-1…RT-10 not run) | None: SH-1 has no workflow library | *not run* |
+| W14-02 | Host adaptation (SQ-18) | None | *not run* |
+| W14-03 current | The host's edition with exposure (SQ-11); a workflow reader (SQ-17) | EXEC's catalog double (MT-2, MT-16, MT-17 (X)); SH-1 discovery on edition e1 | *inconclusive* (2/2/0): the App-route values pass on required tools and the channel, with no hold value; OP-C9 *missing* from discovery on both paths on e1, nothing dispatched. Not run: display to the person (DEL-01-04); a check computed from the host's own edition |
+| W14-03 governance | As above | EXEC's catalog double | *passed* (1/0/0): MT-2 and MT-16 *does not pass* with the governed checkpoints *not enforceable*; MT-17 (X) `CP-accept` *not enforceable* |
+| W14-04 current | SQ-01, SQ-03, SQ-05; the person's A12 and A4; a host | SH-1 T15–T16 (direct OP-C9 on S-4 under ⟨set-2⟩) with EXEC's recorder; MT-2 | *inconclusive* (3/1/0): (i′) applied directly, no decision, no `CP-accept` arrival; (ii′) `CP-check` arrival recorded *waiting*, a later action carries only "continued past", the recorder writes entries only; (iii′) MT-2 passes. Not run: the A4 on S-4 (no A4 control on SH-1) |
+| W14-04 governance | A host-held route (SQ-02: none); a host loop (SQ-20); a hold-machine double | MT-2 | *inconclusive* (1/2/0): (iii) *unsupported* values hold; (i) and (ii), with CH-33, not run |
+| W14-05 | SQ-01; a person's act on invented material (DEP-09-06-024); DEL-01-04 for AF-1 | SH-1 T9–T12 with the mapper; EXEC's recorder (CH-20, CH-31 (i), (ii)) | *inconclusive* (5/2/0): *queued*, the receipt, the host check and a declined A14 create no act; the A5 on item 1 in the double's facility carries actor, capture reference and bound change item; CH-20 counts T2's A4; CH-31 (i) and (ii) record **"prior act not counted"** (content no longer current; another act kind). Not run: CH-23/CH-32 (DEL-01-04; OBS-1), a person's act |
+| W14-06 | SQ-03, SQ-23 | EXEC's recorder (CH-7, CH-8, CH-10) | *inconclusive* (3/3/0): "act lapsed at ‹t›" after resume with no *waiting*; answered by two acts (JA-1); *lapsed* after run end. Not run: a host-side lapse (no A4 on SH-1), the whole-model over-lapse (no SH-1 profile), CH-6 and CH-30 |
+| W14-07 | SQ-09 (c), SQ-19 (c) | SH-1 T13 with the mapper, including an endpoint restart | *inconclusive* (3/3/0): lost acknowledgement → *outcome unknown*, observer App; the later observation is its own record, nothing back-filled; retries answered from recorded state, never stale. Not run: interruption rebuild (RC-10), CH-9, a non-durable host restart |
+| W14-08 | OBS-1 (App-side supplied guidance and destination per turn at 0.158.0); SQ-19 | None | *not run* |
+| W14-09 | SQ-18; DEL-02-02 | None | *not run* |
+| W14-10 | SQ-18 | None | *not run* |
+
+**Command and result.** Run on 2026-09-30 (macOS, Python 3.13.7, standard
+library only):
+
+```sh
+cd "<this Design folder>"
+python3 -B prototype/run_w14_rehearsals.py --out "$TMPDIR/b7-w14"
+```
+
+Exit status 0: 12 records (W14-03 and W14-04 in both phase readings), each
+validates against `w14-result-record.schema.json`, no part failed, none counts
+toward OUT-003, every cited act names an actor other than its recorder; the
+valid example equals the regenerated W14-05 record (date aside) and the
+invalid example is rejected with three errors (a rehearsal counting toward
+OUT-003; a hold value in a current-phase part; "prior act not counted"
+without its reason). The full output is in `WAVE_B/B7.md`.
 
 ---
 
@@ -566,6 +870,9 @@ delivery, adoption or live readiness. Host joins are deferred (DECISION-3).
 
 Rebuilt from the ACTIVE EXECUTION rows of this deliverable's
 `Dependencies.csv` and the supplier-side rows that name DEL-09-06 (R9-6).
+The State cells give the Wave A labels; at v0.6 each supplier stands at the
+Wave B round-1 label listed in §5, and C-v0.8 §10.8 also specifies SH-1, the
+simulated host on which this file's rehearsals run (R12-4).
 Sibling files are cited by their Wave A labels and by section (R9-5, R9-11).
 Every section and identifier cited for them in §0–§11 was checked against
 their current text at this pass (§12.8, F-17). The eleven arcs to
@@ -710,6 +1017,46 @@ DAG-003 HANDOFF_STATE):
 | F-23 | §8.2 "Built on"; EXEC RT-11 | The two files map EXEC's CH cases to W14 cases differently. This file cites CH-20 (prior act not counted) under W14-05, and RT-11 lists CH-2, CH-23 and CH-28 there. RT-11 gives W14-06 the range CH-6…CH-10 and CH-30, which includes CH-9 (run ended while waiting; post-end act; continuation); this file cites CH-9 under W14-07. CH-8 and CH-30 were added to W14-06 here, since its text already states their content. No ruling or ScopeOfWork text decided where CH-9 and CH-20 belong | **Closed by R10-11:** the consumer's list governs; EXEC RT-11 is aligned to this file (CH-20 under W14-05; CH-9 under W14-07). Each case was checked to contain what this file takes from it: CH-20 shows an A4 captured before the arrival as "prior act, not counted"; CH-9 shows an ended run never resumed and a continuation *continues ⟨run⟩* that inherits nothing. **Annotated at node A4 (R11-9):** after DECISION-K1 K1-2, CH-20 (now on its own variant L-EXEC-30) shows an earlier act *counting*: T2's A4 counts for S-2 because its content is still current; it shows "prior act, not counted" only under the governance-phase option EXEC SP-6F. W14-05's "prior act not counted" negative (an earlier act whose content is no longer current, or of another kind) therefore needs its own case. No existing EXEC case shows it in the current phase, so it is returned for node B7; W14-05 keeps CH-20 for the counting case |
 | F-24 | §11.2; the Receivers line | DEL-09-09, DEL-02-03, DEL-05-01, DEL-05-02 and DEL-04-03 were listed as receivers without a register row. They are kept as cross-references only. DEP-09-07-011 names a selected operation, autonomy and environment that this file cannot supply before OI-021; DEP-09-06-020 names a reviewed workflow that is not authored. DEP-03-04-022 names only the relay files, while the guide also cites §2.2–§2.5, §4, §6, §7 and §8 of this file | Returned as register items for a later amendment; no register is edited here (R9-10) |
 
+### 12.10 Dispositions at v0.6 (Wave B, node B7)
+
+| # | Disposition |
+|---|---|
+| F-23 | **R11-9 applied.** W14-05 now cites EXEC-v0.6 **CH-31**, the current-phase case in which an earlier act does not count: (i) content no longer current, (ii) another act kind; both record **"prior act not counted"** with its reason (RS-v0.8 L-13). CH-20 stays under W14-05 for the counting case. EXEC-v0.6 RT-11 already lists CH-31 under W14-05, so the two files agree. The rehearsal ran (§8.5, W14-05). The wording "prior act, not counted" in the F-23 row above and in the change tables is history |
+| F-17 | **Re-checked for v0.6.** Every sibling section and identifier cited in the text added or changed at v0.6 (§0, §2.3.1, §2.4, §2.6, §8.2 rows W14-03…W14-05, §8.4, §8.5, §12.10, §12.11, the verification cases) was checked by script against the current sibling files: see `WAVE_B/B7.md` §8 |
+
+### 12.11 New findings at v0.6
+
+| # | Where | Finding | Proposed disposition |
+|---|---|---|---|
+| F-25 | §2.6 | Set against SWBPIPE's answers, **no step of the designed activity is examinable against SWBPIPE now** (0 of 10 rows): no identified candidate, the channel stays *not enabled* (no A13 facility) and host joins are deferred block every row, and CA-H also lacks a capture-evidence reference. On SH-1, 9 of 10 rows are examinable (3 fully, 6 in part); the round trip is not | Recorded as input to the owner's OI-021 choice; decides nothing; no join claimed |
+| F-26 | §2.6; §8.5; SH-1 (C-v0.8 §10.8) | SH-1 lacks what several rehearsals need: a person control for A4 (the "Checked" mark), a whole-model identity and staleness profile (the SWBPIPE form, R8-3, R8-4), an origin mark on the applied association, a session-scoped (non-durable) de-duplication and receipt profile, restart of its own records, and OP-C10 undo. These parts of W14-04…W14-07 and of the DEL-09-09 rehearsals are recorded *not run* | Returned to DEL-03-01 (SH-1's owner) as candidate SH-1 profiles; not edited here (join change) |
+| F-27 | §8.5; EXEC-v0.6 §7.4 | EXEC-v0.6's recorder prototype has no A5 item decisions (CE-7 with MX-1…MX-8), no observation loss and recovery (CE-13, CE-14) and no rebuild (RC-10), so W14-04's and W14-05's A5 arrival parts and W14-07's interruption parts rehearse only on SH-1's host documents | Returned to DEL-02-03 (join change); no change here |
+| F-28 | §8.2; EXEC-v0.6 RT-11 | B2 returned MT-17, CH-32 and CH-33 as unmapped to a W14 case. This file now maps MT-17 to W14-03 (governance part), CH-32 to W14-05 (App-side variant) and CH-33 to W14-04 (governance part) | EXEC RT-11 to add the three (join change; the consumer's list governs, R10-11) |
+| F-29 | §2.3.1 CAF-10, CAF-32, CAF-34 | Three failure rows cite labels that R13 will rule: the R12-9 reading of a read without lineage (B3's proposal), and the evidence limits "resubmission without prior observation" and "App-restart interruption" (B4's proposal for RS R11) | Cited as proposed; follow R13 at the next pass |
+
+---
+
+## Changes from v0.5
+
+v0.5 = CA-v0.5 (sha256 0c3ac6557a04e92dbdfd110254da872f7438a1c5e10e269c56d3c5af166714db, last changed at `c896a99d90`). Design development (Wave B round 2, node B7 of run APP-V4-DESIGN-PASS-2-20260930) under R12_RESOLUTIONS.md and R11-9. "Survey" is SURVEY/S1-E.md, part A, section 8. Every new structure is PROPOSED (B7) unless a cited text decides it. No rule, disposition or case result of v0.5 is changed; the W14-05 row gains CH-31 and CH-32, and W14-03 and W14-04 gain MT-17 and CH-33.
+
+| Item | Change in v0.6 | Where |
+|---|---|---|
+| **R12-1** (survey 5, first part) | Failure behaviour per step: CAF-1…CAF-39 on the §2.3 step map, each with what fails, who reports it, the record left (RS-v0.8 §13.3 or EXEC-v0.6 §2.4.2 entry kinds), what happens next and the case that examines it; joined to the owners' sequences, changing none | new §2.3.1 |
+| **R12-1** (survey 6) | §2.4 rewritten as the current-phase operating sequence (arrivals recorded, requests by the agent, acts only when performed, "continued past", "act lapsed at ‹t›"), with the governance reading as the annotation (G-1…G-4); the graduated-autonomy branch in the current phase (`CP-accept` not reached under a direct application); the SWBPIPE reading kept | §2.4 |
+| **R12-6** (survey 9) | Option sheet: each step (with the graduated-autonomy branch and the round trip) against SWBPIPE's answers (data), examinable against SWBPIPE now (0 of 10) and on SH-1 (9 of 10, 3 fully); common blockers B-1…B-5; what the answers offer the owner's choice; revision triggers. Selects nothing; claims no join. DI-1 points to it | new §2.6; §2.5 DI-1 |
+| **R12-1, R12-2** (survey 5, second part) | W14 result record: element table and rules W-R1…W-R7; PROPOSED schema `w14-result-record.schema.json` with a valid and an invalid example | new §8.4; files beside this one |
+| **R12-1, R12-3, R12-4** | What each W14 case needs to run and the rehearsals run on SH-1 and EXEC-v0.6's doubles, with the command and result; prototype `prototype/run_w14_rehearsals.py` and README | new §8.5; `prototype/` |
+| **R11-9** (R12-10) | W14-05 cites EXEC-v0.6 CH-31 ((i) content no longer current; (ii) another act kind) with the "prior act not counted" wording; F-23 disposition | §8.2 W14-05; §12.10 |
+| B2 return (MT-17, CH-32, CH-33) | Mapped: MT-17 → W14-03, CH-32 → W14-05, CH-33 → W14-04 | §8.2; §12.11 F-28 |
+| **R12-10** (V17-A N-4; B4) | The one record wording "prior act not counted" with its reason, stated in §0; A15 added to the act range (R12-5) | §0 |
+| **R12-4** | SH-1 (C-v0.8 §10.8) named as this file's simulated host; no double defined here | Header; §0; §8.5 |
+| Currency | EXEC's Wave B recorder cited for how an App run observes arrivals and requests (the Phase line said "defined in EXEC in Wave B"); Wave B round-1 sibling labels noted in §5 and §11.1 | Header; §5; §11.1 |
+| Findings | F-25…F-29 (§12.11) | §12.10, §12.11 |
+| Verification | VC-CA-09…VC-CA-11 | Verification cases |
+
+Identifiers kept. Added: §2.3.1, §2.6, §8.4, §8.5, §12.10, §12.11, CAF-1…CAF-39, B-1…B-5, G-1…G-4, W-R1…W-R7, F-25…F-29, VC-CA-09…VC-CA-11. No identifier retired.
+
 ---
 
 ## Changes from v0.4
@@ -815,7 +1162,7 @@ Identifiers kept: CA-0…CA-5, CA-H, CA-R, DI-1…DI-8, WR-1…WR-10, WF-1, WF-1
 
 | Item | Owner | Point of need | Effect on this definition |
 |---|---|---|---|
-| `UNRESOLVED{OI-021}` operation(s), non-mutating check, autonomy, environment, acting-surface variant (DI-1…DI-3) | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and execution | Draft contract only; FX-PIPE-01 proposed fixture; OP-C11-dependent production HELD. Stays open (R8-10); SQ-04 answered with no selection; candidate operations recorded in DI-1 |
+| `UNRESOLVED{OI-021}` operation(s), non-mutating check, autonomy, environment, acting-surface variant (DI-1…DI-3) | Owner via outside SWB session and App/shared owner | Before connected-activity SoW and execution | Draft contract only; FX-PIPE-01 proposed fixture; OP-C11-dependent production HELD. Stays open (R8-10); SQ-04 answered with no selection; candidate operations recorded in DI-1; the option sheet (§2.6) sets every step against SWBPIPE's answers and SH-1, and selects nothing |
 | Operation-specific reserved additions (OI-021 residue of OI-001) | Same owners; host names its list (V4-HI-30) | Before operation-policy production contracts | D2 applied to App/shared contracts only |
 | Host adoption of D2/D3 and treatments (DEP-001) | SWBPIPE owner; its autonomy is SWBPIPE owner decision OI-016 (ANS §2) | Before any enforcement claim | Treatment behavior is receiving meaning. SWBPIPE (SQ-05): no class system, grants or named reserved list; every change waits for Apply |
 | DEP-001 contributions EC-01…EC-11, EC-13, EC-14 | SWBPIPE owner via the human. Answers received 2026-09-28 (§9 *answered*). What remains are SWBPIPE owner decisions (ANS §2): UI-SUCCESSOR and the App's Codex as a caller, OI-016 autonomy, the durable receipt carrier, PB-TBD-002 / DEL-16-03, the Checked-mark tranche, an MCP adapter, the D-58 successor, DEC-051, a host-held checkpoint route, an A13 facility; and a work item to receive App workflows (ANS §4) | when the owner resumes UI-SUCCESSOR (DECISION-3); then per §9 | All W14 cases AWAITING INPUT, with the STD-2 annotation; host joins deferred (DECISION-3) |
@@ -829,6 +1176,7 @@ Identifiers kept: CA-0…CA-5, CA-H, CA-R, DI-1…DI-8, WR-1…WR-10, WF-1, WF-1
 | Per-subject content identity (V4-HI-32) not met by SWBPIPE, which supplies only a whole-model identity (R8-4; F-19) | SWBPIPE (PB-TBD-002 / DEL-16-03); owner notice | Before host act-binding integration | Whole-model identity received for every covered subject; over-lapse, never under |
 | Host joins deferred: DEL-09-06 joined witness, SWBPIPE-side examination, naming the App's Codex as a caller (DECISION-3; SoW TBD-003 (c); DEP-09-06-034; F-20) | Owner | when the owner resumes UI-SUCCESSOR (DECISION-3) | Nothing here claims a join, witness or adoption |
 | DEL-09-01 evidence protocol; DEL-09-07 local qualification (outside D1) | Their owners | Before candidate-bound results | Labels per C mapping only |
+| R13 rulings on R12-9: a read without workspace identity or generation (B3's proposal) and the two evidence limits "resubmission without prior observation" and "App-restart interruption" (B4's proposal for RS R11) | The integrator (R13) | Before the second review (V19) | CAF-10, CAF-32 and CAF-34 cite them as proposed (F-29) |
 | `UNRESOLVED{OI-013}` / `UNRESOLVED{OI-014}` placement | Shared contract owner with SWB implementation owner; App/shared owners | Before implementation boundary contracts | No placement implied |
 | `UNRESOLVED{OI-003}` extension promise (App v4 OI-003; unrelated to SWBPIPE's own OI-003, SQ-26) | Owner with host contract owner | Before extension claim | Not part of the first activity; DEL-09-09 |
 | Reusable workflow authoring and review (OUT-002 artifact) | Workflow maker with DEL-02-02 (later) under `create-workflow` | Before W14-01 | §3 requirements only; WF-1 fixture |
@@ -852,3 +1200,6 @@ the witness itself is §8.
 | VC-CA-06 Staging | Check §6 against decision 05, PRD §2.3/§3.1/§8 and CLM-006 | No PEC/Domains prerequisite; ST-1 independent; each stage names its inputs; no stage claims a later one | VER-006 (AC-006) |
 | VC-CA-07 Evidence standing | Check §7 and §8.1/§8.3 against EXAMINATION §1–2 | Candidate/configuration/date required; replay, test double and component passes cannot complete OUT-003 | VER-007 (AC-007) |
 | VC-CA-08 Ownership | Check §5 and §10 one-for-one against REQ-008 and CLM-002…006 | Every excluded act has its owner; DEL-09-06 keeps joining and OUT-003; no policy decided; no shared construction assumed; no acceptance, release, replacement or reliance claimed | VER-008 (AC-008) |
+| VC-CA-09 Failure behaviour per step (v0.6) | Check §2.3.1 against §2.3 and the owners' sequences it cites (EXEC-v0.6 §2.6; C-v0.8 §2.3, §7.1; P-v0.8 §3.5, §4.7; ADAPTER-v0.6 §3.6, §4.6, §8; ACT-POLICY-v0.8 §4.7; RS-v0.8 §14) | Every step CA-0…CA-R has its failures, each with a reporter, a record, a next step and an examining case; no row holds, pauses, blocks or refuses a run on a checkpoint's account; no row changes an owner's rule | REQ-001, REQ-004 (AC-001, AC-004) — definition only |
+| VC-CA-10 W14 result record (v0.6) | Validate every record the rehearsal prototype writes, and the committed examples, against `w14-result-record.schema.json`; check W-R5…W-R7 in the prototype | Every record validates; the invalid example is rejected; no rehearsal counts toward OUT-003; every cited act names an actor other than its recorder. **Ran** on 2026-09-30 (§8.5), label *test-double* | VER-003, VER-004, VER-007 (AC-003, AC-004, AC-007) — design and rehearsal only |
+| VC-CA-11 Option sheet (v0.6) | Check §2.6 against RELAY_ANSWERS_SWBPIPE.md (as data), C-v0.8 §10.8 and §8.5 | Every step has a row; each SWBPIPE cell cites its SQ and keeps the answer's standing label; nothing is selected, ranked, committed or joined; the SH-1 column matches what the rehearsals ran | VER-001, VER-005 (AC-001, AC-005) |

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:xt-work-account",
+  "title": "Generated-versus-adapted work account and OI-003 disposition record (DEL-09-09 XT-v0.6 §5.1, §5.1.1, §5.2; PROPOSED, node B7; R12-1, R12-2)",
+  "description": "One account per traced operation: one row per surface × element, each tied to the C-v0.8 §8 row it observes (§5.1.1), plus the App v4 OI-003 disposition record, recorded and never performed. The account records what was observed; C §8's cells record agreement with the host owner, and an observed route never changes a C §8 cell. No effort, time, cost or saving field exists (AX-001; §5.1 rules).",
+  "type": "object",
+  "required": ["account_kind", "format", "operation", "evidence_label", "subject_of_run", "date", "rows", "disposition"],
+  "additionalProperties": false,
+  "properties": {
+    "account_kind": {"const": "xt_work_account"},
+    "format": {"const": "proposed-0.1"},
+    "operation": {
+      "type": "object",
+      "required": ["operation_identity", "operation_version", "edition_addition_event"],
+      "additionalProperties": false,
+      "properties": {
+        "operation_identity": {"type": "string", "minLength": 1},
+        "operation_version": {"type": "string", "minLength": 1},
+        "edition_addition_event": {
+          "oneOf": [
+            {"type": "object", "required": ["from_edition", "to_edition", "reporter"], "additionalProperties": false,
+             "properties": {"from_edition": {"type": "string"}, "to_edition": {"type": "string"}, "reporter": {"const": "host"}, "observed_at": {"type": "string"}}},
+            {"type": "object", "required": ["not_observed"], "additionalProperties": false,
+             "properties": {"not_observed": {"type": "string", "minLength": 1}}}
+          ]
+        }
+      }
+    },
+    "evidence_label": {"enum": ["illustrative", "test_double", "actual_host", "not_observed", "limited"]},
+    "subject_of_run": {"type": "string", "minLength": 1, "description": "Candidates (XC-00) or the double's identity."},
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"},
+    "rows": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/row"}},
+    "disposition": {"$ref": "#/$defs/disposition"}
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "required": ["surface", "element", "c8_row", "production_route_before", "change_made", "other_changes_required", "contributor", "evidence", "limits"],
+      "additionalProperties": false,
+      "properties": {
+        "surface": {"enum": ["H", "E", "X", "App-X"]},
+        "element": {"enum": ["entry_discovery", "catalog_level_interface", "exposure", "input_schema", "availability_and_reason", "effects_and_resulting_objects", "result_and_standing", "errors", "class_element", "constraint_receipt", "read_basis", "proposal_views", "native_mapping", "loop_tool_offering", "app_receiving_configuration"]},
+        "c8_row": {
+          "description": "The C-v0.8 §8 row this account row observes, or 'none (receiving side)' for the three receiving-side elements (§5.1.1).",
+          "enum": ["Entry discovery", "Catalog-level interface", "Exposure per surface", "Input schema / argument checking", "Loop-side catalog-schema argument checking", "Availability + reason", "Effects / affected objects / resulting objects", "Result content + standing", "Errors", "Class element", "Governing checkpoint constraint", "Read basis, subject content identities, method designation", "Proposal views", "none (receiving side)"]
+        },
+        "production_route_before": {"enum": ["generated", "checked", "hand_built", "unagreed", "not_observed"]},
+        "change_made": {"enum": ["none", "generated_automatically", "regenerated_by_a_step", "hand_change", "not_observed"]},
+        "other_changes_required": {"enum": ["yes", "no", "unknown"]},
+        "contributor": {"type": "string", "minLength": 1},
+        "evidence": {
+          "oneOf": [
+            {"type": "object", "required": ["link"], "additionalProperties": false, "properties": {"link": {"type": "string", "minLength": 1}}},
+            {"type": "object", "required": ["not_observed"], "additionalProperties": false, "properties": {"not_observed": {"type": "string", "minLength": 1}}}
+          ]
+        },
+        "limits": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "description": "A-R1: an unobserved change cannot claim 'no other changes' ('unknown' is never read as 'no').",
+          "if": {"properties": {"change_made": {"const": "not_observed"}}},
+          "then": {"properties": {"other_changes_required": {"const": "unknown"}}}
+        },
+        {
+          "description": "A-R2: receiving-side elements tie to no C §8 cell; host-side elements tie to their row.",
+          "if": {"properties": {"element": {"enum": ["native_mapping", "loop_tool_offering", "app_receiving_configuration"]}}},
+          "then": {"properties": {"c8_row": {"const": "none (receiving side)"}}},
+          "else": {"not": {"properties": {"c8_row": {"const": "none (receiving side)"}}}}
+        }
+      ]
+    },
+    "disposition": {
+      "type": "object",
+      "required": ["original_promise", "status", "while_unruled"],
+      "additionalProperties": false,
+      "properties": {
+        "original_promise": {"const": "V4-PAR-05 / V4-HI-03: adding an operation makes it available to the person, the embedded agent and the external agent without separate work"},
+        "status": {"enum": ["UNRESOLVED{OI-003}", "ruled"]},
+        "ruling": {
+          "type": "object",
+          "required": ["option", "decision_actor", "date", "source_record", "custody", "supersession", "consequences"],
+          "additionalProperties": false,
+          "properties": {
+            "option": {"enum": ["retain", "narrow", "defer"]},
+            "decision_actor": {"type": "string", "minLength": 1},
+            "date": {"type": "string", "minLength": 1},
+            "source_record": {"type": "string", "minLength": 1},
+            "custody": {"type": "string", "minLength": 1},
+            "chosen_surfaces_or_staging": {"type": "string", "minLength": 1},
+            "supersession": {"type": "string", "minLength": 1},
+            "consequences": {"type": "string", "minLength": 1}
+          }
+        },
+        "criterion_examined": {"type": "string", "minLength": 1},
+        "while_unruled": {"const": "evidence only: no extension criterion and no pass are established; no weaker criterion is adopted"}
+      },
+      "if": {"properties": {"status": {"const": "ruled"}}},
+      "then": {"required": ["ruling", "criterion_examined"]},
+      "else": {"not": {"anyOf": [{"required": ["ruling"]}, {"required": ["criterion_examined"]}]}}
+    }
+  }
+}
