@@ -28,3 +28,6 @@ not on the executor's report. A user-level agent definition
 | K1 | Owner: "accept all six as recommended" (DECISION-K1) |
 | A1 returns | All five integrated; fences verified; RELAY span unchanged; committed `344d86e3e`. R10 written (R10-1 corrects R9-2). HANDOFF truth fixes by the integrator `dda9380d1` |
 | A2 | First launch (Fable 5.1) stopped by the integrator on the owner's model direction; its partial edits to 12 files were saved to the session scratchpad and discarded (`git checkout` of those files only; all earlier work was committed). Relaunched on Opus 5.5 at high effort with the same brief plus a note to leave DECISION-K1 to A3 |
+| A2 return | Opus 5.5: R10 applied in 12 files; 3 citation fixes; 3 content mismatches (one dangling ID, passed to A3; two W7 history citations left as history). Fence and RELAY span verified; committed `42456ca08` |
+| A3 | Opus 5.5: DECISION-K1 written into 13 files; 37 designed-case results recomputed; ADAPTER and RELAY had no live carrier. Fence and RELAY span verified; committed `ce4088219`. Observations: EXEC CH-20 and WD-EX L-WDEX-7 bind different supports by their own statements (no conflict; no ruling); SP-6F has no declaration element to take it up (Wave B, B1) |
+| A1-G | Opus 5.5: GUIDE v0.3 → v0.4, re-pinned last |

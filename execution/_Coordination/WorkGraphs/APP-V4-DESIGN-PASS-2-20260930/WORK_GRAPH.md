@@ -62,9 +62,9 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | S2 Route: nodes for the pass, owner questions | This graph; `BRIEFS.md`; `R9_RESOLUTIONS.md` | S1 | Each node bounded with a write fence and a check | COMPLETE for Wave A; Wave B nodes are named below and briefed after Wave A integrates |
 | **Wave A — alignment** | | | | |
 | A1-A…A1-E Re-pin, amended-basis wording, revised-SoW alignment, records-closed items, receivers | The 15 Design files by cluster (ACT, AS, RS / C, P, ADAPTER / WD, WD-EX, EXEC / LOOP, PANEL, HOSTING / CA, RELAY metadata, XT); `WAVE_A/<ID>.md` | S2; [R9](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R9_RESOLUTIONS.md) | Each file one version step (R9-11); no leftover stale wording; RELAY §0–§3 byte-identical; PIN_SPIKE untouched | COMPLETE `344d86e3e` — fences verified; RELAY span `6e399c83…` unchanged; DAG-003 source manifest 130/130; 11 disagreements returned → [R10](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R10_RESOLUTIONS.md) (R10-1 corrects R9-2) |
-| A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A3 | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | PLANNED |
-| A2 Apply R10; sibling-citation pass over the 15 files; HANDOFF truth fixes | 15 Design files; `WAVE_A/A2.md`; `HANDOFF_SWBPIPE_DOMAINS.md` (integrator) | A1 | R10 applied; every cross-file citation checked; RELAY span unchanged | ACTIVE — HANDOFF done `dda9380d1` (current standing; "local-first" superseded; unrelayed-changes list); R10 and citations with one Type 2 |
-| A3 Apply DECISION-K1 in the files: requester SETTLED; prior act counts in the current phase (SP-6 kept as governance option); partial lapse; identity scheme; allow-list rule (N-OPEN-4 closed) | 15 Design files; `WAVE_A/A3.md` | A2; K1 | Every file that carries the affected rule or case updated; expected case results recomputed | PLANNED |
+| A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A3 | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | ACTIVE |
+| A2 Apply R10; sibling-citation pass over the 15 files; HANDOFF truth fixes | 15 Design files; `WAVE_A/A2.md`; `HANDOFF_SWBPIPE_DOMAINS.md` (integrator) | A1 | R10 applied; every cross-file citation checked; RELAY span unchanged | COMPLETE `42456ca08` — 12 files; 3 citation fixes; 1 dangling citation passed to A3; HANDOFF `dda9380d1` |
+| A3 Apply DECISION-K1 in the files | 15 Design files; `WAVE_A/A3.md` | A2; K1 | Every carrier updated; expected case results recomputed | COMPLETE `ce4088219` — 13 files; 37 case results recomputed; new rules SP-6 (current phase) with SP-6F kept for the governance phase, JA-1 joint answer; N-OPEN-4 closed. Carried to Wave B: a declaration element for taking up SP-6F (B1) |
 | V17 Independent review of Wave A | `reviews/V17.md` | A1-G | Verdict covering the candidate | PLANNED |
 | P1 PR-1: Wave A | — | V17, CI | Merged under the standing direction | PLANNED |
 | **Owner package** | | | | |
@@ -99,5 +99,4 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When A2 returns: verify its fence and the RELAY span, commit, then dispatch
-A3 (apply DECISION-K1), then A1-G (GUIDE last), then V17.
+When A1-G returns: verify its fence and pins, commit, then dispatch V17 (independent review of the Wave A candidate), then open PR-1.
