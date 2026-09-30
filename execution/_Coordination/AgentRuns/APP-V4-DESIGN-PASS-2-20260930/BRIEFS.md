@@ -481,7 +481,8 @@ B6), with these integrator decisions under K1-6:
 - **Part C** (direct Chat Completions requests to the same local server, for
   LOOP's fixture basis) is allowed: local, invented content, no Codex turn.
 - **Part D** (per-thread MCP configuration, no model call) is allowed.
-- **Part B** (a second Codex turn on the command-line path) is **not** run:
+- **Part B** (a second Codex turn on the command-line path): first held back, then **approved by the owner** during the run ("yes, run the second Codex turn on the command-line path"; OWNER_DECISIONS) and relayed to the executor. The two lines below are the original text:
+  not run:
   K1-6 names one turn. It is put to the owner with OBS-1's result.
 - **S-8 (no tool call):** stop and return. The executor does not download
   anything; HELP_HUMAN decides the next step under the owner's answer.

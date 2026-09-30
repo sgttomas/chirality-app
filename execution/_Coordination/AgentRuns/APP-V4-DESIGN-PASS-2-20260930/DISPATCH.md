@@ -43,3 +43,4 @@ not on the executor's report. A user-level agent definition
 | Round 1 return | B1, B2, B3, B4, B6, B9 returned; fences verified; the integrator reran every prototype (HOSTING 35/35, WD 54/54, EXEC all hold, C 21/21 and schemas, P, ADAPTER mapper on the SH-1 run, ACT, AS, RS, LOOP 19/19, PANEL 4/4): all pass. Committed `5970e0a5b`. Join changes collected for V18 from the six return files |
 | Round 2 | B5 and B7 launched (Opus 5.5) |
 | OBS-1 | Launched (Opus 5.5) under the B6 brief with the integrator's decisions in BRIEFS (P-5, parts C and D allowed; part B not run; no download; R-1 only) |
+| OBS-1 Part B | Owner approved the second turn; relayed to the running OBS-1 executor by message, with the same limits |

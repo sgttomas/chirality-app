@@ -137,3 +137,17 @@ No amendment. LOOP states that its model interface sits behind one boundary
 so a second interface (Responses being the likely one) can be added later
 without restructuring; this is design, not a selection. The App side is
 unaffected: stock Codex uses the Responses API to reach its model.
+
+## OBS-1 second turn on the command-line path (owner, exact, 2026-09-30)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after HELP_HUMAN reported
+that OBS-1's optional Part B (a second Codex turn on the command-line path,
+which is the seam SWBPIPE uses) had been held back because K1-6 named one
+turn, and would be put to the owner with the first turn's results.
+
+> yes, run the second Codex turn on the command-line path
+
+**Effect:** OBS-1 runs Part B of `WAVE_B/OBS-1_BRIEF.md` §11 as a second turn
+on the same thread, with the same limits: the local model already installed,
+invented material only, no sign-in, no download, route R-1, no further turn.
+HELP_HUMAN relayed the decision to the running OBS-1 executor.
