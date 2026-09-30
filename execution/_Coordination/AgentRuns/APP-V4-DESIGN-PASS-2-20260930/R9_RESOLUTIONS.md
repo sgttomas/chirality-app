@@ -64,6 +64,9 @@ agents to manage their own behaviour accordingly."
   clause are in force whatever the autonomy setting; whether the run goes on
   before the act is for the person and the agents in the current phase, and
   the host's own treatment of its operations decides what the host does.
+- **Corrected by [R10-1](R10_RESOLUTIONS.md):** the bullet below is wrong
+  for this case and is kept only as the record of what was ruled. The
+  checkpoint is *not reached*, and nothing is requested.
 - **R8-12 item 2** (FX-C9 / PC-24) now reads: when the active grant lets the
   host apply directly, no proposal arises and the host may apply. If the
   workflow declares a checkpoint there, its act is still requested, no act is

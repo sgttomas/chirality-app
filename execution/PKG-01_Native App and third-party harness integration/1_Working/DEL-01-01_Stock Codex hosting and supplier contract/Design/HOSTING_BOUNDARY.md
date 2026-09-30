@@ -1,13 +1,13 @@
 # Stock Codex hosting boundary
-- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.6 (supersedes HOSTING-BOUNDARY-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b)
+- Contribution: DEL-01-01/HOSTING-BOUNDARY-v0.7 (supersedes HOSTING-BOUNDARY-v0.6, last changed at `3733b1421` and unchanged at `3dd7c22c73`, file sha256 d11d4c574aa3c342bfac9c1d1e9bf3746aa885baafd17eaa296a79a523e3d0b9; earlier: HOSTING-BOUNDARY-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 f1a23022df76fe04bfc5ad2220b57d2cdebc101f8d791b4edb163aea6109e11b)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
-- Phase (R8-1; DECISION-4 D4-1): in Phase 1 (this increment) no App run is holding at a checkpoint, so this boundary uses none of HP-3 or HP-4 for a checkpoint and makes no hold claim (§6.7). The §6.7 hold-point facts are kept as the **governance-phase definition (retained)**.
-- Model access (R8-9; DECISION-4 D4-3): local and cloud are options the person chooses among, with no default; a cloud model is reached by OAuth sign-in or an API key. This boundary selects no default and carries the supplier's sign-in and API-key variants (§8.1 L-5; S-4).
-- Network destinations (R8-13; DECISION-5): DECISION-5 (the revised V4-HOST-02, host-agent network destinations) governs a **host's embedded agent only**. The App's own Codex keeps the person's Codex configuration, approval and sandbox choices (§2 note; Root AGENTS.md; D-GOV-43). This boundary adds no allow list, destination prompt or destination gate to the App's Codex.
+- Phase (V4-WF-05 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1): holding a run at a checkpoint is phased to the governance layer, and in the current phase (Phase 1) neither the App nor a host's embedded loop enforces a hold. So no App run is holding at a checkpoint, and this boundary uses none of HP-3 or HP-4 for a checkpoint, makes no hold claim and issues no act request in an agent's place (§6.7). The §6.7 hold-point facts are kept as the **governance-phase definition (retained)**.
+- Model access (R8-9; DECISION-4 D4-3): local and cloud are options the person chooses among, with no default; a cloud model is reached by OAuth sign-in or an API key. V4-HOST-01 and V4-ARC-11, as amended by SCA-V4-001, state this for a host's agent. This boundary selects no default and carries the supplier's sign-in and API-key variants (§8.1 L-5; S-4).
+- Network destinations (R8-13; DECISION-5): V4-HOST-02 as amended by SCA-V4-001 (DECISION-5; host-agent network destinations) governs a **host's embedded agent only**. The App's own Codex keeps the person's Codex configuration, approval and sandbox choices (ARCH §4, closing sentence of the host-agent property; §2 note; Root AGENTS.md; D-GOV-43). This boundary adds no allow list, destination prompt or destination gate to the App's Codex.
 - Serves: OUT-001 (boundary definition), OUT-002 (version-identity and plan/revision seam definition; generated-output binding at the definition/generation pin — the generated bundles themselves are the W11 spike's, not this file's), OUT-003 (responsibility account, OI-008 *proposal*, local-provider requirement account, optional-reuse assessment), OUT-004 (recorded-exchange and upgrade method); REQ-001…REQ-008; designed cases for VER-001…VER-007
-- Basis: branch base 6e18505e3; ScopeOfWork.md sha256 eddd122cf8b6e2c1ce5933ddb82aa9ec8591baa138a20f439e171ce5d83c4773; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
-- Consumed inputs: **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table. **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12: item 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3; this file's own spike record DEL-01-01/PIN-SPIKE-v0.1 is unchanged. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3). **v0.6 inputs (R8 pass, node A4, at `94aa9181b`; read with `git show`):** `R8_RESOLUTIONS.md` (run `APP-V4-SWBPIPE-INTAKE-20260928`, sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02; R8-1, R8-2, R8-9 applied, R8-11 read; the others checked, none addressed to HOSTING text), `OWNER_DECISIONS.md` of that run (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `-DECISION-4` with its clarification: D4-1 phased checkpoints, D4-3 model access), `INTAKE_MAP.md` (I2, sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33; rows 01.14, 02.17, 16.2, 19.5, 29.3; Part 2 §2.2 HOSTING rows; Part 4.11 D6 row), `BRIEFS.md` (sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517; "A-wave"), SWBPIPE's delivered answers `RELAY_ANSWERS_SWBPIPE.md` (sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7; SQ-02; data about SWBPIPE's current state, not commitments, DECISION-3), DEL-02-03/EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` (sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4; §2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §2.3 HP-1…HP-4 and HP-H, CH-22) and DEL-02-01/WD-v0.6 `WORKFLOW_DECLARATION.md` (sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28; §4.3.0, §4.3.1 `governed`). **Earlier:** DEL-01-01/HOSTING-BOUNDARY-v0.4 (sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58, commit cc58211c5); **at commit 8fb51f07f, read with `git show` (current sibling versions):** `R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1; R5-1, R5-4, R5-9 applied), `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3; m-5 and the m-1 note on §8.3), `reviews/V3-A.md` (sha256 f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87; no item addressed to HOSTING), DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` (sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0; §2 HP-1…HP-4, HP-H; §3.6; §5 CAP-2/6/9; U-E20 withdrawn), DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc; §3.4, §3.5, OC-2/3/6/7, F-3, F-9), DEL-04-03/RS-v0.4 `RECORD_SEMANTICS.md` (sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199; R5 model destination, R13 tool-permission settlements). EXEC-v0.3 and ADAPTER-v0.3 are being produced in the same R5 pass; this file cites their v0.2 bytes and R5-1's ruled values. **R6-4 (in place):** DEL-02-03/EXEC-v0.3 `EXECUTION_COMPATIBILITY.md` (commit d3cebd1cc, sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e) consumed for §2 HP-1…HP-4, HP-H and the HP-4 scope ruling. Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.3 (sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e, commit ba0b37123); **at commit f05c7e4cd, read with `git show`:** `R3_RESOLUTIONS.md` (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R3-1…R3-4 read, none addressed to HOSTING), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24; R4-1, R4-2, R4-12, R4-13, R4-19 applied), `OWNER_DECISIONS.md` with Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; D5, D6), DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8; superseded, see above), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074; §3.4, §3.5, OC-3, F-3, F-9); the committed 0.158.0 JSON Schema bundle `json-schema/experimental/codex_app_server_protocol.v2.schemas.json` and `_spike/inventory.txt` (for the MCP surface and `turn/interrupt` facts in §6.7–§6.8). Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e at that time), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
-- Receivers: DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022 and DEP-01-01-024; DEL-01-06 (distribution identity for packaging) via DEP-01-01-023; DEL-02-04 (additive guidance, seam S-6; register row missing, V1-C RF-6, routed to C1); DEL-02-01 / DEL-05-01 / DEL-05-02 (J9: guidance carriage, answer origin); DEL-02-03 (EXEC hold points HP-2/HP-3, CAP-6: §6.7, R9); DEL-03-03 (MCP surfaces, channel status, model destination: §6.8, §8.3); App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then.
+- Basis: the accepted basis as amended by scope-change amendments SCA-V4-001 (`_ScopeChange/SCA-V4-001_2026-09-28_2155/`, accepted 2026-09-29) and SCA-V4-002 (`_ScopeChange/SCA-V4-002_2026-09-29_1901/`), pinned by current bytes: `docs/PRD.md` sha256 bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, `docs/ARCHITECTURE.md` sha256 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, `docs/HOST_INTEGRATION.md` sha256 d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f and `docs/EXAMINATION.md` sha256 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (v0.6 pinned branch base `6e18505e3`, before both amendments; of the passages this file cites, the amendments changed ARCH §1 priority 3, the host-model line of the ARCH §2 diagram and ARCH §4); ScopeOfWork.md sha256 9945e72b04b4f45c4c641a5248cca8bc2ac40bf4897d1018c5ab59eba307cc75 (revised under SCA-V4-001, its AX-005, at `340ecf341`, and under SCA-V4-002, its AX-006, at `1efd4bcda`; v0.6 pinned the INIT contract eddd122c…4773); the accepted graph `_DAG/_LATEST.md` → DAG-003 (accepted 2026-09-29), cited for the admitted or held layer of register rows; `docs/ARCHITECTURE.md` §1 (priorities, M-2, M-4, M-6, M-7), §2, §3 (V4-ARC-01…05, "Properties the App must hold", reuse candidates, "Left to the implementation session"), §6, §7, §8; `docs/PRD.md` §2.1 (V4-APP-01…04), §4.3 (V4-EXE-01…04), §4.5 (V4-AUT-03/04), §4.7 (V4-REC-03), §5 (V4-CST-01/03/06), §6; `docs/EXAMINATION.md` §2 (V4-EXM-01…03), V4-EXM-11/12; current `_Decomposition/Open_Issues.csv` OI-008, OI-009, OI-012; `External_Dependencies.csv` DEP-005
+- Consumed inputs: **v0.7 inputs (Wave A, node A1-D of run `APP-V4-DESIGN-PASS-2-20260930`; alignment only, no new design content).** R9_RESOLUTIONS.md sha256 c3efe2ffa232dd9293202d4fc891eba4325afeb2e224fecdf8c1b4c5122a9d2c (R9-1…R9-11; binding; R9-7 rules the evidence route to DEL-04-03); that run's BRIEFS.md sha256 698d91d8217cee528812529fa353faac899b4bc1a5be5686552ad88dad6c469a ("Common rules", "A1 — alignment wave") and OWNER_DECISIONS.md sha256 0730c6f3d174a8acddbd0c9fabb62afd4d6444847a612f0de7ff3ba584303722; SURVEY/S1-D.md sha256 a3b0546af4131e0302520bc0dbaad8d6d5587e91d896fb8aa559e32768b19419 (advice: each item was checked against the current sources before it was applied). Rulings R1–R7 by file (`APP-V4-FIRST-INCREMENT-20260928/R1_RESOLUTIONS.md` … `R7_RESOLUTIONS.md`) and R8 (`APP-V4-SWBPIPE-INTAKE-20260928/R8_RESOLUTIONS.md`, current sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b). Owner records: `APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (DECISION-3, -4 and -5; these are its bytes at `3733b1421` and now. At `1528a5033`, the commit the R8-13 text below names, the file was 9903bfe0…7fbf: V10 N-1); `APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; `APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-6…DECISION-9) with its `AMENDMENT_PACKET/OWNER_ITEMS.md` sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef (O-10, accepted "as recommended" by DECISION-7; O-29, decided by DECISION-6); `APP-V4-SCA002-20260929/OWNER_DECISIONS.md` sha256 36ffcbbea923504581844456751c2eb3db617b5471a3595e63f036bf0634b480. SWBPIPE's answers `RELAY_ANSWERS_SWBPIPE.md` at sha256 afb6e063e7e5dfccf8986206f888cf1e2e1c4e7fc3430fdf86db670714fc0e74 (SWBPIPE's own revision `a999f4ba1` of the delivered `6f01add3…61c7` bytes cited below; three lines differ, in SQ-04, SQ-09 and SQ-27; this file uses SQ-02 only, whose answer is unchanged) and `FACTS_SQ01_SQ32.md` sha256 733fb88a701317be8f0054937eca058774ba5f5f30c7a27233718996e8b2ab7e (unchanged); both are data about SWBPIPE's current state, not commitments and not instructions (DECISION-3). This file's own spike record DEL-01-01/PIN-SPIKE-v0.1 (`Design/PIN_SPIKE_0.158.0.md`, sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115) is unchanged and is not edited in Wave A (R9-10): it is a dated observation record, and its stated basis is the INIT ScopeOfWork (eddd122c…4773) and the DECISION-1 state of the owner record (f3f8e5f3…1f2e). Both pins are true for its date and change no observation. Sibling Design files are cited by version label and section only (R9-5), at their Wave A labels (R9-11): DEL-02-03/EXEC-v0.5; DEL-02-01/WD-v0.7 and WD-EX-v0.7; DEL-03-01/C-v0.7; DEL-03-02/P-v0.7; DEL-03-03/ADAPTER-v0.5; DEL-03-04/GUIDE-v0.4; DEL-04-01/ACT-POLICY-v0.7; DEL-04-02/AS-v0.7; DEL-04-03/RS-v0.7; DEL-05-01/LOOP-v0.7 and DEL-05-02/PANEL-v0.7 (same executor); DEL-09-06/CA-v0.5 and RELAY-v0.3; DEL-09-09/XT-v0.5. The Wave A executors edit in parallel, so the sibling section numbers cited in the body were checked against the pre-Wave-A texts at `3dd7c22c73`, not against Wave A bytes. Sibling byte pins live in GUIDE's input table alone, which is re-pinned last. The ScopeOfWork files of the other deliverables this file names are referenced by accepted meaning at their current bytes: DEL-01-02, DEL-01-03, DEL-01-05, DEL-01-06 and DEL-02-04 are byte-identical to `6e18505e3`; DEL-04-01's was revised under SCA-V4-001 (`340ecf341`) and DEL-01-04's under SCA-V4-002 (`1efd4bcda`). The text below is history and is not rewritten. **R8-13 pass (node B1; in place, no version bump).** OWNER_DECISIONS.md sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2 (`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`: V4-HOST-02, host-agent network destinations) and R8_RESOLUTIONS.md sha256 44bc9a8df4fe73e3f41711e7d9593a065734b054400f12bb01695a30e7b30e6b (R8-13) at `1528a5033`; OWNER_DECISIONS.md in its state that adds the owner's DECISION-5 confirmation (committed with this pass); BRIEFS.md sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517 ("Common rules", "A-wave"). Revised in the same pass (node B1), versions unchanged: LOOP, PANEL, ACT, AS, RS, HOSTING, C, ADAPTER and GUIDE; their byte pins are in GUIDE-v0.3's input table. **R8-12 closing pass (node A6; in place, no version bump).** R8_RESOLUTIONS.md sha256 d4c3423310a857af86692d17ddfdd22fa877ee20b07c46e1ee481d1cd750e7af (R8-12: item 7 applied here). Current sibling versions after R8, as committed at `7a1508452` with A6's in-place R8-12 edits (their byte pins are in GUIDE-v0.3's input table): DEL-02-03/EXEC-v0.4; DEL-02-01/WD-v0.6; DEL-02-01/WD-EX-v0.6; DEL-03-01/C-v0.6; DEL-03-02/P-v0.6; DEL-03-03/ADAPTER-v0.4; DEL-03-04/GUIDE-v0.3; DEL-04-01/ACT-POLICY-v0.6; DEL-04-02/AS-v0.6; DEL-04-03/RS-v0.6; DEL-05-01/LOOP-v0.6; DEL-05-02/PANEL-v0.6; DEL-09-06/CA-v0.4; DEL-09-09/XT-v0.4; DEL-09-06/RELAY-v0.3; this file's own spike record DEL-01-01/PIN-SPIKE-v0.1 is unchanged. SWBPIPE's `RELAY_ANSWERS_SWBPIPE.md` and `FACTS_SQ01_SQ32.md` are unchanged (data about SWBPIPE's current state, not commitments; DECISION-3). **v0.6 inputs (R8 pass, node A4, at `94aa9181b`; read with `git show`):** `R8_RESOLUTIONS.md` (run `APP-V4-SWBPIPE-INTAKE-20260928`, sha256 1770c96e62caf14322811fca82ceb77eca450d3e1be8665cdbdd5550631e8d02; R8-1, R8-2, R8-9 applied, R8-11 read; the others checked, none addressed to HOSTING text), `OWNER_DECISIONS.md` of that run (sha256 a5ccab0d39bd1cab37c5556abc9bdedd5341ce76be4712706c8c9d72d623e776; `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `-DECISION-4` with its clarification: D4-1 phased checkpoints, D4-3 model access), `INTAKE_MAP.md` (I2, sha256 3cc182955c0f3dd70efa0f1c051870229c2ccc08f36c5cf1445f2eef0dd1ea33; rows 01.14, 02.17, 16.2, 19.5, 29.3; Part 2 §2.2 HOSTING rows; Part 4.11 D6 row), `BRIEFS.md` (sha256 3e33ba26d6deb00af466b6e9fd9ef81f641a0dfa80882837c0423c7bdf627517; "A-wave"), SWBPIPE's delivered answers `RELAY_ANSWERS_SWBPIPE.md` (sha256 6f01add3977761e42ac6b310faf72ba4fd5455e478605deb83fefb2e4d3a61c7; SQ-02; data about SWBPIPE's current state, not commitments, DECISION-3), DEL-02-03/EXEC-v0.4 `EXECUTION_COMPATIBILITY.md` (sha256 d32be37797a3c367d342a2d13bbb8dd4279bc52934531d83b8c6ec8c6e7b76d4; §2.1 PH-1…PH-10, §2.2 GV-1…GV-5, §2.3 HP-1…HP-4 and HP-H, CH-22) and DEL-02-01/WD-v0.6 `WORKFLOW_DECLARATION.md` (sha256 fce565edfd0cee3fa4583eb292d11cce3e4121ead0cdbed31ba2fe0a52562f28; §4.3.0, §4.3.1 `governed`). **Earlier:** DEL-01-01/HOSTING-BOUNDARY-v0.4 (sha256 201ea32005dd2c9fb5281a376eb25eebfcb5a644d09a6d3bf5901aaf934c7e58, commit cc58211c5); **at commit 8fb51f07f, read with `git show` (current sibling versions):** `R5_RESOLUTIONS.md` (sha256 254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1; R5-1, R5-4, R5-9 applied), `reviews/V3-B.md` (sha256 5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3; m-5 and the m-1 note on §8.3), `reviews/V3-A.md` (sha256 f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87; no item addressed to HOSTING), DEL-02-03/EXEC-v0.2 `EXECUTION_COMPATIBILITY.md` (sha256 7f7848c0de2fdb4dc21f5adafa97f92e179bb66c9f6b04f3434d8f2342317af0; §2 HP-1…HP-4, HP-H; §3.6; §5 CAP-2/6/9; U-E20 withdrawn), DEL-03-03/ADAPTER-v0.2 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 a2905dda5782d7a48fa35ef7e26b0c1517fd3bd995e3ddbba27d2426a25674bc; §3.4, §3.5, OC-2/3/6/7, F-3, F-9), DEL-04-03/RS-v0.4 `RECORD_SEMANTICS.md` (sha256 56806b64b12a946e706ff236dd1c25fe27ac00877aac13b50ee8603aaf540199; R5 model destination, R13 tool-permission settlements). EXEC-v0.3 and ADAPTER-v0.3 are being produced in the same R5 pass; this file cites their v0.2 bytes and R5-1's ruled values. **R6-4 (in place):** DEL-02-03/EXEC-v0.3 `EXECUTION_COMPATIBILITY.md` (commit d3cebd1cc, sha256 889e48819baa21ec112c4878e4e38004dcbaa9eb3645a31c24221ac116ee548e) consumed for §2 HP-1…HP-4, HP-H and the HP-4 scope ruling. Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.3 (sha256 34c3383402aabe6e9347aa2f111318538c4a2a4ca85adb8fffff7e439fdde94e, commit ba0b37123); **at commit f05c7e4cd, read with `git show`:** `R3_RESOLUTIONS.md` (sha256 202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf; R3-1…R3-4 read, none addressed to HOSTING), `R4_RESOLUTIONS.md` (sha256 50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24; R4-1, R4-2, R4-12, R4-13, R4-19 applied), `OWNER_DECISIONS.md` with Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c; D5, D6), DEL-02-03/EXEC-v0.1 `EXECUTION_COMPATIBILITY.md` (sha256 e0ede76ebf08003511755afc666be2466a867fd3256837ee94300cd0dfe518e8; superseded, see above), DEL-03-03/ADAPTER-v0.1 `ADAPTER_ENABLEMENT_AND_RECEIVING.md` (sha256 58b2409ca45ceea66160eb8910ca38b76b6f335dc184eaeb0896e93cabd0a074; §3.4, §3.5, OC-3, F-3, F-9); the committed 0.158.0 JSON Schema bundle `json-schema/experimental/codex_app_server_protocol.v2.schemas.json` and `_spike/inventory.txt` (for the MCP surface and `turn/interrupt` facts in §6.7–§6.8). Earlier: DEL-01-01/HOSTING-BOUNDARY-v0.2 (sha256 16711a83fec3439d7be634f6d62512be2a87f0dec32bd84028a39425bc84007a) and v0.1 (sha256 f1da7f76f686991f67b3e974478b9b453df804839712a7e5cc24e7bc4849d728); DEL-01-01/PIN-SPIKE-v0.1 `Design/PIN_SPIKE_0.158.0.md` — **current committed revision sha256 0e090a4ca14e3ec323e8302ea4bc4e1fefc66bee50d0d3247e1cd0ddc04eb115** (commit 28bd00499; the parent's post-IR1 edits: SV-02 committed-tree wording, "what the spike proposed to commit" note, git-operations statement). Earlier revisions: v0.2 of this file consumed the **pre-correction** revision sha256 3d66ad28f3fa76a19826a09a7d8269f598bb4465912b6375f74bc4d56678f3cf; IR1-C reviewed sha256 26ea0c2fae8212ca46ed2ff60ddfaef5ca28e0ed73aae2105017d7ceccb40334 (commit c387730fb). `Design/generated/0.158.0/MANIFEST.sha256` (sha256 42b95826d7bd6d58df7941da7420064ee55d54a347a2eab22eafbfa16231569e, byte-unchanged) and `Design/generated/0.158.0/COMMITTED_STATE.md` (sha256 2cb7f1d29383e68239d085186401488c5d864046475b7cf9d3bc256f85782608); run `APP-V4-FIRST-INCREMENT-20260928`: `OWNER_DECISIONS.md` (Decision `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, sha256 f3f8e5f31ec87006fc9ab459c6ae57d08638439c234fa959ba2605914cf81f2e at that time), `R1_RESOLUTIONS.md` (sha256 2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4; R-1, R-2, R-4, R-10 applied), `comparisons/V1-A.md` (sha256 01811533bf0aedad5326d1517561187682a572ae3f47c5f8b8637e48cfe04c09; D-13, D-14, RF-03), `comparisons/V1-C.md` (sha256 8d46258ad0120067f6472442de67feacba8405462b78abb8bac34be28a4a94a6; D-16, D-22, §6, AG-13…15, AB-10, RF-6), `R2_RESOLUTIONS.md` (sha256 77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088; R2-22 applied, with R2-8 and R2-11), `reviews/IR1-C.md` (sha256 295e96b3f5871cdf4142df169dc8811cef0aa38e7a7eb1930b246f60f0a426b9; IR1C-04, IR1C-18, IR1C-19, IR1C-20 addressed to HOSTING). DEL-01-02…05, DEL-01-06, DEL-02-04 and DEL-04-01 remain referenced by accepted meaning (ScopeOfWork.md at 6e18505e3); DEL-04-01 act names are used as fixed by R-1. Root D-GOV-43 is governance context only (§2). Concept-run returns T7/T11 and v3 code remain dated historical evidence.
+- Receivers (R9-6: rebuilt from the ACTIVE rows of this register and of the consumers' registers; layer per `_DAG/_LATEST.md` → DAG-003; table in §8). **This register's rows:** DEL-01-02 (OUT-001; REQ-001, REQ-003, REQ-004, REQ-005, REQ-007; TBD-002) via DEP-01-01-019; DEL-01-03 (OUT-001; REQ-001, REQ-004) via DEP-01-01-020; DEL-01-04 (native request/answer interaction) via DEP-01-01-021; DEL-01-05 (OUT-004; REQ-003, REQ-007, REQ-008) via DEP-01-01-022, with DEP-01-01-024 the UPSTREAM row for its sign-in and substitution evidence (held); DEL-01-06 (distribution identity for packaging) via DEP-01-01-023. **Consumers among the first-increment deliverables, from their own registers (all six arcs admitted):** DEL-02-01 (DEP-02-01-025, N-16: harness-capability meaning; this file holds the 0.158.0 inventory, and a capability meaning beyond the inventory is named by that row and not yet defined here, §8); DEL-02-03 (DEP-02-03-023, N-23: observed supplier facts as capability information; §6.1, §6.7, §6.8, §10, R9); DEL-03-03 (DEP-03-03-013, N-B4: MCP and dynamic-tool surfaces, channel status, model destination; §6.8, §8.3); DEL-03-04 (DEP-03-04-021, N-B9: native surfaces for optional external access; §6.8); DEL-04-03 (DEP-04-03-027, N-15: supplied guidance, model and destination, tool-permission settlements, supplied to it directly, R9-7; §8.2, §8.3, R8, S-7); DEL-09-06 (DEP-09-06-032, N-C5: App-side supplied-guidance and model-destination evidence; §8.2, §8.3). **Consumers outside the first increment, from their own registers:** DEL-02-04 (DEP-02-04-010, admitted: additive guidance, seam S-6; this register has no DOWNSTREAM mirror row, F-16); DEL-06-01 (DEP-06-01-013), DEL-09-01 (DEP-09-01-019) and DEL-09-02 (DEP-09-02-009), all admitted; and the consumer-side rows of the PKG-01 receivers (DEP-01-02-018, DEP-01-03-011, DEP-01-04-007 and DEP-01-06-006 admitted; DEP-01-05-012 held; DEP-01-05-013). DEL-05-01 and DEL-05-02 (J9: guidance carriage, answer origin) have no register row to this deliverable. App implementation owner (OI-008 proposal, reference-generator choice, pin re-examination). Under owner decision D1 the standalone-App definitions DEL-01-02…05 are a later undertaking; their receiving comparisons of S-1…S-4 happen then. The arcs N-18, N-21, N-24 and X-1 have no end in DEL-01-01; X-1's supplier, DEL-01-04, is the receiver of seam S-3.
 
 **Reading note.** Element names defined by this file (for example *request
 identity*, *generation*, *version identity record*) are **semantic** names,
@@ -31,6 +31,26 @@ that contain "approval" (for example `item/commandExecution/requestApproval`)
 are quoted as supplier names and denote A14 subjects.
 
 ---
+
+## Changes from v0.6
+
+Wave A of run `APP-V4-DESIGN-PASS-2-20260930` (node A1-D): alignment to the
+amended basis and the revised ScopeOfWork, under R9. It adds no new design
+content, and every boundary rule is unchanged. Rows are keyed by R9 ID and by
+the survey item (S1-D, HOSTING §8) each change answers.
+
+| R9 ID / survey item | Change in v0.7 | Where |
+|---|---|---|
+| R9-11 | Version v0.6 → v0.7. Status stays DRAFT: unsupplied, unimplemented and not accepted | Header |
+| R9-5; S1-D HOSTING item 1 | Header re-pinned: the four basis documents by current sha256, naming SCA-V4-001 and SCA-V4-002; ScopeOfWork `9945e72b…cc75` (v0.6 pinned the INIT contract `eddd122c…4773`); `_DAG/_LATEST.md` → DAG-003; R9 with the run's briefs, survey and owner record; R8 at its current hash; the owner records of the two amendment runs; SWBPIPE's answers at `afb6e063…0e74`; siblings by Wave A label and section only. The statement on the other deliverables' ScopeOfWork files is corrected (DEL-04-01's and DEL-01-04's were revised). The OWNER_DECISIONS pin `5fd780bf…` is tied to its commit `3733b1421` (V10 N-1). History text is not rewritten | Header |
+| R9-10; S1-D PIN_SPIKE item 2 | `PIN_SPIKE_0.158.0.md` is not edited. The header states its standing: PIN-SPIKE-v0.1 unchanged; its basis is the INIT ScopeOfWork and the DECISION-1 state of the owner record | Header |
+| S1-D HOSTING item 1 | The body citation "EXEC-v0.2 HP-2" is re-pointed to EXEC-v0.5 §2.3, and the other live EXEC, LOOP citations carry the Wave A labels (R9-5) | §2, §6.7 |
+| R9-1, R9-3 | §6.7's Phase-1 statement cites the amended V4-WF-05 and says that the required act is requested by the agent carrying out the workflow; this boundary issues no request in the agent's place, and how an App run observes an arrival and a request is DEL-02-03's (EXEC, Wave B). No hold-point fact changes | Header, §6.7 |
+| R9-4; S1-D HOSTING item 2 | The §2 scope note cites the amended ARCH §4 sentence that now states the scope ("This property governs a host's embedded agent; …"). §8.3 "record and show" becomes SETTLED (owner item O-10). L-5, F-24 and F-25 cite V4-HOST-01 and V4-HOST-02 as amended | §2, §8.1 L-5, §8.3, F-24, F-25 |
+| S1-D HOSTING item 2 | L-4, F-14 and U-18 are restated against the amended ARCH §1 priority 3, which now speaks of a host's agent and states no App local-operation boundary. The observation is unchanged; which accepted requirement, if any, governs the supplier's own start-up traffic stays the owner's question (U-18) | §2, §8.1 L-4, F-14, U-18 |
+| R9-7; S1-D HOSTING item 3 | The evidence route to DEL-04-03 is direct: §6.4, S-7 and §8.2 no longer say "through DEL-01-02". DEL-01-01's own ScopeOfWork was checked first and states no route. DEL-01-02's custody of in-flight requests is named as a separate contribution of a deliverable outside this increment | §6.4, §8 S-7, §8.2, F-26 |
+| R9-6; S1-D HOSTING item 3 | Receivers line rebuilt from the live registers, with row IDs, arc labels and DAG-003 layer. S-7 names DEL-04-03 and DEL-09-06. A table of the receivers the registers name follows the seams table. For DEP-02-01-025 the 0.158.0 inventory is held, and a capability meaning beyond it is marked "not yet defined here" (F-27). F-07 and F-16 are updated | Header, §8, F-07, F-16, F-27 |
+| Not applied | S1-D HOSTING items 4, 5, 6 and 7 are Wave B and were not started | — |
 
 ## Changes from v0.5
 
@@ -182,19 +202,24 @@ approval". Checked against the v4 basis and the owner's rulings:
 | Approval/sandbox policy is the user's choice per project/turn | **Owner decision D3** (OI-002), first increment | **Settled by ruling.** In the App, routine tool-permission and sandbox modes, including any classifier-based mode, are the user's own Codex setting per project/turn, carried unchanged. They govern tool execution only and never stand in for a reserved or professional act. DERIVED/INTEGRATION, not D3 text (R2-11): the DEL-04-01/04-02 autonomy grant governs host operations only, and no App rule answers A14 affirmatively (R-2 D3 bullet) |
 | Additive instruction inputs preserving Codex base instructions | Deliverable interface "PKG-02 supplies guidance/workflow inputs"; production is DEL-02-04 | Carried unchanged through supported inputs, with per-thread/turn content identity evidence (§8.2) |
 
-**DECISION-5 scope note (R8-13).** DECISION-5 revises V4-HOST-02 for a
+**DECISION-5 scope note (R8-13; in the accepted basis since SCA-V4-001).**
+V4-HOST-02, as amended for DECISION-5, governs a
 **host's embedded agent**: an allow list, in-work destination grants, MCP
 only if stateless, an always-off list, and every destination recorded and
-shown (LOOP-v0.6 §5.1.1). It governs host agents only.
+shown (LOOP-v0.7 §5.1.1). It governs host agents only. The amended ARCH §4
+host-agent property states the scope itself: "This property governs a
+host's embedded agent; the App's own Codex keeps the person's Codex
+configuration, approval and sandbox choices."
 
 - The App's own Codex keeps the person's Codex configuration, approval and
-  sandbox choices (Root `AGENTS.md`; D-GOV-43; D3). DECISION-5 does not veto
+  sandbox choices (ARCH §4 as amended; Root `AGENTS.md`; D-GOV-43; D3). DECISION-5 does not veto
   them, and this boundary adds no allow list, destination prompt or
   destination gate to the App's Codex.
-- The App's per-turn model destination stays as recorded in §8.3 (D5;
-  INTEGRATION per R5-4).
+- The App's per-turn model destination stays as recorded in §8.3 (D5; the
+  record-and-show reading of R5-4 is owner-confirmed, §8.3).
 - The supplier's own start-up fetch (U-18) is not settled by DECISION-5,
-  which concerns host agents.
+  which concerns host agents, nor by the amended ARCH §1 priority 3, which
+  now speaks of a host's agent (§8.1 L-4).
 
 ## 3. Invariants (hold in every state and every candidate)
 
@@ -524,7 +549,7 @@ reports one, is recorded as observed; it is never inferred.
 | list outstanding (by generation / thread) | DEL-01-02, DEL-01-04 | Current outstanding entries |
 | answer (request identity, native answer, origin, actor ref) | DEL-01-04 (person path, any valid form); named App rules per R9 (decline/error only for A14 and person-input kinds; content answers only for named service kinds such as `currentTime/read`) | `accepted-for-write` → `answered`/`declined`/`settle-write-failed`; or refusal with reason (R4/R5); an App-rule affirmative or content answer to an A14 or person-input kind is refused `origin-not-permitted` (R9) |
 | explicit error (request identity, reason) | boundary (R2), named App rules | `errored` |
-| read settlement and acknowledgment observation | DEL-01-02; DEL-04-03 via DEL-01-02 | Settlement, write result, acknowledgment observation |
+| read settlement and acknowledgment observation | DEL-01-02 (custody of in-flight requests; outside this increment, D1); DEL-04-03 (evidence, supplied to it directly: R9-7; S-7) | Settlement, write result, acknowledgment observation |
 
 ### 6.5 Split with DEL-01-02 (to reconcile when DEL-01-02 is defined)
 
@@ -558,9 +583,15 @@ It never presents a supplier-internal decision as the person's answer.
 
 ### 6.7 Run holds and the supplier (R4-2; D6 closed for Phase 1 by DECISION-4; governance phase retained, R8-1)
 
-**Phase 1 (R8-1; DECISION-4 D4-1; EXEC-v0.4 §2.1).** A workflow's declared
+**Phase 1, the current phase (V4-WF-05 as amended by SCA-V4-001; R8-1;
+R9-1; DECISION-4 D4-1; EXEC-v0.5 §2.1).** A workflow's declared
 checkpoints are plan guidance, and the agents manage any pause themselves.
-No App run is holding (PH-2). So, for a checkpoint, this boundary:
+Neither the App nor a host's embedded loop enforces a hold (V4-WF-05), so
+no App run is holding (PH-2). The required act is requested by the agent
+carrying out the workflow (R9-1, INTEGRATION); this boundary issues no
+request in the agent's place. How an App run observes an arrival and a
+request is DEL-02-03's, defined in EXEC (Wave B). So, for a checkpoint, this
+boundary:
 
 - refuses nothing with reason `run-holding`;
 - makes no HP-3 named-rule decline;
@@ -573,11 +604,11 @@ DEL-02-03 records arrivals, acts and the optional annotation "continued past
 explicit stop (V4-EXE-01) is unaffected. Named-rule declines for any other
 purpose remain governed by R7 and R9, as before.
 
-**Governance phase (retained; EXEC-v0.4 §2.2, §2.3).** App-side run holds
+**Governance phase (retained; EXEC-v0.5 §2.2, §2.3).** App-side run holds
 at governed checkpoints are `UNRESOLVED{D6}` (DECISION-2). SWBPIPE answered
 SQ-02 on 2026-09-28 with no host-held route (route (iv), none planned). D6
 is closed for Phase 1 by DECISION-4 and re-opens when the governance phase
-is taken up (R8-2). The hold machine, its hold points (EXEC-v0.4 §2.3:
+is taken up (R8-2). The hold machine, its hold points (EXEC-v0.5 §2.3:
 HP-1…HP-4, HP-H) and the hold-support value of each governed checkpoint
 (EXEC §3.6, values ruled by R5-1, as amended by R8-2) are DEL-02-03's. In
 that phase this boundary supplies only these facts and limits:
@@ -586,8 +617,8 @@ that phase this boundary supplies only these facts and limits:
   thread identity, turn identity; empty result) —
   `observed-in-generated-types` only. Its live effect (what stops, when, and
   what the supplier completes first) is **not observed** (U-19); no receiver
-  depends on observing it, since nothing relies on it (R4-2; EXEC-v0.2 HP-2
-  "not adopted"). If
+  depends on observing it, since nothing relies on it (R4-2; EXEC-v0.5 §2.3
+  HP-2 "Not adopted"). If
   the App sends it for another purpose (a person's explicit stop, V4-EXE-01),
   the outcome is recorded as observed, and any action completed after the
   request is recorded as observed, never as prevented.
@@ -598,7 +629,7 @@ that phase this boundary supplies only these facts and limits:
   reach the App and are not held; a decline is never an affirmative answer
   and never a hold guarantee.
 - **HP-4 the App initiates nothing for a holding run** (EXEC-v0.3 §2 HP-4,
-  now EXEC-v0.4 §2.3, governance phase; including its scope ruling; first
+  now EXEC-v0.5 §2.3, governance phase; including its scope ruling; first
   proposed in EXEC-v0.2). For a run DEL-02-03 reports as holding, the boundary
   accepts no App-initiated start of a turn and no App-initiated call for that
   run — in particular no `mcpServer/tool/call` or `mcpServer/resource/read`
@@ -743,12 +774,37 @@ content-identity check does not execute the binary and has no such effect.
 | S-4 embedding and provider | DEL-01-05; DEL-03-03 (channel status); DEL-04-03 via S-7 | Carriage of supplier account methods and per-conversation provider selection (at 0.158.0 `modelProvider` on thread start and resume; `modelProvider/capabilities/read`); **observed model destination** per thread/turn (§8.3; R4-1); §8.1 account; recorded-exchange evidence per §9; the fresh-home network observation (L-4) | Sign-in (including OAuth) and API-key flows, offered as options with no default between local and cloud (DECISION-4 D4-3; R8-9); account home (OI-009), provider configuration, server-substitution checks |
 | S-5 distribution identity | DEL-01-06 | Distribution content identity over the vendor tree, version label, launcher record; spike-observed signing facts (Developer ID, hardened runtime) as observations only | Packaging, signing, notarisation, relocation of the vendor tree (not-observed), distribution |
 | S-6 additive guidance | DEL-02-04 (inputs from DEL-02-01/02-02) | Carriage unchanged through the supplier's supported inputs (at 0.158.0 `baseInstructions` and `developerInstructions` on thread start and resume); per-thread/turn content-identity evidence (§8.2) | Guidance composition, role files, workflow semantics, idle-boundary change policy |
-| S-7 evidence | DEL-04-03 (through DEL-01-02) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities, observed model destination (§8.3), client-request initiators (incl. App-initiated MCP calls, §6.8). A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act |
+| S-7 evidence | DEL-04-03, directly (R9-7; DEP-04-03-027, arc N-15); DEL-09-06 for the supplied-guidance and model-destination evidence (DEP-09-06-032, arc N-C5) | Observed facts: version identity, generation, declared capabilities, settlement with origin, supplier-internal decisions, unknown outcomes, supplied-guidance identities, observed model destination (§8.3), client-request initiators (incl. App-initiated MCP calls, §6.8). A14 settlements go only to the run record's tool-permission entries (DEL-04-03 R13), never to a human-act record or a grant (R2-8) | Record format, writer/reader, any human act. Custody of in-flight requests across observation loss and relaunch, which is DEL-01-02's separate contribution (S-1; outside this increment, D1) |
+
+**Receivers the live registers name (R9-6; rebuilt at v0.7).** The seams
+table above is unchanged except S-7. The rows below are the ACTIVE rows of
+the consumers' registers, with their DAG-003 layer, and where this file
+already holds what each row names. No contribution is defined by this
+table.
+
+| Receiver | Register row (arc; DAG-003 layer) | Contribution the row names | Where this file holds it |
+|---|---|---|---|
+| DEL-02-01 | DEP-02-01-025 (N-16; admitted) | Harness-capability meaning, so that its harness-capability requirements refer to it | The 0.158.0 inventory (SPIKE §4; `generated/0.158.0/`) is held. A capability meaning beyond the inventory is not yet defined here |
+| DEL-02-03 | DEP-02-03-023 (N-23; admitted) | Observed stock-Codex supplier facts, as capability information | §6.1, §6.7, §6.8, §10, R9 |
+| DEL-03-03 | DEP-03-03-013 (N-B4; admitted) | Supplier MCP and dynamic-tool surfaces and channel-status facts at 0.158.0 | §6.8; §8.3; S-4 |
+| DEL-03-04 | DEP-03-04-021 (N-B9; admitted) | The supplier boundary: native surfaces for optional external access | §6.8 |
+| DEL-04-03 | DEP-04-03-027 (N-15; admitted) | Observed supplier facts: supplied guidance, model and destination, tool-permission settlements | S-7, §8.2, §8.3, R8; supplied directly (R9-7) |
+| DEL-09-06 | DEP-09-06-032 (N-C5; admitted) | App-side supplied-guidance and model-destination evidence | §8.2, §8.3 as definition; no evidence exists |
+| DEL-02-04 (outside the first increment) | DEP-02-04-010 (admitted) | The supported native supplier receiving contract for additive role supply | S-6; §8.2 |
+| DEL-06-01, DEL-09-01 (outside) | DEP-06-01-013, DEP-09-01-019 (admitted) | The selected supplier pin, before protocol generation and qualification | Pin note; §7.1; U-01 (0.158.0 is the definition and generation pin only) |
+| DEL-09-02 (outside) | DEP-09-02-009 (admitted) | Supplier hosting and protocol contribution and scoped feature checks, before the joined witness | §9 method and the designed cases; nothing is qualified |
+| DEL-01-02, -03, -04, -06 (outside; D1) | DEP-01-02-018, DEP-01-03-011, DEP-01-04-007, DEP-01-06-006 (admitted); this register's DEP-01-01-019, -020, -021 and -023 | The stock supplier boundary, generated types, selected identity | S-1, S-2, S-3, S-5 |
+| DEL-01-05 (outside; D1) | DEP-01-05-012 (held), DEP-01-05-013; this register's DEP-01-01-022, and DEP-01-01-024 (UPSTREAM, held) | The selected protocol and pin; embedding-qualification input | S-4; §8.1 |
 
 The 0.158.0 inventory in SPIKE §4 (170 client methods, 11 server-request
 kinds, 85 notifications in the TS experimental output) is the input to
 harness-capability naming owned by DEL-02-01 (V1-C AB-10); no naming is
-chosen here.
+chosen here. DEL-02-01's register row DEP-02-01-025 (arc N-16, admitted)
+asks for "the harness capability meaning supplied through DEL-01-01";
+its ScopeOfWork CLM-002 says DEL-01-01 "supplies the harness capability
+inventory". This file holds the inventory. A capability meaning beyond the
+inventory is named by DEP-02-01-025 and is **not yet defined here** (F-27;
+returned as a Wave B item).
 
 ### 8.1 Local-provider requirement account (REQ-005, AC-005; to DEL-01-05)
 
@@ -757,8 +813,8 @@ chosen here.
 | L-1 Local servers act as Codex model providers chosen per conversation | V4-ARC-04; T7 (2026-09-25) | `observed-in-generated-types`: `modelProvider` on thread start and resume; `modelProvider/capabilities/read`; CLI `--oss`, `--local-provider lmstudio|ollama` is `published-only`. Per-conversation effect live: not-observed |
 | L-2 Wire interface Codex requires from a provider | ARC §6: "oMLX also serves the Responses API Codex requires" | **not-observed**: provider definition form and required interface are not in the generated output; the Responses statement stays an unobserved basis claim (R-10; V1-C D-22) |
 | L-3 Tool calling through the provider | ARC §6, §8 risk | not-observed (no model turn in the spike) |
-| L-4 Local-operation boundary (priority 3) | ARC §1 priority 3 | **observed**: with a fresh home the supplier fetched ≈24 MB from `github.com/openai/plugins` at start, with no sign-in and no turn; warm home: none seen in ~6 s; whether a setting disables it: not-observed (S-F-10; F-14; U-18) |
-| L-5 Credentials | V4-ARC-04; DECISION-4 D4-3 (R8-9) | `observed-in-generated-types`: login variants incl. API key and ChatGPT account sign-in; credential store modes `file`/`keyring`/`auto`/`ephemeral`; actual storage and local-provider key need: not-observed. **Model access choice (D4-3):** local and cloud are options the person chooses among, with **no default**; a cloud model is reached by **OAuth sign-in or an API key**. D4-3 revises the host-agent wording (V4-HOST-01); for the App path, D5 already leaves the model to the person. This boundary selects no default and carries the supplier's variants unchanged. Whether the supplier's sign-in variant serves D4-3's OAuth option for a given cloud provider is not-observed. Which flows the App offers is DEL-01-05's (S-4) |
+| L-4 Supplier network traffic at start (named "Local-operation boundary (priority 3)" up to v0.6) | ARC §1 priority 3. As amended by SCA-V4-001 it speaks of a host's agent ("It sends data only to the selected model service and to destinations the person has allowed, and every destination contacted is recorded and shown") and states no App local-operation boundary; ARCH §4 says the host-agent property does not govern the App's own Codex. No accepted text now decides this traffic (U-18) | **observed**: with a fresh home the supplier fetched ≈24 MB from `github.com/openai/plugins` at start, with no sign-in and no turn; warm home: none seen in ~6 s; whether a setting disables it: not-observed (S-F-10; F-14; U-18) |
+| L-5 Credentials | V4-ARC-04; DECISION-4 D4-3 (R8-9) | `observed-in-generated-types`: login variants incl. API key and ChatGPT account sign-in; credential store modes `file`/`keyring`/`auto`/`ephemeral`; actual storage and local-provider key need: not-observed. **Model access choice (D4-3):** local and cloud are options the person chooses among, with **no default**; a cloud model is reached by **OAuth sign-in or an API key**. V4-HOST-01, as amended by SCA-V4-001, carries D4-3 for a host's agent; for the App path, D5 already leaves the model to the person. This boundary selects no default and carries the supplier's variants unchanged. Whether the supplier's sign-in variant serves D4-3's OAuth option for a given cloud provider is not-observed. Which flows the App offers is DEL-01-05's (S-4) |
 | L-6 Distinct from host loop interface | ARC §4 V4-ARC-10 | Unchanged: each interface is qualified separately (AG-14). V4-ARC-10 (D-20) stays the v4 host-loop direction (DECISION-4 D4-2; R8-8) |
 
 An unqualified server example establishes neither supported substitution nor
@@ -773,7 +829,12 @@ request identity and generation, which guidance element was carried, the
 **content identity of each guidance input actually carried** (algorithm
 U-08), and the source identity supplied by the composing owner (DEL-02-04;
 workflow identity per R-9 where applicable). The recording tap (§9.1) holds
-the bytes as evidence. These records reach DEL-04-03 through DEL-01-02 (S-7).
+the bytes as evidence. These records are supplied to DEL-04-03 directly
+(S-7; R9-7: DEL-04-03's ScopeOfWork CLM-004 takes "observed supplier facts
+(supplied guidance, model and destination, tool-permission settlements)
+from `DEL-01-01`", and RS R3 and R13 name DEL-01-01 as their source in this
+undertaking; DEP-04-03-027). DEL-01-02's custody of in-flight requests is a
+separate contribution of a deliverable outside this increment (D1).
 
 **Named limitation (P-15).** This evidence establishes that the input was
 *supplied*. Whether the supplier *adopted* it — in particular whether resume
@@ -789,7 +850,9 @@ Attribution (R5-4; V3-B m-1):
 - **SETTLED by DECISION-2 (D5):** host content read through the external
   channel may flow to whatever model the person selected for the App
   conversation, cloud included; there is no gate on the destination.
-- **INTEGRATION (DECISION-2 reading):** the App **records** the model
+- **SETTLED (the owner confirmed this reading of DECISION-2: SCA-V4-001
+  OWNER_ITEMS O-10, accepted "as recommended", DECISION-7; R9-4; labelled
+  INTEGRATION up to v0.6, R5-4):** the App **records** the model
   destination (DEL-04-03 RS R5) and **shows** it in the channel status
   (DEL-03-03), as information only.
 
@@ -1029,7 +1092,8 @@ v3 code is evidence of behavior, not qualified v4 material.
   content identity; the spike shows the supplier executes sibling binaries,
   widening the identity to the vendor tree.
 - **F-07 Receivers.** DEL-01-01 is not a CASE-002 member; receivers from
-  `Dependencies.csv` plus J9 (V1-C).
+  `Dependencies.csv` plus J9 (V1-C). From v0.7 the Receivers line also
+  follows the consumers' registers (R9-6).
 - **F-08 Wire names in the accepted basis.** V4-ARC-04's per-thread provider
   element is confirmed present at 0.158.0 (`modelProvider`, P-11); still a
   supplier fact, not a Chirality representation.
@@ -1053,15 +1117,23 @@ v3 code is evidence of behavior, not qualified v4 material.
   (ARC §8 risk "protocol drift").
 - **F-14 Network at start on a fresh home (L-4).** ≈24 MB fetch from
   `github.com/openai/plugins` with no sign-in or turn; its descendants can
-  outlive the supplier. Routed to the **owner** (priority 3, local-operation
-  boundary) and **DEL-01-05** (OI-009: a separate App account home would be
-  "fresh" at least once per home). Configurability not observed (U-18).
+  outlive the supplier. Routed to the **owner** and **DEL-01-05** (OI-009: a
+  separate App account home would be
+  "fresh" at least once per home). Configurability not observed (U-18). Up
+  to v0.6 the owner route was framed as "priority 3, local-operation
+  boundary". The amended ARC §1 priority 3 speaks of a host's agent and
+  states no such boundary for the App, so no accepted text now frames this
+  traffic (L-4); the question to the owner stands as U-18 states it.
 - **F-15 D1 defers the standalone-App receivers.** DEL-01-02…05 definitions
   are a later undertaking; seams S-1…S-4 have no receiving comparison in this
   one.
 - **F-16 Register rows.** No DEL-01-01 → DEL-02-04 DOWNSTREAM row (V1-C
   RF-6); with R7 repaired per V1-A D-13 the existing rows suffice for D3
-  (RF-03). Both go to closeout C1; not edited here.
+  (RF-03). Both went to closeout C1; not edited here. v0.7: the arc is now
+  represented from the consumer's side (DEP-02-04-010, admitted in
+  DAG-003). This register still has no DOWNSTREAM mirror row; DAG-003's
+  HANDOFF_STATE lists "Deferred supplier-side mirror rows" with the
+  register owners.
 - **F-17 Retired in v0.3.** The stale spike UNRESOLVED row it reported was
   corrected by the parent (spike revision 26ea0c2f…0334 and later; current
   0e090a4c…b115 marks it RESOLVED by the re-selection) (IR1C-19).
@@ -1099,15 +1171,36 @@ v3 code is evidence of behavior, not qualified v4 material.
   DEL-01-05.
 - **F-24 D4-3 and this boundary (v0.6; R8-9).** DECISION-4 D4-3 (cloud by
   OAuth sign-in or API key; no default between local and cloud) revises the
-  host-agent basis, V4-HOST-01. This file described no "local by default"
+  host-agent basis, V4-HOST-01 (applied to the accepted text by SCA-V4-001).
+  This file described no "local by default"
   rule for the App (checked), and it cites neither V4-HOST-01 nor
   V4-HOST-02. D4-3 is recorded at L-5, S-4 and §11 for DEL-01-05. D4-3 does
   not settle U-18 either: the supplier's own start-up fetch is not a model
   destination the person chose.
 - **F-25 V4-HOST-02 cited only to scope it out (R8-13).** From R8-13 this
-  file cites V4-HOST-02, as revised by DECISION-5, only in the §2 scope
+  file cites V4-HOST-02, as amended by SCA-V4-001 for DECISION-5, only in
+  the §2 scope
   note, which says it does not govern the App's Codex. F-24's statement
   that the file cites neither V4-HOST-01 nor V4-HOST-02 held until R8-13.
+  From v0.7, L-5 and the header also name V4-HOST-01, again only as the
+  host-agent text.
+- **F-26 Evidence route to DEL-04-03 (v0.7; R9-7).** Up to v0.6, §6.4, S-7
+  and §8.2 said the observed facts reach DEL-04-03 "through DEL-01-02".
+  DEL-04-03's ScopeOfWork (CLM-004), its register row DEP-04-03-027 (arc
+  N-15, kept by the owner: SCA-V4-001 OWNER_ITEMS O-29, DECISION-6) and RS
+  take them from DEL-01-01 directly. DEL-01-01's own ScopeOfWork was checked
+  and states no route (CLM-004 gives DEL-01-02 durable sessions and
+  outstanding-request recovery; CLM-005 gives DEL-04-03 the content-bound
+  records). The three passages now say "directly". This register has no
+  DOWNSTREAM row to DEL-04-03; that is a register matter, returned.
+- **F-27 Harness-capability meaning (v0.7; R9-6).** DEL-02-01's register
+  row DEP-02-01-025 (arc N-16, admitted) expects "the harness capability
+  meaning supplied through DEL-01-01", and its ScopeOfWork CLM-002 says
+  DEL-01-01 "supplies the harness capability inventory". This file supplies
+  the 0.158.0 inventory and assigns the naming to DEL-02-01 (§8, closing
+  paragraph). Neither this file nor WD defines the capabilities (WD U-08).
+  §8 marks a meaning beyond the inventory "not yet defined here". Returned
+  as a Wave B item.
 
 ## UNRESOLVED
 
@@ -1130,7 +1223,7 @@ v3 code is evidence of behavior, not qualified v4 material.
 | U-15 Reference generator output (O-R1/O-R2/O-R3) | App implementation owner | Before R2/R5 implementation and conformance | Options in §7.3 |
 | U-16 Supplier descendant handling on stop/restart/overlap | DEL-01-02 with App implementation owner | Before lifecycle implementation | H11 requires detection and recording; policy open |
 | U-17 Distribution-identity composition and launcher (wrapper vs vendor) | App implementation owner with DEL-01-06 | Before verification implementation | Both recorded; composition open |
-| U-18 Supplier network fetch at start: acceptability under priority 3; configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim | Observed; no claim of local-only operation |
+| U-18 Supplier network fetch at start: acceptability (framed up to v0.6 as "under priority 3"; the amended priority 3 speaks of a host's agent, and no accepted text now decides this traffic, L-4); configurability (not addressed by D5, which concerns host content reaching the conversation model) | Owner with DEL-01-05 | Before any local-operation claim | Observed; no claim of local-only operation |
 | U-19 Unobserved live behaviors (§10 "Still to observe") | App implementation owner (next spike; needs credential or local provider) | Before settlement fixtures, handshake implementation and qualification | Recorded as not observed |
 | U-20 Partition of the 0.158.0 server-request kinds and their R9 origin classes (§6.1 proposal) | App implementation owner with DEL-01-04/01-05 | Before R2 implementation | Proposal only; R9 classes fixed as INTEGRATION, membership open |
 | U-21 Supplier's `[experimental]` label on app-server/generators; dependence on experimental API (F-12, F-13) | Owner visibility; App implementation owner at pin re-examination | Before implementation | Recorded; supplier direction not reopened |
