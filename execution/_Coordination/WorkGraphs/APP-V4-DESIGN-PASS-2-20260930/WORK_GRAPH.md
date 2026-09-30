@@ -61,14 +61,15 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | S1 Scoping survey (S1-A…S1-F) | `SURVEY/S1-*.md` only | S0 | Six reports: pins, SoW alignment, amended basis, open items by class, 60% depth, joins, carried review items, recommended work; outside neighbours | COMPLETE — [SURVEY/](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/SURVEY/): 184 stale pins across 16 files; open items classed; fence verified (`fbebb12a5`) |
 | S2 Route: nodes for the pass, owner questions | This graph; `BRIEFS.md`; `R9_RESOLUTIONS.md` | S1 | Each node bounded with a write fence and a check | COMPLETE for Wave A; Wave B nodes are named below and briefed after Wave A integrates |
 | **Wave A — alignment** | | | | |
-| A1-A…A1-E Re-pin, amended-basis wording, revised-SoW alignment, records-closed items, receivers | The 15 Design files by cluster (ACT, AS, RS / C, P, ADAPTER / WD, WD-EX, EXEC / LOOP, PANEL, HOSTING / CA, RELAY metadata, XT); `WAVE_A/<ID>.md` | S2; [R9](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R9_RESOLUTIONS.md) | Each file one version step (R9-11); no leftover stale wording; RELAY §0–§3 byte-identical; PIN_SPIKE untouched | ACTIVE |
-| A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A1-A…A1-E integrated | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | PLANNED |
-| A2 Integrator pass: R10 rulings on returned disagreements; pin script; HANDOFF truth fixes (DAG-003, "local-first") and next-relay list | Design files as R10 requires; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` | A1 | R10 recorded; pins verified by script | PLANNED |
-| V17 Independent review of Wave A | `reviews/V17.md` | A2 | Verdict covering the candidate | PLANNED |
+| A1-A…A1-E Re-pin, amended-basis wording, revised-SoW alignment, records-closed items, receivers | The 15 Design files by cluster (ACT, AS, RS / C, P, ADAPTER / WD, WD-EX, EXEC / LOOP, PANEL, HOSTING / CA, RELAY metadata, XT); `WAVE_A/<ID>.md` | S2; [R9](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R9_RESOLUTIONS.md) | Each file one version step (R9-11); no leftover stale wording; RELAY §0–§3 byte-identical; PIN_SPIKE untouched | COMPLETE `344d86e3e` — fences verified; RELAY span `6e399c83…` unchanged; DAG-003 source manifest 130/130; 11 disagreements returned → [R10](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R10_RESOLUTIONS.md) (R10-1 corrects R9-2) |
+| A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A3 | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | PLANNED |
+| A2 Apply R10; sibling-citation pass over the 15 files; HANDOFF truth fixes | 15 Design files; `WAVE_A/A2.md`; `HANDOFF_SWBPIPE_DOMAINS.md` (integrator) | A1 | R10 applied; every cross-file citation checked; RELAY span unchanged | ACTIVE — HANDOFF done `dda9380d1` (current standing; "local-first" superseded; unrelayed-changes list); R10 and citations with one Type 2 |
+| A3 Apply DECISION-K1 in the files: requester SETTLED; prior act counts in the current phase (SP-6 kept as governance option); partial lapse; identity scheme; allow-list rule (N-OPEN-4 closed) | 15 Design files; `WAVE_A/A3.md` | A2; K1 | Every file that carries the affected rule or case updated; expected case results recomputed | PLANNED |
+| V17 Independent review of Wave A | `reviews/V17.md` | A1-G | Verdict covering the candidate | PLANNED |
 | P1 PR-1: Wave A | — | V17, CI | Merged under the standing direction | PLANNED |
 | **Owner package** | | | | |
-| K0 Decision package draft | `DECISIONS_DRAFT.md` | S1 | Every owner-class choice from the surveys stated with options and consequences | ACTIVE |
-| K1 Owner checkpoint: the choices that shape the design now, with recommendations | `DECISIONS_PENDING.md`; `OWNER_DECISIONS.md` | K0; integrator's recommendations | Decided, or left open at a stated point of need | PLANNED |
+| K0 Decision package draft | `DECISIONS_DRAFT.md` | S1 | Every owner-class choice from the surveys stated with options and consequences | COMPLETE `be55f3250` — 27 choices in three groups |
+| K1 Owner checkpoint: the choices that shape the design now, with recommendations | `DECISIONS_PENDING.md`; `OWNER_DECISIONS.md` | K0 | Decided, or left open at a stated point of need | COMPLETE — [DECISION-K1](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md): all six accepted as recommended |
 | **Wave B — design development** (briefed after Wave A; content from the surveys' section 8 and K1) | | | | |
 | B1 Declared-part carriage and schema, with a local parse/render prototype; harness-capability names | WD, WD-EX; HOSTING (capability account) | P1; K1 where it bears | Schema PROPOSED; E1, E1d, E5, E6 render and parse | PLANNED |
 | B2 Current-phase recorder, App-run reached-when table, end-to-end sequences | EXEC (with LOOP §2.4.1 and ADAPTER §7.7) | P1; R9-1 confirmed or changed at K1 | One transition table and event list for the current phase; sequences for an App run and an App → host transfer | PLANNED |
@@ -89,15 +90,14 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Holds and owner-held choices
 
-- No hold on Wave A.
-- Wave B nodes B2, B4 and B5 read R9-1 (who requests the act in the current
-  phase), which is put to the owner at K1. The other K1 choices are listed in
-  `DECISIONS_PENDING.md` when K0 returns.
-- A spike that needs a credential, a local model server or the network is not
-  run without the owner's decision. Local prototypes that need none of these
-  are inside the run.
+- No hold on Wave A or Wave B from owner choices: DECISION-K1 decided all six.
+- **Download gate (K1-6):** before any chat model is downloaded into LM
+  Studio, HELP_HUMAN names the model, its source and its size to the owner
+  and waits for a yes. The Codex sign-in is asked for only if the local route
+  cannot produce a tool call.
+- The read-only fetch of the two published specifications is allowed (K1-6).
 
 ## Next safe action
 
-Integrate the A1 returns (verify fences with `git status`, run the pin
-script, rule R10), then dispatch A1-G.
+When A2 returns: verify its fence and the RELAY span, commit, then dispatch
+A3 (apply DECISION-K1), then A1-G (GUIDE last), then V17.

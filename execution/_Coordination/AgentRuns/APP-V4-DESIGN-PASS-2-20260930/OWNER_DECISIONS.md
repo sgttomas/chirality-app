@@ -32,3 +32,59 @@ and are not selected.
 - DECISION-3 (`APP-V4-SWBPIPE-INTAKE-20260928`): host joins deferred.
 - DECISION-4 and DECISION-5 of that run: phased checkpoints; model access by
   OAuth or API key with no default; host-agent network destinations.
+
+## DECISION-K1 (owner, exact, 2026-09-30)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after the package was
+presented as [DECISIONS_PENDING.md](DECISIONS_PENDING.md) (sha256 prefix
+`f1e968fe9cc0d40a`, committed at `be55f32502`) and as the review page
+https://claude.ai/artifact/9JXQB9hfhyrFnLk7CKMtSf (Version 1). The even-handed
+draft behind it is [DECISIONS_DRAFT.md](DECISIONS_DRAFT.md) (`4b34c24f52a63d59`).
+
+> accept all six as recommended
+
+**Effects, stated at the scope decided** (each is the option marked
+"recommended" in DECISIONS_PENDING.md Part 1):
+
+- **K1-1 Who asks.** The agent carrying out the workflow asks the person for
+  the checkpoint's act; the product gives the agent the checkpoint, offers the
+  means to act, and records what it observes. Neither the App nor a host's
+  loop requests in the agent's place, pauses the run or otherwise reacts to
+  an arrival. R9-1's requester reading becomes SETTLED (this decision).
+- **K1-2 An earlier act counts, in the current phase,** when it is of the
+  required kind and the content it was made on is still current. The record
+  cites the earlier act and its time. A workflow that takes up the governance
+  phase may require a fresh act. The PROPOSED rule SP-6 ("only acts captured
+  at or after arrival") is replaced for the current phase and kept as a
+  governance-phase option.
+- **K1-3 Partial lapse.** When one act covered several items and only some
+  change, a new act on the changed items alone answers the checkpoint,
+  together with the earlier act for the unchanged items.
+- **K1-4 The App act control and the person's identity.**
+  - The act control's obligation is proposed for DEL-01-04's contract at the
+    next amendment. No design work on it in this pass; this run's closeout
+    collects the wording with its other proposed contract items.
+  - The App records the person's identity from what it can observe (the name
+    set in the App, the operating-system account, and the Codex account when
+    Codex reports one), marked "identity not verified". A verified identity
+    is left for the governance phase.
+- **K1-5 Allow list.** A named destination is allowed on its own; a category
+  switch means "allow everything in this category". With the switch off,
+  only the named entries in that category are allowed. LOOP N-OPEN-4 is
+  closed by this decision.
+- **K1-6 Prototypes and observations.**
+  - A read-only fetch of two published specifications is allowed: the Chat
+    Completions reference the host-loop cases are written against, and the
+    stateless MCP revision (2026-07-28).
+  - For one live Codex turn that calls a test tool, a local model in LM
+    Studio is tried first. The owner's Codex sign-in is asked for only if the
+    local route cannot produce a tool call.
+  - Anything sent to a model is invented example material. Each observation
+    is a dated record at one version, not qualification.
+  - **Recorder's note:** downloading a chat model into LM Studio is a file
+    download. HELP_HUMAN will name the model, its source and its size to the
+    owner and wait for a yes before downloading it.
+
+Part 2 of the package (matters the integrator takes in this pass) was
+presented with "say if you disagree"; the owner did not object. Parts 3 and 4
+stand as presented.
