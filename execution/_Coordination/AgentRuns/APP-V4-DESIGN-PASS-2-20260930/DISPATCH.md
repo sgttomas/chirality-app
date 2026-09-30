@@ -44,3 +44,4 @@ not on the executor's report. A user-level agent definition
 | Round 2 | B5 and B7 launched (Opus 5.5) |
 | OBS-1 | Launched (Opus 5.5) under the B6 brief with the integrator's decisions in BRIEFS (P-5, parts C and D allowed; part B not run; no download; R-1 only) |
 | OBS-1 Part B | Owner approved the second turn; relayed to the running OBS-1 executor by message, with the same limits |
+| OBS-1 return | One Codex turn (R-1, local qwen3.5-9b, LM Studio 0.4.16): **no tool call** (S-8). Codex sent the MCP tool as a Responses `namespace` tool; LM Studio ignored that type, so the model never saw the tool. Part B not run (the relayed condition). Parts C and D observed. No download; no sign-in. Supplier start-up contacted chatgpt.com (remote control; a 401 plugins request) and github.com (plugin sync) with analytics disabled. Fence verified; committed with this row |
