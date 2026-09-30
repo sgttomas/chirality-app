@@ -1,9 +1,9 @@
 # SCA-V4-002 — Decision log
 
-**Standing: CANDIDATE amendment folder (posture `ACCEPTED_PREDECESSOR`);
-checkpoint group 3 not yet presented.** Human decisions are quoted exactly;
-execution-stage readings by node AK1 are labeled as such and are not owner
-decisions.
+**Standing: ACCEPTED amendment snapshot (posture `ACCEPTED_PREDECESSOR`);
+checkpoint group 3 accepted by DECISION-3 on 2026-09-29.** Human decisions
+are quoted exactly; execution-stage readings by nodes AK1 (before the act)
+and AK2 (after it) are labeled as such and are not owner decisions.
 
 ## Human decisions
 
@@ -11,6 +11,7 @@ decisions.
 |---|---|---|---|---|
 | DIR-1 | 2026-09-29 | Direction to start | "Proposal accepted.  Proceed accordingly." | `AgentRuns/APP-V4-SCA002-20260929/OWNER_DECISIONS.md`, "Direction to start" |
 | DECISION-2 | 2026-09-29 | K1: scope-change groups 1 and 2 | "accept the remaining items as recommended" | Same file (sha256 `2a1d24c1…7cf95`), added by commit `f061cf61e`. Recorded in `checkpoint_snapshots/SCA-V4-002_GROUP-1_2026-09-29/` and `SCA-V4-002_GROUP-2_2026-09-29/`. The owner decided while the pre-change baseline was still running (timing disclosure in the group-1 `DECISION.md`) |
+| DECISION-3 | 2026-09-29 | K2: scope-change group 3 | "Accept (Recommended)" | Same file (sha256 `f2dda563…8ef3`), added by commit `851ec3d88`. Recorded in `checkpoint_snapshots/SCA-V4-002_GROUP-3_2026-09-29/`. The package presented was this candidate at `70376aff2` with its records at `ffdb56e1a` and review V14; the six-versus-seven-package audit scope (V14 R-3) was disclosed in the question |
 
 Decision-log reference for the Part D supersession rows (Q-10): the 17
 `DL-SCA-V4-001-…` rows in `Supersession_Delta.csv` bind no SCA-V4-002
@@ -96,3 +97,41 @@ OWNER_ITEMS Q-10 "(a): add 17 path-level rows now").
   bytes are not changed; the group-1 `DECISION.md` records it.
 - **E-12 · Not yet written (group-3 preparation, after the independent
   review):** `Handoff_State.md` and `RUN_SUMMARY.md`.
+
+## Execution-stage records (node AK2, after DECISION-3)
+
+- **E-13 · Group-3 decision snapshot.**
+  `checkpoint_snapshots/SCA-V4-002_GROUP-3_2026-09-29/` (`DECISION.md`,
+  `ACCEPTED_MANIFEST.csv` with 61 rows hashed at `851ec3d88`,
+  `Handoff_State.md`), transcribed from DECISION-3.
+- **E-14 · H-1 applied** (B-04): `{ACCEPT_DATE}` = `2026-09-29`,
+  `{AMENDMENT_SNAPSHOT}` = `SCA-V4-002_2026-09-29_1901`; the five clause
+  slots filled because DECISION-2 declined no item (Q-6, Q-7, Q-10 (a),
+  Q-11, Q-12 (a)); Q-5 option A appends nothing. The old block occurred once;
+  the new block zero times before and once after. `SOFTWARE_DECOMP.md`
+  sha256 `7434058164…5747` → `ea3388bcb0…9dd5`.
+- **E-15 · H-2 applied** (C-01): `_ScopeChange/_LATEST.md` rewritten from
+  the Part C text with `{CLOSURE_VERDICT}` = `OPEN_PENDING_DERIVATIVE_CLOSURE`,
+  `{GROUP12_REFS}` = the two decision folders, `{SCA001_CLOSURE}` =
+  `OPEN_PENDING_DERIVATIVE_CLOSURE` per the C-02 record at its committed
+  path (V14 R-1), `{ARC_LIST}` = N-18, N-21, N-24 and X-1, `{OPEN_LIST}` =
+  the open items of `Handoff_State.md` including the SCA-V4-001 items, and
+  `{UTC}` = `20260930T021014Z`. sha256 `a9a7cdc8…339d` → `2b7938bc…0c2e1`.
+  The registered parser `_latest_pointer_target` returns
+  `SCA-V4-002_2026-09-29_1901`; `_pointer_matches` is True.
+- **E-16 · H-3.** The B8 rule recomputed over all 144
+  `Consolidated_Coverage.csv` rows against the post-H-1 documents changes no
+  row; the register carries no `SOFTWARE_DECOMP.md` row. The file is
+  unchanged (sha256 `36677365…13ea`).
+- **E-17 · Finalized after the act:** this file, `Handoff_State.md` and
+  `RUN_SUMMARY.md`. No group-1- or group-2-bound byte was rewritten.
+- **E-18 · H-4.** The post-acceptance record
+  `_PostAcceptanceValidation/SCA-V4-002_20260930T021014Z/` and the
+  audit-decomp rerun `AgentRuns/APP-V4-SCA002-20260929/POSTACCEPT/` over the
+  seven packages; results in those records.
+- **E-19 · ASC-ISS-001** is closed by DECISION-3, pending the superseding
+  `audit-scope-closure` snapshot for SCA-V4-001.
+- **E-20 · Not written under this acceptance:** the 9 `ScopeOfWork.md`
+  files (propagation stage 1, `scope-of-work` REVISE), B-06a (with them),
+  any `Dependencies.csv`, `_DEPENDENCIES.md`, `_DAG/`, `_STATUS.md` or
+  `Coverage_Telemetry.json` byte.

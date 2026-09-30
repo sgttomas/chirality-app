@@ -1,0 +1,103 @@
+{
+ "basis_commit": "851ec3d88bb090f0bc63ad7075b1668ad65afb39",
+ "packet_sha256": "091871fd90283b27b2d067c1eeb3137e3cf8f9d50dab87ad92a9b871cc634238",
+ "b04_fill": {
+  "{ACCEPT_DATE}": "2026-09-29",
+  "{AMENDMENT_SNAPSHOT}": "SCA-V4-002_2026-09-29_1901",
+  "{Q6_CLAUSE}": ", DEL-04-02 and DEL-01-01",
+  "{Q7_CLAUSE}": "; the OI-012 pointer in Open_Issues.csv",
+  "{Q11_CLAUSE}": "; Deliverables DEL-04-01 (checkpoint clause) with its _CONTEXT.md mirror",
+  "{Q12_CLAUSE}": "; a reading-rule note (\"GROUP3 as amended by the active _ScopeChange/_LATEST.md\") on _LATEST.md, checkpoint_snapshots/_LATEST_ACCEPTED.md and five _CONTEXT.md basis lines",
+  "{Q10_CLAUSE}": "; and path-level Supersession_Delta rows for SCA-V4-001 actions 18–25, 36, 42 and 46"
+ },
+ "c01_fill": {
+  "{AMENDMENT_SNAPSHOT}": "SCA-V4-002_2026-09-29_1901",
+  "{ACCEPT_DATE}": "2026-09-29",
+  "{AMENDMENT_ID}": "SCA-V4-002",
+  "{CLOSURE_VERDICT}": "OPEN_PENDING_DERIVATIVE_CLOSURE",
+  "{GROUP12_REFS}": "`execution/_ScopeChange/checkpoint_snapshots/SCA-V4-002_GROUP-1_2026-09-29/`, `execution/_ScopeChange/checkpoint_snapshots/SCA-V4-002_GROUP-2_2026-09-29/`",
+  "{SCA001_CLOSURE}": "`OPEN_PENDING_DERIVATIVE_CLOSURE` per `execution/_ScopeChange/_PostAcceptanceValidation/SCA-V4-001_20260930T010520Z_EFFECTIVE_STATE/EFFECTIVE_STATE.md`",
+  "{UTC}": "20260930T021014Z",
+  "{ARC_LIST}": "N-18, N-21, N-24 and X-1",
+  "{OPEN_LIST}": "the 9 ScopeOfWork REVISEs (`scope-of-work` MODE=REVISE, `STATUS_POLICY` `NO_STATUS_TOUCH`) with the B-06a reading-rule note on `_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md`; the dependency-register UPDATE (`dependency-extract`); the DAG-002 departure and the DAG-003 candidate (owner checkpoint C); `_Decomposition/Coverage_Telemetry.json` (`STALE_REBUILD_REQUIRED`, owned by the decomposition owner; carried from SCA-V4-001); the 17 Design re-pins (carried from SCA-V4-001); the confirmation of ASC-ISS-001's closure by a superseding `audit-scope-closure` snapshot for SCA-V4-001 (the SCA-V4-001 effective-state record is `execution/_ScopeChange/_PostAcceptanceValidation/SCA-V4-001_20260930T010520Z_EFFECTIVE_STATE/EFFECTIVE_STATE.md`); `audit-scope-closure` for SCA-V4-002"
+ },
+ "edits": [
+  {
+   "item": "H-1",
+   "edit": "B-04",
+   "target": "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_SNAPSHOT}",
+    "{Q10_CLAUSE}",
+    "{Q11_CLAUSE}",
+    "{Q12_CLAUSE}",
+    "{Q6_CLAUSE}",
+    "{Q7_CLAUSE}"
+   ],
+   "old_count_before": 1,
+   "new_count_before": 0,
+   "new_count_after": 1,
+   "old_sha256": "6cb360dbd970ddb861fb8438009d2428cb7bba29a78554e202d76d5fe02bb88e",
+   "new_filled_sha256": "daeb822fa5df2e054d34c12fa09b2cbe808502359627d0f40935d069d7314054",
+   "new_filled": "Snapshot: `../_ScopeChange/SCA-V4-001_2026-09-28_2155`.\n\n- SCA-V4-002 (2026-09-29), requested by the owner (run APP-V4-BASIS-ALIGN-20260928 DECISION-8 and DECISION-10; run APP-V4-SCA002-20260929): MODIFY only. ScopeOfWork text of DEL-10-03, DEL-02-01, DEL-02-03, DEL-09-07, DEL-01-04, DEL-02-02 and DEL-03-03, DEL-04-02 and DEL-01-01; a line-layout correction in HOST_INTEGRATION.md's status paragraph, with the Consolidated_Coverage recompute; the OI-012 pointer in Open_Issues.csv; Deliverables DEL-04-01 (checkpoint clause) with its _CONTEXT.md mirror; a reading-rule note (\"GROUP3 as amended by the active _ScopeChange/_LATEST.md\") on _LATEST.md, checkpoint_snapshots/_LATEST_ACCEPTED.md and five _CONTEXT.md basis lines; and path-level Supersession_Delta rows for SCA-V4-001 actions 18–25, 36, 42 and 46. No ID was added, retired, renumbered or moved; 11 Packages, 41 Deliverables and 262 scope IDs are unchanged. Snapshot: `../_ScopeChange/SCA-V4-002_2026-09-29_1901`.\n\n## Checkpoint and next stage"
+  },
+  {
+   "item": "H-2",
+   "edit": "C-01",
+   "target": "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md",
+   "tokens": [
+    "{ACCEPT_DATE}",
+    "{AMENDMENT_ID}",
+    "{AMENDMENT_SNAPSHOT}",
+    "{ARC_LIST}",
+    "{CLOSURE_VERDICT}",
+    "{GROUP12_REFS}",
+    "{OPEN_LIST}",
+    "{SCA001_CLOSURE}",
+    "{UTC}"
+   ],
+   "template_sha256": "6d16806be829c2d8391cec9e6d5a711fb33ed4411436daf660f7f15a7ec9913e",
+   "parser_target": "SCA-V4-002_2026-09-29_1901",
+   "pointer_matches": true,
+   "new_sha256": "2b7938bc82aa9b08a2bd26d7f2c0169c538edb1e6ae5423d5757def968f0c2e1"
+  }
+ ],
+ "consolidated": {
+  "rows_checked": 144,
+  "rows_changed": 0,
+  "documents": [
+   "projects/chirality-app-v4/docs/ARCHITECTURE.md",
+   "projects/chirality-app-v4/docs/EXAMINATION.md",
+   "projects/chirality-app-v4/docs/HOST_INTEGRATION.md",
+   "projects/chirality-app-v4/docs/OPERATING_METHOD.md",
+   "projects/chirality-app-v4/docs/PRD.md"
+  ],
+  "software_decomp_rows": 0,
+  "doc_sha256": {
+   "projects/chirality-app-v4/docs/PRD.md": "bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd",
+   "projects/chirality-app-v4/docs/ARCHITECTURE.md": "317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c",
+   "projects/chirality-app-v4/docs/HOST_INTEGRATION.md": "d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f",
+   "projects/chirality-app-v4/docs/EXAMINATION.md": "471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0",
+   "projects/chirality-app-v4/docs/OPERATING_METHOD.md": "98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd"
+  },
+  "sha256_unchanged": "366773650b588dc995f396be02d7e2690d9738c8d22afb98a85260dfb87313ea"
+ },
+ "files": {
+  "projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md": {
+   "pre": "7434058164f9e53f146793b85c38845a562fbc9ffd46f2b97de18e8d597e5747",
+   "post": "ea3388bcb05b2280d8bb10db2578aec9818f40c559b4214e1732da754d9bd7d5",
+   "written": true
+  },
+  "projects/chirality-app-v4/execution/_ScopeChange/_LATEST.md": {
+   "pre": "a9a7cdc8c50a36fbdd25fc53c72322972ba4f9b4d301d811e1a9c1381966339d",
+   "post": "2b7938bc82aa9b08a2bd26d7f2c0169c538edb1e6ae5423d5757def968f0c2e1",
+   "written": true
+  },
+  "projects/chirality-app-v4/execution/_Decomposition/Consolidated_Coverage.csv": {
+   "pre": "366773650b588dc995f396be02d7e2690d9738c8d22afb98a85260dfb87313ea",
+   "post": "366773650b588dc995f396be02d7e2690d9738c8d22afb98a85260dfb87313ea",
+   "written": false
+  }
+ }
+}
