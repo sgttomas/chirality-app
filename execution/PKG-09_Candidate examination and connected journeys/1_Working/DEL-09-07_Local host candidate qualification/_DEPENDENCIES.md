@@ -16,62 +16,67 @@
 ---
 
 ## Extracted Dependency Register
-- **Status:** EXTRACTED_AND_LOCALLY_VALIDATED
-- **Register:** `Dependencies.csv` (v3.1; 29 columns).
-- **Counts:** 25 ACTIVE rows: 10 ANCHOR (1 parent, 9 scope/objective traces), 15 EXECUTION (14 UPSTREAM, 1 DOWNSTREAM); 0 RETIRED; 0 DECLARED; EXECUTION target types: DELIVERABLE 2, EXTERNAL 9, PACKAGE 4.
 
-| DependencyID | Class / anchor | Direction / type | Target | Satisfaction | Status |
+- **Status:** EXTRACTED (UPDATE 2026-09-29, SCA-V4-002 propagation); local checks recorded in `_run_records/dependency-extract-20260929-sca002.md`.
+- **Register:** `Dependencies.csv` v3.1, 29 columns; 25 ACTIVE / 0 RETIRED; ACTIVE origin: 25 EXTRACTED.
+- **Classes (ACTIVE):** 10 ANCHOR (1 parent + 5 scope + 4 objective), 15 EXECUTION.
+- **Execution targets (ACTIVE):** 2 DELIVERABLE, 9 EXTERNAL, 4 PACKAGE; direction 1 DOWNSTREAM, 14 UPSTREAM; types 2 CONSTRAINT, 1 HANDOVER, 5 INTERFACE, 7 PREREQUISITE.
+- **This run:** 0 added, 4 updated in place (022 and 023 re-quoted against revised TBD-002/TBD-003; 016 Notes restated per ASC-ISS-007; 020 notes), 0 retired
+
+| DependencyID | Class / type | Direction | Target | Closure | Status |
 |---|---|---|---|---|---|
-| DEP-09-07-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM / OTHER | PKG-09 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-199 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-200 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-201 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-202 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | SOW-239 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-007 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-004 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-008 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-005 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-009 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-008 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-010 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM / OTHER | OBJ-009 | NOT_APPLICABLE | ACTIVE |
-| DEP-09-07-011 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | DEL-09-06 | TBD | ACTIVE |
-| DEP-09-07-012 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-02 | TBD | ACTIVE |
-| DEP-09-07-013 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-03 | TBD | ACTIVE |
-| DEP-09-07-014 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-04 | TBD | ACTIVE |
-| DEP-09-07-015 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | PKG-05 | TBD | ACTIVE |
-| DEP-09-07-016 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | DEP-001 | TBD | ACTIVE |
-| DEP-09-07-017 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Actual App/SWBPIPE candidate and local-model runtime configuration | TBD | ACTIVE |
-| DEP-09-07-018 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person/engineer — scoped V4-EXM-20 row decisions | TBD | ACTIVE |
-| DEP-09-07-019 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Engineer-edited model and agent checking request for V4-EXM-21 | TBD | ACTIVE |
-| DEP-09-07-020 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person-adopted per-operation autonomy policy and actual run setting | TBD | ACTIVE |
-| DEP-09-07-021 | EXECUTION / NOT_APPLICABLE | UPSTREAM / PREREQUISITE | Person's actual declared workflow-checkpoint act for V4-EXM-22 | TBD | ACTIVE |
-| DEP-09-07-022 | EXECUTION / NOT_APPLICABLE | UPSTREAM / CONSTRAINT | OI-001 | TBD | ACTIVE |
-| DEP-09-07-023 | EXECUTION / NOT_APPLICABLE | UPSTREAM / CONSTRAINT | OI-002 | TBD | ACTIVE |
-| DEP-09-07-024 | EXECUTION / NOT_APPLICABLE | UPSTREAM / INTERFACE | Independent examiner — joined local qualification dossier examination | TBD | ACTIVE |
-| DEP-09-07-025 | EXECUTION / NOT_APPLICABLE | DOWNSTREAM / HANDOVER | DEL-11-03 | TBD | ACTIVE |
+| DEP-09-07-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM | PKG-09 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-199 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-200 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-201 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-202 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-239 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-007 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-004 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-008 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-005 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-009 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-008 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-010 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-009 | NOT_APPLICABLE | ACTIVE |
+| DEP-09-07-011 | EXECUTION / PREREQUISITE | UPSTREAM | DEL-09-06 | TBD | ACTIVE |
+| DEP-09-07-012 | EXECUTION / INTERFACE | UPSTREAM | PKG-02 | TBD | ACTIVE |
+| DEP-09-07-013 | EXECUTION / INTERFACE | UPSTREAM | PKG-03 | TBD | ACTIVE |
+| DEP-09-07-014 | EXECUTION / INTERFACE | UPSTREAM | PKG-04 | TBD | ACTIVE |
+| DEP-09-07-015 | EXECUTION / INTERFACE | UPSTREAM | PKG-05 | TBD | ACTIVE |
+| DEP-09-07-016 | EXECUTION / PREREQUISITE | UPSTREAM | DEP-001 | TBD | ACTIVE |
+| DEP-09-07-017 | EXECUTION / PREREQUISITE | UPSTREAM | Actual App/SWBPIPE candidate and local-model runtime configuration | TBD | ACTIVE |
+| DEP-09-07-018 | EXECUTION / PREREQUISITE | UPSTREAM | Person/engineer — scoped V4-EXM-20 row decisions | TBD | ACTIVE |
+| DEP-09-07-019 | EXECUTION / PREREQUISITE | UPSTREAM | Engineer-edited model and agent checking request for V4-EXM-21 | TBD | ACTIVE |
+| DEP-09-07-020 | EXECUTION / PREREQUISITE | UPSTREAM | Person-adopted per-operation autonomy policy and actual run setting | TBD | ACTIVE |
+| DEP-09-07-021 | EXECUTION / PREREQUISITE | UPSTREAM | Person's actual declared workflow-checkpoint act for V4-EXM-22 | TBD | ACTIVE |
+| DEP-09-07-022 | EXECUTION / CONSTRAINT | UPSTREAM | OI-001 | TBD | ACTIVE |
+| DEP-09-07-023 | EXECUTION / CONSTRAINT | UPSTREAM | OI-002 | TBD | ACTIVE |
+| DEP-09-07-024 | EXECUTION / INTERFACE | UPSTREAM | Independent examiner — joined local qualification dossier examination | TBD | ACTIVE |
+| DEP-09-07-025 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-11-03 | TBD | ACTIVE |
 
 ## Lifecycle Summary
-- ACTIVE: 25; RETIRED: 0. Satisfaction (ACTIVE): NOT_APPLICABLE 10; TBD 15.
-- INITIALIZED: source-grounded contract exists; the SCA-V4-001 REVISE left DEL-09-07 INITIALIZED. No dependency availability or product-readiness verdict. Execution SatisfactionStatus=TBD is the register convention.
+
+- ACTIVE: 25; RETIRED: 0. Closure (ACTIVE): NOT_APPLICABLE 10, PENDING 0, TBD 15, IN_PROGRESS 0, SATISFIED 0, WAIVED 0.
+- Local Deliverable RequiredMaturity INITIALIZED is a checked contract threshold only. No execution row is reported received, compatible, adopted, qualified or complete by this extraction; closure states were not advanced.
 
 ## Run Notes
-- Workflow: `chirality-root:bundled:workflow:dependency-extract`; SCOPE `DEL-09-07`; MODE `UPDATE`; STRICTNESS `CONSERVATIVE`; CONSUMER_CONTEXT `NONE`; ARCHITECTURE_BASIS_POLICY `NONE`.
-- RUN_ROOT: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution`. DECOMPOSITION_PATH: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md`; accepted companion Package/Deliverable/scope/objective rows resolve labels and IDs only. Historical snapshot candidate/pending labels do not reverse the accepted basis specified by the brief.
-- SOURCE_DOCS, ANCHOR_DOC and EXECUTION_DOC_ORDER: `ScopeOfWork.md` only; DOC_ROLE_MAP `DEFAULT`. Pass 1 completed with one parent, five scope traces and four objective traces before Pass 2.
-- Source SHA256 before/after: `36cc2e24595f0585111929204e27943f68b79bb54001ba52a3356aba9f78c1a0`; matches dispatch. Initial register absent; 25 extracted rows added, none refreshed/retired/deleted. Human-owned sections and prior history preserved exactly. Declaration mirror counts: added 0, refreshed 0, retired 0, skipped 2 initial-setup placeholders.
-- RequiredMaturity `INITIALIZED` applies only to local Deliverable contract maturity. Actual agreement, technical contribution, runtime configuration, adopted policy, scoped human acts and examined dossier are separate conditions; all 15 execution rows remain `TBD` for satisfaction. Anchors have `NOT_APPLICABLE` closure. No delivery, qualification, lifecycle advancement, acceptance or adoption is claimed.
-- Four consumed package-contract interfaces stay at package level: CLM-003 states positive consumption but does not identify exact contributing Deliverables. No owner/exclusion list was converted into edges; no full-package completion or blanket provider gate. Package/non-Deliverable maturity remains `TBD`.
-- External DEP-001 remains SWB-owned and human-relayed; actual candidate/configuration/model/server, complete same-run host traffic/native-boundary evidence and receipts remain necessary. No construction or provider readiness is inferred. OI-001/002 apply only at the stated affected points of need; OI-021 choices arrive with the actual DEL-09-06 agreement. Independent definition and unrelated checks may continue.
-- Scoped witness inputs retain the person as actor for row decisions and checkpoint release, and preserve the engineer-edited checking fixture. No synthetic sequence between acceptance, checking, approval and reliance; no favorable professional act demanded. PEC remains optional and Domains later; neither becomes a local-host qualification gate.
-- Limits: exact runtime/endpoint/model/provider configuration, actual received external contributions, contract subsets, adopted policy dispositions and human/examiner acts are not established by extraction. `TargetLocation=TBD` names missing execution locations without inventing identifiers. No unresolved source conflict identified. No FLOATING_NODE or AMBIGUOUS_ANCHOR warning.
-- Local schema, all used core enums, supported ID formats, one-parent/duplicate/evidence/quote/summary/source/declared-preservation checks: PASS. Optional whole-execution EVQ/DRB scan omitted; local equivalents found no blank quotes, placeholder SourceRef or mismatched dependency prefix. See `_run_records/dependency-extract-20260927.md` for exact verification results and hashes.
 
-- **Run 2026-09-29 (DX-3, APP-V4-BASIS-ALIGN-20260928; dependency-extract UPDATE after SCA-V4-001 SoW revision).** Method `chirality-root:bundled:workflow:dependency-extract` (WORKFLOW.md SHA256 `e5523ebabccf44337ec531280d4d91be2ce7ff1477bd39568a18bb0c4c9f18c3`). Brief: run folder `BRIEFS.md` § DX (group DX-3). Defaults and chosen paths: SCOPE=DEL-09-07; MODE=UPDATE; STRICTNESS=CONSERVATIVE; CONSUMER_CONTEXT=NONE; ARCHITECTURE_BASIS_POLICY=NONE; DOC_ROLE_MAP=DEFAULT; SOURCE_DOCS=ANCHOR_DOC=EXECUTION_DOC_ORDER=`ScopeOfWork.md` only (explicit); RUN_ROOT=`projects/chirality-app-v4/execution`; DECOMPOSITION_PATH=`projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` (current, post-SCA-V4-001; its ScopeLedger companion resolves the amended SOW-201/SOW-202 labels).
-- Source `ScopeOfWork.md` SHA256 `53b51d309d060089a6a88dae565867a92348789ee01430927e7464c7c2d3cba0` (commit `340ecf341`), unchanged during the run. The SoW has no `Design/` folder.
-- Pass 1: parent PKG-09 and traces SOW-199/200/201/202/239 and OBJ-004/005/008/009 re-confirmed. `DEP-09-07-004` (SOW-201) and `DEP-09-07-005` (SOW-202) TargetName/TargetLocation re-resolved to the current ScopeLedger labels amended by SCA-V4-001 (GROUP3 labels preserved in Notes as `legacy_TargetName`).
-- Pass 2: 0 rows added; 2 rows refreshed in place: `DEP-09-07-016` (DEP-001 contribution: native destination-enforcement wording for revised REQ-006/AC-006/VER-006) and `DEP-09-07-021` (checkpoint act: re-quoted from revised VER-005; recorded only when performed, hold/release only in the governance phase, DECISION-4 D4-1). 21 rows re-observed unchanged (LastSeen only). 0 retired. TBD-002/TBD-003 (OI-001/OI-002) are unchanged in this SoW, so `DEP-09-07-022`/`-023` are unchanged. No new deliverable target is named; the destination allow list and in-work grants (VER-006) are part of the runtime configuration already carried by `DEP-09-07-017`.
-- Declaration mirrors added/refreshed/retired: 0/0/0; 2 placeholders skipped. Human-owned sections byte-identical.
-- Function 5 checks: `validate_dependencies_schema.py` VALID (29 columns, 25 rows); `validate_enum.py` 23 invocations, 0 failures; `validate_id_format.sh` 43 invocations, 0 failures; unique IDs; prefix matches; exactly 1 ACTIVE parent anchor; no blank quote or placeholder locus; no Status=CANDIDATE. Run record: `_run_records/dependency-extract-20260929.md`.
+- SCOPE DEL-09-07; brief: run APP-V4-SCA002-20260929 node DX dispatch message, reusing run APP-V4-BASIS-ALIGN-20260928 `BRIEFS.md` section "DX — dependency-extract UPDATE" shared overrides; selected method `chirality-root:bundled:workflow:dependency-extract` (`workflows/dependency-extract/WORKFLOW.md`).
+- MODE UPDATE; STRICTNESS CONSERVATIVE (both brief overrides). Defaults applied: CONSUMER_CONTEXT NONE, ARCHITECTURE_BASIS_POLICY NONE, DOC_ROLE_MAP DEFAULT.
+- RUN_ROOT `projects/chirality-app-v4/execution`; DECOMPOSITION_PATH `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` (brief override; located, SHA256 `ea3388bcb05b2280d8bb10db2578aec9818f40c559b4214e1732da754d9bd7d5`). Companion CSVs in the same folder (Packages, Deliverables, ScopeLedger, Objectives, Open_Issues, External_Dependencies) were used for identity/label resolution only; all ACTIVE target IDs resolve there.
+- SOURCE_DOCS `ScopeOfWork.md` only (explicit brief override); ANCHOR_DOC `ScopeOfWork.md`; EXECUTION_DOC_ORDER [`ScopeOfWork.md`]. `Design/` files, MEMORY.md, _CONTEXT.md and _SEMANTIC.md were not read as extraction sources. `_REFERENCES.md` was read for pointer resolution only.
+- Source ScopeOfWork.md SHA256 `813ef0f3ebcbc000df3a54093f15a0cfe9b2a75c8f6bb69a6648b1eec8e0395a` (as revised under SCA-V4-002 at commit 1efd4bcda where in scope); unchanged by this run.
+- Two passes in order: Pass 1 re-verified every ANCHOR row against the current frontmatter/traceability table before Pass 2 examined execution statements. Existing anchor TargetLocation pointers to the GROUP3 frozen snapshot are retained (the IDs are unchanged and resolve in both).
+- Match/merge (UPDATE): all 25 prior EXTRACTED rows re-observed and kept ACTIVE with their DependencyIDs; LastSeen refreshed. Updated in place: DEP-09-07-022 (OI-001; Statement/TargetName/EvidenceQuote/Notes re-quoted against revised TBD-002, narrowed to matters the D2 ruling does not cover), DEP-09-07-023 (OI-002; same against revised TBD-003, narrowed to criteria outside the D3 ruling), DEP-09-07-016 (DEP-001; Notes restated against the revised SoW per ASC-ISS-007, superseding the pre-SCA-V4-001 "candidate/run/configured endpoint" sentence) and DEP-09-07-020 (Notes only). No row added. No row retired: both revised TBDs keep a residual owner-held constraint with a stated point of need, so the OI-001/OI-002 rows are re-quoted rather than retired (IMPACT §5 allows either).
+- SCA-V4-002 edits to this SoW (F-0907-01 CLM-002 policy clause; F-0907-02 TBD-002; F-0907-03 TBD-003; F-0907-04 AX-005) name no deliverable that the SoW did not already name and add no consumption statement. No new arc.
+- Considered, not extracted (CONSERVATIVE, information flow only): OI-021 (TBD-001; useful operation, permitted autonomy and candidate environment) remains carried through the DEL-09-06 agreement row DEP-09-07-011 as in the prior runs, not as a separate EXTERNAL row; the PKG-02/03/04/05 package-level consumption rows (012–015) remain unresolved to per-deliverable edges because CLM-003 names packages. The CLM-002 policy clause is an owner/decision-allocation statement, not an input. No row on DEL-09-06 was added or changed.
+- Guards (brief): no row makes an SCC-002 member depend on DEL-09-06 and DEL-09-06 has no DOWNSTREAM row to an SCC-002 member; nothing grounds N-12 or N-B8; DEL-04-01 gains no supplier row from an SCC-002 member. Checked against this register after the run: not triggered.
+- FACT/ASSUMPTION/PROPOSAL separation is recorded per row in Notes. No human act, receipt, compatibility or closure is inferred; closure states unchanged.
+- Declared mirrors: 0 added, 0 refreshed, 0 retired; 2 entries skipped ("None declared at initial setup." placeholders in Declared Upstream/Downstream).
+- Local checks: PASS (unique IDs, DEP prefix, one parent anchor, verbatim quotes <=30 words, non-placeholder SourceRefs, target placement, no duplicate typed-target keys); target IDs unresolved: none. Schema validator PASS. enum invocations=23, id invocations=43, all_ok=True
+- Optional `validate_decomposition_registers.py` whole-execution EVQ/DRB scan not run per deliverable (the brief bounds reads to the deliverable and decomposition); the equivalent local EVQ-003/EVQ-004/DRB-006 conditions were checked and are absent.
+- Warnings: none.
+- Comparison with the run folder's `AMENDMENT_PACKET/ARC_EFFECT.md` expectations was performed after extraction as a separate coordinator check and is reported in the run-folder return `DX/DX_DEL-09-07.md`; it was not an extraction input.
 
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-28T03:38:14+00:00 — TASK `/root/renewal_research_strategy/dep_del_09_07`; UPDATE / CONSERVATIVE; decomposition `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md` present, canonical labels resolved; warnings 0; ACTIVE 25 (ANCHOR 10, EXECUTION 15), RETIRED 0; source unchanged and local checks PASS. No closure or lifecycle advancement.
 - 2026-09-29T14:38:50+00:00 — TASK DX-3 (APP-V4-BASIS-ALIGN-20260928); UPDATE / CONSERVATIVE; SOURCE_DOCS=ScopeOfWork.md; decomposition `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` available. Added 0, refreshed 4 (anchors DEP-09-07-004/-005 labels; DEP-09-07-016, -021), retired 0. ACTIVE=25 (ANCHOR=10; EXECUTION=15), RETIRED=0. Mandatory local checks passed; no integrity warnings.
+- 2026-09-30T02:44:08+00:00 — TASK DX (run APP-V4-SCA002-20260929); UPDATE / CONSERVATIVE; SOURCE_DOCS ScopeOfWork.md only; decomposition `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` resolved; 25 ACTIVE (10 ANCHOR / 15 EXECUTION), 0 RETIRED; 0 added, 4 updated (016, 020, 022, 023), 0 retired; warnings none; dependency closure unclaimed.

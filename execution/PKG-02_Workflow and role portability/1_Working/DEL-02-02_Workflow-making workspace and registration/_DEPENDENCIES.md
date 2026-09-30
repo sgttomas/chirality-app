@@ -17,55 +17,61 @@
 
 ## Extracted Dependency Register
 
-- **Status:** EXTRACTED; canonical Dependencies.csv v3.1.
-- **ACTIVE:** 18 total — 11 ANCHOR, 7 EXECUTION. EXECUTION: 6 upstream deliverable inputs (DEL-01-03, DEL-01-04, DEL-02-01, DEL-02-03, DEL-04-01, DEL-04-03) and 1 downstream handover (DEL-09-02).
-- **RETIRED:** 1. **EXTERNAL (ACTIVE):** 0. **UNKNOWN (ACTIVE):** 0. **DECLARED:** 0.
+- **Status:** EXTRACTED (UPDATE 2026-09-29, SCA-V4-002 propagation); local checks recorded in `_run_records/dependency-extract-20260929-sca002.md`.
+- **Register:** `Dependencies.csv` v3.1, 29 columns; 18 ACTIVE / 1 RETIRED; ACTIVE origin: 18 EXTRACTED.
+- **Classes (ACTIVE):** 11 ANCHOR (1 parent + 7 scope + 3 objective), 7 EXECUTION.
+- **Execution targets (ACTIVE):** 7 DELIVERABLE; direction 1 DOWNSTREAM, 6 UPSTREAM; types 1 HANDOVER, 6 INTERFACE.
+- **This run:** 0 added, 1 updated in place (016: Notes for revised TBD-001), 0 retired
 
-| Dependency | Class / type | Direction | Target | Status |
-|---|---|---|---|---|
-| DEP-02-02-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM | PKG-02 | ACTIVE |
-| DEP-02-02-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-002 | ACTIVE |
-| DEP-02-02-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-046 | ACTIVE |
-| DEP-02-02-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-047 | ACTIVE |
-| DEP-02-02-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-048 | ACTIVE |
-| DEP-02-02-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-049 | ACTIVE |
-| DEP-02-02-007 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-050 | ACTIVE |
-| DEP-02-02-008 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-127 | ACTIVE |
-| DEP-02-02-009 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-001 | ACTIVE |
-| DEP-02-02-010 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-002 | ACTIVE |
-| DEP-02-02-011 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-003 | ACTIVE |
-| DEP-02-02-012 | EXECUTION / INTERFACE | UPSTREAM | DEL-01-03 | ACTIVE |
-| DEP-02-02-013 | EXECUTION / INTERFACE | UPSTREAM | DEL-01-04 | ACTIVE |
-| DEP-02-02-014 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-01 | ACTIVE |
-| DEP-02-02-015 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-03 | ACTIVE |
-| DEP-02-02-016 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-01 | ACTIVE |
-| DEP-02-02-017 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-03 | ACTIVE |
-| DEP-02-02-018 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-09-02 | ACTIVE |
-| DEP-02-02-019 | EXECUTION / CONSTRAINT | UPSTREAM | Person performing workflow review and explicit registration | RETIRED |
+| DependencyID | Class / type | Direction | Target | Closure | Status |
+|---|---|---|---|---|---|
+| DEP-02-02-001 | ANCHOR / IMPLEMENTS_NODE | UPSTREAM | PKG-02 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-002 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-002 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-003 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-046 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-004 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-047 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-005 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-048 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-006 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-049 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-007 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-050 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-008 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | SOW-127 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-009 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-001 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-010 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-002 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-011 | ANCHOR / TRACES_TO_REQUIREMENT | UPSTREAM | OBJ-003 | NOT_APPLICABLE | ACTIVE |
+| DEP-02-02-012 | EXECUTION / INTERFACE | UPSTREAM | DEL-01-03 | TBD | ACTIVE |
+| DEP-02-02-013 | EXECUTION / INTERFACE | UPSTREAM | DEL-01-04 | TBD | ACTIVE |
+| DEP-02-02-014 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-01 | TBD | ACTIVE |
+| DEP-02-02-015 | EXECUTION / INTERFACE | UPSTREAM | DEL-02-03 | TBD | ACTIVE |
+| DEP-02-02-016 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-01 | TBD | ACTIVE |
+| DEP-02-02-017 | EXECUTION / INTERFACE | UPSTREAM | DEL-04-03 | TBD | ACTIVE |
+| DEP-02-02-018 | EXECUTION / HANDOVER | DOWNSTREAM | DEL-09-02 | TBD | ACTIVE |
+| DEP-02-02-019 | EXECUTION / CONSTRAINT | UPSTREAM | Person performing workflow review and explicit registration | TBD | RETIRED |
 
 ## Lifecycle Summary
 
-- Register lifecycle: ACTIVE 18; RETIRED 1.
-- Closure states (ACTIVE rows): NOT_APPLICABLE 11, TBD 7. No execution dependency is marked SATISFIED by this extraction.
+- ACTIVE: 18; RETIRED: 1. Closure (ACTIVE): NOT_APPLICABLE 11, PENDING 0, TBD 7, IN_PROGRESS 0, SATISFIED 0, WAIVED 0.
+- Local Deliverable RequiredMaturity INITIALIZED is a checked contract threshold only. No execution row is reported received, compatible, adopted, qualified or complete by this extraction; closure states were not advanced.
 
 ## Run Notes
 
-- Run APP-V4-BASIS-ALIGN-20260928, node DX-1 (Claude Code Agent subagent, Type 2 TASK; no delegation). Basis commit 557716cf7. Parameters: SCOPE DEL-02-02; MODE UPDATE; STRICTNESS CONSERVATIVE; CONSUMER_CONTEXT NONE; DOC_ROLE_MAP DEFAULT; ARCHITECTURE_BASIS_POLICY NONE.
-- SOURCE_DOCS explicit: ScopeOfWork.md only (run BRIEFS.md DX shared override). ANCHOR_DOC ScopeOfWork.md; EXECUTION_DOC_ORDER ScopeOfWork.md. Design/ DRAFT files are not extraction sources. ANCHOR pass completed before the EXECUTION pass.
-- RUN_ROOT: projects/chirality-app-v4/execution. DECOMPOSITION_PATH: projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md (available; brief override). Companion Deliverables.csv, ScopeLedger.csv and Objectives.csv in that folder were used for ID and label resolution; the scope, objective, package and deliverable-name rows used here are identical to the GROUP3-20260928T001055Z snapshot, so anchor TargetLocation values keep the snapshot paths that the SoW cites as basis B. Open_Issues.csv was read only to resolve cited OI identities.
-- Source ScopeOfWork.md SHA256 before and after: b0a1a8a4aa6f53057c8db4bb33c65c5e697f45ae509088a570a70ff8cee295ec (unchanged: True). No source, _REFERENCES.md, _STATUS.md, Design, decomposition or _DAG file was modified.
-- Guard (BRIEFS.md DX): pointers in DEL-05-01 TBD-003, DEL-05-02 TBD-003 and DEL-09-09 CLM-004 to the DEL-09-06 relay file are coordination routes, not inputs; not applicable to this register, which has no DEL-09-06 row.
-- Run record: _run_records/dependency-extract-20260929.md (read identities and read order, validator output, output hashes). Return: run folder DX/DX-1_DEL-02-02.md (comparison with the DAG_PREP expectations).
-- Declared mirroring: added 0; refreshed 0; retired 0; skipped 2 placeholder entries ("None declared at initial setup."). Human-owned sections byte-identical.
-- Source status: ScopeOfWork.md is unchanged since the prior extraction (same SHA256 as that run recorded; not among the 16 SoWs revised under SCA-V4-001). The full source was re-read and every row re-checked against it.
-- UPDATE result: 0 rows added, 0 refreshed, 0 retired this run; 18 ACTIVE rows re-observed (LastSeen only). DEP-02-02-019 stays RETIRED: the source still states the review/registration rule as runtime product behavior (REQ-002), not a production input, so the prior repair stands.
-- Observation (not acted on): TBD-001 and TBD-002 still describe OI-001/OI-002 and the OI-012 pin as open, while revised sibling SoWs record APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2/D3/D4. This register has no OI rows (the prior run treated them as points of need, not inputs); no change follows.
-- Relation to run DAG preparation: this register is the supplier endpoint of the proposed arc DEL-09-06 -> DEL-02-02 (N-C1), whose row belongs to DEL-09-06. No row here is expected for it, and none was added (the source does not name DEL-09-06).
-- Checks: validate_dependencies_schema.py VALID (29 columns, 19 rows); validate_enum.py 22/22 used values VALID; validate_id_format.sh 41/41 IDs VALID. Local checks: unique IDs/semantic keys, prefix, one parent, target placement, verbatim quotes of at most 30 words on ACTIVE rows, no placeholder SourceRef. Optional validate_decomposition_registers.py not run.
-- Structural warnings: none (one IMPLEMENTS_NODE parent).
+- SCOPE DEL-02-02; brief: run APP-V4-SCA002-20260929 node DX dispatch message, reusing run APP-V4-BASIS-ALIGN-20260928 `BRIEFS.md` section "DX — dependency-extract UPDATE" shared overrides; selected method `chirality-root:bundled:workflow:dependency-extract` (`workflows/dependency-extract/WORKFLOW.md`).
+- MODE UPDATE; STRICTNESS CONSERVATIVE (both brief overrides). Defaults applied: CONSUMER_CONTEXT NONE, ARCHITECTURE_BASIS_POLICY NONE, DOC_ROLE_MAP DEFAULT.
+- RUN_ROOT `projects/chirality-app-v4/execution`; DECOMPOSITION_PATH `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` (brief override; located, SHA256 `ea3388bcb05b2280d8bb10db2578aec9818f40c559b4214e1732da754d9bd7d5`). Companion CSVs in the same folder (Packages, Deliverables, ScopeLedger, Objectives, Open_Issues, External_Dependencies) were used for identity/label resolution only; all ACTIVE target IDs resolve there.
+- SOURCE_DOCS `ScopeOfWork.md` only (explicit brief override); ANCHOR_DOC `ScopeOfWork.md`; EXECUTION_DOC_ORDER [`ScopeOfWork.md`]. `Design/` files, MEMORY.md, _CONTEXT.md and _SEMANTIC.md were not read as extraction sources. `_REFERENCES.md` was read for pointer resolution only.
+- Source ScopeOfWork.md SHA256 `5814116909db8120c1fe888ba021ca60ad139ea0b36cc89fe7e93ed00235924a` (as revised under SCA-V4-002 at commit 1efd4bcda where in scope); unchanged by this run.
+- Two passes in order: Pass 1 re-verified every ANCHOR row against the current frontmatter/traceability table before Pass 2 examined execution statements. Existing anchor TargetLocation pointers to the GROUP3 frozen snapshot are retained (the IDs are unchanged and resolve in both).
+- Match/merge (UPDATE): all 18 prior ACTIVE EXTRACTED rows re-observed with verbatim evidence and kept ACTIVE with their DependencyIDs; LastSeen refreshed; the 1 RETIRED row (019, retired_by=source_extraction_fidelity_repair) remains RETIRED unchanged. Updated in place: DEP-02-02-016 (DEL-04-01; Notes only, for revised TBD-001). No row added. No row retired by this run.
+- SCA-V4-002 edits to this SoW (F-0202-01 TBD-001; F-0202-02 TBD-002 OI-012 clause; F-0202-03 AX-004) name no deliverable that the SoW did not already name and add no consumption statement. The prior run's observation that TBD-001/TBD-002 still described OI-001/OI-002/OI-012 as open is resolved by the source revision. No new arc.
+- Considered, not extracted (CONSERVATIVE, information flow only): as in the prior runs, OI-001/OI-002 (now ruled, TBD-001), OI-008 and OI-012 (TBD-002; 0.158.0 definition/generation pin by D4, remaining pin decisions with the App implementation owner), OI-014 (TBD-003) and OI-021 (operation-specific additions) are points of need for their owners rather than inputs this workspace consumes, so this register carries no EXTERNAL OI rows; the adopted policy result is consumed through DEL-04-01 (DEP-02-02-016). Ownership/exclusion lists in CLM-002 through CLM-006 and REQ-008 alone create no edges beyond the existing rows.
+- Guards (brief): no row makes an SCC-002 member depend on DEL-09-06 and DEL-09-06 has no DOWNSTREAM row to an SCC-002 member; nothing grounds N-12 or N-B8; DEL-04-01 gains no supplier row from an SCC-002 member. Checked against this register after the run: not triggered.
+- FACT/ASSUMPTION/PROPOSAL separation is recorded per row in Notes. No human act, receipt, compatibility or closure is inferred; closure states unchanged.
+- Declared mirrors: 0 added, 0 refreshed, 0 retired; 2 entries skipped ("None declared at initial setup." placeholders in Declared Upstream/Downstream).
+- Local checks: PASS (unique IDs, DEP prefix, one parent anchor, verbatim quotes <=30 words, non-placeholder SourceRefs, target placement, no duplicate typed-target keys); target IDs unresolved: none. Schema validator PASS. enum invocations=22, id invocations=41, all_ok=True
+- Optional `validate_decomposition_registers.py` whole-execution EVQ/DRB scan not run per deliverable (the brief bounds reads to the deliverable and decomposition); the equivalent local EVQ-003/EVQ-004/DRB-006 conditions were checked and are absent.
+- Warnings: none.
+- Comparison with the run folder's `AMENDMENT_PACKET/ARC_EFFECT.md` expectations was performed after extraction as a separate coordinator check and is reported in the run-folder return `DX/DX_DEL-02-02.md`; it was not an extraction input.
 
 ## Run History
 - 2026-09-27 — WORKING_ITEMS applied preparation; extraction not run.
 - 2026-09-27T21:05:38-06:00 — TASK dependency-extract UPDATE / CONSERVATIVE; accepted snapshot available; 19 ACTIVE (11 ANCHOR / 8 EXECUTION), 0 RETIRED; local checks PASS; no extraction integrity warnings.
 - 2026-09-27T21:08:32-06:00 — Bounded source-extraction fidelity repair: DEP-02-02-019 RETIRED as runtime product behavior without a separately established production input; 18 ACTIVE (11 ANCHOR / 7 EXECUTION), 1 RETIRED. ID/history/source/declared sections preserved; affected checks PASS. No scope, policy or graph-cut decision.
 - 2026-09-29T14:34:59Z — TASK dependency-extract (APP-V4-BASIS-ALIGN-20260928 DX-1); UPDATE / CONSERVATIVE; SOURCE_DOCS ScopeOfWork.md only (unchanged source); decomposition projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md available; +0 / refreshed 0 / retired 0; ACTIVE 18 (ANCHOR 11 / EXECUTION 7), RETIRED 1; warnings none.
+- 2026-09-30T02:42:47+00:00 — TASK DX (run APP-V4-SCA002-20260929); UPDATE / CONSERVATIVE; SOURCE_DOCS ScopeOfWork.md only; decomposition `projects/chirality-app-v4/execution/_Decomposition/SOFTWARE_DECOMP.md` resolved; 18 ACTIVE (11 ANCHOR / 7 EXECUTION), 1 RETIRED; 0 added, 1 updated (016), 0 retired; warnings none; dependency closure unclaimed.
