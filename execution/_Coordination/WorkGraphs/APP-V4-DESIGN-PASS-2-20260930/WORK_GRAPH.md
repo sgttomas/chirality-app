@@ -58,7 +58,46 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | ID / outcome | Write scope | Needs | Completion check | State |
 |---|---|---|---|---|
 | S0 Graph, direction, survey briefs | Run folder; this graph | Owner direction | Committed | COMPLETE |
-| S1 Scoping survey (S1-A…S1-F) | `SURVEY/S1-*.md` only | S0 | Six reports: pins, SoW alignment, amended basis, open items by class, 60% depth, joins, carried review items, recommended work; outside neighbours | ACTIVE |
-| S2 Route: nodes for the pass, owner questions | This graph; `BRIEFS.md`; `DECISIONS_PENDING.md` if needed | S1 | Each node bounded with a write fence and a check | PLANNED |
-| W… Design work | Set by S2 | S2 | Set by S2 | PLANNED |
-| V… Reviews, closeout, receipt, final PR | Set by S2 | W… | Per LOOP_INIT §§3–6 | PLANNED |
+| S1 Scoping survey (S1-A…S1-F) | `SURVEY/S1-*.md` only | S0 | Six reports: pins, SoW alignment, amended basis, open items by class, 60% depth, joins, carried review items, recommended work; outside neighbours | COMPLETE — [SURVEY/](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/SURVEY/): 184 stale pins across 16 files; open items classed; fence verified (`fbebb12a5`) |
+| S2 Route: nodes for the pass, owner questions | This graph; `BRIEFS.md`; `R9_RESOLUTIONS.md` | S1 | Each node bounded with a write fence and a check | COMPLETE for Wave A; Wave B nodes are named below and briefed after Wave A integrates |
+| **Wave A — alignment** | | | | |
+| A1-A…A1-E Re-pin, amended-basis wording, revised-SoW alignment, records-closed items, receivers | The 15 Design files by cluster (ACT, AS, RS / C, P, ADAPTER / WD, WD-EX, EXEC / LOOP, PANEL, HOSTING / CA, RELAY metadata, XT); `WAVE_A/<ID>.md` | S2; [R9](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R9_RESOLUTIONS.md) | Each file one version step (R9-11); no leftover stale wording; RELAY §0–§3 byte-identical; PIN_SPIKE untouched | ACTIVE |
+| A1-G GUIDE alignment and re-pin | GUIDE; `WAVE_A/A1-G.md` | A1-A…A1-E integrated | 18/18 pins by script; CC-1…CC-11 rerun against the revised SoW | PLANNED |
+| A2 Integrator pass: R10 rulings on returned disagreements; pin script; HANDOFF truth fixes (DAG-003, "local-first") and next-relay list | Design files as R10 requires; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` | A1 | R10 recorded; pins verified by script | PLANNED |
+| V17 Independent review of Wave A | `reviews/V17.md` | A2 | Verdict covering the candidate | PLANNED |
+| P1 PR-1: Wave A | — | V17, CI | Merged under the standing direction | PLANNED |
+| **Owner package** | | | | |
+| K0 Decision package draft | `DECISIONS_DRAFT.md` | S1 | Every owner-class choice from the surveys stated with options and consequences | ACTIVE |
+| K1 Owner checkpoint: the choices that shape the design now, with recommendations | `DECISIONS_PENDING.md`; `OWNER_DECISIONS.md` | K0; integrator's recommendations | Decided, or left open at a stated point of need | PLANNED |
+| **Wave B — design development** (briefed after Wave A; content from the surveys' section 8 and K1) | | | | |
+| B1 Declared-part carriage and schema, with a local parse/render prototype; harness-capability names | WD, WD-EX; HOSTING (capability account) | P1; K1 where it bears | Schema PROPOSED; E1, E1d, E5, E6 render and parse | PLANNED |
+| B2 Current-phase recorder, App-run reached-when table, end-to-end sequences | EXEC (with LOOP §2.4.1 and ADAPTER §7.7) | P1; R9-1 confirmed or changed at K1 | One transition table and event list for the current phase; sequences for an App run and an App → host transfer | PLANNED |
+| B3 Catalog interface and read-result model; proposal identity, observation and per-item transitions; one shared test double | C, P, ADAPTER, XT | P1 | Interface meanings stated; the double specified once and cited by the four files | PLANNED |
+| B4 Record format and writer/reader sequences; policy-class record and act lifecycle; standing components and receiver conditions; consequence vocabulary draft | RS, ACT, AS | P1; K1 where it bears | PROPOSED structures; failure behaviour per sequence | PLANNED |
+| B5 Network destinations end to end: tool subject, check position, request states, records and displays | LOOP, PANEL, AS, RS, ACT, C, P, ADAPTER | B3, B4 drafts | One account each file cites; no element named on one side only | PLANNED |
+| B6 Hosting operations and lifecycle tables; supplier double from the recorded spike transcripts; next-spike brief | HOSTING; a spike record | P1 | Runnable-with-a-double cases exercised locally, or the reason they were not | PLANNED |
+| B7 Connected activity: per-step failure behaviour, result record, current-phase sequence; trace suite order and reset; optional OI-021 option sheet | CA, XT | B2, B3 | Per CA/XT survey items | PLANNED |
+| V18 Receiver comparisons for the joins Wave B changes (incl. N-18, N-21, N-24, X-1) | `comparisons/` | B1…B7 | Per join: version received, check, disagreements, absent | PLANNED |
+| R… Repair rounds and rulings | Design files | V18 | Findings dispositioned | PLANNED |
+| B8 GUIDE matrix refresh and final re-pin | GUIDE | R… | 18/18 pins by script | PLANNED |
+| V19 Independent review of the Wave B candidate | `reviews/` | B8 | Verdict covering the candidate | PLANNED |
+| P2 PR-2: Wave B | — | V19, CI | Merged | PLANNED |
+| **Closeout** | | | | |
+| D0 DAG-003 currency recheck | Read-only | P2 | Both manifests pass; no bound file changed | PLANNED |
+| C1 Bounded closeout (`bounded-reconciliation`): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | PLANNED |
+| F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | PLANNED |
+
+## Holds and owner-held choices
+
+- No hold on Wave A.
+- Wave B nodes B2, B4 and B5 read R9-1 (who requests the act in the current
+  phase), which is put to the owner at K1. The other K1 choices are listed in
+  `DECISIONS_PENDING.md` when K0 returns.
+- A spike that needs a credential, a local model server or the network is not
+  run without the owner's decision. Local prototypes that need none of these
+  are inside the run.
+
+## Next safe action
+
+Integrate the A1 returns (verify fences with `git status`, run the pin
+script, rule R10), then dispatch A1-G.
