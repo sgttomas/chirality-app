@@ -9,4 +9,7 @@
 | K1 | Accepted by the owner (DECISION-2, groups 1–2). The owner decided while P3 was still running; P3 then found nothing that changes the packet, so application proceeds |
 | AK1 | Group-1/2 snapshots; 10 files applied per packet; C-02 effective-state record; 18-row supersession delta and accumulated map (0 findings); post-change audit (0/39/101; COV-139 = the unwritten candidate records). Committed in the Q-14 order: `9baad72b9`, `5678bb50a`, `98249792f`, `70376aff2`. Fence verified |
 | V14 | READY FOR GROUP 3, no blocking finding. Dispositions R-1…R-4 and O-5 carried into the candidate Handoff_State; COV-139 classified EXPECTED_CONSEQUENCE with the artifact list |
-| K2 | Owner checkpoint B (group 3): presented |
+| K2 | Accepted by the owner (DECISION-3, 2026-09-29) |
+| AK2 Part 1 | Group-3 snapshot (61-row manifest); H-1 Decision Log entry; H-2 `_ScopeChange/_LATEST.md` in §11.2 form (registered parser resolves it); H-3 no rows shift; H-4 validation PASS 47/47 and audit rerun 0/38/100 (COV-139 and the parser INFO absent). Accepted snapshot finalized; ASC-ISS-001 closed pending the superseding audit. **Integrator acceptance of a disclosed tool limit:** the FIRST_AMENDMENT-era audit script misreads the accepted-predecessor line of the §11.2 pointer as a second active snapshot (a false BLOCKER); POSTACCEPT/audit_checks.py carries two documented adjustments (f, g). A fix to the base script is Root tooling work, outside this amendment |
+| AK2 Part 2 | 9 SoW REVISE + VERIFY, NO_STATUS_TOUCH, all PASS (prior hashes 9/9; blocks 26/26); B-06a applied. DAG-002 source manifest now fails on exactly those 10 files, as expected |
+| DX | dependency-extract UPDATE for 12 deliverables (9 revised + DEL-04-01/02/03 re-quoting): ACTIVE |

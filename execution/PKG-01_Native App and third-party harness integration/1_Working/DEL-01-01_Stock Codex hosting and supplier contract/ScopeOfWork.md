@@ -30,7 +30,7 @@ Source keys below identify repository-root paths; named clauses/rows narrow each
 - **[B]** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md` — accepted composite, preserved original bytes and subsequent directions.
 - **[K]** `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md` — required outcomes remain included, undecided means remain open, legacy reuse is optional.
 - **[C]** `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md` — approved INITIAL setup and lifecycle separation.
-- **[N]** Current `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` rows OI-008/OI-012 and `External_Dependencies.csv` row DEP-005 — still open; no selected version/environment is established.
+- **[N]** Current `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` rows OI-008/OI-012 and `External_Dependencies.csv` row DEP-005 — still open. `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D4 selected 0.158.0 as the definition and generation pin (CLM-003, TBD-002); no implementation or qualification version or environment is established.
 
 ## Deliverable Definition — Ontology
 
@@ -89,6 +89,7 @@ The following describes later authorized production and qualification, not acts 
 - **AX-003** — [C] authorizes source-grounded INIT and independent checking under NO_STATUS_TOUCH. Schema validity, checklist compilation, independent checking, lifecycle transition, human acceptance and professional reliance are different acts with their own actors/evidence. The human's actual acts remain theirs; successful execution supplies none of them by implication. Neither acceptance nor any other act is a synthetic universal prerequisite for independently evidenced acts.
 - **AX-004** — No product completion, supplier-currentness, release, server capability or receiving adoption follows from this document. Qualification relies on the actual selected supplier and candidate; this drafting task makes no network inquiry or supplier selection. Preserve failures and uncertainty proportionately to their bearing on the stated criterion. [G, C, E DEP-005]
 - **AX-005** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D4 (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md`). Revised: CLM-003, REQ-006 and TBD-002. Added: AX-005. Removed: none.
+- **AX-006** — Revised under scope-change amendment `SCA-V4-002` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-002_2026-09-29_1901`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D4 (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md`). Revised: the [N] source line. Added: AX-006. Removed: none.
 
 ## Output and Evaluation Matrix
 
