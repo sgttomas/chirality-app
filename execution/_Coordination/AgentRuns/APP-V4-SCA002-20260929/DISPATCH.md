@@ -18,4 +18,5 @@
 | K3 | Accepted by the owner (DECISION-4) |
 | D2 | DAG-003 published 33/33 byte for byte, with ACCEPTANCE_RECORD, HANDOFF_STATE (OI-001/002 count corrected), INDEPENDENT_REVIEW, REVIEW_PACKET and MANIFEST (37/37); `_DAG/_LATEST.md` in §11.2 form; DAG-001 61/61 and DAG-002 37/37 unchanged; follow-up currency CURRENT, 0 pending. Committed `a254be160`. Fence verified |
 | CA3 | Superseding SCA-V4-001 closure audit: **CLOSED_WITH_OBSERVATIONS** (0 CRITICAL/MAJOR/MINOR, 10 OBSERVATION, all DETERMINATE). ASC-ISS-001 closed by SCA-V4-002's delta (owner option (a)); 002/006/007/008 applied; 004/005 deferred by the owner. The superseded 1222 snapshot is byte-unchanged. Handed to CA2: 8 registers bind SOFTWARE_DECOMP.md at its pre-B-04 hash (drift), and SETUP_LOG lacks the SCA-V4-002 line |
-| CA2 | SCA-V4-002 closure audit: ACTIVE |
+| CA2 | SCA-V4-002 closure audit: **CLOSED_WITH_OBSERVATIONS** (0 CRITICAL/MAJOR, 1 MINOR, 7 OBSERVATION, all DETERMINATE). The MINOR (stale status records) is answered by the SCA-V4-002 effective-state record; SETUP_LOG line written. Two snapshots are current, one per amendment; `_LATEST.md` names SCA-V4-002's |
+| F | Effective-state record, SETUP_LOG, receipt, 11 MEMORY rows; PR and V16: ACTIVE |

@@ -12,10 +12,10 @@ Method: `construct-local-work-graph`.
 
 | ID / outcome | Write scope | Needs | Completion check | State |
 |---|---|---|---|---|
-| S0 Graph, direction | Run folder, graph | Owner | Committed | ACTIVE |
-| CA1 SCA-V4-001 closure audit | `_Evaluation/` per audit-scope-closure (read-only on project state) | Accepted SCA-V4-001 | One closure verdict; rerun requirements | ACTIVE |
-| P1 SCA-V4-002 packet (groups 1–2 prep) | Run folder `AMENDMENT_PACKET/` | Scope list; CA1 findings | Exact wording; owner items | ACTIVE |
-| K1 Owner checkpoint A | — | P1 | Accept or adjust | PLANNED |
-| AK Apply, group 3, REVISE, re-extract | Per the accepted route | K1 | Validations | PLANNED |
-| D DAG-003 (if the arcs are confirmed) | `_DAG/_Candidates/DAG-003/` | AK | Strict audit; review; owner accepts | PLANNED |
-| CA2 SCA-V4-002 closure audit | `_Evaluation/` | D | Verdict | PLANNED |
+| S0 Graph, direction | Run folder, graph | Owner | Committed | COMPLETE |
+| CA1 SCA-V4-001 closure audit | `_Evaluation/` per audit-scope-closure (read-only on project state) | Accepted SCA-V4-001 | One closure verdict; rerun requirements | COMPLETE — OPEN, then superseded: CLOSED_WITH_OBSERVATIONS |
+| P1 SCA-V4-002 packet (groups 1–2 prep) | Run folder `AMENDMENT_PACKET/` | Scope list; CA1 findings | Exact wording; owner items | COMPLETE |
+| K1 Owner checkpoint A | — | P1 | Accept or adjust | COMPLETE — DECISION-2 |
+| AK Apply, group 3, REVISE, re-extract | Per the accepted route | K1 | Validations | COMPLETE — DECISION-3; 9 REVISEs; 11 UPDATEs |
+| D DAG-003 (if the arcs are confirmed) | `_DAG/_Candidates/DAG-003/` | AK | Strict audit; review; owner accepts | COMPLETE — DECISION-4; published; CURRENT |
+| CA2 SCA-V4-002 closure audit | `_Evaluation/` | D | Verdict | COMPLETE — CLOSED_WITH_OBSERVATIONS |
