@@ -51,6 +51,7 @@ the survey item (S1-D, HOSTING §8) each change answers.
 | R9-7; S1-D HOSTING item 3 | The evidence route to DEL-04-03 is direct: §6.4, S-7 and §8.2 no longer say "through DEL-01-02". DEL-01-01's own ScopeOfWork was checked first and states no route. DEL-01-02's custody of in-flight requests is named as a separate contribution of a deliverable outside this increment | §6.4, §8 S-7, §8.2, F-26 |
 | R9-6; S1-D HOSTING item 3 | Receivers line rebuilt from the live registers, with row IDs, arc labels and DAG-003 layer. S-7 names DEL-04-03 and DEL-09-06. A table of the receivers the registers name follows the seams table. For DEP-02-01-025 the 0.158.0 inventory is held, and a capability meaning beyond it is marked "not yet defined here" (F-27). F-07 and F-16 are updated | Header, §8, F-07, F-16, F-27 |
 | Not applied | S1-D HOSTING items 4, 5, 6 and 7 are Wave B and were not started | — |
+| **K1-1** (node A3, in place; owner DECISION-K1 of 2026-09-30, `APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md` sha256 35d6546346907137581be7df3bed4a8ccdb4b8bc55a261ca716040d0ad9f91bc) | §6.7: who requests is **SETTLED by DECISION-K1 K1-1** (was INTEGRATION) | §6.7 |
 
 ## Changes from v0.5
 
@@ -588,7 +589,7 @@ R9-1; DECISION-4 D4-1; EXEC-v0.5 §2.1).** A workflow's declared
 checkpoints are plan guidance, and the agents manage any pause themselves.
 Neither the App nor a host's embedded loop enforces a hold (V4-WF-05), so
 no App run is holding (PH-2). The required act is requested by the agent
-carrying out the workflow (R9-1, INTEGRATION); this boundary issues no
+carrying out the workflow (R9-1; SETTLED by DECISION-K1 K1-1); this boundary issues no
 request in the agent's place. How an App run observes an arrival and a
 request is DEL-02-03's, defined in EXEC (Wave B). So, for a checkpoint, this
 boundary:

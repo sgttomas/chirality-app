@@ -36,8 +36,8 @@ when the person performs it; the reserved acts bind (EXEC PH-4, PH-5).
 Phased to the governance layer: holding the run until the act (EXEC
 PH-1…PH-3).
 
-**Who requests, in the current phase (R9-1; INTEGRATION, a reading of
-DECISION-4 put to the owner for confirmation).** The agent carrying out the
+**Who requests, in the current phase (R9-1; SETTLED by DECISION-K1 K1-1,
+the owner's decision of 2026-09-30 confirming R9-1's reading of DECISION-4).** The agent carrying out the
 workflow asks the person for the act when its work reaches the checkpoint.
 The product gives the agent the declared checkpoint with the workflow,
 offers the person the means to perform the act, and records what it
@@ -666,9 +666,12 @@ from the capturing surface — the host's act facility for acts on host content
 DEP-001 relay question (R2-20); SWBPIPE exposes none (SQ-01), and its
 acceptance-record storage is SWBPIPE owner decision PB-TBD-002. Answers to Codex user-input or MCP
 elicitation requests are **not act evidence** and never host act capture
-(R4-12). An act counts toward a checkpoint only if captured at or after that
-checkpoint's arrival; earlier acts are shown "prior act not counted" (R4-5,
-PROPOSED). A refused or pending A12 supersedes nothing and does not count
+(R4-12). In the current phase an act captured before a checkpoint's arrival
+counts toward it when it is of the required kind and the content it was made
+on is still current, and is cited with its time (EXEC SP-6; DECISION-K1
+K1-2); an earlier act on content no longer current, or of another kind, is
+shown "prior act not counted". Counting only acts captured at or after the
+arrival is kept as a governance-phase option (EXEC SP-6F; R4-5, PROPOSED). A refused or pending A12 supersedes nothing and does not count
 (R4-6). A person's own A1/A2 are run-record (R7) operations, not human-act
 records; an operation that performs a reserved act (OP-C6/C7/C8, the A12/A13
 controls) produces the human-act record, and its R7 entry references it
@@ -810,6 +813,8 @@ and by the S1-B survey item (file 2).
 | R9-8 (S1-B 2.4 P16, P17, P26; 2.8 item 6) | UNRESOLVED: the register row is restated against the current registers; the SoW-text row is closed (SCA-V4-001). VC-P-14 names the boundary-owner checker, which exists, follows VER-014's wording and records one tool observation | UNRESOLVED; VC-P-14 |
 | R9-5, R9-11 | Body citations of siblings name the Wave A labels (C-v0.7, WD-v0.7, EXEC-v0.5) | Header, §0, §2, §3, §4.5, §9, §11, §13, §14, VC |
 | **R10-1** (node A2, in place; R9-2's second bullet corrected) | §4.4 acceptance-checkpoint bullet and E-2's V-CP1 Phase-1 row: a direct application queues no proposal, so the A5 checkpoint (*proposal queued*) is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded. A checkpoint reached under such a grant has its act requested and is *waiting*. The report shows CP-accept as not reached, not as "requested and not performed" | §4.4; §14 E-2 |
+| **K1-1** (node A3, in place; owner DECISION-K1 of 2026-09-30, `APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md` sha256 35d6546346907137581be7df3bed4a8ccdb4b8bc55a261ca716040d0ad9f91bc) | §0: who requests is **SETTLED by DECISION-K1 K1-1** (was INTEGRATION, put to the owner) | §0 |
+| **K1-2** (node A3, in place) | §10: in the current phase an earlier act counts when it is of the required kind and its content is still current, cited with its time (EXEC SP-6); "prior act not counted" stays for content no longer current, another kind, or the governance-phase option (EXEC SP-6F) | §10 |
 
 No identifier is added or removed; §9's taxonomy is unchanged. Closed: the SoW-text row. PROPOSED items stay PROPOSED (R9-4): U-P4 (validation failure before queueing), withdrawal before queueing, the sibling-draft rule (§3.1 rule 5; U-P9), A12 supersession (R2-7), capture at or after arrival (R4-5) and no resumption of an ended run (R4-4) are unchanged in standing.
 

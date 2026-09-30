@@ -1,7 +1,7 @@
 # Minimal-loop and model receiving contract
 - Contribution: DEL-05-01/LOOP-v0.7 (supersedes DEL-05-01/LOOP-v0.6, last changed at `caa4334ca` and unchanged at `3dd7c22c73`, file sha256 246f4636166c67250f73862de586afef3cad91ba538272880a80c2fd657a5767; earlier: LOOP-v0.5, last changed at `375c3970c` and unchanged at `94aa9181b`, file sha256 0ec980b53c4dd473b365f7e8407593a218023ad2277da7680694c852808bd737; LOOP-v0.4 sha256 ffc30483…95934e at `8fb51f07f`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
-- Phase (V4-WF-05 and V4-HI-42 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1 and clarification): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is **plan guidance** that the person and the agents manage, and neither the App nor a host's embedded loop **enforces a hold**, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind (§2.4.0). In the current phase the agent carrying out the workflow asks for the act (R9-1, INTEGRATION; §2.4.0 LP-5). The host-loop hold (§2.4.4, LH-0…LH-4) and the hold content of §2.4.1–§2.4.3 are kept as the **governance-phase definition (retained)**, not deleted.
+- Phase (V4-WF-05 and V4-HI-42 as amended by SCA-V4-001; R9-1; R8-1; DECISION-4 D4-1 and clarification): when a run reaches a declared checkpoint, the required human act is requested, and it is recorded as done only when the person performs it, whatever the autonomy setting. Holding the run at the checkpoint until the act is performed is phased to the governance layer: in the current phase (Phase 1) a checkpoint is **plan guidance** that the person and the agents manage, and neither the App nor a host's embedded loop **enforces a hold**, blocks a run, or reports a workflow unsupported because a hold cannot be enforced. The reserved acts (V4-HI-30) still bind (§2.4.0). In the current phase the agent carrying out the workflow asks for the act (R9-1; SETTLED by DECISION-K1 K1-1; §2.4.0 LP-5). The host-loop hold (§2.4.4, LH-0…LH-4) and the hold content of §2.4.1–§2.4.3 are kept as the **governance-phase definition (retained)**, not deleted.
 - Model access (V4-HOST-01 and V4-ARC-11 as amended by SCA-V4-001; R8-9; DECISION-4 D4-3): a cloud model is reached by **OAuth sign-in or an API key**, and there is **no default** between local and cloud, only options the person chooses among (§5.1). V4-HOST-02 is cited **as amended by SCA-V4-001** (DECISION-5; R8-13; §5.1 NW-2).
 - Network destinations (V4-HOST-02, V4-ARC-12 and the ARCH §4 host-agent property as amended by SCA-V4-001; R8-13; DECISION-5): the host's embedded agent sends data only to the selected model service and to destinations the person allows, by a two-level allow list or by an in-work grant scoped once, this run or always. MCP servers are allowed only if they follow the stateless MCP revision 2026-07-28. An always-off list applies, and every destination contacted is recorded and shown in any model mode (§5.1.1 NW-8…NW-16; MS-14…MS-23). Phase 1 and the governance phase are split per DECISION-4's principle.
 - Serves: OUT-001, OUT-002, OUT-003, OUT-004; REQ-001–REQ-007; AC-001–AC-009; VER-001–VER-009 (all of DEL-05-01)
@@ -142,6 +142,11 @@ ID and by the survey item (S1-D, LOOP §8) each change answers.
 | **R10-1** (node A2, in place; R9-2's second bullet corrected) | C-6 and FX-C9: under a direct application the A5 checkpoint is **not reached**; nothing is requested by reason of an arrival that did not occur, no A5 is forced and none is recorded. FX-C9 carries one wording; G-9 and its open-item row are closed | §2.4.3 C-6; §11 FX-C9; Findings G-9; open items |
 | R10-8 (node A2, in place) | §2.4.1 kind (b): the sentence stands, with a note that WD does not yet define the element designating a message as a declared output (Wave B, nodes B1 and B2) | §2.4.1 |
 | R10-11 sibling citation pass (node A2, in place) | §2.4.2: "even if the kind matches (WD SB-3)" → "WD SB-2" (SB-2 is the other-content rule; SB-3 is exact binding) | §2.4.2 |
+| **K1-1** (node A3, in place; owner DECISION-K1 of 2026-09-30, `APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md` sha256 35d6546346907137581be7df3bed4a8ccdb4b8bc55a261ca716040d0ad9f91bc) | Header Phase line, §2.4.0 lead and LP-5: who requests is **SETTLED by DECISION-K1 K1-1** (was INTEGRATION, put to the owner); the UNRESOLVED row on it is closed | Header; §2.4.0; UNRESOLVED |
+| **K1-2** (node A3, in place) | C-2: in the current phase an earlier act counts when it is of the required kind and its content is still current, relayed with its time (EXEC SP-6); capture after arrival is kept as the governance-phase option (EXEC SP-6F). §2.3 annotations, LP-5, §2.4.1 continuation follow. FX-C4b, FX-C11b and FX-C15 recomputed; VC-08 follows; U-E4 closed | §2.3; §2.4.0 LP-5; §2.4.1; §2.4.3 C-2; §11; UNRESOLVED; Verification cases |
+| **K1-3** (node A3, in place) | C-4 partial lapse: an act on the lapsed referents alone answers together with the earlier act (joint answer; EXEC §4.7 JA-1); U-03 closed and the variant released | §2.4.3 C-4; UNRESOLVED |
+| **K1-5** (node A3, in place) | NW-8: a named destination is allowed on its own; a category switch means "allow everything in this category"; with the switch off only the named entries in it are allowed. `N-OPEN-4` closed (§5.1, UNRESOLVED). MS-15 and MS-18 recomputed: expected results unchanged, now resting on the settled rule | §5.1; §5.1.1 NW-8; §5.2 MS-15, MS-18; UNRESOLVED |
+| A2 finding 1 (node A3, in place) | TL-1: "DEL-03-01 F-R2-2", which exists nowhere, is replaced by what the sentence relies on: C-v0.7 §4.1, the *not exposed on this surface* row (a loop or adapter relays a host-returned *not exposed*, naming the host as reporter, and never originates it) and the loop-side *not offered* paragraph after the table (R2-4). The v0.6-era history row that names F-R2-2 is left as a record | §2.2 TL-1 |
 
 ## Changes from v0.5
 
@@ -374,7 +379,10 @@ Loop obligations:
     loop-side **not offered** failure (V-2). The loop never labels an entry
     it did not offer *not exposed on this surface*. That label appears only
     when the host returns it, and the loop relays it naming the host as
-    reporter (C §4.1; DEL-03-01 F-R2-2).
+    reporter (C-v0.7 §4.1: the *not exposed on this surface* row, "relays
+    a host-returned *not exposed*, naming the host as reporter; it never
+    originates it", and the loop-side *not offered* paragraph after the
+    table; R2-4).
   - An operation unavailable to the person is unavailable to the agent, with
     the same reason (V4-HI-04, SETTLED).
   - The loop never invents a tool without a catalog entry.
@@ -448,9 +456,9 @@ itself a human act.
 | Item left subject | Bound change item | Host | Stale refusal, A11 or host refusal, per item (from DEL-03-02 item-left events, R2-18) |
 | Examination findings | A3 examination | Agent | References to rows/results; read basis examined; "agent findings" (E-5) |
 | Checkpoint reached | Declared checkpoint | Loop | Checkpoint name; **arrival ordinal**; the observed event that met reached-when, with its evidenced time; bound subject referents and content identities; **purpose** and **scope** |
-| Checkpoint disposition changed | Declared arrival | Loop | New disposition; **performance ordinal**; evidence reference; annotations (EXEC §4.3): per-item partial, re-held, replaced, prior act not counted, act order unknown, A12 control effect, hold not enforceable. In Phase 1 the disposition is a **record label** (EXEC PH-6; R8-11 item 1): *waiting* means "reached; act not yet recorded", never "the run is held". The *re-held* and *hold not enforceable* annotations are governance phase |
+| Checkpoint disposition changed | Declared arrival | Loop | New disposition; **performance ordinal**; evidence reference; annotations (EXEC §4.3): per-item partial, re-held, replaced, by earlier act ‹act› at ‹t›, answered by ‹n› acts, prior act not counted, act order unknown (governance-phase option only), A12 control effect, hold not enforceable. In Phase 1 the disposition is a **record label** (EXEC PH-6; R8-11 item 1): *waiting* means "reached; act not yet recorded", never "the run is held". The *re-held* and *hold not enforceable* annotations are governance phase |
 | A8 request issued | Act kind and subject | Agent (requester) | Request text; purpose and scope (at a checkpoint: the declared ones). At a declared checkpoint the agent's A8 is the request V4-WF-05 requires (R9-1; §2.4.0 LP-5) |
-| Human act observed | Actual act | Person (actor); capturing surface records | Capture evidence reference with capture time; recorder; recording mode; bound content. Annotated "prior act on this subject, not counted" or "after run end" where applicable (R4-4, R4-5) |
+| Human act observed | Actual act | Person (actor); capturing surface records | Capture evidence reference with capture time; recorder; recording mode; bound content. Annotated "by earlier act ‹act› at ‹t›" where it answers a later arrival, "prior act on this subject, not counted" (content no longer current, another kind, or the governance-phase option), or "after run end" where applicable (R4-4, R4-5; DECISION-K1 K1-2) |
 | **Act-declined event** | A4, A6, A7 or A12 not performed | Person; capturing surface records | Declined act kind; bound subject; time; capture evidence (R2-5). Not an act of that kind |
 | Act lapsed | Performed act | Host reports the change | Changed content identity; time (any time after performance) |
 | Act superseded | Earlier established A12 | Person (later A12), **only once the control establishes it** | Superseding act reference and settings version (R4-6). A refused or pending A12 supersedes nothing |
@@ -483,7 +491,7 @@ Loop obligations:
   - run-resumed events;
   - replaced annotations, and re-held annotations (governance phase);
   - the A12 control effect;
-  - "prior act not counted";
+  - "by earlier act ‹act› at ‹t›", "answered by ‹n› acts" and "prior act not counted";
   - in Phase 1, the optional "continued past ‹checkpoint› before ‹act›"
     annotation; in the governance phase, action during hold;
   - destinations contacted, destination grants and declines, and outside
@@ -552,8 +560,8 @@ arrival binds its own referents.
 The phasing and its application to a host's own embedded loop are SETTLED by
 DECISION-4 D4-1 and its clarification ("the principle should also apply to
 a host's own embedded loop"), and are now stated by V4-WF-05 and V4-HI-42 as
-amended by SCA-V4-001. The framing is INTEGRATION (R8-1; R9-1 for who
-requests the act). These rules
+amended by SCA-V4-001. The framing is INTEGRATION (R8-1); who requests the
+act is SETTLED by DECISION-K1 K1-1 (R9-1). These rules
 are this contract's statement of EXEC-v0.5 §2.1 (PH-1…PH-10) and WD-v0.7
 §4.3.0 (CG-1…CG-7) for host loops.
 
@@ -563,7 +571,7 @@ are this contract's statement of EXEC-v0.5 §2.1 (PH-1…PH-10) and WD-v0.7
 | **LP-2 No host-loop hold** | The host's embedded loop **enforces no hold** (PH-2). It holds no call, withholds no dispatch, does not stop acting on a run at an arrival, and never re-holds. No hold is claimed. No hold-support value is assigned, and no workflow is *unsupported* for a hold reason (PH-3; V4-WF-05 as amended). The required-tool check (V4-WF-04) is unchanged |
 | **LP-3 Observation** | The loop still evaluates reached-when **only against observed events** (§2.4.1) and records "checkpoint reached" with the arrival ordinal, the bound subject by its declared subject class (§2.4.2), purpose and scope. It also records act-declined, act-lapsed, run-resumed, run-ended and observation lost or recovered. Recording is observation, not enforcement (PH-6). The shared dispositions label the record: *waiting* means "reached; act not yet recorded", never "the run is held" (PH-6; confirmed INTEGRATION by R8-11 item 1) |
 | **LP-4 Continued past** | A run action observed after an arrival and before the act that answers it may carry the optional plain annotation **"continued past ‹checkpoint› before ‹act›"** (PH-7). It is information, never a defect, refusal or finding |
-| **LP-5 Act requested; recorded only when performed** | In force in every phase (V4-WF-05 as amended: "the required human act is requested, and the run does not record the act as done until the person performs it"; V4-HI-42; PH-4). **Requested (R9-1, INTEGRATION: a reading of DECISION-4's text, put to the owner for confirmation in the R9 run's decision package).** The agent carrying out the workflow asks the person for the act when its work reaches the checkpoint, because the declared checkpoint is part of the plan it was given. Its request is an A8 (§2.3 "A8 request issued", with the declared purpose and scope; TL-5). The product's part is: to give the agent the declared checkpoint with the workflow; to offer the person the means to perform the act (the host act facility, ACT §4.5; PANEL §3.5); and to record what it observes: the checkpoint's identity and arrival (LP-3), the request where it can be identified, and the act only when the person performs it. Neither the App nor the host's embedded loop issues the request in the agent's place, pauses the run, or otherwise reacts to the arrival (LP-2). Where no request is observed the record shows none (E-1). **Recorded only when performed.** C-2 applies unchanged: an act is recorded as performed only on capturing-surface evidence of the specified kind, bound to the current content, captured at or after the arrival (SP-6). Model text, success, a queued proposal, a receipt, findings, an A8 request or an agent-authored record is never the act |
+| **LP-5 Act requested; recorded only when performed** | In force in every phase (V4-WF-05 as amended: "the required human act is requested, and the run does not record the act as done until the person performs it"; V4-HI-42; PH-4). **Requested (R9-1; SETTLED by DECISION-K1 K1-1, the owner's decision of 2026-09-30 confirming R9-1's reading of DECISION-4's text).** The agent carrying out the workflow asks the person for the act when its work reaches the checkpoint, because the declared checkpoint is part of the plan it was given. Its request is an A8 (§2.3 "A8 request issued", with the declared purpose and scope; TL-5). The product's part is: to give the agent the declared checkpoint with the workflow; to offer the person the means to perform the act (the host act facility, ACT §4.5; PANEL §3.5); and to record what it observes: the checkpoint's identity and arrival (LP-3), the request where it can be identified, and the act only when the person performs it. Neither the App nor the host's embedded loop issues the request in the agent's place, pauses the run, or otherwise reacts to the arrival (LP-2). Where no request is observed the record shows none (E-1). **Recorded only when performed.** C-2 applies unchanged: an act is recorded as performed only on capturing-surface evidence of the specified kind, bound to the current content; an act captured before the arrival counts on that current content and is cited with its time (SP-6; DECISION-K1 K1-2). Model text, success, a queued proposal, a receipt, findings, an A8 request or an agent-authored record is never the act |
 | **LP-6 Reserved acts stand** | DECISION-1 D2 is unchanged (PH-5; R8-1). A4, A5 (where a proposal is required), A6, A7, A12 and enabling external access (A13) stay the person's, and the host enforces its own list through its operations (V4-HI-30). TL-5 applies: a reserved entry returns *not permitted* with an A8 offered. **R8-11 item 2 as restated by R9-2 (DERIVED; the owner confirmed the R8-11 reading of D2, SCA-V4-001 OWNER_ITEMS O-25, DECISION-7):** D2's "no autonomy grant widens past a reserved act" binds, enforced by the host. For a declared checkpoint, V4-HI-42's request clause and record clause are in force whatever the autonomy setting; whether the run goes on before the act is for the person and the agents in the current phase, and the host's own treatment of its operations decides what the host does. So no governing checkpoint constraint is carried as enforcement in Phase 1 (C-6) |
 | **LP-7 Lapse recorded; nothing re-holds** | A performed act whose bound content changes is still recorded as lapsed: an act-lapsed event against the affected referents, with gated outputs showing their standing lapsed (V4-REC-05; R2-19 recording). The run is not re-held, and the agent re-requests the act as its plan requires (PH-8; confirmed INTEGRATION by R8-11 item 1). Re-hold (C-4 after resume) is governance phase |
 | **LP-8 Negative decisions and paths** | A10 or an act-declined event is recorded as *resolved negatively* (C-5). The declared *on negative decision* or *on mixed decision* path is guidance the agent follows in its plan; the loop does not stop the run for it (EXEC §2.1 keeps §4.8 as recorded) |
@@ -628,9 +636,11 @@ R2-20; EXEC §4.9; R4-4, PROPOSED):
   **"after run end"**, and changes no disposition.
 - **Continuation is a new run** carrying **continues ⟨run⟩**. It inherits
   no arrival, disposition or act. Its checkpoints start *not reached*.
-  Its arrivals bind only referents observed in the continuation. Under SP-6,
-  earlier acts (including post-end acts) are "prior act on this subject, not
-  counted".
+  Its arrivals bind only referents observed in the continuation. An earlier
+  act (including a post-end act) counts at its arrival when it is of the
+  required kind and its content is still current, and is cited with its
+  time (SP-6; DECISION-K1 K1-2); under the governance-phase option (EXEC
+  SP-6F) it is "prior act on this subject, not counted".
 - **An interruption is not a run end** (EXEC RE-4). The run is resumed as
   the same run. Before acting, the loop re-observes and records each
   recovered observation as a new event; nothing is back-filled (EXEC
@@ -687,20 +697,22 @@ Each obligation is marked by phase where the phases differ (§2.4.0).
   - Without a capture-evidence reference from the host (§13 Q-2), no
     host-content checkpoint can become *performed*. It stays *waiting*, or
     *unknown* after interruption.
-  - **Captured at or after the arrival** (SP-6; EXEC §4.5; R4-5,
-    PROPOSED). An act counts toward an arrival only if it was captured at or
-    after that arrival's event. Order is taken from a request relation where
-    the capturing surface records one, otherwise from evidenced times.
-    - An earlier act on the same subject is relayed as **"prior act on this
-      subject, not counted"**, so the person can repeat it knowingly.
-    - If the order cannot be established: **"act order unknown"**, and the
-      act does not count.
-    - SP-6 orders an act only against its own arrival. It adds no ordering
-      between act kinds (C-3 stands).
-    - The alternative of counting prior acts bound to current content is
-      U-E4, open for the owner. Its owner-visible cost is recorded there:
-      SP-6 can make the person repeat a grant change whose content is
-      already in force (R5-7; FX-C11b).
+  - **Earlier acts** (SP-6; EXEC §4.5; SETTLED by DECISION-K1 K1-2; U-E4
+    closed). In the current phase an act captured before the arrival counts
+    toward it when it is of the required kind and the content it was made
+    on is still current. The loop relays it as answering the arrival, citing
+    the earlier act and its time.
+    - An earlier act whose content is no longer current, or whose kind
+      differs, is relayed as **"prior act on this subject, not counted"**.
+    - SP-6 adds no ordering between act kinds (C-3 stands).
+    - **Governance-phase option (EXEC SP-6F; retained; PROPOSED; formerly
+      this rule, R4-5).** A workflow that takes up the governance phase may
+      require a fresh act, counted only if captured at or after the
+      arrival's event, ordered by a request relation where the capturing
+      surface records one, otherwise by evidenced times. Under it any
+      earlier act is relayed "prior act on this subject, not counted", and
+      where the order cannot be established: **"act order unknown"**, and
+      the act does not count.
 - C-3. There is no synthetic ordering. For example, A5 is not required
   before A4 (WD I-3).
 - C-4. **Lapse and re-hold** (R2-19; EXEC §4.7; R4-3, PROPOSED (W7)).
@@ -753,10 +765,12 @@ Each obligation is marked by phase where the phases differ (§2.4.0).
     caused it, including the person's own undo** (RH-8 generalized, R5-5).
     The person's undo is never recorded as *action during hold*. An undo
     never re-holds an A5 arrival.
-  - **Partial lapse** (some referents only): the request covers the whole
-    scope. Whether an act on the lapsed referents alone satisfies depends on
-    owner question U-03; until it is ruled, such an act is recorded and the
-    arrival stays waiting (EXEC §4.7).
+  - **Partial lapse** (some referents only): the whole scope is shown with
+    the lapsed referents marked. **Joint answer (SETTLED by DECISION-K1
+    K1-3; EXEC §4.7 JA-1; U-03 closed):** an act on the lapsed referents
+    alone answers the arrival together with the earlier act for the
+    unchanged referents; two or more acts may together answer one arrival,
+    and each cites its items. The loop relays each with its referents.
 - C-5. **Negative decisions** (R2-5).
   - For A5, the negative decision is A10 (per item).
   - For A4, A6, A7 and A12, it is an **act-declined event** carrying capture
@@ -1014,9 +1028,9 @@ assumptions.
     From R8-13 it is governed by the allow list and in-work grants
     (NW-8…NW-13); which traffic of a host operation counts as the agent's
     stays open. Not a permission.
-  - `UNRESOLVED{N-OPEN-4}` (R8-13): how a category switch and the named
-    entries within it combine (NW-8). **An open owner question**, not ruled
-    here; the interim reading and the options are at NW-8.
+  - `N-OPEN-4` (R8-13), how a category switch and the named entries within
+    it combine: **closed by DECISION-K1 K1-5** (2026-09-30). The rule is at
+    NW-8.
   - `UNRESOLVED{N-OPEN-5}` (R8-13): the evidence that an MCP server follows
     the stateless MCP revision 2026-07-28 (NW-10).
 
@@ -1062,16 +1076,14 @@ property; HOSTING §2; D-GOV-43).
     category. Every edit is the person's act (ACT §2.7). A destination is
     allowed when its category is switched on, when it is a named entry,
     when an in-work grant in force covers it, or when it is the model
-    service (NW-9). Reading the two levels as alternatives follows the
-    owner's "by category … or by named destination" (now V4-HOST-02's
-    words). ARCH §4 as amended says "a category switch … and named
-    destinations within each category". Whether switching a
-    category off also suspends its named entries is
-    `UNRESOLVED{N-OPEN-4}`: **an open owner question, not ruled here.**
-    - *Interim reading (used here; MS-15 rests on it):* a named entry
-      allows its destination whether or not its category is switched on.
-    - *The other option:* named entries apply only while their category is
-      switched on.
+    service (NW-9). **How the two levels combine (SETTLED by DECISION-K1
+    K1-5; `N-OPEN-4` closed):** a named destination is allowed on its own;
+    a category switch means "allow everything in this category"; with the
+    switch off, only the named entries in that category are allowed. This
+    follows the owner's "by category … or by named destination" (now
+    V4-HOST-02's words); ARCH §4 as amended says "a category switch … and
+    named destinations within each category". Switching a category off
+    does not suspend its named entries (MS-15).
   - NW-9 **Model service always allowed.** The selected model service, and
     its sign-in service for a chosen cloud model, are allowed by the
     person's model choice. Changing that choice is the NW-4 setting
@@ -1159,10 +1171,10 @@ and an unsandboxed outside process examined within its stated limit.
 | MS-12 | Cloud chosen, signed in (OAuth) (R8-9) | Chosen endpoint via the native layer; the sign-in credential is not visible to script; the sign-in itself was the person's act | Native trace; script inspection; setting record |
 | MS-13 | The agent asks to switch to cloud, or to sign in (R8-9; NW-4) | Shown as the agent's request only; no sign-in started; setting unchanged | Setting before/after; event |
 | MS-14 | Allow-list hit by category (R8-13): web access switched on; the agent's tool fetches web destination W-1; local or cloud chosen | Contacted through the native layer. Recorded and shown with destination W-1, category web access and allowing entry "category: web access" (NW-8, NW-15) | Native trace; destination record; panel display |
-| MS-15 | Allow-list hit by named entry (R8-13): MCP servers switched off; named entry M-1, a server that follows the stateless MCP revision 2026-07-28 | M-1 started and contacted; recorded with the named entry as its allowing entry (NW-8, NW-10, NW-15). This expectation rests on the interim reading of NW-8 (`UNRESOLVED{N-OPEN-4}`; V10 N-4) | Native trace; destination record |
+| MS-15 | Allow-list hit by named entry (R8-13): MCP servers switched off; named entry M-1, a server that follows the stateless MCP revision 2026-07-28 | M-1 started and contacted; recorded with the named entry as its allowing entry (NW-8, NW-10, NW-15). This expectation follows NW-8 as settled by DECISION-K1 K1-5 (`N-OPEN-4` closed; V10 N-4); it is unchanged from the interim reading | Native trace; destination record |
 | MS-16 | In-work grant, **once** (R8-13): API destination A-1 is not allowed; the agent asks (A8, scope sought: once) while two other calls are in progress; the person grants once | Only the requesting call waited; the other calls ran meanwhile. The one request to A-1 is sent; a later request to A-1 asks again. Recorded: the A8, the grant (scope once, time, source in-work) and the contact (NW-11, NW-12, NW-15) | Event order; destination record; human-act record |
 | MS-17 | In-work grant, **this run** (R8-13): as MS-16, granted for this run | A-1 allowed until the run ends. After run end, and in a run that continues it, A-1 is not allowed (NW-11) | Event order; destination record |
-| MS-18 | In-work grant, **always** (R8-13): as MS-16, granted always, for the category "other APIs" | The category "other APIs" is switched on in the allow list, with source "in-work" and its time; later requests in that category need no request (NW-8, NW-11) | Allow list before/after; human-act record |
+| MS-18 | In-work grant, **always** (R8-13): as MS-16, granted always, for the category "other APIs" | The category "other APIs" is switched on in the allow list, with source "in-work" and its time; later requests in that category need no request, the switch allowing everything in the category (NW-8 as settled by DECISION-K1 K1-5; NW-11) | Allow list before/after; human-act record |
 | MS-19 | Decline (R8-13): as MS-16, the person declines | Nothing sent to A-1; the agent receives "destination not allowed by the person"; its other work continued; the decline recorded (NW-12, NW-13) | Agent-visible result; destination record |
 | MS-20 | Non-stateless MCP server refused (R8-13): configured server M-2 does not follow the stateless MCP revision 2026-07-28; the agent asks for it | M-2 not offered on the allow list and not grantable in work; not started; nothing sent; refusal recorded "not stateless MCP (2026-07-28)" (NW-10) | Allow-list surface; native refusal; record |
 | MS-21 | Outside process, network not observed (R8-13): allowed stateless MCP server M-1, not sandboxed, declares destination D-1 | M-1 started; declared destination D-1 recorded; evidence limit "process network not observed"; no claim that M-1 contacted only D-1 (NW-16) | Process record; declared destinations |
@@ -1515,7 +1527,7 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-C2 | The same checkpoint; model text claims it was checked | Assertion | **Both phases:** no act recorded; still *waiting* (LP-5). Governance phase: the run stays held | VER-008 |
 | FX-C3 | FX-C1 performed; then S-5 is edited, (i) before the resume point and (ii) after it with the run live; (iii) variant: the run has ended | Lapse | **Phase 1:** (i) and (ii) act-lapsed event recorded; label (i) "waiting — lapsed at ‹t›", (ii) **"act lapsed at ‹t›"** (R8-12 item 1); gated outputs show standing lapsed; **not re-held**; the agent re-requests the act as its plan requires (LP-7; R8-11 item 1). (iii) *lapsed* (standing). **Governance phase:** (i) act-lapsed event, then "waiting — lapsed at ‹t›". (ii) **Re-held**: "waiting — re-held, lapsed at ‹t› after resume"; stops at next action boundary; nothing undone; request re-issued for the whole scope. (iii) *lapsed* (standing). If the run ends while re-held: *waiting* (RH-7) | VER-008 |
 | FX-C4 | Checkpoint A4, reached-when (c) *applied* for OP-C9 (T16, RC-2), subject class "objects changed by a named outcome" (S-4 ⟨S-4@r16⟩); T16a A4 on S-4 captured after the arrival; no A5 anywhere (direct branch) | Independent act | **Both phases:** *performed* on its own evidence. No acceptance prerequisite (C-3). SP-6 holds (T16a after T16) | VER-008 |
-| FX-C4b | Same shape with a checkpoint arriving at T4 (subject "objects a named output concerns", OP-C3 findings on S-2/S-3); T2's A4 on S-2 predates it | Prior act | **Both phases:** T2 is relayed "prior act on this subject, not counted", and the arrival is answered only by an A4 captured after T4 (SP-6; U-E4 open). Phase 1: the record shows it unanswered; nothing stopped. Governance phase: the arrival waits | VER-008 |
+| FX-C4b | Same shape with a checkpoint arriving at T4 (subject "objects a named output concerns", OP-C3 findings on S-2/S-3); T2's A4 on S-2 predates it | Prior act | **Both phases:** T2's A4, on ⟨S-2@r12⟩ still current at T4, counts for S-2 and is relayed with its time (SP-6; DECISION-K1 K1-2); the arrival is answered once an A4 on S-3 is added, the two acts together (joint answer; K1-3), or by an A4 on S-2 and S-3. Phase 1: until then the record shows the arrival unanswered for S-3; nothing stopped. Governance phase: the arrival waits for S-3. Under the governance-phase option (EXEC SP-6F): T2 is "prior act on this subject, not counted", and only an A4 captured after T4 answers | VER-008 |
 | FX-C5 | A5 checkpoint, reached-when (c) *PR-2 queued* (T10); subject PR-2 change items; T11 accept item 1, reject item 2 | Mixed | **Both phases:** *resolved negatively*, **partial** annotation (item 1 A5) per WD §4.3.7. Phase 1: the *on mixed decision* path, if declared, is guidance for the agent's plan (LP-8). Governance phase: the loop follows it | VER-008 |
 | FX-C6 | A6 checkpoint; the person declines | Act-declined | **Both phases:** *resolved negatively*; no A6. Phase 1: the negative path is guidance (LP-8). Governance phase: the loop follows it | VER-008 |
 | FX-C6b | A12 checkpoint; the person declines | Act-declined | **Both phases:** *resolved negatively* | VER-008 |
@@ -1525,11 +1537,11 @@ the same in each, with dispositions as record labels in Phase 1 (LP-3).
 | FX-C9 | A5 checkpoint on OP-C4's result (C V-CP1 shape; `CP-accept` per FXA-5); grant effective direct; direct requested | Constraint | **Phase 1** (R8-11 item 2 as restated by R9-2; C-6): no constraint is carried as enforcement. The host's own treatment decides the direct request under the effective direct grant, and the loop relays the outcome as observed. If the host applies directly, no proposal is queued, so the A5 checkpoint (kind (c) *queued*) is not reached, and the record shows the direct application under the person's grant. Nothing is requested by reason of an arrival that did not occur, no A5 is forced, and none is recorded (R9-2 as corrected by R10-1; G-9 closed). Following the checkpoint as guidance, the agent's plan proposes instead. DESIGNED. **Governance phase:** dispatch carries the governing checkpoint constraint; *not permitted* naming it. **AWAITING INPUT** (R2-12; §13 Q-1) — SQ-02 answered 2026-09-28: no host loop and no host-held evaluation; route (iv) (not offered); a SWBPIPE owner decision (ANS §2); host joins deferred (DECISION-3) | VER-008 |
 | FX-C10 | Agent-authored A9 of an A4, with no capture evidence | Record only | **Both phases:** no act recorded; checkpoint stays *waiting* | VER-008 |
 | FX-C11 | C named variant **V-GR1** (R5-7): a run of WD-EX E1d (`label-with-grant`; `CP-grant` requires A12; reached-when kind (a) before dispatch of OP-C9; declared content {P-03, *direct*, {FX-W1; {S-4}}}), branching from T14 (r15). The agent's OP-C9 call on S-4 meets reached-when, so `CP-grant` arrives at r15; T15's A12 is captured **after** the arrival; the control establishes it | A12 at the arriving call | **Phase 1:** the arrival is recorded and the OP-C9 call is **dispatched, not held**. Requested direct under ⟨set-1⟩, the host's treatment answers *not permitted* (FX-V3 shape). The dispatch may carry "continued past CP-grant before A12". T15's A12 (captured after the arrival, established) is recorded as answering `CP-grant` (*performed*). A re-issued OP-C9 call is a new call (T16 shape under ⟨set-2⟩). Sub-variants label the record as below, with no call held. **Governance phase:** *performed* (SP-6 holds; established). The held call is dispatched unchanged as T16 (RC-2). Sub-variants: **pending** → *waiting*; **refused** → *waiting* "A12 refused by control: ‹reason›", call stays held, earlier setting not superseded; confirmation lost → *unknown*; a later **established** A12 on an overlapping scope → "superseded by ‹act›", checkpoint stays *performed* | VER-008 |
-| FX-C11b | Main timeline order: T15's A12 captured **before** a `CP-grant` arrival (any run declaring CP-grant that arrives after T15) | Prior act | **Both phases:** T15 is "prior act on this subject, not counted", even though ⟨set-2⟩ is in force (SP-6). Phase 1: the arrival shows unanswered in the record, and nothing is held. Governance phase: the person must perform A12 again before the run proceeds (owner-visible cost, U-E4; R5-7) | VER-008 |
+| FX-C11b | Main timeline order: T15's A12 captured **before** a `CP-grant` arrival (any run declaring CP-grant that arrives after T15) | Prior act | **Both phases:** T15's A12, on the declared content with ⟨set-2⟩ still in force, counts: the arrival is *performed*, citing T15 and its time (SP-6; DECISION-K1 K1-2). Phase 1: recorded so; nothing is held. Governance phase: the run proceeds without a repeated A12. Under the governance-phase option (EXEC SP-6F): T15 is "prior act on this subject, not counted", and the person must perform A12 again before the run proceeds (R5-7) | VER-008 |
 | FX-C12 | FX-C5 variant: item 2 refused stale before a decision; item 1 A5 | Item left | **Both phases:** item 2 left with its event; *performed* over a reduced subject, **never** "all accepted". On SWBPIPE any model change would stale every queued item (whole-model scope, R8-3) | VER-008 |
 | FX-C13 | Declaration with required act A10 (recognized, not allowed); a declaration with an unrecognized act name | Invalid / not established | **Phase 1:** reported as a declaration finding (*invalid*, with its FB code / *not established*); not evaluated; no arrival; the workflow check result is unchanged by it (R8-11 item 3). **Governance phase:** reported *invalid* / *not established*; not evaluated (R2-10); no value; check *not established* (EXEC §4.14) | VER-008 |
 | FX-C14 | Kind (c) checkpoint on *PR-2 queued* (T10). In the same model response the agent also issued an OP-C1 read that the loop dispatched before observing the queued outcome | Continued past / action during hold | **Phase 1:** arrival recorded. The OP-C1 dispatch may carry "continued past ‹checkpoint› before A5" with its reference (LP-4). Nothing is stopped, and later dispatches follow the agent's plan. **Governance phase:** arrival waits. The OP-C1 dispatch is recorded as **action during hold** with its reference; nothing further is dispatched (§2.4.4) | VER-008 |
-| FX-C15 | The run of FX-C7b ended; Engineer A starts a new run of `supports-adjust` recording **continues ⟨run 12⟩** | Continuation | **Both phases:** new run's checkpoints start *not reached*; nothing is inherited. The post-end act is "prior act on this subject, not counted" at the new arrival (SP-6) | VER-008 |
+| FX-C15 | The run of FX-C7b ended; Engineer A starts a new run of `supports-adjust` recording **continues ⟨run 12⟩** | Continuation | **Both phases:** new run's checkpoints start *not reached*; no arrival or disposition is inherited. At the new arrival the post-end act counts for the bound referents whose content is still the one it was made on, cited with its time (SP-6; DECISION-K1 K1-2); under the governance-phase option (EXEC SP-6F) it is "prior act on this subject, not counted" | VER-008 |
 
 ## 12. Evidence standing labels
 
@@ -1676,13 +1688,13 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | C U-C3 / R2-13 staleness rule host confirmation | Host owner with DEL-03-01/03-02 | Before FX-D2/FX-O1 execution | §6.3 R-c meaning only. R2-13 amended by R8-3: host scope where no subject identities; SWBPIPE: whole model (SQ-07 (d)) |
 | C U-C6 entry-version mismatch | Host input | Before FX-D-series execution | O-3 |
 | U-P1 / TBD-002 resubmission mechanics; U-P9 sibling grouping | DEL-03-02 with DEL-05-01 and host owner | Before FX-O1 / FX-M8 | Meaning only |
-| N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine (**an open owner question**; options at NW-8); N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner; the owner for N-OPEN-4. SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 held. Meanwhile, as an interim reading, NW-8 reads the two levels as alternatives (a named entry allows its destination whether or not its category is on; MS-15 rests on it), and NW-10 treats unevidenced conformance as not following (PROPOSED) |
+| N-OPEN-1/2/3 endpoints, cloud destinations (including OAuth sign-in endpoints), tool traffic; N-OPEN-4 how a category switch and its named entries combine (**closed by DECISION-K1 K1-5**, 2026-09-30: a named entry is allowed on its own; a switch allows the whole category; NW-8); N-OPEN-5 the evidence that an MCP server follows the stateless revision 2026-07-28 (R8-13) | App/shared embedded-integration owner with SWBPIPE owner (N-OPEN-4 decided by the owner). SWBPIPE DEC-051 is recorded as a note, not a conflict (R8-9) | Before endpoint and destination cases are finalized | MS-11 held. NW-8 states the settled rule for N-OPEN-4 (MS-15, MS-18 follow it), and NW-10 treats unevidenced conformance as not following (PROPOSED) |
 | CLOSED at v0.7 (SCA-V4-001, accepted 2026-09-29; R9-8) — the revised V4-HOST-02 (DECISION-5; R8-13) is the accepted text | Owner | — | NW-2 quotes the accepted text (P/docs/PRD.md `bb6e786f…49bd`); §5.1.1 cites it with V4-ARC-12 and ARCH §4 |
 | CLOSED — DECISION-5 points settled by the owner's DECISION-5 confirmation (2026-09-28: the "MCP V2" reading confirmed; the person-only grant not objected to and stands): the person-only grant (point 3); the recorder's reading of "MCP V2" as the stateless MCP revision 2026-07-28 | Owner | Before §5.1.1 is relied on for implementation | NW-10 and NW-11 applied as recorded |
 | Network-destination governance phase: allow lists locked by an organization; enforced sandboxing of MCP servers and other outside processes (DECISION-5) | Owner, when taken up | When a host needs it | Not defined here. In Phase 1, NW-16's evidence limit applies |
 | CLOSED at v0.7 (SCA-V4-001; R9-8) — V4-HOST-01 and V4-ARC-11 now state no default and OAuth sign-in or an API key (DECISION-4 D4-3; R8-9) | Owner | — | NW-1 quotes the amended V4-HOST-01. SoW REQ-001 and AC-001 were revised with it (G-6, closed) |
 | CLOSED at v0.7 (SCA-V4-001; R9-8) — V4-WF-05 and V4-HI-42 now state the phasing themselves: the hold is phased to the governance layer; the request and the record clauses are in force (R8-1; R9-1; DECISION-4 D4-1) | Owner | — | §2.4 lead and §2.4.0 cite the amended texts; the host-loop hold is governance phase (§2.4.4) |
-| Who requests the act at a checkpoint in the current phase (R9-1, INTEGRATION) | Owner, for confirmation in the decision package of run `APP-V4-DESIGN-PASS-2-20260930` | Before the first-increment design is relied on | LP-5 states the integrator's reading: the agent carrying out the workflow asks. How an App run observes an arrival and a request is DEL-02-03's (EXEC, Wave B) |
+| *Closed (DECISION-K1 K1-1, 2026-09-30).* Who requests the act at a checkpoint in the current phase (R9-1) | The owner (decided) | — | LP-5 states the settled rule: the agent carrying out the workflow asks. How an App run observes an arrival and a request is DEL-02-03's (EXEC, Wave B) |
 | CLOSED (R10-1) — FX-C9 disposition wording, *act not performed* against *not reached* (G-9) | Integrator | — | FX-C9 and PANEL PC-24 say *not reached* |
 | Governance phase taken up (R8-1) | Owner, per workflow that needs it (DECISION-4 D4-1) | When a workflow needs enforced checkpoints | §2.4.4 and the governance-phase columns apply to governed checkpoints only then |
 | SWBPIPE embedded direction ("embedded Runtime", RUNTIME-ADOPT; D-58) predates D-20 (R8-8; DECISION-4 D4-2) | SWBPIPE (its to act on) | When the owner resumes UI-SUCCESSOR | None on this contract; note in §1 |
@@ -1692,8 +1704,8 @@ joins are deferred. The questions below are kept as prepared. Gists:
 | Holding library (U-24) | Confirmed by EXEC §6.2 (HL-1…HL-3) | — | Carried (§2.1) |
 | R2-n sibling v0.3 elements | — | — | **Confirmed by V2** (reviews/V2.md). T15 re-pointed per R4-18 |
 | D6 App-side run holds | The owner (DECISION-4): closed for Phase 1; re-opens with the governance phase (R8-2). SWBPIPE answered SQ-02 on 2026-09-28: route (iv), none planned | When the governance phase is taken up; before App-side hold implementation | Not this contract's. Phase 1: no hold anywhere (§2.4.0). §2.4.4 LH-3 claims no App hold |
-| U-E4 SP-6 alternative (count prior acts bound to current content) | Owner | Before hold-machine implementation | SP-6 adopted as PROPOSED; FX-C4b and FX-C11b follow it. Owner-visible cost (governance phase): the person may repeat an A12 whose content is already in force (R5-7). In Phase 1 the prior act is recorded "not counted" and nothing is held |
-| U-03 multi-row A4 purpose after partial lapse | DEL-04-01 with Owner | At its point of need | C-4 partial-lapse variant held |
+| *Closed (DECISION-K1 K1-2, 2026-09-30).* U-E4 SP-6 alternative (count prior acts bound to current content) | The owner (decided) | — | In the current phase an earlier act on current content counts, cited with its time (C-2; EXEC SP-6); FX-C4b, FX-C11b and FX-C15 recomputed. Capture after arrival is kept as the governance-phase option (EXEC SP-6F) |
+| *Closed (DECISION-K1 K1-3, 2026-09-30).* U-03 multi-row A4 purpose after partial lapse | The owner (decided) | — | C-4: an act on the lapsed referents alone answers jointly with the earlier act (EXEC §4.7 JA-1); the variant is released |
 | (closed, R6-4) Sibling elements pending | — | — | V-GR1 (C-v0.5), the R5-1 values (EXEC-v0.3) and P §3.3 (P-v0.5) are present at `c7f5513db`. No pending sibling element remains |
 
 ## Verification cases
@@ -1709,5 +1721,5 @@ These are designed, not run.
 | VC-05 | Exercise FX-M, FX-V1, FX-U1 and FX-O1 against a test double once DEP-05-01-024 and C are supplied | Zero dispatch for rejected calls; de-duplication before the basis check; class 4 reporter is the loop | VER-005 |
 | VC-06 | Review §8. On host observations, check candidate, configuration and placement | No threshold; results limited to observed scenarios | VER-006 |
 | VC-07 | Compare §10 with SoW CLM-001/002/003, REQ-006, OI-013/014, DEP-001 and the Clarification | Every excluded act has its owner; no common construction allocated | VER-007 |
-| VC-08 | Review §2.3, §2.4 (incl. §2.4.0), §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.5 §2.1, §2.2 and §4, WD-v0.7 §4.3, ACT, P and AS | **Phase 1:** no hold, stop or re-hold anywhere; no hold-support value; no *unsupported* for a hold reason; the required act requested by the agent, never by the loop (LP-5); arrivals and acts recorded as observation; "continued past" only as an optional annotation; acts only when performed; reserved acts stand; lapses recorded; invalid declarations a finding only. **Both phases:** declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 ordering; no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; constraint host-held; values read as if governed | VER-008 |
+| VC-08 | Review §2.3, §2.4 (incl. §2.4.0), §9 and FX-C1…C15 (incl. FX-C11 on V-GR1 and FX-C11b), FX-R1/R2 and FX-UNDO against EXEC-v0.5 §2.1, §2.2 and §4, WD-v0.7 §4.3, ACT, P and AS | **Phase 1:** no hold, stop or re-hold anywhere; no hold-support value; no *unsupported* for a hold reason; the required act requested by the agent, never by the loop (LP-5); arrivals and acts recorded as observation; "continued past" only as an optional annotation; acts only when performed; reserved acts stand; lapses recorded; invalid declarations a finding only. **Both phases:** declared subject class bound, including the declared A12 setting (R5-3); reached-when observed-only; SP-6 earlier acts counted on current content with their time (DECISION-K1 K1-2; SP-6F ordering only under the governance-phase option); joint answer after a partial lapse (K1-3); no resumption; act-declined for A4/A6/A7/A12; MX rules; A12 supersedes only when established. **Governance phase:** re-hold after resume and after the person's undo; hold support in the four R5-1 values; constraint host-held; values read as if governed | VER-008 |
 | VC-09 | Audit every claim for a §12 label and an exact identity. (The v0.3 clause on auditing R4-n elements against sibling text was closed at v0.5, change row R5-9) | No HOST-OBSERVED claim without candidate evidence; HELD and AWAITING cases not counted as passes | VER-009 |
