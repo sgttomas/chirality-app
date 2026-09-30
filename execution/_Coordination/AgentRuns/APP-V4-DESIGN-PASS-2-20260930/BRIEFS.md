@@ -291,3 +291,38 @@ that item and return it.
 and the new sha256; every designed case whose expected result changed, old →
 new; anything not applied, with the reason; any proposed ScopeOfWork or basis
 item.
+
+## A1-G — GUIDE alignment and final re-pin (one Type 2, last in Wave A)
+
+**Purpose.** Bring DEL-03-04 `HOST_INTEGRATION_GUIDE.md` from v0.3 to v0.4 on
+the Wave A candidate: the other 16 Design files are final for Wave A (A1,
+A2, A3 committed).
+
+**Write fence:** `HOST_INTEGRATION_GUIDE.md` and `WAVE_A/A1-G.md` only.
+
+**Apply:** R9 (all items), R10 (where GUIDE carries the same wording, notably
+R10-1 and the "DECISION-2 reading" labels of R10-11) and DECISION-K1 (the
+same relabels and rule changes A3 made in the other files; see
+`WAVE_A/A3.md`), plus survey S1-E part D items 1–4 (section D.8). In detail:
+
+1. Re-pin the 18-row input table to the current sha256 of every pinned input,
+   by script, after reading the table's row definitions; record the script
+   and its output in the return file. Pin the ScopeOfWork, the register and
+   the basis docs as S1-E D.8 item 1 lists.
+2. Rerun CC-1…CC-11 against the revised ScopeOfWork and the amended basis,
+   and rewrite what their recorded results describe; close G-6, G-7, G-12,
+   F-5, F-6, F-16 and the UNRESOLVED rows S1-E D.8 item 2 lists, each with the
+   record that closes it; withdraw F-4 if the record shows it is withdrawn.
+3. Add RS R15 to M5.6 and HC-5.5 (amended V4-HI-70).
+4. Record what exists (RV-3 result, V9 and V10 reviews, stating their scope);
+   scope M8.1's default (V6 m-6); follow WD and EXEC on the partition
+   sentence (V6 m-7, as R10-10 ruled).
+5. Update every sibling version label to the Wave A versions (R9-11) and check
+   each cited section or ID exists in the sibling's current text.
+
+Not in this node: the matrix refresh for Wave B (node B8), anything S1-E D.8
+lists as "not in this pass".
+
+**Return file `WAVE_A/A1-G.md`:** the changes (item → location); the pin
+script and its full output (18/18 or the failures); CC-1…CC-11 results, old →
+new; anything not applied; GUIDE's new sha256.
