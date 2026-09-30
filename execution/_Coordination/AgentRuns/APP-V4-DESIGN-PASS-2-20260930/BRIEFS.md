@@ -223,3 +223,71 @@ FX-PIPE-01; the first connected operation (OI-021) and whether to prepare an
 option sheet against SWBPIPE's actual journey; the supplier's start-up fetch
 and its experimental surface; and whether a spike may use a credential, a
 local model server or the network.
+
+## A3 — apply DECISION-K1 in the Design files (one Type 2)
+
+**Purpose.** Write the owner's DECISION-K1 (in [OWNER_DECISIONS.md](OWNER_DECISIONS.md))
+into the 15 Wave A Design files, so that the Wave A candidate stands on it.
+Items K1-1…K1-5 only. K1-6 (what prototypes may use) changes no Design text
+now.
+
+**Write fence:** the same 15 Design files as A2 (RELAY metadata only, §0–§3
+byte-identical, span sha256 `6e399c8389dc2ad991ba8b64084fee17d44ef9e8137d184dd8eb599a66340d4d`);
+return file `WAVE_A/A3.md`. Not GUIDE (A1-G does it next), not PIN_SPIKE, not
+SWBPIPE's two files, and no ScopeOfWork, register, status, basis,
+decomposition, scope-change or DAG file.
+
+**What to apply** (find every carrier with grep; the surveys, `DECISIONS_DRAFT.md`
+"Where it sits" lines and `DECISIONS_PENDING.md` list the IDs):
+
+1. **K1-1.** R9-1's requester reading is SETTLED by DECISION-K1. Relabel it
+   wherever a file carries it as INTEGRATION or "put to the owner"; close the
+   matching UNRESOLVED rows.
+2. **K1-2.** For the current phase, an earlier act counts when it is of the
+   required kind and the content it was made on is still current; the record
+   cites the earlier act and its time. The rule "only acts captured at or
+   after arrival" (SP-6; EXEC §4.5, U-E4, F-23; WD I-8, U-31; ACT §4.5, U-14,
+   F-17; AS U-17; RS L-13, U-26; LOOP and PANEL rows; C V-GR1; P §10; CA row
+   9) is kept only as a governance-phase option a workflow may take up.
+   Recompute each designed case whose expected result depends on it (for
+   example EXEC CH-12, CH-20 and CH-9 (ii); LOOP FX-C4b, FX-C11b; PANEL W-5c,
+   PC-21i) and state the new expected result. The label "prior act, not
+   counted" stays only for an earlier act whose content is no longer current
+   or whose kind differs.
+3. **K1-3.** When one act covered several items and only some change, a new
+   act on the changed items alone answers the checkpoint together with the
+   earlier act for the unchanged items. Write the rule (two or more acts may
+   together answer one arrival; each cites its items) in EXEC §4.7 and ACT
+   §4.3, and follow it in WD U-05c, RS U-07, AS U-19, CA DI-7 and the LOOP and
+   PANEL rows. Release the held cases (EXEC CH-8 and any other held on this
+   question) with their expected results.
+4. **K1-4.**
+   - The App person identity: the App records the name the person set in the
+     App, the operating-system account, and the Codex account when Codex
+     reports one, marked "identity not verified"; a verified identity is a
+     governance-phase matter. Write this into RS §6.1 (decision actor and its
+     evidence limit), EXEC CAP-8, and close EXEC U-E8, RS U-28, WD U-25 and
+     EXAMPLES U-25 by citing DECISION-K1.
+   - The App act control: its construction stays with DEL-01-04 (a later
+     undertaking). Where a file says the obligation is missing from that
+     deliverable's contract, add: "proposed for DEL-01-04's contract at the
+     next amendment (DECISION-K1 K1-4); collected at this run's closeout".
+     Do not design the control.
+5. **K1-5.** A named destination is allowed on its own; a category switch
+   means "allow everything in this category"; with the switch off only the
+   named entries in it are allowed. Close LOOP N-OPEN-4 and write the rule in
+   LOOP NW-8 (or wherever the allow-list rule sits), PANEL ND-1 and AS's
+   allow-list rows; recompute LOOP MS-15, MS-18 and PANEL PC-30, PC-34.
+6. **Also:** LOOP §2.2 cites "DEL-03-01 F-R2-2", which exists nowhere (A2
+   finding 1). Find what the sentence relies on in C-v0.7 and cite that, or
+   remove the citation and say so in the return file.
+
+**Rules.** Precise edits. Record each change as a row in the file's Wave A
+change table with the K1 item ID. No version bump. Where applying a decision
+would change something only a ScopeOfWork or basis text can decide, stop on
+that item and return it.
+
+**Return file `WAVE_A/A3.md`:** per file, the changes (K1 item → location)
+and the new sha256; every designed case whose expected result changed, old →
+new; anything not applied, with the reason; any proposed ScopeOfWork or basis
+item.
