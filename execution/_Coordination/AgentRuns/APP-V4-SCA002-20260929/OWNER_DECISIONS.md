@@ -107,3 +107,26 @@ disclosed the six-versus-seven-package audit scope (V14 R-3).
 - **Propagation authorized:** the 9 SoW REVISEs (NO_STATUS_TOUCH), B-06a with
   them, the register refresh, the currency audit, and the DAG-003 candidate
   for checkpoint C.
+
+## Checkpoint C: DAG-003 (owner, exact, 2026-09-29), DECISION-4
+
+**Custody.** The owner's answer to a structured question in the active chat,
+transcribed by the recorder. The package presented was `DAG_PREP/CHECKPOINT_C.md`
+and `DAG_PREP/REVIEW_PACKET.md` at `b547125db`, with review V15 (READY FOR
+CHECKPOINT C) committed at `e995b329d`.
+
+| Question presented | Owner's answer (exact label) |
+|---|---|
+| Checkpoint C: accept DAG-003 (four held arcs N-18, N-21, N-24, X-1 added; admitted layer and six cycles unchanged; strict audit passes; review nothing blocking; releases 5 DAG-pending deliverables). Decides both project-dag checkpoints together. | "Accept DAG-003 (Recommended)" |
+
+## Effects
+
+- **DAG-003 is ACCEPTED on 2026-09-29, covering project-dag checkpoints 1
+  and 2.** Publish `_DAG/DAG-003/` byte for byte against REVIEW_PACKET.md,
+  with ACCEPTANCE_RECORD.md, HANDOFF_STATE.md, INDEPENDENT_REVIEW.md (a
+  copy of V15) and MANIFEST.sha256. Write `_DAG/_LATEST.md` from
+  PROPOSED_LATEST.md with the date. DAG-002 is superseded and kept unchanged.
+- A follow-up currency audit clears the 5 DAG-pending flags.
+- Then: the SCA-V4-002 `audit-scope-closure`, and a superseding
+  `audit-scope-closure` snapshot for SCA-V4-001 recording ASC-ISS-001 closed.
+- HANDOFF_STATE corrects the OI-001/002 register count (V15 O-1).
