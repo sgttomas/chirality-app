@@ -535,3 +535,27 @@ does not offer), MINOR, NOTE.
 Also apply, as a check: R13 (just written) says how two open disagreements
 are ruled; report where the files do not yet say it, as a finding for the
 repair.
+
+## RP — repairs from V18 (four Type 2, parallel, disjoint fences)
+
+**Binding:** [R14_RESOLUTIONS.md](R14_RESOLUTIONS.md), with R12, R13 and
+DECISION-K1. **Inputs:** the four comparison files in `comparisons/` (every
+finding that falls in your files, including MINOR ones; NOTEs optional),
+`WAVE_B/OBS-1.md` and `WAVE_B/OBS-1b.md` with DEL-01-01's
+`OBS_1_0.158.0.md` for R13-6.
+
+| ID | Write fence (Design files with their schemas, examples and `prototype/`) | Main items |
+|---|---|---|
+| RP-1 | RS (DEL-04-03), EXEC (DEL-02-03), ADAPTER (DEL-03-03) | R14-1, R14-2, R14-3, R14-4, R14-8 (N-21, N-24, X-1); R13 and OBS observations in these files (R14-7) |
+| RP-2 | C (DEL-03-01), P (DEL-03-02) | R14-7 in C; R14-8 N-18 (item-left events explicit in P's schema); P's outcome and citation findings; C's schema findings |
+| RP-3 | WD and WD-EX (DEL-02-01), HOSTING (DEL-01-01; not PIN_SPIKE, not OBS_1) | R14-5, R14-6, R14-8 N-18 (WD cites P-v0.8); R13-6 in HOSTING |
+| RP-4 | LOOP, PANEL (DEL-05-0x); AS, ACT (DEL-04-0x); CA (DEL-09-06, not RELAY or SWBPIPE's files); XT (DEL-09-09) | R14-7 in LOOP (R13-5, the observed column), CA, XT; LOOP §2.3 citing RS's mapping (R14-1); the comparisons' findings in these files |
+
+**Rules.** No version bump: add rows with the R14 item or finding ID to each
+file's Wave B change table. Where a fix needs another node's file, write
+your side, and state in the return what the other side must say; the
+integrator checks both sides after all four return. Rerun every prototype in
+your folders and any cross-file prototype chain you touch (for RP-1, the
+EXEC-to-RS conversion of R14-1 must show every entry valid). Return file
+`WAVE_B/RP-<n>.md`: finding → fix → location; prototype output; anything
+returned; new sha256 per file.
