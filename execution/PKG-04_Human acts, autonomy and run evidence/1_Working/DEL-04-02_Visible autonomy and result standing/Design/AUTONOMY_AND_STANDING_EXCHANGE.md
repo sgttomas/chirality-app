@@ -2,7 +2,7 @@
 - Contribution: DEL-04-02/AS-v0.8 (supersedes AS-v0.7, last changed at `c896a99d90` and unchanged at `86cafc0e1c`, sha256 7f44fbb3c2ee384795418679b8cee72f6154e042dbf48f848836e3680bdb989c; AS-v0.6, last changed at `caa4334ca1` and unchanged at `3dd7c22c73`, sha256 52d1341bb475f0a7de4b986b905e2986aa0e0a4e04e8b1783a6a83174eb6a33d; AS-v0.5, last changed at `c6f81a4f2` and unchanged at `94aa9181b`, sha256 df0e31ea7d33a3224df0b5d292d35675a55e8e325898cb28b64a1f709f7d72f0; AS-v0.4 sha256 774728d03824397a5343412b17659feaf9b0d2ef1029b79889d13a1b421f4dab at `cc58211c5`)
 - Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Phase (R8-1; R9-1): in the current phase (Phase 1) declared checkpoints are **plan guidance**: the checkpoint overlay shows arrivals and acts as observation, and no hold, hold-support value or *unsupported* for a hold reason is shown (§4; ScopeOfWork TBD-006). **In force in every phase:** the act is requested; it is recorded as done only when the person performs it; the reserved acts bind. **Phased to the governance layer:** holding the run until the act (PRD V4-WF-05 and HOST_INTEGRATION V4-HI-42 as amended by SCA-V4-001; S3). Hold support, re-hold and *action during hold* are kept as the **governance-phase definition (retained)**.
-- Network-destination grants (R8-13; DECISION-5): the grant display also shows a host agent's allow list (category switches and named entries) and its in-work grants with their scopes (once, this run, always) (§3). They are the person's A12 grants, subclass network-destination grant (ACT §2.7). V4-HOST-02 is cited from the PRD as amended by SCA-V4-001, which applies DECISION-5 (S15).
+- Network-destination grants (R8-13; DECISION-5): the grant display also shows a host agent's allow list (category switches and named entries) and its in-work grants with their scopes (once, this run, always) (§3). They are the person's A12 grants, subclass network-destination grant (ACT §2.7). V4-HOST-02 is cited from the PRD as amended by SCA-V4-001, which applies DECISION-5 (S15). From v0.8 (node B5) this file also owns the **display of the destinations contacted** (§3.2), as its ScopeOfWork CLM-002 consumes the contacted-destination record "which `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` requires to be shown"; the flow it displays is DEL-05-01/LOOP-v0.8 §5.3 (DF-1…DF-10). Recording a declined or refused request is PROPOSED (R12-10).
 - Wave B (R12-1…R12-3): the settings-in element has a **PROPOSED** representation, `AS_SETTINGS_IN.schema.json` beside this file, with valid and invalid examples validated by a local prototype (`prototype/`); in-work destination-grant transitions (§3.1); the §6 exchange (identical to RS §8) carries a host agent's destination settings and contacts; what each receiver is provided and what it does on *unconfirmed* or *missing* (§12.1); the OUT-001 component structure as PROPOSED options under OI-014, none chosen (§13; R12-2).
 - Serves: OUT-002 (receiving-interface contract content); OUT-001 and OUT-003 (component behaviour and fixture design only — no component or fixture exists; the prototype is not product code); REQ-001…REQ-007; AC-001…AC-007 via designed VER-001…VER-007
 - Basis (re-pinned at v0.7; R9-5): the accepted basis as amended by SCA-V4-001 (`P/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155/`) and SCA-V4-002 (`P/execution/_ScopeChange/SCA-V4-002_2026-09-29_1901/`), by current sha256: `P/docs/PRD.md` bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd, `P/docs/ARCHITECTURE.md` 317d5789272c5206599936fa9b4e68551b30016d226b88039f0153afa02d828c, `P/docs/HOST_INTEGRATION.md` d4331c39db7f452cd3ba72fdfa4bad540a6053931218359a93646971acb28d9f, `P/docs/EXAMINATION.md` 471798bc2f2dc0202ae40d9d5cf033a22ae41af2a0afdf58032cf37a687957d0 (of the requirement texts this file cites, V4-WF-05, V4-HI-42, V4-HI-70, V4-HOST-02, V4-EXM-22 and the ARCHITECTURE §4 host-agent properties were amended; the others are unchanged since repo `6e18505e3`, the v0.6 basis; checked with `git diff 6e18505e3 HEAD -- docs/`); ScopeOfWork.md sha256 f16ffa8a33cbfb2e78a8e916e90aff9fb44ad20adf94fe61a559a213f5564460, as revised by SCA-V4-001 (AX-004; TBD-006 added) and SCA-V4-002 (AX-005; CLM-004); owner decisions `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (D4-1 phased checkpoints) and `-DECISION-5` (host-agent network destinations), `OWNER_DECISIONS.md` sha256 5fd780bf90a4d51751d2c2fa632b92111a52cd0d9445a0870be9d28bcb4f40b2; owner confirmations at the SCA-V4-001 checkpoint, run `APP-V4-BASIS-ALIGN-20260928`, `OWNER_DECISIONS.md` sha256 ca8c4e50df1d7dddb41b875a4afe46eea4f1a1bf2491d255b7890d0d71cd254b (DECISION-7 accepts `AMENDMENT_PACKET/OWNER_ITEMS.md`, sha256 2b90eb4a95f458e993eed69e27533aa10e31aea980fe2ec99c9c2345e6f498ef, "as recommended": O-10, O-11, O-15, O-25); accepted graph `P/execution/_DAG/_LATEST.md` (sha256 4d381ba4e87b41a83b9d0d2dc591c4bf04eacb84df0b5c27314091cd2a992f56) → DAG-003; `P/docs/PRD.md` §2.2 V4-HOST-02, §4.1 V4-WF-05, §4.3 V4-EXE-01…03, §4.5 V4-AUT-01…05, §4.6 V4-PM-06, §4.7 V4-REC-01…05; `P/docs/HOST_INTEGRATION.md` §1, V4-HI-04, V4-HI-11/12, V4-HI-20…25, V4-HI-30…33, V4-HI-40…42, V4-HI-50…52, V4-HI-70/71, §11; `P/docs/ARCHITECTURE.md` §4, V4-ARC-20; `P/docs/EXAMINATION.md` V4-EXM-21/22; `P/docs/OPERATING_METHOD.md` V4-OPS-30…32; `DECISION_BRIEF.html` d2, d3; `OWNER_DIRECTIONS.md` J, O; `SCC-CASE-002/Case_Datasheet.md` M1, M3; `_Decomposition/Open_Issues.csv` OI-001/002/013/014/021; `External_Dependencies.csv` DEP-001. Run folder `APP-V4-FIRST-INCREMENT-20260928` at commit **8fb51f07f**: `OWNER_DECISIONS.md` (DECISION-1 and DECISION-2; sha256 a9869129753631b865cbbb00a138c0f497d5ac8a4b67f5746169d1f9a668ad2c); `R1_RESOLUTIONS.md` (2f9c7e72aa8362624ad830377a70077b27a27bf03871f8e87811a28e6e177ec4); `R2_RESOLUTIONS.md` (77cfb845ec305365f12218f83f332069155de5f362139b7a6fe2bf12cdebd088); `R3_RESOLUTIONS.md` (202d52c7d688382336cddb0d6c31be27969a9e667c5800b734428a090f05afbf); `R4_RESOLUTIONS.md` (50a009b2ef487bad6ef5e89b5c4493095f18f83149fcb83b00050de485032a24); `R5_RESOLUTIONS.md` (254d0b93b9959419a70c6737b07087e1db59b529adc3105a1db31f82b78dd6f1); `reviews/V2.md` (75ba1dff8a0c4fa2eb294471127147cbd19a0925daf9169b32ddc88727dde6ef); `reviews/V3-A.md` (f25f5af1177b7fe2a698bd4ef1e1caafa4c2ef25cfc73111f031e17c7cc21d87); `reviews/V3-B.md` (5662fbd09025f5ad9459861370159d606fcced76b394980199e861555a1954a3); IR1-A/B/C and V1-A/B/C as cited in AS-v0.3
@@ -33,6 +33,10 @@ PROPOSED unless a cited text decides it.
 | R12-5 | A15 named in §0 (not shown by the grant display) | §0 |
 | R12-10 | The not-counted marking already reads "prior act not counted" (§4, §8); it gains its reason, as RS-v0.8 L-13 fixes | §4; §8 |
 | Verification | New F22 and VC-19…VC-22; VC-15 coverage extended | §11; Verification cases |
+| **B5** (S1-A AS 3; node B5, round 2) | Plainly stated: **DEL-04-02 owns the display of the destinations contacted**, new §3.2 (contacts with their allowing entry; declines and refusals shown apart, their recording PROPOSED; outside processes with their limits; "destinations not observed"), because this ScopeOfWork's CLM-002 and register row DEP-04-02-018 consume the contacted-destination record "which DECISION-5 requires to be shown". PANEL ND-4 receives it for a host panel. §12's closing note updated | §3.2; §12; §12.1 |
+| **B5** (S1-A AS 7; LOOP-v0.8 §5.3 DF-6) | §3.1 joined to the one destination flow: DG-1 names the request call and the call it carries; DG-13 renamed *unanswered at end* (run ended); new DG-14 (turn cancelled) and DG-15 (not granted: not grantable or prompt not shown); DG-4 names the request state *not granted*. Settings-in request states follow LOOP DF-6 (pending · granted · declined · not granted · unanswered at end), identically in §6 and RS §8; `AS_SETTINGS_IN.schema.json` enum and reason element, and the prototype's walks (ten sequences, eight forbidden transitions) updated. §5 failure rows cite LOOP's DF-F rows | §3.1; §5; §6; schema; `prototype/` |
+| **B5** (R12-10) | §3's *Declines* row and DG-11 keep "recording PROPOSED"; §3.2 states it for declines and refusals | §3; §3.1; §3.2 |
+| **B5** (verification) | F23 and VC-23 (the contacted-destinations display); VC-19 extended | §11; Verification cases |
 
 ## Changes from v0.6
 
@@ -275,7 +279,7 @@ the grant display also shows the following, from the host's control
 | Always-off items | Analytics or usage reporting; a silent switch to another model or provider; background downloads or updates. Shown off unless the person turned one on |
 | In-work grants | Each grant with its scope: **once** (against its one request, until used), **this run** (with the run, until it ends) or **always** (also listed as an entry). For the destination or its category, with time and A12 reference |
 | Agent requests | "Agent requests ‹destination or category, scope›" (A8), beside the governing list. Never a grant |
-| Declines | Not shown as a grant state. The requesting call's outcome is "destination not allowed by the person" (PANEL ND-3) |
+| Declines | Not shown as a grant state. The requesting call's outcome is "destination not allowed by the person" (PANEL ND-3). Shown with the destinations contacted, apart from contacts (§3.2); recording it as a destination entry is PROPOSED (R12-10) |
 
 - The seven states above (*set by person, not yet confirmed by control*,
   *unconfirmed*, *refused (reason)*, and so on) apply to these grants too;
@@ -290,17 +294,20 @@ the grant display also shows the following, from the host's control
 ### 3.1 In-work destination grants: transitions (AS 7; PROPOSED display over SETTLED rules)
 
 The rules are LOOP §5.1.1 (NW-11…NW-13) and ACT §2.7 (ND-A2), SETTLED by
-DECISION-5 except the A12 mapping (INTEGRATION, ACT F-22). The table says
+DECISION-5 except the A12 mapping (INTEGRATION, ACT F-22). The flow these
+states follow, and the request states *pending · granted · declined · not
+granted · unanswered at end*, are DEL-05-01/LOOP-v0.8 §5.3 DF-5 and DF-6
+(node B5): a request is *granted* once its grant is **in force** (DG-3). The table says
 what the display shows and what settings-in carries at each step (§6). A
 network-destination grant is never shown merged with an operation-class
 grant or the checkpoint indicator.
 
 | # | From | Event (evidence) | To | Shown as | Settings-in / record |
 |---|---|---|---|---|---|
-| DG-1 | — | The agent asks for a destination or category, with the scope it seeks (A8; LOOP "Destination request issued") | **requested** | "Agent requests ‹target, scope›" beside the governing list; only the requesting call is shown waiting (NW-12) | Agent request, state *pending*; R15 *destination requested* |
+| DG-1 | — | The agent asks for a destination or category, with the scope it seeks (A8: a call to the host's destination request entry, carrying the call it needs (the carried call), LOOP-v0.8 §5.3 DF-1; LOOP "Destination request issued") | **requested** | "Agent requests ‹target, scope›" beside the governing list; only the requesting call is shown waiting (NW-12) | Agent request, state *pending*; R15 *destination requested* |
 | DG-2 | requested | The person grants, once, for this run or always (A12, network-destination grant, captured by the host's control) | **pending control confirmation** | "Set by you — not yet in force" | In-work grant, state *pending control confirmation*, A12 reference; the A12 record |
 | DG-3 | pending; unconfirmed | The control establishes it | **in force** | The grant with its scope, time and A12 reference, "set by you" | State *in force*; R15 *destination grant* |
-| DG-4 | pending | The control refuses (e.g. "not stateless MCP (2026-07-28)") | **refused (reason)** | The reason beside the governing list; nothing is allowed | State *refused*, with the reason; a boundary refusal, if the host records one, is PROPOSED recording (R12-10) |
+| DG-4 | pending | The control refuses (e.g. "not stateless MCP (2026-07-28)") | **refused (reason)** | The reason beside the governing list; nothing is allowed | State *refused*, with the reason; the request *not granted* ("grant refused by control", LOOP DF-6); a boundary refusal, if the host records one, is PROPOSED recording (R12-10) |
 | DG-5 | pending; in force | Confirmation is lost | **unconfirmed** | Last-known value, "unconfirmed"; never shown in force | State *unconfirmed* |
 | DG-6 | in force (*once*) | The one requesting call contacts the destination | **consumed** | Gone from the in-work grants; the contact is shown where contacts are shown (PANEL ND-4), "in-work grant: once" | State *consumed*, with the contact; R15 *destination contacted* |
 | DG-7 | in force (*once*) | The requesting call is withdrawn before it is sent | **consumed** (unused) | Gone; never reusable by another call (ND-A2) | State *consumed* |
@@ -309,13 +316,47 @@ grant or the checkpoint indicator.
 | DG-10 | listed | A later **established** list edit removes or narrows it | **superseded** | "superseded by ‹act›"; a refused edit supersedes nothing | Named entry changed; state *superseded* |
 | DG-11 | requested | The person declines | no grant | Not shown as a grant; the call's outcome "destination not allowed by the person" (PANEL ND-3) | Agent request, state *declined*; the act-declined event (INTEGRATION, R2-5, R8-13); its R15 record PROPOSED (R12-10) |
 | DG-12 | requested | Nobody answers | requested (unchanged) | Still pending; never granted by silence or timeout (S12) | State *pending* |
-| DG-13 | requested | The run ends unanswered | no grant | Gone | State *ended unanswered with the run* |
+| DG-13 | requested | The run ends unanswered | no grant | Gone; the requesting call shown not sent (PANEL FD-4) | Agent request, state *unanswered at end* (cause run ended); RS `destination_request_closed` (PROPOSED) |
+| DG-14 (B5) | requested | The person cancels the turn in which it was asked (LOOP F-11) | no grant | Gone | Agent request, state *unanswered at end* (cause turn cancelled); RS `destination_request_closed` |
+| DG-15 (B5) | requested | The target cannot be granted (a non-stateless MCP server; an always-off item, which only an allow-list edit turns on), or the host's control cannot show the prompt (LOOP DF-3 A-2, A-3; DF-F4) | no grant | "cannot be allowed: ‹reason›" beside the governing list | Agent request, state *not granted* (reason not grantable · prompt not shown); RS `destination_request_closed` |
 
 Not transitions: an agent-written list entry is never a grant (at most an
 A8, DG-1); an operation-class A12 changes no destination state (ACT ND-A1).
 The walk of these transitions is checked by
-`prototype/validate_settings_in.py` (eight event sequences, six forbidden
-transitions; run 2026-09-30, all held).
+`prototype/validate_settings_in.py` (ten event sequences, eight forbidden
+transitions after node B5; run 2026-09-30, all held).
+
+### 3.2 Destinations contacted: the display (v0.8, node B5; S1-A AS 3; PROPOSED display over SETTLED rules)
+
+**Owner.** This file owns the display of the destinations a host's agent
+contacted. DEL-04-02's ScopeOfWork CLM-002 says this deliverable "consumes,
+from App v4 `DEL-05-01`, a host agent's network-destination allow list,
+in-work destination grants and contacted-destination record, which
+`APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` requires to be shown"
+(register row DEP-04-02-018). DEL-05-02's ScopeOfWork names no destination
+surface (PANEL F-12), so PANEL §3.8 ND-4 **receives** this display for a
+host panel, as ND-5 receives §3. The rule "every destination contacted is
+recorded and shown" is SETTLED (V4-HOST-02, V4-ARC-12, V4-HI-70 as
+amended); the display below is PROPOSED. The flow and the record are
+DEL-05-01/LOOP-v0.8 §5.3 and RS R15; this file reads them from record-out
+(§6), by reference, and compares nothing about contacts.
+
+| Part | Shown as | From (RS R15 / R11) |
+|---|---|---|
+| Each destination contacted | Destination; category; the allowing entry: "model choice" (with class local or cloud), "category: ‹c›", "named entry", or "in-work grant: once / this run / always, ‹time›"; time. In any model mode | `destination_contacted` |
+| Declines | Apart from contacts: the requested destination, "destination not allowed by the person", time; never as a contact or a grant. Recording PROPOSED (R12-10) | `destination_declined` |
+| Refusals | Apart from contacts: destination, reason (not allowed · always-off item · not stateless MCP (2026-07-28)) and stage (model request · V-D · at contact); recording PROPOSED (R12-10) | `boundary_refusal` |
+| Requests that ended without a grant | The request with its state *not granted* (reason) or *unanswered at end* (cause) and "not sent" | `destination_request_closed` |
+| Outside processes | The process; its declared destinations; "process network not observed" when not sandboxed; for an MCP server, "stateless revision declared, not verified". Never implies the process contacted only what it declared | `outside_process`; R11 |
+| No native report | "destinations not observed", never "no destinations contacted" (§5) | R11 |
+
+- Contacts, declines and refusals are never merged into one "allowed"
+  signal, and never with the grant display (§3) or the checkpoint
+  indicator.
+- An App run shows none of this: its model destination is R5, shown in
+  DEL-03-03's channel status (§2; §10).
+- A contact that names an in-work grant the record lacks is a defect
+  observation (§5), shown with the contact.
 
 
 ## 4. Checkpoint overlay
@@ -476,7 +517,8 @@ Further failure behaviour (v0.8; PROPOSED):
 
 | Failure | Who reports it | Shown as | Next |
 |---|---|---|---|
-| The host's native layer reports no destinations for a host-loop run | The host (through DEL-05-01); RS R11 "destinations not observed" | "destinations not observed", never "no destinations contacted" and never "none allowed" | The allow list and in-work grants are still shown from the control |
+| The host's native layer reports no destinations for a host-loop run | The host (through DEL-05-01); RS R11 "destinations not observed" (LOOP-v0.8 §5.3 DF-F11) | "destinations not observed", never "no destinations contacted" and never "none allowed" (§3.2) | The allow list and in-work grants are still shown from the control |
+| A request's prompt cannot be shown, or the control's confirmation of a grant is lost (LOOP DF-F4, DF-F5) | The host's control | DG-15 *not granted* ("prompt not shown"); or DG-5 *unconfirmed*, the requesting call shown waiting, never in force | Nothing is allowed on the display's word |
 | The record-out's format version is refused, or read limited (RS §13.4) | The record reader | Comparison *missing in record (unreadable version ‹v›)*; or compared on known elements only, marked "read limited" | The display keeps showing the control's current grant; nothing is inferred from the unread record |
 | A destination grant in force on the display has no A12 reference, or a contact names a grant the record lacks | The comparison (§6); the record reader (RS §14.2 R-7) | A defect observation; the grant is shown *unconfirmed* | Returned as a defect; never shown as allowed on the display's word |
 | The destination settings and the operation-class grants arrive in one report that merges them | The comparison | Both shown apart; defect observation | Never one "allowed" signal |
@@ -513,8 +555,9 @@ category, scope (once · this run · always), state (pending control
 confirmation · in force · consumed · ended with run · listed · superseded ·
 refused (reason) · unconfirmed; AS §3.1), A12 reference and the request it
 answers; and each **agent request** still open or resolved in the run, with
-the scope sought and its state (pending · granted · declined · ended
-unanswered with the run). *Not applicable* for the App's own Codex, whose
+the scope sought and its state (pending · granted · declined · not
+granted · unanswered at end, with its reason or cause; DEL-05-01/LOOP-v0.8
+§5.3 DF-6). *Not applicable* for the App's own Codex, whose
 model destination is R5. PROPOSED representation: DEL-04-02's
 `AS_SETTINGS_IN.schema.json`, carried in the record as the body of a
 `settings_version` entry (RS §13).
@@ -541,7 +584,8 @@ disposition as a record label, annotations, run-resumed and run-ended events;
 evidence limits. For a host's agent, the **R15 entries**: destinations
 contacted, each with its category and the grant or entry that allowed it;
 destination grants with scope, time, source and A12 reference; destination
-requests; declines and boundary refusals (their recording PROPOSED: V4-EXM-23
+requests with the call each carries, and how each request ended (LOOP-v0.8
+§5.3 DF-6); declines and boundary refusals (their recording PROPOSED: V4-EXM-23
 reports a decline to the agent, and no accepted text says it is recorded;
 R12-10); outside processes with their declared destinations; and the limits
 "process network not observed" and "destinations not observed".
@@ -656,7 +700,7 @@ App/shared meaning. What SWBPIPE currently supplies:
 | Define/carry adopted policy (incl. DECISION-1 records) | DEL-04-01 |
 | Record format, writer/reader, lapse handling | DEL-04-03 |
 | Hold machine, resume point, re-hold, run finality, compatibility report | DEL-02-03 (App); DEL-05-01 receiving (host) |
-| Channel status and destination display | DEL-03-03 |
+| Channel status and the App conversation's model-destination display (RS R5) | DEL-03-03. The display of a host agent's destinations contacted is this file's (§3.2, v0.8) |
 | Host controls, validation/application, origin marks, undo, receipts, host panel/loop; offering/recording/presenting host acts; enforcing its own reserved list and channel restrictions | Responsible host owner; SWBPIPE outside session |
 | OI-001 / OI-002 (App/shared level); D5; D6 | Decided by the Owner (DECISION-1 D2/D3; DECISION-2 D5); D6 deferred by the Owner to SWBPIPE SQ-02, then closed for Phase 1 by DECISION-4 and re-opened only with the governance phase (R8-2; ScopeOfWork TBD-006; SQ-02 answered 2026-09-28: none); operation-specific additions: Owner via outside SWB session and App/shared owner (OI-021) |
 | Resolve OI-013 | Shared contract owner with SWB implementation owner |
@@ -706,6 +750,7 @@ flag (EXEC GV-5; R8-11 item 5).
 | F20 | L-AS-11 (Phase-1 guidance has no C step): an App run on X with the F6d checkpoint, not `governed`. After the arrival: (a) the agent issues a further host operation; (b) the agent's record claims Engineer A's A4 without capture evidence; (c) Engineer A's A4 is captured. Variant (d): the checkpoint declared `governed` | (a) Shown as observed, optionally "continued past the checkpoint before A4" (turn initiator *agent*); never a warning, stop or *unsupported*. (b) No act shown (DS-3); the record is non-conformant. (c) **performed** shown as a record label. No hold-support value at any point. (d) Same in Phase 1, with the `governed` flag shown (OV-7) |
 | F19 | DEL-03-03 L-ADAPTER-8: App conversation uses a user-chosen cloud model; external access enabled; a supplier re-route mid-run | Grant display unchanged; no gate or warning state here; per-turn requested/effective destinations and the re-route are shown in DEL-03-03's channel status and recorded in RS R5 (SETTLED: the reading confirmed by the owner, OWNER_ITEMS O-10) |
 | F21 | L-AS-12 (R8-13; C has no network subjects): host-loop run; web access switched on; named MCP entry M-1; the agent asks for A-1 and Engineer A grants it for this run; a later request for A-2 is declined; the agent writes an entry for A-3 | Allow list shows web access on, M-1 as a named entry and the model service "allowed by your model choice". A-1 shown as an in-work grant, scope this run, with time and A12 reference; gone after run end. A-2 not shown as a grant (the outcome is "destination not allowed by the person"). A-3 shown at most as "Agent requests …", never a grant. Operation-class grants unchanged and shown apart |
+| F23 | L-AS-14 (node B5; C has no network subjects): host-loop run E-14 (RS `RS_RECORD.valid.host-destinations.example.jsonl`): model-service contact (cloud); a V-D refusal of W-2; a request carrying its call, granted once, and the contact; MCP server M-1 with stateless evidence; M-4 refused; a request ended by a turn cancel | §3.2: the contacts with their allowing entries ("model choice", class cloud; "in-work grant: once"); the refusals apart, stage and reason shown; the turn-cancelled request "unanswered at end", not sent; M-1 with "process network not observed" and "stateless revision declared, not verified"; nothing merged with §3 |
 | F22 | L-AS-13 (R8-13; C has no network subjects): host-loop run. (a) The agent asks for A-1 once; Engineer A grants; the control establishes; the call contacts A-1. (b) A grant for this run; the run ends. (c) A grant always; later Engineer A removes the entry (established). (d) A grant for M-2; the control refuses, "not stateless MCP (2026-07-28)". (e) The confirmation of a grant is lost. (f) A request nobody answers. (g) The native layer reports no destinations | (a) DG-1 → DG-2 → DG-3 → DG-6: *consumed*, the contact "in-work grant: once". (b) DG-8: *ended with run*; a continuing run inherits nothing. (c) DG-9 → DG-10: *listed*, then *superseded by ‹act›*. (d) DG-4: *refused (reason)*, nothing allowed. (e) DG-5: *unconfirmed*, never shown in force. (f) DG-12: still *requested*, never granted. (g) "destinations not observed", never "none contacted" (§5). Operation-class grants unchanged and shown apart throughout |
 
 ## 12. Receivers (from the registers; R9-6)
@@ -734,9 +779,8 @@ stated in §12.1 (v0.8).
 - Inputs are not tabled here. One is noted because a register names it:
   DEP-04-02-018 has this file consume, from DEL-05-01, the allow list, the
   in-work destination grants and the contacted-destination record. §3 and
-  §3.1 show the first two. From v0.8 the §6 exchange carries the contacts;
-  no display of them is defined in this file (PANEL ND-4 shows one), and
-  which file owns that display is node B5's (S1-A AS 3).
+  §3.1 show the first two; **§3.2 shows the third, and this file owns that
+  display** (node B5; S1-A AS 3). PANEL ND-4 receives it for a host panel.
 
 ### 12.1 Provided to receivers (AS 5; PROPOSED)
 
@@ -751,7 +795,7 @@ default" (§3).
 |---|---|---|---|---|
 | DEL-04-03 (DEP-04-02-009) | Settings-in, per run and per change (§6), including a host agent's destination settings; PROPOSED representation `AS_SETTINGS_IN.schema.json` | Written as a `settings_version` entry in order with the operation entries (RS §13, §14.1) | Recorded with display state *unconfirmed*; never as *effective* | No entry; the comparison shows *missing in record* or *missing in display* (§6) |
 | DEL-05-01 (DEP-04-02-019; DEP-05-01-025: "the grant in force carried on each loop dispatch") | **Grant in force per dispatch** (defined here): the settings version identity in force at route decision; for the operation's class its grant value, display state, scope and policy-class record reference {policy revision, record}; for a host agent's network use, the destination settings version in force (allow list and in-work grants with states) | The loop carries it on the dispatch record (LOOP §6.2) and relays intent; the host route resolves treatment. It never converts a direct request into a proposal or the reverse | The dispatch records "grant in force: unconfirmed"; no direct branch is claimed; the host's refusal, if any, is recorded as observed | The dispatch records "grant in force: not received"; no default is assumed; for destinations the native layer allows only what the host's control holds |
-| DEL-05-02 (DEP-04-02-020; DEP-05-02-019: "autonomy-grant display states and active scope definition") | The seven display states with value and scope per class (§3); the destination settings and the §3.1 states; the checkpoint overlay meanings (§4); the standing facets (§8) | The panel renders the same meanings (PANEL §3.6, §3.8 ND-5); grants and the checkpoint indicator never merge | Last-known value, "unconfirmed"; no direct branch shown | "grant state not available" (PROPOSED wording); never *not set* and never a guess |
+| DEL-05-02 (DEP-04-02-020; DEP-05-02-019: "autonomy-grant display states and active scope definition") | The seven display states with value and scope per class (§3); the destination settings and the §3.1 states; the destinations-contacted display (§3.2, node B5; PANEL ND-4); the checkpoint overlay meanings (§4); the standing facets (§8) | The panel renders the same meanings (PANEL §3.6, §3.8 ND-5); grants and the checkpoint indicator never merge | Last-known value, "unconfirmed"; no direct branch shown | "grant state not available" (PROPOSED wording); never *not set* and never a guess |
 | DEL-03-02 (DEP-04-02-021) | The settings version identity and display state at route decision (P's standing at drafting), with the policy-class record reference and default for *effective (policy default)*; the settings reference at application when the host reports it | P records both references (P §3.3; RS §5); the host route decides treatment | Standing at drafting recorded *unconfirmed*; the proposal path is unaffected | "settings reference: not supplied" on the entry; never inferred |
 | DEL-03-03 (DEP-04-02-022) | The grant in force for the external channel's dispatches (as for DEL-05-01, ADAPTER §5.5), shown beside, never merged with, the channel status the adapter owns | The adapter relays only (ADAPTER RD rules); the model destination never gates (§2) | Dispatch carriage "grant in force: unconfirmed" | "grant in force: not received"; the channel status is unaffected |
 | DEL-02-03 (DEP-04-02-023) | The display meanings of EXEC's annotations (§4); for an A12 checkpoint, whether the setting an earlier A12 established is still in force (DECISION-K1 K1-2) | EXEC takes dispositions from the record (RS R8); the display is derived | The earlier A12 is not counted as still in force: the arrival is *unknown*, as for a lost confirmation (L-0; EXEC §4.10) — PROPOSED | As *unconfirmed* |
@@ -837,9 +881,10 @@ Earlier: U-03.
 | VC-16 Hold-support values (governance phase) | F6, F6c, F6d, F14, F18 and its variant (governance-phase columns, read as governed) | Only the four R5-1 values, classified by held actions (R6-1); *not established* never pass or *unsupported*; *not enforceable* → *unsupported* with the R4-8 string; stop shown only under *enforced by the host loop* (R6-3); no retired value; SWBPIPE's SQ-02 answer gives HS-3 (c) (R8-2) | VER-001 (AC-001) |
 | VC-17 Phase-1 overlay (R8-1) | F6, F6b, F6c, F6d, F14, F18, F20 (Phase-1 columns) against §4 OV-1…OV-7 and EXEC PH-1…PH-10 | No hold, stop, re-hold or hold-support value shown, and no *unsupported* for a hold reason; acts shown only from records of the person performing them; reserved acts remain the person's, with host refusals shown as observed; arrivals and acts shown as observation; "continued past ‹checkpoint› before ‹act›" optional and never a warning or defect; lapse still shown; `governed` flag shown and changes nothing | VER-001 (AC-001) |
 | VC-14 Owner and open-choice trace | §10, UNRESOLVED | Each REQ-007 act traced; D2/D3/D5/D6 cited only for what they say; OI owners and points of need match register; no host delivery claimed | VER-006 (AC-006) |
-| VC-15 Suite coverage | VC-01…VC-13 and VC-16…VC-22 | Each AC-001…AC-005 covered; results bound to an identified candidate; held and AWAITING INPUT never counted as passes | VER-007 (AC-007) |
+| VC-15 Suite coverage | VC-01…VC-13 and VC-16…VC-23 | Each AC-001…AC-005 covered; results bound to an identified candidate; held and AWAITING INPUT never counted as passes | VER-007 (AC-007) |
 | VC-18 Network-destination grant display (R8-13) | F21 against §3 and ACT §2.7 | Allow list and in-work grants shown with their scopes and A12 references; model service shown as allowed by the model choice; agent requests and declines never shown as grants; destination and operation-class grants shown apart | VER-001 (AC-001) |
-| VC-19 In-work destination-grant transitions (AS 7) | F22 against §3.1 DG-1…DG-13; `prototype/validate_settings_in.py` | Each sequence ends in the state §3.1 gives; forbidden transitions (a grant by timeout or by an agent-written entry; reuse of a consumed or ended grant; a refused grant becoming in force; a declined request becoming a grant) do not exist. **The state walk ran 2026-09-30 on the prototype: held** | VER-001 (AC-001) |
+| VC-23 Destinations-contacted display (node B5; S1-A AS 3) | F23 against §3.2, RS R15 and LOOP-v0.8 §5.3 | Every contact shown with its allowing entry, in any model mode; declines, refusals and unanswered requests shown apart, their recording marked PROPOSED; outside processes with both limits; "destinations not observed" never "none contacted"; nothing merged with §3 or the checkpoint indicator | VER-001 (AC-001) |
+| VC-19 In-work destination-grant transitions (AS 7) | F22 against §3.1 DG-1…DG-15; `prototype/validate_settings_in.py` | Each sequence ends in the state §3.1 gives; forbidden transitions (a grant by timeout or by an agent-written entry; reuse of a consumed or ended grant; a refused grant becoming in force; a declined request becoming a grant) do not exist. **The state walk ran 2026-09-30 on the prototype: held** | VER-001 (AC-001) |
 | VC-20 Receiver conditions (AS 5) | §12.1 against each receiver's own text (LOOP §6.2, PANEL §3.6, P §3.3, ADAPTER §5.5, EXEC §4.10) | Each receiver has elements, a condition of use and behaviour on *unconfirmed* and *missing*; *missing* is never shown as *not set*; no receiver decides treatment | VER-002 (AC-002) |
 | VC-21 Destination exchange (AS 4; RS 6) | F21, F22; RS VC-38 | Settings-in carries the destination settings apart from the operation-class grants; record-out carries R15; comparison covers settings, not contacts; §6 and RS §8 identical | VER-002 (AC-002) |
 | VC-22 Settings-in representation (R12-1) | `AS_SETTINGS_IN.schema.json` with its examples | Valid examples validate; INV-AS-1 (person-set without A12), INV-AS-2 (agent request with an A12 reference) and INV-AS-3 (scope "forever") fail. **Ran 2026-09-30 on the prototype: held** | VER-002 (AC-002) |

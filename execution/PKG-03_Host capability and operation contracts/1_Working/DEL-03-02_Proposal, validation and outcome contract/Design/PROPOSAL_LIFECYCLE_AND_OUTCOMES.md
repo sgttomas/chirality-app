@@ -823,6 +823,19 @@ rules for non-success results follow C-v0.7 §4.1.
 | error (read/examination/host check) | Declared error in a non-mutating operation (C §4.1) | Error identity, evaluated basis | — | — |
 | success (operation) | The operation ran (S-P7) | Result | Execution | Any human act |
 
+**Network destinations of a host's agent (v0.8, node B5; PROPOSED).** The
+two results *destination not allowed* and "destination not allowed by the person"
+are C-v0.8 §4.1 rows, reported by the host's native layer or
+control, not proposal outcomes; the one account of that flow is
+DEL-05-01/LOOP-v0.8 §5.3. For a proposal submission whose entry carries an
+external-contact declaration (C §3.4): the declared destination is checked
+at V-D before the submission is dispatched, so a submission that is refused
+there is never queued and has no proposal state; a contact the host makes
+only at application passes the native layer then, and a refusal at that
+point is an **application error** with its effect statement (LOOP §5.3
+DF-4 (c)). The waiting of a destination request's carried call is not a
+proposal state and changes no item disposition.
+
 Item-left events (§4.3) accompany the refusal/withdrawal outcomes of queued
 items. Whether the host receipt *itself* carries the relied-on basis or the
 resulting objects is a host observation recorded at comparison (C-v0.7
@@ -1041,6 +1054,7 @@ Every new structure is PROPOSED (R12-1).
 | R12-3, R12-4; S1-B P 7 | The M3-CP table run on SH-1 (C-v0.8 §10.8, cited, not redefined) over both paths; `prototype/proposal_states.py` checks the run against §4.6 | §11; VC-P-15; VC-P-16 |
 | — | §13: DEL-03-03, DEL-05-01 and DEL-04-03 rows name what v0.8 adds | §13 |
 | — | Header: v0.8; a Wave B line; the Serves line names the schemas | Header |
+| **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §9 note: the two "destination not allowed" results are C-v0.8 §4.1 rows, not proposal outcomes; a submission refused at V-D is never queued; a refusal at contact during application is an *application error*; a carried call's wait is no proposal state. No §9 row and no identifier changes | §9 |
 
 New identifiers: PM-1…PM-7, PT-1…PT-19, DS-1…DS-5, VP-1…VP-3, SQ-P1…SQ-P6,
 VC-P-15, VC-P-16, and the §9 rows *refused — identity conflict* and *not

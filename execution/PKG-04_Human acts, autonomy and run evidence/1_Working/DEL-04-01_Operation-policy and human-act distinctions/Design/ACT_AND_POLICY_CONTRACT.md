@@ -112,6 +112,7 @@ cited text decides it.
 | **R12-5** | **A15 register workflow revision** added to the act table (subject: a workflow revision; content: the revision identity and the draft it derives from; purpose: make it available in the project), with its capturing surface, binding (not lapse-evaluated) and RS record kind. Source DEL-02-02 AC-006. Not checkpoint-requirable in this increment (a possible extension, PROPOSED). U-08 closed | §2.1, §2.4, §2.5, §2.6, §4.1, §10.1 V-01, §12 item 6, §13 FX-56, UNRESOLVED |
 | **R12-10** | One wording: "prior act on this subject, not counted" becomes **"prior act not counted"**, as RS-v0.8 L-13 fixes it (with its reason). History rows keep the words then used | §2.3, §4.5, §13 FX-40, FX-45, FX-51 |
 | RS 5 join | AP-5 and AP-12 point to RS R16, the record element for the agent's request | §4.0 |
+| **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §2.7 joined to the one destination flow: the agent's request is a call to the host's destination request entry carrying the call it needs ("the requesting call" of ND-A2, ND-A3), its A8 mapping DERIVED from §2.1 as AP-12; the decline row states the result class and that recording it as a destination entry is PROPOSED (R12-10); the non-stateless row cites DF-3 A-3, DF-6 and the evidence rule DF-7. §4.7's A12 paragraph points to DF-5 and the DF-F rows | §2.7; §4.7 |
 | Verification | New VC-012 (schema and instances); VC-007 traces V-29; VC-009 reconciles FX-01…57 | Verification cases |
 
 ## Changes from v0.6
@@ -538,19 +539,22 @@ Notes:
   *network-destination grant*. D2 (e) already reserves changing the
   autonomy grant.
 
-The network rules themselves are LOOP-v0.7 §5.1.1 (NW-8…NW-16).
+The network rules themselves are LOOP-v0.7 §5.1.1 (NW-8…NW-16). From
+v0.8 (node B5) the flow they run in is DEL-05-01/LOOP-v0.8 §5.3, the one
+account that this section, AS, RS, PANEL, C, P and ADAPTER cite (DF-1…DF-10).
 
 | Element | Meaning |
 |---|---|
 | Act | **A12 set grant**, subclass **network-destination grant** |
 | Decision actor | The person only. Never an agent |
+| The agent's request (v0.8, node B5; PROPOSED) | The A8 is a call to the host's **destination request entry** (C-v0.8 §3.4; LOOP §5.3 DF-1) naming the target, purpose and scope sought, and carrying the call that needs the destination (the **carried call**). **The requesting call** of ND-A2 and ND-A3 is that request together with the call it carries; a request with scope *once* must carry one. The mapping "its request is an A8" is DERIVED from §2.1, as AP-12 labels it |
 | Forms | (a) **Allow-list edit**: switching a category (web access, MCP servers, other APIs, …) on or off; adding or removing a named destination; turning on an always-off item (analytics or usage reporting, a silent switch to another model or provider, background downloads or updates). (b) **In-work grant** answering an agent's A8 destination request, scoped **once**, **this run** or **always**, for the destination or its category |
 | Subject (setting content) | The category or named destination and the scope. For an in-work grant, also the requesting call and its run |
 | Evidence | Capture evidence from the host's allow-list control or in-work prompt, with its time and its source (allow list or in-work); recorded per RS R15 |
-| Decline | An **act-declined event** of kind A12 (§2.3), reported to the agent as **"destination not allowed by the person"**. Not a grant |
+| Decline | An **act-declined event** of kind A12 (§2.3), reported to the agent as **"destination not allowed by the person"** (the request call's result, TL-2 class 2; LOOP §5.3 DF-6). Not a grant. Recording it as an RS R15 destination entry is PROPOSED (R12-10); the act-declined event itself is INTEGRATION (R2-5, R8-13) |
 | Never evidence | The agent's A8 request; silence or timeout; model text; a tool success; an agent-written list entry or configuration |
 | Outside this act | The selected model service and its sign-in service, allowed by the person's model choice (LOOP NW-9), which is the person's own setting change (LOOP NW-4), not a list edit. The App's own Codex configuration, approval and sandbox choices (A14; D3; HOSTING §2) |
-| Non-stateless MCP | A server that does not follow the stateless MCP revision 2026-07-28 cannot be the subject of a grant (DECISION-5). An A12 naming one is refused, reason "not stateless MCP (2026-07-28)" |
+| Non-stateless MCP | A server that does not follow the stateless MCP revision 2026-07-28 cannot be the subject of a grant (DECISION-5). An A12 naming one is refused, reason "not stateless MCP (2026-07-28)"; the request ends *not granted* ("not grantable"), without a grant choice (LOOP §5.3 DF-3 A-3, DF-6). What evidences that a server follows the revision is LOOP §5.3 DF-7 (PROPOSED) |
 
 - ND-A1. A network-destination grant widens no operation class and no
   reserved act. An operation-class A12 grants no destination (A-1: the
@@ -1157,7 +1161,11 @@ Nothing here holds a run in Phase 1.
 register a revision (A8); the registration control captures the A15; the
 record binds the revision identity and the draft it derives from. **A12
 network-destination grants** follow LOOP §5.1.1 instead (NW-11…NW-13): only
-the requesting call waits, which is not a checkpoint hold.
+the requesting call waits, which is not a checkpoint hold. From v0.8 its
+steps and failure rows are LOOP §5.3 DF-5 (Q-1…Q-9) and DF-F1…DF-F12: the
+request (RC-2) is the destination request entry call; the means (RC-3) is
+the host's in-work prompt; an unanswered request ends *unanswered at end*
+at the run's end or the turn's cancel and is never a grant.
 
 ---
 

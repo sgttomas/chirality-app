@@ -51,5 +51,15 @@
     "why": "A person-set settings version without an A12 reference, carried in the run record (AS §6 comparison; the AS schema is applied through $ref)",
     "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:app:run-12:0909", "kind": "settings_version", "recorder": {"role": "App writer", "identity": "app-writer:local"}, "context": {"surface": "App"}, "seq": 1, "writtenAt": "w001",
       "body": {"settingsVersionId": "set:set-2", "sourceOfControl": "host", "changeKind": "during-work change", "operationClassGrants": [{"policyRecord": {"policyRevision": "DEL-04-01/ACT-POLICY-v0.8", "recordId": "P-03"}, "classValue": "may apply within granted autonomy", "grantValue": "direct", "scope": {"modelOrWorkspace": "FX-W1"}, "displayState": "effective (person-set)", "requester": "person", "settingActor": "person", "establishment": {"controlEffect": "established", "evidenceRef": "cap:T15"}}]}}
+  },
+  {
+    "case": "INV-RS-10",
+    "why": "A destination request that ended unanswered without its cause (run ended or turn cancelled); LOOP-v0.8 §5.3 DF-6 (node B5)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:e-14:0990", "kind": "destination_request_closed", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-14", "seq": 1, "writtenAt": "w001", "body": {"requestRef": "rec:host-E:e-14:0011", "state": "unanswered at end", "carriedCallSent": false, "time": "t9"}}
+  },
+  {
+    "case": "INV-RS-11",
+    "why": "A destination request with scope once that carries no call; ACT ND-A2 (once is consumed by the one requesting call) and LOOP-v0.8 §5.3 DF-1 (node B5)",
+    "instance": {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": "rec:host-E:e-14:0991", "kind": "destination_requested", "recorder": {"role": "host loop", "identity": "host-loop:E"}, "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"}, "runId": "run:E-14", "seq": 1, "writtenAt": "w001", "body": {"requester": "host-agent:E", "target": {"destination": "W-2", "category": "web access"}, "purpose": "read an invented table", "scopeSought": "once", "requestingCall": "call:40", "time": "t4"}}
   }
 ]

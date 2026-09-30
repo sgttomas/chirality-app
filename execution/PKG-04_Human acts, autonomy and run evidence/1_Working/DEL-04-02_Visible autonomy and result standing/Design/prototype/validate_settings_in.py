@@ -31,11 +31,14 @@ for name, expect in (("AS_SETTINGS_IN.valid.examples.json", True), ("AS_SETTINGS
         ok &= good
         print(f"{c['case']} {'valid' if expect else 'invalid'}:", "PASS" if good else "FAIL", "-", (e[0][:100] if e and not expect else ""))
 
-# AS §3.1 transition table (DG-1…DG-13), as (state, event) -> next state
+# AS §3.1 transition table (DG-1…DG-15; DG-14, DG-15 added by node B5), as (state, event) -> next state
 T = {
     ("requested", "person grants"): "pending control confirmation",
     ("requested", "person declines"): "declined (no grant)",
-    ("requested", "run ends"): "ended unanswered (no grant)",
+    ("requested", "run ends"): "unanswered at end (no grant)",
+    # node B5 (LOOP-v0.8 §5.3 DF-6): turn cancel, and the request not granted
+    ("requested", "turn cancelled"): "unanswered at end (no grant)",
+    ("requested", "not grantable or prompt not shown"): "not granted (no grant)",
     ("pending control confirmation", "control establishes"): "in force",
     ("pending control confirmation", "control refuses"): "refused",
     ("pending control confirmation", "confirmation lost"): "unconfirmed",
@@ -48,7 +51,8 @@ T = {
     ("listed", "later established list edit removes or narrows"): "superseded",
 }
 FORBIDDEN = [("requested", "timeout"), ("requested", "agent writes entry"), ("consumed", "requesting call contacts (once)"),
-             ("ended with run", "new run starts"), ("refused", "control establishes"), ("declined (no grant)", "person grants")]
+             ("ended with run", "new run starts"), ("refused", "control establishes"), ("declined (no grant)", "person grants"),
+             ("unanswered at end (no grant)", "person grants"), ("not granted (no grant)", "person grants")]
 walks = [
     (["person grants", "control establishes", "requesting call contacts (once)"], "consumed"),
     (["person grants", "control establishes", "run ends"], "ended with run"),
@@ -57,7 +61,9 @@ walks = [
     (["person grants", "control refuses"], "refused"),
     (["person grants", "confirmation lost", "control establishes"], "in force"),
     (["person declines"], "declined (no grant)"),
-    (["run ends"], "ended unanswered (no grant)"),
+    (["run ends"], "unanswered at end (no grant)"),
+    (["turn cancelled"], "unanswered at end (no grant)"),
+    (["not grantable or prompt not shown"], "not granted (no grant)"),
 ]
 for events, end in walks:
     s = "requested"

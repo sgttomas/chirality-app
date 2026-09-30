@@ -69,3 +69,33 @@ INVALID ../LOOP_TOOL_CALL.example.invalid.json
 
 "FX-M5 complete/MC-5" means the call parsed completely and was refused at
 V-2 (*not offered*).
+
+## Destination flow (node B5; LOOP-v0.8 §5.3)
+
+`destination_flow.py` (Python 3 standard library; not product code) runs
+the one destination flow of LOOP-v0.8 §5.3 on a **scripted** native layer
+and host control: the allow rule DF-3 (A-1…A-7), the check V-D (DF-4 (b))
+and at contact (DF-4 (c)), the in-work request with a carried call (DF-5),
+the request states and results (DF-6) and the stateless MCP evidence
+(DF-7, from scripted discovery answers). Every RS entry it writes is
+checked against DEL-04-03's `RS_RECORD.schema.json` with DEL-04-03's
+`minischema.py`; every request record against
+`../LOOP_DESTINATION_REQUEST.schema.json` with `schema_subset.py`. It
+observes no host, native layer or MCP server; all subjects are invented.
+
+```sh
+cd prototype
+python3 -B destination_flow.py
+python3 -B destination_flow.py --emit "$TMPDIR/b5/e14.jsonl"   # the E-14 log
+python3 schema_subset.py ../LOOP_DESTINATION_REQUEST.schema.json ../LOOP_DESTINATION_REQUEST.example.valid.json ../LOOP_DESTINATION_REQUEST.example.invalid.json
+```
+
+Recorded run (2026-09-30, Python 3.13.7, macOS): 16 cases (MS-06,
+MS-14…MS-24, MS-25a, MS-25b, MS-26, MS-27) PASS; 68 RS entries and 11
+request records valid; the valid example accepted and the invalid one
+refused (two reasons: scope once with no carried call; a decline worded as
+"destination not allowed"); "RESULT: all expectations held", exit 0. With
+`--emit` it wrote the 12-entry E-14 log that DEL-04-03 keeps as
+`RS_RECORD.valid.host-destinations.example.jsonl`. Negative control: with
+MS-24's expectation altered in memory, the run reported "RESULT: failures"
+and exit 1.

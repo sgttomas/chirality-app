@@ -151,3 +151,23 @@ turn, and would be put to the owner with the first turn's results.
 on the same thread, with the same limits: the local model already installed,
 invented material only, no sign-in, no download, route R-1, no further turn.
 HELP_HUMAN relayed the decision to the running OBS-1 executor.
+
+## OBS-1 follow-up after no tool call (owner, 2026-09-30)
+
+**Custody:** the owner's answer to a structured question from HELP_HUMAN.
+
+Question (summary; full text in the session): the live turn produced no tool
+call because Codex 0.158.0 offers MCP tools to a Responses provider as a
+`namespace` tool, which LM Studio ignores; the command-line path may still
+work locally; Codex's start-up contacted chatgpt.com and github.com even with
+analytics off and no sign-in. Options: run the command-line turn locally;
+also sign in for one cloud MCP turn; stop.
+
+Answer (exact option chosen): "Run the command-line turn locally (Recommended)"
+— option text: "One fresh Codex turn on the same local model, calling the
+command-line test tool. Same limits: invented material, no sign-in, no
+download. Start-up contacts chatgpt.com and github.com again."
+
+**Effect:** node OBS-1b runs one fresh Codex turn (Part B of the OBS-1 brief,
+as a new thread's single turn) on the installed local model. No cloud turn,
+no sign-in, no download.

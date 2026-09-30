@@ -1,0 +1,11 @@
+{
+  "basis": "LOOP-v0.8 §5.3",
+  "requestCall": "call:32",
+  "requester": "host-agent:E",
+  "target": {"category": "other APIs", "destination": "https://a-2.example"},
+  "purpose": "upload an invented result summary",
+  "scopeSought": "once",
+  "check": {"step": "A-7", "allowed": false, "reason": "not allowed"},
+  "state": "declined",
+  "result": {"class": 2, "label": "destination not allowed", "reporter": "native layer", "deferred": true}
+}

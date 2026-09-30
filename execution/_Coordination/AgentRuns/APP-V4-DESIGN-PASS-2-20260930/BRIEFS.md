@@ -494,3 +494,13 @@ record `DEL-01-01/Design/OBS_1_0.158.0.md` (redacted as the brief's §12
 says); the harness script under `DEL-01-01/Design/prototype/obs1/`; the
 return file `WAVE_B/OBS-1.md`. The spike's scratch folder is read only. No
 other repository file.
+
+## OBS-1b — the command-line turn (one Type 2)
+
+As OBS-1, with every hard limit unchanged, except: a fresh `app-server`
+process and thread; the single turn is Part B of `WAVE_B/OBS-1_BRIEF.md` §11
+(approval policy `untrusted`; the command-line test tool with `--key EX-1`
+and the local probe socket); no MCP server configured; no Part C or D. Write
+fence: the same scratch folder (a new `obs1b/` subfolder), an addendum
+section appended to `DEL-01-01/Design/OBS_1_0.158.0.md`, harness changes
+under `DEL-01-01/Design/prototype/obs1/`, and `WAVE_B/OBS-1b.md`.

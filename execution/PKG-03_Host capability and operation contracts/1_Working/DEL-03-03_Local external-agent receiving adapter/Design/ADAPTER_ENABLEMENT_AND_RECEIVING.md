@@ -331,6 +331,21 @@ facility", not *unconfirmed*.
   destinations, observed on the host's traffic during V4-EXM-20). That
   scenario does not examine this channel, and SoW VER-002 leaves the
   host's traffic examination to the joined examination.
+- **The host agent's destination flow, seen from this channel (v0.6,
+  node B5; PROPOSED).** The one account of that flow is
+  DEL-05-01/LOOP-v0.8 §5.3; it governs the host's embedded agent only. Over
+  X: the C-v0.8 §3.4 **destination request** entry is exposed on E only
+  (element 9), so it is never offered on X, and a call naming it here is a
+  host-reported *not exposed on this surface* (relayed, R2-4). An entry
+  with an **external-contact declaration** that the host exposes on X is
+  relayed like any other entry: the adapter performs no V-D, raises no
+  destination request and records no R15 entry, because the App's own
+  Codex is not governed by DECISION-5 (above). What the host's own native
+  layer does with the traffic of such an operation is the host's, and the
+  two rows of C-v0.8 §4.1, "destination not allowed" and
+  "destination not allowed by the person", reach this channel only
+  if the host returns one, relayed with the host as reporter. The App
+  conversation's model destination stays §3.4's (RS R5).
 - U-X2 stays **closed** (D5).
 
 ### 3.5 Supplier facts at 0.158.0 that bear on channel state
@@ -1666,6 +1681,7 @@ node.
 | R12-1, R12-2 | Three PROPOSED schemas with valid and invalid instances: `external_dispatch_record.schema.json`, `checkpoint_observation.schema.json`, `channel_status.schema.json`; `prototype/observe_map.py` applies §4.6, §7.7 and §3.6 to an SH-1 run | Files beside; VC-X-09 |
 | — | §5.1 proposal identity and correlation rows cite P-v0.8 §3.5 and §4.6; PI-2 cites P-v0.8 §3.5 PM-4 and §4.7 SQ-P6. Receivers line and §11 rows for DEL-02-03 and DEL-04-03 name what v0.6 supplies | §5.1; §5.6; Header; §11 |
 | — | Header: v0.6; a Wave B consumed-input bullet | Header |
+| **B5** (node B5, round 2; LOOP-v0.8 §5.3) | §3.4: how the host agent's destination flow meets this channel: the destination request entry is exposed on E only; an entry with an external-contact declaration is relayed over X without V-D, request or R15 entry (D5; DECISION-5 governs the host's embedded agent only); a host-returned "destination not allowed" is relayed with the host as reporter | §3.4 |
 
 New identifiers: CT-1…CT-12, OM-1…OM-10, CO-1…CO-9, S-6…S-10, VC-X-09,
 §10.3; three PROPOSED R11 labels (OM-9). No identifier is removed or

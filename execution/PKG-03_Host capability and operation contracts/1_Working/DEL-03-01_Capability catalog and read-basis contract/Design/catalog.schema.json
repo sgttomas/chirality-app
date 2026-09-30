@@ -45,7 +45,7 @@
       "properties": {
         "argument_name": {"$ref": "#/$defs/identity"},
         "meaning": {"type": "string", "minLength": 1},
-        "value_kind": {"enum": ["number", "text", "boolean", "identity", "enumeration", "basis_descriptor"]},
+        "value_kind": {"enum": ["number", "text", "boolean", "identity", "enumeration", "basis_descriptor", "carried_call"]},
         "unit": {"type": ["string", "null"]},
         "required": {"type": "boolean"},
         "identifies_target": {"type": "boolean"}
@@ -92,12 +92,31 @@
       "else": {"required": ["policy_record_reference"], "not": {"required": ["no_policy_basis_reason"]}}
     },
     "exposure_value": {"enum": ["exposed", "not_exposed_on_this_surface", "unagreed"]},
+    "external_contact": {
+      "description": "C-v0.8 §3.4 (node B5; PROPOSED): the external-contact declaration, a sub-element of element 5. An entry that reaches a network destination for a host's agent declares its category and destination form (DEL-05-01/LOOP-v0.8 §5.3 DF-1, DF-2). Semantic labels only.",
+      "type": "object",
+      "required": ["category", "destination_form"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {"type": "string", "minLength": 1},
+        "destination_form": {"enum": ["fixed", "from_argument"]},
+        "destinations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
+        "argument_name": {"$ref": "#/$defs/identity"},
+        "served_by_outside_process": {"$ref": "#/$defs/identity"}
+      },
+      "if": {"properties": {"destination_form": {"const": "fixed"}}},
+      "then": {"required": ["destinations"]},
+      "else": {"required": ["argument_name"]}
+    },
     "entry": {
       "description": "C §3: the nine elements. Element 6 carries the named host checks the result may carry and element 3 may admit a requested earlier basis (C §3.4).",
       "type": "object",
       "required": ["operation_identity", "operation_version", "purpose", "input", "availability", "effects", "result", "errors", "class", "exposure"],
       "additionalProperties": false,
+      "if": {"required": ["entry_kind"], "properties": {"entry_kind": {"const": "destination_request"}}},
+      "then": {"properties": {"effects": {"properties": {"kind": {"const": "none"}}, "not": {"required": ["external_contact"]}}, "class": {"properties": {"class_value": {"const": "none"}}}}},
       "properties": {
+        "entry_kind": {"description": "C-v0.8 §3.4 (node B5; PROPOSED). 'destination_request' is the host-supplied entry through which a host's agent asks the person for a network destination (its A8; LOOP-v0.8 §5.3 DF-1). Absent means 'operation'.", "enum": ["operation", "destination_request"]},
         "operation_identity": {"$ref": "#/$defs/identity"},
         "operation_version": {"$ref": "#/$defs/identity"},
         "compatibility_statement": {"type": "string", "minLength": 1},
@@ -120,7 +139,8 @@
             "kind": {"enum": ["none", "change"]},
             "affected_object_kinds": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
             "old_new_reporting": {"type": "array", "items": {"$ref": "#/$defs/identity"}},
-            "resulting_objects_reported": {"type": "boolean"}
+            "resulting_objects_reported": {"type": "boolean"},
+            "external_contact": {"$ref": "#/$defs/external_contact"}
           },
           "if": {"properties": {"kind": {"const": "change"}}},
           "then": {"required": ["affected_object_kinds", "resulting_objects_reported"]}

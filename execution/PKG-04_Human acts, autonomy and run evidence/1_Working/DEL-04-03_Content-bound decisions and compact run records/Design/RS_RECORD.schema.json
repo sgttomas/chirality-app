@@ -245,6 +245,7 @@
             "destination_contacted",
             "destination_declined",
             "boundary_refusal",
+            "destination_request_closed",
             "outside_process",
             "supplied_guidance",
             "examination_findings",
@@ -513,6 +514,16 @@
             },
             "body": {
               "$ref": "#/$defs/boundaryRefusal"
+            }
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "destination_request_closed"
+            },
+            "body": {
+              "$ref": "#/$defs/destinationRequestClosed"
             }
           }
         },
@@ -1587,6 +1598,7 @@
             "action during hold",
             "process network not observed",
             "destinations not observed",
+            "stateless revision declared, not verified",
             "unobserved adoption",
             "record write failed",
             "partial entry not recovered",
@@ -1641,8 +1653,30 @@
         },
         "time": {
           "type": "string"
+        },
+        "carriedCall": {
+          "description": "LOOP-v0.8 §5.3 DF-1: the call the destination request carries (operation reference); required for scope once (ACT ND-A2). PROPOSED (node B5).",
+          "type": "string",
+          "minLength": 1
         }
-      }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "scopeSought": {
+              "enum": [
+                "this run",
+                "always"
+              ]
+            }
+          }
+        },
+        {
+          "required": [
+            "carriedCall"
+          ]
+        }
+      ]
     },
     "destinationGrant": {
       "type": "object",
@@ -1763,6 +1797,13 @@
         },
         "time": {
           "type": "string"
+        },
+        "modelServiceClass": {
+          "description": "LOOP-v0.8 §5.3 DF-3 A-1 and R12-7 (N-OPEN-1): for a contact allowed by the model choice, the class the person's model choice states; never inferred from the address. PROPOSED (node B5).",
+          "enum": [
+            "local",
+            "cloud"
+          ]
         }
       }
     },
@@ -1820,6 +1861,21 @@
         },
         "time": {
           "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage": {
+          "description": "LOOP-v0.8 §5.3 DF-4: where the native layer refused. PROPOSED (node B5).",
+          "enum": [
+            "model request",
+            "V-D",
+            "at contact"
+          ]
+        },
+        "requestingCall": {
+          "type": "string"
         }
       }
     },
@@ -1846,6 +1902,37 @@
         },
         "limitRef": {
           "$ref": "#/$defs/recordId"
+        },
+        "statelessEvidence": {
+          "description": "LOOP-v0.8 §5.3 DF-7 (SE-1…SE-3) for an MCP server; its limit is the R11 label 'stateless revision declared, not verified'. PROPOSED (node B5).",
+          "type": "object",
+          "required": [
+            "discoverListsRevision",
+            "modernRequestsOnly",
+            "sessionIdentifierSeen",
+            "time"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "discoverListsRevision": {
+              "type": "boolean"
+            },
+            "modernRequestsOnly": {
+              "type": "boolean"
+            },
+            "sessionIdentifierSeen": {
+              "type": "boolean"
+            },
+            "verdict": {
+              "enum": [
+                "stateless revision declared",
+                "not stateless"
+              ]
+            },
+            "time": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -1951,6 +2038,68 @@
           ]
         }
       }
+    },
+    "destinationRequestClosed": {
+      "description": "LOOP-v0.8 §5.3 DF-6: how a destination request ended other than by a grant in force or a decline. PROPOSED element (node B5); for 'not granted' after the person's grant the refused A12 is its own human_act entry.",
+      "type": "object",
+      "required": [
+        "requestRef",
+        "state",
+        "time"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requestRef": {
+          "$ref": "#/$defs/recordId"
+        },
+        "state": {
+          "enum": [
+            "not granted",
+            "unanswered at end"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "not grantable",
+            "grant refused by control",
+            "prompt not shown"
+          ]
+        },
+        "cause": {
+          "enum": [
+            "run ended",
+            "turn cancelled"
+          ]
+        },
+        "carriedCallSent": {
+          "const": false
+        },
+        "time": {
+          "type": "string"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "state": {
+              "const": "not granted"
+            }
+          },
+          "required": [
+            "reason"
+          ]
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "unanswered at end"
+            }
+          },
+          "required": [
+            "cause"
+          ]
+        }
+      ]
     }
   }
 }

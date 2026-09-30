@@ -344,6 +344,39 @@ The nine elements stay nine. Two sub-elements are added:
   earlier basis as an argument, which makes a requested historical read
   (§6.4). The default is *no*. In SH-1 (§10.8) OP-C1 says *yes*.
 
+Two more are added by node B5 (v0.8; PROPOSED), for a host's agent's
+network destinations. The one account of that flow is DEL-05-01/LOOP-v0.8
+§5.3 (DF-1…DF-10), which ACT, AS, RS, PANEL, P and ADAPTER also cite.
+
+- **Element 5, external-contact declaration.** An entry that reaches a
+  network destination for a host's agent declares it: the destination
+  **category** (web access · MCP servers · other APIs · …; the list is
+  open, DECISION-5); the **destination form**, *fixed* (the named
+  destinations) or *from argument* (the argument whose value names the
+  destination; for web access and other APIs its origin is the destination,
+  LOOP DF-2); and, where an outside process serves the entry, **that
+  process** (for an MCP server, its server identity). The category is the
+  host's declaration, never the agent's. An entry without the declaration
+  declares no network contact. The loop checks a declared destination at
+  **V-D**, after V-3 and before dispatch (LOOP DF-4). An MCP server's tools
+  reach a host's agent only as entries of this catalog with this
+  declaration: the catalog stays the one tool source (V4-ARC-13; LOOP G-13).
+- **Entry kind *destination request*** (the **destination request entry**). The host supplies, on the embedded
+  surface (element 9: *exposed* on E only), one entry through which its
+  agent asks the person for a network destination: the agent's A8 (ACT
+  §2.7). Class *none*; effects *none*; no external-contact declaration; it
+  contacts nothing and changes no host object. Its arguments: target
+  category; target destination (optional: absent asks for the whole
+  category); purpose; scope sought (once · this run · always); and the
+  **carried call** (value kind *carried call*: the operation reference and
+  argument text of one call to an entry with an external-contact
+  declaration), required for scope *once*. Its result is an interim notice
+  and then one deferred result (LOOP DF-5, DF-6; §4.1). `catalog.schema.json`
+  carries both (`entry_kind`; `effects.external_contact`); examples
+  `catalog.example-valid-2.json` (a web fetch, an MCP-served entry and the
+  request entry) and `catalog.example-invalid-2.json` (a request entry that
+  declares contact; a *from argument* declaration without its argument).
+
 ### 3.5 Required elements and cardinality (PROPOSED; S1-B C 6)
 
 `catalog.schema.json` and `read_result.schema.json` carry this in full. In
@@ -352,7 +385,7 @@ summary:
 | Structure | Required, exactly one | Required, zero or more | Optional | Conditional |
 |---|---|---|---|---|
 | Catalog edition (§2.1 CI-1) | Host identity; edition; completeness; basis profile | Entries | Previous edition | Unreadable entries (one or more) exactly when completeness is *partial* |
-| Entry (§3) | Operation identity; operation version; purpose; input (the argument list, and "accepts a requested basis"); effects kind; result (content kinds, one or more); class; exposure for each of H, E and X | Arguments; preconditions (element 4); errors (element 7); named host checks (§3.4) | Compatibility statement (§3.2) | Effects kind *change* requires affected object kinds (one or more) and whether resulting objects are reported |
+| Entry (§3) | Operation identity; operation version; purpose; input (the argument list, and "accepts a requested basis"); effects kind; result (content kinds, one or more); class; exposure for each of H, E and X | Arguments; preconditions (element 4); errors (element 7); named host checks (§3.4) | Compatibility statement (§3.2); entry kind (§3.4, node B5); external-contact declaration (§3.4, node B5) | Effects kind *change* requires affected object kinds (one or more) and whether resulting objects are reported. An external-contact declaration requires its category and form, and the destinations (*fixed*) or the argument (*from argument*). Entry kind *destination request* requires class *none*, effects *none* and no declaration (node B5) |
 | Class (element 8, §3.1) | Class value; value standing; host adoption | — | Consequence statement (empty until DEL-04-01 U-02) | *No policy basis* requires its reason and has no policy record; every other value requires the policy record reference and has no reason |
 | Basis descriptor (§5.1) | Each of the five elements, as a value or as an explicit *not supplied* marker (*host declares none* or *omitted*); an element is never left out | — | — | — |
 | Unavailable reason (§4.2) | Reason identity; statement; failed precondition; evaluated basis | — | Remedy | — |
@@ -376,6 +409,13 @@ extensions; DEL-04-03, DEL-05-01 and DEL-05-02 adopt both unchanged (R-7;
 | **Channel not enabled** | **App**, from its own external-access configuration being off, with no host request made; **host**, when the host's channel is off (R4-16). A host refusal is the authoritative "off" (R4-13) | The whole channel is off: external access off unless the person enables it (V4-HI-52); A13 not performed | Channel state and reporter; no operation evaluated. App-side configuration is never A13 evidence (R4-13). **SWBPIPE (SQ-09, SQ-13, SQ-28; R8-6):** no host *channel not enabled* code and no A13 facility. Its off state appears as `controller_unavailable` or an attachment failure, received as *endpoint unavailable* (DEL-03-03 channel state), never as host-reported *channel not enabled*; the channel shows *disabled*, because A13 is never evidenced |
 | **Not exposed on this surface** | **Host-reported** from the per-surface exposure element 9 (R2-4); relayed by loop/adapter | The entry exists in the catalog edition and element 9 says it is not exposed on the acting surface | Entry identity; surface; exposure value. A loop or adapter **relays** a host-returned *not exposed*, naming the host as reporter; it never originates it. The loop-side *not offered* failure is separate (below). **SWBPIPE (SQ-06, SQ-11; R8-5):** no exposure element; its `unsupported_method` and `unsupported_change` refusals are relayed as host-reported *not exposed on this surface*, never *not permitted*. R2-4 (a named rule) is recorded as not met by this host |
 | **Error** | Host | Evaluation started and a declared error occurred (element 7) | Error identity and meaning; effect statement; evaluated basis |
+| **Destination not allowed** (v0.8, node B5; PROPOSED) | **Native layer** of the host, at V-D (before dispatch) or at contact (DEL-05-01/LOOP-v0.8 §5.3 DF-4); for a destination request not granted, the native layer or the host's control | The destination a call declares is not allowed for the host's agent (LOOP DF-3), or a destination request ended *not granted*. The call is **not dispatched** (at V-D) or its contact is not sent | Destination and category; reason (not allowed · always-off item · not stateless MCP (2026-07-28) · grant refused by control · prompt not shown). For reason *not allowed*, a destination request is *offered* (LOOP DF-6), never made in the agent's place. Not *not permitted* (no treatment is involved) and not *unavailable* |
+| **Destination not allowed by the person** (v0.8, node B5; wording SETTLED by DECISION-5 and V4-EXM-23) | **Host's control** | The person declined the agent's destination request; the carried call is not sent | The request; the act-declined event of kind A12 (ACT §2.7). Recording it as a destination entry is PROPOSED (R12-10) |
+
+A destination request call first receives an **interim notice**, "waiting
+for the person's answer" (a loop state, not a result), and then exactly one
+of the results above or a class 3 or 4 outcome of its carried call (LOOP
+§5.3 DF-6; node B5).
 
 Loop- and adapter-side failures are not host results (R2-4): a call naming an
 operation **absent from the catalog edition offered** to the loop is a
@@ -431,7 +471,8 @@ embedded agent, not the App's external channel:
 > A host's agent sends data only to the model service the person selected and to destinations the person has allowed — in advance in an allow list (by category, such as web access, MCP servers or other APIs, or by named destination) or when the agent asks during its work. Nothing else is contacted: no analytics, silent provider switch or background download unless the person turns it on. Every destination contacted is recorded and shown.
 
 It changes no §4.1 result and no §6 standing. Its rules are LOOP-v0.7
-§5.1.1.
+§5.1.1, and from v0.8 the flow is LOOP-v0.8 §5.3; the two "destination not
+allowed" rows above are its results for a host's agent (node B5).
 
 ### 4.2 Unavailable reason
 
@@ -1188,6 +1229,7 @@ new structure is PROPOSED (R12-1).
 | R12-9 (R10-5) | §5.2 rule 1's note points to node B3's ruling proposal; the basis profile (CI-3) and the explicit *not supplied* marker (§3.5) are the structures both options need; both texts stand until R13 | §5.2; §2.1; UNRESOLVED U-C14 |
 | — | §1: DEL-03-01's row names SH-1. §8: a row for the catalog-level interface, *unagreed* | §1; §8 |
 | — | Header: v0.8; a Wave B line with the inputs read; the Serves line names the schemas and SH-1 | Header |
+| **B5** (node B5, round 2; S1-D LOOP item 5, the tool subject) | §3.4 gains the **external-contact declaration** (element 5) and the entry kind **destination request**, so destination-reaching tools are catalog entries and no second tool source is needed (LOOP-v0.8 §5.3 DF-1, G-13); §3.5 cardinality follows; §4.1 gains **destination not allowed** (native layer) and **destination not allowed by the person** (host's control), with the interim notice stated as not a result. `catalog.schema.json`: `entry_kind`, `effects.external_contact`, value kind `carried_call` (additive); new `catalog.example-valid-2.json` and `catalog.example-invalid-2.json`; `prototype/validate_all.py` rerun: all checks passed | §3.4; §3.5; §4.1; schema and examples |
 
 No fixture identifier is re-meant and no FX-PIPE-01 value changes. New
 identifiers: CI-1…CI-5, EI-1…EI-5, CF-1…CF-5, RC-1…RC-4, CU-1…CU-3,

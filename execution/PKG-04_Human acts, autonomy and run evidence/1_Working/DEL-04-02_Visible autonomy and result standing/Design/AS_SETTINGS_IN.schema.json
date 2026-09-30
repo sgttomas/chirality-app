@@ -229,7 +229,8 @@
               "requestRef": {"$ref": "#/$defs/actRef"},
               "target": {"$ref": "#/$defs/destinationTarget"},
               "scopeSought": {"enum": ["once", "this run", "always"]},
-              "state": {"enum": ["pending", "granted", "declined", "ended unanswered with the run"]}
+              "state": {"description": "LOOP-v0.8 §5.3 DF-6 request states (node B5; PROPOSED); 'granted' once the grant is in force (AS §3.1 DG-3).", "enum": ["pending", "granted", "declined", "not granted", "unanswered at end"]},
+              "stateReason": {"enum": ["not grantable", "grant refused by control", "prompt not shown", "run ended", "turn cancelled"]}
             }
           }
         }
