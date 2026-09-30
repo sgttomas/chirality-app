@@ -353,7 +353,8 @@ You did not write any of this; review it as a stranger to it.
    act (K1-1); the earlier-act rule SP-6 and SP-6F (K1-2); the joint answer
    JA-1 (K1-3); identity "not verified" (K1-4); the allow-list rule (K1-5);
    the direct-application case (R10-1).
-5. The 37 recomputed case results (listed in `WAVE_A/A3.md` §2) follow from
+5. The 37 recomputed case results (listed in `WAVE_A/A3.md` §2; the correct
+   count is 39, per V17-B m-1) follow from
    the new rules. Check at least 12, chosen across files, and every case in
    your files whose result changed.
 6. Nothing claims more than the owner decided: check each file's statements
@@ -375,3 +376,25 @@ each classed **BLOCKING** (the candidate says something false, contradicts
 itself across files, or claims more than was decided), **MAJOR**, **MINOR**
 or **NOTE**, with file, location, the passages quoted and a proposed fix. Say
 what you checked and how, and what you did not check.
+
+## A4 — repairs from V17 (one Type 2)
+
+**Purpose.** Apply [R11_RESOLUTIONS.md](R11_RESOLUTIONS.md) R11-1…R11-9 and
+the two note items it lists (V17-A N-1, N-2). R11-10 is the integrator's and
+is done.
+
+**Write fence:** the 16 Wave A Design files (the 15 of A2 plus
+`HOST_INTEGRATION_GUIDE.md`); RELAY metadata only, §0–§3 byte-identical
+(span sha256 `6e399c8389dc2ad991ba8b64084fee17d44ef9e8137d184dd8eb599a66340d4d`);
+return file `WAVE_A/A4.md`. Nothing else.
+
+**Rules.** Read each finding in `reviews/V17-A.md` and `reviews/V17-B.md`
+before fixing it; the reviewers quote the passages. Precise edits; record each
+as a row in the file's Wave A change table with the R11 item ID; no version
+bump. For R11-3, compute the five pinned values first, apply them everywhere a
+header pins those records, and re-verify every pin at the end by script,
+including GUIDE's 18-row table.
+
+**Return file `WAVE_A/A4.md`:** per R11 item, what changed where; new sha256
+per file; the pin script and its output; anything not applied, with the
+reason.

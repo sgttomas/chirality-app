@@ -86,5 +86,17 @@ draft behind it is [DECISIONS_DRAFT.md](DECISIONS_DRAFT.md) (`4b34c24f52a63d59`)
     owner and wait for a yes before downloading it.
 
 Part 2 of the package (matters the integrator takes in this pass) was
-presented with "say if you disagree"; the owner did not object. Parts 3 and 4
+presented as "open to being overruled" (DECISIONS_PENDING.md) and on the
+review page under the heading "Taken by me in this pass; say if you
+disagree"; the owner did not object. Parts 3 and 4
 stand as presented.
+
+## Executor-model direction (owner, exact, 2026-09-30)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after DECISION-K1.
+
+> Ensure you are using `opus-5.5` models on `high` reasoning for your Type 1 and Type 2 agent instances.
+
+**Effect:** every executor launched after this direction runs on Claude Opus
+5.5 (`claude-opus-5-5`) at high effort. How it is applied, and which earlier
+executors ran on Claude Fable 5.1, is recorded in [DISPATCH.md](DISPATCH.md).
