@@ -9,3 +9,5 @@ HELP_HUMAN session, under D-GOV-35, using the agent type `type2-opus-high`
 |---|---|
 | S0 | Branch at `main` `a38617d08b`. Owner direction recorded. Graph and briefs written |
 | S1 | Three surveys launched in parallel (S1-A, S1-B, S1-C), read-only, one report each |
+| S1 return | S1-A (DEL-01-02 31 obligations, DEL-01-03 25), S1-B (DEL-01-04 25, DEL-01-05 33), S1-C (DEL-02-02 26, DEL-02-04 21). Fences verified (only the three reports new) |
+| K | Integrator wrote DECISIONS_PENDING.md (12 owner questions with recommendations; 9 integrator matters) and a review page, https://claude.ai/artifact/Kfh49j4xbKi9sqZsf8XSGx (Version 1) |
