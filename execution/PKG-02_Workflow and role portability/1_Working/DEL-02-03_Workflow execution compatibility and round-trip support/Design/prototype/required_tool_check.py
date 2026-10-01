@@ -5,7 +5,8 @@ the PROPOSED `compatibility-report.schema.json` instance so the schema can be
 exercised; field names are Chirality's own and select no wire format.
 
 Rules implemented:
-- §3.4 EV-1…EV-11 per required tool reference (first match decides);
+- §3.4 EV-1…EV-11 per required tool reference (first match decides), with
+  EV-3's presence rule read through the EV-3a table (node G);
 - §3.5 three-valued check result, current phase (no checkpoint enters it,
   PH-3) and governance phase (hold support for governed checkpoints, or, for
   fixture readings, checkpoints read "as if governed", GV-5);
@@ -16,13 +17,97 @@ OUTCOME_BLOCKS = {"missing", "not_exposed_on_this_surface", "version_mismatch",
                   "channel_not_enabled"}
 
 
-def evaluate_reference(req, cat, surface, channel_enabled, readiness):
+# EV-3 presence rule and EV-3a readings at pin 0.158.0 (EXEC-v0.6 §3.4; PROPOSED;
+# active per group from node G, R16-3). The signals are HOSTING-BOUNDARY-v0.8
+# §8.4's; `signals` is the App's reading for the thread, or None (not read).
+APP_CODEX_PIN = "App Codex 0.158.0"
+
+
+def _settings(s):
+    ts = s.get("thread_start")
+    if ts is None or "approvalPolicy" not in ts or "sandbox" not in ts:
+        return None
+    return True
+
+
+def _web(s):
+    caps, mode = s.get("provider_capabilities"), s.get("web_search_mode")
+    if caps is None or "webSearch" not in caps or mode is None:
+        return None
+    return bool(caps["webSearch"]) and mode != "disabled"
+
+
+def _delegation(s):
+    ts = s.get("thread_start")
+    return None if ts is None or "multiAgentMode" not in ts else True
+
+
+def _mcp(s):
+    servers = s.get("mcp_server_status")
+    if servers is None:
+        return None
+    if any(srv.get("tools") and srv.get("runtimeStatus") == "connected" for srv in servers):
+        caps = s.get("provider_capabilities") or {}
+        if caps.get("namespaceTools") is False:
+            return "limit"
+        return True
+    if any(srv.get("toolsError") or srv.get("runtimeStatus") in
+           (None, "notStarted", "starting", "authenticationRequired", "failed") for srv in servers):
+        return None
+    return False
+
+
+def _dynamic(s):
+    ts = s.get("thread_start")
+    return None if ts is None or "dynamicTools" not in ts else bool(ts["dynamicTools"])
+
+
+def _imagegen(s):
+    caps = s.get("provider_capabilities")
+    return None if caps is None or "imageGeneration" not in caps else bool(caps["imageGeneration"])
+
+
+# name: (HOSTING §8.4 group, reading or None when the rule is inactive, inactive reason)
+EV3A = {
+    "shell-command": ("HCG-A02", _settings, None),
+    "file-change": ("HCG-A03", _settings, None),
+    "web-search": ("HCG-A10", _web, None),
+    "agent-delegation": ("HCG-A08", _delegation, None),
+    "mcp-tool-call": ("HCG-A05", _mcp, None),
+    "dynamic-tool-call": ("HCG-A06", _dynamic, None),
+    "image-generation": ("HCG-A11", _imagegen, None),
+    "person-input-request": ("HCG-A07", None, "no availability signal stated (HOSTING §8.4)"),
+    "image-view": ("HCG-A11", None, "no availability signal stated for image viewing (HOSTING §8.4; WD §4.2.5)"),
+    "plan-update": ("HCG-A09", None, "no availability signal stated (HOSTING §8.4: stability only)"),
+}
+
+
+def harness_presence(name, harness, signals):
+    """EV-3 with EV-3a. Returns (outcome, reason)."""
+    if harness != APP_CODEX_PIN:
+        return "not_established", "no supplier account for the acting harness (WD HC-1)"
+    if name not in EV3A:
+        return "not_established", "not a WD-v0.8 §4.2.5 name"
+    group, reading, inactive = EV3A[name]
+    if reading is None:
+        return "not_established", "presence rule inactive for %s: %s" % (group, inactive)
+    value = None if signals is None else reading(signals)
+    if value is None:
+        return "not_established", "availability signal of %s not read" % group
+    if value == "limit":
+        return "not_established", "provider may not receive MCP tools (namespaceTools false; OBS-1 inference)"
+    if value:
+        return "present", ""
+    return "missing", "availability signal of %s reads unavailable" % group
+
+
+def evaluate_reference(req, cat, surface, channel_enabled, readiness, harness=None, harness_signals=None):
     """EV-1 is handled at workflow level. Returns (outcome, reason, entry, exposure, availability)."""
     if req.get("unrecognized"):                                   # EV-2
         return "not_established", "unrecognized element in the required-tool category", None, None, None
-    if req["class"] == "harness_capability":                      # EV-3
-        return ("not_established", "harness capability names unresolved (WD U-08; U-E10)",
-                None, None, None)
+    if req["class"] == "harness_capability":                      # EV-3, EV-3a
+        outcome, reason = harness_presence(req["reference"], harness, harness_signals)
+        return outcome, reason, None, None, None
     if not cat["readable"]:                                       # EV-4
         return "not_established", "catalog unreadable", None, None, None
     entry = cat["entries"].get(req["reference"])
@@ -70,7 +155,8 @@ def hold_support(cp, surface, run_kind, cat, sq02="answered_no_route"):
 
 def check(wf, cat, surface, run_kind, phase, *, channel_enabled=True, readiness=False,
           seat_has_delegation=True, occasion="CK-1", report_id="R-1",
-          evaluated_at="2026-09-30T00:00:00Z", model_destination=None, as_if_governed=True):
+          evaluated_at="2026-09-30T00:00:00Z", model_destination=None, as_if_governed=True,
+          harness=None, harness_signals=None):
     """Return a report dict (PROPOSED schema). phase is 'current' or 'governance'."""
     reqs, runtime_holds, limitations = [], [], []
     whole_not_established = wf["required_tools_category"] != "declared" or \
@@ -78,7 +164,7 @@ def check(wf, cat, surface, run_kind, phase, *, channel_enabled=True, readiness=
     if not whole_not_established:
         for r in wf["requirements"]:
             outcome, reason, entry, exposure, avail = evaluate_reference(
-                r, cat, surface, channel_enabled, readiness)
+                r, cat, surface, channel_enabled, readiness, harness, harness_signals)
             reqs.append({"reference": r["reference"], "class": r["class"],
                          "necessity": r["necessity"], "purpose": r["purpose"],
                          "declared_versions": r["declared_versions"], "entry": entry,

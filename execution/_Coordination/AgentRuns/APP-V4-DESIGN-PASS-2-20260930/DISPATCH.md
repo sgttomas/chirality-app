@@ -70,3 +70,5 @@ not on the executor's report. A user-level agent definition
 | C1 return | C1-A, C1-B, C1-C written (read-only on Design files). Proposals: ScopeOfWork 17 + 18 + 8, register 33 + 18 + 14, basis 0 + 3 + 2 (consolidation in the closeout account). Returned to the graph: C1-A G-1…G-3, C1-B two items, C1-C GW-1…GW-4 → R16 |
 | D0 | DAG-003 current: 37/37, 130/130; analyzer NO_DEPARTURE_FOUND; `closeout/D0.md` |
 | G | One executor (type2-opus-high) on R16 |
+| G return | R16 items done (declined destinations SETTLED per CLM-004 across six files; panel-needs list, 17 rows, LOOP names 4 gaps PG-1…PG-4; IN-30; GUIDE review status; OBS redaction; EV-3a; bookkeeping). Prototypes pass; RELAY span unchanged; GUIDE 18/18. Some header pins now name OBS_1 and HANDOFF bytes from before G. C1-B and V19-B, as written, still quote the rollout file name that shows the time-zone offset; they are review and closeout records and are left as written |
+| H | One executor (type2-opus-high): LOOP's four gaps and the stale pins |

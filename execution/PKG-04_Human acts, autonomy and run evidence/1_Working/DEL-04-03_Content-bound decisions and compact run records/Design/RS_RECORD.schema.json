@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-04-03:rs-record:0.1",
   "title": "Run and act record entry (DEL-04-03 OUT-001) — PROPOSED",
-  "description": "PROPOSED record format of RS-v0.8 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Entries of kind destination_declined and boundary_refusal are PROPOSED recording (R12-10). The R11 labels include R13-1's and R13-2's.",
+  "description": "PROPOSED record format of RS-v0.8 §13 (R12-1, R12-2; U-04). RS format 0.1 is the only record container (R14-1): a record is an append-only log of entries, one JSON object per line; every entry carries the common identity elements of RS §3 and one body by kind. The bodies of the checkpoint entry kinds (EXEC CE-1…CE-19) are DEL-02-03's and are referenced by relative path to EXEC's `checkpoint-record-entries.schema.json` (RS §13.3); the settings_version body is DEL-04-02's, referenced by $id. Names are Chirality's own; no host or supplier wire field is selected. No placement, path, identity algorithm or canonicalization is selected (OI-013, OI-014; DEL-03-01 TBD-003): 'method' names a designation only. Recording entries of kind destination_declined is SETTLED by DEL-04-03 ScopeOfWork CLM-004 (R16-1, correcting R12-10); recording boundary_refusal entries is PROPOSED (R12-10, R16-1); every representation here is PROPOSED. The R11 labels include R13-1's and R13-2's.",
   "$ref": "#/$defs/entry",
   "$defs": {
     "recordId": {
@@ -1705,7 +1705,7 @@
       }
     },
     "destinationDeclined": {
-      "description": "PROPOSED recording (R12-10): V4-EXM-23 says a decline is reported to the agent; no accepted text says it is recorded.",
+      "description": "Recording SETTLED by DEL-04-03 ScopeOfWork CLM-004, which names destination declined among the network-destination events the format receives from DEL-05-01 (R16-1, correcting R12-10); this representation is PROPOSED. The decline is also reported to the agent (V4-EXM-23).",
       "type": "object",
       "required": [
         "target",

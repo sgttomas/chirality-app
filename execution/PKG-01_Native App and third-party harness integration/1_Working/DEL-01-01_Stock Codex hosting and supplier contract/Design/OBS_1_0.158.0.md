@@ -356,7 +356,21 @@ Times are wall-clock offsets from `turn/start` (19:15:14.041 UTC), taken from th
 | raw: `harness_events.jsonl`, `snapshots.jsonl` | 8877806796425253…, fffeaaabee1487a7… |
 | raw: `lmstudio.server.log`, `lmstudio.model.log` | 66da10670133babf…, 3dd3165fb4032784… |
 | raw: `sandbox_kernel_log.txt` (17 kernel lines for the command's process) | 53ef246e9928fa5a… |
-| raw: the rollout `rollout-2026-09-30T13-15-13-01a0f3be….jsonl` | 2293687ca945b3c7… |
+| raw: the rollout `rollout-…01a0f3be….jsonl` (file-name time redacted, node G) | 2293687ca945b3c7… |
 | raw: `attempt1/` (frames 7c77a3dac75d50e0…, stderr 381d7e2499c6b4c0…, the config as first written) | in `<OBS-B>/logs` |
 
 **UNRESOLVED (OBS-1b):** what the supplier does with a `decline` answer that `availableDecisions` did not offer under `untrusted` (not exercised); whether any setting lets a sandboxed command reach a local socket (OC-5 remains a design question for the App); what the `namespace` tool dropped in both runs contains (the LM Studio log truncates the request body).
+
+## Change note (node G, run APP-V4-DESIGN-PASS-2-20260930; redaction only)
+
+- 2026-09-30, node G under `R16_RESOLUTIONS.md` R16-3 (closeout C1-B §9 G-2;
+  review V19-B n-2). §B.7 named the raw rollout of the OBS-1b turn by its
+  full file name, whose time part is the host's local time; set beside the
+  turn's UTC times (19:15 UTC), it showed the host's time-zone offset, which
+  the redaction lines (top of this record and the OBS-1b section) say is left
+  out. The time part is now redacted (`rollout-…01a0f3be….jsonl`), as §B.5
+  already wrote it. Nothing else changed: no observation, value, hash or
+  standing. The file's sha256 before this edit was
+  `85707703e97b4fd5ea4332785aae83f96850bedacad5219c8827c41297c26182`; the
+  pins of this record in HOSTING-BOUNDARY-v0.8, GUIDE-v0.5 and LOOP-v0.8
+  headers name those earlier bytes, read at their nodes.

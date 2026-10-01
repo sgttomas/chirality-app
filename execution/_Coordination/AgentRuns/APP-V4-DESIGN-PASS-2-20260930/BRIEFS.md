@@ -737,3 +737,17 @@ schemas, examples and prototypes as the items need; RELAY metadata only
 only; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` for IN-30 only;
 `closeout/G.md`. Rows "G" in each changed file's Wave B change table. Rerun
 every prototype you touch; GUIDE's input table re-pinned last, 18/18.
+
+## H — LOOP's four panel-needs gaps and current pins (one Type 2)
+
+Close LOOP's PG-1…PG-4 (`closeout/G.md`; LOOP §10.5): add the two §2.3
+rows E-8 names; an event for "run not started — no model selected" (R15-1;
+mapped to RS's cause); LOOP's answer to a panel return input; the form and
+answer of the replay request — each PROPOSED unless a ruling decides it, and
+PANEL's §3.11 rows updated to "supplied". Then bring every header pin that
+claims current bytes up to date for files changed by G (OBS_1 after its
+redaction, HANDOFF after IN-30), in HOSTING, GUIDE, LOOP, RELAY (metadata
+only, §0–§3 unchanged) and CA. Write fence: LOOP, PANEL, HOSTING, GUIDE,
+RELAY metadata, CA, and RS only if the event mapping needs a row;
+`closeout/H.md`. Rows "H" in change tables. Rerun LOOP, PANEL, RS and CA
+prototypes; GUIDE's input table re-pinned last, 18/18.

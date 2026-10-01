@@ -95,6 +95,12 @@ lists what the next relay should carry when the owner resumes UI-SUCCESSOR.
   A checkpoint's act is requested and is recorded as done only when the
   person performs it; holding the run is phased to the governance layer. The
   premise of SQ-02 is superseded for the current phase.
+- **Fixture set-up and reset on the host (DEL-09-09 XT IN-30, F-26).** For
+  each live segment of the external-control trace, the host would load the
+  invented FX-PIPE-01 fixture at a named revision in a fresh workspace, or
+  restore a saved state, and report the workspace and generation. No relay
+  question asks for it. Added 2026-09-30 (node G of run
+  APP-V4-DESIGN-PASS-2-20260930, ruling R16-3).
 - **Open on the App side and relevant to SWBPIPE:** the caller naming and the
   per-batch Apply against the App's per-item completion rule (DEL-09-09 XT
   F-18). The full list is the "next relay" row in RELAY's UNRESOLVED table.

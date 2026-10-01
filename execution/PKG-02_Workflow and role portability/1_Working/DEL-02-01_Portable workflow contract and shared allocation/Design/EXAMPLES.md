@@ -35,6 +35,7 @@ unimplemented and not accepted.
 | V18-2 m-2 | New variant L-WDEX-42: E1e's file output without `path` | E9 |
 | V18-2 n-2 | E1e cites EXEC CH-32 (`report-signoff`), the other fixture for the same VER-003 separation | E1e |
 | RQ (repairs from V19; in place, no version bump) | V19-B n-1: the node-A4 pins bullet relabelled "as of node A4", so it does not claim currency | Header |
+| G (items the closeout returned to the graph; `R16_RESOLUTIONS.md` R16-3; in place, no version bump) | Follows EXEC-v0.6's EV-3 made active per group at node G (closeout C1-A G-2): E1e's harness-capability row, L-WDEX-15's E8 row and the U-08 row now say EXEC's presence rule exists (EV-3a) and that, with no signal read, the reference stays *not established*; no example value changes | E1e; E8 L-WDEX-15; UNRESOLVED U-08 |
 
 ## Changes from v0.6
 
@@ -943,7 +944,7 @@ block):*
 |---|---|---|
 | Input of kind **output of another identified workflow run** | `review-findings` | Names E1b's workflow identity and its output `findings`. Which run supplied it, and on what basis, is an observation (WD §4.6), not declared |
 | Input of kind **file supplied to the run** | `design-criteria` | AF-1 ⟨AF-1@f1⟩ (C §10.1 App-side fixture subject); its content identity is recorded when it is supplied |
-| **Harness-capability requirement** | `write-package`, capability `file-change` (WD §4.2.5, PROPOSED, pin 0.158.0) | The check reads it as *not established* until EXEC EV-3 has a presence rule (WD §4.2.5 HC-4); never *missing* |
+| **Harness-capability requirement** | `write-package`, capability `file-change` (WD §4.2.5, PROPOSED, pin 0.158.0) | The check reads it as *present* only where the acting harness is the App's Codex at the pin and its HCG-A03 availability signal is read (EXEC EV-3, EV-3a: the rule is active for `file-change`; WD §4.2.5 HC-4); otherwise *not established*; never *missing* |
 | **A6** checkpoint on App content | `CP-approve`: kind (b) on the file output `approval-package`; subject class *named output* (the file's content identity) | Captured by the App act control (EXEC §5 CAP-1…CAP-3), which DEL-01-04 builds later, so positive App capture stays AWAITING INPUT (WD U-25). The person's identity is recorded as observed, *identity not verified* (DECISION-K1 K1-4) |
 | **A7** checkpoint on host content | `CP-rely`: kind (b) on the message output `load-findings`; subject class *objects a named output concerns* (the LC-1 result rows as read by `read-loads`); actor *the accountable professional* | Captured by a fixture host act facility (L-WDEX-39); the professional is FX-Professional-P (L-WDEX-40) |
 
@@ -1163,7 +1164,7 @@ answer (2026-09-28: route (iv), none planned → HS-3 (c)), as EXEC does.
 | E1c from the App via X | `CP-check` (Return, App-side) | guidance · **passes** | HS-5 → **not enforceable** | **unsupported** |
 | E1d from the App via X | `CP-grant` (host operations only: the held OP-C9 call) | guidance · **passes** | HS-3 (c) → **not enforceable** (SQ-02 answered 2026-09-28) | **unsupported** — "…: CP-grant, CP-check" |
 | | `CP-check` (Return, App-side; from E1c) | guidance | HS-5 → **not enforceable** | |
-| L-WDEX-15: a workflow whose checkpoint is kind (a) before a Codex **harness capability** (e.g., `shell-command`, WD §4.2.5, PROPOSED), App run | that checkpoint (an App harness action) | guidance · **not established** (the harness-capability reference: its name is PROPOSED at WD-v0.8, and EXEC EV-3 has no presence rule yet) | HS-5 → **not enforceable** (R4-21) | **unsupported** (WD FB-18) |
+| L-WDEX-15: a workflow whose checkpoint is kind (a) before a Codex **harness capability** (e.g., `shell-command`, WD §4.2.5, PROPOSED), App run | that checkpoint (an App harness action) | guidance · **not established** (the harness-capability reference: its name is PROPOSED at WD-v0.8; EXEC EV-3's rule for `shell-command` is active, but this example reads no thread-start signal, as EXEC MT-15) | HS-5 → **not enforceable** (R4-21) | **unsupported** (WD FB-18) |
 | L-WDEX-17 (E1d variant with no `CP-check`, needed to show HS-3 alone): `CP-grant` only, App run via X | `CP-grant` (host operations only: OP-C9) | guidance · **passes** | HS-3 (c): **not enforceable** (SQ-02 answered 2026-09-28: no host-held route). It would be *enforced on the host route* only if a host offered and evidenced one | **unsupported** — "checkpoint hold not enforceable on this surface: CP-grant" (was *not established* in v0.5) |
 | L-WDEX-17 with its held-actions element absent | `CP-grant` (undeclared; derived as the held OP-C9 call, kind (a); WD §4.3.1, R7-3) | guidance · **passes** | HS-3 (c): **not enforceable**, as above | By EXEC §3.5 precedence with the run's other checkpoints: L-WDEX-17 has none, so **unsupported** (was *not established* in v0.5). Were it combined with E1c's `CP-check`, as in E1d, the result would be the same, *unsupported* |
 
@@ -1247,7 +1248,7 @@ Same register as WD-v0.8 §12. Items that shape these examples:
 | item | owner | point of need | effect on these examples |
 |---|---|---|---|
 | U-01/U-02 carriage and representation: **PROPOSED at WD-v0.8** (WD §3.5, §3.6) | DEL-02-01, with consumer confirmation (DEL-02-03, DEL-05-01, DEL-05-02) | the next comparison (V18) | E1 and E1d are rendered in the proposed carriage; the tables explain them |
-| U-08 harness capability names: **PROPOSED at WD-v0.8**, scoped to pin 0.158.0 (WD §4.2.5) | DEL-02-01 with DEL-01-01 and DEL-02-03 | before the App-side required-tool check | E1e `file-change` and L-WDEX-15 `shell-command` read as recognized names; presence stays *not established* (EXEC EV-3) |
+| U-08 harness capability names: **PROPOSED at WD-v0.8**, scoped to pin 0.158.0 (WD §4.2.5) | DEL-02-01 with DEL-01-01 and DEL-02-03 | before the App-side required-tool check | E1e `file-change` and L-WDEX-15 `shell-command` read as recognized names; presence follows EXEC EV-3 and EV-3a (node G): with no signal read, *not established* |
 | U-32 on subject absent: **decided at WD-v0.8 (PROPOSED)** | DEL-02-01 | — | L-WDEX-28 |
 | U-03 revision algorithm | DEL-02-01 with DEL-04-03 | before revision comparisons | ⟨rev-A2⟩, ⟨rev-3⟩ are labels |
 | U-30 App-side holds `UNRESOLVED{D6}`: **closed for Phase 1** (DECISION-4; R8-2), re-opens with the governance phase; SQ-02 decides host-operation checkpoints only (R5-10) and is answered (route (iv)) | Owner (DECISION-4; D6 re-opens with the governance phase) | when the governance phase is taken up; before any governed App-run hold is claimed | E8 Phase 1: guidance, no values. Governance phase: App-only rows *not enforceable*, host-operation rows *not enforceable* (SQ-02 answered 2026-09-28) |

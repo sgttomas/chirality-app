@@ -113,6 +113,20 @@ supplies the named input.
 The App's standalone workflow-making loop (OBJ-001, DEL-09-02) proceeds
 independently of this activity and is not reassigned here (SoW CLM-006).
 
+**Scope-item trace (AC-001: "all seven assigned scope items"; node G,
+closeout C1-C GW-3).** Until node G four of the seven items were traced only
+in VC-CA-01. Each item, with where this file answers it (this file's
+reading; the scope rows are from `ScopeOfWork.md`, "Purpose and Objective Traceability"):
+
+| Scope item | ScopeOfWork text | Answered in this file |
+|---|---|---|
+| SOW-040, SOW-041 | Connect the four user activities through the named Chirality App and SWBPIPE expressions; preserve the App workflow-making obligation alongside host activity | §2.1 (the table above, and its closing paragraph for the workflow-making obligation); §2.2 acting-surface variants |
+| SOW-236 | Define the connected model-adjustment/checking activity, reusable method and first App/host handoff | The activity: §2.3 step map, §2.3.1 failure behaviour, §2.4 operating sequence. The reusable method: §3. The first handoff: §5 owner and check allocation, §2.5 decision and input account, and the relay file `RELAY_QUESTIONS_SWBPIPE.md` (§9) |
+| SOW-237 | Stage contributions and their examination without losing the complete first activity or holding independent App work | §6 staging ST-0…ST-5 and its rules (ST-1 and independent App work never wait for ST-4/ST-5); the closing paragraph of §2.1 (the standalone loop is not reassigned); §7.2 contribution ladder |
+| SOW-238 | Carry assumptions, tool needs, revision and actual human checkpoints across both expressions | §4 round trip; §3.1 requirements on the workflow; §8 the V4-EXM-14 witness |
+| SOW-240 | Establish the increment's SoW, accountable owners and relevant checks before its execution | §2.5 decision and input account (DI-1…DI-9; OI-021 open); §2.6 option sheet; §5 owners and checks. No final increment SoW is claimed (AC-001) |
+| SOW-241 | Account for questions, received commitments and evidence through human-relayed files | §9 external contribution and evidence account; §7.2 standing ladder; `RELAY_QUESTIONS_SWBPIPE.md` §4 ledger |
+
 ### 2.2 Acting-surface variants (`UNRESOLVED{OI-021}` environment)
 
 The accepted basis names two routes to the same host operations. Which the
@@ -1073,6 +1087,7 @@ v0.5 = CA-v0.5 (sha256 0c3ac6557a04e92dbdfd110254da872f7438a1c5e10e269c56d3c5af1
 | RP-4: cross-file chain | The rehearsal prototype reads EXEC-v0.6's recorder outputs in their R14-1 form ({kind, observedAt, body}, RS entry kinds) after RP-1's change; outcomes unchanged | `prototype/run_w14_rehearsals.py`; §8.5 |
 | RX (residual sweep; RP-2 return §3; RP-1 return §4) | F-26 answered as recorded: C-v0.8 §10.8 lists SH-1's missing profiles, none added. `w14-result-record.example.valid.json` (and the invalid example derived from it) regenerated with `--write-examples` after the RP-1…RP-4 and RX changes to the prototypes it pins (date aside, the check "validates and equals the regenerated W14-05 record" holds) | §12 F-26; valid example |
 | RQ (repairs from V19; in place, no version bump) | **V19-B m-5:** §2.6 CA-R reads "(no App run; OBS-1 observed supplier turns only)"; F-28 records that EXEC RT-11 now lists MT-17, CH-32 and CH-33 (RP-1). V19-A M-1: the prototype's token map gains `agent_written_configuration`; `w14-result-record.example.{valid,invalid}.json` regenerated (`--write-examples`) because `observe_map.py` changed (only its recorded sha256 differs) | §2.6; §12.11 F-28; `prototype/run_w14_rehearsals.py`; examples |
+| G (items the closeout returned to the graph; `R16_RESOLUTIONS.md` R16-3; closeout C1-C GW-3; in place, no version bump) | AC-001's "all seven assigned scope items": a scope-item trace after §2.1 maps SOW-040, SOW-041, SOW-236, SOW-237, SOW-238, SOW-240 and SOW-241 to the sections that answer them; until now SOW-236, -237, -240 and -241 were traced only in VC-CA-01. No rule, case or result changes. `w14-result-record.example.{valid,invalid}.json` regenerated (`--write-examples`) because EXEC's `prototype/run_all.py`, which the record pins, changed at node G; only that file's recorded sha256 differs | §2.1; examples |
 
 Identifiers kept. Added: §2.3.1, §2.6, §8.4, §8.5, §12.10, §12.11, CAF-1…CAF-39, B-1…B-5, G-1…G-4, W-R1…W-R7, F-25…F-29, VC-CA-09…VC-CA-11. No identifier retired.
 

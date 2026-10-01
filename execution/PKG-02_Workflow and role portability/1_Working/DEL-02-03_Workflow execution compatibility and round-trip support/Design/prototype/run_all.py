@@ -17,7 +17,7 @@ sys.path.insert(0, HERE)
 
 from jsonschema_subset import validate                     # noqa: E402
 from fx_double import catalog, workflow                    # noqa: E402
-from required_tool_check import check, statement           # noqa: E402
+from required_tool_check import check, statement, harness_presence, APP_CODEX_PIN   # noqa: E402
 from checkpoint_recorder import Recorder                   # noqa: E402
 
 REPORT_SCHEMA = json.load(open(os.path.join(DESIGN, "compatibility-report.schema.json")))
@@ -32,6 +32,8 @@ def expect(label, cond, detail=""):
 
 
 DEST_X = {"selected": "local model server (fixture)", "class": "local", "information_only": True}
+# MT-18 (node G; EV-3a): a thread-start reading of the person's approval policy and sandbox.
+SIG_SETTINGS = {"thread_start": {"approvalPolicy": "on-request", "sandbox": {"type": "readOnly"}}}
 
 # ---------------------------------------------------------------- MT cases (§7.1)
 # (case, workflow, catalog kwargs, surface, run kind, check kwargs,
@@ -67,7 +69,7 @@ MT = [
     ("MT-13", "requires-OP-C11", {}, "E", "host", {}, "passes", "passes", {"OP-C11": "present"}, None),
     ("MT-14", "E1-rev-A2", {}, "X", "app", {"channel_enabled": False, "model_destination": DEST_X},
      "does_not_pass", "does_not_pass", {"OP-C1": "channel_not_enabled"}, None),
-    ("MT-15", "E1d-harness-grant", {}, "X", "app", {"model_destination": DEST_X},
+    ("MT-15", "E1d-harness-grant", {}, "X", "app", {"model_destination": DEST_X, "harness": APP_CODEX_PIN},
      "not_established", "does_not_pass", {"shell-command": "not_established", "OP-C9": "present"},
      {"CP-grant": "not_enforceable", "CP-check": "not_enforceable"}),
     ("MT-16", "E1d", {}, "X", "app", {"model_destination": DEST_X}, "passes", "does_not_pass",
@@ -76,7 +78,42 @@ MT = [
      {"OP-C4": "present"}, {"CP-accept": "not_enforceable"}),
     ("MT-17 (E)", "E1-rev-A2g", {}, "E", "host", {}, "passes", "passes",
      {"OP-C4": "present"}, {"CP-accept": "enforced_by_the_host_loop"}),
+    ("MT-18", "E1d-harness-grant", {}, "X", "app",
+     {"model_destination": DEST_X, "harness": APP_CODEX_PIN, "harness_signals": SIG_SETTINGS},
+     "passes", "does_not_pass", {"shell-command": "present", "OP-C9": "present"},
+     {"CP-grant": "not_enforceable", "CP-check": "not_enforceable"}),
 ]
+
+# EV-3a readings (node G; R16-3): (name, harness, signals, expected outcome)
+CONNECTED = {"name": "M-1", "tools": {"lookup": {}}, "runtimeStatus": "connected", "toolsError": None}
+EV3A_CASES = [
+    ("shell-command", APP_CODEX_PIN, SIG_SETTINGS, "present"),
+    ("shell-command", APP_CODEX_PIN, None, "not_established"),
+    ("shell-command", None, SIG_SETTINGS, "not_established"),
+    ("file-change", APP_CODEX_PIN, SIG_SETTINGS, "present"),
+    ("web-search", APP_CODEX_PIN, {"provider_capabilities": {"webSearch": True}, "web_search_mode": "live"}, "present"),
+    ("web-search", APP_CODEX_PIN, {"provider_capabilities": {"webSearch": True}, "web_search_mode": "disabled"}, "missing"),
+    ("web-search", APP_CODEX_PIN, {"provider_capabilities": {"webSearch": False}, "web_search_mode": "live"}, "missing"),
+    ("agent-delegation", APP_CODEX_PIN, {"thread_start": {"multiAgentMode": "explicitRequestOnly"}}, "present"),
+    ("agent-delegation", APP_CODEX_PIN, {"thread_start": {}}, "not_established"),
+    ("mcp-tool-call", APP_CODEX_PIN, {"mcp_server_status": [CONNECTED], "provider_capabilities": {"namespaceTools": True}}, "present"),
+    ("mcp-tool-call", APP_CODEX_PIN, {"mcp_server_status": [CONNECTED], "provider_capabilities": {"namespaceTools": False}}, "not_established"),
+    ("mcp-tool-call", APP_CODEX_PIN, {"mcp_server_status": []}, "missing"),
+    ("mcp-tool-call", APP_CODEX_PIN, {"mcp_server_status": [dict(CONNECTED, runtimeStatus="starting")]}, "not_established"),
+    ("dynamic-tool-call", APP_CODEX_PIN, {"thread_start": {"dynamicTools": []}}, "missing"),
+    ("image-generation", APP_CODEX_PIN, {"provider_capabilities": {"imageGeneration": False}}, "missing"),
+    ("person-input-request", APP_CODEX_PIN, SIG_SETTINGS, "not_established"),
+    ("image-view", APP_CODEX_PIN, {"provider_capabilities": {"imageGeneration": True}}, "not_established"),
+    ("plan-update", APP_CODEX_PIN, SIG_SETTINGS, "not_established"),
+]
+
+
+def run_ev3a():
+    print("EV-3a presence readings at pin 0.158.0 (node G)")
+    for name, harness, sig, exp in EV3A_CASES:
+        out, reason = harness_presence(name, harness, sig)
+        expect("%-21s %-17s -> %s%s" % (name, "App Codex" if harness else "no account", out,
+               (" (" + reason + ")") if reason else ""), out == exp, "expected " + exp)
 
 
 def run_mt():
@@ -335,6 +372,7 @@ def examples(reports, rec, write):
 
 if __name__ == "__main__":
     reports = run_mt()
+    run_ev3a()
     rec = run_ch()
     examples(reports, rec, "--write-examples" in sys.argv)
     print("\n%s: %d failure(s)" % ("FAILED" if FAIL else "ALL CHECKS HOLD", len(FAIL)))
