@@ -726,3 +726,14 @@ least, the DEL-01-04 act-control obligation (DECISION-K1 K1-4), whether
 DEL-05-02's contract names the panel's destination surfaces, DEL-04-01's
 contract and DECISION-5, and DEL-09-09 REQ-001's TBD range. Write
 `closeout/C1-A.md` (or B, C). No other file.
+
+## G — items the closeout returned to the graph (one Type 2)
+
+Apply [R16_RESOLUTIONS.md](R16_RESOLUTIONS.md) R16-1…R16-3 (every item but
+the pair check). Inputs: `closeout/C1-A.md` (G-1…G-3), `C1-B.md` (its two
+graph items), `C1-C.md` (GW-1…GW-3). Write fence: the Design files and their
+schemas, examples and prototypes as the items need; RELAY metadata only
+(§0–§3 byte-identical); `DEL-01-01/Design/OBS_1_0.158.0.md` for the redaction
+only; `_Coordination/HANDOFF_SWBPIPE_DOMAINS.md` for IN-30 only;
+`closeout/G.md`. Rows "G" in each changed file's Wave B change table. Rerun
+every prototype you touch; GUIDE's input table re-pinned last, 18/18.
