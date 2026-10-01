@@ -72,3 +72,5 @@ not on the executor's report. A user-level agent definition
 | G | One executor (type2-opus-high) on R16 |
 | G return | R16 items done (declined destinations SETTLED per CLM-004 across six files; panel-needs list, 17 rows, LOOP names 4 gaps PG-1…PG-4; IN-30; GUIDE review status; OBS redaction; EV-3a; bookkeeping). Prototypes pass; RELAY span unchanged; GUIDE 18/18. Some header pins now name OBS_1 and HANDOFF bytes from before G. C1-B and V19-B, as written, still quote the rollout file name that shows the time-zone offset; they are review and closeout records and are left as written |
 | H | One executor (type2-opus-high): LOOP's four gaps and the stale pins |
+| H return | PG-1…PG-4 closed in LOOP (PROPOSED; R15-1 decides PG-2's outcome); LOOP §10.5 17/17 supplied; 5 header pins current; prototypes pass; RELAY span unchanged; GUIDE 18/18. Returned: whether RS records a first turn refused 'selection not established' (DEL-04-03) and how long events are held for replay (OI-013) — both left open in the files with their owners, for the phase review |
+| V20 | Two reviewers (type2-opus-high) launched on the candidate named at launch |

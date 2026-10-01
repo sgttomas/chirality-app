@@ -94,9 +94,12 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 | P2 PR-2: Wave B | — | V19b, CI | Merged under the standing direction | COMPLETE — [#1067](https://github.com/sgttomas/chirality/pull/1067) merged `d01ad98a` (CI green; auto-merge after V19b) |
 | **Closeout** | | | | |
 | C0 The four V19b MINORs; last GUIDE re-pin | LOOP, GUIDE, HOSTING; `closeout/C0.md` | P2 | Fixed; 18/18 | COMPLETE (this commit) — prototypes pass; GUIDE 18/18 |
-| D0 DAG-003 currency recheck | Read-only | P2 | Both manifests pass; no bound file changed | PLANNED |
-| C1 Bounded closeout (`bounded-reconciliation`; C1-A, C1-B, C1-C): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | ACTIVE |
-| F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | PLANNED |
+| D0 DAG-003 currency recheck | Read-only; `closeout/D0.md` | P2 | Both manifests pass; no bound file changed | COMPLETE — 37/37, 130/130; analyzer NO_DEPARTURE_FOUND |
+| C1 Bounded closeout (`bounded-reconciliation`; C1-A, C1-B, C1-C): commitment ↔ result per deliverable; proposed SoW, register and basis items for a later amendment | `closeout/` | P2 | Account written; proposals not applied | COMPLETE — [CLOSEOUT_ACCOUNT](../../AgentRuns/APP-V4-DESIGN-PASS-2-20260930/closeout/CLOSEOUT_ACCOUNT.md): 43 SoW, 65 register, 5 basis proposals, 1 new held arc; none applied |
+| G Items returned by the closeout (R16) | Design files; RELAY metadata; OBS redaction; HANDOFF IN-30; `closeout/G.md` | C1 | R16 applied | COMPLETE `153a7c533` |
+| H LOOP panel-needs gaps; current pins | LOOP, PANEL, HOSTING, GUIDE, RELAY metadata, CA, RS mapping; `closeout/H.md` | G | 17/17 supplied; GUIDE 18/18 | COMPLETE (this commit) |
+| V20 Final review (V20-A pair check and Design edits; V20-B closeout and records) | `reviews/V20-*.md` | H | Verdict covering the candidate | ACTIVE |
+| F Receipt, MEMORY rows, final PR and its review | `RECEIPT.md`; 14 `MEMORY.md` | C1 | Final PR merged | ACTIVE — receipt and 14 MEMORY rows written; final PR after V20 |
 
 ## Holds and owner-held choices
 
@@ -108,6 +111,6 @@ States: PLANNED, READY, ACTIVE, BLOCKED, UNCERTAIN, COMPLETE.
 
 ## Next safe action
 
-When C1-A, C1-B and C1-C return: write the closeout account with the
-consolidated proposals, run D0, write the receipt and the 14 MEMORY rows,
-then the final review and the final PR.
+When V20 returns: repair any blocking finding and recheck it; then open the
+final PR with the CI monitor and auto-merge on. The undertaking ends when it
+merges.
