@@ -75,3 +75,56 @@ For each deliverable, report:
 End with: the owner choices across your two deliverables, merged and ranked
 by how much design text depends on them; and any structural question that
 could force a later restructuring of a first-increment Design file.
+
+## D — design nodes, round 1 (six Type 2 in parallel, disjoint fences)
+
+**Binding, in addition to the common rules:** DECISION-K3 as revised
+([OWNER_DECISIONS.md](OWNER_DECISIONS.md)); [R17_RESOLUTIONS.md](R17_RESOLUTIONS.md);
+the survey for your deliverable (`SURVEY/S1-A.md`, `S1-B.md`, `S1-C.md`),
+whose design-scope section is your starting list, overridden by R17 where
+they differ.
+
+**Produce** (R17-1): the Design file(s) named below at v0.1, with PROPOSED
+schemas (JSON Schema 2020-12, a valid and an invalid instance each) and a
+local prototype (Python 3 standard library or `node`; run it and record the
+command, date and output). Read the first-increment Design files you join
+with (the survey lists them) before writing; cite by section.
+
+**Do not:** edit any file outside your fence, including first-increment
+Design files (R17-14), ScopeOfWork, registers, `_STATUS.md` or `MEMORY.md`;
+run Codex or any model (OBS-2 does that); use the network.
+
+**Return file** `D/<ID>.md`: what was produced, by section; schemas and
+prototype with validation output; the join list for node F (file, section,
+old → what is now needed); cells marked "OBS-2 pending"; proposals for
+SCA-V4-003 (R17-15) in the closeout form (file, location, old → new, reason,
+source); new rows proposed, with direction and SCC effect (R17-10);
+UNRESOLVED; sha256 of every file written.
+
+| ID | Deliverable | Write fence (inside `PKG-01…/1_Working/<DEL>/Design/` or `PKG-02…/1_Working/<DEL>/Design/`) | Main file(s) | Notes |
+|---|---|---|---|---|
+| D1 | DEL-01-02 | its new `Design/` folder | `EXECUTION_AND_RECOVERY.md` | S1-A §1.6; R17-3 (owns the definitions), R17-4, K-4; R17-10 cycle guard |
+| D2 | DEL-01-03 | its new `Design/` folder | `NATIVE_PLANS_TOOLS_DELEGATION.md` | S1-A §2.6; K-5; R17-4 (checklist revisions not copied); K-10 (task-agent delegation shown); R17-9 plan acceptance; R17-10 |
+| D3 | DEL-01-04 | its new `Design/` folder | `NATIVE_INTERACTION_RECEIVING.md`, `APP_ACT_CONTROL.md` | S1-B A.6; R17-5, R17-6 (all act kinds incl. A15), R17-7, R17-9 no automatic decline; K-3 start display |
+| D4 | DEL-01-05 | its new `Design/` folder | `ACCOUNT_AND_PROVIDER_ACCESS.md`, `ACCOUNT_HOME_DECISION_RECORD.md` | S1-B B.6; K-1, K-2, K-3, K-12; no sign-in or key entry by anyone in this node |
+| D5 | DEL-02-02 | its new `Design/` folder | `WORKSPACE_AND_REGISTRATION.md` | S1-C A.6; K-6, K-7 (no draft trial runs: the journey's "try" step is an ordinary conversation), K-8, R17-11 |
+| D6 | DEL-02-04 | its new `Design/` folder | `ROLE_SUPPLY.md` | S1-C B.6; K-9, K-10, R17-8, R17-9 (untyped, child roles); the live-observation brief of S1-C B.6 item 3 is replaced by OBS-2 |
+
+## OBS-2 — local observations at 0.158.0 (one Type 2, in parallel with D)
+
+Scope and limits: [R17-16](R17_RESOLUTIONS.md). Method: reuse the OBS-1
+harness (`DEL-01-01/Design/prototype/obs1/`) and the brief
+`../APP-V4-DESIGN-PASS-2-20260930/WAVE_B/OBS-1_BRIEF.md` (§3 scratch layout,
+§6 network observation, §7 what may be sent, §8 stop conditions, §12
+redaction), adapted to items O-1…O-7.
+
+**Hard limits:** no sign-in, no API key or token anywhere, no download, no
+install, never `~/.codex` or any real Codex home, invented material only,
+only the scratch Codex binary and the installed LM Studio model
+`qwen/qwen3.5-9b`. If LM Studio is not serving, start the server with `lms`
+if that loads only an installed model; otherwise stop and return. A step that
+would need anything outside these limits is skipped and recorded as such.
+
+**Write fence:** scratch under `$TMPDIR/chirality-obs2-0.158.0`; one record
+`DEL-01-01/Design/OBS_2_0.158.0.md` (redacted as OBS-1's); harness scripts
+under `DEL-01-01/Design/prototype/obs2/`; the return file `D/OBS-2.md`.

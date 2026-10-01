@@ -92,3 +92,28 @@ https://claude.ai/artifact/Kfh49j4xbKi9sqZsf8XSGx (Version 1).
   (c) The App holds itself to less than DECISION-5 asks of a host's agent
   (only the chosen model service and allowed destinations), though that
   decision covers the agent's sending, not the supplier's own traffic.
+
+## DECISION-K3, revised (owner, exact, 2026-10-01)
+
+**Custody:** the owner's chat message to HELP_HUMAN, after HELP_HUMAN's
+reservations above (committed at `c258af7931`).
+
+> Never mind for K-10 and K-12 I will accept your previous recommendations.  Go forward with K-7 as instructed.  You may proceed.
+
+**Effects, replacing the K-10 and K-12 bullets of DECISION-K3:**
+
+- **K-10:** the option marked "recommended". The task role's guidance states
+  that a task agent does not delegate, labelled "stated, not enforced"; any
+  delegation a task agent makes is recorded and shown; the App does not
+  override the user's Codex configuration to enforce it.
+- **K-12:** the option marked "recommended". The App turns off whatever
+  Codex's settings allow, shows the rest in its network view, and records
+  it; the design names which is which.
+- **K-7:** unchanged: only registered revisions run; drafts are tried out in
+  conversation.
+- "You may proceed": the design nodes start.
+
+So, finally: K-1…K-6 and K-8…K-12 as recommended; K-7 the owner's
+alternative. HELP_HUMAN's K-10 and K-12 reservations no longer apply; the
+K-12 point that Codex does not report its own connections remains a design
+matter for DEL-01-05.
